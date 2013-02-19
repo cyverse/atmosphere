@@ -90,7 +90,11 @@ Atmo.Views.VolumeScreen = Backbone.View.extend({
             body += '<select name="broken_volume">';
                 // Loop through all volumes
                 for (var i = 0; i < Atmo.volumes.models.length; i++) {
-                    body += '<option value="' + Atmo.volumes.models[i].get('id') + '">' + Atmo.volumes.models[i].get('name_or_id') + '</option>';
+                    body += '<option value="' + Atmo.volumes.models[i].get('id') + '">' + Atmo.volumes.models[i].get('name_or_id');
+						// If the volume has a name, show ID in parens
+						if (Atmo.volumes.models[i].get('name') != Atmo.volumes.models[i].get('id'))
+							body += ' (' + Atmo.volumes.models[i].get('id') + ')';
+					body += '</option>';
                 }
             body +='</select>';
             body += '</div></div>';
@@ -145,7 +149,7 @@ Atmo.Views.VolumeScreen = Backbone.View.extend({
 
                     }
 
-                    console.log(data["message"]);
+					data["message"] += '\n\n' + 'Provider ID: ' + Atmo.profile.get('selected_identity').get('provider_id') + '\n';
 
                     $.ajax({
                         type: 'POST',
