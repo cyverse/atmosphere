@@ -21,7 +21,7 @@ def lookupUser(userid):
         user_attrs = attr[0][1]
         return user_attrs
     except Exception as e:
-        logger.warn("Error occurred looking up user: " % userid)
+        logger.warn("Error occurred looking up user: %s" % userid)
         logger.warn(e)
         return None
 
