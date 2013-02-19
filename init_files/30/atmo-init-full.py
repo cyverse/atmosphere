@@ -193,13 +193,15 @@ def vnc(user, distro):
             return
         #ASSERT: VNC server installed on this machine
         if distro == 'rhel5':
+            run_command(['/usr/bin/yum','-qy','remove','vnc-E','realvnc-vnc-server'])
             download_file('%s/init_files/%s/VNC-Server-5.0.4-Linux-x64.rpm' % (ATMOSERVER,SCRIPT_VERSION), "/opt/VNC-Server-5.0.4-Linux-x64.rpm", match_hash='0c59f2d84880a6848398870e5f0aa39f09e413bc')
             run_command(['/bin/rpm','-Uvh','/opt/VNC-Server-5.0.4-Linux-x64.rpm'])
         else:
             download_file('%s/init_files/%s/VNC-Server-5.0.4-Linux-x64.deb' % (ATMOSERVER,SCRIPT_VERSION), "/opt/VNC-Server-5.0.4-Linux-x64.deb", match_hash='c2b390157c82fd556e60fe392b6c5bc5c5efcb29')
             run_command(['/usr/bin/dpkg','-i','/opt/VNC-Server-5.0.4-Linux-x64.deb'])
-        run_command(['/usr/bin/vnclicense','-add','7TLA2-342D5-T3HBH-DHNAC-N9Z8A'])
-        download_file('%s/init_files/%s/vnc-config.sh' % (ATMOSERVER,SCRIPT_VERSION), os.environ['HOME'] + '/vnc-config.sh', match_hash='82e5f3c701eaacc86fcd9b302559fbadf823ae69')
+        time.sleep(1)
+        run_command(['/usr/bin/vnclicense','-add','7S532-626QV-HNJP4-2H7CQ-W5Z8A'])
+        download_file('%s/init_files/%s/vnc-config.sh' % (ATMOSERVER,SCRIPT_VERSION), os.environ['HOME'] + '/vnc-config.sh', match_hash='37b64977dbf3650f307ca0d863fee18938038dce')
         run_command(['/bin/chmod','a+x', os.environ['HOME'] + '/vnc-config.sh'])
         run_command([os.environ['HOME'] + '/vnc-config.sh'])
         run_command(['/bin/su','%s' % user, '-c', '/usr/bin/vncserver'])

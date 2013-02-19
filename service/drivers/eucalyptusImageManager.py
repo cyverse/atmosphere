@@ -269,7 +269,7 @@ class ImageManager():
         """
         #SCP remote file only if file does not exist locally
         if not os.path.exists(local_img_path):
-            nodes = self._build_instance_nc_map()
+            (nodes,instances) = self._build_instance_nc_map()
             node_controller_ip = nodes[instance_id]
             logger.info("Instance found on Node: %s" % node_controller_ip)
             return self._node_controller_scp(node_controller_ip, remote_img_path, local_img_path)
@@ -542,6 +542,7 @@ class ImageManager():
         boto_instances = self.image_conn.get_list("DescribeNodes", {}, [('euca:item',Instance)], '/')
         last_node = ''
         nodes = {}
+        instances = {}
         for inst in boto_instances:
             if hasattr(inst, 'euca:name'):
                 last_node = getattr(inst, 'euca:name')
@@ -549,7 +550,12 @@ class ImageManager():
                 continue
             instance_id = getattr(inst, 'euca:entry')
             nodes[instance_id] = last_node
-        return nodes
+            if instances.get(last_node):
+                instance_list = instances[last_node] 
+                instance_list.append(instance_id)
+            else:
+                instances[last_node] = [instance_id]
+        return (nodes, instances)
 
     """
     Indirect Download Image Functions - These functions are called indirectly during the 'download_image' process. 

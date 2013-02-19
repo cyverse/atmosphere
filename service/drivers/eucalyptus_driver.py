@@ -7,7 +7,7 @@ from datetime import datetime
 
 from hashlib import sha256
 
-from libcloud.utils.xml import findall, findtext, findattr
+from libcloud.utils.xml import fixxpath, findall, findtext, findattr
 from libcloud.compute.base import NodeSize, StorageVolume, NodeImage
 from libcloud.compute.types import Provider
 from libcloud.compute.drivers.ec2 import EucNodeDriver, EucConnection, NAMESPACE
@@ -113,7 +113,7 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
        )
        return n
 
-    def _to_node(self, api_node, groups=None):
+    def _to_node(self, api_node, groups=None, owner=None):
         def _set_ips(node):
             """
             Set up ips in the return node after _to_node calls it's super.
@@ -123,6 +123,8 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
             node.private_ips.append(node.extra.get('private_dns','0.0.0.0'))
             return node
         node = super(Eucalyptus_Esh_NodeDriver, self)._to_node(api_node,groups)
+        if owner:
+            node.extra['ownerId'] = owner
         node = _set_ips(node)
         return node
 
@@ -192,6 +194,33 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
         for vol in element_volumes:
             volumes.append(self._to_volume(vol))
         return volumes
+    def _to_nodes(self, object, xpath, groups=None, owner=None):
+        return [self._to_node(el, groups=groups, owner=owner)
+                for el in object.findall(fixxpath(xpath=xpath,
+                                                  namespace=NAMESPACE))]
+    def list_nodes(self, ex_node_ids=None):
+        """
+        Specific eucalyptus implementation to include 'owner' in the extra
+        """
+        params = {'Action': 'DescribeInstances'}
+        if ex_node_ids:
+            params.update(self._pathlist('InstanceId', ex_node_ids))
+        elem = self.connection.request(self.path, params=params).object
+        nodes = []
+        for rs in findall(element=elem, xpath='reservationSet/item',
+                          namespace=NAMESPACE):
+            owner = findtext(element=rs, xpath='ownerId', namespace=NAMESPACE)
+            groups = [g.findtext('')
+                      for g in findall(element=rs,
+                                       xpath='groupSet/item/groupId',
+                                       namespace=NAMESPACE)]
+            nodes += self._to_nodes(rs, 'instancesSet/item', groups, owner)
+
+        nodes_elastic_ips_mappings = self.ex_describe_addresses(nodes)
+        for node in nodes:
+            ips = nodes_elastic_ips_mappings[node.id]
+            node.public_ips.extend(ips)
+        return nodes
 
     def list_volumes(self):
         """
