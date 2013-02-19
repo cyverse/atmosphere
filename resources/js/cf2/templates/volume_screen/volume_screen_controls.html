@@ -1,0 +1,21 @@
+
+	<div class="row-fluid">
+
+		<div class="span6">
+			<h3>Create a Volume</h3>
+				<form name="create_volume_form" class="form-inline" style="margin-bottom: 0px">
+					<input type="text" autocomplete="off" allowblank="false" name="new_volume_name" placeholder="New_Volume_Name" title="New Volume Name" />
+					<div class="input-append"><input type="number" style="width: 40px" name="new_volume_size" value="0" min="0" max="100" allowblank="false" title="Volume Size" /><span class="add-on">GB</span></div>
+                    <button type="submit" name="create_volume" class="btn btn-primary">Create Volume</button>
+					<div class="help-block" id="volume_creation_errors"></div>
+				</form>
+		</div>
+		<div class="span6">
+			<h3>Attach/Detach a Volume</h3>
+				<form name="attach_detach_volume" class="form-inline">
+					<select style="width: 150px" name="all_volumes" disabled="disabled">
+						<option value="">You have no volumes</option>
+					</select>
+				</form>
+		</div>
+	</div>

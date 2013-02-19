@@ -1,0 +1,135 @@
+<h1>Settings</h1>
+<h2>My Cloud Identities</h2>
+
+<div class="accordion" id="providers">
+	<!-- comment -->
+    <div class="accordion-group">
+        <div class="accordion-heading" style="background-color: #FFF">
+            <a class="accordion-toggle" data-toggle="collapse" data-parent="#providers" href="#add_provider">
+                Add New Cloud Identity
+                <span class="caret"></span>
+            </a>
+        </div>
+        <div id="add_provider" class="accordion-body collapse">
+            <div class="accordion-inner">
+                <h2>Add a New Cloud Identity</h2>
+                <div class="row-fluid">
+                    <div class="span11 offset1">
+                        <form name="add_new_identity">
+							<label for="cloud_provider">Select a Provider</label>
+                            <select name="cloud_provider">
+                                <option value="iPlant OpenStack">iPlant OpenStack</option>
+                                <!--<option value="rackspace">Rackspace</option>-->
+                            </select>
+							<span id="additional_fields" style="display: none">
+									<label for="login">Username</label>
+									<input type="text" name="login" class="span5" />
+									<label for="key">Password</label>
+									<input type="password" name="key" class="span5" />
+									<label for="alias">Alias</label>
+									<input type="text" name="alias" class="span5" />
+									<span class="help-block">An alias helps you distinguish multiple accounts with the same provider.</span>
+							</span>
+                    </div>
+                </div>
+                            <div class="form-actions">
+                                <div class="row-fluid">
+                                    <div class="span11 offset1">
+                                        <input type="submit" class="btn btn-primary" id="request_new_identity" value="Request New Identity"> 
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<hr />
+<h2>Preferences</h2>
+
+<h3>Instance Launch</h3>
+<div class="row-fluid">
+    <div class="span1"></div>
+    <div class="span11">
+        <form name="settings">
+           <!-- <label for="default_vnc">Default VNC Window Size<br />
+            <select name="default_vnc">
+                <option value="800x600">800x600 (default)</option> 
+                <option value="1024x768">1024x768</option>
+                <option value="1280x800">1280x800</option> 
+            </select></label>
+
+            <label for="default_provider">Default Provider<br />
+            <select name="default_provider">
+                <option>iPlant Eucalyptus</option>
+            </select>
+            </label>
+
+            <label for="default_size">Default Instance Size<br />
+            <select name="default_size"></select>
+            </label>-->
+
+            <label class="checkbox" for="quick_launch">
+                <input type="checkbox" value="true" name="quick_launch"> Enable double click to launch instance
+            </label>
+            <label class="checkbox" for="send_emails">
+                <input type="checkbox" value="true" name="send_emails"> Receive email notification when instance finishes launching
+            </label>
+        </form>
+    </div>
+</div>
+<h3>Appearance</h3>
+<div class="row-fluid">
+    <div class="span1"></div>
+    <div class="span11">
+            <!--<label for="background">Background Image</label>
+            <ul class="thumbnails">
+                <li>
+                    <a href="#settings" class="thumbnail">
+                        <img src="<%= site_root %>/resources/images/settings_bg_default.png" alt="Default" />
+                    </a>
+                </li>
+            </ul>-->
+            <label for="icon_set">Image and Instance Icon Set</label>
+            <ul class="thumbnails" id="icon_set_icons" style="text-align: center">
+                <li>
+                    <a href="#settings" class="thumbnail" data-iconset="default">
+                        <img src="https://www.gravatar.com/avatar/4dada4e6ac8298336c7063ae603ea86d?d=identicon&s=50" alt="Identicons" />
+                        Identicons
+                    </a>
+                </li>
+                <li>
+                    <a href="#settings" class="thumbnail" data-iconset="retro">
+                        <img src="https://www.gravatar.com/avatar/45181758ca2dd4278b8246a170d3f4e5?d=retro&s=50" alt="Retro" />
+                        Retro
+                    </a>
+                </li>
+                <li>
+                    <a href="#settings" class="thumbnail" data-iconset="robot">
+                        <img src="https://robohash.org/45181758ca2dd4278b8246a170d3f4e5?size=50x50" alt="Robot" />
+                        Robots
+                    </a>
+                </li>
+                <li>
+                    <a href="#settings" class="thumbnail" data-iconset="unicorn">
+                        <img src="https://unicornify.appspot.com/avatar/45181758ca2dd4278b8246a170d3f4e5?&s=50" alt="Unicorn" />
+                        Unicorns
+                    </a>
+                </li>
+                <li>
+                    <a href="#settings" class="thumbnail" data-iconset="monster">
+                        <img src="https://www.gravatar.com/avatar/45181758ca2dd4278b8246a170d3f4e5?d=monsterid&s=50" alt="Monster" />
+                        Monsters
+                    </a>
+                </li>
+                <li>
+                    <a href="#settings" class="thumbnail" data-iconset="wavatar">
+                        <img src="https://www.gravatar.com/avatar/45181758ca2dd4278b8246a170d3f4e5?d=wavatar&s=50" alt="Wavatar" />
+                        Wavatars
+                    </a>
+                </li>
+            </ul>
+    </div>
+</div>

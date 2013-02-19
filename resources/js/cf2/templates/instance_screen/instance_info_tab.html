@@ -1,0 +1,51 @@
+<div class="row-fluid">
+	<div class="span6">
+		<img class="image_icon" id="main_icon" src="<%= image_url %>" />
+
+		<h2 class="editable" data-type="instance_name"><%= name_or_id %> </h2>
+        <%= public_dns_name %>
+	</div>
+
+	<div class="span6 instance_controls_container">
+		<div id="volumes_dropdown_container" class="btn-group" style="display: inline-block">
+            <a class="btn" href="#volumes"><i class="icon-hdd"></i> Volumes</a>
+			<a class="btn dropdown-toggle" data-toggle="dropdown" href="#"><span class="caret"></span></a>
+			<ul class="dropdown-menu drop-left" style="text-align: left; margin-right: 0" id="volumes_dropdown">
+			</ul>
+		</div>
+		<div class="btn-group" style="display: inline-block">		
+			<button class="btn request_imaging_btn"><i class="icon-camera"></i> Request Imaging</button>
+			<button class="btn report_instance_btn"><i class="icon-share"></i> Report</button>
+			<button class="btn terminate_instance"><i class="icon-remove"></i> Terminate</button>
+		</div>
+    </div>
+</div>
+
+<!--
+<hr style="margin-bottom: 10px;" />
+	<div id="instance_tags" class="row-fluid" style="position: relative">
+	</div>
+
+<hr style="margin-bottom: 0px"/>
+-->
+<div class="row-fluid">
+	<div class="span3">
+        <Br />
+		<dl id="instance_details">
+            <!--    <dt>IP Address:</dt> <dd><%= public_dns_name %></dd>-->
+          <dt>ID:</dt> <dd><%= id %></dd>
+          <dt>Based on Image:</dt> <dd><%= image_name %><br />(<%= image_id %>)</dd>
+          <dt>Size:</dt> <dd><%= type %></dd>
+          <dt>Date Launched:</dt> <dd><%= launch_time.toString("MMM d, yyyy") %> (<%= launch_relative %>)</dd>
+          <dt>Tags:</dt> <dd>
+            <div id="instance_tags" class="row-fluid" style="position: relative">
+            </div>
+            </dd>
+        </dl>
+	</div>
+
+	<div class="span9">
+        <h3>Instance Metrics</h3>
+		<div class="instance_graph" data-instance_id="<%= id %>"></div>
+	</div>
+</div>

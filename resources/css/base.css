@@ -1,0 +1,171 @@
+@charset "UTF-8";
+/* CSS Document */
+
+/*
+	browser/display standard:
+	Basic feature : should work resolution 1024x768 or more. 
+	Advanced feature (ie.monitoring) : should work resultion 1280x800 or more
+*/
+
+html, body {
+	height: 100%;
+}
+
+body {
+	background-color: #FFFFFF;
+	color: #000000;
+	font-family: Univers, Calibri, "Gill Sans", "Gill Sans MT", "Myriad Pro", Myriad, "DejaVu Sans Condensed", "Liberation Sans", "Nimbus Sans L", Tahoma, Geneva, "Helvetica Neue", Helvetica, Arial, sans-serif;
+	font-size: 14px;
+	padding: 0px;
+	margin: 0px;
+	min-height: 768px;
+	min-width: 924px;
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+#header {
+	height: 25px;
+	border-bottom: #0098aa 3px solid;
+	/* For WebKit (Safari, Google Chrome etc) */
+	background: -webkit-gradient(linear, left top, right bottom, from(#FFFFFF), to(#77AA22));
+	/* For Mozilla/Gecko (Firefox etc) */
+	background: -moz-linear-gradient(left, #FFFFFF, #77AA22);
+	/* For Internet Explorer 5.5 - 7 */
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=#FFFFFF, endColorstr=#77AA22);
+	/* For Internet Explorer 8 */
+	-ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr=#FFFFFF, endColorstr=#77AA22)";
+	padding-left: 0px;
+	padding-right: 0px;
+	padding-bottom: 10px;
+	padding-top: 10px;
+	left: 0px;
+	right: 0px;
+	position: relative;
+
+	top: 0px;
+	min-width: 924px;
+	width: 100%
+}
+
+.header_logo {
+	padding-left: 20px;
+	width: 120px;
+	float:left;
+}
+
+.header_title {
+	height:25px;
+	//border: red 1px solid; 
+	font-size: 1.3em;
+	float: left;
+	padding-left: 10px;
+	padding-top: 5px;
+}
+
+#footer {
+	//background-image: url(/site_media/images/greenbg.jpg);
+	background-repeat:repeat-y;
+	background-position: left;
+	//background-color: #356a00;
+	/* For WebKit (Safari, Google Chrome etc) */
+	background: -webkit-gradient(linear, left top, right bottom, from(#FFFFFF), to(#77AA22));
+	/* For Mozilla/Gecko (Firefox etc) */
+	background: -moz-linear-gradient(left, #FFFFFF, #77AA22);
+	/* For Internet Explorer 5.5 - 7 */
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=#FFFFFF, endColorstr=#77AA22);
+	/* For Internet Explorer 8 */
+	-ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr=#FFFFFF, endColorstr=#77AA22)";
+	
+	font-size: 13px;
+	border-top: #0098aa 3px solid;
+	margin: 0,0,0,0;
+	padding-top: 10px;
+	padding-bottom: 10px;
+	text-align: center;
+	width: 100%;
+	bottom: 0px;
+	left: 0px;
+	padding-left: 0px;
+	padding-right: 0px;
+	left: 0px;
+	right: 0px;
+}
+
+#wrapper {
+	position: relative;
+	padding: 0px;
+}
+
+.content {
+	border: #999 1px double;
+	//background-image:url(/site_media/images/bg.jpg);
+	background-repeat: repeat-x;
+	background-color: #DDDDDD;
+	font-family: inherit;
+	text-align: left;
+	padding: 20px;
+	position: relative;
+	margin-top: 50px;
+	margin-left: auto;
+	margin-right: auto;
+	font-size: 12px;
+
+}
+
+#navigator {
+	position: relative;
+	text-align: left;
+	position: relative;
+	margin-top: 3px;
+	margin-left: 3px;
+	width: 100%;
+	font-size: 13px;
+
+}
+
+.fg-button { 
+   outline: 0; 
+   margin:0 4px 0 0; 
+   padding: .4em 1em; 
+   text-decoration:none !important; 
+   cursor:pointer; 
+   position: relative; 
+   text-align: center; 
+   zoom: 1; 
+}
+
+.hover (
+	function(){ 
+		$(this).addClass("ui-state-hover"); 
+	},
+	function(){ 
+		$(this).removeClass("ui-state-hover"); 
+	}
+)
+
+.fg-toolbar { padding: .5em; margin: 0; width:50%; }
+.fg-toolbar .fg-buttonset { margin-right:1.5em; padding-left: 1px; }
+.fg-toolbar .fg-button { font-size: 1em;  }
+
+
+#login {
+	width: 300px;
+	padding: 10px;
+}
+
+#greeting {
+		height: auto;
+		height: 100%;
+		margin-left: 10px;
+		margin-right: 10px;
+		padding-top: 6px;
+		padding-bottom: 6px;
+		padding-left: 6px;
+		padding-right: 6px;
+		text-align: left:
+}
+
+#greeting p {
+		text-align: left;
+}

@@ -1,0 +1,77 @@
+body {
+	padding-top: 60px;
+	padding-bottom: 40px;
+}
+#level-toggles {
+	margin-top: 0px;
+	position: relative;
+	top: 6px;
+}
+.navbar-search {
+	margin-right: 10px;
+}
+
+/* Logs */
+#logs-table {
+	table-layout: fixed;
+}
+#logs-table #datetime-col {
+	width: 190px;
+}
+#logs-table #level-col {
+	width: 65px;
+}
+#logs-table #message-col {
+	width: 100%;
+}
+#logs-table td .origin {
+	color: #999;
+}
+#logs-table tr[data-level_name] {
+	border-left-width: 4px;
+	border-left-color: #000;
+	border-left-style: solid;
+}
+#logs-table tr[data-level_name="DEBUG"] {
+	border-left-color: #999;
+}
+#logs-table tr[data-level_name="INFO"] {
+	border-left-color: #3a87ad;
+}
+#logs-table tr[data-level_name="WARNING"] {
+	border-left-color: #f89406;
+}
+#logs-table tr[data-level_name="ERROR"] {
+	border-left-color: #b94a48;
+}
+#logs-table tr[data-level_name="CRITICAL"] {
+	border-left-color: #333;
+}
+
+tr#new-logs td:before {
+        content: "\0020";
+        display: block;
+        position: absolute;
+        width: 100%;
+        height: 1px; /* when 0 no shadow is displayed*/
+        box-shadow: #696c5c 0 0 8px 0;
+        left: 0;
+}
+tr#new-logs td:before {
+        top: -1px;
+}
+#new-logs td {
+	padding: 0;
+	border-left: 4px solid #3A87AD;
+	position: relative;
+	overflow: hidden;
+}
+#new-logs a {
+	display: block;
+	background-color: #f6f6f6;
+	padding: 8px;
+	cursor: pointer;
+}
+#new-logs a:hover {
+	text-decoration: none;
+}

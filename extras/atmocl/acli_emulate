@@ -1,0 +1,87 @@
+#! /Users/jmatt/.pythonbrew/pythons/Python-2.7.2/bin/python
+"""Use the atmosphere API emulating another user.
+
+Usage: python atmosphere.py [options] [command]
+
+Options:
+  -u, --username      Your atmosphere username.
+  -p, --password      Your atmosphere password.
+  -t, --token         A user token to use when emulating.
+  -e, --emulate       Emulate this atmosphere user.
+  -h, --help          Show this help.
+  -d                  Show debugging information while crunching.
+
+This program requires that the user is in the ldap core-services group.
+"""
+
+import os
+import sys
+import getopt
+import subprocess
+
+__author__ = "J. Matt Peterson"
+__version__ = "$Revision: 0.1.1"
+__date__ = "$Date: Tue Jan  3 13:14:07 2012 $"
+
+_debug = False
+
+def auth_emulate(username, password, emulate, token):
+    return "239490DFKALS"
+
+def atmocl(username, password, emulate, command, token=None):
+    if _debug:
+        print "[method] atmocl / parameters"
+        parameters = ""
+        for k, v in [("username", username),
+                     ("password", password),
+                     ("emulate", emulate),
+                     ("command", command),
+                     ("token", token)]:
+            parameters += k + " = " + str(v) + ", "
+        print "[parameters] = " + parameters[:-2]
+        print "[method] atmocl / start"
+
+    validated_token = None
+    if username and password and emulate and command:
+        if not token:
+            validated_token = auth_emulate(username, password, emulate, token)
+            print validated_token
+        if validated_token:
+            subprocess.call(["./acli", "-u=" + emulate, "-t=" + validated_token, command ])
+    else:
+        subprocess.call(["./acli", "--help"])
+   
+def usage():
+    print __doc__
+
+def main(argv):
+    username = None
+    password = None
+    token = None
+    emulate = None
+
+    try:
+        opts, args = getopt.getopt(argv, "hdu:p:t:e:", ["help", "debug", "username=", "password=", "token=", "emulate="])
+    except getopt.GetoptError:
+        print "Failed to parse arguments.\n"
+        usage()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            usage()
+            sys.exit()
+        elif opt in ("-d", "--debug"):
+            global _debug
+            _debug = True
+        elif opt in ("-u", "--username"):
+            username = arg
+        elif opt in ("-p", "--password"):
+            password = arg
+        elif opt in ("-t", "--token"):
+            token = arg
+        elif opt in ("-e", "--emulate"):
+            emulate = arg
+    atmocl(username, password, emulate, args[0], token)
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

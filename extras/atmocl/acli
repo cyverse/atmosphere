@@ -1,0 +1,2 @@
+#!/bin/bash
+java -cp ./atmocl/AtmoCL.jar org.iplantcollaborative.atmo.client.estevewrapper.AtmoCL $@ 2> /dev/null

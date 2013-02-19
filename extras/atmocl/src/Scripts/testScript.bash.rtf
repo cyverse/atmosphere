@@ -1,0 +1,63 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1038\cocoasubrtf350
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww9000\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\ql\qnatural\pardirnatural
+
+\f0\fs24 \cf0 echo "TEST 1 : LISTS"\
+\
+echo "TEST 1a: list Images"\
+images=`$runcmd $user $pass imageList`\
+echo $images\
+\
+echo "TEST 1b: list Instances"\
+insts=`$runcmd $user $pass instanceList`\
+echo $insts\
+myins=$(echo $insts |sed 's/\\(.*\\)./\\1/' |sed 's/.\\(.*\\)/\\1/' | cut -d',' -f 1)\
+\
+echo "TEST 1c: list Keypairs"\
+$runcmd $user $pass keypairList\
+\
+echo "TEST 1d: list Volumes"\
+vols=`$runcmd $user $pass volumeList`\
+echo $vols\
+myvol=$(echo $vols |sed 's/\\(.*\\)./\\1/' |sed 's/.\\(.*\\)/\\1/' | cut -d',' -f 1)\
+\
+echo "TEST 1e: list Apps"\
+apps=`$runcmd $user $pass AppList`\
+echo $apps\
+myapp=$(echo $apps |sed 's/\\(.*\\)./\\1/' |sed 's/.\\(.*\\)/\\1/' | cut -d',' -f 1)\
+\
+#echo "TEST 2 : VOLUME"\
+#echo "TEST 2a: create Volume"\
+#myvol=`$runcmd $user $pass createVolume`\
+#echo "Using test volume:"$myvol" with test instance:" $myins\
+#echo "TEST 2b: getInstanceID for $myins"\
+#myins=`$runcmd $user $pass getInstanceID $myins`\
+#echo "ID:$myins"\
+#echo "TEST 2c: attach Volume $myvol"\
+#$runcmd $user $pass attachVolume $myins $myvol\
+#echo "TEST 2d: Format & Mount volume"\
+#~/mountEBSto smgreg224 sdb /home/esteve/testEBS\
+#echo "TEST 2e: detach Volume"\
+#$runcmd $user $pass detachVolume $myvol\
+echo "TEST 2f: delete Volume"\
+#$runcmd $user $pass deleteVolume $myvol\
+\
+echo "TEST 3: Launch and Terminate"\
+\
+echo "TEST 3a: launch App $myapp"\
+#launchapp=`$runcmd $user $pass launchApp $myapp`\
+echo $launchapp\
+\
+echo "TEST 3b: launch Instance $myins"\
+#launchins=`$runcmd $user $pass launchInstance $myins`\
+echo $launchins\
+\
+echo "TEST 3c: terminate Instance"\
+$runcmd $user $pass terminateInstance $launchins\
+\
+echo "TEST 3d: terminate App"\
+$runcmd $user $pass terminateInstance $launchapp\
+\
+}

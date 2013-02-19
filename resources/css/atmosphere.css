@@ -1,0 +1,111 @@
+/** Holy Grail 3-Column Layout **/
+body {
+	min-width: 630px; /* 2x LC width + RC Width*/
+}
+#content {
+	padding-left: 200px; /* LC Width */
+       padding-right: 190px; /*RC Width */
+}
+#content .column {
+     position: relative;
+	float: left;
+	/*
+     overflow: auto;
+       height: 700px;
+	*/
+}
+article {
+	padding: 10px 20px; /*Center padding*/
+	width: 100%;
+}
+aside#left {
+	width: 180px;
+	padding: 0 10px;
+	right: 240px;
+  margin-left: -100%;
+}
+aside#right {
+	width: 130px;
+	padding: 0 10px;
+ margin-right: -100%;
+}
+footer {
+	clear: both;
+}
+/*** Fixes ***/
+* html #left {
+	left: 150px; /*IE6 Fix - RC Width */
+}
+/** Equal height columns */
+#content {
+	overflow: hidden;
+}
+
+#content .column {
+	padding-bottom: 1001em;
+	margin-bottom: -1000em;
+}
+/*** Footer Fix ***/
+* html body {
+	overflow: hidden;
+}
+* html #footer-wrapper {
+	float: left;
+	position: relative;
+	width: 100%;
+	padding-bottom: 10010px;
+	margin-bottom: -10000px;
+}
+/** Good looks **/
+body {
+	margin: 0;
+	padding: 0;
+}
+header, footer {
+	padding: 0.3em 0;
+	text-align: center;
+}
+#content .column {
+	padding-top: 1em;
+	text-align:justify;
+}
+/** LEFT related CSS */
+aside#left ul {
+	margin: 0;
+	padding: 0;
+	height: 100px;
+	overflow: auto;
+}
+aside#left li {
+	list-style:none;
+	margin: 0;
+	padding: 0;
+}
+/** RIGHT related CSS*/
+aside#right table {
+	width: 150px;
+	height: 300px;
+	overflow: auto;
+}
+/** App related CSS */
+#image-holder {
+	height: 300px;
+	border: 1px solid #728FCE; 
+	margin: 10px 10px 10px 10px;
+	overflow: auto;
+}
+.app_icon {
+	float:left;
+	width:80px;
+	height:140px;
+	overflow: hidden;
+  text-align: center;
+	color: #666;
+	margin: 0 15px;
+}
+
+#app-desc {
+	clear:both;
+	padding: 20px 0;
+}
+/**TABS Styling **/

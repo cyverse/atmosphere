@@ -1,0 +1,14 @@
+<ul class="tag_list">
+    <% _.each(tags, function(tag) { %>
+    <li data-tag="<%= tag %>"><a><%= tag %></a></li>
+    <% }); %>
+    <li class="edit_tags"><a class="tag_adder" title="Add a tag">Edit Tags</a></li>
+    <li class="tag_controls">
+        <form>
+            <input placeholder="New Tag" type="text" class="new_tag" /> 
+        </form>
+        <div class="add_tag_button">Add</div>
+        <div class="done_tagging_button">&#10004; Done</div>
+        <ul class="suggested_tags_holder"></ul>
+    </li>
+</ul>

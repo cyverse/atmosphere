@@ -1,0 +1,90 @@
+<h1>Request Imaging</h1>
+<p>Please read the <a href="https://pods.iplantcollaborative.org/wiki/x/oIZy" target="_blank">wiki page about requesting an image of your instance</a> before completing the form below.</p>
+<form class="request_imaging_form form-horizontal" method="post">
+    <div class="control-group">
+        <label for="name" class="control-label">Image Name</label>
+        <div class="controls">
+            <input type="text" name="name" class="span5" maxlength="30" size="15" />
+            <div class="help-block"><strong>Suggested Format:</strong> [Descriptive Name] [Your Username] [Version]
+			<br />Please limit name to 30 characters.</div>
+        </div>
+    </div>
+    <div class="control-group">
+        <label for="instance" class="control-label">Instance ID</label>
+        <div class="controls" style="position: relative; top: 8px"><%= id %></div>
+        <input type="hidden" name="instance" value="<%= id %>" />
+    </div>
+    <div class="control-group">
+        <label for="ip" class="control-label">IP Address</label>
+        <div class="controls" style="position: relative; top: 8px"><%= public_dns_name %></div>
+        <input type="hidden" name="ip_address" value="<%= public_dns_name %>" />
+    </div>
+    <div class="control-group">
+        <label for="provider" class="control-label">Cloud for Deployment</label>
+        <div class="controls">
+            <select name="provider">
+                <option value="2">OpenStack</option>
+                <option value="1">Eucalyptus</option>
+                <option value="3">Amazon EC2</option>
+            </select>
+            <div class="help-block">Select the cloud provider on which you plan to use this image.</div>
+        </div>
+    </div>
+    <div class="control-group">
+        <label for="description" class="control-label">Description of the Image</label>
+        <div class="controls">
+            <textarea name="description" style="width: 80%" rows="4"></textarea>
+            <div class="help-block">Concisely describe the tools installed and their purpose. Please include key words that will help users search for this image and decide whether it will suit their needs.</div>
+        </div>
+    </div>
+    <div class="control-group">
+        <label for="software" class="control-label">List Installed Software</label>
+        <div class="controls">
+            <textarea name="software" style="width: 80%" rows="4"></textarea>
+            <div class="help-block">List any software that you have installed. If the paths to the executables are different from /usr/bin or /usr/local/bin, list those also.</div>
+        </div>
+    </div>
+    <div class="control-group">
+        <label for="sys" class="control-label">iPlant-managed System Files</label>
+        <div class="controls">
+            <textarea name="sys" style="width: 80%" rows="4"></textarea>
+            <div class="help-block">If your VM image requires a change in an iPlant-managed system file (see <a href="https://pods.iplantcollaborative.org/wiki/x/oIZy" target="_blank">Important Notes #4</a>), let us know the change and why the change is necessary.</div>
+        </div>
+    </div>
+    <div class="control-group">
+        <label for="sys" class="control-label">Files to exclude</label>
+        <div class="controls">
+            <textarea name="exclude" style="width: 80%" rows="4"></textarea>
+            <div class="help-block">If your instance has files you'd like to exclude from the image, list them here.  Write one path per line.</div>
+        </div>
+    </div>
+    <div class="control-group">
+        <label for="tags" class="control-label">Image Tags</label>
+        <div class="controls tagger_container">
+            <input type="hidden" name="tags" class="tag_input" />
+            <div class="help-block">Please include tags that will help users decide whether this image will suit their needs. You can include the operating system, installed software, or configuration information. E.g. Ubuntu, NGS Viewers, MAKER, QIIME, etc.</div>
+        </div>
+    </div>
+    <div class="control-group">
+        <label for="vis" class="control-label">Image Visibility</label>
+        <div class="controls">
+            <select name="vis">
+                <option value="private">Private</option>
+                <option value="public">Public</option>
+                <option value="select">Specific Users</option>
+            </select>
+            <div class="help-block" id="vis_help">A VM image can be made visible to you, a select group of users or to everyone. If you want visibility restricted to a select group of users, provide us a list of iPlant usernames. Public visibility means that any user will be able to launch the instance.</div>
+        </div>
+    </div>
+    <div class="control-group">
+        <div class="controls">
+			<label class="checkbox">
+				<input type="checkbox" id="licensed_software"/> I certify that this image does not contain license-restricted software that is prohibited from being distributed within a virtual or cloud environment.
+			</label>
+        </div>
+    </div>
+    <div class="form-actions">
+        <input type="submit" class="btn btn-primary request_image_submit" value="Request Imaging" />
+        <div class="help-block">Note: All volumes must be detached from an instance before it can be imaged.</div>
+    </div>
+</form>
