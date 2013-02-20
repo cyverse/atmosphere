@@ -30,7 +30,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 
 		this.mem_resource_chart = new Atmo.Views.ResourceCharts({
 			el: this.$el.find('#memHolder'), 
-			quota_type: 'mem'
+			quota_type: 'mem',
 		}).render();
 		this.cpu_resource_chart = new Atmo.Views.ResourceCharts({
 			el: this.$el.find('#cpuHolder'), 
@@ -268,8 +268,19 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 	update_resource_charts: function() {
 		var selected_instance_type = Atmo.instance_types.selected_instance_type;
 
-		var under_cpu = this.cpu_resource_chart.add_usage(selected_instance_type.attributes.cpus, "cpuHolder"); 
-		var under_mem = this.mem_resource_chart.add_usage(selected_instance_type.attributes.mem, "memHolder");
+		//if (Atmo.instances.models.length == 0)
+		var under_cpu = this.cpu_resource_chart.add_usage(
+			selected_instance_type.attributes.cpus, 
+			{ 
+				is_initial: (Atmo.instances.models.length == 0) ? true : false
+			}
+		); 
+		var under_mem = this.mem_resource_chart.add_usage(
+			selected_instance_type.attributes.mem,
+			{ 
+				is_initial: (Atmo.instances.models.length == 0) ? true : false
+			}
+		);
 
 		if ((under_cpu == false) || (under_mem == false)) {
 			this.$el.find('#launchInstance').attr('disabled', 'disabled');
