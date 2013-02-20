@@ -196,9 +196,15 @@ def vnc(user, distro):
             run_command(['/usr/bin/yum','-qy','remove','vnc-E','realvnc-vnc-server'])
             download_file('%s/init_files/%s/VNC-Server-5.0.4-Linux-x64.rpm' % (ATMOSERVER,SCRIPT_VERSION), "/opt/VNC-Server-5.0.4-Linux-x64.rpm", match_hash='0c59f2d84880a6848398870e5f0aa39f09e413bc')
             run_command(['/bin/rpm','-Uvh','/opt/VNC-Server-5.0.4-Linux-x64.rpm'])
+            run_command(['/bin/sed', '-i', "'$a account    include      system-auth'", '/etc/pam.d/vncserver.custom'])
+            run_command(['/bin/sed', '-i', "'$a password   include      system-auth'", '/etc/pam.d/vncserver.custom'])
         else:
             download_file('%s/init_files/%s/VNC-Server-5.0.4-Linux-x64.deb' % (ATMOSERVER,SCRIPT_VERSION), "/opt/VNC-Server-5.0.4-Linux-x64.deb", match_hash='c2b390157c82fd556e60fe392b6c5bc5c5efcb29')
             run_command(['/usr/bin/dpkg','-i','/opt/VNC-Server-5.0.4-Linux-x64.deb'])
+            with open('/etc/pam.d/vncserver.custom', 'w') as new_file:
+                new_file.write("auth include  common-auth")
+            with open('/etc/vnc/config.d/common.custom', 'w') as new_file:
+                new_file.write("PamApplicationName=vncserver.custom")
         time.sleep(1)
         run_command(['/usr/bin/vnclicense','-add','7S532-626QV-HNJP4-2H7CQ-W5Z8A'])
         download_file('%s/init_files/%s/vnc-config.sh' % (ATMOSERVER,SCRIPT_VERSION), os.environ['HOME'] + '/vnc-config.sh', match_hash='37b64977dbf3650f307ca0d863fee18938038dce')
