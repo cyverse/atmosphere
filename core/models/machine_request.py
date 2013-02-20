@@ -27,18 +27,18 @@ class MachineRequest(models.Model):
     status = models.CharField(max_length=256)
     parent_machine = models.ForeignKey("ProviderMachine", related_name="ancestor_machine")
     # Specifics for machine imaging.
-    iplant_sys_files = models.TextField()
-    installed_software = models.TextField()
-    exclude_files = models.TextField()
-    access_list = models.TextField()
+    iplant_sys_files = models.TextField(default='', blank=True)
+    installed_software = models.TextField(default='', blank=True)
+    exclude_files = models.TextField(default='', blank=True)
+    access_list = models.TextField(default='', blank=True)
 
     # Data for the new machine.
     new_machine_provider = models.ForeignKey(Provider)
     new_machine_name = models.CharField(max_length=256)
     new_machine_owner = models.ForeignKey(User)
     new_machine_visibility = models.CharField(max_length=256)
-    new_machine_description = models.TextField()
-    new_machine_tags = models.TextField()
+    new_machine_description = models.TextField(default='', blank=True)
+    new_machine_tags = models.TextField(default='', blank=True)
     #Date time stamps
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
@@ -47,4 +47,20 @@ class MachineRequest(models.Model):
     new_machine  = models.ForeignKey("ProviderMachine", null=True, blank=True, related_name="created_machine")
     class Meta:
         db_table = "machine_request"
+        app_label = "core"
+
+class MachineExport(models.Model): 
+    # The instance to export 
+    instance = models.ForeignKey("Instance") 
+    # Request related metadata 
+    status = models.CharField(max_length=256) 
+    #The exported image 
+    export_owner = models.ForeignKey(User) 
+    export_format = models.CharField(max_length=256) 
+    export_file = models.CharField(max_length=256, null=True, blank=True)
+    #Request start to image exported 
+    start_date = models.DateTimeField(default=timezone.now()) 
+    end_date = models.DateTimeField(null=True, blank=True) 
+    class Meta:
+        db_table = "machine_export"
         app_label = "core"
