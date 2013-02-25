@@ -1,0 +1,98 @@
+BODY {
+	background-image: url('../images/login_background.png');
+	background-color: #85dee4;
+	background-repeat: repeat-x;
+	text-align: center;
+	font-family: Univers,Calibri,"Gill Sans","Gill Sans MT","Myriad Pro",Myriad,"DejaVu Sans Condensed","Liberation Sans","Nimbus Sans L",Tahoma,Geneva,"Helvetica Neue",Helvetica,Arial,sans-serif !important;
+	font-size: 12px;
+	overflow-x: hidden;
+}
+
+img {
+	max-width: auto !important;
+}
+a {
+	cursor: pointer;
+	color: #0098aa;
+	text-decoration: none !important;
+	border-bottom: 1px dotted #0098aa;
+	font-weight: normal;
+	margin: 5px;
+}
+a:hover {
+	color: #0098aa;
+	border-bottom: 1px solid #0098aa;
+	text-decoration: none;
+}
+
+#wrapper {
+	position: absolute;
+	overflow: visible;
+	display: block;
+	width: 100%;
+	left: 0px;
+	top: 0px;
+}
+
+.submitButton {
+	margin-bottom: 10px;
+	background: #D96727;
+	border-radius: 2px;
+	border: 2px solid #FFF;
+	text-shadow: 0 -1px 0 rgba(0,0,0,0.15);
+	box-shadow:
+		0 0 0 1px #666 inset, /* Outer bevel */
+		0 0 0 2px #FFA876 inset, /* Inner bevel */
+		0 28px 32px -8px rgba(251,176,59,1) inset, /* Inner gradient */
+		1px 1px 3px rgba(0,0,0,0.2) /* Drop shadow */
+	;
+		color: #fff;
+	font-size: 14px;
+	font-family: Univers,Calibri,"Gill Sans","Gill Sans MT","Myriad Pro",Myriad,"DejaVu Sans Condensed","Liberation Sans","Nimbus Sans L",Tahoma,Geneva,"Helvetica Neue",Helvetica,Arial,sans-serif !important;
+	cursor: pointer;
+	padding: 15px 35px;
+	-webkit-border-radius: 5px;
+	-webkit-text-shadow: 0 -1px 0 rgba(0,0,0,0.15);
+	-webkit-box-shadow:
+		0 0 0 1px #666 inset, /* Outer bevel */
+		0 0 0 2px #FFA876 inset, /* Inner bevel */
+		0 28px 32px -8px rgba(251,176,59,1) inset, /* Inner gradient */
+		1px 1px 3px rgba(0,0,0,0.2) /* Drop shadow */
+	;
+}
+
+#login {
+	position: absolute;
+	top: 200px;
+}
+.maintenance-message {
+	border-radius: 3px;
+	background-color: rgb(233, 78, 78);
+	padding: 10px 20px;
+	display: inline-block;
+	color: #FFF;
+	letter-spacing: 0.1em;
+	margin-bottom: 10px;
+	color: rgb(243, 229, 229);
+	text-rendering: optimizeLegibility;
+	font-size: 1.2em;
+}
+.maintenance-message i {
+	margin-right: 10px;
+}
+h1, h2, h3 {
+	font-weight: normal;
+	line-height: inherit;
+}
+.login-box {
+	background-color: rgb(240, 253, 255);
+	padding: 30px;
+	margin: 10px;
+	border-radius: 3px;
+	box-shadow: 3px 3px 4px rgb(146, 192, 201);
+	width: 300px;
+}
+p {
+	font-size: 1.1em;
+	line-height: 1.3em;
+}
