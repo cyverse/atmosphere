@@ -523,7 +523,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
                     Atmo.Utils.notify("Instance Launched", "Your instance will be ready soon.");
 				},
 				error: function() {
-					Atmo.Utils.notify("Instance launch was unsuccessful", 'Please email your quota request to <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
+					Atmo.Utils.notify("Instance launch was unsuccessful", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
 				},
 			});
 		} else {
