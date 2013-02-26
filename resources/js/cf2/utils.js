@@ -12,18 +12,12 @@ Atmo.Utils.seconds_to_pretty_time = function(seconds, precision) {
 		precision = 1;
 
 	var periods = [ 
-		{'sec' : 31536000,
-		'unit' : ' year'},
-		{'sec' : 2592000,
-		'unit' : ' month'},
-		{'sec' : 86400,
-		'unit' : ' day'},
-		{'sec' : 3600,
-		'unit' : ' hour'},
-		{'sec' : 60,
-		'unit' : ' minute'},
-		{'sec' : 1, 
-		'unit' : ' second'}];
+		{'sec' : 31536000, 	'unit' : ' year'},
+		{'sec' : 2592000, 	'unit' : ' month'},
+		{'sec' : 86400, 	'unit' : ' day'},
+		{'sec' : 3600, 		'unit' : ' hour'},
+		{'sec' : 60, 		'unit' : ' minute'},
+		{'sec' : 1, 		'unit' : ' second'}];
 
 	var interval = 0;
 

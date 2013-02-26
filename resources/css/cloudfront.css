@@ -109,7 +109,8 @@ li {
 }
 #content > div {
     height: 100%;
-    overflow: auto;
+    overflow-y: auto;
+	overflow-x: hidden;
 }
 #footer {
     position: absolute;
@@ -162,6 +163,9 @@ li {
     .modal.fade.in {
         top: 1% !important;
     }
+	#money_saved {
+		display: none !important;
+	}
 }
 #header, #content {
 	margin: 0 auto;
@@ -610,8 +614,29 @@ textarea.error:focus {
 /* Left Menu */
 #sidebar {
 	text-align: center;
+	position: relative;
 	font-size: 12px;
 	font-family: Univers,Calibri,"Gill Sans","Gill Sans MT","Myriad Pro",Myriad,"DejaVu Sans Condensed","Liberation Sans","Nimbus Sans L",Tahoma,Geneva,"Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+#money_saved {
+	position: absolute;
+	bottom: 0;
+	background-color: #FFF;
+	padding: 10px 10px 10px 30px;
+	width: 100%;
+	box-sizing: border-box;
+	opacity: 0.8;
+}
+#money_saved:before {
+	content: '$';
+	position: absolute;
+	display: block;
+	top: 33%;
+	width: 10px;
+	height: 10px;
+	font-size: 24px;
+	color: #009245;
+	margin-left: -20px;
 }
 #menu_wrapper {
 	list-style: none;

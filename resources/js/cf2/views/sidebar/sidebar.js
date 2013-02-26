@@ -2,7 +2,7 @@ Atmo.Views.Sidebar = Backbone.View.extend({
 	'tagName': 'div',
 	events: {
 		'click #instance_link, #volume_link': 'select_link',
-		'click #refresh_instances_button' : 'refresh_instance_list'
+		'click #refresh_instances_button' : 'refresh_instance_list',
 	},
 	initialize: function() {
 		Atmo.instances.bind('change:selected', this.change_selection, this);
@@ -21,6 +21,30 @@ Atmo.Views.Sidebar = Backbone.View.extend({
 		new Atmo.Views.SidebarVolumeList({
 			el: this.$el.find('#volume_link_list'), 
 			collection: Atmo.volumes
+		});
+
+		var self = this;
+
+		// Show users how much money they've saved using Atmosphere
+		$.ajax({ 
+			url: '/api/leaderboard?username='+Atmo.profile.get('id'),
+			type: 'GET',
+			statusCode: {
+				200: function(data) {
+
+					var saved = '$'+(data[0]["total_saved"]).toCurrencyString()
+					var time = Atmo.Utils.seconds_to_pretty_time(data[0]["total_uptime"], 3);
+
+					$('#money_saved strong').html(saved);		
+					$('#money_saved a').click(function(e) {
+						e.preventDefault();
+						var header = 'Saving money with Atmosphere';
+						var body = 'By choosing iPlant\'s Cloud Service, Atmosphere, as your cloud provider, you have saved about <strong>' + saved + '</strong> since July 2012.<br /><br />';
+						body += 'Cumulatively, your instance(s) ran for <strong>' + time + '</strong>.';
+						Atmo.Utils.confirm(header, body, {});		
+					});
+				}
+			}	
 		});
 
 	},
