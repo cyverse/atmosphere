@@ -2,38 +2,61 @@
  * Global utilities file.  You can call these from anythwere!
  */
 
+Atmo.Utils.seconds_to_pretty_time = function(seconds, precision) {
+
+	// Precision refers to how many subdivisions of time to return
+
+	var pretty_time = "";
+	var units_used = 0;
+	if (precision == undefined)
+		precision = 1;
+
+	var periods = [ 
+		{'sec' : 31536000,
+		'unit' : ' year'},
+		{'sec' : 2592000,
+		'unit' : ' month'},
+		{'sec' : 86400,
+		'unit' : ' day'},
+		{'sec' : 3600,
+		'unit' : ' hour'},
+		{'sec' : 60,
+		'unit' : ' minute'},
+		{'sec' : 1, 
+		'unit' : ' second'}];
+
+	var interval = 0;
+
+	for (var i = 0; i < periods.length; i++) {
+		interval = Math.floor(seconds / periods[i]['sec']);	
+
+		if (interval >= 1) {
+			units_used++;
+			pretty_time += (pretty_time.length > 1) ? (', ' + interval + periods[i]['unit']) : (interval + periods[i]['unit']);
+			if (interval > 1) pretty_time += 's';
+
+			seconds = (seconds - (interval * periods[i]['sec']));
+
+			if (precision == units_used || seconds == 0 || i == periods.length) 
+				return pretty_time;
+		}
+	}
+	
+};
+
 Atmo.Utils.relative_time = function(date_obj) {
     var seconds = Math.floor((new Date() - date_obj) / 1000);
 
-    var interval = Math.floor(seconds / 31536000);
+	var time = Atmo.Utils.seconds_to_pretty_time(seconds, 1);
 
-    if (interval > 1) {
-        return interval + " years ago";
-    }
-    interval = Math.floor(seconds / 2592000);
-    if (interval > 1) {
-        return interval + " months ago";
-    }
-    interval = Math.floor(seconds / 86400);
-    if (interval > 1) {
-        return interval + " days ago";
-    }
-    interval = Math.floor(seconds / 3600);
-    if (interval > 1) {
-        return interval + " hours ago";
-    }
-    interval = Math.floor(seconds / 60);
-    if (interval > 1) {
-        return interval + " minutes ago";
-    }
-    return Math.floor(seconds) + " seconds ago";
-}
+	return time + ' ago';
+};
 
 Atmo.Utils.evil_chris_time_parse = function(str_date) {
   if(str_date && (typeof str_date == 'object') && str_date.length > 19) {
     return Date.parse(str_date.substring(0,19)).setTimezoneOffset(0);
   }  
-}
+};
 
 Atmo.Utils.hide_all_help = function() {
     $('[id^=help_]').popover('hide');
@@ -195,3 +218,8 @@ Atmo.Utils.confirm_detach_volume = function(volume, instance, options) {
     });
 };
 
+// To show people how much money they've saved by using Atmosphere!
+
+Number.prototype.toCurrencyString = function() {
+	return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/, '$1,');	
+};
