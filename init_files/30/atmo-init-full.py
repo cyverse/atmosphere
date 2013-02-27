@@ -286,8 +286,9 @@ def distro_files(distro, metadata):
         run_command(['/usr/bin/yum','-y','-q','install','emacs'])
     else:
         #Ubuntu path
-        download_file('http://www.iplantcollaborative.org/sites/default/files/atmosphere/motd','/etc/motd.tail', match_hash='8efe13180d63aa465b31289ba379457782f9f096')
+        download_file('http://www.iplantcollaborative.org/sites/default/files/atmosphere/motd','/etc/motd.tail', match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
         download_file('http://www.iplantcollaborative.org/sites/default/files/irods/irodsFs_v31.ubuntu10.x86_86', '/usr/local/bin/irodsFs.x86_64', match_hash='22cdaae144bad55f9840a704ef9f0385f7dc8274')
+        run_command(['/usr/bin/apt-get','-y','-q','install','vim'])
         #hostname = metadata['public-ipv4'] #kludge
         #run_command(['/bin/hostname', '%s' % hostname]) #kludge
     run_command(['/bin/chmod','a+x','/usr/local/bin/irodsFs.x86_64'])
@@ -324,7 +325,7 @@ def update_sshkeys():
         run_update_sshkeys(home_ssh_dir, sshkeys)
 
 def update_sudoers():
-    run_command(['/bin/sed','-i',"'s/^Defaults    requiretty/#Defaults    requiretty/'",'/etc/sudoers'])
+    run_command(['/bin/sed','-i',"s/^Defaults    requiretty/#Defaults    requiretty/",'/etc/sudoers'])
 
 def ldap_replace():
     run_command(['/bin/sed','-i',"s/128.196.124.23/ldap.iplantcollaborative.org/",'/etc/ldap.conf'])
@@ -336,7 +337,6 @@ def main(argv):
     instance_service_url = None
     servier = None
     user_id = None
-
     try:
         opts, args = getopt.getopt(argv, 
                                    "t:u:s:i:T:", 
