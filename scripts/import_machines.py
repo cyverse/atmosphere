@@ -5,9 +5,12 @@ import json
 from core.models import Machine, Provider, ProviderMachine
 from django.contrib.auth.models import User
 from datetime import datetime
+from pytz import timezone
 
-def convert_machine(machine_obj):
+
+def convert_old_machine(machine_obj):
     old_machine = machine_obj['fields']
+    print old_machine
     created_by = User.objects.filter(username=old_machine['image_ownerid'])
     if not created_by:
         created_by = User.objects.get(username='admin')
@@ -31,32 +34,33 @@ def convert_machine(machine_obj):
     }
     return (new_machine, new_provider_machine)
 
+def format_date(date_str):
+    if not date_str:
+        return None
+    try:
+        new_date = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S')
+    except ValueError, bad_format:
+        new_date = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%f')
+    new_date = new_date.replace(tzinfo=timezone('UTC'))
+    return new_date
+
 def update_provider_machine(provider_machine, machine_obj):
     machine = provider_machine.machine
     machine.name = machine_obj['name']
     machine.description = machine_obj['description']
-    try:
-        machine.start_date = datetime.strptime(machine_obj['start_date'], '%Y-%m-%dT%H:%M:%S')
-    except ValueError, bad_format:
-        machine.start_date = datetime.strptime(machine_obj['start_date'], '%Y-%m-%dT%H:%M:%S.%f')
-
-    try:
-        machine.end_date = datetime.strptime(machine_obj['end_date'], '%Y-%m-%dT%H:%M:%S') if machine_obj['end_date'] else None
-    except ValueError, bad_format:
-        machine.end_date = datetime.strptime(machine_obj['end_date'], '%Y-%m-%dT%H:%M:%S.%f') if machine_obj['end_date'] else None
+    machine.start_date = format_date(machine_obj['start_date'])
+    machine.end_date = format_date(machine_obj['end_date'])
     machine.featured = machine_obj['featured']
     machine.private = machine_obj['private']
     machine.save()
+    if machine.featured:
+        print machine
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print "Usage: import_machines.py machines_old.json"
-        sys.exit(1)
-
-    f = open(sys.argv[1], 'r')
+def main(filename):
+    f = open(filename, 'r')
     contents = f.read()
     old_machines = json.loads(contents)
-    new_machines = map(convert_machine, old_machines)
+    new_machines = map(convert_old_machine, old_machines)
     # new_machines is now a list of two-tuples of the form (core.models.Machine, core.models.ProviderMachine)
 
     euca = Provider.objects.get(location="EUCALYPTUS")
@@ -65,6 +69,7 @@ if __name__ == "__main__":
         #Does the ProviderMachine exist?
         if not machine_dict or not provider_machine_dict:
             continue
+        print machine_dict, provider_machine_dict
         provider_machine = ProviderMachine.objects.filter(identifier=provider_machine_dict['identifier'])
         if provider_machine:
             update_provider_machine(provider_machine[0], machine_dict)
@@ -77,3 +82,9 @@ if __name__ == "__main__":
             provider_machine.save()
 
     print str(len(new_machines)) + " machines added"
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print "Usage: import_machines.py machines_old.json"
+        sys.exit(1)
+    main(sys.argv[1])
