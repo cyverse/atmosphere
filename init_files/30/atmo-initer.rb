@@ -65,7 +65,7 @@ def main(args)
   atmo_token = args_dict['atmosphere']['token']
   atmo_userid = args_dict['atmosphere']['userid']
   atmo_instance_url = args_dict['atmosphere']['instance_service_url']
-  hashCheck("#{atmo_srv_download_prefix}/init_files/#{$version}/atmo-init-full.py", "4dcb4879feb61f925971eed18d8ccaead8044341", "/usr/sbin/atmo_init_full")
+  hashCheck("#{atmo_srv_download_prefix}/init_files/#{$version}/atmo-init-full.py", "45eaff10d10ee7de6a3213a87a2f30c95963661a", "/usr/sbin/atmo_init_full")
 
   IO.popen("/bin/chmod a+x /usr/sbin/atmo_init_full") { |f| }
   stdin, stdout, stderr, wait_thr = Open3.popen3('/usr/sbin/atmo_init_full --service_type="%s" --token="%s" --server="%s" --service_url="%s" --user_id="%s"' % [atmo_service_type, atmo_token, atmo_srv_download_prefix, atmo_instance_url, atmo_userid])

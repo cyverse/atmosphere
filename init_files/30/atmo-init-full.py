@@ -20,14 +20,15 @@ SCRIPT_VERSION=30
 def mkdir_p(path):
     try:
         os.makedirs(path)
-    except OSError as exc: # Python >2.5
+    except OSError, exc: # Python >2.5
         if exc.errno == errno.EEXIST and os.path.isdir(path):
             pass
         else: raise
 
 def touch(fname, times=None):
-    with file(fname, 'a'):
-        os.utime(fname, times)
+    f = open(fname, 'a')
+    f.close()
+    os.utime(fname, times)
 
 def init_logs(log_file):
     mkdir_p('/var/log/atmo/') # NOTE: Can't use run_command yet.
@@ -201,10 +202,12 @@ def vnc(user, distro):
         else:
             download_file('%s/init_files/%s/VNC-Server-5.0.4-Linux-x64.deb' % (ATMOSERVER,SCRIPT_VERSION), "/opt/VNC-Server-5.0.4-Linux-x64.deb", match_hash='c2b390157c82fd556e60fe392b6c5bc5c5efcb29')
             run_command(['/usr/bin/dpkg','-i','/opt/VNC-Server-5.0.4-Linux-x64.deb'])
-            with open('/etc/pam.d/vncserver.custom', 'w') as new_file:
-                new_file.write("auth include  common-auth")
-            with open('/etc/vnc/config.d/common.custom', 'w') as new_file:
-                new_file.write("PamApplicationName=vncserver.custom")
+            new_file = open('/etc/pam.d/vncserver.custom', 'w')
+            new_file.write("auth include  common-auth")
+            new_file.close()
+            new_file = open('/etc/vnc/config.d/common.custom', 'w')
+            new_file.write("PamApplicationName=vncserver.custom")
+            new_file.close()
         time.sleep(1)
         run_command(['/usr/bin/vnclicense','-add','7S532-626QV-HNJP4-2H7CQ-W5Z8A'])
         download_file('%s/init_files/%s/vnc-config.sh' % (ATMOSERVER,SCRIPT_VERSION), os.environ['HOME'] + '/vnc-config.sh', match_hash='37b64977dbf3650f307ca0d863fee18938038dce')
