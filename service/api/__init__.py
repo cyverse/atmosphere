@@ -76,7 +76,7 @@ def launchEshInstance(driver, extras, *args, **kwargs):
             extras['name'] = 'Instance of %s' % machine.alias
         if isinstance(driver.provider, EucaProvider):
             instance_service_url = "%s" % (settings.INSTANCE_SERVICE_URL,)
-            init_file_version = extras.get('init_file',30)
+            init_file_version = extras.get('init_file', 30)
             userdata_contents =  _get_init_script(instance_service_url, instance_token, username, init_file_version)
             #Create/deploy the instance -- NOTE: Name is passed in extras
             eshInstance =  driver.create_instance(size=size, image=machine, ex_userdata=userdata_contents, **extras)

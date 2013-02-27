@@ -36,14 +36,14 @@ Atmo.Views.Sidebar = Backbone.View.extend({
 					var time = Atmo.Utils.seconds_to_pretty_time(data[0]["total_uptime"], 3);
 
 					$('#money_saved strong').html(saved);		
-					$('#money_saved a').click(function(e) {
+					/*$('#money_saved a').click(function(e) {
 						e.preventDefault();
 						var header = 'Saving with Atmosphere';
 						body = 'Cumulatively, your instance(s) have run for <strong>' + time + '</strong>. Based on the sizes of the instances you have used, you would have spent <strong>' + saved + '</strong> if those had been hosted on <a href="http://aws.amazon.com/ec2/pricing/#on-demand" target="_blank">Amazon EC2</a>.';
 						body += '<br /><br />';
 						body += 'Thank you for choosing Atmosphere!';
 						Atmo.Utils.confirm(header, body, {});		
-					});
+					});*/
 				}
 			}	
 		});

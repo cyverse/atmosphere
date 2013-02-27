@@ -5,7 +5,7 @@ Number.prototype.toCurrencyString = function() {
 $(function() {
 
 
-	$('.carousel').carousel();
+	//$('.carousel').carousel();
 
 	var data = new Array();
 	var most_saved = 0;
