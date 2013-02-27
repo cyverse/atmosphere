@@ -24,6 +24,7 @@ import sys
 import os
 import glob
 import subprocess
+from hashlib import md5
 
 from datetime import datetime
 from urlparse import urlparse
@@ -145,7 +146,7 @@ class ImageManager():
             remote_img_path = '/usr/local/eucalyptus/%s/%s/root' % (owner, instance_id)
 
         ##Run sub-scripts to retrieve, mount and clean image, upload it, then remove it
-        image_path = self._retrieve_local_image(instance_id, image_path, remote_img_path)
+        image_path = self._download_remote_image(instance_id, image_path, remote_img_path)
         self._clean_local_image(image_path, '%s/mount/' % local_download_dir, exclude=exclude)
         new_image_id = self._upload_local_image(image_path, kernel, ramdisk, local_download_dir, parent_emi, meta_name, image_name, public, private_user_list)
         if not keep_image:
@@ -179,6 +180,81 @@ class ImageManager():
         #Return path to image
         return os.path.join(download_dir,whole_image)
 
+    def _tarzip_image(self, tarfile_path, file_list):
+        import tarfile
+        tar = tarfile.open(tarfile_path, "w:gz")
+        logger.debug("Creating tarfile:%s" % tarfile_path)
+        for name in file_list:
+            logger.debug("Tarring file:%s" % name)
+            tar.add(name)
+        tar.close()
+
+    def _convert_local_image(self, local_img_path, conversion_type):
+        if 'vmdk' in conversion_type:
+            convert_img_path = local_img_path.replace('.img','.vmdk')
+            self.run_command(['qemu-img', 'convert', local_img_path, '-O', 'vmdk', convert_img_path])
+        elif 'vdi' in conversion_type:
+            raw_img_path = local_img_path.replace('.img','.raw')
+            convert_img_path = local_img_path.replace('.img', '.vdi')
+            self.run_command(['qemu-img', 'convert', local_img_path, '-O', 'raw', raw_img_path])
+            self.run_command(['VBoxManage', 'convertdd',raw_img_path, convert_img_path])
+        elif 'raw' in conversion_type:
+            convert_img_path = local_img_path.replace('.img','.raw')
+            self.run_command(['qemu-img', 'convert', local_img_path, '-O', 'raw', convert_img_path])
+        elif 'qcow2' in conversion_type:
+            convert_img_path = local_img_path.replace('.img','.qcow2')
+            self.run_command(['qemu-img', 'convert', local_img_path, '-O', 'qcow2', convert_img_path])
+        elif 'vhd' in conversion_type:
+            convert_img_path = local_img_path.replace('.img','.vhd')
+            self.run_command(['qemu-img', 'convert', local_img_path, '-O', 'vhd', convert_img_path])
+        else:
+            convert_img_path = None
+            logger.warn("Failed to export. Unknown type: %s" % (conversion_type,) )
+        return convert_img_path
+
+    def export_instance(self, instance_id, export_type, download_dir='/tmp', local_img_path=None, convert_img_path=None, no_upload=False):
+        """
+        Download, convert and upload Image to S3
+        """
+        #Download and clean the image if it was not passed as a kwarg
+        if not local_img_path or not os.path.exists(local_img_path):
+            mount_point = os.path.join(download_dir,'mount/')
+            local_img_path = self.download_instance(download_dir, instance_id)
+            self._clean_local_image(local_img_path, mount_point)
+            self._chroot_local_image(local_img_path, mount_point, [
+                ['yum', 'remove', '-qy', 'openldap', 'realvnc-vnc-server'],
+            ])
+            self.run_command(['mount', '-o', 'loop', local_img_path, mount_point])
+            self.run_command(['find', '%s' % mount_point, '-type', 'f', '-name', '*.rpmsave', '-exec', 'rm', '-f', '{}', ';'])
+            self.run_command(['umount', mount_point])
+
+        #Convert the image if it was not passed as a kwarg
+        if not convert_img_path or not os.path.exists(convert_img_path):
+            convert_img_path = self._convert_local_image(local_img_path, export_type)
+
+        #Get the hash of the converted file
+        md5sum = self._large_file_hash(convert_img_path)
+        if no_upload:
+            return (md5sum, None)
+
+        #Archive/Compress/Send to S3
+        tar_filename = convert_img_path+'.tar.gz'
+        if not os.path.exists(tar_filename):
+            self._tarzip_image(tar_filename, [convert_img_path])
+        now = datetime.now()
+        key = self._upload_file_to_s3('eucalyptus_exports', os.path.basename(tar_filename), tar_filename) #Key matches name of file
+        url = key.generate_url(60*60*24*7) # 7 days from now.
+
+        return (md5sum, url)
+
+    def _large_file_hash(self, file_path):
+        logger.debug("Calculating MD5 Hash for %s" % file_path)
+        md5_hash = md5()
+        with open(file_path,'rb') as f:
+            for chunk in iter(lambda: f.read(md5_hash.block_size * 128), b''): #b'' == Empty Byte String
+                md5_hash.update(chunk)
+        return md5_hash.hexdigest()
+
     def download_instance(self, download_dir, instance_id, local_img_path=None, remote_img_path=None):
         """
         Download an existing instance to local download directory
@@ -210,7 +286,7 @@ class ImageManager():
         if not remote_img_path:
             remote_img_path = '/usr/local/eucalyptus/%s/%s/root' % (owner, instance_id)
 
-        return self._retrieve_local_image(instance_id, local_img_path, remote_img_path)
+        return self._download_remote_image(instance_id, local_img_path, remote_img_path)
         
     def run_command(self, commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
         """
@@ -263,7 +339,7 @@ class ImageManager():
         logger.debug("Deleted bucket %s" % bucket_name)
         return True
 
-    def _retrieve_local_image(self, instance_id, local_img_path, remote_img_path):
+    def _download_remote_image(self, instance_id, local_img_path, remote_img_path):
         """
         Downloads image to local disk
         """
@@ -305,7 +381,7 @@ class ImageManager():
     def _old_nc_scp(self, node_controller_ip, remote_img_path, local_img_path):
         """
         Runs a straight SCP from node controller
-        NOTE: no-password, SSH access to the node controller FROM THIS MACHINE is REQUIRED
+        NOTE: no-password, SSH key access to the node controller FROM THIS MACHINE is REQUIRED
         """
         node_controller_ip = node_controller_ip.replace('172.30','128.196') 
         self.run_command(['scp', '-P1657','root@%s:%s' % (node_controller_ip, remote_img_path), local_img_path])
@@ -356,6 +432,23 @@ class ImageManager():
         self.run_command(['/bin/cp','%s' % host_atmoboot, '%s' % atmo_boot_path])
 
         
+    def _chroot_local_image(self, image_path, mount_point, commands_list):
+        #Prepare the paths
+        if not os.path.exists(image_path):
+            logger.error("Could not find local image!")
+            raise Exception("Image file not found")
+
+        if not os.path.exists(mount_point):
+            os.makedirs(mount_point)
+        #Mount the directory
+        self.run_command(['mount', '-o', 'loop', image_path, mount_point])
+        for commands in commands_list:
+            command_list = ['chroot', mount_point]
+            command_list.extend(commands)
+            self.run_command(command_list)
+        self.run_command(['umount', mount_point])
+
+
     def _clean_local_image(self, image_path, mount_point, exclude=[]):
         """
         NOTE: When adding to this list, NEVER ADD A LEADING SLASH to the files. Doing so will lead to DANGER!
@@ -478,7 +571,32 @@ class ImageManager():
         logger.debug('Manifest Generated')
         #Destroyed encrypted file
         os.remove(encrypted_file)
-        
+       
+    def _upload_file_to_s3(self, bucket_name, keyname, filename, canned_acl='aws-exec-read'):
+        from boto.s3.connection import S3Connection as Connection
+        from boto.s3.key import Key
+
+        s3euca = Euca2ool(is_s3=True)
+        s3euca.ec2_user_access_key=settings.AWS_S3_KEY
+        s3euca.ec2_user_secret_key=settings.AWS_S3_SECRET
+        s3euca.url = settings.AWS_S3_URL
+
+
+        conn = s3euca.make_connection()
+        bucket_instance = _ensure_bucket(conn, bucket_name, canned_acl)
+        k = Key(bucket_instance)
+        k.key = keyname
+        with open(filename, "rb") as the_file:
+            try:
+                logger.debug("Uploading File:%s to bucket:%s // key:%s" % (filename, bucket_name, keyname))
+                k.set_contents_from_file(the_file, policy=canned_acl)
+                logger.debug("File Upload complete")
+            except S3ResponseError, s3error:
+                s3error_string = '%s' % (s3error)
+                if s3error_string.find("403") >= 0:
+                    logger.warn("Permission denied while writing : %s " %  k.key)
+        return k
+ 
     def _upload_bundle(self, bucket_name, manifest_path, ec2cert_path=None, directory=None, part=None, canned_acl='aws-exec-read', skipmanifest=False):
         """
         upload_bundle - Read the manifest and upload the entire bundle (In parts) to the S3 Bucket (bucket_name)

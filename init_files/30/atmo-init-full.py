@@ -7,7 +7,7 @@ import time
 import urllib2
 import subprocess
 import sys
-
+from atmosphere import settings
 try:
     from hashlib import sha1
 except ImportError:
@@ -206,7 +206,7 @@ def vnc(user, distro):
             with open('/etc/vnc/config.d/common.custom', 'w') as new_file:
                 new_file.write("PamApplicationName=vncserver.custom")
         time.sleep(1)
-        run_command(['/usr/bin/vnclicense','-add','7S532-626QV-HNJP4-2H7CQ-W5Z8A'])
+        run_command(['/usr/bin/vnclicense','-add',settings.ATMOSPHERE_VNC_LICENSE])
         download_file('%s/init_files/%s/vnc-config.sh' % (ATMOSERVER,SCRIPT_VERSION), os.environ['HOME'] + '/vnc-config.sh', match_hash='37b64977dbf3650f307ca0d863fee18938038dce')
         run_command(['/bin/chmod','a+x', os.environ['HOME'] + '/vnc-config.sh'])
         run_command([os.environ['HOME'] + '/vnc-config.sh'])

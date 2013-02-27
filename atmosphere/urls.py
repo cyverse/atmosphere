@@ -11,6 +11,7 @@ from service.api.instance import InstanceList, Instance, InstanceAction
 from service.api.notification import NotificationList
 from service.api.machine import MachineList, Machine
 from service.api.machine_request import MachineRequestList, MachineRequest, MachineRequestAction
+from service.api.machine_export import MachineExportList, MachineExport
 from service.api.size import SizeList, Size
 from service.api.volume import VolumeList, Volume
 from service.api.profile import Profile
@@ -91,6 +92,8 @@ urlpatterns += format_suffix_patterns(patterns('',
     url(r'^api/tag/$', TagList.as_view()),
     url(r'^api/tag/(?P<tag_slug>.*)/$', Tag.as_view()),
 
+    url(r'^api/provider/(?P<provider_id>.*)/identity/(?P<identity_id>.*)/image_export/$',MachineExportList.as_view(), name='machine-request-list'),
+    url(r'^api/provider/(?P<provider_id>.*)/identity/(?P<identity_id>.*)/image_export/(?P<machine_request_id>.*)/$',MachineExport.as_view(), name='machine-request'),
     url(r'^api/provider/(?P<provider_id>.*)/identity/(?P<identity_id>.*)/request_image/$',MachineRequestList.as_view(), name='machine-request-list'),
     url(r'^api/provider/(?P<provider_id>.*)/identity/(?P<identity_id>.*)/request_image/(?P<machine_request_id>.*)/$',MachineRequest.as_view(), name='machine-request'),
     url(r'^api/request_image/(?P<machine_request_id>.*)/(?P<action>.*)/$',MachineRequestAction.as_view(), name='machine-request-detail'),
