@@ -623,9 +623,9 @@ textarea.error:focus {
 	bottom: 0;
 	background-color: #FFF;
 	padding: 10px 10px 10px 30px;
-	width: 100%;
 	box-sizing: border-box;
 	opacity: 0.8;
+	border-radius: 5px;
 }
 #money_saved:before {
 	content: '$';

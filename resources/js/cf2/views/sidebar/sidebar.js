@@ -38,9 +38,10 @@ Atmo.Views.Sidebar = Backbone.View.extend({
 					$('#money_saved strong').html(saved);		
 					$('#money_saved a').click(function(e) {
 						e.preventDefault();
-						var header = 'Saving money with Atmosphere';
-						var body = 'By choosing iPlant\'s Cloud Service, Atmosphere, as your cloud provider, you have saved about <strong>' + saved + '</strong> since July 2012.<br /><br />';
-						body += 'Cumulatively, your instance(s) ran for <strong>' + time + '</strong>.';
+						var header = 'Saving with Atmosphere';
+						body = 'Cumulatively, your instance(s) have run for <strong>' + time + '</strong>. Based on the sizes of the instances you have used, you would have spent <strong>' + saved + '</strong> if those had been hosted on <a href="http://aws.amazon.com/ec2/pricing/#on-demand" target="_blank">Amazon EC2</a>.';
+						body += '<br /><br />';
+						body += 'Thank you for choosing Atmosphere!';
 						Atmo.Utils.confirm(header, body, {});		
 					});
 				}
