@@ -9,7 +9,7 @@ require 'logger'
 
 $log = Logger.new('/var/log/atmo/atmo_init.log')
 $this_version = '2012.09.20.001'
-$version = '29'
+$version = '30'
 $resource_url = 'http://128.196.172.136:8773/latest/meta-data/'
 $instance_info_hash = Hash.new
 
@@ -23,16 +23,13 @@ def hashCheck( url, remotehash, file )
   $log.debug("\tchecking file")
   if File.file?(file)
     if not File.readable?(file)
-      $log.error("Local file permission error, missing Read permissions")
       return false
     end
     if not File.writable?(file)
-      $log.error("Local file permission error, missing Write permissions")
       return false
     end
     localhash = Digest::SHA1.hexdigest(File.read(file))
     if localhash == remotehash
-      $log.debug("\tsame file, hashCheck done")
       return true
     end
   end
@@ -62,20 +59,18 @@ def hashCheck( url, remotehash, file )
 end
 
 def main(args)
-  atmo_srv_download_prefix = JSON.parse(args)['atmosphere']['server']
-  atmo_init_append = """
-arg = #{args}
-main(arg)
-"""
-  hashCheck("#{atmo_srv_download_prefix}/init_files/#{$version}/atmo-init-full.py", "aff25779245b62936023a42ecafdfc5ef7cd2199", "/usr/sbin/atmo_init_full")
+  args_dict = JSON.parse(args)
+  atmo_srv_download_prefix = args_dict['atmosphere']['server']
+  atmo_service_type = args_dict['atmosphere']['servicename']
+  atmo_token = args_dict['atmosphere']['token']
+  atmo_userid = args_dict['atmosphere']['userid']
+  atmo_instance_url = args_dict['atmosphere']['instance_service_url']
+  hashCheck("#{atmo_srv_download_prefix}/init_files/#{$version}/atmo-init-full.py", "45eaff10d10ee7de6a3213a87a2f30c95963661a", "/usr/sbin/atmo_init_full")
 
   IO.popen("/bin/chmod a+x /usr/sbin/atmo_init_full") { |f| }
-  open("/usr/sbin/atmo_init_full", "a") do |f|
-    f.puts atmo_init_append
-  end
-  stdin, stdout, stderr, wait_thr = Open3.popen3("/usr/sbin/atmo_init_full", args)
-  $log.debug "stdout: #{stdout.gets.to_s}"
-  $log.debug "stderr: #{stderr.gets.to_s}"
+  stdin, stdout, stderr, wait_thr = Open3.popen3('/usr/sbin/atmo_init_full --service_type="%s" --token="%s" --server="%s" --service_url="%s" --user_id="%s"' % [atmo_service_type, atmo_token, atmo_srv_download_prefix, atmo_instance_url, atmo_userid])
+  $log.debug stdout.read
+  $log.debug stderr.read
   stdin.close
   stdout.close
   stderr.close
