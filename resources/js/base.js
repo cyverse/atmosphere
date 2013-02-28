@@ -8,6 +8,11 @@ function setAtmoUser(aUser, aToken) {
 	user = aUser;
 	token = aToken;
 }
+
+Number.prototype.toNumberCommaString = function() {
+	return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/, '1,');
+};
+
 // function postAtmoJSON(param,data) {
 // 	$.ajax({
 // 		url: api+param,

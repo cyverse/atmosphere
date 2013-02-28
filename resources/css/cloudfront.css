@@ -163,7 +163,7 @@ li {
     .modal.fade.in {
         top: 1% !important;
     }
-	#money_saved {
+    #total_cpu_time {
 		display: none !important;
 	}
 }
@@ -618,23 +618,26 @@ textarea.error:focus {
 	font-size: 12px;
 	font-family: Univers,Calibri,"Gill Sans","Gill Sans MT","Myriad Pro",Myriad,"DejaVu Sans Condensed","Liberation Sans","Nimbus Sans L",Tahoma,Geneva,"Helvetica Neue",Helvetica,Arial,sans-serif;
 }
-#money_saved {
+#total_cpu_time {
 	position: absolute;
 	bottom: 0;
+	left: 10px;
+	right: 10px;
 	background-color: #FFF;
 	padding: 10px 10px 10px 40px;
 	box-sizing: border-box;
 	opacity: 0.8;
 	border-radius: 5px;
 }
-#money_saved:before {
+#total_cpu_time:before {
 	content: '⌚';
 	position: absolute;
 	display: block;
-	top: 33%;
+	top: 25%;
 	width: 10px;
 	height: 10px;
-	font-size: 40px;
+	font-size: 33px;
+	line-height: 11px;
 	color: #0098aa;
 	margin-left: -30px;
 }
