@@ -62,8 +62,11 @@ a:hover {
 }
 
 #login {
-	position: absolute;
-	top: 200px;
+	position: relative;
+	top: -250px;
+	max-width: 1200px;
+	margin-left: auto;
+	margin-right: auto;
 }
 .maintenance-message {
 	border-radius: 3px;
