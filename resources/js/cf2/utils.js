@@ -4,7 +4,6 @@
 
 Atmo.Utils.seconds_to_pretty_time = function(seconds, precision) {
 
-	console.log("seconds", seconds, "precision", precision);
 	// Precision refers to how many subdivisions of time to return
 
 	var pretty_time = "";
@@ -62,33 +61,44 @@ Atmo.Utils.hide_all_help = function() {
 };
 
 Atmo.Utils.update_weather = function() {
-/*    getAtmoMethod("getOccupancy", null, true, function(occupancy) {
+    $.ajax({
+		url: "/api/getOccupancy", 
+		type: 'GET',
+		success: function(occupancy) {
 
-        var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
-        var weather = '';
+			var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
+			var weather = '';
 
-        if(occupancy > 85)
-            weather = weather_classes[3]
-        else if(occupancy > 60)
-            weather = weather_classes[2]
-        else if(occupancy > 35)
-            weather = weather_classes[1]
-        else if(occupancy >= 0)
-            weather = weather_classes[0]
+			if(occupancy > 85)
+				weather = weather_classes[3]
+			else if(occupancy > 60)
+				weather = weather_classes[2]
+			else if(occupancy > 35)
+				weather = weather_classes[1]
+			else if(occupancy >= 0)
+				weather = weather_classes[0]
 
-        if (!$('#weather_report').hasClass(weather)) {
-            $.each(weather_classes, function(k, v) {
-                $('body').removeClass(v);
-            });
-            $('#weather_report').addClass(weather);
-            //Atmo.Utils.notify("Weather Report", "Atmosphere is at " + occupancy + "% capacity. The forecast is " + weather + ".");
-            $('#weather_report').html('Atmosphere is at ' + occupancy + '% capacity.<br /> The forecast is '+weather+'.');
-        }
+			if (!$('#weather_report').hasClass(weather)) {
+				$.each(weather_classes, function(k, v) {
+					$('body').removeClass(v);
+				});
+				$('#weather_report').addClass(weather);
+				$('#weather_report').html('This is at ' + occupancy + '% capacity.<br /> The forecast is '+weather+'.');
+			}
 
-    }, function() {
-            // Default weather?    
-    });
-*/
+		}, 
+		error: function() {
+			var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
+			weather = 'rainy';
+			if (!$('#weather_report').hasClass(weather)) {
+				$.each(weather_classes, function(k, v) {
+					$('body').removeClass(v);
+				});
+				$('#weather_report').addClass(weather);
+			}
+			$('#weather_report').html('Atmosphere could not determine the capacity and forecast for this cloud.');
+		}
+	});
 };
 
 Atmo.Utils.confirm = function(header, body, options) {
