@@ -1,5 +1,5 @@
-Number.prototype.toCurrencyString = function() {
-	return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/, '$1,');	
+Number.prototype.toNumberCommaString = function() {
+	return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/, '1,');
 };
 
 $(function() {
@@ -9,7 +9,7 @@ $(function() {
 
 	var data = new Array();
 	var most_saved = 0;
-	var total_saved = 0;
+	var total_cpu_time = 0;
 
 	$.ajax('/api/leaderboard', {
 		type: 'GET',
@@ -20,21 +20,21 @@ $(function() {
 				var results = JSON.parse(response.responseText);
 				for (var i = 0; i < results.length; i++) {
 					if (!results[i]["is_staff"]) {
-						results[i]["total_saved"] = Math.round(results[i]["total_saved"]);
+						results[i]["total_cpu_time"] = Math.round(results[i]["total_cpu_time"]);
 
 						data.push(results[i]);
-						most_saved = (most_saved < results[i]["total_saved"]) ? results[i]["total_saved"] : most_saved;
-						total_saved += results[i]["total_saved"];
+						most_saved = (most_saved < results[i]["total_cpu_time"]) ? results[i]["total_cpu_time"] : most_saved;
+						total_cpu_time += results[i]["total_cpu_time"];
 					}
 
-					if (data.length == 10)
+					if (data.length == 8)
 						break;
 				}
 			}
 		}
 	});
 
-	$('#total_saved').html("$" + (total_saved.toCurrencyString()));
+	$('#total_cpu_time').html("" + Math.floor(total_cpu_time / 3600).toNumberCommaString());
 
 	// Don't look at this, the code is uuuuugly
 
@@ -58,7 +58,7 @@ $(function() {
 	var pie = d3.layout.pie()
 		.sort(null)
 		.value(function(d) {
-			return d.total_saved;
+			return d.total_cpu_time;
 		});
 
 	var svg = d3.select('#first_viz').append('svg')
@@ -70,7 +70,7 @@ $(function() {
 	// Build the graph
 	var newArc = d3.svg.arc()
 		.outerRadius(function(d) {
-			var num = (d.data.total_saved / most_saved) * 50;
+			var num = (d.data.total_cpu_time / most_saved) * 50;
 			return radius + num;
 		})
 		.innerRadius(radius - 30);
@@ -85,7 +85,7 @@ $(function() {
 	var path = g.append('path')
 		.attr('d', arc)
 		.style('fill', function(d) {
-			return color(d.data.total_saved);
+			return color(d.data.total_cpu_time);
 		})
 		.style('fill-opacity', 0.8);
 
@@ -96,7 +96,7 @@ $(function() {
 	path.on('mouseover', function(d) {
 		var arcOver = d3.svg.arc()
 			.outerRadius(function(d) {
-				var num = (d.data.total_saved / most_saved) * 50;
+				var num = (d.data.total_cpu_time / most_saved) * 50;
 				return radius + num + 3;
 			})
 			.innerRadius(radius - 30);
@@ -120,12 +120,12 @@ $(function() {
 
 	var text = g.append('text')
 		.attr('transform', function(d) {
-			return 'translate(' + arc.centroid(d) + ')';
+		          return 'translate(' + arc.centroid(d) + ')';
 		})
 		.attr('dy', '.35em')
 		.style('color', 'white')
 		.style('text-anchor', 'middle')
 		.text(function(d) {
-			return '$'+(d.data.total_saved).toCurrencyString();
+	                  return Math.floor(d.data.total_cpu_time / 3600).toNumberCommaString();
 		});
 });

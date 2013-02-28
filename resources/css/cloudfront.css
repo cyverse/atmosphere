@@ -163,7 +163,7 @@ li {
     .modal.fade.in {
         top: 1% !important;
     }
-	#money_saved {
+    #total_cpu_time {
 		display: none !important;
 	}
 }
