@@ -35,7 +35,7 @@ Atmo.Views.Sidebar = Backbone.View.extend({
 					var saved = '$'+(data[0]["total_saved"]).toCurrencyString()
 					var time = Atmo.Utils.seconds_to_pretty_time(data[0]["total_uptime"], 3);
 
-					$('#money_saved strong').html(saved);		
+					$('#money_saved strong').html(time);		
 					/*$('#money_saved a').click(function(e) {
 						e.preventDefault();
 						var header = 'Saving with Atmosphere';

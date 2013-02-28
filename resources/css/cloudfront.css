@@ -622,21 +622,21 @@ textarea.error:focus {
 	position: absolute;
 	bottom: 0;
 	background-color: #FFF;
-	padding: 10px 10px 10px 30px;
+	padding: 10px 10px 10px 40px;
 	box-sizing: border-box;
 	opacity: 0.8;
 	border-radius: 5px;
 }
 #money_saved:before {
-	content: '$';
+	content: '⌚';
 	position: absolute;
 	display: block;
 	top: 33%;
 	width: 10px;
 	height: 10px;
-	font-size: 24px;
-	color: #009245;
-	margin-left: -20px;
+	font-size: 40px;
+	color: #0098aa;
+	margin-left: -30px;
 }
 #menu_wrapper {
 	list-style: none;

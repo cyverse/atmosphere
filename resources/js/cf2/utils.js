@@ -4,6 +4,7 @@
 
 Atmo.Utils.seconds_to_pretty_time = function(seconds, precision) {
 
+	console.log("seconds", seconds, "precision", precision);
 	// Precision refers to how many subdivisions of time to return
 
 	var pretty_time = "";
@@ -21,6 +22,9 @@ Atmo.Utils.seconds_to_pretty_time = function(seconds, precision) {
 
 	var interval = 0;
 
+	if (seconds < 1)
+		return '0 seconds';
+
 	for (var i = 0; i < periods.length; i++) {
 		interval = Math.floor(seconds / periods[i]['sec']);	
 
@@ -31,7 +35,7 @@ Atmo.Utils.seconds_to_pretty_time = function(seconds, precision) {
 
 			seconds = (seconds - (interval * periods[i]['sec']));
 
-			if (precision == units_used || seconds == 0 || i == periods.length) 
+			if (precision == units_used || i == periods.length) 
 				return pretty_time;
 		}
 	}
@@ -39,7 +43,8 @@ Atmo.Utils.seconds_to_pretty_time = function(seconds, precision) {
 };
 
 Atmo.Utils.relative_time = function(date_obj) {
-    var seconds = Math.floor((new Date() - date_obj) / 1000);
+	var now = new Date();
+    var seconds = Math.floor((new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds()) - date_obj) / 1000);
 
 	var time = Atmo.Utils.seconds_to_pretty_time(seconds, 1);
 
