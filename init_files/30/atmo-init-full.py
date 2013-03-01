@@ -286,13 +286,13 @@ def distro_files(distro, metadata):
         download_file('http://www.iplantcollaborative.org/sites/default/files/atmosphere/motd','/etc/motd', match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
         download_file('http://www.iplantcollaborative.org/sites/default/files/irods/irodsFs_v31.rhel5.x86_64', '/usr/local/bin/irodsFs.x86_64', match_hash='ea3b26f3d589c5ea8a72349b640e76f60a0b570c')
         run_command(['/etc/init.d/iptables','stop'])
-        run_command(['/usr/bin/yum', '-y', '-q', 'install', 'emacs', 'mosh'])
+        run_command(['/usr/bin/yum', '-y', '-q', 'install', 'emacs', 'mosh', 'patch'])
     else:
         #Ubuntu path
         download_file('http://www.iplantcollaborative.org/sites/default/files/atmosphere/motd','/etc/motd.tail', match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
         download_file('http://www.iplantcollaborative.org/sites/default/files/irods/irodsFs_v31.ubuntu10.x86_86', '/usr/local/bin/irodsFs.x86_64', match_hash='22cdaae144bad55f9840a704ef9f0385f7dc8274')
         run_command(['/usr/bin/apt-get','update'])
-        run_command(['/usr/bin/apt-get','-y', '-q', 'install', 'vim', 'mosh'])
+        run_command(['/usr/bin/apt-get','-y', '-q', 'install', 'vim', 'mosh' 'patch'])
         #hostname = metadata['public-ipv4'] #kludge
         #run_command(['/bin/hostname', '%s' % hostname]) #kludge
     run_command(['/bin/chmod','a+x','/usr/local/bin/irodsFs.x86_64'])
