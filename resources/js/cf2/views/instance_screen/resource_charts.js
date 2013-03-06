@@ -181,7 +181,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 		if (percent < 50) {
 			return "greenGraphBar";	
 		}
-		else if (percent >= 50 && percent < 80) {
+		else if (percent >= 50 && percent <= 100) {
 			return "orangeGraphBar";
 		}
 		else {
@@ -345,7 +345,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 				newPart = (newPart > 1024) ? ('' + (newPart/1024).toFixed(digits)) : ('' + newPart + ' MB');
 				newWhole /= 1024;
 			}
-			chart_info.html('You would use ' + newPart  + ' of your ' + newWhole + " allotted " + chart.data("unit"));
+			chart_info.html('A new instance will use ' + newPart  + ' of your ' + newWhole + " allotted " + chart.data("unit"));
 		}
 	
 		fill_more.attr("style", "width: " + cssPercent + "%");
