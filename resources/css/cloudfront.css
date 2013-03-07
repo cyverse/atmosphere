@@ -393,7 +393,7 @@ i.icon-newinstance {
 	display: none;
 }
 .dropdown-menu li.title {
-	margin-left: 20px;	
+	padding: 3px 20px;
 	color: #444 !important;
 	font-size: 12px;
 	font-family: Univers,Calibri,"Gill Sans","Gill Sans MT","Myriad Pro",Myriad,"DejaVu Sans Condensed","Liberation Sans","Nimbus Sans L",Tahoma,Geneva,"Helvetica Neue",Helvetica,Arial,sans-serif;
@@ -403,6 +403,8 @@ i.icon-newinstance {
 	font-size: 12px;
 	font-family: Univers,Calibri,"Gill Sans","Gill Sans MT","Myriad Pro",Myriad,"DejaVu Sans Condensed","Liberation Sans","Nimbus Sans L",Tahoma,Geneva,"Helvetica Neue",Helvetica,Arial,sans-serif;
     border-bottom: 0 !important;
+	display: block;
+	padding: 3px 20px;
 }
 .dropdown-menu li > a:hover, .dropdown-menu li > a:focus, .dropdown-submenu:hover > a {
 	color: #fff !important;
@@ -1647,10 +1649,14 @@ opacity: .5;
 	width: 300px;
 }
 .popover textarea {
-	width: 258px;
+	width: 95%;
 }
 .popover a {
 	margin: 2px;
+	color: #0098aa !important;
+}
+.popover a.btn {
+	color: #555 !important;
 }
 .popover form {
 	margin-bottom: 5px;

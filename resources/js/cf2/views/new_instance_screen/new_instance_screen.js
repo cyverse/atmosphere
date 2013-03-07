@@ -99,7 +99,8 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		return this;
 	},
     x_close: function() {
-            $('#submit_resources_request2').click(_.bind(this.submit_resources_request2, this));
+            if($('#submit_resources_request2').length > 0)
+				$('#submit_resources_request2').click(_.bind(this.submit_resources_request2, this));
 
             // Must assign this function after the popover is actually rendered, so we find '.close' element
             $('.close').click(function(e) {
