@@ -1,10 +1,7 @@
-Atmo.Views.BackupVolumeModal = Backbone.View.extend({
-    id: 'backup_modal',
+Atmo.Views.RestoreVolumeModal = Backbone.View.extend({
+    id: 'restore_modal',
     className: 'modal hide fade',
-    template: _.template(Atmo.Templates.backup_volume_modal),
-	events: {
-		'change select[name="volume_to_backup"]' : 'backup_location_change'
-	},
+    template: _.template(Atmo.Templates.restore_volume_modal),
     initialize: function() {
 		Atmo.volumes.bind("reset", this.render, this);
 		Atmo.volumes.bind("add", this.render, this);
@@ -15,10 +12,10 @@ Atmo.Views.BackupVolumeModal = Backbone.View.extend({
 
 		// Populate modal with volumes
 		if (Atmo.volumes.length > 0) {
-			this.$el.find('select[name="volume_to_backup"]').children().eq(0).remove();
+			this.$el.find('select[name="destination_volume"]').children().eq(0).remove();
 
 			for (var i = 0; i < Atmo.volumes.models.length; i++) {
-				this.$el.find('select[name="volume_to_backup"]').append($('<option>', {
+				this.$el.find('select[name="destination_volume"]').append($('<option>', {
                     html: function() {
 						var content = '';
 						content += Atmo.volumes.models[i].get('name_or_id');
@@ -32,14 +29,12 @@ Atmo.Views.BackupVolumeModal = Backbone.View.extend({
 					value: Atmo.volumes.models[i].get('id')
 				}));
 			}
-			
-			this.$el.find('select[name="volume_to_backup"]').trigger('change');
-
 		}
 
         return this;
     },
     do_alert: function() {
+
         this.$el.modal({
             backdrop: true,
             keyboard: true
@@ -64,11 +59,10 @@ Atmo.Views.BackupVolumeModal = Backbone.View.extend({
         
         this.$el.find('.modal-footer a').show();
         this.$el.find('.modal-footer a').eq(0).click(this.button_listener);
-        this.$el.find('.modal-footer a').eq(1).click(this.begin_backup);
+        this.$el.find('.modal-footer a').eq(1).click(this.start_volume_restore);
     },
 	button_listener: function(callback) {
 		var self = this;
-
 		return function(e) {
 			e.preventDefault();
 			self.$el.modal('hide');
@@ -78,20 +72,15 @@ Atmo.Views.BackupVolumeModal = Backbone.View.extend({
 			$(window).unbind('keyup');
 		}
 	},
-	backup_location_change: function(e) {
-		selected_vol = this.$el.find('select[name="volume_to_backup"] option:selected').val();
+	start_volume_restore: function() {
 
-		this.$el.find('input[name="backup_location"]').val('/home/iplant/' + Atmo.profile.get('id') + '/atmo/' + selected_vol);
+		// Do all the confirmation stuff here, then actually perform restore
+
+		this.$el.find('.modal-footer a').eq(1).click(this.button_listener(this.confirm_restore));
 	},
-	begin_backup: function() {
-		console.log("backup");
-		
-		this.$el.find('.modal-footer a').eq(1).unbind('click');
-        this.$el.find('.modal-footer a').eq(1).click(this.button_listener(this.complete_backup));
-	},
-	complete_backup: function(e) {
-		
-		console.log("complete backup");
+	confirm_restore: function(e) {
+	
+		// Begin restore process
 
 	}
 });

@@ -7,6 +7,7 @@ Atmo.Views.VolumeScreen = Backbone.View.extend({
     events: {
         'click #report_broken_volume_btn':'report_volume_modal',
         'click #backup_volume_btn':'backup_volume_modal',
+		'click #restore_volume_btn':'restore_volume_modal'
     },
 	initialize: function() {
 		Atmo.volumes.bind("reset", this.render, this);
@@ -61,6 +62,8 @@ Atmo.Views.VolumeScreen = Backbone.View.extend({
 		new Atmo.Views.VolumeScreenDraggableVolumes({el: this.$el.find('#draggable_volumes')}).render();
 		this.backup_volume_modal = new Atmo.Views.BackupVolumeModal({el: this.$el.find('#backup_modal')});
 		this.backup_volume_modal.render();
+		this.restore_volume_modal = new Atmo.Views.RestoreVolumeModal({el: this.$el.find('#restore_modal')});
+		this.restore_volume_modal.render();
 
 		return this;
 	},
@@ -170,5 +173,8 @@ Atmo.Views.VolumeScreen = Backbone.View.extend({
     },
     backup_volume_modal: function() {
 		this.backup_volume_modal.do_alert();
+    },
+    restore_volume_modal: function() {
+		this.restore_volume_modal.do_alert();
     }
 });

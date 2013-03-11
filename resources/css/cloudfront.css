@@ -422,6 +422,7 @@ i.icon-newinstance {
 }
 .alert-error {
     border: 0;
+	color: #b94a48 !important;
 }
 .alert-info {
 	color: #444;
