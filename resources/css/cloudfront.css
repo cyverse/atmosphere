@@ -626,22 +626,10 @@ textarea.error:focus {
 	left: 10px;
 	right: 10px;
 	background-color: #FFF;
-	padding: 10px 10px 10px 40px;
+	padding: 10px 10px 10px 10px;
 	box-sizing: border-box;
 	opacity: 0.8;
 	border-radius: 5px;
-}
-#total_cpu_time:before {
-	content: '⌚';
-	position: absolute;
-	display: block;
-	top: 25%;
-	width: 10px;
-	height: 10px;
-	font-size: 33px;
-	line-height: 11px;
-	color: #0098aa;
-	margin-left: -30px;
 }
 #menu_wrapper {
 	list-style: none;
@@ -875,7 +863,7 @@ ul.instance_state_indicators li {
 }*/
 .instance_tabs a {
     text-decoration: none !important;
-    border-bottom: 0 !important;
+    border-bottom: 1px solid transparent !important;
 }
 .tab_disabled {
 	color: #AAA !important;
@@ -1539,13 +1527,6 @@ opacity: .5;
 	margin-bottom: 1em;
 }
 /* History Placeholder */
-#histGraph {
-	width: 620px;
-	height: 250px;
-	background-color: #FFF;
-	border: 1px solid #CCC;
-	margin-top: 30px;
-}
 #resource_usage_holder {
 	font-size: 12px;
 	font-family: Univers,Calibri,"Gill Sans","Gill Sans MT","Myriad Pro",Myriad,"DejaVu Sans Condensed","Liberation Sans","Nimbus Sans L",Tahoma,Geneva,"Helvetica Neue",Helvetica,Arial,sans-serif;
@@ -1556,6 +1537,14 @@ opacity: .5;
 	padding-right: 2px;
 	padding-bottom: 2px;
 	padding-top: 0px;
+}
+.modal-footer a.btn {
+	color: #333 !important;
+	border: 0 !important;
+	text-decoration: none;
+}
+.modal-footer a.btn-primary {
+	color: #FFF !important;
 }
 /* Drag-and-drop instance and volume styles  */
 #draggable_container {
@@ -1599,7 +1588,6 @@ opacity: .5;
 	cursor: move;
 	background-color: #eee;
 	padding: 10px;
-	max-width: 200px;
 	border-radius: 3px;
 	margin-bottom: 5px;
     z-index: 10;
@@ -1674,24 +1662,31 @@ opacity: .5;
     font-size: 12px;
     font-weight: normal;
     margin: 0;
-    color: #000;
-    border: none !important;
+    color: #333 !important;
+	background-color: #FFF !important;
+	border: 1px solid #EEE !important;
+	font-size: 12px;
+	line-height: 14px;
     position: relative;
     top: -2px;
-    padding: 1px 4px;
+	padding: 3px;
+	border-radius: 3px;
 }
 a.context-helper {
     text-decoration: none;
 }
-.context-helper:hover {
-    color: #0098aa !important;
+a.context-holder:hover, .context-helper:hover {
+    color: #000 !important;
     text-decoration: none;
+	border-color: #DDD !important;
+	background-color: #EEE !important;
 }
-a.context-helper, a.context-helper:hover {
-    border: none;
-    color: #000;
-    text-decoration: none;
+.instance_tabs li a.context-helper, .instance_tabs li a.context-helper:hover {
+	background-color: transparent !important;
+	text-decoration: none !important;
+	border: 0 !important;
 }
+
 
 /* Settings */
 a.thumbnail:hover {
