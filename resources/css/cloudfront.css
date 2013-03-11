@@ -215,7 +215,7 @@ li {
         margin-left: 0 !important;
         width: 100%;
     }
-    .request_imaging_btn, .report_instance_btn, .terminate_instance {
+    .request_imaging_btn, .report_instance_btn, .terminate_instance, .resize_instance_btn {
         display: block;
         border-radius: 3px !important;
         margin: 5px 0 !important;
@@ -825,7 +825,9 @@ ul.instance_state_indicators li {
 .instance_controls_container {
     text-align: right;
 }
-
+.nav-tabs > li {
+	margin-bottom: -2px;
+}
 .tab_instance_opts {
 	text-align: right !important;
 	margin-top: 10px;
