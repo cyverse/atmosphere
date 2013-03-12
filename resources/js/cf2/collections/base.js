@@ -18,7 +18,6 @@ Atmo.Collections.Base = Backbone.Collection.extend({
   fetch: function(options) {
 
 	var self = this;
-	console.log(options);
 
 	var opts =  { 
 		success: function() {
@@ -36,9 +35,7 @@ Atmo.Collections.Base = Backbone.Collection.extend({
 		}	
 	};
 
-
 	// Combine options and custom handlers, apply to fetch prototype.
-
 	(_.bind(Backbone.Collection.prototype.fetch, this, _.extend({}, options, opts)))();
 
   }
