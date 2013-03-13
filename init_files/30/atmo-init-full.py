@@ -99,8 +99,10 @@ def run_command(commandList, shell=False):
         out,err = proc.communicate()
     except Exception, e:
         logging.error(e)
-    logging.debug(out)
-    logging.debug(err)
+    if out:
+        logging.debug(out)
+    if err:
+        logging.debug(err)
     return (out,err)
 
 def add_etc_group(user):
@@ -148,7 +150,7 @@ def collect_metadata():
     for meta in meta_list:
         print meta
         try:
-            resp = urllib2.urlopen('http://128.196.172.136:8773/latest/meta-data/'+meta)
+            resp = urllib2.urlopen('http://128.196.172.136:8773/latest/meta-data/' + meta)
             content = resp.read()
             if meta.endswith('/'):
                 content_list = content.split('\n')
@@ -210,9 +212,10 @@ def vnc(user, distro):
             new_file.close()
         time.sleep(1)
         run_command(['/usr/bin/vnclicense','-add','7S532-626QV-HNJP4-2H7CQ-W5Z8A'])
-        download_file('%s/init_files/%s/vnc-config.sh' % (ATMOSERVER,SCRIPT_VERSION), os.environ['HOME'] + '/vnc-config.sh', match_hash='37b64977dbf3650f307ca0d863fee18938038dce')
-        run_command(['/bin/chmod','a+x', os.environ['HOME'] + '/vnc-config.sh'])
-        run_command([os.environ['HOME'] + '/vnc-config.sh'])
+        download_file('%s/init_files/%s/vnc-config.sh' % (ATMOSERVER,SCRIPT_VERSION), os.path.join(os.environ['HOME'], 'vnc-config.sh'), match_hash='37b64977dbf3650f307ca0d863fee18938038dce')
+        run_command(['/bin/chmod','a+x', os.path.join(os.environ['HOME'], 'vnc-config.sh')])
+        run_command([os.path.join(os.environ['HOME'], 'vnc-config.sh')])
+        run_command(['/bin/rm', os.path.join(os.environ['HOME'], 'vnc-config.sh')])
         run_command(['/bin/su','%s' % user, '-c', '/usr/bin/vncserver'])
     except Exception, e:
         logging.error(e)
@@ -231,15 +234,15 @@ def iplant_files():
 
     run_command(["/bin/mkdir","-p","/opt/irodsidrop"])
     download_file("http://www.iplantcollaborative.org/sites/default/files/irods/idrop20120628.jar", "/opt/irodsidrop/idrop-latest.jar", match_hash="536e56760c8c993d0f6fd5c533d43a61fa0be805")
-    #download_file("http://www.iplantcollaborative.org/sites/default/files/idroprun.sh.txt", "/opt/irodsidrop/idroprun.sh", match_hash="0e9cec8ce1d38476dda1646631a54f6b2ddceff5")
-    #run_command(['/bin/chmod','a+x','/opt/irodsidrop/idroprun.sh'])
-
+    download_file("http://www.iplantcollaborative.org/sites/default/files/idroprun.sh.txt", "/opt/irodsidrop/idroprun.sh", match_hash="0e9cec8ce1d38476dda1646631a54f6b2ddceff5")
+    run_command(['/bin/chmod', 'a+x', '/opt/irodsidrop/idroprun.sh'])
 
 def shellinaboxd():
-    download_file('%s/init_files/%s/shellinaboxd-install.sh' % (ATMOSERVER,SCRIPT_VERSION), os.environ['HOME'] + '/shellinaboxd-install.sh', match_hash='a2930f7cfe32df3d3d2e991e01cb0013d1071f15')
-    run_command(['/bin/chmod','a+x', os.environ['HOME'] + '/shellinaboxd-install.sh'])
-    run_command([os.environ['HOME'] + '/shellinaboxd-install.sh'], shell=True)
-    run_command(['rm -rf ' + os.environ['HOME'] + '/shellinabox*'], shell=True)
+    shellinaboxd_file = os.path.join(os.environ['HOME'], 'shellinaboxd-install.sh')
+    download_file('%s/init_files/%s/shellinaboxd-install.sh' % (ATMOSERVER,SCRIPT_VERSION), shellinaboxd_file, match_hash='a2930f7cfe32df3d3d2e991e01cb0013d1071f15')
+    run_command(['/bin/chmod','a+x', shellinaboxd_file])
+    run_command([shellinaboxd_file], shell=True)
+    run_command(['rm -rf ' + os.path.join(os.environ['HOME'], 'shellinabox') + '*'], shell=True)
 
 def atmo_cl():
     download_file('%s/init_files/%s/atmocl' % (ATMOSERVER,SCRIPT_VERSION), '/usr/local/bin/atmocl', match_hash='28cd2fd6e7fd78f1b58a6135afa283bd7ca6027a')
@@ -247,10 +250,11 @@ def atmo_cl():
     run_command(['/bin/chmod','a+x','/usr/local/bin/atmocl'])
 
 def nagios():
-    download_file('%s/init_files/%s/nrpe-snmp-install.sh' % (ATMOSERVER,SCRIPT_VERSION), os.environ['HOME'] + '/nrpe-snmp-install.sh', match_hash='12da9f6f57c79320ebebf99b5a8516cc83c894f9')
+    download_file('%s/init_files/%s/nrpe-snmp-install.sh' % (ATMOSERVER,SCRIPT_VERSION), os.path.join(os.environ['HOME'], 'nrpe-snmp-install.sh'), match_hash='12da9f6f57c79320ebebf99b5a8516cc83c894f9')
     #download_file('%s/init_files/%s/nrpe-snmp-install.sh' % (ATMOSERVER,SCRIPT_VERSION), '/root/nrpe-snmp-install.sh', match_hash='d8b8c5a7c713b65c5ebdff409b3439cda6c73c00')
-    run_command(['/bin/chmod','a+x', os.environ['HOME'] + '/nrpe-snmp-install.sh'])
-    run_command([os.environ['HOME'] + '/nrpe-snmp-install.sh'])
+    run_command(['/bin/chmod','a+x', os.path.join(os.environ['HOME'], '/nrpe-snmp-install.sh')])
+    run_command([os.path.join(os.environ['HOME'], 'nrpe-snmp-install.sh')])
+    run_command(['/bin/rm', os.path.join(os.environ['HOME'], 'nrpe-snmp-install.sh')])
 
 def deploy_atmo_boot():
     download_file('%s/init_files/%s/atmo_boot.py' % (ATMOSERVER,SCRIPT_VERSION), '/usr/sbin/atmo_boot', match_hash='e6bef1f831f81939a325084123a3d064c4845b5f')
@@ -281,16 +285,35 @@ def notify_launched_instance(atmoObj, metadata):
     logging.debug(content)
 
 def distro_files(distro, metadata):
+    install_irods(distro)
+    install_icommands(distro)
+
+
+def is_rhel(distro):
     if 'rhel' in distro:
+        return True
+    else:
+        return False
+
+def install_irods(distro):
+    if is_rhel(distro):
         #Rhel path
-        download_file('http://www.iplantcollaborative.org/sites/default/files/atmosphere/motd','/etc/motd', match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
-        download_file('http://www.iplantcollaborative.org/sites/default/files/irods/irodsFs_v31.rhel5.x86_64', '/usr/local/bin/irodsFs.x86_64', match_hash='ea3b26f3d589c5ea8a72349b640e76f60a0b570c')
+        download_file('http://www.iplantcollaborative.org/sites/default/files/atmosphere/motd',
+                      '/etc/motd',
+                      match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
+        download_file('http://www.iplantcollaborative.org/sites/default/files/irods/irodsFs_v32.rhel5.x86_64',
+                      '/usr/local/bin/irodsFs.x86_64',
+                      match_hash='b286ca61aaaa16fe7a0a2a3afc209ba7bbac5128')
         run_command(['/etc/init.d/iptables','stop'])
         run_command(['/usr/bin/yum', '-y', '-q', 'install', 'emacs', 'mosh', 'patch'])
     else:
         #Ubuntu path
-        download_file('http://www.iplantcollaborative.org/sites/default/files/atmosphere/motd','/etc/motd.tail', match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
-        download_file('http://www.iplantcollaborative.org/sites/default/files/irods/irodsFs_v31.ubuntu10.x86_86', '/usr/local/bin/irodsFs.x86_64', match_hash='22cdaae144bad55f9840a704ef9f0385f7dc8274')
+        download_file('http://www.iplantcollaborative.org/sites/default/files/atmosphere/motd',
+                      '/etc/motd.tail', 
+                      match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
+        download_file('http://www.iplantcollaborative.org/sites/default/files/irods/irodsFs_v32.ubuntu12.x86_64',
+                      '/usr/local/bin/irodsFs.x86_64',
+                      match_hash='59b55aa0dbc44ff5b73dfc912405ff817002284f')
         run_command(['/usr/bin/apt-get','update'])
         run_command(['/usr/bin/apt-get','-y', '-q', 'install', 'vim', 'mosh' 'patch'])
         #hostname = metadata['public-ipv4'] #kludge
@@ -298,13 +321,38 @@ def distro_files(distro, metadata):
     run_command(['/bin/chmod','a+x','/usr/local/bin/irodsFs.x86_64'])
 
 def install_icommands(distro):
-    pass
+    icommands_file = "icommands.x86_64.tar.bz2"
+    if is_rhel(distro):
+        download_file('http://www.iplantcollaborative.org/sites/default/files/irods/icommands_v32.rhel5.x86_64.tar.bz2',
+                      os.path.join('/opt', icommands_file),
+                      match_hash='3dd3c7712ebe3548fe1e9e1f09167b5c7d925d45')
+    else:
+        download_file('http://www.iplantcollaborative.org/sites/default/files/irods/icommands_v32.ubuntu12.x86_64.tar.bz2',
+                      os.path.join('/opt', icommands_file),
+                      match_hash='eb66547ed5ea159dc50f051cf399a55952b32625')
+
+    run_command(["/bin/mkdir","-p","/opt/icommands/bin"])
+    run_command(["/bin/tar", "--strip-components", "1", "-C", "/opt/icommands/bin", "-xjf", "/opt/%s" % icommands_file])
+
+    for f in os.listdir("/opt/icommands/bin"):
+        try:
+            link_f = os.path.join("/usr/local/bin", f)
+            logging.debug(link_f)
+            if os.path.exists(link_f):
+                os.remove(link_f)
+            logging.debug(os.path.join("/opt/icommands/bin", f))
+            os.symlink(os.path.join("/opt/icommands/bin", f), link_f)
+        except Exception:
+            logging.debug("Problem linking /opt/icommands/bin to /usr/local/bin")
+    logging.debug("install_icommands complete.")
+    
+
 def update_timezone():
     run_command(['/bin/rm','/etc/localtime'])
     run_command(['/bin/ln','-s','/usr/share/zoneinfo/US/Arizona','/etc/localtime'])
 
 def run_update_sshkeys(sshdir, sshkeys):
-    authorized_keys = sshdir + '/authorized_keys'
+    authorized_keys = os.path.join(sshdir, '/authorized_keys')
     f = open(authorized_keys,'a')
     for key in sshkeys:
         f.write(key+'\n')
@@ -326,7 +374,7 @@ def update_sshkeys():
     if not os.environ.get('HOME'):
         os.environ['HOME'] = '/root'
     if os.environ['HOME'] != '/root':
-        home_ssh_dir = os.environ['HOME'] + '/.ssh'
+        home_ssh_dir = os.path.join(os.environ['HOME'], '.ssh')
         mkdir_p(home_ssh_dir)
         run_update_sshkeys(home_ssh_dir, sshkeys)
 
@@ -408,7 +456,7 @@ def main(argv):
     ldap_replace()
     #deploy_atmo_boot()
     distro_files(distro, instance_metadata)
-    install_icommands(distro)
+#    install_icommands(distro)
     update_timezone()
     shellinaboxd()
     logging.info("Complete.")
