@@ -1,11 +1,11 @@
 """
-ImageManager:
+ExportManager:
     Remote Eucalyptus Image management (euca2ools 1.3.1 + boto ec2)
 
 Creating an Image from an Instance (Manual image requests)
 
->> from service.drivers.eucalyptusImageManager import ImageManager
->> manager = ImageManager()
+>> from service.drivers.eucalyptusExportManager import ExportManager
+>> manager = ExportManager()
 >> manager.create_image('i-12345678', 'New image name v1')
 
 >> os_manager.upload_euca_image('Migrate emi-F1F122E4', 
@@ -38,80 +38,262 @@ from atmosphere import settings
 from atmosphere.logger import logger
 from boto.resultset import ResultSet
 
-class ImageManager():
+class ExportManager():
     """
-    Convienence class that uses a combination of boto and euca2ools calls
-    to remotely download an image form the cloud
+    Convienence class that holds the procedure needed to export Virtualbox
+    to each of the supported clouds
     """
-    s3_conn = None
-    euca = None
-    s3_url = None
-    def __init__(self, key=settings.EUCA_ADMIN_KEY, secret=settings.EUCA_ADMIN_SECRET, 
-                ec2_url=settings.EUCA_EC2_URL, s3_url=settings.EUCA_S3_URL, 
-                ec2_cert_path=settings.EC2_CERT_PATH, pk_path=settings.EUCA_PRIVATE_KEY, 
-                euca_cert_path=settings.EUCALYPTUS_CERT_PATH, 
-                config_path='/services/Configuration'):
-        """
-        Will initialize with admin settings if no args are passed.
-        Private Key file required to decrypt images.
-        """
-        self.euca = Euca2ool()
-        if not key:
-            key = os.environ['EC2_ACCESS_KEY']
-        if not secret:
-            secret = os.environ['EC2_SECRET_KEY']
-        if not ec2_url:
-            ec2_url = os.environ['EC2_URL']
-        if not s3_url:
-            s3_url = os.environ['S3_URL']
-        if not ec2_cert_path:
-            ec2_cert_path=os.environ['EC2_CERT']
-        if not pk_path:
-            pk_path=os.environ['EC2_PRIVATE_KEY']
-        if not euca_cert_path:
-            euca_cert_path=os.environ['EUCALYPTUS_CERT']
+    image_manager = None
+    def __init__(self):
+        pass
 
-        self.euca.ec2_user_access_key=key
-        self.euca.ec2_user_secret_key=secret
-        self.euca.url = ec2_url
-        self.s3_url = s3_url
-        self.euca.environ['EC2_CERT'] = ec2_cert_path
-        self.euca.environ['EUCALYPTUS_CERT'] = euca_cert_path
-        self.euca.environ['EC2_PRIVATE_KEY'] = pk_path
+    def _remove_ldap_and_vnc(local_img_path, mount_point):
+            self._chroot_local_image(local_img_path, mount_point, [
+                ['/bin/bash', '-c', 'echo n3wpa55 | passwd root --stdin'], #First, change the root password
+                ['yum', 'remove', '-qy', 'openldap', 'realvnc-vnc-server'], #Then Remove ldap!
+            ])
+            self.run_command(['mount', '-o', 'loop', local_img_path, mount_point])
+            self.run_command(['find', '%s' % mount_point, '-type', 'f', '-name', '*.rpmsave', '-exec', 'rm', '-f', '{}', ';'])
+            self.run_command(['umount', mount_point])
 
-        parsed_url = urlparse(s3_url)
-        self.s3_conn = S3Connection(aws_access_key_id=key, aws_secret_access_key=secret, 
-                                is_secure=('https' in parsed_url.scheme), 
-                                host=parsed_url.hostname, port=parsed_url.port, 
-                                path=parsed_url.path, 
-                                calling_format=OrdinaryCallingFormat())
-
-        parsed_url = urlparse(ec2_url)
-        region = RegionInfo(None, 'eucalyptus', parsed_url.hostname)
-        self.image_conn = connect_ec2(aws_access_key_id=key, aws_secret_access_key=secret, 
-                                is_secure=False, region=region, 
-                                port=parsed_url.port, path=config_path)
-        self.image_conn.APIVersion = 'eucalyptus'
-
-    def create_image(self, instance_id, image_name, public=True, 
-                    private_user_list=[], exclude=[], kernel=None, 
-                    ramdisk=None, meta_name=None, 
-                    local_download_dir='/tmp', remote_img_path=None, keep_image=False):
+    def _xen_migrations(image_path, mount_point):
         """
-        Creates an image of a running instance
-        Required Args:
-            instance_id - The instance that will be imaged
-            image_name - The name of the image 
-        Optional Args (That are required for euca):
-            public - Should image be accessible for other users? (Default: True)
-            private_user_list  - List of users who should get access to the image (Default: [])
-            kernel  - Associated Kernel for image (Default is instance.kernel)
-            ramdisk - Associated Ramdisk for image (Default is instance.ramdisk)
-        Optional Args:
-            meta_name - Override the default naming convention
-            local_download_dir - Override the default download dir (All files will be temporarilly stored here, then deleted
-            remote_img_path - Override the default path to the image (On the Node Controller -- Must be exact to the image file (root) )
+        Make any changes necessary to migrate a XEN-based VM to VirtualBox:
+        * Remove everything from rc.local
+        * Add modules to modprobe.conf
+        * Update the kernel, the initrd tools, and grub
+        * Change grub.conf line
+        TODO:
+        (This was already the case, so these changes were glossed over..
+        * If NOT /dev/sda, convert /etc/fstab to /dev/sda (Even better: Use blkid and UUID or LABEL so the hard drive order doesnt matter)
+
         """
+        #Prepare the paths
+        if not os.path.exists(image_path):
+            logger.error("Could not find local image!")
+            raise Exception("Image file not found")
+
+        if not os.path.exists(mount_point):
+            os.makedirs(mount_point)
+        #Mount the directory
+        self.run_command(['mount', '-o', 'loop', image_path, mount_point])
+        #Multi-line SED Replacement.. Equivilant of: DeleteFrom/,/DeleteTo / d <--Delete the regexp match
+        #NOTE: DO NOT USE LEADING SLASH!!
+        for (delete_from, delete_to, replace_where) in [("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.local")
+                                                       ]:
+            replace_file_path = os.path.join(mount_point,replace_where)
+            if os.path.exists(replace_file_path):
+                self.run_command(["/bin/sed", "-i", "/%s/,/%s/d" % (delete_from, delete_to), replace_file_path])
+        #REPLACE OLD MODPROBE.CONF LINES
+        for (replace_str, replace_with, replace_where) in [ 
+                                                            ("console=xvc0","","boot/grub/grub.conf"),
+                                                            ("xenblk","ata_piix","etc/modprobe.conf"),
+                                                            ("xennet","e1000","etc/modprobe.conf") ]:
+            replace_file_path = os.path.join(mount_point,replace_where)
+            if os.path.exists(replace_file_path):
+                self.run_command(["/bin/sed", "-i", "s/%s/%s/" % (replace_str, replace_with), replace_file_path])
+
+        #APPEND NEW MODPROBE.CONF LINES
+        for (append_line, append_file) in [ 
+                                                            ("alias scsi_hostadapter1 ahci","etc/modprobe.conf"),
+                                                            ("install pciehp /sbin/modprobe -q --ignore-install acpiphp; /bin/true","etc/modprobe.conf"),
+                                                            ("alias snd-card-0 snd-intel8x0","etc/modprobe.conf"),
+                                                            ("options snd-card-0 index=0","etc/modprobe.conf"),
+                                                            ("options snd-intel8x0 index=0","etc/modprobe.conf"),
+                                                            ("remove snd-intel8x0 { /usr/sbin/alsactl store 0 >/dev/null 2>&1 || : ; }; /sbin/modprobe -r --ignore-remove snd-intel8x0","etc/modprobe.conf")
+
+                                          ]:
+            append_file_path = os.path.join(mount_point,append_file)
+            if os.path.exists(append_file_path):
+                self.run_command(["/bin/sed", "-i", "$ a\\%s" % (append_line,), append_file_path])
+        
+        #Prepare for chroot fun
+        self.run_command(['mount', '-t', 'proc', '/proc', mount_point+"/proc/"])
+        self.run_command(['mount', '-t', 'sysfs', '/sys', mount_point+"/sys/"])
+        self.run_command(['mount', '-o', 'bind', '/dev', mount_point+"/dev/"])
+        #Let the fun begin
+        self.run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c", "yum install -y kernel mkinitrd grub"])
+        (output,stder) = self.run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c", "ls -Fah %s" % mount_point+"/boot/"])
+        latest_kernel = ''
+        kernel_version = ''
+        for line in output:
+            if 'initrd' in line and not 'xen' in line:
+                latest_kernel = line
+                kernel_version = line.replace('.img','').replace('initrd-','')
+        self.run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c", "mkinitrd --with virtio_pci --with virtio_ring --with virtio_blk --with virtio_net --with virtio_balloon --with virtio -f /boot/%s %s" % (latest_kernel, kernel_version)])
+        #Don't forget to unmount!
+        self.run_command(['umount', mount_point+"/proc/"])
+        self.run_command(['umount', mount_point+"/sys/"])
+        self.run_command(['umount', mount_point+"/dev/"])
+        self.run_command(['umount', mount_point])
+
+    def eucalyptus(self, instance_id, export_type, download_dir='/tmp', local_raw_path=None, convert_img_path=None, no_upload=False):
+        """
+        Image manager initiated
+        Grab the running instance
+        Download it locally
+        Run eucalyptus cleaning
+        Run export-specific cleaning
+        Determine size of the disk
+        """
+        #Download and clean the image if it was not passed as a kwarg
+        if not local_raw_path or not os.path.exists(local_raw_path):
+            mount_point = os.path.join(download_dir,'mount/')
+            local_img_path = self.image_manager.download_instance(download_dir, instance_id)
+            self.image_manager._clean_local_image(local_img_path, mount_point)
+            self._xen_migrations(local_img_path, mount_point)
+            image_size = self._get_file_size_gb(local_img_path)
+            local_raw_path = _build_new_image(local_img_path, download_dir, image_size)
+
+        #Convert the image if it was not passed as a kwarg
+        if not convert_img_path or not os.path.exists(convert_img_path):
+            #Figure out if were dealing with XEN based..
+            convert_img_path = self._convert_local_image(local_img_path, export_type)
+        #Get the hash of the converted file
+        md5sum = self._large_file_hash(convert_img_path)
+        if no_upload:
+            return (md5sum, None)
+        #Archive/Compress/Send to S3
+        tarfile_name = convert_img_path+'.tar.gz'
+        _compress_file(tarfile_name, [convert_img_path])
+        #_export_to_s3(os.path.basename(tar_filename), tar_filename)
+        #return (md5sum, url)
+
+    def _get_file_size_gb(self, filename):
+        import math
+        byte_size = os.path.getsize(filename)
+        one_gb = 1024**3
+        gb_size = math.ceil( float(byte_size)/one_gb )
+        return int(gb_size)
+
+
+    def _parse_fdisk_stats(self, output):
+        """
+        Until I find a better way, the best thing to do is parse through fdisk
+        to get the important statistics aboutput the disk image
+
+        Sample Input:
+        (0, '')
+        (1, 'Disk /dev/loop0: 9663 MB, 9663676416 bytes')
+        (2, '255 heads, 63 sectors/track, 1174 cylinders, total 18874368 sectors')
+        (3, 'Units = sectors of 1 * 512 = 512 bytes')
+        (4, 'Sector size (logical/physical): 512 bytes / 512 bytes')
+        (5, 'I/O size (minimum/optimal): 512 bytes / 512 bytes')
+        (6, 'Disk identifier: 0x00000000')
+        (7, '')
+        (8, '      Device Boot      Start         End      Blocks   Id  System')
+        (9, '/dev/loop0p1   *          63    18860309     9430123+  83  Linux')
+        (10, '')
+        Returns:
+            A dictionary of string to int values for the disk:
+            *heads, sectors, cylinders, sector_count, units, Sector Size, Start, End
+        """
+        import re
+        line = output.split('\n')
+        #Going line-by-line here.. Line 2
+        regex = re.compile("(?P<heads>[0-9]+) heads, (?P<sectors>[0-9]+) sectors/track, (?P<cylinders>[0-9]+) cylinders, total (?P<total>[0-9]+) sectors")
+        result = regex.search(line[2])
+        result_map = result.groupdict()
+        #Adding line 3
+        regex = re.compile("(?P<unit>[0-9]+) bytes")
+        result = regex.search(line[3])
+        result_map.update(result.groupdict())
+        #Adding line 4
+        regex = re.compile("(?P<logical_sector_size>[0-9]+) bytes / (?P<physical_sector_size>[0-9]+) bytes")
+        result = regex.search(line[4])
+        result_map.update(result.groupdict())
+        #
+        regex = re.compile("(?P<start>[0-9]+)[ ]+(?P<end>[0-9]+)[ ]+(?P<blocks>[0-9]+)")
+        result = regex.search(line[9])
+        result_map.update(result.groupdict())
+        #Regex saves the variables as strings, but they are more useful as ints
+        for (k,v) in result_map.items():
+            result_map[k] = int(v)
+        return result_map
+
+    def _build_new_image(self, original_image, download_dir, image_gb_size=10):
+        #Create virtual Disk Image
+        new_raw_img = original_image.replace('.img','.raw')
+        one_gb = 1024
+        total_size = one_gb*image_gb_size
+        self.run_command(['qemu-img','create','-f','raw',new_raw_img, "%sG" % image_gb_size])
+        #Add loopback device
+        (loop_str, _) = self.run_command(['losetup','-fv', new_raw_img])
+        loop_dev = loop_str.replace('Loop device is ','')
+        #Partition the device
+        sfdisk_input = ",,L,*\n;\n;\n;\n"
+        self.run_command(['sfdisk', '-D', loop_dev], stdin=sfdisk_input)
+        (out, _) = self.run_command(['fdisk','-l', loop_dev])
+        #Fun parsing the fdisk output!
+        disk = self._parse_fdisk_stats(out)
+
+        offset = disk['start']* disk['logical_sector_size']
+        ##Calculating C/H/S using fdisk -l:
+        #Skip to the sector listed in fdisk and setup a second loop device
+        (offset_loop, _) = self.run_command(['losetup', '-fv', '-o', offset, original_image])
+        offset_loop_dev = offset_loop.replace('Loop device is ','').strip()
+        #Make the filesystem
+        #4096 = Default block size on ext2/ext3
+        block_size = 4096
+        fs_size = ((disk['end'] - disk['start']) * disk['unit']) / block_size
+        self.run_command(['mkfs.ext3', '-b', block_size, offser_loop_dev, fs_size])
+        #Copy the Filesystem
+        empty_raw_dir = os.path.join(download_dir, 'bootable_raw_here')
+        orig_raw_dir = os.path.join(download_dir, 'original_img_here')
+        self.run_command(['mkdir', '-p', empty_raw_dir])
+        self.run_command(['mkdir', '-p', orig_raw_dir])
+        self.run_command(['mount', '-t', 'ext3', loop_dev1, empty_raw_dir])
+        self.run_command(['mount', '-t', 'ext3', original_image, orig_raw_dir])
+        self.run_command(['/bin/bash', '-c', 'cp -a %s/* %s' % (orig_raw_dir, empty_raw_dir)])
+        self.run_command(['umount', orig_raw_dir])
+        #Edit grub.conf
+        #Move rc.local
+        #Inject stage files
+        self._get_stage_files(empty_raw_dir, self._get_distro(orig_raw_dir))
+        self.run_command(['umount', empty_raw_dir])
+        #grub --device-map=/dev/null
+        #grub> device (hd0) newimage.raw
+        #grub> geometry (hd0) 1305 255 63
+        #grub> root (hd0,0)
+        #grub> setup (hd0)
+        self.run_command(['losetup','-d', loop_dev])
+        self.run_command(['losetup','-d', loop_dev1])
+        self.run_command(['losetup','-d', loop_dev2])
+        #Delete EVERYTHING
+       
+    def _get_stage_files(root_dir, distro):
+        if distro == 'CentOS':
+            self.run_command(['/bin/bash','-c','cp -f %s/extras/export/grub_giles/centos/* %s/boot/grub/' % (settings.PROJECT_ROOT, root_dir)])
+        elif distro == 'Ubuntu':
+            self.run_command(['/bin/bash','-c','cp -f %s/extras/export/grub_files/ubuntu/* %s/boot/grub/' % (settings.PROJECT_ROOT, root_dir)])
+ 
+    def _get_distro(root_dir=''):
+        """
+        Either your CentOS or your Ubuntu.
+        """
+        (out,err) = self.run_command(['/bin/bash','-c','cat %s/etc/*release*' % root_dir])
+        if 'CentOS' in out:
+            return 'CentOS'
+        else:
+            return 'Ubuntu'
+        
+
+    def _compress_file(tar_filename, files=[]):
+        if not os.path.exists(tar_filename):
+            self._tarzip_image(tar_filename, files)
+
+    def _export_to_s3(keyname, the_file, bucketname='eucalyptus_exports'):
+        key = self._upload_file_to_s3(bucketname, keyname, the_file) #Key matches on basename of file
+        url = key.generate_url(60*60*24*7) # 7 days from now.
+        return url
+
+    def _large_file_hash(self, file_path):
+        logger.debug("Calculating MD5 Hash for %s" % file_path)
+        md5_hash = md5()
+        with open(file_path,'rb') as f:
+            for chunk in iter(lambda: f.read(md5_hash.block_size * 128), b''): #b'' == Empty Byte String
+                md5_hash.update(chunk)
+        return md5_hash.hexdigest()
         #Confirm instance existence
         try:
             reservation = self.find_instance(instance_id)[0]
@@ -193,15 +375,6 @@ class ImageManager():
             convert_img_path = local_img_path.replace('.img', '.vdi')
             self.run_command(['qemu-img', 'convert', local_img_path, '-O', 'raw', raw_img_path])
             self.run_command(['VBoxManage', 'convertdd',raw_img_path, convert_img_path])
-        elif 'raw' in conversion_type:
-            convert_img_path = local_img_path.replace('.img','.raw')
-            self.run_command(['qemu-img', 'convert', local_img_path, '-O', 'raw', convert_img_path])
-        elif 'qcow2' in conversion_type:
-            convert_img_path = local_img_path.replace('.img','.qcow2')
-            self.run_command(['qemu-img', 'convert', local_img_path, '-O', 'qcow2', convert_img_path])
-        elif 'vhd' in conversion_type:
-            convert_img_path = local_img_path.replace('.img','.vhd')
-            self.run_command(['qemu-img', 'convert', local_img_path, '-O', 'vhd', convert_img_path])
         else:
             convert_img_path = None
             logger.warn("Failed to export. Unknown type: %s" % (conversion_type,) )
@@ -257,56 +430,6 @@ class ImageManager():
         self.run_command(["umount", mount_point])
         return (image_path, local_kernel_path, local_ramdisk_path)
 
-    def export_instance(self, instance_id, export_type, download_dir='/tmp', local_img_path=None, convert_img_path=None, no_upload=False):
-        """
-        Download, convert and upload Image to S3
-        """
-        #Download and clean the image if it was not passed as a kwarg
-        if not local_img_path or not os.path.exists(local_img_path):
-            mount_point = os.path.join(download_dir,'mount/')
-            local_img_path = self.download_instance(download_dir, instance_id)
-            self._clean_local_image(local_img_path, mount_point)
-            self._chroot_local_image(local_img_path, mount_point, [
-                ['/bin/bash', '-c', 'echo n3wpa55 | passwd root --stdin'], #First, change the root password
-                ['yum', 'remove', '-qy', 'openldap', 'realvnc-vnc-server'], #Then, remove LDAP
-            ])
-            self.run_command(['mount', '-o', 'loop', local_img_path, mount_point])
-            self.run_command(['find', '%s' % mount_point, '-type', 'f', '-name', '*.rpmsave', '-exec', 'rm', '-f', '{}', ';'])
-            self.run_command(['umount', mount_point])
-        self._convert_vm_to_local(local_img_path, download_dir)
-        #Convert the image if it was not passed as a kwarg
-        if not convert_img_path or not os.path.exists(convert_img_path):
-            #Figure out if were dealing with XEN based..
-            convert_img_path = self._convert_local_image(local_img_path, export_type)
-
-        #Get the hash of the converted file
-        md5sum = self._large_file_hash(convert_img_path)
-        if no_upload:
-            return (md5sum, None)
-
-        #Archive/Compress/Send to S3
-        tarfile_name = convert_img_path+'.tar.gz'
-        _compress_file(tarfile_name, [convert_img_path])
-        #_export_to_s3(os.path.basename(tar_filename), tar_filename)
-        #return (md5sum, url)
-
-    def _compress_file(tar_filename, files=[]):
-        if not os.path.exists(tar_filename):
-            self._tarzip_image(tar_filename, files)
-
-    def _export_to_s3(keyname, the_file, bucketname='eucalyptus_exports'):
-        key = self._upload_file_to_s3(bucketname, keyname, the_file) #Key matches on basename of file
-        url = key.generate_url(60*60*24*7) # 7 days from now.
-        return url
-
-    def _large_file_hash(self, file_path):
-        logger.debug("Calculating MD5 Hash for %s" % file_path)
-        md5_hash = md5()
-        with open(file_path,'rb') as f:
-            for chunk in iter(lambda: f.read(md5_hash.block_size * 128), b''): #b'' == Empty Byte String
-                md5_hash.update(chunk)
-        return md5_hash.hexdigest()
-
     def download_instance(self, download_dir, instance_id, local_img_path=None, remote_img_path=None):
         """
         Download an existing instance to local download directory
@@ -348,8 +471,11 @@ class ImageManager():
         err = None
         logger.debug("Running Command:<%s>" % ' '.join(commandList))
         try:
-            proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr)
-            out,err = proc.communicate(input=None)
+            if stdin:
+                proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr, stdin=subprocess.PIPE)
+            else:
+                proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr)
+            out,err = proc.communicate(input=stdin)
         except Exception, e:
             logger.error(e)
         logger.debug("STDOUT: %s" % out)
@@ -500,80 +626,6 @@ class ImageManager():
             self.run_command(command_list)
         self.run_command(['umount', mount_point])
 
-
-    def _clean_local_image(self, image_path, mount_point, exclude=[]):
-        """
-        NOTE: When adding to this list, NEVER ADD A LEADING SLASH to the files. Doing so will lead to DANGER!
-        """
-        #Prepare the paths
-        if not os.path.exists(image_path):
-            logger.error("Could not find local image!")
-            raise Exception("Image file not found")
-
-        if not os.path.exists(mount_point):
-            os.makedirs(mount_point)
-        #Mount the directory
-        self.run_command(['mount', '-o', 'loop', image_path, mount_point])
-
-        #Patchfix
-        self._readd_atmo_boot(mount_point)
-
-        #Begin removing files
-        for rm_file in exclude:
-            if len(rm_file) == 0:
-                continue
-            if rm_file.startswith('/'):
-                logger.warn("WARNING: File %s has a LEADING slash. This causes the changes to occur on the HOST MACHINE and must be changed!" % rm_file)
-                rm_file = rm_file[1:]
-
-            rm_file_path = os.path.join(mount_point,rm_file)
-            #Expands the wildcard to test if the file(s) in question exist
-            if glob.glob(rm_file_path):
-                self.run_command(['/bin/rm', '-rf', rm_file_path])
-        
-        for rm_file in ['home/*', 'mnt/*', 'tmp/*', 'root/*', 'dev/*', 'proc/*',
-                        'var/lib/puppet/run/*.pid',
-                        'etc/puppet/ssl',
-                        'usr/sbin/atmo_boot.py',
-                        'var/log/atmo/atmo_boot.log',
-                        'var/log/atmo/atmo_init.log']:
-            if rm_file.startswith('/'):
-                logger.warn("File %s has a LEADING slash. "
-                            + "This causes the changes to occur on the "
-                            + "HOST MACHINE and must be changed!" % rm_file)
-                rm_file = rm_file[1:]
-
-            rm_file_path = os.path.join(mount_point, rm_file)
-            #Expands the wildcard to test if the file(s) in question exist
-            if glob.glob(rm_file_path):
-                self.run_command(['/bin/rm', '-rf', rm_file_path])
-
-        #Copy /dev/null to clear sensitive logging data
-        for overwrite_file in ['root/.bash_history', 'var/log/auth.log', 'var/log/boot.log', 'var/log/daemon.log', 'var/log/denyhosts.log', 'var/log/dmesg', 'var/log/secure', 'var/log/messages', 'var/log/lastlog', 'var/log/cups/access_log', 'var/log/cups/error_log', 'var/log/syslog', 'var/log/user.log', 'var/log/wtmp', 'var/log/atmo/atmo_boot.log', 'var/log/atmo/atmo_init.log', 'var/log/apache2/access.log', 'var/log/apache2/error.log', 'var/log/yum.log', 'var/log/atmo/puppet', 'var/log/puppet', 'var/log/atmo/atmo_init_full.log']:
-            if overwrite_file.startswith('/'):
-                logger.warn("File %s has a LEADING slash. This causes the changes to occur on the HOST MACHINE and must be changed!" % overwrite_file)
-                overwrite_file = overwrite_file[1:]
-
-            overwrite_file_path = os.path.join(mount_point,overwrite_file)
-            if os.path.exists(overwrite_file_path):
-                self.run_command(['/bin/cp', '-f', '/dev/null', '%s' % overwrite_file_path])
-
-        #SED Replace sensitive user information
-        for (replace_str, replace_with, replace_where) in [ ("\(users:x:100:\).*","users:x:100:","etc/group"),
-                                                            ("AllowGroups users root.*","","etc/ssh/sshd_config") ]:
-            replace_file_path = os.path.join(mount_point,replace_where)
-            if os.path.exists(replace_file_path):
-                self.run_command(["/bin/sed", "-i", "s/%s/%s/" % (replace_str, replace_with), replace_file_path])
-
-        #Multi-line SED Replacement.. Equivilant of: DeleteFrom/,/DeleteTo / d <--Delete the regexp match
-        for (delete_from, delete_to, replace_where) in [("## Atmosphere system","# End Nagios","etc/sudoers"), 
-                                                        ("## Atmosphere","AllowGroups users core-services root","etc/ssh/sshd_config")]:
-            replace_file_path = os.path.join(mount_point,replace_where)
-            if os.path.exists(replace_file_path):
-                self.run_command(["/bin/sed", "-i", "/%s/,/%s/d" % (delete_from, delete_to), replace_file_path])
-
-        #Don't forget to unmount!
-        self.run_command(['umount', mount_point])
 
     def _bundle_image(self, image_path, kernel=None, ramdisk=None, user=None, destination_path='/tmp', target_arch='x86_64', mapping=None, product_codes=None, ancestor_ami_ids=[]):
         """
