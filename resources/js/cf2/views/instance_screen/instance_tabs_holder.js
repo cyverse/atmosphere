@@ -134,11 +134,11 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 		this.display_close_buttons();
 
-		// Display 'Resize Instace' button if user is on OpenStack
+		/* Display 'Resize Instace' button if user is on OpenStack
 		if (Atmo.profile.get('selected_identity').get('provider_id') == 1)
 			this.$el.find('.btn.resize_instance_btn').fadeIn('fast');
 		else
-			this.$el.find('.btn.resize_instance_btn').fadeOut('fast');
+			this.$el.find('.btn.resize_instance_btn').fadeOut('fast');*/
 
 		return this;
 	},
