@@ -25,11 +25,10 @@ def main():
         make_admin(user)
     print "Total core-service/admins added:%s" % len(core_services)
 
-    #all_users = euca_driver.list_users()
-    #for user_dict in all_users.values():
-    #    create_euca_account(euca_driver, user_dict)
-    #    #create_os_account(os_driver, user_dict['username'])
-    #print "Total users added:%s" % len(all_users)
+    all_users = euca_driver.list_users()
+    for user_dict in all_users.values():
+        create_euca_account(euca_driver, user_dict)
+    print "Total users added:%s" % len(all_users)
 
 def make_admin(user):
     u = User.objects.get(username=user)

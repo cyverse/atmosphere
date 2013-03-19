@@ -14,25 +14,18 @@
 			</ul>
 		</div>
 		<div class="btn-group" style="display: inline-block">		
-			<button class="btn request_imaging_btn"><i class="icon-camera"></i> Request Imaging</button>
-			<button class="btn report_instance_btn"><i class="icon-share"></i> Report</button>
-			<button class="btn terminate_instance"><i class="icon-remove"></i> Terminate</button>
+			<button class="btn request_imaging_btn" title="Request Imaging"><i class="icon-camera"></i> Image</button>
+			<button class="btn resize_instance_btn" title="Resize Instance"><i class="icon-resize-full"></i> Resize</button>
+			<button class="btn report_instance_btn" title="Report Broken Instance"><i class="icon-inbox"></i> Report</button>
+			<button class="btn terminate_instance" title="Terminate Instance"><i class="icon-remove"></i> Terminate</button>
 		</div>
     </div>
 </div>
 
-<!--
-<hr style="margin-bottom: 10px;" />
-	<div id="instance_tags" class="row-fluid" style="position: relative">
-	</div>
-
-<hr style="margin-bottom: 0px"/>
--->
 <div class="row-fluid">
 	<div class="span3">
         <Br />
 		<dl id="instance_details">
-            <!--    <dt>IP Address:</dt> <dd><%= public_dns_name %></dd>-->
           <dt>ID:</dt> <dd><%= id %></dd>
           <dt>Based on Image:</dt> <dd><%= image_name %><br />(<%= image_id %>)</dd>
           <dt>Size:</dt> <dd><%= type %></dd>

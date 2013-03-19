@@ -2,71 +2,103 @@
  * Global utilities file.  You can call these from anythwere!
  */
 
+Atmo.Utils.seconds_to_pretty_time = function(seconds, precision) {
+
+	// Precision refers to how many subdivisions of time to return
+
+	var pretty_time = "";
+	var units_used = 0;
+	if (precision == undefined)
+		precision = 1;
+
+	var periods = [ 
+		{'sec' : 31536000, 	'unit' : ' year'},
+		{'sec' : 2592000, 	'unit' : ' month'},
+		{'sec' : 86400, 	'unit' : ' day'},
+		{'sec' : 3600, 		'unit' : ' hour'},
+		{'sec' : 60, 		'unit' : ' minute'},
+		{'sec' : 1, 		'unit' : ' second'}];
+
+	var interval = 0;
+
+	if (seconds < 1)
+		return '0 seconds';
+
+	for (var i = 0; i < periods.length; i++) {
+		interval = Math.floor(seconds / periods[i]['sec']);	
+
+		if (interval >= 1) {
+			units_used++;
+			pretty_time += (pretty_time.length > 1) ? (', ' + interval + periods[i]['unit']) : (interval + periods[i]['unit']);
+			if (interval > 1) pretty_time += 's';
+
+			seconds = (seconds - (interval * periods[i]['sec']));
+
+			if (precision == units_used || i == periods.length) 
+				return pretty_time;
+		}
+	}
+	
+};
+
 Atmo.Utils.relative_time = function(date_obj) {
-    var seconds = Math.floor((new Date() - date_obj) / 1000);
+	var now = new Date();
+    var seconds = Math.floor((new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds()) - date_obj) / 1000);
 
-    var interval = Math.floor(seconds / 31536000);
+	var time = Atmo.Utils.seconds_to_pretty_time(seconds, 1);
 
-    if (interval > 1) {
-        return interval + " years ago";
-    }
-    interval = Math.floor(seconds / 2592000);
-    if (interval > 1) {
-        return interval + " months ago";
-    }
-    interval = Math.floor(seconds / 86400);
-    if (interval > 1) {
-        return interval + " days ago";
-    }
-    interval = Math.floor(seconds / 3600);
-    if (interval > 1) {
-        return interval + " hours ago";
-    }
-    interval = Math.floor(seconds / 60);
-    if (interval > 1) {
-        return interval + " minutes ago";
-    }
-    return Math.floor(seconds) + " seconds ago";
-}
+	return time + ' ago';
+};
 
 Atmo.Utils.evil_chris_time_parse = function(str_date) {
   if(str_date && (typeof str_date == 'object') && str_date.length > 19) {
     return Date.parse(str_date.substring(0,19)).setTimezoneOffset(0);
   }  
-}
+};
 
 Atmo.Utils.hide_all_help = function() {
     $('[id^=help_]').popover('hide');
 };
 
 Atmo.Utils.update_weather = function() {
-/*    getAtmoMethod("getOccupancy", null, true, function(occupancy) {
+    $.ajax({
+		url: "/api/getOccupancy", 
+		type: 'GET',
+		success: function(occupancy) {
 
-        var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
-        var weather = '';
+			var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
+			var weather = '';
 
-        if(occupancy > 85)
-            weather = weather_classes[3]
-        else if(occupancy > 60)
-            weather = weather_classes[2]
-        else if(occupancy > 35)
-            weather = weather_classes[1]
-        else if(occupancy >= 0)
-            weather = weather_classes[0]
+			if(occupancy > 85)
+				weather = weather_classes[3]
+			else if(occupancy > 60)
+				weather = weather_classes[2]
+			else if(occupancy > 35)
+				weather = weather_classes[1]
+			else if(occupancy >= 0)
+				weather = weather_classes[0]
 
-        if (!$('#weather_report').hasClass(weather)) {
-            $.each(weather_classes, function(k, v) {
-                $('body').removeClass(v);
-            });
-            $('#weather_report').addClass(weather);
-            //Atmo.Utils.notify("Weather Report", "Atmosphere is at " + occupancy + "% capacity. The forecast is " + weather + ".");
-            $('#weather_report').html('Atmosphere is at ' + occupancy + '% capacity.<br /> The forecast is '+weather+'.');
-        }
+			if (!$('#weather_report').hasClass(weather)) {
+				$.each(weather_classes, function(k, v) {
+					$('body').removeClass(v);
+				});
+				$('#weather_report').addClass(weather);
+				$('#weather_report').html('This is at ' + occupancy + '% capacity.<br /> The forecast is '+weather+'.');
+			}
 
-    }, function() {
-            // Default weather?    
-    });
-*/
+		}, 
+		error: function() {
+			var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
+			weather = 'rainy';
+			if (!$('#weather_report').hasClass(weather)) {
+				$.each(weather_classes, function(k, v) {
+					$('body').removeClass(v);
+				});
+				$('#weather_report').addClass(weather);
+			}
+			$('#weather_report').html('Atmosphere could not determine the capacity and forecast for this cloud.');
+		}
+	});
 };
 
 Atmo.Utils.confirm = function(header, body, options) {
@@ -195,3 +227,8 @@ Atmo.Utils.confirm_detach_volume = function(volume, instance, options) {
     });
 };
 
+// To show people how much money they've saved by using Atmosphere!
+
+Number.prototype.toCurrencyString = function() {
+	return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/, '$1,');	
+};

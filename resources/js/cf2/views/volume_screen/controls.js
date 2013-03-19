@@ -131,10 +131,18 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
 
 		if (to_add > 0) {
 
-			console.log("to add", to_add);
-
-			var disk_under_quota = this.disk_resource_chart.add_usage(to_add);
-			var disk_count_under_quota = this.disk_count_resource_chart.add_usage(count_add);
+			var disk_under_quota = this.disk_resource_chart.add_usage(
+				to_add, 
+				{
+					is_initial: (Atmo.volumes.models.length == 0) ? true : false
+				}
+			);
+			var disk_count_under_quota = this.disk_count_resource_chart.add_usage(
+				count_add, 
+				{
+					is_initial: (Atmo.volumes.models.length == 0) ? true : false	
+				}
+			);
 
 			if (disk_under_quota && disk_count_under_quota)
 				this.$el.find('button[name="create_volume"]').removeAttr('disabled');
@@ -142,8 +150,6 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
 				this.$el.find('button[name="create_volume"]').attr('disabled', 'disabled');
 		}
 		else {
-			console.log("to add", to_add);
-
 			this.disk_resource_chart.render();
 			this.disk_count_resource_chart.render();
 		}

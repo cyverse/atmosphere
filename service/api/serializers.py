@@ -57,17 +57,17 @@ class InstanceSerializer(serializers.ModelSerializer):
         model = Instance
         exclude = ('id','end_date', 'provider_machine', 'provider_alias')
 
-class MachineExportSerializer(serializers.ModelSerializer):
-    """
-    """
-    instance = serializers.SlugRelatedField(slug_field='provider_alias') 
-    status = serializers.CharField(default="pending")
-
-    owner = serializers.SlugRelatedField(slug_field='username', source='export_owner')
-    export_file = serializers.CharField(read_only=True)
-
-    class Meta:
-        model = MachineExport
+#class MachineExportSerializer(serializers.ModelSerializer):
+#    """
+#    """
+#    instance = serializers.SlugRelatedField(slug_field='provider_alias') 
+#    status = serializers.CharField(default="pending")
+#
+#    owner = serializers.SlugRelatedField(slug_field='username', source='export_owner')
+#    export_file = serializers.CharField(read_only=True)
+#
+#    class Meta:
+#        model = MachineExport
 
 class MachineRequestSerializer(serializers.ModelSerializer):
     """

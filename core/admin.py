@@ -23,8 +23,14 @@ class NodeControllerAdmin(admin.ModelAdmin):
 class MaintenanceAdmin(admin.ModelAdmin):
   list_display = ("title","start_date","end_date","disable_login")
 
+class QuotaAdmin(admin.ModelAdmin):
+  list_display = ("__unicode__", "cpu","memory","storage","storage_count")
+
+class ProviderMachineAdmin(admin.ModelAdmin):
+  search_fields = ["machine__name","identifier"]
+
 class MachineAdmin(admin.ModelAdmin):
-  search_fields = ["name","id","location"]
+  search_fields = ["name","id"]
 
 class CredentialInline(admin.TabularInline):
     model = Credential
@@ -59,6 +65,11 @@ class ProviderMembershipAdmin(admin.ModelAdmin):
 
 class IdentityMembershipAdmin(admin.ModelAdmin):
     search_fields = ["identity__created_by__username",]
+    list_display = ["identity_user", "identity_provider", "quota"]
+    def identity_provider(self, obj):
+        return obj.identity.provider.location
+    def identity_user(self, obj):
+        return obj.identity.created_by.username
 
 class MachineRequestAdmin(admin.ModelAdmin):
     search_fields = ["created_by","instance__provider_alias"]
@@ -74,9 +85,9 @@ admin.site.register(Machine, MachineAdmin)
 admin.site.register(MachineRequest, MachineRequestAdmin)
 admin.site.register(MaintenanceRecord, MaintenanceAdmin)
 admin.site.register(NodeController, NodeControllerAdmin)
-admin.site.register(ProviderMachine)
+admin.site.register(ProviderMachine, ProviderMachineAdmin)
 admin.site.register(Provider)
 admin.site.register(ProviderType)
-admin.site.register(Quota)
+admin.site.register(Quota, QuotaAdmin)
 admin.site.register(Size)
 admin.site.register(Tag)

@@ -181,7 +181,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 		if (percent < 50) {
 			return "greenGraphBar";	
 		}
-		else if (percent >= 50 && percent < 80) {
+		else if (percent >= 50 && percent <= 100) {
 			return "orangeGraphBar";
 		}
 		else {
@@ -190,6 +190,8 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 
 	},
 	make_fill: function(percent) {
+
+		var self = this;
 
 		var cssPercent = percent * 100;
         if (cssPercent > 100) cssPercent = 100;
@@ -274,8 +276,12 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 		}
 
 	},
-	add_usage: function(extraPart) {
+	add_usage: function(extraPart, options) {
 		var self = this;
+
+		if (options)
+			this.is_initial = options.is_initial;
+
 		var chart = this.$el;
 		var chart_info = this.$el.parent().find('#'+self.quota_type+"Holder_info");
 		extraPart = parseFloat(extraPart);
@@ -283,10 +289,12 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 		var fill = chart.html();
 		fill = $(fill);
 
+
 		// Erase any "extra" already added in
 		if (fill.length != 0) {
 			if (chart.data("part") == 0) {
 				fill = "";
+
 				chart.append($('<br/>', {
 					style: 'clear: both'
 				}));
@@ -307,6 +315,8 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 		var fill_more = $('<div/>', {
 			'class': barColor,
 		});
+
+
 		var under_quota;
 		// Make sure they won't exceed 100% with added usage
 		if (total_usage > 100) {
@@ -335,7 +345,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 				newPart = (newPart > 1024) ? ('' + (newPart/1024).toFixed(digits)) : ('' + newPart + ' MB');
 				newWhole /= 1024;
 			}
-			chart_info.html('You would use ' + newPart  + ' of your ' + newWhole + " allotted " + chart.data("unit"));
+			chart_info.html('A new instance will use ' + newPart  + ' of your ' + newWhole + " allotted " + chart.data("unit"));
 		}
 	
 		fill_more.attr("style", "width: " + cssPercent + "%");
@@ -352,6 +362,12 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 		}
 		else {
 			fill_more.html('<span>' + total_usage + '%</span>');
+
+			// If user has no existing quota and we're showing projected usage, show lower opacity
+			if (self.is_initial) {
+				fill_more.css('opacity', 0.5);
+				fill_more.css('color', '#000');
+			}
 		}
 
         

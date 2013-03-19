@@ -63,6 +63,7 @@
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/instance_screen/instance_tabs_holder.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/instance_screen/instance_tab_volumes.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/instance_screen/report_instance_form.js"></script>
+        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/instance_screen/resize_instance_form.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/instance_screen/request_imaging_form.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/instance_screen/resource_charts.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/instance_screen/instance_screen.js"></script>
@@ -79,6 +80,8 @@
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/sidebar/volume_list.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/sidebar/sidebar.js"></script>
 
+        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/volume_screen/restore_volume_modal.js"></script>
+        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/volume_screen/backup_volume_modal.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/volume_screen/controls.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/volume_screen/instance.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/volume_screen/instance_list.js"></script>
@@ -111,7 +114,7 @@
                 
 				<div class="btn-group hidden-phone">
 					<a class="btn btn-mini menu-dropdown dropdown-toggle" style="padding: 5px; padding-bottom: 0px;" data-toggle="dropdown" href="#">
-						<i class="icon-cog" style="position: relative; top: -3px"></i>
+						<i class="icon-cog"></i>
 						<span class="caret"></span>
 					</a>
 					<ul class="dropdown-menu drop-left">
@@ -124,7 +127,8 @@
 						<li><a href="#settings">Settings</a></li>
 						<li class="divider"></li>
 						<li><a href="https://pods.iplantcollaborative.org/wiki/x/Iaxm" target="_blank">User Manual</a></li>
-						<li><a href="http://ask.iplantcollaborative.org" target="_blank">User Help Forums</a></li>
+						<li><a href="http://ask.iplantcollaborative.org" target="_blank">User Forums</a></li>
+						<li><a href="https://pods.iplantcollaborative.org/wiki/x/p55y" target="_blank">FAQs</a></li>
 						<li><a href="https://pods.iplantcollaborative.org/wiki/x/UKxm" target="_blank">Get VNC Viewer</a></li>
 						<li><a href="#" id="contact_support">Support</a></li>
 						<li class="divider"></li>
@@ -160,6 +164,12 @@
                     </li>
                     <li id="volume_link"><a class="link_list_title" href="#volumes">My Volumes</a></li>
                 </ul>
+				
+				<div id="total_cpu_time">
+					You've
+					used <strong>0</strong> CPU
+					hours on Atmosphere! <!-- <a href="#">Learn More</a>-->
+				</div>
 
             </div>
             <!-- /Left Menu -->

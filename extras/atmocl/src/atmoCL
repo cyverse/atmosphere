@@ -1,2 +1,0 @@
-#!/bin/bash
-java -jar ~/AtmoCL.jar $@ 2> /dev/null

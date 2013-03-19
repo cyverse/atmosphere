@@ -2,9 +2,10 @@ Atmo.Views.Sidebar = Backbone.View.extend({
 	'tagName': 'div',
 	events: {
 		'click #instance_link, #volume_link': 'select_link',
-		'click #refresh_instances_button' : 'refresh_instance_list'
+		'click #refresh_instances_button' : 'refresh_instance_list',
 	},
 	initialize: function() {
+		Atmo.instances.bind('fail', this.stop_spinner, this);
 		Atmo.instances.bind('change:selected', this.change_selection, this);
 		Atmo.volumes.bind('change:selected', this.change_selection, this);
 	},
@@ -21,6 +22,31 @@ Atmo.Views.Sidebar = Backbone.View.extend({
 		new Atmo.Views.SidebarVolumeList({
 			el: this.$el.find('#volume_link_list'), 
 			collection: Atmo.volumes
+		});
+
+		var self = this;
+
+		// Show users how much money they've saved using Atmosphere
+		$.ajax({ 
+			url: '/api/leaderboard?username='+Atmo.profile.get('id'),
+			type: 'GET',
+			statusCode: {
+				200: function(data) {
+					var used = ""+(data[0]["total_cpu_time"] / 3600).toNumberCommaString();
+					var time = Atmo.Utils.seconds_to_pretty_time(data[0]["total_uptime"], 3);
+
+					$('#total_cpu_time strong').html(used);
+
+					/*$('#money_saved a').click(function(e) {
+						e.preventDefault();
+						var header = 'Saving with Atmosphere';
+						body = 'Cumulatively, your instance(s) have run for <strong>' + time + '</strong>. Based on the sizes of the instances you have used, you would have spent <strong>' + saved + '</strong> if those had been hosted on <a href="http://aws.amazon.com/ec2/pricing/#on-demand" target="_blank">Amazon EC2</a>.';
+						body += '<br /><br />';
+						body += 'Thank you for choosing Atmosphere!';
+						Atmo.Utils.confirm(header, body, {});		
+					});*/
+				}
+			}	
 		});
 
 	},
@@ -64,6 +90,9 @@ Atmo.Views.Sidebar = Backbone.View.extend({
 
         // Also, check for weather updates
         Atmo.Utils.update_weather();
-
 	},
+	stop_spinner: function() {
+		Atmo.Utils.notify("Could not update instance list", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
+		this.$el.find('#refresh_instances_button img').attr('src', site_root + '/resources/images/icon_mini_refresh.png');
+	}
 });

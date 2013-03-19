@@ -20,14 +20,24 @@ from core import Persist
 from core.email import send_instance_email
 from core.exceptions import MissingArgsException
 
-from service.provider import AWSProvider, EucaProvider, OSProvider
-from service.identity import AWSIdentity, EucaIdentity, OSIdentity
-from service.mixins.driver import APIFilterMixin, MetaMixin
+from service.provider import AWSProvider
+from service.provider import EucaProvider
+from service.provider import OSProvider
+
+from service.identity import AWSIdentity
+from service.identity import EucaIdentity
+from service.identity import OSIdentity
+
+from service.mixins.driver import APIFilterMixin
+from service.mixins.driver import MetaMixin
+
+
 class BaseDriver():
     """
     BaseDriver lists a basic set of expected functionality for an esh-driver.
     Abstract class - Should not be instantiated!!
     """
+
     __metaclass__ = ABCMeta
 
     _connection = None
@@ -39,7 +49,7 @@ class BaseDriver():
     identityCls = None
 
     providerCls = None
-    
+
     @abstractmethod
     def __init__(self, identity, provider):
         raise NotImplementedError
@@ -55,7 +65,7 @@ class BaseDriver():
     @abstractmethod
     def list_sizes(self, *args, **kwargs):
         raise NotImplementedError
-    
+
     @abstractmethod
     def list_locations(self, *args, **kwargs):
         raise NotImplementedError
@@ -82,9 +92,11 @@ class BaseDriver():
     def destroy_instance(self, *args, **kwargs):
         raise NotImplementedError
 
+
 class VolumeDriver():
     """
-    VolumeDriver provides basic storage volume functionality for libcloud or esh-drivers.
+    VolumeDriver provides basic storage volume functionality for libcloud
+    or esh-drivers.
     Abstract class - Should not be instantiated!!
     """
     __metaclass__ = ABCMeta
@@ -109,6 +121,7 @@ class VolumeDriver():
     def detach_volume(self, *args, **kwargs):
         raise NotImplementedError
 
+
 class LibcloudDriver(BaseDriver, VolumeDriver, APIFilterMixin):
     """
     Provides direct access to the libcloud methods and data.
@@ -123,25 +136,25 @@ class LibcloudDriver(BaseDriver, VolumeDriver, APIFilterMixin):
 
     def list_instances(self, *args, **kwargs):
         return self._connection.list_nodes()
-    
+
     def list_machines(self, *args, **kwargs):
         return self._connection.list_images()
-    
+
     def list_sizes(self, *args, **kwargs):
         return self._connection.list_sizes()
-    
+
     def list_locations(self, *args, **kwargs):
         return self._connection.list_locations()
-    
+
     def create_instance(self, *args, **kwargs):
         return self._connection.create_node(*args, **kwargs)
-    
+
     def deploy_instance(self, *args, **kwargs):
         return self._connection.deploy_node(*args, **kwargs)
-    
+
     def reboot_instance(self, *args, **kwargs):
         return self._connection.reboot_node(*args, **kwargs)
-    
+
     def destroy_instance(self, *args, **kwargs):
         return self._connection.destroy_node(*args, **kwargs)
 
@@ -160,6 +173,7 @@ class LibcloudDriver(BaseDriver, VolumeDriver, APIFilterMixin):
     def detach_volume(self, *args, **kwargs):
         return self._connection.detach_volume(*args, **kwargs)
 
+
 class EshDriver(LibcloudDriver, MetaMixin):
     """
     """
@@ -174,19 +188,19 @@ class EshDriver(LibcloudDriver, MetaMixin):
         Return the InstanceClass representation of a libcloud node
         """
         return self.provider.instanceCls.get_instances(super(EshDriver, self).list_instances())
-    
+
     def list_machines(self, *args, **kwargs):
         """
         Return the MachineClass representation of a libcloud NodeImage
         """
         return self.provider.machineCls.get_machines(super(EshDriver, self).list_machines)
-    
+
     def list_sizes(self, *args, **kwargs):
         """
         Return the SizeClass representation of a libcloud NodeSize
         """
         return self.provider.sizeCls.get_sizes(super(EshDriver, self).list_sizes)
-    
+
     def list_locations(self, *args, **kwargs):
         return super(EshDriver, self).list_locations()
 
@@ -228,6 +242,7 @@ class EshDriver(LibcloudDriver, MetaMixin):
     def detach_volume(self, *args, **kwargs):
         return super(EshDriver, self).detach_volume(*args, **kwargs)
 
+
 class OSDriver(EshDriver):
     """
     """
@@ -245,7 +260,7 @@ class OSDriver(EshDriver):
         script_deps = ScriptDeployment("apt-get update;apt-get install -y emacs vim wget language-pack-en make gcc g++ gettext texinfo autoconf automake")
         script_wget = ScriptDeployment("wget -O %s %s%s" % (atmo_init, settings.SERVER_URL, server_atmo_init))
         script_chmod = ScriptDeployment("chmod a+x %s" % atmo_init)
-        instance_token = kwargs.get('token','')
+        instance_token = kwargs.get('token', '')
         awesome_atmo_call = "%s --service_type=%s --service_url=%s --server=%s --user_id=%s --token=%s"
         awesome_atmo_call %= (
             atmo_init,
@@ -265,9 +280,9 @@ class OSDriver(EshDriver):
                                    script_chmod,
                                    script_atmo_init])
         kwargs.update({'ssh_key': private_key})
-        kwargs.update({'deploy' : msd})
-        kwargs.update({'timeout' : 60})
-        
+        kwargs.update({'deploy': msd})
+        kwargs.update({'timeout': 60})
+
         instance = super(OSDriver, self).deploy_instance(*args, **kwargs)
 
         send_instance_email(username, instance.id, instance.ip, username)
@@ -302,14 +317,15 @@ class OSDriver(EshDriver):
             max_by_cpu = float(occupancy_data['vcpus'])/float(size.cpu) if size._size.ram > 0 else sys.maxint
             max_by_ram = float(occupancy_data['memory_mb'])/float(size._size.ram) if size._size.ram > 0 else sys.maxint
             max_by_disk = float(occupancy_data['local_gb'])/float(size._size.disk) if size._size.disk > 0 else sys.maxint
-            limiting_value = int(min( max_by_cpu, max_by_ram, max_by_disk))
+            limiting_value = int(min(max_by_cpu, max_by_ram, max_by_disk))
             num_running = len([i for i in all_instances if i.extra['flavorId'] == size.id])
-            if not size.extra.has_key('occupancy'):
+            if not 'occupancy' in size.extra:
                 size.extra['occupancy'] = {}
             size.extra['occupancy']['total'] = limiting_value
             size.extra['occupancy']['remaining'] = limiting_value - num_running
             logger.warn(size.extra)
         return sizes
+
 
 class AWSDriver(EshDriver):
     """
@@ -328,7 +344,7 @@ class AWSDriver(EshDriver):
         script_deps = ScriptDeployment("sudo apt-get install -y emacs vim wget")
         script_wget = ScriptDeployment("sudo wget -O %s %s%s" % (atmo_init, settings.SERVER_URL, server_atmo_init))
         script_chmod = ScriptDeployment("sudo chmod a+x %s" % atmo_init)
-        instance_token = kwargs.get('token','')
+        instance_token = kwargs.get('token', '')
         awesome_atmo_call = "sudo %s --service_type=%s --service_url=%s --server=%s --user_id=%s --token=%s"
         awesome_atmo_call %= (
             atmo_init,
@@ -355,9 +371,9 @@ class AWSDriver(EshDriver):
         kwargs.update({'ex_keyname': 'dalloway-key'})
         kwargs.update({'ssh_username': 'ubuntu'})
         kwargs.update({'ssh_key': private_key})
-        kwargs.update({'deploy' : msd})
-        kwargs.update({'timeout' : 400})
-        
+        kwargs.update({'deploy': msd})
+        kwargs.update({'timeout': 400})
+
         instance = super(AWSDriver, self).deploy_instance(*args, **kwargs)
 
         send_instance_email(username, instance.id, instance.ip, username)
@@ -374,23 +390,24 @@ class AWSDriver(EshDriver):
         black_list.extend(['bitnami', 'kernel', 'microsoft', 'Windows'])
         filtered_machines = super(AWSDriver, self).filter_machines(machines, black_list)
         filtered_machines = _filter_machines(filtered_machines, lambda(m): any(word in m.alias for word in ['aki-', 'ari-']))
-        filtered_ubuntu = _filter_machines(filtered_machines, 
-                                           lambda(m): any(word == m._image.extra['ownerid'] 
-                                                     for word in ['099720109477']))
+        filtered_ubuntu = _filter_machines(filtered_machines,
+                                           lambda(m): any(word == m._image.extra['ownerid']
+                                                          for word in ['099720109477']))
 #        filtered_ubuntu = [machine for machine in filtered_machines
 #        if any(word == machine._image.extra['ownerid'] for word in
 #        ['099720109477'])]
 #        filtered_amazon = [machine for machine in filtered_machines if any(word == machine._image.extra['owneralias'] for word in ['amazon', 'aws-marketplace'])]
-        filtered_amazon = _filter_machines(filtered_machines, 
-                                           lambda(m): any(word == m._image.extra['owneralias'] 
-                                                     for word in ['amazon', 'aws-marketplace']))
+        filtered_amazon = _filter_machines(filtered_machines,
+                                           lambda(m): any(word == m._image.extra['owneralias']
+                                                          for word in ['amazon', 'aws-marketplace']))
         filtered_ubuntu.extend(filtered_amazon)
-        return filtered_ubuntu #[-400:] #return filtered[-400:]
+        return filtered_ubuntu  # [-400:] #return filtered[-400:]
 
     def create_volume(self, *args, **kwargs):
-        if kwargs.has_key('description'):
+        if 'description' in kwargs:
             kwargs.pop('description')
         return super(EshDriver, self).create_volume(*args, **kwargs)
+
 
 class EucaDriver(EshDriver):
     """
@@ -401,7 +418,7 @@ class EucaDriver(EshDriver):
 
     def deploy_instance(self, *args, **kwargs):
         raise NotImplementedError
-    
+
     def resume_instance(self, *args, **kwargs):
         raise NotImplementedError
 

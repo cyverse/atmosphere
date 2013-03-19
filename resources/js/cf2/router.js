@@ -142,6 +142,7 @@ Atmo.Router = Backbone.Router.extend({
             });
         });
 
+
         new Atmo.Views.NotificationHolder({el: $('#alert_holder')[0]});
     },
     instances: function() {

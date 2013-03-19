@@ -16,6 +16,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 	template: _.template(Atmo.Templates.new_instance_screen),
 	initialize: function(options) {
 		Atmo.images.bind('reset', this.render_image_list, this);
+		Atmo.images.bind('fail', this.report_error_image_list, this);
         Atmo.instances.bind('add', this.render_resource_charts, this);
         Atmo.instances.bind('remove', this.render_resource_charts, this);
 		Atmo.instance_types.bind('reset', this.render_instance_type_list, this);
@@ -30,7 +31,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 
 		this.mem_resource_chart = new Atmo.Views.ResourceCharts({
 			el: this.$el.find('#memHolder'), 
-			quota_type: 'mem'
+			quota_type: 'mem',
 		}).render();
 		this.cpu_resource_chart = new Atmo.Views.ResourceCharts({
 			el: this.$el.find('#cpuHolder'), 
@@ -99,7 +100,8 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		return this;
 	},
     x_close: function() {
-            $('#submit_resources_request2').click(_.bind(this.submit_resources_request2, this));
+            if($('#submit_resources_request2').length > 0)
+				$('#submit_resources_request2').click(_.bind(this.submit_resources_request2, this));
 
             // Must assign this function after the popover is actually rendered, so we find '.close' element
             $('.close').click(function(e) {
@@ -157,40 +159,49 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 	render_image_list: function() {
 		var self = this;
 		if(Atmo.images.models.length == 0) {
+			// Called when images haven't yet loaded
 			self.$el.find('#featured_image_list').append('<div style="text-align: center"><img src="'+site_root+'/resources/images/loader_large.gif" /></div>');
 			self.$el.find('#misc_image_list').append('<div style="text-align: center"><img src="'+site_root+'/resources/images/loader_large.gif" /></div>');
-		} else {
-			self.$el.find('#featured_image_list').html("");
-			self.$el.find('#misc_image_list').html("");
-		}
-		$.each(Atmo.images.models, function(i, image) {
-			if (image.get('featured'))
-				self.$el.find('#featured_image_list').append(new Atmo.Views.ImageListItem({model: image}).render().el);
-			else
-				self.$el.find('#misc_image_list').append(new Atmo.Views.ImageListItem({model: image}).render().el);
-		});
+		} 
+		else {
 
-        if (this.init_query)
-            this.set_query(this.init_query);
+			// Called when 'reset' is triggered because images have been fetched
+			self.$el.find('#featured_image_list').html('');
+			self.$el.find('#misc_image_list').html('');
 
-		// Make all the tags clickable so they search for that tag when clicked
-
-		var tag_els = this.$el.find('#image_holder .tag_list').children();
-		$.each(tag_els, function(i, tag) {
-			$(tag).click(function() {
-				var tag_name = "tag:"+$(tag).text();
-				var search_obj = self.$el.find('#image_search');
-				var search_txt = $.trim(search_obj.val());
-				if(search_txt.search(tag_name) == -1) {
-					add_tag = search_txt.length == 0 ? tag_name : " "+tag_name;
-					search_obj.val(search_txt+add_tag);
-				}
-				self.filter_image_list();
+			$.each(Atmo.images.models, function(i, image) {
+				if (image.get('featured'))
+					self.$el.find('#featured_image_list').append(new Atmo.Views.ImageListItem({model: image}).render().el);
+				else
+					self.$el.find('#misc_image_list').append(new Atmo.Views.ImageListItem({model: image}).render().el);
 			});
-		});
 
+			if (this.init_query)
+				this.set_query(this.init_query);
+
+			// Make all the tags clickable so they search for that tag when clicked
+
+			var tag_els = this.$el.find('#image_holder .tag_list').children();
+			$.each(tag_els, function(i, tag) {
+				$(tag).click(function() {
+					var tag_name = "tag:"+$(tag).text();
+					var search_obj = self.$el.find('#image_search');
+					var search_txt = $.trim(search_obj.val());
+					if(search_txt.search(tag_name) == -1) {
+						add_tag = search_txt.length == 0 ? tag_name : " "+tag_name;
+						search_obj.val(search_txt+add_tag);
+					}
+					self.filter_image_list();
+				});
+			});
+		}
 
 		resizeApp();
+	},
+	report_error_image_list: function() {
+
+		this.$el.find('#featured_image_list').html('');
+		this.$el.find('#misc_image_list').html('<p class="alert alert-error"><strong>Error</strong> Could not load images.</p><p>Refresh the application to try again. Contact support if the problem persists.</p>');
 	},
     set_query: function(query) {
         this.$el.find('#image_search').val(query);
@@ -268,8 +279,19 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 	update_resource_charts: function() {
 		var selected_instance_type = Atmo.instance_types.selected_instance_type;
 
-		var under_cpu = this.cpu_resource_chart.add_usage(selected_instance_type.attributes.cpus, "cpuHolder"); 
-		var under_mem = this.mem_resource_chart.add_usage(selected_instance_type.attributes.mem, "memHolder");
+		//if (Atmo.instances.models.length == 0)
+		var under_cpu = this.cpu_resource_chart.add_usage(
+			selected_instance_type.attributes.cpus, 
+			{ 
+				is_initial: (Atmo.instances.models.length == 0) ? true : false
+			}
+		); 
+		var under_mem = this.mem_resource_chart.add_usage(
+			selected_instance_type.attributes.mem,
+			{ 
+				is_initial: (Atmo.instances.models.length == 0) ? true : false
+			}
+		);
 
 		if ((under_cpu == false) || (under_mem == false)) {
 			this.$el.find('#launchInstance').attr('disabled', 'disabled');
@@ -512,7 +534,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
                     Atmo.Utils.notify("Instance Launched", "Your instance will be ready soon.");
 				},
 				error: function() {
-					Atmo.Utils.notify("Instance launch was unsuccessful", 'Please email your quota request to <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
+					Atmo.Utils.notify("Instance launch was unsuccessful", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
 				},
 			});
 		} else {
