@@ -49,7 +49,7 @@ class ExportManager():
     def __init__(self):
         pass
 
-    def _remove_ldap_and_vnc(local_img_path, mount_point):
+    def _remove_ldap_and_vnc(self, local_img_path, mount_point):
             self._chroot_local_image(local_img_path, mount_point, [
                 ['/bin/bash', '-c', 'echo n3wpa55 | passwd root --stdin'], #First, change the root password
                 ['yum', 'remove', '-qy', 'openldap', 'realvnc-vnc-server'], #Then Remove ldap!
@@ -87,22 +87,10 @@ class ExportManager():
             replace_file_path = os.path.join(mount_point,replace_where)
             if os.path.exists(replace_file_path):
                 self.run_command(["/bin/sed", "-i", "/%s/,/%s/d" % (delete_from, delete_to), replace_file_path])
-        #Prepare for chroot fun
-        self.run_command(['mount', '-t', 'proc', '/proc', mount_point+"/proc/"])
-        self.run_command(['mount', '-t', 'sysfs', '/sys', mount_point+"/sys/"])
-        self.run_command(['mount', '-o', 'bind', '/dev', mount_point+"/dev/"])
-        #Let the fun begin
-        self.run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c", "yum install -y kernel mkinitrd grub"])
-        (output,stder) = self.run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c", "ls -Fah /boot/"])
-        latest_rmdisk = ''
-        rmdisk_version = ''
-        for line in output.split('\n'):
-            if 'initrd' in line and 'xen' not in line:
-                latest_rmdisk = line
-                rmdisk_version = line.replace('.img','').replace('initrd-','')
-        self.run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c", "mkinitrd --with virtio_pci --with virtio_ring --with virtio_blk --with virtio_net --with virtio_balloon --with virtio -f /boot/%s %s" % (latest_rmdisk, rmdisk_version)])
         #REPLACE OLD MODPROBE.CONF LINES
         for (replace_str, replace_with, replace_where) in [ 
+                                                            ("xvc0.*","","etc/inittab"),
+                                                            (":[0-6]+:initdefault",":5:initdefault","etc/inittab"),
                                                             ("xenblk","ata_piix","etc/modprobe.conf"),
                                                             ("xennet","e1000","etc/modprobe.conf") ]:
             replace_file_path = os.path.join(mount_point,replace_where)
@@ -122,19 +110,34 @@ class ExportManager():
             append_file_path = os.path.join(mount_point,append_file)
             if os.path.exists(append_file_path):
                 self.run_command(["/bin/sed", "-i", "$ a\\%s" % (append_line,), append_file_path])
+        #Prepare for chroot fun
+        self.run_command(['mount', '-t', 'proc', '/proc', mount_point+"/proc/"])
+        self.run_command(['mount', '-t', 'sysfs', '/sys', mount_point+"/sys/"])
+        self.run_command(['mount', '-o', 'bind', '/dev', mount_point+"/dev/"])
+        #Let the fun begin
+        self.run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c", "yum install -y kernel mkinitrd grub xorg-x11-server-Xorg"])
+        self.run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c", "yum groupinstall -y \"GNOME Desktop Environment\""])
+        (output,stder) = self.run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c", "ls -Fah /boot/"])
+        latest_rmdisk = ''
+        rmdisk_version = ''
+        for line in output.split('\n'):
+            if 'initrd' in line and 'xen' not in line:
+                latest_rmdisk = line
+                rmdisk_version = line.replace('.img','').replace('initrd-','')
+        self.run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c", "mkinitrd --with virtio_pci --with virtio_ring --with virtio_blk --with virtio_net --with virtio_balloon --with virtio -f /boot/%s %s" % (latest_rmdisk, rmdisk_version)])
         #REPLACE THE GRUB.CONF
         new_grub_conf = """default=0
 timeout=3
 splashimage=(hd0,0)/boot/grub/splash.xpm.gz
 title Atmosphere VM (%s)
     root (hd0,0)
-    kernel /boot/vmlinuz-%s root=/dev/sda1 ro rhgb
+    kernel /boot/vmlinuz-%s root=/dev/sda1 ro
     initrd /boot/%s
 """ % (rmdisk_version, rmdisk_version, latest_rmdisk)
         with open(os.path.join(mount_point,'boot/grub/grub.conf'), 'w') as grub_file:
             grub_file.write(new_grub_conf)
-        manager.run_command(['/bin/bash','-c', 'cd %s/boot/grub/;ln -s grub.conf menu.lst' % mount_point])
-        manager.run_command(['/bin/bash','-c', 'cd %s/boot/grub/;ln -s grub.conf grub.cfg' % mount_point])
+        self.run_command(['/bin/bash','-c', 'cd %s/boot/grub/;ln -s grub.conf menu.lst' % mount_point])
+        self.run_command(['/bin/bash','-c', 'cd %s/boot/grub/;ln -s grub.conf grub.cfg' % mount_point])
         #Don't forget to unmount!
         self.run_command(['umount', mount_point+"/proc/"])
         self.run_command(['umount', mount_point+"/sys/"])
@@ -156,6 +159,7 @@ title Atmosphere VM (%s)
             mount_point = os.path.join(download_dir,'mount/')
             local_img_path = self.image_manager.download_instance(download_dir, instance_id)
             self.image_manager._clean_local_image(local_img_path, mount_point)
+            self._remove_ldap_and_vnc(local_img_path, mount_point)
             self._xen_migrations(local_img_path, mount_point)
             image_size = self._get_file_size_gb(local_img_path)
             local_raw_path = self._build_new_image(local_img_path, download_dir, image_size)
@@ -259,7 +263,7 @@ title Atmosphere VM (%s)
         self.run_command(['mkdir', '-p', orig_raw_dir])
         self.run_command(['mount', '-t', 'ext3', offset_loop_dev, empty_raw_dir])
         self.run_command(['mount', '-t', 'ext3', original_image, orig_raw_dir])
-        self.run_command(['rsync', '-a', '--inplace', '%s/*' % orig_raw_dir, empty_raw_dir])
+        self.run_command(['/bin/bash', '-c', 'rsync --inplace -a %s/* %s' % (orig_raw_dir, empty_raw_dir)])
         self.run_command(['umount', orig_raw_dir])
         #Edit grub.conf
         #Move rc.local
@@ -278,6 +282,7 @@ title Atmosphere VM (%s)
         quit""" % (new_raw_img,disk['cylinders'], disk['heads'], disk['sectors'])
         self.run_command(['grub', '--device-map=/dev/null', '--batch'], stdin=grub_stdin)
         #Delete EVERYTHING
+        return new_raw_img
        
     def _get_stage_files(self, root_dir, distro):
         if distro == 'CentOS':
