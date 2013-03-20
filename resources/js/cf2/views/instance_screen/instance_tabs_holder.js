@@ -165,10 +165,10 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
               this.instance_info();
               this.rendered = true;
             }
-	    this.$el.fadeIn('fast');
+	    this.$el.show();
 	  } else {
-	    this.$el.fadeOut('fast');
-          }
+	    this.$el.hide();
+	  }
 	},
 	display_close_buttons: function() {
 		this.$el.find('.terminate_shell').remove();	
