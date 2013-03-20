@@ -31,13 +31,28 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 				used = Atmo.volumes.models.length;
 			}
 			else if (this.quota_type == 'cpu' || this.quota_type == 'mem') {
-				$.each(Atmo.instances.models, function(i, instance) {
-					var instance_type = instance.get('type');
-					var to_add = _.filter(Atmo.instance_types.models, function(model) {
-						return model.attributes.alias == instance_type;
+
+				if (Atmo.instance_types.models.length > 0) {
+					$.each(Atmo.instances.models, function(i, instance) {
+						var instance_type = instance.get('type');
+						var to_add = _.filter(Atmo.instance_types.models, function(model) {
+							return model.attributes.alias == instance_type;
+						});
+						used += to_add[0].attributes[self.quota_type];
 					});
-					used += to_add[0].attributes[self.quota_type];
-				});
+				}
+				else {
+					// Indicates error loading instance types
+					var info_holder = self.$el.parent().find('#' + self.quota_type + 'Holder_info');
+					var info = 'Could not calculate resource usage for ';
+					info += (self.quota_type == 'cpu') ? 'CPU usage' : 'memory usage';
+					info_holder.html(info);
+
+					// this.$el is the graph container
+					this.$el.addClass('graphBar');
+					this.$el.append('<div style="color: rgb(165, 42, 42); margin: 9px 10px 0px"><span>Unavailable</span></div>');
+					return this;
+				}
 			}
 
 			// Make chart with our data
@@ -51,6 +66,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 		
 		var total = 0, used = 0;
 		var self = this;
+		var fetch_errors = 0;
 
 		// Get the quota, then get the quantity used
 		$.ajax({
@@ -58,9 +74,24 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 			async: false,
 			url: site_root + '/api/provider/' + provider + '/identity/' + identity,
 			success: function(response_text) {
-				total = response_text[quota_type];
+				console.log("total", total);
+				total = response_text["quota"][quota_type];
+			},
+			error: function() {
+				fetch_errors++;
+
+				// Error Handling
+				var info_holder = self.$el.parent().find('#' + quota_type + 'Holder_info');
+				info_holder.html('Could not fetch ' + quota_type + ' quota. ');
+
+				// this.$el is the graph container
+				self.$el.addClass('graphBar');
+				self.$el.append('<div style="color: rgb(165, 42, 42); margin: 9px 10px 0px"><span>Unavailable</span></div>');
 			}
 		});
+
+		if (fetch_errors > 0) // Prevent unnecessary ajax calls if already in error state
+			return;
 
 		// Volume-related Quotas
 		if (quota_type == 'disk' || quota_type == 'disk_count') {
@@ -84,6 +115,14 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 				},
 				error: function() {
 					// Error handling
+					var info_holder = self.$el.parent().find('#' + quota_type + 'Holder_info');
+					var info = 'Could not fetch volume ';
+					info += (quota_type == 'disk') ? 'capacity quota.' : 'quantity quota.';
+					info_holder.html(info);
+
+					// this.$el is the graph container
+					self.$el.addClass('graphBar');
+					self.$el.append('<div style="color: rgb(165, 42, 42); margin: 9px 10px 0px"><span>Unavailable</span></div>');
 				}
 
 			});
@@ -103,9 +142,22 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 					instances = response_text;
 				},
 				error: function() {
-					// Error handling
+					fetch_errors++;
+
+					// Error Handling
+					var info_holder = self.$el.parent().find('#' + quota_type + 'Holder_info');
+					var info = 'Could not fetch instance ';
+					info += (quota_type == 'mem') ? 'memory quota.' : 'CPU quota.';
+					info_holder.html(info);
+
+					// this.$el is the graph container
+					self.$el.addClass('graphBar');
+					self.$el.append('<div style="color: rgb(165, 42, 42); margin: 9px 10px 0px"><span>Unavailable</span></div>');
 				}
 			});
+
+			if (fetch_errors > 0) // Prevent unnecessary ajax calls if already in error state
+				return;
 
 			// Get instance sizes
 			$.ajax({
@@ -113,8 +165,9 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 				url: site_root + '/api/provider/' + provider + '/identity/' + identity + '/size/',
 				success: function(instance_types) {
 
+
 					// Add together quota used by instances cumulatively 
-					for (var i = 0; i < instance_types.length; i++) {
+					for (var i = 0; i < instances.length; i++) {
 						var size_alias = instances[i].size_alias;
 						var to_add = _.filter(instance_types, function(type) {
 							return type.alias == size_alias;
@@ -122,12 +175,21 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 						used += to_add[0][quota_type];	
 					}
 					
-					if (quota_type == 'mem')
+					if (quota_type == 'mem') 
 						total *= 1024;
 						
 					// Make chart with our data
-					self.make_chart(used_total)	
-				}					
+					self.make_chart(used, total);
+				},
+				error: function() {
+					// Error Handling
+					var info_holder = self.$el.parent().find('#' + quota_type + 'Holder_info');
+					info_holder.html('Could not fetch instance types. ');
+
+					// this.$el is the graph container
+					self.$el.addClass('graphBar');
+					self.$el.append('<div style="color: rgb(165, 42, 42); margin: 9px 10px 0px"><span>Unavailable</span></div>');
+				}
 			});
 		}
 	},
