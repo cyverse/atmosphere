@@ -17,6 +17,12 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
         Atmo.volumes.bind("change", this.rerender_provider_data, this);
         Atmo.volumes.bind("add", this.rerender_provider_data, this);
         Atmo.volumes.bind("remove", this.rerender_provider_data, this);
+
+		// Deal with all errors
+		Atmo.profile.bind('fail', this.fail_profile, this);
+		Atmo.instances.bind('fail', this.fail_instances, this);
+		Atmo.volumes.bind('fail', this.fail_volumes, this);
+
         this.rendered = false;
 	},
     events: {
@@ -106,6 +112,9 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
 
 			// Help the user -- hide everything that's being appended until we get to the end. Meantime, show a spinny loader!
 
+			// Keep track of any errors
+			var errors = Array();
+
 			self.$el.find('.accordion-inner').children().hide();
 
 			var loader = $('<div>', {
@@ -121,17 +130,16 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
 				self.cpu_resource_chart = new Atmo.Views.ResourceCharts({
 					el: self.$el.find('#cpuHolder'),
 					quota_type: 'cpu',
-					provider: self.provider,
+					provider_id: self.provider,
 					identity_id: self.identity_id
 				}).render();
 				self.mem_resource_chart = new Atmo.Views.ResourceCharts({
 					el: self.$el.find('#memHolder'),
 					quota_type: 'mem',
-					provider: self.provider,
+					provider_id: self.provider,
 					identity_id: self.identity_id
 				}).render();
 
-				console.log("Resource charts", self.cpu_resource_chart, self.mem_resource_chart);
 				// Get instances and volumes of this provider and identity 
 				$.ajax({
 					type: 'GET',
@@ -177,29 +185,32 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
 						}
 					},
 					error: function() {
-						Atmo.Utils.notify("Could not load instances for all cloud identities", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
+						errors.push("Could not load instances for this cloud identity.");
+						self.fail_instances();
 					},
 					dataType: 'json'
 				});
+
+				self.disk_count_resource_chart = new Atmo.Views.ResourceCharts({
+					el: self.$el.find('#disk_countHolder'),
+					quota_type: 'disk_count',
+					identity_id: self.identity_id,
+					provider_id: self.provider
+				}).render();
+
+				self.disk_resource_chart = new Atmo.Views.ResourceCharts({
+					el: self.$el.find('#diskHolder'),
+					quota_type: 'disk',
+					identity_id: self.identity_id,
+					provider_id: self.provider
+				}).render();
+				
 				$.ajax({
 					type: 'GET',
 					url: site_root + '/api/provider/' + self.provider + '/identity/' + self.identity_id + '/volume/', 
 					success: function(response_text) {
 						self.volumes = response_text;
 
-						self.disk_count_resource_chart = new Atmo.Views.ResourceCharts({
-							el: self.$el.find('#disk_countHolder'),
-							quota_type: 'disk_count',
-							identity_id: self.identity_id,
-							provider: self.provider
-						}).render();
-
-						self.disk_resource_chart = new Atmo.Views.ResourceCharts({
-							el: self.$el.find('#diskHolder'),
-							quota_type: 'disk',
-							identity_id: self.identity_id,
-							provider: self.provider
-						}).render();
 
 						if (self.volumes.length > 0) {
 							var vol_table = $('<table>', {
@@ -250,7 +261,18 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
 						}, 3000);
 					},
 					error: function() {
-						Atmo.Utils.notify("Could not load volumes for all cloud identities", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
+						errors.push("Could not load volumes for this cloud identity.");
+						self.fail_volumes();
+
+						$(e.target).closest('.accordion-group').attr('data-populated', 'true');
+
+						setTimeout(function() { 
+							loader.remove();
+
+							var children = self.$el.find('.accordion-inner .row-fluid');
+							children.slideDown();
+
+						}, 3000);
 					},
 					dataType: 'json'
 				});
@@ -261,4 +283,15 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
             $(e.target).parent().parent().find('.accordion-body').collapse('toggle');
         }
     },
+	fail_profile: function() {
+		console.log("profile fail");
+	},
+	fail_instances: function() {
+		console.log("instance fail");
+		this.$el.find('#instances_'+this.identity_id).html('Could not load instances for this identity.');
+	},
+	fail_volumes: function() {
+		console.log("volume fail");
+		this.$el.find('#volumes_'+this.identity_id).html('Could not load volumes for this identity.');
+	}
 });

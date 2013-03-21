@@ -244,11 +244,14 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
 
 		var errors = [];
 
-		var disk_count_under_quota = this.disk_count_resource_chart.add_usage(1);
+		if (this.disk_count_resource_chart) {
+			var disk_count_under_quota = this.disk_count_resource_chart.add_usage(1);
 
-		if (!disk_count_under_quota) {
-			errors.push("You have already created all of your allocated volumes. Delete an existing volume or request more resources.");
+			if (!disk_count_under_quota) {
+				errors.push("You have already created all of your allocated volumes. Delete an existing volume or request more resources.");
+			}
 		}
+
 		if (params['name'].length < 1 || params['name'].length > 50) {
 			errors.push("Volume name must be between 1 and 50 characters.");
 		}

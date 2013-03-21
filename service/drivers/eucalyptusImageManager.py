@@ -145,7 +145,7 @@ class ImageManager():
         self._clean_local_image(image_path, '%s/mount/' % local_download_dir, exclude=exclude)
         new_image_id = self._upload_local_image(image_path, kernel, ramdisk, local_download_dir, parent_emi, meta_name, image_name, public, private_user_list)
         if not keep_image:
-            self._remove_local_image("%s/%s*" % (local_download_dir,meta_name))
+            self._wildcard_remove("%s/%s*" % (local_download_dir,meta_name))
         return new_image_id
 
     def download_image(self, download_dir, image_id):
@@ -174,38 +174,6 @@ class ImageManager():
 
         #Return path to image
         return os.path.join(download_dir,whole_image)
-
-    def _tarzip_image(self, tarfile_path, file_list):
-        import tarfile
-        tar = tarfile.open(tarfile_path, "w:gz")
-        logger.debug("Creating tarfile:%s" % tarfile_path)
-        for name in file_list:
-            logger.debug("Tarring file:%s" % name)
-            tar.add(name)
-        tar.close()
-
-    def _convert_local_image(self, local_img_path, conversion_type):
-        if 'vmdk' in conversion_type:
-            convert_img_path = local_img_path.replace('.img','.vmdk')
-            self.run_command(['qemu-img', 'convert', local_img_path, '-O', 'vmdk', convert_img_path])
-        elif 'vdi' in conversion_type:
-            raw_img_path = local_img_path.replace('.img','.raw')
-            convert_img_path = local_img_path.replace('.img', '.vdi')
-            self.run_command(['qemu-img', 'convert', local_img_path, '-O', 'raw', raw_img_path])
-            self.run_command(['VBoxManage', 'convertdd',raw_img_path, convert_img_path])
-        elif 'raw' in conversion_type:
-            convert_img_path = local_img_path.replace('.img','.raw')
-            self.run_command(['qemu-img', 'convert', local_img_path, '-O', 'raw', convert_img_path])
-        elif 'qcow2' in conversion_type:
-            convert_img_path = local_img_path.replace('.img','.qcow2')
-            self.run_command(['qemu-img', 'convert', local_img_path, '-O', 'qcow2', convert_img_path])
-        elif 'vhd' in conversion_type:
-            convert_img_path = local_img_path.replace('.img','.vhd')
-            self.run_command(['qemu-img', 'convert', local_img_path, '-O', 'vhd', convert_img_path])
-        else:
-            convert_img_path = None
-            logger.warn("Failed to export. Unknown type: %s" % (conversion_type,) )
-        return convert_img_path
 
     def _convert_xen_to_kvm(self, image_path, download_dir):
         #!!!IMPORTANT: Change this version if there is an update to the KVM kernel
@@ -256,56 +224,6 @@ class ImageManager():
         #Un-mount the image
         self.run_command(["umount", mount_point])
         return (image_path, local_kernel_path, local_ramdisk_path)
-
-    def export_instance(self, instance_id, export_type, download_dir='/tmp', local_img_path=None, convert_img_path=None, no_upload=False):
-        """
-        Download, convert and upload Image to S3
-        """
-        #Download and clean the image if it was not passed as a kwarg
-        if not local_img_path or not os.path.exists(local_img_path):
-            mount_point = os.path.join(download_dir,'mount/')
-            local_img_path = self.download_instance(download_dir, instance_id)
-            self._clean_local_image(local_img_path, mount_point)
-            self._chroot_local_image(local_img_path, mount_point, [
-                ['/bin/bash', '-c', 'echo n3wpa55 | passwd root --stdin'], #First, change the root password
-                ['yum', 'remove', '-qy', 'openldap', 'realvnc-vnc-server'], #Then, remove LDAP
-            ])
-            self.run_command(['mount', '-o', 'loop', local_img_path, mount_point])
-            self.run_command(['find', '%s' % mount_point, '-type', 'f', '-name', '*.rpmsave', '-exec', 'rm', '-f', '{}', ';'])
-            self.run_command(['umount', mount_point])
-        self._convert_vm_to_local(local_img_path, download_dir)
-        #Convert the image if it was not passed as a kwarg
-        if not convert_img_path or not os.path.exists(convert_img_path):
-            #Figure out if were dealing with XEN based..
-            convert_img_path = self._convert_local_image(local_img_path, export_type)
-
-        #Get the hash of the converted file
-        md5sum = self._large_file_hash(convert_img_path)
-        if no_upload:
-            return (md5sum, None)
-
-        #Archive/Compress/Send to S3
-        tarfile_name = convert_img_path+'.tar.gz'
-        _compress_file(tarfile_name, [convert_img_path])
-        #_export_to_s3(os.path.basename(tar_filename), tar_filename)
-        #return (md5sum, url)
-
-    def _compress_file(tar_filename, files=[]):
-        if not os.path.exists(tar_filename):
-            self._tarzip_image(tar_filename, files)
-
-    def _export_to_s3(keyname, the_file, bucketname='eucalyptus_exports'):
-        key = self._upload_file_to_s3(bucketname, keyname, the_file) #Key matches on basename of file
-        url = key.generate_url(60*60*24*7) # 7 days from now.
-        return url
-
-    def _large_file_hash(self, file_path):
-        logger.debug("Calculating MD5 Hash for %s" % file_path)
-        md5_hash = md5()
-        with open(file_path,'rb') as f:
-            for chunk in iter(lambda: f.read(md5_hash.block_size * 128), b''): #b'' == Empty Byte String
-                md5_hash.update(chunk)
-        return md5_hash.hexdigest()
 
     def download_instance(self, download_dir, instance_id, local_img_path=None, remote_img_path=None):
         """
@@ -406,7 +324,8 @@ class ImageManager():
         """
         Upload a local image, kernel and ramdisk to the Eucalyptus Cloud
         """
-        self._bundle_image(image_path, kernel, ramdisk, destination_path, ancestor_ami_ids=[parent_emi,])
+        logger.debug('Uploading image from dir:%s' % destination_path)
+        self._bundle_image(image_path, destination_path, kernel, ramdisk, ancestor_ami_ids=[parent_emi,])
         manifest_loc = '%s/%s.img.manifest.xml' % (destination_path, meta_name )
         logger.debug(manifest_loc)
         s3_manifest_loc = self._upload_bundle(meta_name.lower(), manifest_loc)
@@ -469,7 +388,7 @@ class ImageManager():
     """
     Indirect Create Image Functions - These functions are called indirectly during the 'create_image' process. 
     """
-    def _remove_local_image(self, wildcard_path):
+    def _wildcard_remove(self, wildcard_path):
         """
         Expand the wildcard to match all files, delete each one.
         """
@@ -545,8 +464,7 @@ class ImageManager():
 
             rm_file_path = os.path.join(mount_point, rm_file)
             #Expands the wildcard to test if the file(s) in question exist
-            if glob.glob(rm_file_path):
-                self.run_command(['/bin/rm', '-rf', rm_file_path])
+            self._wildcard_remove("%s" % rm_file_path)
 
         #Copy /dev/null to clear sensitive logging data
         for overwrite_file in ['root/.bash_history', 'var/log/auth.log', 'var/log/boot.log', 'var/log/daemon.log', 'var/log/denyhosts.log', 'var/log/dmesg', 'var/log/secure', 'var/log/messages', 'var/log/lastlog', 'var/log/cups/access_log', 'var/log/cups/error_log', 'var/log/syslog', 'var/log/user.log', 'var/log/wtmp', 'var/log/atmo/atmo_boot.log', 'var/log/atmo/atmo_init.log', 'var/log/apache2/access.log', 'var/log/apache2/error.log', 'var/log/yum.log', 'var/log/atmo/puppet', 'var/log/puppet', 'var/log/atmo/atmo_init_full.log']:
@@ -575,7 +493,7 @@ class ImageManager():
         #Don't forget to unmount!
         self.run_command(['umount', mount_point])
 
-    def _bundle_image(self, image_path, kernel=None, ramdisk=None, user=None, destination_path='/tmp', target_arch='x86_64', mapping=None, product_codes=None, ancestor_ami_ids=[]):
+    def _bundle_image(self, image_path, destination_path, kernel=None, ramdisk=None, user=None, target_arch='x86_64', mapping=None, product_codes=None, ancestor_ami_ids=[]):
         """
         bundle_image - Bundles an image given the correct params
         Required Params:
@@ -589,6 +507,7 @@ class ImageManager():
             mapping  - 
             product_codes  - 
         """
+        logger.debug('Bundling image from dir:%s' % destination_path)
         try:
             self.euca.validate_file(image_path)
         except FileValidationError, img_missing:
@@ -615,6 +534,7 @@ class ImageManager():
         logger.debug('Verifying image')
         image_size = self.euca.check_image(image_path, destination_path)
         prefix = self.euca.get_relative_filename(image_path)
+        logger.debug('tarzip_image(%s,%s,%s)' % (prefix, image_path, destination_path))
         #Tar the image file 
         logger.debug('Zipping the image')
         (tgz_file, sha_image_digest) = self.euca.tarzip_image(prefix, image_path, destination_path)
@@ -631,6 +551,11 @@ class ImageManager():
         #Destroyed encrypted file
         os.remove(encrypted_file)
        
+    def _export_to_s3(keyname, the_file, bucketname='eucalyptus_exports'):
+        key = self._upload_file_to_s3(bucketname, keyname, the_file) #Key matches on basename of file
+        url = key.generate_url(60*60*24*7) # 7 days from now.
+        return url
+
     def _upload_file_to_s3(self, bucket_name, keyname, filename, canned_acl='aws-exec-read'):
         from boto.s3.connection import S3Connection as Connection
         from boto.s3.key import Key
@@ -679,7 +604,7 @@ class ImageManager():
             self.euca.validate_file(manifest_path)
         except FileValidationError, no_file:
             print 'Invalid manifest'
-            logge.error("Invalid manifest file provided. Check path")
+            logger.error("Invalid manifest file provided. Check path")
             raise
 
         s3euca = Euca2ool(is_s3=True)
