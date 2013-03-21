@@ -25,10 +25,11 @@ class UserManager():
     @classmethod
     def settings_init(self, *args, **kwargs):
         settings_args = {
-            'username':settings.OPENSTACK_ADMIN_KEY, 
-            'password':settings.OPENSTACK_ADMIN_SECRET, 
-            'tenant_name':settings.OPENSTACK_ADMIN_TENANT, 
-            'auth_url':settings.OPENSTACK_ADMIN_URL,
+            'username': settings.OPENSTACK_ADMIN_KEY, 
+            'password': settings.OPENSTACK_ADMIN_SECRET, 
+            'tenant_name': settings.OPENSTACK_ADMIN_TENANT,
+            'auth_url': settings.OPENSTACK_ADMIN_URL,
+            'region_name': settings.OPENSTACK_DEFAULT_REGION
         }
         settings_args.update(kwargs)
         manager = UserManager(*args, **settings_args)
@@ -40,7 +41,13 @@ class UserManager():
     def newConnection(self,*args, **kwargs):
         self.keystone = ks_client.Client(*args, **kwargs)
         logger.warn(kwargs)
-        self.nova = nova_client.Client(kwargs.pop('username'), kwargs.pop('password'), kwargs.pop('tenant_name'), *args, no_cache=True, **kwargs)
+        self.nova = nova_client.Client(kwargs.pop('username'),
+                                       kwargs.pop('password'),
+                                       kwargs.pop('tenant_name'),
+                                       kwargs.pop('auth_url'),
+                                       kwargs.pop('region_name'), 
+                                       *args, no_cache=True, **kwargs)
+        self.nova.client.region_name = settings.OPENSTACK_DEFAULT_REGION
         #username=username,password=password,auth_url=auth_url, tenant_name=tenantname)
 
     ##Composite Classes##
@@ -54,7 +61,7 @@ class UserManager():
 
         #Create user
         try:
-            user= self.addUser(username, password, tenant.name) 
+            user= self.addUser(username, password, tenant.name)
         except ClientException as user_exists:
             user = self.getUser(username)
 
@@ -64,12 +71,13 @@ class UserManager():
         except ClientException as ce:
             logger.warn('Could not assign role to username %s' % username)
         try:
-            admin_role = self.addTenantMember(username, self.keystone.username, True)#Keystone Admin always gets access, always has admin priv.
+            role = self.addTenantMember(username, self.keystone.username, True)  # keystone admin always gets access, always has admin priv.
         except ClientException as ce:
-            logger.warn('Could not assign role to username %s' % self.keystone.username)
+            logger.warn('Could not assign admin role to username %s' % self.keystone.username)
         
         #TODO: Add teh default security group to this tenant using novaclient
         usergroup_nova  = nova_client.Client(self.keystone.username, self.keystone.password, tenant.name, self.nova.client.auth_url)
+        usergroup_nova.client.region_name = settings.OPENSTACK_DEFAULT_REGION
         self.build_security_group(usergroup_nova)
         return (tenant, user, role)
 

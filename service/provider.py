@@ -260,9 +260,9 @@ class OSProvider(Provider):
         Return provider specific options in a dict.
         """
         self.options = { 'secure': 'False',
-                         'ex_force_auth_url': 'http://hnoss.iplantcollaborative.org:5000/v2.0',
+                         'ex_force_auth_url': 'http://heimdall.iplantcollaborative.org:5000/v2.0',
                          'ex_force_auth_version': '2.0_password',
-                         'ex_tenant_name': 'core-services' }
+                         'ex_tenant_name': 'atmoadminTenant' }
         self.options.update(self.identity.credentials)
         return self.options
         

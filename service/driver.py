@@ -250,6 +250,10 @@ class OSDriver(EshDriver):
 
     identityCls = OSIdentity
 
+    def __init__(self, provider, identity):
+        super(OSDriver, self).__init__(provider, identity)
+        self._connection.connection.service_region = settings.OPENSTACK_DEFAULT_REGION
+
     def deploy_instance(self, *args, **kwargs):
         """
         Deploy an OpenStack node.
