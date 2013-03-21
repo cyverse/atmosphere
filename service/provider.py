@@ -240,30 +240,6 @@ class EucaProvider(Provider):
                       path=self.options['path'])
 
 
-class OSValhallaProvider(OSProvider):
-    
-    region_name = "ValhallaRegion"
-
-    def set_options(self):
-        """
-        """
-        super(OSProvider, self).set_options()
-        self.options = { 'ex_force_auth_url': 'http://heimdall.iplantcollaborative.org:5000/v2.0',
-                         'ex_tenant_name': 'atmoadminTenant' }
-
-
-class OSMidgardProvider(OSProvider):
-
-    region_name = "MidgardRegion"
-
-    def set_options(self):
-        """
-        """
-        super(OSProvider, self).set_options()
-        self.options = { 'ex_force_auth_url': 'http://hnoss.iplantcollaborative.org:5000/v2.0',
-                         'ex_tenant_name': 'atmoadminTenant' }
-
-
 class OSProvider(Provider):
 
     name = 'OpenStack'
@@ -311,3 +287,27 @@ class OSProvider(Provider):
                       ex_force_auth_url=self.options['ex_force_auth_url'],
                       ex_force_auth_version=self.options['ex_force_auth_version'],
                       ex_tenant_name=self.options['ex_tenant_name'])
+
+
+class OSValhallaProvider(OSProvider):
+    
+    region_name = "ValhallaRegion"
+
+    def set_options(self):
+        """
+        """
+        super(OSProvider, self).set_options()
+        self.options = { 'ex_force_auth_url': 'http://heimdall.iplantcollaborative.org:5000/v2.0',
+                         'ex_tenant_name': 'atmoadminTenant' }
+
+
+class OSMidgardProvider(OSProvider):
+
+    region_name = "MidgardRegion"
+
+    def set_options(self):
+        """
+        """
+        super(OSProvider, self).set_options()
+        self.options = { 'ex_force_auth_url': 'http://hnoss.iplantcollaborative.org:5000/v2.0',
+                         'ex_tenant_name': 'atmoadminTenant' }
