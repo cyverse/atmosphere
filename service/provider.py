@@ -296,10 +296,9 @@ class OSValhallaProvider(OSProvider):
     def set_options(self):
         """
         """
-        super(OSProvider, self).set_options()
-        self.options = { 'ex_force_auth_url': 'http://heimdall.iplantcollaborative.org:5000/v2.0',
-                         'ex_tenant_name': 'atmoadminTenant' }
-
+        super(OSValhallaProvider, self).set_options()
+        self.options['ex_force_auth_url'] = 'http://heimdall.iplantcollaborative.org:5000/v2.0'
+        self.options.update(self.identity.credentials)
 
 class OSMidgardProvider(OSProvider):
 
@@ -308,6 +307,6 @@ class OSMidgardProvider(OSProvider):
     def set_options(self):
         """
         """
-        super(OSProvider, self).set_options()
-        self.options = { 'ex_force_auth_url': 'http://hnoss.iplantcollaborative.org:5000/v2.0',
-                         'ex_tenant_name': 'atmoadminTenant' }
+        super(OSMidgardProvider, self).set_options()
+        self.options['ex_force_auth_url'] = 'http://hnoss.iplantcollaborative.org:5000/v2.0'
+        self.options.update(self.identity.credentials)
