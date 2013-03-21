@@ -32,7 +32,10 @@ class AccountDriver():
 
         password = self.hashpass(username)
         if usergroup:
-            (tenant, user, role) = self.user_manager.addUsergroup(username,password,True,admin)
+            (tenant, user, role) = self.user_manager.addUsergroup(username,
+                                                                  password,
+                                                                  True,
+                                                                  admin)
         else:
             user = self.user_manager.addUser(username, password)
         return (user.name, password)
