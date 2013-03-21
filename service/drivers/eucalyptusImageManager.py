@@ -8,11 +8,6 @@ Creating an Image from an Instance (Manual image requests)
 >> manager = ImageManager()
 >> manager.create_image('i-12345678', 'New image name v1')
 
-Migrating an Instance/Image (Example: Eucalyptus --> Openstack)
->> manager.migrate_image('/temp/image/path/', 'emi-F1F122E4')
-    _OR_
->> manager.migrate_instance('/temp/image/path/', 'i-12345678')
-
 >> os_manager.upload_euca_image('Migrate emi-F1F122E4', 
                                 '/temp/image/path/name_of.img', 
                                 '/temp/image/path/kernel/vmlinuz-...el5', 
@@ -24,6 +19,7 @@ import sys
 import os
 import glob
 import subprocess
+from hashlib import md5
 
 from datetime import datetime
 from urlparse import urlparse
@@ -145,11 +141,11 @@ class ImageManager():
             remote_img_path = '/usr/local/eucalyptus/%s/%s/root' % (owner, instance_id)
 
         ##Run sub-scripts to retrieve, mount and clean image, upload it, then remove it
-        image_path = self._retrieve_local_image(instance_id, image_path, remote_img_path)
+        image_path = self._download_remote_image(instance_id, image_path, remote_img_path)
         self._clean_local_image(image_path, '%s/mount/' % local_download_dir, exclude=exclude)
         new_image_id = self._upload_local_image(image_path, kernel, ramdisk, local_download_dir, parent_emi, meta_name, image_name, public, private_user_list)
         if not keep_image:
-            self._remove_local_image("%s/%s*" % (local_download_dir,meta_name))
+            self._wildcard_remove("%s/%s*" % (local_download_dir,meta_name))
         return new_image_id
 
     def download_image(self, download_dir, image_id):
@@ -178,6 +174,56 @@ class ImageManager():
 
         #Return path to image
         return os.path.join(download_dir,whole_image)
+
+    def _convert_xen_to_kvm(self, image_path, download_dir):
+        #!!!IMPORTANT: Change this version if there is an update to the KVM kernel
+        kernel_version = "2.6.18-348.1.1.el5"
+
+        kernel_dir = os.path.join(download_dir,"kernel")
+        ramdisk_dir = os.path.join(download_dir,"ramdisk")
+        mount_point = os.path.join(download_dir,"mount_point")
+        for dir_path in [kernel_dir, ramdisk_dir, mount_point]:
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path)
+        self.run_command(["mount", "-o", "loop", image_path, mount_point])
+
+        #PREPEND:
+        for (prepend_line, prepend_to) in [ ("LABEL=root       /             ext4     defaults,errors=remount-ro 1 1", "etc/fstab")]:
+            prepend_file_path = os.path.join(mount_point, prepend_to)
+            if os.path.exists(prepend_file_path):
+                self.run_command(["/bin/sed", "-i", "1i %s" % prepend_line, prepend_file_path])
+
+        #REMOVE (1-line):
+        for (remove_line_w_str, remove_from) in [ ("alias scsi", "etc/modprobe.conf"),
+                                                  ("atmo_boot",  "etc/rc.local") ]:
+            replace_file_path = os.path.join(mount_point, remove_from)
+            if os.path.exists(replace_file_path):
+                self.run_command(["/bin/sed", "-i", "/%s/d" % remove_line_w_str, replace_file_path])
+
+        #REPLACE:
+        for (replace_str, replace_with, replace_where) in [ ("\/dev\/sda","\#\/dev\/sda","etc/fstab"),
+                                                            ("xvc0","\#xvc0","etc/inittab"),
+                                                            ("xennet","8139cp","etc/modprobe.conf") ]:
+            replace_file_path = os.path.join(mount_point,replace_where)
+            if os.path.exists(replace_file_path):
+                self.run_command(["/bin/sed", "-i", "s/%s/%s/" % (replace_str, replace_with), replace_file_path])
+
+        #Chroot jail
+        self.run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c", 
+            "yum install kernel-%s -y; mkinitrd --with virtio_pci --with virtio_ring --with virtio_blk --with virtio_net --with virtio_balloon --with virtio -f /boot/initrd-%s.img %s" 
+            % (kernel_version, kernel_version, kernel_version)])
+
+        #Copy new kernel & ramdisk
+        local_kernel_path = os.path.join(kernel_dir, "vmlinuz-%s" % kernel_version)
+        local_ramdisk_path = os.path.join(ramdisk_dir, "initrd-%s.img" % kernel_version)
+        mount_kernel_path = os.path.join(mount_point, "boot/vmlinuz-%s" % kernel_version)
+        mount_ramdisk_path = os.path.join(mount_point, "boot/initrd-%s.img" % kernel_version)
+
+        self.run_command(["/bin/cp", mount_kernel_path, local_kernel_path])
+        self.run_command(["/bin/cp", mount_ramdisk_path, local_ramdisk_path])
+        #Un-mount the image
+        self.run_command(["umount", mount_point])
+        return (image_path, local_kernel_path, local_ramdisk_path)
 
     def download_instance(self, download_dir, instance_id, local_img_path=None, remote_img_path=None):
         """
@@ -210,9 +256,9 @@ class ImageManager():
         if not remote_img_path:
             remote_img_path = '/usr/local/eucalyptus/%s/%s/root' % (owner, instance_id)
 
-        return self._retrieve_local_image(instance_id, local_img_path, remote_img_path)
+        return self._download_remote_image(instance_id, local_img_path, remote_img_path)
         
-    def run_command(self, commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
+    def run_command(self, commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=None):
         """
         Using Popen, run any command at the system level and record the output and error streams
         """
@@ -221,7 +267,7 @@ class ImageManager():
         logger.debug("Running Command:<%s>" % ' '.join(commandList))
         try:
             proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr)
-            out,err = proc.communicate()
+            out,err = proc.communicate(input=None)
         except Exception, e:
             logger.error(e)
         logger.debug("STDOUT: %s" % out)
@@ -263,7 +309,7 @@ class ImageManager():
         logger.debug("Deleted bucket %s" % bucket_name)
         return True
 
-    def _retrieve_local_image(self, instance_id, local_img_path, remote_img_path):
+    def _download_remote_image(self, instance_id, local_img_path, remote_img_path):
         """
         Downloads image to local disk
         """
@@ -278,7 +324,8 @@ class ImageManager():
         """
         Upload a local image, kernel and ramdisk to the Eucalyptus Cloud
         """
-        self._bundle_image(image_path, kernel, ramdisk, destination_path, ancestor_ami_ids=[parent_emi,])
+        logger.debug('Uploading image from dir:%s' % destination_path)
+        self._bundle_image(image_path, destination_path, kernel, ramdisk, ancestor_ami_ids=[parent_emi,])
         manifest_loc = '%s/%s.img.manifest.xml' % (destination_path, meta_name )
         logger.debug(manifest_loc)
         s3_manifest_loc = self._upload_bundle(meta_name.lower(), manifest_loc)
@@ -305,7 +352,7 @@ class ImageManager():
     def _old_nc_scp(self, node_controller_ip, remote_img_path, local_img_path):
         """
         Runs a straight SCP from node controller
-        NOTE: no-password, SSH access to the node controller FROM THIS MACHINE is REQUIRED
+        NOTE: no-password, SSH key access to the node controller FROM THIS MACHINE is REQUIRED
         """
         node_controller_ip = node_controller_ip.replace('172.30','128.196') 
         self.run_command(['scp', '-P1657','root@%s:%s' % (node_controller_ip, remote_img_path), local_img_path])
@@ -341,7 +388,7 @@ class ImageManager():
     """
     Indirect Create Image Functions - These functions are called indirectly during the 'create_image' process. 
     """
-    def _remove_local_image(self, wildcard_path):
+    def _wildcard_remove(self, wildcard_path):
         """
         Expand the wildcard to match all files, delete each one.
         """
@@ -356,6 +403,23 @@ class ImageManager():
         self.run_command(['/bin/cp','%s' % host_atmoboot, '%s' % atmo_boot_path])
 
         
+    def _chroot_local_image(self, image_path, mount_point, commands_list):
+        #Prepare the paths
+        if not os.path.exists(image_path):
+            logger.error("Could not find local image!")
+            raise Exception("Image file not found")
+
+        if not os.path.exists(mount_point):
+            os.makedirs(mount_point)
+        #Mount the directory
+        self.run_command(['mount', '-o', 'loop', image_path, mount_point])
+        for commands in commands_list:
+            command_list = ['chroot', mount_point]
+            command_list.extend(commands)
+            self.run_command(command_list)
+        self.run_command(['umount', mount_point])
+
+
     def _clean_local_image(self, image_path, mount_point, exclude=[]):
         """
         NOTE: When adding to this list, NEVER ADD A LEADING SLASH to the files. Doing so will lead to DANGER!
@@ -386,15 +450,21 @@ class ImageManager():
             if glob.glob(rm_file_path):
                 self.run_command(['/bin/rm', '-rf', rm_file_path])
         
-        for rm_file in ['home/*', 'mnt/*', 'tmp/*', 'root/*', 'dev/*', 'proc/*', 'var/lib/puppet/run/*.pid', 'etc/puppet/ssl', 'usr/sbin/atmo_boot.py', 'var/log/atmo/atmo_boot.log', 'var/log/atmo/atmo_init.log']:
+        for rm_file in ['home/*', 'mnt/*', 'tmp/*', 'root/*', 'dev/*', 'proc/*',
+                        'var/lib/puppet/run/*.pid',
+                        'etc/puppet/ssl',
+                        'usr/sbin/atmo_boot.py',
+                        'var/log/atmo/atmo_boot.log',
+                        'var/log/atmo/atmo_init.log']:
             if rm_file.startswith('/'):
-                logger.warn("File %s has a LEADING slash. This causes the changes to occur on the HOST MACHINE and must be changed!" % rm_file)
+                logger.warn("File %s has a LEADING slash. "
+                            + "This causes the changes to occur on the "
+                            + "HOST MACHINE and must be changed!" % rm_file)
                 rm_file = rm_file[1:]
 
-            rm_file_path = os.path.join(mount_point,rm_file)
+            rm_file_path = os.path.join(mount_point, rm_file)
             #Expands the wildcard to test if the file(s) in question exist
-            if glob.glob(rm_file_path):
-                self.run_command(['/bin/rm', '-rf', rm_file_path])
+            self._wildcard_remove("%s" % rm_file_path)
 
         #Copy /dev/null to clear sensitive logging data
         for overwrite_file in ['root/.bash_history', 'var/log/auth.log', 'var/log/boot.log', 'var/log/daemon.log', 'var/log/denyhosts.log', 'var/log/dmesg', 'var/log/secure', 'var/log/messages', 'var/log/lastlog', 'var/log/cups/access_log', 'var/log/cups/error_log', 'var/log/syslog', 'var/log/user.log', 'var/log/wtmp', 'var/log/atmo/atmo_boot.log', 'var/log/atmo/atmo_init.log', 'var/log/apache2/access.log', 'var/log/apache2/error.log', 'var/log/yum.log', 'var/log/atmo/puppet', 'var/log/puppet', 'var/log/atmo/atmo_init_full.log']:
@@ -423,7 +493,7 @@ class ImageManager():
         #Don't forget to unmount!
         self.run_command(['umount', mount_point])
 
-    def _bundle_image(self, image_path, kernel=None, ramdisk=None, user=None, destination_path='/tmp', target_arch='x86_64', mapping=None, product_codes=None, ancestor_ami_ids=[]):
+    def _bundle_image(self, image_path, destination_path, kernel=None, ramdisk=None, user=None, target_arch='x86_64', mapping=None, product_codes=None, ancestor_ami_ids=[]):
         """
         bundle_image - Bundles an image given the correct params
         Required Params:
@@ -437,6 +507,7 @@ class ImageManager():
             mapping  - 
             product_codes  - 
         """
+        logger.debug('Bundling image from dir:%s' % destination_path)
         try:
             self.euca.validate_file(image_path)
         except FileValidationError, img_missing:
@@ -463,6 +534,7 @@ class ImageManager():
         logger.debug('Verifying image')
         image_size = self.euca.check_image(image_path, destination_path)
         prefix = self.euca.get_relative_filename(image_path)
+        logger.debug('tarzip_image(%s,%s,%s)' % (prefix, image_path, destination_path))
         #Tar the image file 
         logger.debug('Zipping the image')
         (tgz_file, sha_image_digest) = self.euca.tarzip_image(prefix, image_path, destination_path)
@@ -478,7 +550,37 @@ class ImageManager():
         logger.debug('Manifest Generated')
         #Destroyed encrypted file
         os.remove(encrypted_file)
-        
+       
+    def _export_to_s3(keyname, the_file, bucketname='eucalyptus_exports'):
+        key = self._upload_file_to_s3(bucketname, keyname, the_file) #Key matches on basename of file
+        url = key.generate_url(60*60*24*7) # 7 days from now.
+        return url
+
+    def _upload_file_to_s3(self, bucket_name, keyname, filename, canned_acl='aws-exec-read'):
+        from boto.s3.connection import S3Connection as Connection
+        from boto.s3.key import Key
+
+        s3euca = Euca2ool(is_s3=True)
+        s3euca.ec2_user_access_key=settings.AWS_S3_KEY
+        s3euca.ec2_user_secret_key=settings.AWS_S3_SECRET
+        s3euca.url = settings.AWS_S3_URL
+
+
+        conn = s3euca.make_connection()
+        bucket_instance = _ensure_bucket(conn, bucket_name, canned_acl)
+        k = Key(bucket_instance)
+        k.key = keyname
+        with open(filename, "rb") as the_file:
+            try:
+                logger.debug("Uploading File:%s to bucket:%s // key:%s" % (filename, bucket_name, keyname))
+                k.set_contents_from_file(the_file, policy=canned_acl)
+                logger.debug("File Upload complete")
+            except S3ResponseError, s3error:
+                s3error_string = '%s' % (s3error)
+                if s3error_string.find("403") >= 0:
+                    logger.warn("Permission denied while writing : %s " %  k.key)
+        return k
+ 
     def _upload_bundle(self, bucket_name, manifest_path, ec2cert_path=None, directory=None, part=None, canned_acl='aws-exec-read', skipmanifest=False):
         """
         upload_bundle - Read the manifest and upload the entire bundle (In parts) to the S3 Bucket (bucket_name)
@@ -502,7 +604,7 @@ class ImageManager():
             self.euca.validate_file(manifest_path)
         except FileValidationError, no_file:
             print 'Invalid manifest'
-            logge.error("Invalid manifest file provided. Check path")
+            logger.error("Invalid manifest file provided. Check path")
             raise
 
         s3euca = Euca2ool(is_s3=True)
