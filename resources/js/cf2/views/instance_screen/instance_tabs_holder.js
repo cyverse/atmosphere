@@ -6,11 +6,11 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 	events: {
 		'click a.instance_shell_tab': 'open_shell',
 		'click a.instance_vnc_tab': 'open_vnc',
-		'click a.request_imaging_tab': 'open_req_form',
 		'click .terminate_shell': 'close_shell',
 		'click .terminate_vnc': 'close_vnc',
 		'click .request_imaging_btn': 'request_imaging',
 		'click .report_instance_btn': 'report_instance',
+		'click .resize_instance_btn' : 'resize_instance',
 		'change select[name="vis"]': 'toggle_vis_input',
 		'click .editing': 'edit_instance_info',
 		'click .editable' : 'redir_edit_instance_info',
@@ -120,7 +120,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		this.$el.data('instance', this.model);
 		this.$el.attr('data-instanceid', this.model.get('id'));
 		//this.instance_info();
-		this.$el.find('a.request_imaging').hide();
+		this.$el.find('a.request_imaging').fadeOut('fast');
 		var self = this;
 		this.$el.find('.instance_tabs a.instance_shell_tab, .instance_tabs a.instance_vnc_tab').addClass("tab_disabled");
 
@@ -128,11 +128,17 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 		// Display 'Request Imaging' tab if they've already clicked the button for this instance before	
 		if (this.$el.find('.module[data-ip="'+this.model.get('public_dns_name')+'"]').length != 0)
-			this.$el.find('a.request_imaging').show();
+			this.$el.find('a.request_imaging').fadeIn('fast');
 		else
-			this.$el.find('a.request_imaging').hide();
+			this.$el.find('a.request_imaging').fadeOut('fast');
 
 		this.display_close_buttons();
+
+		/* Display 'Resize Instace' button if user is on OpenStack
+		if (Atmo.profile.get('selected_identity').get('provider_id') == 1)
+			this.$el.find('.btn.resize_instance_btn').fadeIn('fast');
+		else
+			this.$el.find('.btn.resize_instance_btn').fadeOut('fast');*/
 
 		return this;
 	},
@@ -162,7 +168,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 	    this.$el.show();
 	  } else {
 	    this.$el.hide();
-          }
+	  }
 	},
 	display_close_buttons: function() {
 		this.$el.find('.terminate_shell').remove();	
@@ -257,7 +263,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			this.model.set('running_shell', true);
 			this.$el.find('.shell_iframe').hide();
 			var ipaddr = this.model.get('public_dns_name');
-			this.$el.find('.shell_iframe[data-ip="'+ipaddr+'"]').show();
+			this.$el.find('.shell_iframe[data-ip="'+ipaddr+'"]').fadeIn('fast');
 			resizeApp();
 		}
 		else {
@@ -270,7 +276,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			this.model.set('running_vnc', true);
 			this.$el.find('.vnc_iframe').hide();
 			var ipaddr = this.model.get('public_dns_name');
-			this.$el.find('.vnc_iframe[data-ip="'+ipaddr+'"]').show();
+			this.$el.find('.vnc_iframe[data-ip="'+ipaddr+'"]').fadeIn('fast');
 			resizeApp();
 		}
 		else {
@@ -323,7 +329,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			else {
 				//console.log("Found shell iframe for: " + ipaddr);
 				this.$el.find('.shell_iframe').hide();
-				currentShell.show();
+				currentShell.fadeIn('fast');
 			}
 
 			resizeApp();
@@ -364,7 +370,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			}
 			else {
 				this.$el.find('.vnc_iframe').hide();
-				currentVNC.show();
+				currentVNC.fadeIn('fast');
 			}
 
 			resizeApp();
@@ -405,55 +411,37 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				$($('#vis_help').children()[0]).remove();
 		}
 	},
-    open_report_instance_form: function() {
-        // Check to see if a form already exists for this instance
-        //console.log("triggered open_report_instance_form");
-        if (this.$el.find('.report_instance_form').length == 0) {
-            this.create_report_instance_form(this.model);
-        }
-        else {
-            this.$el.find('.report_instance_form').show();
-        }
-    },
-    report_instance: function() {
-        //console.log("triggered report_instance");
-        this.$el.find('a.report_instance_tab').show().trigger('click');
-        this.open_report_instance_form();
-    }, 
-    create_report_instance_form: function() {
-        new Atmo.Views.ReportInstanceForm({model: this.model}).render().$el.appendTo(this.$el.find('.report_instance'));
-    },
-	open_req_form: function() {
-		
-		// Check to see if a form already exists for this instance
-        if (this.$el.find('.imaging_form').length == 0) {
-			//console.log("form doesn't exist for selected instance");
-			this.create_form(this.model);
-        } else {
-			//console.log("form exists for selected instance");
-            this.$el.find('.imaging_form').show();
+
+	report_instance: function() {
+
+		if (this.$el.find('.report_instance_form').length == 0) {
+			new Atmo.Views.ReportInstanceForm({model: this.model}).render().$el.appendTo(this.$el.find('.report_instance'));
 		}
 
-		// If form exists, show, include x_close
-	
+		this.$el.find('a.report_instance_tab').fadeIn('fast').trigger('click');
+		this.$el.find('.report_instance_form').fadeIn('fast');
+
 	},
-	request_imaging: function(e) {
-		// Create a new tab, fill it with a form
+	resize_instance: function() {
 
-		//console.log('Request Imaging button pressed');
+		if (this.$el.find('.resize_instance_form').length == 0) {
+			new Atmo.Views.ResizeInstanceForm({model: this.model}).render().$el.appendTo(this.$el.find('.resize_instance'));
+		}
 
-		var req_tab = this.$el.find('a.request_imaging_tab').show();
-		req_tab.trigger('click');
-		this.open_req_form();
+		this.$el.find('a.resize_instance_tab').fadeIn('fast').trigger('click');
+		this.$el.find('.resize_instance_form').fadeIn('fast');
 	},
-	create_form: function(instance) {
 
-		new Atmo.Views.RequestImagingForm({model: this.model}).render().$el.appendTo(this.$el.find('.request_imaging'));
+	request_imaging: function() {
 
+		if (this.$el.find('.imaging').length == 0) {
+			new Atmo.Views.RequestImagingForm({model: this.model}).render().$el.appendTo(this.$el.find('.request_imaging'));
+		}
+
+		this.$el.find('a.request_imaging_tab').fadeIn('fast').trigger('click');
+		this.$el.find('.imaging_form').fadeIn('fast');
 	},
 	edit_instance_info: function(e) {
-
-		//console.log("Clicked edit!");
 
 		var self = this;
 		// Remove original 'edit button' and grab original text
@@ -544,28 +532,6 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
                 }));
 			}
 		}));
-
-		/* Append Discard Changes Button
-		content.append($('<div/>', {
-			html: '&times;',
-			style: 'display: inline',
-			title: 'Discard Changes',
-			'class': 'discard_changes_button',
-			click: function() {
-				content.children().remove();
-				content.html(text_content);
-				content.addClass("editable");
-				
-				
-				content.append($('<span/>', {
-					html: 'Edit Name',
-					'class': 'editing'
-				}));
-
-				console.log("Discard changes!");
-			}
-		}));*/
-		
 	},
 	redir_edit_instance_info: function(e) {
 		// This function exists to forward event data to the this.edit_instance_info() when a user cicks an editable field instead of using the edit button

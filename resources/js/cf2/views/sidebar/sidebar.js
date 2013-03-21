@@ -5,6 +5,7 @@ Atmo.Views.Sidebar = Backbone.View.extend({
 		'click #refresh_instances_button' : 'refresh_instance_list',
 	},
 	initialize: function() {
+		Atmo.instances.bind('fail', this.stop_spinner, this);
 		Atmo.instances.bind('change:selected', this.change_selection, this);
 		Atmo.volumes.bind('change:selected', this.change_selection, this);
 	},
@@ -89,6 +90,9 @@ Atmo.Views.Sidebar = Backbone.View.extend({
 
         // Also, check for weather updates
         Atmo.Utils.update_weather();
-
 	},
+	stop_spinner: function() {
+		Atmo.Utils.notify("Could not update instance list", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
+		this.$el.find('#refresh_instances_button img').attr('src', site_root + '/resources/images/icon_mini_refresh.png');
+	}
 });

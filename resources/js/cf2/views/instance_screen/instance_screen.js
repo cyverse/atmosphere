@@ -17,7 +17,6 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
 	render: function() {
 		if (Atmo.instances.models.length > 0) {
 
-			//console.log('clear the instances');
 			if (this.$el.find('#resource_usage_holder').length == 0)
 				this.$el.html(this.template());
 			

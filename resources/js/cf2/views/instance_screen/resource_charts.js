@@ -1,395 +1,357 @@
-/* Bar charts that show cpu and memory usage */
 Atmo.Views.ResourceCharts = Backbone.View.extend({
 	initialize: function(options) {
+
+		// Options: quota_type, provider_id, identity_id
+
 		this.quota_type = options.quota_type;
 
-        // Get quota for any provider and id, but assume selected_identity otherwise 
-        if (options.provider && options.identity_id) {
-            this.provider = options.provider;
-            this.identity_id = options.identity_id;
-        }
-
+		if (options.provider_id && options.identity_id) {
+			this.provider_id = options.provider_id;
+			this.identity_id = options.identity_id;
+		}
 	},
 	render: function() {
-		
-		var self = this;
-		total = Atmo.profile.get('selected_identity').get('quota')[self.quota_type];
-		used = 0;
 
-        // If we're given a 'provider' and 'identity_id' as args, use those. Otherwise, compute based on selected identity
+		// First, determine which data we will use to create the charts
+		var used = 0, total = 0, self = this;
 
-		var fetch_errors = 0;
-		
-        if (!this.provider && !this.identity_id) {
-            if (this.quota_type == 'disk') {
-                
-                $.each(Atmo.volumes.models, function(i, volume) {
-                    used += parseInt(volume.get('size'));
-                });
+		// Do ajax calls to get data
+		if (this.provider_id && this.identity_id) {
+			this.pull_cloud_data(this.provider_id, this.identity_id, this.quota_type);
+		}
+		else {
+			total = Atmo.profile.get('selected_identity').get('quota')[this.quota_type];
 
-            }
+			if (this.quota_type == 'disk') {
+				$.each(Atmo.volumes.models, function(i, volume) {
+					used += parseInt(volume.get('size'));
+				});
+			}
 			else if (this.quota_type == 'disk_count') {
 				used = Atmo.volumes.models.length;
 			}
-            else if (this.quota_type == 'cpu' || this.quota_type == 'mem') {
+			else if (this.quota_type == 'cpu' || this.quota_type == 'mem') {
 
-					// First, check for stuff that would break this.
-					if (Atmo.instance_types.models.length == 0) {
-						fetch_errors++;
-						$('#instances_' + self.identity_id).html('<div class="alert alert-error"><strong>Could not get instance sizes for this provider.</strong> If the problem persists, please contact Support.</div>');
-
-						// Don't let people launch as a result of a size fetch error
-						used = total;
-
-						if (this.$el.attr('id') == "cpuHolder") {
-							this.$el.parent().find('#cpuHolder_info').html('<div class="alert alert-error"><strong>Error</strong> Could not calcuate your CPU usage. Contact Support.</div>');
-						}
-						else if (this.$el.attr('id') == "memHolder") {
-							this.$el.parent().find('#memHolder_info').html('<div class="alert alert-error"><strong>Error</strong> Could not calcuate your memory usage. Contact Support.</div>');
-						}
-					}
-					else {
-						$.each(Atmo.instances.models, function(idx,instance) {
-
-							var instance_type = instance.get('type');
-							var to_add = _.filter(Atmo.instance_types.models, function(model) {
-								return model.attributes.alias == instance_type;
-							});
-							used += to_add[0].attributes[self.quota_type];
-
+				if (Atmo.instance_types.models.length > 0) {
+					$.each(Atmo.instances.models, function(i, instance) {
+						var instance_type = instance.get('type');
+						var to_add = _.filter(Atmo.instance_types.models, function(model) {
+							return model.attributes.alias == instance_type;
 						});
-					}
+						used += to_add[0].attributes[self.quota_type];
+					});
+				}
+				else {
+					// Indicates error loading instance types
+					var info_holder = self.$el.parent().find('#' + self.quota_type + 'Holder_info');
+					var info = 'Could not calculate resource usage for ';
+					info += (self.quota_type == 'cpu') ? 'CPU usage' : 'memory usage';
+					info_holder.html(info);
 
-            }
-			this.fetch_errors = fetch_errors;
-            this.make_chart(used, total);
-        }
-        else {
-            // Get the user's quota for given identity, query for for that quota_type and add together the sizes
+					// this.$el is the graph container
+					this.$el.addClass('graphBar');
+					this.$el.append('<div style="color: rgb(165, 42, 42); margin: 9px 10px 0px"><span>Unavailable</span></div>');
+					return this;
+				}
+			}
 
-            this.total = 0;
-            this.used = 0;
-
-
-            $.ajax({
-                type: 'GET',
-                url: site_root + '/api/provider/' + self.provider + '/identity/' + self.identity_id,
-                success: function(response_text) {
-
-                    // Get quota requested
-                    self.total = response_text.quota[self.quota_type];
-
-                    if (self.quota_type == 'disk' || self.quota_type == 'disk_count') {
-                        // Get only volumes
-
-                        $.ajax({
-                            type: 'GET',
-                            url: site_root + '/api/provider/' + self.provider + '/identity/' + self.identity_id + '/volume/', 
-                            success: function(response_text) {
-                                self.volumes = response_text;
-
-								if (self.quota_type == 'disk') {
-									for (var i = 0; i < self.volumes.length; i++) {
-										self.used += parseInt(self.volumes[i].size);
-									}
-								}
-								else {
-									self.used = self.volumes.length;
-								}
-
-                                // MAKE CHART
-                                self.make_chart(self.used, self.total);
-
-                            },
-							error: function() {
-								$('#volumes_' + self.identity_id).html('<div class="alert alert-error"><strong>Could not get volumes for this provider.</strong> If the problem persists, please contact Support.</div>');
-
-								fetch_errors++;
-							},
-                            dataType: 'json'
-                        });
-                    }
-                    else {
-                        // Make a list of the instance types being used
-
-                        $.ajax({
-                            type: 'GET',
-                            async: false,           // We have to wait for this to finish to proceed anyways
-                            url: site_root + '/api/provider/' + self.provider + '/identity/' + self.identity_id + '/instance/', 
-                            success: function(response_text) {
-                                self.instances = response_text;
-                            },
-							error: function() {
-								$('#instances_' + self.identity_id).html('<div class="alert alert-error"><strong>Could not get instances for this provider.</strong> If the problem persists, please contact Support.</div>');
-								fetch_errors++;
-							},
-                            dataType: 'json'
-                        });
-                        $.ajax({
-                            type: 'GET',
-                            url: site_root + '/api/provider/' + self.provider + '/identity/' + self.identity_id + '/size/', 
-                            success: function(response_text) {
-                                // Get provider sizes and calculate used
-                                self.instance_types = response_text;
-
-                                // Go through instances, add based on quota type and alias
-                                for (var i = 0; i < self.instances.length; i++) {
-                                    var size_alias = self.instances[i].size_alias;
-                                    var to_add = _.filter(self.instance_types, function(type) {
-                                        return type.alias == size_alias;
-                                    });
-                                    self.used += to_add[0][self.quota_type];
-                                    
-                                }
-
-								if (self.quota_type == 'mem') {
-									self.total *= 1024;
-								}
-
-                                // MAKE CHART
-                                self.make_chart(self.used, self.total);
-
-                            },
-							error: function() {
-								fetch_errors++;
-
-								$('#resource_usage_holder_iplant_' + self.identity_id  + ' #cpuHolder_info').html('<div class="alert alert-error"><strong>Could not build resource usage charts.</strong> If the problem persists, please contact Support.</div>');
-
-								// Last call -- if errors occured, alert user.
-								if (fetch_errors > 0) {
-									Atmo.Utils.notify("Error", 'Could not find all information for this cloud. If the problem persists, please use the "Feedback &amp; Support" button in the lower right or email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
-								}
-							},
-                            dataType: 'json'
-                        });
-                    }
-                },
-				error: function() {
-					fetch_errors++;
-				},
-                dataType: 'json'
-            });
-
-
-        }
-
+			// Make chart with our data
+			this.make_chart(used, total);
+		}
 
 		return this;
+
+	},
+	pull_cloud_data: function(provider, identity, quota_type) {
+		
+		var total = 0, used = 0;
+		var self = this;
+		var fetch_errors = 0;
+
+		// Get the quota, then get the quantity used
+		$.ajax({
+			type: 'GET',
+			async: false,
+			url: site_root + '/api/provider/' + provider + '/identity/' + identity,
+			success: function(response_text) {
+				console.log("total", total);
+				total = response_text["quota"][quota_type];
+			},
+			error: function() {
+				fetch_errors++;
+
+				// Error Handling
+				var info_holder = self.$el.parent().find('#' + quota_type + 'Holder_info');
+				info_holder.html('Could not fetch ' + quota_type + ' quota. ');
+
+				// this.$el is the graph container
+				self.$el.addClass('graphBar');
+				self.$el.append('<div style="color: rgb(165, 42, 42); margin: 9px 10px 0px"><span>Unavailable</span></div>');
+			}
+		});
+
+		if (fetch_errors > 0) // Prevent unnecessary ajax calls if already in error state
+			return;
+
+		// Volume-related Quotas
+		if (quota_type == 'disk' || quota_type == 'disk_count') {
+
+			$.ajax({
+				type: 'GET',
+				url: site_root + '/api/provider/' + provider + '/identity/' + identity + '/volume/',
+				success: function(volumes) {
+
+					if (quota_type == 'disk') {
+						for (var i = 0; i < volumes.length; i++) {
+							used += parseInt(volumes[i].size);
+						}
+					}
+					else if (quota_type == 'disk_count') {
+						used = volumes.length;
+					}
+
+					// Make chart with our data
+					self.make_chart(used, total);
+				},
+				error: function() {
+					// Error handling
+					var info_holder = self.$el.parent().find('#' + quota_type + 'Holder_info');
+					var info = 'Could not fetch volume ';
+					info += (quota_type == 'disk') ? 'capacity quota.' : 'quantity quota.';
+					info_holder.html(info);
+
+					// this.$el is the graph container
+					self.$el.addClass('graphBar');
+					self.$el.append('<div style="color: rgb(165, 42, 42); margin: 9px 10px 0px"><span>Unavailable</span></div>');
+				}
+
+			});
+
+		}
+		// Instance-related Quotas
+		else if (quota_type == 'mem' || quota_type == 'cpu') {
+			
+			var instances;
+
+			// Get instances
+			$.ajax({
+				type: 'GET',
+				async: false,
+				url: site_root + '/api/provider/' + provider + '/identity/' + identity + '/instance/',
+				success: function(response_text) {
+					instances = response_text;
+				},
+				error: function() {
+					fetch_errors++;
+
+					// Error Handling
+					var info_holder = self.$el.parent().find('#' + quota_type + 'Holder_info');
+					var info = 'Could not fetch instance ';
+					info += (quota_type == 'mem') ? 'memory quota.' : 'CPU quota.';
+					info_holder.html(info);
+
+					// this.$el is the graph container
+					self.$el.addClass('graphBar');
+					self.$el.append('<div style="color: rgb(165, 42, 42); margin: 9px 10px 0px"><span>Unavailable</span></div>');
+				}
+			});
+
+			if (fetch_errors > 0) // Prevent unnecessary ajax calls if already in error state
+				return;
+
+			// Get instance sizes
+			$.ajax({
+				type: 'GET',
+				url: site_root + '/api/provider/' + provider + '/identity/' + identity + '/size/',
+				success: function(instance_types) {
+
+
+					// Add together quota used by instances cumulatively 
+					for (var i = 0; i < instances.length; i++) {
+						var size_alias = instances[i].size_alias;
+						var to_add = _.filter(instance_types, function(type) {
+							return type.alias == size_alias;
+						});
+						used += to_add[0][quota_type];	
+					}
+					
+					if (quota_type == 'mem') 
+						total *= 1024;
+						
+					// Make chart with our data
+					self.make_chart(used, total);
+				},
+				error: function() {
+					// Error Handling
+					var info_holder = self.$el.parent().find('#' + quota_type + 'Holder_info');
+					info_holder.html('Could not fetch instance types. ');
+
+					// this.$el is the graph container
+					self.$el.addClass('graphBar');
+					self.$el.append('<div style="color: rgb(165, 42, 42); margin: 9px 10px 0px"><span>Unavailable</span></div>');
+				}
+			});
+		}
 	},
 	choose_color: function(percent) {
-
-		if (percent < 50) {
-			return "greenGraphBar";	
-		}
-		else if (percent >= 50 && percent <= 100) {
-			return "orangeGraphBar";
-		}
-		else {
-			return "redGraphBar";
-		}
-
-	},
-	make_fill: function(percent) {
-
-		var self = this;
-
-		var cssPercent = percent * 100;
-        if (cssPercent > 100) cssPercent = 100;
-
-		var el = $('<div/>', {
-			style: 'width: ' + Math.round(cssPercent) + '%'
-		});
-
-		var barColor = this.choose_color(cssPercent);
-		el.addClass(barColor);
-
-		if (!this.fetch_errors)
-			el.html('<span>' + Math.round(percent * 100) + '%</span>');
+		if (percent < 50)
+			return 'greenGraphBar';
+		else if (percent >= 50 && percent <= 100)
+			return 'orangeGraphBar';
 		else
-			el.html('<span>Unavailable</span>');
-
-        // Keep the percentage 
-        if (el.width() < 10) 
-            el.css('color', '#000');
-        else
-            el.css('color', '#FFF');
-
-		return el;
+			return 'redGraphBar';
 	},
-	make_chart: function(part, whole) {
+	make_usage_bar: function(percent, cssPercent, options) {
 
-		var bar = this.$el;
-		bar.addClass("graphBar");
-
-		if (whole < 0) whole = part;
-
-		// Only draw fill bars if their usage is > 0
-		if (part != 0) {
-
-			// Create the bar that will go inside
-			var percent = part / whole;
-
-			var fill = this.make_fill(percent);
-			
-			bar.html(fill);
-		}
-		else {
-			var percent = 0;
-			var fill = this.make_fill(percent);
-			bar.html(fill);
-		}
-
-		// Store this so you can call add_usage with just the extra resource usage
-		bar.data("whole", whole);
-		bar.data("part", part);
-
-		// In the case of the cpu and memory holders, want to include actual usage
-		// in numbers
-
-		if (this.$el.attr('id') == "cpuHolder" && !this.fetch_errors) {
-			bar.data("unit", "CPUs");
-			this.$el.parent().find('#cpuHolder_info').html("You are using " + part + " of " + whole + " CPUs");
-		}
-		else if (this.$el.attr('id') == "memHolder" && !this.fetch_errors) {
-			bar.data("unit", "GB available memory");
-			// Display member in GB or MB when appropriate
-			// Determine how many digits we want to display
-
-			var digits = (part % 1024 == 0) ? 0 : 1;
-			readable_part = (part > 1024) ? ('' + (part/1024).toFixed(digits)  + ' GB') : ('' + part + ' MB');
-
-			this.$el.parent().find('#memHolder_info').html("You are using " + readable_part + " of " + (whole/1024) + " GB  available memory.");
-		}
-		else if (this.$el.attr('id') == 'diskHolder' && !this.fetch_errors) {
-			bar.data("unit", "GB available storage");
-			this.$el.parent().find('#diskHolder_info').html('You are using ' + part + ' of ' + whole + ' GB available storage.');
-		}
-		else if (this.$el.attr('id') == 'disk_countHolder' && !this.fetch_errors) {
-			bar.data("unit", "available volumes");
-			this.$el.parent().find('#disk_countHolder_info').html('You are using ' + part + ' of ' + whole + ' available volumes.');
-		}
-
-		if (part > 0) {
-			bar.append($('<br/>', {
-				style: 'clear: both'
-			}));
-		}
-
-	},
-	add_usage: function(extraPart, options) {
-		var self = this;
-
-		if (options)
-			this.is_initial = options.is_initial;
-
-		var chart = this.$el;
-		var chart_info = this.$el.parent().find('#'+self.quota_type+"Holder_info");
-		extraPart = parseFloat(extraPart);
-
-		var fill = chart.html();
-		fill = $(fill);
-
-
-		// Erase any "extra" already added in
-		if (fill.length != 0) {
-			if (chart.data("part") == 0) {
-				fill = "";
-
-				chart.append($('<br/>', {
-					style: 'clear: both'
-				}));
+		// Style the usage bar
+		var usage_bar = $('<div>', {
+			style: 'width: ' + cssPercent + '%',
+			html: function() {
+				if (options && options.show_percent)
+					return '<span>' + percent + '%</span>';
+				else
+					return '';
 			}
-			else {
-				fill = $(fill[0]);
-			}
-			chart.html(fill);
-		}
-
-		var cssPercent = Math.round((extraPart / chart.data("whole")) * 100);
-		var current_usage = (chart.data("part") / chart.data("whole")) * 100;
-		var total_usage = Math.floor(((extraPart + chart.data("part")) / chart.data("whole")) * 100);
-
-		// Determine what color the added usage should be
-		var barColor = this.choose_color(total_usage);
-		
-		var fill_more = $('<div/>', {
-			'class': barColor,
 		});
+		
+		if (options && options.show_color)
+			usage_bar.addClass(this.choose_color(percent));
+		
+		if (usage_bar.width() < 10)
+			usage_bar.css('color', '#000');
+		else
+			usage_bar.css('color', '#FFF');
 
+		return usage_bar;
+	},
+	make_chart: function(used, total) {
+		
+		// this.$el is the graph container
+		this.$el.addClass('graphBar');
 
+		var percent = 0, cssPercent = 0;
+
+		if (used > 0) {
+			percent = Math.floor((used / total) * 100);
+			cssPercent = (percent > 100) ? 100 : percent;
+		}
+		else {
+			percent = 0;
+			cssPercent = 0;
+		}
+		var usage_bar = this.make_usage_bar(percent, cssPercent, { show_percent: true, show_color: true });
+
+		this.$el.html(usage_bar);
+		this.$el.data('used', used);
+		this.$el.data('total', total);
+
+		this.show_quota_info(used, total, false, true);
+	},
+	show_quota_info: function(used, total, is_projected, under_quota) {
+		// is_projected: boolean, should quota denote future use or current use
+		
+		var info = '';
+
+		if (this.quota_type == 'cpu') {
+			this.$el.data('unit', 'CPUs');
+			info = used + ' of ' + total + ' available CPUs.';
+		}
+		else if (this.quota_type == 'mem') {
+
+			// Determine whether memory should be in GB or MB
+			this.$el.data('unit', 'memory');
+			var digits = (used % 1024 == 0) ? 0 : 1;
+			var readable_used = (used > 1024) ? ('' + (used / 1024).toFixed(digits) + ' GB') : ('' + used + ' MB');
+
+			info = readable_used + ' of ' + (total / 1024) + ' GB allotted memory.';
+		}
+		else if (this.quota_type == 'disk') {
+			this.$el.data('unit', 'storage');
+			info = used + ' of ' + total + ' GB available storage.';
+		}
+		else if (this.quota_type == 'disk_count') {
+			this.$el.data('unit', 'volumes');
+			info = used + ' of ' + total + ' available volumes.';
+		}
+
+		if (is_projected)
+			info = 'You will use ' + info;
+		else
+			info = 'You are using ' + info;
+
+		if (!under_quota) {
+			info = '<strong>Quota Exceeded.</strong> ';
+
+			if (this.quota_type == 'mem' || this.quota_type == 'cpu')
+				info += 'Choose a smaller size or terminate a running instance.';
+			else if (this.quota_type == 'disk')
+				info += 'Choose a smaller size or destroy an existing volume.';
+			else if (this.quota_type == 'disk_count')
+				info += 'You must destroy an existing volume or request more resources.';
+		}
+
+		// Place info into sibling div element
+		var info_holder = this.$el.parent().find('#' + this.quota_type + 'Holder_info');
+		info_holder.html(info);
+
+	},
+	add_usage: function(to_add, options) {
+		
 		var under_quota;
-		// Make sure they won't exceed 100% with added usage
-		if (total_usage > 100) {
 
-			if (this.quota_type == 'disk') {
-				chart_info.html('<strong>Quota exceeded.</strong> Choose a smaller size, delete an existing volume, or request more resources.');	
-			}
-			else if (this.quota_type == 'disk_count') {
-				chart_info.html('<strong>Quota exceeded.</strong> Delete an existing volume or request more resources.');
-			}
-			else {
-				chart_info.html('<strong>Quota exceeded.</strong> Choose a smaller size or terminate a running instance.');
-			}
+		var info_holder = this.$el.parent().find('#' + this.quota_type + 'Holder_info');
+		to_add = parseFloat(to_add);
 
-			cssPercent = Math.floor(((chart.data("whole") - chart.data("part")) / chart.data("whole")) * 100);
-			under_quota = false;
+		// Empty the existing parts
+		this.$el.html('');	
+
+		var new_usage = Math.round((to_add / this.$el.data('total')) * 100);
+		var current_usage = Math.floor((this.$el.data('used') / this.$el.data('total')) * 100);
+		var total_usage = Math.floor(((to_add + this.$el.data('used')) / this.$el.data('total')) * 100);
+		var new_cssPercent = 0;
+		
+		var under_quota = (total_usage > 100) ? false : true;
+
+		// Create new usage bars
+		if (current_usage > 0 && current_usage < 100) {
+
+			// Determine the size of the added part
+			if (total_usage > 100)
+				new_cssPercent = 100 - current_usage;
+			else
+				new_cssPercent = new_usage;
+
+			var current_bar = this.make_usage_bar(current_usage, current_usage, { show_percent: false, show_color: false });
+			current_bar.html('<span>' + total_usage + '%</span>');
+			current_bar.attr('class', '');
+			current_bar.addClass('barFlushLeft');
+			current_bar.addClass(this.choose_color(total_usage));
+
+			var added_bar = this.make_usage_bar(new_usage, new_cssPercent, { show_percent: false, show_color: false });
+			added_bar.addClass(this.choose_color(total_usage));
+			added_bar.css('opacity', 0.5);
+			added_bar.addClass('addedUsageBar');
+
+			this.$el.html(current_bar).append(added_bar);
 		}
 		else {
-			under_quota = true;
+		
+			// User is already over quota
+			if (total_usage > 100)
+				new_cssPercent = 100;
+			else
+				new_cssPercent = new_usage;
 
-			var newPart = (chart.data("part") + extraPart);
-			var newWhole = chart.data("whole");
-
-			if (this.quota_type == 'mem') {
-				var digits = (newPart % 1024 == 0) ? 0 : 1;
-				newPart = (newPart > 1024) ? ('' + (newPart/1024).toFixed(digits)) : ('' + newPart + ' MB');
-				newWhole /= 1024;
-			}
-			chart_info.html('A new instance will use ' + newPart  + ' of your ' + newWhole + " allotted " + chart.data("unit"));
-		}
-	
-		fill_more.attr("style", "width: " + cssPercent + "%");
-
-        var total_percent = Math.round(((extraPart + chart.data("part")) / chart.data("whole")) * 100);
-
-		if (fill.length != 0 && current_usage < 100) {
-			fill.html('<span>' + total_percent + '%</span>');
-			fill.attr("class", barColor);
-			fill.addClass("barFlushLeft");
-
-			chart.html(fill);
-			fill_more.addClass("addedUsageBar");
-		}
-		else {
-			fill_more.html('<span>' + total_usage + '%</span>');
-
-			// If user has no existing quota and we're showing projected usage, show lower opacity
-			if (self.is_initial) {
-				fill_more.css('opacity', 0.5);
-				fill_more.css('color', '#000');
-			}
+			var added_bar = this.make_usage_bar(total_usage, new_cssPercent, { show_percent: true, show_color: true });
+			added_bar.css('opacity', 0.5);
+			added_bar.css('color', '#000');
+			this.$el.html(added_bar);
 		}
 
-        
+		this.show_quota_info((this.$el.data('used') + to_add), this.$el.data('total'), true, under_quota);
 
-	
-		if (current_usage < 100) {
-			chart.append(fill_more);
-			return under_quota;
-		}
-		else {
-			
-			fill.html('<span>' + total_usage + '%</span>');
-			chart.html(fill);
-
-			if (Atmo.profile.get('quota_cpu') == -1 && Atmo.profile.get('quota_mem') == -1) {
-				return true;
-			}
-			else {
-				return under_quota;
-			}
-		}
+		// Return: whether the user is under their quota with the added usage
+		return under_quota;
 
 	}
 });
-
