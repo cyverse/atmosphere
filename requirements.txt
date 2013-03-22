@@ -8,7 +8,6 @@ apache-libcloud==0.12.1
 argparse==1.2.1
 billiard==2.7.3.22
 boto==2.7.0
-caslib==1.0
 celery==3.0.16
 distribute==0.6.31
 django-celery==3.0.11
@@ -40,6 +39,7 @@ git+git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclie
 python-ldap==2.4.10
 python-magic==0.4.3
 git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient
+git+git://github.com/openstack/python-quantumclient.git#egg=python-quantumclient
 pytz==2012j
 redis==2.7.2
 requests==1.1.0

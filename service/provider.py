@@ -18,6 +18,7 @@ from service.drivers.eucalyptus_driver import Eucalyptus_Esh_NodeDriver
 from service.drivers.aws_driver import Esh_EC2NodeDriver
 from atmosphere.logger import logger
 
+
 def lc_provider_id(provider):
     """
     Get the libcloud Provider using our service provider.
@@ -31,6 +32,7 @@ def lc_provider_id(provider):
         logger.warn("Unable to find provider location: %s." % provider.location)
         raise ServiceException(e)
     return p
+
 
 class BaseProvider(Persist):
     __metaclass__ = ABCMeta
@@ -72,6 +74,7 @@ class BaseProvider(Persist):
     @abstractmethod
     def get_driver(self, *args, **kwargs):
         raise NotImplemented
+
  
 class Provider(BaseProvider):
 
@@ -132,6 +135,7 @@ class Provider(BaseProvider):
         self.core_provider_type = None
         return True
 
+
 class AWSProvider(Provider):
 
     name = 'Amazon EC2'
@@ -175,13 +179,16 @@ class AWSProvider(Provider):
         return self.lc_driver(key=self.options['key'],
                            secret=self.options['secret'])
 
+
 class AWSUSWestProvider(AWSProvider):
 
     location = 'EC2_US_WEST'
 
+
 class AWSUSEastProvider(AWSProvider):
 
     location = 'EC2_US_EAST'
+
 
 class EucaProvider(Provider):
 
@@ -232,6 +239,7 @@ class EucaProvider(Provider):
                       port=self.options['port'],
                       path=self.options['path'])
 
+
 class OSProvider(Provider):
 
     name = 'OpenStack'
@@ -260,9 +268,7 @@ class OSProvider(Provider):
         Return provider specific options in a dict.
         """
         self.options = { 'secure': 'False',
-                         'ex_force_auth_url': 'http://heimdall.iplantcollaborative.org:5000/v2.0',
-                         'ex_force_auth_version': '2.0_password',
-                         'ex_tenant_name': 'atmoadminTenant' }
+                         'ex_force_auth_version': '2.0_password' }
         self.options.update(self.identity.credentials)
         return self.options
         
@@ -281,3 +287,26 @@ class OSProvider(Provider):
                       ex_force_auth_url=self.options['ex_force_auth_url'],
                       ex_force_auth_version=self.options['ex_force_auth_version'],
                       ex_tenant_name=self.options['ex_tenant_name'])
+
+
+class OSValhallaProvider(OSProvider):
+    
+    region_name = "ValhallaRegion"
+
+    def set_options(self):
+        """
+        """
+        super(OSValhallaProvider, self).set_options()
+        self.options['ex_force_auth_url'] = 'http://heimdall.iplantcollaborative.org:5000/v2.0'
+        self.options.update(self.identity.credentials)
+
+class OSMidgardProvider(OSProvider):
+
+    region_name = "MidgardRegion"
+
+    def set_options(self):
+        """
+        """
+        super(OSMidgardProvider, self).set_options()
+        self.options['ex_force_auth_url'] = 'http://hnoss.iplantcollaborative.org:5000/v2.0'
+        self.options.update(self.identity.credentials)

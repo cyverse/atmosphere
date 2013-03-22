@@ -23,7 +23,7 @@ class EucaToOpenstack:
         self.os_img_manager = OSImageManager()
         self.euca_img_manager = EucaImageManager()
 
-    def migrate_image(self, euca_image_id, name, download_path='/tmp/', euca_image_path=None, keep_image=False):
+    def migrate_image(self, euca_image_id, name, download_path='/tmp/', euca_image_path=None, no_upload=False, keep_image=False):
         """
         Download/clean euca image
         Perform conversion
@@ -45,13 +45,14 @@ class EucaToOpenstack:
             logger.error("Failed to find a conversion for this OS.")
             return
 
-        self.os_img_manager.upload_euca_image(name, image, kernel, ramdisk)
+        if not no_upload:
+            self.os_img_manager.upload_euca_image(name, image, kernel, ramdisk)
         if not keep_image:
             os.remove(image)
             os.remove(kernel)
             os.remove(ramdisk)
 
-    def migrate_instance(self, euca_instance_id, name, download_path='/tmp/', euca_image_path=None, keep_image=False):
+    def migrate_instance(self, euca_instance_id, name, download_path='/tmp/', euca_image_path=None, no_upload=False, keep_image=False):
         """
         TODO: Add in public, private_user_list, exclude_files
         """
@@ -71,7 +72,8 @@ class EucaToOpenstack:
         else:
             logger.error("Failed to find a conversion for this OS.")
             return
-        self.os_img_manager.upload_euca_image(name, image, kernel, ramdisk)
+        if not no_upload:
+            self.os_img_manager.upload_euca_image(name, image, kernel, ramdisk)
         if not keep_image:
             os.remove(image)
             os.remove(kernel)
@@ -148,51 +150,4 @@ class EucaToOpenstack:
         Clean the image as you would normally, but apply a few specific changes
         Returns: ("/path/to/img", "/path/to/kernel", "/path/to/ramdisk")
         """
-        #!!!IMPORTANT: Change this version if there is an update to the KVM kernel
-        kernel_version = "2.6.18-348.1.1.el5"
-
-        kernel_dir = os.path.join(download_dir,"kernel")
-        ramdisk_dir = os.path.join(download_dir,"ramdisk")
-        mount_point = os.path.join(download_dir,"mount_point")
-        for dir_path in [kernel_dir, ramdisk_dir, mount_point]:
-            if not os.path.exists(dir_path):
-                os.makedirs(dir_path)
-        self.euca_img_manager.run_command(["mount", "-o", "loop", image_path, mount_point])
-
-        #PREPEND:
-        for (prepend_line, prepend_to) in [ ("LABEL=root       /             ext4     defaults,errors=remount-ro 1 1", "etc/fstab")]:
-            prepend_file_path = os.path.join(mount_point, prepend_to)
-            if os.path.exists(prepend_file_path):
-                self.euca_img_manager.run_command(["/bin/sed", "-i", "1i %s" % prepend_line, prepend_file_path])
-
-        #REMOVE (1-line):
-        for (remove_line_w_str, remove_from) in [ ("alias scsi", "etc/modprobe.conf"),
-                                                  ("atmo_boot",  "etc/rc.local") ]:
-            replace_file_path = os.path.join(mount_point, remove_from)
-            if os.path.exists(replace_file_path):
-                self.euca_img_manager.run_command(["/bin/sed", "-i", "/%s/d" % remove_line_w_str, replace_file_path])
-
-        #REPLACE:
-        for (replace_str, replace_with, replace_where) in [ ("\/dev\/sda","\#\/dev\/sda","etc/fstab"),
-                                                            ("xvc0","\#xvc0","etc/inittab"),
-                                                            ("xennet","8139cp","etc/modprobe.conf") ]:
-            replace_file_path = os.path.join(mount_point,replace_where)
-            if os.path.exists(replace_file_path):
-                self.euca_img_manager.run_command(["/bin/sed", "-i", "s/%s/%s/" % (replace_str, replace_with), replace_file_path])
-
-        #Chroot jail
-        self.euca_img_manager.run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c", 
-            "yum install kernel-%s -y; mkinitrd --with virtio_pci --with virtio_ring --with virtio_blk --with virtio_net --with virtio_balloon --with virtio -f /boot/initrd-%s.img %s" 
-            % (kernel_version, kernel_version, kernel_version)])
-
-        #Copy new kernel & ramdisk
-        local_kernel_path = os.path.join(kernel_dir, "vmlinuz-%s" % kernel_version)
-        local_ramdisk_path = os.path.join(ramdisk_dir, "initrd-%s.img" % kernel_version)
-        mount_kernel_path = os.path.join(mount_point, "boot/vmlinuz-%s" % kernel_version)
-        mount_ramdisk_path = os.path.join(mount_point, "boot/initrd-%s.img" % kernel_version)
-
-        self.euca_img_manager.run_command(["/bin/cp", mount_kernel_path, local_kernel_path])
-        self.euca_img_manager.run_command(["/bin/cp", mount_ramdisk_path, local_ramdisk_path])
-        #Un-mount the image
-        self.euca_img_manager.run_command(["umount", mount_point])
-        return (image_path, local_kernel_path, local_ramdisk_path)
+        return self.euca_img_manager._local_convert_xen_to_kvm(image_path, download_dir)

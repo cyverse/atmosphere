@@ -8,7 +8,7 @@ from core.models.credential import Credential
 from core.models.identity import Identity
 from core.models.instance import Instance
 from core.models.machine import ProviderMachine
-from core.models.machine_request import MachineRequest
+from core.models.machine_request import MachineRequest, MachineExport
 from core.models.profile import UserProfile
 from core.models.provider import ProviderType, ProviderSize, Provider
 from core.models.quota import Quota

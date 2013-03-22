@@ -23,7 +23,7 @@ from core.models.instance import Instance as CoreInstance
 
 from service.provider import AWSProvider, AWSUSEastProvider,\
                              AWSUSWestProvider, EucaProvider,\
-                             OSProvider
+                             OSProvider, OSValhallaProvider
 from service.identity import AWSIdentity, EucaIdentity,\
                              OSIdentity
 from service.driver import AWSDriver, EucaDriver, OSDriver
@@ -104,7 +104,7 @@ def launchEshInstance(driver, extras, *args, **kwargs):
 #These functions return ESH related information based on the core repr
 ESH_MAP = {
         'openstack': {
-            'provider':OSProvider,
+            'provider':OSValhallaProvider,
             'identity':OSIdentity,
             'driver':OSDriver
             },
