@@ -12,6 +12,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		'keyup #newinst_name' : 'validate_name',
 		'change #newinst_size': 'change_type_selection',
 		'dblclick .image_list > li' : 'quick_launch',
+		'click #help_request_more_resources2' : 'show_request_resources_modal'
 	},
 	template: _.template(Atmo.Templates.new_instance_screen),
 	initialize: function(options) {
@@ -85,23 +86,9 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
                 return content;
             }
         }).click(this.x_close);
-        this.$el.find('#help_request_more_resources2').popover({
-            placement: 'bottom',
-            html: true,
-            title: 'Request More Resources <a class="close" data-dismiss="popover" href="#new_instance" data-parent="help_request_more_resources2">&times</a>',
-            content: function() {
-                var content = '<form name="request_more_resources2"><input type="hidden" name="username" value="'+Atmo.profile.get('id')+'">';
-                content += 'Requested Resources: <textarea name="quota" placeholder="E.g. 4 CPUs and 8 GB memory, enough for a c1.medium, etc."></textarea><br />';
-                content += 'Reason you need these resources: <textarea name="reason" placeholder="E.g. To run a program or analysis, store larger output, etc. "></textarea><Br /><input type="submit" value="Request Resources" class="btn" id="submit_resources_request2"></form>';
-                return content;
-            }
-        }).click(_.bind(this.x_close, this));
-
 		return this;
 	},
     x_close: function() {
-            if($('#submit_resources_request2').length > 0)
-				$('#submit_resources_request2').click(_.bind(this.submit_resources_request2, this));
 
             // Must assign this function after the popover is actually rendered, so we find '.close' element
             $('.close').click(function(e) {
@@ -112,45 +99,6 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
                 }            
             });
 	},
-    submit_resources_request2: function(e) {
-            e.preventDefault();
-
-            // Make sure they filled out both fields
-            var valid = true;
-
-            var form = $('form[name="request_more_resources2"]');
-            form.find('span').remove();
-
-            if (form.find('textarea[name="quota"]').val().length == 0) {
-                valid = false;
-                form.find('textarea[name="quota"]').before('<span style="color: #B94A48">(Required)</span>');
-            }
-            if (form.find('textarea[name="reason"]').val().length == 0) {
-                valid = false;
-                form.find('textarea[name="reason"]').before('<span style="color: #B94A48">(Required)</span>');
-            }
-                
-            if (valid) {
-
-                var self = this;
-                $.ajax({
-                    type: 'POST',
-                    url: site_root + '/api/request_quota/', 
-                    data: form.serialize(),
-                    success: function() {
-                        $('#submit_resources_request2').val("Request Submitted!").attr("disabled", "disabled").click(function() { return false; });
-						setTimeout(function() {
-							$('#help_request_more_resources2').click();
-						}, 1000);
-                    },
-					error: function() {
-						Atmo.Utils.notify("Could not send request", 'Please email your quota request to <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
-					},
-                    dataType: 'text'
-                });
-            }
-            return false;
-    },
     render_resource_charts: function() {
         this.mem_resource_chart.render();
         this.cpu_resource_chart.render();
@@ -569,5 +517,8 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 			}
 			instance_name_input.closest('.control-group').removeClass('error');
 		}
+	},
+	show_request_resources_modal: function() {
+		Atmo.request_resources_modal.do_alert();
 	}
 });
