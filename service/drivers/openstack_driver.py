@@ -11,6 +11,7 @@ from libcloud.compute.drivers.openstack import OpenStack_1_1_Response, OpenStack
 import copy
 import time
 from atmosphere.logger import logger
+from service.drivers.openstackNetworkManager import NetworkManager
 
 class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     """
@@ -149,21 +150,31 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
     def create_node(self, **kwargs):
         self._add_keypair(kwargs)
-        kwargs.update({'ex_keyname': unicode(self.key)})
-
+        kwargs.update({
+            'ex_keyname': unicode(self.key),
+            
+        })
         logger.warn("kwargs = %s" % kwargs)
-
+        #Instance launches at this point.
         node = super(OpenStack_Esh_NodeDriver, self).create_node(**kwargs)
 
         #NOTE: This line is needed to remove generated password and authenticate via SSH_Keypair instead!
         node.extra['password'] = None
-        #NOTE: This may not be necessary in deploy_instance..
+        #NOTE: Using this to wait for the time it takes to launch instance and have a valid IP port
+        #TODO: It would be better to hook in an asnyc thread that waits for valid IP port
         time.sleep(10)
 
         server_id = node.id
-        self._add_floating_ip(server_id)
+        self._add_floating_ip(server_id, **kwargs)
         
         return node
+
+    ##NOTE: DO NOT REMOVE, WE ARE OVERRIDING QUANTUM NETWORK UNTIL OUR VERSION OF NOVA SUPPORTS THE /os-networksv2/ api call!
+    def ex_list_networks(self, region=None):
+        from atmosphere import settings
+        network_manager = NetworkManager(self, region)
+        return network_manager.listLCNetworks()
+    ##NOTE:END
 
     def ex_suspend_node(self, node):
         """
@@ -497,7 +508,17 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         if not keypair:
             logger.warn("No keypair for %s" % identity.json())
 
-    def _add_floating_ip(self, server_id):
+    def _add_floating_ip(self, server_id, region=None):
+        """
+        Add IP (Quantum)
+        """
+        network_manager = NetworkManager.lc_driver_init(self._connection, region)
+        
+        
+    def _deprecated_add_floating_ip(self, server_id):
+        """
+        Add IP (Nova-Network -- deprecated)
+        """
         floating_ip_pool = self.ex_list_floating_ip_pools()[0]
         pool_name = floating_ip_pool['name']
         floating_ip = self.ex_allocate_floating_ip(pool_name)

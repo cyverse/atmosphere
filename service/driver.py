@@ -297,6 +297,13 @@ class OSDriver(EshDriver):
         """
         Create an OpenStack node.
         """
+        try:
+            user_networks = [network for network in self._connection.ex_list_networks() if network.name == driver.identity.credentials['ex_tenant_name'] ]
+        except KeyError, no_network:
+            raise Exception("No network created for tenant %s" % driver.identity.credentials['ex_tenant_name']
+        kwargs.update({
+            'ex_networks': user_networks
+        })
         return super(OSDriver, self).create_instance(*args, **kwargs)
 
     def destroy_instance(self, *args, **kwargs):
