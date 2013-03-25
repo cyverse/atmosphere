@@ -81,21 +81,17 @@ class NetworkManager():
         subnet_obj = self.deleteSubnet(quantum, '%s-subnet' % username, '%s-net' % username)
         network_obj = self.deleteNetwork(quantum, '%s-net' % username)
 
-    def associate_floating_ip(self):
+    def associate_floating_ip(self, instance_id):
         """
-        Get VM Port ID
-        Associate Floating IP to VM Port ID
-        ===
-        ip_id = floatingip-create ext-net
-        vm_port_id = port-list device-id=tenant_vm
-        floatingip-associate ip_id vm_port_id
+        Create a floating IP on the external network
+        Find port of new VM
+        Associate new floating IP with the port assigned to the new VM
         """
+        instance_port = self.quantum.list_ports(device_id=instance_id)['ports'][0]
         external_networks = [net for net in self.lc_list_networks() if net.extra['router:external']]
-        new_floating_ip = self.quantum.create_floatingip({'floatingip':{'floating_network_id':external_network[0].id}})['floatingip']
-        instance_ports = self.quantum.list_ports(device_id='3c7b58b6-d479-4b79-8ae1-aef1b2aabc45')['ports']
-        associated_floating_ip = self.quantum.update_floatingip(new_floating_ip['id'], {'floatingip':{'port_id':instance_ports[0]['id']}})
-
-
+        new_floating_ip = self.quantum.create_floatingip({'floatingip':{'floating_network_id':external_networks[0].id}})['floatingip']
+        associated_floating_ip = self.quantum.update_floatingip(new_floating_ip['id'], {'floatingip':{'port_id':instance_port['id']}})
+        return associated_floating_ip
 
     
     ##Libcloud-Quantum Interface##

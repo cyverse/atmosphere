@@ -35,6 +35,19 @@ class UserManager():
         manager = UserManager(*args, **settings_args)
         return manager
 
+    @classmethod
+    def lc_driver_init(self, lc_driver, region=None, *args, **kwargs):
+        lc_driver_args = {
+        'username':lc_driver.key,
+		'password':lc_driver.secret,
+		'tenant_name':lc_driver._ex_tenant_name,
+		'auth_url':lc_driver._ex_force_auth_url,
+		'region_name':region if region else settings.OPENSTACK_DEFAULT_REGION
+        }
+        lc_driver_args.update(kwargs)
+        manager = UserManager(*args, **lc_driver_args)
+        return manager
+
     def __init__(self, *args, **kwargs):
         self.newConnection(*args, **kwargs)#username,password,tenant_name,auth_url)
 

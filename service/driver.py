@@ -300,23 +300,14 @@ class OSDriver(EshDriver):
         try:
             user_networks = [network for network in self._connection.ex_list_networks() if network.name == driver.identity.credentials['ex_tenant_name'] ]
         except KeyError, no_network:
-            raise Exception("No network created for tenant %s" % driver.identity.credentials['ex_tenant_name']
+            raise Exception("No network created for tenant %s" % driver.identity.credentials['ex_tenant_name'])
         kwargs.update({
             'ex_networks': user_networks
         })
         return super(OSDriver, self).create_instance(*args, **kwargs)
 
     def destroy_instance(self, *args, **kwargs):
-        logger.warn(args)
-        logger.warn(kwargs)
-        node = args[0]
-        all_ips = self._connection.ex_list_floating_ips()
-        for floating_ip in all_ips:
-            if floating_ip['instance_id'] is None or (node and floating_ip['instance_id'] == node.id):
-                self._connection.ex_deallocate_floating_ip(floating_ip['id'])
         destroyed_instance = super(OSDriver, self).destroy_instance(*args, **kwargs)
-        all_ips = self._connection.ex_list_floating_ips()
-        logger.warn(all_ips)
         return destroyed_instance
 
     def list_sizes(self, *args, **kwargs):
