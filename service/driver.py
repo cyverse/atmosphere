@@ -308,11 +308,20 @@ class OSDriver(EshDriver):
 
     def destroy_instance(self, *args, **kwargs):
         destroyed_instance = super(OSDriver, self).destroy_instance(*args, **kwargs)
+<<<<<<< HEAD
+=======
+        all_ips = self._connection.ex_list_floating_ips()
+        logger.debug(all_ips)
+>>>>>>> 2d96a5074a3252dbefaf5607962d526bd6c3b156
         return destroyed_instance
 
     def list_sizes(self, *args, **kwargs):
+        logger.debug("start list_sizes")
+        logger.debug(str(self.identity.credentials))
         sizes = super(OSDriver, self).list_sizes(*args, **kwargs)
+        logger.debug(str(self.identity.credentials))
         meta_driver = self.meta()
+        logger.debug(str(self.identity.credentials))
         all_instances = meta_driver.all_instances()
         occupancy_data = meta_driver.occupancy()
         for size in sizes:
@@ -326,6 +335,8 @@ class OSDriver(EshDriver):
             size.extra['occupancy']['total'] = limiting_value
             size.extra['occupancy']['remaining'] = limiting_value - num_running
             logger.warn(size.extra)
+        logger.debug(str(self.identity.credentials))
+        logger.debug("end list_sizes")
         return sizes
 
 
