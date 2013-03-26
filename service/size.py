@@ -21,7 +21,10 @@ class Size(BaseSize):
 
     def __init__(self, lc_size):
         self._size = lc_size
-        self.id = lc_size.id
+        self.id = self._size.id
+        self.name = self._size.name
+        self.price = self._size.price
+        self.ram = self._size.ram
         if hasattr(self._size,'extra'):
             self.extra = self._size.extra
             if 'cpu' in self.extra:

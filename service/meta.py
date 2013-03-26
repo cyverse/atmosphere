@@ -2,6 +2,7 @@
 Atmosphere service meta.
 
 """
+from copy import copy
 from abc import ABCMeta, abstractmethod
 import multiprocessing
 
@@ -27,12 +28,15 @@ class Meta(BaseMeta):
     metas = {}
 
     def __init__(self, driver):
+        print driver.identity.credentials
         self._driver = driver._connection
         self.user = driver.identity.user
         self.provider = driver.provider
         self.identity = driver.identity
         self.driver = driver
+        print self.identity.credentials
         self.admin_driver = self.create_admin_driver()
+        print self.identity.credentials
 
     @classmethod
     def create_meta(cls, driver):
@@ -63,8 +67,8 @@ class Meta(BaseMeta):
         raise NotImplementedError
 
     def all_instances(self):
-        #TODO: Remove next 3 lines when meta always uses admin identity
-        return self.provider.instanceCls.get_instances(self.admin_driver._connection.ex_list_all_instances())
+        return self.provider.instanceCls.get_instances(
+            self.admin_driver._connection.ex_list_all_instances())
 
     def reset(self):
         Meta.reset()
@@ -78,7 +82,9 @@ class Meta(BaseMeta):
         return str(self)
 
     def __str__(self):
-        return reduce(lambda x, y: x+y, map(unicode, [self.__class__, " ", self.json()]))
+        return reduce(lambda x, y: x+y, map(unicode, [self.__class__,
+                                                      " ",
+                                                      self.json()]))
 
     def __repr__(self):
         return str(self)
@@ -97,7 +103,9 @@ class AWSMeta(Meta):
             return self.driver
         logger.debug(self.provider)
         logger.debug(type(self.provider))
-        identity = AWSIdentity(self.provider, settings.AWS_KEY, settings.AWS_SECRET)
+        identity = AWSIdentity(self.provider,
+                               settings.AWS_KEY,
+                               settings.AWS_SECRET)
         driver = AWSDriver(self.provider, identity)
         return driver
 
@@ -109,7 +117,9 @@ class EucaMeta(Meta):
     provider = EucaProvider
 
     def create_admin_driver(self):
-        identity = EucaIdentity(self.provider, settings.EUCA_ADMIN_KEY, settings.EUCA_ADMIN_SECRET)
+        identity = EucaIdentity(self.provider,
+                                settings.EUCA_ADMIN_KEY,
+                                settings.EUCA_ADMIN_SECRET)
         driver = EucaDriver(self.provider, identity)
         return driver
 
@@ -121,14 +131,24 @@ class OSMeta(Meta):
     provider = OSProvider
 
     def create_admin_driver(self):
-        identity = OSIdentity(self.provider, settings.OPENSTACK_ADMIN_KEY, settings.OPENSTACK_ADMIN_SECRET, ex_tenant_name=settings.OPENSTACK_ADMIN_TENANT)
-        driver = OSDriver(self.provider, identity)
-        return driver
+        print self.identity.credentials
+        print "135"
+        admin_provider = OSProvider()
+        admin_identity = OSIdentity(admin_provider,
+                                    settings.OPENSTACK_ADMIN_KEY,
+                                    settings.OPENSTACK_ADMIN_SECRET,
+                                    ex_tenant_name=settings.OPENSTACK_ADMIN_TENANT)
+        print self.identity.credentials
+        print "142"
+        print admin_identity.credentials
+        admin_driver = OSDriver(admin_provider, admin_identity)
+        print self.identity.credentials
+        return admin_driver
 
     def occupancy(self):
         occupancy = self.admin_driver._connection.ex_hypervisor_statistics()
         return occupancy
 
     def all_instances(self):
-        #TODO: Remove next 3 lines when meta always uses admin identity
-        return self.provider.instanceCls.get_instances(self.admin_driver._connection.ex_list_all_instances())
+        return self.provider.instanceCls.get_instances(
+            self.admin_driver._connection.ex_list_all_instances())

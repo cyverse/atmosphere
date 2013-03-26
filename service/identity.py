@@ -37,6 +37,7 @@ class Identity(BaseIdentity):
         else:
             raise MissingArgsException('Provider is bad.')
         self.user = user
+        self.credentials = {}
         self.credentials.update(kwargs)
         self.credentials.update({ 'key' : key, 'secret' : secret })
 
@@ -61,26 +62,30 @@ class Identity(BaseIdentity):
         self.Identity.delete()
         return True
 
+
 class EshIdentity(Identity):
 
     def __init__(self, provider, key, secret, user=None, **kwargs):
-
         if issubclass(type(provider), self.provider):
             self.providers.append(provider)
         else:
             logger.warn ("Provider doesn't match (%s != %s)." % (provider, self.provider))
 #            raise MissingArgsException('Provider is bad.')
         self.user = user
+        self.credentials = {}
         self.credentials.update(kwargs)
         self.credentials.update({ 'key' : key, 'secret' : secret })
+
 
 class AWSIdentity(EshIdentity):
 
     provider = AWSProvider
 
+
 class EucaIdentity(EshIdentity):
 
     provider = EucaProvider
+
 
 class OSIdentity(EshIdentity):
 

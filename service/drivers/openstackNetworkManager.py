@@ -1,12 +1,3 @@
-import os
-
-from quantumclient.v2_0 import client as quantum_client
-from novaclient.v1_1 import client as nova_client
-
-from atmosphere.logger import logger
-from atmosphere import settings
-
-import os
 """
 OpenStack CloudAdmin Libarary
     Use this library to:
@@ -15,6 +6,14 @@ OpenStack CloudAdmin Libarary
 For each usergroup:
 
 """
+import os
+
+from quantumclient.v2_0 import client as quantum_client
+from novaclient.v1_1 import client as nova_client
+
+from atmosphere.logger import logger
+from atmosphere import settings
+
 
 class NetworkManager():
     quantum = None
