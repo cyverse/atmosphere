@@ -28,15 +28,12 @@ class Meta(BaseMeta):
     metas = {}
 
     def __init__(self, driver):
-        print driver.identity.credentials
         self._driver = driver._connection
         self.user = driver.identity.user
         self.provider = driver.provider
         self.identity = driver.identity
         self.driver = driver
-        print self.identity.credentials
         self.admin_driver = self.create_admin_driver()
-        print self.identity.credentials
 
     @classmethod
     def create_meta(cls, driver):
@@ -131,18 +128,12 @@ class OSMeta(Meta):
     provider = OSProvider
 
     def create_admin_driver(self):
-        print self.identity.credentials
-        print "135"
         admin_provider = OSProvider()
         admin_identity = OSIdentity(admin_provider,
                                     settings.OPENSTACK_ADMIN_KEY,
                                     settings.OPENSTACK_ADMIN_SECRET,
                                     ex_tenant_name=settings.OPENSTACK_ADMIN_TENANT)
-        print self.identity.credentials
-        print "142"
-        print admin_identity.credentials
         admin_driver = OSDriver(admin_provider, admin_identity)
-        print self.identity.credentials
         return admin_driver
 
     def occupancy(self):
