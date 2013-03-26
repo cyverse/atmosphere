@@ -101,7 +101,7 @@ class MachineRequestSerializer(serializers.ModelSerializer):
 
 
 class IdentityRelatedField(serializers.RelatedField):
-
+    
     def to_native(self, identity):
         quota_dict = identity.get_quota_dict()
         return {
@@ -114,7 +114,6 @@ class IdentityRelatedField(serializers.RelatedField):
         value = data.get(field_name)
         if value is None:   
             return
-        logger.warn(value)
         try:
             into[field_name] = Identity.objects.get(id=value)
         except Identity.DoesNotExist as no_ident:
@@ -122,6 +121,9 @@ class IdentityRelatedField(serializers.RelatedField):
             
 
 class ProfileSerializer(serializers.ModelSerializer):
+    """
+    """
+    #TODO:Need to validate provider/identityy membership on id change
     username = serializers.CharField(read_only=True, source='user.username')
     groups = serializers.CharField(read_only=True, source='user.groups.all')
     selected_identity = IdentityRelatedField()

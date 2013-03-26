@@ -509,11 +509,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             logger.warn("No keypair for %s" % identity.json())
 
     ### There is no good way to interface libcloud + nova + quantum, instead we call quantumclient directly.. Feel free to replace when a better mechanism comes along..
-    def _add_floating_ip(self, server_id, region=None):
+    def _add_floating_ip(self, server_id, region=None, *args, **kwargs):
         """
         Add IP (Quantum)
         """
-        network_manager = NetworkManager.lc_driver_init(self._connection, region)
+        network_manager = NetworkManager.lc_driver_init(self, region)
         return network_manager.associate_floating_ip(server_id)
         
     def _deprecated_add_floating_ip(self, server_id):
