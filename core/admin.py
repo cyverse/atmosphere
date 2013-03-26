@@ -40,13 +40,15 @@ class IdentityAdmin(admin.ModelAdmin):
     inlines = [
       CredentialInline,
     ]
-    list_display = ("created_by", "provider","credential_info")
+    list_display = ("created_by", "provider","_credential_info")
     search_fields = ["created_by__username",]
-    def credential_info(self, obj):
+    def _credential_info(self, obj):
         return_text = ""
         for cred in obj.credential_set.order_by('key'):
-            return_text += "%s:%s " % (cred.key, cred.value)
-	return return_text
+            return_text += "<strong>%s</strong>:%s " % (cred.key, cred.value)
+        return return_text
+    _credential_info.allow_tags = True
+    _credential_info.short_description = 'Credentials'
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
     max_num = 1

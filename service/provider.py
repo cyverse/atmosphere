@@ -210,6 +210,7 @@ class EucaProvider(Provider):
         cls.sizeCls = EucaSize
         cls.volumeCls = EucaVolume
         cls.metaCls = EucaMeta
+
     def set_options(self):
         """
         Get provider specific credentials.
@@ -268,7 +269,9 @@ class OSProvider(Provider):
         Return provider specific options in a dict.
         """
         self.options = { 'secure': 'False',
-                         'ex_force_auth_version': '2.0_password' }
+                         'ex_force_auth_version': '2.0_password',
+                         'ex_force_auth_url':
+                         'http://heimdall.iplantcollaborative.org:5000/v2.0'}
         self.options.update(self.identity.credentials)
         return self.options
         
@@ -299,6 +302,7 @@ class OSValhallaProvider(OSProvider):
         super(OSValhallaProvider, self).set_options()
         self.options['ex_force_auth_url'] = 'http://heimdall.iplantcollaborative.org:5000/v2.0'
         self.options.update(self.identity.credentials)
+
 
 class OSMidgardProvider(OSProvider):
 
