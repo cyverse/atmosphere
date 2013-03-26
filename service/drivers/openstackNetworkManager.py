@@ -1,20 +1,15 @@
 import os
 
 from quantumclient.v2_0 import client as quantum_client
-from novaclient.v1_1 import client as nova_client
 
-from atmosphere.logger import logger
 from atmosphere import settings
 
-import os
 """
 OpenStack CloudAdmin Libarary
     Use this library to:
-    * manage networks within Quantum - openstack networking 
-  
-For each usergroup:
-
+    * manage networks within Quantum - openstack networking
 """
+
 
 class NetworkManager():
     quantum = None
@@ -22,8 +17,8 @@ class NetworkManager():
     @classmethod
     def settings_init(self, *args, **kwargs):
         settings_args = {
-            'username': settings.OPENSTACK_ADMIN_KEY, 
-            'password': settings.OPENSTACK_ADMIN_SECRET, 
+            'username': settings.OPENSTACK_ADMIN_KEY,
+            'password': settings.OPENSTACK_ADMIN_SECRET,
             'tenant_name': settings.OPENSTACK_ADMIN_TENANT,
             'auth_url': settings.OPENSTACK_ADMIN_URL,
             'region_name': settings.OPENSTACK_DEFAULT_REGION
@@ -33,7 +28,7 @@ class NetworkManager():
         return manager
 
     def __init__(self, *args, **kwargs):
-        self.quantum = self.newConnection(*args, **kwargs)#username,password,tenant_name,auth_url)
+        self.quantum = self.newConnection(*args, **kwargs)
 
     def newConnection(self, *args, **kwargs):
         """
@@ -46,25 +41,27 @@ class NetworkManager():
     ##Admin-specific methods##
     def createTenantNetwork(self, username, password, tenant_name, tenant_id):
         """
-        create-network TestTenant-Net 
-        subnet_id = Create subnet TestTenant-Net 172.16.1.0/24 
-        create a router TestTenant-R1
-        add the router's interface to the tenant subnet TestTenant-R1 ${tenant_subnet_id}
-        setup the tenant's gateway TestTenant-R1 ext_net
+        This method should be run once when a new tenant is created
+        Creates network, subnet, router for specific tenant
+        Connects router to external network
         """
         user_creds = {
-            'username': username, 
-            'password': password, 
+            'username': username,
+            'password': password,
             'tenant_name': tenant_name,
             'auth_url': settings.OPENSTACK_ADMIN_URL,
             'region_name': settings.OPENSTACK_DEFAULT_REGION
         }
-        user_quantum = newConnection(**user_creds)
-        network_obj = self.createNetwork(quantum, '%s-net' % username)
-        subnet_obj = self.createSubnet(quantum, '%s-subnet' % username, '%s-net' % username)
-        router_obj = self.createRouter(quantum, '%s-router' % username, tenant_id)
-        interface_obj = self.addRouterInterface(quantum, '%s-router' % username, '%s-subnet' % username)
-        gateway_obj = self.setRouterGateway(quantum, router_name, network)
+        user_quantum = self.newConnection(**user_creds)
+        network = self.createNetwork(user_quantum, '%s-net' % tenant_name)
+        self.createSubnet(user_quantum,
+                          '%s-subnet' % tenant_name,
+                          '%s-net' % tenant_name)
+        self.createRouter(user_quantum, '%s-router' % tenant_name, tenant_id)
+        self.addRouterInterface(user_quantum,
+                                '%s-router' % tenant_name,
+                                '%s-subnet' % tenant_name)
+        self.setRouterGateway(user_quantum, '%s-router' % tenant_name, network)
 
     def deleteTenantNetwork(self, username, tenant_name):
         """
@@ -75,13 +72,16 @@ class NetworkManager():
         delete_subnet
         delete_network
         """
-        gateway_obj = self.removeRouterGateway(router_name, network)
-        interface_obj = self.removeRouterInterface(quantum, '%s-router' % username, '%s-subnet' % username)
-        router_obj = self.deleteRouter(quantum, '%s-router' % username, tenant_id)
-        subnet_obj = self.deleteSubnet(quantum, '%s-subnet' % username, '%s-net' % username)
-        network_obj = self.deleteNetwork(quantum, '%s-net' % username)
+        self.removeRouterGateway('%s-router' % tenant_name,
+                                 '%s-net' % tenant_name)
+        self.removeRouterInterface(self.quantum,
+                                   '%s-router' % tenant_name,
+                                   '%s-subnet' % tenant_name)
+        self.deleteRouter(self.quantum, '%s-router' % tenant_name)
+        self.deleteSubnet(self.quantum, '%s-subnet' % tenant_name)
+        self.deleteNetwork(self.quantum, '%s-net' % tenant_name)
 
-    def associate_floating_ip(self):
+    def associate_floating_ip(self, server_id):
         """
         Get VM Port ID
         Associate Floating IP to VM Port ID
@@ -90,11 +90,23 @@ class NetworkManager():
         vm_port_id = port-list device-id=tenant_vm
         floatingip-associate ip_id vm_port_id
         """
-        external_networks = [net for net in self.lc_list_networks() if net.extra['router:external']]
-        new_floating_ip = self.quantum.create_floatingip({'floatingip':{'floating_network_id':external_network[0].id}})['floatingip']
-        instance_ports = self.quantum.list_ports(device_id='3c7b58b6-d479-4b79-8ae1-aef1b2aabc45')['ports']
-        associated_floating_ip = self.quantum.update_floatingip(new_floating_ip['id'], {'floatingip':{'port_id':instance_ports[0]['id']}})
-
+        external_networks = [net for net
+                             in self.lc_list_networks()
+                             if net.extra['router:external']]
+        body = {'floatingip':
+                {
+                    'floating_network_id': external_networks[0].id
+                }
+                }
+        new_floating_ip = self.quantum.create_floatingip(body)['floatingip']
+        instance_ports = self.quantum.list_ports(device_id=server_id)['ports']
+        associated_floating_ip = self.quantum.update_floatingip(new_floating_ip['id'], 
+                                                                {'floatingip': {
+                                                                    'port_id':instance_ports[0]['id']
+                                                                    }
+                                                                    }
+                                                                )
+        return associated_floating_ip
 
 
     
@@ -200,10 +212,12 @@ class NetworkManager():
 """
 Utility Functions
 """
+
+
 def test():
     manager = NetworkManager.settings_init()
 
-    manager.createTenantNetwork('username','password','tenant_name')
+    manager.createTenantNetwork('username', 'password', 'tenant_name')
     print "Created test usergroup"
     manager.deleteTenantNetwork('username')
     print "Deleted test usergroup"
