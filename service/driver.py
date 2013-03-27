@@ -297,24 +297,26 @@ class OSDriver(EshDriver):
         """
         Create an OpenStack node.
         """
+        try:
+            user_networks = [network for network in self._connection.ex_list_networks() if network.name == driver.identity.credentials['ex_tenant_name'] ]
+        except KeyError, no_network:
+            raise Exception("No network created for tenant %s" % driver.identity.credentials['ex_tenant_name'])
+        kwargs.update({
+            'ex_networks': user_networks
+        })
         return super(OSDriver, self).create_instance(*args, **kwargs)
 
     def destroy_instance(self, *args, **kwargs):
-        logger.warn(args)
-        logger.warn(kwargs)
-        node = args[0]
-        all_ips = self._connection.ex_list_floating_ips()
-        for floating_ip in all_ips:
-            if floating_ip['instance_id'] is None or (node and floating_ip['instance_id'] == node.id):
-                self._connection.ex_deallocate_floating_ip(floating_ip['id'])
         destroyed_instance = super(OSDriver, self).destroy_instance(*args, **kwargs)
-        all_ips = self._connection.ex_list_floating_ips()
-        logger.warn(all_ips)
         return destroyed_instance
 
     def list_sizes(self, *args, **kwargs):
+        logger.debug("start list_sizes")
+        logger.debug(str(self.identity.credentials))
         sizes = super(OSDriver, self).list_sizes(*args, **kwargs)
+        logger.debug(str(self.identity.credentials))
         meta_driver = self.meta()
+        logger.debug(str(self.identity.credentials))
         all_instances = meta_driver.all_instances()
         occupancy_data = meta_driver.occupancy()
         for size in sizes:
@@ -328,6 +330,8 @@ class OSDriver(EshDriver):
             size.extra['occupancy']['total'] = limiting_value
             size.extra['occupancy']['remaining'] = limiting_value - num_running
             logger.warn(size.extra)
+        logger.debug(str(self.identity.credentials))
+        logger.debug("end list_sizes")
         return sizes
 
 

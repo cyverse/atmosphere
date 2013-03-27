@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf.urls.defaults import *
 
+
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from service.api.identity import IdentityList, Identity
@@ -45,10 +46,6 @@ urlpatterns = patterns('',
     #This is a TEMPORARY url.. In v2 this is /api/provider/<id>/identity/<id>/instance/action && POST['action'] = request_image
     url(r'^api/request_quota/$','web.emails.requestQuota'),
     url(r'^api/request_image/$','web.emails.requestImaging'),
-
-    #make the error reports go awaaaay
-    url(r'^favicon\.ico$', 'django.views.generic.simple.redirect_to', {'url': '/static/images/favicon.ico'}),
-    url(r'^robots\.txt$', 'django.views.generic.simple.direct_to_template', {'template': 'robots.txt', 'mimetype': 'text/plain'}),
 
     # static files
     url(r'^init_files/(?P<file_location>.*)$', 'web.views.get_resource'),
