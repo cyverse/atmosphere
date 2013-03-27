@@ -5,20 +5,17 @@ Driver classes define interfaces and implement functionality using providers.
 """
 
 from abc import ABCMeta, abstractmethod
-import uuid, sys
+import sys
 
-from celery.decorators import task
 
 from libcloud.compute.deployment import ScriptDeployment
 from libcloud.compute.deployment import MultiStepDeployment
-from libcloud.compute.base import NodeAuthSSHKey
 
 from atmosphere import settings
 from atmosphere.logger import logger
 
-from core import Persist
 from core.email import send_instance_email
-from core.exceptions import MissingArgsException
+from core.exceptions import MissingArgsException, ServiceException
 
 from service.provider import AWSProvider
 from service.provider import EucaProvider
@@ -129,7 +126,8 @@ class LibcloudDriver(BaseDriver, VolumeDriver, APIFilterMixin):
 
     def __init__(self, provider, identity):
         if provider is None or identity is None:
-            raise MissingArgsException('LibcloudDriver is Missing Required Identity and/or Provider.')
+            raise MissingArgsException(
+                'LibcloudDriver is Missing Required Identity and/or Provider.')
         self.identity = identity
         self.provider = provider
         self._connection = self.provider.get_driver(self.identity)
@@ -180,26 +178,30 @@ class EshDriver(LibcloudDriver, MetaMixin):
 
     def __init__(self, provider, identity):
         super(EshDriver, self).__init__(provider, identity)
-        if not(isinstance(provider, self.providerCls) and isinstance(identity, self.identityCls)):
+        if not(isinstance(provider, self.providerCls)
+           and isinstance(identity, self.identityCls)):
             raise ServiceException('Wrong Provider or Identity')
 
     def list_instances(self, *args, **kwargs):
         """
         Return the InstanceClass representation of a libcloud node
         """
-        return self.provider.instanceCls.get_instances(super(EshDriver, self).list_instances())
+        return self.provider.instanceCls.get_instances(
+            super(EshDriver, self).list_instances())
 
     def list_machines(self, *args, **kwargs):
         """
         Return the MachineClass representation of a libcloud NodeImage
         """
-        return self.provider.machineCls.get_machines(super(EshDriver, self).list_machines)
+        return self.provider.machineCls.get_machines(
+            super(EshDriver, self).list_machines)
 
     def list_sizes(self, *args, **kwargs):
         """
         Return the SizeClass representation of a libcloud NodeSize
         """
-        return self.provider.sizeCls.get_sizes(super(EshDriver, self).list_sizes)
+        return self.provider.sizeCls.get_sizes(
+            super(EshDriver, self).list_sizes)
 
     def list_locations(self, *args, **kwargs):
         return super(EshDriver, self).list_locations()
@@ -210,10 +212,12 @@ class EshDriver(LibcloudDriver, MetaMixin):
         """
         logger.debug(str(args))
         logger.debug(str(kwargs))
-        return self.provider.instanceCls(super(EshDriver, self).create_instance(*args, **kwargs))
+        return self.provider.instanceCls(
+            super(EshDriver, self).create_instance(*args, **kwargs))
 
     def deploy_instance(self, *args, **kwargs):
-        return self.provider.instanceCls(super(EshDriver, self).deploy_instance(*args, **kwargs))
+        return self.provider.instanceCls(
+            super(EshDriver, self).deploy_instance(*args, **kwargs))
 
     def reboot_instance(self, *args, **kwargs):
         return super(EshDriver, self).reboot_instance(*args, **kwargs)
@@ -228,7 +232,8 @@ class EshDriver(LibcloudDriver, MetaMixin):
         return super(EshDriver, self).destroy_instance(*args, **kwargs)
 
     def list_volumes(self, *args, **kwargs):
-        return self.provider.volumeCls.get_volumes(super(EshDriver, self).list_volumes(*args, **kwargs))
+        return self.provider.volumeCls.get_volumes(
+            super(EshDriver, self).list_volumes(*args, **kwargs))
 
     def create_volume(self, *args, **kwargs):
         return super(EshDriver, self).create_volume(*args, **kwargs)
@@ -252,7 +257,8 @@ class OSDriver(EshDriver):
 
     def __init__(self, provider, identity):
         super(OSDriver, self).__init__(provider, identity)
-        self._connection.connection.service_region = settings.OPENSTACK_DEFAULT_REGION
+        self._connection.connection.service_region =\
+            settings.OPENSTACK_DEFAULT_REGION
 
     def deploy_instance(self, *args, **kwargs):
         """
@@ -261,11 +267,16 @@ class OSDriver(EshDriver):
         username = self.identity.user.username
         atmo_init = "/usr/sbin/atmo_init_full.py"
         server_atmo_init = "/init_files/30/atmo-init-full.py"
-        script_deps = ScriptDeployment("apt-get update;apt-get install -y emacs vim wget language-pack-en make gcc g++ gettext texinfo autoconf automake")
-        script_wget = ScriptDeployment("wget -O %s %s%s" % (atmo_init, settings.SERVER_URL, server_atmo_init))
+        script_deps = ScriptDeployment(
+            "apt-get update;apt-get install -y emacs vim wget language-pack-en"
+            + " make gcc g++ gettext texinfo autoconf automake")
+        script_wget = ScriptDeployment("wget -O %s %s%s" %
+                                       (atmo_init, settings.SERVER_URL,
+                                           server_atmo_init))
         script_chmod = ScriptDeployment("chmod a+x %s" % atmo_init)
         instance_token = kwargs.get('token', '')
-        awesome_atmo_call = "%s --service_type=%s --service_url=%s --server=%s --user_id=%s --token=%s"
+        awesome_atmo_call = "%s --service_type=%s --service_url=%s"
+        awesome_atmo_call += " --server=%s --user_id=%s --token=%s"
         awesome_atmo_call %= (
             atmo_init,
             "instance_service_v1",
@@ -298,16 +309,21 @@ class OSDriver(EshDriver):
         Create an OpenStack node.
         """
         try:
-            user_networks = [network for network in self._connection.ex_list_networks() if network.name == driver.identity.credentials['ex_tenant_name'] ]
-        except KeyError, no_network:
-            raise Exception("No network created for tenant %s" % driver.identity.credentials['ex_tenant_name'])
+            user_networks = [network for network
+                             in self._connection.ex_list_networks()
+                             if network.name == self.driver.
+                             identity.credentials['ex_tenant_name']]
+        except KeyError:
+            raise Exception("No network created for tenant %s" %
+                            self.driver.identity.credentials['ex_tenant_name'])
         kwargs.update({
             'ex_networks': user_networks
         })
         return super(OSDriver, self).create_instance(*args, **kwargs)
 
     def destroy_instance(self, *args, **kwargs):
-        destroyed_instance = super(OSDriver, self).destroy_instance(*args, **kwargs)
+        destroyed_instance = super(OSDriver, self).destroy_instance(
+            *args, **kwargs)
         return destroyed_instance
 
     def list_sizes(self, *args, **kwargs):
@@ -320,11 +336,26 @@ class OSDriver(EshDriver):
         all_instances = meta_driver.all_instances()
         occupancy_data = meta_driver.occupancy()
         for size in sizes:
-            max_by_cpu = float(occupancy_data['vcpus'])/float(size.cpu) if size._size.ram > 0 else sys.maxint
-            max_by_ram = float(occupancy_data['memory_mb'])/float(size._size.ram) if size._size.ram > 0 else sys.maxint
-            max_by_disk = float(occupancy_data['local_gb'])/float(size._size.disk) if size._size.disk > 0 else sys.maxint
-            limiting_value = int(min(max_by_cpu, max_by_ram, max_by_disk))
-            num_running = len([i for i in all_instances if i.extra['flavorId'] == size.id])
+            max_by_cpu = float(occupancy_data['vcpus'])/float(size.cpu)\
+                if size._size.ram > 0\
+                else sys.maxint
+
+            max_by_ram = float(occupancy_data['memory_mb']) / \
+                float(size._size.ram)\
+                if size._size.ram > 0\
+                else sys.maxint
+
+            max_by_disk = float(occupancy_data['local_gb']) / \
+                float(size._size.disk)\
+                if size._size.disk > 0\
+                else sys.maxint
+
+            limiting_value = int(min(
+                max_by_cpu,
+                max_by_ram,
+                max_by_disk))
+            num_running = len([i for i in all_instances
+                               if i.extra['flavorId'] == size.id])
             if not 'occupancy' in size.extra:
                 size.extra['occupancy'] = {}
             size.extra['occupancy']['total'] = limiting_value
@@ -349,11 +380,15 @@ class AWSDriver(EshDriver):
         username = self.identity.user.username
         atmo_init = "/usr/sbin/atmo_init_full.py"
         server_atmo_init = "/init_files/30/atmo-init-full.py"
-        script_deps = ScriptDeployment("sudo apt-get install -y emacs vim wget")
-        script_wget = ScriptDeployment("sudo wget -O %s %s%s" % (atmo_init, settings.SERVER_URL, server_atmo_init))
+        script_deps = ScriptDeployment(
+            "sudo apt-get install -y emacs vim wget")
+        script_wget = ScriptDeployment(
+            "sudo wget -O %s %s%s" %
+            (atmo_init, settings.SERVER_URL, server_atmo_init))
         script_chmod = ScriptDeployment("sudo chmod a+x %s" % atmo_init)
         instance_token = kwargs.get('token', '')
-        awesome_atmo_call = "sudo %s --service_type=%s --service_url=%s --server=%s --user_id=%s --token=%s"
+        awesome_atmo_call = "sudo %s --service_type=%s --service_url=%s"
+        awesome_atmo_call += " --server=%s --user_id=%s --token=%s"
         awesome_atmo_call %= (
             atmo_init,
             "instance_service_v1",
@@ -396,18 +431,23 @@ class AWSDriver(EshDriver):
         def _filter_machines(ms, cond):
             return [m for m in ms if cond(m)]
         black_list.extend(['bitnami', 'kernel', 'microsoft', 'Windows'])
-        filtered_machines = super(AWSDriver, self).filter_machines(machines, black_list)
-        filtered_machines = _filter_machines(filtered_machines, lambda(m): any(word in m.alias for word in ['aki-', 'ari-']))
-        filtered_ubuntu = _filter_machines(filtered_machines,
-                                           lambda(m): any(word == m._image.extra['ownerid']
-                                                          for word in ['099720109477']))
+        filtered_machines = super(AWSDriver, self).filter_machines(
+            machines, black_list)
+        filtered_machines = _filter_machines(
+            filtered_machines,
+            lambda(m): any(word in m.alias
+                           for word in ['aki-', 'ari-']))
+        filtered_ubuntu = _filter_machines(
+            filtered_machines,
+            lambda(m): any(word == m._image.extra['ownerid']
+                           for word in ['099720109477']))
 #        filtered_ubuntu = [machine for machine in filtered_machines
 #        if any(word == machine._image.extra['ownerid'] for word in
 #        ['099720109477'])]
-#        filtered_amazon = [machine for machine in filtered_machines if any(word == machine._image.extra['owneralias'] for word in ['amazon', 'aws-marketplace'])]
-        filtered_amazon = _filter_machines(filtered_machines,
-                                           lambda(m): any(word == m._image.extra['owneralias']
-                                                          for word in ['amazon', 'aws-marketplace']))
+        filtered_amazon = _filter_machines(
+            filtered_machines,
+            lambda(m): any(word == m._image.extra['owneralias']
+                           for word in ['amazon', 'aws-marketplace']))
         filtered_ubuntu.extend(filtered_amazon)
         return filtered_ubuntu  # [-400:] #return filtered[-400:]
 

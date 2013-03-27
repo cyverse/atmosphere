@@ -3,7 +3,6 @@ Atmosphere service instance.
 
 """
 
-from abc import ABCMeta, abstractmethod
 
 from core import Persist
 
@@ -12,8 +11,9 @@ from service.machine import Machine
 from service.size import Size
 from atmosphere.logger import logger
 
+
 class Instance(Persist):
-    
+
     provider = None
 
     machine = None
@@ -31,7 +31,8 @@ class Instance(Persist):
         if Machine.machines.get((self.provider, self.image_id)):
             self.machine = Machine.machines[(self.provider, self.image_id)]
         else:
-            logger.warn('Could not find the provider-machine (%s,%s)' % (self.provider,self.image_id))
+            logger.warn('Could not find the provider-machine (%s,%s)' %
+                        (self.provider, self.image_id))
             logger.warn(self.__dict__)
 
     @classmethod
@@ -57,19 +58,22 @@ class Instance(Persist):
         return str(self)
 
     def __str__(self):
-        return reduce(lambda x, y: x+y, map(unicode, [self.__class__, " ", self.json()]))
+        return reduce(
+            lambda x, y: x+y,
+            map(unicode, [self.__class__, " ", self.json()]))
 
     def __repr__(self):
         return str(self)
 
     def json(self):
         return {'id': self.id,
-                'alias' : self.alias,
-                'name' : self.name,
-                'ip' : self.ip,
-                'provider' : self.provider.name,
-                'size' : self.size.json(),
-                'machine' : self.machine.json()}
+                'alias': self.alias,
+                'name': self.name,
+                'ip': self.ip,
+                'provider': self.provider.name,
+                'size': self.size.json(),
+                'machine': self.machine.json()}
+
 
 class AWSInstance(Instance):
 
@@ -86,6 +90,7 @@ class AWSInstance(Instance):
            and self.extra.get('dns_name'):
             return self.extra['dns_name']
 
+
 class EucaInstance(AWSInstance):
 
     provider = EucaProvider
@@ -93,6 +98,7 @@ class EucaInstance(AWSInstance):
     def get_public_ip(self):
         if self.extra:
             return self.extra.get('dns_name')
+
 
 class OSInstance(Instance):
 

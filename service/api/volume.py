@@ -12,7 +12,8 @@ from atmosphere.logger import logger
 
 from auth.decorators import api_auth_token_required
 
-from core.models.quota import getQuota, Quota as CoreQuota, storageQuotaTest, storageCountQuotaTest
+from core.models.quota import\
+    getQuota, Quota as CoreQuota, storageQuotaTest, storageCountQuotaTest
 from core.models.volume import convertEshVolume
 
 from service.api.serializers import VolumeSerializer
@@ -46,7 +47,7 @@ class VolumeList(APIView):
         esh_driver = prepareDriver(request, identity_id)
         data = request.DATA
         if not data.get('name') or not data.get('size'):
-            errorObj = failureJSON([{'code':400, 'message':'Missing params: name and size required to create a volume'}])
+            errorObj = failureJSON([{'code': 400, 'message': 'Missing params: name and size required to create a volume'}])
             return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
         name = data.get('name')
         size = data.get('size')

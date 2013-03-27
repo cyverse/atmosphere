@@ -6,17 +6,13 @@ Atmosphere service group rest api.
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from atmosphere import settings
 from atmosphere.logger import logger
 
 from auth.decorators import api_auth_token_required
 
-from core.models.group import Group
+from core.models.group import Group as CoreGroup
 
 from service.api.serializers import GroupSerializer
-from core.models.group import Group
-from core.models.profile import getDefaultProvider, getDefaultIdentity
-from service.accounts.eucalyptus import AccountDriver
 
 class GroupList(APIView):
     """
@@ -35,7 +31,7 @@ class GroupList(APIView):
         params = request.DATA
         groupname = params['name']
         #STEP1 Create the account on the provider
-        group = Group.objects.create(name=groupname)
+        group = CoreGroup.objects.create(name=groupname)
         for user in params['user[]']:
                 group.user_set.add(user)
         #STEP3 Return the new groups serialized profile

@@ -2,13 +2,10 @@
 Atmosphere service meta.
 
 """
-from copy import copy
-from abc import ABCMeta, abstractmethod
-import multiprocessing
+from abc import ABCMeta
 
 from atmosphere.logger import logger
 
-from core import Persist
 
 from atmosphere import settings
 
@@ -20,6 +17,7 @@ from service.linktest import active_instances
 
 class BaseMeta(object):
     __metaclass__ = ABCMeta
+
 
 class Meta(BaseMeta):
 
@@ -71,7 +69,7 @@ class Meta(BaseMeta):
         Meta.reset()
         self.metas = {}
 
-    @classmethod # order matters... /sigh
+    @classmethod  # order matters... /sigh
     def reset(cls):
         cls.metas = {}
 
@@ -89,14 +87,15 @@ class Meta(BaseMeta):
     def json(self):
         return {'driver': self.driver,
                 'identity': self.identity,
-                'provider' : self.provider.name}
+                'provider': self.provider.name}
+
 
 class AWSMeta(Meta):
 
     provider = AWSProvider
 
     def create_admin_driver(self):
-        if not hasattr(settings,'AWS_KEY'):
+        if not hasattr(settings, 'AWS_KEY'):
             return self.driver
         logger.debug(self.provider)
         logger.debug(type(self.provider))
@@ -108,6 +107,7 @@ class AWSMeta(Meta):
 
     def all_instances(self):
         return self.admin_driver.list_instances()
+
 
 class EucaMeta(Meta):
 
@@ -123,6 +123,7 @@ class EucaMeta(Meta):
     def all_instances(self):
         return self.admin_driver.list_instances()
 
+
 class OSMeta(Meta):
 
     provider = OSProvider
@@ -132,7 +133,8 @@ class OSMeta(Meta):
         admin_identity = OSIdentity(admin_provider,
                                     settings.OPENSTACK_ADMIN_KEY,
                                     settings.OPENSTACK_ADMIN_SECRET,
-                                    ex_tenant_name=settings.OPENSTACK_ADMIN_TENANT)
+                                    ex_tenant_name=
+                                    settings.OPENSTACK_ADMIN_TENANT)
         admin_driver = OSDriver(admin_provider, admin_identity)
         return admin_driver
 

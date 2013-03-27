@@ -7,21 +7,23 @@ from abc import ABCMeta, abstractmethod
 from atmosphere.logger import logger
 
 from core import Persist
+from core.models import Provider
 from core.exceptions import MissingArgsException
 
 from service.provider import AWSProvider, EucaProvider, OSProvider
 
+
 class BaseIdentity(Persist):
     __metaclass__ = ABCMeta
-    
+
     core_identity = None
 
     provider = None
 
-    groups = [] 
-    providers = [] 
-    machines = [] 
-    instances = [] 
+    groups = []
+    providers = []
+    machines = []
+    instances = []
 
     credentials = {}
 
@@ -29,17 +31,18 @@ class BaseIdentity(Persist):
     def __init__(self, provider, user, key, secret):
         raise NotImplemented
 
+
 class Identity(BaseIdentity):
-    
+
     def __init__(self, provider, key, secret, user=None, **kwargs):
-        if provider is Provider:
-            self.providers.add(provider) # Add it if it's not already added.
+        if isinstance(provider, Provider):  # if provider is Provider:
+            self.providers.add(provider)  # Add it if it's not already added.
         else:
             raise MissingArgsException('Provider is bad.')
         self.user = user
         self.credentials = {}
         self.credentials.update(kwargs)
-        self.credentials.update({ 'key' : key, 'secret' : secret })
+        self.credentials.update({'key': key, 'secret': secret})
 
     def load(self):
         user_wrap = UserWrapper(self.user, self.provider.core_provider)
@@ -57,8 +60,8 @@ class Identity(BaseIdentity):
     def delete(self):
         map(delete, self.credentials)
         self.credentials.clear()
-        self.credentials = { 'provider_type' : None,
-                        'provider' : None}
+        self.credentials = {'provider_type': None,
+                            'provider': None}
         self.Identity.delete()
         return True
 
@@ -69,12 +72,13 @@ class EshIdentity(Identity):
         if issubclass(type(provider), self.provider):
             self.providers.append(provider)
         else:
-            logger.warn ("Provider doesn't match (%s != %s)." % (provider, self.provider))
+            logger.warn("Provider doesn't match (%s != %s)." %
+                        (provider, self.provider))
 #            raise MissingArgsException('Provider is bad.')
         self.user = user
         self.credentials = {}
         self.credentials.update(kwargs)
-        self.credentials.update({ 'key' : key, 'secret' : secret })
+        self.credentials.update({'key': key, 'secret': secret})
 
 
 class AWSIdentity(EshIdentity):
@@ -90,4 +94,3 @@ class EucaIdentity(EshIdentity):
 class OSIdentity(EshIdentity):
 
     provider = OSProvider
-

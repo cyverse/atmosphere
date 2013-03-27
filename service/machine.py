@@ -2,15 +2,16 @@
 Atmosphere service machine.
 
 """
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 
 from core import Persist
 
 from service.provider import AWSProvider, EucaProvider, OSProvider
-from atmosphere.logger import logger
+
 
 class BaseMachine(Persist):
     __metaclass__ = ABCMeta
+
 
 class Machine(BaseMachine):
 
@@ -61,7 +62,7 @@ class Machine(BaseMachine):
         self.machines = {}
         self.lc_images = None
 
-    @classmethod # order matters... /sigh
+    @classmethod  # order matters... /sigh
     def reset(cls):
         cls.machines = {}
         cls.lc_images = None
@@ -70,24 +71,30 @@ class Machine(BaseMachine):
         return str(self)
 
     def __str__(self):
-        return reduce(lambda x, y: x+y, map(unicode, [self.__class__, " ", self.json()]))
+        return reduce(
+            lambda x, y: x+y,
+            map(unicode, [self.__class__, " ", self.json()])
+        )
 
     def __repr__(self):
         return str(self)
 
     def json(self):
         return {'id': self.id,
-                'alias' : self.alias,
-                'name' : self.name,
-                'provider' : self.provider.name }
+                'alias': self.alias,
+                'name': self.name,
+                'provider': self.provider.name}
+
 
 class AWSMachine(Machine):
 
     provider = AWSProvider
 
+
 class EucaMachine(Machine):
 
     provider = EucaProvider
+
 
 class OSMachine(Machine):
 

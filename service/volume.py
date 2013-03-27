@@ -2,15 +2,18 @@
 Atmosphere service volume.
 
 """
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 
 from core import Persist
 
 from service.provider import AWSProvider, EucaProvider, OSProvider
 
 from atmosphere.logger import logger
+
+
 class BaseVolume(Persist):
     __metaclass__ = ABCMeta
+
 
 class Volume(BaseVolume):
 
@@ -47,7 +50,7 @@ class Volume(BaseVolume):
         self._volume = None
         self.machine = None
 
-    @classmethod # order matters... /sigh
+    @classmethod  # order matters... /sigh
     def reset(cls):
         cls._volume = None
         cls.machine = None
@@ -56,7 +59,9 @@ class Volume(BaseVolume):
         return str(self)
 
     def __str__(self):
-        return reduce(lambda x, y: x+y, map(unicode, [self.__class__, " ", self.json()]))
+        return reduce(
+            lambda x, y: x+y, map(unicode, [self.__class__, " ", self.json()])
+        )
 
     def __repr__(self):
         return str(self)
@@ -70,13 +75,16 @@ class Volume(BaseVolume):
                 'provider': self.provider.name,
                 'size': self.size}
 
+
 class AWSVolume(Volume):
 
     provider = AWSProvider
 
+
 class EucaVolume(Volume):
 
     provider = EucaProvider
+
 
 class OSVolume(Volume):
 

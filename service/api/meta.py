@@ -1,4 +1,4 @@
-B"""
+"""
 Atmosphere service meta rest api.
 
 """

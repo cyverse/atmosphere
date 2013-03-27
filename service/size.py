@@ -2,14 +2,16 @@
 Atmosphere service size.
 
 """
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 
 from core import Persist
 
 from service.provider import AWSProvider, EucaProvider, OSProvider
 
+
 class BaseSize(Persist):
     __metaclass__ = ABCMeta
+
 
 class Size(BaseSize):
 
@@ -25,7 +27,7 @@ class Size(BaseSize):
         self.name = self._size.name
         self.price = self._size.price
         self.ram = self._size.ram
-        if hasattr(self._size,'extra'):
+        if hasattr(self._size, 'extra'):
             self.extra = self._size.extra
             if 'cpu' in self.extra:
                 self.cpu = self.extra['cpu']
@@ -45,7 +47,9 @@ class Size(BaseSize):
     def get_size(cls, lc_size):
         alias = lc_size.id
         if cls.sizes.get((cls.provider, alias)):
-            return cls.sizes[(cls.provider, alias)]
+            return cls.sizes[
+                (cls.provider, alias)
+            ]
         else:
             return cls.create_size(cls.provider, lc_size)
 
@@ -53,7 +57,9 @@ class Size(BaseSize):
     def get_sizes(cls, lc_list_sizes_method):
         if not cls.sizes or not cls.lc_sizes:
             cls.lc_sizes = lc_list_sizes_method()
-        return sorted(map(cls.get_size, cls.lc_sizes), key=lambda s: s._size.ram)
+        return sorted(map(
+            cls.get_size, cls.lc_sizes),
+            key=lambda s: s._size.ram)
 
     def load(self):
         raise NotImplemented
@@ -79,30 +85,34 @@ class Size(BaseSize):
         return str(self)
 
     def __str__(self):
-        return reduce(lambda x, y: x+y, map(unicode, [self.__class__, " ", self.json()]))
+        return reduce(
+            lambda x, y: x+y,
+            map(unicode, [self.__class__, " ", self.json()]))
 
     def __repr__(self):
         return str(self)
 
     def json(self):
         return {
-            'id' : self._size.name,
-            'alias' : self._size.id,
-            'name' : self._size.name,
-            'cpu' : self.cpu,
-            'ram' : self._size.ram,
-            'disk' : self._size.disk,
-            'bandwidth' : self._size.bandwidth,
-            'price' : self._size.price
-                }    
+            'id': self._size.name,
+            'alias': self._size.id,
+            'name': self._size.name,
+            'cpu': self.cpu,
+            'ram': self._size.ram,
+            'disk': self._size.disk,
+            'bandwidth': self._size.bandwidth,
+            'price': self._size.price}
+
 
 class EucaSize(Size):
 
     provider = EucaProvider
 
+
 class AWSSize(Size):
 
     provider = AWSProvider
+
 
 class OSSize(Size):
 
