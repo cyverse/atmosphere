@@ -162,7 +162,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         node.extra['password'] = None
 
         #NOTE: Using this to wait for the time it takes to launch instance and have a valid IP port
-        time.sleep(10)
+        time.sleep(30)
         #TODO: It would be better to hook in an asnyc thread that waits for valid IP port
         server_id = node.id
         self._add_floating_ip(server_id, **kwargs)
@@ -510,6 +510,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
     ### There is no good way to interface libcloud + nova + quantum, instead we call quantumclient directly.. Feel free to replace when a better mechanism comes along..
     def _add_floating_ip(self, server_id, region=None, *args, **kwargs):
+        #Convert to celery task..
         """
         Add IP (Quantum)
         """
