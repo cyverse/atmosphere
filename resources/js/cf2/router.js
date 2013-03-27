@@ -56,6 +56,8 @@ Atmo.Router = Backbone.Router.extend({
         }, 5*60*1000);
 
         new Atmo.Views.FeedbackLink({el: $('#feedback_link')[0]});
+		Atmo.request_resources_modal = new Atmo.Views.RequestResourcesModal();
+		$('body').append(Atmo.request_resources_modal.render().el);
 
         Atmo.alert_modal = new Atmo.Views.AlertModal();
         $('body').append(Atmo.alert_modal.render().el);

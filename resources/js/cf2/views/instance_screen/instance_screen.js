@@ -7,6 +7,7 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
 	alt_template: _.template(Atmo.Templates.instance_screen_alt),
 	events: {
 		'click .terminate_instance': 'terminate',
+		'click #help_request_more_resources': 'show_request_resources_modal'
 	},
 	initialize: function(options) {
 		Atmo.instances.bind('reset', this.render, this);
@@ -56,72 +57,9 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
             }
         }).click(_.bind(this.x_close, this));
 
-        this.$el.find('#help_request_more_resources').popover({
-            placement: 'left',
-            html: true,
-            title: 'Request More Resources <a class="close" data-dismiss="popover" href="#instances" data-parent="help_request_more_resources">&times</a>',
-            content: function() {
-                var content = '<form name="request_more_resources"><input type="hidden" name="username" value="'+Atmo.profile.get('id')+'">';
-                content += 'Requested Resources: <textarea name="quota" placeholder="E.g. 4 CPUs and 8 GB memory, enough for a c1.medium, etc."></textarea><br />';
-                content += 'Reason you need these resources: <textarea name="reason" placeholder="E.g. To run a program or analysis, store larger output, etc. "></textarea><Br /><input type="submit" value="Request Resources" class="btn" id="submit_resources_request"></form>';
-                return content;
-            }
-        }).click(_.bind(this.x_close, this));
-
-
 		return this;
 	},
-    submit_resources_request: function(e) {
-            e.preventDefault();
-
-            // Make sure they filled out both fields
-            var valid = true;
-
-            $('form[name="request_more_resources"] span').remove();
-
-            if ($('textarea[name="quota"]').val().length == 0) {
-                valid = false;
-                $('textarea[name="quota"]').before('<span style="color: #B94A48">(Required)</span>');
-            }
-            if ($('textarea[name="reason"]').val().length == 0) {
-                valid = false;
-                $('textarea[name="reason"]').before('<span style="color: #B94A48">(Required)</span>');
-            }
-                
-            if (valid) {
-
-                var self = this;
-                $.ajax({
-                    type: 'POST',
-                    url: site_root + '/api/request_quota/', 
-                    data: $('form[name="request_more_resources"]').serialize(),
-                    success: function() {
-                        $('#submit_resources_request').val("Request Submitted!").attr("disabled", "disabled").click(function() { return false; });
-						setTimeout(function() {
-							$('#help_request_more_resources').click();
-						}, 1000);
-                    },
-                    dataType: 'text'
-                });
-            }
-            return false;
-    },
     x_close: function() {
-            /**
-             * Deareset Ms. Monica Lent,
-             * 
-             * This callback function was assigned to the "Request More Resources" button (henceforth referred to as the link trigger)
-             * by means of _.bind(this.x_cose, this) which guarantees that references to 'this' from within this function refer to the
-             * view.  If you really needed to access the link trigger element, you could do so by allowing this element to accept an 
-             * event object e, and using $(e.currentTarget).  Furthermore, to assign the submit_resources_request() callback to the click
-             * event of #submit_resources_request, we again use our friend _.bind() to ensure that 'this' inside submit_resources_request()
-             * refers to the view instead of #submit_resources_request.
-             *
-             * Love,
-             * Backbone.js
-            */
-            $('#submit_resources_request').click(_.bind(this.submit_resources_request, this));
-
             // Must assign this function after the popover is actually rendered, so we find '.close' element
             $('.close').click(function(e) {
                 e.preventDefault();
@@ -167,5 +105,8 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
 				//console.log(model, message);
 			}
 		});
+	},
+	show_request_resources_modal: function() {
+		Atmo.request_resources_modal.do_alert();
 	}
 });
