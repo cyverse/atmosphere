@@ -7,6 +7,7 @@ import json
 import uuid
 from datetime import datetime
 
+from django.contrib.auth import authenticate, login
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 
