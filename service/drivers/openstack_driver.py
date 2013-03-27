@@ -167,8 +167,9 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         #NOTE: This line is needed to authenticate via SSH_Keypair instead!
         node.extra['password'] = None
 
-        #NOTE: Pause until insatnce launch complete..
-        time.sleep(10)
+        #NOTE: Using this to wait for the time it takes to launch instance and have a valid IP port
+        time.sleep(30)
+        #TODO: It would be better to hook in an asnyc thread that waits for valid IP port
         #TODO: This belongs in a eelery task.
         server_id = node.id
         self._add_floating_ip(server_id, **kwargs)
@@ -598,6 +599,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             logger.warn("No keypair for %s" % identity.json())
 
     def _add_floating_ip(self, server_id, region=None, *args, **kwargs):
+        #Convert to celery task..
         """
         Add IP (Quantum)
         There is no good way to interface libcloud + nova + quantum,
