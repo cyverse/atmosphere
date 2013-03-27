@@ -10,7 +10,6 @@ from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 from django.contrib.auth.models import User
 
-import logging
 from datetime import datetime, timedelta
 import caslib
 
@@ -19,9 +18,12 @@ from atmosphere.logger import logger
 
 from auth import createAuthToken
 from auth.models import UserProxy
+
 #TODO: Find out the actual proxy ticket expiration time, it varies by server
 #May be as short as 5min!
 PROXY_TICKET_EXPIRY = timedelta(days=1)
+
+
 def cas_validateUser(username):
     """
     Because this is a programmatic request
@@ -33,33 +35,42 @@ def cas_validateUser(username):
         userProxy = UserProxy.objects.filter(username=username).latest('pk')
         logger.debug("[CAS] Validation Test - %s" % username)
         if userProxy is None:
-            return (False,None)
+            return (False, None)
         proxyTicket = userProxy.proxyTicket
-        (validUser, cas_response) = caslib.cas_reauthenticate(username, proxyTicket)
-        return (validUser,cas_response)
+        (validUser, cas_response) = caslib.cas_reauthenticate(
+            username,
+            proxyTicket
+        )
+        return (validUser, cas_response)
     except Exception, e:
         logger.info(str(e))
-        return (False,None)
+        return (False, None)
+
 
 def parse_cas_response(cas_response):
     xml_root_dict = cas_response.map
-    #A Success responses will return a dict, failed responses will be replaced by an empty dict
-    xml_response_dict = xml_root_dict.get(cas_response.type,{})
-    user = xml_response_dict.get('user',None)
-    pgtIOU = xml_response_dict.get('proxyGrantingTicket',None)
-    return (user,pgtIOU)
+    #A Success responses will return a dict
+    #failed responses will be replaced by an empty dict
+    xml_response_dict = xml_root_dict.get(cas_response.type, {})
+    user = xml_response_dict.get('user', None)
+    pgtIOU = xml_response_dict.get('proxyGrantingTicket', None)
+    return (user, pgtIOU)
 
-def updateUserProxy(user,pgtIou):
+
+def updateUserProxy(user, pgtIou):
     try:
-        #If PGTIOU exists, a UserProxy object was created, match the user to this ticket.
+        #If PGTIOU exists, a UserProxy object was created
+        #match the user to this ticket.
         userProxy = UserProxy.objects.get(proxyIOU=pgtIou)
         userProxy.username = user
         userProxy.expiresOn = datetime.now() + PROXY_TICKET_EXPIRY
         userProxy.save()
         return True
-    except UserProxy.DoesNotExist, dne:
-        logger.error("Could not find UserProxy object! ProxyIOU & ID was not saved at proxy url endpoint.")
+    except UserProxy.DoesNotExist:
+        logger.error("Could not find UserProxy object!"
+                     + "ProxyIOU & ID was not saved at proxy url endpoint.")
         return False
+
 
 def createSessionToken(request, auth_token):
     request.session['username'] = auth_token.user.username
@@ -67,39 +78,44 @@ def createSessionToken(request, auth_token):
     #TODO: Remove line below
     request.session['api_server'] = settings.API_SERVER_URL
 
+
 """
 CAS is an optional way to login to Atmosphere
 This code integrates caslib into the Auth system
 """
 
+
 def cas_setReturnLocation(sendback):
     """
-    Reinitialize cas with the new sendback location, keeping all other variables the same.
+    Reinitialize cas with the new sendback location
+    keeping all other variables the same.
     """
-    caslib.cas_setServiceURL(settings.SERVER_URL+"/CAS_serviceValidater?sendback="+sendback)
+    caslib.cas_setServiceURL(
+        settings.SERVER_URL+"/CAS_serviceValidater?sendback="+sendback
+    )
 
 
 def cas_validateTicket(request):
     """
     Method expects 2 GET parameters: 'ticket' & 'sendback'
-
-    Redirects the request based on the GET param 'ticket' provided after a CAS Login.
+    After a CAS Login:
+    Redirects the request based on the GET param 'ticket'
     Unauthorized Users are redirected to '/' In the event of failure.
     Authorized Users are redirected to the GET param 'sendback'
     """
 
     redirect_logout_url = settings.REDIRECT_URL+"/"
-    no_user_url  = settings.REDIRECT_URL+"/no_user"
+    no_user_url = settings.REDIRECT_URL + "/no_user"
 
-    ticket = request.GET.get('ticket',None)
-    sendback = request.GET.get('sendback',None)
+    ticket = request.GET.get('ticket', None)
+    sendback = request.GET.get('sendback', None)
 
     if not ticket:
         logger.info("No Ticket")
         return HttpResponseRedirect(redirect_logout_url)
 
-
-    cas_setReturnLocation(sendback)# ReturnLocation set, apply on successful authentication
+    # ReturnLocation set, apply on successful authentication
+    cas_setReturnLocation(sendback)
     cas_response = caslib.cas_serviceValidate(ticket)
     if not cas_response.success:
         logger.warn("cas_serviceValidate failed")
@@ -107,12 +123,12 @@ def cas_validateTicket(request):
     (user, pgtIou) = parse_cas_response(cas_response)
 
     if not user:
-        #This will never happen.. Theoretically, unless CAS api changes, but other things should fail first..
-        logger.warn("User attribute missing from cas response! This may require a fix to caslib.py")
+        logger.warn("User attribute missing from cas response!"
+                    + "This may require a fix to caslib.py")
         return HttpResponseRedirect(redirect_logout_url)
     if not pgtIou or pgtIou == "":
-        logger.error("""
-            Proxy Granting Ticket missing! Atmosphere requires CAS proxy as a service to authenticate users.
+        logger.error("""Proxy Granting Ticket missing!
+        Atmosphere requires CAS proxy as a service to authenticate users.
             Possible Causes:
               * Proxy URL does not exist
               * Proxy URL is not a valid RSA-2/VeriSigned SSL certificate
@@ -123,10 +139,9 @@ def cas_validateTicket(request):
     if not updated:
         return HttpResponseRedirect(redirect_logout_url)
 
-    #NOTE: We Use request.session to store NON-VITAL, sensitive information on the front-end, since session is stored server-side and front-end doesnt want to keep track of such information
     try:
         auth_token = createAuthToken(user)
-    except User.DoesNotExist as no_user:
+    except User.DoesNotExist:
         return HttpResponseRedirect(no_user_url)
     if auth_token is None:
         logger.info("Failed to create AuthToken")
@@ -135,10 +150,15 @@ def cas_validateTicket(request):
 
     return HttpResponseRedirect(request.GET['sendback'])
 
+
 """
-CAS as a proxy service is a useful feature to renew a users token/authentication without having to explicitly redirect the browser.
-These two functions will be called if caslib has been configured for proxy usage. (See #settings.py)
+CAS as a proxy service is a useful feature to renew
+a users token/authentication without having to explicitly redirect the browser.
+These two functions will be called
+if caslib has been configured for proxy usage. (See #settings.py)
 """
+
+
 def cas_storeProxyIOU_ID(request):
     """
     Any request to the proxy url will contain the PROXY-TICKET IOU and ID
@@ -146,17 +166,24 @@ def cas_storeProxyIOU_ID(request):
     """
     logger.info("CASPROXY Call Received:%s" % request.GET)
     if "pgtIou" in request.GET and "pgtId" in request.GET:
-        proxy = UserProxy(proxyIOU=request.GET["pgtIou"], proxyTicket=request.GET["pgtId"])
+        proxy = UserProxy(
+            proxyIOU=request.GET["pgtIou"],
+            proxyTicket=request.GET["pgtId"]
+        )
         proxy.save()
-        logger.debug("CASPROXY cas_getProxyID saved IOU,ID:("+proxy.proxyIOU+","+proxy.proxyTicket+")")
+        logger.debug("CASPROXY cas_getProxyID saved IOU,ID:("
+                     + proxy.proxyIOU+","+proxy.proxyTicket+")")
     return HttpResponse("Received proxy request. Thank you.")
+
 
 def cas_proxyCallback(request):
     """
-    This is a placeholder for a proxyCallback service, and is needed for CAS authentication
+    This is a placeholder for a proxyCallback service
+    needed for CAS authentication
     """
     logger.info("Incoming request to CASPROXY (Proxy Callback):")
-    return HttpResponse("I am at a RSA-2 or VeriSigned SSL Cert. website, and therefore a valid proxy.")
+    return HttpResponse("I am at a RSA-2 or VeriSigned SSL Cert. website.")
+
 
 def cas_formatAttrs(cas_response):
     """
