@@ -6,11 +6,8 @@ OpenStack CloudAdmin Libarary
 import os
 
 from quantumclient.v2_0 import client as quantum_client
-from novaclient.v1_1 import client as nova_client
 
-from atmosphere.logger import logger
 from atmosphere import settings
-
 
 
 class NetworkManager():
@@ -43,6 +40,7 @@ class NetworkManager():
     ##Admin-specific methods##
     def createTenantNetwork(self, username, password, tenant_name, tenant_id):
         """
+        This method should be run once when a new tenant is created
         (As the user):
         Create a network, subnet, and router
         Add interface between router and network
@@ -56,18 +54,16 @@ class NetworkManager():
             'auth_url': settings.OPENSTACK_ADMIN_URL,
             'region_name': settings.OPENSTACK_DEFAULT_REGION
         }
-        user_quantum = newConnection(**user_creds)
-        network_obj = self.createNetwork(quantum, '%s-net' % username)
-        subnet_obj = self.createSubnet(quantum,
-                                       '%s-subnet' % username,
-                                       '%s-net' % username)
-        router_obj = self.createRouter(quantum,
-                                       '%s-router' % username,
-                                       tenant_id)
-        interface_obj = self.addRouterInterface(quantum,
-                                                '%s-router' % username,
-                                                '%s-subnet' % username)
-        gateway_obj = self.setRouterGateway(quantum, router_name, network)
+        user_quantum = self.newConnection(**user_creds)
+        network = self.createNetwork(user_quantum, '%s-net' % tenant_name)
+        self.createSubnet(user_quantum,
+                          '%s-subnet' % tenant_name,
+                          '%s-net' % tenant_name)
+        self.createRouter(user_quantum, '%s-router' % tenant_name, tenant_id)
+        self.addRouterInterface(user_quantum,
+                                '%s-router' % tenant_name,
+                                '%s-subnet' % tenant_name)
+        self.setRouterGateway(user_quantum, '%s-router' % tenant_name, network)
 
     def deleteTenantNetwork(self, username, tenant_name):
         """
@@ -78,42 +74,52 @@ class NetworkManager():
         delete_subnet
         delete_network
         """
-        gateway_obj = self.removeRouterGateway(router_name, network)
-        interface_obj = self.removeRouterInterface(quantum,
-                                                   '%s-router' % username,
-                                                   '%s-subnet' % username)
-        router_obj = self.deleteRouter(quantum,
-                                       '%s-router' % username,
-                                       tenant_id)
-        subnet_obj = self.deleteSubnet(quantum,
-                                       '%s-subnet' % username,
-                                       '%s-net' % username)
-        network_obj = self.deleteNetwork(quantum,
-                                         '%s-net' % username)
+        self.removeRouterGateway('%s-router' % tenant_name,
+                                 '%s-net' % tenant_name)
+        self.removeRouterInterface(self.quantum,
+                                   '%s-router' % tenant_name,
+                                   '%s-subnet' % tenant_name)
+        self.deleteRouter(self.quantum, '%s-router' % tenant_name)
+        self.deleteSubnet(self.quantum, '%s-subnet' % tenant_name)
+        self.deleteNetwork(self.quantum, '%s-net' % tenant_name)
 
-    def associate_floating_ip(self, instance_id):
+    def associate_floating_ip(self, server_id):
         """
         Create a floating IP on the external network
         Find port of new VM
         Associate new floating IP with the port assigned to the new VM
         """
-        instance_port = self.quantum.list_ports(device_id=instance_id)['ports'][0]
         external_networks = [net for net
                              in self.lc_list_networks()
                              if net.extra['router:external']]
-        new_floating_ip = self.quantum.create_floatingip({'floatingip': {'floating_network_id': external_networks[0].id}})['floatingip']
-        associated_floating_ip = self.quantum.update_floatingip(new_floating_ip['id'], {'floatingip': {'port_id': instance_port['id']}})
-        return associated_floating_ip
+        body = {'floatingip':
+                {
+                    'floating_network_id': external_networks[0].id
+                }
+                }
+        new_ip = self.quantum.create_floatingip(body)['floatingip']
+
+        instance_ports = self.quantum.list_ports(device_id=server_id)['ports']
+        body = {'floatingip':
+                {
+                    'port_id': instance_ports[0]['id']
+                }
+                }
+        assigned_ip = self.quantum.update_floatingip(new_ip['id'], body)
+        return assigned_ip
 
     ##Libcloud-Quantum Interface##
     @classmethod
     def lc_driver_init(self, lc_driver, region=None, *args, **kwargs):
+        if not region:
+            region = settings.OPENSTAK_DEFAULT_REGION
+
         lc_driver_args = {
-        'username': lc_driver.key,
-		'password': lc_driver.secret,
-		'tenant_name': lc_driver._ex_tenant_name,
-		'auth_url': lc_driver._ex_force_auth_url,
-		'region_name': region if region else settings.OPENSTACK_DEFAULT_REGION
+            'username': lc_driver.key,
+            'password': lc_driver.secret,
+            'tenant_name': lc_driver._ex_tenant_name,
+            'auth_url': lc_driver._ex_force_auth_url,
+            'region_name': region
         }
         lc_driver_args.update(kwargs)
         manager = NetworkManager(*args, **lc_driver_args)
@@ -142,11 +148,12 @@ class NetworkManager():
 
     def createSubnet(self, quantum, subnet_name,
                      network_id, ip_version=4, cidr='172.16.1.0/24'):
-        subnet = {'name': subnet_name,
+        subnet = {
+            'name': subnet_name,
             'network_id': network_id,
             'ip_version': ip_version,
             'cidr': cidr,
-            }
+        }
         subnet_obj = quantum.create_subnet({'subnet': subnet})
         return subnet_obj
 
@@ -164,14 +171,14 @@ class NetworkManager():
         return interface_obj
 
     def setRouterGateway(self, quantum, router_name,
-            external_network_name='ext_net'):
+                         external_network_name='ext_net'):
         """
         Must be run as admin
         """
         router_id = self.get_router_id(quantum, router_name)
         external_network = self.get_network_id(quantum, external_network_name)
-        return self.quantum.add_gateway_router(router_id,
-                                               {'network_id': external_network})
+        body = {'network_id': external_network}
+        return self.quantum.add_gateway_router(router_id, body)
 
     ## LOOKUPS##
     def get_subnet_id(self, quantum, subnet_name):
@@ -188,10 +195,11 @@ class NetworkManager():
 
     ##DELETE##
     def removeRouterGateway(self, router_name, external_network_name):
-        router_id = self.get_router_id(quantum, router_name)
-        external_network = self.get_network_id(quantum, external_network_name)
-        return self.quantum.remove_gateway_router(router_id,
-                                               {'network_id': external_network})
+        router_id = self.get_router_id(self.quantum, router_name)
+        external_network = self.get_network_id(self.quantum,
+                                               external_network_name)
+        body = {'network_id': external_network}
+        return self.quantum.remove_gateway_router(router_id, body)
 
     def removeRouterInterface(self, quantum, router_name, subnet_name):
         router_id = self.get_router_id(quantum, router_name)
