@@ -4,7 +4,6 @@ Required for django admin site.
 """
 
 from django.contrib import admin
-from django.contrib.auth.models import User
 
 
 from auth.models import Token as AuthToken

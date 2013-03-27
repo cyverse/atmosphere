@@ -1,5 +1,3 @@
-
-from atmosphere import settings
 from atmosphere.logger import logger
 from auth.models import Token as AuthToken
 from auth.protocol.cas import cas_validateUser
@@ -8,13 +6,12 @@ from datetime import timedelta, datetime
 
 from rest_framework.authentication import BaseAuthentication
 
+
 class TokenAuthentication(BaseAuthentication):
     """
     Atmosphere 'AuthToken' based authentication.
-    
     To authenticate, pass the token key in the "Authorization"
     HTTP header, prepended with the string "Token ". For example:
-        
         Authorization: Token 098f6bcd4621d373cade4e832627b4f6
     """
     model = AuthToken
@@ -25,9 +22,10 @@ class TokenAuthentication(BaseAuthentication):
         auth = request.META.get('HTTP_AUTHORIZATION', '').split()
         if len(auth) == 2 and auth[0].lower() == "token":
             token_key = auth[1]
-            logger.debug("API_LOGIN : using header authorization token %s" % token_key)
+            logger.debug("API_LOGIN : using header authorization token %s" %
+                         token_key)
 
-        if not token_key and request.session.has_key('token'):
+        if not token_key and 'token' in request.session:
             token_key = request.session['token']
             logger.debug("WEB_LOGIN : using session token %s" % token_key)
         logger.info("Token key - %s" % token_key)
@@ -38,12 +36,12 @@ class TokenAuthentication(BaseAuthentication):
                 return (token.user, token)
         return None
 
-#TOKEN CONSTANTS
 
 def validate_token(token, request=None):
     """
     Validates the token attached to the request (SessionStorage, GET/POST)
-    If token has expired, CAS will attempt to reauthenticate the user and refresh token.
+    If token has expired,
+    CAS will attempt to reauthenticate the user and refresh token.
     Expired Tokens can be used for GET requests ONLY!
     """
 
@@ -51,20 +49,20 @@ def validate_token(token, request=None):
     try:
         auth_token = AuthToken.objects.get(key=token)
         user = auth_token.user
-    except AuthToken.DoesNotExist, dne:
+    except AuthToken.DoesNotExist:
         logger.info("AuthToken <%s> does not exist." % token)
         return False
     logger.info("AuthToken belongs to <%s>" % user)
     if auth_token.is_expired():
         if request and request.META['REQUEST_METHOD'] == 'POST':
-            user_to_auth = request.session.get('emulated_by',user)
+            user_to_auth = request.session.get('emulated_by', user)
             if cas_validateUser(user_to_auth):
-                logger.debug("Reauthenticated user -- Updating token expiration & Proceeding with POST request")
+                logger.debug("Reauthenticated user -- Token updated")
                 auth_token.update_expiration()
                 auth_token.save()
                 return True
             else:
-                logger.debug("Could not reauthenticate user -- Aborting POST request")
+                logger.debug("Could not reauthenticate user")
                 return False
         else:
             logger.debug("%s using EXPIRED token to GET data.." % user)
@@ -78,36 +76,40 @@ def validate_token(token, request=None):
 
 def validate_token1_0(request):
     """
-    validates the token attached to the request (in HEADERS || SessionStorage || GET/POST)
+    validates the token attached to the request
+    (Opts: in HEADERS || SessionStorage || GET/POST)
 
     Validate token against the database.
     Check token's time-out to determine authenticity.
-    If token has timed out, CAS will attempt to reauthenticate the user to renew the token
+    If token has timed out,
+    CAS will attempt to reauthenticate the user to renew the token
     Timed out tokens can be used for GET requests ONLY!
     """
     from web import getRequestVars
     request_vars = getRequestVars(request)
 
-    user = request_vars.get('username',None)
-    token = request_vars.get('token',None)
-    api_server = request_vars.get('api_server',None)
-    emulate = request_vars.get('emulate',None)
+    user = request_vars.get('username', None)
+    token = request_vars.get('token', None)
+    api_server = request_vars.get('api_server', None)
+    emulate = request_vars.get('emulate', None)
 
     if not user or not token:
         logger.debug("Request Variables missing")
         return False
-    try :
+    try:
         token = AuthToken.objects.get(token=token)
-    except AuthToken.DoesNotExist, dne:
+    except AuthToken.DoesNotExist:
         logger.debug("AuthToken does not exist")
         return False
 
     tokenExpireTime = timedelta(days=1)
     #Invalid Token
-    if token.user != user or token.logout is not None or token.api_server_url != api_server:
+    if token.user != user\
+            or token.logout is not None\
+            or token.api_server_url != api_server:
         logger.debug("%s - Token Invalid." % user)
-        logger.debug("%s != %s" % (token.user,user))
-        logger.debug("%s != %s" % (token.api_server_url,api_server))
+        logger.debug("%s != %s" % (token.user, user))
+        logger.debug("%s != %s" % (token.api_server_url, api_server))
         logger.debug("%s is not None" % (token.logout))
         return False
 
@@ -119,11 +121,11 @@ def validate_token1_0(request):
         #Expired and POSTing data, need to re-authenticate the token
         if emulate:
             user = emulate
-        if cas_validate(user) is False:
-            logger.debug("Token Expired - %s could not be reauthenticated, was not logged into CAS.")
+        if not cas_validateUser(user):
+            logger.debug("Token Expired - %s was not logged into CAS.")
             return False
         #CAS Reauthentication Success
-        logger.debug("Token Expired & Revalidated - %s reauthenticated with CAS" % user)
+        logger.debug("%s reauthenticated with CAS" % user)
 
     #Valid Token
     token.issuedTime = datetime.now()

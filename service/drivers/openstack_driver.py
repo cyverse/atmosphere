@@ -108,7 +108,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         """
         def _set_ips():
             """
-            Set up ips in the api_node so _to_node may call it's super.
+            Set up ips in the api_node so _to_node may call its super.
             """
             try:
                 api_node['self'] = copy.deepcopy(api_node)
@@ -134,7 +134,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 #If no floating IPs found, use the private IP given at startup
                 if not ips:
                     for ip_group in api_node['addresses'].keys():
-                        if api_node['addresses'][ip_group]
+                        if api_node['addresses'][ip_group]\
                         and ip_group != 'private':
                             for address in api_node['addresses'][ip_group]:
                                 api_node['addresses']['private'].append(
@@ -241,7 +241,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         if kwargs.get('display_name', None):
             data_dict['volume']['display_name'] = kwargs['display_name']
         if kwargs.get('display_description', None):
-            data_dict['volume']['display_description'] =
+            data_dict['volume']['display_description'] =\
             kwargs['display_description']
         if kwargs.get('metadata', None):
             data_dict['volume']['metadata'] = kwargs['metadata']
