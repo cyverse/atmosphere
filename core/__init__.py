@@ -4,6 +4,7 @@ Base classes.
 
 from abc import ABCMeta, abstractmethod
 
+
 # Base Classes
 class Persist():
     """
@@ -32,6 +33,6 @@ class Persist():
     @abstractmethod
     def delete(self):
         """
-        delete() - Remove the CORE database object corresponding to the ESH object
+        delete() - Remove the CORE database object matching the ESH object
         """
         raise NotImplemented

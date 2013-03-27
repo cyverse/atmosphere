@@ -7,13 +7,15 @@ Note:
 from django.db import models
 from django.contrib.auth.models import User
 
+
 class Identity(models.Model):
     """
-    An Identity is the minimal set of credentials necessary to authenticate against a single provider
+    An Identity is the minimal set of credentials necessary
+    to authenticate against a single provider
     """
-  
-    created_by = models.ForeignKey(User) # esteve, esteve, esteve
-    provider = models.ForeignKey("Provider") # Amazon, Eucalyptus
+
+    created_by = models.ForeignKey(User)
+    provider = models.ForeignKey("Provider")
 
     def creator_name(self):
         return self.created_by.username
@@ -32,20 +34,21 @@ class Identity(models.Model):
         id_member = self.identitymembership_set.all()[0]
         quota = id_member.quota
         quota_dict = {
-                "mem": quota.memory,
-                "cpu": quota.cpu,
-                "disk": quota.storage,
-                "disk_count": quota.storage_count,
+            "mem": quota.memory,
+            "cpu": quota.cpu,
+            "disk": quota.storage,
+            "disk_count": quota.storage_count,
         }
         return quota_dict
-        
+
     def json(self):
         return {
-              'id':self.id,
-              'creator':self.created_by.username,
-              'provider': self.provider.json(),
-              'credentials':[cred.json() for cred in self.credential_set.order_by('key')],
-                }
+            'id': self.id,
+            'creator': self.created_by.username,
+            'provider': self.provider.json(),
+            'credentials': [cred.json() for cred
+                            in self.credential_set.order_by('key')],
+        }
 
     def __unicode__(self):
         output = "%s %s - " % (self.provider, self.created_by.username)

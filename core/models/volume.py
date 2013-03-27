@@ -1,18 +1,22 @@
 from django.db import models
 from django.utils import timezone
 from core.models.provider import Provider
+from atmosphere.logger import logger
+
 
 class Volume(models.Model):
     """
     """
-    esh = None # Special field that is filled out when converting an eshSize
-    alias = models.CharField(max_length=256) # m1.medium
+    # esh field is filled out when converting an eshVolume
+    esh = None
+    alias = models.CharField(max_length=256)
     provider = models.ForeignKey(Provider)
     size = models.IntegerField()
-    name = models.CharField(max_length=256) # Medium Instance
+    name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         db_table = "volume"
         app_label = "core"
@@ -23,16 +27,16 @@ class Volume(models.Model):
         """
         #Upload args into kwargs
         for arg in args:
-            for (key,value) in arg.items():
+            for (key, value) in arg.items():
                 kwargs[key] = value
         #Update the values
         for key in kwargs.keys():
-            if hasattr(coreVolume, key):
+            if hasattr(self, key):
                 try:
                     if key in ["provider"]:
                         continue
-                    setattr(this, key, data[key])
-                except Exception as e:
+                    setattr(self, key, kwargs[key])
+                except Exception:
                     logger.exception("Unable to update key: " + str(key))
         self.save()
         return self
@@ -40,19 +44,20 @@ class Volume(models.Model):
     def esh_status(self):
         if not self.esh or not self.esh.extra:
             return "Unknown"
-        return self.esh.extra.get('status','Unknown')
+        return self.esh.extra.get('status', 'Unknown')
 
     def esh_attach_data(self):
         if not self.esh or not self.esh.extra:
             return "Unknown"
-        attach_data = self.esh.extra.get('attachmentSet',{})
+        attach_data = self.esh.extra.get('attachmentSet', {})
         #Convert OpenStack attach_data to Euca-based
         if type(attach_data) is list:
             attach_data = attach_data[0]
 
-        if attach_data.has_key('serverId'):
+        if 'serverId' in attach_data:
             attach_data['instanceId'] = attach_data['serverId']
         return attach_data
+
 
 def convertEshVolume(eshVolume, provider_id, user):
     """
@@ -62,19 +67,21 @@ def convertEshVolume(eshVolume, provider_id, user):
     alias = eshVolume.id
     name = eshVolume.name
     size = eshVolume.size
-    extra = eshVolume.extra
     created = eshVolume.extra.get('createTime')
     try:
         volume = Volume.objects.get(alias=alias, provider__id=provider_id)
-    except Volume.DoesNotExist, dne:
+    except Volume.DoesNotExist:
         volume = createVolume(name, alias, size, provider_id, created)
     volume.esh = eshVolume
     return volume
 
+
 #TODO:Belongs in core.volume
 def createVolume(name, alias, size, provider_id, created=None):
     provider = Provider.objects.get(id=provider_id)
-    volume = Volume.objects.create(name=name, alias=alias, size=size, provider=provider, description='')
+    volume = Volume.objects.create(name=name, alias=alias,
+                                   size=size, provider=provider,
+                                   description='')
     if created:
         volume.start_date = created
         volume.save()

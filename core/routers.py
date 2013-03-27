@@ -2,6 +2,7 @@
   Database routers for atmosphere.
 """
 
+
 class Service(object):
     """
     A router which allows the database to be configured in the model.

@@ -1,23 +1,18 @@
 """
   Machine models for atmosphere.
 """
-from hashlib import md5
 
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
 
 
-from atmosphere.logger import logger
-
-from core.models.script import Package
 from core.models.provider import Provider
-from core.models.tag import Tag, updateTags
-from core.models.identity import Identity
-    
+
+
 class MachineRequest(models.Model):
     """
-    Provides information for the MachineRequestThread to start/restart the Queue
+    Storage container for the MachineRequestThread to start/restart the Queue
     Provides a Parent-Child relationship between the new image and ancestor(s)
     """
     # The instance to image.
@@ -25,7 +20,8 @@ class MachineRequest(models.Model):
 
     # Machine imaging Metadata
     status = models.CharField(max_length=256)
-    parent_machine = models.ForeignKey("ProviderMachine", related_name="ancestor_machine")
+    parent_machine = models.ForeignKey("ProviderMachine",
+                                       related_name="ancestor_machine")
     # Specifics for machine imaging.
     iplant_sys_files = models.TextField(default='', blank=True)
     installed_software = models.TextField(default='', blank=True)
@@ -44,23 +40,28 @@ class MachineRequest(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
 
     # Filled in when completed.
-    new_machine  = models.ForeignKey("ProviderMachine", null=True, blank=True, related_name="created_machine")
+    new_machine = models.ForeignKey("ProviderMachine",
+                                    null=True, blank=True,
+                                    related_name="created_machine")
+
     class Meta:
         db_table = "machine_request"
         app_label = "core"
 
-class MachineExport(models.Model): 
-    # The instance to export 
-    instance = models.ForeignKey("Instance") 
-    # Request related metadata 
-    status = models.CharField(max_length=256) 
-    #The exported image 
-    export_owner = models.ForeignKey(User) 
-    export_format = models.CharField(max_length=256) 
+
+class MachineExport(models.Model):
+    # The instance to export
+    instance = models.ForeignKey("Instance")
+    # Request related metadata
+    status = models.CharField(max_length=256)
+    #The exported image
+    export_owner = models.ForeignKey(User)
+    export_format = models.CharField(max_length=256)
     export_file = models.CharField(max_length=256, null=True, blank=True)
-    #Request start to image exported 
-    start_date = models.DateTimeField(default=timezone.now()) 
-    end_date = models.DateTimeField(null=True, blank=True) 
+    #Request start to image exported
+    start_date = models.DateTimeField(default=timezone.now())
+    end_date = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         db_table = "machine_export"
         app_label = "core"

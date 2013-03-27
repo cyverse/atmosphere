@@ -1,9 +1,10 @@
 from atmosphere.core.models.group import Group as CoreGroup
-from django.contrib.auth.models import Group as DGroup
 from django.contrib.auth.models import User
+
 
 def convert_group(dgroup):
     return CoreGroup.objects.get(group_ptr_id=dgroup.pk)
+
 
 class UserWrapper():
     """
@@ -13,10 +14,10 @@ class UserWrapper():
     provider = None
 
     def __init__(self, user_obj, provider_obj):
-        if type(user_obj) != User and type(user_obj) == type(""):
+        if type(user_obj) != User and isinstance(user_obj, ""):
             user_obj = User.objects.get(username=user_obj)
         else:
-            raise Exception("Expected django.contrib.auth.models.User OR String, got %s" % type(user_obj))
+            raise Exception("Expected User OR String, got %s" % type(user_obj))
         self.user = user_obj
         self.provider = provider_obj
 
@@ -34,21 +35,33 @@ class UserWrapper():
         groups = self.all_groups()
         machine_list = []
         for group in groups:
-            machine_list.extend(mach for mach in group.machines.all() if mach not in machine_list and len(mach.providers.filter(id=self.provider.id)) == 1)
+            machine_list.extend(
+                [mach for mach
+                 in group.machines.all()
+                 if mach not in machine_list
+                 and len(mach.providers.filter(id=self.provider.id)) == 1])
         return machine_list
 
     def all_instances(self):
         groups = self.all_groups()
         instance_list = []
         for group in groups:
-            instance_list.extend(instance for instance in group.instances.all() if instance  not in instance_list and instance.provider_machine.provider == self.provider)
+            instance_list.extend(
+                [instance for instance
+                 in group.instances.all()
+                 if instance not in instance_list
+                 and instance.provider_machine.provider == self.provider])
         return instance_list
 
     def all_identities(self):
         groups = self.all_groups(leader=True)
         identity_list = []
         for group in groups:
-            identity_list.extend(ident for ident in group.identities.all() if ident not in identity_list and ident.provider == self.provider)
+            identity_list.extend(
+                [ident for ident
+                 in group.identities.all()
+                 if ident not in identity_list
+                 and ident.provider == self.provider])
         return identity_list
 
     def all_providers(self):
@@ -58,5 +71,7 @@ class UserWrapper():
         groups = self.all_groups()
         provider_list = []
         for group in groups:
-            provider_list.extend(x for x in group.providers.all() if x not in provider_list)
+            provider_list.extend(
+                [x for x in group.providers.all()
+                 if x not in provider_list])
         return provider_list

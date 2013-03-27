@@ -4,6 +4,7 @@
 
 from django.db import models
 
+
 class Euca_Key(models.Model):
     """
     Euca keys are a type of Credential:
