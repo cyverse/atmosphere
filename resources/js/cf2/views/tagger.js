@@ -46,7 +46,6 @@ Atmo.Views.Tagger = Backbone.View.extend({
 			this.suggestions = this.options.suggestions ? this.options.suggestions.slice(0) : []; // things to put in the suggested tags list
 		}
 
-
         this.tags_list = null; // the jQuery object representing the ul.tag_list element
         if (this.options.change)
             this.on('change', this.options.change);
@@ -62,7 +61,6 @@ Atmo.Views.Tagger = Backbone.View.extend({
         return this;
     },
     set_editable: function(editable) {
-        //console.log('set editable', editable);
         if (editable) 
             this.$el.find('li.edit_tags').show();
         else
@@ -75,7 +73,6 @@ Atmo.Views.Tagger = Backbone.View.extend({
     /* Listener for X button on tags */
     remove_tag: function(e) {
         var tag = $(e.currentTarget).closest('li').remove().attr('data-tag');
-        //console.log("Remove tag: " + tag);
         this.tags = _.without(this.tags, tag);
         this.trigger('change', this.tags);
     },
@@ -97,7 +94,7 @@ Atmo.Views.Tagger = Backbone.View.extend({
             .find('.tag_controls').show();
 
         var non_sticky = _.difference(this.tags, this.sticky_tags);
-        //console.log('tags', this.tags, 'sticky', this.sticky_tags, 'nonsticky', non_sticky);
+
         // Put 'close' buttons on all of the non-sticky tags
         this.$el.find('.tag_list li').each(function(k, element) {
             if (_.contains(non_sticky, $(element).attr('data-tag')))
@@ -163,7 +160,11 @@ Atmo.Views.Tagger = Backbone.View.extend({
 										self.add_tag(text);
 									},
 									error: function() {
-										Atmo.Utils.notify("Could not create new tag", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
+										var header = 'Could not create new tag';
+										var body = 'If the problem persists, please email ' +
+											'<a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>';
+
+										Atmo.Utils.notify(header, body, { no_timeout: true });
 									},
 								});
 									
@@ -173,7 +174,6 @@ Atmo.Views.Tagger = Backbone.View.extend({
 				},
                 dataType: 'json'
             });
-
         }
     },
     /* Listener for 'keyup' event on the tag input field */
@@ -192,11 +192,9 @@ Atmo.Views.Tagger = Backbone.View.extend({
             // rebuild suggestions list
             this.suggestions_holder.hide().empty();
             var suggestions = this.suggestions;
+
             // remove used suggestions from list
             suggestions = _.difference(suggestions, this.tags);
-            //console.log(suggestions);
-
-            //console.log(this.suggestions_holder);
 
             suggestions = _.filter(suggestions, function(s) {
                 return icontains(text, s); 
@@ -226,7 +224,6 @@ Atmo.Views.Tagger = Backbone.View.extend({
     /* When a suggestion is clicked, add it */
     add_tag_suggestion: function(e) {
         var tag = $(e.currentTarget).attr('data-tag'); 
-        //console.log(tag);
         this.suggestions_holder.hide();
         this.tag_input.val("").focus();
         this.add_tag(tag);

@@ -1,3 +1,10 @@
+/**
+ *
+ * Base view for alert modals used throughout the application.
+ * To initialize and show, render and call 'do_alert' with header and body parameters and options.
+ *
+ */
+
 Atmo.Views.AlertModal = Backbone.View.extend({
     id: 'alert_modal',
     className: 'modal hide fade',
@@ -10,9 +17,13 @@ Atmo.Views.AlertModal = Backbone.View.extend({
         return this;
     },
     do_alert: function(header, body, options) {
-        // Displays a modal which has 'Header' and 'Body' text
 
-        // Options: { on_cancel: function, on_confirm: function }
+        /* Options:
+			on_confirm: Function to execute if user confirms modal.
+			on_cancel: If user cancels.
+			ok_button: Alternate text for 'ok' button on modal. 
+		*/
+
         $('#alert_modal').modal({
             backdrop: true,
             keyboard: true
@@ -21,6 +32,7 @@ Atmo.Views.AlertModal = Backbone.View.extend({
         $('#alert_modal .modal-header h2').html(header);
         $('#alert_modal .modal-body p').html(body);
 
+		// User clicks the 'x' button in the modal header
         $('#alert_modal .modal-header button').click(function() {
             $('#alert_modal').modal('hide');
         });
@@ -40,8 +52,8 @@ Atmo.Views.AlertModal = Backbone.View.extend({
             }
         }
 
+		// Allow user to hit enter to confirm
         $(window).on('keyup', function(e) {
-
             // Only confirm if user does not have cursor in a textarea
             if (e.keyCode == 13 && $('textarea:focus').length == 0) {
                 $('#alert_modal .modal-footer a').eq(1).trigger('click');

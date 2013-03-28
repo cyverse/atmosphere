@@ -17,8 +17,7 @@ Atmo.Views.Main = Backbone.View.extend({
     show_volume_screen: function() {
         $('#main .screen').hide();
         $('#volumeList').show();
-        /*if (Atmo.volumes.models.length > 0 && Atmo.volumes.selected_volume == null)
-            Atmo.volumes.models[0].select();*/
+
         resizeApp();
     },
     show_instance_screen: function() {
@@ -29,7 +28,9 @@ Atmo.Views.Main = Backbone.View.extend({
     },
     show_new_instance_screen: function(options) {
         if (!options) options = {};
+
         $('#main .screen').hide();
+
         if ($('#imageStore').length) {
             $('#imageStore').show();
         } else {
@@ -41,6 +42,7 @@ Atmo.Views.Main = Backbone.View.extend({
     show_settings_screen: function() {
         $('#main .screen').hide();
         this.settings_screen.$el.show();
+
         resizeApp();
     }
 });
