@@ -3,7 +3,6 @@ Atmosphere service machine rest api.
 
 """
 
-from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -15,6 +14,7 @@ from auth.decorators import api_auth_token_required
 from service.api import prepareDriver, failureJSON
 from service.api.serializers import ProviderMachineSerializer
 from core.models.machine import convertEshMachine
+
 
 class MachineList(APIView):
     """
@@ -30,14 +30,17 @@ class MachineList(APIView):
         Using provider and identity, getlist of machines
         TODO: Cache this request
         """
-        user = request.user
         esh_driver = prepareDriver(request, identity_id)
         esh_machine_list = esh_driver.list_machines()
-        esh_machine_list = esh_driver.filter_machines(esh_machine_list, black_list=['eki-','eri-'])
-        core_machine_list = [convertEshMachine(mach, provider_id) for mach in esh_machine_list]
+        esh_machine_list = esh_driver.filter_machines(
+            esh_machine_list,
+            black_list=['eki-', 'eri-'])
+        core_machine_list = [convertEshMachine(mach, provider_id)
+                             for mach in esh_machine_list]
         serialized_data = ProviderMachineSerializer(core_machine_list).data
         response = Response(serialized_data)
         return response
+
 
 class Machine(APIView):
     """
@@ -45,13 +48,14 @@ class Machine(APIView):
         Calls to modify the single machine
     TODO: DELETE when we allow owners to 'end-date' their machine..
     """
+
     @api_auth_token_required
     def get(self, request, provider_id, identity_id, machine_id):
         """
-        Lookup the machine information (Lookup using the given provider/identity)
+        Lookup the machine information
+        (Lookup using the given provider/identity)
         Update on server (If applicable)
         """
-        user = request.user
         esh_driver = prepareDriver(request, identity_id)
         eshMachine = esh_driver.get_machine(machine_id)
         coreMachine = convertEshMachine(eshMachine, provider_id)
@@ -66,17 +70,24 @@ class Machine(APIView):
             coreMachine.owner
         """
         user = request.user
+        data = request.DATA
         esh_driver = prepareDriver(request, identity_id)
         eshMachine = esh_driver.get_machine(machine_id)
         coreMachine = convertEshMachine(eshMachine, provider_id)
 
         if not user.is_staff and user is not coreMachine.machine.created_by:
-            logger.warn('Non-staff/non-owner trying to update a machine')
-            errorObj = failureJSON([{'code':401,'message':'Only Staff and the machine Owner are allowed to change machine info.'}])
+            logger.warn('%s is Non-staff/non-owner trying to update a machine'
+                        % (user.username))
+            errorObj = failureJSON([{
+                'code': 401,
+                'message':
+                'Only Staff and the machine Owner '
+                + 'are allowed to change machine info.'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
         coreMachine.machine.update(request.DATA)
-        serializer = ProviderMachineSerializer(coreMachine, data=data, partial=True)
+        serializer = ProviderMachineSerializer(coreMachine,
+                                               data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -89,17 +100,22 @@ class Machine(APIView):
             coreMachine.owner
         """
         user = request.user
+        data = request.DATA
         esh_driver = prepareDriver(request, identity_id)
         eshMachine = esh_driver.get_machine(machine_id)
         coreMachine = convertEshMachine(eshMachine, provider_id)
 
         if not user.is_staff and user is not coreMachine.machine.created_by:
             logger.warn('Non-staff/non-owner trying to update a machine')
-            errorObj = failureJSON([{'code':401,'message':'Only Staff and the machine Owner are allowed to change machine info.'}])
+            errorObj = failureJSON([{
+                'code': 401,
+                'message':
+                'Only Staff and the machine Owner '
+                + 'are allowed to change machine info.'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
-
-        coreMachine.machine.update(request.DATA)
-        serializer = ProviderMachineSerializer(coreMachine, data=data, partial=True)
+        coreMachine.machine.update(data)
+        serializer = ProviderMachineSerializer(coreMachine,
+                                               data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

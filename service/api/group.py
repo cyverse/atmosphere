@@ -47,13 +47,16 @@ class GroupList(APIView):
         response = Response(serialized_data)
         return response
 
+
 class Group(APIView):
 
     @api_auth_token_required
     def get(self, request, groupname):
         """
-        Return the object belonging to the group as well as the 'default' provider/identity
-        1. Test for authenticated groupname (Or if admin is the groupname for emulate functionality)
+        Return the object belonging to the group
+        as well as the 'default' provider/identity
+        1. Test for authenticated groupname
+        (Or if admin is the groupname for emulate functionality)
         2. <DEFAULT PROVIDER> Select first provider groupname can use
         3. <DEFAULT IDENTITY> Select first provider groupname can use
         4. Set in session THEN pass in response
@@ -64,4 +67,3 @@ class Group(APIView):
         serialized_data = GroupSerializer(group).data
         response = Response(serialized_data)
         return response
-

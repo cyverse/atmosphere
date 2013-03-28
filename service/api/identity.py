@@ -6,17 +6,15 @@ Atmosphere service identity rest api.
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
 
 from atmosphere.logger import logger
 
 from auth.decorators import api_auth_token_required
 
 from core.models.group import Group
-from core.models.provider import Provider as CoreProvider
-from core.models.identity import Identity as CoreIdentity
 
 from service.api.serializers import IdentitySerializer
+
 
 class IdentityList(APIView):
     """
@@ -28,14 +26,19 @@ class IdentityList(APIView):
     def get(self, request, provider_id, format=None):
         """
         List of identity that match USER and the provider_id
+        * Identity's belonging to the group matching the username
+        TODO: This should be user, user.groups.all, etc. to account for
+        future 'shared' identitys
         """
         username = request.user.username
         group = Group.objects.get(name=username)
-        provider = group.providers.get(id=provider_id, active=True, end_date=None)
+        provider = group.providers.get(id=provider_id,
+                                       active=True, end_date=None)
 
         identities = group.identities.filter(provider=provider).order_by('id')
         serialized_data = IdentitySerializer(identities).data
         return Response(serialized_data)
+
 
 class Identity(APIView):
     """
@@ -49,9 +52,10 @@ class Identity(APIView):
         """
         username = request.user.username
         group = Group.objects.get(name=username)
-        provider = group.providers.get(id=provider_id, active=True, end_date=None)
+        provider = group.providers.get(id=provider_id,
+                                       active=True, end_date=None)
 
         identity = group.identities.get(provider=provider, id=identity_id)
         serialized_data = IdentitySerializer(identity).data
-	logger.debug(type(serialized_data))
+        logger.debug(type(serialized_data))
         return Response(serialized_data)

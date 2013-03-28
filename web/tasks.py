@@ -51,6 +51,9 @@ def select_and_build_image(machine_request):
 
     return new_image_id
                 
+@task()
+def machineExportTask(machine_export):
+    pass
 
 @task()
 def machineImagingTask(machine_request):

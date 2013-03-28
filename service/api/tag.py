@@ -3,17 +3,15 @@ Atmosphere service tag rest api.
 
 """
 
-from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-
-from atmosphere.logger import logger
 
 from auth.decorators import api_auth_token_required
 
 from core.models import Tag as CoreTag
 from service.api.serializers import TagSerializer
+
 
 class TagList(APIView):
     """
@@ -39,7 +37,9 @@ class TagList(APIView):
         data = request.DATA.copy()
         same_name_tags = CoreTag.objects.filter(name__iexact=data['name'])
         if same_name_tags:
-            return Response(['A tag with this name already exists: %s' % same_name_tags], status=status.HTTP_400_BAD_REQUEST)
+            return Response(['A tag with this name already exists: %s'
+                             % same_name_tags],
+                            status=status.HTTP_400_BAD_REQUEST)
         data['user'] = user.username
         data['name'] = data['name'].lower()
         serializer = TagSerializer(data=data)
@@ -47,6 +47,7 @@ class TagList(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class Tag(APIView):
     """
@@ -59,9 +60,10 @@ class Tag(APIView):
         Return the credential information for this tag
         """
         try:
-          tag = CoreTag.objects.get(name__iexact=tag_slug)
+            tag = CoreTag.objects.get(name__iexact=tag_slug)
         except CoreTag.DoesNotExist:
-          return Response(['Tag does not exist'], status=status.HTTP_404_NOT_FOUND)
+            return Response(['Tag does not exist'],
+                            status=status.HTTP_404_NOT_FOUND)
         serializer = TagSerializer(tag)
         return Response(serializer.data)
 
@@ -73,7 +75,11 @@ class Tag(APIView):
         user = request.user
         tag = CoreTag.objects.get(name__iexact=tag_slug)
         if not user.is_staff and user != tag.user:
-            return Response(['Only the tag creator can update a tag. Contact support if you need to change a tag that is not yours.'], status=status.HTTP_400_BAD_REQUEST)
+            return Response([
+                'Only the tag creator can update a tag.'
+                + 'Contact support if you need to change '
+                + 'a tag that is not yours.'],
+                status=status.HTTP_400_BAD_REQUEST)
         #Allowed to update tags..
         data = request.DATA.copy()
         if tag.user:
@@ -82,7 +88,7 @@ class Tag(APIView):
             data['user'] = user.id
 
         # Tag names are immutable
-        data['name'] = tag.name 
+        data['name'] = tag.name
         serializer = TagSerializer(tag, data=data)
         if serializer.is_valid():
             serializer.save()
