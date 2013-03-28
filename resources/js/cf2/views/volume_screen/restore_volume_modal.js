@@ -1,3 +1,8 @@
+/**
+ *
+ * Restores a volume the user had backed-up to IRODS by overwriting an existing volume.
+ *
+ */
 Atmo.Views.RestoreVolumeModal = Backbone.View.extend({
     id: 'restore_modal',
     className: 'modal hide fade',
@@ -48,7 +53,7 @@ Atmo.Views.RestoreVolumeModal = Backbone.View.extend({
 
         this.$el.find('.modal-footer a').unbind('click');
 
-
+		// Allow user to confirm with enter key
         $(window).on('keyup', function(e) {
 
             // Only confirm if user does not have cursor in a textarea

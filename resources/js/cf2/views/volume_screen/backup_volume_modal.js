@@ -1,3 +1,8 @@
+/**
+ *
+ * Backs up a volume in user's IRODS directory. 
+ *
+ */
 Atmo.Views.BackupVolumeModal = Backbone.View.extend({
     id: 'backup_modal',
     className: 'modal hide fade',
@@ -54,6 +59,7 @@ Atmo.Views.BackupVolumeModal = Backbone.View.extend({
         this.$el.find('.modal-footer a').unbind('click');
 
 
+		// Allow user to confirm with enter key
         $(window).on('keyup', function(e) {
 
             // Only confirm if user does not have cursor in a textarea

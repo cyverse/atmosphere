@@ -1,3 +1,8 @@
+/**
+ *
+ * Validates and sends an imaging request for the selected instance.
+ *
+ */
 Atmo.Views.RequestImagingForm = Backbone.View.extend({
 	'tagName': 'div',
 	'className' : 'imaging_form module',

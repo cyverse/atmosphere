@@ -1,3 +1,8 @@
+/**
+ *
+ * View for user-submitted feedback. 
+ *
+ */
 Atmo.Views.FeedbackLink = Backbone.View.extend({
 	initialize: function() {
 		var self = this;
@@ -21,15 +26,19 @@ Atmo.Views.FeedbackLink = Backbone.View.extend({
 		e.preventDefault();
 
 		var post_data = {
-		  message: $('#feedback').val(),
-		  'location': window.location.href,
-                  'resolution': { 'viewport': {'width': $(window).height(),
-                                                'height': $(window).width()},
-                                   'screen': {'width':  screen.width,
-                                              'height': screen.height}}
-	        };
-
-          console.log(post_data);
+			message: $('#feedback').val(),
+			'location': window.location.href,
+			'resolution': { 
+				'viewport': {
+					'width': $(window).width(),
+					'height': $(window).height()
+				},
+		   		'screen': {
+					'width':  screen.width,
+					'height': screen.height
+				}
+			}
+		};
 
 		var self = this;
 
@@ -41,22 +50,22 @@ Atmo.Views.FeedbackLink = Backbone.View.extend({
 				type: 'POST',
 				data: post_data,
 				success: function(data) {
-					console.log(post_data);
 
+					// setTimeout to prevent loader gif from flashing on fast responses
 					setTimeout(function() {
 
-					$('#feedback_link').popover('hide');
+						$('#feedback_link').popover('hide');
 
-					Atmo.Utils.notify("Thanks for your feedback!", "Support has been notified.");
+						Atmo.Utils.notify("Thanks for your feedback!", "Support has been notified.");
 
 						self.$el.popover({
 							placement : 'top',
 							title: 'Thanks for your feedback! <a class="close" data-dismiss="popover" href="#">&times</a>',
-                            html: true,
+							html: true,
 							trigger: 'click',
 							content: function() {
-								var form = $('<form/>');
-								form.append($('<span/>', {
+								var form = $('<form>');
+								form.append($('<span>', {
 									'class': 'help-block',
 									html: 'Feel free to submit additional comments.'
 								}));
@@ -65,13 +74,13 @@ Atmo.Views.FeedbackLink = Backbone.View.extend({
 									id: 'feedback'
 								});
 								form.append(textarea);
-								form.append($('<button/>', {
+								form.append($('<button>', {
 									'class': 'btn btn-primary',
 									html: 'Send',
 									id: 'submit_feedback',
 									type: 'submit',
 								}));
-								form.append($('<a>', {
+								form.append($('<a/>', {
 									'class': 'btn',
 									href: '#',
 									html: 'Cancel',
@@ -84,9 +93,7 @@ Atmo.Views.FeedbackLink = Backbone.View.extend({
 							$('#cancel_popover').click(_.bind(self.cancel_popover, self));
 							$('#submit_feedback').click(_.bind(self.submit_feedback, self));
 						});
-												
-						//self.$el.popover('show');
-
+													
 						setTimeout(function() {
 							$('#feedback_link').popover('hide');
 						}, 5*1000);

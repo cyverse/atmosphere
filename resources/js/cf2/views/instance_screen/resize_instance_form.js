@@ -1,3 +1,8 @@
+/**
+ *
+ * Resizes an instance and validates the resize based on a user's quota.
+ *
+ */
 Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 	'tagName': 'div',
     'className': 'resize_instance_form',

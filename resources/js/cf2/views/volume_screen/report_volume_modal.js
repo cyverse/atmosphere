@@ -1,3 +1,8 @@
+/**
+ *
+ * Reports a broken volume to Atmosphere's support team. 
+ *
+ */
 Atmo.Views.ReportVolumeModal = Backbone.View.extend({
     id: 'report_modal',
     className: 'modal hide fade',

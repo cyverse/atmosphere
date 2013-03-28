@@ -1,3 +1,10 @@
+/**
+ *
+ * Allows users to request additional resources by filling out a form in a modal.
+ * To initialize and show, render and call 'do_alert'.
+ *
+ */
+
 Atmo.Views.RequestResourcesModal = Backbone.View.extend({
     id: 'request_resources_modal',
     className: 'modal hide fade',
@@ -20,6 +27,7 @@ Atmo.Views.RequestResourcesModal = Backbone.View.extend({
             keyboard: true
         });
 
+		// Assign hide function to 'x' button in modal header
         this.$el.find('.modal-header button').click(function() {
             this.$el.modal('hide');
         });
@@ -46,18 +54,16 @@ Atmo.Views.RequestResourcesModal = Backbone.View.extend({
 			callback();
 		$(window).unbind('keyup');
 
-		this.render();		// Prepare form for next launch
+		// Prepare form for next launch
+		this.render();		
 	},
 	request_resources: function(e) {
-		var data = {};
 		var self = this;
-
 
 		var quota = this.$el.find('textarea[name="quota"]');
 		var reason = this.$el.find('textarea[name="reason"]');
 
-		// Error handling: Require user to fill out both checkboxes and the textarea
-
+		// Error handling: Require user to fill out both the checkboxes and the textarea
 		if (quota.val().length == 0 || reason.val().length == 0) {
 			this.$el.find('.alert').removeClass('alert-info').addClass('alert-error').html(function() {
 				var content = '<i class="icon-warning-sign"></i> ';
@@ -75,17 +81,16 @@ Atmo.Views.RequestResourcesModal = Backbone.View.extend({
 			else
 				reason.closest('.control-group').removeClass('error');
 
+			// Return false to prevent the modal from closing
 			return false;
 
-		}
-		else {	
+		} else {	
 			var success = this.submit_resource_request();
 
 			if (!success) {
 				this.$el.find('.modal-footer a').eq(1).hide();
 				return false;
-			}
-			else {
+			} else {
 				this.button_listener();
 			}
 		}

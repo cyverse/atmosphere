@@ -1,3 +1,9 @@
+/**
+ *
+ * Creates, attaches, and detaches volumes. Handles validation (based on quota) for volume creation and toggles 
+ * between attach/detach based on whether the selected volume is available or attached to a machine.
+ *
+ */
 Atmo.Views.VolumeScreenControls = Backbone.View.extend({
 	'tagName': 'div',
 	'className' : 'row-fluid',
@@ -191,8 +197,6 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
 
             this.$el.find('select[name="all_volumes"]').after(available_instances);
         } 
-
-
     },
     attach_or_detach_volume: function(e) {
         e.preventDefault();
