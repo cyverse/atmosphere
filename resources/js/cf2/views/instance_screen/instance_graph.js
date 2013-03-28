@@ -1,3 +1,8 @@
+/**
+ *
+ * Displays an instance's resource usage over time as a graph.
+ *
+ */
 Atmo.Views.InstanceGraph = Backbone.View.extend({
     events: {
     },

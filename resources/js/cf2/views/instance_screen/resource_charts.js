@@ -1,10 +1,15 @@
+/**
+ *
+ * Creates resource charts that can be used to determine whether or not a change in resource usage will cause the user
+ * to exceed their quota.
+ * 
+ *
+ */
 Atmo.Views.ResourceCharts = Backbone.View.extend({
 	initialize: function(options) {
+		this.quota_type = options.quota_type; // REQUIRED. Options: mem, cpu, disk, disk_count
 
-		// Options: quota_type, provider_id, identity_id
-
-		this.quota_type = options.quota_type;
-
+		// If provider_id and identity_id are not provided, defaults to using the selected provider/identity
 		if (options.provider_id && options.identity_id) {
 			this.provider_id = options.provider_id;
 			this.identity_id = options.identity_id;
@@ -12,10 +17,11 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 	},
 	render: function() {
 
-		// First, determine which data we will use to create the charts
-		var used = 0, total = 0, self = this;
+		var used = 0;		// Units of quota used
+		var total = 0;		// Units of quota available
+		var self = this;
 
-		// Do ajax calls to get data
+		// First, determine which data we will use to create the charts -- selected provider, or data provided by AJAX calls
 		if (this.provider_id && this.identity_id) {
 			this.pull_cloud_data(this.provider_id, this.identity_id, this.quota_type);
 		}
@@ -247,6 +253,9 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 
 		this.show_quota_info(used, total, false, true);
 	},
+	/** 
+	 * Populates the informational field below the graph to tell the user exactly what their resource usage is. 
+	 */
 	show_quota_info: function(used, total, is_projected, under_quota) {
 		// is_projected: boolean, should quota denote future use or current use
 		
@@ -295,6 +304,9 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 		info_holder.html(info);
 
 	},
+	/**
+	 * Adds predicted usage to user's resource charts and determines whether or not the user would be under quota.
+	 */
 	add_usage: function(to_add, options) {
 		
 		var under_quota;

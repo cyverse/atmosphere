@@ -1,3 +1,8 @@
+/**
+ *
+ * Reports a broken instance to Atmosphere's support team.
+ *
+ */
 Atmo.Views.ReportInstanceForm = Backbone.View.extend({
 	'tagName': 'div',
     'className': 'report_instance_form',

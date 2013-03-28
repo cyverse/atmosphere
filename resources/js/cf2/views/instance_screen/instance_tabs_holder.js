@@ -1,4 +1,8 @@
-/* The group of tabs for displaying instance information */
+/**
+ *
+ * Provides instance's details, determines shell/vnc availability, and displays shell/vnc.
+ *
+ */
 Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 	tagName: 'div',
 	className: 'instance_tabs_holder',
@@ -39,8 +43,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
                 // Get rid of tooltip and 'Shell Unavailable' text
                 this.$el.find('.instance_tabs a.instance_shell_tab').html("Access by Shell");
                 this.$el.find('.instance_tabs a.instance_shell_tab i').remove();
-            }
-            else if (this.model.get('has_shell') == false || this.model.get('has_shell') == undefined) {
+            } else if (this.model.get('has_shell') == false || this.model.get('has_shell') == undefined) {
                 this.$el.find('.instance_tabs a.instance_shell_tab')
                     .addClass("tab_disabled")
                     .attr("title", "This instance does not support shell.");
@@ -79,8 +82,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
                 // Get rid of tooltip and 'VNC Unavailable' text
                 this.$el.find('.instance_tabs a.instance_vnc_tab').html("Access by VNC");
                 this.$el.find('.instance_tabs a.instance_vnc_tab i').remove();
-            }
-            else if (this.model.get('has_vnc') == false || this.model.get('has_vnc') == undefined) { 
+            } else if (this.model.get('has_vnc') == false || this.model.get('has_vnc') == undefined) { 
                 this.$el.find('.instance_tabs a.instance_vnc_tab')
                     .addClass("tab_disabled")
                     .attr("title", "This instance does not support VNC");
@@ -112,14 +114,10 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		//}
     },
 	render: function() {
-		//if (this.model && this.model == this.instances.selected_instance) return;
 		this.$el.html(this.template(this.model.toJSON()));
 
-		//console.log(this.$el);
-		
 		this.$el.data('instance', this.model);
 		this.$el.attr('data-instanceid', this.model.get('id'));
-		//this.instance_info();
 		this.$el.find('a.request_imaging').fadeOut('fast');
 		var self = this;
 		this.$el.find('.instance_tabs a.instance_shell_tab, .instance_tabs a.instance_vnc_tab').addClass("tab_disabled");
@@ -145,7 +143,6 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
     x_close: function(e) {
             $('.close').click(function(e) {
                 e.preventDefault();
-                //console.log('close function activated');
                 var popover_parent = $(e.currentTarget).data('parent');
                 if (popover_parent != undefined) {
                     $('#'+popover_parent).popover('hide');
@@ -157,7 +154,6 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
             this.instance_graph.draw();
     },
 	select_instance: function(model) {
-          //console.log(model);
           if (model == this.model) {
             if (this.rendered) {
               this.redraw_instance_graph();
@@ -265,8 +261,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			var ipaddr = this.model.get('public_dns_name');
 			this.$el.find('.shell_iframe[data-ip="'+ipaddr+'"]').fadeIn('fast');
 			resizeApp();
-		}
-		else {
+		} else {
 			return false;
 		}
 	},
@@ -278,8 +273,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			var ipaddr = this.model.get('public_dns_name');
 			this.$el.find('.vnc_iframe[data-ip="'+ipaddr+'"]').fadeIn('fast');
 			resizeApp();
-		}
-		else {
+		} else {
 			return false;
 		}
 	},
@@ -312,10 +306,8 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		var ipaddr = this.model.get("public_dns_name");
 		
 		if (this.$el.find('.instance_tabs a[href="#instance_shell"]').hasClass("tab_disabled")) {
-			//console.log("Shell is disabled");
 			return false;
-		}
-		else {
+		} else {
 			var currentShell = this.$el.find('.shell_iframe[data-ip="'+ipaddr+'"]');
 			if (currentShell.length == 0) {	
 				this.$el.find('.shell_iframe').hide();
@@ -324,10 +316,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 					'class': 'shell_iframe'
 				}).css({height: '100%', width:  '100%'}).attr('data-ip', ipaddr);
 				this.$el.find('.instance_shell').append(iframe);
-				//console.log("Didn't find shell iframe for: " + ipaddr);
-			}
-			else {
-				//console.log("Found shell iframe for: " + ipaddr);
+			} else {
 				this.$el.find('.shell_iframe').hide();
 				currentShell.fadeIn('fast');
 			}
@@ -356,8 +345,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 		if (this.$el.find('.instance_tabs a.instance_vnc_tab').hasClass("tab_disabled")) {
 			return false;
-		}
-		else {
+		} else {
 			var currentVNC = this.$el.find('.vnc_iframe[data-ip="'+ipaddr+'"]');
 
 			if (currentVNC.length == 0) {
@@ -367,8 +355,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 					'class': 'vnc_iframe'
 				}).css({height: '100%', width:  '100%'}).attr('data-ip', ipaddr);
 				this.$el.find('.instance_vnc').append(iframe);
-			}
-			else {
+			} else {
 				this.$el.find('.vnc_iframe').hide();
 				currentVNC.fadeIn('fast');
 			}
@@ -405,8 +392,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				placeholder: 'List their iPlant usernames',
 				'class': 'span5'
 			}));
-		}
-		else {
+		} else {
 			if ($('#vis_help').children().length == 1) 
 				$($('#vis_help').children()[0]).remove();
 		}
@@ -464,7 +450,6 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		var instance_id = this.model.get('id');
 		var type = content.attr('data-type');			// instance_name or instance_tags
 
-
 		// Append Save Button
 		content.append($('<div/>', {
 			html: 'Save',
@@ -474,7 +459,6 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			click: function() {
 				var new_text = content.children().eq(0).val().trim();
 				var post_data = {};
-
 
 				if (new_text.length == 0) {
 					

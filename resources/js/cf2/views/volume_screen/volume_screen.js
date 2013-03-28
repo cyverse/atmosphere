@@ -1,4 +1,8 @@
-/* Volume views */
+/** 
+ *
+ * Creates all the components of the volumes screen as separate views. 
+ *
+ */
 Atmo.Views.VolumeScreen = Backbone.View.extend({
 	tagName: 'div',
 	className: 'screen',
@@ -23,15 +27,16 @@ Atmo.Views.VolumeScreen = Backbone.View.extend({
             html: true,
             title: 'Available Volumes <a class="close" data-parent="help_available_volumes" data-dismiss="popover" href="#volumes">&times</a>',
             content: function() {
-                var content = 'A volume is <b>available</b> when it is not attached to an instance. ';
-                content += 'Any newly created volume <u>must</u> be <strong>formatted</strong> and then <strong>mounted</strong> after it has been attached before you will be able to use it. (<a href="https://pods.iplantcollaborative.org/wiki/x/OKxm/#AttachinganEBSVolumetoanInstance-Step5%3ACreatethefilesystem%28onetimeonly%29." target="_blank">Learn How</a>)<br /><br />';
-                content += 'More information about volumes: <ul>';
-                content += '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm" target="_blank">Creating a Volume</a></li>';
-                content += '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step3%3AAttachthevolumetotherunninginstance." target="_blank">Attaching a Volume to an Instance</a></li>';
-                content += '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step5%3ACreatethefilesystem%28onetimeonly%29." target="_blank">Formatting a Volume</a></li>';
-                content += '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step6%3AMountthefilesystemonthepartition." target="_blank">Mounting a Volume</a></li>';
-                content += '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step7%3AUnmountanddetachthevolume." target="_blank">Unmounting and Detaching Volume</a></li>';
-                content += '</ul>';
+                var content = 'A volume is <b>available</b> when it is not attached to an instance. '
+                	+ 'Any newly created volume <u>must</u> be <strong>formatted</strong> and then <strong>mounted</strong> after it has been attached before you will be able to use it. (<a href="https://pods.iplantcollaborative.org/wiki/x/OKxm/#AttachinganEBSVolumetoanInstance-Step5%3ACreatethefilesystem%28onetimeonly%29." target="_blank">Learn How</a>)<br /><br />'
+                	+ 'More information about volumes: <ul>'
+                	+ '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm" target="_blank">Creating a Volume</a></li>'
+                	+ '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step3%3AAttachthevolumetotherunninginstance." target="_blank">Attaching a Volume to an Instance</a></li>'
+                	+ '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step5%3ACreatethefilesystem%28onetimeonly%29." target="_blank">Formatting a Volume</a></li>'
+                	+ '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step6%3AMountthefilesystemonthepartition." target="_blank">Mounting a Volume</a></li>'
+                	+ '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step7%3AUnmountanddetachthevolume." target="_blank">Unmounting and Detaching Volume</a></li>'
+                	+'</ul>';
+
                 return content;
             }
         }).click(this.x_close);
@@ -43,15 +48,16 @@ Atmo.Views.VolumeScreen = Backbone.View.extend({
             title: 'My Volumes <a class="close" data-dismiss="popover" href="#volumes" data-parent="help_my_volumes">&times</a>',
             html: true,
             content: function() {
-                var content = 'A <strong>volume</strong> is like a virtual USB drive, and makes it easy to transfer relatively small data between instances.<br /><br />';
-                content += 'You can create a volume with a capacity up to 100 GB using the "Create a Volume" form. To store and transfer more data at once, store it in the iPlant Data Store instead. You can mount the Data Store similarly to a volume. (<a href="https://pods.iplantcollaborative.org/wiki/x/S6xm" target="_blank">Learn How</a>)<br /><br />';
-                content += 'More information about volumes: <ul>';
-                content += '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm" target="_blank">Creating a Volume</a></li>';
-                content += '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step3%3AAttachthevolumetotherunninginstance." target="_blank">Attaching a Volume to an Instance</a></li>';
-                content += '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step5%3ACreatethefilesystem%28onetimeonly%29." target="_blank">Formatting a Volume</a></li>';
-                content += '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step6%3AMountthefilesystemonthepartition." target="_blank">Mounting a Volume</a></li>';
-                content += '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step7%3AUnmountanddetachthevolume." target="_blank">Unmounting and Detaching Volume</a></li>';
-                content += '</ul>';
+                var content = 'A <strong>volume</strong> is like a virtual USB drive, and makes it easy to transfer relatively small data between instances.<br /><br />'
+                	+ 'You can create a volume with a capacity up to 100 GB using the "Create a Volume" form. To store and transfer more data at once, store it in the iPlant Data Store instead. You can mount the Data Store similarly to a volume. (<a href="https://pods.iplantcollaborative.org/wiki/x/S6xm" target="_blank">Learn How</a>)<br /><br />'
+                	+ 'More information about volumes: <ul>'
+                	+ '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm" target="_blank">Creating a Volume</a></li>'
+                	+ '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step3%3AAttachthevolumetotherunninginstance." target="_blank">Attaching a Volume to an Instance</a></li>'
+                	+ '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step5%3ACreatethefilesystem%28onetimeonly%29." target="_blank">Formatting a Volume</a></li>'
+                	+'<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step6%3AMountthefilesystemonthepartition." target="_blank">Mounting a Volume</a></li>'
+                	+'<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step7%3AUnmountanddetachthevolume." target="_blank">Unmounting and Detaching Volume</a></li>'
+                	+ '</ul>';
+
                 return content;
             }
         }).click(this.x_close);
