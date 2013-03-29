@@ -2,28 +2,28 @@
 Atmosphere email functions
 """
 
-from datetime import datetime
 import json
 
 from django.http import HttpResponse, HttpResponseServerError
 
 from atmosphere.logger import logger
-from core.email import email_admin, email_from_admin, user_address
+from core.email import email_admin, user_address
+
 
 def requestImaging(request, approve_link, deny_link):
     """
     Processes image request, sends an email to atmo@iplantc.org
     Returns a response.
     """
-    name = request.POST.get('name','')
-    instance_id = request.POST.get('instance','')
-    description = request.POST.get('description','')
-    software = request.POST.get('installed_software','')
-    sys_files = request.POST.get('sys', '')
-    tags = request.POST.get('tags','')
-    public = request.POST.get('vis','')
-    shared_with = request.POST.get('shared_with','')
-    username = request.POST.get('owner','')
+    name = request.POST.get('name', '')
+    instance_id = request.POST.get('instance', '')
+    description = request.POST.get('description', '')
+    software = request.POST.get('installed_software', '')
+    sys_files = request.POST.get('sys',  '')
+    tags = request.POST.get('tags', '')
+    public = request.POST.get('vis', '')
+    shared_with = request.POST.get('shared_with', '')
+    username = request.POST.get('owner', '')
     message = """
     Approve Request: %s
     Deny Request: %s
@@ -39,11 +39,13 @@ def requestImaging(request, approve_link, deny_link):
     New Image name:%s
     New Image description:%s
     New Image tags:%s
-    """ % (approve_link, deny_link, username, instance_id, software, sys_files, public, shared_with, name, description, tags)
+    """ % (approve_link, deny_link, username, instance_id, software,
+           sys_files, public, shared_with, name, description, tags)
     subject = 'Atmosphere Imaging Request - %s' % username
     email_success = email_admin(request, subject, message)
-    resp = json.dumps({})
+    json.dumps({})
     return email_success
+
 
 def requestQuota(request):
     """
@@ -68,12 +70,13 @@ def requestQuota(request):
     else:
         return HttpResponseServerError(resp, content_type='application/json')
 
+
 def feedback(request):
     """
     Sends an email Bto support based on feedback from a client machine
 
     Returns a response.
-    """ 
+    """
     user, user_email = user_address(request)
     message = request.POST.get('message')
     subject = 'Subject: Atmosphere Client Feedback from %s' % user
@@ -81,18 +84,20 @@ def feedback(request):
     email_success = email_admin(request, subject, message)
     if email_success:
         resp = json.dumps({'result':
-                             {'code': 'success',
-                              'meta': '',
-                              'value': 'Thank you for your feedback! Support has been notified.'}})
+                           {'code': 'success',
+                            'meta': '',
+                            'value': 'Thank you for your feedback! '
+                                     + 'Support has been notified.'}})
         return HttpResponse(resp,
                             content_type='application/json')
     else:
         resp = json.dumps({'result':
-                             {'code': 'failed',
-                              'meta': '',
-                              'value': 'Failed to send feedback!'}})
+                           {'code': 'failed',
+                            'meta': '',
+                            'value': 'Failed to send feedback!'}})
         return HttpResponse(resp,
                             content_type='application/json')
+
 
 def email_support(request):
     """
@@ -104,7 +109,7 @@ def email_support(request):
       * subject
 
     Returns a response.
-    """ 
+    """
     message = request.POST.get('message')
     subject = request.POST.get('subject')
     email_success = email_admin(request, subject, message)

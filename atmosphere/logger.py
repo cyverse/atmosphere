@@ -1,7 +1,8 @@
 """
 Logging for dashboard website.
 
-Provides two separate log levels. One for dependencies and one for the application.
+Provides two separate log levels.
+One for dependencies and one for the application.
 
 django's settings.py:
 
@@ -29,11 +30,11 @@ from __future__ import absolute_import
 import atmosphere
 import logging
 import os.path
-import json
 
 logger = None
 
 email_logger = None
+
 
 def logger_initialize(logger):
     """
@@ -42,29 +43,31 @@ def logger_initialize(logger):
     """
     pass
 
+
 def initialize(app_log_level, dep_log_level):
     """
     Initialize the root and application logger.
     """
-    format = "%(asctime)s %(name)s-%(levelname)s [%(pathname)s %(lineno)d] %(message)s"
-    formatter = logging.Formatter(format)
+    format = "%(asctime)s %(name)s-%(levelname)s "\
+             + "[%(pathname)s %(lineno)d] %(message)s"
+    logging.Formatter(format)
     log_file = os.path.abspath(os.path.join(
-            os.path.dirname(atmosphere.__file__),
-            '..',
-            'logs/atmosphere.log'))
+        os.path.dirname(atmosphere.__file__),
+        '..',
+        'logs/atmosphere.log'))
 
     # Setup the root logging for dependencies, etc.
     logging.basicConfig(
-        level = dep_log_level,
-        format = format,
-        filename = log_file,
-        filemode = 'a+')
+        level=dep_log_level,
+        format=format,
+        filename=log_file,
+        filemode='a+')
 
     # Setup and add separate application logging.
     global logger, email_logger
     logger = logging.getLogger('atmosphere')
     logger_initialize(logger)
-    logger.setLevel(app_log_level) # required to get level to apply.
+    logger.setLevel(app_log_level)  # required to get level to apply.
     email_logger = logging.getLogger('atmosphere_emails')
     logger_initialize(email_logger)
     email_logger.setLevel(app_log_level)

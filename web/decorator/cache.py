@@ -7,15 +7,19 @@ from django.core.cache import cache as dcache
 import atmosphere.settings as settings
 from atmosphere.logger import logger
 
+
 def cache_key(func, args, kwargs):
     """Creates a cache key using func"""
     module = "" if func.__module__ is None else str(func.__module__)
     fname = str(func.func_name)
     argnames = func.func_code.co_varnames[:func.func_code.co_argcount]
     key = str(module + fname + "(" + ", ".join(
-            "%s=%r" % entry
-            for entry in zip(argnames,args[:len(argnames)])+[("args",list(args[len(argnames):]))]+[("kwargs",kwargs)]) +")")
+        "%s=%r" % entry
+        for entry in zip(argnames, args[:len(argnames)])
+        + [("args", list(args[len(argnames):]))]
+        + [("kwargs", kwargs)]) + ")")
     return key
+
 
 def cache(func):
     """Decorator. Caches the result of the function with django.core.cache
