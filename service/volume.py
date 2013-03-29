@@ -22,7 +22,6 @@ class Volume(BaseVolume):
     machine = None
 
     def __init__(self, lc_volume):
-        logger.warn(lc_volume)
         self._volume = lc_volume
         self.id = lc_volume.id
         self.alias = lc_volume.id

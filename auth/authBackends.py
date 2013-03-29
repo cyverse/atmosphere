@@ -41,7 +41,7 @@ class CASLoginBackend(ModelBackend):
         """
         (success, cas_response) = cas_validateUser(username)
         if not success:
-            logger.warn("CAS Authentication failed - "+username)
+            logger.debug("CAS Authentication failed - "+username)
             return None
         attributes = cas_formatAttrs(cas_response)
         return makeOrCreateUser(username, attributes)
@@ -58,7 +58,7 @@ class LDAPLoginBackend(ModelBackend):
         Return None otherwise.
         """
         if not ldap_validate(username, password):
-            logger.warn("LDAP Authentication failed - "+username)
+            logger.debug("LDAP Authentication failed - "+username)
             return None
         ldap_attrs = lookupUser(username)
         attributes = ldap_formatAttrs(ldap_attrs)

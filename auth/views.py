@@ -112,7 +112,7 @@ def auth1_0(request):
             logger.debug("LDAP login failed - %s" % username)
             return HttpResponse("401 UNAUTHORIZED", status=401)
     else:
-        logger.warn("Request did not have User/Key or User/CAS in the headers")
+        logger.debug("Request did not have User/Key or User/CAS in the headers")
         return HttpResponse("401 UNAUTHORIZED", status=401)
 
 
@@ -144,7 +144,7 @@ def auth_response(request):
     if 'HTTP_X_EMULATE_USER' in request.META:
     # AND user has permission to emulate
         if userCanEmulate(username):
-            logger.warn("EMULATION REQUEST:Generating AuthToken for %s -- %s" %
+            logger.debug("EMULATION REQUEST:Generating AuthToken for %s -- %s" %
                         (request.META['HTTP_X_EMULATE_USER'], username))
             response['X-Auth-User'] = request.META['HTTP_X_EMULATE_USER']
             response['X-Emulated-By'] = username

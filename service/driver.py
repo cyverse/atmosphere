@@ -360,9 +360,6 @@ class OSDriver(EshDriver):
                 size.extra['occupancy'] = {}
             size.extra['occupancy']['total'] = limiting_value
             size.extra['occupancy']['remaining'] = limiting_value - num_running
-            logger.warn(size.extra)
-        logger.debug(str(self.identity.credentials))
-        logger.debug("end list_sizes")
         return sizes
 
 

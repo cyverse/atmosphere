@@ -176,8 +176,6 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
         relative to /dev/
         """
         def _attached_to_instance(vol):
-            logger.warn(vol)
-            logger.warn(vol.__dict__)
             attached_instance_id = vol.extra.get(
                 'attachmentSet', {}).get('instanceId', '')
             return attached_instance_id == instance_id
@@ -188,7 +186,7 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
         used_devices = [vol.extra.get('attachmentSet', {}).get('device')
                         for vol in attached_volumes]
 
-        logger.warn(used_devices)
+        logger.debug('List of used devices:%s' % used_devices)
 
         # start with the letter b, increment until "xvd[char]"
         # is not in the list of used devices
@@ -253,7 +251,7 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
     def attach_volume(self, node, volume, device=None):
         if device is None:
             device = self._getNextAvailableDevice(node.id)
-            logger.warn('Next device location - %s' % device)
+            logger.debug('Next device location - %s' % device)
         return super(Eucalyptus_Esh_NodeDriver, self).attach_volume(node,
                                                                     volume,
                                                                     device)

@@ -26,7 +26,7 @@ def lookupUser(userid):
         return user_attrs
     except Exception as e:
         logger.warn("Error occurred looking up user: %s" % userid)
-        logger.warn(e)
+        logger.exception(e)
         return None
 
 
@@ -56,7 +56,7 @@ def lookupEmail(userid):
         for i in range(0, 4):
             logger.debug(s[i])
         etype, value, tb = sys.exc_info()
-        logger.warn("TB = %s" % traceback.format_tb(tb))
+        logger.error("TB = %s" % traceback.format_tb(tb))
 
         return None
 
@@ -92,6 +92,5 @@ def ldap_formatAttrs(ldap_attrs):
             'lastName': ldap_attrs['sn'][0],
         }
     except KeyError as nokey:
-        logger.warn("Error retrieving attributes")
-        logger.warn(nokey)
+        logger.exception(nokey)
         return None

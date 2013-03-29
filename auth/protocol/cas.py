@@ -118,12 +118,12 @@ def cas_validateTicket(request):
     cas_setReturnLocation(sendback)
     cas_response = caslib.cas_serviceValidate(ticket)
     if not cas_response.success:
-        logger.warn("cas_serviceValidate failed")
+        logger.debug("cas_serviceValidate failed")
         return HttpResponseRedirect(redirect_logout_url)
     (user, pgtIou) = parse_cas_response(cas_response)
 
     if not user:
-        logger.warn("User attribute missing from cas response!"
+        logger.debug("User attribute missing from cas response!"
                     + "This may require a fix to caslib.py")
         return HttpResponseRedirect(redirect_logout_url)
     if not pgtIou or pgtIou == "":
@@ -193,6 +193,6 @@ def cas_formatAttrs(cas_response):
         cas_attrs = cas_response.map[cas_response.type]['attributes']
         return cas_attrs
     except KeyError, nokey:
-        logger.warn("Error retrieving attributes")
-        logger.warn(nokey)
+        logger.debug("Error retrieving attributes")
+        logger.exception(nokey)
         return None

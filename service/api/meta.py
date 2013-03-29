@@ -44,7 +44,7 @@ class Meta(APIView):
                 'message': 'Identity/Provider Authentication Failed'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
         except NotImplemented, ne:
-            logger.warn(ne)
+            logger.exception(ne)
             errorObj = failureJSON([{
                 'code': 404,
                 'message':
@@ -81,7 +81,7 @@ class MetaAction(APIView):
                 'message': 'Identity/Provider Authentication Failed'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
         except NotImplemented, ne:
-            logger.warn(ne)
+            logger.exception(ne)
             errorObj = failureJSON([{
                 'code': 404,
                 'message':

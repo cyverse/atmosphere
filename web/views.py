@@ -266,7 +266,7 @@ def emulate_request(request, username=None):
         return HttpResponseRedirect(settings.REDIRECT_URL+"/application/")
     except Exception, e:
         logger.warn("Emulate request failed")
-        logger.warn("%s %s %s" % (e, str(e), e.message))
+        logger.exception(e)
         return HttpResponseRedirect(settings.REDIRECT_URL+"/application/")
 
 

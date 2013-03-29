@@ -690,8 +690,8 @@ class ImageManager():
             except S3ResponseError, s3error:
                 s3error_string = '%s' % (s3error)
                 if s3error_string.find("403") >= 0:
-                    logger.warn("Permission denied while writing : %s "
-                                % k.key)
+                    logger.exception("Permission denied while writing : %s\n%s"
+                                % (k.key, s3error))
         return k
 
     def _upload_bundle(self, bucket_name, manifest_path, ec2cert_path=None,

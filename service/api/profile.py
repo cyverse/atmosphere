@@ -36,7 +36,6 @@ class Profile(APIView):
         If VALID save the profile
         else raise ValidationError
         """
-        logger.warn(request.DATA)
         user = request.user
         profile = user.get_profile()
         serializer = ProfileSerializer(profile,
@@ -55,7 +54,6 @@ class Profile(APIView):
         If VALID save the profile
         else raise ValidationError
         """
-        logger.warn(request.DATA)
         user = request.user
         profile = user.get_profile()
         serializer = ProfileSerializer(profile, data=request.DATA)

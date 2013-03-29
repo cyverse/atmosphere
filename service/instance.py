@@ -33,7 +33,6 @@ class Instance(Persist):
         else:
             logger.warn('Could not find the provider-machine (%s,%s)' %
                         (self.provider, self.image_id))
-            logger.warn(self.__dict__)
 
     @classmethod
     def get_instances(cls, nodes):

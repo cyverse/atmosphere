@@ -69,9 +69,7 @@ class NotificationList(APIView):
         POST a notification to the creator, dependent on the action
         TODO: Record launched activity in log/db for profiling later
         """
-        logger.warn("NOTIFY called")
         params = request.DATA
-        logger.warn(params)
 
         action = params.get('action', 'instance_launched')
         self._select_action(request, action, params)

@@ -160,7 +160,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         kwargs.update({
             'ex_keyname': unicode(self.key),
         })
-        logger.warn("kwargs = %s" % kwargs)
+        logger.debug("kwargs = %s" % kwargs)
         #Instance launches at this point.
         node = super(OpenStack_Esh_NodeDriver, self).create_node(**kwargs)
 
@@ -337,7 +337,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         """
         name = kwargs.get('name', '')
         public_key = kwargs.get('public_key', '')
-        logger.warn("name = %s public_key = %s" % (name, public_key))
+        logger.debug("name = %s public_key = %s" % (name, public_key))
         data = {"keypair":
                {"name": unicode(name),
                 "public_key": unicode(public_key)
@@ -381,7 +381,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         List all floating IP pools
         """
         def _to_ip_pools(ip_pool_list):
-            logger.warn(ip_pool_list)
             return [ip_pool_obj for ip_pool_obj
                     in ip_pool_list['floating_ip_pools']]
         return _to_ip_pools(self.connection.request(
@@ -579,7 +578,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     def _get_or_create_keypair(self, name, public_key):
         keypairs = self.ex_list_keypairs()
         for keypair in keypairs:
-            logger.warn(keypair)
             if unicode(keypair['name']) == unicode(name):
                 return keypair
         return self.ex_create_keypair(tenant_id=name,
@@ -616,5 +614,5 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         floating_ip_pool = self.ex_list_floating_ip_pools()[0]
         pool_name = floating_ip_pool['name']
         floating_ip = self.ex_allocate_floating_ip(pool_name)
-        logger.warn('Server:%s IP:%s' % (server_id, floating_ip['ip']))
+        logger.debug('Server:%s IP:%s' % (server_id, floating_ip['ip']))
         self.ex_associate_floating_ip(server_id, floating_ip['ip'])

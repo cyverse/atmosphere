@@ -116,7 +116,7 @@ def validate_token1_0(request):
     #Expired Token
     if token.issuedTime + tokenExpireTime < datetime.now():
         if request.META["REQUEST_METHOD"] == "GET":
-            logger.warn("Token Expired - %s requesting GET data OK" % user)
+            logger.debug("Token Expired - %s requesting GET data OK" % user)
             return True
         #Expired and POSTing data, need to re-authenticate the token
         if emulate:

@@ -13,7 +13,7 @@ def main():
     found = 0
     create = 0
 
-    core_services = ['admin','esteve','jmatt','cjlarose','mlent','edwins']
+    core_services = ['mlent',]#['admin','esteve','jmatt','cjlarose','mlent','edwins']
     #core_services += ['nirav','smckay','dgessler','vaughn','steinj']
     for user in core_services:
         #Get the user from Euca DB

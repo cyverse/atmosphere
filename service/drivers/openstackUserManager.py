@@ -54,7 +54,6 @@ class UserManager():
 
     def newConnection(self, *args, **kwargs):
         self.keystone = ks_client.Client(*args, **kwargs)
-        logger.warn(kwargs)
         self.nova = nova_client.Client(kwargs.pop('username'),
                                        kwargs.pop('password'),
                                        kwargs.pop('tenant_name'),
@@ -81,7 +80,7 @@ class UserManager():
                          user_exists)
             user = self.getUser(username)
 
-        logger.warn("Assign Tenant:%s Member:%s Role:%s" %
+        logger.debug("Assign Tenant:%s Member:%s Role:%s" %
                     (username, username, adminRole))
         try:
             role = self.addTenantMember(username, username, adminRole)
@@ -89,7 +88,7 @@ class UserManager():
             logger.warn('Could not assign role to username %s' % username)
         try:
             # keystone admin always gets access, always has admin priv.
-            role = self.addTenantMember(username, self.keystone.username, True)
+            self.addTenantMember(username, self.keystone.username, True)
         except ClientException:
             logger.warn('Could not assign admin role to username %s' %
                         self.keystone.username)
@@ -104,7 +103,6 @@ class UserManager():
         return (tenant, user, role)
 
     def build_security_group(self, nova, protocol_list=None):
-        logger.warn("Gothere")
         if not protocol_list:
             #Build a "good" one.
             protocol_list = [
@@ -121,7 +119,6 @@ class UserManager():
                                              ip_protocol=ip_protocol,
                                              from_port=from_port,
                                              to_port=to_port)
-        logger.warn("Added all protocols")
         return nova.security_groups.find(name='default')
 
     def getUsergroup(self, username):
@@ -141,7 +138,7 @@ class UserManager():
         try:
             self.deleteTenantMember(username, self.keystone.username, True)
         except ClientException:
-            logger.warn('Could not remove role from username %s' %
+            logger.warn('Could not remove role from keystone user %s' %
                         self.keystone.username)
 
         if deleteUser:
@@ -162,8 +159,7 @@ class UserManager():
         try:
             return self.keystone.tenants.create(groupname)
         except Exception, e:
-            logger.warn(e)
-            logger.warn(type(e))
+            logger.exception(e)
             raise
 
     def addTenantMember(self, groupname, username, adminRole=False):
@@ -182,8 +178,7 @@ class UserManager():
         try:
             return tenant.add_user(user, role)
         except Exception, e:
-            logger.warn(type(e))
-            logger.warn(e)
+            logger.exception(e)
             raise
 
     def addUser(self, username, password=None, groupname=None):
@@ -201,7 +196,7 @@ class UserManager():
                 tenant = self.getTenant(groupname)
                 kwargs['tenant_id'] = tenant.id
             except NotFound:
-                logger.warn("User does not exist")
+                logger.warn("User %s does not exist" % username)
                 raise
         return self.keystone.users.create(**kwargs)
 
@@ -251,8 +246,7 @@ class UserManager():
                          no_role_for_user)
             return True
         except Exception, e:
-            logger.warn(type(e))
-            logger.warn(e)
+            logger.exception(e)
             raise
 
     def deleteUser(self, username):

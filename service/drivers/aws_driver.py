@@ -42,11 +42,9 @@ class Esh_EC2NodeDriver(EC2NodeDriver):
 
     def _to_volumes(self, element):
         element_volumes = findall(element=element, xpath='volumeSet/item', namespace=NAMESPACE)
-        logger.warn(element_volumes)
         return [self._to_volume(volume) for volume in element_volumes]
 
     def _to_volume(self, element, name=None):
-        logger.warn(element)
         element_as = findall(element=element, xpath='attachmentSet/item', namespace=NAMESPACE)
         volume = {}
         for key in ['volumeId', 'size', 'createTime', 'status', 'attachmentSet']:
