@@ -11,6 +11,7 @@ from atmosphere import settings
 
 
 class NetworkManager():
+
     quantum = None
 
     @classmethod
@@ -112,7 +113,7 @@ class NetworkManager():
     @classmethod
     def lc_driver_init(self, lc_driver, region=None, *args, **kwargs):
         if not region:
-            region = settings.OPENSTAK_DEFAULT_REGION
+            region = settings.OPENSTACK_DEFAULT_REGION
 
         lc_driver_args = {
             'username': lc_driver.key,
