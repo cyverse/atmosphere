@@ -9,7 +9,7 @@ import os.path
 #Necessary to initialize Meta classes
 import service.compute
 
-#from django.contrib.auth.models import User as DjangoUser
+from django.contrib.auth.models import User as DjangoUser
 
 from atmosphere import settings
 from atmosphere.logger import logger
@@ -171,9 +171,9 @@ def getEshDriver(core_identity, username):
         eshMap = getEshMap(core_identity.provider)
         logger.debug(eshMap)
         cred_args = core_identity.credential_list()
-
+        user = DjangoUser.objects.get(username=username)
         provider = eshMap['provider']()
-        identity = eshMap['identity'](provider, user=username, **cred_args)
+        identity = eshMap['identity'](provider, user=user, **cred_args)
         driver = eshMap['driver'](provider, identity)
         return driver
     except Exception, e:

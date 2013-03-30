@@ -172,7 +172,7 @@ class UserManager():
         user = self.getUser(username)
         #Only supporting two roles..
         if adminRole:
-            role = self.getRole('adminRole')
+            role = self.getRole('admin')
         else:
             role = self.getRole('defaultMemberRole')
         try:
@@ -233,7 +233,7 @@ class UserManager():
         tenant = self.getTenant(groupname)
         user = self.getUser(username)
         if adminRole:
-            role = self.getRole('adminRole')
+            role = self.getRole('admin')
         else:
             role = self.getRole('defaultMemberRole')
         if not tenant or not user:
