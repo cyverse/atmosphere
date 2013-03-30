@@ -116,6 +116,12 @@ class AccountDriver():
     def hashpass(self, username):
         return sha1(username).hexdigest()
 
+    def get_tenant(self, tenant):
+        return self.user_manager.getTenant(tenant)
+
+    def list_tenants(self):
+        return self.user_manager.listTenants()
+
     def get_user(self, user):
         return self.user_manager.getUser(user)
 
