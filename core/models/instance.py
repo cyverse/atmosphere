@@ -129,25 +129,23 @@ def convertEshInstance(eshInstance, provider_id, user, token=None):
                                       coreMachine, ip_address,
                                       eshInstance.name, user,
                                       create_stamp, token)
-
     coreInstance.esh = eshInstance
-
     return coreInstance
 
 
 def createInstance(provider_id, provider_alias, provider_machine,
                    ip_address, name, creator, create_stamp, token=None):
-
     new_inst = Instance.objects.create(name=name,
                                        provider_alias=provider_alias,
                                        provider_machine=provider_machine,
                                        ip_address=ip_address,
                                        created_by=creator, token=token)
-
-    create_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+    if create_stamp:
+        create_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+    else:
+        create_date = datetime.now()
     new_inst.start_date = create_date
     new_inst.save()
-
     logger.debug("New instance created - %s (Token = %s)" %
                  (provider_alias, token))
     return new_inst
