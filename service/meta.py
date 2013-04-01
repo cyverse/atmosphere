@@ -121,6 +121,9 @@ class EucaMeta(Meta):
         driver = EucaDriver(self.provider, identity)
         return driver
 
+    def occupancy(self):
+        return self.admin_driver.list_sizes()
+
     def all_instances(self):
         return self.admin_driver.list_instances()
 
