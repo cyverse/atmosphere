@@ -8,6 +8,7 @@ from abc import ABCMeta, abstractmethod
 import sys
 
 
+from libcloud.compute.types import DeploymentError
 from libcloud.compute.deployment import ScriptDeployment
 from libcloud.compute.deployment import MultiStepDeployment
 
@@ -148,7 +149,11 @@ class LibcloudDriver(BaseDriver, VolumeDriver, APIFilterMixin):
         return self._connection.create_node(*args, **kwargs)
 
     def deploy_instance(self, *args, **kwargs):
-        return self._connection.deploy_node(*args, **kwargs)
+        try:
+            return self._connection.deploy_node(*args, **kwargs)
+        except DeploymentError as script_failed:
+            logger.exception(script_failed)
+            raise
 
     def reboot_instance(self, *args, **kwargs):
         return self._connection.reboot_node(*args, **kwargs)
@@ -277,13 +282,15 @@ class OSDriver(EshDriver):
         instance_token = kwargs.get('token', '')
         awesome_atmo_call = "%s --service_type=%s --service_url=%s"
         awesome_atmo_call += " --server=%s --user_id=%s --token=%s"
+        awesome_atmo_call += " --vnc_license=%s" 
         awesome_atmo_call %= (
             atmo_init,
             "instance_service_v1",
             settings.INSTANCE_SERVICE_URL,
             settings.SERVER_URL,
             username,
-            instance_token)
+            instance_token,
+            settings.ATMOSPHERE_VNC_LICENSE)
         logger.debug(awesome_atmo_call)
         str_awesome_atmo_call = str(awesome_atmo_call)
         #kludge: weirdness without the str cast...

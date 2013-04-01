@@ -216,7 +216,7 @@ def mount_home():
         run_command(["/bin/mount", "-text3", "/dev/%s" % dev_2, "/home"])
 
 
-def vnc(user, distro):
+def vnc(user, distro, license=None):
     try:
         if not os.path.isfile('/usr/bin/vnclicense'):
             logging.debug("VNC not installed, license not found on machine")
@@ -253,8 +253,7 @@ def vnc(user, distro):
             new_file.write("PamApplicationName=vncserver.custom")
             new_file.close()
         time.sleep(1)
-        run_command(['/usr/bin/vnclicense', '-add',
-                     settings.ATMOSPHERE_VNC_LICENSE])
+        run_command(['/usr/bin/vnclicense', '-add', license])
         download_file(
             '%s/init_files/%s/vnc-config.sh' % (ATMOSERVER, SCRIPT_VERSION),
             os.path.join(os.environ['HOME'], 'vnc-config.sh'),
@@ -509,11 +508,13 @@ def main(argv):
     instance_service_url = None
     server = None
     user_id = None
+    vnclicense = None
     try:
         opts, args = getopt.getopt(
             argv,
-            "t:u:s:i:T:",
-            ["service_type=", "service_url=", "server=", "user_id=", "token="])
+            "t:u:s:i:T:v:",
+            ["service_type=", "service_url=", "server=", "user_id=", "token=",
+             "vnc_license="])
     except getopt.GetoptError:
         logging.error("Invalid arguments provided.")
         sys.exit(2)
@@ -535,6 +536,9 @@ def main(argv):
         elif opt in ("-i", "--user_id"):
             atmoObj["atmosphere"]["userid"] = arg
             user_id = arg
+        elif opt in ("-v", "--vnc_license"):
+            #atmoObj["atmosphere"]["vnc_license"] = arg
+            vnclicense = arg
         elif opt == '-d':
             global _debug
             _debug = 1
@@ -568,7 +572,7 @@ def main(argv):
                  '%s:iplant-everyone' % (linuxuser,), '/home/%s' % linuxuser])
     run_command(['/bin/chmod', 'a+rx', '/bin/fusermount'])
     run_command(['/bin/chmod', 'u+s', '/bin/fusermount'])
-    vnc(linuxuser, distro)
+    vnc(linuxuser, distro, vnclicense)
     run_command(['/bin/chmod', 'a+rwxt', '/tmp'])
     iplant_files()
     atmo_cl()
