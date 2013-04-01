@@ -17,6 +17,7 @@ from service.api.machine_export import MachineExportList, MachineExport
 from service.api.size import SizeList, Size
 from service.api.volume import VolumeList, Volume
 from service.api.profile import Profile
+from service.api.occupancy import Occupancy
 from service.api.provider import ProviderList, Provider
 from service.api.user import UserManagement, User
 from service.api.group import GroupList, Group
@@ -93,6 +94,7 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/user/$', atmo_valid_token_required(UserManagement.as_view())),
     url(r'^api/user/(?P<username>.*)/$', User.as_view()),
     url(r'^api/profile/$', Profile.as_view()),
+    url(r'^api/provider/(?P<provider_id>.*)/occupancy/$', Occupancy.as_view()),
 
     url(r'^api/group/$', GroupList.as_view()),
     url(r'^api/group/(?P<groupname>.*)/$', Group.as_view()),

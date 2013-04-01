@@ -335,33 +335,6 @@ class OSDriver(EshDriver):
         logger.debug(str(self.identity.credentials))
         meta_driver = self.meta()
         logger.debug(str(self.identity.credentials))
-        all_instances = meta_driver.all_instances()
-        occupancy_data = meta_driver.occupancy()
-        for size in sizes:
-            max_by_cpu = float(occupancy_data['vcpus'])/float(size.cpu)\
-                if size._size.ram > 0\
-                else sys.maxint
-
-            max_by_ram = float(occupancy_data['memory_mb']) / \
-                float(size._size.ram)\
-                if size._size.ram > 0\
-                else sys.maxint
-
-            max_by_disk = float(occupancy_data['local_gb']) / \
-                float(size._size.disk)\
-                if size._size.disk > 0\
-                else sys.maxint
-
-            limiting_value = int(min(
-                max_by_cpu,
-                max_by_ram,
-                max_by_disk))
-            num_running = len([i for i in all_instances
-                               if i.extra['flavorId'] == size.id])
-            if not 'occupancy' in size.extra:
-                size.extra['occupancy'] = {}
-            size.extra['occupancy']['total'] = limiting_value
-            size.extra['occupancy']['remaining'] = limiting_value - num_running
         return sizes
 
 
