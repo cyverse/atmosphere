@@ -93,9 +93,10 @@ Atmo.Router = Backbone.Router.extend({
 								console.log("the selected identity is not the same as clicked one");
 								Atmo.profile.save(
 									{ 'selected_identity' : id },
-									{ async : false }
+									{ async : false, 
+									patch: true, 
+									success: location.reload() }
 								);	
-								location.reload();
 							}
 							else {
 								return false;
