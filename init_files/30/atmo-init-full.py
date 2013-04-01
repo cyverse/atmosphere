@@ -8,7 +8,6 @@ import time
 import urllib2
 import subprocess
 import sys
-from atmosphere import settings
 try:
     from hashlib import sha1
 except ImportError:
