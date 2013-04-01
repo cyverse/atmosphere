@@ -7,13 +7,16 @@ from hashlib import sha1
 from django.contrib.auth.models import User
 
 from atmosphere import settings
+
 from core.models.euca_key import Euca_Key
 from core.models.identity import Identity
 from core.models.group import Group, IdentityMembership, ProviderMembership
 from core.models.provider import Provider
 from core.models.credential import Credential
 from core.models.quota import Quota
+
 from service.drivers.openstackUserManager import UserManager
+from service.drivers.openstackNetworkManager import NetworkManager
 
 
 class AccountDriver():
@@ -22,6 +25,7 @@ class AccountDriver():
 
     def __init__(self, *args, **kwargs):
         self.user_manager = UserManager.settings_init()
+        self.network_manager = NetworkManager.settings_init()
         self.openstack_prov = Provider.objects.get(location='OPENSTACK')
 
     def create_user(self, username, usergroup=True, admin=False):
@@ -32,11 +36,22 @@ class AccountDriver():
                                                                   password,
                                                                   True,
                                                                   admin)
+            self.network_manager.createTenantNetwork(username,
+                                                     password,
+                                                     tenant.name,
+                                                     tenant.id)
         else:
             user = self.user_manager.addUser(username, password)
+            tenant = self.user_manager.getTenant(username)
+            self.network_manager.createTenantNetwork(username,
+                                                     password,
+                                                     tenant)
         return (user.name, password)
 
     def delete_user(self, username, usergroup=True, admin=False):
+        tenant = self.user_manager.getTenant(username)
+        if tenant:
+            self.network_manager.deleteTenantNetwork(username, tenant.name)
         if usergroup:
             deleted = self.user_manager.deleteUsergroup(username)
         else:
@@ -78,8 +93,6 @@ class AccountDriver():
     def create_openstack_identity(self, username, password, tenant_name):
         (user, group) = self.create_usergroup(username)
         try:
-            ProviderMembership.objects.get(
-                provider=self.openstack_prov, member__name=username)
             id_member = IdentityMembership.objects.filter(
                 identity__provider=self.openstack_prov,
                 member__name=username,
@@ -110,6 +123,7 @@ class AccountDriver():
             #Link it to the usergroup
             id_member = IdentityMembership.objects.get_or_create(
                 identity=identity, member=group, quota=quota)[0]
+
             #Return the identity
             return id_member.identity
 
