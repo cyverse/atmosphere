@@ -100,6 +100,8 @@ class NetworkManager():
         body = {'floatingip':
                 {'port_id': instance_ports[0]['id']}}
         assigned_ip = self.quantum.update_floatingip(new_ip['id'], body)
+        logger.info('Floating IP %s associated with instance %s'
+                    % (new_ip, server_id))
         return assigned_ip
 
     ##Libcloud-Quantum Interface##
