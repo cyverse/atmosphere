@@ -8,7 +8,6 @@ from abc import ABCMeta, abstractmethod
 import sys
 
 
-from libcloud.compute.types import DeploymentError
 from libcloud.compute.deployment import ScriptDeployment
 from libcloud.compute.deployment import MultiStepDeployment
 
@@ -149,11 +148,7 @@ class LibcloudDriver(BaseDriver, VolumeDriver, APIFilterMixin):
         return self._connection.create_node(*args, **kwargs)
 
     def deploy_instance(self, *args, **kwargs):
-        try:
-            return self._connection.deploy_node(*args, **kwargs)
-        except DeploymentError as script_failed:
-            logger.exception(script_failed)
-            raise
+        return self._connection.deploy_node(*args, **kwargs)
 
     def reboot_instance(self, *args, **kwargs):
         return self._connection.reboot_node(*args, **kwargs)
