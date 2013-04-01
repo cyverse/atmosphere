@@ -282,7 +282,7 @@ class OSDriver(EshDriver):
         instance_token = kwargs.get('token', '')
         awesome_atmo_call = "%s --service_type=%s --service_url=%s"
         awesome_atmo_call += " --server=%s --user_id=%s --token=%s"
-        awesome_atmo_call += " --vnc_license=%s" 
+        awesome_atmo_call += " --vnc_license=%s"
         awesome_atmo_call %= (
             atmo_init,
             "instance_service_v1",
