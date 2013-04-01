@@ -146,7 +146,7 @@ class NetworkManager():
             'network_id': network_id,
             'ip_version': ip_version,
             'cidr': cidr,
-        }
+            'dns_nameservers': ['8.8.8.8', '8.8.4.4']}
         logger.debug(subnet)
         subnet_obj = quantum.create_subnet({'subnet': subnet})
         return subnet_obj['subnet']
