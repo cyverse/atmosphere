@@ -61,11 +61,13 @@ Atmo.Utils.hide_all_help = function() {
 };
 
 Atmo.Utils.update_weather = function() {
-    $.ajax({
-		url: "/api/getOccupancy", 
-		type: 'GET',
-		success: function(occupancy) {
 
+    $.ajax({
+		url: '/api/provider/' + Atmo.profile.get('selected_identity').get('provider_id') + '/occupancy/', 
+		type: 'GET',
+		success: function(response_text) {
+
+			var occupancy = Math.round(((response_text[0]["total"] - response_text[0]["remaining"]) / response_text[0]["total"]) * 100);
 			var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
 			var weather = '';
 
@@ -83,7 +85,7 @@ Atmo.Utils.update_weather = function() {
 					$('body').removeClass(v);
 				});
 				$('#weather_report').addClass(weather);
-				$('#weather_report').html('This is at ' + occupancy + '% capacity.<br /> The forecast is '+weather+'.');
+				$('#weather_report').html('This cloud is at ' + occupancy + '% capacity.<br /> The forecast is '+weather+'.');
 			}
 
 		}, 

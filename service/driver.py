@@ -79,14 +79,14 @@ class BaseDriver():
     def reboot_instance(self, *args, **kwargs):
         raise NotImplementedError
 
+    @abstractmethod
+    def destroy_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
     def resume_instance(self, *args, **kwargs):
         raise NotImplementedError
 
     def suspend_instance(self, *args, **kwargs):
-        raise NotImplementedError
-
-    @abstractmethod
-    def destroy_instance(self, *args, **kwargs):
         raise NotImplementedError
 
 
@@ -319,24 +319,14 @@ class OSDriver(EshDriver):
             raise Exception("No network created for tenant %s" %
                             self.driver.identity.credentials['ex_tenant_name'])
         kwargs.update({
-            'ex_networks': user_networks
-        })
+            'ex_networks': user_networks})
         return super(OSDriver, self).create_instance(*args, **kwargs)
 
-    def destroy_instance(self, *args, **kwargs):
-        destroyed_instance = super(OSDriver, self).destroy_instance(
-            *args, **kwargs)
-        return destroyed_instance
+    def suspend_instance(self, *args, **kwargs):
+        return self._connection.ex_suspend_node(*args, **kwargs)
 
-    def list_sizes(self, *args, **kwargs):
-        logger.debug("start list_sizes")
-        logger.debug(str(self.identity.credentials))
-        sizes = super(OSDriver, self).list_sizes(*args, **kwargs)
-        logger.debug(str(self.identity.credentials))
-        meta_driver = self.meta()
-        logger.debug(str(self.identity.credentials))
-        return sizes
-
+    def resume_instance(self, *args, **kwargs):
+        return self._connection.ex_resume_node(*args, **kwargs)
 
 class AWSDriver(EshDriver):
     """

@@ -72,7 +72,7 @@ class InstanceList(APIView):
         user = request.user
         esh_driver = prepareDriver(request, identity_id)
         try:
-            (eshInstance, token) = launchEshInstance(esh_driver, data)
+            (esh_instance, token) = launchEshInstance(esh_driver, data)
         except InvalidCredsError:
             logger.warn(
                 'Authentication Failed. Provider-id:%s Identity-id:%s'
@@ -82,9 +82,9 @@ class InstanceList(APIView):
                 'message': 'Identity/Provider Authentication Failed'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
-        coreInstance = convertEshInstance(
-            eshInstance, provider_id, user, token)
-        serializer = InstanceSerializer(coreInstance, data=data)
+        core_instance = convertEshInstance(
+            esh_instance, provider_id, user, token)
+        serializer = InstanceSerializer(core_instance, data=data)
         #NEVER WRONG
         if serializer.is_valid():
             serializer.save()
@@ -96,9 +96,11 @@ class InstanceList(APIView):
 class InstanceAction(APIView):
     """
     An InstanceAction allows users to:
-    TODO: Test this when we have openstack
+
+    TODO:Find a list of available actions for an instance.
+
     GET - None
-        TODO:Find a list of available actions for an instance
+
     POST - Run specified action
     """
 
@@ -116,50 +118,50 @@ class InstanceAction(APIView):
                 'POST request to /action require a BODY with \'action\':'}])
             return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
         esh_driver = prepareDriver(request, identity_id)
-        eshInstance = esh_driver.get_instance(instance_id)
+        esh_instance = esh_driver.get_instance(instance_id)
         try:
             action = action_params['action']
             result_obj = None
             if 'volume' in action:
                 volume_id = action_params.get('volume_id')
-                eshVolume = esh_driver.get_volume(volume_id)
+                esh_volume = esh_driver.get_volume(volume_id)
                 device = action_params.get('device', None)
                 if 'attach_volume' in action:
                     esh_driver.attach_volume(
-                        eshInstance,
-                        eshVolume,
+                        esh_instance,
+                        esh_volume,
                         device)
                 elif 'detach_volume' in action:
                     esh_driver.detach_volume(eshVolume)
                 #If attaching, wait until we leave the intermediary state...
                 attempts = 0
                 while True:
-                    eshVolume = esh_driver.get_volume(volume_id)
-                    coreVolume = convertEshVolume(eshVolume, provider_id, user)
-                    result_obj = VolumeSerializer(coreVolume).data
+                    esh_volume = esh_driver.get_volume(volume_id)
+                    core_volume = convertEshVolume(esh_volume, provider_id, user)
+                    result_obj = VolumeSerializer(core_volume).data
                     logger.debug(result_obj)
                     if attempts >= 6:  # After 6 attempts (~1min)
                         break
-                    if 'attaching' not in eshVolume.extra['status']\
-                            and 'detaching' not in eshVolume.extra['status']:
+                    if 'attaching' not in esh_volume.extra['status']\
+                            and 'detaching' not in esh_volume.extra['status']:
                         break
                     time.sleep(2**attempts)  # Exponential backoff..
                     attempts += 1
                 logger.debug(
                     "%s completed in %s attempts"
                     % (action, attempts))
+#            elif 'resize' in action:
+#                esh_driver.resize_instance()
+#            elif 'pause' in action:
+#                esh_driver.suspend_instance(esh_instance)
+#            elif 'unpause' in action:
+#                esh_driver.resume_instance(esh_instance)
             elif 'suspend' in action:
-                esh_driver.suspend_instance()
-            elif 'pause' in action:
-                esh_driver.suspend_instance()
-            elif 'unpause' in action:
-                esh_driver.resume_instance()
+                esh_driver.suspend_instance(esh_instance)
             elif 'resume' in action:
-                esh_driver.resume_instance()
+                esh_driver.resume_instance(esh_instance)
             elif 'reboot' in action:
-                esh_driver.reboot_instance()
-            elif 'resize' in action:
-                esh_driver.resize_instance()
+                esh_driver.reboot_instance(esh_instance)
             api_response = {
                 'result': 'success',
                 'message': 'The requested action <%s> was run successfully'
@@ -203,6 +205,7 @@ class Instance(APIView):
         esh_driver = prepareDriver(request, identity_id)
 
         try:
+            logger.debug(instance_id)
             eshInstance = esh_driver.get_instance(instance_id)
         except InvalidCredsError:
             logger.warn(
@@ -218,7 +221,7 @@ class Instance(APIView):
                 'code': 404,
                 'message': 'Instance does not exist'}])
             return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
-
+        logger.debug(eshInstance)
         core_instance = convertEshInstance(eshInstance, provider_id, user)
         serialized_data = InstanceSerializer(core_instance).data
         response = Response(serialized_data)
@@ -234,7 +237,7 @@ class Instance(APIView):
         #Ensure item exists on the server first
         esh_driver = prepareDriver(request, identity_id)
         try:
-            eshInstance = esh_driver.get_instance(instance_id)
+            esh_instance = esh_driver.get_instance(instance_id)
         except InvalidCredsError:
             logger.warn(
                 'Authentication Failed. Provider-id:%s Identity-id:%s'
@@ -251,8 +254,8 @@ class Instance(APIView):
             return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
 
         #Gather the DB related item and update
-        coreInstance = convertEshInstance(eshInstance, provider_id, user)
-        serializer = InstanceSerializer(coreInstance, data=data, partial=True)
+        core_instance = convertEshInstance(esh_instance, provider_id, user)
+        serializer = InstanceSerializer(core_instance, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             response = Response(serializer.data)
@@ -274,7 +277,7 @@ class Instance(APIView):
         #Ensure item exists on the server first
         esh_driver = prepareDriver(request, identity_id)
         try:
-            eshInstance = esh_driver.get_instance(instance_id)
+            esh_instance = esh_driver.get_instance(instance_id)
         except InvalidCredsError:
             logger.warn(
                 'Authentication Failed. Provider-id:%s Identity-id:%s'
@@ -291,8 +294,8 @@ class Instance(APIView):
             return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
 
         #Gather the DB related item and update
-        coreInstance = convertEshInstance(eshInstance, provider_id, user)
-        serializer = InstanceSerializer(coreInstance, data=data)
+        core_instance = convertEshInstance(esh_instance, provider_id, user)
+        serializer = InstanceSerializer(core_instance, data=data)
         if serializer.is_valid():
             serializer.save()
             response = Response(serializer.data)
@@ -308,14 +311,14 @@ class Instance(APIView):
         esh_driver = prepareDriver(request, identity_id)
 
         try:
-            eshInstance = esh_driver.get_instance(instance_id)
-            esh_driver.destroy_instance(eshInstance)
-            eshInstance = esh_driver.get_instance(instance_id)
-            coreInstance = convertEshInstance(eshInstance, provider_id, user)
-            if coreInstance:
-                coreInstance.end_date = datetime.now()
-                coreInstance.save()
-            serialized_data = InstanceSerializer(coreInstance).data
+            esh_instance = esh_driver.get_instance(instance_id)
+            esh_driver.destroy_instance(esh_instance)
+            esh_instance = esh_driver.get_instance(instance_id)
+            core_instance = convertEshInstance(esh_instance, provider_id, user)
+            if core_instance:
+                core_instance.end_date = datetime.now()
+                core_instance.save()
+            serialized_data = InstanceSerializer(core_instance).data
             response = Response(serialized_data, status=200)
             response['Cache-Control'] = 'no-cache'
             return response
