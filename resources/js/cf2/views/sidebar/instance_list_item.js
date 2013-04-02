@@ -114,7 +114,7 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
                     Atmo.Utils.notify(header, body);
                 },
 				error: function() {
-					Atmo.Utils.notify("Could not delete this volume", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
+					Atmo.Utils.notify("Could not delete this instance", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
 				},
             });
         }

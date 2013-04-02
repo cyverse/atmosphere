@@ -182,7 +182,6 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
         }
     },
 	instance_info: function() {
-		console.log("instance info called");
 		this.$el.find('.instance_info').html(_.template(Atmo.Templates.instance_info_tab, this.model.toJSON()));
 
 		var self = this;
@@ -194,14 +193,19 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			this.$el.find('.request_imaging_btn').addClass('disabled').attr('disabled', 'disabled');
 			this.$el.find('.resize_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 			this.$el.find('.report_instance_btn').addClass('disabled').attr('disabled', 'disabled');
-			this.$el.find('.terminate_instance').addClass('disabled').attr('disabled', 'disabled');
+			this.$el.find('.suspend_resume_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 			this.$el.find('#instance_tabs a[href="#instance_shell"]').addClass("tab_disabled");
 			this.$el.find('#instance_tabs a[href="#instance_vnc"]').addClass("tab_disabled");
 		}
 
-		// Only shutting-down/terminted instances should have terminate button disabled
+		if (this.model.get('state_is_inactive'))
+			this.$el.find('.terminate_instance').addClass('disabled').attr('disabled', 'disabled');
+
+		// Shutting-down/terminted instances should have terminate button disabled
 		if (this.model.get('state_is_delete')) {
 			this.$el.find('.terminate_instance').addClass('disabled').attr('disabled', 'disabled');
+			this.$el.find('.suspend_resume_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+
 		}
 
 		var self = this;
