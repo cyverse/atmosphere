@@ -49,7 +49,7 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 
 		// Use the provider generic states: 'active', 'build', 'delete'
 		this.$el.find('.instance_state').addClass(function() {
-			var states = ['active', 'build', 'delete'];
+			var states = ['active', 'inactive', 'build', 'delete'];
 			for (var i = 0; i < states.length; i++) {
 				if (self.model.get('state_is_'+states[i]))
 					return 'instance_state_is_' + states[i];

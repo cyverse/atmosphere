@@ -24,12 +24,15 @@ Atmo.Models.Instance = Atmo.Models.Base.extend(
       attributes.state_is_build = (    response.status == 'building'
 	  						|| response.status == 'building - spawning'
 							|| response.status == 'building - networking' 
-							|| response.status == 'pending' );
+							|| response.status == 'pending'
+							|| response.status == 'suspended - resuming'
+							|| response.status == 'active - suspending' );
       attributes.state_is_delete = (    response.status == 'delete'
 	  						|| response.status == 'active - deleting'
 							|| response.status == 'deleted'
 						    || response.status == 'shutting-down'
 						    || response.status == 'terminated' );
+	  attributes.state_is_inactive = (	response.status == 'suspended' );
       attributes.private_dns_name = response.ip_address;
       attributes.public_dns_name = response.ip_address;
       return attributes;
