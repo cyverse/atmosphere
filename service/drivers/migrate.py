@@ -150,4 +150,4 @@ class EucaToOpenstack:
         Clean the image as you would normally, but apply a few specific changes
         Returns: ("/path/to/img", "/path/to/kernel", "/path/to/ramdisk")
         """
-        return self.euca_img_manager._local_convert_xen_to_kvm(image_path, download_dir)
+        return self.euca_img_manager._prepare_kvm_export(image_path, download_dir)

@@ -41,7 +41,8 @@ class ImageManager():
     def __init__(self, key=settings.OPENSTACK_ADMIN_KEY,
                  secret=settings.OPENSTACK_ADMIN_SECRET,
                  url=settings.OPENSTACK_AUTH_URL,
-                 tenant=settings.OPENSTACK_ADMIN_TENANT):
+                 tenant=settings.OPENSTACK_ADMIN_TENANT,
+                 region=settings.OPENSTACK_DEFAULT_REGION):
         """
         Will initialize with admin settings if no args are passed.
         Private Key file required to decrypt images.
@@ -52,6 +53,7 @@ class ImageManager():
                                 ex_force_auth_version='2.0_password',
                                 secure=("https" in url),
                                 ex_tenant_name=tenant)
+        self.driver.connection.service_region = region
         self.driver.list_sizes()
         auth_token = self.driver.connection.auth_token
         catalog = self.driver.connection.service_catalog._service_catalog
