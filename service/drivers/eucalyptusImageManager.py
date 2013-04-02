@@ -201,11 +201,13 @@ class ImageManager():
         #Return path to image
         return os.path.join(download_dir, whole_image)
 
-    def _convert_xen_to_kvm(self, image_path, download_dir):
-        #TODO: Replace with a method that finds the latest KVM kernel
-        # On the running machine and use that instead.
-        kernel_version = "2.6.18-348.1.1.el5"
-
+    def _prepare_kvm_export(self, image_path, download_dir):
+        """
+        Prepare a KVM export (For OpenStack, VirtualBox)
+        Will also remove all XEN-specific boot properties
+        (esteve-TODO): I want to move virtualboxExportManager:_xen_migrations
+        here (Where the code is NOT virtualbox specific)
+        """
         kernel_dir = os.path.join(download_dir, "kernel")
         ramdisk_dir = os.path.join(download_dir, "ramdisk")
         mount_point = os.path.join(download_dir, "mount_point")
@@ -244,30 +246,67 @@ class ImageManager():
                                   "s/%s/%s/" % (replace_str, replace_with),
                                   replace_file_path])
 
-        #Chroot jail
-        self.run_command([
-            "/usr/sbin/chroot", mount_point, "/bin/bash", "-c",
-            "yum install kernel-%s -y; mkinitrd --with virtio_pci --with "
+        #Determine the latest (KVM) ramdisk to use
+        (output,stder) = self.run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c", "ls -Fah /boot/"])
+        latest_rmdisk = ''
+        rmdisk_version = ''
+        for line in output.split('\n'):
+            if 'initrd' in line and 'xen' not in line:
+                latest_rmdisk = line
+                rmdisk_version = line.replace('.img','').replace('initrd-','')
+
+        #Chroot necessary here, with bind-mounted dev, proc and sys
+        self._chroot_local_image(mount_point, mount_point, [
+            #First update kernel, mkinitrd, and grub
+            ["/bin/bash", "-c", "yum install -qy kernel mkinitrd grub"],
+            #Next, Create the latest ramdisk for KVM
+            ["/bin/bash", "-c", "mkinitrd --with virtio_pci --with "
             + "virtio_ring --with virtio_blk --with virtio_net --with "
-            + "virtio_balloon --with virtio -f /boot/initrd-%s.img %s"
-            % (kernel_version, kernel_version, kernel_version)])
+            + "virtio_balloon --with virtio -f /boot/%s %s"
+            % (latest_rmdisk, rmdisk_version)]],
+            bind=True, mounted=True, keep_mounted=True)
 
         #Copy new kernel & ramdisk
         local_kernel_path = os.path.join(kernel_dir,
-                                         "vmlinuz-%s" % kernel_version)
+                                         "vmlinuz-%s" % rmdisk_version)
         local_ramdisk_path = os.path.join(ramdisk_dir,
-                                          "initrd-%s.img" % kernel_version)
+                                          "initrd-%s.img" % rmdisk_version)
         mount_kernel_path = os.path.join(mount_point,
-                                         "boot/vmlinuz-%s" % kernel_version)
+                                         "boot/vmlinuz-%s" % rmdisk_version)
         mount_ramdisk_path = os.path.join(mount_point,
                                           "boot/initrd-%s.img"
-                                          % kernel_version)
+                                          % rmdisk_version)
 
         self.run_command(["/bin/cp", mount_kernel_path, local_kernel_path])
         self.run_command(["/bin/cp", mount_ramdisk_path, local_ramdisk_path])
+        #Prepare grub in case its needed..
+        self._get_stage_files(mount_point, self._get_distro(mount_point))
+        #Setup GRUB
+        grub_stdin = """device (hd0) %s
+        geometry (hd0) %s %s %s
+        root (hd0,0)
+        setup (hd0)
+        quit""" % (new_raw_img,disk['cylinders'], disk['heads'], disk['sectors'])
+        self.run_command(['grub', '--device-map=/dev/null', '--batch'], stdin=grub_stdin)
         #Un-mount the image
         self.run_command(["umount", mount_point])
         return (image_path, local_kernel_path, local_ramdisk_path)
+
+    def _get_distro(self, root_dir=''):
+        """
+        Either your CentOS or your Ubuntu.
+        """
+        (out,err) = self.run_command(['/bin/bash','-c','cat %s/etc/*release*' % root_dir])
+        if 'CentOS' in out:
+            return 'CentOS'
+        else:
+            return 'Ubuntu'
+
+    def _get_stage_files(self, root_dir, distro):
+        if distro == 'centos':
+            self.run_command(['/bin/bash','-c','cp -f %s/extras/export/grub_files/centos/* %s/boot/grub/' % (settings.PROJECT_ROOT, root_dir)])
+        elif distro == 'ubuntu':
+            self.run_command(['/bin/bash','-c','cp -f %s/extras/export/grub_files/ubuntu/* %s/boot/grub/' % (settings.PROJECT_ROOT, root_dir)])
 
     def download_instance(self, download_dir, instance_id,
                           local_img_path=None, remote_img_path=None):
@@ -474,21 +513,40 @@ class ImageManager():
         self.run_command(['/bin/cp', '%s' % host_atmoboot,
                           '%s' % atmo_boot_path])
 
-    def _chroot_local_image(self, image_path, mount_point, commands_list):
-        #Prepare the paths
-        if not os.path.exists(image_path):
+    def _chroot_local_image(self, image_path, mount_point, commands_list,
+            bind=False, mounted=False, keep_mounted=False):
+        """
+        Accepts a list of commands (See Popen), runs them in a chroot
+        Will mount the image if image_path exists && mounted=False
+        Will bind /proc, /dev, /sys for the chroot if bind=True
+        Will leave mounted on exit if keep_mounted=True
+        """
+        #Prepare the paths (Ignore if already mounted)
+        if not mounted and not os.path.exists(image_path):
             logger.error("Could not find local image!")
             raise Exception("Image file not found")
 
         if not os.path.exists(mount_point):
             os.makedirs(mount_point)
+        #If bind is required, prepare for mount
+        if bind:
+            self.run_command(['mount', '-t', 'proc', '/proc', mount_point+"/proc/"])
+            self.run_command(['mount', '-t', 'sysfs', '/sys', mount_point+"/sys/"])
+            self.run_command(['mount', '-o', 'bind', '/dev', mount_point+"/dev/"])
         #Mount the directory
-        self.run_command(['mount', '-o', 'loop', image_path, mount_point])
+        if not mounted:
+            self.run_command(['mount', '-o', 'loop', image_path, mount_point])
         for commands in commands_list:
             command_list = ['chroot', mount_point]
             command_list.extend(commands)
             self.run_command(command_list)
-        self.run_command(['umount', mount_point])
+        #If bind was used, unmount sys, dev, and proc
+        if bind:
+            self.run_command(['umount', mount_point+"/proc/"])
+            self.run_command(['umount', mount_point+"/sys/"])
+            self.run_command(['umount', mount_point+"/dev/"])
+        if not keep_mounted:
+            self.run_command(['umount', mount_point])
 
     def _clean_local_image(self, image_path, mount_point, exclude=[]):
         """
@@ -579,6 +637,8 @@ class ImageManager():
         #Multi-line SED Replacement..
         #Equivilant of: DeleteFrom/,/DeleteTo / d <--Delete the regexp match
         for (delete_from, delete_to, replace_where) in [
+                ("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.local"),
+                ("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.d/rc.local"),
                 ("## Atmosphere system", "# End Nagios", "etc/sudoers"),
                 ("## Atmosphere", "AllowGroups users core-services root",
                  "etc/ssh/sshd_config")]:
