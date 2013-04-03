@@ -208,21 +208,19 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 		}
 
-		var self = this;
-
 		// Display OpenStack-specific options
 		if (Atmo.profile.get('selected_identity').get('provider_id') == 2) {
 			this.$el.find('.btn.resize_instance_btn').fadeIn('fast');
 			if (this.model.get('state') == 'suspended') {
-				this.$el.find('.btn.suspend_resume_instance_btn').html('<i class="icon-play"></i> Resume');
+				this.$el.find('.btn.suspend_resume_instance_btn').html('<i class="icon-play"></i> Resume').removeClass('disabled').removeAttr('disabled');
 			}
 			else {
 				this.$el.find('.btn.suspend_resume_instance_btn').fadeIn('fast');
 			}
 		}
 		else {
-			this.$el.find('.btn.resize_instance_btn').fadeOut('fast');
-			this.$el.find('.btn.suspend_resume_instance_btn').fadeOut('fast');
+			this.$el.find('.btn.resize_instance_btn').hide();
+			this.$el.find('.btn.suspend_resume_instance_btn').hide();
 		}
 
 
@@ -557,7 +555,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 		if (this.model.get('state') == 'suspended') {
 			header = 'Resume Instance';
-			body = '';
+			body = 'Your instance\'s IP address may change once it resumes.';
 			ok_button = 'Resume Instance';
 			data = { "action" : "resume" };
 			on_confirm = function() {
