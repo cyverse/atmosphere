@@ -24,12 +24,15 @@ Atmo.Models.Instance = Atmo.Models.Base.extend(
       attributes.state_is_build = (    response.status == 'building'
 	  						|| response.status == 'building - spawning'
 							|| response.status == 'building - networking' 
-							|| response.status == 'pending' );
+							|| response.status == 'pending'
+							|| response.status == 'suspended - resuming'
+							|| response.status == 'active - suspending' );
       attributes.state_is_delete = (    response.status == 'delete'
 	  						|| response.status == 'active - deleting'
 							|| response.status == 'deleted'
 						    || response.status == 'shutting-down'
 						    || response.status == 'terminated' );
+	  attributes.state_is_inactive = (	response.status == 'suspended' );
       attributes.private_dns_name = response.ip_address;
       attributes.public_dns_name = response.ip_address;
       return attributes;
@@ -43,21 +46,55 @@ Atmo.Models.Instance = Atmo.Models.Base.extend(
       var self = this;
       
       Atmo.Utils.confirm(header, body, {
-	on_confirm : function() {
-	  self.destroy({
-	    wait: true, 
-	    success: options.success,
-	    error: options.error
-	  });
-	},
+		on_confirm : function() {
+		  self.destroy({
+			wait: true, 
+			success: options.success,
+			error: options.error
+		  });
+		},
         ok_button: 'Yes, terminate this instance'
       });
   
     },
     select: function() {
         this.collection.select_instance(this);
-    }
-  });
+    },
+	destroy: function(options) {
+		// We overwrite the destroy function so that the model doesn't get deleted while the instance is still 'terminating'
+
+		options = options ? _.clone(options) : {};
+		var model = this;
+		var success = options.success;
+
+		options.success = function(resp) {
+			if (success)
+				success(model, resp, options);
+
+			if (!model.isNew())
+				model.trigger('sync', model, resp, options);
+
+		};
+
+		// wrapError function from backbone.js
+		var wrapError = function (model, options) {
+			var error = options.error;
+			options.error = function(resp) {
+				if (error) error(model, resp, options);
+					model.trigger('error', model, resp, options);
+			};
+		};
+
+		if (this.isNew()) {
+			options.success();
+			return false;
+		}
+		wrapError(this, options);
+
+		var xhr = this.sync('delete', this, options);
+		return xhr;
+	}
+});
 
 _.extend(Atmo.Models.Instance.defaults, Atmo.Models.Base.defaults);
 
