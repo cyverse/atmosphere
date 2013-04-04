@@ -24,7 +24,7 @@ from service.api.group import GroupList, Group
 from service.api.tag import TagList, Tag
 from service.api.meta import Meta, MetaAction
 
-from auth.decorators import atmo_valid_token_required
+from authentication.decorators import atmo_valid_token_required
 
 resources_path = os.path.join(os.path.dirname(__file__), 'resources')
 mobile = os.path.join(os.path.dirname(__file__), 'mobile')

@@ -12,11 +12,14 @@ from service.accounts.openstack import AccountDriver as OSAccountDriver
 
 
 def main():
+    """
+    TODO: Add argparse, --delete : Deletes existing users in openstack (Never use in PROD)
+    """
     euca_driver = EucaAccountDriver()
     os_driver = OSAccountDriver()
     found = 0
     create = 0
-    core_services = ['admin', 'jmatt', 'esteve',
+    core_services = ['admin', 'esteve', 'jmatt', 
                      'cjlarose', 'mlent', 'edwins']
     for user in core_services:
         # Get the user from Euca DB
@@ -47,7 +50,6 @@ def make_admin(user):
 
 
 def create_euca_account(euca_driver, user_dict):
-    key = euca_driver.create_key(user_dict)
     id = euca_driver.create_identity(user_dict)
     return id
 

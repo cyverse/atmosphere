@@ -43,6 +43,10 @@ class MachineRequest(models.Model):
     new_machine = models.ForeignKey("ProviderMachine",
                                     null=True, blank=True,
                                     related_name="created_machine")
+    def __unicode__(self):
+        return '%s Instance: %s Name: %s Status: %s'\
+                % (self.new_machine_owner, self.instance.provider_alias,
+                   self.new_machine_name, self.status)
 
     class Meta:
         db_table = "machine_request"

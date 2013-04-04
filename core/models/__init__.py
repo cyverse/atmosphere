@@ -14,7 +14,6 @@ from core.models.tag import Tag
 from core.models.volume import Volume
 from core.models.group import Group, ProviderMembership, IdentityMembership,\
     InstanceMembership, MachineMembership
-from core.models.euca_key import Euca_Key
 
 
 def get_or_create(Model, *args, **kwargs):

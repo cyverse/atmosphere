@@ -9,7 +9,7 @@ from rest_framework import status
 
 from atmosphere.logger import logger
 
-from auth.decorators import api_auth_token_required
+from authentication.decorators import api_auth_token_required
 
 from service.api import prepareDriver, failureJSON
 from service.api.serializers import ProviderMachineSerializer

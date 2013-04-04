@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 
 from atmosphere import settings
 #from atmosphere.logger import logger
-from auth.models import Token as AuthToken
+from authentication.models import Token as AuthToken
 
 
 def cas_logoutRedirect():

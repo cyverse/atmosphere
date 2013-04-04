@@ -6,7 +6,7 @@ atmosphere service provider rest api.
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from auth.decorators import api_auth_token_required
+from authentication.decorators import api_auth_token_required
 
 from core.models.group import Group
 

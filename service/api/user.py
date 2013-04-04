@@ -11,7 +11,7 @@ from rest_framework import status
 from atmosphere import settings
 from atmosphere.logger import logger
 
-from auth.decorators import api_auth_token_required
+from authentication.decorators import api_auth_token_required
 
 from service.accounts.eucalyptus import AccountDriver
 from service.api.serializers import ProfileSerializer

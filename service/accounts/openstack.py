@@ -8,7 +8,6 @@ from django.contrib.auth.models import User
 
 from atmosphere import settings
 
-from core.models.euca_key import Euca_Key
 from core.models.identity import Identity
 from core.models.group import Group, IdentityMembership, ProviderMembership
 from core.models.provider import Provider
@@ -57,28 +56,6 @@ class AccountDriver():
         else:
             deleted = self.user_manager.deleteUser(username)
         return deleted
-
-    def create_key(self, user_dict):
-        try:
-            return Euca_Key.objects.get(username=user_dict['username'])
-        except Euca_Key.DoesNotExist:
-            return Euca_Key.objects.create(
-                username=user_dict['username'],
-                ec2_access_key=user_dict['access_key'],
-                ec2_secret_key=user_dict['secret_key'],
-                ec2_url=settings.EUCA_EC2_URL,
-                s3_url=''
-            )
-        except Euca_Key.MultipleObjectsReturned:
-            #Delete all objects matching this user
-            Euca_Key.objects.filter(username=user_dict['username']).delete()
-            return Euca_Key.objects.create(
-                username=user_dict['username'],
-                ec2_access_key=user_dict['access_key'],
-                ec2_secret_key=user_dict['secret_key'],
-                ec2_url=settings.EUCA_EC2_URL,
-                s3_url=''
-            )
 
     def create_usergroup(self, username):
         user = User.objects.get_or_create(username=username)[0]

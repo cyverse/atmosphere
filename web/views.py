@@ -27,9 +27,9 @@ import caslib
 from atmosphere import settings
 from atmosphere.logger import logger
 
-from auth import cas_loginRedirect, cas_logoutRedirect
-from auth.models import Token as AuthToken
-from auth.decorators import atmo_login_required, atmo_valid_token_required
+from authentication import cas_loginRedirect, cas_logoutRedirect
+from authentication.models import Token as AuthToken
+from authentication.decorators import atmo_login_required, atmo_valid_token_required
 
 from core.models.maintenance import MaintenanceRecord
 from core.models.instance import Instance
