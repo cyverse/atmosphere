@@ -45,7 +45,7 @@ urlpatterns = patterns(
     url(r'^api/email_support', 'web.emails.email_support'),
 
     #v2 api url scheme
-    url(r'^auth/$', 'auth.views.authenticate'),
+    url(r'^auth/$', 'authentication.views.authenticate'),
 
     #This is a TEMPORARY url..
     #In v2 this is /api/provider/<id>/identity/<id>/instance/action
@@ -67,15 +67,15 @@ urlpatterns = patterns(
     url(r'^$', 'web.views.redirectApp'),
 
     #This URL validates the ticket returned after CAS login
-    url(r'^CAS_serviceValidater', 'auth.protocol.cas.cas_validateTicket'),
+    url(r'^CAS_serviceValidater', 'authentication.protocol.cas.cas_validateTicket'),
     #This URL is a dummy callback
-    url(r'^CAS_proxyCallback', 'auth.protocol.cas.cas_proxyCallback'),
+    url(r'^CAS_proxyCallback', 'authentication.protocol.cas.cas_proxyCallback'),
     #This URL records Proxy IOU & ID
-    url(r'^CAS_proxyUrl', 'auth.protocol.cas.cas_storeProxyIOU_ID'),
+    url(r'^CAS_proxyUrl', 'authentication.protocol.cas.cas_storeProxyIOU_ID'),
 
     url(r'^login/$', 'web.views.login'),
     url(r'^logout/$', 'web.views.logout'),
-    url(r'^CASlogin/(?P<redirect>.*)$', 'auth.cas_loginRedirect'),
+    url(r'^CASlogin/(?P<redirect>.*)$', 'authentication.cas_loginRedirect'),
     url(r'^application/$', 'web.views.app'),
 
     url(r'^partials/(?P<path>.*)$', 'web.views.partial'),

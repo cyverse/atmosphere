@@ -16,8 +16,8 @@ import caslib
 from atmosphere import settings
 from atmosphere.logger import logger
 
-from auth import createAuthToken
-from auth.models import UserProxy
+from authentication import createAuthToken
+from authentication.models import UserProxy
 
 #TODO: Find out the actual proxy ticket expiration time, it varies by server
 #May be as short as 5min!
