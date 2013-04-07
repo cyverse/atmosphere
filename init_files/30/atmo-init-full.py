@@ -139,7 +139,7 @@ def add_sudoers(user):
 
 
 def restart_ssh(distro):
-    if 'rhel' in distro:
+    if is_rhel(distro):
         run_command(["/etc/init.d/sshd", "restart"])
     else:
         run_command(["/etc/init.d/ssh", "restart"])
@@ -221,7 +221,7 @@ def vnc(user, distro, license=None):
             logging.debug("VNC not installed, license not found on machine")
             return
         #ASSERT: VNC server installed on this machine
-        if distro == 'rhel5':
+        if is_rhel(distro):
             run_command(['/usr/bin/yum', '-qy', 'remove', 'vnc-E',
                          'realvnc-vnc-server'])
             download_file(

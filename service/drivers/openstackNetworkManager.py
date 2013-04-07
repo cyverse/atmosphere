@@ -76,10 +76,10 @@ class NetworkManager():
         delete_subnet
         delete_network
         """
-        self.removeRouterGateway('%s-router' % tenant_name)
-        self.removeRouterInterface(self.quantum,
-                                   '%s-router' % tenant_name,
-                                   '%s-subnet' % tenant_name)
+        #self.removeRouterGateway('%s-router' % tenant_name)
+        #self.removeRouterInterface(self.quantum,
+        #                           '%s-router' % tenant_name,
+        #                           '%s-subnet' % tenant_name)
         self.deleteRouter(self.quantum, '%s-router' % tenant_name)
         self.deleteSubnet(self.quantum, '%s-subnet' % tenant_name)
         self.deleteNetwork(self.quantum, '%s-net' % tenant_name)
@@ -206,9 +206,10 @@ class NetworkManager():
                     .remove_interface_router(router_id,
                                              {"subnet_id": subnet_id})
             except:
-                logger.debug("Problem deleting interface router"
+                logger.error("Problem deleting interface router"
                              " from router %s to subnet %s."
                              % (router_id, subnet_id))
+                raise
 
     def deleteRouter(self, quantum, router_name):
         router_id = self.get_router_id(quantum, router_name)
@@ -216,7 +217,8 @@ class NetworkManager():
             try:
                 return quantum.delete_router(router_id)
             except:
-                logger.debug("Problem deleting router: %s" % router_id)
+                logger.error("Problem deleting router: %s" % router_id)
+                raise
 
     def deleteSubnet(self, quantum, subnet_name):
         subnet_id = self.get_subnet_id(quantum, subnet_name)
@@ -224,7 +226,8 @@ class NetworkManager():
             try:
                 return quantum.delete_subnet(subnet_id)
             except:
-                logger.debug("Problem deleting subnet: %s" % subnet_id)
+                logger.error("Problem deleting subnet: %s" % subnet_id)
+                raise
 
     def deleteNetwork(self, quantum, network_name):
         network_id = self.get_network_id(quantum, network_name)
@@ -232,7 +235,8 @@ class NetworkManager():
             try:
                 return quantum.delete_network(network_id)
             except:
-                logger.debug("Problem deleting network: %s" % network_id)
+                logger.error("Problem deleting network: %s" % network_id)
+                raise
 
 
 def test():
@@ -240,7 +244,7 @@ def test():
 
     manager.createTenantNetwork('username', 'password', 'tenant_name')
     print "Created test usergroup"
-    manager.deleteTenantNetwork('username')
+    manager.deleteTenantNetwork('username','username')
     print "Deleted test usergroup"
 
 if __name__ == "__main__":
