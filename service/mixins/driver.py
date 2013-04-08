@@ -2,6 +2,7 @@
 Atmosphere service mixin driver
 Mixin classes implement additional functionality for Drivers.
 """
+from service.tasks.driver import deploy_instance
 
 
 class MetaMixin():
@@ -84,3 +85,7 @@ class APIFilterMixin():
         filtered = [machine for machine in machines
                     if not any(word in machine.name for word in black_list)]
         return filtered
+
+class TaskMixin():
+    def deploy_instance_task(self, *args, **kwargs):
+        return deploy_instance.delay(self, *args, **kwargs).result

@@ -28,7 +28,7 @@ from service.identity import OSIdentity
 
 from service.mixins.driver import APIFilterMixin
 from service.mixins.driver import MetaMixin
-
+from service.mixins.driver import TaskMixin
 
 class BaseDriver():
     """
@@ -249,7 +249,7 @@ class EshDriver(LibcloudDriver, MetaMixin):
         return super(EshDriver, self).detach_volume(*args, **kwargs)
 
 
-class OSDriver(EshDriver):
+class OSDriver(EshDriver, TaskMixin):
     """
     """
     providerCls = OSProvider

@@ -28,8 +28,8 @@ class Instance(Persist):
         self.image_id = node.extra['imageId']
         self.extra = node.extra
         self.ip = self.get_public_ip()
-        if Machine.machines.get((self.provider, self.image_id)):
-            self.machine = Machine.machines[(self.provider, self.image_id)]
+        if Machine.machines.get((self.provider.name, self.image_id)):
+            self.machine = Machine.machines[(self.provider.name, self.image_id)]
         else:
             logger.warn('Could not find the provider-machine (%s,%s)' %
                         (self.provider, self.image_id))
