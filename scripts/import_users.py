@@ -12,12 +12,15 @@ from service.accounts.openstack import AccountDriver as OSAccountDriver
 
 
 def main():
+    """
+    TODO: Add argparse, --delete : Deletes existing users in openstack (Never use in PROD)
+    """
     euca_driver = EucaAccountDriver()
     os_driver = OSAccountDriver()
     found = 0
     create = 0
-    core_services = ['admin', 'jmatt', 'edwins']  #, 'esteve',
-#                     'cjlarose', 'mlent', 'edwins']
+    core_services = ['admin', 'esteve', 'jmatt', 
+                     'cjlarose', 'mlent', 'edwins']
     for user in core_services:
         # Get the user from Euca DB
         user_dict = euca_driver.get_user(user)
@@ -47,7 +50,6 @@ def make_admin(user):
 
 
 def create_euca_account(euca_driver, user_dict):
-    key = euca_driver.create_key(user_dict)
     id = euca_driver.create_identity(user_dict)
     return id
 
@@ -65,8 +67,6 @@ def create_os_account(os_driver, username, admin_role=False):
         try:
             password = os_driver.hashpass(username)
             user = os_driver.get_user(username)
-            if user:
-                os_driver.delete_user(username)
             (username, password) = os_driver.create_user(username,
                                                          True, admin_role)
             user = os_driver.get_user(username)
@@ -81,7 +81,8 @@ def create_os_account(os_driver, username, admin_role=False):
             print 'Requests are rate limited. Pausing for one minute.'
             time.sleep(60)  # Wait one minute
     ident = os_driver.create_openstack_identity(username,
-                                                password, tenant_name=username)
+                                                password,
+                                                tenant_name=username)
     return ident
 
 if __name__ == "__main__":

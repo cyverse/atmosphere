@@ -10,13 +10,13 @@ from rest_framework import status
 from atmosphere.logger import logger
 from atmosphere import settings
 
-from auth.decorators import api_auth_token_required
+from authentication.decorators import api_auth_token_required
 
 from service.api.serializers import MachineRequestSerializer
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 
 from web.emails import requestImaging
-from web.tasks import machineImagingTask
+from service.tasks import machineImagingTask
 
 import copy
 

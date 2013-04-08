@@ -1,0 +1,66 @@
+[
+{
+    "pk": 1, 
+    "model": "core.providertype", 
+    "fields": {
+        "name": "Eucalyptus", 
+        "end_date": null, 
+        "start_date": "2012-10-29T16:21:36.253"
+    }
+},
+{
+    "pk": 2, 
+    "model": "core.providertype", 
+    "fields": {
+        "name": "OpenStack", 
+        "end_date": null, 
+        "start_date": "2012-12-12T15:26:06.313"
+    }
+},
+{
+    "pk": 3, 
+    "model": "core.providertype", 
+    "fields": {
+        "name": "Amazon EC2", 
+        "end_date": null, 
+        "start_date": "2013-01-16T16:29:18.935"
+    }
+},
+{
+    "pk": 1, 
+    "model": "core.provider", 
+    "fields": {
+        "end_date": null, 
+        "public": false, 
+        "location": "EUCALYPTUS", 
+        "active": true, 
+        "type": 1, 
+        "start_date": "2012-10-29T16:21:37.844"
+    }
+},
+{
+    "pk": 2, 
+    "model": "core.provider", 
+    "fields": {
+        "end_date": null, 
+        "public": false, 
+        "location": "OPENSTACK", 
+        "active": true, 
+        "type": 2, 
+        "start_date": "2012-12-12T15:27:41.698"
+    }
+},
+{
+    "pk": 3, 
+    "model": "core.provider", 
+    "fields": {
+        "end_date": null, 
+        "public": false, 
+        "location": "EC2_US_EAST", 
+        "active": true, 
+        "type": 3, 
+        "start_date": "2013-01-16T16:29:18.941"
+    }
+}
+]
+

@@ -783,6 +783,9 @@ ul.instance_state_indicators li {
 .instance_rect .instance_state_is_active {
     background-image: url(../images/state_is_active.png);
 }
+.instance_rect .instance_state_is_inactive {
+    background-image: url(../images/state_is_inactive.png);
+}
 .instance_rect .instance_state_is_delete {
     background-image: url(../images/state_is_delete.png);
 }

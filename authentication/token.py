@@ -1,6 +1,6 @@
 from atmosphere.logger import logger
-from auth.models import Token as AuthToken
-from auth.protocol.cas import cas_validateUser
+from authentication.models import Token as AuthToken
+from authentication.protocol.cas import cas_validateUser
 
 from datetime import timedelta, datetime
 

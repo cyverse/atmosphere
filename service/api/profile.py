@@ -9,7 +9,7 @@ from rest_framework.response import Response
 ## Atmosphere Libraries
 from atmosphere.logger import logger
 
-from auth.decorators import api_auth_token_required
+from authentication.decorators import api_auth_token_required
 
 from service.api.serializers import ProfileSerializer
 

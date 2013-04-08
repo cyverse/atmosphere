@@ -7,8 +7,8 @@ from django.contrib.auth.models import User as DjangoUser
 
 from atmosphere.logger import logger
 
-from auth.protocol.ldap import ldap_validate, ldap_formatAttrs, lookupUser
-from auth.protocol.cas import cas_validateUser, cas_formatAttrs
+from authentication.protocol.ldap import ldap_validate, ldap_formatAttrs, lookupUser
+from authentication.protocol.cas import cas_validateUser, cas_formatAttrs
 
 
 def makeOrCreateUser(username=None, attributes=None):

@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from auth.decorators import api_auth_token_required
+from authentication.decorators import api_auth_token_required
 
 from core.models import Tag as CoreTag
 from service.api.serializers import TagSerializer

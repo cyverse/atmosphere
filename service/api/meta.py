@@ -10,7 +10,7 @@ from libcloud.common.types import InvalidCredsError
 
 from atmosphere.logger import logger
 
-from auth.decorators import api_auth_token_required
+from authentication.decorators import api_auth_token_required
 
 from service.api import failureJSON, prepareDriver
 

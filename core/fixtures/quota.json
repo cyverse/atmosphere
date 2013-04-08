@@ -1,0 +1,12 @@
+[
+{
+    "pk": 1, 
+    "model": "core.quota", 
+    "fields": {
+        "storage": 50, 
+        "cpu": 2, 
+        "storage_count": 1, 
+        "memory": 4
+    }
+}
+]

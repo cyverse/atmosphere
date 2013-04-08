@@ -10,8 +10,8 @@ from rest_framework import status
 from atmosphere import settings
 from atmosphere.logger import logger
 
-from auth import cas_loginRedirect
-from auth.token import validate_token
+from authentication import cas_loginRedirect
+from authentication.token import validate_token
 
 
 def atmo_login_required(func):

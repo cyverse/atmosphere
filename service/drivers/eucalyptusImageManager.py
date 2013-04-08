@@ -125,6 +125,7 @@ class ImageManager():
             remote_img_path - Override the default path to the image
             (On the Node Controller -- Must be exact to the image file (root))
         """
+        #
         #Confirm instance existence
         try:
             reservation = self.find_instance(instance_id)[0]
@@ -142,7 +143,8 @@ class ImageManager():
         if not ramdisk:
             ramdisk = reservation.instances[0].ramdisk
         parent_emi = reservation.instances[0].image_id
-
+        if public and owner not in private_user_list:
+            private_user_list.append(owner)
         if not meta_name:
             #Format empty meta strings to match current iPlant
             #image naming convention, if not given
@@ -152,6 +154,7 @@ class ImageManager():
             image_path = '%s/%s.img' % (local_download_dir, meta_name)
         else:
             image_path = '%s/%s.img' % (local_download_dir, meta_name)
+            print image_path
 
         if not remote_img_path:
             remote_img_path = '/usr/local/eucalyptus/%s/%s/root' %\
@@ -413,6 +416,7 @@ class ImageManager():
             logger.info("Instance found on Node: %s" % node_controller_ip)
             return self._node_controller_scp(node_controller_ip,
                                              remote_img_path, local_img_path)
+        return local_img_path
 
     def _upload_local_image(self, image_path, kernel, ramdisk,
                             destination_path, parent_emi, meta_name,
@@ -431,19 +435,24 @@ class ImageManager():
         logger.info("New image created! Name:%s ID:%s"
                     % (image_name, new_image_id))
         if not public:
-            euca_conn = self.euca.make_connection()
-            euca_conn.modify_image_attribute(image_id=new_image_id,
-                                             attribute='launchPermission',
-                                             operation='remove',
-                                             user_ids=None,
-                                             groups=['all'],
-                                             product_codes=None)
-            euca_conn.modify_image_attribute(image_id=new_image_id,
-                                             attribute='launchPermission',
-                                             operation='add',
-                                             user_ids=private_user_list,
-                                             groups=None,
-                                             product_codes=None)
+            try:
+                #Someday this will matter. Euca doesn't respect it though..
+                euca_conn = self.euca.make_connection()
+                euca_conn.modify_image_attribute(
+                    image_id=new_image_id,
+                    attribute='launchPermission',
+                    operation='remove',
+                    groups=['all'],
+                    product_codes=None)
+                euca_conn.modify_image_attribute(
+                    image_id=new_image_id,
+                    attribute='launchPermission',
+                    operation='add',
+                    user_ids=private_user_list)
+            except EC2ResponseError, call_failed:
+                #Since Euca ignores this anyway, lets just continue.
+                logger.error("Private List - %s" % private_user_list)
+                logger.exception(call_failed)
         return new_image_id
 
     def _old_nc_scp(self, node_controller_ip, remote_img_path, local_img_path):
@@ -470,9 +479,9 @@ class ImageManager():
             return self._old_nc_scp(node_controller_ip,
                                     remote_img_path, local_img_path)
         except NodeController.DoesNotExist:
-            err_msg = "Node controller %s missing - Create a new record " \
-                      + "and add it's private key to use the image manager" \
-                      % node_controller_ip
+            err_msg = "Node controller %s missing - Create a new record "
+            err_msg += "and add it's private key to use the image manager"
+            err_msg %= (node_controller_ip,)
             logger.error(err_msg)
             raise
 
@@ -485,11 +494,13 @@ class ImageManager():
             self.run_command(['whoami'])
             self.run_command(['chmod', '600', ssh_file_loc])
             node_controller_ip = nc.hostname
-            self.run_command(['scp', '-o', 'stricthostkeychecking=no', '-i',
+            scp_command_list = ['scp', '-o', 'stricthostkeychecking=no', '-i',
                               ssh_file_loc, '-P1657',
                               'root@%s:%s'
                               % (node_controller_ip, remote_img_path),
-                              local_img_path])
+                              local_img_path]
+            logger.info(' '.join(map(str,scp_command_list)))
+            self.run_command(scp_command_list)
             self.run_command(['rm', '-rf', ssh_file_loc])
             return local_img_path
 
@@ -677,9 +688,9 @@ class ImageManager():
                          + 'Error: Image file not found!')
             raise
 
-        cert_path = self.euca.get_environ('EC2_CERT')
-        private_key_path = self.euca.get_environ('EC2_PRIVATE_KEY')
-        ec2cert_path = self.euca.get_environ('EUCALYPTUS_CERT')
+        cert_path = settings.EC2_CERT_PATH  # self.euca.get_environ('EC2_CERT')
+        private_key_path = settings.EUCA_PRIVATE_KEY  # self.euca.get_environ('EC2_PRIVATE_KEY')
+        ec2cert_path = settings.EUCALYPTUS_CERT_PATH  # self.euca.get_environ('EUCALYPTUS_CERT')
         try:
             self.euca.validate_file(cert_path)
             self.euca.validate_file(private_key_path)

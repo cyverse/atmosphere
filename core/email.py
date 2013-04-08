@@ -8,7 +8,7 @@ from django.core.mail import EmailMessage
 from atmosphere import settings
 from atmosphere.logger import logger, email_logger
 
-from auth.protocol.ldap import lookupEmail
+from authentication.protocol.ldap import lookupEmail
 
 
 def email_address_str(name, email):

@@ -11,6 +11,7 @@ import os.path
 from datetime import timedelta
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__),'..')) 
+SERVER_URL = 'https://your_server_here.iplantc.org'
 REDIRECT_URL = '' # IF on the root directory, this should be BLANK, else: /path/to/web (NO TRAILING /)
 
 #NOTE: first admin will be sender of atmo emails.
@@ -102,8 +103,8 @@ TEMPLATE_DIRS = (
 AUTH_PROFILE_MODULE = 'core.UserProfile'
 
 AUTHENTICATION_BACKENDS = (
-    'auth.authBackends.CASLoginBackend', #For Web-Access
-    'auth.authBackends.LDAPLoginBackend', #For Service-Access
+    'authentication.authBackends.CASLoginBackend', #For Web-Access
+    'authentication.authBackends.LDAPLoginBackend', #For Service-Access
     #'django.contrib.auth.backends.ModelBackend',
 )
 
@@ -118,10 +119,11 @@ INSTALLED_APPS = (
     #3rd party apps
     'rest_framework',
     'south',
+    'djcelery',
 
     #atmosphere apps
+    'authentication',
     'service',
-    'auth',
     'web',
     'core',
 )
@@ -135,10 +137,10 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 
 ## ATMOSPHERE APP CONFIGS
-#INSTANCE_SERVICE_URL = 'https://server.iplantc.org'+REDIRECT_URL+'/instanceservice/'
-INSTANCE_SERVICE_URL = 'https://server.iplantc.org'+REDIRECT_URL+'/api/notification/'
-API_SERVER_URL = 'https://server.iplantc.org'+REDIRECT_URL+'/resources/v1'
-AUTH_SERVER_URL = 'https://server.iplantc.org'+REDIRECT_URL+'/auth'
+#INSTANCE_SERVICE_URL = SERVER_URL+REDIRECT_URL+'/instanceservice/'
+INSTANCE_SERVICE_URL = SERVER_URL+REDIRECT_URL+'/api/notification/'
+API_SERVER_URL = SERVER_URL+REDIRECT_URL+'/resources/v1'
+AUTH_SERVER_URL = SERVER_URL+REDIRECT_URL+'/auth'
 INIT_SCRIPT_PREFIX = '/init_files/'
 
 
@@ -171,11 +173,11 @@ REST_FRAMEWORK = {
                 'rest_framework.renderers.XMLRenderer',
         ),
         'DEFAULT_AUTHENTICATION_CLASSES': (
-            'auth.token.TokenAuthentication',
+            'authentication.token.TokenAuthentication',
         )
 }
 ##CASLIB
-SERVER_URL = 'https://server.iplantc.org'+REDIRECT_URL
+SERVER_URL = SERVER_URL+REDIRECT_URL
 CAS_SERVER = 'https://auth.iplantcollaborative.org'
 SERVICE_URL = SERVER_URL+'/CAS_serviceValidater?sendback='+REDIRECT_URL+'/application/'
 PROXY_URL = SERVER_URL+'/CAS_proxyUrl'
@@ -220,11 +222,11 @@ OPENSTACK_DEFAULT_REGION=""
 #AWS Provider secrets
 AWS_KEY=""
 AWS_SECRET=""
-AWS_S3_URL="https://s3.amazonaws.com"
-AWS_S3_KEY="akiaia6oykat7kzm5owa"
-AWS_S3_SECRET="i9qfwwge2nzqmz/iu7dkws0mtxlagsbvckj5gn42"
+AWS_S3_URL=""
+AWS_S3_KEY=""
+AWS_S3_SECRET=""
 #pyes secrets
-ELASTICSEARCH_HOST = ""
+ELASTICSEARCH_HOST = SERVER_URL
 ELASTICSEARCH_PORT = 9200
 #Django-Celery secrets
 BROKER_HOST = ""

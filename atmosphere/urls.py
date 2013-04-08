@@ -24,7 +24,7 @@ from service.api.group import GroupList, Group
 from service.api.tag import TagList, Tag
 from service.api.meta import Meta, MetaAction
 
-from auth.decorators import atmo_valid_token_required
+from authentication.decorators import atmo_valid_token_required
 
 resources_path = os.path.join(os.path.dirname(__file__), 'resources')
 mobile = os.path.join(os.path.dirname(__file__), 'mobile')
@@ -45,7 +45,7 @@ urlpatterns = patterns(
     url(r'^api/email_support', 'web.emails.email_support'),
 
     #v2 api url scheme
-    url(r'^auth/$', 'auth.views.authenticate'),
+    url(r'^auth/$', 'authentication.views.authenticate'),
 
     #This is a TEMPORARY url..
     #In v2 this is /api/provider/<id>/identity/<id>/instance/action
@@ -67,15 +67,15 @@ urlpatterns = patterns(
     url(r'^$', 'web.views.redirectApp'),
 
     #This URL validates the ticket returned after CAS login
-    url(r'^CAS_serviceValidater', 'auth.protocol.cas.cas_validateTicket'),
+    url(r'^CAS_serviceValidater', 'authentication.protocol.cas.cas_validateTicket'),
     #This URL is a dummy callback
-    url(r'^CAS_proxyCallback', 'auth.protocol.cas.cas_proxyCallback'),
+    url(r'^CAS_proxyCallback', 'authentication.protocol.cas.cas_proxyCallback'),
     #This URL records Proxy IOU & ID
-    url(r'^CAS_proxyUrl', 'auth.protocol.cas.cas_storeProxyIOU_ID'),
+    url(r'^CAS_proxyUrl', 'authentication.protocol.cas.cas_storeProxyIOU_ID'),
 
     url(r'^login/$', 'web.views.login'),
     url(r'^logout/$', 'web.views.logout'),
-    url(r'^CASlogin/(?P<redirect>.*)$', 'auth.cas_loginRedirect'),
+    url(r'^CASlogin/(?P<redirect>.*)$', 'authentication.cas_loginRedirect'),
     url(r'^application/$', 'web.views.app'),
 
     url(r'^partials/(?P<path>.*)$', 'web.views.partial'),
@@ -104,16 +104,18 @@ urlpatterns += format_suffix_patterns(patterns(
 
     url(r'^api/provider/(?P<provider_id>.*)/identity'
         + '/(?P<identity_id>.*)/image_export/$',
-        MachineExportList.as_view(), name='machine-request-list'),
+        MachineExportList.as_view(), name='machine-export-list'),
     url(r'^api/provider/(?P<provider_id>.*)/identity'
         + '/(?P<identity_id>.*)/image_export/(?P<machine_request_id>.*)/$',
-        MachineExport.as_view(), name='machine-request'),
+        MachineExport.as_view(), name='machine-export'),
+
     url(r'^api/provider/(?P<provider_id>.*)/identity/'
         + '(?P<identity_id>.*)/request_image/$',
         MachineRequestList.as_view(), name='machine-request-list'),
     url(r'^api/provider/(?P<provider_id>.*)/identity/'
         + '(?P<identity_id>.*)/request_image/(?P<machine_request_id>.*)/$',
         MachineRequest.as_view(), name='machine-request'),
+
     url(r'^api/request_image/(?P<machine_request_id>.*)/(?P<action>.*)/$',
         MachineRequestAction.as_view(), name='machine-request-detail'),
 

@@ -10,7 +10,7 @@ from rest_framework import status
 
 from atmosphere.logger import logger
 
-from auth.decorators import api_auth_token_required
+from authentication.decorators import api_auth_token_required
 
 from core.models.quota import\
     getQuota, Quota as CoreQuota, storageQuotaTest, storageCountQuotaTest

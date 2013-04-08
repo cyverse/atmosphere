@@ -50,6 +50,10 @@ class Token(models.Model):
     def __unicode__(self):
         return "%s" % (self.key)
 
+    class Meta:
+        db_table = "auth_token"
+        app_label = "authentication"
+
 
 class UserProxy(models.Model):
     """
@@ -58,9 +62,14 @@ class UserProxy(models.Model):
       to proxyIOU+proxyTicket(sent to the proxy URL)
     """
     username = models.CharField(max_length=128, blank=True, null=True)
-    proxyIOU = models.CharField(max_length=40)
-    proxyTicket = models.CharField(max_length=70)
+    proxyIOU = models.CharField(max_length=128)
+    proxyTicket = models.CharField(max_length=128)
     expiresOn = models.DateTimeField(blank=True, null=True)
 
     def __unicode__(self):
         return "%s CAS_Proxy" % self.username
+
+    class Meta:
+        db_table = "auth_userproxy"
+        app_label = "authentication"
+        verbose_name_plural = 'user proxies'

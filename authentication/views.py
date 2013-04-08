@@ -13,10 +13,10 @@ from django.http import HttpResponseRedirect
 
 from atmosphere import settings
 from atmosphere.logger import logger
-from auth import createAuthToken, userCanEmulate, cas_loginRedirect
-from auth.models import Token as AuthToken
-from auth.protocol.ldap import ldap_validate
-from auth.protocol.cas import cas_validateUser
+from authentication import createAuthToken, userCanEmulate, cas_loginRedirect
+from authentication.models import Token as AuthToken
+from authentication.protocol.ldap import ldap_validate
+from authentication.protocol.cas import cas_validateUser
 
 
 def token_auth(request):
