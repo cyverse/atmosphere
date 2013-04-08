@@ -167,9 +167,7 @@ def getEshProvider(core_provider):
 
 def getEshDriver(core_identity, username=None):
     try:
-        logger.debug(core_identity.provider)
         eshMap = getEshMap(core_identity.provider)
-        logger.debug(eshMap)
         cred_args = core_identity.credential_list()
         if not username:
             user = core_identity.created_by

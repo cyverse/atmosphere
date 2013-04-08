@@ -10,6 +10,7 @@ import sys
 
 from libcloud.compute.deployment import ScriptDeployment
 from libcloud.compute.deployment import MultiStepDeployment
+from libcloud.compute.types import DeploymentError
 
 from atmosphere import settings
 from atmosphere.logger import logger
@@ -296,11 +297,18 @@ class OSDriver(EshDriver):
                                    script_wget,
                                    script_chmod,
                                    script_atmo_init])
+        kwargs.update({'ssh_username': 'root'})
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'deploy': msd})
-        kwargs.update({'timeout': 60})
+        kwargs.update({'timeout': 120})
 
-        instance = super(OSDriver, self).deploy_instance(*args, **kwargs)
+        try:
+            logger.debug("my kwargs = %s" % kwargs)
+            instance = super(OSDriver, self).deploy_instance(*args, **kwargs)
+        except DeploymentError as de:
+            logger.error(sys.exc_info())
+            logger.error(de.value)
+            raise(de)
 
         send_instance_email(username, instance.id, instance.ip, username)
 
