@@ -65,7 +65,7 @@ def atmo_valid_token_required(func):
         if validate_token(token_key, request):
             return func(request, *args, **kwargs)
         else:
-            logger.debug('invalid token used')
+            logger.warn('invalid token used')
             return HttpResponseForbidden("403 Forbidden")
     return atmo_validate_token
 
@@ -81,13 +81,11 @@ def api_auth_token_required(func):
             in the auth.token.TokenAuthentication class
         """
         request = args[0]
-        logger.info("Validating auth token")
         user = request.user
-        logger.info(user)
         if user and user.is_authenticated():
             return func(request, *args, **kwargs)
         else:
-            logger.debug('invalid token used')
+            logger.warn('invalid token used')
             return Response(
                 "Expected header parameter: Authorization Token <TokenID>",
                 status=status.HTTP_401_UNAUTHORIZED)

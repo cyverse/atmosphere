@@ -16,8 +16,8 @@ def main():
     os_driver = OSAccountDriver()
     found = 0
     create = 0
-    core_services = ['admin', 'jmatt', 'esteve',
-                     'cjlarose', 'mlent', 'edwins']
+    core_services = ['admin', 'jmatt', 'edwins']  #, 'esteve',
+#                     'cjlarose', 'mlent', 'edwins']
     for user in core_services:
         # Get the user from Euca DB
         user_dict = euca_driver.get_user(user)
