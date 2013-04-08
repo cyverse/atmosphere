@@ -53,7 +53,7 @@ def machineImagingTask(machine_request):
                                  machine_request.new_machine,
                                  machine_request.new_machine_name)
         return new_image_id
-    except Exception, e:
+    except Exception as e:
         logger.exception(e)
         machine_request.status = 'error'
         machine_request.save()
