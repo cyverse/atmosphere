@@ -27,14 +27,23 @@ class AccountDriver():
         self.network_manager = NetworkManager.settings_init()
         self.openstack_prov = Provider.objects.get(location='OPENSTACK')
 
-    def create_user(self, username, usergroup=True, admin=False):
+    def get_or_create_user(self, username, password=None,
+                           usergroup=True, admin=False):
+        user = self.get_user(username)
+        if user:
+            return user
+        user = self.create_user(username, password, usergroup, admin)
+        return user
 
-        password = self.hashpass(username)
+    def create_user(self, username, password=None, usergroup=True, admin=False,):
+        if not password:
+            password = self.hashpass(username)
         if usergroup:
             (tenant, user, role) = self.user_manager.addUsergroup(username,
                                                                   password,
                                                                   True,
                                                                   admin)
+            logger.info("Creating network for %s" % username)
             self.network_manager.createTenantNetwork(username,
                                                      password,
                                                      tenant.name,
@@ -45,7 +54,8 @@ class AccountDriver():
             self.network_manager.createTenantNetwork(username,
                                                      password,
                                                      tenant)
-        return (user.name, password)
+        #TODO: Instead, return user.get_user match, or call it if you have to..
+        return user
 
     def delete_user(self, username, usergroup=True, admin=False):
         tenant = self.user_manager.getTenant(username)
@@ -118,3 +128,15 @@ class AccountDriver():
 
     def list_users(self):
         return self.user_manager.listUsers()
+
+    def list_usergroups(self):
+        users = self.list_users()
+        groups = self.list_tenants()
+        usergroups = []
+        for group in groups:
+            for user in users:
+                if user.name in group.name and\
+                settings.OPENSTACK_ADMIN_KEY not in user.name:
+                    usergroups.append((user,group))
+                    break
+        return usergroups
