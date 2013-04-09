@@ -66,7 +66,7 @@ def send_email(subject, body, from_email, to, cc=None, fail_silently=False):
                            cc=cc)
         msg.send(fail_silently=fail_silently)
         email_logger.info("Email Sent."
-                          + "To: %s\nFrom: %sCc: %s\nSubject: %s\nBody:\n%s" %
+                          + "From:%s\nTo:%sCc:%s\nSubject:%s\nBody:\n%s" %
                          (from_email,
                           to,
                           cc,
@@ -108,7 +108,7 @@ def email_from_admin(user, subject, message):
     return send_email(subject, message,
                       from_email=email_address_str(from_name, from_email),
                       to=[email_address_str(user, user_email)],
-                      cc=[email_address_str(from_name, user_email)])
+                      cc=[email_address_str(from_name, from_email)])
 
 
 def send_instance_email(user, instance_id, ip, linuxusername):
