@@ -7,6 +7,7 @@ from hashlib import sha1
 from django.contrib.auth.models import User
 
 from atmosphere import settings
+from atmosphere.logger import logger
 
 from core.models.identity import Identity
 from core.models.group import Group, IdentityMembership, ProviderMembership
@@ -46,8 +47,7 @@ class AccountDriver():
             logger.info("Creating network for %s" % username)
             self.network_manager.createTenantNetwork(username,
                                                      password,
-                                                     tenant.name,
-                                                     tenant.id)
+                                                     tenant.name)
         else:
             user = self.user_manager.addUser(username, password)
             tenant = self.user_manager.getTenant(username)
