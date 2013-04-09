@@ -5,15 +5,12 @@ Atmosphere service meta rest api.
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-#from rest_framework.renderers import JSONRenderer,JSONPRenderer
 
 from libcloud.common.types import InvalidCredsError
 
 from atmosphere.logger import logger
 
 from authentication.decorators import api_auth_token_required
-
-#from service.meta import Meta as ServiceMeta
 
 from service.api import failureJSON, prepareDriver
 
@@ -71,7 +68,6 @@ class MetaAction(APIView):
         try:
             if 'test_links' in action:
                 test_links = esh_meta.test_links()
-                logger.debug(test_links)
                 return Response(test_links, status=status.HTTP_200_OK)
         except InvalidCredsError:
             logger.warn('Authentication Failed. Provider-id:%s Identity-id:%s'

@@ -139,8 +139,6 @@ def app(request):
 
 @atmo_valid_token_required
 def partial(request, path, return_string=False):
-    logger.debug("Partial request")
-
     if path == 'init_data.js':
         logger.info(
             "init_data.js has yet to be implemented with the new service")

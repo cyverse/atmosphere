@@ -98,7 +98,8 @@ def create_os_account(os_driver, username, admin_role=False):
             print 'Requests are rate limited. Pausing for one minute.'
             time.sleep(60)  # Wait one minute
     ident = os_driver.create_openstack_identity(username,
-                                                password, tenant_name=username)
+                                                password,
+                                                tenant_name=username)
     return ident
 
 

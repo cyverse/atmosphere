@@ -22,9 +22,9 @@ class Profile(APIView):
     def get(self, request, provider_id=None, identity_id=None):
         """
         """
-        logger.info(request.user)
+        #logger.info(request.user)
         user = request.user
-        logger.debug(user.get_profile())
+        #logger.debug(user.get_profile())
         serialized_data = ProfileSerializer(user.get_profile()).data
         response = Response(serialized_data)
         return response

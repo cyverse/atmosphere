@@ -126,7 +126,7 @@ def launchEshInstance(driver, extras, *args, **kwargs):
             #NOTE: Name, deploy are passed in extras
             #TODO: Explicitly set the kwargs here and pass them instead of args
             #will help avoid confusion here..
-            eshInstance = driver.deploy_instance(size=size,
+            eshInstance = driver.deploy_instance_task(size=size,
                                                  image=machine, **extras)
         elif isinstance(driver.provider, AWSProvider):
             #TODO:Extra stuff needed for AWS provider here
@@ -167,9 +167,7 @@ def getEshProvider(core_provider):
 
 def getEshDriver(core_identity, username=None):
     try:
-        logger.debug(core_identity.provider)
         eshMap = getEshMap(core_identity.provider)
-        logger.debug(eshMap)
         cred_args = core_identity.credential_list()
         if not username:
             user = core_identity.created_by

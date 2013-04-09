@@ -73,6 +73,8 @@ class InstanceList(APIView):
         esh_driver = prepareDriver(request, identity_id)
         try:
             (esh_instance, token) = launchEshInstance(esh_driver, data)
+            logger.debug(esh_instance)
+            logger.debug(token)
         except InvalidCredsError:
             logger.warn(
                 'Authentication Failed. Provider-id:%s Identity-id:%s'

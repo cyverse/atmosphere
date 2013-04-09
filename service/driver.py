@@ -10,6 +10,7 @@ import sys
 
 from libcloud.compute.deployment import ScriptDeployment
 from libcloud.compute.deployment import MultiStepDeployment
+from libcloud.compute.types import DeploymentError
 
 from atmosphere import settings
 from atmosphere.logger import logger
@@ -27,7 +28,7 @@ from service.identity import OSIdentity
 
 from service.mixins.driver import APIFilterMixin
 from service.mixins.driver import MetaMixin
-
+from service.mixins.driver import TaskMixin
 
 class BaseDriver():
     """
@@ -248,7 +249,7 @@ class EshDriver(LibcloudDriver, MetaMixin):
         return super(EshDriver, self).detach_volume(*args, **kwargs)
 
 
-class OSDriver(EshDriver):
+class OSDriver(EshDriver, TaskMixin):
     """
     """
     providerCls = OSProvider
@@ -291,16 +292,21 @@ class OSDriver(EshDriver):
         #kludge: weirdness without the str cast...
         logger.debug(isinstance(str_awesome_atmo_call, basestring))
         script_atmo_init = ScriptDeployment(str_awesome_atmo_call)
-        private_key = ("/opt/dev/atmosphere/extras/ssh/id_rsa")
+        private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
         msd = MultiStepDeployment([script_deps,
                                    script_wget,
                                    script_chmod,
                                    script_atmo_init])
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'deploy': msd})
-        kwargs.update({'timeout': 60})
+        kwargs.update({'timeout': 120})
 
-        instance = super(OSDriver, self).deploy_instance(*args, **kwargs)
+        try:
+            instance = super(OSDriver, self).deploy_instance(*args, **kwargs)
+        except DeploymentError as de:
+            logger.error(sys.exc_info())
+            logger.error(de.value)
+            raise(de)
 
         send_instance_email(username, instance.id, instance.ip, username)
 

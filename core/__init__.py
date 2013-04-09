@@ -4,7 +4,6 @@ Base classes.
 
 from abc import ABCMeta, abstractmethod
 
-
 # Base Classes
 class Persist():
     """

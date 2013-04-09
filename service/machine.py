@@ -31,14 +31,14 @@ class Machine(BaseMachine):
     def create_machine(cls, provider, lc_image):
         machine = provider.machineCls(lc_image)
         alias = machine.id
-        cls.machines[(provider, alias)] = machine
+        cls.machines[(provider.name, alias)] = machine
         return machine
 
     @classmethod
     def get_machine(cls, lc_image):
         alias = lc_image.id
-        if cls.machines.get((cls.provider, alias)):
-            return cls.machines[(cls.provider, alias)]
+        if cls.machines.get((cls.provider.name, alias)):
+            return cls.machines[(cls.provider.name, alias)]
         else:
             return cls.create_machine(cls.provider, lc_image)
 

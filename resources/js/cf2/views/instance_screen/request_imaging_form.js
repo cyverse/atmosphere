@@ -59,7 +59,7 @@ Atmo.Views.RequestImagingForm = Backbone.View.extend({
 			error: function() {
 				Atmo.Utils.notify("Could not submit request", 'If the problem persists, please email your request to <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
 			},
-            dataType: 'text'
+            dataType: 'json'
         });
 
         return false;

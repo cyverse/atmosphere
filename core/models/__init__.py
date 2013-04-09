@@ -1,3 +1,4 @@
+from core.tasks import allocation, synchronize
 from core.models.credential import Credential
 from core.models.identity import Identity
 from core.models.profile import UserProfile

@@ -590,7 +590,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         from the list (key_location, key_file, etc.)
         """
         kwargs.update({'ex_keyname': unicode(self.key)})
-        public_key = open("/opt/dev/atmosphere/extras/ssh/id_rsa.pub").read()
+        public_key = open("/opt/dev/atmosphere/extras/ssh/id_rsa.pub", "r").read()
         keypair = self._get_or_create_keypair(name=unicode(self.key),
                                               public_key=public_key)
         if not keypair:
