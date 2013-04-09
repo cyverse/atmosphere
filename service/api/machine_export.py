@@ -10,7 +10,7 @@ from rest_framework import status
 from atmosphere.logger import logger
 
 from authentication.decorators import api_auth_token_required
-from web.tasks import machineExportTask
+from service.tasks.machine import machineExportTask
 from service.api.serializers import MachineExportSerializer
 from core.models.machine_request import MachineExport as CoreMachineExport
 

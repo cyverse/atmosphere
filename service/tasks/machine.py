@@ -17,50 +17,6 @@ from service.drivers.openstackImageManager import\
 from service.drivers.migrate import EucaToOpenstack as EucaOSMigrater
 
 
-def select_and_build_image(machine_request):
-    old_provider = machine_request.instance.provider_machine\
-        .provider.type.name.lower()
-    new_provider = machine_request.new_machine_provider.type.name.lower()
-    new_image_id = None
-
-    if old_provider == 'eucalyptus':
-        if new_provider == 'eucalyptus':
-            logger.info('Create euca image from euca image')
-            manager = EucaImageManager()
-            new_image_id = manager.create_image(
-                machine_request.instance.provider_alias,
-                image_name=machine_request.new_machine_name,
-                public=True if
-                "public" in machine_request.new_machine_visibility.lower()
-                else False,
-                #Split the string by ", " OR " " OR "\n" to create the list
-                private_user_list=re.split(', | |\n',
-                                           machine_request.access_list),
-                exclude=re.split(", | |\n",
-                                 machine_request.exclude_files),
-            )
-        elif new_provider == 'openstack':
-            logger.info('Create openstack image from euca image')
-            manager = EucaOSMigrater()
-            new_image_id = manager.migrate_instance(
-                machine_request.instance.provider_alias,
-                machine_request.new_machine_name)
-    elif old_provider == 'openstack':
-        if new_provider == 'eucalyptus':
-            logger.info('Create euca image from openstack image')
-            #TODO: Replace with OSEucaMigrater when this feature is complete
-            new_image_id = None
-        elif new_provider == 'openstack':
-            logger.info('Create openstack image from openstack image')
-            manager = OSImageManager()
-            new_image_id = manager.create_image(
-                machine_request.instance.provider_alias,
-                machine_request.new_machine_name
-            )
-
-    return new_image_id
-
-
 @task()
 def machineExportTask(machine_export):
     pass
@@ -97,8 +53,63 @@ def machineImagingTask(machine_request):
                                  machine_request.new_machine,
                                  machine_request.new_machine_name)
         return new_image_id
-    except Exception, e:
-        logger.error(e)
+    except Exception as e:
+        logger.exception(e)
         machine_request.status = 'error'
         machine_request.save()
         return None
+
+def select_and_build_image(machine_request):
+    """
+    Directing traffic between providers
+    Fill out all available fields using machine request data
+    """
+    old_provider = machine_request.instance.provider_machine\
+        .provider.type.name.lower()
+    new_provider = machine_request.new_machine_provider.type.name.lower()
+    new_image_id = None
+
+    if old_provider == 'eucalyptus':
+        if new_provider == 'eucalyptus':
+            logger.info('Create euca image from euca image')
+            manager = EucaImageManager()
+            new_image_id = manager.create_image(
+                machine_request.instance.provider_alias,
+                image_name=machine_request.new_machine_name,
+                public=True if
+                "public" in machine_request.new_machine_visibility.lower()
+                else False,
+                #Split the string by ", " OR " " OR "\n" to create the list
+                private_user_list=re.split(', | |\n',
+                                           machine_request.access_list),
+                exclude=re.split(", | |\n",
+                                 machine_request.exclude_files),
+                #Build the meta_name so we can re-start if necessary
+                meta_name = '%s_%s_%s_%s' % ('admin', owner,
+                    machine_request.new_machine_owner.username,
+                    machine_request.start_date.strftime('%m%d%Y_%H%M%S')),
+                local_download_dir='/Storage/',
+            )
+        elif new_provider == 'openstack':
+            logger.info('Create openstack image from euca image')
+            manager = EucaOSMigrater()
+            new_image_id = manager.migrate_instance(
+                machine_request.instance.provider_alias,
+                machine_request.new_machine_name)
+    elif old_provider == 'openstack':
+        if new_provider == 'eucalyptus':
+            logger.info('Create euca image from openstack image')
+            #TODO: Replace with OSEucaMigrater when this feature is complete
+            new_image_id = None
+        elif new_provider == 'openstack':
+            logger.info('Create openstack image from openstack image')
+            manager = OSImageManager()
+            #NOTE: This will create a snapshot, (Private-?), but is not a full
+            #fledged image
+            new_image_id = manager.create_image(
+                machine_request.instance.provider_alias,
+                machine_request.new_machine_name
+            )
+
+    return new_image_id
+

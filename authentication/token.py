@@ -18,21 +18,14 @@ class TokenAuthentication(BaseAuthentication):
 
     def authenticate(self, request):
         token_key = None
-
         auth = request.META.get('HTTP_AUTHORIZATION', '').split()
         if len(auth) == 2 and auth[0].lower() == "token":
             token_key = auth[1]
-            logger.debug("API_LOGIN : using header authorization token %s" %
-                         token_key)
-
         if not token_key and 'token' in request.session:
             token_key = request.session['token']
-            logger.debug("WEB_LOGIN : using session token %s" % token_key)
-        logger.info("Token key - %s" % token_key)
         if validate_token(token_key):
             token = self.model.objects.get(key=token_key)
             if token.user.is_active:
-                logger.debug("user %s is valid" % token.user.username)
                 return (token.user, token)
         return None
 
@@ -52,7 +45,6 @@ def validate_token(token, request=None):
     except AuthToken.DoesNotExist:
         logger.info("AuthToken <%s> does not exist." % token)
         return False
-    logger.info("AuthToken belongs to <%s>" % user)
     if auth_token.is_expired():
         if request and request.META['REQUEST_METHOD'] == 'POST':
             user_to_auth = request.session.get('emulated_by', user)
@@ -62,13 +54,12 @@ def validate_token(token, request=None):
                 auth_token.save()
                 return True
             else:
-                logger.debug("Could not reauthenticate user")
+                logger.warn("Could not reauthenticate user")
                 return False
         else:
             logger.debug("%s using EXPIRED token to GET data.." % user)
             return True
     else:
-        #logger.debug("%s using valid token.." % user)
         return True
 
 

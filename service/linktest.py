@@ -67,13 +67,13 @@ def active_instances(instances):
     """
     test_results = {}
 
-    #Determine #processes and #jobs
+    # Determine #processes and #jobs
     num_processes = multiprocessing.cpu_count() * 2
     num_jobs = len(instances)
-    logger.debug("Created %d processes to run %s jobs" %
-                 (num_processes, num_jobs))
+    # logger.debug("Created %d processes to run %s jobs" %
+    #             (num_processes, num_jobs))
 
-    #Create input and output queue
+    # Create input and output queue
     tasks = multiprocessing.Queue()
     results = multiprocessing.Queue()
 
@@ -81,21 +81,21 @@ def active_instances(instances):
                  for i in xrange(num_processes)]
     for p in processes:
         p.start()
-        #logger.info("Started %d processes" % (num_processes,))
+        # logger.info("Started %d processes" % (num_processes,))
 
     for i in instances:
-        #Task to run on idle processes
+        # Task to run on idle processes
         tasks.put(LinkTestTask(i.alias, i.ip))
-        #logger.info("Added %d tasks" % (num_jobs,))
+        # logger.info("Added %d tasks" % (num_jobs,))
 
     for _ in xrange(num_processes):
-        #Sentinal value to kill the proc
+        # Sentinal value to kill the proc
         tasks.put(None)
-        #logger.info("Added %d poison pills" % (num_processes,))
+        # logger.info("Added %d poison pills" % (num_processes,))
 
     while num_jobs:
-        #logger.info("in num_jobs")
-        #logger.info(results)
+        # logger.info("in num_jobs")
+        # logger.info(results)
         try:
             result = results.get()
             if result:

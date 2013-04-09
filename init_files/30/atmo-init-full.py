@@ -139,7 +139,7 @@ def add_sudoers(user):
 
 
 def restart_ssh(distro):
-    if 'rhel' in distro:
+    if is_rhel(distro):
         run_command(["/etc/init.d/sshd", "restart"])
     else:
         run_command(["/etc/init.d/ssh", "restart"])
@@ -221,7 +221,7 @@ def vnc(user, distro, license=None):
             logging.debug("VNC not installed, license not found on machine")
             return
         #ASSERT: VNC server installed on this machine
-        if distro == 'rhel5':
+        if is_rhel(distro):
             run_command(['/usr/bin/yum', '-qy', 'remove', 'vnc-E',
                          'realvnc-vnc-server'])
             download_file(
@@ -304,7 +304,14 @@ def iplant_files():
     run_command(['/bin/chmod', 'a+x', '/opt/irodsidrop/idroprun.sh'])
 
 
-def shellinaboxd():
+def shellinaboxd(distro):
+    if is_rhel(distro):
+        run_command(['/usr/bin/yum', '-qy', 'install',
+                     'gcc', 'make', 'patch'])
+    else:
+        run_command(['/usr/bin/apt-get', 'update'])
+        run_command(['/usr/bin/apt-get', '-qy', 'install',
+                     'gcc', 'make', 'patch'])
     shellinaboxd_file = os.path.join(os.environ['HOME'],
                                      'shellinaboxd-install.sh')
     download_file('%s/init_files/%s/shellinaboxd-install.sh'
@@ -336,7 +343,7 @@ def nagios():
                   os.path.join(os.environ['HOME'], 'nrpe-snmp-install.sh'),
                   match_hash='12da9f6f57c79320ebebf99b5a8516cc83c894f9')
     run_command(['/bin/chmod', 'a+x',
-                 os.path.join(os.environ['HOME'], '/nrpe-snmp-install.sh')])
+                 os.path.join(os.environ['HOME'], 'nrpe-snmp-install.sh')])
     run_command([os.path.join(os.environ['HOME'], 'nrpe-snmp-install.sh')])
     run_command(['/bin/rm',
                  os.path.join(os.environ['HOME'], 'nrpe-snmp-install.sh')])
@@ -416,7 +423,7 @@ def install_irods(distro):
                       match_hash='59b55aa0dbc44ff5b73dfc912405ff817002284f')
         run_command(['/usr/bin/apt-get', 'update'])
         run_command(['/usr/bin/apt-get', '-qy',
-                     'install', 'vim', 'mosh' 'patch'])
+                     'install', 'vim', 'mosh', 'patch'])
         #hostname = metadata['public-ipv4'] #kludge
         #run_command(['/bin/hostname', '%s' % hostname]) #kludge
     run_command(['/bin/chmod', 'a+x', '/usr/local/bin/irodsFs.x86_64'])
@@ -581,7 +588,7 @@ def main(argv):
     distro_files(distro, instance_metadata)
 #    install_icommands(distro)
     update_timezone()
-    shellinaboxd()
+    shellinaboxd(distro)
     logging.info("Complete.")
 
 

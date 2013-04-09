@@ -435,19 +435,24 @@ class ImageManager():
         logger.info("New image created! Name:%s ID:%s"
                     % (image_name, new_image_id))
         if not public:
-            euca_conn = self.euca.make_connection()
-            euca_conn.modify_image_attribute(image_id=new_image_id,
-                                             attribute='launchPermission',
-                                             operation='remove',
-                                             user_ids=None,
-                                             groups=['all'],
-                                             product_codes=None)
-            euca_conn.modify_image_attribute(image_id=new_image_id,
-                                             attribute='launchPermission',
-                                             operation='add',
-                                             user_ids=private_user_list,
-                                             groups=None,
-                                             product_codes=None)
+            try:
+                #Someday this will matter. Euca doesn't respect it though..
+                euca_conn = self.euca.make_connection()
+                euca_conn.modify_image_attribute(
+                    image_id=new_image_id,
+                    attribute='launchPermission',
+                    operation='remove',
+                    groups=['all'],
+                    product_codes=None)
+                euca_conn.modify_image_attribute(
+                    image_id=new_image_id,
+                    attribute='launchPermission',
+                    operation='add',
+                    user_ids=private_user_list)
+            except EC2ResponseError, call_failed:
+                #Since Euca ignores this anyway, lets just continue.
+                logger.error("Private List - %s" % private_user_list)
+                logger.exception(call_failed)
         return new_image_id
 
     def _old_nc_scp(self, node_controller_ip, remote_img_path, local_img_path):
@@ -489,11 +494,13 @@ class ImageManager():
             self.run_command(['whoami'])
             self.run_command(['chmod', '600', ssh_file_loc])
             node_controller_ip = nc.hostname
-            self.run_command(['scp', '-o', 'stricthostkeychecking=no', '-i',
+            scp_command_list = ['scp', '-o', 'stricthostkeychecking=no', '-i',
                               ssh_file_loc, '-P1657',
                               'root@%s:%s'
                               % (node_controller_ip, remote_img_path),
-                              local_img_path])
+                              local_img_path]
+            logger.info(' '.join(map(str,scp_command_list)))
+            self.run_command(scp_command_list)
             self.run_command(['rm', '-rf', ssh_file_loc])
             return local_img_path
 

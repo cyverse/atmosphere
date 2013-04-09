@@ -104,16 +104,18 @@ urlpatterns += format_suffix_patterns(patterns(
 
     url(r'^api/provider/(?P<provider_id>.*)/identity'
         + '/(?P<identity_id>.*)/image_export/$',
-        MachineExportList.as_view(), name='machine-request-list'),
+        MachineExportList.as_view(), name='machine-export-list'),
     url(r'^api/provider/(?P<provider_id>.*)/identity'
         + '/(?P<identity_id>.*)/image_export/(?P<machine_request_id>.*)/$',
-        MachineExport.as_view(), name='machine-request'),
+        MachineExport.as_view(), name='machine-export'),
+
     url(r'^api/provider/(?P<provider_id>.*)/identity/'
         + '(?P<identity_id>.*)/request_image/$',
         MachineRequestList.as_view(), name='machine-request-list'),
     url(r'^api/provider/(?P<provider_id>.*)/identity/'
         + '(?P<identity_id>.*)/request_image/(?P<machine_request_id>.*)/$',
         MachineRequest.as_view(), name='machine-request'),
+
     url(r'^api/request_image/(?P<machine_request_id>.*)/(?P<action>.*)/$',
         MachineRequestAction.as_view(), name='machine-request-detail'),
 
