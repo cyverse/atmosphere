@@ -43,13 +43,13 @@ def validate_token(token, request=None):
         auth_token = AuthToken.objects.get(key=token)
         user = auth_token.user
     except AuthToken.DoesNotExist:
-        logger.info("AuthToken <%s> does not exist." % token)
+        #logger.info("AuthToken <%s> does not exist." % token)
         return False
     if auth_token.is_expired():
         if request and request.META['REQUEST_METHOD'] == 'POST':
             user_to_auth = request.session.get('emulated_by', user)
             if cas_validateUser(user_to_auth):
-                logger.debug("Reauthenticated user -- Token updated")
+                #logger.debug("Reauthenticated user -- Token updated")
                 auth_token.update_expiration()
                 auth_token.save()
                 return True
@@ -57,7 +57,7 @@ def validate_token(token, request=None):
                 logger.warn("Could not reauthenticate user")
                 return False
         else:
-            logger.debug("%s using EXPIRED token to GET data.." % user)
+            #logger.debug("%s using EXPIRED token to GET data.." % user)
             return True
     else:
         return True
@@ -85,12 +85,12 @@ def validate_token1_0(request):
     emulate = request_vars.get('emulate', None)
 
     if not user or not token:
-        logger.debug("Request Variables missing")
+        #logger.debug("Request Variables missing")
         return False
     try:
         token = AuthToken.objects.get(token=token)
     except AuthToken.DoesNotExist:
-        logger.debug("AuthToken does not exist")
+        #logger.debug("AuthToken does not exist")
         return False
 
     tokenExpireTime = timedelta(days=1)
@@ -98,25 +98,25 @@ def validate_token1_0(request):
     if token.user != user\
             or token.logout is not None\
             or token.api_server_url != api_server:
-        logger.debug("%s - Token Invalid." % user)
-        logger.debug("%s != %s" % (token.user, user))
-        logger.debug("%s != %s" % (token.api_server_url, api_server))
-        logger.debug("%s is not None" % (token.logout))
+        #logger.debug("%s - Token Invalid." % user)
+        #logger.debug("%s != %s" % (token.user, user))
+        #logger.debug("%s != %s" % (token.api_server_url, api_server))
+        #logger.debug("%s is not None" % (token.logout))
         return False
 
     #Expired Token
     if token.issuedTime + tokenExpireTime < datetime.now():
         if request.META["REQUEST_METHOD"] == "GET":
-            logger.debug("Token Expired - %s requesting GET data OK" % user)
+            #logger.debug("Token Expired - %s requesting GET data OK" % user)
             return True
         #Expired and POSTing data, need to re-authenticate the token
         if emulate:
             user = emulate
         if not cas_validateUser(user):
-            logger.debug("Token Expired - %s was not logged into CAS.")
+            #logger.debug("Token Expired - %s was not logged into CAS.")
             return False
         #CAS Reauthentication Success
-        logger.debug("%s reauthenticated with CAS" % user)
+        #logger.debug("%s reauthenticated with CAS" % user)
 
     #Valid Token
     token.issuedTime = datetime.now()

@@ -2,7 +2,7 @@ import os
 
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from django.conf.urls.defaults import patterns, url, include
+from django.conf.urls import patterns, url, include
 
 
 from rest_framework.urlpatterns import format_suffix_patterns

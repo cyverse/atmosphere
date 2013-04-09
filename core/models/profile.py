@@ -31,7 +31,7 @@ class UserProfile(models.Model):
 
 #Connects a user profile to created accounts
 def get_or_create_user_profile(sender, instance, created, **kwargs):
-    logger.info("Creating Profile for %s" % instance)
+    #logger.debug("Get or Creating Profile for %s" % instance)
     prof = UserProfile.objects.get_or_create(user=instance)[0]
     if not prof.selected_identity:
         available_identities = instance.identity_set.all()
