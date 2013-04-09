@@ -289,7 +289,7 @@ class Instance(APIView):
                 'message': 'Identity/Provider Authentication Failed'}])
             return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
 
-        if not eshInstance:
+        if not esh_instance:
             errorObj = failureJSON([{
                 'code': 404,
                 'message': 'Instance does not exist'}])

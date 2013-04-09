@@ -328,11 +328,23 @@ class OSDriver(EshDriver, TaskMixin):
             'ex_networks': user_networks})
         return super(OSDriver, self).create_instance(*args, **kwargs)
 
+    def destroy_instance(self, *args, **kwargs):
+        node_destroyed = self._connection.destroy_node(*args, **kwargs)
+        self._remove_unused_floating_ips()
+        return node_destroyed
+
     def suspend_instance(self, *args, **kwargs):
         return self._connection.ex_suspend_node(*args, **kwargs)
 
     def resume_instance(self, *args, **kwargs):
         return self._connection.ex_resume_node(*args, **kwargs)
+
+    def _remove_unused_floating_ips(self):
+        for f_ip in self._connection.ex_list_floating_ips():
+            if not f_ip.get('instance_id'):
+                self._connection.ex_deallocate_floating_ip(f_ip['id'])
+                logger.info("Removed unused Floating IP: %s" %
+                    f_ip)
 
 class AWSDriver(EshDriver):
     """
