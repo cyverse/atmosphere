@@ -2,7 +2,6 @@
  *
  * Creates resource charts that can be used to determine whether or not a change in resource usage will cause the user
  * to exceed their quota.
- * 
  *
  */
 Atmo.Views.ResourceCharts = Backbone.View.extend({
@@ -322,7 +321,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 		var total_usage = Math.floor(((to_add + this.$el.data('used')) / this.$el.data('total')) * 100);
 		var new_cssPercent = 0;
 		
-		var under_quota = (total_usage > 100) ? false : true;
+		var under_quota = (total_usage >= 100) ? false : true;
 
 		// Create new usage bars
 		if (current_usage > 0 && current_usage < 100) {
@@ -364,6 +363,11 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 
 		// Return: whether the user is under their quota with the added usage
 		return under_quota;
+
+	},
+	/* Only used when user is resizing instance to a smaller size */
+	sub_quota: function(to_sub, options) {
+
 
 	}
 });

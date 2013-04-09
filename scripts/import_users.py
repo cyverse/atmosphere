@@ -67,11 +67,10 @@ def create_os_account(os_driver, username, admin_role=False):
         try:
             password = os_driver.hashpass(username)
             user = os_driver.get_user(username)
-            if user:
-                os_driver.delete_user(username)
-            (username, password) = os_driver.create_user(username,
+            if not user:
+            	(username, password) = os_driver.create_user(username,
                                                          True, admin_role)
-            user = os_driver.get_user(username)
+            	user = os_driver.get_user(username)
             tenant = os_driver.get_tenant(username)
             roles = user.list_roles(tenant)
             if not roles:
