@@ -292,18 +292,16 @@ class OSDriver(EshDriver, TaskMixin):
         #kludge: weirdness without the str cast...
         logger.debug(isinstance(str_awesome_atmo_call, basestring))
         script_atmo_init = ScriptDeployment(str_awesome_atmo_call)
-        private_key = ("/opt/dev/atmosphere/extras/ssh/id_rsa")
+        private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
         msd = MultiStepDeployment([script_deps,
                                    script_wget,
                                    script_chmod,
                                    script_atmo_init])
-        kwargs.update({'ssh_username': 'root'})
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'deploy': msd})
         kwargs.update({'timeout': 120})
 
         try:
-            logger.debug("my kwargs = %s" % kwargs)
             instance = super(OSDriver, self).deploy_instance(*args, **kwargs)
         except DeploymentError as de:
             logger.error(sys.exc_info())
