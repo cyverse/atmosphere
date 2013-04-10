@@ -110,6 +110,17 @@ class NetworkManager():
                     % (new_ip, server_id))
         return assigned_ip
 
+
+    def list_floating_ips(self):
+        instance_ports = self.quantum.list_ports()['ports']
+        floating_ips = self.quantum.list_floatingips()['floating_ips']
+        for fip in floating_ips:
+            port = filter(instance_ports, lambda(p): p['id'] == fip['port_id'])
+            if port:
+                fip['instance_id'] = port[0]['device_id']
+        logger.debug(floating_ips)
+        return floating_ips
+
     ##Libcloud-Quantum Interface##
     @classmethod
     def lc_driver_init(self, lc_driver, region=None, *args, **kwargs):

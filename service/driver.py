@@ -6,7 +6,7 @@ Driver classes define interfaces and implement functionality using providers.
 
 from abc import ABCMeta, abstractmethod
 import sys
-
+import time
 
 from libcloud.compute.deployment import ScriptDeployment
 from libcloud.compute.deployment import MultiStepDeployment
@@ -330,6 +330,7 @@ class OSDriver(EshDriver, TaskMixin):
 
     def destroy_instance(self, *args, **kwargs):
         node_destroyed = self._connection.destroy_node(*args, **kwargs)
+        time.sleep(5)
         self._remove_unused_floating_ips()
         return node_destroyed
 
@@ -343,8 +344,7 @@ class OSDriver(EshDriver, TaskMixin):
         for f_ip in self._connection.ex_list_floating_ips():
             if not f_ip.get('instance_id'):
                 self._connection.ex_deallocate_floating_ip(f_ip['id'])
-                logger.info("Removed unused Floating IP: %s" %
-                    f_ip)
+                logger.info("Removed unused Floating IP: %s" % f_ip)
 
 class AWSDriver(EshDriver):
     """
