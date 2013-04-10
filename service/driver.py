@@ -261,6 +261,9 @@ class OSDriver(EshDriver, TaskMixin):
         self._connection.connection.service_region =\
             settings.OPENSTACK_DEFAULT_REGION
 
+    def eventual_deploy(self, *args, **kwargs):
+        pass
+
     def deploy_instance(self, *args, **kwargs):
         """
         Deploy an OpenStack node.
@@ -312,21 +315,21 @@ class OSDriver(EshDriver, TaskMixin):
 
         return instance
 
-    def create_instance(self, *args, **kwargs):
-        """
-        Create an OpenStack node.
-        """
-        try:
-            user_networks = [network for network
-                             in self._connection.ex_list_networks()
-                             if network.name == self.driver.
-                             identity.credentials['ex_tenant_name']]
-        except KeyError:
-            raise Exception("No network created for tenant %s" %
-                            self.driver.identity.credentials['ex_tenant_name'])
-        kwargs.update({
-            'ex_networks': user_networks})
-        return super(OSDriver, self).create_instance(*args, **kwargs)
+    # def create_instance(self, *args, **kwargs):
+    #     """
+    #     Create an OpenStack node.
+    #     """
+    #     # try:
+    #     #     user_networks = [network for network
+    #     #                      in self._connection.ex_list_networks()
+    #     #                      if network.name == self.driver.
+    #     #                      identity.credentials['ex_tenant_name']]
+    #     # except KeyError:
+    #     #     raise Exception("No network created for tenant %s" %
+    #     #                     self.driver.identity.credentials['ex_tenant_name'])
+    #     #kwargs.update({
+    #     #    'ex_networks': user_networks})
+    #     return super(OSDriver, self).create_instance(*args, **kwargs)
 
     def destroy_instance(self, *args, **kwargs):
         node_destroyed = self._connection.destroy_node(*args, **kwargs)

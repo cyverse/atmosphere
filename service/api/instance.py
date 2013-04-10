@@ -150,8 +150,10 @@ class InstanceAction(APIView):
                 logger.debug(
                     "%s completed in %s attempts"
                     % (action, attempts))
-#            elif 'resize' in action:
-#                esh_driver.resize_instance()
+            elif 'resize' in action:
+                size_alias = action_params.get('size_alias', '')
+                size = esh_driver.get_size(size_alias)
+                esh_driver.resize_instance(size)
 #            elif 'pause' in action:
 #                esh_driver.suspend_instance(esh_instance)
 #            elif 'unpause' in action:

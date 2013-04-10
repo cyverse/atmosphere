@@ -5,8 +5,10 @@ TODO: Add ip_address and status to 'front level' of the node object..
 
 from libcloud.utils.py3 import httplib
 
-from libcloud.compute.types import Provider
-from libcloud.compute.base import StorageVolume
+from libcloud.compute.types import Provider, NodeState, DeploymentError
+from libcloud.compute.base import StorageVolume,\
+    NODE_ONLINE_WAIT_TIMEOUT, SSH_CONNECT_TIMEOUT
+
 from libcloud.compute.drivers.openstack import OpenStack_1_1_NodeDriver
 import copy
 import time
@@ -28,6 +30,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                      "keypairs as extra",
                      "user/tenant as extra"],
         "create_node": ["Include floating IP", "ssh_key"],
+        "ex_eventual_deploy_node": ["Deploy node for existing nodes."],
         "ex_suspend_node": ["Suspends the node"],
         "ex_resume_node": ["Resume the node"],
         "create_volume": ["Create volume"],
@@ -168,11 +171,92 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         node.extra['password'] = None
 
         #NOTE: Using this to wait for the time it takes to launch instance and have a valid IP port
-        time.sleep(30)
+        time.sleep(20)
         #TODO: It would be better to hook in an asnyc thread that waits for valid IP port
         #TODO: This belongs in a eelery task.
         server_id = node.id
         self._add_floating_ip(server_id, **kwargs)
+
+        return node
+
+    def ex_eventual_deploy_node(self, node, *args, **kwargs):
+        """
+        libcloud.compute.base.deploy_node
+        """
+        if not libcloud.compute.ssh.have_paramiko:
+            raise RuntimeError('paramiko is not installed. You can install ' +
+                               'it using pip: pip install paramiko')
+
+        password = None
+
+        if 'create_node' not in self.features:
+            raise NotImplementedError(
+                'deploy_node not implemented for this driver')
+        elif 'generates_password' not in self.features["create_node"]:
+            if 'password' not in self.features["create_node"] and \
+               'ssh_key' not in self.features["create_node"]:
+                raise NotImplementedError(
+                    'deploy_node not implemented for this driver')
+
+            if 'auth' not in kwargs:
+                value = os.urandom(16)
+                kwargs['auth'] = NodeAuthPassword(binascii.hexlify(value))
+
+            if 'ssh_key' not in kwargs:
+                password = kwargs['auth'].password
+
+        max_tries = kwargs.get('max_tries', 3)
+
+        if 'generates_password' in self.features['create_node']:
+            password = node.extra.get('password')
+
+        ssh_interface = kwargs.get('ssh_interface', 'public_ips')
+
+        # Wait until node is up and running and has IP assigned
+        max_tries = kwargs.get('max_tries', 3)
+        try:
+            node, ip_addresses = self.wait_until_running(
+                nodes=[node],
+                wait_period=3, timeout=NODE_ONLINE_WAIT_TIMEOUT,
+                ssh_interface=ssh_interface)[0]
+        except Exception:
+            e = sys.exc_info()[1]
+            raise DeploymentError(node=node, original_exception=e, driver=self)
+
+        if password:
+            node.extra['password'] = password
+
+        ssh_username = kwargs.get('ssh_username', 'root')
+        ssh_alternate_usernames = kwargs.get('ssh_alternate_usernames', [])
+        ssh_port = kwargs.get('ssh_port', 22)
+        ssh_timeout = kwargs.get('ssh_timeout', 10)
+        ssh_key_file = kwargs.get('ssh_key', None)
+        timeout = kwargs.get('timeout', SSH_CONNECT_TIMEOUT)
+
+        deploy_error = None
+
+        for username in ([ssh_username] + ssh_alternate_usernames):
+            try:
+                self._connect_and_run_deployment_script(
+                    task=kwargs['deploy'], node=node,
+                    ssh_hostname=ip_addresses[0], ssh_port=ssh_port,
+                    ssh_username=username, ssh_password=password,
+                    ssh_key_file=ssh_key_file, ssh_timeout=ssh_timeout,
+                    timeout=timeout, max_tries=max_tries)
+            except Exception:
+                # Try alternate username
+                # Todo: Need to fix paramiko so we can catch a more specific
+                # exception
+                e = sys.exc_info()[1]
+                deploy_error = e
+            else:
+                # Script sucesfully executed, don't try alternate username
+                deploy_error = None
+                break
+
+        if deploy_error is not None:
+            raise DeploymentError(node=node, original_exception=deploy_error,
+                                  driver=self)
 
         return node
 
@@ -397,7 +481,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             return _to_ips(self.connection.request("/os-floating-ips").object)
         except:
             logger.warn("Unable to list floating ips from nova.")
-            return None
+            return []
 #        network_manager = NetworkManager.lc_driver_init(self, region)
 #        return network_manager.list_floating_ips()
 
