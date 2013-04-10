@@ -11,9 +11,21 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 		Atmo.instance_types.bind('reset', this.render_instance_type_list, this);
 		Atmo.instance_types.bind('fail', this.instance_type_fail, this);
 	},
+	events: {
+		'change select[name="new_instance_size"]' : 'select_instance_size'
+	},
 	render: function() {
 		this.$el.html(this.template(this.model.toJSON()));
 		
+		this.mem_resource_chart = new Atmo.Views.ResourceCharts({
+			el: this.$el.find('#memHolder'), 
+			quota_type: 'mem',
+		}).render();
+		this.cpu_resource_chart = new Atmo.Views.ResourceCharts({
+			el: this.$el.find('#cpuHolder'), 
+			quota_type: 'cpu'
+		}).render();
+
 		this.render_instance_type_list();
 
 		// Keep track of whether user is under quota
@@ -22,7 +34,6 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 		return this;
     },
 	render_instance_type_list: function() {
-		console.log("render_instance_type_list", Atmo.instance_types.models.length);
 		if (Atmo.instance_types.models.length > 0) {
 
 			this.$el.find('select[name="new_instance_size"]').empty();
@@ -31,7 +42,7 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 			this.under_quota = false;
 
 			var self = this;
-			$.each(Atmo.instance_types.models, function(idx, instance_type) {
+			$.each(Atmo.instance_types.models, function(i, instance_type) {
 				var opt = $('<option>', {
 					value: instance_type.get('id'),
 					html: function() {
@@ -51,18 +62,6 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 
 				if (instance_type.get('remaining') > 0) {
 					opt.data('available', true);
-					/*if (!set_default) {
-						var enough_cpus = self.cpu_resource_chart.add_usage(instance_type.attributes.cpus, "cpuHolder");
-						var enough_mem = self.mem_resource_chart.add_usage(instance_type.attributes.mem, "memHolder");
-						if (enough_cpus && enough_mem) {
-							self.under_quota = true;
-						}
-						else {
-							self.$el.find('#launchInstance').attr('disabled', 'disabled');
-							self.under_quota = false;
-						}
-						set_default = true;
-					}*/
 				}
 				else {
 					opt.data('available', false);
@@ -74,6 +73,11 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 
             this.$el.find('select[name="new_instance_size"]').trigger('change');
 		}
+
+	},
+	select_instance_size: function() {
+		var instance_type = this.$el.find('select[name="new_instance_size"] :selected').data('instance_type');
+
 
 	},
 	instance_type_fail: function() {

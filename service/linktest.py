@@ -51,7 +51,7 @@ def test_instance_links(alias, uri):
 def test_link(address):
     #logger.debug("Testing link " + address)
     try:
-        h = httplib2.Http(timeout=0.2)
+        h = httplib2.Http(timeout=2)
         (header, content) = h.request(address, "HEAD")
         #logger.debug(header)
         if 'status' in header and header['status'] == '200':

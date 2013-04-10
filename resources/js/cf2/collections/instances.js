@@ -8,28 +8,28 @@ Atmo.Collections.Instances = Atmo.Collections.Base.extend({
     this.selected_instance = null;
   },
   test_shell_vnc: function() {
-    var to_check = this.filter(function(instance) {
-      return !instance.get('has_shell') || !instance.get('has_vnc');
-    }),
-    self = this,
-    url = function(){
-      var creds = Atmo.get_credentials();
-      return self.urlRoot
-        + "/provider/" + creds.provider_id 
-        + "/identity/" + creds.identity_id
-        + "/meta/test_links/";
+	var self = this;
+	var url = function() {
+			var creds = Atmo.get_credentials();
+			return self.urlRoot
+				+ "/provider/" + creds.provider_id 
+				+ "/identity/" + creds.identity_id
+				+ "/meta/test_links/";
     };
 
     $.ajax({
       url: url(),
       success: function(data) {
         _.each(data, function(v, k) {
-          self.get(k).set({
+		  var model = self.get(k);
+          model.set({
             'has_shell': v['shell'],
             'has_vnc': v['vnc']
           });
         });
       },
+	  error: function() {
+	  },
       dataType: 'json',
       traditional: true
     });

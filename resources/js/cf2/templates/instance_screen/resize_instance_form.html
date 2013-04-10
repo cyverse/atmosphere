@@ -7,8 +7,19 @@
 		<option disabled="disabled">Instance Sizes Unavailable</option>
 	<select>
 
-	<label for="predicted_cpu_usage">Predicted CPU Usage</label>
-	<label for="predicted_mem_usage">Predicted Memory Usage</label>
+    <div class="row-fluid" id="resource_usage_holder">
+
+        <div class="span6">
+			<label for="predicted_cpu_usage">Predicted CPU Usage</label>
+            <div id="cpuHolder"></div>
+            <div id="cpuHolder_info"></div>
+        </div>
+        <div class="span6">
+			<label for="predicted_mem_usage">Predicted Memory Usage</label>
+            <div id="memHolder"></div>
+            <div id="memHolder_info"></div>
+        </div>
+    </div>
 
 	<p class="alert alert-error">
 		<i class="icon-warning-sign"></i> <strong>IMPORTANT</strong> An instance will restart itself while it resizes. This process could take several hours.
