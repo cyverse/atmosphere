@@ -281,7 +281,7 @@ class ImageManager():
 
         #PREPEND:
         for (prepend_line, prepend_to) in [("LABEL=root       /             "
-                                            + "ext4     defaults,errors="
+                                            + "ext3     defaults,errors="
                                             + "remount-ro 1 1", "etc/fstab")]:
             prepend_file_path = os.path.join(mount_point, prepend_to)
             if os.path.exists(prepend_file_path):
