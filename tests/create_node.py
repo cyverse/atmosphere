@@ -1,3 +1,4 @@
+import time
 from atmosphere.logger import logger
 from service.api import getEshDriver, launchEshInstance
 from core.models import Identity, ProviderMembership, IdentityMembership,\
@@ -24,7 +25,9 @@ def run():
                     'machine_alias': m.alias,
                     'size_alias': '2',
                     'name': 'Testing Deploy and Networking %s' % ((idx + 1), )})
-                time.sleep(180)
+                logger.info("Launched Image %s - %s.. Sleep 30sec" % (m.name,
+                    m.alias))
+                time.sleep(30)
                 #Test the SSH port
                 #Test that your key works
                 #Test the VNC port

@@ -46,11 +46,13 @@ class EucaToOpenstack:
             return
 
         if not no_upload:
-            self.os_img_manager.upload_euca_image(name, image, kernel, ramdisk)
+            os_image = self.os_img_manager.upload_euca_image(name, image, kernel, ramdisk)
         if not keep_image:
             os.remove(image)
             os.remove(kernel)
             os.remove(ramdisk)
+        if os_image:
+            return os_image
 
     def migrate_instance(self, euca_instance_id, name, download_path='/tmp/', euca_image_path=None, no_upload=False, keep_image=False):
         """
@@ -73,11 +75,13 @@ class EucaToOpenstack:
             logger.error("Failed to find a conversion for this OS.")
             return
         if not no_upload:
-            self.os_img_manager.upload_euca_image(name, image, kernel, ramdisk)
+            os_instance = self.os_img_manager.upload_euca_image(name, image, kernel, ramdisk)
         if not keep_image:
             os.remove(image)
             os.remove(kernel)
             os.remove(ramdisk)
+        if os_instance:
+            return os_instance
 
     def _determine_distro(self, image_path, download_dir):
         """
@@ -150,4 +154,6 @@ class EucaToOpenstack:
         Clean the image as you would normally, but apply a few specific changes
         Returns: ("/path/to/img", "/path/to/kernel", "/path/to/ramdisk")
         """
-        return self.euca_img_manager._prepare_kvm_export(image_path, download_dir)
+        (image, kernel, ramdisk) = self.euca_img_manager._openstack_kvm_export(image_path, download_dir)
+        new_image = self.euca_img_manager._build_new_image(image, download_dir)
+        return (new_image, kernel, ramdisk)

@@ -73,8 +73,6 @@ class InstanceList(APIView):
         esh_driver = prepareDriver(request, identity_id)
         try:
             (esh_instance, token) = launchEshInstance(esh_driver, data)
-            logger.debug(esh_instance)
-            logger.debug(token)
         except InvalidCredsError:
             logger.warn(
                 'Authentication Failed. Provider-id:%s Identity-id:%s'
@@ -207,7 +205,6 @@ class Instance(APIView):
         esh_driver = prepareDriver(request, identity_id)
 
         try:
-            logger.debug(instance_id)
             eshInstance = esh_driver.get_instance(instance_id)
         except InvalidCredsError:
             logger.warn(
@@ -223,7 +220,6 @@ class Instance(APIView):
                 'code': 404,
                 'message': 'Instance does not exist'}])
             return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
-        logger.debug(eshInstance)
         core_instance = convertEshInstance(eshInstance, provider_id, user)
         serialized_data = InstanceSerializer(core_instance).data
         response = Response(serialized_data)
@@ -289,7 +285,7 @@ class Instance(APIView):
                 'message': 'Identity/Provider Authentication Failed'}])
             return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
 
-        if not eshInstance:
+        if not esh_instance:
             errorObj = failureJSON([{
                 'code': 404,
                 'message': 'Instance does not exist'}])

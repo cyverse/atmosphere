@@ -34,7 +34,8 @@ class QuotaAdmin(admin.ModelAdmin):
 
 
 class ProviderMachineAdmin(admin.ModelAdmin):
-    search_fields = ["machine__name", "identifier"]
+    search_fields = ["machine__name", "provider__location", "identifier"]
+    list_display = ["identifier", "provider", "machine",]
 
 
 class MachineAdmin(admin.ModelAdmin):

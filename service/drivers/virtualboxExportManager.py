@@ -258,23 +258,25 @@ title Atmosphere VM (%s)
         return result_map
 
     def _build_new_image(self, original_image, download_dir, image_gb_size=10):
-        #Create virtual Disk Image
+        """
+        Given an image file, create a new bootable RAW image
+        """
+        #Create new virtual Disk Image
         new_raw_img = original_image.replace('.img','.raw')
         one_gb = 1024
         total_size = one_gb*image_gb_size
         self.run_command(['qemu-img','create','-f','raw',new_raw_img, "%sG" % image_gb_size])
-        #Add loopback device
+        #Add loopback device to represent new image
         (loop_str, _) = self.run_command(['losetup','-fv', new_raw_img])
         loop_dev = loop_str.replace('Loop device is ','').strip()
-        #Partition the device
+        #Partition the loopback device
         sfdisk_input = ",,L,*\n;\n;\n;\n"
         self.run_command(['sfdisk', '-D', loop_dev], stdin=sfdisk_input)
         (out, _) = self.run_command(['fdisk','-l', loop_dev])
-        #Fun parsing the fdisk output!
+        ##Calculating Cylinder/Head/Sector counts using fdisk -l:
         disk = self._parse_fdisk_stats(out)
-
         offset = disk['start']* disk['logical_sector_size']
-        ##Calculating C/H/S using fdisk -l:
+
         #Skip to the sector listed in fdisk and setup a second loop device
         (offset_loop, _) = self.run_command(['losetup', '-fv', '-o', '%s' % offset, new_raw_img])
         offset_loop_dev = offset_loop.replace('Loop device is ','').strip()

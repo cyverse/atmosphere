@@ -16,6 +16,7 @@ Creating an Image from an Instance (Manual image requests)
 
 import sys
 import os
+import math
 import glob
 import subprocess
 
@@ -204,7 +205,66 @@ class ImageManager():
         #Return path to image
         return os.path.join(download_dir, whole_image)
 
-    def _prepare_kvm_export(self, image_path, download_dir):
+    def _build_new_image(self, original_image, download_dir):
+        """
+        Given an image file, create a new bootable RAW image
+        """
+        #Determine the size of the disk image
+        file_size = os.path.getsize(original_image)
+        image_gb_size = self._size_in_gb(file_size)
+        #Create new virtual Disk Image
+        new_raw_img = original_image.replace('.img','.raw')
+        one_gb = 1024
+        total_size = one_gb*image_gb_size
+        self.run_command(['qemu-img','create','-f','raw',new_raw_img, "%sG" % image_gb_size])
+        #Add loopback device to represent new image
+        (loop_str, _) = self.run_command(['losetup','-fv', new_raw_img])
+        loop_dev = loop_str.replace('Loop device is ','').strip()
+        #Partition the loopback device
+        sfdisk_input = ",,L,*\n;\n;\n;\n"
+        self.run_command(['sfdisk', '-D', loop_dev], stdin=sfdisk_input)
+        (out, _) = self.run_command(['fdisk','-l', loop_dev])
+        ##Calculating Cylinder/Head/Sector counts using fdisk -l:
+        disk = self._parse_fdisk_stats(out)
+        offset = disk['start']* disk['logical_sector_size']
+
+        #Skip to the sector listed in fdisk and setup a second loop device
+        (offset_loop, _) = self.run_command(['losetup', '-fv', '-o', '%s' % offset, new_raw_img])
+        offset_loop_dev = offset_loop.replace('Loop device is ','').strip()
+        #Make the filesystem
+        #4096 = Default block size on ext2/ext3
+        block_size = 4096
+        fs_size = ((disk['end'] - disk['start']) * disk['unit']) / block_size
+        self.run_command(['mkfs.ext3', '-b', '%s' % block_size, offset_loop_dev, '%s' % fs_size])
+        #Copy the Filesystem
+        empty_raw_dir = os.path.join(download_dir, 'bootable_raw_here')
+        orig_raw_dir = os.path.join(download_dir, 'original_img_here')
+        self.run_command(['mkdir', '-p', empty_raw_dir])
+        self.run_command(['mkdir', '-p', orig_raw_dir])
+        self.run_command(['mount', '-t', 'ext3', offset_loop_dev, empty_raw_dir])
+        self.run_command(['mount', '-t', 'ext3', original_image, orig_raw_dir])
+        self.run_command(['/bin/bash', '-c', 'rsync --inplace -a %s/* %s' % (orig_raw_dir, empty_raw_dir)])
+        self.run_command(['umount', orig_raw_dir])
+        #Edit grub.conf
+        #Move rc.local
+
+        #Inject stage files
+        self._get_stage_files(empty_raw_dir, self._get_distro(empty_raw_dir))
+        self.run_command(['umount', empty_raw_dir])
+        self.run_command(['losetup','-d', loop_dev])
+        self.run_command(['losetup','-d', offset_loop_dev])
+
+        #SETUP GRUB
+        grub_stdin = """device (hd0) %s
+        geometry (hd0) %s %s %s
+        root (hd0,0)
+        setup (hd0)
+        quit""" % (new_raw_img,disk['cylinders'], disk['heads'], disk['sectors'])
+        self.run_command(['grub', '--device-map=/dev/null', '--batch'], stdin=grub_stdin)
+        #Delete EVERYTHING
+        return new_raw_img
+
+    def _openstack_kvm_export(self, image_path, download_dir):
         """
         Prepare a KVM export (For OpenStack, VirtualBox)
         Will also remove all XEN-specific boot properties
@@ -225,6 +285,11 @@ class ImageManager():
                                             + "remount-ro 1 1", "etc/fstab")]:
             prepend_file_path = os.path.join(mount_point, prepend_to)
             if os.path.exists(prepend_file_path):
+                #Skip the insert operation if the exact line is found.
+                with open(prepend_file_path,'r') as _file:
+                    if [line for line in _file.readlines() if prepend_line in
+                            line]:
+                        continue
                 self.run_command(["/bin/sed", "-i", "1i %s"
                                   % prepend_line, prepend_file_path])
 
@@ -249,6 +314,11 @@ class ImageManager():
                                   "s/%s/%s/" % (replace_str, replace_with),
                                   replace_file_path])
 
+        #First chroot with bind-mounted dev, proc and sys: update kernel, mkinitrd, and grub
+        self._chroot_local_image(mount_point, mount_point, [
+            ["/bin/bash", "-c", "yum install -qy kernel mkinitrd grub"]],
+            bind=True, mounted=True, keep_mounted=True)
+
         #Determine the latest (KVM) ramdisk to use
         (output,stder) = self.run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c", "ls -Fah /boot/"])
         latest_rmdisk = ''
@@ -258,11 +328,8 @@ class ImageManager():
                 latest_rmdisk = line
                 rmdisk_version = line.replace('.img','').replace('initrd-','')
 
-        #Chroot necessary here, with bind-mounted dev, proc and sys
+        #Next, Create the latest ramdisk for KVM
         self._chroot_local_image(mount_point, mount_point, [
-            #First update kernel, mkinitrd, and grub
-            ["/bin/bash", "-c", "yum install -qy kernel mkinitrd grub"],
-            #Next, Create the latest ramdisk for KVM
             ["/bin/bash", "-c", "mkinitrd --with virtio_pci --with "
             + "virtio_ring --with virtio_blk --with virtio_net --with "
             + "virtio_balloon --with virtio -f /boot/%s %s"
@@ -282,16 +349,6 @@ class ImageManager():
 
         self.run_command(["/bin/cp", mount_kernel_path, local_kernel_path])
         self.run_command(["/bin/cp", mount_ramdisk_path, local_ramdisk_path])
-        #Prepare grub in case its needed..
-        self._get_stage_files(mount_point, self._get_distro(mount_point))
-        #Setup GRUB
-        grub_stdin = """device (hd0) %s
-        geometry (hd0) %s %s %s
-        root (hd0,0)
-        setup (hd0)
-        quit""" % (new_raw_img,disk['cylinders'], disk['heads'], disk['sectors'])
-        self.run_command(['grub', '--device-map=/dev/null', '--batch'], stdin=grub_stdin)
-        #Un-mount the image
         self.run_command(["umount", mount_point])
         return (image_path, local_kernel_path, local_ramdisk_path)
 
@@ -360,9 +417,14 @@ class ImageManager():
         out = None
         err = None
         logger.debug("Running Command:<%s>" % ' '.join(commandList))
+        if stdin:
+            logger.debug("Command Input:<%s>" % stdin)
         try:
-            proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr)
-            out, err = proc.communicate(input=None)
+            if stdin:
+                proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr, stdin=subprocess.PIPE)
+            else:
+                proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr)
+            out,err = proc.communicate(input=stdin)
         except Exception, e:
             logger.error(e)
         logger.debug("STDOUT: %s" % out)
@@ -533,29 +595,33 @@ class ImageManager():
         Will leave mounted on exit if keep_mounted=True
         """
         #Prepare the paths (Ignore if already mounted)
-        if not mounted and not os.path.exists(image_path):
+        if not mounted and not os.path.exists(image_path)\
+                and not 'dev/loop' in image_path:
             logger.error("Could not find local image!")
             raise Exception("Image file not found")
 
         if not os.path.exists(mount_point):
             os.makedirs(mount_point)
-        #If bind is required, prepare for mount
-        if bind:
-            self.run_command(['mount', '-t', 'proc', '/proc', mount_point+"/proc/"])
-            self.run_command(['mount', '-t', 'sysfs', '/sys', mount_point+"/sys/"])
-            self.run_command(['mount', '-o', 'bind', '/dev', mount_point+"/dev/"])
         #Mount the directory
         if not mounted:
             self.run_command(['mount', '-o', 'loop', image_path, mount_point])
+        #If bind is required, prepare for mount
+        if bind:
+            proc_dir = os.path.join(mount_point,'proc/')
+            sys_dir = os.path.join(mount_point,'sys/')
+            dev_dir = os.path.join(mount_point,'dev/')
+            self.run_command(['mount', '-t', 'proc', '/proc', proc_dir])
+            self.run_command(['mount', '-t', 'sysfs', '/sys', sys_dir])
+            self.run_command(['mount', '-o', 'bind', '/dev',  dev_dir])
         for commands in commands_list:
             command_list = ['chroot', mount_point]
             command_list.extend(commands)
             self.run_command(command_list)
         #If bind was used, unmount sys, dev, and proc
         if bind:
-            self.run_command(['umount', mount_point+"/proc/"])
-            self.run_command(['umount', mount_point+"/sys/"])
-            self.run_command(['umount', mount_point+"/dev/"])
+            self.run_command(['umount', proc_dir])
+            self.run_command(['umount', sys_dir])
+            self.run_command(['umount', dev_dir])
         if not keep_mounted:
             self.run_command(['umount', mount_point])
 
@@ -852,6 +918,57 @@ class ImageManager():
                 instances[last_node] = [instance_id]
         return (nodes, instances)
 
+    """
+    Indirect build_new_image functions, should not be called separately
+    """
+    def _size_in_gb(self, size_bytes):
+        size_bytes = float(size_bytes)
+        size_gigabytes = size_bytes / 1073741824
+        return int(math.ceil(size_gigabytes))
+
+    def _parse_fdisk_stats(self, output):
+        """
+        Until I find a better way, the best thing to do is parse through fdisk
+        to get the important statistics aboutput the disk image
+
+        Sample Input:
+        (0, '')
+        (1, 'Disk /dev/loop0: 9663 MB, 9663676416 bytes')
+        (2, '255 heads, 63 sectors/track, 1174 cylinders, total 18874368 sectors')
+        (3, 'Units = sectors of 1 * 512 = 512 bytes')
+        (4, 'Sector size (logical/physical): 512 bytes / 512 bytes')
+        (5, 'I/O size (minimum/optimal): 512 bytes / 512 bytes')
+        (6, 'Disk identifier: 0x00000000')
+        (7, '')
+        (8, '      Device Boot      Start         End      Blocks   Id  System')
+        (9, '/dev/loop0p1   *          63    18860309     9430123+  83  Linux')
+        (10, '')
+        Returns:
+            A dictionary of string to int values for the disk:
+            *heads, sectors, cylinders, sector_count, units, Sector Size, Start, End
+        """
+        import re
+        line = output.split('\n')
+        #Going line-by-line here.. Line 2
+        regex = re.compile("(?P<heads>[0-9]+) heads, (?P<sectors>[0-9]+) sectors/track, (?P<cylinders>[0-9]+) cylinders, total (?P<total>[0-9]+) sectors")
+        result = regex.search(line[2])
+        result_map = result.groupdict()
+        #Adding line 3
+        regex = re.compile("(?P<unit>[0-9]+) bytes")
+        result = regex.search(line[3])
+        result_map.update(result.groupdict())
+        #Adding line 4
+        regex = re.compile("(?P<logical_sector_size>[0-9]+) bytes / (?P<physical_sector_size>[0-9]+) bytes")
+        result = regex.search(line[4])
+        result_map.update(result.groupdict())
+        #
+        regex = re.compile("(?P<start>[0-9]+)[ ]+(?P<end>[0-9]+)[ ]+(?P<blocks>[0-9]+)")
+        result = regex.search(line[9])
+        result_map.update(result.groupdict())
+        #Regex saves the variables as strings, but they are more useful as ints
+        for (k,v) in result_map.items():
+            result_map[k] = int(v)
+        return result_map
     """
     Indirect Download Image Functions
     These functions are called indirectly during the 'download_image' process.
