@@ -10,10 +10,10 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
 		'click #help_request_more_resources': 'show_request_resources_modal'
 	},
 	initialize: function(options) {
-		Atmo.instances.bind('reset', this.render, this);
-		Atmo.instances.bind('add', this.append_instance, this);
-        Atmo.instances.bind('remove', this.remove_instance, this);
-        Atmo.instances.bind('select', this.select_instance, this);
+	  Atmo.instances.bind('reset', this.render, this);
+	  Atmo.instances.bind('add', this.append_instance, this);
+          Atmo.instances.bind('remove', this.remove_instance, this);
+          Atmo.instances.bind('select', this.select_instance, this);
 	},
 	render: function() {
 		if (Atmo.instances.models.length > 0) {

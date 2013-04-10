@@ -118,7 +118,7 @@ def cas_validateTicket(request):
     cas_setReturnLocation(sendback)
     cas_response = caslib.cas_serviceValidate(ticket)
     if not cas_response.success:
-        logger.debug("cas_serviceValidate failed")
+        #logger.debug("cas_serviceValidate failed")
         return HttpResponseRedirect(redirect_logout_url)
     (user, pgtIou) = parse_cas_response(cas_response)
 

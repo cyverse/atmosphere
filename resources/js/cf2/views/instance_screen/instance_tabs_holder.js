@@ -22,14 +22,14 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		'click .btn.suspend_resume_instance_btn' : 'suspend_resume_instance'
 	},
 	initialize: function(options) {
-		this.model.bind('change:running_shell', this.open_or_close_frames, this);
-		this.model.bind('change:running_vnc', this.open_or_close_frames, this);
-		this.model.bind('change:state', this.instance_info, this);
-		this.model.bind('change:ip_address', this.instance_info, this);
-		this.model.bind('change:launch_relative', this.instance_info, this);
-        this.model.bind('change:has_shell, change:has_vnc', this.update_shell_vnc_tabs, this);
-		Atmo.instances.bind('select', this.select_instance, this);
-        this.rendered = false;
+	  Atmo.instances.bind('select', this.select_instance, this);
+	  this.model.bind('change:running_shell', this.open_or_close_frames, this);
+	  this.model.bind('change:running_vnc', this.open_or_close_frames, this);
+	  this.model.bind('change:state', this.instance_info, this);
+	  this.model.bind('change:ip_address', this.instance_info, this);
+	  this.model.bind('change:launch_relative', this.instance_info, this);
+          Atmo.instances.bind('change:has_shell, change:has_vnc', this.update_shell_vnc_tabs, this);
+          this.rendered = false;
 	},
     update_shell_vnc_tabs: function() {
         var self = this;

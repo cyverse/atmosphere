@@ -387,13 +387,19 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             "/os-floating-ip-pools").object)
 
     #Floating IPs
-    def ex_list_floating_ips(self, **kwargs):
+    def ex_list_floating_ips(self, region=None, **kwargs):
         """
         List all floating IPs in the tenants pool
         """
         def _to_ips(ip_list):
             return [floating_ip for floating_ip in ip_list['floating_ips']]
-        return _to_ips(self.connection.request("/os-floating-ips").object)
+        try:
+            return _to_ips(self.connection.request("/os-floating-ips").object)
+        except:
+            logger.warn("Unable to list floating ips from nova.")
+            return None
+#        network_manager = NetworkManager.lc_driver_init(self, region)
+#        return network_manager.list_floating_ips()
 
     def ex_allocate_floating_ip(self, pool_name, **kwargs):
         """
