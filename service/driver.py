@@ -90,6 +90,8 @@ class BaseDriver():
     def suspend_instance(self, *args, **kwargs):
         raise NotImplementedError
 
+    def resize_instance(self, *args, **kwargs):
+        raise NotImplementedError
 
 class VolumeDriver():
     """
@@ -342,6 +344,9 @@ class OSDriver(EshDriver, TaskMixin):
 
     def resume_instance(self, *args, **kwargs):
         return self._connection.ex_resume_node(*args, **kwargs)
+
+    def resize_instance(self, *args, **kwargs):
+        return self._connection.ex_resize(*args, **kwargs)
 
     def _remove_unused_floating_ips(self):
         for f_ip in self._connection.ex_list_floating_ips():

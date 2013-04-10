@@ -153,7 +153,9 @@ class InstanceAction(APIView):
             elif 'resize' in action:
                 size_alias = action_params.get('size_alias', '')
                 size = esh_driver.get_size(size_alias)
-                esh_driver.resize_instance(size)
+                logger.debug(esh_instance)
+                logger.debug(instance_id)
+                esh_driver.resize_instance(esh_instance, size)
 #            elif 'pause' in action:
 #                esh_driver.suspend_instance(esh_instance)
 #            elif 'unpause' in action:
