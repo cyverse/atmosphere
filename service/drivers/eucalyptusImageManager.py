@@ -205,71 +205,10 @@ class ImageManager():
         #Return path to image
         return os.path.join(download_dir, whole_image)
 
-    def _build_new_image(self, original_image, download_dir):
-        """
-        Given an image file, create a new bootable RAW image
-        """
-        #Determine the size of the disk image
-        file_size = os.path.getsize(original_image)
-        image_gb_size = self._size_in_gb(file_size)
-        #Create new virtual Disk Image
-        new_raw_img = original_image.replace('.img','.raw')
-        one_gb = 1024
-        total_size = one_gb*image_gb_size
-        self.run_command(['qemu-img','create','-f','raw',new_raw_img, "%sG" % image_gb_size])
-        #Add loopback device to represent new image
-        (loop_str, _) = self.run_command(['losetup','-fv', new_raw_img])
-        loop_dev = loop_str.replace('Loop device is ','').strip()
-        #Partition the loopback device
-        sfdisk_input = ",,L,*\n;\n;\n;\n"
-        self.run_command(['sfdisk', '-D', loop_dev], stdin=sfdisk_input)
-        (out, _) = self.run_command(['fdisk','-l', loop_dev])
-        ##Calculating Cylinder/Head/Sector counts using fdisk -l:
-        disk = self._parse_fdisk_stats(out)
-        offset = disk['start']* disk['logical_sector_size']
-
-        #Skip to the sector listed in fdisk and setup a second loop device
-        (offset_loop, _) = self.run_command(['losetup', '-fv', '-o', '%s' % offset, new_raw_img])
-        offset_loop_dev = offset_loop.replace('Loop device is ','').strip()
-        #Make the filesystem
-        #4096 = Default block size on ext2/ext3
-        block_size = 4096
-        fs_size = ((disk['end'] - disk['start']) * disk['unit']) / block_size
-        self.run_command(['mkfs.ext3', '-b', '%s' % block_size, offset_loop_dev, '%s' % fs_size])
-        #Copy the Filesystem
-        empty_raw_dir = os.path.join(download_dir, 'bootable_raw_here')
-        orig_raw_dir = os.path.join(download_dir, 'original_img_here')
-        self.run_command(['mkdir', '-p', empty_raw_dir])
-        self.run_command(['mkdir', '-p', orig_raw_dir])
-        self.run_command(['mount', '-t', 'ext3', offset_loop_dev, empty_raw_dir])
-        self.run_command(['mount', '-t', 'ext3', original_image, orig_raw_dir])
-        self.run_command(['/bin/bash', '-c', 'rsync --inplace -a %s/* %s' % (orig_raw_dir, empty_raw_dir)])
-        self.run_command(['umount', orig_raw_dir])
-        #Edit grub.conf
-        #Move rc.local
-
-        #Inject stage files
-        self._get_stage_files(empty_raw_dir, self._get_distro(empty_raw_dir))
-        self.run_command(['umount', empty_raw_dir])
-        self.run_command(['losetup','-d', loop_dev])
-        self.run_command(['losetup','-d', offset_loop_dev])
-
-        #SETUP GRUB
-        grub_stdin = """device (hd0) %s
-        geometry (hd0) %s %s %s
-        root (hd0,0)
-        setup (hd0)
-        quit""" % (new_raw_img,disk['cylinders'], disk['heads'], disk['sectors'])
-        self.run_command(['grub', '--device-map=/dev/null', '--batch'], stdin=grub_stdin)
-        #Delete EVERYTHING
-        return new_raw_img
-
     def _openstack_kvm_export(self, image_path, download_dir):
         """
-        Prepare a KVM export (For OpenStack, VirtualBox)
-        Will also remove all XEN-specific boot properties
-        (esteve-TODO): I want to move virtualboxExportManager:_xen_migrations
-        here (Where the code is NOT virtualbox specific)
+        Prepare a KVM export (For OpenStack)
+        Will also remove Euca-Specific files and add OS-Specific files
         """
         kernel_dir = os.path.join(download_dir, "kernel")
         ramdisk_dir = os.path.join(download_dir, "ramdisk")
@@ -277,11 +216,16 @@ class ImageManager():
         for dir_path in [kernel_dir, ramdisk_dir, mount_point]:
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
+
+        #First, label the image as 'root' - the root disk image
+        self.run_command(['e2label', image_path, 'root'])
+
+        #Replace XEN/Euca lines with KVM/Openstack
         self.run_command(["mount", "-o", "loop", image_path, mount_point])
 
         #PREPEND:
         for (prepend_line, prepend_to) in [("LABEL=root       /             "
-                                            + "ext4     defaults,errors="
+                                            + "ext3     defaults,errors="
                                             + "remount-ro 1 1", "etc/fstab")]:
             prepend_file_path = os.path.join(mount_point, prepend_to)
             if os.path.exists(prepend_file_path):
@@ -305,8 +249,8 @@ class ImageManager():
 
         #REPLACE:
         for (replace_str, replace_with, replace_where) in [
-                ("\/dev\/sda", "\#\/dev\/sda", "etc/fstab"),
-                ("xvc0", "\#xvc0", "etc/inittab"),
+                ("^\/dev\/sda", "\#\/dev\/sda", "etc/fstab"),
+                ("^xvc0", "\#xvc0", "etc/inittab"),
                 ("xennet", "8139cp", "etc/modprobe.conf")]:
             replace_file_path = os.path.join(mount_point, replace_where)
             if os.path.exists(replace_file_path):
@@ -328,6 +272,9 @@ class ImageManager():
                 latest_rmdisk = line
                 rmdisk_version = line.replace('.img','').replace('initrd-','')
 
+        #This step isn't necessary, but keeps grub consistent 
+        self._rewrite_grub_conf(mount_point, latest_rmdisk, rmdisk_version)
+
         #Next, Create the latest ramdisk for KVM
         self._chroot_local_image(mount_point, mount_point, [
             ["/bin/bash", "-c", "mkinitrd --with virtio_pci --with "
@@ -336,7 +283,7 @@ class ImageManager():
             % (latest_rmdisk, rmdisk_version)]],
             bind=True, mounted=True, keep_mounted=True)
 
-        #Copy new kernel & ramdisk
+        #Copy new kernel & ramdisk to the folder
         local_kernel_path = os.path.join(kernel_dir,
                                          "vmlinuz-%s" % rmdisk_version)
         local_ramdisk_path = os.path.join(ramdisk_dir,
@@ -346,11 +293,31 @@ class ImageManager():
         mount_ramdisk_path = os.path.join(mount_point,
                                           "boot/initrd-%s.img"
                                           % rmdisk_version)
-
         self.run_command(["/bin/cp", mount_kernel_path, local_kernel_path])
         self.run_command(["/bin/cp", mount_ramdisk_path, local_ramdisk_path])
+        #Unmount, Your new image is ready for OpenStack
         self.run_command(["umount", mount_point])
         return (image_path, local_kernel_path, local_ramdisk_path)
+
+    def _rewrite_grub_conf(self, mount_point, latest_rmdisk, rmdisk_version,
+            root_string='root=LABEL=root'):
+        new_grub_conf = """default=0
+timeout=3
+splashimage=(hd0,0)/boot/grub/splash.xpm.gz
+title Atmosphere VM (%s)
+    root (hd0,0)
+    kernel /boot/vmlinuz-%s %s ro
+    initrd /boot/%s
+""" % (rmdisk_version, rmdisk_version, root_string, latest_rmdisk)
+        with open(os.path.join(mount_point,'boot/grub/grub.conf'),
+                  'w') as grub_file:
+            grub_file.write(new_grub_conf)
+        self.run_command(['/bin/bash','-c', 
+                          'cd %s/boot/grub/;ln -s grub.conf menu.lst'
+                          % mount_point])
+        self.run_command(['/bin/bash','-c',
+                          'cd %s/boot/grub/;ln -s grub.conf grub.cfg'
+                          % mount_point])
 
     def _get_distro(self, root_dir=''):
         """
@@ -918,57 +885,6 @@ class ImageManager():
                 instances[last_node] = [instance_id]
         return (nodes, instances)
 
-    """
-    Indirect build_new_image functions, should not be called separately
-    """
-    def _size_in_gb(self, size_bytes):
-        size_bytes = float(size_bytes)
-        size_gigabytes = size_bytes / 1073741824
-        return int(math.ceil(size_gigabytes))
-
-    def _parse_fdisk_stats(self, output):
-        """
-        Until I find a better way, the best thing to do is parse through fdisk
-        to get the important statistics aboutput the disk image
-
-        Sample Input:
-        (0, '')
-        (1, 'Disk /dev/loop0: 9663 MB, 9663676416 bytes')
-        (2, '255 heads, 63 sectors/track, 1174 cylinders, total 18874368 sectors')
-        (3, 'Units = sectors of 1 * 512 = 512 bytes')
-        (4, 'Sector size (logical/physical): 512 bytes / 512 bytes')
-        (5, 'I/O size (minimum/optimal): 512 bytes / 512 bytes')
-        (6, 'Disk identifier: 0x00000000')
-        (7, '')
-        (8, '      Device Boot      Start         End      Blocks   Id  System')
-        (9, '/dev/loop0p1   *          63    18860309     9430123+  83  Linux')
-        (10, '')
-        Returns:
-            A dictionary of string to int values for the disk:
-            *heads, sectors, cylinders, sector_count, units, Sector Size, Start, End
-        """
-        import re
-        line = output.split('\n')
-        #Going line-by-line here.. Line 2
-        regex = re.compile("(?P<heads>[0-9]+) heads, (?P<sectors>[0-9]+) sectors/track, (?P<cylinders>[0-9]+) cylinders, total (?P<total>[0-9]+) sectors")
-        result = regex.search(line[2])
-        result_map = result.groupdict()
-        #Adding line 3
-        regex = re.compile("(?P<unit>[0-9]+) bytes")
-        result = regex.search(line[3])
-        result_map.update(result.groupdict())
-        #Adding line 4
-        regex = re.compile("(?P<logical_sector_size>[0-9]+) bytes / (?P<physical_sector_size>[0-9]+) bytes")
-        result = regex.search(line[4])
-        result_map.update(result.groupdict())
-        #
-        regex = re.compile("(?P<start>[0-9]+)[ ]+(?P<end>[0-9]+)[ ]+(?P<blocks>[0-9]+)")
-        result = regex.search(line[9])
-        result_map.update(result.groupdict())
-        #Regex saves the variables as strings, but they are more useful as ints
-        for (k,v) in result_map.items():
-            result_map[k] = int(v)
-        return result_map
     """
     Indirect Download Image Functions
     These functions are called indirectly during the 'download_image' process.

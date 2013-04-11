@@ -62,7 +62,7 @@ def download_file(url, fileLoc, retry=False, match_hash=None):
         try:
             resp = urllib2.urlopen(url)
         except Exception, e:
-            logging.error(e)
+            logging.exception(e)
             resp = None
 
         #Download file on success
@@ -81,7 +81,7 @@ def download_file(url, fileLoc, retry=False, match_hash=None):
         file_hash = sha1(contents).hexdigest()
     except Exception, e:
         file_hash = ""
-        logging.error(e)
+        logging.exception(e)
     #Don't save file if hash exists and doesnt match..
     if match_hash and match_hash != file_hash:
         logging.warn(
@@ -103,16 +103,20 @@ def get_distro():
         return 'ubuntu'
 
 
-def run_command(commandList, shell=False):
+def run_command(commandList, shell=False, bash_wrap=False):
     out = None
     err = None
+    if bash_wrap:
+        #Wrap the entire command in '/bin/bash -c',
+        #This can sometimes help pesky commands
+        commandList = ['/bin/bash','-c', ' '.join(commandList)]
     logging.debug("RunCommand:%s" % ' '.join(commandList))
     try:
         proc = subprocess.Popen(commandList, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, shell=shell)
         out, err = proc.communicate()
     except Exception, e:
-        logging.error(e)
+        logging.exception(e)
     if out:
         logging.debug(out)
     if err:
@@ -164,7 +168,7 @@ def collect_metadata():
         meta_list = content.split('\n')
     except Exception, e:
         logging.error("Could not retrieve meta-data for instance")
-        logging.error(e)
+        logging.exception(e)
         return {}
 
     for meta in meta_list:
@@ -233,10 +237,10 @@ def vnc(user, distro, license=None):
                          '/opt/VNC-Server-5.0.4-Linux-x64.rpm'])
             run_command(['/bin/sed', '-i',
                          "'$a account    include      system-auth'",
-                         '/etc/pam.d/vncserver.custom'])
+                         '/etc/pam.d/vncserver.custom'], bash_wrap=True)
             run_command(['/bin/sed', '-i',
                          "'$a password   include      system-auth'",
-                         '/etc/pam.d/vncserver.custom'])
+                         '/etc/pam.d/vncserver.custom'], bash_wrap=True)
         else:
             download_file(
                 '%s/init_files/%s/VNC-Server-5.0.4-Linux-x64.deb'
@@ -264,7 +268,7 @@ def vnc(user, distro, license=None):
                      os.path.join(os.environ['HOME'], 'vnc-config.sh')])
         run_command(['/bin/su', '%s' % user, '-c', '/usr/bin/vncserver'])
     except Exception, e:
-        logging.error(e)
+        logging.exception(e)
 
 
 def iplant_files():

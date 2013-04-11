@@ -33,7 +33,9 @@ class Instance(models.Model):
     provider_alias = models.CharField(max_length=256)
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     created_by = models.ForeignKey(User)
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(
+        default=timezone.make_aware(datetime.now(),
+            timezone.get_current_timezone()))
     end_date = models.DateTimeField(null=True)
 
     def creator_name(self):

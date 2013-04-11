@@ -155,5 +155,4 @@ class EucaToOpenstack:
         Returns: ("/path/to/img", "/path/to/kernel", "/path/to/ramdisk")
         """
         (image, kernel, ramdisk) = self.euca_img_manager._openstack_kvm_export(image_path, download_dir)
-        new_image = self.euca_img_manager._build_new_image(image, download_dir)
-        return (new_image, kernel, ramdisk)
+        return (image, kernel, ramdisk)

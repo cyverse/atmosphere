@@ -17,10 +17,9 @@ def hashCheck( url, remotehash, file )
   $log.debug("hashCheck #{file}")
 
   if url == ""
-    $log.error("Invalid URL parse -- expects http://www.example.com/path/to/file")
+    $log.error("Invalid URL parse -- expects http://www.e.com/path")
     return false
   end
-  $log.debug("\tchecking file")
   if File.file?(file)
     if not File.readable?(file)
       return false
@@ -33,26 +32,24 @@ def hashCheck( url, remotehash, file )
       return true
     end
   end
-  #Download the File
   begin
-    $log.debug("\tdownloading file from #{url}")
+    $log.debug("\tdownloading #{url}")
     fileContents = open(url).read
     hashthis = Digest::SHA1.hexdigest(fileContents)
     if hashthis != remotehash
-      $log.error("Hash argument does not match Remote file")
+      $log.error("Hash argument does not match")
     end
   rescue Exception=>e
-    $log.error("Cannot download remote file #{url}")
+    $log.error("Cannot download#{url}")
     return false
   end
-  #Write to local file
   begin
-    $log.debug("\twriting remove file to local file")
+    $log.debug("\twriting remove file")
     writeOut = open(file, "wb")
     writeOut.write(fileContents)
     writeOut.close
   rescue Exception=>e
-    $log.error("Cannot write to local file #{file}")
+    $log.error("Cannot write #{file}")
     return false
   end
   return true
@@ -65,10 +62,11 @@ def main(args)
   atmo_token = args_dict['atmosphere']['token']
   atmo_userid = args_dict['atmosphere']['userid']
   atmo_instance_url = args_dict['atmosphere']['instance_service_url']
+  atmo_vnc_license = args_dict['atmosphere']['vnc_license']
   hashCheck("#{atmo_srv_download_prefix}/init_files/#{$version}/atmo-init-full.py", "2f2c31ed196a107cd5969f06431a5bcd2b392484", "/usr/sbin/atmo_init_full")
 
   IO.popen("/bin/chmod a+x /usr/sbin/atmo_init_full") { |f| }
-  stdin, stdout, stderr, wait_thr = Open3.popen3('/usr/sbin/atmo_init_full --service_type="%s" --token="%s" --server="%s" --service_url="%s" --user_id="%s"' % [atmo_service_type, atmo_token, atmo_srv_download_prefix, atmo_instance_url, atmo_userid])
+  stdin, stdout, stderr, wait_thr = Open3.popen3('/usr/sbin/atmo_init_full --service_type="%s" --token="%s" --server="%s" --service_url="%s" --user_id="%s" --vnc_license="%s"' % [atmo_service_type, atmo_token, atmo_srv_download_prefix, atmo_instance_url, atmo_userid, atmo_vnc_license])
   $log.debug stdout.read
   $log.debug stderr.read
   stdin.close

@@ -24,8 +24,8 @@ class Migration(SchemaMigration):
         db.create_table('auth_userproxy', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('username', self.gf('django.db.models.fields.CharField')(max_length=128, null=True, blank=True)),
-            ('proxyIOU', self.gf('django.db.models.fields.CharField')(max_length=40)),
-            ('proxyTicket', self.gf('django.db.models.fields.CharField')(max_length=70)),
+            ('proxyIOU', self.gf('django.db.models.fields.CharField')(max_length=128)),
+            ('proxyTicket', self.gf('django.db.models.fields.CharField')(max_length=128)),
             ('expiresOn', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
         ))
         db.send_create_signal('authentication', ['UserProxy'])
@@ -83,8 +83,8 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'UserProxy', 'db_table': "'auth_userproxy'"},
             'expiresOn': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'proxyIOU': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
-            'proxyTicket': ('django.db.models.fields.CharField', [], {'max_length': '70'}),
+            'proxyIOU': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
+            'proxyTicket': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'username': ('django.db.models.fields.CharField', [], {'max_length': '128', 'null': 'True', 'blank': 'True'})
         },
         u'contenttypes.contenttype': {
