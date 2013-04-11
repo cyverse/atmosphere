@@ -27,7 +27,11 @@ Atmo.Models.Instance = Atmo.Models.Base.extend(
 							|| response.status == 'build - networking' 
 							|| response.status == 'pending'
 							|| response.status == 'suspended - resuming'
-							|| response.status == 'active - suspending' );
+							|| response.status == 'active - suspending'
+							|| response.status == 'resize - resize_prep'
+							|| response.status == 'resize - resize_migrating'
+							|| response.status == 'resize - resize_finish'
+							|| response.status == 'revert_resize - resize_reverting' );
       attributes.state_is_delete = (    response.status == 'delete'
 	  						|| response.status == 'active - deleting'
 							|| response.status == 'deleted'

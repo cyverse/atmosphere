@@ -145,6 +145,10 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 		this.display_close_buttons();
 
+		// If instance is resizing, display resize tab and automatically navigate to it
+		if (this.model.get('state').indexOf('resize') != -1)
+			this.resize_instance();
+
 		return this;
 	},
     x_close: function(e) {
@@ -203,11 +207,16 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		// Disable if instance is not running
 		if (!this.model.get('state_is_active')) {
 			this.$el.find('.request_imaging_btn').addClass('disabled').attr('disabled', 'disabled');
-			this.$el.find('.resize_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 			this.$el.find('.report_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 			this.$el.find('.suspend_resume_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 			this.$el.find('#instance_tabs a[href="#instance_shell"]').addClass("tab_disabled");
 			this.$el.find('#instance_tabs a[href="#instance_vnc"]').addClass("tab_disabled");
+
+			if (this.model.get('state').indexOf('resize') == -1)
+				this.$el.find('.resize_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+			else {
+				this.$el.find('.resize_instance_btn').removeClass('disabled').removeAttr('disabled', 'disabled');
+			}
 		}
 
 		// Don't permit terminate if instance is suspended

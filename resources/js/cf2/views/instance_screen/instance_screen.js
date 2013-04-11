@@ -12,8 +12,9 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
 	initialize: function(options) {
 	  Atmo.instances.bind('reset', this.render, this);
 	  Atmo.instances.bind('add', this.append_instance, this);
-          Atmo.instances.bind('remove', this.remove_instance, this);
-          Atmo.instances.bind('select', this.select_instance, this);
+	  Atmo.instances.bind('remove', this.remove_instance, this);
+	  Atmo.instances.bind('select', this.select_instance, this);
+	  Atmo.instances.bind('change:size_alias', this.render_resource_charts, this);
 	},
 	render: function() {
 		if (Atmo.instances.models.length > 0) {
@@ -21,14 +22,7 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
 			if (this.$el.find('#resource_usage_holder').length == 0)
 				this.$el.html(this.template());
 			
-			this.mem_resource_chart = new Atmo.Views.ResourceCharts({
-				el: this.$el.find('#memHolder'),
-				quota_type: 'mem'
-			}).render();
-			this.cpu_resource_chart = new Atmo.Views.ResourceCharts({
-				el: this.$el.find('#cpuHolder'),
-				quota_type: 'cpu'
-			}).render();
+			this.render_resource_charts();
 
 			if (Atmo.instances.models.length > 0) {
 				var self = this;
@@ -58,6 +52,16 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
         }).click(_.bind(this.x_close, this));
 
 		return this;
+	},
+	render_resource_charts: function() {
+		this.mem_resource_chart = new Atmo.Views.ResourceCharts({
+			el: this.$el.find('#memHolder'),
+			quota_type: 'mem'
+		}).render();
+		this.cpu_resource_chart = new Atmo.Views.ResourceCharts({
+			el: this.$el.find('#cpuHolder'),
+			quota_type: 'cpu'
+		}).render();
 	},
     x_close: function() {
             // Must assign this function after the popover is actually rendered, so we find '.close' element
