@@ -87,6 +87,27 @@ class APIFilterMixin():
                     if not any(word in machine.name for word in black_list)]
         return filtered
 
+
+class InstanceActionMixin():
+    def reboot_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def resume_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def suspend_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def resize_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def confirm_resize_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def revert_resize_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+
 class TaskMixin():
     def deploy_instance_task(self, *args, **kwargs):
         return deploy_instance.delay(self, *args, **kwargs).result

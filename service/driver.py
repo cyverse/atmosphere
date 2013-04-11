@@ -26,9 +26,9 @@ from service.identity import AWSIdentity
 from service.identity import EucaIdentity
 from service.identity import OSIdentity
 
-from service.mixins.driver import APIFilterMixin
-from service.mixins.driver import MetaMixin
-from service.mixins.driver import TaskMixin
+from service.mixins.driver import APIFilterMixin, MetaMixin,\
+    TaskMixin, InstanceActionMixin
+
 
 class BaseDriver():
     """
@@ -251,7 +251,7 @@ class EshDriver(LibcloudDriver, MetaMixin):
         return super(EshDriver, self).detach_volume(*args, **kwargs)
 
 
-class OSDriver(EshDriver, TaskMixin):
+class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
     """
     """
     providerCls = OSProvider
@@ -317,26 +317,10 @@ class OSDriver(EshDriver, TaskMixin):
 
         return instance
 
-    # def create_instance(self, *args, **kwargs):
-    #     """
-    #     Create an OpenStack node.
-    #     """
-    #     # try:
-    #     #     user_networks = [network for network
-    #     #                      in self._connection.ex_list_networks()
-    #     #                      if network.name == self.driver.
-    #     #                      identity.credentials['ex_tenant_name']]
-    #     # except KeyError:
-    #     #     raise Exception("No network created for tenant %s" %
-    #     #                     self.driver.identity.credentials['ex_tenant_name'])
-    #     #kwargs.update({
-    #     #    'ex_networks': user_networks})
-    #     return super(OSDriver, self).create_instance(*args, **kwargs)
-
     def destroy_instance(self, *args, **kwargs):
         node_destroyed = self._connection.destroy_node(*args, **kwargs)
         time.sleep(5)
-        self._remove_unused_floating_ips()
+        self._remove_unused_floating_ips() # TODO: Add to queue to do asynchronously.
         return node_destroyed
 
     def suspend_instance(self, *args, **kwargs):
@@ -348,11 +332,21 @@ class OSDriver(EshDriver, TaskMixin):
     def resize_instance(self, *args, **kwargs):
         return self._connection.ex_resize(*args, **kwargs)
 
+    def reboot_instance(self, *args, **kwargs):
+        return self._connection.reboot_node(*args, **kwargs)
+
+    def confirm_resize_instance(self, *args, **kwargs):
+        return self._connection.ex_confirm_resize(*args, **kwargs)
+
+    def revert_resize_instance(self, *args, **kwargs):
+        return self._connection.ex_revert_resize(*args, **kwargs)
+
     def _remove_unused_floating_ips(self):
         for f_ip in self._connection.ex_list_floating_ips():
             if not f_ip.get('instance_id'):
                 self._connection.ex_deallocate_floating_ip(f_ip['id'])
                 logger.info("Removed unused Floating IP: %s" % f_ip)
+
 
 class AWSDriver(EshDriver):
     """
