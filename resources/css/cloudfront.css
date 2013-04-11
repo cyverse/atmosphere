@@ -1718,3 +1718,27 @@ a.selected.thumbnail {
 .provider_controls > a {
     margin: 0 10px;
 }*/
+
+/* Resize Instance Tab */
+.resize_statuses {
+	background-color: #FFF;
+	padding: 10px;
+	border-radius: 3px;
+}
+.resize_statuses ul {
+	list-style: none;
+}
+.resize_statuses li {
+	line-height: 24px;
+	font-size: 14px;
+}
+.resize_statuses li i {
+	margin-left: -18px;
+}
+.resize_statuses .refresh {
+	float: right;
+}
+.resize_statuses .refresh a {
+	text-decoration: none;
+	border-bottom: 0 !important;
+}

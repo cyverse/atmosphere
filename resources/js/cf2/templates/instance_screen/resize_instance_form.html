@@ -1,30 +1,99 @@
-<h1>Resize Instance</h1>
-
-<form>
-	<p class="alert alert-error">
-		<i class="icon-warning-sign"></i> <strong>IMPORTANT</strong> An instance will restart itself after it resizes.
+<div class="resize_instance">
+	<h1>Resize Instance</h1>
+	<p class="alert alert-info">
+		<i class="icon-info-sign"></i> <strong>IMPORTANT</strong> Resizing is a multi-part process. You will need to verify that the resized instance is functional <u>within 24 hours</u> of the resize process' completion.
 	</p>
-
+	<form class="resize_instance_form">
     <div class="row-fluid" id="resource_usage_holder">
-        <div class="span6">
-			<label for="predicted_cpu_usage">Predicted CPU Usage</label>
-            <div id="cpuHolder"></div>
-            <div id="cpuHolder_info"></div>
-        </div>
-        <div class="span6">
-			<label for="predicted_mem_usage">Predicted Memory Usage</label>
-            <div id="memHolder"></div>
-            <div id="memHolder_info"></div>
-        </div>
-    </div>
+		<div class="span6 offset1">
+			<img class="image_icon" id="main_icon" src="<%= image_url %>" />
 
-	<label for="new_instance_size">New Size</label>
-	<select name="new_instance_size">
-		<option disabled="disabled">Instance Sizes Unavailable</option>
-	</select>
+			<h2 data-type="instance_name"><%= name_or_id %> <small>(<%= public_dns_name %>)</small></h2>
+			Current size: <span class="instance_size"><%= size_alias %></span>
+
+			<hr />
+			<label for="predicted_cpu_usage">Predicted CPU Usage</label>
+			<div id="cpuHolder"></div>
+			<div id="cpuHolder_info"></div>
+
+			<label for="predicted_mem_usage">Predicted Memory Usage</label>
+			<div id="memHolder"></div>
+			<div id="memHolder_info"></div>
+
+			<label for="new_instance_size">New Size</label>
+			<select name="new_instance_size">
+				<option disabled="disabled">Instance Sizes Unavailable</option>
+			</select>
+		</div>
+	</div>
+
 
 	<div class="form-actions">
 		<input type="submit" class="btn btn-primary" value="Resize Instance" />
+		</form>
+	</div>
+</div>
+
+<div class="resizing_instance" style="display: none">
+	<h1>Instance is Resizing</h1>
+
+	<p class="alert alert-info">
+		<i class="icon-info-sign"></i> <strong>IMPORTANT</strong> Once your instance has resized, you will need to verify that the instance works properly by logging into it.
+	</p>
+
+	<div class="row-fluid">
+		<div class="span10 offset1">
+			<div class="resize_statuses">
+				<img class="image_icon" id="main_icon" src="<%= image_url %>" />
+
+				<h2 data-type="instance_name"><%= name_or_id %> <small>(<%= public_dns_name %>)</small></h2>
+				Current size: <span class="instance_size"><%= size_alias %></span>
+
+				<hr />
+
+				<div class="refresh">
+					<a href="#"><i class="icon-refresh"></i> Check Status</a>
+				</div>
+
+				<ul>
+					<li> Prepared</li>
+					<li> Migrated</li>
+					<li> Finished</li>
+				</ul>
+			</div>
+		</div>
 	</div>
 
-</form>
+</div>
+<div class="verify_resize" style="display: none">
+	<h1>Verify Instance Resize</h1>
+
+	<p class="alert alert-error">
+		<i class="icon-warning-sign"></i> <strong>WARNING</strong> You must log into your instance to verify it works in its new size. You cannot revert after finalizing the instance's resize.
+	</p>
+
+
+	<div class="row-fluid">
+		<div class="span6 offset1">
+			<form class="verify_resize_form">
+				<img class="image_icon" id="main_icon" src="<%= image_url %>" />
+
+				<h2 data-type="instance_name"><%= name_or_id %> <small>(<%= public_dns_name %>)</small></h2>
+				New size: <span class="instance_size"><%= size_alias %></span>
+
+				<hr />
+				<div class="control-group">
+					<label class="checkbox">
+						<input type="checkbox"> I successfully logged in to this instance after its resize.
+					</label>
+				</div>
+		</div>
+	</div>
+
+	<div class="form-actions">
+		<button class="btn btn-primary verify_resize_btn">Finalize Instance Resize</button> 
+		<button class="btn revert_resize_btn">Revert to Previous Size</button>
+	</div>
+
+	</form>
+</div>
