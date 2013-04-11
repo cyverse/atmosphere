@@ -43,7 +43,7 @@ Atmo.Utils.seconds_to_pretty_time = function(seconds, precision) {
 
 Atmo.Utils.relative_time = function(date_obj) {
 	var now = new Date();
-    var seconds = Math.floor((new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds()) - date_obj) / 1000);
+    var seconds = Math.floor((new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds()) - date_obj) / 1000);
 
 	var time = Atmo.Utils.seconds_to_pretty_time(seconds, 1);
 
