@@ -12,7 +12,8 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 		Atmo.instance_types.bind('fail', this.instance_type_fail, this);
 	},
 	events: {
-		'change select[name="new_instance_size"]' : 'select_instance_size'
+		'change select[name="new_instance_size"]' : 'select_instance_size',
+		'submit form' : 'resize_instance'
 	},
 	render: function() {
 		this.$el.html(this.template(this.model.toJSON()));
@@ -57,8 +58,9 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 				});
 
 				// Start the user off at the size their instance currently is.
-				if (self.model.get('size_alias') == instance_type.get('name'))
+				if (self.model.get('size_alias') == instance_type.get('alias')) {
 					opt.attr('selected', 'selected');	
+				}
 
 				if (instance_type.get('remaining') > 0) {
 					opt.data('available', true);
@@ -76,9 +78,82 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 
 	},
 	select_instance_size: function() {
-		var instance_type = this.$el.find('select[name="new_instance_size"] :selected').data('instance_type');
 
+		var self = this;
+		var new_instance_type = this.$el.find('select[name="new_instance_size"] :selected').data('instance_type');
 
+		var new_size = parseInt(new_instance_type.get('alias'));
+		var old_size = parseInt(this.model.get('size_alias'));
+
+		if (new_size == old_size) {
+			this.mem_resource_chart.render();
+			this.cpu_resource_chart.render();
+		}
+		else if (new_size > old_size) {
+			var under_mem = this.mem_resource_chart.add_usage(new_instance_type.get('mem'));
+			var under_cpu = this.cpu_resource_chart.add_usage(new_instance_type.get('cpu'));
+
+			if (under_mem && under_cpu)
+				this.$el.find('input[type="submit"]').removeAttr('disabled');
+			else
+				this.$el.find('input[type="submit"]').attr('disabled', 'disabled');
+		}
+		else if (new_size < old_size) {
+
+			this.$el.find('input[type="submit"]').removeAttr('disabled');
+
+			var old_type = _.filter(Atmo.instance_types.models, function(type) {
+				return type.get('alias') == self.model.get('size_alias');
+			});
+			var old_instance_type = old_type[0];
+
+			var sub_mem = old_instance_type.get('mem') - new_instance_type.get('mem');
+			var sub_cpu = old_instance_type.get('cpu') - new_instance_type.get('cpu');
+
+			this.mem_resource_chart.sub_usage(sub_mem);
+			this.cpu_resource_chart.sub_usage(sub_cpu);
+		}
+
+		console.log(this.$el.closest('.instance_tabs_holder'));
+
+	},
+	resize_instance: function(e) {
+
+		e.preventDefault();
+
+		var id = Atmo.profile.get('selected_identity');
+		var self = this;
+		var size_alias = this.$el.find('select[name="new_instance_size"] :selected').data('instance_type').get('alias');
+		var data = { 'action' : 'resize',
+					 'size' : size_alias };
+
+		// Don't allow user to resize to same size
+		if (size_alias == this.model.get('size_alias')) {
+			Atmo.Utils.notify('No size change', 'Select a different size to resize your instance.');
+			return false;
+		}
+			
+		this.$el.find('input[type="submit"]').attr('disabled', 'disabled').val('Resizing Instance...');
+
+		$.ajax({
+			url: site_root + '/api/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
+			type: 'POST',
+			data: data,
+			success: function() {
+				Atmo.Utils.notify('Resizing Instance', 'Instance will finish resizing shortly.');
+
+				// Merges models to those that are accurate based on server response
+				Atmo.instances.update();
+				this.$el.find('input[type="submit"]').removeAttr('disabled').val('Resize Instance');
+			},
+			error: function() {
+				Atmo.Utils.notify(
+					'Could not resize instance', 
+					'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
+					{ no_timeout: true }
+				);
+			}
+		});
 	},
 	instance_type_fail: function() {
 		

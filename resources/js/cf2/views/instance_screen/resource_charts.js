@@ -321,7 +321,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 		var total_usage = Math.floor(((to_add + this.$el.data('used')) / this.$el.data('total')) * 100);
 		var new_cssPercent = 0;
 		
-		var under_quota = (total_usage >= 100) ? false : true;
+		var under_quota = (total_usage > 100) ? false : true;
 
 		// Create new usage bars
 		if (current_usage > 0 && current_usage < 100) {
@@ -366,7 +366,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 
 	},
 	/* Only used when user is resizing instance to a smaller size */
-	sub_quota: function(to_sub, options) {
+	sub_usage: function(to_sub, options) {
 
 		var under_quota;
 
@@ -376,21 +376,33 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 		// Empty the existing parts
 		this.$el.html('');	
 
-		var projected_usage = Math.floor((to_sub / this.$el.data('total')) * 100);
-		var current_usage = Math.floor((this.$el.data('used') / this.$el.data('total')) * 100) - projected_usage;
+		var current_usage = Math.floor((to_sub / this.$el.data('total')) * 100);
+		var projected_usage = Math.floor((this.$el.data('used') / this.$el.data('total')) * 100) - current_usage;
 		var total_usage = Math.floor(((this.$el.data('used') - to_sub) / this.$el.data('total')) * 100);
 
 		// Create new usage bars
 		var projected_bar = this.make_usage_bar(projected_usage, projected_usage, { show_percent: false, show_color: false });
 		projected_bar.html('<span>' + total_usage + '%</span>');
 		projected_bar.attr('class', '');
-		current_bar.addClass('barFlushLeft');
-		current_bar.addClass(this.choose_color(total_usage));
+		projected_bar.addClass('barFlushLeft');
+		projected_bar.addClass(this.choose_color(total_usage));
 
 		var current_bar = this.make_usage_bar(current_usage, current_usage, { show_percent: false, show_color: false });
 		current_bar.addClass(this.choose_color(total_usage));
-		current_bar.css('opacity', 0.5);
-		current_bar.addClass('addedUsageBar');
+
+		// If you're not subtracting any usage, make up for the fact that projected bar will be 0%
+		if (to_sub > 0) {
+			current_bar.css('opacity', 0.5);
+			current_bar.addClass('addedUsageBar');
+		}
+		else {
+			projected_bar.removeClass('barFlushLeft');
+		}
+
+		if (to_sub > 0 && projected_usage == 0) {
+			current_bar.html('<span>' + total_usage + '%</span>');
+			projected_bar.html('');
+		}
 
 		this.$el.html(projected_bar).append(current_bar);
 

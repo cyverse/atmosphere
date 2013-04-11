@@ -1,14 +1,11 @@
 <h1>Resize Instance</h1>
 
 <form>
-
-	<label for="new_instance_size">New Size</label>
-	<select name="new_instance_size">
-		<option disabled="disabled">Instance Sizes Unavailable</option>
-	<select>
+	<p class="alert alert-error">
+		<i class="icon-warning-sign"></i> <strong>IMPORTANT</strong> An instance will restart itself after it resizes.
+	</p>
 
     <div class="row-fluid" id="resource_usage_holder">
-
         <div class="span6">
 			<label for="predicted_cpu_usage">Predicted CPU Usage</label>
             <div id="cpuHolder"></div>
@@ -21,8 +18,13 @@
         </div>
     </div>
 
-	<p class="alert alert-error">
-		<i class="icon-warning-sign"></i> <strong>IMPORTANT</strong> An instance will restart itself while it resizes. This process could take several hours.
-	</p>
+	<label for="new_instance_size">New Size</label>
+	<select name="new_instance_size">
+		<option disabled="disabled">Instance Sizes Unavailable</option>
+	</select>
+
+	<div class="form-actions">
+		<input type="submit" class="btn btn-primary" value="Resize Instance" />
+	</div>
 
 </form>
