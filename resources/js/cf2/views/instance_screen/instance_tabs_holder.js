@@ -15,6 +15,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		'click .request_imaging_btn': 'request_imaging',
 		'click .report_instance_btn': 'report_instance',
 		'click .resize_instance_btn' : 'resize_instance',
+		'click .reboot_instance_btn' : 'reboot_instance',
 		'change select[name="vis"]': 'toggle_vis_input',
 		'click .editing': 'edit_instance_info',
 		'click .editable' : 'redir_edit_instance_info',
@@ -202,26 +203,59 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 		var self = this;
 
-        this.display_graph();
+		// Display OpenStack-specific options
+		if (Atmo.profile.get('selected_identity').get('provider_id') == 2) {
 
-		// Disable if instance is not running
-		if (!this.model.get('state_is_active')) {
-			this.$el.find('.request_imaging_btn').addClass('disabled').attr('disabled', 'disabled');
-			this.$el.find('.report_instance_btn').addClass('disabled').attr('disabled', 'disabled');
-			this.$el.find('.suspend_resume_instance_btn').addClass('disabled').attr('disabled', 'disabled');
-			this.$el.find('#instance_tabs a[href="#instance_shell"]').addClass("tab_disabled");
-			this.$el.find('#instance_tabs a[href="#instance_vnc"]').addClass("tab_disabled");
+			this.$el.find('#euca_controls').hide();
 
-			if (this.model.get('state').indexOf('resize') == -1)
-				this.$el.find('.resize_instance_btn').addClass('disabled').attr('disabled', 'disabled');
-			else {
-				this.$el.find('.resize_instance_btn').removeClass('disabled').removeAttr('disabled', 'disabled');
+			// Disable if instance is not running
+			if (!this.model.get('state_is_active')) {
+				this.$el.find('.request_imaging_btn').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('.report_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('.reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('.suspend_resume_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('#instance_tabs a[href="#instance_shell"]').addClass("tab_disabled");
+				this.$el.find('#instance_tabs a[href="#instance_vnc"]').addClass("tab_disabled");
+
+				if (this.model.get('state').indexOf('resize') == -1)
+					this.$el.find('.resize_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+				else {
+					this.$el.find('.resize_instance_btn').removeClass('disabled').removeAttr('disabled', 'disabled');
+				}
 			}
+
+			// Don't permit terminate if instance is suspended
+			if (this.model.get('state_is_inactive'))
+				this.$el.find('.terminate_instance').addClass('disabled').attr('disabled', 'disabled');
+
+			// Show appropriate controls
+			this.$el.find('#openstack_controls').fadeIn('fast');
+
+			if (this.model.get('state') == 'suspended')
+				this.$el.find('.btn.suspend_resume_instance_btn').html('<i class="icon-play"></i> Resume').removeClass('disabled').removeAttr('disabled');
+			else 
+				this.$el.find('.btn.suspend_resume_instance_btn').fadeIn('fast');
+		}
+		else {
+			this.$el.find('#openstack_controls').hide();
+
+			// Disable if instance is not running
+			if (!this.model.get('state_is_active')) {
+				this.$el.find('.request_imaging_btn').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('.report_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('#instance_tabs a[href="#instance_shell"]').addClass("tab_disabled");
+				this.$el.find('#instance_tabs a[href="#instance_vnc"]').addClass("tab_disabled");
+			}
+
+			// Don't permit terminate if instance is suspended
+			if (this.model.get('state_is_inactive'))
+				this.$el.find('.terminate_instance').addClass('disabled').attr('disabled', 'disabled');
+
+			this.$el.find('#euca_controls').fadeIn('fast');
 		}
 
-		// Don't permit terminate if instance is suspended
-		if (this.model.get('state_is_inactive'))
-			this.$el.find('.terminate_instance').addClass('disabled').attr('disabled', 'disabled');
+        this.display_graph();
+
 
 		// Shutting-down/terminted instances should have terminate button disabled
 		if (this.model.get('state_is_delete')) {
@@ -229,20 +263,6 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			this.$el.find('.suspend_resume_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 		}
 
-		// Display OpenStack-specific options
-		if (Atmo.profile.get('selected_identity').get('provider_id') == 2) {
-			this.$el.find('.btn.resize_instance_btn').fadeIn('fast');
-			if (this.model.get('state') == 'suspended') {
-				this.$el.find('.btn.suspend_resume_instance_btn').html('<i class="icon-play"></i> Resume').removeClass('disabled').removeAttr('disabled');
-			}
-			else {
-				this.$el.find('.btn.suspend_resume_instance_btn').fadeIn('fast');
-			}
-		}
-		else {
-			this.$el.find('.btn.resize_instance_btn').hide();
-			this.$el.find('.btn.suspend_resume_instance_btn').hide();
-		}
 
 
 		// Make the tags pretty
@@ -551,6 +571,43 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		var target =  $(e.target).closest('.editable');
 		if (target.children().length == 1)
 			this.edit_instance_info(e);
+	},
+	reboot_instance: function(e) {
+		var header = '';		// Title of confirmation modal
+		var body = '';			// Body of confirmation modal
+		var ok_button = '';		// The text of the confirmation button
+		var on_confirm;			// Function to perform if user confirms modal
+		var data = {};			// Post data for the action to perform on the instance
+		var id = Atmo.profile.get('selected_identity');
+		var self = this;
+
+		header = 'Reboot Instance';
+		body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> '
+			+ 'Rebooting an instance will cause it to temporarily shut down and become inaccessible during that time.';
+		ok_button = 'Reboot Instance';
+		data = { "action" : "reboot" };
+		on_confirm = function() {
+			$.ajax({
+				url: site_root + '/api/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
+				type: 'POST',
+				data: data,
+				success: function() {
+					Atmo.Utils.notify('Rebooting Instance', 'Instance will finish rebooting momentarily.');
+
+					// Merges models to those that are accurate based on server response
+					Atmo.instances.update();
+				}, 
+				error: function() {
+					Atmo.Utils.notify(
+						'Could not reboot instance', 
+						'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
+						{ no_timeout: true }
+					);
+				}
+			});
+		};
+
+		Atmo.Utils.confirm(header, body, { ok_button: ok_button, on_confirm: on_confirm });
 	},
 	suspend_resume_instance: function(e) {
 		var header = '';		// Title of confirmation modal
