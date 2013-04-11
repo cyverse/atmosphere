@@ -20,10 +20,11 @@ Atmo.Models.Instance = Atmo.Models.Base.extend(
       //attributes.launch_relative = Atmo.Utils.relative_time(response.start_date); 
       attributes.state = response.status;
       attributes.state_is_active = (   response.status == 'active'
-                            || response.status == 'running' );
-      attributes.state_is_build = (    response.status == 'building'
-	  						|| response.status == 'building - spawning'
-							|| response.status == 'building - networking' 
+                            || response.status == 'running'
+							|| response.status == 'verify_resize' );
+      attributes.state_is_build = (    response.status == 'build'
+	  						|| response.status == 'build - spawning'
+							|| response.status == 'build - networking' 
 							|| response.status == 'pending'
 							|| response.status == 'suspended - resuming'
 							|| response.status == 'active - suspending' );

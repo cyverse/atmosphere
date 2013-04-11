@@ -113,9 +113,6 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 			this.mem_resource_chart.sub_usage(sub_mem);
 			this.cpu_resource_chart.sub_usage(sub_cpu);
 		}
-
-		console.log(this.$el.closest('.instance_tabs_holder'));
-
 	},
 	resize_instance: function(e) {
 
@@ -144,7 +141,7 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 
 				// Merges models to those that are accurate based on server response
 				Atmo.instances.update();
-				this.$el.find('input[type="submit"]').removeAttr('disabled').val('Resize Instance');
+				self.$el.find('input[type="submit"]').removeAttr('disabled').val('Resize Instance');
 			},
 			error: function() {
 				Atmo.Utils.notify(
@@ -152,6 +149,7 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 					'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
 					{ no_timeout: true }
 				);
+				self.$el.find('input[type="submit"]').removeAttr('disabled').val('Resize Instance');
 			}
 		});
 	},
