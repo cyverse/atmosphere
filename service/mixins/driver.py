@@ -27,7 +27,8 @@ class APIFilterMixin():
     def get_size(self, alias):
         try:
             size_list = self.list_sizes()
-            size = filter(lambda size: alias in size.id, size_list)[0]
+            size = filter(lambda size:
+                          alias in size.id, size_list)[0]
             return size
         except IndexError:
             return None
