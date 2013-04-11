@@ -5,6 +5,7 @@ Driver classes define interfaces and implement functionality using providers.
 """
 
 from abc import ABCMeta, abstractmethod
+from datetime import datetime
 import sys
 import time
 
@@ -263,13 +264,17 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         self._connection.connection.service_region =\
             settings.OPENSTACK_DEFAULT_REGION
 
-    def eventual_deploy(self, *args, **kwargs):
+    def eventual_deploy_instance(self, *args, **kwargs):
         pass
 
     def deploy_instance(self, *args, **kwargs):
         """
         Deploy an OpenStack node.
         """
+        if args:
+            instance = args[0]
+        else:
+            raise MissingArgsException("Missing instance argument.")
         username = self.identity.user.username
         atmo_init = "/usr/sbin/atmo_init_full.py"
         server_atmo_init = "/init_files/30/atmo-init-full.py"
@@ -307,15 +312,19 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         kwargs.update({'timeout': 120})
 
         try:
-            instance = super(OSDriver, self).deploy_instance(*args, **kwargs)
+            #instance = super(OSDriver, self).deploy_instance(*args,
+            #            **kwargs)
+            self._connection.ex_eventual_deploy_node(instance._node,
+                                                     *args, **kwargs)
         except DeploymentError as de:
             logger.error(sys.exc_info())
             logger.error(de.value)
-            raise(de)
+            #raise(de)
+            return False
+        created = datetime.strptime(instance.extra['created'], "%Y-%m-%dT%H:%M:%SZ")
+        send_instance_email(username, instance.id, instance.ip, created, username)
 
-        send_instance_email(username, instance.id, instance.ip, username)
-
-        return instance
+        return True
 
     def destroy_instance(self, *args, **kwargs):
         node_destroyed = self._connection.destroy_node(*args, **kwargs)
@@ -400,8 +409,8 @@ class AWSDriver(EshDriver):
         kwargs.update({'timeout': 400})
 
         instance = super(AWSDriver, self).deploy_instance(*args, **kwargs)
-
-        send_instance_email(username, instance.id, instance.ip, username)
+        created = datetime.strptime(instance.extra['created'], "%Y-%m-%dT%H:%M:%SZ")
+        send_instance_email(username, instance.id, instance.ip, created, username)
 
         return instance
 

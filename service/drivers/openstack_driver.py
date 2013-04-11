@@ -1,18 +1,23 @@
 """
 Extension of libcloud's OpenStack Node Driver.
-TODO: Add ip_address and status to 'front level' of the node object..
 """
+import binascii
+import copy
+import os
+import sys
+import time
 
-from libcloud.utils.py3 import httplib
-
+import libcloud.compute.ssh
+from libcloud.compute.ssh import SSHClient
 from libcloud.compute.types import Provider, NodeState, DeploymentError
 from libcloud.compute.base import StorageVolume,\
-    NODE_ONLINE_WAIT_TIMEOUT, SSH_CONNECT_TIMEOUT
-
+    NODE_ONLINE_WAIT_TIMEOUT, SSH_CONNECT_TIMEOUT,\
+    NodeAuthPassword, NodeDriver
 from libcloud.compute.drivers.openstack import OpenStack_1_1_NodeDriver
-import copy
-import time
+from libcloud.utils.py3 import httplib
+
 from atmosphere.logger import logger
+
 from service.drivers.openstackNetworkManager import NetworkManager
 
 
@@ -212,6 +217,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
         ssh_interface = kwargs.get('ssh_interface', 'public_ips')
 
+        logger.debug("here1")
+
         # Wait until node is up and running and has IP assigned
         max_tries = kwargs.get('max_tries', 3)
         try:
@@ -259,6 +266,97 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                                   driver=self)
 
         return node
+
+    def _ssh_client_connect(self, ssh_client, wait_period=1.5, timeout=300):
+        """
+        Try to connect to the remote SSH server. If a connection times out or
+        is refused it is retried up to timeout number of seconds.
+
+        @keyword    ssh_client: A configured SSHClient instance
+        @type       ssh_client: C{SSHClient}
+
+        @keyword    wait_period: How many seconds to wait between each loop
+                                 iteration (default is 1.5)
+        @type       wait_period: C{int}
+
+        @keyword    timeout: How many seconds to wait before timing out
+                             (default is 600)
+        @type       timeout: C{int}
+
+        @return: C{SSHClient} on success
+        """
+        start = time.time()
+        end = start + timeout
+
+        while time.time() < end:
+            try:
+                ssh_client.connect()
+            except (IOError, socket.gaierror, socket.error):
+                # Retry if a connection is refused or timeout
+                # occurred
+                ssh_client.close()
+                time.sleep(wait_period)
+                continue
+            else:
+                return ssh_client
+
+        raise LibcloudError(value='Could not connect to the remote SSH ' +
+                            'server. Giving up.', driver=self)
+
+    def _connect_and_run_deployment_script(self, task, node, ssh_hostname,
+                                           ssh_port, ssh_username,
+                                           ssh_password, ssh_key_file,
+                                           ssh_timeout, timeout, max_tries):
+        ssh_client = SSHClient(hostname=ssh_hostname,
+                               port=ssh_port, username=ssh_username,
+                               password=ssh_password,
+                               key=ssh_key_file,
+                               timeout=ssh_timeout)
+
+        # Connect to the SSH server running on the node
+        ssh_client = self._ssh_client_connect(ssh_client=ssh_client,
+                                              timeout=timeout)
+
+        # Execute the deployment task
+        self._run_deployment_script(task=task, node=node,
+                                    ssh_client=ssh_client,
+                                    max_tries=max_tries)
+
+    def _run_deployment_script(self, task, node, ssh_client, max_tries=3):
+        """
+        Run the deployment script on the provided node. At this point it is
+        assumed that SSH connection has already been established.
+
+        @keyword    task: Deployment task to run on the node.
+        @type       task: C{Deployment}
+
+        @keyword    node: Node to operate one
+        @type       node: C{Node}
+
+        @keyword    ssh_client: A configured and connected SSHClient instance
+        @type       ssh_client: C{SSHClient}
+
+        @keyword    max_tries: How many times to retry if a deployment fails
+                               before giving up (default is 3)
+        @type       max_tries: C{int}
+
+        @return: C{Node} Node instance on success.
+        """
+        tries = 0
+        while tries < max_tries:
+            try:
+                node = task.run(node, ssh_client)
+            except Exception:
+                e = sys.exc_info()[1]
+                tries += 1
+                if tries >= max_tries:
+                    e = sys.exc_info()[1]
+                    raise LibcloudError(value='Failed after %d tries: %s'
+                                        % (max_tries, str(e)), driver=self)
+            else:
+                ssh_client.close()
+                return node
+
 
     def ex_list_networks(self, region=None):
         """
