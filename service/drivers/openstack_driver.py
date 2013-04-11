@@ -4,6 +4,7 @@ Extension of libcloud's OpenStack Node Driver.
 import binascii
 import copy
 import os
+import socket
 import sys
 import time
 
@@ -34,8 +35,10 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                      "public_ips as extra",
                      "keypairs as extra",
                      "user/tenant as extra"],
-        "create_node": ["Include floating IP", "ssh_key"],
-        "ex_eventual_deploy_node": ["Deploy node for existing nodes."],
+        "create_node": ["Create node with ssh_key", "ssh_key"],
+        "ex_create_node_with_network": ["Create node with floating IP"
+                                     " and ssh_key", "ssh_key"],
+        "ex_deploy_to_node": ["Deploy to existing node"],
         "ex_suspend_node": ["Suspends the node"],
         "ex_resume_node": ["Resume the node"],
         "create_volume": ["Create volume"],
@@ -168,6 +171,19 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         kwargs.update({
             'ex_keyname': unicode(self.key),
         })
+        logger.debug("create_node kwargs = %s" % kwargs)
+        node = super(OpenStack_Esh_NodeDriver, self).create_node(**kwargs)
+
+        #NOTE: This line is needed to authenticate via SSH_Keypair instead!
+        node.extra['password'] = None
+
+        return node
+
+    def ex_create_node_with_network(self, **kwargs):
+        self._add_keypair(kwargs)
+        kwargs.update({
+            'ex_keyname': unicode(self.key),
+        })
         logger.debug("kwargs = %s" % kwargs)
         #Instance launches at this point.
         node = super(OpenStack_Esh_NodeDriver, self).create_node(**kwargs)
@@ -184,7 +200,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
 
         return node
 
-    def ex_eventual_deploy_node(self, node, *args, **kwargs):
+    def ex_deploy_to_node(self, node, *args, **kwargs):
         """
         libcloud.compute.base.deploy_node
         """

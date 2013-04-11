@@ -129,9 +129,8 @@ def launchEshInstance(driver, extras, *args, **kwargs):
             #will help avoid confusion here..
             eshInstance = driver.create_instance(size=size,
                                                  image=machine, **extras)
-            # ex_eventual_deploy here
-#            eshInstance = driver.deploy_instance_task(size=size,
-#                                                 image=machine, **extras)
+            # call async tasks.
+            driver.deploy_init_to_task(eshInstance)
         elif isinstance(driver.provider, AWSProvider):
             #TODO:Extra stuff needed for AWS provider here
             extras['deploy'] = True

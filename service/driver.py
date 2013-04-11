@@ -267,10 +267,7 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
     def eventual_deploy_instance(self, *args, **kwargs):
         pass
 
-    def deploy_instance(self, *args, **kwargs):
-        """
-        Deploy an OpenStack node.
-        """
+    def deploy_init_to(self, *args, **kwargs):
         if args:
             instance = args[0]
         else:
@@ -310,12 +307,8 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'deploy': msd})
         kwargs.update({'timeout': 120})
-
         try:
-            #instance = super(OSDriver, self).deploy_instance(*args,
-            #            **kwargs)
-            self._connection.ex_eventual_deploy_node(instance._node,
-                                                     *args, **kwargs)
+            self.deploy_to(instance, *args, **kwargs)
         except DeploymentError as de:
             logger.error(sys.exc_info())
             logger.error(de.value)
@@ -324,6 +317,49 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         created = datetime.strptime(instance.extra['created'], "%Y-%m-%dT%H:%M:%SZ")
         send_instance_email(username, instance.id, instance.ip, created, username)
 
+        return True
+
+    def deploy_to(self, *args, **kwargs):
+        """
+        Deploy to an instance.
+        """
+        if args:
+            instance = args[0]
+        else:
+            raise MissingArgsException("Missing instance argument.")
+        if not kwargs.get('deploy'):
+            raise MissingArgsException("Missing deploy argument.")
+        username = self.identity.user.username
+        private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
+        kwargs.update({'ssh_key': private_key})
+        kwargs.update({'timeout': 120})
+        try:
+            self._connection.ex_deploy_to_node(instance._node,
+                                               *args, **kwargs)
+        except DeploymentError as de:
+            logger.error(sys.exc_info())
+            logger.error(de.value)
+            return False
+        return True
+
+    def deploy_instance(self, *args, **kwargs):
+        """
+        Deploy instance.
+
+        NOTE: This is blocking and uses the blocking create_node.
+        """
+        if not kwargs.get('deploy'):
+            raise MissingArgsException("Missing deploy argument.")
+        username = self.identity.user.username
+        private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
+        kwargs.update({'ssh_key': private_key})
+        kwargs.update({'timeout': 120})
+        try:
+            self.deploy_node(*args, **kwargs)
+        except DeploymentError as de:
+            logger.error(sys.exc_info())
+            logger.error(de.value)
+            return False
         return True
 
     def destroy_instance(self, *args, **kwargs):
@@ -349,6 +385,9 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
 
     def revert_resize_instance(self, *args, **kwargs):
         return self._connection.ex_revert_resize(*args, **kwargs)
+
+    def _add_floating_ip(self, instance_id, *args, **kwargs):
+        return self._connection._add_floating_ip(instance_id, *args, **kwargs)
 
     def _remove_unused_floating_ips(self):
         for f_ip in self._connection.ex_list_floating_ips():
