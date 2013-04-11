@@ -22,97 +22,108 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		'click .btn.suspend_resume_instance_btn' : 'suspend_resume_instance'
 	},
 	initialize: function(options) {
-	  Atmo.instances.bind('select', this.select_instance, this);
-	  this.model.bind('change:running_shell', this.open_or_close_frames, this);
-	  this.model.bind('change:running_vnc', this.open_or_close_frames, this);
-	  this.model.bind('change:state', this.instance_info, this);
-	  this.model.bind('change:ip_address', this.instance_info, this);
-	  this.model.bind('change:launch_relative', this.instance_info, this);
-          Atmo.instances.bind('change:has_shell, change:has_vnc', this.update_shell_vnc_tabs, this);
-          this.rendered = false;
+		this.model.bind('change:running_shell', this.open_or_close_frames, this);
+		this.model.bind('change:running_vnc', this.open_or_close_frames, this);
+		this.model.bind('change:state', this.instance_info, this);
+		this.model.bind('change:ip_address', this.instance_info, this);
+		this.model.bind('change:launch_relative', this.instance_info, this);
+        this.model.bind('change:has_shell', this.update_shell_tab, this);
+		this.model.bind('change:has_vnc', this.update_vnc_tab, this);
+		Atmo.instances.bind('select', this.select_instance, this);
+        this.rendered = false;
 	},
-    update_shell_vnc_tabs: function() {
+	update_vnc_tab: function() {
+		// If VNC is available, make the tab enabled. Otherwise, disable it.
+
+		var self = this;
+
+		// same for vnc
+		if (this.model.get('state_is_active') && this.model.get('has_vnc') == true) {
+			this.$el.find('.instance_tabs a.instance_vnc_tab')
+				.show()
+				.removeClass("tab_disabled")
+				.attr("title", "");
+
+			// Get rid of tooltip and 'VNC Unavailable' text
+			this.$el.find('.instance_tabs a.instance_vnc_tab').html("Access by VNC");
+			this.$el.find('.instance_tabs a.instance_vnc_tab i').remove();
+		} 
+		else if (this.model.get('has_vnc') == false || this.model.get('has_vnc') == undefined) { 
+			this.$el.find('.instance_tabs a.instance_vnc_tab')
+				.addClass("tab_disabled")
+				.attr("title", "This instance does not support VNC");
+			
+			// Give you user reasons it might be disabled
+			this.$el.find('.instance_tabs a.instance_vnc_tab').html('VNC Unavailable');
+
+			var vnc_help = $('<a/>', {
+				class: 'context-helper',
+				id: 'help_no_vnc_'+self.model.get('id'),
+				html: '<i class="icon-question-sign"></i>'
+			}).popover({
+				title: 'VNC Unavailable <a class="close" data-dismiss="popover" href="#instances" data-parent="help_no_vnc_'+self.model.get('id')+'">&times</a>',
+				html: true,
+				content: function() {
+					var content = 'VNC may be unavailable for several reasons: <ul>'
+						+ '<li> Instance is pending, shutting down, or terminated.</li>'
+						+ '<li> Instance does not support VNC because it does not have a desktop interface. You can still access it by shell, however.</li>'
+						+ '<li> Instance was corrupted during launch. This happens from time to time. Try terminating the instance and launching a new one.</li>'
+						+ '</ul>'
+						+ 'To guarantee VNC access, launch from an image tagged with "VNC". Do this by searching for <em>tag:vnc</em>.';
+					return content;
+				},
+				placement: 'bottom'
+			}).click(this.x_close);
+
+			this.$el.find('.instance_tabs a.instance_vnc_tab').append(vnc_help);
+		}
+
+	},
+    update_shell_tab: function() {
         var self = this;
-		//if (this.model.get('state') != 'pending') {
-            // if shell is available, show it. Otherwise, disable it
-            if (this.model.get('state_is_active') && this.model.get('has_shell') == true) {
-                this.$el.find('.instance_tabs a.instance_shell_tab')
-                    .show()
-                    .removeClass("tab_disabled")
-                    .attr("title", "");
-                
-                // Get rid of tooltip and 'Shell Unavailable' text
-                this.$el.find('.instance_tabs a.instance_shell_tab').html("Access by Shell");
-                this.$el.find('.instance_tabs a.instance_shell_tab i').remove();
-            } else if (this.model.get('has_shell') == false || this.model.get('has_shell') == undefined) {
-                this.$el.find('.instance_tabs a.instance_shell_tab')
-                    .addClass("tab_disabled")
-                    .attr("title", "This instance does not support shell.");
 
-                // Give you user reasons it might be disabled
-                this.$el.find('.instance_tabs a.instance_shell_tab').html('Shell Unavailable');
+		// if shell is available, show it. Otherwise, disable it
+		if (this.model.get('state_is_active') && this.model.get('has_shell') == true) {
+			this.$el.find('.instance_tabs a.instance_shell_tab')
+				.show()
+				.removeClass("tab_disabled")
+				.attr("title", "");
+			
+			// Get rid of tooltip and 'Shell Unavailable' text
+			this.$el.find('.instance_tabs a.instance_shell_tab').html("Access by Shell");
+			this.$el.find('.instance_tabs a.instance_shell_tab i').remove();
+		} 
+		else if (this.model.get('has_shell') == false || this.model.get('has_shell') == undefined) {
+			this.$el.find('.instance_tabs a.instance_shell_tab')
+				.addClass("tab_disabled")
+				.attr("title", "This instance does not support shell.");
 
-                var shell_help = $('<a/>', {
-                    class: 'context-helper',
-                    id: 'help_no_shell_'+self.model.get('id'),
-                    html: '<i class="icon-question-sign"></i>'
-                }).popover({
-                    title: 'Shell Unavailable <a class="close" data-dismiss="popover" href="#instances" data-parent="help_no_shell_'+self.model.get('id')+'">&times</a>',
-                    html: true,
-                    content: function() {
-                        var content = 'The web-based shell may be unavailable for several reasons: <ul>';
-                        content += '<li> Instance is pending, shutting down, or terminated.</li>';
-                        content += '<li> Instance is based on an old image and does not support web shell. Try launching a newer version or connect using Terminal or PuTTY. (<a href="https://pods.iplantcollaborative.org/wiki/x/Oqxm#LoggingIntoanInstance-LoggingintoaninstancewithSSH" target="_blank">Learn How</a>)</li> ';
-                        content += '<li> Instance was corrupted during launch. This happens from time to time. Try terminating the instance and launching a new one.</li>';
-                        content += '</ul>';
-                        return content;
-                    },
-                    placement: 'bottom'
-                }).click(this.x_close);
+			// Give you user reasons it might be disabled
+			this.$el.find('.instance_tabs a.instance_shell_tab').html('Shell Unavailable');
 
-                this.$el.find('.instance_tabs a.instance_shell_tab').append(shell_help);
-            }
+			var shell_help = $('<a/>', {
+				class: 'context-helper',
+				id: 'help_no_shell_'+self.model.get('id'),
+				html: '<i class="icon-question-sign"></i>'
+			}).popover({
+				title: 'Shell Unavailable <a class="close" data-dismiss="popover" href="#instances" data-parent="help_no_shell_'+self.model.get('id')+'">&times</a>',
+				html: true,
+				content: function() {
+					var content = 'The web-based shell may be unavailable for several reasons: <ul>'
+						+ '<li> Instance is pending, shutting down, or terminated.</li>'
+						+ '<li> Instance is based on an old image and does not support web shell. '
+						+ 'Try launching a newer version or connect using Terminal or PuTTY. '
+						+ '(<a href="https://pods.iplantcollaborative.org/wiki/x/Oqxm#LoggingIntoanInstance-LoggingintoaninstancewithSSH" target="_blank">Learn How</a>)</li> '
+						+ '<li> Instance was corrupted during launch. This happens from time to time. Try terminating the instance and launching a new one.</li>'
+						+ '</ul>';
+					return content;
+				},
+				placement: 'bottom'
+			}).click(this.x_close);
 
-            // same for vnc
-            if (this.model.get('state_is_active') && this.model.get('has_vnc') == true) {
-                this.$el.find('.instance_tabs a.instance_vnc_tab')
-                    .show()
-                    .removeClass("tab_disabled")
-                    .attr("title", "");
+			this.$el.find('.instance_tabs a.instance_shell_tab').append(shell_help);
+		}
 
-                // Get rid of tooltip and 'VNC Unavailable' text
-                this.$el.find('.instance_tabs a.instance_vnc_tab').html("Access by VNC");
-                this.$el.find('.instance_tabs a.instance_vnc_tab i').remove();
-            } else if (this.model.get('has_vnc') == false || this.model.get('has_vnc') == undefined) { 
-                this.$el.find('.instance_tabs a.instance_vnc_tab')
-                    .addClass("tab_disabled")
-                    .attr("title", "This instance does not support VNC");
-                
-                // Give you user reasons it might be disabled
-                this.$el.find('.instance_tabs a.instance_vnc_tab').html('VNC Unavailable');
-
-                var vnc_help = $('<a/>', {
-                    class: 'context-helper',
-                    id: 'help_no_vnc_'+self.model.get('id'),
-                    html: '<i class="icon-question-sign"></i>'
-                }).popover({
-                    title: 'VNC Unavailable <a class="close" data-dismiss="popover" href="#instances" data-parent="help_no_vnc_'+self.model.get('id')+'">&times</a>',
-                    html: true,
-                    content: function() {
-                        var content = 'VNC may be unavailable for several reasons: <ul>';
-                        content += '<li> Instance is pending, shutting down, or terminated.</li>';
-                        content += '<li> Instance does not support VNC because it does not have a desktop interface. You can still access it by shell, however.</li>';
-                        content += '<li> Instance was corrupted during launch. This happens from time to time. Try terminating the instance and launching a new one.</li>';
-                        content += '</ul>';
-                        content += 'To guarantee VNC access, launch from an image tagged with "VNC". Do this by searching for <em>tag:vnc</em>.';
-                        return content;
-                    },
-                    placement: 'bottom'
-                }).click(this.x_close);
-
-                this.$el.find('.instance_tabs a.instance_vnc_tab').append(vnc_help);
-            }
-		//}
     },
 	render: function() {
 		this.$el.html(this.template(this.model.toJSON()));
@@ -122,7 +133,9 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		var self = this;
 		this.$el.find('.instance_tabs a.instance_shell_tab, .instance_tabs a.instance_vnc_tab').addClass("tab_disabled");
 
-        this.update_shell_vnc_tabs();
+		// Enable Shell/VNC if instance has those available
+        this.update_shell_tab();
+        this.update_vnc_tab();
 
 		// Display 'Request Imaging' tab if they've already clicked the button for this instance before	
 		if (this.$el.find('.module[data-ip="'+this.model.get('public_dns_name')+'"]').length != 0)
@@ -131,7 +144,6 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			this.$el.find('a.request_imaging').fadeOut('fast');
 
 		this.display_close_buttons();
-
 
 		return this;
 	},
@@ -198,6 +210,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			this.$el.find('#instance_tabs a[href="#instance_vnc"]').addClass("tab_disabled");
 		}
 
+		// Don't permit terminate if instance is suspended
 		if (this.model.get('state_is_inactive'))
 			this.$el.find('.terminate_instance').addClass('disabled').attr('disabled', 'disabled');
 
@@ -205,7 +218,6 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		if (this.model.get('state_is_delete')) {
 			this.$el.find('.terminate_instance').addClass('disabled').attr('disabled', 'disabled');
 			this.$el.find('.suspend_resume_instance_btn').addClass('disabled').attr('disabled', 'disabled');
-
 		}
 
 		// Display OpenStack-specific options

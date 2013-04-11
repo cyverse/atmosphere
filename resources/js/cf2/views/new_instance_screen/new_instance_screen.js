@@ -288,7 +288,6 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 			$.each(tags, function(idx, el_tag) {
 				found = found || (el_tag == tag);
 				if(found){
-					//console.log("Matched on Tag");
 					return;
 				}
 			});
@@ -319,9 +318,6 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 					words.push(word);
 				}
 			});
-			//console.log(tags);
-			//console.log(words);
-			//this.$el.find(".image_list li:icontains("+text+")").show();
 
 			$.each(this.$el.find('.image_list > li'), function(i, e) {
 				var found = true;
@@ -338,7 +334,6 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 				var test_name = testImage.get('name');
 				var test_desc = testImage.get('description');
 
-                //console.log('test_tags', test_tags);
 
 				$.each(tags, function(idx,tag) {
                     // Can't just test against the whole array, or will only get complete matches
@@ -361,7 +356,6 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
                         found = false;
                         return;
                     } 
-					//console.log("Found tag:"+tag);
 				});
 				$.each(words, function(idx,word) {
                     word = word.toLowerCase();
@@ -369,7 +363,6 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 						found = false;
 						return;
 					}
-					//console.log("Found word:"+word);
 				});
 				if (found) $(e).show();
 			});
@@ -483,6 +476,13 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 				},
 				error: function() {
 					Atmo.Utils.notify("Instance launch was unsuccessful", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
+
+					// Allow user to try launching again
+					self.launch_lock = false;
+					$('#launchInstance')
+						.removeAttr('disabled')
+						.val('Launch Instance');
+
 				},
 			});
 		} else {

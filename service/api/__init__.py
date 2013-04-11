@@ -126,8 +126,11 @@ def launchEshInstance(driver, extras, *args, **kwargs):
             #NOTE: Name, deploy are passed in extras
             #TODO: Explicitly set the kwargs here and pass them instead of args
             #will help avoid confusion here..
-            eshInstance = driver.deploy_instance_task(size=size,
+            eshInstance = driver.create_instance(size=size,
                                                  image=machine, **extras)
+            # ex_eventual_deploy here
+#            eshInstance = driver.deploy_instance_task(size=size,
+#                                                 image=machine, **extras)
         elif isinstance(driver.provider, AWSProvider):
             #TODO:Extra stuff needed for AWS provider here
             extras['deploy'] = True

@@ -1,16 +1,23 @@
 """
 Extension of libcloud's OpenStack Node Driver.
-TODO: Add ip_address and status to 'front level' of the node object..
 """
+import binascii
+import copy
+import os
+import sys
+import time
 
+import libcloud.compute.ssh
+from libcloud.compute.ssh import SSHClient
+from libcloud.compute.types import Provider, NodeState, DeploymentError
+from libcloud.compute.base import StorageVolume,\
+    NODE_ONLINE_WAIT_TIMEOUT, SSH_CONNECT_TIMEOUT,\
+    NodeAuthPassword, NodeDriver
+from libcloud.compute.drivers.openstack import OpenStack_1_1_NodeDriver
 from libcloud.utils.py3 import httplib
 
-from libcloud.compute.types import Provider
-from libcloud.compute.base import StorageVolume
-from libcloud.compute.drivers.openstack import OpenStack_1_1_NodeDriver
-import copy
-import time
 from atmosphere.logger import logger
+
 from service.drivers.openstackNetworkManager import NetworkManager
 
 
@@ -28,6 +35,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                      "keypairs as extra",
                      "user/tenant as extra"],
         "create_node": ["Include floating IP", "ssh_key"],
+        "ex_eventual_deploy_node": ["Deploy node for existing nodes."],
         "ex_suspend_node": ["Suspends the node"],
         "ex_resume_node": ["Resume the node"],
         "create_volume": ["Create volume"],
@@ -168,13 +176,187 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         node.extra['password'] = None
 
         #NOTE: Using this to wait for the time it takes to launch instance and have a valid IP port
-        time.sleep(30)
+        time.sleep(20)
         #TODO: It would be better to hook in an asnyc thread that waits for valid IP port
         #TODO: This belongs in a eelery task.
         server_id = node.id
         self._add_floating_ip(server_id, **kwargs)
 
         return node
+
+    def ex_eventual_deploy_node(self, node, *args, **kwargs):
+        """
+        libcloud.compute.base.deploy_node
+        """
+        if not libcloud.compute.ssh.have_paramiko:
+            raise RuntimeError('paramiko is not installed. You can install ' +
+                               'it using pip: pip install paramiko')
+
+        password = None
+
+        if 'create_node' not in self.features:
+            raise NotImplementedError(
+                'deploy_node not implemented for this driver')
+        elif 'generates_password' not in self.features["create_node"]:
+            if 'password' not in self.features["create_node"] and \
+               'ssh_key' not in self.features["create_node"]:
+                raise NotImplementedError(
+                    'deploy_node not implemented for this driver')
+
+            if 'auth' not in kwargs:
+                value = os.urandom(16)
+                kwargs['auth'] = NodeAuthPassword(binascii.hexlify(value))
+
+            if 'ssh_key' not in kwargs:
+                password = kwargs['auth'].password
+
+        max_tries = kwargs.get('max_tries', 3)
+
+        if 'generates_password' in self.features['create_node']:
+            password = node.extra.get('password')
+
+        ssh_interface = kwargs.get('ssh_interface', 'public_ips')
+
+        logger.debug("here1")
+
+        # Wait until node is up and running and has IP assigned
+        max_tries = kwargs.get('max_tries', 3)
+        try:
+            node, ip_addresses = self.wait_until_running(
+                nodes=[node],
+                wait_period=3, timeout=NODE_ONLINE_WAIT_TIMEOUT,
+                ssh_interface=ssh_interface)[0]
+        except Exception:
+            e = sys.exc_info()[1]
+            raise DeploymentError(node=node, original_exception=e, driver=self)
+
+        if password:
+            node.extra['password'] = password
+
+        ssh_username = kwargs.get('ssh_username', 'root')
+        ssh_alternate_usernames = kwargs.get('ssh_alternate_usernames', [])
+        ssh_port = kwargs.get('ssh_port', 22)
+        ssh_timeout = kwargs.get('ssh_timeout', 10)
+        ssh_key_file = kwargs.get('ssh_key', None)
+        timeout = kwargs.get('timeout', SSH_CONNECT_TIMEOUT)
+
+        deploy_error = None
+
+        for username in ([ssh_username] + ssh_alternate_usernames):
+            try:
+                self._connect_and_run_deployment_script(
+                    task=kwargs['deploy'], node=node,
+                    ssh_hostname=ip_addresses[0], ssh_port=ssh_port,
+                    ssh_username=username, ssh_password=password,
+                    ssh_key_file=ssh_key_file, ssh_timeout=ssh_timeout,
+                    timeout=timeout, max_tries=max_tries)
+            except Exception:
+                # Try alternate username
+                # Todo: Need to fix paramiko so we can catch a more specific
+                # exception
+                e = sys.exc_info()[1]
+                deploy_error = e
+            else:
+                # Script sucesfully executed, don't try alternate username
+                deploy_error = None
+                break
+
+        if deploy_error is not None:
+            raise DeploymentError(node=node, original_exception=deploy_error,
+                                  driver=self)
+
+        return node
+
+    def _ssh_client_connect(self, ssh_client, wait_period=1.5, timeout=300):
+        """
+        Try to connect to the remote SSH server. If a connection times out or
+        is refused it is retried up to timeout number of seconds.
+
+        @keyword    ssh_client: A configured SSHClient instance
+        @type       ssh_client: C{SSHClient}
+
+        @keyword    wait_period: How many seconds to wait between each loop
+                                 iteration (default is 1.5)
+        @type       wait_period: C{int}
+
+        @keyword    timeout: How many seconds to wait before timing out
+                             (default is 600)
+        @type       timeout: C{int}
+
+        @return: C{SSHClient} on success
+        """
+        start = time.time()
+        end = start + timeout
+
+        while time.time() < end:
+            try:
+                ssh_client.connect()
+            except (IOError, socket.gaierror, socket.error):
+                # Retry if a connection is refused or timeout
+                # occurred
+                ssh_client.close()
+                time.sleep(wait_period)
+                continue
+            else:
+                return ssh_client
+
+        raise LibcloudError(value='Could not connect to the remote SSH ' +
+                            'server. Giving up.', driver=self)
+
+    def _connect_and_run_deployment_script(self, task, node, ssh_hostname,
+                                           ssh_port, ssh_username,
+                                           ssh_password, ssh_key_file,
+                                           ssh_timeout, timeout, max_tries):
+        ssh_client = SSHClient(hostname=ssh_hostname,
+                               port=ssh_port, username=ssh_username,
+                               password=ssh_password,
+                               key=ssh_key_file,
+                               timeout=ssh_timeout)
+
+        # Connect to the SSH server running on the node
+        ssh_client = self._ssh_client_connect(ssh_client=ssh_client,
+                                              timeout=timeout)
+
+        # Execute the deployment task
+        self._run_deployment_script(task=task, node=node,
+                                    ssh_client=ssh_client,
+                                    max_tries=max_tries)
+
+    def _run_deployment_script(self, task, node, ssh_client, max_tries=3):
+        """
+        Run the deployment script on the provided node. At this point it is
+        assumed that SSH connection has already been established.
+
+        @keyword    task: Deployment task to run on the node.
+        @type       task: C{Deployment}
+
+        @keyword    node: Node to operate one
+        @type       node: C{Node}
+
+        @keyword    ssh_client: A configured and connected SSHClient instance
+        @type       ssh_client: C{SSHClient}
+
+        @keyword    max_tries: How many times to retry if a deployment fails
+                               before giving up (default is 3)
+        @type       max_tries: C{int}
+
+        @return: C{Node} Node instance on success.
+        """
+        tries = 0
+        while tries < max_tries:
+            try:
+                node = task.run(node, ssh_client)
+            except Exception:
+                e = sys.exc_info()[1]
+                tries += 1
+                if tries >= max_tries:
+                    e = sys.exc_info()[1]
+                    raise LibcloudError(value='Failed after %d tries: %s'
+                                        % (max_tries, str(e)), driver=self)
+            else:
+                ssh_client.close()
+                return node
+
 
     def ex_list_networks(self, region=None):
         """
@@ -397,7 +579,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             return _to_ips(self.connection.request("/os-floating-ips").object)
         except:
             logger.warn("Unable to list floating ips from nova.")
-            return None
+            return []
 #        network_manager = NetworkManager.lc_driver_init(self, region)
 #        return network_manager.list_floating_ips()
 

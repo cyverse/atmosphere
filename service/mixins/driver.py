@@ -27,7 +27,8 @@ class APIFilterMixin():
     def get_size(self, alias):
         try:
             size_list = self.list_sizes()
-            size = filter(lambda size: alias in size.id, size_list)[0]
+            size = filter(lambda size:
+                          alias in size.id, size_list)[0]
             return size
         except IndexError:
             return None
@@ -85,6 +86,27 @@ class APIFilterMixin():
         filtered = [machine for machine in machines
                     if not any(word in machine.name for word in black_list)]
         return filtered
+
+
+class InstanceActionMixin():
+    def reboot_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def resume_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def suspend_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def resize_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def confirm_resize_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def revert_resize_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
 
 class TaskMixin():
     def deploy_instance_task(self, *args, **kwargs):

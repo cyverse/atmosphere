@@ -126,12 +126,12 @@ class InstanceAction(APIView):
                 volume_id = action_params.get('volume_id')
                 esh_volume = esh_driver.get_volume(volume_id)
                 device = action_params.get('device', None)
-                if 'attach_volume' in action:
+                if 'attach_volume' == action:
                     esh_driver.attach_volume(
                         esh_instance,
                         esh_volume,
                         device)
-                elif 'detach_volume' in action:
+                elif 'detach_volume' == action:
                     esh_driver.detach_volume(eshVolume)
                 #If attaching, wait until we leave the intermediary state...
                 attempts = 0
@@ -150,18 +150,24 @@ class InstanceAction(APIView):
                 logger.debug(
                     "%s completed in %s attempts"
                     % (action, attempts))
-#            elif 'resize' in action:
-#                esh_driver.resize_instance()
-#            elif 'pause' in action:
-#                esh_driver.suspend_instance(esh_instance)
-#            elif 'unpause' in action:
-#                esh_driver.resume_instance(esh_instance)
-            elif 'suspend' in action:
+            elif 'resize' == action:
+                size_alias = action_params.get('size_alias', '')
+                size = esh_driver.get_size(size_alias)
+                esh_driver.resize_instance(esh_instance, size)
+            elif 'confirm_resize' == action:
+                esh_driver.confirm_resize_instance(esh_instance)
+            elif 'revert_resize' == action:
+                esh_driver.revert_resize_instance(esh_instance)
+            elif 'suspend' == action:
                 esh_driver.suspend_instance(esh_instance)
-            elif 'resume' in action:
+            elif 'resume' == action:
                 esh_driver.resume_instance(esh_instance)
-            elif 'reboot' in action:
+            elif 'reboot' == action:
                 esh_driver.reboot_instance(esh_instance)
+            elif 'rebuild' == action:
+                machine_alias = action_params.get('machine_alias', '')
+                machine = esh_driver.get_machine(machine_alias)
+                esh_driver.rebuild_instance(esh_instance, machine)
             api_response = {
                 'result': 'success',
                 'message': 'The requested action <%s> was run successfully'
