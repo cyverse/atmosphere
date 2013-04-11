@@ -130,6 +130,7 @@ class ExportManager():
                 rmdisk_version = line.replace('.img','').replace('initrd-','')
         self.run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c", "mkinitrd --with virtio_pci --with virtio_ring --with virtio_blk --with virtio_net --with virtio_balloon --with virtio -f /boot/%s %s" % (latest_rmdisk, rmdisk_version)])
         #REPLACE THE GRUB.CONF
+    def _rewrite_grub_conf(self, mount_point, latest_rmdisk, rmdisk_version):
         new_grub_conf = """default=0
 timeout=3
 splashimage=(hd0,0)/boot/grub/splash.xpm.gz
@@ -257,10 +258,18 @@ title Atmosphere VM (%s)
             result_map[k] = int(v)
         return result_map
 
-    def _build_new_image(self, original_image, download_dir, image_gb_size=10):
+    def _size_in_gb(self, size_bytes):
+        size_bytes = float(size_bytes)
+        size_gigabytes = size_bytes / 1073741824
+        return int(math.ceil(size_gigabytes))
+
+    def _build_new_image(self, original_image, download_dir):
         """
         Given an image file, create a new bootable RAW image
         """
+        #Determine the size of the disk image
+        file_size = os.path.getsize(original_image)
+        image_gb_size = self._size_in_gb(file_size)
         #Create new virtual Disk Image
         new_raw_img = original_image.replace('.img','.raw')
         one_gb = 1024
@@ -285,6 +294,7 @@ title Atmosphere VM (%s)
         block_size = 4096
         fs_size = ((disk['end'] - disk['start']) * disk['unit']) / block_size
         self.run_command(['mkfs.ext3', '-b', '%s' % block_size, offset_loop_dev, '%s' % fs_size])
+        self.run_command(['e2label', offset_loop_dev, 'root'])
         #Copy the Filesystem
         empty_raw_dir = os.path.join(download_dir, 'bootable_raw_here')
         orig_raw_dir = os.path.join(download_dir, 'original_img_here')

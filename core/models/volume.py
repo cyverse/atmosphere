@@ -1,5 +1,8 @@
+from datetime import datetime
+
 from django.db import models
 from django.utils import timezone
+
 from core.models.provider import Provider
 from atmosphere.logger import logger
 
@@ -14,7 +17,9 @@ class Volume(models.Model):
     size = models.IntegerField()
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(
+        default=timezone.make_aware(datetime.now(),
+            timezone.get_current_timezone()))
     end_date = models.DateTimeField(null=True, blank=True)
 
     class Meta:
