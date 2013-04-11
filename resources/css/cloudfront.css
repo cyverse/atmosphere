@@ -1552,6 +1552,9 @@ opacity: .5;
 .modal-footer a.btn-primary {
 	color: #FFF !important;
 }
+.modal-footer a[disabled="disabled"] {
+	color: #A7A9AC !important;
+}
 /* Drag-and-drop instance and volume styles  */
 #draggable_container {
 	overflow: auto;

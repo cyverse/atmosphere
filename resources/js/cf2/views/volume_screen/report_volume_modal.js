@@ -17,6 +17,8 @@ Atmo.Views.ReportVolumeModal = Backbone.View.extend({
     },
     render: function() {
 
+        this.$el.html(this.template());
+
 		// Populate modal with volumes
 		if (Atmo.volumes.length > 0) {
 			this.$el.html(this.template());

@@ -8,7 +8,8 @@ Atmo.Views.BackupVolumeModal = Backbone.View.extend({
     className: 'modal hide fade',
     template: _.template(Atmo.Templates.backup_volume_modal),
 	events: {
-		'change select[name="volume_to_backup"]' : 'backup_location_change'
+		'change select[name="volume_to_backup"]' : 'backup_location_change',
+		'keyup input[name="backup_name"]' : 'validate_backup_name'
 	},
     initialize: function() {
 		Atmo.volumes.bind("reset", this.render, this);
@@ -84,16 +85,65 @@ Atmo.Views.BackupVolumeModal = Backbone.View.extend({
 			$(window).unbind('keyup');
 		}
 	},
+	validate_backup_name: function() {
+
+		var volume_name = this.$el.find('input[name="backup_name"]').val();
+		var volume_name_field = this.$el.find('input[name="backup_name"]');
+
+		this.$el.find('#backup_name_errors').html("<ul></ul>");
+		var errors = false;
+
+		// Make sure volume name doesn't contain spaces
+		if (volume_name.indexOf(' ') != -1) {
+			// Tell them there's a problem
+			this.$el.find('#backup_name_errors ul').append("<li>Volume names may not contain spaces.</li>");
+			volume_name_field.closest('.control-group').addClass('error');
+			this.$el.find('#confirm_backup').attr('disabled', 'disabled');
+			errors = true;
+		}
+		var exp = /^[a-zA-Z0-9_]*$/gi;
+		if (exp.test(volume_name) == false) {
+			this.$el.find('#backup_name_errors ul').append("<li>Volume name may contain only numbers, letters, and underscores.</li>");
+			this.$el.find('#confirm_backup').attr('disabled', 'disabled');
+			volume_name_field.closest('.control-group').addClass('error');
+			errors = true;
+		}
+
+		if (!errors) {
+			// No errors yet means that volume_name is ok
+			volume_name_field.closest('.control-group').removeClass('error');
+
+			// Update the backup location with backup name if applicable 
+			if (volume_name.length > 0)
+				this.$el.find('input[name="backup_location"]').val('/home/iplant/' + Atmo.profile.get('id') + '/atmo/' + volume_name);
+			else {
+				selected_vol = this.$el.find('select[name="volume_to_backup"] option:selected').val();
+				this.$el.find('input[name="backup_location"]').val('/home/iplant/' + Atmo.profile.get('id') + '/atmo/' + selected_vol);
+			}
+
+			this.$el.find('#confirm_backup').removeAttr('disabled', 'disabled');
+		}
+
+		return errors;
+
+	},
 	backup_location_change: function(e) {
 		selected_vol = this.$el.find('select[name="volume_to_backup"] option:selected').val();
 
-		this.$el.find('input[name="backup_location"]').val('/home/iplant/' + Atmo.profile.get('id') + '/atmo/' + selected_vol);
+		if (this.$el.find('input[name="backup_name"]').val().length == 0)
+			this.$el.find('input[name="backup_location"]').val('/home/iplant/' + Atmo.profile.get('id') + '/atmo/' + selected_vol);
 	},
 	begin_backup: function() {
-		console.log("backup");
+
+		if (this.validate_backup_name()) {
+			this.$el.find('.modal-footer a').eq(1).unbind('click');
+			this.$el.find('.modal-footer a').eq(1).click(this.button_listener(this.complete_backup));
+
+
+			console.log("begin backup");
+		}
 		
-		this.$el.find('.modal-footer a').eq(1).unbind('click');
-        this.$el.find('.modal-footer a').eq(1).click(this.button_listener(this.complete_backup));
+		return false;
 	},
 	complete_backup: function(e) {
 		
