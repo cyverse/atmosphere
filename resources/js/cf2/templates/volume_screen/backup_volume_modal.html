@@ -7,14 +7,23 @@
 			<p>The contents of the selected volume will be backed up to your iPlant Data Store home directory in a folder of the same name.</p>
 			<form name="backup_volume_form">
 
-				<label for="volume_to_backup">Volume to Backup</label>
-				<select name="volume_to_backup">
-					<option disabled="disabled">No Volumes</option>
-				</select>
-				<label for="backup_name">Backup Name</label>
-				<input type="text" name="backup_name" type="text" />
-				<label for="backup_location">Backup Location</label>
-				<input name="backup_location" type="text" disabled="disabled" style="width: 80%" />
+				<div class="control-group">
+					<label for="volume_to_backup">Volume to Backup</label>
+					<select name="volume_to_backup">
+						<option disabled="disabled">No Volumes</option>
+					</select>
+				</div>
+
+				<div class="control-group">
+					<label for="backup_name">Backup Name</label>
+					<input type="text" name="backup_name" type="text" />
+					<div id="backup_name_errors"></div>
+				</div>
+
+				<div class="control-group">
+					<label for="backup_location">Backup Location</label>
+					<input name="backup_location" type="text" disabled="disabled" style="width: 80%" />
+				</div>
 			</form>
 		</p>
 	</div>

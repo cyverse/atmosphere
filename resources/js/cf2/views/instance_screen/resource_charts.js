@@ -269,7 +269,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 			// Determine whether memory should be in GB or MB
 			this.$el.data('unit', 'memory');
 			var digits = (used % 1024 == 0) ? 0 : 1;
-			var readable_used = (used > 1024) ? ('' + (used / 1024).toFixed(digits) + ' GB') : ('' + used + ' MB');
+			var readable_used = (used >= 1024) ? ('' + (used / 1024).toFixed(digits) + ' GB') : ('' + used + ' MB');
 
 			info = readable_used + ' of ' + (total / 1024) + ' GB allotted memory.';
 		}
