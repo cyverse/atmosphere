@@ -30,6 +30,7 @@ from service.identity import AWSIdentity, EucaIdentity,\
     OSIdentity
 from service.driver import AWSDriver, EucaDriver, OSDriver
 
+from service.accounts.openstack import AccountDriver as OSAccountDriver
 #These functions return ESH related information based on the core repr
 ESH_MAP = {
     'openstack': {
@@ -124,6 +125,12 @@ def launchEshInstance(driver, extras, *args, **kwargs):
         elif isinstance(driver.provider, OSProvider):
             extras['deploy'] = True
             extras['token'] = instance_token
+	    #Check for tenant network
+	    os_driver = OSAccountDriver()
+	    (password, tenant_name) = (os_driver.hashpass(username), username)
+            os_driver.network_manager.createTenantNetwork(username,
+                                                     password,
+                                                     tenant_name)
             #NOTE: Name, deploy are passed in extras
             #TODO: Explicitly set the kwargs here and pass them instead of args
             #will help avoid confusion here..
