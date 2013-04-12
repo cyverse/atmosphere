@@ -62,7 +62,7 @@ def _get_init_script(instance_service_url, instance_token,
                 "instance_service_url":"%s",
                 "server":"%s",
                 "token":"%s",
-                "userid":"%s"
+                "userid":"%s",
                 "vnc_license":"%s"
               }
     }'""" % (instance_service_url, settings.SERVER_URL,
