@@ -1,28 +1,28 @@
-Atmo.Models.Instance = Atmo.Models.Base.extend(
-  {
-    defaults: { 'model_name': 'instance' },
-    initialize: function() {
-      this.set('name_or_id', this.get('name') || this.get('id'));
-      this.set('launch_relative', Atmo.Utils.relative_time(this.get('launch_time')));
-    },
-    parse: function(response) {
-      //console.log(response);
-      var attributes = response;
-      attributes.description = response.name;
-      attributes.id = response.alias;
-      attributes.name = response.name;
-      attributes.image_id = response.machine_alias;
-      attributes.image_name = response.machine_name;
-      attributes.image_hash = response.alias_hash;
-      attributes.image_url = Atmo.profile.get_icon(response.machine_alias_hash);
-      attributes.type = response.size_alias;
-      attributes.launch_time = new Date(response.start_date);
-      //attributes.launch_relative = Atmo.Utils.relative_time(response.start_date); 
-      attributes.state = response.status;
-      attributes.state_is_active = (   response.status == 'active'
-                            || response.status == 'running'
+Atmo.Models.Instance = Atmo.Models.Base.extend({
+	
+	defaults: { 'model_name': 'instance' },
+	initialize: function() {
+		this.set('name_or_id', this.get('name') || this.get('id'));
+		this.set('launch_relative', Atmo.Utils.relative_time(this.get('launch_time')));
+	},
+	parse: function(response) {
+		var attributes = response;
+		
+		attributes.description = response.name;
+		attributes.id = response.alias;
+		attributes.name = response.name;
+		attributes.image_id = response.machine_alias;
+		attributes.image_name = response.machine_name;
+		attributes.image_hash = response.alias_hash;
+		attributes.image_url = Atmo.profile.get_icon(response.machine_alias_hash);
+		attributes.type = response.size_alias;
+		attributes.launch_time = new Date(response.start_date);
+		attributes.state = response.status;
+		
+		attributes.state_is_active = (   response.status == 'active'
+							|| response.status == 'running'
 							|| response.status == 'verify_resize' );
-      attributes.state_is_build = (    response.status == 'build'
+		attributes.state_is_build = (    response.status == 'build'
 	  						|| response.status == 'build - spawning'
 							|| response.status == 'build - networking' 
 							|| response.status == 'pending'
@@ -32,39 +32,40 @@ Atmo.Models.Instance = Atmo.Models.Base.extend(
 							|| response.status == 'resize - resize_migrating'
 							|| response.status == 'resize - resize_finish'
 							|| response.status == 'revert_resize - resize_reverting' );
-      attributes.state_is_delete = (    response.status == 'delete'
+		attributes.state_is_delete = (    response.status == 'delete'
 	  						|| response.status == 'active - deleting'
 							|| response.status == 'deleted'
 						    || response.status == 'shutting-down'
 						    || response.status == 'terminated' );
-	  attributes.state_is_inactive = (	response.status == 'suspended' );
-      attributes.private_dns_name = response.ip_address;
-      attributes.public_dns_name = response.ip_address;
-      return attributes;
-    },
-    confirm_terminate: function(options) {
-      
-      var header = "Are you sure you want to terminate this instance?";
-      var body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <b>WARNING</b> Unmount volumes within your instance before terminating or risk corrupting your data and the volume.</p>';
-      body += "<p>Your instance <strong>" + this.get('name') + " #" + this.get('id') + "</strong> will be shut down and all data will be permanently lost!</p>";
-      body += "<p><u>Note:</u> Your resource usage charts will not reflect changes until the instance is completely terminated and has disappeared from your list of instances.</p>";
-      var self = this;
-      
-      Atmo.Utils.confirm(header, body, {
-		on_confirm : function() {
-		  self.destroy({
-			wait: true, 
-			success: options.success,
-			error: options.error
-		  });
-		},
-        ok_button: 'Yes, terminate this instance'
-      });
-  
-    },
-    select: function() {
-        this.collection.select_instance(this);
-    },
+		attributes.state_is_inactive = (	response.status == 'suspended' );
+		attributes.private_dns_name = response.ip_address;
+		attributes.public_dns_name = response.ip_address;
+		
+		return attributes;
+	},
+	confirm_terminate: function(options) {
+		var header = "Are you sure you want to terminate this instance?";
+		var body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <b>WARNING</b> Unmount volumes within your instance '
+			+ 'before terminating or risk corrupting your data and the volume.</p>'
+			+ "<p>Your instance <strong>" + this.get('name') + " #" + this.get('id') + "</strong> will be shut down and all data will be permanently lost!</p>"
+			+ "<p><u>Note:</u> Your resource usage charts will not reflect changes until the instance is completely terminated and has disappeared from your list of instances.</p>";
+			
+		var self = this;
+		
+		Atmo.Utils.confirm(header, body, {
+			on_confirm : function() {
+				self.destroy({
+					wait: true, 
+					success: options.success,
+					error: options.error
+				});
+			},
+			ok_button: 'Yes, terminate this instance'
+		});
+	},
+	select: function() {
+		this.collection.select_instance(this);
+	},
 	destroy: function(options) {
 		// We overwrite the destroy function so that the model doesn't get deleted while the instance is still 'terminating'
 
@@ -78,7 +79,6 @@ Atmo.Models.Instance = Atmo.Models.Base.extend(
 
 			if (!model.isNew())
 				model.trigger('sync', model, resp, options);
-
 		};
 
 		// wrapError function from backbone.js
@@ -94,6 +94,7 @@ Atmo.Models.Instance = Atmo.Models.Base.extend(
 			options.success();
 			return false;
 		}
+
 		wrapError(this, options);
 
 		var xhr = this.sync('delete', this, options);
@@ -102,4 +103,3 @@ Atmo.Models.Instance = Atmo.Models.Base.extend(
 });
 
 _.extend(Atmo.Models.Instance.defaults, Atmo.Models.Base.defaults);
-
