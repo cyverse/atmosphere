@@ -1,0 +1,87 @@
+###
+### HTTP Virtual Host Context
+###
+
+<VirtualHost *:80>
+	ErrorLog ${APACHE_LOG_DIR}/error.log
+	LogLevel warn
+	CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+        RewriteEngine On
+        RewriteCond %{HTTPS} !=on
+        RewriteRule ^/?(.*) https://dalloway.iplantc.org/$1 [R,L]
+</VirtualHost>
+
+###
+### WSGI Configuration
+###
+
+WSGIPythonHome /opt/env/atmo
+
+SSLCryptoDevice builtin
+
+##
+## SSL Virtual Host Context
+##
+
+<VirtualHost _default_:443>
+
+#Rewrite
+RewriteEngine On
+RewriteCond %{HTTP:Authorization} ^(.*)
+RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
+
+#for the old domain
+RewriteCond %{HTTP_HOST} ^dalloway.iplantcollaborative.org$
+RewriteRule ^/(.*)$       https://dalloway.iplantc.org/$1 [R,L]
+
+#Logging
+ErrorLog /var/log/apache2/ssl_error.log
+TransferLog /var/log/apache2/ssl_access.log
+LogLevel warn
+
+#SSL
+SSLEngine on
+SSLProtocol all -SSLv2
+SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
+SSLCertificateFile /etc/ssl/certs/iplantc.org.crt
+SSLCertificateKeyFile /etc/ssl/private/iplantc.key
+SSLCertificateChainFile /etc/ssl/certs/gd_bundle.crt
+
+<Files ~ "\.(cgi|shtml|phtml|php3?)$">
+    SSLOptions +StdEnvVars
+</Files>
+<Directory "/var/www/cgi-bin">
+    SSLOptions +StdEnvVars
+</Directory>
+
+SetEnvIf User-Agent ".*MSIE.*" \
+         nokeepalive ssl-unclean-shutdown \
+         downgrade-1.0 force-response-1.0
+
+#This is for atmosphere
+
+#init_files && resources will auto-direct to the file
+Alias /init_files /opt/dev/atmosphere/init_files
+Alias /resources /opt/dev/atmosphere/resources
+Alias /static /opt/dev/atmosphere/static
+
+#Assing WSGI to any other folder
+WSGIScriptAlias / /opt/dev/atmosphere/atmosphere/wsgi.py
+
+#Notifications
+<Location /n/>
+          ProxyPass http://localhost:9000/
+</Location>
+
+# Shell
+<Location /shell>
+    AuthType CAS
+    AuthName "CAS"
+    require valid-user
+    CASScope /
+    Order allow,deny
+    Allow from all
+</Location>
+
+</VirtualHost>
