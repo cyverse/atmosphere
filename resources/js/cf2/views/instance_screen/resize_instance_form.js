@@ -202,7 +202,7 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 		});
 
 		// Show user what stage they're in and which ones they've completed
-		var stages = ['resize - resize_prep', 'resize - resize_migrating', 'resize - resize_finish'];
+		var stages = ['resize - resize_prep', 'resize - resize_migrating', 'resize - resize_migrated', 'resize - resize_finish'];
 
 		for (var i = 0; i < stages.length; i++) {
 			if (this.model.get('state') == stages[i])
