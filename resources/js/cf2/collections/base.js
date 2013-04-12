@@ -3,40 +3,35 @@
  */
 
 Atmo.Collections.Base = Backbone.Collection.extend({
-  urlRoot: '/api',
-  url: function() {
-    var creds = Atmo.get_credentials();
-    return url = this.urlRoot
-      + "/provider/" + creds.provider_id 
-      + "/identity/" + creds.identity_id
-      + "/" + this.model.prototype.defaults.model_name + "/";
-  },
-  defaults: {
-    'api_url': '/api',
-    'model_name': 'base'
-  },
-  fetch: function(options) {
+	urlRoot: '/api',
+	url: function() {
+		var creds = Atmo.get_credentials();
+		return url = this.urlRoot
+			+ '/provider/' + creds.provider_id 
+			+ '/identity/' + creds.identity_id
+			+ '/' + this.model.prototype.defaults.model_name + '/';
+	},
+	defaults: {
+		'api_url': '/api',
+		'model_name': 'base'
+	},
+	fetch: function(options) {
+		var self = this;
+		var opts =  { 
+			success: function() {
+				if (options && options.success)
+					options.success(self);
+			},
+			error: function() {
+				// Allow views to respond to failed fetch calls
+				self.trigger('fail');
 
-	var self = this;
+				if (options && options.error)
+					options.error(self);
+			}	
+		};
 
-	var opts =  { 
-		success: function() {
-			if (options && options.success)
-				options.success(self);
-
-		},
-		error: function() {
-
-			// Allow views to respond to failed fetch calls
-			self.trigger('fail');
-
-			if (options && options.error)
-				options.error(self);
-		}	
-	};
-
-	// Combine options and custom handlers, apply to fetch prototype.
-	(_.bind(Backbone.Collection.prototype.fetch, this, _.extend({}, options, opts)))();
-
-  }
+		// Combine options and custom handlers, apply to fetch prototype.
+		(_.bind(Backbone.Collection.prototype.fetch, this, _.extend({}, options, opts)))();
+	}
 });

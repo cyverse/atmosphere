@@ -54,6 +54,9 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 		
 		Atmo.Utils.confirm(header, body, {
 			on_confirm : function() {
+
+				Atmo.Utils.notify('Terminating Instance...', 'Please wait while your instance terminates.');
+
 				self.destroy({
 					wait: true, 
 					success: options.success,
