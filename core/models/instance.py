@@ -1,6 +1,7 @@
 """
   Instance model for atmosphere.
 """
+import pytz
 from hashlib import md5
 from datetime import datetime
 
@@ -33,9 +34,7 @@ class Instance(models.Model):
     provider_alias = models.CharField(max_length=256)
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     created_by = models.ForeignKey(User)
-    start_date = models.DateTimeField(
-        default=timezone.make_aware(datetime.now(),
-            timezone.get_current_timezone()))
+    start_date = models.DateTimeField(default=lambda:datetime.now(pytz.utc))
     end_date = models.DateTimeField(null=True)
 
     def creator_name(self):
@@ -143,10 +142,7 @@ def createInstance(provider_id, provider_alias, provider_machine,
                                        ip_address=ip_address,
                                        created_by=creator, token=token)
     if create_stamp:
-        create_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%S.%fZ')
-    else:
-        create_date = datetime.now()
-    new_inst.start_date = create_date
+        new_inst.start_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%S.%fZ')
     new_inst.save()
     logger.debug("New instance created - %s (Token = %s)" %
                  (provider_alias, token))

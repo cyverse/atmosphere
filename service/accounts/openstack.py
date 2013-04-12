@@ -45,15 +45,9 @@ class AccountDriver():
                                                                   True,
                                                                   admin)
             logger.info("Creating network for %s" % username)
-            self.network_manager.createTenantNetwork(username,
-                                                     password,
-                                                     tenant.name)
         else:
             user = self.user_manager.addUser(username, password)
             tenant = self.user_manager.getTenant(username)
-            self.network_manager.createTenantNetwork(username,
-                                                     password,
-                                                     tenant)
         #TODO: Instead, return user.get_user match, or call it if you have to..
         return user
 

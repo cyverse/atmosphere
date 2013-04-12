@@ -82,10 +82,10 @@ class NetworkManager():
         delete_subnet
         delete_network
         """
-        #self.removeRouterGateway('%s-router' % tenant_name)
-        #self.removeRouterInterface(self.quantum,
-        #                           '%s-router' % tenant_name,
-        #                           '%s-subnet' % tenant_name)
+        self.removeRouterGateway('%s-router' % tenant_name)
+        self.removeRouterInterface(self.quantum,
+                                   '%s-router' % tenant_name,
+                                   '%s-subnet' % tenant_name)
         self.deleteRouter(self.quantum, '%s-router' % tenant_name)
         self.deleteSubnet(self.quantum, '%s-subnet' % tenant_name)
         self.deleteNetwork(self.quantum, '%s-net' % tenant_name)
@@ -155,15 +155,15 @@ class NetworkManager():
     ##LOOKUP##
     def find_network(self, network_name):
         return [net for net in self.quantum.list_networks()['networks']
-                if network_name in net['name']]
+                if network_name == net['name']]
 
     def find_subnet(self, subnet_name):
         return [net for net in self.quantum.list_subnets()['subnets']
-                if subnet_name in net['name']]
+                if subnet_name == net['name']]
 
     def find_router(self, router_name):
         return [net for net in self.quantum.list_routers()['routers']
-                if router_name in net['name']]
+                if router_name == net['name']]
 
     def find_ports(self, router_name):
         routers = self.find_router(router_name)
@@ -171,7 +171,7 @@ class NetworkManager():
             return []
         router_id = routers[0]['id']
         return [port for port in self.quantum.list_ports()['ports']
-                if router_id in port['device_id']]
+                if router_id == port['device_id']]
 
     def find_router_interface(self, network_name, subnet_name=None):
         if subnet_name:

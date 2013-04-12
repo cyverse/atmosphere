@@ -241,6 +241,8 @@ def vnc(user, distro, license=None):
             run_command(['/bin/sed', '-i',
                          "'$a password   include      system-auth'",
                          '/etc/pam.d/vncserver.custom'], bash_wrap=True)
+            run_command(['/bin/hostname', 'localhost']) #Testfix
+
         else:
             download_file(
                 '%s/init_files/%s/VNC-Server-5.0.4-Linux-x64.deb'
