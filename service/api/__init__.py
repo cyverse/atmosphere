@@ -63,7 +63,7 @@ def _get_init_script(instance_service_url, instance_token,
                 "server":"%s",
                 "token":"%s",
                 "userid":"%s"
-                "vnclicense":"%s"
+                "vnc_license":"%s"
               }
     }'""" % (instance_service_url, settings.SERVER_URL,
             instance_token, username, settings.ATMOSPHERE_VNC_LICENSE)
