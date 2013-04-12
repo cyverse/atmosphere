@@ -71,7 +71,7 @@ class NetworkManager():
         self.addRouterInterface(user_quantum,
                                 '%s-router' % tenant_name,
                                 '%s-subnet' % tenant_name)
-        self.setRouterGateway(user_quantum, '%s-router' % tenant_name)
+        self.setRouterGateway(self.quantum, '%s-router' % tenant_name)
 
     def deleteTenantNetwork(self, username, tenant_name):
         """
