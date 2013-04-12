@@ -108,7 +108,7 @@ def launchEshInstance(driver, extras, *args, **kwargs):
         #Add the user data
         username = extras.get('username', None)
         if not username:
-            username = driver.identity.user
+            username = driver.identity.user.username
         if 'name' not in extras:
             extras['name'] = 'Instance of %s' % machine.alias
         if isinstance(driver.provider, EucaProvider):
