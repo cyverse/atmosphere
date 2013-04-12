@@ -215,7 +215,7 @@ li {
         margin-left: 0 !important;
         width: 100%;
     }
-    .request_imaging_btn, .report_instance_btn, .terminate_instance, .resize_instance_btn {
+    .request_imaging_btn, .report_instance_btn, .terminate_instance, .resize_instance_btn, .suspend_resume_instance_btn, .reboot_instance_btn {
         display: block;
         border-radius: 3px !important;
         margin: 5px 0 !important;

@@ -2,7 +2,8 @@
 Atmosphere service mixin driver
 Mixin classes implement additional functionality for Drivers.
 """
-from service.tasks.driver import deploy_instance
+from service.tasks.driver import deploy_to,\
+    deploy_init_to, add_floating_ip
 
 
 class MetaMixin():
@@ -14,7 +15,6 @@ class APIFilterMixin():
     """
     APIFilterMixin provides filtering for libcloud and esh drivers.
     """
-
     def get_volume(self, alias):
         try:
             volume_list = self.list_volumes()
@@ -109,5 +109,24 @@ class InstanceActionMixin():
 
 
 class TaskMixin():
-    def deploy_instance_task(self, *args, **kwargs):
-        return deploy_instance.delay(self, *args, **kwargs).result
+    def deploy_init_to_task(self, instance, *args, **kwargs):
+        deploy_init_to.delay(self.__class__,
+                              self.provider,
+                              self.identity,
+                              instance.alias,
+                             *args, **kwargs)
+
+    def deploy_to_task(self, instance, *args, **kwargs):
+        deploy_to.delay(self.__class__,
+                        self.provider,
+                        self.identity,
+                        instance.alias,
+                        *args, **kwargs)
+
+    def add_floating_ip_task(self, instance, *args, **kwargs):
+        add_floating_ip.delay(self.__class__,
+                              self.provider,
+                              self.identity,
+                              instance.alias,
+                              *args, **kwargs)
+        
