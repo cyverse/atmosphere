@@ -206,6 +206,13 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		// Display OpenStack-specific options
 		if (Atmo.profile.get('selected_identity').get('provider_id') == 2) {
 
+			// Display descriptive instance size
+			var types = _.filter(Atmo.instance_types.models, function(type) {
+				return type.get('alias') == self.model.get('size_alias');
+			});
+			var instance_type = types[0];
+			self.$el.find('.instance_size').html(instance_type.get('name'));
+
 			this.$el.find('#euca_controls').hide();
 
 			// Disable if instance is not running

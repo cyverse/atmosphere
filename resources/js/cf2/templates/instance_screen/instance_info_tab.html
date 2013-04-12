@@ -34,7 +34,7 @@
 		<dl id="instance_details">
           <dt>ID:</dt> <dd><%= id %></dd>
           <dt>Based on Image:</dt> <dd><%= image_name %><br />(<%= image_id %>)</dd>
-          <dt>Size:</dt> <dd><%= type %></dd>
+          <dt>Size:</dt> <dd class="instance_size"><%= type %></dd>
           <dt>Date Launched:</dt> <dd><%= launch_time.toString("MMM d, yyyy") %> (<%= launch_relative %>)</dd>
           <dt>Tags:</dt> <dd>
             <div id="instance_tags" class="row-fluid" style="position: relative">
