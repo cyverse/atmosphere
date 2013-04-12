@@ -326,7 +326,7 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
 
 		if (volume_size.length > 0 && parseInt(volume_size) > 100) {
 			errors = true;
-			this.$el.find('#volume_creation_errors ul').append("<li>Volume size may not exceed 100 GB.</ul>");
+			this.$el.find('#volume_creation_errors ul').append("<li>Volume size may not exceed 100 GB.</li>");
 			volume_size_field.parent().addClass('error');
 			this.$el.find('button[name="create_volume"]').attr('disabled', 'disabled');
 		}

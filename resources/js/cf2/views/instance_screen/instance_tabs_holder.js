@@ -594,13 +594,13 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		ok_button = 'Reboot Instance';
 		data = { "action" : "reboot" };
 		on_confirm = function() {
+			Atmo.Utils.notify('Instance is rebooting...', 'Instance will finish rebooting momentarily.');
 			$.ajax({
 				url: site_root + '/api/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
 				type: 'POST',
 				data: data,
 				success: function() {
-					Atmo.Utils.notify('Rebooting Instance', 'Instance will finish rebooting momentarily.');
-
+					//Atmo.Utils.notify('Instance is rebooting...', 'Instance will finish rebooting momentarily.');
 					// Merges models to those that are accurate based on server response
 					Atmo.instances.update();
 				}, 
@@ -644,13 +644,13 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			ok_button = 'Resume Instance';
 			data = { "action" : "resume" };
 			on_confirm = function() {
+				Atmo.Utils.notify('Resuming Instance', 'Instance will be active and available shortly.');
 				$.ajax({
 					url: site_root + '/api/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
 					type: 'POST',
 					data: data,
 					success: function() {
-						Atmo.Utils.notify('Resuming Instance', 'Instance will be active and available shortly.');
-
+						//Atmo.Utils.notify('Resuming Instance', 'Instance will be active and available shortly.');
 						// Merges models to those that are accurate based on server response
 						Atmo.instances.update();
 					},

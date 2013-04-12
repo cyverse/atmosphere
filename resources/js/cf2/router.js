@@ -90,7 +90,6 @@ Atmo.Router = Backbone.Router.extend({
 							var id = parseInt($(this).find('a').attr('data-identity-id'));
 
 							if (Atmo.profile.get('selected_identity').get('id') != id) {
-								console.log("the selected identity is not the same as clicked one");
 								Atmo.profile.save(
 									{ 'selected_identity' : id },
 									{ async : false, 
