@@ -162,9 +162,15 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
                                 name=name,
                                 size=int(volume['size']),
                                 driver=self)
+        try:
+            created_time = datetime.strptime(volume['createTime'],
+                                             '%Y-%m-%dT%H:%M:%S.%fZ')
+        except ValueError:  # Wrong Format, try again..
+            created_time = datetime.strptime(volume['createTime'],
+                                             '%Y-%m-%dT%H:%M:%SZ')
+
         svolume.extra = {
-            'createTime': datetime.strptime(volume['createTime'],
-                                            '%Y-%m-%dT%H:%M:%S.%fZ'),
+            'createTime': created_time,
             'status': volume['status'],
             'attachmentSet': self._get_attachment_set(element_as)}
         return svolume

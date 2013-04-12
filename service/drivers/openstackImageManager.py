@@ -71,6 +71,8 @@ class ImageManager():
         self.nova = NovaClient(key, secret,
                                tenant, url,
                                service_type="compute")
+        self.nova.client.region_name = settings.OPENSTACK_DEFAULT_REGION
+
 
     def upload_euca_image(self, name, image, kernel=None, ramdisk=None):
         """

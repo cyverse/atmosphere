@@ -16,6 +16,7 @@ from core.models.provider import Provider, ProviderType
 from core.models.quota import Quota
 from core.models.size import Size
 from core.models.tag import Tag
+from core.models.volume import Volume
 
 
 class NodeControllerAdmin(admin.ModelAdmin):
@@ -115,3 +116,4 @@ admin.site.register(ProviderType)
 admin.site.register(Quota, QuotaAdmin)
 admin.site.register(Size)
 admin.site.register(Tag)
+admin.site.register(Volume)
