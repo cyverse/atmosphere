@@ -132,7 +132,7 @@ class InstanceAction(APIView):
                         esh_volume,
                         device)
                 elif 'detach_volume' == action:
-                    esh_driver.detach_volume(eshVolume)
+                    esh_driver.detach_volume(esh_volume)
                 #If attaching, wait until we leave the intermediary state...
                 attempts = 0
                 while True:
