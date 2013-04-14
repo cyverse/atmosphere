@@ -10,6 +10,7 @@ from quantumclient.v2_0 import client as quantum_client
 from atmosphere import settings
 from atmosphere.logger import logger
 
+from core.models.profile import get_default_subnet
 
 class NetworkManager():
 
@@ -40,12 +41,12 @@ class NetworkManager():
         return quantum
 
     ##Admin-specific methods##
-    def listTenantNetwork(self):
+    def list_tenant_network(self):
         named_networks = self.find_network('-net')
         users_with_networks = [net['name'].replace('-net','') for net in named_networks]
         return users_with_networks
 
-    def createTenantNetwork(self, username, password, tenant_name):
+    def create_tenant_network(self, username, password, tenant_name):
         """
         This method should be run once when a new tenant is created
         (As the user):
@@ -63,32 +64,35 @@ class NetworkManager():
         }
         logger.info("Initializing network connection for %s" % username)
         user_quantum = self.new_connection(**user_creds)
-        network = self.createNetwork(user_quantum, '%s-net' % tenant_name)
-        subnet = self.createSubnet(user_quantum,
-                                   '%s-subnet' % tenant_name,
-                                   network['id'])
-        router = self.createRouter(user_quantum, '%s-router' % tenant_name)
-        self.addRouterInterface(user_quantum,
-                                '%s-router' % tenant_name,
-                                '%s-subnet' % tenant_name)
-        self.setRouterGateway(user_quantum, '%s-router' % tenant_name)
+        network = self.create_network(user_quantum, '%s-net' % tenant_name)
+        subnet = self.create_subnet(user_quantum,
+                                    '%s-subnet' % tenant_name,
+                                    network['id'],
+                                    cidr=get_default_subnet(username))
+        public_router = self.find_router(settings.OPENSTACK_DEFAULT_ROUTER)
+        if public_router:
+            public_router = public_router[0]
+        else:
+            raise Exception("Default public router was not found.")
+        #self.create_router(user_quantum, '%s-router' % tenant_name)
+        self.add_router_interface(user_quantum,
+                                  public_router,
+                                  subnet)
+        #self.set_router_gateway(user_quantum, '%s-router' % tenant_name)
 
-    def deleteTenantNetwork(self, username, tenant_name):
+    def delete_tenant_network(self, username, tenant_name):
         """
-        TODO: test when necessary:
-        remove_gateway_router
         remove_interface_router
-        delete_router
         delete_subnet
         delete_network
         """
-        self.removeRouterGateway('%s-router' % tenant_name)
-        self.removeRouterInterface(self.quantum,
+        #self.remove_router_gateway('%s-router' % tenant_name)
+        self.remove_router_interface(self.quantum,
                                    '%s-router' % tenant_name,
                                    '%s-subnet' % tenant_name)
-        self.deleteRouter(self.quantum, '%s-router' % tenant_name)
-        self.deleteSubnet(self.quantum, '%s-subnet' % tenant_name)
-        self.deleteNetwork(self.quantum, '%s-net' % tenant_name)
+        #self.delete_router(self.quantum, '%s-router' % tenant_name)
+        self.delete_subnet(self.quantum, '%s-subnet' % tenant_name)
+        self.delete_network(self.quantum, '%s-net' % tenant_name)
 
     def associate_floating_ip(self, server_id):
         """
@@ -110,10 +114,10 @@ class NetworkManager():
                     % (new_ip, server_id))
         return assigned_ip
 
-
     def list_floating_ips(self):
         instance_ports = self.quantum.list_ports()['ports']
-        floating_ips = self.quantum.list_floatingips()['floating_ips']
+        floating_ips = self.quantum.list_floatingips()['floatingips']
+        # Connect instances and floating_ips using ports.
         for fip in floating_ips:
             port = filter(instance_ports, lambda(p): p['id'] == fip['port_id'])
             if port:
@@ -173,26 +177,23 @@ class NetworkManager():
         return [port for port in self.quantum.list_ports()['ports']
                 if router_id == port['device_id']]
 
-    def find_router_interface(self, network_name, subnet_name=None):
-        if subnet_name:
-            subnets = self.find_subnet(subnet_name)
-            subnet_id = subnets[0]['id']
-
-        network_ports = self.find_ports(network_name)
+    def find_router_interface(self, router, subnet):
+        if not router or not subnet:
+            return None
+        router_name = router['name']
+        subnet_id = subnet['id']
+        router_ports = self.find_ports(router_name)
         router_interfaces = []
-
-        for port in network_ports:
+        for port in router_ports:
             if 'router_interface' not in port['device_owner']:
                 continue
-            if subnet_name:
-                subnet_match = False
-                for ip_subnet_obj in port['fixed_ips']:
-                    if subnet_id in ip_subnet_obj['subnet_id']:
-                        subnet_match = True
-                        break
-                if not subnet_match:
-                    continue
-            router_interfaces.append(port)
+            subnet_match = False
+            for ip_subnet_obj in port['fixed_ips']:
+                if subnet_id in ip_subnet_obj['subnet_id']:
+                    subnet_match = True
+                    break
+            if subnet_match:
+                router_interfaces.append(port)
         return router_interfaces
 
     def find_router_gateway(self, router_name, external_network_name='ext_net'):
@@ -203,7 +204,7 @@ class NetworkManager():
         return [r for r in routers if r.get('external_gateway_info') and
                 network_id in r['external_gateway_info'].get('network_id','')]
     ##ADD##
-    def createNetwork(self, quantum, network_name):
+    def create_network(self, quantum, network_name):
         existing_networks = self.find_network(network_name)
         if existing_networks:
             logger.info('Network %s already exists' % network_name)
@@ -213,7 +214,7 @@ class NetworkManager():
         network_obj = quantum.create_network({'network': network})
         return network_obj['network']
 
-    def createSubnet(self, quantum, subnet_name,
+    def create_subnet(self, quantum, subnet_name,
                      network_id, ip_version=4, cidr='172.16.1.0/24'):
         existing_subnets = self.find_subnet(subnet_name)
         if existing_subnets:
@@ -229,7 +230,7 @@ class NetworkManager():
         subnet_obj = quantum.create_subnet({'subnet': subnet})
         return subnet_obj['subnet']
 
-    def createRouter(self, quantum, router_name):
+    def create_router(self, quantum, router_name):
         existing_routers = self.find_router(router_name)
         if existing_routers:
             logger.info('Router %s already exists' % router_name)
@@ -238,20 +239,19 @@ class NetworkManager():
         router_obj = quantum.create_router({'router': router})
         return router_obj['router']
 
-    def addRouterInterface(self, quantum, router_name, subnet_name):
-        #TODO: Lookup router interface exists, or ensure it doesnt matter
-        existing_routers = self.find_router_interface(router_name, subnet_name)
+    def add_router_interface(self, quantum, router, subnet):
+        existing_routers = self.find_router_interface(router, subnet)
         if existing_routers:
             logger.info('Router Interface for Subnet:%s-Router:%s already\
-                    exists' % (subnet_name,router_name))
+                    exists' % (subnet['name'], router['name']))
             return existing_routers[0]
-        router_id = self.get_router_id(quantum, router_name)
-        subnet_id = self.get_subnet_id(quantum, subnet_name)
-        interface_obj = quantum.add_interface_router(router_id, {
-            "subnet_id": subnet_id})
+        #router_id = self.get_router_id(quantum, router_name)
+        #subnet_id = self.get_subnet_id(quantum, subnet_name)
+        interface_obj = quantum.add_interface_router(router['id'], {
+            "subnet_id": subnet['id']})
         return interface_obj
 
-    def setRouterGateway(self, quantum, router_name,
+    def set_router_gateway(self, quantum, router_name,
                          external_network_name='ext_net'):
         """
         Must be run as admin
@@ -285,12 +285,12 @@ class NetworkManager():
             return nw_list['networks'][0]['id']
 
     ##DELETE##
-    def removeRouterGateway(self, router_name):
+    def remove_router_gateway(self, router_name):
         router_id = self.get_router_id(self.quantum, router_name)
         if router_id:
             return self.quantum.remove_gateway_router(router_id)
 
-    def removeRouterInterface(self, quantum, router_name, subnet_name):
+    def remove_router_interface(self, quantum, router_name, subnet_name):
         router_id = self.get_router_id(quantum, router_name)
         subnet_id = self.get_subnet_id(quantum, subnet_name)
         if router_id and subnet_id:
@@ -304,7 +304,7 @@ class NetworkManager():
                              % (router_id, subnet_id))
                 raise
 
-    def deleteRouter(self, quantum, router_name):
+    def delete_router(self, quantum, router_name):
         router_id = self.get_router_id(quantum, router_name)
         if router_id:
             try:
@@ -313,7 +313,7 @@ class NetworkManager():
                 logger.error("Problem deleting router: %s" % router_id)
                 raise
 
-    def deleteSubnet(self, quantum, subnet_name):
+    def delete_subnet(self, quantum, subnet_name):
         subnet_id = self.get_subnet_id(quantum, subnet_name)
         if subnet_id:
             try:
@@ -322,7 +322,7 @@ class NetworkManager():
                 logger.error("Problem deleting subnet: %s" % subnet_id)
                 raise
 
-    def deleteNetwork(self, quantum, network_name):
+    def delete_network(self, quantum, network_name):
         network_id = self.get_network_id(quantum, network_name)
         if network_id:
             try:
@@ -335,9 +335,9 @@ class NetworkManager():
 def test():
     manager = NetworkManager.settings_init()
 
-    manager.createTenantNetwork('username', 'password', 'tenant_name')
+    manager.create_tenant_network('username', 'password', 'tenant_name')
     print "Created test usergroup"
-    manager.deleteTenantNetwork('username','username')
+    manager.delete_tenant_network('username','username')
     print "Deleted test usergroup"
 
 if __name__ == "__main__":
