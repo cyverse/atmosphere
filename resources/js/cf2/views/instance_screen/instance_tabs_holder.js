@@ -263,14 +263,11 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
         this.display_graph();
 
-
 		// Shutting-down/terminted instances should have terminate button disabled
 		if (this.model.get('state_is_delete')) {
 			this.$el.find('.terminate_instance').addClass('disabled').attr('disabled', 'disabled');
 			this.$el.find('.suspend_resume_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 		}
-
-
 
 		// Make the tags pretty
 		if (this.model.get('tags').length > 0) 
@@ -402,7 +399,6 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			var currentVNC = this.$el.find('.vnc_iframe[data-ip="'+ipaddr+'"]');
 
 			if (currentVNC.length == 0) {
-				//console.log("Detected that vnc iframe for " + ipaddr + " doesn't exist yet.");	
 				var iframe = $('<iframe>', {
 					src: 'http://' + ipaddr + ':5904',
 					'class': 'vnc_iframe'
@@ -415,7 +411,6 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 			resizeApp();
 		}
-
 	},
 	add_close_vnc: function() {
 		this.$el.find('a.instance_vnc_tab').append($('<img/>', {
@@ -476,9 +471,6 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		if (this.$el.find('.imaging').length == 0) {
 			new Atmo.Views.RequestImagingForm({model: this.model}).render().$el.appendTo(this.$el.find('.request_imaging'));
 		}
-
-		console.log(this.$el.find('a.request_imaging_tab'));
-		console.log(this.$el.find('.imaging_form'));
 
 		this.$el.find('a.request_imaging_tab').fadeIn('fast').trigger('click');
 		this.$el.find('.imaging_form').fadeIn('fast');
@@ -656,7 +648,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 					},
 					error: function() {
 						Atmo.Utils.notify(
-							'Could not suspend instance', 
+							'Could not resume instance', 
 							'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
 							{ no_timeout: true }
 						);
@@ -672,19 +664,20 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			ok_button = 'Suspend Instance';
 			data = { "action" : "suspend" };
 			on_confirm = function() {
+				Atmo.Utils.notify('Suspending Instance', 'Instance will be suspended momentarily.');
+
 				$.ajax({
 					url: site_root + '/api/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
 					type: 'POST',
 					data: data,
 					success: function() {
-						Atmo.Utils.notify('Suspending Instance', 'Instance will be suspended momentarily.');
-
 						// Merges models to those that are accurate based on server response
 						Atmo.instances.update();
 					}, 
 					error: function() {
+						self.model.set({ state_is_active: true, state_is_build: false });
 						Atmo.Utils.notify(
-							'Could not resume instance', 
+							'Could not suspend instance', 
 							'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
 							{ no_timeout: true }
 						);

@@ -3,5 +3,5 @@
  */
 
 Atmo.Collections.Machines = Atmo.Collections.Base.extend({
-  model: Atmo.Models.Machine
+	model: Atmo.Models.Machine
 });

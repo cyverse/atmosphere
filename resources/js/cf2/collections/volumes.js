@@ -3,20 +3,20 @@
  */
 
 Atmo.Collections.Volumes = Atmo.Collections.Base.extend({
-    model: Atmo.Models.Volume,
-    initialize: function() {
-        this.selected_volume = null;
-    },
-    // Return the list of available volumes
+	model: Atmo.Models.Volume,
+	initialize: function() {
+		this.selected_volume = null;
+	},
+	// Return the list of available volumes
 	get_available: function() {
 		return _.filter(this.models, function(model) {
 			return model.get('status') == 'available';
 		});
 	},
-    select_volume: function(model) {
-        this.selected_volume = model;
-        this.trigger('select', model);
-    },
+	select_volume: function(model) {
+		this.selected_volume = model;
+		this.trigger('select', model);
+	},
 	update: function(options) {
 		if (!options) options = {};
 		if (!options.success) options.success = function() {};
@@ -31,8 +31,6 @@ Atmo.Collections.Volumes = Atmo.Collections.Base.extend({
 			success: function() {
 				var model_ids = self.get_model_id_array();
 				var new_model_ids = new_collection.get_model_id_array();
-				//console.log('old ids', model_ids);
-				//console.log('new ids', new_model_ids);
 
 				/* New models */
 				_.each(_.difference(new_model_ids, model_ids), function(model_id) {
@@ -53,7 +51,6 @@ Atmo.Collections.Volumes = Atmo.Collections.Base.extend({
 				});
 
 				options.success();
-
 			}
         });
     },

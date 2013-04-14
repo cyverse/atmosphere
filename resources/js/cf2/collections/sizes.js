@@ -3,6 +3,6 @@
  */
 
 Atmo.Collections.Sizes = Atmo.Collections.Base.extend({
-  model: Atmo.Models.Size
+	model: Atmo.Models.Size
 });
 
