@@ -2,8 +2,9 @@
 Atmosphere service mixin driver
 Mixin classes implement additional functionality for Drivers.
 """
+from atmosphere.logger import logger
 from service.tasks.driver import deploy_to,\
-    deploy_init_to, add_floating_ip
+    deploy_init_to, add_floating_ip, destroy_instance
 
 
 class MetaMixin():
@@ -110,11 +111,12 @@ class InstanceActionMixin():
 
 class TaskMixin():
     def deploy_init_to_task(self, instance, *args, **kwargs):
-        deploy_init_to.delay(self.__class__,
+        logger.info("Deploying subtask with countdown -- TODO: FIX THIS!")
+        deploy_init_to.subtask((self.__class__,
                               self.provider,
                               self.identity,
-                              instance.alias,
-                             *args, **kwargs)
+                              instance.alias),
+                              immutable=True, countdown=20)
 
     def deploy_to_task(self, instance, *args, **kwargs):
         deploy_to.delay(self.__class__,
@@ -130,7 +132,7 @@ class TaskMixin():
                               instance.alias,
                               *args, **kwargs)
         
-    def destroy_instance_task(self, instance, *args, **kwargs):
+    def destroy_instance_to_task(self, instance, *args, **kwargs):
         destroy_instance.delay(self.__class__,
                                self.provider,
                                self.identity,

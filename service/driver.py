@@ -363,13 +363,7 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         return True
 
     def destroy_instance(self, *args, **kwargs):
-        self._connection.ex_disassociate_floating_ip(*args, **kwargs)
-
-        node_destroyed = self._connection.destroy_node(*args, **kwargs)
-        time.sleep(5)
-        self._remove_unused_floating_ips()  # TODO: Add to queue to do asynchronously.
-        self._remove_empty_tenant_network()  # TODO: See above
-        return node_destroyed
+        return self._connection.destroy_node(instance)
 
     def suspend_instance(self, *args, **kwargs):
         return self._connection.ex_suspend_node(*args, **kwargs)
@@ -392,38 +386,20 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
     def _add_floating_ip(self, instance_id, *args, **kwargs):
         return self._connection._add_floating_ip(instance_id, *args, **kwargs)
 
-    def _remove_unused_floating_ips(self):
-        for f_ip in self._connection.ex_list_floating_ips():
-            if not f_ip.get('instance_id'):
-                self._connection.ex_deallocate_floating_ip(f_ip['id'])
-                logger.info("Removed unused Floating IP: %s" % f_ip)
     def _is_active_instance(self, instance):
         #Other things may need to be tested
-        if instance.extra['status'] in ['active','build']:
-            return True
-
-    def _remove_empty_tenant_network(self):
-        """
-        Will remove the tenant network if no active instances are found
-        """
-        #Wait a minute (We should delay this task, it makes the question easier
-        # to answer
-        time.sleep(60)
-        active_instances = False
-        for instance in self.list_instances():
-            if self._is_active_instance(instance):
-                active_instances = True
-                break
-        if not active_instances:
-            #Check for tenant network
-            os_driver = OSAccountDriver()
-            logger.debug(type(username))
-            logger.debug(username)
-            password = os_driver.hashpass(username)
-            tenant_name = username
-            os_driver.network_manager.delete_tenant_network(username)
+        status = instance.extra['status']
+        task = instance.extra['task']
+        power = instance.extra['power']
+        if status is 'active':
+            #Active, not being deleted or suspended
+            if task not in ['deleting','suspending']:
+                return True
+        elif status is 'build' or 'resize' and task is not 'deleting':
+            #The instance is moving toward an active state
             return True
         return False
+
 
 class AWSDriver(EshDriver):
     """
