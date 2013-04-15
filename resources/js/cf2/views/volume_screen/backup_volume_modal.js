@@ -9,7 +9,7 @@ Atmo.Views.BackupVolumeModal = Backbone.View.extend({
     template: _.template(Atmo.Templates.backup_volume_modal),
 	events: {
 		'change select[name="volume_to_backup"]' : 'backup_location_change',
-		'keyup input[name="backup_name"]' : 'validate_backup_name'
+		'input input[name="backup_name"]' : 'validate_backup_name'
 	},
     initialize: function() {
 		Atmo.volumes.bind("reset", this.render, this);
