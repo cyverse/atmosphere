@@ -16,7 +16,7 @@ from service.api.serializers import MachineRequestSerializer
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 
 from web.emails import requestImaging
-from service.tasks.machine import machineImagingTask
+from service.tasks.machine import machine_imaging_task
 
 import copy
 
@@ -96,7 +96,7 @@ class MachineRequestAction(APIView):
         if machine_request.status == 'approve':
             machine_request.status = 'queued'
             serializer.save()
-            machineImagingTask.delay(machine_request)
+            machine_imaging_task.delay(machine_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
