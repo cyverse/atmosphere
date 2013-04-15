@@ -25,8 +25,7 @@ Atmo.Views.FeedbackLink = Backbone.View.extend({
 	submit_feedback: function(e) {
 		e.preventDefault();
 
-		var post_data = {
-			message: $('#feedback').val(),
+		var data = {
 			'location': window.location.href,
 			'resolution': { 
 				'viewport': {
@@ -40,15 +39,46 @@ Atmo.Views.FeedbackLink = Backbone.View.extend({
 			}
 		};
 
+		data["message"] = $('#feedback').val();
+
+		// Create a list of user's instances and volumes to make support easier
+		data["message"] += '\n---\n\n';
+		data["message"] += 'Provider ID: ' + Atmo.profile.get('selected_identity').get('provider_id') + '\n\n';
+		data["message"] += '\n\n' + Atmo.profile.get('id') + "'s Instances:";
+		data["message"] += '\n---\n';
+		for (var i = 0; i < Atmo.instances.length; i++) {
+			var instance = Atmo.instances.models[i];
+			data["message"] += '\nInstance id:\n\t' + instance.get('id') + '\nEMI Number:\n\t' + instance.get('image_id') + '\nIP Address:\n\t' + instance.get('public_dns_name') + '\n';
+		}
+		data["message"] += '\n\n' + Atmo.profile.get('id') + "'s Volumes:";
+		data["message"] += '\n---\n';
+		for (var i = 0; i < Atmo.volumes.length; i++) {
+			var volume = Atmo.volumes.models[i];
+			data["message"] += '\nVolume id:\n\t' + volume.get('id') + '\nVolume Name:\n\t' + volume.get('name');
+		}
+		data["message"] += '\n\n';
+
+		data['location'] = window.location.href,
+		data['resolution'] = { 
+			'viewport': {
+				'width': $(window).width(),
+				'height': $(window).height()
+			},
+			'screen': {
+				'width':  screen.width,
+				'height': screen.height
+			}
+		};
+
 		var self = this;
 
-		if (post_data["message"].length > 0) {
+		if ($('#feedback').val().length > 0) {
 
 			$('#submit_feedback').html('<img src="'+site_root+'/resources/images/loader.gif" /> Sending...').attr('disabled', 'disabled');				
 
 			$.ajax(site_root + '/feedback/', {
 				type: 'POST',
-				data: post_data,
+				data: data,
 				success: function(data) {
 
 					// setTimeout to prevent loader gif from flashing on fast responses
