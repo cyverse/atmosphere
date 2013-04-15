@@ -42,7 +42,7 @@ class NetworkManager():
 
     ##Admin-specific methods##
     def list_tenant_network(self):
-        named_networks = self.find_network('-net')
+        named_networks = self.find_subnet('-subnet', contains=True)
         users_with_networks = [net['name'].replace('-net','') for net in named_networks]
         return users_with_networks
 
@@ -161,9 +161,10 @@ class NetworkManager():
         return [net for net in self.quantum.list_networks()['networks']
                 if network_name == net['name']]
 
-    def find_subnet(self, subnet_name):
+    def find_subnet(self, subnet_name, contains=False):
         return [net for net in self.quantum.list_subnets()['subnets']
-                if subnet_name == net['name']]
+                if subnet_name == net['name']
+                or (contains and subnet_name in net['name'])]
 
     def find_router(self, router_name):
         return [net for net in self.quantum.list_routers()['routers']

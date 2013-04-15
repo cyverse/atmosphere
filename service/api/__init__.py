@@ -125,11 +125,12 @@ def launchEshInstance(driver, extras, *args, **kwargs):
         elif isinstance(driver.provider, OSProvider):
             extras['deploy'] = True
             extras['token'] = instance_token
-	    #Check for tenant network
-	    os_driver = OSAccountDriver()
+            extras['ex_network'] = True
+            #Check for tenant network
+            os_driver = OSAccountDriver()
             logger.debug(type(username))
             logger.debug(username)
-	    password = os_driver.hashpass(username)
+            password = os_driver.hashpass(username)
             tenant_name = username
             os_driver.network_manager.create_tenant_network(username,
                                                      password,

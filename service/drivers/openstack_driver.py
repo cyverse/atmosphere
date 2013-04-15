@@ -172,6 +172,13 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             'ex_keyname': unicode(self.key),
         })
         logger.debug("create_node kwargs = %s" % kwargs)
+
+        # A 'Traditional' create node launch does not create networking
+        #TODO: Decide if we want a flag or network=quantum/nova-network/none
+        if kwargs.has_key('ex_network'):
+            # A flag or network = quantum here, we should create networking
+            return self.ex_create_node_with_network(**kwargs)
+
         node = super(OpenStack_Esh_NodeDriver, self).create_node(**kwargs)
 
         #NOTE: This line is needed to authenticate via SSH_Keypair instead!
@@ -380,8 +387,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         Openstack Network Manager. We will use this until libcloud completely
         supports quantum
         """
-        from atmosphere import settings
-        network_manager = NetworkManager(self, region)
+        network_manager = NetworkManager.settings_init()
         return network_manager.listLCNetworks()
 
     def ex_suspend_node(self, node):
@@ -636,11 +642,17 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         except Exception, e:
             raise
 
-    def ex_disassociate_floating_ip(self, server, address, **kwargs):
+    def ex_disassociate_floating_ip(self, server, address=None, **kwargs):
         """
         Disassociate a floating IP that's been associated to the node
         """
         try:
+            if not address:
+                public_ips = server.extra['addresses']['public']
+                if not public_ips:
+                    raise Exception("Could not determine public IP address,\
+                    please provide the floating IP address")
+                address = public_ips[0]['addr']
             server_resp = self.connection.request(
                 '/servers/%s/action' % server,
                 method='POST',
