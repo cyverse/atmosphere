@@ -111,8 +111,7 @@ class InstanceActionMixin():
 
 class TaskMixin():
     def deploy_init_to_task(self, instance, *args, **kwargs):
-        logger.info("Deploying subtask with countdown -- TODO: FIX THIS!")
-        deploy_init_to.subtask((self.__class__,
+        deploy_init_to.apply_async((self.__class__,
                               self.provider,
                               self.identity,
                               instance.alias),

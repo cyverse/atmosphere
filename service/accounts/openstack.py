@@ -6,6 +6,8 @@ from hashlib import sha1
 
 from django.contrib.auth.models import User
 
+from novaclient.v1_1 import client as nova_client
+
 from atmosphere import settings
 from atmosphere.logger import logger
 
@@ -110,6 +112,12 @@ class AccountDriver():
 
     def hashpass(self, username):
         return sha1(username).hexdigest()
+    def get_tenant_name_for(self, username):
+        """
+        This should always map tenant to user
+        For now, they are identical..
+        """
+        return username
 
     def get_tenant(self, tenant):
         return self.user_manager.get_tenant(tenant)
