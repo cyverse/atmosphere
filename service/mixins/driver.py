@@ -130,3 +130,9 @@ class TaskMixin():
                               instance.alias,
                               *args, **kwargs)
         
+    def destroy_instance_task(self, instance, *args, **kwargs):
+        destroy_instance.delay(self.__class__,
+                               self.provider,
+                               self.identity,
+                               instance.alias,
+                               *args, **kwargs)
