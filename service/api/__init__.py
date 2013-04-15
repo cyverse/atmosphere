@@ -108,7 +108,8 @@ def launchEshInstance(driver, extras, *args, **kwargs):
         #Add the user data
         username = extras.get('username', None)
         if not username:
-            username = driver.identity.user
+            logger.debug("not username")
+            username = driver.identity.user.username
         if 'name' not in extras:
             extras['name'] = 'Instance of %s' % machine.alias
         if isinstance(driver.provider, EucaProvider):
@@ -127,8 +128,11 @@ def launchEshInstance(driver, extras, *args, **kwargs):
             extras['token'] = instance_token
 	    #Check for tenant network
 	    os_driver = OSAccountDriver()
-	    (password, tenant_name) = (os_driver.hashpass(username), username)
-            os_driver.network_manager.createTenantNetwork(username,
+            logger.debug(type(username))
+            logger.debug(username)
+	    password = os_driver.hashpass(username)
+            tenant_name = username
+            os_driver.network_manager.create_tenant_network(username,
                                                      password,
                                                      tenant_name)
             #NOTE: Name, deploy are passed in extras

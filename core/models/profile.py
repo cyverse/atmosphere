@@ -1,8 +1,11 @@
+from django.contrib.auth.models import User as DjangoUser
+
+from django.db.models.signals import post_save
 from django.db import models
 
 from atmosphere.logger import logger
-from django.contrib.auth.models import User as DjangoUser
-from django.db.models.signals import post_save
+from atmosphere import settings
+
 from core.models.group import getUsergroup
 from core.models.identity import Identity
 
@@ -44,53 +47,60 @@ post_save.connect(get_or_create_user_profile, sender=DjangoUser)
 
 
 def getDefaultProvider(username):
-        """
-        return the Default provider given to the user-group
-        """
-        profile = UserProfile.objects.get(user__username=username)
-        if profile.selected_provider:
+    """
+    return the Default provider given to the user-group
+    """
+    profile = UserProfile.objects.get(user__username=username)
+    if profile.selected_provider:
+        return profile.selected_provider
+    else:
+        try:
+            group = getUsergroup(username)
+            profile.selected_provider = group.providers.get(
+                location="EUCALYPTUS")
+            profile.save()
+            logger.debug(
+                "profile.selected_provider set to %s " %
+                profile.selected_provider)
             return profile.selected_provider
-        else:
-            try:
-                group = getUsergroup(username)
-                profile.selected_provider = group.providers.get(
-                    location="EUCALYPTUS")
-                profile.save()
-                logger.debug(
-                    "profile.selected_provider set to %s " %
-                    profile.selected_provider)
-                return profile.selected_provider
-            except IndexError:
-                logger.info("No provider found for %s" % username)
-                return None
-            except Exception, e:
-                logger.exception(e)
-                return None
+        except IndexError:
+            logger.info("No provider found for %s" % username)
+            return None
+        except Exception, e:
+            logger.exception(e)
+            return None
 
 
 def getDefaultIdentity(username, provider=None):
-        """
-        return the Default identity given to the user-group for provider
-        """
-        profile = UserProfile.objects.get(user__username=username)
-        if profile.selected_identity:
-            return profile.selected_identity
-        else:
-            try:
-                group = getUsergroup(username)
-                identities = group.identities.all()
-                if provider:
-                    identities = identities.filter(provider=provider)
-                    return identities[0]
-                else:
-                    default_identity = group.identities.filter(
-                        provider__location="EUCALYPTUS")[0]
-                    profile.selected_identity = default_identity
-                    profile.save()
-                    logger.debug(
-                        "profile.selected_identity set to %s " %
-                        profile.selected_identity)
-                    return profile.selected_identity
-            except Exception, e:
-                logger.exception(e)
-                return None
+    """
+    return the Default identity given to the user-group for provider
+    """
+    profile = UserProfile.objects.get(user__username=username)
+    if profile.selected_identity:
+        return profile.selected_identity
+    else:
+        try:
+            group = getUsergroup(username)
+            identities = group.identities.all()
+            if provider:
+                identities = identities.filter(provider=provider)
+                return identities[0]
+            else:
+                default_identity = group.identities.filter(
+                    provider__location="EUCALYPTUS")[0]
+                profile.selected_identity = default_identity
+                profile.save()
+                logger.debug(
+                    "profile.selected_identity set to %s " %
+                    profile.selected_identity)
+                return profile.selected_identity
+        except Exception, e:
+            logger.exception(e)
+            return None
+
+
+def get_default_subnet(username):
+    """
+    return the default subnet for the username and provider.
+    """
+    return "172.16.42.0/24"

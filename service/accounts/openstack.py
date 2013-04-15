@@ -40,25 +40,25 @@ class AccountDriver():
         if not password:
             password = self.hashpass(username)
         if usergroup:
-            (tenant, user, role) = self.user_manager.addUsergroup(username,
+            (tenant, user, role) = self.user_manager.add_usergroup(username,
                                                                   password,
                                                                   True,
                                                                   admin)
             logger.info("Creating network for %s" % username)
         else:
-            user = self.user_manager.addUser(username, password)
-            tenant = self.user_manager.getTenant(username)
+            user = self.user_manager.add_user(username, password)
+            tenant = self.user_manager.get_tenant(username)
         #TODO: Instead, return user.get_user match, or call it if you have to..
         return user
 
     def delete_user(self, username, usergroup=True, admin=False):
-        tenant = self.user_manager.getTenant(username)
+        tenant = self.user_manager.get_tenant(username)
         if tenant:
-            self.network_manager.deleteTenantNetwork(username, tenant.name)
+            self.network_manager.delete_tenant_network(username, tenant.name)
         if usergroup:
-            deleted = self.user_manager.deleteUsergroup(username)
+            deleted = self.user_manager.delete_usergroup(username)
         else:
-            deleted = self.user_manager.deleteUser(username)
+            deleted = self.user_manager.delete_user(username)
         return deleted
 
     def create_usergroup(self, username):
@@ -112,16 +112,16 @@ class AccountDriver():
         return sha1(username).hexdigest()
 
     def get_tenant(self, tenant):
-        return self.user_manager.getTenant(tenant)
+        return self.user_manager.get_tenant(tenant)
 
     def list_tenants(self):
-        return self.user_manager.listTenants()
+        return self.user_manager.list_tenants()
 
     def get_user(self, user):
-        return self.user_manager.getUser(user)
+        return self.user_manager.get_user(user)
 
     def list_users(self):
-        return self.user_manager.listUsers()
+        return self.user_manager.list_users()
 
     def list_usergroups(self):
         users = self.list_users()

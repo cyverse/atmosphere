@@ -63,32 +63,32 @@ class UserManager():
         self.nova.client.region_name = settings.OPENSTACK_DEFAULT_REGION
 
     ##Composite Classes##
-    def addUsergroup(self, username, password,
+    def add_usergroup(self, username, password,
                      createUser=True, adminRole=False):
         """
         Create a group for this user only
         then create the user
         """
         #Create tenant for user/group
-        tenant = self.addTenant(username)
+        tenant = self.add_tenant(username)
 
         #Create user
         try:
-            user = self.addUser(username, password, tenant.name)
+            user = self.add_user(username, password, tenant.name)
         except ClientException as user_exists:
             logger.debug('Received Error %s on add, User exists.' %
                          user_exists)
-            user = self.getUser(username)
+            user = self.get_user(username)
 
         logger.debug("Assign Tenant:%s Member:%s Role:%s" %
                     (username, username, adminRole))
         try:
-            role = self.addTenantMember(username, username, adminRole)
+            role = self.add_tenant_member(username, username, adminRole)
         except ClientException:
             logger.warn('Could not assign role to username %s' % username)
         try:
             # keystone admin always gets access, always has admin priv.
-            self.addTenantMember(username, self.keystone.username, True)
+            self.add_tenant_member(username, self.keystone.username, True)
         except ClientException:
             logger.warn('Could not assign admin role to username %s' %
                         self.keystone.username)
@@ -121,38 +121,38 @@ class UserManager():
                                              to_port=to_port)
         return nova.security_groups.find(name='default')
 
-    def getUsergroup(self, username):
-        return self.getTenant(username)
+    def get_usergroup(self, username):
+        return self.get_tenant(username)
 
-    def deleteUsergroup(self, username, deleteUser=True):
+    def delete_usergroup(self, username, deleteUser=True):
         try:
-            self.deleteTenantMember(username, username, True)
+            self.delete_tenant_member(username, username, True)
         except ClientException:
             logger.warn('Could not remove admin role from username %s' %
                         username)
         try:
-            self.deleteTenantMember(username, username, False)
+            self.delete_tenant_member(username, username, False)
         except ClientException:
             logger.warn('Could not remove normal role from username %s' %
                         username)
         try:
-            self.deleteTenantMember(username, self.keystone.username, True)
+            self.delete_tenant_member(username, self.keystone.username, True)
         except ClientException:
             logger.warn('Could not remove role from keystone user %s' %
                         self.keystone.username)
 
         if deleteUser:
-            self.deleteUser(username)
-        self.deleteTenant(username)
+            self.delete_user(username)
+        self.delete_tenant(username)
 
     ##ADD##
-    def addRole(self, rolename):
+    def add_role(self, rolename):
         """
         Create a new role
         """
         return self.keystone.roles.create(name=rolename)
 
-    def addTenant(self, groupname):
+    def add_tenant(self, groupname):
         """
         Create a new tenant
         """
@@ -162,26 +162,26 @@ class UserManager():
             logger.exception(e)
             raise
 
-    def addTenantMember(self, groupname, username, adminRole=False):
+    def add_tenant_member(self, groupname, username, adminRole=False):
         """
         Adds user to group
         Invalid groupname, username, rolename :
             raise keystoneclient.exceptions.NotFound
         """
-        tenant = self.getTenant(groupname)
-        user = self.getUser(username)
+        tenant = self.get_tenant(groupname)
+        user = self.get_user(username)
         #Only supporting two roles..
         if adminRole:
-            role = self.getRole('admin')
+            role = self.get_role('admin')
         else:
-            role = self.getRole('defaultMemberRole')
+            role = self.get_role('defaultMemberRole')
         try:
             return tenant.add_user(user, role)
         except Exception, e:
             logger.exception(e)
             raise
 
-    def addUser(self, username, password=None, groupname=None):
+    def add_user(self, username, password=None, groupname=None):
         """
         Create a new user
         Invalid groupname : raise keystoneclient.exceptions.NotFound
@@ -193,7 +193,7 @@ class UserManager():
         }
         if groupname:
             try:
-                tenant = self.getTenant(groupname)
+                tenant = self.get_tenant(groupname)
                 kwargs['tenant_id'] = tenant.id
             except NotFound:
                 logger.warn("User %s does not exist" % username)
@@ -201,28 +201,28 @@ class UserManager():
         return self.keystone.users.create(**kwargs)
 
     ##DELETE##
-    def deleteRole(self, rolename):
+    def delete_role(self, rolename):
         """
         Retrieve,Delete the user
         Invalid username : raise keystoneclient.exceptions.NotFound
         """
-        role = self.getRole(rolename)
+        role = self.get_role(rolename)
         if role:
             role.delete()
         return True
 
-    def deleteTenant(self, groupname):
+    def delete_tenant(self, groupname):
         """
         Retrieve and delete the tenant/group matching groupname
         Returns True on success
         Invalid groupname : raise keystoneclient.exceptions.NotFound
         """
-        tenant = self.getTenant(groupname)
+        tenant = self.get_tenant(groupname)
         if tenant:
             tenant.delete()
         return True
 
-    def deleteTenantMember(self, groupname, username, adminRole=False):
+    def delete_tenant_member(self, groupname, username, adminRole=False):
         """
         Retrieves the tenant and user object
         Removes user of the admin/member role
@@ -230,12 +230,12 @@ class UserManager():
         Invalid username, groupname, rolename:
             raise keystoneclient.exceptions.NotFound
         """
-        tenant = self.getTenant(groupname)
-        user = self.getUser(username)
+        tenant = self.get_tenant(groupname)
+        user = self.get_user(username)
         if adminRole:
-            role = self.getRole('admin')
+            role = self.get_role('admin')
         else:
-            role = self.getRole('defaultMemberRole')
+            role = self.get_role('defaultMemberRole')
         if not tenant or not user:
             return True
         try:
@@ -249,17 +249,17 @@ class UserManager():
             logger.exception(e)
             raise
 
-    def deleteUser(self, username):
+    def delete_user(self, username):
         """
         Retrieve,Delete the user
         Invalid username : raise keystoneclient.exceptions.NotFound
         """
-        user = self.getUser(username)
+        user = self.get_user(username)
         if user:
             user.delete()
         return True
 
-    def getRole(self, rolename):
+    def get_role(self, rolename):
         """
         Retrieve role
         Invalid rolename : raise keystoneclient.exceptions.NotFound
@@ -269,7 +269,7 @@ class UserManager():
         except NotFound:
             return None
 
-    def getTenant(self, groupname):
+    def get_tenant(self, groupname):
         """
         Retrieve tenant
         Invalid groupname : raise keystoneclient.exceptions.NotFound
@@ -279,7 +279,7 @@ class UserManager():
         except NotFound:
             return None
 
-    def getUser(self, username):
+    def get_user(self, username):
         """
         Retrieve user
         Invalid username : raise keystoneclient.exceptions.NotFound
@@ -289,13 +289,13 @@ class UserManager():
         except NotFound:
             return None
 
-    def listRoles(self):
+    def list_roles(self):
         return self.keystone.roles.list()
 
-    def listTenants(self):
+    def list_tenants(self):
         return self.keystone.tenants.list()
 
-    def listUsers(self):
+    def list_users(self):
         return self.keystone.users.list()
 
 

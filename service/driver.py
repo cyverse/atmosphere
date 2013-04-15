@@ -363,9 +363,11 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         return True
 
     def destroy_instance(self, *args, **kwargs):
+        self._connection.ex_disassociate_floating_ip(*args, **kwargs)
+
         node_destroyed = self._connection.destroy_node(*args, **kwargs)
         time.sleep(5)
-        self._remove_unused_floating_ips() # TODO: Add to queue to do asynchronously.
+        self._remove_unused_floating_ips()  # TODO: Add to queue to do asynchronously.
         return node_destroyed
 
     def suspend_instance(self, *args, **kwargs):
