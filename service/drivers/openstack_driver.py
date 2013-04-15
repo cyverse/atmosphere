@@ -10,7 +10,8 @@ import time
 
 import libcloud.compute.ssh
 from libcloud.compute.ssh import SSHClient
-from libcloud.compute.types import Provider, NodeState, DeploymentError
+from libcloud.compute.types import Provider, NodeState, DeploymentError,\
+                                   LibcloudError
 from libcloud.compute.base import StorageVolume,\
     NODE_ONLINE_WAIT_TIMEOUT, SSH_CONNECT_TIMEOUT,\
     NodeAuthPassword, NodeDriver
@@ -173,11 +174,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         })
         logger.debug("create_node kwargs = %s" % kwargs)
 
-        # A 'Traditional' create node launch does not create networking
-        #TODO: Decide if we want a flag or network=quantum/nova-network/none
-        if kwargs.has_key('ex_network'):
-            # A flag or network = quantum here, we should create networking
-            return self.ex_create_node_with_network(**kwargs)
 
         node = super(OpenStack_Esh_NodeDriver, self).create_node(**kwargs)
 
@@ -187,6 +183,9 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         return node
 
     def ex_create_node_with_network(self, **kwargs):
+        """
+        Deprecated -- Old Workflow (Via JMATT!)
+        """
         self._add_keypair(kwargs)
         kwargs.update({
             'ex_keyname': unicode(self.key),
@@ -650,8 +649,9 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             if not address:
                 public_ips = server.extra['addresses']['public']
                 if not public_ips:
-                    raise Exception("Could not determine public IP address,\
+                    logger.warn("Could not determine public IP address,\
                     please provide the floating IP address")
+                    return None
                 address = public_ips[0]['addr']
             server_resp = self.connection.request(
                 '/servers/%s/action' % server,

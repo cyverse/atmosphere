@@ -125,7 +125,6 @@ def launchEshInstance(driver, extras, *args, **kwargs):
         elif isinstance(driver.provider, OSProvider):
             extras['deploy'] = True
             extras['token'] = instance_token
-            extras['ex_network'] = True
             #Check for tenant network
             os_driver = OSAccountDriver()
             logger.debug(type(username))
