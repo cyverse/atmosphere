@@ -6,9 +6,32 @@ from __future__ import absolute_import
 from django.core.handlers.wsgi import WSGIRequest
 
 import ldap as ldap_driver
-
+import string
 from atmosphere.logger import logger
 from atmosphere import settings
+
+
+def getAllUsers():
+    """
+    Grabs all users in LDAP
+    """
+    try:
+        conn = ldap_driver.initialize(settings.LDAP_SERVER)
+        user_list = []
+        for letter in string.lowercase:
+            attr = conn.search_s(
+                settings.LDAP_SERVER_DN,
+                ldap_driver.SCOPE_SUBTREE,
+                '(uid=%s*)' % letter
+            )
+            for i in xrange(0,len(attr)):
+               user_attrs = attr[i][1]
+               user_list.append(user_attrs)
+        return user_list
+    except Exception as e:
+        logger.warn("Error occurred looking up user: %s" % userid)
+        logger.exception(e)
+        return None
 
 
 def lookupUser(userid):

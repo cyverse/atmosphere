@@ -98,3 +98,24 @@ def add_floating_ip(driverCls, provider, identity, instance_alias, *args, **kwar
         logger.debug("add_floating_ip task finished at %s." % datetime.now())
     except Exception as exc:
         add_floating_ip.retry(exc=exc)
+
+
+@task(name="destroy_instance",
+      default_retry_delay=15,
+      ignore_result=True,
+      max_retries=6)
+def destroy_instance(driverCls, provider, identity, instance_id):
+    try:
+        logger.debug("destroy_instance task started at %s." % datetime.now())
+        from service import compute
+        compute.initialize()
+        driver = driverCls(provider, identity)
+        instance = driver.get_instance(instance_alias)
+        if instance:
+            driver.destroy_instance(instance)
+        else:
+            logger.debug("Instance already deleted: %s." % instance.id)
+        logger.debug("destroy_instance task finished at %s." % datetime.now())
+    except Exception as exc:
+        logger.warn(exc)
+        destroy_instance.retry(exc=exc)

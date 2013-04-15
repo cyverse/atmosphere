@@ -3,5 +3,5 @@
  */
 
 Atmo.Collections.Notifications = Atmo.Collections.Base.extend({
-  model: Atmo.Models.Notification,
+	model: Atmo.Models.Notification,
 });

@@ -30,6 +30,7 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 							|| response.status == 'active - suspending'
 							|| response.status == 'resize - resize_prep'
 							|| response.status == 'resize - resize_migrating'
+							|| response.status == 'resize - resize_migrated'
 							|| response.status == 'resize - resize_finish'
 							|| response.status == 'revert_resize - resize_reverting' );
 		attributes.state_is_delete = (    response.status == 'delete'
@@ -54,6 +55,9 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 		
 		Atmo.Utils.confirm(header, body, {
 			on_confirm : function() {
+
+				Atmo.Utils.notify('Terminating Instance...', 'Please wait while your instance terminates.');
+
 				self.destroy({
 					wait: true, 
 					success: options.success,

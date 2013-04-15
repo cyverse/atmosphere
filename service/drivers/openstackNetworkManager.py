@@ -261,7 +261,7 @@ class NetworkManager():
         if existing_gateways:
             logger.info('Router gateway for External Network:%s-Router:%s\
                 already exists' % (external_network_name,router_name))
-            return existing_gatways[0]
+            return existing_gateways[0]
         #Establish the router_gateway
         router_id = self.get_router_id(quantum, router_name)
         external_network = self.get_network_id(quantum, external_network_name)

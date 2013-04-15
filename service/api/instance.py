@@ -150,6 +150,13 @@ class InstanceAction(APIView):
                 logger.debug(
                     "%s completed in %s attempts"
                     % (action, attempts))
+                if esh_volume.extra['status'] == 'available':
+                    errorObj = failureJSON([{
+                        'code': 503,
+                        'message': 'Volume attachment failed. Please try again'}])
+                    return Response(
+                        errorObj,
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE)
             elif 'resize' == action:
                 size_alias = action_params.get('size_alias', '')
                 size = esh_driver.get_size(size_alias)
