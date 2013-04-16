@@ -40,7 +40,7 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 			
 			// Update running state if needed
 			this.$el.find('.instance_state').attr('class', 'instance_state');
-			this.$el.find('.instance_state').html('Instance is ' + this.model.get('state'));
+			this.$el.find('.instance_state').html('Instance status: ' + this.model.get('state'));
 		}
 
 		if (this.model.get('selected'))
@@ -101,7 +101,7 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 		var instances = this.model.collection;
         
         if (this.model.get('state_is_delete') == true) {
-            Atmo.Utils.notify("Please wait", "Instance is already " + this.model.get('state') + ".");
+            Atmo.Utils.notify("Please wait", "Instance status is already " + this.model.get('state') + ".");
             return false;
         }
         else {

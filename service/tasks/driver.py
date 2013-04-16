@@ -104,24 +104,28 @@ def destroy_instance(driverCls, provider, identity, instance_alias):
     try:
         logger.debug("destroy_instance task started at %s." % datetime.now())
         from service import compute
+	from service.provider import OSProvider
         compute.initialize()
         driver = driverCls(provider, identity)
         instance = driver.get_instance(instance_alias)
         if instance:
             #First disassociate
-            driver._connection.ex_disassociate_floating_ip(instance)
+            if type(provider) == OSProvider:
+            	driver._connection.ex_disassociate_floating_ip(instance)
             #Then destroy
             node_destroyed = driver._connection.destroy_node(instance)
         else:
             logger.debug("Instance already deleted: %s." % instance.id)
 
-        #Spawn off the last two tasks
-        chain(_remove_floating_ip.subtask((driverCls,
-                                 provider,
-                                 identity), immutable=True, countdown=5),
-              _check_empty_tenant_network.subtask((driverCls,
-                                 provider,
-                                 identity), immutable=True, countdown=60)).apply_async()
+        if type(provider) == OSProvider:
+            #Spawn off the last two tasks
+            chain(_remove_floating_ip.subtask((driverCls,
+                                     provider,
+                                     identity), immutable=True, countdown=5),
+                  _check_empty_tenant_network.subtask((driverCls,
+                                     provider,
+                                     identity), immutable=True, countdown=60)
+                 ).apply_async()
 
         logger.debug("destroy_instance task finished at %s." % datetime.now())
         return node_destroyed

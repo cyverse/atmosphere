@@ -38,19 +38,19 @@ class Instance(Persist):
         return map(cls.provider.instanceCls, nodes)
 
     def get_public_ip(self):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def get_status(self):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def load(self):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def save(self):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def delete(self):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def reset(self):
         self._node = None
@@ -100,6 +100,14 @@ class EucaInstance(AWSInstance):
         if self.extra:
             return self.extra.get('dns_name')
 
+    def get_status(self):
+        """
+        """
+        status = "Unknown"
+        if self.extra \
+           and self.extra.get('status'):
+            status = self.extra['status']
+        return status
 
 class OSInstance(Instance):
 

@@ -249,6 +249,7 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 						{ no_timeout: true }
 					);
 					self.$el.find('button.verify_resize_btn').removeAttr('disabled').html('Finalize Instance Resize');
+					self.$el.find('button.revert_resize_btn').fadeIn('fast');
 				}
 			});
 		}
