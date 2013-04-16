@@ -30,11 +30,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id, *args, **kwargs):
         from service import compute
         compute.initialize()
         driver = driverCls(provider, identity)
-        logger.debug(provider)
-        logger.debug(identity)
-        logger.debug(driver.list_instances())
         instance = driver.get_instance(instance_id)
-        logger.debug(instance)
         if not instance.ip:
             chain(add_floating_ip.si(driverCls,
                                      provider,
@@ -70,7 +66,10 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
         compute.initialize()
         driver = driverCls(provider, identity)
         instance = driver.get_instance(instance_id)
-        driver.deploy_init_to(instance)
+        instance._node.extra['password'] = None
+        deployed = driver.deploy_init_to(instance)
+        if not deployed:
+            _deploy_init_to.retry()
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
     except Exception as exc:
         logger.warn(exc)
@@ -141,10 +140,7 @@ def _check_empty_tenant_network(driverCls, provider, identity, *args, **kwargs):
         from service import compute
         compute.initialize()
         driver = driverCls(provider, identity)
-        logger.debug(provider)
-        logger.debug(identity)
         instances = driver.list_instances()
-        logger.debug(instances)
         active_instances = False
         for instance in instances:
             if driver._is_active_instance(instance):

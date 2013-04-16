@@ -264,9 +264,6 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         self._connection.connection.service_region =\
             settings.OPENSTACK_DEFAULT_REGION
 
-    def eventual_deploy_instance(self, *args, **kwargs):
-        pass
-
     def deploy_init_to(self, *args, **kwargs):
         if args:
             instance = args[0]
@@ -307,17 +304,13 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'deploy': msd})
         kwargs.update({'timeout': 120})
-        try:
-            self.deploy_to(instance, *args, **kwargs)
-        except DeploymentError as de:
-            logger.error(sys.exc_info())
-            logger.error(de.value)
-            #raise(de)
+        deployed = self.deploy_to(instance, *args, **kwargs)
+        if deployed:
+            created = datetime.strptime(instance.extra['created'], "%Y-%m-%dT%H:%M:%SZ")
+            send_instance_email(username, instance.id, instance.ip, created, username)
+            return True
+        else:
             return False
-        created = datetime.strptime(instance.extra['created'], "%Y-%m-%dT%H:%M:%SZ")
-        send_instance_email(username, instance.id, instance.ip, created, username)
-
-        return True
 
     def deploy_to(self, *args, **kwargs):
         """
@@ -434,7 +427,6 @@ class AWSDriver(EshDriver):
         logger.debug(awesome_atmo_call)
         str_awesome_atmo_call = str(awesome_atmo_call)
         #kludge: weirdness without the str cast...
-        logger.debug(isinstance(str_awesome_atmo_call, basestring))
         script_atmo_init = ScriptDeployment(str_awesome_atmo_call)
         private_key = ("/opt/dev/atmosphere/extras/ssh/id_rsa")
         scripts = [script_deps,

@@ -2,14 +2,13 @@
 Atmosphere service instance.
 
 """
-
+from atmosphere.logger import logger
 
 from core import Persist
 
 from service.provider import AWSProvider, EucaProvider, OSProvider
 from service.machine import Machine
 from service.size import Size
-from atmosphere.logger import logger
 
 
 class Instance(Persist):
@@ -30,15 +29,18 @@ class Instance(Persist):
         self.ip = self.get_public_ip()
         if Machine.machines.get((self.provider.name, self.image_id)):
             self.machine = Machine.machines[(self.provider.name, self.image_id)]
-        else:
-            logger.warn('Could not find the provider-machine (%s,%s)' %
-                        (self.provider, self.image_id))
+        #else:
+            #logger.info('Could not find the provider-machine (%s,%s)' %
+            #            (self.provider, self.image_id))
 
     @classmethod
     def get_instances(cls, nodes):
         return map(cls.provider.instanceCls, nodes)
 
     def get_public_ip(self):
+        raise NotImplemented
+
+    def get_status(self):
         raise NotImplemented
 
     def load(self):
@@ -117,3 +119,17 @@ class OSInstance(Instance):
            and self.extra.get('addresses') \
            and self.extra['addresses'].get('public'):
             return self.extra['addresses'].get('public')[0].get('addr')
+
+    def get_status(self):
+        """
+        TODO: If openstack: Use extra['task'] and extra['power']
+        to determine the appropriate status.
+        """
+        status = "Unknown"
+        if self.extra \
+           and self.extra.get('status'):
+            status = self.extra['status']
+            task = self.extra.get('task')
+            if task:
+                status += ' - %s' % self.extra['task']
+        return status

@@ -65,18 +65,18 @@ class NetworkManager():
         logger.info("Initializing network connection for %s" % username)
         user_quantum = self.new_connection(**user_creds)
         network = self.create_network(user_quantum, '%s-net' % tenant_name)
-        subnet = self.create_subnet(user_quantum,
-                                    '%s-subnet' % tenant_name,
-                                    network['id'],
-                                    cidr=get_default_subnet(username))
+        subnet = self.create_user_subnet(user_quantum,
+                                         '%s-subnet' % tenant_name,
+                                         network['id'],
+                                         username,
+                                         get_cidr=get_default_subnet)
         public_router = self.find_router(settings.OPENSTACK_DEFAULT_ROUTER)
         if public_router:
             public_router = public_router[0]
         else:
             raise Exception("Default public router was not found.")
         #self.create_router(user_quantum, '%s-router' % tenant_name)
-        self.add_router_interface(user_quantum,
-                                  public_router,
+        self.add_router_interface(public_router,
                                   subnet)
         #self.set_router_gateway(user_quantum, '%s-router' % tenant_name)
 
@@ -215,6 +215,33 @@ class NetworkManager():
         network_obj = quantum.create_network({'network': network})
         return network_obj['network']
 
+    def create_user_subnet(self, quantum, subnet_name,
+                           network_id, username,
+                           ip_version=4, get_cidr=get_default_subnet):
+        """
+        Create a subnet for the user using the get_cidr function to get
+        a private subnet range.
+        """
+        success = False
+        inc = 0
+        MAX_SUBNET = 4064
+        cidr = None
+        while not success and inc < MAX_SUBNET:
+            try:
+                cidr = get_cidr(username, inc)
+                if cidr:
+                    return self.create_subnet(quantum, subnet_name,
+                                              network_id, ip_version,
+                                              cidr)
+                else:
+                    logger.warn("Unable to create cidr for subnet for user: %s")
+                    inc +=1
+            except Exception as e:
+                logger.warn("Unable to create subnet for user: %s")
+                inc += 1
+        if not success or not cidr:
+            raise Exception("Unable to create subnet for user: %s" % username)
+
     def create_subnet(self, quantum, subnet_name,
                      network_id, ip_version=4, cidr='172.16.1.0/24'):
         existing_subnets = self.find_subnet(subnet_name)
@@ -240,16 +267,15 @@ class NetworkManager():
         router_obj = quantum.create_router({'router': router})
         return router_obj['router']
 
-    def add_router_interface(self, quantum, router, subnet):
+    def add_router_interface(self, router, subnet):
         existing_routers = self.find_router_interface(router, subnet)
         if existing_routers:
             logger.info('Router Interface for Subnet:%s-Router:%s already\
                     exists' % (subnet['name'], router['name']))
             return existing_routers[0]
-        #router_id = self.get_router_id(quantum, router_name)
-        #subnet_id = self.get_subnet_id(quantum, subnet_name)
-        interface_obj = quantum.add_interface_router(router['id'], {
-            "subnet_id": subnet['id']})
+        interface_obj = self.quantum.add_interface_router(
+            router['id'], {
+                "subnet_id": subnet['id']})
         return interface_obj
 
     def set_router_gateway(self, quantum, router_name,

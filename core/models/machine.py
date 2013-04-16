@@ -130,13 +130,13 @@ class ProviderMachine(models.Model):
 
 
 def build_cached_machines():
-    logger.debug("building cached machines")
+    #logger.debug("building cached machines")
     ProviderMachine.cached_machines = {}
     cms = ProviderMachine.objects.all()
     for cm in cms:
         ProviderMachine.cached_machines[(cm.provider.id, cm.identifier)] = cm
-    logger.debug("built core machines dictionary with %s machines." %
-                 len(ProviderMachine.cached_machines))
+    #logger.debug("built core machines dictionary with %s machines." %
+    #             len(ProviderMachine.cached_machines))
 
 
 """

@@ -49,12 +49,7 @@ class Instance(models.Model):
     def esh_status(self):
         if not self.esh:
             return "Unknown"
-        #TODO: If openstack:
-        #Use extra['task'] and extra['power']
-        #to determine the appropriate status.
-        status = self.esh._node.extra['status']
-        if 'task' in self.esh._node.extra and self.esh._node.extra['task']:
-            status += ' - %s' % self.esh._node.extra['task']
+        status = self.esh.get_status()
         return status
 
     def esh_size(self):

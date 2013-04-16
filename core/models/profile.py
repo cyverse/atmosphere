@@ -6,6 +6,7 @@ from django.db import models
 from atmosphere.logger import logger
 from atmosphere import settings
 
+from core.ldap import get_uid_number
 from core.models.group import getUsergroup
 from core.models.identity import Identity
 
@@ -99,8 +100,39 @@ def getDefaultIdentity(username, provider=None):
             return None
 
 
-def get_default_subnet(username):
+def get_ranges(uid_number, inc=0):
     """
-    return the default subnet for the username and provider.
+    Return two block ranges to be used to create subnets for
+    Atmosphere users.
+
+    NOTE: If you change MAX_SUBNET then you should likely change
+    the related math.
     """
-    return "172.16.42.0/24"
+    MAX_SUBNET = 4064  # Note 
+    n = uid_number % MAX_SUBNET
+
+    #16-31
+    block1 = (n + inc) % 16 + 16
+
+    #1-254
+    block2 = ((n + inc) / 16) % 254 + 1
+    
+    return (block1, block2)
+
+def get_default_subnet(username, inc=0):
+    """
+    Return the default subnet for the username and provider.
+
+    Add and mod by inc to allow for collitions.
+    """
+    uid_number = get_uid_number(username)
+
+    if uid_number:
+        (block1, block2) = get_ranges(uid_number, inc)
+    else:
+        (block1, block2) = get_ranges(0, inc)
+
+    if username == "jmatt":
+        return "172.16.42.0/24"  # /flex
+    else:
+        return "172.%s.%s.0/24" % (block1, block2)

@@ -325,7 +325,9 @@ class Instance(APIView):
             esh_instance = esh_driver.get_instance(instance_id)
             esh_driver.destroy_instance_to_task(esh_instance)
             esh_instance = esh_driver.get_instance(instance_id)
-            # TODO: Set instance status manually?
+            if esh_instance.extra\
+               and 'task' not in esh_instance.extra:
+                esh_instance.extra['task'] = 'queueing delete'
             core_instance = convertEshInstance(esh_instance, provider_id, user)
             if core_instance:
                 core_instance.end_date = datetime.now()

@@ -172,8 +172,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         kwargs.update({
             'ex_keyname': unicode(self.key),
         })
-        logger.debug("create_node kwargs = %s" % kwargs)
-
 
         node = super(OpenStack_Esh_NodeDriver, self).create_node(**kwargs)
 
@@ -230,6 +228,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 kwargs['auth'] = NodeAuthPassword(binascii.hexlify(value))
 
             if 'ssh_key' not in kwargs:
+                logger.debug("ssh_key missing!")
                 password = kwargs['auth'].password
 
         max_tries = kwargs.get('max_tries', 3)
@@ -238,8 +237,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             password = node.extra.get('password')
 
         ssh_interface = kwargs.get('ssh_interface', 'public_ips')
-
-        logger.debug("here1")
 
         # Wait until node is up and running and has IP assigned
         max_tries = kwargs.get('max_tries', 3)

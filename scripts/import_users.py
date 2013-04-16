@@ -20,13 +20,14 @@ def main():
     os_driver = OSAccountDriver()
     found = 0
     create = 0
-    core_services = ['jmatt'] #['admin', 'esteve', 'jmatt', 
-                    # 'cjlarose', 'mlent', 'edwins']
+    core_services = ['admin', 'jmatt', 'esteve',
+                     'cjlarose', 'mlent', 'edwins',
+                     'nirav', 'sgoff', 'lenards']
     for user in core_services:
         # Get the user from Euca DB
         user_dict = euca_driver.get_user(user)
         # Create a euca account/identity
-        #create_euca_account(euca_driver, user_dict)
+        create_euca_account(euca_driver, user_dict)
         # Then add the Openstack Identity
         create_os_account(os_driver, user, admin_role=True)
         make_admin(user)
