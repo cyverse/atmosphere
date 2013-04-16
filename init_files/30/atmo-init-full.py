@@ -309,6 +309,16 @@ def iplant_files():
         match_hash="0e9cec8ce1d38476dda1646631a54f6b2ddceff5")
     run_command(['/bin/chmod', 'a+x', '/opt/irodsidrop/idroprun.sh'])
 
+def modify_rclocal(username):
+    try:
+        open_file = open('/etc/rc.d/rc.local','a')
+        open_file.write('''hostname localhost
+/bin/su %s -c /usr/bin/vncserver
+/usr/bin/nohup /usr/local/bin/shellinaboxd -b -t -f beep.wav:/dev/null > /var/log/atmo/shellinaboxd.log 2>&1 &
+''' % username)
+        open_file.close()
+    except Exception:
+        logging.warn("Failed to write to rc.local")
 
 def shellinaboxd(distro):
     if is_rhel(distro):
@@ -595,6 +605,7 @@ def main(argv):
 #    install_icommands(distro)
     update_timezone()
     shellinaboxd(distro)
+    modify_rclocal(linuxuser)
     logging.info("Complete.")
 
 
