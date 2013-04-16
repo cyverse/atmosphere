@@ -95,7 +95,6 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
 	},
 	switch_identity: function() {
 		var self = this;
-		//Atmo.profile.set('selected_identity', parseInt(this.$el.find('select[name="provider_switcher"]').val()));
 		var id = parseInt(self.$el.find('input[name="selected_identity"]:checked').val());
 		Atmo.profile.save(
 			{ 'selected_identity' : id },
@@ -114,17 +113,17 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
         this.$el.find('#request_new_identity').val('Sending...').attr('disabled', 'disabled');
 
         var self = this;
+
         $.ajax({
             type: 'POST',
             url: site_root + '/api/email_support/', 
             data: data,
             statusCode: {
                 200: function() {
-                    self.$el.find('#request_new_identity').val('Request Submitted!');
+                    self.$el.find('#request_new_identity').val('Request New Identity').removeAttr('disabled', 'disabled');
+					Atmo.Utils.notify('Request Submitted', 'Support will contact you shortly about adding a new cloud identity.');
                 }
             },
-            contentType: 'json',
-            dataType: 'json'
         });
         return false;
 	},

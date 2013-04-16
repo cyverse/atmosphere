@@ -25,7 +25,7 @@ from libcloud.compute.providers import get_driver
 from libcloud.compute.types import Provider
 from glanceclient import Client as GlanceClient
 from novaclient.v1_1.client import Client as NovaClient
-
+from service.accounts.openstack import AccountDriver as OSAccountDriver
 
 class ImageManager():
     """
@@ -37,7 +37,7 @@ class ImageManager():
     glance = None
     nova = None
     driver = None
-
+    account_driver = None
     def __init__(self, key=settings.OPENSTACK_ADMIN_KEY,
                  secret=settings.OPENSTACK_ADMIN_SECRET,
                  url=settings.OPENSTACK_AUTH_URL,
@@ -47,6 +47,7 @@ class ImageManager():
         Will initialize with admin settings if no args are passed.
         Private Key file required to decrypt images.
         """
+        self.account_driver = OSAccountDriver()
         OpenStack = get_driver(Provider.OPENSTACK)
         #TODO: There should be a better way, perhaps just auth w/ keystone..
         self.driver = OpenStack(key, secret, ex_force_auth_url=url,
@@ -72,7 +73,6 @@ class ImageManager():
                                tenant, url,
                                service_type="compute")
         self.nova.client.region_name = settings.OPENSTACK_DEFAULT_REGION
-
 
     def upload_euca_image(self, name, image, kernel=None, ramdisk=None):
         """
@@ -115,9 +115,14 @@ class ImageManager():
     def download_image(self, download_dir, image_id):
         raise NotImplemented("not yet..")
 
-    def create_image(self, instance_id, name=None, **kwargs):
+    def create_image(self, instance_id, name=None, username=None, **kwargs):
         metadata = kwargs
         if not name:
             name = 'Image of %s' % instance_id
-        server = self.nova.servers.find(id=instance_id)
+        servers = [server for server in
+                self.nova.servers.list(search_opts={'all_tenants':1}) if
+                server.id == instance_id]
+        if not servers:
+            return None
+        server = servers[0]
         return self.nova.servers.create_image(server, name, metadata)

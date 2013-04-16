@@ -126,6 +126,30 @@ Atmo.Router = Backbone.Router.extend({
                     data["username"] = Atmo.profile.get('id');
                     data["message"] = data["username"] + ' wants to beta test OpenStack.\n';
                     data["subject"] = 'Atmosphere User ' + data["username"] + ' wants to beta test OpenStack';
+					// Create a list of user's instances and volumes to make support easier
+					data["message"] += '\n\n' + Atmo.profile.get('id') + "'s Instances:";
+					for (var i = 0; i < Atmo.instances.length; i++) {
+						var instance = Atmo.instances.models[i];
+						data["message"] += '\nID:\t\t' + instance.get('id') + '\nEMI:\t\t' + instance.get('image_id') + '\nIP:\t\t' + instance.get('public_dns_name');
+					}
+					data["message"] += '\n\n' + Atmo.profile.get('id') + "'s Volumes:";
+					for (var i = 0; i < Atmo.volumes.length; i++) {
+						var volume = Atmo.volumes.models[i];
+						data["message"] += '\nID:\t\t' + volume.get('id') + '\nName:\t\t' + volume.get('name');
+					}
+					data["message"] += '\n\n';
+
+					data['location'] = window.location.href,
+					data['resolution'] = { 
+						'viewport': {
+							'width': $(window).width(),
+							'height': $(window).height()
+						},
+						'screen': {
+							'width':  screen.width,
+							'height': screen.height
+						}
+					};
 
                     $.ajax({
                         type: 'POST',

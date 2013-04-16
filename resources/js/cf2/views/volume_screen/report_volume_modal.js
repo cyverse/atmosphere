@@ -141,7 +141,35 @@ Atmo.Views.ReportVolumeModal = Backbone.View.extend({
 
 			}
 
-			data["message"] += '\n\n' + 'Provider ID: ' + Atmo.profile.get('selected_identity').get('provider_id') + '\n';
+			data["message"] += '\n---\n\n';
+			data["message"] += 'Provider ID: ' + Atmo.profile.get('selected_identity').get('provider_id') + '\n\n';
+
+			// Create a list of user's instances and volumes to make support easier
+			data["message"] += '\n\n' + Atmo.profile.get('id') + "'s Instances:";
+			data["message"] += '\n---\n';
+			for (var i = 0; i < Atmo.instances.length; i++) {
+				var instance = Atmo.instances.models[i];
+				data["message"] += '\nInstance id:\n\t' + instance.get('id') + '\nEMI Number:\n\t' + instance.get('image_id') + '\nIP Address:\n\t' + instance.get('public_dns_name') + '\n';
+			}
+			data["message"] += '\n\n' + Atmo.profile.get('id') + "'s Volumes:";
+			data["message"] += '\n---\n';
+			for (var i = 0; i < Atmo.volumes.length; i++) {
+				var volume = Atmo.volumes.models[i];
+				data["message"] += '\nVolume id:\n\t' + volume.get('id') + '\nVolume Name:\n\t' + volume.get('name');
+			}
+			data["message"] += '\n\n';
+
+			data['location'] = window.location.href,
+			data['resolution'] = { 
+				'viewport': {
+					'width': $(window).width(),
+					'height': $(window).height()
+				},
+				'screen': {
+					'width':  screen.width,
+					'height': screen.height
+				}
+			};
 
 			var succeeded = true;
 

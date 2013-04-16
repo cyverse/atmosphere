@@ -18,12 +18,12 @@ from service.drivers.migrate import EucaToOpenstack as EucaOSMigrater
 
 
 @task()
-def machineExportTask(machine_export):
+def machine_export_task(machine_export):
     pass
 
 
-@task()
-def machineImagingTask(machine_request):
+@task(name='machine_imaging_task', ignore_result=True)
+def machine_imaging_task(machine_request):
     try:
         machine_request.status = 'processing'
         machine_request.save()
@@ -108,8 +108,8 @@ def select_and_build_image(machine_request):
             #fledged image
             new_image_id = manager.create_image(
                 machine_request.instance.provider_alias,
-                machine_request.new_machine_name
-            )
+                machine_request.new_machine_name,
+                machine_request.new_machine_owner.username)
 
     return new_image_id
 

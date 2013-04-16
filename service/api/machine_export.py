@@ -10,7 +10,7 @@ from rest_framework import status
 from atmosphere.logger import logger
 
 from authentication.decorators import api_auth_token_required
-from service.tasks.machine import machineExportTask
+from service.tasks.machine import machine_export_task
 from service.api.serializers import MachineExportSerializer
 from core.models.machine_request import MachineExport as CoreMachineExport
 
@@ -50,7 +50,7 @@ class MachineExportList(APIView):
         if serializer.is_valid():
             serializer.save()
             export_request = serializer.object
-            machineExportTask.delay(export_request)
+            machine_export_task.delay(export_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 

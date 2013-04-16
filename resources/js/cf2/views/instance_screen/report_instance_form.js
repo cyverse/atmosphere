@@ -65,7 +65,35 @@ Atmo.Views.ReportInstanceForm = Backbone.View.extend({
             data["message"] += 'Description: ' + this.$el.find('textarea[name="problem_description"]').val();
             data["subject"] = 'Atmosphere Instance Report from ' + data["username"];
 
-            console.log(data);
+			// Create a list of user's instances and volumes to make support easier
+			data["message"] += '\n---\n\n';
+			data["message"] += 'Provider ID: ' + Atmo.profile.get('selected_identity').get('provider_id') + '\n\n';
+			data["message"] += '\n---\n';
+			data["message"] += '\n\n' + Atmo.profile.get('id') + "'s Instances:";
+			for (var i = 0; i < Atmo.instances.length; i++) {
+				var instance = Atmo.instances.models[i];
+				data["message"] += '\nInstance id:\n\t' + instance.get('id') + '\nEMI Number:\n\t' + instance.get('image_id') + '\nIP Address:\n\t' + instance.get('public_dns_name') + '\n';
+			}
+			data["message"] += '\n\n' + Atmo.profile.get('id') + "'s Volumes:";
+			data["message"] += '\n---\n';
+			for (var i = 0; i < Atmo.volumes.length; i++) {
+				var volume = Atmo.volumes.models[i];
+				data["message"] += '\nVolume id:\n\t' + volume.get('id') + '\nVolume Name:\n\t' + volume.get('name');
+			}
+			data["message"] += '\n\n';
+
+			data['location'] = window.location.href,
+			data['resolution'] = { 
+				'viewport': {
+					'width': $(window).width(),
+					'height': $(window).height()
+				},
+				'screen': {
+					'width':  screen.width,
+					'height': screen.height
+				}
+			};
+
             var btn = self.$el.find('.report_instance_submit');
 
             btn.val("Submitting Report...")

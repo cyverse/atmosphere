@@ -116,11 +116,6 @@ class TaskMixin():
                                     self.identity,
                                     instance.alias),
                                    immutable=True, countdown=20)
-        # deploy_init_to.delay(self.__class__,
-        #                      self.provider,
-        #                      self.identity,
-        #                      instance.alias,
-        #                      *args, **kwargs)
 
     def deploy_to_task(self, instance, *args, **kwargs):
         deploy_to.delay(self.__class__,
