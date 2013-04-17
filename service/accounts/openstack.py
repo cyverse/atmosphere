@@ -131,6 +131,12 @@ class AccountDriver():
     def list_users(self):
         return self.user_manager.list_users()
 
+    def list_usergroup_names(self):
+        usernames = []
+        for (user,tenant) in self.list_usergroups():
+                usernames.append(user.name)
+        return usernames
+
     def list_usergroups(self):
         users = self.list_users()
         groups = self.list_tenants()
