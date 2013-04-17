@@ -119,7 +119,7 @@ class NetworkManager():
         floating_ips = self.quantum.list_floatingips()['floatingips']
         # Connect instances and floating_ips using ports.
         for fip in floating_ips:
-            port = filter(instance_ports, lambda(p): p['id'] == fip['port_id'])
+            port = filter(lambda(p): p['id'] == fip['port_id'], instance_ports)
             if port:
                 fip['instance_id'] = port[0]['device_id']
         logger.debug(floating_ips)
