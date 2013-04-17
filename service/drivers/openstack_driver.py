@@ -228,7 +228,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 kwargs['auth'] = NodeAuthPassword(binascii.hexlify(value))
 
             if 'ssh_key' not in kwargs:
-                logger.debug("ssh_key missing!")
                 password = kwargs['auth'].password
 
         max_tries = kwargs.get('max_tries', 3)
@@ -818,7 +817,9 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         Feel free to replace when a better mechanism comes along..
         """
         network_manager = NetworkManager.lc_driver_init(self, region)
-        return network_manager.associate_floating_ip(server_id)
+        floating_ip = network_manager.associate_floating_ip(server_id)
+        self.ex_set_metadata({'public_ip': floating_ip['floating_ip_address']})
+        return floating_ip
 
     def _deprecated_add_floating_ip(self, server_id):
         """
@@ -829,3 +830,108 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         floating_ip = self.ex_allocate_floating_ip(pool_name)
         logger.debug('Server:%s IP:%s' % (server_id, floating_ip['ip']))
         self.ex_associate_floating_ip(server_id, floating_ip['ip'])
+
+    # Metadata
+
+    def ex_get_metadata(self, node, key=None):
+        """
+        Get a Node's metadata.
+
+        @param      node: Node
+        @type       node: L{Node}
+
+        @param      key: Key associated with node's metadata.
+        @type       node: L{str}
+
+        @return: Key/Value metadata associated with node.
+        @rtype: C{dict}
+        """
+        if key:
+            return self.connection.request(
+                '/servers/%s/metadata/%s' % (node.id, key,),
+                method='GET',).object['meta']
+        else: 
+            return super(OpenStack_Esh_NodeDriver, self).ex_get_metadata(node)
+
+    def ex_delete_metadata(self, node, key):
+        """
+        Sets the Node's metadata for a key.
+
+        @param      node: Node
+        @type       node: L{Node}
+
+        @param      key: Key associated with node's metadata.
+        @type       node: L{str}
+
+        @rtype: C{bool}
+        """
+        resp = self.connection.request(
+            '/servers/%s/metadata/%s' % (node.id, key,),
+            method='DELETE')
+        return resp.status == httplib.NO_CONTENT
+
+    def ex_get_image_metadata(self, image, key):
+        """
+        Get an Image's metadata.
+
+        @param      image: Image
+        @type       image: L{Image}
+
+        @param      key: Key associated with node's metadata.
+        @type       node: L{str}
+
+        @return: Key/Value metadata associated with an image.
+        @rtype: C{dict}
+        """
+        if key:
+            return self.connection.request(
+                '/images/%s/metadata/%s' % (image.id, key,),
+                method='GET',).object['meta']
+
+    def ex_get_image_metadata(self, image):
+        """
+        Get an Image's metadata.
+
+        @param      image: Image
+        @type       image: L{Image}
+
+        @return: Key/Value metadata associated with an image.
+        @rtype: C{dict}
+        """
+        return self.connection.request(
+            '/images/%s/metadata' % (image.id,),
+            method='GET',).object['metadata']
+
+    def ex_set_image_metadata(self, image, metadata):
+        """
+        Sets the Image's metadata.
+
+        @param      image: Image
+        @type       image: L{Image}
+
+        @param      metadata: Key/Value metadata to associate with an image
+        @type       metadata: C{dict}
+
+        @rtype: C{dict}
+        """
+        return self.connection.request(
+            '/images/%s/metadata' % (image.id,), method='PUT',
+            data={'metadata': metadata}
+        ).object['metadata']
+
+    def ex_delete_image_metadata(self, image, key):
+        """
+        Deletes the Image's metadata for a key.
+
+        @param      node: Image
+        @type       node: L{Image}
+
+        @param      key: Key associated with image's metadata.
+        @type       node: L{str}
+
+        @rtype: C{bool}
+        """
+        resp = self.connection.request(
+            '/images/%s/metadata/%s' % (image.id, key,),
+            method='DELETE')
+        return resp.status == httplib.NO_CONTENT
