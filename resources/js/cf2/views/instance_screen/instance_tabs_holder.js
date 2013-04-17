@@ -221,13 +221,15 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				this.$el.find('.report_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.suspend_resume_instance_btn').addClass('disabled').attr('disabled', 'disabled');
-				this.$el.find('#instance_tabs a[href="#instance_shell"]').addClass("tab_disabled");
-				this.$el.find('#instance_tabs a[href="#instance_vnc"]').addClass("tab_disabled");
+				this.$el.find('a[href^="#request_imaging"]').hide();
 
-				if (this.model.get('state').indexOf('resize') == -1)
+				if (this.model.get('state').indexOf('resize') == -1) {
 					this.$el.find('.resize_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+					this.$el.find('a[href^="#resize_instance"]').hide();
+				}
 				else {
 					this.$el.find('.resize_instance_btn').removeClass('disabled').removeAttr('disabled', 'disabled');
+					this.$el.find('a[href^="#resize_instance"]').show();
 				}
 			}
 
