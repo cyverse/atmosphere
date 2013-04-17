@@ -323,6 +323,10 @@ class Instance(APIView):
 
         try:
             esh_instance = esh_driver.get_instance(instance_id)
+            if not esh_instance:
+                response = Response({}, status=200)
+                response['Cache-Control'] = 'no-cache'
+                return response
             esh_driver.destroy_instance_to_task(esh_instance)
             esh_instance = esh_driver.get_instance(instance_id)
             if esh_instance.extra\

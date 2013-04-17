@@ -73,6 +73,12 @@ def select_and_build_image(machine_request):
         if new_provider == 'eucalyptus':
             logger.info('Create euca image from euca image')
             manager = EucaImageManager()
+            #Build the meta_name so we can re-start if necessary
+            meta_name = '%s_%s_%s_%s' % ('admin',
+                machine_request.new_machine_owner.username,
+                machine_request.new_machine_name.replace(
+                    ' ','_').replace('/','-'),
+                machine_request.start_date.strftime('%m%d%Y_%H%M%S'))
             new_image_id = manager.create_image(
                 machine_request.instance.provider_alias,
                 image_name=machine_request.new_machine_name,
@@ -84,10 +90,7 @@ def select_and_build_image(machine_request):
                                            machine_request.access_list),
                 exclude=re.split(", | |\n",
                                  machine_request.exclude_files),
-                #Build the meta_name so we can re-start if necessary
-                meta_name = '%s_%s_%s_%s' % ('admin', owner,
-                    machine_request.new_machine_owner.username,
-                    machine_request.start_date.strftime('%m%d%Y_%H%M%S')),
+                meta_name=meta_name,
                 local_download_dir='/Storage/',
             )
         elif new_provider == 'openstack':
@@ -110,6 +113,12 @@ def select_and_build_image(machine_request):
                 machine_request.instance.provider_alias,
                 machine_request.new_machine_name,
                 machine_request.new_machine_owner.username)
+            #TODO: Grab the machine, then add image metadata here
+            machine = [img for img in manager.driver.list_images()
+                       if img.id == new_image_id]
+            if not machine:
+                return
+            manager.driver.ex_set_image_metadata(machine, {'deployed':'True'})
 
     return new_image_id
 

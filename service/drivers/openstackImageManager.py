@@ -21,8 +21,8 @@ Out[4]: <Image {u'status': u'active', u'name': u'Django WSGI Stack',
 
 from atmosphere import settings
 from atmosphere.logger import logger
-from libcloud.compute.providers import get_driver
-from libcloud.compute.types import Provider
+from service.drivers.openstack_driver import OpenStack_Esh_NodeDriver\
+                                      as OpenStackDriver
 from glanceclient import Client as GlanceClient
 from novaclient.v1_1.client import Client as NovaClient
 from service.accounts.openstack import AccountDriver as OSAccountDriver
@@ -48,9 +48,8 @@ class ImageManager():
         Private Key file required to decrypt images.
         """
         self.account_driver = OSAccountDriver()
-        OpenStack = get_driver(Provider.OPENSTACK)
         #TODO: There should be a better way, perhaps just auth w/ keystone..
-        self.driver = OpenStack(key, secret, ex_force_auth_url=url,
+        self.driver = OpenStackDriver(key, secret, ex_force_auth_url=url,
                                 ex_force_auth_version='2.0_password',
                                 secure=("https" in url),
                                 ex_tenant_name=tenant)
@@ -126,3 +125,24 @@ class ImageManager():
             return None
         server = servers[0]
         return self.nova.servers.create_image(server, name, metadata)
+
+    def delete_images(self, image_id=None, name=None):
+        if not image_id and not name:
+            raise Exception("delete_image expects a name or id as keyword"
+            " argument")
+
+        if name:
+            images = [img for img in self.list_images()
+                      if name in img.name]
+        else:
+            images = [self.glance.images.get(image_id)]
+
+        if len(images) == 0:
+            return False
+        for image in images:
+            self.glance.images.delete(image)
+
+        return True
+
+    def list_images(self):
+        return [img for img in self.glance.images.list()]

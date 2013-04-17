@@ -58,7 +58,13 @@ class ImageManager():
         Will initialize with admin settings if no args are passed.
         Private Key file required to decrypt images.
         """
-        self.euca = Euca2ool()
+        # Argv must be reset to stop euca from gobbling bad sys.argv's
+        sys.argv = []
+        self.euca = Euca2ool(
+            short_opts=None,
+            long_opts=None,
+            is_s3=False,
+            compat=False)
         if not key:
             key = os.environ['EC2_ACCESS_KEY']
         if not secret:
@@ -150,7 +156,7 @@ class ImageManager():
             #Format empty meta strings to match current iPlant
             #image naming convention, if not given
             meta_name = '%s_%s_%s_%s' %\
-                ('admin', owner, image_name,
+                ('admin', owner, image_name,\
                  datetime.now().strftime('%m%d%Y_%H%M%S'))
             image_path = '%s/%s.img' % (local_download_dir, meta_name)
         else:
