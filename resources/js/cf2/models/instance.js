@@ -79,8 +79,12 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 		var success = options.success;
 
 		options.success = function(resp) {
-			if (success)
+			if (success) {
 				success(model, resp, options);
+
+				// Get the new state from the data returned by API call
+				this.set('state', resp.status);
+			}
 
 			if (!model.isNew())
 				model.trigger('sync', model, resp, options);
@@ -91,7 +95,7 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 			var error = options.error;
 			options.error = function(resp) {
 				if (error) error(model, resp, options);
-					model.trigger('error', model, resp, options);
+				model.trigger('error', model, resp, options);
 			};
 		};
 
