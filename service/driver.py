@@ -484,7 +484,7 @@ class AWSDriver(EshDriver):
         return super(EshDriver, self).create_volume(*args, **kwargs)
 
 
-class EucaDriver(EshDriver):
+class EucaDriver(EshDriver, TaskMixin):
     """
     """
     providerCls = EucaProvider

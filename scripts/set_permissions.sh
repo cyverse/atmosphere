@@ -14,4 +14,6 @@ chown -R www-data:core-services ${ATMOSPHERE_HOME}
 
 chown -R root:root ${ATMOSPHERE_HOME}/extras/apache
 
+chown -R root:root ${ATMOSPHERE_HOME}/extras/ssh
+
 

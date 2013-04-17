@@ -23,6 +23,7 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 							|| response.status == 'running'
 							|| response.status == 'verify_resize' );
 		attributes.state_is_build = (    response.status == 'build'
+	  						|| response.status == 'build - scheduling'
 	  						|| response.status == 'build - spawning'
 							|| response.status == 'build - networking' 
 							|| response.status == 'pending'
@@ -36,8 +37,8 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 		attributes.state_is_delete = (    response.status == 'delete'
 	  						|| response.status == 'active - deleting'
 							|| response.status == 'deleted'
-						    || response.status == 'shutting-down'
-						    || response.status == 'terminated' );
+							|| response.status == 'shutting-down'
+							|| response.status == 'terminated' );
 		attributes.state_is_inactive = (	response.status == 'suspended' );
 		attributes.private_dns_name = response.ip_address;
 		attributes.public_dns_name = response.ip_address;

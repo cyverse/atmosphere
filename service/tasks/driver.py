@@ -5,14 +5,22 @@ from celery import chain
 
 from atmosphere.logger import logger
 
+from core.email import send_instance_email
+
+def get_driver(driverCls, provider, identity):
+    logger.debug("getting driver...")
+    from service import compute
+    compute.initialize()
+    driver = driverCls(provider, identity)
+    if driver:
+        logger.debug("created driver.")
+        return driver
 
 @task(name="deploy_to", max_retries=2, default_retry_delay=120, ignore_result=True)
 def deploy_to(driverCls, provider, identity, instance, *args, **kwargs):
     try:
         logger.debug("deploy_to task started at %s." % datetime.now())
-        from service import compute
-        compute.initialize()
-        driver = driverCls(provider, identity)
+        driver = get_driver(driverCls, provider, identity)
         driver.deploy_init_to(instance, *args, **kwargs)
         logger.debug("deploy_to task finished at %s." % datetime.now())
     except Exception as exc:
@@ -27,11 +35,11 @@ def deploy_to(driverCls, provider, identity, instance, *args, **kwargs):
 def deploy_init_to(driverCls, provider, identity, instance_id, *args, **kwargs):
     try:
         logger.debug("deploy_init_to task started at %s." % datetime.now())
-        from service import compute
-        compute.initialize()
-        driver = driverCls(provider, identity)
+        driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
-        if not instance.ip:
+        image_metadata = driver._connection.ex_get_image_metadata(instance.machine)
+        image_already_deployed = image_metadata.get("deployed")
+        if not instance.ip and not image_already_deployed:
             chain(add_floating_ip.si(driverCls,
                                      provider,
                                      identity,
@@ -39,16 +47,61 @@ def deploy_init_to(driverCls, provider, identity, instance_id, *args, **kwargs):
                   _deploy_init_to.si(driverCls,
                                      provider,
                                      identity,
-                                     instance_id)).apply_async()
+                                     instance_id),
+                  _send_instance_email.si(driverCls,
+                                          provider,
+                                          identity,
+                                          instance_id)).apply_async()
+        elif not image_already_deployed:
+            chain(_deploy_init_to.si(driverCls,
+                                     provider,
+                                     identity,
+                                     instance_id),
+                  _send_instance_email.si(driverCls,
+                                          provider,
+                                          identity,
+                                          instance_id)).apply_async()
+        elif not instance.ip:
+            chain(add_floating_ip.si(driverCls,
+                                     provider,
+                                     identity,
+                                     instance_id),
+                  _send_instance_email.si(driverCls,
+                                          provider,
+                                          identity,
+                                          instance_id)).apply_async()
         else:
-            _deploy_init_to.delay(driverCls,
-                                  provider,
-                                  identity,
-                                  instance_id)
+            _send_instance_email.delay(driverCls,
+                                       provider,
+                                       identity,
+                                       instance_id)
         logger.debug("deploy_init_to task finished at %s." % datetime.now())
     except Exception as exc:
         logger.warn(exc)
         deploy_init_to.retry(exc=exc)
+
+
+@task(name="_send_instance_email",
+      default_retry_delay=120,
+      ignore_result=True,
+      max_retries=2)
+def _send_instance_email(driverCls, provider, identity, instance_id):
+    try:
+        logger.debug("deploy_init_to task finished at %s." % datetime.now())
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_id)
+        username = identity.user.username
+        created = datetime.strptime(instance.extra['created'],
+                                    "%Y-%m-%dT%H:%M:%SZ")
+        send_instance_email(username,
+                            instance.id,
+                            instance.ip,
+                            created,
+                            username)
+    except Exception as exc:
+        logger.warn(exc)
+        deploy_init_to.retry(exc=exc)
+
 
 @task(name="_deploy_init_to",
       default_retry_delay=120,
@@ -104,24 +157,28 @@ def destroy_instance(driverCls, provider, identity, instance_alias):
     try:
         logger.debug("destroy_instance task started at %s." % datetime.now())
         from service import compute
+	from service.provider import OSProvider
         compute.initialize()
         driver = driverCls(provider, identity)
         instance = driver.get_instance(instance_alias)
         if instance:
             #First disassociate
-            driver._connection.ex_disassociate_floating_ip(instance)
+            if type(provider) == OSProvider:
+            	driver._connection.ex_disassociate_floating_ip(instance)
             #Then destroy
             node_destroyed = driver._connection.destroy_node(instance)
         else:
             logger.debug("Instance already deleted: %s." % instance.id)
 
-        #Spawn off the last two tasks
-        chain(_remove_floating_ip.subtask((driverCls,
-                                 provider,
-                                 identity), immutable=True, countdown=5),
-              _check_empty_tenant_network.subtask((driverCls,
-                                 provider,
-                                 identity), immutable=True, countdown=60)).apply_async()
+        if type(provider) == OSProvider:
+            #Spawn off the last two tasks
+            chain(_remove_floating_ip.subtask((driverCls,
+                                     provider,
+                                     identity), immutable=True, countdown=5),
+                  _check_empty_tenant_network.subtask((driverCls,
+                                     provider,
+                                     identity), immutable=True, countdown=60)
+                 ).apply_async()
 
         logger.debug("destroy_instance task finished at %s." % datetime.now())
         return node_destroyed

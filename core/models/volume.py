@@ -88,6 +88,9 @@ def createVolume(name, alias, size, provider_id, created=None):
                                    size=size, provider=provider,
                                    description='')
     if created:
+	# Taking advantage of the ability to save string dates as datetime
+	# but we need to get the actual date time after we are done..
         volume.start_date = created
         volume.save()
+	volume = Volume.objects.get(id=volume.id)
     return volume
