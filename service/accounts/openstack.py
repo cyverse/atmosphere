@@ -73,7 +73,7 @@ class AccountDriver():
         group.save()
         return (user, group)
 
-    def create_openstack_identity(self, username, password, tenant_name):
+    def create_openstack_identity(self, username, password, tenant_name, max_quota=False):
         (user, group) = self.create_usergroup(username)
         try:
             id_member = IdentityMembership.objects.filter(
@@ -90,10 +90,15 @@ class AccountDriver():
             ProviderMembership.objects.get_or_create(
                 provider=self.openstack_prov, member=group)[0]
             #Remove the user line when quota model is fixed
-            default_quota = Quota().defaults()
-            quota = Quota.objects.filter(cpu=default_quota['cpu'],
-                                         memory=default_quota['memory'],
-                                         storage=default_quota['storage'])[0]
+            if max_quota:
+		max_quota_by_mem = Quota.objects.all().aggregate(Max('memory'))
+                quota = Quota.objects.filter(memory=max_quota_by_mem)
+            else:
+                default_quota = Quota().defaults()
+                quota = Quota.objects.filter(cpu=default_quota['cpu'],
+                                             memory=default_quota['memory'],
+                                             storage=default_quota['storage']
+                                            )[0]
             #Create the Identity
             identity = Identity.objects.get_or_create(
                 created_by=user, provider=self.openstack_prov)[0]
