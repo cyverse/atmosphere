@@ -13,7 +13,7 @@ from atmosphere.logger import logger
 
 from authentication.decorators import api_auth_token_required
 
-from core.models.instance import convertEshInstance
+from core.models.instance import convertEshInstance, update_instance_metadata
 from core.models.volume import convertEshVolume
 from service.api import failureJSON, launchEshInstance, prepareDriver
 from service.api.serializers import InstanceSerializer, VolumeSerializer
@@ -271,7 +271,7 @@ class Instance(APIView):
         serializer = InstanceSerializer(core_instance, data=data, partial=True)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
-            update_instance_metadata(esh_instance, data)
+            update_instance_metadata(esh_driver, esh_instance, data)
             serializer.save()
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
