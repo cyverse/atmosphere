@@ -153,11 +153,21 @@ def set_instance_from_metadata(esh_driver, core_instance):
     return core_instance
 
 def update_instance_metadata(esh_driver, esh_instance, data={}):
+    """
+    NOTE: This will NOT WORK for TAGS until openstack
+    allows JSONArrays as values for metadata!
+    """
     if not hasattr(esh_driver._connection, 'ex_set_metadata'):
         logger.info("EshDriver %s does not have function 'ex_set_metadata'"
                     % esh_driver._connection.__class__)
         return {}
-    return esh_driver._connection.ex_set_metadata(esh_instance, data)
+    try:
+        return esh_driver._connection.ex_set_metadata(esh_instance, data)
+    except Exception, e:
+        if 'incapable of performing the request' in e.message:
+            return {}
+        else:
+            raise
 
 def createInstance(provider_id, provider_alias, provider_machine,
                    ip_address, name, creator, create_stamp, token=None):
