@@ -7,6 +7,7 @@ import os
 import socket
 import sys
 import time
+from datetime import datetime
 
 import libcloud.compute.ssh
 from libcloud.compute.ssh import SSHClient
@@ -77,6 +78,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         return [self._to_volume(volume) for volume in el['volumes']]
 
     def _to_volume(self, api_volume):
+        created_time = datetime.strptime(api_volume['createdAt'],
+                                             '%Y-%m-%dT%H:%M:%S.%f')
         extra = {
             'id': api_volume['id'],
             'displayName': api_volume['displayName'],
@@ -87,7 +90,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             'availabilityZone': api_volume['availabilityZone'],
             'snapshotId': api_volume['snapshotId'],
             'attachmentSet': api_volume['attachments'],
-            'createTime': api_volume['createdAt'],
+            'createTime': created_time,
         }
         return StorageVolume(id=api_volume['id'],
                              name=api_volume['displayName'],

@@ -1,4 +1,5 @@
 from datetime import datetime
+import pytz
 
 from django.db import models
 from django.utils import timezone
@@ -17,9 +18,7 @@ class Volume(models.Model):
     size = models.IntegerField()
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
-    start_date = models.DateTimeField(
-        default=timezone.make_aware(datetime.now(),
-            timezone.get_current_timezone()))
+    start_date = models.DateTimeField(default=lambda:datetime.now(pytz.utc))
     end_date = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -88,9 +87,9 @@ def createVolume(name, alias, size, provider_id, created=None):
                                    size=size, provider=provider,
                                    description='')
     if created:
-	# Taking advantage of the ability to save string dates as datetime
-	# but we need to get the actual date time after we are done..
-        volume.start_date = created
+    # Taking advantage of the ability to save string dates as datetime
+    # but we need to get the actual date time after we are done..
+        volume.start_date = pytz.utc.localize(created)
         volume.save()
-	volume = Volume.objects.get(id=volume.id)
+    volume = Volume.objects.get(id=volume.id)
     return volume
