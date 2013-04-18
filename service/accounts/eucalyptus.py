@@ -37,53 +37,72 @@ class AccountDriver():
         userDeleted = self.user_manager.delete_user(username)
         return userDeleted
 
-    def create_identity(self, user_dict):
+    def create_usergroup(self, username):
+        user = User.objects.get_or_create(username=username)[0]
+        group = Group.objects.get_or_create(name=username)[0]
+
+        user.groups.add(group)
+        user.save()
+        group.leaders.add(user)
+        group.save()
+        return (user, group)
+
+    def create_identity(self, user_dict, max_quota=False):
+        (user, group) = self.create_usergroup(user_dict['username'])
         try:
-            return IdentityMembership.objects.get(
+            id_membership = IdentityMembership.objects.get(
                 identity__provider=self.euca_prov,
-                member__name=user_dict['username'],
-                identity__created_by__username=user_dict['username'])
+                member__name=user.username,
+                identity__created_by__username=user.username)
+            return id_membership.identity
         except IdentityMembership.DoesNotExist:
-            #Create one
-            logger.info(user_dict)
-            user = User.objects.get_or_create(
-                username=user_dict['username'])[0]
-            group = Group.objects.get_or_create(
-                name=user_dict['username'])[0]
-            #Do we only need one?
-            user.groups.add(group)
-            user.save()
-            #Build std quota
-            default_quota = Quota().defaults()
-            std_quota = Quota.objects.filter(
-                cpu=default_quota['cpu'],
-                memory=default_quota['memory'],
-                storage=default_quota['storage'])[0]
-            group.leaders.add(user)
-            #Create the Identity
+            logger.debug(user_dict)
+            #Provider Membership
+            p_membership = ProviderMembership.objects.get_or_create(
+                provider=self.euca_prov, member=group)[0]
+
+            #Identity Membership
             identity = Identity.objects.get_or_create(
                 created_by=user, provider=self.euca_prov)[0]
+
             Credential.objects.get_or_create(
                 identity=identity, key='key',
                 value=user_dict['access_key'])[0]
             Credential.objects.get_or_create(
                 identity=identity, key='secret',
                 value=user_dict['secret_key'])[0]
-            #Link it to the usergroup
-            IdentityMembership.objects.get_or_create(
-                identity=identity, member=group, quota=std_quota)[0]
-            ProviderMembership.objects.get_or_create(
-                provider=self.euca_prov, member=group)[0]
+
+            if max_quota:
+                max_quota_by_mem = Quota.objects.all().aggregate(Max('memory'))
+                quota = Quota.objects.filter(memory=max_quota_by_mem)
+            else:
+                default_quota = Quota().defaults()
+                quota = Quota.objects.filter(cpu=default_quota['cpu'],
+                                             memory=default_quota['memory'],
+                                             storage=default_quota['storage']
+                                            )[0]
+
+            #Link it to the usergroup -- Don't create more than one membership
+            try:
+                id_membership = IdentityMembership.objects.get(
+                    identity=identity, member=group)
+                id_membership.quota = quota
+                id_membership.save()
+            except IdentityMembership.DoesNotExist:
+                id_membership = IdentityMembership.objects.create(
+                    identity=identity, member=group,
+                    quota=quota)
+            except IdentityMembership.MultipleObjectReturned:
+                #No dupes
+                IdentityMembership.objects.filter(
+                    identity=identity, member=group).delete()
+                #Create one with new quota
+                id_membership = IdentityMembership.objects.create(
+                    identity=identity, member=group,
+                    quota=quota)
+
             #Return the identity
-            return identity
-        except Identity.MultipleObjectsReturned:
-            #Handle multiple identities created by user
-            #(Should this be allowed?)
-            identities = Identity.objects.filter(
-                created_by__username=user_dict['username'])
-            logger.info("%s has multiple identities: %s"
-                        % (user_dict['username'], identities))
-            return identities[0]
+            return id_membership.identity
 
     def get_key(self, user):
         return self.user_manager.get_key(user)

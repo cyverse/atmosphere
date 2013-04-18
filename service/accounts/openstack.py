@@ -73,10 +73,17 @@ class AccountDriver():
         group.save()
         return (user, group)
 
+    def get_max_quota():
+        max_quota_by_cpu = Quota.objects.all().aggregate(Max('cpu')
+                                                           )['cpu__max']
+        quota = Quota.objects.filter(cpu=max_quota_by_cpu)
+        return quota[0]
+
     def create_openstack_identity(self, username, password, tenant_name, max_quota=False):
+        #Get the usergroup
         (user, group) = self.create_usergroup(username)
         try:
-            id_member = IdentityMembership.objects.filter(
+            id_membership = IdentityMembership.objects.filter(
                 identity__provider=self.openstack_prov,
                 member__name=username,
                 identity__credential__value__in=[
@@ -84,36 +91,57 @@ class AccountDriver():
             Credential.objects.get_or_create(
                 identity=id_member.identity,
                 key='ex_tenant_name', value=tenant_name)[0]
-            return id_member.identity
-        except (IndexError, ProviderMembership.DoesNotExist):
-            #Add provider membership
-            ProviderMembership.objects.get_or_create(
-                provider=self.openstack_prov, member=group)[0]
-            #Remove the user line when quota model is fixed
             if max_quota:
-		max_quota_by_mem = Quota.objects.all().aggregate(Max('memory'))
-                quota = Quota.objects.filter(memory=max_quota_by_mem)
-            else:
-                default_quota = Quota().defaults()
-                quota = Quota.objects.filter(cpu=default_quota['cpu'],
-                                             memory=default_quota['memory'],
-                                             storage=default_quota['storage']
-                                            )[0]
-            #Create the Identity
+                quota = get_max_quota()
+                id_membership.quota = quota
+                id_membership.save
+            return id_membership.identity
+        except (IndexError, ProviderMembership.DoesNotExist):
+            #Provider Membership
+            p_membership = ProviderMembership.objects.get_or_create(
+                provider=self.openstack_prov, member=group)[0]
+
+            #Identity Membership
             identity = Identity.objects.get_or_create(
                 created_by=user, provider=self.openstack_prov)[0]
+
             Credential.objects.get_or_create(
                 identity=identity, key='key', value=username)[0]
             Credential.objects.get_or_create(
                 identity=identity, key='secret', value=password)[0]
             Credential.objects.get_or_create(
                 identity=identity, key='ex_tenant_name', value=tenant_name)[0]
-            #Link it to the usergroup
-            id_member = IdentityMembership.objects.get_or_create(
-                identity=identity, member=group, quota=quota)[0]
+
+            if max_quota:
+                quota = get_max_quota()
+            else:
+                default_quota = Quota().defaults()
+                quota = Quota.objects.filter(cpu=default_quota['cpu'],
+                                             memory=default_quota['memory'],
+                                             storage=default_quota['storage']
+                                            )[0]
+
+            #Link it to the usergroup -- Don't create more than one membership
+            try:
+                id_membership = IdentityMembership.objects.get(
+                    identity=identity, member=group)
+                id_membership.quota = quota
+                id_membership.save()
+            except IdentityMembership.DoesNotExist:
+                id_membership = IdentityMembership.objects.create(
+                    identity=identity, member=group,
+                    quota=quota)
+            except IdentityMembership.MultipleObjectReturned:
+                #No dupes
+                IdentityMembership.objects.filter(
+                    identity=identity, member=group).delete()
+                #Create one with new quota
+                id_membership = IdentityMembership.objects.create(
+                    identity=identity, member=group,
+                    quota=quota)
 
             #Return the identity
-            return id_member.identity
+            return id_membership.identity
 
     def hashpass(self, username):
         return sha1(username).hexdigest()
