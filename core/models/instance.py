@@ -100,34 +100,59 @@ def findInstance(alias):
     return None
 
 
-def convertEshInstance(eshInstance, provider_id, user, token=None):
+def convertEshInstance(esh_driver, esh_instance, provider_id, user, token=None):
     """
     """
-    alias = eshInstance.alias
+    alias = esh_instance.alias
     try:
-        ip_address = eshInstance._node.public_ips[0]
+        ip_address = esh_instance._node.public_ips[0]
     except IndexError:  # no public ip
         try:
-            ip_address = eshInstance._node.private_ips[0]
+            ip_address = esh_instance._node.private_ips[0]
         except IndexError:  # no private ip
             ip_address = '0.0.0.0'
-    eshMachine = eshInstance.machine
+    eshMachine = esh_instance.machine
     coreInstance = findInstance(alias)
     if coreInstance:
         coreInstance.ip_address = ip_address
         coreInstance.save()
     else:
-        create_stamp = eshInstance.extra.get('launchdatetime')
+        create_stamp = esh_instance.extra.get('launchdatetime')
         #if not create_stamp:
         #Openstack?
         coreMachine = convertEshMachine(eshMachine, provider_id)
         coreInstance = createInstance(provider_id, alias,
                                       coreMachine, ip_address,
-                                      eshInstance.name, user,
+                                      esh_instance.name, user,
                                       create_stamp, token)
-    coreInstance.esh = eshInstance
+
+    coreInstance.esh = esh_instance
+    metadata = set_instance_from_metadata(esh_driver, core_instance)
+
     return coreInstance
 
+def set_instance_from_metadata(esh_driver, core_instance):
+    from service.api.serializers import InstanceSerializer
+    if not hasattr(esh_driver._connection, 'ex_get_metadata'):
+        logger.info("EshDriver %s does not have function 'ex_get_metadata'"
+                    % esh_driver._connection.__class__)
+        return {}
+    metadata =  esh_driver.ex_get_metadata(core_instance.esh)
+    serializer = InstanceSerializer(core_instance, data=metadata, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return serializer.object
+    else:
+        logger.warn("Encountered errors serializing metadata:%s"
+                    % serializer.errors)
+        return core_instance
+
+def update_instance_metadata(esh_driver, esh_instance, data={}):
+    if not hasattr(esh_driver._connection, 'ex_set_metadata'):
+        logger.info("EshDriver %s does not have function 'ex_set_metadata'"
+                    % esh_driver._connection.__class__)
+        return {}
+    return esh_driver.ex_set_metadata(esh_instance, data)
 
 def createInstance(provider_id, provider_alias, provider_machine,
                    ip_address, name, creator, create_stamp, token=None):
