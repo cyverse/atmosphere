@@ -5,6 +5,7 @@ UserManager:
 from hashlib import sha1
 
 from django.contrib.auth.models import User
+from django.db.models import Max
 
 from novaclient.v1_1 import client as nova_client
 
@@ -73,7 +74,7 @@ class AccountDriver():
         group.save()
         return (user, group)
 
-    def get_max_quota():
+    def get_max_quota(self):
         max_quota_by_cpu = Quota.objects.all().aggregate(Max('cpu')
                                                            )['cpu__max']
         quota = Quota.objects.filter(cpu=max_quota_by_cpu)
@@ -89,10 +90,10 @@ class AccountDriver():
                 identity__credential__value__in=[
                     username, password, tenant_name]).distinct()[0]
             Credential.objects.get_or_create(
-                identity=id_member.identity,
+                identity=id_membership.identity,
                 key='ex_tenant_name', value=tenant_name)[0]
             if max_quota:
-                quota = get_max_quota()
+                quota = self.get_max_quota()
                 id_membership.quota = quota
                 id_membership.save
             return id_membership.identity
@@ -113,7 +114,7 @@ class AccountDriver():
                 identity=identity, key='ex_tenant_name', value=tenant_name)[0]
 
             if max_quota:
-                quota = get_max_quota()
+                quota = self.get_max_quota()
             else:
                 default_quota = Quota().defaults()
                 quota = Quota.objects.filter(cpu=default_quota['cpu'],

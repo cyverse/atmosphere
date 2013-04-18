@@ -25,7 +25,7 @@ def main():
         # Get the user from Euca DB
         user_dict = euca_driver.get_user(user)
         # Create a euca account/identity
-        create_euca_account(euca_driver, user_dict)
+        create_euca_account(euca_driver, user_dict, max_quota=True)
         # Then add the Openstack Identity
         create_os_account(os_driver, user, admin_role=True, max_quota=True)
         make_admin(user)
@@ -35,12 +35,19 @@ def get_core_services():
     """
     Calls groupy to return list of core-services users, adds users to list
     """
-    r = requests.get('http://gables.iplantcollaborative.org:8080/groups/core-services/members')
+    core_services = members_query_groupy('core-services')
+    atmo_users = members_query_groupy('atmo-user')
+    return [user for user in core_services if user in atmo_users]
+
+def members_query_groupy(groupname):
+    r = requests.get(
+        'http://gables.iplantcollaborative.org:8080/groups/%s/members'
+        % groupname)
     json_obj = r.json()
-    core_services = []
+    usernames = []
     for user in json_obj['data']:
-	core_services.append(user['name'])
-    return core_services
+	    usernames.append(user['name'])
+    return usernames
 
 def fix_openstack_network(os_driver):
     usergroups = [usergroup for usergroup in os_driver.list_usergroups()]
@@ -68,8 +75,8 @@ def make_admin(user):
     u.is_staff = True
     u.save()
 
-def create_euca_account(euca_driver, user_dict):
-    id = euca_driver.create_identity(user_dict)
+def create_euca_account(euca_driver, user_dict, max_quota=False):
+    id = euca_driver.create_identity(user_dict, max_quota=max_quota)
     return id
 
 def create_os_account(os_driver, username, admin_role=False, max_quota=False):

@@ -7,6 +7,7 @@ User, BooleanField, StringList
   and can be found on the Cloud Controller
 """
 from django.contrib.auth.models import User
+from django.db.models import Max
 
 from atmosphere import settings
 from atmosphere.logger import logger
@@ -47,6 +48,12 @@ class AccountDriver():
         group.save()
         return (user, group)
 
+    def get_max_quota(self):
+        max_quota_by_cpu = Quota.objects.all().aggregate(Max('cpu')
+                                                           )['cpu__max']
+        quota = Quota.objects.filter(cpu=max_quota_by_cpu)
+        return quota[0]
+
     def create_identity(self, user_dict, max_quota=False):
         (user, group) = self.create_usergroup(user_dict['username'])
         try:
@@ -54,6 +61,10 @@ class AccountDriver():
                 identity__provider=self.euca_prov,
                 member__name=user.username,
                 identity__created_by__username=user.username)
+            if max_quota:
+                quota = self.get_max_quota()
+                id_membership.quota = quota
+                id_membership.save()
             return id_membership.identity
         except IdentityMembership.DoesNotExist:
             logger.debug(user_dict)
@@ -73,8 +84,7 @@ class AccountDriver():
                 value=user_dict['secret_key'])[0]
 
             if max_quota:
-                max_quota_by_mem = Quota.objects.all().aggregate(Max('memory'))
-                quota = Quota.objects.filter(memory=max_quota_by_mem)
+                quota = self.get_max_quota()
             else:
                 default_quota = Quota().defaults()
                 quota = Quota.objects.filter(cpu=default_quota['cpu'],
