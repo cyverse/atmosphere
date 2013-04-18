@@ -98,7 +98,9 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
 		var id = parseInt(self.$el.find('input[name="selected_identity"]:checked').val());
 		Atmo.profile.save(
 			{ 'selected_identity' : id },
-			{ async : false }
+			{ async : false, 
+			patch: true, 
+			success: location.reload() }
 		);	
 		location.reload();
 	},
@@ -167,7 +169,7 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
 
         if (val != undefined) {
             $.ajax({
-                type: 'PUT',
+                type: 'PATCH',
                 url: site_root + '/api/profile/', 
                 data: data,
                 success: function() {
