@@ -85,7 +85,13 @@ Atmo.Utils.update_weather = function() {
 					$('body').removeClass(v);
 				});
 				$('#weather_report').addClass(weather);
-				$('#weather_report').html('This cloud is at ' + occupancy + '% capacity.<br /> The forecast is '+weather+'.');
+
+				// Hardcoded for now, replace when we have identities in backbone models
+				$('#weather_report').html(function() {
+					var content = (Atmo.profile.get('selected_identity').get('provider_id') == 2) ? 'OpenStack' : 'Eucalyptus';
+					content += ' is at ' + occupancy + '% capacity.<br /> The forecast is '+weather+'.';
+					return content;
+				});
 			}
 
 		}, 
