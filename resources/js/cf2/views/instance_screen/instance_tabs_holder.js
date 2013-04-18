@@ -529,33 +529,17 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
                 }
 				else {
 					if (type == 'instance_name') {
-						// Change backbone model
-						self.model.set({ 
-							name: new_text, 
-							name_or_id: new_text
-						});
-
 						post_data['name'] = new_text;
 
 					}
 					else if (type == 'instance_tags') {
-						// Change backbone model
-						self.model.set({ tags: new_text });
-
 						post_data['tags'] = new_text;
 
 					}
 
-					var id = Atmo.profile.get('selected_identity');
-
-					$.ajax({
-						url: '/api/provider/' + id.provider_id + '/identity/' + id.id + '/instance/' + instance_id + '/',
-						type: 'PUT',
-						data: post_data,
-						success: function() {
-								$('#refresh_instances_button').click();
-						}
-					});
+					self.model.save(post_data, {patch: true, success: function() {
+						$('#refresh_instances_button').click();	
+					}});	
 				}
 				content.children().remove();
 				content.html(new_text);
