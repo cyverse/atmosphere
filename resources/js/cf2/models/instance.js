@@ -78,12 +78,13 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 		var model = this;
 		var success = options.success;
 
+		var self = this;
 		options.success = function(resp) {
 			if (success) {
 				success(model, resp, options);
 
 				// Get the new state from the data returned by API call
-				this.set('state', resp.status);
+				self.set('state', resp.status);
 			}
 
 			if (!model.isNew())
