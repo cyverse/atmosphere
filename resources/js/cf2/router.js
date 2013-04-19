@@ -29,6 +29,8 @@ Atmo.Router = Backbone.Router.extend({
         success: function(providers, foo, bar) {
         }
       });
+	  Atmo.identities = new Atmo.Collections.Identities();
+	  Atmo.identities.fetch();
 
       var identity = Atmo.profile.get('selected_identity');
       Atmo.instances = new Atmo.Collections.Instances();
