@@ -123,7 +123,7 @@ def convertEshInstance(esh_driver, esh_instance, provider_id, user, token=None):
         create_stamp = esh_instance.extra.get('launchdatetime')
         #if not create_stamp:
         #Openstack?
-        coreMachine = convertEshMachine(eshMachine, provider_id)
+        coreMachine = convertEshMachine(esh_driver, eshMachine, provider_id)
         core_instance = createInstance(provider_id, alias,
                                       coreMachine, ip_address,
                                       esh_instance.name, user,
