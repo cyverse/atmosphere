@@ -108,6 +108,7 @@ class UserManager():
             protocol_list = [
                 ('TCP', 22, 22),
                 ('TCP', 80, 80),
+                ('TCP', 5666, 5666),
                 ('TCP', 5900, 5904),
                 ('TCP', 4200, 4200),
                 ('ICMP', -1, -1),
