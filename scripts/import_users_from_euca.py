@@ -3,8 +3,6 @@ import time, requests
 
 from django.contrib.auth.models import User
 
-from novaclient.exceptions import OverLimit
-
 from atmosphere import settings
 from atmosphere.logger import logger
 

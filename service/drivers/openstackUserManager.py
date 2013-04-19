@@ -92,17 +92,18 @@ class UserManager():
         except ClientException:
             logger.warn('Could not assign admin role to username %s' %
                         self.keystone.username)
-
-        #TODO: Add teh default security group to this tenant using novaclient
-        usergroup_nova = nova_client.Client(self.keystone.username,
-                                            self.keystone.password,
-                                            tenant.name,
-                                            self.nova.client.auth_url)
-        usergroup_nova.client.region_name = settings.OPENSTACK_DEFAULT_REGION
-        self.build_security_group(usergroup_nova)
         return (tenant, user, role)
 
-    def build_security_group(self, nova, protocol_list=None):
+    def build_security_group(self, username, password, tenant_name,
+            protocol_list=None, *args, **kwargs):
+
+        nova = nova_client.Client(username,
+                                  password,
+                                  tenant_name,
+                                  self.nova.client.auth_url,
+                                  self.nova.client.region_name,
+                                  *args, no_cache=True, **kwargs)
+        nova.client.region_name = self.nova.client.region_name
         if not protocol_list:
             #Build a "good" one.
             protocol_list = [
@@ -116,11 +117,21 @@ class UserManager():
         #with nova.security_groups.find(name='default') as default_sec_group:
         default_sec_group = nova.security_groups.find(name='default')
         for (ip_protocol, from_port, to_port) in protocol_list:
-            nova.security_group_rules.create(default_sec_group.id,
-                                             ip_protocol=ip_protocol,
-                                             from_port=from_port,
-                                             to_port=to_port)
+            if not self.find_rule(default_sec_group, ip_protocol,
+                    from_port, to_port):
+                nova.security_group_rules.create(default_sec_group.id,
+                                                 ip_protocol=ip_protocol,
+                                                 from_port=from_port,
+                                                 to_port=to_port)
         return nova.security_groups.find(name='default')
+
+    def find_rule(self, security_group, ip_protocol, from_port, to_port):
+        for r in security_group.rules:
+            if r['from_port'] == from_port\
+            and r['to_port'] == to_port\
+            and r['ip_protocol'] == ip_protocol:
+                return True
+        return False
 
     def get_usergroup(self, username):
         return self.get_tenant(username)

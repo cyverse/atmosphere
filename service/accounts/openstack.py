@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.db.models import Max
 
 from novaclient.v1_1 import client as nova_client
+from novaclient.exceptions import OverLimit
 
 from atmosphere import settings
 from atmosphere.logger import logger
@@ -31,7 +32,7 @@ class AccountDriver():
         self.network_manager = NetworkManager.settings_init()
         self.openstack_prov = Provider.objects.get(location='OPENSTACK')
 
-    def create_account(self, username, admin=False, max_quota=False):
+    def create_account(self, username, admin_role=False, max_quota=False):
         """
         Create (And Update 'latest changes') to an account
 
@@ -48,6 +49,7 @@ class AccountDriver():
         while not finished:
             try:
                 password = self.hashpass(username)
+                # Retrieve user, or create user & tenant
                 user = self.get_or_create_user(username, password, True, admin_role)
                 logger.debug(user)
                 tenant = self.get_tenant(username)
@@ -58,7 +60,11 @@ class AccountDriver():
                     self.user_manager.add_tenant_member(username,
                                                            username,
                                                            admin_role)
+                self.user_manager.build_security_group(user.name,
+                        self.hashpass(user.name), tenant.name)
+
                 finished = True
+
             except OverLimit:
                 print 'Requests are rate limited. Pausing for one minute.'
                 time.sleep(60)  # Wait one minute

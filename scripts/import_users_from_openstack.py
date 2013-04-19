@@ -3,8 +3,6 @@ import time
 
 from django.contrib.auth.models import User
 
-from novaclient.exceptions import OverLimit
-
 from atmosphere import settings
 from atmosphere.logger import logger
 
@@ -42,43 +40,6 @@ def fix_openstack_network(os_driver):
             os_driver.network_manager.create_tenant_network(user.name, password,
                 group.name)
             logger.info("Tenant network built for %s" % user.name)
-
-def create_euca_account(euca_driver, user_dict):
-    id = euca_driver.create_identity(user_dict)
-    return id
-
-def create_os_account(os_driver, username, admin_role=False):
-    finished = False
-    # Special case for admin.. Use the Openstack admin identity..
-    if username == 'admin':
-        ident = os_driver.create_openstack_identity(
-            settings.OPENSTACK_ADMIN_KEY,
-            settings.OPENSTACK_ADMIN_SECRET,
-            settings.OPENSTACK_ADMIN_TENANT)
-        return ident
-    #Attempt account creation
-    while not finished:
-        try:
-            password = os_driver.hashpass(username)
-            user = os_driver.get_or_create_user(username, password, True, admin_role)
-            logger.debug(user)
-            tenant = os_driver.get_tenant(username)
-            logger.debug(tenant)
-            roles = user.list_roles(tenant)
-            logger.debug(roles)
-            if not roles:
-                os_driver.user_manager.add_tenant_member(username,
-                                                       username,
-                                                       admin_role)
-            finished = True
-        except OverLimit:
-            print 'Requests are rate limited. Pausing for one minute.'
-            time.sleep(60)  # Wait one minute
-    ident = os_driver.create_openstack_identity(username,
-                                                password,
-                                                tenant_name=username)
-    return ident
-
 
 if __name__ == "__main__":
     main()
