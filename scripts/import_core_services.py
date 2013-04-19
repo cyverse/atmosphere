@@ -3,8 +3,6 @@ import time, requests
 
 from django.contrib.auth.models import User
 
-from novaclient.exceptions import OverLimit
-
 from atmosphere import settings
 from atmosphere.logger import logger
 
@@ -22,12 +20,9 @@ def main():
     create = 0
     core_services = get_core_services()
     for user in core_services:
-        # Get the user from Euca DB
-        user_dict = euca_driver.get_user(user)
-        # Create a euca account/identity
-        create_euca_account(euca_driver, user_dict, max_quota=True)
+        euca_driver.create_account(user, max_quota=True)
         # Then add the Openstack Identity
-        create_os_account(os_driver, user, admin_role=True, max_quota=True)
+        os_driver.create_account(user, admin_role=True, max_quota=True)
         make_admin(user)
     print "Total core-service/admins added:%s" % len(core_services)
 
@@ -61,55 +56,11 @@ def fix_openstack_network(os_driver):
                 group.name)
             logger.info("Tenant network built for %s" % user.name)
 
-def add_all_users(euca_driver, os_driver, addOpenstack=False):
-    all_users = euca_driver.list_users()
-    for user_dict in all_users.values():
-        create_euca_account(euca_driver, user_dict)
-        if addOpenstack:
-            create_os_account(os_driver, user, False)
-    print "Total users added:%s" % len(all_users)
-
 def make_admin(user):
     u = User.objects.get(username=user)
     u.is_superuser = True
     u.is_staff = True
     u.save()
-
-def create_euca_account(euca_driver, user_dict, max_quota=False):
-    id = euca_driver.create_identity(user_dict, max_quota=max_quota)
-    return id
-
-def create_os_account(os_driver, username, admin_role=False, max_quota=False):
-    finished = False
-    # Special case for admin.. Use the Openstack admin identity..
-    if username == 'admin':
-        ident = os_driver.create_openstack_identity(
-            settings.OPENSTACK_ADMIN_KEY,
-            settings.OPENSTACK_ADMIN_SECRET,
-            settings.OPENSTACK_ADMIN_TENANT)
-        return ident
-    #Attempt account creation
-    while not finished:
-        try:
-            password = os_driver.hashpass(username)
-            user = os_driver.get_or_create_user(username, password, True, admin_role)
-            logger.debug(user)
-            tenant = os_driver.get_tenant(username)
-            logger.debug(tenant)
-            roles = user.list_roles(tenant)
-            logger.debug(roles)
-            if not roles:
-                os_driver.user_manager.add_tenant_member(username,
-                                                       username,
-                                                       admin_role)
-            finished = True
-        except OverLimit:
-            print 'Requests are rate limited. Pausing for one minute.'
-            time.sleep(60)  # Wait one minute
-    ident = os_driver.create_openstack_identity(username,
-                                                password,
-                                                tenant_name=username, max_quota=max_quota)
-    return ident
 
 
 if __name__ == "__main__":
