@@ -90,7 +90,7 @@ class InstanceList(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class InstanceAction(APIView):
@@ -278,7 +278,9 @@ class Instance(APIView):
             response['Cache-Control'] = 'no-cache'
             return response
         else:
-            return Response(serializer.errors, status=400)
+            return Response(
+                    serializer.errors,
+                    status=status.HTTP_400_BAD_REQUEST)
 
     @api_auth_token_required
     def put(self, request, provider_id, identity_id, instance_id):

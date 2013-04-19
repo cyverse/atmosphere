@@ -376,8 +376,8 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
     def revert_resize_instance(self, *args, **kwargs):
         return self._connection.ex_revert_resize(*args, **kwargs)
 
-    def _add_floating_ip(self, instance_id, *args, **kwargs):
-        return self._connection._add_floating_ip(instance_id, *args, **kwargs)
+    def _add_floating_ip(self, instance, *args, **kwargs):
+        return self._connection._add_floating_ip(instance, *args, **kwargs)
 
     def _is_active_instance(self, instance):
         #Other things may need to be tested

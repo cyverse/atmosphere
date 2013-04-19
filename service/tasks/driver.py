@@ -149,7 +149,7 @@ def add_floating_ip(driverCls, provider, identity, instance_alias, *args, **kwar
         driver = driverCls(provider, identity)
         instance = driver.get_instance(instance_alias)
         if not instance.ip:
-            driver._add_floating_ip(instance_alias, *args, **kwargs)
+            driver._add_floating_ip(instance, *args, **kwargs)
         else:
             logger.debug("public ip already found! %s" % instance.ip)
         logger.debug("add_floating_ip task finished at %s." % datetime.now())

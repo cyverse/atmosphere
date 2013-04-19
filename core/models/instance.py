@@ -135,7 +135,9 @@ def convertEshInstance(esh_driver, esh_instance, provider_id, user, token=None):
     return core_instance
 
 def set_instance_from_metadata(esh_driver, core_instance):
+    #Fixes Dep. loop - Do not remove
     from service.api.serializers import InstanceSerializer
+    #Breakout for drivers (Eucalyptus) that don't support metadata
     if not hasattr(esh_driver._connection, 'ex_get_metadata'):
         logger.debug("EshDriver %s does not have function 'ex_get_metadata'"
                     % esh_driver._connection.__class__)
@@ -162,7 +164,8 @@ def update_instance_metadata(esh_driver, esh_instance, data={}):
                     % esh_driver._connection.__class__)
         return {}
     try:
-        return esh_driver._connection.ex_set_metadata(esh_instance, data)
+        return esh_driver._connection.ex_set_metadata(esh_instance, data,
+                replace_metadata=True)
     except Exception, e:
         if 'incapable of performing the request' in e.message:
             return {}

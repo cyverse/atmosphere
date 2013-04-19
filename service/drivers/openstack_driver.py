@@ -202,8 +202,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         time.sleep(20)
         #TODO: It would be better to hook in an asnyc thread that waits for valid IP port
         #TODO: This belongs in a eelery task.
-        server_id = node.id
-        self._add_floating_ip(server_id, **kwargs)
+        #server_id = node.id
+        self._add_floating_ip(node, **kwargs)
 
         return node
 
@@ -811,7 +811,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         if not keypair:
             logger.warn("No keypair for %s" % identity.json())
 
-    def _add_floating_ip(self, server_id, region=None, *args, **kwargs):
+    def _add_floating_ip(self, node, region=None, *args, **kwargs):
         #Convert to celery task..
         """
         Add IP (Quantum)
@@ -820,8 +820,10 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         Feel free to replace when a better mechanism comes along..
         """
         network_manager = NetworkManager.lc_driver_init(self, region)
-        floating_ip = network_manager.associate_floating_ip(server_id)
-        self.ex_set_metadata({'public_ip': floating_ip['floating_ip_address']})
+        floating_ip = network_manager.associate_floating_ip(node.id)
+        self.ex_set_metadata(
+            node, {'public_ip': floating_ip['floating_ip_address']},
+            replace_metadata=False)
         return floating_ip
 
     def _deprecated_add_floating_ip(self, server_id):
@@ -835,6 +837,38 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         self.ex_associate_floating_ip(server_id, floating_ip['ip'])
 
     # Metadata
+
+    def ex_set_metadata(self, node, metadata, replace_metadata=True):
+        """
+        Sets the Node's metadata.
+
+        @param      image: Node
+        @type       image: L{Node}
+
+        @param      metadata: Key/Value metadata to associate with a node
+        @type       metadata: C{dict}
+
+        @param      replace_metadata: Replace all metadata on node with new metdata
+        @type       replace_metadata: C{bool}
+
+        @rtype: C{dict}
+        """
+        #NOTE: PUT will REPLACE metadata each time it is added
+        #      while POST will keep metadata that does not match
+        #      The default for libcloud is to replace/override tags.
+        # Ex:
+        #     {'name': 'test_name'} + PUT {'tags': 'test_tag'} 
+        #     = {'tags': 'test_tag'}
+        #     {'name': 'test_name'} + POST {'tags': 'test_tag'} 
+        #     = {'name': 'test_name', 'tags': 'test_tag'}
+        #   
+        #
+        method = 'PUT' if replace_metadata else 'POST'
+        return self.connection.request(
+            '/servers/%s/metadata' % (node.id,), method=method,
+            data={'metadata': metadata}
+        ).object['metadata']
+
 
     def ex_get_metadata(self, node, key=None):
         """
@@ -906,6 +940,23 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             method='GET',).object['metadata']
 
     def ex_set_image_metadata(self, image, metadata):
+        """
+        Sets the Image's metadata.
+
+        @param      image: Image
+        @type       image: L{Image}
+
+        @param      metadata: Key/Value metadata to associate with an image
+        @type       metadata: C{dict}
+
+        @rtype: C{dict}
+        """
+        return self.connection.request(
+            '/images/%s/metadata' % (image.id,), method='POST',
+            data={'metadata': metadata}
+        ).object['metadata']
+
+    def ex_replace_image_metadata(self, image, metadata):
         """
         Sets the Image's metadata.
 
