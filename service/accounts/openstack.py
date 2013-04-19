@@ -137,6 +137,14 @@ class AccountDriver():
             #Return the identity
             return id_membership.identity
 
+    def rebuild_tenant_network(self, username, tenant_name):
+        self.network_manager.delete_tenant_network(username, tenant_name)
+        self.network_manager.create_tenant_network(
+            username,
+            self.hashpass(username),
+            tenant_name)
+        return True
+
     # Useful methods called from above..
     def get_or_create_user(self, username, password=None,
                            usergroup=True, admin=False):
