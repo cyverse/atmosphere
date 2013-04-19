@@ -27,35 +27,17 @@ class AccountDriver():
         self.user_manager = UserManager()
         self.euca_prov = Provider.objects.get(location='EUCALYPTUS')
 
-    def add_user(self, username):
-        userCreated = self.user_manager.add_user(username)
-        if not userCreated:
-            return None
-        user = self.user_manager.get_user(username)
-        return user
+    def create_account(self, username):
+        euca_user = self.get_user(username)
+        identity = self.create_identity(euca_user)
 
-    def delete_user(self, username):
-        userDeleted = self.user_manager.delete_user(username)
-        return userDeleted
-
-    def create_usergroup(self, username):
-        user = User.objects.get_or_create(username=username)[0]
-        group = Group.objects.get_or_create(name=username)[0]
-
-        user.groups.add(group)
-        user.save()
-        group.leaders.add(user)
-        group.save()
-        return (user, group)
-
-    def get_max_quota(self):
-        max_quota_by_cpu = Quota.objects.all().aggregate(Max('cpu')
-                                                           )['cpu__max']
-        quota = Quota.objects.filter(cpu=max_quota_by_cpu)
-        return quota[0]
-
-    def create_identity(self, user_dict, max_quota=False):
-        (user, group) = self.create_usergroup(user_dict['username'])
+    def create_identity(self, euca_user, max_quota=False):
+        """
+        euca_user - A dictionary containing 'access_key', 'secret_key', and 'username'
+        max_quota - Set this user to have the maximum quota, instead of the
+        default quota
+        """
+        (user, group) = self.create_usergroup(euca_user['username'])
         try:
             id_membership = IdentityMembership.objects.get(
                 identity__provider=self.euca_prov,
@@ -67,7 +49,7 @@ class AccountDriver():
                 id_membership.save()
             return id_membership.identity
         except IdentityMembership.DoesNotExist:
-            logger.debug(user_dict)
+            logger.debug(euca_user)
             #Provider Membership
             p_membership = ProviderMembership.objects.get_or_create(
                 provider=self.euca_prov, member=group)[0]
@@ -78,10 +60,10 @@ class AccountDriver():
 
             Credential.objects.get_or_create(
                 identity=identity, key='key',
-                value=user_dict['access_key'])[0]
+                value=euca_user['access_key'])[0]
             Credential.objects.get_or_create(
                 identity=identity, key='secret',
-                value=user_dict['secret_key'])[0]
+                value=euca_user['secret_key'])[0]
 
             if max_quota:
                 quota = self.get_max_quota()
@@ -113,6 +95,32 @@ class AccountDriver():
 
             #Return the identity
             return id_membership.identity
+    def add_user(self, username):
+        userCreated = self.user_manager.add_user(username)
+        if not userCreated:
+            return None
+        user = self.user_manager.get_user(username)
+        return user
+
+    def delete_user(self, username):
+        userDeleted = self.user_manager.delete_user(username)
+        return userDeleted
+
+    def create_usergroup(self, username):
+        user = User.objects.get_or_create(username=username)[0]
+        group = Group.objects.get_or_create(name=username)[0]
+
+        user.groups.add(group)
+        user.save()
+        group.leaders.add(user)
+        group.save()
+        return (user, group)
+
+    def get_max_quota(self):
+        max_quota_by_cpu = Quota.objects.all().aggregate(Max('cpu')
+                                                           )['cpu__max']
+        quota = Quota.objects.filter(cpu=max_quota_by_cpu)
+        return quota[0]
 
     def get_key(self, user):
         return self.user_manager.get_key(user)

@@ -31,54 +31,41 @@ class AccountDriver():
         self.network_manager = NetworkManager.settings_init()
         self.openstack_prov = Provider.objects.get(location='OPENSTACK')
 
-    def get_or_create_user(self, username, password=None,
-                           usergroup=True, admin=False):
-        user = self.get_user(username)
-        if user:
-            return user
-        user = self.create_user(username, password, usergroup, admin)
-        return user
+    def create_account(self, username, admin=False, max_quota=False):
+        """
+        Create (And Update 'latest changes') to an account
 
-    def create_user(self, username, password=None, usergroup=True, admin=False,):
-        if not password:
-            password = self.hashpass(username)
-        if usergroup:
-            (tenant, user, role) = self.user_manager.add_usergroup(username,
-                                                                  password,
-                                                                  True,
-                                                                  admin)
-            logger.info("Creating network for %s" % username)
-        else:
-            user = self.user_manager.add_user(username, password)
-            tenant = self.user_manager.get_tenant(username)
-        #TODO: Instead, return user.get_user match, or call it if you have to..
-        return user
-
-    def delete_user(self, username, usergroup=True, admin=False):
-        tenant = self.user_manager.get_tenant(username)
-        if tenant:
-            self.network_manager.delete_tenant_network(username, tenant.name)
-        if usergroup:
-            deleted = self.user_manager.delete_usergroup(username)
-        else:
-            deleted = self.user_manager.delete_user(username)
-        return deleted
-
-    def create_usergroup(self, username):
-        user = User.objects.get_or_create(username=username)[0]
-        group = Group.objects.get_or_create(name=username)[0]
-
-        user.groups.add(group)
-        user.save()
-        group.leaders.add(user)
-        group.save()
-        return (user, group)
-
-    def get_max_quota(self):
-        max_quota_by_cpu = Quota.objects.all().aggregate(Max('cpu')
-                                                           )['cpu__max']
-        quota = Quota.objects.filter(cpu=max_quota_by_cpu)
-        return quota[0]
+        """
+        finished = False
+        # Special case for admin.. Use the Openstack admin identity..
+        if username == 'admin':
+            ident = self.create_openstack_identity(
+                settings.OPENSTACK_ADMIN_KEY,
+                settings.OPENSTACK_ADMIN_SECRET,
+                settings.OPENSTACK_ADMIN_TENANT)
+            return ident
+        #Attempt account creation
+        while not finished:
+            try:
+                password = self.hashpass(username)
+                user = self.get_or_create_user(username, password, True, admin_role)
+                logger.debug(user)
+                tenant = self.get_tenant(username)
+                logger.debug(tenant)
+                roles = user.list_roles(tenant)
+                logger.debug(roles)
+                if not roles:
+                    self.user_manager.add_tenant_member(username,
+                                                           username,
+                                                           admin_role)
+                finished = True
+            except OverLimit:
+                print 'Requests are rate limited. Pausing for one minute.'
+                time.sleep(60)  # Wait one minute
+        ident = self.create_openstack_identity(username,
+                                                    password,
+                                                    tenant_name=username, max_quota=max_quota)
+        return ident
 
     def create_openstack_identity(self, username, password, tenant_name, max_quota=False):
         #Get the usergroup
@@ -143,6 +130,55 @@ class AccountDriver():
 
             #Return the identity
             return id_membership.identity
+
+    # Useful methods called from above..
+    def get_or_create_user(self, username, password=None,
+                           usergroup=True, admin=False):
+        user = self.get_user(username)
+        if user:
+            return user
+        user = self.create_user(username, password, usergroup, admin)
+        return user
+
+    def create_user(self, username, password=None, usergroup=True, admin=False,):
+        if not password:
+            password = self.hashpass(username)
+        if usergroup:
+            (tenant, user, role) = self.user_manager.add_usergroup(username,
+                                                                  password,
+                                                                  True,
+                                                                  admin)
+        else:
+            user = self.user_manager.add_user(username, password)
+            tenant = self.user_manager.get_tenant(username)
+        #TODO: Instead, return user.get_user match, or call it if you have to..
+        return user
+
+    def delete_user(self, username, usergroup=True, admin=False):
+        tenant = self.user_manager.get_tenant(username)
+        if tenant:
+            self.network_manager.delete_tenant_network(username, tenant.name)
+        if usergroup:
+            deleted = self.user_manager.delete_usergroup(username)
+        else:
+            deleted = self.user_manager.delete_user(username)
+        return deleted
+
+    def create_usergroup(self, username):
+        user = User.objects.get_or_create(username=username)[0]
+        group = Group.objects.get_or_create(name=username)[0]
+
+        user.groups.add(group)
+        user.save()
+        group.leaders.add(user)
+        group.save()
+        return (user, group)
+
+    def get_max_quota(self):
+        max_quota_by_cpu = Quota.objects.all().aggregate(Max('cpu')
+                                                           )['cpu__max']
+        quota = Quota.objects.filter(cpu=max_quota_by_cpu)
+        return quota[0]
 
     def hashpass(self, username):
         return sha1(username).hexdigest()
