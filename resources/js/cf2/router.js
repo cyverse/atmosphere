@@ -30,7 +30,9 @@ Atmo.Router = Backbone.Router.extend({
         }
       });
 	  Atmo.identities = new Atmo.Collections.Identities();
-	  Atmo.identities.fetch();
+	  Atmo.identities.fetch({
+		  async: false,
+	  });
 
       var identity = Atmo.profile.get('selected_identity');
       Atmo.instances = new Atmo.Collections.Instances();
@@ -65,52 +67,43 @@ Atmo.Router = Backbone.Router.extend({
         $('body').append(Atmo.alert_modal.render().el);
 
 		// Populate the top menu with a provider switcher 
-        $.ajax({
-            type: 'GET',
-            url: site_root + '/api/group/', 
-            success: function(response_text) {
-				identities = response_text[0].identities;
+		for (var i = 0; i < Atmo.identities.length; i++) {
 
-                // Create a summary for each view and identity
-                for (var i = 0; i < identities.length; i++) {
+			var identity = Atmo.identities.models[i];
+			var name = _.filter(Atmo.providers.models, function(provider) {
+				return provider.get('id') == identity.get('provider_id');
+			});
+			var name = name[0]['attributes']['type'];
 
-					$('#providers_menu').append($('<li>', {
-						html: function() {
+			$('#providers_menu').append($('<li>', {
+				html: function() {
+					if (Atmo.profile.get('selected_identity').get('id') == identity.get('id'))
+						return '<a href="#" class="current-provider"><i class="icon-ok"></i> ' + name + '</a>';
+					else
+						return '<a data-provider-id="' + identity.get('provider_id') + '" data-identity-id="' + identity.get('id') + '">' + name + '</a>';
+				},
+				click: function(e) {
+					e.preventDefault();
 
-							var name = _.filter(Atmo.providers.models, function(provider) {
-								return provider.get('id') == identities[i].provider_id;	
-							});
+					var id = parseInt($(this).find('a').attr('data-identity-id'));
 
-							if (Atmo.profile.get('selected_identity').get('id') == identities[i].id)
-								return '<a href="#" class="current-provider"><i class="icon-ok"></i> ' + name[0].attributes.type + '</a>';
-							else 
-								return '<a data-provider-id="' + identities[i].provider_id + '" data-identity-id="' + identities[i].id + '">' + name[0].attributes.type + '</a>';
-						},
-						click: function(e) {
-							e.preventDefault();
+					if (Atmo.profile.get('selected_identity').get('id') === id) {
+						Atmo.notify('Error', 'You are already using ' + name + ' as your provider.');
+						return false;
+					}
+					else {
+						Atmo.profile.save({
+							'selected_identity': id},
+							{'async': false,
+							'patch' : true,
+							success: location.reload()}
+						);
 
-							var id = parseInt($(this).find('a').attr('data-identity-id'));
+					}
+				}
+			}));
+		}
 
-							if (Atmo.profile.get('selected_identity').get('id') != id) {
-								Atmo.profile.save(
-									{ 'selected_identity' : id },
-									{ async : false, 
-									patch: true, 
-									success: location.reload() }
-								);	
-							}
-							else {
-								return false;
-							}
-						}
-					}));
-                }
-            },
-			error: function() {
-				Atmo.Utils.notify("Could not load all cloud identities", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
-			},
-            dataType: 'json'
-        });
 
         $('#contact_support').click(function(e) {
             e.preventDefault();

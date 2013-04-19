@@ -8,7 +8,7 @@ Atmo.Models.Identity = Atmo.Models.Base.extend({
 		
 		attributes.id = response.id;
 		attributes.provider = response.provider;
-		attributes.credentials = response.credentials;
+		//attributes.credentials = response.credentials;
 		attributes.quota = response.quota;
 		attributes.quota.mem = response.quota.mem * 1024;
 		attributes.quota.cpu = response.quota.cpu;
