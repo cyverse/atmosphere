@@ -70,30 +70,27 @@ Atmo.Router = Backbone.Router.extend({
 		for (var i = 0; i < Atmo.identities.length; i++) {
 
 			var identity = Atmo.identities.models[i];
-			var name = _.filter(Atmo.providers.models, function(provider) {
-				return provider.get('id') == identity.get('provider_id');
-			});
-			var name = name[0]['attributes']['type'];
+			var name = Atmo.identities.models[i].get('provider').get('type');
 
 			$('#providers_menu').append($('<li>', {
 				html: function() {
-					if (Atmo.profile.get('selected_identity').get('id') == identity.get('id'))
+					if (identity.get('selected'))
 						return '<a href="#" class="current-provider"><i class="icon-ok"></i> ' + name + '</a>';
 					else
-						return '<a data-provider-id="' + identity.get('provider_id') + '" data-identity-id="' + identity.get('id') + '">' + name + '</a>';
+						return '<a href="#">' + name + '</a>';
 				},
 				click: function(e) {
 					e.preventDefault();
 
-					var id = parseInt($(this).find('a').attr('data-identity-id'));
+					var identity = $(this).data();
 
-					if (Atmo.profile.get('selected_identity').get('id') === id) {
-						Atmo.notify('Error', 'You are already using ' + name + ' as your provider.');
+					if (identity.get('selected')) {
+						Atmo.Utils.notify('Error', 'You are already using ' + identity.get('provider').get('type') + ' as your provider.');
 						return false;
 					}
 					else {
 						Atmo.profile.save({
-							'selected_identity': id},
+							'selected_identity': identity.get('id')},
 							{'async': false,
 							'patch' : true,
 							success: location.reload()}
@@ -101,9 +98,8 @@ Atmo.Router = Backbone.Router.extend({
 
 					}
 				}
-			}));
+			}).data(identity));
 		}
-
 
         $('#contact_support').click(function(e) {
             e.preventDefault();
