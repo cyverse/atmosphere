@@ -20,7 +20,8 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		'click .editing': 'edit_instance_info',
 		'click .editable' : 'redir_edit_instance_info',
         'click a.instance_info_tab' : 'redraw_instance_graph',
-		'click .btn.suspend_resume_instance_btn' : 'suspend_resume_instance'
+		'click .btn.suspend_resume_instance_btn' : 'suspend_resume_instance',
+		'click .btn.start_stop_instance_btn' : 'start_stop_instance'
 	},
 	initialize: function(options) {
 		this.model.bind('change:running_shell', this.open_or_close_frames, this);
@@ -213,7 +214,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			var instance_type = types[0];
 			self.$el.find('.instance_size').html(instance_type.get('name'));
 
-			this.$el.find('#euca_controls').hide();
+			this.$el.find('#euca_controls').remove();
 
 			// Disable if instance is not running
 			if (!this.model.get('state_is_active')) {
@@ -221,6 +222,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				this.$el.find('.report_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.suspend_resume_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('.start_stop_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('a[href^="#request_imaging"]').hide();
 
 				if (this.model.get('state').indexOf('resize') == -1) {
@@ -244,9 +246,14 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				this.$el.find('.btn.suspend_resume_instance_btn').html('<i class="icon-play"></i> Resume').removeClass('disabled').removeAttr('disabled');
 			else 
 				this.$el.find('.btn.suspend_resume_instance_btn').fadeIn('fast');
+
+			if (this.model.get('state') == 'stopped')
+				this.$el.find('.btn.start_stop_instance_btn').html('<i class="icon-share-alt"></i> Start').removeClass('disabled').removeAttr('disabled');
+			else
+				this.$el.find('.btn.start_stop_instance_btn').fadeIn('fast');
 		}
 		else {
-			this.$el.find('#openstack_controls').hide();
+			this.$el.find('#openstack_controls').remove();
 
 			// Disable if instance is not running
 			if (!this.model.get('state_is_active')) {
@@ -664,6 +671,83 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 						self.model.set({ state_is_active: true, state_is_build: false });
 						Atmo.Utils.notify(
 							'Could not suspend instance', 
+							'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
+							{ no_timeout: true }
+						);
+					}
+				});
+			};
+		}
+
+		Atmo.Utils.confirm(header, body, { ok_button: ok_button, on_confirm: on_confirm });
+	},
+	start_stop_instance: function(e) {
+		var header = '';		// Title of confirmation modal
+		var body = '';			// Body of confirmation modal
+		var ok_button = '';		// The text of the confirmation button
+		var on_confirm;			// Function to perform if user confirms modal
+		var data = {};			// Post data for the action to perform on the instance
+
+		// If the instance is already starting/stopping inform user and return false
+		if (this.model.get('state') == 'active - stopping') {
+			Atmo.Utils.notify('Stopping Instance','Please wait while your instance stops. Refresh "My Instances" to check its status.');
+			return;
+		}
+		else if (this.model.get('state') == 'stopped - starting') {
+			Atmo.Utils.notify('Starting Instance','Please wait while your instance starts. Refresh "My Instances" to check its status.');
+			return;
+		}
+
+		var id = Atmo.profile.get('selected_identity');
+		var self = this;
+
+		if (this.model.get('state') == 'stopped') {
+			header = 'Start Instance';
+			body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> '
+				+ 'In order to start a stopped instance, you must have sufficient quota and the cloud must have enough room to support your instance\'s size.';
+			ok_button = 'Start Instance';
+			data = { "action" : "start" };
+			on_confirm = function() {
+				Atmo.Utils.notify('Starting Instance', 'Instance will be available momentarily.');
+
+				$.ajax({
+					url: site_root + '/api/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
+					type: 'POST',
+					data: data,
+					success: function() {
+						// Merges models to those that are accurate based on server response
+						Atmo.instances.update();
+					}, 
+					error: function() {
+						self.model.set({ state_is_active: false, state_is_inactive: true });
+						Atmo.Utils.notify(
+							'Could not start instance', 
+							'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
+							{ no_timeout: true }
+						);
+					}
+				});
+			};
+		}
+		else {
+			header = 'Stop Instance';
+			body = 'Your instance will be stopped.';
+			ok_button = 'Stop Instance';
+			data = { "action" : "stop" };
+			on_confirm = function() {
+				Atmo.Utils.notify('Stopping Instance', 'Instance will be stopped momentarily.');
+				$.ajax({
+					url: site_root + '/api/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
+					type: 'POST',
+					data: data,
+					success: function() {
+						//Atmo.Utils.notify('Resuming Instance', 'Instance will be active and available shortly.');
+						// Merges models to those that are accurate based on server response
+						Atmo.instances.update();
+					},
+					error: function() {
+						Atmo.Utils.notify(
+							'Could not stop instance', 
 							'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
 							{ no_timeout: true }
 						);
