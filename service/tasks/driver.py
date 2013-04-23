@@ -123,6 +123,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
         compute.initialize()
         driver = driverCls(provider, identity)
         instance = driver.get_instance(instance_id)
+        logger.debug("instance ip:" + str(instance.ip))
         if not instance:
             #Breakout if instance is destroyed
             logger.debug("Instance already deleted: %s." % instance_id)
