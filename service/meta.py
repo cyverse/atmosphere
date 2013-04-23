@@ -179,3 +179,7 @@ class OSMeta(Meta):
     def all_instances(self):
         return self.provider.instanceCls.get_instances(
             self.admin_driver._connection.ex_list_all_instances())
+
+    def all_volumes(self):
+        return self.provider.instanceCls.get_instances(
+            self.admin_driver._connection.ex_list_all_instances())

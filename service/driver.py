@@ -280,6 +280,8 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
                                            server_atmo_init))
         script_chmod = ScriptDeployment("chmod a+x %s" % atmo_init)
         instance_token = kwargs.get('token', '')
+        if not instance_token:
+            instance_token = instance.id
         awesome_atmo_call = "%s --service_type=%s --service_url=%s"
         awesome_atmo_call += " --server=%s --user_id=%s --token=%s"
         awesome_atmo_call += " --vnc_license=%s"
