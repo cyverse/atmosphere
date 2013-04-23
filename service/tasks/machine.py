@@ -98,7 +98,8 @@ def select_and_build_image(machine_request):
             manager = EucaOSMigrater()
             new_image_id = manager.migrate_instance(
                 machine_request.instance.provider_alias,
-                machine_request.new_machine_name)
+                machine_request.new_machine_name,
+		local_download_dir='/Storage/')
     elif old_provider == 'openstack':
         if new_provider == 'eucalyptus':
             logger.info('Create euca image from openstack image')
@@ -118,7 +119,15 @@ def select_and_build_image(machine_request):
                        if img.id == new_image_id]
             if not machine:
                 return
-            manager.driver.ex_set_image_metadata(machine, {'deployed':'True'})
-
+	    set_machine_request_metadata(machine_request, machine)
     return new_image_id
+
+def set_machine_request_metadata(machine_request, machine):
+    manager.driver.ex_set_image_metadata(machine, {'deployed':'True'})
+    if machine_request.new_machine_description:
+    	manager.driver.ex_set_image_metadata(machine, {'description':machine_request.new_machine_description})
+    if machine_request.new_machine_tags:
+    	manager.driver.ex_set_image_metadata(machine, {'tags':machine_request.new_machine_tags})
+    return machine
+
 

@@ -309,7 +309,7 @@ def iplant_files():
         match_hash="0e9cec8ce1d38476dda1646631a54f6b2ddceff5")
     run_command(['/bin/chmod', 'a+x', '/opt/irodsidrop/idroprun.sh'])
 
-def modify_rclocal(username):
+def modify_rclocal(username, distro):
     try:
         if is_rhel(distro):
             open_file = open('/etc/rc.d/rc.local','a')
@@ -608,7 +608,7 @@ def main(argv):
 #    install_icommands(distro)
     update_timezone()
     shellinaboxd(distro)
-    modify_rclocal(linuxuser)
+    modify_rclocal(linuxuser, distro)
     logging.info("Complete.")
 
 

@@ -109,9 +109,11 @@ class NetworkManager():
         instance_ports = self.quantum.list_ports(device_id=server_id)['ports']
         body = {'floatingip':
                 {'port_id': instance_ports[0]['id']}}
-        assigned_ip = self.quantum.update_floatingip(new_ip['id'], body)
+        assigned_ip = self.quantum.update_floatingip(new_ip['id'],
+        body)['floatingip']
         logger.info('Floating IP %s associated with instance %s'
                     % (new_ip, server_id))
+        logger.info('Assigned Floating IP %s' % (assigned_ip,))
         return assigned_ip
 
     def list_floating_ips(self):

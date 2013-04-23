@@ -264,6 +264,17 @@ class ImageManager():
                                   "s/%s/%s/" % (replace_str, replace_with),
                                   replace_file_path])
 
+        #Multi-line SED Replacement..
+        #Equivilant of: DeleteFrom/,/DeleteTo / d <--Delete the regexp match
+        for (delete_from, delete_to, replace_where) in [
+                ("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.local"),
+                ("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.d/rc.local")]:
+            replace_file_path = os.path.join(mount_point, replace_where)
+            if os.path.exists(replace_file_path):
+                self.run_command(["/bin/sed", "-i",
+                                  "/%s/,/%s/d" % (delete_from, delete_to),
+                                  replace_file_path])
+
         #First chroot with bind-mounted dev, proc and sys: update kernel, mkinitrd, and grub
         self._chroot_local_image(mount_point, mount_point, [
             ["/bin/bash", "-c", "yum install -qy kernel mkinitrd grub"]],
@@ -553,6 +564,8 @@ title Atmosphere VM (%s)
                 self.run_command(['/bin/rm', '-rf', filename])
 
     def _readd_atmo_boot(self, mount_point):
+        #TODO: This function should no longer be necessary.
+        #If it is, we need to recreate goodies/atmo_boot
         host_atmoboot = os.path.join(settings.PROJECT_ROOT,
                                      'extras/goodies/atmo_boot')
         atmo_boot_path = os.path.join(mount_point, 'usr/sbin/atmo_boot')
@@ -614,7 +627,7 @@ title Atmosphere VM (%s)
         self.run_command(['mount', '-o', 'loop', image_path, mount_point])
 
         #Patchfix
-        self._readd_atmo_boot(mount_point)
+        #self._readd_atmo_boot(mount_point)
 
         #Begin removing files
         for rm_file in exclude:
@@ -687,8 +700,6 @@ title Atmosphere VM (%s)
         #Multi-line SED Replacement..
         #Equivilant of: DeleteFrom/,/DeleteTo / d <--Delete the regexp match
         for (delete_from, delete_to, replace_where) in [
-                ("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.local"),
-                ("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.d/rc.local"),
                 ("## Atmosphere system", "# End Nagios", "etc/sudoers"),
                 ("## Atmosphere", "AllowGroups users core-services root",
                  "etc/ssh/sshd_config")]:

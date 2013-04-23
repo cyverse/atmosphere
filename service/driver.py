@@ -356,7 +356,7 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         return True
 
     def destroy_instance(self, *args, **kwargs):
-        return self._connection.destroy_node(instance)
+        return self._connection.destroy_node(*args, **kwargs)
 
     def suspend_instance(self, *args, **kwargs):
         return self._connection.ex_suspend_node(*args, **kwargs)
