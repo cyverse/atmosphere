@@ -241,7 +241,6 @@ def vnc(user, distro, license=None):
             run_command(['/bin/sed', '-i',
                          "'$a password   include      system-auth'",
                          '/etc/pam.d/vncserver.custom'], bash_wrap=True)
-            run_command(['/bin/hostname', 'localhost']) #Testfix
 
         else:
             download_file(
@@ -257,6 +256,7 @@ def vnc(user, distro, license=None):
             new_file = open('/etc/vnc/config.d/common.custom', 'w')
             new_file.write("PamApplicationName=vncserver.custom")
             new_file.close()
+        run_command(['/bin/hostname', 'localhost']) #Testfix
         time.sleep(1)
         run_command(['/usr/bin/vnclicense', '-add', license])
         download_file(
@@ -311,7 +311,10 @@ def iplant_files():
 
 def modify_rclocal(username):
     try:
-        open_file = open('/etc/rc.d/rc.local','a')
+        if is_rhel(distro):
+            open_file = open('/etc/rc.d/rc.local','a')
+        else:
+            open_file = open('/etc/rc.local','a')
         open_file.write('''hostname localhost
 /bin/su %s -c /usr/bin/vncserver
 /usr/bin/nohup /usr/local/bin/shellinaboxd -b -t -f beep.wav:/dev/null > /var/log/atmo/shellinaboxd.log 2>&1 &
@@ -483,7 +486,7 @@ def update_timezone():
 
 
 def run_update_sshkeys(sshdir, sshkeys):
-    authorized_keys = os.path.join(sshdir, '/authorized_keys')
+    authorized_keys = os.path.join(sshdir, 'authorized_keys')
     f = open(authorized_keys, 'a')
     for key in sshkeys:
         f.write(key+'\n')
