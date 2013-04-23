@@ -43,6 +43,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         "ex_deploy_to_node": ["Deploy to existing node"],
         "ex_suspend_node": ["Suspends the node"],
         "ex_resume_node": ["Resume the node"],
+        "ex_start_node": ["Starts the node"],
+        "ex_stop_node": ["Stops the node"],
         "create_volume": ["Create volume"],
         "delete_volume": ["Delete volume"],
         "list_volumes": ["List all volumes"],
@@ -387,6 +389,20 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         """
         network_manager = NetworkManager.settings_init()
         return network_manager.listLCNetworks()
+
+    def ex_start_node(self, node):
+        """
+        Suspend a node.
+        """
+        resp = self._node_action(node, 'os-start')
+        return resp.status == httplib.ACCEPTED
+
+    def ex_stop_node(self, node):
+        """
+        Suspend a node.
+        """
+        resp = self._node_action(node, 'os-stop')
+        return resp.status == httplib.ACCEPTED
 
     def ex_suspend_node(self, node):
         """

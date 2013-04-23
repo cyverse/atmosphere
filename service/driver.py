@@ -85,6 +85,12 @@ class BaseDriver():
     def destroy_instance(self, *args, **kwargs):
         raise NotImplementedError
 
+    def start_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def stop_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
     def resume_instance(self, *args, **kwargs):
         raise NotImplementedError
 
@@ -226,6 +232,12 @@ class EshDriver(LibcloudDriver, MetaMixin):
     def reboot_instance(self, *args, **kwargs):
         return super(EshDriver, self).reboot_instance(*args, **kwargs)
 
+    def start_instance(self, *args, **kwargs):
+        return super(EshDriver, self).start_instance(*args, **kwargs)
+
+    def stop_instance(self, *args, **kwargs):
+        return super(EshDriver, self).stop_instance(*args, **kwargs)
+
     def resume_instance(self, *args, **kwargs):
         return super(EshDriver, self).resume_instance(*args, **kwargs)
 
@@ -357,6 +369,12 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
 
     def destroy_instance(self, *args, **kwargs):
         return self._connection.destroy_node(*args, **kwargs)
+
+    def start_instance(self, *args, **kwargs):
+        return self._connection.ex_start_node(*args, **kwargs)
+
+    def stop_instance(self, *args, **kwargs):
+        return self._connection.ex_stop_node(*args, **kwargs)
 
     def suspend_instance(self, *args, **kwargs):
         return self._connection.ex_suspend_node(*args, **kwargs)
@@ -498,4 +516,10 @@ class EucaDriver(EshDriver, TaskMixin):
         raise NotImplementedError
 
     def suspend_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def start_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def stop_instance(self, *args, **kwargs):
         raise NotImplementedError

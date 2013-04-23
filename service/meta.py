@@ -15,6 +15,9 @@ from service.identity import AWSIdentity, EucaIdentity, OSIdentity
 from service.driver import AWSDriver, EucaDriver, OSDriver
 from service.linktest import active_instances
 
+from core.models import Identity
+from service.api import getEshDriver
+from service.accounts.openstack import AccountDriver as OSAccountDriver
 
 class BaseMeta(object):
     __metaclass__ = ABCMeta
@@ -175,6 +178,20 @@ class OSMeta(Meta):
             size.extra['occupancy']['total'] = limiting_value
             size.extra['occupancy']['remaining'] = limiting_value - num_running
         return sizes
+
+    def suspend_all_instances(self, destroy=True):
+        os_driver = OSAccountDriver()
+        for user in os_driver.list_usergroup_names():
+            driver = getEshDriver(Identity.objects.get(provider__location='OPENSTACK', created_by__username=user))
+            for instance in driver.list_instances():
+		if destroy:
+                    driver.destroy_instance(instance)
+                    print 'Destroyed instance %s' % instance
+		else:
+                    driver.stop_instance(instance)
+                    print 'Suspended instance %s' % instance
+        return True
+
 
     def all_instances(self):
         return self.provider.instanceCls.get_instances(
