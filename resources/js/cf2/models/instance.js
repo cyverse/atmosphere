@@ -23,6 +23,7 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 							|| response.status == 'running'
 							|| response.status == 'verify_resize' );
 		attributes.state_is_build = (    response.status == 'build'
+							|| response.status == 'build - block_device_mapping'
 	  						|| response.status == 'build - scheduling'
 	  						|| response.status == 'build - spawning'
 							|| response.status == 'build - networking' 
@@ -78,9 +79,14 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 		var model = this;
 		var success = options.success;
 
+		var self = this;
 		options.success = function(resp) {
-			if (success)
+			if (success) {
 				success(model, resp, options);
+
+				// Get the new state from the data returned by API call
+				self.set('state', resp.status);
+			}
 
 			if (!model.isNew())
 				model.trigger('sync', model, resp, options);
@@ -91,7 +97,7 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 			var error = options.error;
 			options.error = function(resp) {
 				if (error) error(model, resp, options);
-					model.trigger('error', model, resp, options);
+				model.trigger('error', model, resp, options);
 			};
 		};
 

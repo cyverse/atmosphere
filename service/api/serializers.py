@@ -18,7 +18,6 @@ class CredentialSerializer(serializers.ModelSerializer):
         model = Credential
         exclude = ('identity',)
 
-
 class IdentitySerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
     credentials = serializers.Field(source='credential_list')
@@ -108,6 +107,16 @@ class MachineRequestSerializer(serializers.ModelSerializer):
         fields = ('id', 'instance', 'status', 'name', 'owner', 'provider',
                   'vis', 'description', 'tags', 'sys', 'software',
                   'shared_with')
+
+
+class IdentityDetailSerializer(serializers.ModelSerializer):
+    created_by = serializers.CharField(source='creator_name')
+    quota = serializers.Field(source='get_quota_dict')
+    provider_id = serializers.Field(source='provider.id')
+
+    class Meta:
+        model = Identity
+        exclude = ('credentials', 'created_by', 'provider')
 
 
 class IdentityRelatedField(serializers.RelatedField):

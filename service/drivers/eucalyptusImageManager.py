@@ -58,7 +58,13 @@ class ImageManager():
         Will initialize with admin settings if no args are passed.
         Private Key file required to decrypt images.
         """
-        self.euca = Euca2ool()
+        # Argv must be reset to stop euca from gobbling bad sys.argv's
+        sys.argv = []
+        self.euca = Euca2ool(
+            short_opts=None,
+            long_opts=None,
+            is_s3=False,
+            compat=False)
         if not key:
             key = os.environ['EC2_ACCESS_KEY']
         if not secret:
@@ -150,7 +156,7 @@ class ImageManager():
             #Format empty meta strings to match current iPlant
             #image naming convention, if not given
             meta_name = '%s_%s_%s_%s' %\
-                ('admin', owner, image_name,
+                ('admin', owner, image_name,\
                  datetime.now().strftime('%m%d%Y_%H%M%S'))
             image_path = '%s/%s.img' % (local_download_dir, meta_name)
         else:
@@ -256,6 +262,17 @@ class ImageManager():
             if os.path.exists(replace_file_path):
                 self.run_command(["/bin/sed", "-i",
                                   "s/%s/%s/" % (replace_str, replace_with),
+                                  replace_file_path])
+
+        #Multi-line SED Replacement..
+        #Equivilant of: DeleteFrom/,/DeleteTo / d <--Delete the regexp match
+        for (delete_from, delete_to, replace_where) in [
+                ("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.local"),
+                ("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.d/rc.local")]:
+            replace_file_path = os.path.join(mount_point, replace_where)
+            if os.path.exists(replace_file_path):
+                self.run_command(["/bin/sed", "-i",
+                                  "/%s/,/%s/d" % (delete_from, delete_to),
                                   replace_file_path])
 
         #First chroot with bind-mounted dev, proc and sys: update kernel, mkinitrd, and grub
@@ -547,6 +564,8 @@ title Atmosphere VM (%s)
                 self.run_command(['/bin/rm', '-rf', filename])
 
     def _readd_atmo_boot(self, mount_point):
+        #TODO: This function should no longer be necessary.
+        #If it is, we need to recreate goodies/atmo_boot
         host_atmoboot = os.path.join(settings.PROJECT_ROOT,
                                      'extras/goodies/atmo_boot')
         atmo_boot_path = os.path.join(mount_point, 'usr/sbin/atmo_boot')
@@ -608,7 +627,7 @@ title Atmosphere VM (%s)
         self.run_command(['mount', '-o', 'loop', image_path, mount_point])
 
         #Patchfix
-        self._readd_atmo_boot(mount_point)
+        #self._readd_atmo_boot(mount_point)
 
         #Begin removing files
         for rm_file in exclude:
@@ -681,8 +700,6 @@ title Atmosphere VM (%s)
         #Multi-line SED Replacement..
         #Equivilant of: DeleteFrom/,/DeleteTo / d <--Delete the regexp match
         for (delete_from, delete_to, replace_where) in [
-                ("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.local"),
-                ("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.d/rc.local"),
                 ("## Atmosphere system", "# End Nagios", "etc/sudoers"),
                 ("## Atmosphere", "AllowGroups users core-services root",
                  "etc/ssh/sshd_config")]:

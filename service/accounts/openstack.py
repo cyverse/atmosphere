@@ -5,8 +5,10 @@ UserManager:
 from hashlib import sha1
 
 from django.contrib.auth.models import User
+from django.db.models import Max
 
 from novaclient.v1_1 import client as nova_client
+from novaclient.exceptions import OverLimit
 
 from atmosphere import settings
 from atmosphere.logger import logger
@@ -30,6 +32,120 @@ class AccountDriver():
         self.network_manager = NetworkManager.settings_init()
         self.openstack_prov = Provider.objects.get(location='OPENSTACK')
 
+    def create_account(self, username, admin_role=False, max_quota=False):
+        """
+        Create (And Update 'latest changes') to an account
+
+        """
+        finished = False
+        # Special case for admin.. Use the Openstack admin identity..
+        if username == 'admin':
+            ident = self.create_openstack_identity(
+                settings.OPENSTACK_ADMIN_KEY,
+                settings.OPENSTACK_ADMIN_SECRET,
+                settings.OPENSTACK_ADMIN_TENANT)
+            return ident
+        #Attempt account creation
+        while not finished:
+            try:
+                password = self.hashpass(username)
+                # Retrieve user, or create user & tenant
+                user = self.get_or_create_user(username, password, True, admin_role)
+                logger.debug(user)
+                tenant = self.get_tenant(username)
+                logger.debug(tenant)
+                roles = user.list_roles(tenant)
+                logger.debug(roles)
+                if not roles:
+                    self.user_manager.add_tenant_member(username,
+                                                           username,
+                                                           admin_role)
+                self.user_manager.build_security_group(user.name,
+                        self.hashpass(user.name), tenant.name)
+
+                finished = True
+
+            except OverLimit:
+                print 'Requests are rate limited. Pausing for one minute.'
+                time.sleep(60)  # Wait one minute
+        ident = self.create_openstack_identity(username,
+                                                    password,
+                                                    tenant_name=username, max_quota=max_quota)
+        return ident
+
+    def create_openstack_identity(self, username, password, tenant_name, max_quota=False):
+        #Get the usergroup
+        (user, group) = self.create_usergroup(username)
+        try:
+            id_membership = IdentityMembership.objects.filter(
+                identity__provider=self.openstack_prov,
+                member__name=username,
+                identity__credential__value__in=[
+                    username, password, tenant_name]).distinct()[0]
+            Credential.objects.get_or_create(
+                identity=id_membership.identity,
+                key='ex_tenant_name', value=tenant_name)[0]
+            if max_quota:
+                quota = self.get_max_quota()
+                id_membership.quota = quota
+                id_membership.save
+            return id_membership.identity
+        except (IndexError, ProviderMembership.DoesNotExist):
+            #Provider Membership
+            p_membership = ProviderMembership.objects.get_or_create(
+                provider=self.openstack_prov, member=group)[0]
+
+            #Identity Membership
+            identity = Identity.objects.get_or_create(
+                created_by=user, provider=self.openstack_prov)[0]
+
+            Credential.objects.get_or_create(
+                identity=identity, key='key', value=username)[0]
+            Credential.objects.get_or_create(
+                identity=identity, key='secret', value=password)[0]
+            Credential.objects.get_or_create(
+                identity=identity, key='ex_tenant_name', value=tenant_name)[0]
+
+            if max_quota:
+                quota = self.get_max_quota()
+            else:
+                default_quota = Quota().defaults()
+                quota = Quota.objects.filter(cpu=default_quota['cpu'],
+                                             memory=default_quota['memory'],
+                                             storage=default_quota['storage']
+                                            )[0]
+
+            #Link it to the usergroup -- Don't create more than one membership
+            try:
+                id_membership = IdentityMembership.objects.get(
+                    identity=identity, member=group)
+                id_membership.quota = quota
+                id_membership.save()
+            except IdentityMembership.DoesNotExist:
+                id_membership = IdentityMembership.objects.create(
+                    identity=identity, member=group,
+                    quota=quota)
+            except IdentityMembership.MultipleObjectReturned:
+                #No dupes
+                IdentityMembership.objects.filter(
+                    identity=identity, member=group).delete()
+                #Create one with new quota
+                id_membership = IdentityMembership.objects.create(
+                    identity=identity, member=group,
+                    quota=quota)
+
+            #Return the identity
+            return id_membership.identity
+
+    def rebuild_tenant_network(self, username, tenant_name):
+        self.network_manager.delete_tenant_network(username, tenant_name)
+        self.network_manager.create_tenant_network(
+            username,
+            self.hashpass(username),
+            tenant_name)
+        return True
+
+    # Useful methods called from above..
     def get_or_create_user(self, username, password=None,
                            usergroup=True, admin=False):
         user = self.get_user(username)
@@ -46,7 +162,6 @@ class AccountDriver():
                                                                   password,
                                                                   True,
                                                                   admin)
-            logger.info("Creating network for %s" % username)
         else:
             user = self.user_manager.add_user(username, password)
             tenant = self.user_manager.get_tenant(username)
@@ -73,42 +188,11 @@ class AccountDriver():
         group.save()
         return (user, group)
 
-    def create_openstack_identity(self, username, password, tenant_name):
-        (user, group) = self.create_usergroup(username)
-        try:
-            id_member = IdentityMembership.objects.filter(
-                identity__provider=self.openstack_prov,
-                member__name=username,
-                identity__credential__value__in=[
-                    username, password, tenant_name]).distinct()[0]
-            Credential.objects.get_or_create(
-                identity=id_member.identity,
-                key='ex_tenant_name', value=tenant_name)[0]
-            return id_member.identity
-        except (IndexError, ProviderMembership.DoesNotExist):
-            #Add provider membership
-            ProviderMembership.objects.get_or_create(
-                provider=self.openstack_prov, member=group)[0]
-            #Remove the user line when quota model is fixed
-            default_quota = Quota().defaults()
-            quota = Quota.objects.filter(cpu=default_quota['cpu'],
-                                         memory=default_quota['memory'],
-                                         storage=default_quota['storage'])[0]
-            #Create the Identity
-            identity = Identity.objects.get_or_create(
-                created_by=user, provider=self.openstack_prov)[0]
-            Credential.objects.get_or_create(
-                identity=identity, key='key', value=username)[0]
-            Credential.objects.get_or_create(
-                identity=identity, key='secret', value=password)[0]
-            Credential.objects.get_or_create(
-                identity=identity, key='ex_tenant_name', value=tenant_name)[0]
-            #Link it to the usergroup
-            id_member = IdentityMembership.objects.get_or_create(
-                identity=identity, member=group, quota=quota)[0]
-
-            #Return the identity
-            return id_member.identity
+    def get_max_quota(self):
+        max_quota_by_cpu = Quota.objects.all().aggregate(Max('cpu')
+                                                           )['cpu__max']
+        quota = Quota.objects.filter(cpu=max_quota_by_cpu)
+        return quota[0]
 
     def hashpass(self, username):
         return sha1(username).hexdigest()
@@ -130,6 +214,12 @@ class AccountDriver():
 
     def list_users(self):
         return self.user_manager.list_users()
+
+    def list_usergroup_names(self):
+        usernames = []
+        for (user,tenant) in self.list_usergroups():
+                usernames.append(user.name)
+        return usernames
 
     def list_usergroups(self):
         users = self.list_users()

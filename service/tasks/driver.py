@@ -38,8 +38,9 @@ def deploy_init_to(driverCls, provider, identity, instance_id, *args, **kwargs):
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         image_metadata = driver._connection.ex_get_image_metadata(instance.machine)
-        image_already_deployed = image_metadata.get("deployed")
+        image_already_deployed = image_metadata.get("not_deployed")
         if not instance.ip and not image_already_deployed:
+            logger.debug("Chain -- Floating_ip + deploy_init + email")
             chain(add_floating_ip.si(driverCls,
                                      provider,
                                      identity,
@@ -53,6 +54,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id, *args, **kwargs):
                                           identity,
                                           instance_id)).apply_async()
         elif not image_already_deployed:
+            logger.debug("Chain -- deploy_init + email")
             chain(_deploy_init_to.si(driverCls,
                                      provider,
                                      identity,
@@ -62,6 +64,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id, *args, **kwargs):
                                           identity,
                                           instance_id)).apply_async()
         elif not instance.ip:
+            logger.debug("Chain -- Floating_ip + email")
             chain(add_floating_ip.si(driverCls,
                                      provider,
                                      identity,
@@ -71,6 +74,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id, *args, **kwargs):
                                           identity,
                                           instance_id)).apply_async()
         else:
+            logger.debug("delay -- email")
             _send_instance_email.delay(driverCls,
                                        provider,
                                        identity,
@@ -87,7 +91,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id, *args, **kwargs):
       max_retries=2)
 def _send_instance_email(driverCls, provider, identity, instance_id):
     try:
-        logger.debug("deploy_init_to task finished at %s." % datetime.now())
+        logger.debug("_send_instance_email task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         username = identity.user.username
@@ -100,7 +104,7 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
                             username)
     except Exception as exc:
         logger.warn(exc)
-        deploy_init_to.retry(exc=exc)
+        _send_instance_email.retry(exc=exc)
 
 
 @task(name="_deploy_init_to",
@@ -119,6 +123,10 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
         compute.initialize()
         driver = driverCls(provider, identity)
         instance = driver.get_instance(instance_id)
+        if not instance:
+            #Breakout if instance is destroyed
+            logger.debug("Instance already deleted: %s." % instance_id)
+            return
         instance._node.extra['password'] = None
         deployed = driver.deploy_init_to(instance)
         if not deployed:
@@ -141,7 +149,7 @@ def add_floating_ip(driverCls, provider, identity, instance_alias, *args, **kwar
         driver = driverCls(provider, identity)
         instance = driver.get_instance(instance_alias)
         if not instance.ip:
-            driver._add_floating_ip(instance_alias, *args, **kwargs)
+            driver._add_floating_ip(instance, *args, **kwargs)
         else:
             logger.debug("public ip already found! %s" % instance.ip)
         logger.debug("add_floating_ip task finished at %s." % datetime.now())
@@ -157,21 +165,25 @@ def destroy_instance(driverCls, provider, identity, instance_alias):
     try:
         logger.debug("destroy_instance task started at %s." % datetime.now())
         from service import compute
-	from service.provider import OSProvider
+        from service.driver import OSDriver
         compute.initialize()
         driver = driverCls(provider, identity)
+        logger.debug("Provider identified as %s" % provider)
         instance = driver.get_instance(instance_alias)
         if instance:
             #First disassociate
-            if type(provider) == OSProvider:
-            	driver._connection.ex_disassociate_floating_ip(instance)
+            if type(driver) == OSDriver:
+                logger.debug("OSDriver Logic -- Disassociate floating IP")
+                driver._connection.ex_disassociate_floating_ip(instance)
             #Then destroy
             node_destroyed = driver._connection.destroy_node(instance)
         else:
             logger.debug("Instance already deleted: %s." % instance.id)
 
-        if type(provider) == OSProvider:
+        if type(driver) == OSDriver:
             #Spawn off the last two tasks
+            logger.debug("OSDriver Logic -- Remove floating ips and check"
+            " for empty tenant")
             chain(_remove_floating_ip.subtask((driverCls,
                                      provider,
                                      identity), immutable=True, countdown=5),

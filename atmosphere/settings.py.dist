@@ -24,6 +24,7 @@ ADMINS = (
     ('J. Matt Peterson', 'jmatt@iplantcollaborative.org'),
     ('Steven Gregory', 'esteve@iplantcollaborative.org'),
 )
+SERVER_EMAIL = 'atmo@iplantcollaborative.org'
 
 MANAGERS = ADMINS
 

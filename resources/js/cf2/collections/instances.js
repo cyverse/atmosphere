@@ -96,4 +96,10 @@ Atmo.Collections.Instances = Atmo.Collections.Base.extend({
 	get_model_id_array: function() {
 		return _(this.models).map(function (model) {return model.id; });
 	},
+	get_active_instances: function() {
+		// These are the instances that count towards a user's quota
+		return _.filter(this.models, function(instance) {
+			return instance.get('state') != 'suspended' && !instance.get('state') != 'stopped';
+		});
+	}
 });

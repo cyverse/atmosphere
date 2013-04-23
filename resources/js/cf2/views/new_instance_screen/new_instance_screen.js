@@ -11,7 +11,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		'click #launchInstance': 'launch_instance',
 		'keyup #newinst_name' : 'validate_name',
 		'change #newinst_size': 'change_type_selection',
-		'dblclick .image_list > li' : 'quick_launch',
+		//'dblclick .image_list > li' : 'quick_launch',
 		'click #help_request_more_resources2' : 'show_request_resources_modal'
 	},
 	template: _.template(Atmo.Templates.new_instance_screen),
@@ -20,6 +20,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		Atmo.images.bind('fail', this.report_error_image_list, this);
         Atmo.instances.bind('add', this.render_resource_charts, this);
         Atmo.instances.bind('remove', this.render_resource_charts, this);
+		Atmo.instances.bind('change:state', this.render_resource_charts, this);
 		Atmo.instance_types.bind('reset', this.render_instance_type_list, this);
 		Atmo.instance_types.bind('change:selected', this.update_resource_charts, this);
         this.launch_lock = false;

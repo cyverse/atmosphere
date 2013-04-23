@@ -38,7 +38,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 			else if (this.quota_type == 'cpu' || this.quota_type == 'mem') {
 
 				if (Atmo.instance_types.models.length > 0) {
-					$.each(Atmo.instances.models, function(i, instance) {
+					$.each(Atmo.instances.get_active_instances(), function(i, instance) {
 						var instance_type = instance.get('type');
 						var to_add = _.filter(Atmo.instance_types.models, function(model) {
 							return model.attributes.alias == instance_type;
@@ -170,6 +170,10 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 				url: site_root + '/api/provider/' + provider + '/identity/' + identity + '/size/',
 				success: function(instance_types) {
 
+					// Filter out any instances that aren't active
+					instances = _.filter(instances, function(instances) {
+						return instance.get('state') != 'suspended' && instance.get('state') != 'stopped';
+					});
 
 					// Add together quota used by instances cumulatively 
 					for (var i = 0; i < instances.length; i++) {

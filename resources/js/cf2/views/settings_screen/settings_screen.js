@@ -11,7 +11,7 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
     events: {
         'change form[name="settings"]' : 'update_settings',
         'click #icon_set_icons a' : 'update_icons',
-        'click #help_edit_login_key' : 'edit_login_key',
+        //'click #help_edit_login_key' : 'edit_login_key',
 		'submit form[name="add_new_identity"]':'add_new_identity',
 		'change input[name="selected_identity"]' : 'switch_identity'
     },
@@ -41,53 +41,17 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
 
 		// Show user's available identities
 		var self = this;
-		this.identities = {};
 	
-		// This should be replaced and put in a model
-        $.ajax({
-            type: 'GET',
-            url: site_root + '/api/group/', 
-            success: function(response_text) {
-				self.identities = response_text[0].identities;
+		for (var i = 0; i < Atmo.identities.length; i++) {
+			var identity = Atmo.identities.models[i];
 
-                // Create a summary for each view and identity
-                for (var i = 0; i < self.identities.length; i++) {
-                    var identity = new Atmo.Views.SettingsScreenIdentitySummary({
-                        provider: self.identities[i].provider_id, 
-                        identity_id: self.identities[i].id
-                    });
-                    self.$el.find('#providers').prepend(identity.render().el);
-                }
-            },
-			error: function() {
-				Atmo.Utils.notify("Could not load all cloud identities", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
-			},
-            dataType: 'json'
-        });
-
-		/*
-
-		Disabled until we have settings for each provider
-
-		if (Atmo.instance_types.models.length > 0) {
-			$.each(Atmo.instance_types.models, function(idx, instance_type) {
-				var opt = $('<option>', {
-					value: instance_type.get('name'),
-					html: function() {
-						return instance_type.get('name') + ' (' + instance_type.get('cpus') + ' CPUs, ' + instance_type.get('mem') + ' GB memory, ' + instance_type.get('disk') + ' GB disk)';
-					},
-				});
-				self.$el.find('select[name="default_size"]').append(opt);
+			// Create a summary for each view and identity
+			var identity_view = new Atmo.Views.SettingsScreenIdentitySummary({
+				provider: identity.get('provider_id'), 
+				identity_id: identity.get('id')
 			});
-
-			this.$el.find('select[name="default_size"]').val(settings.default_size);
+			self.$el.find('#providers').prepend(identity_view.render().el);
 		}
-		else {
-			this.$el.find('select[name="default_size"]').html($('<option>', {
-				html: 'Instance Sizes Unavailable',
-				disabled: 'disabled'
-			})).after('<div class="alert alert-error"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>Could not get instance types</strong> Please contact support if the problem persists.</div>');
-		}*/
 
         this.rendered = true;
 
@@ -98,7 +62,9 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
 		var id = parseInt(self.$el.find('input[name="selected_identity"]:checked').val());
 		Atmo.profile.save(
 			{ 'selected_identity' : id },
-			{ async : false }
+			{ async : false, 
+			patch: true, 
+			success: location.reload() }
 		);	
 		location.reload();
 	},
@@ -127,7 +93,7 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
         });
         return false;
 	},
-    edit_login_key: function(e) {
+    /*edit_login_key: function(e) {
             e.preventDefault();
 
             var header = 'Edit Cloud Identity';
@@ -146,7 +112,7 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
                 ok_button: 'Update Identity'
             });
 
-    },
+    },*/
     update_icons: function(e) {
         this.$el.find('#icon_set_icons li a').removeClass('selected');
         $(e.target).parent().addClass('selected');
@@ -159,28 +125,25 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
         this.$el.find('label[for="icon_set"]').find('span').remove();
         this.$el.find('label[for="icon_set"]').append(loader);
 
-        var val = $(e.target).parent().data('iconset');
-        var data = {};
-        data["icon_set"] = val;
-
+		// Need this incase user clicks on image instead of link
+        var val = $(e.target).data('iconset') || $(e.target).parent().data('iconset');
         var self = this;   
 
-        if (val != undefined) {
-            $.ajax({
-                type: 'PUT',
-                url: site_root + '/api/profile/', 
-                data: data,
-                success: function() {
-                    loader.html('<i class="icon-ok"></i> Updated. Refresh to see new icons.');
-                    Atmo.instances.update();
-                    Atmo.images.fetch();
+		if (typeof(val) != 'undefined') {
+			Atmo.profile.save(
+				{ icon_set: val },
+				{ patch: true,
+				async: false,
+				success: function() {
+                    loader.html('<i class="icon-ok"></i> Updated. Application will refresh with changes.');
                     setTimeout(function() {
                         loader.fadeOut('fast', function() {
                             $(this).remove(); 
+							location.reload();
                         });
                     }, 5 * 1000);
-                },  
-                error: function() {
+				}, 
+				error: function() {
                     // Inform user that the setting was NOT successfully updated.
                     loader.html('<i class="icon-warning-sign"></i> Update Failed. Please contact support.');                    
                     setTimeout(function() {
@@ -190,10 +153,12 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
                             self.render();
                         });
                     }, 5 * 1000);
-                },  
-                dataType: 'JSON'
-            }); 
-        }
+				}
+			});
+		}
+		else {
+			loader.html('<i class="icon-warning-sign"></i> Invalid icon selection.');                    
+		}
     }, 
     update_settings: function(e) {
         var val, input;
@@ -237,21 +202,17 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
         var self = this;
         
         if (val != undefined) {
-            $.ajax({
-                type: 'PUT',
-                url: site_root + '/api/profile/', 
-                data: data,
-                success: function() {
-                    // Inform user that the setting was successfully updated.
+			Atmo.profile.save(data, {
+				patch: true,
+				success: function() {
                     loader.html('<i class="icon-ok"></i> Updated');                    
                     setTimeout(function() {
                         loader.fadeOut('fast', function() {
                             $(this).remove(); 
                         });
                     }, 5 * 1000);
-                },  
-                error: function() {
-                    // Inform user that the setting was NOT successfully updated.
+				},
+				error: function() {
                     loader.html('<i class="icon-warning-sign"></i> Update Failed. Please contact support.');                    
                     setTimeout(function() {
                         loader.fadeOut('fast', function() {
@@ -260,11 +221,8 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
                             self.render();
                         });
                     }, 5 * 1000);
-                },  
-                dataType: 'JSON'
-            }); 
+				}
+			});
         }
-        
-
     }
 });

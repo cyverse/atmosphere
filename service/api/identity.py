@@ -13,7 +13,33 @@ from authentication.decorators import api_auth_token_required
 
 from core.models.group import Group
 
-from service.api.serializers import IdentitySerializer
+from service.api.serializers import IdentitySerializer, IdentityDetailSerializer
+
+class IdentityDetailList(APIView):
+    """
+    Represents:
+        A List of Identity
+        Calls to the Identity Class
+    """
+
+    @api_auth_token_required
+    def get(self, request):
+        """
+        List of identity that match USER and the provider_id
+        * Identity's belonging to the group matching the username
+        TODO: This should be user, user.groups.all, etc. to account for
+        future 'shared' identitys
+        """
+        username = request.user.username
+        group = Group.objects.get(name=username)
+        identities = group.identities.order_by('id')
+	#profile = request.user.get_profile()
+	#for identity in identities:
+	#	if profile.selected_identity and profile.selected_identity.id == identity.id:
+	#		identity.selected = True
+	#TODO: IdentityDetailSerializer should expect new 
+        serialized_data = IdentityDetailSerializer(identities).data
+        return Response(serialized_data)
 
 
 class IdentityList(APIView):
@@ -22,6 +48,7 @@ class IdentityList(APIView):
         A List of Identity
         Calls to the Identity Class
     """
+
     @api_auth_token_required
     def get(self, request, provider_id, format=None):
         """

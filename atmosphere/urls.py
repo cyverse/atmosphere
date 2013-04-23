@@ -7,7 +7,7 @@ from django.conf.urls import patterns, url, include
 
 from rest_framework.urlpatterns import format_suffix_patterns
 
-from service.api.identity import IdentityList, Identity
+from service.api.identity import IdentityList, Identity, IdentityDetailList
 from service.api.instance import InstanceList, Instance, InstanceAction
 from service.api.notification import NotificationList
 from service.api.machine import MachineList, Machine
@@ -165,6 +165,8 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/provider/(?P<provider_id>.*)/identity'
         + '/(?P<identity_id>.*)/$',
         Identity.as_view(), name='identity-detail'),
+
+    url(r'^api/identity/$', IdentityDetailList.as_view(), name='identity-detail-list'),
 
     url(r'^api/provider/$', ProviderList.as_view(), name='provider-list'),
     url(r'^api/provider/(?P<provider_id>.*)/$',

@@ -109,9 +109,11 @@ class NetworkManager():
         instance_ports = self.quantum.list_ports(device_id=server_id)['ports']
         body = {'floatingip':
                 {'port_id': instance_ports[0]['id']}}
-        assigned_ip = self.quantum.update_floatingip(new_ip['id'], body)
+        assigned_ip = self.quantum.update_floatingip(new_ip['id'],
+        body)['floatingip']
         logger.info('Floating IP %s associated with instance %s'
                     % (new_ip, server_id))
+        logger.info('Assigned Floating IP %s' % (assigned_ip,))
         return assigned_ip
 
     def list_floating_ips(self):
@@ -268,11 +270,11 @@ class NetworkManager():
         return router_obj['router']
 
     def add_router_interface(self, router, subnet):
-        existing_routers = self.find_router_interface(router, subnet)
-        if existing_routers:
+        existing_router_interfaces = self.find_router_interface(router, subnet)
+        if existing_router_interfaces:
             logger.info('Router Interface for Subnet:%s-Router:%s already\
                     exists' % (subnet['name'], router['name']))
-            return existing_routers[0]
+            return existing_router_interfaces[0]
         interface_obj = self.quantum.add_interface_router(
             router['id'], {
                 "subnet_id": subnet['id']})

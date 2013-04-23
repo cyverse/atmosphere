@@ -8,12 +8,12 @@ User, BooleanField, StringList
 """
 import sys
 import boto
-import logging
 from boto.ec2.regioninfo import RegionInfo
 from boto.exception import EC2ResponseError
 
 from urlparse import urlparse
 from atmosphere import settings
+from atmosphere.logger import logger
 
 #Enter euca admin credentials here!
 EUCA_ADMIN_KEY = ""
@@ -61,7 +61,7 @@ class UserManager():
             reply = self.connection.get_object(
                 'DeleteUser', {'UserName': username}, BooleanResponse)
         except EC2ResponseError:
-            logging.info("User does not exist")
+            logger.info("User does not exist")
             return False
 
         return reply and reply.reply == 'true'
@@ -96,7 +96,6 @@ class UserManager():
         """
         params = {}
         self.connection.build_list_params(params, userList, 'UserNames')
-        logging.warn('\n\n%s\n\n' % params)
         euca_list = self.connection.get_list(
             'DescribeUsers', params, [('euca:item', User)])
         return self.userListDict(euca_list)
@@ -108,6 +107,7 @@ class UserManager():
         """
         userDict = {}
         for user in euca_list:
+		logger.info(user.__dict__)
                 userDict[user.user_userName] = {
                     'username': user.user_userName,
                     'access_key': user.user_accessKey,
@@ -118,6 +118,7 @@ class UserManager():
                     'confirmed': user.user_confirmed,
                     'admin': user.user_admin,
                     'enabled': user.user_enabled,
+                    'email': user.user_email,
                 }
         return userDict
 

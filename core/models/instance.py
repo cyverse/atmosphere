@@ -8,9 +8,12 @@ from datetime import datetime
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+
+from atmosphere.logger import logger
+
 from core.models.machine import ProviderMachine, convertEshMachine
 from core.models.tag import Tag
-from atmosphere.logger import logger
+
 
 
 class Instance(models.Model):
@@ -92,42 +95,82 @@ Useful utility methods for the Core Model..
 
 
 def findInstance(alias):
-    coreInstance = Instance.objects.filter(provider_alias=alias)
-    if len(coreInstance) > 1:
+    core_instance = Instance.objects.filter(provider_alias=alias)
+    if len(core_instance) > 1:
         logger.warn("Multiple instances returned for alias - %s" % alias)
-    if coreInstance:
-        return coreInstance[0]
+    if core_instance:
+        return core_instance[0]
     return None
 
 
-def convertEshInstance(eshInstance, provider_id, user, token=None):
+def convertEshInstance(esh_driver, esh_instance, provider_id, user, token=None):
     """
     """
-    alias = eshInstance.alias
+    alias = esh_instance.alias
     try:
-        ip_address = eshInstance._node.public_ips[0]
+        ip_address = esh_instance._node.public_ips[0]
     except IndexError:  # no public ip
         try:
-            ip_address = eshInstance._node.private_ips[0]
+            ip_address = esh_instance._node.private_ips[0]
         except IndexError:  # no private ip
             ip_address = '0.0.0.0'
-    eshMachine = eshInstance.machine
-    coreInstance = findInstance(alias)
-    if coreInstance:
-        coreInstance.ip_address = ip_address
-        coreInstance.save()
+    eshMachine = esh_instance.machine
+    core_instance = findInstance(alias)
+    if core_instance:
+        core_instance.ip_address = ip_address
+        core_instance.save()
     else:
-        create_stamp = eshInstance.extra.get('launchdatetime')
+        create_stamp = esh_instance.extra.get('launchdatetime')
         #if not create_stamp:
         #Openstack?
-        coreMachine = convertEshMachine(eshMachine, provider_id)
-        coreInstance = createInstance(provider_id, alias,
+        coreMachine = convertEshMachine(esh_driver, eshMachine, provider_id)
+        core_instance = createInstance(provider_id, alias,
                                       coreMachine, ip_address,
-                                      eshInstance.name, user,
+                                      esh_instance.name, user,
                                       create_stamp, token)
-    coreInstance.esh = eshInstance
-    return coreInstance
 
+    core_instance.esh = esh_instance
+
+    core_instance = set_instance_from_metadata(esh_driver, core_instance)
+    return core_instance
+
+def set_instance_from_metadata(esh_driver, core_instance):
+    #Fixes Dep. loop - Do not remove
+    from service.api.serializers import InstanceSerializer
+    #Breakout for drivers (Eucalyptus) that don't support metadata
+    if not hasattr(esh_driver._connection, 'ex_get_metadata'):
+        #logger.debug("EshDriver %s does not have function 'ex_get_metadata'"
+        #            % esh_driver._connection.__class__)
+        return core_instance
+    esh_instance = core_instance.esh
+    metadata =  esh_driver._connection.ex_get_metadata(esh_instance)
+    serializer = InstanceSerializer(core_instance, data=metadata, partial=True)
+    if not serializer.is_valid():
+        logger.warn("Encountered errors serializing metadata:%s"
+                    % serializer.errors)
+        return core_instance
+    serializer.save()
+    core_instance = serializer.object
+    core_instance.esh = esh_instance
+    return core_instance
+
+def update_instance_metadata(esh_driver, esh_instance, data={}):
+    """
+    NOTE: This will NOT WORK for TAGS until openstack
+    allows JSONArrays as values for metadata!
+    """
+    if not hasattr(esh_driver._connection, 'ex_set_metadata'):
+        logger.info("EshDriver %s does not have function 'ex_set_metadata'"
+                    % esh_driver._connection.__class__)
+        return {}
+    try:
+        return esh_driver._connection.ex_set_metadata(esh_instance, data,
+                replace_metadata=True)
+    except Exception, e:
+        if 'incapable of performing the request' in e.message:
+            return {}
+        else:
+            raise
 
 def createInstance(provider_id, provider_alias, provider_machine,
                    ip_address, name, creator, create_stamp, token=None):

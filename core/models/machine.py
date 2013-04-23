@@ -51,7 +51,11 @@ class Machine(models.Model):
         #Update the values
         for key in kwargs.keys():
             if key == 'tags':
-                updateTags(self, kwargs[key].split(","))
+                if type(kwargs[key]) != list:
+                    tags_list = kwargs[key].split(",")
+                else:
+                    tags_list = kwargs[key]
+                updateTags(self, tags_list)
                 continue
             setattr(self, key, kwargs[key])
         self.save()
@@ -170,12 +174,12 @@ def createProviderMachine(machine_name, provider_alias,
     provider = Provider.objects.get(id=provider_id)
     logger.debug("Provider %s" % provider)
     machine = getGenericMachine(machine_name)
-    logger.debug("Machine %s" % machine)
     if not machine:
         #Build a machine to match
         if not description:
             description = "Describe Machine %s" % provider_alias
         machine = createGenericMachine(machine_name, description)
+    logger.debug("Machine %s" % machine)
     provider_machine = ProviderMachine.objects.create(
         machine=machine,
         provider=provider,
@@ -212,11 +216,52 @@ def createGenericMachine(name, description, creator=None):
     return new_mach
 
 
-def convertEshMachine(eshMachine, provider_id):
+def convertEshMachine(esh_driver, esh_machine, provider_id):
     """
     """
-    name = eshMachine.name
-    alias = eshMachine.alias
+    name = esh_machine.name
+    alias = esh_machine.alias
     provider_machine = loadMachine(name, alias, provider_id)
-    provider_machine.esh = eshMachine
+    provider_machine.esh = esh_machine
+    provider_machine = set_machine_from_metadata(esh_driver, provider_machine)
     return provider_machine
+
+def set_machine_from_metadata(esh_driver, core_machine):
+    #Fixes Dep. loop - Do not remove
+    from service.api.serializers import InstanceSerializer
+    if not hasattr(esh_driver._connection, 'ex_get_image_metadata'):
+        #NOTE: This can get chatty, only uncomment for debugging
+        #Breakout for drivers (Eucalyptus) that don't support metadata
+        #logger.debug("EshDriver %s does not have function 'ex_get_image_metadata'"
+        #            % esh_driver._connection.__class__)
+        return core_machine
+    esh_machine = core_machine.esh
+    metadata =  esh_driver._connection.ex_get_image_metadata(esh_machine)
+    serializer = InstanceSerializer(core_machine, data=metadata, partial=True)
+    if not serializer.is_valid():
+        logger.warn("Encountered errors serializing metadata:%s"
+                    % serializer.errors)
+        return core_machine
+    serializer.save()
+    # Retrieve and prepare the new obj
+    core_machine = serializer.object
+    core_machine.esh = esh_machine
+    return core_machine
+
+def update_machine_metadata(esh_driver, esh_machine, data={}):
+    """
+    NOTE: This will NOT WORK for TAGS until openstack
+    allows JSONArrays as values for metadata!
+    """
+    if not hasattr(esh_driver._connection, 'ex_set_image_metadata'):
+        logger.info("EshDriver %s does not have function 'ex_set_image_metadata'"
+                    % esh_driver._connection.__class__)
+        return {}
+    try:
+        return esh_driver._connection.ex_set_image_metadata(esh_machine, data)
+    except Exception, e:
+        if 'incapable of performing the request' in e.message:
+            return {}
+        else:
+            raise
+

@@ -70,6 +70,10 @@ Atmo.Views.Sidebar = Backbone.View.extend({
 		this.$el.find('#refresh_instances_button img').attr('src', site_root + '/resources/images/loader.gif');
 		var self = this;
 
+		// Occurs if initial fetch failed
+		if (!Atmo.instances.update)
+			this.stop_spinner();
+
 		Atmo.instances.update({
 			success: function() {
 				self.$el.find('#refresh_instances_button img').attr('src', site_root + '/resources/images/icon_mini_refresh.png');
@@ -80,12 +84,18 @@ Atmo.Views.Sidebar = Backbone.View.extend({
 				self.stop_spinner();
 			},
 		});
+
+		if (!Atmo.volumes.update)
+			this.stop_spinner();
+
+		// Occurs if initial fetch failed
 		Atmo.volumes.update({
 			success: function() {
-				console.log("Volume refresh success");
+				self.$el.find('#refresh_instances_button img').attr('src', site_root + '/resources/images/icon_mini_refresh.png');
 			},
 			error: function() {
 				Atmo.Utils.notify("Could not update volume list", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
+				self.$el.find('#refresh_instances_button img').attr('src', site_root + '/resources/images/icon_mini_refresh.png');
 				self.stop_spinner();
 			},
 		});

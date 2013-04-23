@@ -10,11 +10,14 @@ from atmosphere.logger import logger
 
 from atmosphere import settings
 
-from service.provider import AWSProvider, EucaProvider, OSProvider
+from service.provider import AWSProvider, EucaProvider, OSProvider,\
+    OSValhallaProvider
 from service.identity import AWSIdentity, EucaIdentity, OSIdentity
 from service.driver import AWSDriver, EucaDriver, OSDriver
 from service.linktest import active_instances
 
+from core.models import Identity
+from service.accounts.openstack import AccountDriver as OSAccountDriver
 
 class BaseMeta(object):
     __metaclass__ = ABCMeta
@@ -175,6 +178,21 @@ class OSMeta(Meta):
             size.extra['occupancy']['total'] = limiting_value
             size.extra['occupancy']['remaining'] = limiting_value - num_running
         return sizes
+
+    def suspend_all_instances(self, destroy=True):
+        for instance in self.all_instances():
+            if destroy:
+                self.admin_driver.destroy_instance(instance)
+                logger.debug('Destroyed instance %s' % instance)
+            else:
+                self.admin_driver.stop_instance(instance)
+                logger.debug('Suspended instance %s' % instance)
+        os_driver = OSAccountDriver()
+        for username in os_driver.list_usergroup_names():
+            tenant_name = username
+            os_driver.network_manager.delete_tenant_network(username,
+                                                            tenant_name)
+        return True
 
     def all_instances(self):
         return self.provider.instanceCls.get_instances(

@@ -13,7 +13,7 @@ from atmosphere.logger import logger
 
 from authentication.decorators import api_auth_token_required
 
-from core.models.instance import convertEshInstance
+from core.models.instance import convertEshInstance, update_instance_metadata
 from core.models.volume import convertEshVolume
 from service.api import failureJSON, launchEshInstance, prepareDriver
 from service.api.serializers import InstanceSerializer, VolumeSerializer
@@ -45,7 +45,7 @@ class InstanceList(APIView):
                 'message': 'Identity/Provider Authentication Failed'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
-        core_instance_list = [convertEshInstance(inst, provider_id, user)
+        core_instance_list = [convertEshInstance(esh_driver, inst, provider_id, user)
                               for inst in esh_instance_list]
 
         #TODO: Core/Auth checks for shared instances
@@ -83,14 +83,14 @@ class InstanceList(APIView):
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
         core_instance = convertEshInstance(
-            esh_instance, provider_id, user, token)
+            esh_driver, esh_instance, provider_id, user, token)
         serializer = InstanceSerializer(core_instance, data=data)
         #NEVER WRONG
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class InstanceAction(APIView):
@@ -218,7 +218,7 @@ class Instance(APIView):
         esh_driver = prepareDriver(request, identity_id)
 
         try:
-            eshInstance = esh_driver.get_instance(instance_id)
+            esh_instance = esh_driver.get_instance(instance_id)
         except InvalidCredsError:
             logger.warn(
                 'Authentication Failed. Provider-id:%s Identity-id:%s'
@@ -233,7 +233,8 @@ class Instance(APIView):
                 'code': 404,
                 'message': 'Instance does not exist'}])
             return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
-        core_instance = convertEshInstance(eshInstance, provider_id, user)
+        core_instance = convertEshInstance(esh_driver, esh_instance,
+                                           provider_id, user)
         serialized_data = InstanceSerializer(core_instance).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
@@ -258,22 +259,28 @@ class Instance(APIView):
                 'message': 'Identity/Provider Authentication Failed'}])
             return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
 
-        if not eshInstance:
+        if not esh_instance:
             errorObj = failureJSON([{
                 'code': 404,
                 'message': 'Instance does not exist'}])
             return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
 
         #Gather the DB related item and update
-        core_instance = convertEshInstance(esh_instance, provider_id, user)
+        core_instance = convertEshInstance(esh_driver, esh_instance,
+                                           provider_id, user)
         serializer = InstanceSerializer(core_instance, data=data, partial=True)
         if serializer.is_valid():
+            logger.info('metadata = %s' % data)
+            update_instance_metadata(esh_driver, esh_instance, data)
             serializer.save()
             response = Response(serializer.data)
+            logger.info('data = %s' % serializer.data)
             response['Cache-Control'] = 'no-cache'
             return response
         else:
-            return Response(serializer.errors, status=400)
+            return Response(
+                    serializer.errors,
+                    status=status.HTTP_400_BAD_REQUEST)
 
     @api_auth_token_required
     def put(self, request, provider_id, identity_id, instance_id):
@@ -305,11 +312,15 @@ class Instance(APIView):
             return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
 
         #Gather the DB related item and update
-        core_instance = convertEshInstance(esh_instance, provider_id, user)
+        core_instance = convertEshInstance(esh_driver, esh_instance,
+                                           provider_id, user)
         serializer = InstanceSerializer(core_instance, data=data)
         if serializer.is_valid():
+            logger.info('metadata = %s' % data)
+            update_instance_metadata(esh_driver, esh_instance, data)
             serializer.save()
             response = Response(serializer.data)
+            logger.info('data = %s' % serializer.data)
             response['Cache-Control'] = 'no-cache'
             return response
         else:
@@ -323,12 +334,16 @@ class Instance(APIView):
 
         try:
             esh_instance = esh_driver.get_instance(instance_id)
+            if not esh_instance:
+                response = Response({}, status=200)
+                response['Cache-Control'] = 'no-cache'
+                return response
             esh_driver.destroy_instance_to_task(esh_instance)
             esh_instance = esh_driver.get_instance(instance_id)
             if esh_instance.extra\
                and 'task' not in esh_instance.extra:
                 esh_instance.extra['task'] = 'queueing delete'
-            core_instance = convertEshInstance(esh_instance, provider_id, user)
+            core_instance = convertEshInstance(esh_driver, esh_instance, provider_id, user)
             if core_instance:
                 core_instance.end_date = datetime.now()
                 core_instance.save()
