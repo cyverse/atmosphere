@@ -14,7 +14,7 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
 	  Atmo.instances.bind('add', this.append_instance, this);
 	  Atmo.instances.bind('remove', this.remove_instance, this);
 	  Atmo.instances.bind('select', this.select_instance, this);
-	  Atmo.instances.bind('change:size_alias', this.render_resource_charts, this);
+	  Atmo.instances.bind('change', this.update_resource_charts, this);
 	},
 	render: function() {
 		if (Atmo.instances.models.length > 0) {
@@ -63,6 +63,10 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
 			quota_type: 'cpu'
 		}).render();
 	},
+	update_resource_charts: function() {
+		this.cpu_resource_chart.render();
+		this.mem_resource_chart.render();
+	},
     x_close: function() {
             // Must assign this function after the popover is actually rendered, so we find '.close' element
             $('.close').click(function(e) {
@@ -78,8 +82,7 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
 			this.render();
 		else { 
             this.new_instance_tabs_holder(model).$el.appendTo(this.$el.find('#instance_holder'));
-            this.cpu_resource_chart.render();
-            this.mem_resource_chart.render();
+			this.update_resource_charts();
         }
 	},
     new_instance_tabs_holder: function(model) {

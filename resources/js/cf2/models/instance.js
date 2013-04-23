@@ -23,6 +23,7 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 							|| response.status == 'running'
 							|| response.status == 'verify_resize' );
 		attributes.state_is_build = (    response.status == 'build'
+							|| response.status == 'build - block_device_mapping'
 	  						|| response.status == 'build - scheduling'
 	  						|| response.status == 'build - spawning'
 							|| response.status == 'build - networking' 

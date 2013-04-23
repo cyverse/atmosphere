@@ -625,35 +625,54 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 		if (this.model.get('state') == 'suspended') {
 			header = 'Resume Instance';
-			body = 'Your instance\'s IP address may change once it resumes.';
-			ok_button = 'Resume Instance';
-			data = { "action" : "resume" };
-			on_confirm = function() {
-				Atmo.Utils.notify('Resuming Instance', 'Instance will be active and available shortly.');
-				$.ajax({
-					url: site_root + '/api/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
-					type: 'POST',
-					data: data,
-					success: function() {
-						//Atmo.Utils.notify('Resuming Instance', 'Instance will be active and available shortly.');
-						// Merges models to those that are accurate based on server response
-						Atmo.instances.update();
-					},
-					error: function() {
-						Atmo.Utils.notify(
-							'Could not resume instance', 
-							'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
-							{ no_timeout: true }
-						);
-					}
-				});
-			};
+
+			// Make sure user has enough quota to resume this instance
+			if (this.check_quota()) {
+				ok_button = 'Resume Instance';
+				data = { "action" : "resume" };
+				body = 'Your instance\'s IP address may change once it resumes.';
+				on_confirm = function() {
+
+					// Prevent user from being able to quickly resume multiple instances and go over quota
+					self.model.set({state: 'suspended - resuming',
+									state_is_build: true,
+									state_is_inactive: false});
+
+					Atmo.Utils.notify('Resuming Instance', 'Instance will be active and available shortly.');
+					$.ajax({
+						url: site_root + '/api/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
+						type: 'POST',
+						data: data,
+						success: function() {
+							Atmo.instances.update();
+						},
+						error: function() {
+							self.model.set({state: 'suspended',
+											state_is_build: false,
+											state_is_inactive: true});
+
+							Atmo.Utils.notify(
+								'Could not resume instance', 
+								'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
+								{ no_timeout: true }
+							);
+						}
+					});
+				};
+			}
+			else {
+				body = '<p class="alert alert-error"><i class="icon-ban-circle"></i> <strong>Cannot resume instance</strong> '
+					+ 'You do not have enough resources to resume this instance. You must terminate, suspend, or stop another running instance, or request more resources.';
+				ok_button = 'Ok';
+			}
 		}
 		else {
 			header = 'Suspend Instance';
 			body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> '
 				+ 'Suspending an instance will freeze its state, and the IP address may change when you resume the instance.</p>'
-				+ 'Suspending an instance frees up resources for other users and allows you to safely preserve the state of your instance without imaging.';
+				+ 'Suspending an instance frees up resources for other users and allows you to safely preserve the state of your instance without imaging.'
+				+ '<br><br>'
+				+ 'Your resource usage charts will only reflect the freed resources once the instance\'s state is "suspended."';
 			ok_button = 'Suspend Instance';
 			data = { "action" : "suspend" };
 			on_confirm = function() {
@@ -757,5 +776,32 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		}
 
 		Atmo.Utils.confirm(header, body, { ok_button: ok_button, on_confirm: on_confirm });
+	},
+	check_quota: function() {
+
+		// Before we allow a user to suspend/resume, we need to be sure they have enough quota
+		var used_mem = 0;
+		var used_cpu = 0;
+		var quota_mem = Atmo.profile.get('selected_identity').get('quota').mem;
+		var quota_cpu = Atmo.profile.get('selected_identity').get('quota').cpu;
+		var instances_to_add = Atmo.instances.get_active_instances();
+		instances_to_add.push(this.model);
+
+		if (Atmo.instance_types.models.length > 0) {
+
+			for (var i = 0; i < instances_to_add.length; i++) {
+				var instance = instances_to_add[i];
+
+				var instance_type = instance.get('type');
+				var to_add = _.filter(Atmo.instance_types.models, function(model) {
+					return model.attributes.alias == instance_type;
+				});
+				used_mem += to_add[0]['attributes']['mem'];
+				used_cpu += to_add[0]['attributes']['cpu'];
+			}
+		}
+
+		return used_mem <= quota_mem && used_cpu <= quota_cpu;
+
 	}
 });
