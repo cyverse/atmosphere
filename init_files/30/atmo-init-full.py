@@ -592,6 +592,7 @@ def main(argv):
     instance_metadata["linuxuserpassword"] = linuxpass
     instance_metadata["linuxuservncpassword"] = linuxpass
     #mount_home() #kludge
+    ldap_replace()
     run_command(['/bin/cp', '-rp', '/etc/skel/.', '/home/%s' % linuxuser])
     run_command(['/bin/chown', '-R',
                  '%s:iplant-everyone' % (linuxuser,), '/home/%s' % linuxuser])
@@ -602,7 +603,6 @@ def main(argv):
     iplant_files()
     atmo_cl()
     nagios()
-    ldap_replace()
     #deploy_atmo_boot()
     distro_files(distro, instance_metadata)
 #    install_icommands(distro)
