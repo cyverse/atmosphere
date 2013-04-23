@@ -20,6 +20,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		Atmo.images.bind('fail', this.report_error_image_list, this);
         Atmo.instances.bind('add', this.render_resource_charts, this);
         Atmo.instances.bind('remove', this.render_resource_charts, this);
+		Atmo.instances.bind('change:state', this.render_resource_charts, this);
 		Atmo.instance_types.bind('reset', this.render_instance_type_list, this);
 		Atmo.instance_types.bind('change:selected', this.update_resource_charts, this);
         this.launch_lock = false;
