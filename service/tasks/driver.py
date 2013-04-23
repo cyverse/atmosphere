@@ -104,7 +104,7 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
                             username)
     except Exception as exc:
         logger.warn(exc)
-        deploy_init_to.retry(exc=exc)
+        _send_instance_email.retry(exc=exc)
 
 
 @task(name="_deploy_init_to",

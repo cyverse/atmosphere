@@ -316,13 +316,7 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'deploy': msd})
         kwargs.update({'timeout': 120})
-        deployed = self.deploy_to(instance, *args, **kwargs)
-        if deployed:
-            created = datetime.strptime(instance.extra['created'], "%Y-%m-%dT%H:%M:%SZ")
-            send_instance_email(username, instance.id, instance.ip, created, username)
-            return True
-        else:
-            return False
+        return self.deploy_to(instance, *args, **kwargs)
 
     def deploy_to(self, *args, **kwargs):
         """
