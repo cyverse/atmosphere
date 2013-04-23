@@ -11,7 +11,7 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
     events: {
         'change form[name="settings"]' : 'update_settings',
         'click #icon_set_icons a' : 'update_icons',
-        'click #help_edit_login_key' : 'edit_login_key',
+        //'click #help_edit_login_key' : 'edit_login_key',
 		'submit form[name="add_new_identity"]':'add_new_identity',
 		'change input[name="selected_identity"]' : 'switch_identity'
     },
@@ -44,10 +44,6 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
 	
 		for (var i = 0; i < Atmo.identities.length; i++) {
 			var identity = Atmo.identities.models[i];
-			var name = _.filter(Atmo.providers.models, function(provider) {
-				return provider.get('id') == identity.get('provider_id');
-			});
-			var name = name[0]['attributes']['type'];
 
 			// Create a summary for each view and identity
 			var identity_view = new Atmo.Views.SettingsScreenIdentitySummary({
@@ -97,7 +93,7 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
         });
         return false;
 	},
-    edit_login_key: function(e) {
+    /*edit_login_key: function(e) {
             e.preventDefault();
 
             var header = 'Edit Cloud Identity';
@@ -116,7 +112,7 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
                 ok_button: 'Update Identity'
             });
 
-    },
+    },*/
     update_icons: function(e) {
         this.$el.find('#icon_set_icons li a').removeClass('selected');
         $(e.target).parent().addClass('selected');
