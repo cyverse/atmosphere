@@ -11,7 +11,7 @@ from core.models.volume import Volume
 from core.models.group import Group
 
 from rest_framework import serializers
-
+from atmosphere.logger import logger
 
 class CredentialSerializer(serializers.ModelSerializer):
     class Meta:
@@ -122,6 +122,7 @@ class IdentityDetailSerializer(serializers.ModelSerializer):
 class IdentityRelatedField(serializers.RelatedField):
 
     def to_native(self, identity):
+        logger.info('to native')
         quota_dict = identity.get_quota_dict()
         return {
             "id": identity.id,
@@ -130,9 +131,13 @@ class IdentityRelatedField(serializers.RelatedField):
         }
 
     def field_from_native(self, data, files, field_name, into):
+        logger.info('data = %s' % data)
+        logger.info('field_name = %s' % field_name)
         value = data.get(field_name)
+        logger.info('value = %s' % value)
         if value is None:
             return
+        logger.info('into = %s' % into)
         try:
             into[field_name] = Identity.objects.get(id=value)
         except Identity.DoesNotExist:
@@ -146,6 +151,24 @@ class ProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(read_only=True, source='user.username')
     groups = serializers.CharField(read_only=True, source='user.groups.all')
     selected_identity = IdentityRelatedField()
+
+    def validate_selected_identity(self, attrs, source):
+        """
+        Check that profile is an identitymember & providermember
+        Returns the dict of attrs
+        """
+        selected_identity = attrs[source]
+        logger.debug(attrs)
+        logger.debug(source)
+        logger.debug(selected_identity)
+        groups = self.object.user.group_set.all()
+        for g in groups:
+            for id_member in g.identitymembership_set.all():
+                if id_member.identity == selected_identity:
+                    return attrs
+        raise serializers.ValidationError("User is not a member of"
+                                          "selected_identity = %s"
+                                          % selected_identity)
 
     class Meta:
         model = UserProfile

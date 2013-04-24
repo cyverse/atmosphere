@@ -163,11 +163,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         _set_ips()
         node = super(OpenStack_Esh_NodeDriver, self)._to_node(api_node)
         node.extra.update({
-            'addresses': api_node['addresses'],
-            'keypair': api_node['key_name'],
-            'status': api_node['status'].lower(),
-            'task': api_node['OS-EXT-STS:task_state'],
-            'power': api_node['OS-EXT-STS:power_state'],
+            'addresses': api_node.get('addresses'),
+            'keypair': api_node.get('key_name'),
+            'status': api_node.get('status').lower(),
+            'task': api_node.get('OS-EXT-STS:task_state'),
+            'power': api_node.get('OS-EXT-STS:power_state'),
             'instancetype': api_node['flavor']['id'],
             'object': api_node
         })
@@ -626,8 +626,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         except:
             logger.warn("Unable to list floating ips from nova.")
             return []
-#        network_manager = NetworkManager.lc_driver_init(self, region)
-#        return network_manager.list_floating_ips()
 
     def ex_allocate_floating_ip(self, pool_name, **kwargs):
         """
@@ -679,7 +677,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                     return None
                 address = public_ips[0]['addr']
             server_resp = self.connection.request(
-                '/servers/%s/action' % server,
+                '/servers/%s/action' % server.id,
                 method='POST',
                 data={'removeFloatingIp': {'address': address}})
             return server_resp.object

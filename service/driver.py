@@ -398,11 +398,11 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         status = instance.extra['status']
         task = instance.extra['task']
         power = instance.extra['power']
-        if status is 'active':
+        if status == 'active':
             #Active, not being deleted or suspended
             if task not in ['deleting','suspending']:
                 return True
-        elif status is 'build' or 'resize' and task is not 'deleting':
+        elif (status == 'build' or status == 'resize') and task != 'deleting':
             #The instance is moving toward an active state
             return True
         return False

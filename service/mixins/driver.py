@@ -4,7 +4,8 @@ Mixin classes implement additional functionality for Drivers.
 """
 from atmosphere.logger import logger
 from service.tasks.driver import deploy_to,\
-    deploy_init_to, add_floating_ip, destroy_instance
+    deploy_init_to, add_floating_ip, destroy_instance,\
+    stop_instance, start_instance
 
 
 class MetaMixin():
@@ -137,3 +138,22 @@ class TaskMixin():
                                self.identity,
                                instance.alias,
                                *args, **kwargs)
+
+
+    def start_instance_to_task(self, instance, *args, **kwargs):
+        start_instance.delay(self.__class__,
+                               self.provider,
+                               self.identity,
+                               instance.alias,
+                               *args, **kwargs)
+
+
+
+    def stop_instance_to_task(self, instance, *args, **kwargs):
+        stop_instance.delay(self.__class__,
+                               self.provider,
+                               self.identity,
+                               instance.alias,
+                               *args, **kwargs)
+
+

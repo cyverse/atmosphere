@@ -130,7 +130,7 @@ def launchEshInstance(driver, extras, *args, **kwargs):
             logger.debug(type(username))
             logger.debug(username)
             password = os_driver.hashpass(username)
-            tenant_name = username
+            tenant_name = os_driver.get_tenant_name_for(username)
             os_driver.network_manager.create_tenant_network(username,
                                                      password,
                                                      tenant_name)
