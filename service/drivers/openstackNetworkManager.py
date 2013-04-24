@@ -272,8 +272,8 @@ class NetworkManager():
     def add_router_interface(self, router, subnet):
         existing_router_interfaces = self.find_router_interface(router, subnet)
         if existing_router_interfaces:
-            logger.info('Router Interface for Subnet:%s-Router:%s already\
-                    exists' % (subnet['name'], router['name']))
+            logger.info('Router Interface for Subnet:%s-Router:%s already'
+                    'exists' % (subnet['name'], router['name']))
             return existing_router_interfaces[0]
         interface_obj = self.quantum.add_interface_router(
             router['id'], {

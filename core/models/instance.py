@@ -163,6 +163,9 @@ def update_instance_metadata(esh_driver, esh_instance, data={}):
         logger.info("EshDriver %s does not have function 'ex_set_metadata'"
                     % esh_driver._connection.__class__)
         return {}
+
+    if data.get('name'):
+        esh_driver._connection.ex_set_server_name(esh_instance, data['name'])
     try:
         return esh_driver._connection.ex_set_metadata(esh_instance, data,
                 replace_metadata=True)
