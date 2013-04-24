@@ -165,16 +165,27 @@ class InstanceAction(APIView):
                 esh_driver.confirm_resize_instance(esh_instance)
             elif 'revert_resize' == action:
                 esh_driver.revert_resize_instance(esh_instance)
-            elif 'suspend' == action:
-                esh_driver.suspend_instance(esh_instance)
             elif 'resume' == action:
                 esh_driver.resume_instance(esh_instance)
+            elif 'suspend' == action:
+                esh_driver.suspend_instance(esh_instance)
+            elif 'start' == action:
+                esh_driver.start_instance(esh_instance)
+            elif 'stop' == action:
+                esh_driver.stop_instance(esh_instance)
             elif 'reboot' == action:
                 esh_driver.reboot_instance(esh_instance)
             elif 'rebuild' == action:
                 machine_alias = action_params.get('machine_alias', '')
                 machine = esh_driver.get_machine(machine_alias)
                 esh_driver.rebuild_instance(esh_instance, machine)
+            else:
+                errorObj = failureJSON([{
+                    'code': 400,
+                    'message': 'Unable to to perform action %s.' % (action)}])
+                return Response(
+                    errorObj,
+                    status=status.HTTP_400_BAD_REQUEST)
             api_response = {
                 'result': 'success',
                 'message': 'The requested action <%s> was run successfully'
