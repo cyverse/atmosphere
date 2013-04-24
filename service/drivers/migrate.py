@@ -23,7 +23,7 @@ class EucaToOpenstack:
         self.os_img_manager = OSImageManager()
         self.euca_img_manager = EucaImageManager()
 
-    def migrate_image(self, euca_image_id, name, download_path='/tmp/', euca_image_path=None, no_upload=False, keep_image=False):
+    def migrate_image(self, euca_image_id, name, local_download_dir='/tmp/', euca_image_path=None, no_upload=False, keep_image=False):
         """
         Download/clean euca image
         Perform conversion
@@ -31,16 +31,16 @@ class EucaToOpenstack:
         TODO: Add in public, private_user_list, exclude_files
         """
         if not euca_image_path:
-            euca_image_path = self.euca_img_manager.download_image(download_path, euca_image_id)
-            #Downloads image to download_path/emi-###
-            download_path = os.path.join(download_path, euca_image_id)
-            mount_point = os.path.join(download_path,'mount_point')
+            euca_image_path = self.euca_img_manager.download_image(local_download_dir, euca_image_id)
+            #Downloads image to local_download_dir/emi-###
+            local_download_dir = os.path.join(local_download_dir, euca_image_id)
+            mount_point = os.path.join(local_download_dir,'mount_point')
             self.euca_img_manager._clean_local_image(euca_image_path, mount_point, ["usr/sbin/atmo_boot"])
-        distro = self._determine_distro(euca_image_path, download_path)
+        distro = self._determine_distro(euca_image_path, local_download_dir)
         if distro == 'centos':
-            (image, kernel, ramdisk) = self._convert_centos(euca_image_path, download_path)
+            (image, kernel, ramdisk) = self._convert_centos(euca_image_path, local_download_dir)
         elif distro == 'ubuntu':
-            (image, kernel, ramdisk) = self._convert_ubuntu(euca_image_path, download_path, euca_image_id)
+            (image, kernel, ramdisk) = self._convert_ubuntu(euca_image_path, local_download_dir, euca_image_id)
         else:
             logger.error("Failed to find a conversion for this OS.")
             return
@@ -54,23 +54,23 @@ class EucaToOpenstack:
         if os_image:
             return os_image
 
-    def migrate_instance(self, euca_instance_id, name, download_path='/tmp/', euca_image_path=None, no_upload=False, keep_image=False):
+    def migrate_instance(self, euca_instance_id, name, local_download_dir='/tmp/', euca_image_path=None, no_upload=False, keep_image=False):
         """
         TODO: Add in public, private_user_list, exclude_files
         """
         if not euca_image_path:
-            euca_image_path = self.euca_img_manager.download_instance(download_path, euca_instance_id)
-            #Downloads instance to download_path/i-###
-            download_path = os.path.join(download_path, euca_instance_id)
-            mount_point = os.path.join(download_path, 'mount_point')
+            euca_image_path = self.euca_img_manager.download_instance(local_download_dir, euca_instance_id)
+            #Downloads instance to local_download_dir/i-###
+            local_download_dir = os.path.join(local_download_dir, euca_instance_id)
+            mount_point = os.path.join(local_download_dir, 'mount_point')
             self.euca_img_manager._clean_local_image(euca_image_path, mount_point, ["usr/sbin/atmo_boot"])
-        distro = self._determine_distro(euca_image_path, download_path)
+        distro = self._determine_distro(euca_image_path, local_download_dir)
         logger.info("Migrating using the %s distro conversion" % distro)
         if distro == 'centos':
-            (image, kernel, ramdisk) = self._convert_centos(euca_image_path, download_path)
+            (image, kernel, ramdisk) = self._convert_centos(euca_image_path, local_download_dir)
         elif distro == 'ubuntu':
-            euca_image_id = self.euca_img_manager.find_instance('i-3F57078F')[0].instances[0].image_id
-            (image, kernel, ramdisk) = self._convert_ubuntu(euca_image_path, download_path, euca_image_id)
+            euca_image_id = self.euca_img_manager.find_instance(euca_instance_id)[0].instances[0].image_id
+            (image, kernel, ramdisk) = self._convert_ubuntu(euca_image_path, local_download_dir, euca_image_id)
         else:
             logger.error("Failed to find a conversion for this OS.")
             return

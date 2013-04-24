@@ -27,9 +27,10 @@ class AccountDriver():
         self.user_manager = UserManager()
         self.euca_prov = Provider.objects.get(location='EUCALYPTUS')
 
-    def create_account(self, username):
+    def create_account(self, username, max_quota=False):
         euca_user = self.get_user(username)
-        identity = self.create_identity(euca_user)
+        identity = self.create_identity(euca_user, max_quota=max_quota)
+        return identity
 
     def create_identity(self, euca_user, max_quota=False):
         """
@@ -95,6 +96,7 @@ class AccountDriver():
 
             #Return the identity
             return id_membership.identity
+
     def add_user(self, username):
         userCreated = self.user_manager.add_user(username)
         if not userCreated:

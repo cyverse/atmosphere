@@ -24,18 +24,11 @@ ADMINS = (
     ('J. Matt Peterson', 'jmatt@iplantcollaborative.org'),
     ('Steven Gregory', 'esteve@iplantcollaborative.org'),
 )
+SERVER_EMAIL = 'atmo@iplantcollaborative.org'
 
 MANAGERS = ADMINS
 
 DATABASES = {
-    'old': {
-        'NAME': 'atmosphere_dev',
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'USER': 'atmo_app',
-        'PASSWORD': 'atmosphere',
-        'HOST': 'localhost',
-        'PORT': '5432'
-    },
     'default': {
         'NAME': 'atmosphere',
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -196,26 +189,30 @@ CACHES = {
         'TIMEOUT': 18000,
     }
 }
-'''
-SECRETS LINE:
-CLEAR ALL VALUES BELOW THIS LINE BEFORE PUSHING TO DIST
-'''
+
+#SECRETS LINE:
+#CLEAR ALL VALUES BELOW THIS LINE BEFORE PUSHING TO DIST
+
 ##ATMO SETTINGS
 ATMOSPHERE_VNC_LICENSE=""
+
 ##AUTH SETTINGS
 TOKEN_EXPIRY_TIME=timedelta(days=1)
 LDAP_SERVER="ldap://ldap.iplantcollaborative.org"
 LDAP_SERVER_DN="ou=people,dc=iplantcollaborative,dc=org"
+
 ##SERVICE SETTINGS
 #Eucalyptus provider secrets
 EUCA_S3_URL=""
 EUCA_EC2_URL=""
 EUCA_ADMIN_KEY=""
 EUCA_ADMIN_SECRET=""
+
 #Eucalyptus Imaging secrets
 EUCA_PRIVATE_KEY=""
 EC2_CERT_PATH=""
 EUCALYPTUS_CERT_PATH=""
+
 #Openstack provider secrets
 OPENSTACK_ADMIN_KEY=""
 OPENSTACK_ADMIN_SECRET=""
@@ -224,29 +221,32 @@ OPENSTACK_ADMIN_URL=OPENSTACK_AUTH_URL.replace("5000","35357")
 OPENSTACK_ADMIN_TENANT=""
 OPENSTACK_DEFAULT_REGION=""
 OPENSTACK_DEFAULT_ROUTER=""
+
 #AWS Provider secrets
 AWS_KEY=""
 AWS_SECRET=""
 AWS_S3_URL=""
 AWS_S3_KEY=""
 AWS_S3_SECRET=""
+
 #pyes secrets
 ELASTICSEARCH_HOST = SERVER_URL
 ELASTICSEARCH_PORT = 9200
+
 #Django-Celery secrets
-BROKER_HOST = ""
-BROKER_BACKEND="redis"
-REDIS_PORT=6379
+BROKER_URL=""
+BROKER_BACKEND = "redis"
+REDIS_PORT = 6379
 REDIS_HOST = ""
 BROKER_USER = ""
-BROKER_PASSWORD =""
-BROKER_VHOST = "0"
+BROKER_PASSWORD = ""
 REDIS_DB = 0
 REDIS_CONNECT_RETRY = True
 CELERY_SEND_EVENTS=True
 CELERY_RESULT_BACKEND='redis'
-CELERY_TASK_RESULT_EXPIRES =  10
+CELERY_TASK_RESULT_EXPIRES=10
 CELERYBEAT_SCHEDULER="djcelery.schedulers.DatabaseScheduler"
+
 #Django-Celery Development settings
 #CELERY_ALWAYS_EAGER = True
 

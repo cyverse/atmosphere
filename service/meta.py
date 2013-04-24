@@ -10,11 +10,14 @@ from atmosphere.logger import logger
 
 from atmosphere import settings
 
-from service.provider import AWSProvider, EucaProvider, OSProvider
+from service.provider import AWSProvider, EucaProvider, OSProvider,\
+    OSValhallaProvider
 from service.identity import AWSIdentity, EucaIdentity, OSIdentity
 from service.driver import AWSDriver, EucaDriver, OSDriver
 from service.linktest import active_instances
 
+from core.models import Identity
+from service.accounts.openstack import AccountDriver as OSAccountDriver
 
 class BaseMeta(object):
     __metaclass__ = ABCMeta
@@ -176,6 +179,64 @@ class OSMeta(Meta):
             size.extra['occupancy']['remaining'] = limiting_value - num_running
         return sizes
 
+    def add_metadata_deploy(self, machine):
+        """
+        Add {"deploy": "True"} key and value to the machine's metadata.
+        """
+        machine_metadata = self.admin_driver._connection.ex_get_image_metadata(machine)
+        machine_metadata["deploy"] = "True"
+        self.admin_driver._connection.ex_set_image_metadata(machine, machine_metadata)
+
+    def remove_metadata_deploy(self, machine):
+        """
+        Remove the {"deploy": "True"} key and value from the machine's
+        metadata, if it exists.
+        """
+        machine_metadata = self.admin_driver._connection.ex_get_image_metadata(machine)
+        if machine_metadata.get("deploy"):
+            self.admin_driver._connection.ex_delete_image_metadata(machine, "deploy")
+
+    def stop_all_instances(self, destroy=False):
+        """
+        Stop all instances and delete tenant networks for all users.
+
+        To destroy instances instead of stopping them use the destroy
+        keyword (destroy=True).
+        """
+        for instance in self.all_instances():
+            if destroy:
+                self.admin_driver.destroy_instance(instance)
+                logger.debug('Destroyed instance %s' % instance)
+            else:
+                if instance.get_status() == 'active':
+                    self.admin_driver.stop_instance(instance)
+                    logger.debug('Stopped instance %s' % instance)
+        os_driver = OSAccountDriver()
+        if destroy:
+            for username in os_driver.list_usergroup_names():
+                tenant_name = username
+                os_driver.network_manager.delete_tenant_network(username,
+                                                            tenant_name)
+        return True
+
+    def destroy_all_instances(self):
+        """
+        Destroy all instances and delete tenant networks for all users.
+        """
+        for instance in self.all_instances():
+            self.admin_driver.destroy_instance(instance)
+            logger.debug('Destroyed instance %s' % instance)
+        os_driver = OSAccountDriver()
+        for username in os_driver.list_usergroup_names():
+            tenant_name = username
+            os_driver.network_manager.delete_tenant_network(username,
+                                                            tenant_name)
+        return True
+
     def all_instances(self):
+        return self.provider.instanceCls.get_instances(
+            self.admin_driver._connection.ex_list_all_instances())
+
+    def all_volumes(self):
         return self.provider.instanceCls.get_instances(
             self.admin_driver._connection.ex_list_all_instances())

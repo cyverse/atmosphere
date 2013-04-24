@@ -85,6 +85,12 @@ class BaseDriver():
     def destroy_instance(self, *args, **kwargs):
         raise NotImplementedError
 
+    def start_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def stop_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
     def resume_instance(self, *args, **kwargs):
         raise NotImplementedError
 
@@ -226,6 +232,12 @@ class EshDriver(LibcloudDriver, MetaMixin):
     def reboot_instance(self, *args, **kwargs):
         return super(EshDriver, self).reboot_instance(*args, **kwargs)
 
+    def start_instance(self, *args, **kwargs):
+        return super(EshDriver, self).start_instance(*args, **kwargs)
+
+    def stop_instance(self, *args, **kwargs):
+        return super(EshDriver, self).stop_instance(*args, **kwargs)
+
     def resume_instance(self, *args, **kwargs):
         return super(EshDriver, self).resume_instance(*args, **kwargs)
 
@@ -280,6 +292,8 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
                                            server_atmo_init))
         script_chmod = ScriptDeployment("chmod a+x %s" % atmo_init)
         instance_token = kwargs.get('token', '')
+        if not instance_token:
+            instance_token = instance.id
         awesome_atmo_call = "%s --service_type=%s --service_url=%s"
         awesome_atmo_call += " --server=%s --user_id=%s --token=%s"
         awesome_atmo_call += " --vnc_license=%s"
@@ -306,13 +320,7 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'deploy': msd})
         kwargs.update({'timeout': 120})
-        deployed = self.deploy_to(instance, *args, **kwargs)
-        if deployed:
-            created = datetime.strptime(instance.extra['created'], "%Y-%m-%dT%H:%M:%SZ")
-            send_instance_email(username, instance.id, instance.ip, created, username)
-            return True
-        else:
-            return False
+        return self.deploy_to(instance, *args, **kwargs)
 
     def deploy_to(self, *args, **kwargs):
         """
@@ -358,7 +366,13 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         return True
 
     def destroy_instance(self, *args, **kwargs):
-        return self._connection.destroy_node(instance)
+        return self._connection.destroy_node(*args, **kwargs)
+
+    def start_instance(self, *args, **kwargs):
+        return self._connection.ex_start_node(*args, **kwargs)
+
+    def stop_instance(self, *args, **kwargs):
+        return self._connection.ex_stop_node(*args, **kwargs)
 
     def suspend_instance(self, *args, **kwargs):
         return self._connection.ex_suspend_node(*args, **kwargs)
@@ -500,4 +514,10 @@ class EucaDriver(EshDriver, TaskMixin):
         raise NotImplementedError
 
     def suspend_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def start_instance(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def stop_instance(self, *args, **kwargs):
         raise NotImplementedError

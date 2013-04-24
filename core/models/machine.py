@@ -174,12 +174,12 @@ def createProviderMachine(machine_name, provider_alias,
     provider = Provider.objects.get(id=provider_id)
     logger.debug("Provider %s" % provider)
     machine = getGenericMachine(machine_name)
-    logger.debug("Machine %s" % machine)
     if not machine:
         #Build a machine to match
         if not description:
             description = "Describe Machine %s" % provider_alias
         machine = createGenericMachine(machine_name, description)
+    logger.debug("Machine %s" % machine)
     provider_machine = ProviderMachine.objects.create(
         machine=machine,
         provider=provider,
@@ -230,9 +230,10 @@ def set_machine_from_metadata(esh_driver, core_machine):
     #Fixes Dep. loop - Do not remove
     from service.api.serializers import InstanceSerializer
     if not hasattr(esh_driver._connection, 'ex_get_image_metadata'):
+        #NOTE: This can get chatty, only uncomment for debugging
         #Breakout for drivers (Eucalyptus) that don't support metadata
-        logger.debug("EshDriver %s does not have function 'ex_get_image_metadata'"
-                    % esh_driver._connection.__class__)
+        #logger.debug("EshDriver %s does not have function 'ex_get_image_metadata'"
+        #            % esh_driver._connection.__class__)
         return core_machine
     esh_machine = core_machine.esh
     metadata =  esh_driver._connection.ex_get_image_metadata(esh_machine)
