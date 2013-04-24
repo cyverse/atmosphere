@@ -7,6 +7,8 @@ from atmosphere.logger import logger
 
 from core.email import send_instance_email
 
+from service.driver import OSDriver
+
 def get_driver(driverCls, provider, identity):
     logger.debug("getting driver...")
     from service import compute
@@ -114,14 +116,7 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
 def _deploy_init_to(driverCls, provider, identity, instance_id):
     try:
         logger.debug("_deploy_init_to task started at %s." % datetime.now())
-        #logger.debug("_deploy_init_to %s" % driverCls)
-        #logger.debug("_deploy_init_to %s" % provider)
-        #logger.debug("_deploy_init_to %s" % identity)
-        #logger.debug("_deploy_init_to %s" % args)
-        #logger.debug("_deploy_init_to %s" % kwargs)
-        from service import compute
-        compute.initialize()
-        driver = driverCls(provider, identity)
+        driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         if not instance:
             #Breakout if instance is destroyed
@@ -144,9 +139,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
 def add_floating_ip(driverCls, provider, identity, instance_alias, *args, **kwargs):
     try:
         logger.debug("add_floating_ip task started at %s." % datetime.now())
-        from service import compute
-        compute.initialize()
-        driver = driverCls(provider, identity)
+        driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_alias)
         if not instance.ip:
             driver._add_floating_ip(instance, *args, **kwargs)
@@ -164,16 +157,11 @@ def add_floating_ip(driverCls, provider, identity, instance_alias, *args, **kwar
 def destroy_instance(driverCls, provider, identity, instance_alias):
     try:
         logger.debug("destroy_instance task started at %s." % datetime.now())
-        from service import compute
-        from service.driver import OSDriver
-        compute.initialize()
-        driver = driverCls(provider, identity)
-        logger.debug("Provider identified as %s" % provider)
+        driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_alias)
         if instance:
             #First disassociate
-            if type(driver) == OSDriver:
-                logger.debug("OSDriver Logic -- Disassociate floating IP")
+            if isinstance(driver, OSDriver):
                 driver._connection.ex_disassociate_floating_ip(instance)
             #Then destroy
             node_destroyed = driver._connection.destroy_node(instance)
@@ -199,6 +187,41 @@ def destroy_instance(driverCls, provider, identity, instance_alias):
         destroy_instance.retry(exc=exc)
 
 
+# @task(name="stop_instance",
+#       default_retry_delay=15,
+#       ignore_result=True,
+#       max_retries=6)
+# def stop_instance(driverCls, provider, identity, instance_alias):
+#     try:
+#         logger.debug("stop_instance task started at %s." % datetime.now())
+#         driver = get_driver(driverCls, provider, identity)
+#         instance = driver.get_instance(instance_alias)
+#         if instance:
+#             #First disassociate
+#             if isinstance(driver, OSDriver):
+#                 driver._connection.ex_disassociate_floating_ip(instance)
+#             #Then stop
+#             instance_stopped = driver.stop_instance(instance)
+#         else:
+#             logger.debug("Instance not found: %s." % instance.id)
+#         if isinstance(driver, OSDriver):
+#             #Spawn off the last two tasks
+#             logger.debug("Remove floating ips and check"
+#             " for empty tenant")
+#             chain(_remove_floating_ip.subtask((driverCls,
+#                                      provider,
+#                                      identity), immutable=True, countdown=5),
+#                   _check_empty_tenant_network.subtask((driverCls,
+#                                      provider,
+#                                      identity), immutable=True, countdown=60)
+#                  ).apply_async()
+#         logger.debug("stop_instance task finished at %s." % datetime.now())
+#         return instance_stopped
+#     except Exception as exc:
+#         logger.warn(exc)
+#         stop_instance.retry(exc=exc)
+
+
 @task(name="_check_empty_tenant_network",
       default_retry_delay=60,
       ignore_result=True,
@@ -206,9 +229,7 @@ def destroy_instance(driverCls, provider, identity, instance_alias):
 def _check_empty_tenant_network(driverCls, provider, identity, *args, **kwargs):
     try:
         logger.debug("_check_empty_tenant_network task started at %s." % datetime.now())
-        from service import compute
-        compute.initialize()
-        driver = driverCls(provider, identity)
+        driver = get_driver(driverCls, provider, identity)
         instances = driver.list_instances()
         active_instances = False
         for instance in instances:
@@ -232,6 +253,7 @@ def _check_empty_tenant_network(driverCls, provider, identity, *args, **kwargs):
         logger.warn(exc)
         _check_empty_tenant_network.retry(exc=exc)
 
+
 @task(name="_remove_floating_ip",
       default_retry_delay=15,
       ignore_result=True,
@@ -239,9 +261,7 @@ def _check_empty_tenant_network(driverCls, provider, identity, *args, **kwargs):
 def _remove_floating_ip(driverCls, provider, identity, *args, **kwargs):
     try:
         logger.debug("remove_floating_ip task started at %s." % datetime.now())
-        from service import compute
-        compute.initialize()
-        driver = driverCls(provider, identity)
+        driver = get_driver(driverCls, provider, identity)
         for f_ip in driver._connection.ex_list_floating_ips():
             if not f_ip.get('instance_id'):
                 driver._connection.ex_deallocate_floating_ip(f_ip['id'])
