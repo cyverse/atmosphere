@@ -297,7 +297,6 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         awesome_atmo_call = "%s --service_type=%s --service_url=%s"
         awesome_atmo_call += " --server=%s --user_id=%s --token=%s"
         awesome_atmo_call += " --vnc_license=%s"
-        awesome_atmo_call += " --ip_address=%s" 
         awesome_atmo_call %= (
             atmo_init,
             "instance_service_v1",
@@ -305,8 +304,7 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
             settings.SERVER_URL,
             username,
             instance_token,
-            settings.ATMOSPHERE_VNC_LICENSE,
-            instance.ip)
+            settings.ATMOSPHERE_VNC_LICENSE)
         logger.debug(awesome_atmo_call)
         str_awesome_atmo_call = str(awesome_atmo_call)
         #kludge: weirdness without the str cast...
