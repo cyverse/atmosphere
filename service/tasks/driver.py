@@ -7,7 +7,6 @@ from atmosphere.logger import logger
 
 from core.email import send_instance_email
 
-from service.driver import OSDriver
 
 def get_driver(driverCls, provider, identity):
     logger.debug("getting driver...")
@@ -18,7 +17,11 @@ def get_driver(driverCls, provider, identity):
         logger.debug("created driver.")
         return driver
 
-@task(name="deploy_to", max_retries=2, default_retry_delay=120, ignore_result=True)
+
+@task(name="deploy_to",
+      max_retries=2,
+      default_retry_delay=120,
+      ignore_result=True)
 def deploy_to(driverCls, provider, identity, instance, *args, **kwargs):
     try:
         logger.debug("deploy_to task started at %s." % datetime.now())
@@ -159,6 +162,7 @@ def destroy_instance(driverCls, provider, identity, instance_alias):
         logger.debug("destroy_instance task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_alias)
+        from service.driver import OSDriver
         if instance:
             #First disassociate
             if isinstance(driver, OSDriver):
@@ -196,6 +200,7 @@ def destroy_instance(driverCls, provider, identity, instance_alias):
 #         logger.debug("stop_instance task started at %s." % datetime.now())
 #         driver = get_driver(driverCls, provider, identity)
 #         instance = driver.get_instance(instance_alias)
+#         from service.driver import OSDriver
 #         if instance:
 #             #First disassociate
 #             if isinstance(driver, OSDriver):
