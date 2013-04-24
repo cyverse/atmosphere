@@ -38,7 +38,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id, *args, **kwargs):
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         image_metadata = driver._connection.ex_get_image_metadata(instance.machine)
-        image_already_deployed = image_metadata.get("not_deployed")
+        image_already_deployed = image_metadata.get("deployed")
         if not instance.ip and not image_already_deployed:
             logger.debug("Chain -- Floating_ip + deploy_init + email")
             chain(add_floating_ip.si(driverCls,

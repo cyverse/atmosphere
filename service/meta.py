@@ -179,6 +179,23 @@ class OSMeta(Meta):
             size.extra['occupancy']['remaining'] = limiting_value - num_running
         return sizes
 
+    def add_metadata_deploy(self, machine):
+        """
+        Add {"deploy": "True"} key and value to the machine's metadata.
+        """
+        machine_metadata = self.admin_driver._connection.ex_get_image_metadata(machine)
+        machine_metadata["deploy"] = "True"
+        self.admin_driver._connection.ex_set_image_metadata(machine, machine_metadata)
+
+    def remove_metadata_deploy(self, machine):
+        """
+        Remove the {"deploy": "True"} key and value from the machine's
+        metadata, if it exists.
+        """
+        machine_metadata = self.admin_driver._connection.ex_get_image_metadata(machine)
+        if machine_metadata.get("deploy"):
+            self.admin_driver._connection.ex_delete_image_metadata(machine, "deploy")
+
     def suspend_all_instances(self, destroy=True):
         for instance in self.all_instances():
             if destroy:
