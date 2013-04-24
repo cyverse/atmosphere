@@ -500,7 +500,12 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		content.html($('<input/>', {
 			value: text_content,
 			style: 'border: 0px; border-bottom: 1px dotted #999;'
-		}));
+		}).on('keypress', function(e) {
+			// Allow user to submit by pressing 'enter'
+            if (e.keyCode == 13)
+				self.handle_instance_update(content, content.attr('data-type'));
+        }));
+			
 		content.children().eq(0).focus();
 
 		// Data for Steve to use in each buttons' click functions
@@ -514,48 +519,52 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			title: 'Save Changes',
 			'class': 'save_edit_button',
 			click: function() {
-				var new_text = content.children().eq(0).val().trim();
-				var post_data = {};
-
-				if (new_text.length == 0) {
-					
-					var header = "Input cannot be empty";
-					var body = "You must name your instance.";
-					Atmo.Utils.notify(header, body);
-
-					content.children().remove();
-					content.html(text_content);
-					content.addClass("editable");
-					return;
-				}
-                else if (new_text.length > 127) {
-                    var header = "Instance name is too long";
-                    var body = "Your instance's name must be less than 128 letters in length.";
-                    Atmo.Utils.notify(header, body);
-                    return;
-                }
-				else {
-					if (type == 'instance_name') {
-						post_data['name'] = new_text;
-
-					}
-					else if (type == 'instance_tags') {
-						post_data['tags'] = new_text;
-
-					}
-
-					self.model.save(post_data, {patch: true, success: function() {
-						$('#refresh_instances_button').click();	
-					}});	
-				}
-				content.children().remove();
-				content.html(new_text);
-				content.addClass("editable");
-                content.append($('<span/>', {
-                    class: 'editing', 
-                    html: 'Edit Name'
-                }));
+				self.handle_instance_update(content, content.attr('data-type'));
 			}
+		}));
+	},
+	handle_instance_update: function(content, type) {
+		var new_text = content.children().eq(0).val().trim();
+		var post_data = {};
+		var self = this;
+
+		if (new_text.length == 0) {
+			
+			var header = "Input cannot be empty";
+			var body = "You must name your instance.";
+			Atmo.Utils.notify(header, body);
+
+			content.children().remove();
+			content.html(text_content);
+			content.addClass("editable");
+			return;
+		}
+		else if (new_text.length > 127) {
+			var header = "Instance name is too long";
+			var body = "Your instance's name must be less than 128 letters in length.";
+			Atmo.Utils.notify(header, body);
+			return;
+		}
+		else {
+			if (type == 'instance_name') {
+				post_data['name'] = new_text;
+
+			}
+			else if (type == 'instance_tags') {
+				post_data['tags'] = new_text;
+
+			}
+
+			self.model.save(post_data, {patch: true, success: function() {
+				$('#refresh_instances_button').click();	
+			}});	
+		}
+		content.children().remove();
+		content.html(new_text);
+		content.addClass("editable");
+		content.append($('<span/>', {
+			class: 'editing', 
+			html: 'Edit Name'
 		}));
 	},
 	redir_edit_instance_info: function(e) {
