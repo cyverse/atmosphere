@@ -39,6 +39,8 @@ class Instance(models.Model):
     created_by = models.ForeignKey(User)
     start_date = models.DateTimeField(default=lambda:datetime.now(pytz.utc))
     end_date = models.DateTimeField(null=True)
+    shell = models.BooleanField()
+    vnc = models.BooleanField()
 
     def creator_name(self):
         return self.created_by.username

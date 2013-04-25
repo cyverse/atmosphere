@@ -246,7 +246,6 @@ CELERY_SEND_EVENTS=True
 CELERY_RESULT_BACKEND='redis'
 CELERY_TASK_RESULT_EXPIRES=10
 CELERYBEAT_SCHEDULER="djcelery.schedulers.DatabaseScheduler"
-
 #Django-Celery Development settings
 #CELERY_ALWAYS_EAGER = True
 
