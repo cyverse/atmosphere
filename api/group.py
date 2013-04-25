@@ -12,7 +12,7 @@ from authentication.decorators import api_auth_token_required
 
 from core.models.group import Group as CoreGroup
 
-from service.api.serializers import GroupSerializer
+from api.serializers import GroupSerializer
 
 class GroupList(APIView):
     """

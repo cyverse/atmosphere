@@ -12,7 +12,7 @@ from atmosphere.logger import logger
 from core.email import send_instance_email
 from core.models.instance import Instance as CoreInstance
 
-from service.api import failureJSON
+from api import failureJSON
 
 
 class NotificationList(APIView):

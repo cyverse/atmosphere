@@ -14,7 +14,7 @@ def prepareDriver(request, provider_id, identity_id):
     TODO: Cache driver based on specific provider
     return esh_driver
     """
-    from service.api import getEshDriver
+    from api import getEshDriver
     username = extractUser(request).username
     core_provider = Provider.objects.get(id=provider_id)
     core_identity = Identity.objects.get(id=identity_id)

@@ -11,8 +11,8 @@ from authentication.decorators import api_auth_token_required
 from core.models.identity import Identity
 from core.models.size import convertEshSize
 
-from service.api import getEshDriver
-from service.api.serializers import ProviderSizeSerializer
+from api import getEshDriver
+from api.serializers import ProviderSizeSerializer
 
 
 class Occupancy(APIView):

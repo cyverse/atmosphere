@@ -10,7 +10,7 @@ from rest_framework import status
 from authentication.decorators import api_auth_token_required
 
 from core.models import Tag as CoreTag
-from service.api.serializers import TagSerializer
+from api.serializers import TagSerializer
 
 
 class TagList(APIView):

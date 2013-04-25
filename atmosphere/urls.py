@@ -7,22 +7,22 @@ from django.conf.urls import patterns, url, include
 
 from rest_framework.urlpatterns import format_suffix_patterns
 
-from service.api.identity import IdentityList, Identity, IdentityDetailList
-from service.api.instance import InstanceList, Instance, InstanceAction
-from service.api.notification import NotificationList
-from service.api.machine import MachineList, Machine
-from service.api.machine_request import MachineRequestList,\
-    MachineRequest, MachineRequestAction
-from service.api.machine_export import MachineExportList, MachineExport
-from service.api.size import SizeList, Size
-from service.api.volume import VolumeList, Volume
-from service.api.profile import Profile
-from service.api.occupancy import Occupancy
-from service.api.provider import ProviderList, Provider
-from service.api.user import UserManagement, User
-from service.api.group import GroupList, Group
-from service.api.tag import TagList, Tag
-from service.api.meta import Meta, MetaAction
+from api.identity import IdentityList, Identity, IdentityDetailList
+from api.instance import InstanceList, Instance, InstanceAction
+from api.notification import NotificationList
+from api.machine import MachineList, Machine
+from api.machine_request import MachineRequestList, MachineRequest,\
+    MachineRequestAction
+from api.machine_export import MachineExportList, MachineExport
+from api.size import SizeList, Size
+from api.volume import VolumeList, Volume
+from api.profile import Profile
+from api.occupancy import Occupancy
+from api.provider import ProviderList, Provider
+from api.user import UserManagement, User
+from api.group import GroupList, Group
+from api.tag import TagList, Tag
+from api.meta import Meta, MetaAction
 
 from authentication.decorators import atmo_valid_token_required
 

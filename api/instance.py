@@ -15,8 +15,8 @@ from authentication.decorators import api_auth_token_required
 
 from core.models.instance import convertEshInstance, update_instance_metadata
 from core.models.volume import convertEshVolume
-from service.api import failureJSON, launchEshInstance, prepareDriver
-from service.api.serializers import InstanceSerializer, VolumeSerializer
+from api import failureJSON, launchEshInstance, prepareDriver
+from api.serializers import InstanceSerializer, VolumeSerializer
 
 
 class InstanceList(APIView):

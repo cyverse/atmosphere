@@ -11,8 +11,8 @@ from atmosphere.logger import logger
 
 from authentication.decorators import api_auth_token_required
 
-from service.api import prepareDriver, failureJSON
-from service.api.serializers import ProviderMachineSerializer
+from api import prepareDriver, failureJSON
+from api.serializers import ProviderMachineSerializer
 from core.models.machine import convertEshMachine, update_machine_metadata
 
 

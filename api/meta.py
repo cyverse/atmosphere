@@ -12,7 +12,7 @@ from atmosphere.logger import logger
 
 from authentication.decorators import api_auth_token_required
 
-from service.api import failureJSON, prepareDriver
+from api import failureJSON, prepareDriver
 
 
 class Meta(APIView):

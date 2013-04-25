@@ -19,7 +19,7 @@ from email import Encoders
 def _get_admin_driver():
 
     from core.models import Credential
-    from service.api import getEshDriver
+    from api import getEshDriver
     identity = Credential.objects.get(value=settings.EUCA_ADMIN_SECRET).identity
     driver = getEshDriver(identity, identity.created_by)
     return driver

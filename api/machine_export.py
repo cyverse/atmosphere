@@ -11,7 +11,7 @@ from atmosphere.logger import logger
 
 from authentication.decorators import api_auth_token_required
 from service.tasks.machine import machine_export_task
-from service.api.serializers import MachineExportSerializer
+from api.serializers import MachineExportSerializer
 from core.models.machine_request import MachineExport as CoreMachineExport
 
 import copy

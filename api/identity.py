@@ -13,7 +13,7 @@ from authentication.decorators import api_auth_token_required
 
 from core.models.group import Group
 
-from service.api.serializers import IdentitySerializer, IdentityDetailSerializer
+from api.serializers import IdentitySerializer, IdentityDetailSerializer
 
 class IdentityDetailList(APIView):
     """
