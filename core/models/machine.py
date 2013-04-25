@@ -228,7 +228,7 @@ def convertEshMachine(esh_driver, esh_machine, provider_id):
 
 def set_machine_from_metadata(esh_driver, core_machine):
     #Fixes Dep. loop - Do not remove
-    from service.api.serializers import InstanceSerializer
+    from api.serializers import InstanceSerializer
     if not hasattr(esh_driver._connection, 'ex_get_image_metadata'):
         #NOTE: This can get chatty, only uncomment for debugging
         #Breakout for drivers (Eucalyptus) that don't support metadata

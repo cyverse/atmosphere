@@ -14,7 +14,7 @@ from atmosphere.logger import logger
 from authentication.decorators import api_auth_token_required
 
 from service.accounts.eucalyptus import AccountDriver
-from service.api.serializers import ProfileSerializer
+from api.serializers import ProfileSerializer
 
 
 class UserManagement(APIView):

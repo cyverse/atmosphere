@@ -10,9 +10,9 @@ from authentication.decorators import api_auth_token_required
 
 from core.models.size import convertEshSize
 
-from service.api.serializers import ProviderSizeSerializer
+from api.serializers import ProviderSizeSerializer
 
-from service.api import prepareDriver
+from api import prepareDriver
 
 
 class SizeList(APIView):

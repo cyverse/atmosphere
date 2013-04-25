@@ -10,7 +10,7 @@ from authentication.decorators import api_auth_token_required
 
 from core.models.group import Group
 
-from service.api.serializers import ProviderSerializer
+from api.serializers import ProviderSerializer
 
 
 class ProviderList(APIView):

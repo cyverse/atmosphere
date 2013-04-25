@@ -12,7 +12,7 @@ from atmosphere import settings
 
 from authentication.decorators import api_auth_token_required
 
-from service.api.serializers import MachineRequestSerializer
+from api.serializers import MachineRequestSerializer
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 
 from web.emails import requestImaging

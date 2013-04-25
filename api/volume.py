@@ -16,9 +16,9 @@ from core.models.quota import\
     getQuota, Quota as CoreQuota, storageQuotaTest, storageCountQuotaTest
 from core.models.volume import convertEshVolume
 
-from service.api.serializers import VolumeSerializer
+from api.serializers import VolumeSerializer
 
-from service.api import prepareDriver, failureJSON
+from api import prepareDriver, failureJSON
 
 
 class VolumeList(APIView):
