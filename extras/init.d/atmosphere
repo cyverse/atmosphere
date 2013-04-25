@@ -14,41 +14,17 @@ status)
 ;;
 start)
     printf "Starting $NAME...\n"
-    printf "%-50s" "Starting Apache.."
-    TMP=$(service apache2 start)
-    TMP=$?
-        if [ $TMP -eq 0 ]; then
-            printf "%s\n" "Ok"
-        else
-            printf "%s\n" "Fail"
-        fi
-    printf "%-50s" "Starting Celery.."
-    TMP=$(service celeryd start)
-    TMP=$?
-        if [ $TMP -eq 0 ]; then
-            printf "%s\n" "Ok"
-        else
-            printf "%s\n" "Fail"
-        fi
+    printf "Starting Apache..\n"
+    service apache2 start
+    printf "Starting Celery..\n"
+    service celeryd start
 ;;
 stop)
     printf "Stopping $NAME...\n"
-    printf "%-50s" "Starting Apache.."
-    TMP=$(service apache2 stop)
-    TMP=$?
-        if [ $TMP -eq 0 ]; then
-            printf "%s\n" "Ok"
-        else
-            printf "%s\n" "Fail"
-        fi
-    printf "%-50s" "Starting Celery.."
-    TMP=$(service celeryd stop)
-    TMP=$?
-        if [ $TMP -eq 0 ]; then
-            printf "%s\n" "Ok"
-        else
-            printf "%s\n" "Fail"
-        fi
+    printf "Stopping Apache..\n"
+    service apache2 stop
+    printf "Stopping Celery..\n"
+    service celeryd stop
 ;;
 
 restart)
