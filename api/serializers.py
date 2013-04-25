@@ -59,7 +59,8 @@ class InstanceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Instance
-        exclude = ('id', 'end_date', 'provider_machine', 'provider_alias')
+        exclude = ('id', 'end_date', 'provider_machine', 'provider_alias',
+        'shell', 'vnc')
 
 
 class MachineExportSerializer(serializers.ModelSerializer):
