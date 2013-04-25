@@ -1,0 +1,62 @@
+#!/bin/bash
+# Atmosphere init.d
+# chkconfig: 345 20 80
+# description: Atmosphere as a service
+
+
+NAME='Atmosphere'
+DESC="Deals with the workflow associated with running atmospehre as a service"
+
+case "$1" in
+status)
+    service apache2 status
+    service celeryd status
+;;
+start)
+    printf "Starting $NAME...\n"
+    printf "%-50s" "Starting Apache.."
+    TMP=$(service apache2 start)
+    TMP=$?
+        if [ $TMP -eq 0 ]; then
+            printf "%s\n" "Ok"
+        else
+            printf "%s\n" "Fail"
+        fi
+    printf "%-50s" "Starting Celery.."
+    TMP=$(service celeryd start)
+    TMP=$?
+        if [ $TMP -eq 0 ]; then
+            printf "%s\n" "Ok"
+        else
+            printf "%s\n" "Fail"
+        fi
+;;
+stop)
+    printf "Stopping $NAME...\n"
+    printf "%-50s" "Starting Apache.."
+    TMP=$(service apache2 stop)
+    TMP=$?
+        if [ $TMP -eq 0 ]; then
+            printf "%s\n" "Ok"
+        else
+            printf "%s\n" "Fail"
+        fi
+    printf "%-50s" "Starting Celery.."
+    TMP=$(service celeryd stop)
+    TMP=$?
+        if [ $TMP -eq 0 ]; then
+            printf "%s\n" "Ok"
+        else
+            printf "%s\n" "Fail"
+        fi
+;;
+
+restart)
+    $0 stop
+    $0 start
+;;
+
+*)
+        echo "Usage: $0 {status|start|stop|restart}"
+        exit 1
+esac
