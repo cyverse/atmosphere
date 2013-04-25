@@ -9,10 +9,12 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 		'click .terminate_vnc': 'close_vnc'
 	},
 	initialize: function() {
+		this.in_task = false;
 		this.$el.data('instance', this.model);
-		this.model.bind('change', this.render, this);
+		this.model.bind('change:public_dns_name change:name_or_id change', this.render, this);
 		this.model.bind('change:running_shell', this.update_running_state, this);
 		this.model.bind('change:running_vnc', this.update_running_state, this);
+		this.model.bind('change:state', this.trigger_transition, this);
         Atmo.instances.bind('select', this.highlight, this);
 	},
 	render: function() {
@@ -118,5 +120,61 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 				},
             });
         }
+	},
+	trigger_transition: function() {
+
+		// If a task has already begun, jump to work on it
+		if (this.in_task) {
+			this.add_instance_task();
+			return;
+		}
+
+		// Deal with non-task states
+		var self = this;
+		if (!this.rendered) {
+			this.$el.attr('data-instanceid', this.model.get('id'));
+			this.$el.html(this.template(this.model.toJSON()));
+		}
+		else {
+			// Update state if needed
+			this.$el.find('.instance_state').attr('class', 'instance_state');
+			this.$el.find('.instance_state').html('Instance status: ' + this.model.get('state'));
+		}
+		this.rendered = true;
+
+		// Use the provider generic states: 'active', 'build', 'delete' to determine indicator color
+		this.$el.find('.instance_state').addClass(function() {
+			var states = ['active', 'inactive', 'build', 'delete'];
+			for (var i = 0; i < states.length; i++) {
+				if (self.model.get('state_is_'+states[i]))
+					return 'instance_state_is_' + states[i];
+			}
+			return 'instance_state_is_delete';		// If none of the instance states are true, assume it's an error
+		});
+
+
+		// Now, deal with task states -- initialize task format: 'queued - state - task' 
+		if (this.model.get('state').indexOf('queued') != -1)
+			this.add_instance_task();
+
+		setTimeout(function() {
+			self.$el.find('div').slideDown();
+		}, 1500);
+	},
+	add_instance_task: function() {
+		var parts = this.model.get('state').split('-');
+		var state = parts[0].trim();
+		var task = parts[1].trim();
+
+		var states = {
+			'build' : ['block_device_mapping', 'scheduling', 'spawning', 'networking'],
+			'resize' : ['resize_prep', 'resize_migrating', 'resize_migrated', 'resize_finish'],
+			'active' : {
+				'suspending': ['suspending', undefined]			// Make the array longer 
+			}
+		};
+
+		// So we know not to override stuff if the API respond reverts to a non-task state
+		this.in_task = true;
 	}
 });
