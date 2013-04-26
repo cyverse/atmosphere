@@ -56,6 +56,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         "ex_delete_keypair": ["Removes keypair matching name"],
         "ex_list_keypairs": ["List all keypairs for user"],
         "ex_list_floating_ip_pools": ["List all floating IP Pools"],
+        "ex_delete_ports": ["Delete all ports associated with a node"],
         "ex_allocate_floating_ip": ["Allocate floating IP"],
         "ex_deallocate_floating_ip": ["Deallocate floating IP"],
         "ex_associate_floating_ip": ["Associate floating IP with node"],
@@ -836,7 +837,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             logger.warn("No keypair for %s" % identity.json())
 
     def _add_floating_ip(self, node, region=None, *args, **kwargs):
-        #Convert to celery task..
         """
         Add IP (Quantum)
         There is no good way to interface libcloud + nova + quantum,
@@ -850,18 +850,19 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             replace_metadata=False)
         return floating_ip
 
-    def _deprecated_add_floating_ip(self, server_id):
+    def ex_delete_ports(self, node, region=None, *args, **kwargs):
         """
-        Add IP (Nova-Network -- deprecated)
+        Delete Ports related to node. (Quantum)
+        There is no good way to interface libcloud + nova + quantum,
+        instead we use quantumclient directly..
+        Hopefully Openstack provides a better option soon.
         """
-        floating_ip_pool = self.ex_list_floating_ip_pools()[0]
-        pool_name = floating_ip_pool['name']
-        floating_ip = self.ex_allocate_floating_ip(pool_name)
-        logger.debug('Server:%s IP:%s' % (server_id, floating_ip['ip']))
-        self.ex_associate_floating_ip(server_id, floating_ip['ip'])
+        network_manager = NetworkManager.lc_driver_init(self, region)
+        ports = network_manager.find_server_ports(node.id)
+        for p in ports:
+            network_manager.delete_port(p)
 
     # Metadata
-
     def ex_set_metadata(self, node, metadata, replace_metadata=True):
         """
         Sets the Node's metadata.

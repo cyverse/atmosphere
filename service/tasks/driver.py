@@ -7,11 +7,40 @@ from atmosphere.logger import logger
 
 from core.email import send_instance_email
 
-"""
-Driver (High Level) specific tasks
-"""
+
+# Utility methods and tasks
+def get_driver(driverCls, provider, identity):
+    logger.debug("getting driver...")
+    from service import compute
+    compute.initialize()
+    driver = driverCls(provider, identity)
+    if driver:
+        logger.debug("created driver.")
+        return driver
+
+@task(name="_send_instance_email",
+      default_retry_delay=120,
+      ignore_result=True,
+      max_retries=2)
+def _send_instance_email(driverCls, provider, identity, instance_id):
+    try:
+        logger.debug("_send_instance_email task started at %s." % datetime.now())
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_id)
+        username = identity.user.username
+        created = datetime.strptime(instance.extra['created'],
+                                    "%Y-%m-%dT%H:%M:%SZ")
+        send_instance_email(username,
+                            instance.id,
+                            instance.ip,
+                            created,
+                            username)
+    except Exception as exc:
+        logger.warn(exc)
+        _send_instance_email.retry(exc=exc)
 
 
+# Deploy and Destroy tasks
 @task(name="deploy_to",
       max_retries=2,
       default_retry_delay=120,
@@ -26,151 +55,6 @@ def deploy_to(driverCls, provider, identity, instance, *args, **kwargs):
         logger.warn(exc)
         deploy_to.retry(exc=exc)
 
-
-@task(name="destroy_instance",
-      default_retry_delay=15,
-      ignore_result=True,
-      max_retries=6)
-def destroy_instance(driverCls, provider, identity, instance_alias):
-    try:
-        logger.debug("destroy_instance task started at %s." % datetime.now())
-        driver = get_driver(driverCls, provider, identity)
-        instance = driver.get_instance(instance_alias)
-        from service.driver import OSDriver
-        if instance:
-            #First disassociate
-            if isinstance(driver, OSDriver):
-                driver._connection.ex_disassociate_floating_ip(instance)
-            #Then destroy
-            node_destroyed = driver._connection.destroy_node(instance)
-        else:
-            logger.debug("Instance already deleted: %s." % instance.id)
-
-        if type(driver) == OSDriver:
-            #Spawn off the last two tasks
-            logger.debug("OSDriver Logic -- Remove floating ips and check"
-            " for empty tenant")
-            chain(_remove_floating_ip.subtask((driverCls,
-                                     provider,
-                                     identity), immutable=True, countdown=5),
-                  _check_empty_tenant_network.subtask((driverCls,
-                                     provider,
-                                     identity), immutable=True, countdown=60)
-                 ).apply_async()
-
-        logger.debug("destroy_instance task finished at %s." % datetime.now())
-        return node_destroyed
-    except Exception as exc:
-        logger.warn(exc)
-        destroy_instance.retry(exc=exc)
-
-#Instance Actions
-@task(name="start_instance",
-      default_retry_delay=15,
-      ignore_result=True,
-      max_retries=6)
-def start_instance(driverCls, provider, identity, instance_alias):
-    try:
-        logger.debug("start_instance task started at %s." % datetime.now())
-        driver = get_driver(driverCls, provider, identity)
-        instance = driver.get_instance(instance_alias)
-        from service.driver import OSDriver
-        if instance:
-            #(If OpenStack) Add tenant network and floating IP to instance
-            logger.info(driver)
-            logger.info(isinstance(driver, OSDriver))
-            if isinstance(driver, OSDriver):
-                chain(
-                    add_os_tenant_network.si(
-                       identity.user.username),
-                    _start_instance.si(
-                        driverCls,
-                        provider,
-                        identity,
-                        instance_alias),
-                    add_floating_ip.si(
-                       driverCls,
-                       provider,
-                       identity,
-                       instance_alias)).apply_async()
-        else:
-            logger.debug("Instance not found: %s." % instance.id)
-        logger.debug("start_instance task finished at %s." % datetime.now())
-    except Exception as exc:
-        logger.warn(exc)
-        start_instance.retry(exc=exc)
-
-
-@task(name="_start_instance",
-      default_retry_delay=15,
-      ignore_result=True,
-      max_retries=6)
-def _start_instance(driverCls, provider, identity, instance_alias):
-    try:
-        logger.debug("start_instance task started at %s." % datetime.now())
-        driver = get_driver(driverCls, provider, identity)
-        instance = driver.get_instance(instance_alias)
-        from service.driver import OSDriver
-        if instance:
-            instance_started = driver.start_instance(instance)
-    except Exception as exc:
-        #VM is already in an active state
-        if 'in vm_state active' in str(exc):
-            return
-        #Otherwise retry
-        logger.warn(exc)
-        _start_instance.retry(exc=exc)
-
-
-@task(name="stop_instance",
-      default_retry_delay=15,
-      ignore_result=True,
-      max_retries=6)
-def stop_instance(driverCls, provider, identity, instance_alias):
-    try:
-        logger.debug("stop_instance task started at %s." % datetime.now())
-        driver = get_driver(driverCls, provider, identity)
-        instance = driver.get_instance(instance_alias)
-        from service.driver import OSDriver
-        if instance:
-            #First disassociate
-            if isinstance(driver, OSDriver):
-                driver._connection.ex_disassociate_floating_ip(instance)
-            #Then stop
-            instance_stopped = driver.stop_instance(instance)
-        else:
-            logger.debug("Instance not found: %s." % instance.id)
-        if isinstance(driver, OSDriver):
-            #Spawn off the last two tasks
-            logger.debug("Remove floating ips and check"
-            " for empty tenant")
-            chain(_remove_floating_ip.subtask((driverCls,
-                                     provider,
-                                     identity), immutable=True, countdown=5),
-                  _check_empty_tenant_network.subtask((driverCls,
-                                     provider,
-                                     identity), immutable=True, countdown=60)
-                 ).apply_async()
-        logger.debug("stop_instance task finished at %s." % datetime.now())
-        return instance_stopped
-    except Exception as exc:
-        logger.warn(exc)
-        stop_instance.retry(exc=exc)
-
-"""
-Utility Functions
-"""
-def get_driver(driverCls, provider, identity):
-    logger.debug("getting driver...")
-    from service import compute
-    compute.initialize()
-    driver = driverCls(provider, identity)
-    if driver:
-        logger.debug("created driver.")
-        return driver
-"""
-Deployment Related Tasks
-"""
 @task(name="deploy_init_to",
       default_retry_delay=60,
       ignore_result=True,
@@ -227,28 +111,41 @@ def deploy_init_to(driverCls, provider, identity, instance_id, *args, **kwargs):
         logger.warn(exc)
         deploy_init_to.retry(exc=exc)
 
-
-@task(name="_send_instance_email",
-      default_retry_delay=120,
+@task(name="destroy_instance",
+      default_retry_delay=15,
       ignore_result=True,
-      max_retries=2)
-def _send_instance_email(driverCls, provider, identity, instance_id):
+      max_retries=6)
+def destroy_instance(driverCls, provider, identity, instance_alias):
     try:
-        logger.debug("_send_instance_email task started at %s." % datetime.now())
+        logger.debug("destroy_instance task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
-        instance = driver.get_instance(instance_id)
-        username = identity.user.username
-        created = datetime.strptime(instance.extra['created'],
-                                    "%Y-%m-%dT%H:%M:%SZ")
-        send_instance_email(username,
-                            instance.id,
-                            instance.ip,
-                            created,
-                            username)
+        instance = driver.get_instance(instance_alias)
+        from service.driver import OSDriver
+        if instance:
+            #First disassociate
+            if isinstance(driver, OSDriver):
+                driver._connection.ex_disassociate_floating_ip(instance)
+            #Then destroy
+            node_destroyed = driver._connection.destroy_node(instance)
+        else:
+            logger.debug("Instance already deleted: %s." % instance.id)
+        if isinstance(driver, OSDriver):
+            #Spawn off the last two tasks
+            logger.debug("OSDriver Logic -- Remove floating ips and check"
+            " for empty tenant")
+            chain(_remove_floating_ip.subtask((driverCls,
+                                     provider,
+                                     identity), immutable=True, countdown=5),
+                  _check_empty_tenant_network.subtask((driverCls,
+                                     provider,
+                                     identity), immutable=True, countdown=60)
+                 ).apply_async()
+
+        logger.debug("destroy_instance task finished at %s." % datetime.now())
+        return node_destroyed
     except Exception as exc:
         logger.warn(exc)
-        _send_instance_email.retry(exc=exc)
-
+        destroy_instance.retry(exc=exc)
 
 @task(name="_deploy_init_to",
       default_retry_delay=120,
@@ -271,9 +168,9 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
     except Exception as exc:
         logger.warn(exc)
         _deploy_init_to.retry(exc=exc)
-"""
-Floating IP Tasks
-"""
+
+
+# Floating IP Tasks
 @task(name="add_floating_ip",
       default_retry_delay=15,
       ignore_result=True,
@@ -290,7 +187,6 @@ def add_floating_ip(driverCls, provider, identity, instance_alias, *args, **kwar
         logger.debug("add_floating_ip task finished at %s." % datetime.now())
     except Exception as exc:
         add_floating_ip.retry(exc=exc)
-
 
 @task(name="_remove_floating_ip",
       default_retry_delay=15,
@@ -310,11 +206,7 @@ def _remove_floating_ip(driverCls, provider, identity, *args, **kwargs):
         _remove_floating_ip.retry(exc=exc)
 
 
-"""
-Tenant Network Tasks
-"""
-
-
+# Tenant Network Tasks
 @task(name="add_os_tenant_network",
       default_retry_delay=15,
       ignore_result=True,
@@ -333,7 +225,6 @@ def add_os_tenant_network(username, *args, **kwargs):
         logger.debug("add_os_tenant_network task finished at %s." % datetime.now())
     except Exception as exc:
         add_os_tenant_network.retry(exc=exc)
-
 
 @task(name="_check_empty_tenant_network",
       default_retry_delay=60,

@@ -86,11 +86,9 @@ class NetworkManager():
         delete_subnet
         delete_network
         """
-        #self.remove_router_gateway('%s-router' % tenant_name)
         self.remove_router_interface(self.quantum,
                                    '%s-router' % tenant_name,
                                    '%s-subnet' % tenant_name)
-        #self.delete_router(self.quantum, '%s-router' % tenant_name)
         self.delete_subnet(self.quantum, '%s-subnet' % tenant_name)
         self.delete_network(self.quantum, '%s-net' % tenant_name)
 
@@ -106,15 +104,24 @@ class NetworkManager():
         body = {'floatingip':
                 {'floating_network_id': external_networks[0].id}}
         new_ip = self.quantum.create_floatingip(body)['floatingip']
+
         instance_ports = self.quantum.list_ports(device_id=server_id)['ports']
         body = {'floatingip':
                 {'port_id': instance_ports[0]['id']}}
         assigned_ip = self.quantum.update_floatingip(new_ip['id'],
-        body)['floatingip']
+                                                     body)['floatingip']
         logger.info('Floating IP %s associated with instance %s'
                     % (new_ip, server_id))
         logger.info('Assigned Floating IP %s' % (assigned_ip,))
         return assigned_ip
+
+    def find_server_ports(self, server_id):
+        """
+        Find all the ports for a given server_id (device_id in port object).
+        """
+        server_ports = []
+        all_ports = self.quantum.list_ports()['ports']
+        return [p for p in all_ports if p['device_id'] == server_id]
 
     def list_floating_ips(self):
         instance_ports = self.quantum.list_ports()['ports']
@@ -359,6 +366,9 @@ class NetworkManager():
             except:
                 logger.error("Problem deleting network: %s" % network_id)
                 raise
+
+    def delete_port(self, port):
+        return self.quantum.delete_port(port['id'])
 
 
 def test():
