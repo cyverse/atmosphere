@@ -24,10 +24,17 @@ def test_all_instance_links():
         logger.debug("Instance count: %s" % len(linktest_results))
         for (instance_id, link_results) in linktest_results.items():
             try:
+                updated = False
                 instance = Instance.objects.get(provider_alias=instance_id)
-                instance.shell = link_results['shell']
-                instance.vnc = link_results['vnc']
-                instance.save()
+                if link_results['shell']:
+                    instance.shell = link_results['shell']
+                    updated = True
+                if link_results['vnc']:
+                    instance.vnc = link_results['vnc']
+                    updated = True
+                if updated:
+                    logger.debug(instance)
+                    instance.save()
             except Instance.DoesNotExist:
                 continue
         logger.debug("test_all_instance_links task finished at %s." % datetime.now())
