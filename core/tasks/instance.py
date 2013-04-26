@@ -21,6 +21,7 @@ def test_all_instance_links():
             meta_driver = driver.provider.metaCls(driver)
             all_instances.extend(meta_driver.all_instances())
         linktest_results = active_instances(all_instances)
+        logger.debug("Instance count: %s" % len(linktest_results))
         for (instance_id, link_results) in linktest_results.items():
             try:
                 instance = Instance.objects.get(provider_alias=instance_id)
