@@ -38,6 +38,7 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 							|| response.status == 'resize - resize_migrating'
 							|| response.status == 'resize - resize_migrated'
 							|| response.status == 'resize - resize_finish'
+							|| response.state == 'hard_reboot - rebooting_hard'
 							|| response.status == 'revert_resize - resize_reverting' );
 		attributes.state_is_delete = (    response.status == 'delete'
 	  						|| response.status == 'active - deleting'
@@ -45,7 +46,7 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 							|| response.status == 'shutting-down'
 							|| response.status == 'terminated' );
 		attributes.state_is_inactive = (	response.status == 'suspended'
-							|| response.status == 'shutoff' );
+							|| response.status == 'shutoff');
 		attributes.private_dns_name = response.ip_address;
 		attributes.public_dns_name = response.ip_address;
 		
