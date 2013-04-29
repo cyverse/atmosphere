@@ -240,7 +240,7 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 		if (percent == 100) {
 			clearInterval(this.poll);
 			this.poll = undefined;
-			this.get_final_state = undefined;
+			this.final_state = undefined;
 
 			// Allow animation to complete, then hide graph bar
 			setTimeout(function() {
@@ -292,6 +292,12 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 
 		if (!this.poll) {
 			function poll_instances() {
+
+				if (self.model.get('state') == self.final_state || self.final_state == undefined) {
+					clearInterval(self.poll);
+					return;
+				}
+
 				// Instance is done updating, has reached non-task state
 				self.model.fetch({
 					error: function(xhr, textStatus, error) {
@@ -312,7 +318,10 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 					}
 				});
 			}
-			this.poll = setInterval(poll_instances, 5 * 1000);
+
+			if (self.model.get('state') != self.final_state || self.final_state != undefined) {
+				this.poll = setInterval(poll_instances, 5 * 1000);
+			}
 		}
 	}
 });
