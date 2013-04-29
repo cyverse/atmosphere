@@ -18,6 +18,8 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 		attributes.type = response.size_alias;
 		attributes.launch_time = new Date(response.start_date);
 		attributes.state = response.status;
+		attributes.has_shall = response.has_shell;
+		attributes.has_vnc = response.has_vnc;
 		
 		attributes.state_is_active = (   response.status == 'active'
 							|| response.status == 'running'

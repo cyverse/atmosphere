@@ -45,10 +45,7 @@ Atmo.Router = Backbone.Router.extend({
       
       Atmo.instance_types.fetch({async: false});
       Atmo.instances.fetch({
-        async: false,
-        success: function(collection) {
-          collection.test_shell_vnc();
-        }
+        async: false
       });
       Atmo.volumes.fetch();
       Atmo.images.fetch();
