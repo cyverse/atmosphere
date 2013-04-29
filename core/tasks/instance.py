@@ -26,10 +26,10 @@ def test_all_instance_links():
             try:
                 updated = False
                 instance = Instance.objects.get(provider_alias=instance_id)
-                if link_results['shell']:
+                if link_results['shell'] != instance.shell:
                     instance.shell = link_results['shell']
                     updated = True
-                if link_results['vnc']:
+                if link_results['vnc'] != instance.vnc:
                     instance.vnc = link_results['vnc']
                     updated = True
                 if updated:
