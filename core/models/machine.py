@@ -91,7 +91,7 @@ class ProviderMachine(models.Model):
     cached_machines = None
     provider = models.ForeignKey(Provider)
     machine = models.ForeignKey(Machine)
-    identifier = models.CharField(max_length=128)  # EMI-12341234
+    identifier = models.CharField(max_length=256)  # EMI-12341234
 
     def icon_url(self):
         return self.machine.icon.url if self.machine.icon else None

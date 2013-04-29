@@ -170,9 +170,9 @@ class InstanceAction(APIView):
             elif 'suspend' == action:
                 esh_driver.suspend_instance(esh_instance)
             elif 'start' == action:
-                esh_driver.start_instance_to_task(esh_instance)
+                esh_driver.start_instance(esh_instance)
             elif 'stop' == action:
-                esh_driver.stop_instance_to_task(esh_instance)
+                esh_driver.stop_instance(esh_instance)
             elif 'reboot' == action:
                 esh_driver.reboot_instance(esh_instance)
             elif 'rebuild' == action:

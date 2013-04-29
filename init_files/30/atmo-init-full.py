@@ -299,29 +299,59 @@ def iplant_files():
     run_command(["/bin/chmod", "a+x", "/usr/local/bin/atmo_check_idle.py"])
 
     run_command(["/bin/mkdir", "-p", "/opt/irodsidrop"])
-    download_file(
-        "http://www.iplantcollaborative.org/sites/default/files/"
-        + "irods/idrop20120628.jar", "/opt/irodsidrop/idrop-latest.jar",
-        match_hash="536e56760c8c993d0f6fd5c533d43a61fa0be805")
+    download_file("http://www.iplantc.org/sites/default/files/irods/idrop.jar",
+                  "/opt/irodsidrop/idrop-latest.jar",
+                  match_hash="8cf73735ab014fe3389c82cc26183685ea579688")
     download_file(
         "http://www.iplantcollaborative.org/sites/default/files/"
         + "idroprun.sh.txt", "/opt/irodsidrop/idroprun.sh",
         match_hash="0e9cec8ce1d38476dda1646631a54f6b2ddceff5")
     run_command(['/bin/chmod', 'a+x', '/opt/irodsidrop/idroprun.sh'])
 
+
+def line_in_file(needle, filename):
+    found = False
+    f = open(filename,'r')
+    for line in f:
+        if needle in line:
+            found = True
+            break
+    f.close()
+    return found
+
+
 def modify_rclocal(username, distro):
     try:
         if is_rhel(distro):
-            open_file = open('/etc/rc.d/rc.local','a')
+            distro_rc_local = '/etc/rc.d/rc.local'
         else:
-            open_file = open('/etc/rc.local','a')
-        open_file.write('''hostname localhost
-/bin/su %s -c /usr/bin/vncserver
-/usr/bin/nohup /usr/local/bin/shellinaboxd -b -t -f beep.wav:/dev/null > /var/log/atmo/shellinaboxd.log 2>&1 &
-''' % username)
-        open_file.close()
-    except Exception:
+            distro_rc_local = '/etc/rc.local'
+
+        #This temporary file will be re-written each time.
+        atmo_rclocal_path = '/etc/rc.local.atmo'
+
+        #First we must make sure its included in our original RC local
+        if not line_in_file(atmo_rclocal_path,distro_rc_local):
+            open_file = open(distro_rc_local,'a')
+            open_file.write('if [ -x %s ]; then\n'
+                            '\t%s\n'
+                            'fi\n' % (atmo_rclocal_path, atmo_rclocal_path))
+            open_file.close()
+        # Intentionally REPLACE the entire contents of file on each run
+        atmo_rclocal = open(atmo_rclocal_path,'w')
+        atmo_rclocal.write('hostname localhost\n'
+                          '/bin/su %s -c /usr/bin/vncserver\n'
+                          '/usr/bin/nohup /usr/local/bin/shellinaboxd -b -t '
+                          '-f beep.wav:/dev/null '
+                          '> /var/log/atmo/shellinaboxd.log 2>&1 &\n'
+                          #Add new rc.local commands here
+                          #And they will be excecuted on startup
+                          % username)
+        atmo_rclocal.close()
+        os.chmod(atmo_rclocal_path, 0755)
+    except Exception, e:
         logging.warn("Failed to write to rc.local")
+        logging.exception(e)
 
 def shellinaboxd(distro):
     if is_rhel(distro):

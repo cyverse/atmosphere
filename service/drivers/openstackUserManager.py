@@ -1,7 +1,7 @@
 import os
 
 from keystoneclient.exceptions import NotFound, ClientException
-from keystoneclient.v2_0 import client as ks_client
+from keystoneclient.v3 import client as ks_client
 from novaclient.v1_1 import client as nova_client
 
 from atmosphere.logger import logger

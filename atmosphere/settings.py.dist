@@ -39,7 +39,7 @@ DATABASES = {
     },
 }
 
-DATABASE_ROUTERS = ['core.routers.Service']
+DATABASE_ROUTERS = ['atmosphere.routers.Service']
 
 TIME_ZONE = 'America/Phoenix'
 

@@ -1,0 +1,53 @@
+# Name of nodes to start, here we have a single node
+CELERYD_NODES="atmosphere-node_1"
+# or we could have three nodes:
+#CELERYD_NODES="atmosphere-node_1 atmosphere-node_2 atmosphere-node_3"
+
+# Where to chdir at start.
+CELERYD_CHDIR="/opt/dev/atmosphere/"
+
+# Python interpreter from environment.
+ENV_PYTHON="/opt/env/atmo/bin/python"
+
+# How to call "manage.py celeryd"
+CELERYD_MULTI="$ENV_PYTHON $CELERYD_CHDIR/manage.py celeryd"
+
+# How to call "manage.py celeryd_multi"
+CELERYD_MULTI="$ENV_PYTHON $CELERYD_CHDIR/manage.py celeryd_multi"
+
+# How to call "manage.py celeryctl"
+CELERYCTL="$ENV_PYTHON $CELERYD_CHDIR/manage.py celeryctl"
+
+# Extra arguments to pass to celeryd
+CELERYD_OPTS="--concurrency=8 --beat"
+
+# %n will be replaced with the nodename.
+CELERYD_LOG_FILE="/var/log/celery/%n.log"
+CELERYD_PID_FILE="/var/run/celery/%n.pid"
+
+# Create log/pid dirs, if they dont already exist
+CELERY_CREATE_DIRS=1
+
+# Atmosphere Celery user *MUST* be root for imaging
+CELERYD_USER="root"
+CELERYD_GROUP="root"
+
+## Name of the projects settings module.
+export DJANGO_SETTINGS_MODULE="atmosphere.settings"
+###
+#
+# Additional celerybeat settings
+###
+CELERYBEAT_CHDIR=$CELERYD_CHDIR
+#
+#
+## How to call "manage.py celerybeat"
+#CELERYBEAT=$ENV_PYTHON $CELERYBEAT_CHDIR/manage.py celerybeat"
+#CELERYBEAT_OPTS="--schedule=/var/run/celerybeat-schedule"
+#
+##Where to log and store process id
+#CELERYBEAT_LOG_FILE="/var/log/celeryd.log"
+#CELERYBEAT_PID_FILE="/var/run/celeryd.pid"
+#
+##Default is INFO
+##CELERYBEAT_LOG_LEVEL="INFO"
