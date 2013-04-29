@@ -164,6 +164,25 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 			self.$el.find('div').slideDown();
 		}, 1500);
 	},
+	get_final_state: function(state, task) {
+		// Check for the final state to prevent reverting if a queued task hasn't begun yet
+		if (state == 'resize') {
+			return 'verify_resize';
+		}
+		else if (task == 'stopping') {
+			return 'shutoff';
+		}
+		else if (task == 'deleting') {
+			return 'deleted';
+		}
+		else if (task == 'suspending') {
+			return 'suspended';
+		}
+		else {
+			return 'active';
+			// Applies for: hard_reboot, build, shutoff, suspended, and revert_resize
+		}
+	},
 	add_instance_task: function() {
 		// So we know not to override stuff if the API respond reverts to a non-task state
 		this.in_task = true;
@@ -232,19 +251,6 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 
 			this.in_task = false;
 		}
-	},
-	get_final_state: function(state, task) {
-		// Check for the final state to prevent reverting if a queued task hasn't begun yet
-		if (state == 'hard_reboot' || state == 'build' || state == 'shutoff' || state == 'suspended' || state == 'revert_resize')
-			return 'active';
-		else if (state == 'resize')
-			return 'verify_resize';
-		else if (task == 'stopping')
-			return 'shutoff';
-		else if (task == 'deleting')
-			return 'deleted'
-		else if (task == 'suspending')
-			return 'suspended';
 	},
 	get_percent_complete: function(state, task) {
 		var states = {
