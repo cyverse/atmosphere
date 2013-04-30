@@ -37,7 +37,7 @@ class UserManager():
         key = kwargs.get('key','')
         secret = kwargs.get('secret','')
         url = kwargs.get('url','')
-        path = kwargs.get('path','/services/Accounts')
+        path = kwargs.get('account_path','/services/Accounts')
 
         self.admin_key = key
         self.admin_secret = secret
