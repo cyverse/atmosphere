@@ -33,7 +33,6 @@ from boto.s3.key import Key
 
 from euca2ools import Euca2ool, FileValidationError
 
-from atmosphere import settings
 from atmosphere.logger import logger
 
 
@@ -57,6 +56,7 @@ class ImageManager():
         self.ec2_cert_path=kwargs.get('ec2_cert_path','')
         self.pk_path=kwargs.get('pk_path','')
         self.euca_cert_path=kwargs.get('euca_cert_path','')
+        self.extras_root=kwargs.get('extras_root','')
         config_path=kwargs.get('config_path','/services/Configuration')
         # Argv must be reset to stop euca from gobbling bad sys.argv's
         sys.argv = []
@@ -204,8 +204,8 @@ class ImageManager():
 
         logger.debug("Complete. Begin Download of Image  @ %s.."
                      % datetime.now())
-        whole_image = self._retrieve_euca_image(image_location,
-                                                download_dir, part_dir)[0]
+        whole_image = self._retrieve_euca_image(image_location, download_dir,
+                                                part_dir, self.pk_path)[0]
         logger.debug("Complete @ %s.." % datetime.now())
 
         #Return path to image
@@ -348,9 +348,9 @@ title Atmosphere VM (%s)
 
     def _get_stage_files(self, root_dir, distro):
         if distro == 'centos':
-            self.run_command(['/bin/bash','-c','cp -f %s/extras/export/grub_files/centos/* %s/boot/grub/' % (settings.PROJECT_ROOT, root_dir)])
+            self.run_command(['/bin/bash','-c','cp -f %s/extras/export/grub_files/centos/* %s/boot/grub/' % (self.extras_root, root_dir)])
         elif distro == 'ubuntu':
-            self.run_command(['/bin/bash','-c','cp -f %s/extras/export/grub_files/ubuntu/* %s/boot/grub/' % (settings.PROJECT_ROOT, root_dir)])
+            self.run_command(['/bin/bash','-c','cp -f %s/extras/export/grub_files/ubuntu/* %s/boot/grub/' % (self.extras_root, root_dir)])
 
     def download_instance(self, download_dir, instance_id,
                           local_img_path=None, remote_img_path=None):
@@ -566,7 +566,7 @@ title Atmosphere VM (%s)
     def _readd_atmo_boot(self, mount_point):
         #TODO: This function should no longer be necessary.
         #If it is, we need to recreate goodies/atmo_boot
-        host_atmoboot = os.path.join(settings.PROJECT_ROOT,
+        host_atmoboot = os.path.join(self.extras_root,
                                      'extras/goodies/atmo_boot')
         atmo_boot_path = os.path.join(mount_point, 'usr/sbin/atmo_boot')
         self.run_command(['/bin/cp', '%s' % host_atmoboot,
@@ -785,18 +785,24 @@ title Atmosphere VM (%s)
         os.remove(encrypted_file)
 
     def _export_to_s3(self, keyname,
-                      the_file, bucketname='eucalyptus_exports'):
-        key = self._upload_file_to_s3(bucketname, keyname, the_file)
+                      the_file, bucketname='eucalyptus_exports',
+                      **kwargs):
+        s3_key = kwargs.get('s3_key')
+        s3_secret = kwargs.get('s3_secret')
+        s3_url = kwargs.get('s3_url')
+        key = self._upload_file_to_s3(bucketname, keyname, the_file,
+                                      s3_key, s3_secret, s3_url)
         #Key matches on basename of file
         url = key.generate_url(60*60*24*7)  # 7 days from now.
         return url
 
     def _upload_file_to_s3(self, bucket_name, keyname,
-                           filename, canned_acl='aws-exec-read'):
+                           filename, s3_key, s3_secret,
+                           s3_url, canned_acl='aws-exec-read'):
         s3euca = Euca2ool(is_s3=True)
-        s3euca.ec2_user_access_key = settings.AWS_S3_KEY
-        s3euca.ec2_user_secret_key = settings.AWS_S3_SECRET
-        s3euca.url = settings.AWS_S3_URL
+        s3euca.ec2_user_access_key = s3_key
+        s3euca.ec2_user_secret_key = s3_secret
+        s3euca.url = s3_url
 
         conn = s3euca.make_connection()
         bucket_instance = _ensure_bucket(conn, bucket_name, canned_acl)
@@ -906,7 +912,8 @@ title Atmosphere VM (%s)
     Indirect Download Image Functions
     These functions are called indirectly during the 'download_image' process.
     """
-    def _retrieve_euca_image(self, image_location, download_dir, part_dir):
+    def _retrieve_euca_image(self, image_location, download_dir, part_dir,
+            pk_path):
         (bucket_name, manifest_loc) = image_location.split('/')
         bucket = self.get_bucket(bucket_name)
         logger.debug("Bucket found : %s" % bucket)
@@ -917,7 +924,7 @@ title Atmosphere VM (%s)
         whole_image = self._unbundle_manifest(part_dir, download_dir,
                                               os.path.join(part_dir,
                                                            manifest_loc),
-                                              part_list=part_list)
+                                              pk_path, part_list)
         return whole_image
 
     def _download_manifest(self, bucket, download_dir, manifest_name):
@@ -948,7 +955,7 @@ title Atmosphere VM (%s)
         return part_files
 
     def _unbundle_manifest(self, source_dir, download_dir, manifest_file_loc,
-                           pk_path=settings.EUCA_PRIVATE_KEY, part_list=[]):
+                           pk_path, part_list=[]):
         #Determine # of parts in source_dir
         logger.debug("Preparing to unbundle downloaded image")
         (parts, encrypted_key, encrypted_iv) = self.euca.parse_manifest(
