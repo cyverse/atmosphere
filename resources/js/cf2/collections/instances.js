@@ -7,33 +7,6 @@ Atmo.Collections.Instances = Atmo.Collections.Base.extend({
 	initialize: function() {
 		this.selected_instance = null;
 	},
-	test_shell_vnc: function() {
-		var self = this;
-		var url = function() {
-			var creds = Atmo.get_credentials();
-			return self.urlRoot
-				+ '/provider/' + creds.provider_id 
-				+ '/identity/' + creds.identity_id
-				+ '/meta/test_links/';
-		};
-		
-		$.ajax({
-			url: url(),
-			success: function(data) {
-				_.each(data, function(v, k) {
-					var model = self.get(k);
-					model.set({
-						'has_shell': v['shell'],
-						'has_vnc': v['vnc']
-					});
-				});
-			},
-			error: function() {
-			},
-			dataType: 'json',
-			traditional: true
-		});
-	},
 	select_instance: function(model) {
 		this.selected_instance = model;
 		if (model == null) {
@@ -87,8 +60,6 @@ Atmo.Collections.Instances = Atmo.Collections.Base.extend({
 					}
 				}
 				
-				// Retest shell and vnc
-				self.test_shell_vnc();
 				options.success();
 			}
 		});
@@ -99,7 +70,7 @@ Atmo.Collections.Instances = Atmo.Collections.Base.extend({
 	get_active_instances: function() {
 		// These are the instances that count towards a user's quota
 		return _.filter(this.models, function(instance) {
-			return instance.get('state') != 'suspended' && !instance.get('state') != 'stopped';
+			return instance.get('state') != 'suspended' && instance.get('state') != 'shutoff';
 		});
 	}
 });

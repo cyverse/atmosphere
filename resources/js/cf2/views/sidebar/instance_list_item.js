@@ -9,10 +9,12 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 		'click .terminate_vnc': 'close_vnc'
 	},
 	initialize: function() {
+		this.in_task = false;
 		this.$el.data('instance', this.model);
-		this.model.bind('change', this.render, this);
+		this.model.bind('change:public_dns_name change:name_or_id change', this.render, this);
 		this.model.bind('change:running_shell', this.update_running_state, this);
 		this.model.bind('change:running_vnc', this.update_running_state, this);
+		this.model.bind('change:state', this.trigger_transition, this);
         Atmo.instances.bind('select', this.highlight, this);
 	},
 	render: function() {
@@ -62,6 +64,9 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 		}, 1500);
 
 		this.rendered = true;
+
+		if (this.model.get('state').indexOf('-') != -1)
+			this.trigger_transition();
 
 		return this;
 	},
@@ -118,5 +123,205 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 				},
             });
         }
+	},
+	trigger_transition: function() {
+
+
+		// Deal with non-task states
+		var self = this;
+		if (!this.rendered) {
+			this.$el.attr('data-instanceid', this.model.get('id'));
+			this.$el.html(this.template(this.model.toJSON()));
+		}
+		else {
+			// Update state if needed
+			this.$el.find('.instance_state').attr('class', 'instance_state');
+			this.$el.find('.instance_state').html('Instance status: ' + this.model.get('state'));
+		}
+		this.rendered = true;
+
+		// Use the provider generic states: 'active', 'build', 'delete' to determine indicator color
+		this.$el.find('.instance_state').addClass(function() {
+			var states = ['active', 'inactive', 'build', 'delete'];
+			for (var i = 0; i < states.length; i++) {
+				if (self.model.get('state_is_'+states[i]))
+					return 'instance_state_is_' + states[i];
+			}
+			return 'instance_state_is_delete';		// If none of the instance states are true, assume it's an error
+		});
+
+		// If a task has already begun, jump to work on it
+		if (this.in_task) {
+			this.add_instance_task();
+			return;
+		}
+
+		// Now, deal with task states -- initialize task format: 'state - task' 
+		if (this.model.get('state').indexOf('-') != -1)
+			this.add_instance_task();
+
+		setTimeout(function() {
+			self.$el.find('div').slideDown();
+		}, 1500);
+	},
+	get_final_state: function(state, task) {
+		// Check for the final state to prevent reverting if a queued task hasn't begun yet
+		if (state == 'resize') {
+			return 'verify_resize';
+		}
+		else if (task == 'stopping') {
+			return 'shutoff';
+		}
+		else if (task == 'deleting') {
+			return 'deleted';
+		}
+		else if (task == 'suspending') {
+			return 'suspended';
+		}
+		else {
+			return 'active';
+			// Applies for: hard_reboot, build, shutoff, suspended, and revert_resize
+		}
+	},
+	add_instance_task: function() {
+		// So we know not to override stuff if the API respond reverts to a non-task state
+		this.in_task = true;
+
+		var percent = 0;
+
+		if (this.model.get('state').indexOf('-') == -1) {
+			/* This can mean one of two things: 
+				1. Instance has reached final state (it's 100% done)
+				2. The instance hasn't been reached in the queue (it's 5% done)
+			*/
+				percent = (this.final_state == this.model.get('state')) ? 100 : 5;
+
+		}
+		else {
+			var parts = this.model.get('state').split('-');
+			var state = parts[0].trim();
+			var task = parts[1].trim();
+			percent = this.get_percent_complete(state, task);
+			this.final_state = this.get_final_state(state, task);
+		}
+
+		// Do initial update
+		this.update_percent_complete(percent);
+
+		// Initialize polling
+		this.poll_instance();
+
+	},
+	update_percent_complete: function(percent) {
+		var graph_holder, graph_bar, self = this;
+		if (this.$el.find('.graphBar').length == 1) {
+			graph_holder = this.$el.find('.graphBar');
+			graph_bar = this.$el.find('[class$="GraphBar active"]');
+			graph_bar.css('width', ''+percent+'%');
+		}
+		else {
+			this.$el.find('.bd').append($('<div>', {
+				class: 'graphBar',
+				style: 'height: 16px'
+			}));
+			graph_holder = this.$el.find('.graphBar');
+			graph_holder.append($('<div>', {
+				class: 'blueGraphBar active',
+				width: '0%'
+			}));
+			graph_bar = graph_holder.children();
+		}
+
+		// Update if necessary
+		setTimeout(function() {
+			graph_bar.css('width', ''+percent+'%');
+		}, 1.5 * 1000);
+
+		if (percent == 100) {
+			clearInterval(this.poll);
+			this.poll = undefined;
+			this.final_state = undefined;
+
+			// Allow animation to complete, then hide graph bar
+			setTimeout(function() {
+				self.$el.find('.graphBar').slideUp('fast', function() {
+					$(this).remove();	
+				});
+			}, 2 * 1000);
+
+			this.in_task = false;
+		}
+	},
+	get_percent_complete: function(state, task) {
+		var states = {
+			'build' : {
+				'block_device_mapping' : 25,			// Number represents percent task *completed* when in this state
+				'scheduling' : 50,
+				'spawning' : 75,
+				'networking' : 90,
+			},
+			'hard_reboot' : {
+				'rebooting_hard' : 50
+			},
+			'resize' : {
+				'resize_prep' : 10,
+				'resize_migrating' : 20,
+				'resize_migrated' : 80,
+				'resize_finish' : 90,
+			},
+			'active' : {
+				'stopping' : 50,
+				'deleting' : 50,
+				'suspending' : 50,
+			},
+			'shutoff' : {
+				'starting' : 50
+			},
+			'suspended' : {
+				'resuming' : 50
+			},
+			'revert_resize' : {
+				'resize_reverting' : 50
+			}
+		};
+
+		return states[state][task];
+	},
+	poll_instance: function() {
+		var self = this;
+
+		if (!this.poll) {
+			function poll_instances() {
+
+				if (self.model.get('state') == self.final_state || self.final_state == undefined) {
+					clearInterval(self.poll);
+					return;
+				}
+
+				// Instance is done updating, has reached non-task state
+				self.model.fetch({
+					error: function(xhr, textStatus, error) {
+
+						// Stop polling
+						clearInterval(self.poll);
+						self.in_task = false;
+						self.poll = undefined;
+
+						// Instance was deleted
+						if (textStatus.status == 500) {
+							self.update_percent_complete(100)
+						}
+						else {
+							self.update_percent_complete(0);
+							Atmo.Utils.notify('An error occurred', 'Could not retrieve instance information. Refresh or contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a> if the problem continues.');
+						}
+					}
+				});
+			}
+
+			if (self.model.get('state') != self.final_state || self.final_state != undefined) {
+				this.poll = setInterval(poll_instances, 5 * 1000);
+			}
+		}
 	}
 });

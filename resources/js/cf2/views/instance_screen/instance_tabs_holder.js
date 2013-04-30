@@ -247,7 +247,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			else 
 				this.$el.find('.btn.suspend_resume_instance_btn').fadeIn('fast');
 
-			if (this.model.get('state') == 'stopped')
+			if (this.model.get('state') == 'shutoff')
 				this.$el.find('.btn.start_stop_instance_btn').html('<i class="icon-share-alt"></i> Start').removeClass('disabled').removeAttr('disabled');
 			else
 				this.$el.find('.btn.start_stop_instance_btn').fadeIn('fast');
@@ -721,7 +721,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			Atmo.Utils.notify('Stopping Instance','Please wait while your instance stops. Refresh "My Instances" to check its status.');
 			return;
 		}
-		else if (this.model.get('state') == 'stopped - starting') {
+		else if (this.model.get('state') == 'shutoff - starting') {
 			Atmo.Utils.notify('Starting Instance','Please wait while your instance starts. Refresh "My Instances" to check its status.');
 			return;
 		}
@@ -729,33 +729,48 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		var id = Atmo.profile.get('selected_identity');
 		var self = this;
 
-		if (this.model.get('state') == 'stopped') {
-			header = 'Start Instance';
-			body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> '
-				+ 'In order to start a stopped instance, you must have sufficient quota and the cloud must have enough room to support your instance\'s size.';
-			ok_button = 'Start Instance';
-			data = { "action" : "start" };
-			on_confirm = function() {
-				Atmo.Utils.notify('Starting Instance', 'Instance will be available momentarily.');
+		if (this.model.get('state') == 'shutoff') {
+			// Make sure user has enough quota to resume this instance
+			if (this.check_quota()) {
+				header = 'Start Instance';
+				body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> '
+					+ 'In order to start a stopped instance, you must have sufficient quota and the cloud must have enough room to support your instance\'s size.';
+				ok_button = 'Start Instance';
+				data = { "action" : "start" };
+				on_confirm = function() {
+					Atmo.Utils.notify('Starting Instance', 'Instance will be available momentarily.');
 
-				$.ajax({
-					url: site_root + '/api/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
-					type: 'POST',
-					data: data,
-					success: function() {
-						// Merges models to those that are accurate based on server response
-						Atmo.instances.update();
-					}, 
-					error: function() {
-						self.model.set({ state_is_active: false, state_is_inactive: true });
-						Atmo.Utils.notify(
-							'Could not start instance', 
-							'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
-							{ no_timeout: true }
-						);
-					}
-				});
-			};
+					// Prevent user from being able to quickly start multiple instances and go over quota
+					self.model.set({state: 'shutoff - starting',
+									state_is_build: true,
+									state_is_inactive: false});
+
+					$.ajax({
+						url: site_root + '/api/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
+						type: 'POST',
+						data: data,
+						success: function() {
+							// Merges models to those that are accurate based on server response
+							Atmo.instances.update();
+						}, 
+						error: function() {
+							self.model.set({state: 'shutoff',
+											state_is_build: false,
+											state_is_inactive: true});
+							Atmo.Utils.notify(
+								'Could not start instance', 
+								'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
+								{ no_timeout: true }
+							);
+						}
+					});
+				};
+			}
+			else {
+				body = '<p class="alert alert-error"><i class="icon-ban-circle"></i> <strong>Cannot start instance</strong> '
+					+ 'You do not have enough resources to start this instance. You must terminate, suspend, or stop another running instance, or request more resources.';
+				ok_button = 'Ok';
+			}
 		}
 		else {
 			header = 'Stop Instance';
