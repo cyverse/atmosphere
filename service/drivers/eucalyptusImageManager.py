@@ -46,18 +46,18 @@ class ImageManager():
     euca = None
     s3_url = None
 
-    def __init__(self, key=settings.EUCA_ADMIN_KEY,
-                 secret=settings.EUCA_ADMIN_SECRET,
-                 ec2_url=settings.EUCA_EC2_URL,
-                 s3_url=settings.EUCA_S3_URL,
-                 ec2_cert_path=settings.EC2_CERT_PATH,
-                 pk_path=settings.EUCA_PRIVATE_KEY,
-                 euca_cert_path=settings.EUCALYPTUS_CERT_PATH,
-                 config_path='/services/Configuration'):
+    def __init__(self, *args, **kwargs):
         """
-        Will initialize with admin settings if no args are passed.
-        Private Key file required to decrypt images.
+        All credentials are necessary to Private Key file required to decrypt images.
         """
+        key=kwargs.get('key','')
+        secret=kwargs.get('secret','')
+        ec2_url=kwargs.get('ec2_url','')
+        s3_url=kwargs.get('s3_url','')
+        self.ec2_cert_path=kwargs.get('ec2_cert_path','')
+        self.pk_path=kwargs.get('pk_path','')
+        self.euca_cert_path=kwargs.get('euca_cert_path','')
+        config_path=kwargs.get('config_path','/services/Configuration')
         # Argv must be reset to stop euca from gobbling bad sys.argv's
         sys.argv = []
         self.euca = Euca2ool(
@@ -73,20 +73,20 @@ class ImageManager():
             ec2_url = os.environ['EC2_URL']
         if not s3_url:
             s3_url = os.environ['S3_URL']
-        if not ec2_cert_path:
-            ec2_cert_path = os.environ['EC2_CERT']
-        if not pk_path:
-            pk_path = os.environ['EC2_PRIVATE_KEY']
-        if not euca_cert_path:
-            euca_cert_path = os.environ['EUCALYPTUS_CERT']
+        if not self.ec2_cert_path:
+            self.ec2_cert_path = os.environ['EC2_CERT']
+        if not self.pk_path:
+            self.pk_path = os.environ['EC2_PRIVATE_KEY']
+        if not self.euca_cert_path:
+            self.euca_cert_path = os.environ['EUCALYPTUS_CERT']
 
         self.euca.ec2_user_access_key = key
         self.euca.ec2_user_secret_key = secret
         self.euca.url = ec2_url
         self.s3_url = s3_url
-        self.euca.environ['EC2_CERT'] = ec2_cert_path
-        self.euca.environ['EUCALYPTUS_CERT'] = euca_cert_path
-        self.euca.environ['EC2_PRIVATE_KEY'] = pk_path
+        self.euca.environ['EC2_CERT'] = self.ec2_cert_path
+        self.euca.environ['EUCALYPTUS_CERT'] = self.euca_cert_path
+        self.euca.environ['EC2_PRIVATE_KEY'] = self.pk_path
 
         parsed_url = urlparse(s3_url)
         self.s3_conn = S3Connection(
@@ -738,13 +738,13 @@ title Atmosphere VM (%s)
                          + 'Error: Image file not found!')
             raise
 
-        cert_path = settings.EC2_CERT_PATH  # self.euca.get_environ('EC2_CERT')
-        private_key_path = settings.EUCA_PRIVATE_KEY  # self.euca.get_environ('EC2_PRIVATE_KEY')
-        ec2cert_path = settings.EUCALYPTUS_CERT_PATH  # self.euca.get_environ('EUCALYPTUS_CERT')
+        cert_path = self.ec2_cert_path  # self.euca.get_environ('EC2_CERT')
+        private_key_path = self.euca_private_key  # self.euca.get_environ('EC2_PRIVATE_KEY')
+        euca_cert_path = self.euca_cert_path  # self.euca.get_environ('EUCALYPTUS_CERT')
         try:
             self.euca.validate_file(cert_path)
             self.euca.validate_file(private_key_path)
-            self.euca.validate_file(ec2cert_path)
+            self.euca.validate_file(euca_cert_path)
         except FileValidationError:
             logger.error('Imaging process aborted. '
                          + 'Error: Eucalyptus files not found!'
@@ -777,7 +777,7 @@ title Atmosphere VM (%s)
         logger.debug('Generating manifest')
         self.euca.generate_manifest(
             destination_path, prefix, parts, parts_digest, image_path, key, iv,
-            cert_path, ec2cert_path, private_key_path, target_arch, image_size,
+            cert_path, euca_cert_path, private_key_path, target_arch, image_size,
             bundled_size, sha_image_digest, user, kernel, ramdisk, mapping,
             product_codes, ancestor_ami_ids)
         logger.debug('Manifest Generated')

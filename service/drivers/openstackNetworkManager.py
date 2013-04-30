@@ -7,7 +7,6 @@ import os
 
 from quantumclient.v2_0 import client as quantum_client
 
-from atmosphere import settings
 from atmosphere.logger import logger
 
 from core.models.profile import get_default_subnet
@@ -16,25 +15,18 @@ class NetworkManager():
 
     quantum = None
 
-    @classmethod
-    def settings_init(self, *args, **kwargs):
-        settings_args = {
-            'username': settings.OPENSTACK_ADMIN_KEY,
-            'password': settings.OPENSTACK_ADMIN_SECRET,
-            'tenant_name': settings.OPENSTACK_ADMIN_TENANT,
-            'auth_url': settings.OPENSTACK_ADMIN_URL,
-            'region_name': settings.OPENSTACK_DEFAULT_REGION
-        }
-        settings_args.update(kwargs)
-        manager = NetworkManager(*args, **settings_args)
-        return manager
-
     def __init__(self, *args, **kwargs):
         self.quantum = self.new_connection(*args, **kwargs)
 
     def new_connection(self, *args, **kwargs):
         """
         Allows us to make another connection (As the user)
+        """
+        quantum = self.connect_to_quantum(*args, **kwargs)
+        return quantum
+
+    def connect_to_quantum(self, *args, **kwargs):
+        """
         """
         quantum = quantum_client.Client(*args, **kwargs)
         quantum.format = 'json'
@@ -46,7 +38,8 @@ class NetworkManager():
         users_with_networks = [net['name'].replace('-net','') for net in named_networks]
         return users_with_networks
 
-    def create_tenant_network(self, username, password, tenant_name):
+    def create_tenant_network(self, username, password,
+                              tenant_name, **kwargs):
         """
         This method should be run once when a new tenant is created
         (As the user):
@@ -55,12 +48,15 @@ class NetworkManager():
         (As admin):
         Add interface between router and gateway
         """
+        auth_url = kwargs.get('auth_url')
+        region_name = kwargs.get('region_name')
+        router_name = kwargs.get('router_name')
         user_creds = {
             'username': username,
             'password': password,
             'tenant_name': tenant_name,
-            'auth_url': settings.OPENSTACK_ADMIN_URL,
-            'region_name': settings.OPENSTACK_DEFAULT_REGION
+            'auth_url': auth_url,
+            'region_name': region_name
         }
         logger.info("Initializing network connection for %s" % username)
         user_quantum = self.new_connection(**user_creds)
@@ -70,7 +66,7 @@ class NetworkManager():
                                          network['id'],
                                          username,
                                          get_cidr=get_default_subnet)
-        public_router = self.find_router(settings.OPENSTACK_DEFAULT_ROUTER)
+        public_router = self.find_router(router_name)
         if public_router:
             public_router = public_router[0]
         else:
@@ -137,9 +133,6 @@ class NetworkManager():
     ##Libcloud-Quantum Interface##
     @classmethod
     def lc_driver_init(self, lc_driver, region=None, *args, **kwargs):
-        if not region:
-            region = settings.OPENSTACK_DEFAULT_REGION
-
         lc_driver_args = {
             'username': lc_driver.key,
             'password': lc_driver.secret,
@@ -370,14 +363,3 @@ class NetworkManager():
     def delete_port(self, port):
         return self.quantum.delete_port(port['id'])
 
-
-def test():
-    manager = NetworkManager.settings_init()
-
-    manager.create_tenant_network('username', 'password', 'tenant_name')
-    print "Created test usergroup"
-    manager.delete_tenant_network('username','username')
-    print "Deleted test usergroup"
-
-if __name__ == "__main__":
-    test()

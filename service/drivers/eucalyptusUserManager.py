@@ -12,7 +12,6 @@ from boto.ec2.regioninfo import RegionInfo
 from boto.exception import EC2ResponseError
 
 from urlparse import urlparse
-from atmosphere import settings
 from atmosphere.logger import logger
 
 #Enter euca admin credentials here!
@@ -34,9 +33,11 @@ class UserManager():
     account_path = None
     connection = None
 
-    def __init__(self, key=settings.EUCA_ADMIN_KEY,
-                 secret=settings.EUCA_ADMIN_SECRET,
-                 url=settings.EUCA_EC2_URL, path='/services/Accounts'):
+    def __init__(self, *args, **kwargs):
+        key = kwargs.get('key','')
+        secret = kwargs.get('secret','')
+        url = kwargs.get('url','')
+        path = kwargs.get('path','/services/Accounts')
 
         self.admin_key = key
         self.admin_secret = secret

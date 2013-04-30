@@ -2,10 +2,9 @@ import os
 
 from keystoneclient.exceptions import NotFound, ClientException
 from keystoneclient.v3 import client as ks_client
-from novaclient.v1_1 import client as nova_client
+from novaclient import client as nova_client
 
 from atmosphere.logger import logger
-from atmosphere import settings
 
 """
 OpenStack CloudAdmin Libarary
@@ -22,22 +21,7 @@ class UserManager():
     tenant = None
 
     @classmethod
-    def settings_init(self, *args, **kwargs):
-        settings_args = {
-            'username': settings.OPENSTACK_ADMIN_KEY,
-            'password': settings.OPENSTACK_ADMIN_SECRET,
-            'tenant_name': settings.OPENSTACK_ADMIN_TENANT,
-            'auth_url': settings.OPENSTACK_ADMIN_URL,
-            'region_name': settings.OPENSTACK_DEFAULT_REGION
-        }
-        settings_args.update(kwargs)
-        manager = UserManager(*args, **settings_args)
-        return manager
-
-    @classmethod
-    def lc_driver_init(self, lc_driver, region=None, *args, **kwargs):
-        if not region:
-            region = settings.OPENSTACK_DEFAULT_REGION
+    def lc_driver_init(self, lc_driver, region, *args, **kwargs):
         lc_driver_args = {
             'username': lc_driver.key,
             'password': lc_driver.secret,
@@ -53,14 +37,26 @@ class UserManager():
         self.newConnection(*args, **kwargs)
 
     def newConnection(self, *args, **kwargs):
-        self.keystone = ks_client.Client(*args, **kwargs)
-        self.nova = nova_client.Client(kwargs.pop('username'),
-                                       kwargs.pop('password'),
-                                       kwargs.pop('tenant_name'),
-                                       kwargs.pop('auth_url'),
-                                       kwargs.pop('region_name'),
-                                       *args, no_cache=True, **kwargs)
-        self.nova.client.region_name = settings.OPENSTACK_DEFAULT_REGION
+        self.keystone = self._connect_to_keystone(*args, **kwargs)
+        self.nova = self._connect_to_nova(*args, **kwargs)
+
+    def _connect_to_keystone(self, *args, **kwargs):
+        """
+        """
+        keystone = ks_client.Client(*args, **kwargs)
+        return keystone
+
+    def _connect_to_nova(self, version='1.1', *args, **kwargs):
+        region_name = kwargs.get('region_name'),
+        nova = nova_client.Client(version,
+                                  kwargs.pop('username'),
+                                  kwargs.pop('password'),
+                                  kwargs.pop('tenant_name'),
+                                  kwargs.pop('auth_url'),
+                                  kwargs.pop('region_name'),
+                                  *args, no_cache=True, **kwargs)
+        nova.client.region_name = region_name
+        return nova
 
     ##Composite Classes##
     def add_usergroup(self, username, password,
@@ -109,9 +105,12 @@ class UserManager():
             protocol_list = [
                 ('TCP', 22, 22),
                 ('TCP', 80, 80),
+                ('TCP', 4200, 4200),
+                ('TCP', 5500, 5500),
                 ('TCP', 5666, 5666),
                 ('TCP', 5900, 5904),
-                ('TCP', 4200, 4200),
+                ('TCP', 5900, 5999), # TEMP
+                ('TCP', 9418, 9418),
                 ('ICMP', -1, -1),
             ]
         #with nova.security_groups.find(name='default') as default_sec_group:
@@ -310,17 +309,3 @@ class UserManager():
     def list_users(self):
         return self.keystone.users.list()
 
-
-def test():
-    manager = UserManager.settings_init()
-
-    (tenant, user, role) = manager.addUsergroup('estevetest03')
-    print "Created test usergroup"
-
-    print tenant, user, role
-
-    manager.deleteUsergroup('estevetest03')
-    print "Deleted test usergroup"
-
-if __name__ == "__main__":
-    test()

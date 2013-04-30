@@ -389,8 +389,9 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         Openstack Network Manager. We will use this until libcloud completely
         supports quantum
         """
-        network_manager = NetworkManager.settings_init()
-        return network_manager.listLCNetworks()
+        from atmosphere import settings
+        network_manager = NetworkManager(**settings.OPENSTACK_ARGS)
+        return network_manager.lc_list_networks()
 
     def ex_start_node(self, node):
         """
