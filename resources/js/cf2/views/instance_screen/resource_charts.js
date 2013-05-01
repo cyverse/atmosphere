@@ -226,7 +226,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 		if (options && options.show_color)
 			usage_bar.addClass(this.choose_color(percent));
 		
-		if (usage_bar.width() < 10)
+		if (cssPercent < 20)
 			usage_bar.css('color', '#000');
 		else
 			usage_bar.css('color', '#FFF');
