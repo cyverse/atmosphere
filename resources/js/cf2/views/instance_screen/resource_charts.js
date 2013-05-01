@@ -273,6 +273,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 			usage_bar = existing_bar;
 			usage_bar.attr('class', '');
 			usage_bar.addClass(this.choose_color(cssPercent));
+			usage_bar.html('<span>' + percent + '%</span>');
 		}
 
 		usage_bar.css('width', '' + cssPercent + '%');
