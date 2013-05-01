@@ -20,10 +20,9 @@ Out[4]: <Image {u'status': u'active', u'name': u'Django WSGI Stack',
 
 
 from atmosphere.logger import logger
-from keystoneclient.v3 import client as ks_client
-from novaclient import client as nova_client
-#from glanceclient import client as glance_client
-import glanceclient
+
+from service.drivers.common import _connect_to_keystone, _connect_to_nova,\
+                                   _connect_to_glance, find
 
 class ImageManager():
     """
@@ -58,41 +57,10 @@ class ImageManager():
         """
         Can be used to establish a new connection for all clients
         """
-        self.keystone = self._connect_to_keystone(*args, **kwargs)
-        self.glance = self._connect_to_glance(self.keystone, *args, **kwargs)
-        self.nova = self._connect_to_nova(*args, **kwargs)
+        self.keystone = _connect_to_keystone(*args, **kwargs)
+        self.glance = _connect_to_glance(self.keystone, *args, **kwargs)
+        self.nova = _connect_to_nova(*args, **kwargs)
 
-    def _connect_to_keystone(self, *args, **kwargs):
-        """
-        """
-        keystone = ks_client.Client(*args, **kwargs)
-        return keystone
-
-    def _connect_to_glance(self, keystone, version='1', *args, **kwargs):
-        """
-        NOTE: We use v1 because moving up to v2 results in a LOSS OF
-        FUNCTIONALITY..
-        """
-        glance_endpoint = keystone.service_catalog.url_for(
-                                                service_type='image',
-                                                endpoint_type='publicURL')
-        auth_token = keystone.service_catalog.get_token()
-        glance = glanceclient.Client(version,
-                              endpoint=glance_endpoint,
-                              token=auth_token['id'])
-        return glance
-
-    def _connect_to_nova(self, version='1.1', *args, **kwargs):
-        region_name = kwargs.get('region_name'),
-        nova = nova_client.Client(version,
-                                  kwargs.pop('username'),
-                                  kwargs.pop('password'),
-                                  kwargs.pop('tenant_name'),
-                                  kwargs.pop('auth_url'),
-                                  kwargs.pop('region_name'),
-                                  *args, no_cache=True, **kwargs)
-        nova.client.region_name = region_name
-        return nova
 
     def upload_euca_image(self, name, image, kernel=None, ramdisk=None):
         """
@@ -181,10 +149,9 @@ class ImageManager():
         @param can_share
         @type Str
         If True, allow that tenant to share image with others
-        TODO: tenants --> projects when Identity V3 comes online
         """
         if tenant_name:
-            tenant = self.keystone.tenants.find(name=tenant_name)
+            tenant = find(self.keystone.projects, name=tenant_name)
             return self.glance.image_members.list(member=tenant)
         if image_name:
             image = self.get_image_by_name(image_name)
@@ -196,10 +163,9 @@ class ImageManager():
         @param can_share
         @type Str
         If True, allow that tenant to share image with others
-        TODO: tenants --> projects when Identity V3 comes online
         """
         image = self.get_image_by_name(image_name)
-        tenant = self.keystone.tenants.find(name=tenant_name)
+        tenant = find(self.keystone.projects, name=tenant_name)
         return self.glance.image_members.create(
                     image, tenant.id, can_share=can_share)
 
@@ -209,8 +175,7 @@ class ImageManager():
         @param can_share
         @type Str
         If True, allow that tenant to share image with others
-        TODO: tenants --> projects when Identity V3 comes online
         """
         image = self.get_image_by_name(image_name)
-        tenant = self.keystone.tenants.find(name=tenant_name)
+        tenant = find(self.keystone.projects, name=tenant_name)
         return self.glance.image_members.delete(image.id, tenant.id)

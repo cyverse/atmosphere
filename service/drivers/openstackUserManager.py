@@ -5,7 +5,7 @@ from keystoneclient.v3 import client as ks_client
 from novaclient import client as nova_client
 
 from atmosphere.logger import logger
-
+from service.drivers.common import _connect_to_keystone, _connect_to_nova, find
 """
 OpenStack CloudAdmin Libarary
     Use this library to:
@@ -37,26 +37,9 @@ class UserManager():
         self.newConnection(*args, **kwargs)
 
     def newConnection(self, *args, **kwargs):
-        self.keystone = self._connect_to_keystone(*args, **kwargs)
-        self.nova = self._connect_to_nova(*args, **kwargs)
+        self.keystone = _connect_to_keystone(*args, **kwargs)
+        self.nova = _connect_to_nova(*args, **kwargs)
 
-    def _connect_to_keystone(self, *args, **kwargs):
-        """
-        """
-        keystone = ks_client.Client(*args, **kwargs)
-        return keystone
-
-    def _connect_to_nova(self, version='1.1', *args, **kwargs):
-        region_name = kwargs.get('region_name'),
-        nova = nova_client.Client(version,
-                                  kwargs.pop('username'),
-                                  kwargs.pop('password'),
-                                  kwargs.pop('tenant_name'),
-                                  kwargs.pop('auth_url'),
-                                  kwargs.pop('region_name'),
-                                  *args, no_cache=True, **kwargs)
-        nova.client.region_name = region_name
-        return nova
 
     ##Composite Classes##
     def add_usergroup(self, username, password,
@@ -276,7 +259,7 @@ class UserManager():
         Invalid rolename : raise keystoneclient.exceptions.NotFound
         """
         try:
-            return self.keystone.roles.find(name=rolename)
+            return find(self.keystone.roles, name=rolename)
         except NotFound:
             return None
 
@@ -286,7 +269,7 @@ class UserManager():
         Invalid groupname : raise keystoneclient.exceptions.NotFound
         """
         try:
-            return self.keystone.tenants.find(name=groupname)
+            return find(self.keystone.tenants, name=groupname)
         except NotFound:
             return None
 
@@ -296,7 +279,7 @@ class UserManager():
         Invalid username : raise keystoneclient.exceptions.NotFound
         """
         try:
-            return self.keystone.users.find(name=username)
+            return find(self.keystone.users, name=username)
         except NotFound:
             return None
 
