@@ -19,9 +19,9 @@ import os
 import glob
 class EucaToOpenstack:
 
-    def __init__(self):
-        self.os_img_manager = OSImageManager()
-        self.euca_img_manager = EucaImageManager()
+    def __init__(self, euca_creds, os_creds):
+        self.os_img_manager = OSImageManager(**os_creds)
+        self.euca_img_manager = EucaImageManager(**euca_creds)
 
     def migrate_image(self, euca_image_id, name, local_download_dir='/tmp/', euca_image_path=None, no_upload=False, keep_image=False):
         """

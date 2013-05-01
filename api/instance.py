@@ -238,12 +238,10 @@ class Instance(APIView):
                 'code': 401,
                 'message': 'Identity/Provider Authentication Failed'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
-        except IndexError:
-            logger.warn("Instance %s not found" % (instance_id))
-            errorObj = failureJSON([{
-                'code': 404,
-                'message': 'Instance does not exist'}])
-            return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+
+        if not esh_instance:
+            return instance_not_found(instance_id)
+
         core_instance = convertEshInstance(esh_driver, esh_instance,
                                            provider_id, user)
         serialized_data = InstanceSerializer(core_instance).data
@@ -271,10 +269,7 @@ class Instance(APIView):
             return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
 
         if not esh_instance:
-            errorObj = failureJSON([{
-                'code': 404,
-                'message': 'Instance does not exist'}])
-            return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+            return instance_not_found(instance_id)
 
         #Gather the DB related item and update
         core_instance = convertEshInstance(esh_driver, esh_instance,
@@ -317,10 +312,7 @@ class Instance(APIView):
             return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
 
         if not esh_instance:
-            errorObj = failureJSON([{
-                'code': 404,
-                'message': 'Instance does not exist'}])
-            return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+            return instance_not_found(instance_id)
 
         #Gather the DB related item and update
         core_instance = convertEshInstance(esh_driver, esh_instance,
@@ -346,9 +338,7 @@ class Instance(APIView):
         try:
             esh_instance = esh_driver.get_instance(instance_id)
             if not esh_instance:
-                response = Response({}, status=200)
-                response['Cache-Control'] = 'no-cache'
-                return response
+                return instance_not_found(instance_id)
             esh_driver.destroy_instance_to_task(esh_instance)
             esh_instance = esh_driver.get_instance(instance_id)
             if esh_instance.extra\
@@ -370,3 +360,9 @@ class Instance(APIView):
                 'code': 401,
                 'message': 'Identity/Provider Authentication Failed'}])
             return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+
+def instance_not_found(instance_id):
+    errorObj = failureJSON([{
+        'code': 404,
+        'message': 'Instance %s does not exist' % instance_id}])
+    return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
