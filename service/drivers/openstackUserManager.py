@@ -94,9 +94,21 @@ class UserManager():
                         self.keystone.username)
         return (tenant, user, role)
 
-    def build_security_group(self, username, password, tenant_name,
-            protocol_list=None, *args, **kwargs):
+    def add_security_group_rule(self, nova, protocol, security_group):
+        """
+        Add a security group rule if it doesn't already exist.
+        """
+        (ip_protocol, from_port, to_port) = protocol
+        if not self.find_rule(security_group, ip_protocol,
+                          from_port, to_port):
+            nova.security_group_rules.create(security_group.id,
+                                             ip_protocol=ip_protocol,
+                                             from_port=from_port,
+                                             to_port=to_port)
+        return True
 
+    def build_security_group(self, username, password, tenant_name,
+                             protocol_list=None, *args, **kwargs):
         nova = nova_client.Client(username,
                                   password,
                                   tenant_name,
@@ -114,15 +126,9 @@ class UserManager():
                 ('TCP', 4200, 4200),
                 ('ICMP', -1, -1),
             ]
-        #with nova.security_groups.find(name='default') as default_sec_group:
         default_sec_group = nova.security_groups.find(name='default')
-        for (ip_protocol, from_port, to_port) in protocol_list:
-            if not self.find_rule(default_sec_group, ip_protocol,
-                    from_port, to_port):
-                nova.security_group_rules.create(default_sec_group.id,
-                                                 ip_protocol=ip_protocol,
-                                                 from_port=from_port,
-                                                 to_port=to_port)
+        for protocol in protocol_list:
+            self.add_security_group(nova, protocol, default_sec_group)
         return nova.security_groups.find(name='default')
 
     def find_rule(self, security_group, ip_protocol, from_port, to_port):
