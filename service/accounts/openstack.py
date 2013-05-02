@@ -29,7 +29,7 @@ class AccountDriver():
 
     def __init__(self, *args, **kwargs):
         self.user_manager = UserManager(**settings.OPENSTACK_ARGS)
-        self.network_manager = NetworkManager(**settings.OPENSTACK_ARGS)
+        self.network_manager = NetworkManager(**settings.OPENSTACK_NETWORK_ARGS)
         self.openstack_prov = Provider.objects.get(location='OPENSTACK')
 
     def create_account(self, username, admin_role=False, max_quota=False):
