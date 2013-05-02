@@ -28,8 +28,10 @@ class AccountDriver():
     openstack_prov = None
 
     def __init__(self, *args, **kwargs):
-        self.user_manager = UserManager.settings_init()
-        self.network_manager = NetworkManager.settings_init()
+        self.user_manager = UserManager(**settings.OPENSTACK_ARGS)
+        network_args = settings.OPENSTACK_NETWORK_ARGS.copy()
+        network_args.update(settings.OPENSTACK_ARGS)
+        self.network_manager = NetworkManager(**network_args)
         self.openstack_prov = Provider.objects.get(location='OPENSTACK')
 
     def create_account(self, username, admin_role=False, max_quota=False):
@@ -49,19 +51,19 @@ class AccountDriver():
         while not finished:
             try:
                 password = self.hashpass(username)
-                # Retrieve user, or create user & tenant
+                # Retrieve user, or create user & project
                 user = self.get_or_create_user(username, password, True, admin_role)
                 logger.debug(user)
-                tenant = self.get_tenant(username)
-                logger.debug(tenant)
-                roles = user.list_roles(tenant)
+                project = self.get_project(username)
+                logger.debug(project)
+                roles = user.list_roles(project)
                 logger.debug(roles)
                 if not roles:
-                    self.user_manager.add_tenant_member(username,
+                    self.user_manager.add_project_member(username,
                                                            username,
                                                            admin_role)
                 self.user_manager.build_security_group(user.name,
-                        self.hashpass(user.name), tenant.name)
+                        self.hashpass(user.name), project.name)
 
                 finished = True
 
@@ -70,10 +72,10 @@ class AccountDriver():
                 time.sleep(60)  # Wait one minute
         ident = self.create_openstack_identity(username,
                                                     password,
-                                                    tenant_name=username, max_quota=max_quota)
+                                                    project_name=username, max_quota=max_quota)
         return ident
 
-    def create_openstack_identity(self, username, password, tenant_name, max_quota=False):
+    def create_openstack_identity(self, username, password, project_name, max_quota=False):
         #Get the usergroup
         (user, group) = self.create_usergroup(username)
         try:
@@ -81,10 +83,10 @@ class AccountDriver():
                 identity__provider=self.openstack_prov,
                 member__name=username,
                 identity__credential__value__in=[
-                    username, password, tenant_name]).distinct()[0]
+                    username, password, project_name]).distinct()[0]
             Credential.objects.get_or_create(
                 identity=id_membership.identity,
-                key='ex_tenant_name', value=tenant_name)[0]
+                key='ex_project_name', value=project_name)[0]
             if max_quota:
                 quota = self.get_max_quota()
                 id_membership.quota = quota
@@ -104,7 +106,7 @@ class AccountDriver():
             Credential.objects.get_or_create(
                 identity=identity, key='secret', value=password)[0]
             Credential.objects.get_or_create(
-                identity=identity, key='ex_tenant_name', value=tenant_name)[0]
+                identity=identity, key='ex_tenant_name', value=project_name)[0]
 
             if max_quota:
                 quota = self.get_max_quota()
@@ -137,12 +139,13 @@ class AccountDriver():
             #Return the identity
             return id_membership.identity
 
-    def rebuild_tenant_network(self, username, tenant_name):
-        self.network_manager.delete_tenant_network(username, tenant_name)
-        self.network_manager.create_tenant_network(
+    def rebuild_project_network(self, username, project_name):
+        self.network_manager.delete_project_network(username, project_name)
+        self.network_manager.create_project_network(
             username,
             self.hashpass(username),
-            tenant_name)
+            project_name,
+            **settings.OPENSTACK_NETWORK_ARGS)
         return True
 
     # Useful methods called from above..
@@ -158,20 +161,20 @@ class AccountDriver():
         if not password:
             password = self.hashpass(username)
         if usergroup:
-            (tenant, user, role) = self.user_manager.add_usergroup(username,
+            (project, user, role) = self.user_manager.add_usergroup(username,
                                                                   password,
                                                                   True,
                                                                   admin)
         else:
             user = self.user_manager.add_user(username, password)
-            tenant = self.user_manager.get_tenant(username)
+            project = self.user_manager.get_project(username)
         #TODO: Instead, return user.get_user match, or call it if you have to..
         return user
 
     def delete_user(self, username, usergroup=True, admin=False):
-        tenant = self.user_manager.get_tenant(username)
-        if tenant:
-            self.network_manager.delete_tenant_network(username, tenant.name)
+        project = self.user_manager.get_project(username)
+        if project:
+            self.network_manager.delete_project_network(username, project.name)
         if usergroup:
             deleted = self.user_manager.delete_usergroup(username)
         else:
@@ -196,18 +199,18 @@ class AccountDriver():
 
     def hashpass(self, username):
         return sha1(username).hexdigest()
-    def get_tenant_name_for(self, username):
+    def get_project_name_for(self, username):
         """
-        This should always map tenant to user
+        This should always map project to user
         For now, they are identical..
         """
         return username
 
-    def get_tenant(self, tenant):
-        return self.user_manager.get_tenant(tenant)
+    def get_project(self, project):
+        return self.user_manager.get_project(project)
 
-    def list_tenants(self):
-        return self.user_manager.list_tenants()
+    def list_projects(self):
+        return self.user_manager.list_projects()
 
     def get_user(self, user):
         return self.user_manager.get_user(user)
@@ -217,13 +220,13 @@ class AccountDriver():
 
     def list_usergroup_names(self):
         usernames = []
-        for (user,tenant) in self.list_usergroups():
+        for (user,project) in self.list_usergroups():
                 usernames.append(user.name)
         return usernames
 
     def list_usergroups(self):
         users = self.list_users()
-        groups = self.list_tenants()
+        groups = self.list_projects()
         usergroups = []
         for group in groups:
             for user in users:

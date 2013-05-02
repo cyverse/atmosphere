@@ -153,7 +153,7 @@ title Atmosphere VM (%s)
         """
         Note: vm_name is the name you want for your new virtualbox vm (Does not have to be the same!)
         """
-        self.image_manager = EucaImageManager()
+        self.image_manager = EucaImageManager(**settings.EUCA_IMAGING_ARGS)
         if distro != 'centos':
             raise Exception("Whoa! This process only works for CentOS machines!")
 

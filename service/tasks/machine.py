@@ -23,12 +23,13 @@ def machine_export_task(machine_export):
 
 
 @task(name='machine_imaging_task', ignore_result=True)
-def machine_imaging_task(machine_request):
+def machine_imaging_task(machine_request, euca_imaging_creds, openstack_creds):
     try:
         machine_request.status = 'processing'
         machine_request.save()
         logger.debug('%s' % machine_request)
-        new_image_id = select_and_build_image(machine_request)
+        new_image_id = select_and_build_image(machine_request,
+                euca_imaging_creds, openstack_creds)
         if new_image_id is None:
             raise Exception('The image cannot be built as requested. '
                             + 'The provider combination is probably bad.')
@@ -59,7 +60,7 @@ def machine_imaging_task(machine_request):
         machine_request.save()
         return None
 
-def select_and_build_image(machine_request):
+def select_and_build_image(machine_request, euca_imaging_creds, openstack_creds):
     """
     Directing traffic between providers
     Fill out all available fields using machine request data
@@ -68,11 +69,11 @@ def select_and_build_image(machine_request):
         .provider.type.name.lower()
     new_provider = machine_request.new_machine_provider.type.name.lower()
     new_image_id = None
-
+    
     if old_provider == 'eucalyptus':
         if new_provider == 'eucalyptus':
             logger.info('Create euca image from euca image')
-            manager = EucaImageManager()
+            manager = EucaImageManager(**euca_imaging_creds)
             #Build the meta_name so we can re-start if necessary
             meta_name = '%s_%s_%s_%s' % ('admin',
                 machine_request.new_machine_owner.username,
@@ -95,7 +96,9 @@ def select_and_build_image(machine_request):
             )
         elif new_provider == 'openstack':
             logger.info('Create openstack image from euca image')
-            manager = EucaOSMigrater()
+            manager = EucaOSMigrater(
+                    euca_imaging_creds,
+                    openstack_creds)
             new_image_id = manager.migrate_instance(
                 machine_request.instance.provider_alias,
                 machine_request.new_machine_name,
@@ -107,7 +110,7 @@ def select_and_build_image(machine_request):
             new_image_id = None
         elif new_provider == 'openstack':
             logger.info('Create openstack image from openstack image')
-            manager = OSImageManager()
+            manager = OSImageManager(openstack_creds)
             #NOTE: This will create a snapshot, (Private-?), but is not a full
             #fledged image
             new_image_id = manager.create_image(

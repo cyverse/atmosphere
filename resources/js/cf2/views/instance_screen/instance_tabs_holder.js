@@ -259,6 +259,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			if (!this.model.get('state_is_active')) {
 				this.$el.find('.request_imaging_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.report_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('.reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('#instance_tabs a[href="#instance_shell"]').addClass("tab_disabled");
 				this.$el.find('#instance_tabs a[href="#instance_vnc"]').addClass("tab_disabled");
 			}
@@ -548,16 +549,17 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		else {
 			if (type == 'instance_name') {
 				post_data['name'] = new_text;
-
 			}
 			else if (type == 'instance_tags') {
 				post_data['tags'] = new_text;
-
 			}
 
-			self.model.save(post_data, {patch: true, success: function() {
-				$('#refresh_instances_button').click();	
-			}});	
+			self.model.save(post_data, 
+				{ patch: true, 
+				success: function() {
+					$('#refresh_instances_button').click();	
+				}
+			});	
 		}
 		content.children().remove();
 		content.html(new_text);
@@ -583,8 +585,16 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		var self = this;
 
 		header = 'Reboot Instance';
-		body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> '
-			+ 'Rebooting an instance will cause it to temporarily shut down and become inaccessible during that time.';
+
+		// Reboot is hard or soft depending on whether you're on OpenStack or Eucalyptus, respectively
+		if (Atmo.profile.get('selected_identity').get('provider_id') == 2) {
+			body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> '
+				+ 'Rebooting an instance will cause it to temporarily shut down and become inaccessible during that time.';
+		}
+		else {
+			body = 'Your instance will perform a soft reboot.';
+		}
+
 		ok_button = 'Reboot Instance';
 		data = { "action" : "reboot" };
 		on_confirm = function() {
@@ -594,9 +604,10 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				type: 'POST',
 				data: data,
 				success: function() {
-					//Atmo.Utils.notify('Instance is rebooting...', 'Instance will finish rebooting momentarily.');
 					// Merges models to those that are accurate based on server response
 					Atmo.instances.update();
+					if (Atmo.profile.get('selected_identity').get('provider_id') == 1)
+						Atmo.Utils.notify("Reboot Successful", "Your instance has successfully performed a soft reboot.");
 				}, 
 				error: function() {
 					Atmo.Utils.notify(
@@ -717,11 +728,11 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		var data = {};			// Post data for the action to perform on the instance
 
 		// If the instance is already starting/stopping inform user and return false
-		if (this.model.get('state') == 'active - stopping') {
+		if (this.model.get('state') == 'active - powering-off') {
 			Atmo.Utils.notify('Stopping Instance','Please wait while your instance stops. Refresh "My Instances" to check its status.');
 			return;
 		}
-		else if (this.model.get('state') == 'shutoff - starting') {
+		else if (this.model.get('state') == 'shutoff - powering-on') {
 			Atmo.Utils.notify('Starting Instance','Please wait while your instance starts. Refresh "My Instances" to check its status.');
 			return;
 		}
@@ -741,7 +752,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 					Atmo.Utils.notify('Starting Instance', 'Instance will be available momentarily.');
 
 					// Prevent user from being able to quickly start multiple instances and go over quota
-					self.model.set({state: 'shutoff - starting',
+					self.model.set({state: 'shutoff - powering-on',
 									state_is_build: true,
 									state_is_inactive: false});
 

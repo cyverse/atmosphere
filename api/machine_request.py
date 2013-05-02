@@ -96,7 +96,9 @@ class MachineRequestAction(APIView):
         if machine_request.status == 'approve':
             machine_request.status = 'queued'
             serializer.save()
-            machine_imaging_task.si(machine_request).apply_async()
+            machine_imaging_task.si(machine_request,
+                                    settings.EUCA_IMAGING_CREDS,
+                                    settings.OPENSTACK_CREDS).apply_async()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 

@@ -9,7 +9,6 @@ User, BooleanField, StringList
 from django.contrib.auth.models import User
 from django.db.models import Max
 
-from atmosphere import settings
 from atmosphere.logger import logger
 from core.models.identity import Identity
 from core.models.group import Group, IdentityMembership, ProviderMembership
@@ -17,14 +16,14 @@ from core.models.provider import Provider
 from core.models.credential import Credential
 from core.models.quota import Quota
 from service.drivers.eucalyptusUserManager import UserManager
-
+from atmosphere import settings
 
 class AccountDriver():
     user_manager = None
     euca_prov = None
 
     def __init__(self):
-        self.user_manager = UserManager()
+        self.user_manager = UserManager(**settings.EUCALYPTUS_ARGS)
         self.euca_prov = Provider.objects.get(location='EUCALYPTUS')
 
     def create_account(self, username, max_quota=False):

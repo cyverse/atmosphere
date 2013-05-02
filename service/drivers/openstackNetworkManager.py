@@ -7,7 +7,6 @@ import os
 
 from quantumclient.v2_0 import client as quantum_client
 
-from atmosphere import settings
 from atmosphere.logger import logger
 
 from core.models.profile import get_default_subnet
@@ -15,82 +14,83 @@ from core.models.profile import get_default_subnet
 class NetworkManager():
 
     quantum = None
-
-    @classmethod
-    def settings_init(self, *args, **kwargs):
-        settings_args = {
-            'username': settings.OPENSTACK_ADMIN_KEY,
-            'password': settings.OPENSTACK_ADMIN_SECRET,
-            'tenant_name': settings.OPENSTACK_ADMIN_TENANT,
-            'auth_url': settings.OPENSTACK_ADMIN_URL,
-            'region_name': settings.OPENSTACK_DEFAULT_REGION
-        }
-        settings_args.update(kwargs)
-        manager = NetworkManager(*args, **settings_args)
-        return manager
+    default_router = None
 
     def __init__(self, *args, **kwargs):
+        self.default_router = kwargs.get('router_name')
         self.quantum = self.new_connection(*args, **kwargs)
 
     def new_connection(self, *args, **kwargs):
         """
         Allows us to make another connection (As the user)
         """
+        quantum = self.connect_to_quantum(*args, **kwargs)
+        return quantum
+
+    def connect_to_quantum(self, *args, **kwargs):
+        """
+        """
         quantum = quantum_client.Client(*args, **kwargs)
         quantum.format = 'json'
         return quantum
 
     ##Admin-specific methods##
-    def list_tenant_network(self):
+    def list_project_network(self):
         named_networks = self.find_subnet('-subnet', contains=True)
         users_with_networks = [net['name'].replace('-net','') for net in named_networks]
         return users_with_networks
 
-    def create_tenant_network(self, username, password, tenant_name):
+    def create_project_network(self, username, password,
+                              project_name, **kwargs):
         """
-        This method should be run once when a new tenant is created
+        This method should be run once when a new project is created
         (As the user):
         Create a network, subnet, and router
         Add interface between router and network
         (As admin):
         Add interface between router and gateway
         """
+        auth_url = kwargs.get('auth_url')
+        region_name = kwargs.get('region_name')
+        router_name = kwargs.get('router_name')
         user_creds = {
             'username': username,
             'password': password,
-            'tenant_name': tenant_name,
-            'auth_url': settings.OPENSTACK_ADMIN_URL,
-            'region_name': settings.OPENSTACK_DEFAULT_REGION
+            'tenant_name': project_name,
+            'auth_url': auth_url,
+            'region_name': region_name
         }
         logger.info("Initializing network connection for %s" % username)
+        logger.info(user_creds)
+        logger.info(router_name)
         user_quantum = self.new_connection(**user_creds)
-        network = self.create_network(user_quantum, '%s-net' % tenant_name)
+        network = self.create_network(user_quantum, '%s-net' % project_name)
         subnet = self.create_user_subnet(user_quantum,
-                                         '%s-subnet' % tenant_name,
+                                         '%s-subnet' % project_name,
                                          network['id'],
                                          username,
                                          get_cidr=get_default_subnet)
-        public_router = self.find_router(settings.OPENSTACK_DEFAULT_ROUTER)
+        public_router = self.find_router(router_name)
         if public_router:
             public_router = public_router[0]
         else:
             raise Exception("Default public router was not found.")
-        #self.create_router(user_quantum, '%s-router' % tenant_name)
+        #self.create_router(user_quantum, '%s-router' % project_name)
         self.add_router_interface(public_router,
                                   subnet)
-        #self.set_router_gateway(user_quantum, '%s-router' % tenant_name)
+        #self.set_router_gateway(user_quantum, '%s-router' % project_name)
 
-    def delete_tenant_network(self, username, tenant_name):
+    def delete_project_network(self, username, project_name):
         """
         remove_interface_router
         delete_subnet
         delete_network
         """
         self.remove_router_interface(self.quantum,
-                                   '%s-router' % tenant_name,
-                                   '%s-subnet' % tenant_name)
-        self.delete_subnet(self.quantum, '%s-subnet' % tenant_name)
-        self.delete_network(self.quantum, '%s-net' % tenant_name)
+                                     default_router,
+                                     '%s-subnet' % project_name)
+        self.delete_subnet(self.quantum, '%s-subnet' % project_name)
+        self.delete_network(self.quantum, '%s-net' % project_name)
 
     def associate_floating_ip(self, server_id):
         """
@@ -137,13 +137,10 @@ class NetworkManager():
     ##Libcloud-Quantum Interface##
     @classmethod
     def lc_driver_init(self, lc_driver, region=None, *args, **kwargs):
-        if not region:
-            region = settings.OPENSTACK_DEFAULT_REGION
-
         lc_driver_args = {
             'username': lc_driver.key,
             'password': lc_driver.secret,
-            'tenant_name': lc_driver._ex_tenant_name,
+            'project_name': lc_driver._ex_project_name,
             'auth_url': lc_driver._ex_force_auth_url,
             'region_name': region}
         lc_driver_args.update(kwargs)
@@ -246,7 +243,8 @@ class NetworkManager():
                     logger.warn("Unable to create cidr for subnet for user: %s")
                     inc +=1
             except Exception as e:
-                logger.warn("Unable to create subnet for user: %s")
+                logger.exception(e)
+                logger.warn("Unable to create subnet for user: %s" % username)
                 inc += 1
         if not success or not cidr:
             raise Exception("Unable to create subnet for user: %s" % username)
@@ -370,14 +368,3 @@ class NetworkManager():
     def delete_port(self, port):
         return self.quantum.delete_port(port['id'])
 
-
-def test():
-    manager = NetworkManager.settings_init()
-
-    manager.create_tenant_network('username', 'password', 'tenant_name')
-    print "Created test usergroup"
-    manager.delete_tenant_network('username','username')
-    print "Deleted test usergroup"
-
-if __name__ == "__main__":
-    test()

@@ -2,11 +2,10 @@ import os
 
 from keystoneclient.exceptions import NotFound, ClientException
 from keystoneclient.v3 import client as ks_client
-from novaclient.v1_1 import client as nova_client
+from novaclient import client as nova_client
 
 from atmosphere.logger import logger
-from atmosphere import settings
-
+from service.drivers.common import _connect_to_keystone, _connect_to_nova, find
 """
 OpenStack CloudAdmin Libarary
     Use this library to:
@@ -19,29 +18,14 @@ class UserManager():
     nova = None
     user = None
     password = None
-    tenant = None
+    project = None
 
     @classmethod
-    def settings_init(self, *args, **kwargs):
-        settings_args = {
-            'username': settings.OPENSTACK_ADMIN_KEY,
-            'password': settings.OPENSTACK_ADMIN_SECRET,
-            'tenant_name': settings.OPENSTACK_ADMIN_TENANT,
-            'auth_url': settings.OPENSTACK_ADMIN_URL,
-            'region_name': settings.OPENSTACK_DEFAULT_REGION
-        }
-        settings_args.update(kwargs)
-        manager = UserManager(*args, **settings_args)
-        return manager
-
-    @classmethod
-    def lc_driver_init(self, lc_driver, region=None, *args, **kwargs):
-        if not region:
-            region = settings.OPENSTACK_DEFAULT_REGION
+    def lc_driver_init(self, lc_driver, region, *args, **kwargs):
         lc_driver_args = {
             'username': lc_driver.key,
             'password': lc_driver.secret,
-            'tenant_name': lc_driver._ex_tenant_name,
+            'project_name': lc_driver._ex_project_name,
             'auth_url': lc_driver._ex_force_auth_url,
             'region_name': region
         }
@@ -53,14 +37,9 @@ class UserManager():
         self.newConnection(*args, **kwargs)
 
     def newConnection(self, *args, **kwargs):
-        self.keystone = ks_client.Client(*args, **kwargs)
-        self.nova = nova_client.Client(kwargs.pop('username'),
-                                       kwargs.pop('password'),
-                                       kwargs.pop('tenant_name'),
-                                       kwargs.pop('auth_url'),
-                                       kwargs.pop('region_name'),
-                                       *args, no_cache=True, **kwargs)
-        self.nova.client.region_name = settings.OPENSTACK_DEFAULT_REGION
+        self.keystone = _connect_to_keystone(*args, **kwargs)
+        self.nova = _connect_to_nova(*args, **kwargs)
+
 
     ##Composite Classes##
     def add_usergroup(self, username, password,
@@ -69,30 +48,30 @@ class UserManager():
         Create a group for this user only
         then create the user
         """
-        #Create tenant for user/group
-        tenant = self.add_tenant(username)
+        #Create project for user/group
+        project = self.add_project(username)
 
         #Create user
         try:
-            user = self.add_user(username, password, tenant.name)
+            user = self.add_user(username, password, project.name)
         except ClientException as user_exists:
             logger.debug('Received Error %s on add, User exists.' %
                          user_exists)
             user = self.get_user(username)
 
-        logger.debug("Assign Tenant:%s Member:%s Role:%s" %
+        logger.debug("Assign project:%s Member:%s Role:%s" %
                     (username, username, adminRole))
         try:
-            role = self.add_tenant_member(username, username, adminRole)
+            role = self.add_project_member(username, username, adminRole)
         except ClientException:
             logger.warn('Could not assign role to username %s' % username)
         try:
             # keystone admin always gets access, always has admin priv.
-            self.add_tenant_member(username, self.keystone.username, True)
+            self.add_project_member(username, self.keystone.username, True)
         except ClientException:
             logger.warn('Could not assign admin role to username %s' %
                         self.keystone.username)
-        return (tenant, user, role)
+        return (project, user, role)
 
     def add_security_group_rule(self, nova, protocol, security_group):
         """
@@ -107,11 +86,11 @@ class UserManager():
                                              to_port=to_port)
         return True
 
-    def build_security_group(self, username, password, tenant_name,
-                             protocol_list=None, *args, **kwargs):
+    def build_security_group(self, username, password, project_name,
+            protocol_list=None, *args, **kwargs):
         nova = nova_client.Client(username,
                                   password,
-                                  tenant_name,
+                                  project_name,
                                   self.nova.client.auth_url,
                                   self.nova.client.region_name,
                                   *args, no_cache=True, **kwargs)
@@ -121,14 +100,17 @@ class UserManager():
             protocol_list = [
                 ('TCP', 22, 22),
                 ('TCP', 80, 80),
+                ('TCP', 4200, 4200),
+                ('TCP', 5500, 5500),
                 ('TCP', 5666, 5666),
                 ('TCP', 5900, 5904),
-                ('TCP', 4200, 4200),
+                ('TCP', 5900, 5999), # TEMP
+                ('TCP', 9418, 9418),
                 ('ICMP', -1, -1),
             ]
         default_sec_group = nova.security_groups.find(name='default')
         for protocol in protocol_list:
-            self.add_security_group(nova, protocol, default_sec_group)
+            self.add_security_group_rule(nova, protocol, default_sec_group)
         return nova.security_groups.find(name='default')
 
     def find_rule(self, security_group, ip_protocol, from_port, to_port):
@@ -140,28 +122,28 @@ class UserManager():
         return False
 
     def get_usergroup(self, username):
-        return self.get_tenant(username)
+        return self.get_project(username)
 
     def delete_usergroup(self, username, deleteUser=True):
         try:
-            self.delete_tenant_member(username, username, True)
+            self.delete_project_member(username, username, True)
         except ClientException:
             logger.warn('Could not remove admin role from username %s' %
                         username)
         try:
-            self.delete_tenant_member(username, username, False)
+            self.delete_project_member(username, username, False)
         except ClientException:
             logger.warn('Could not remove normal role from username %s' %
                         username)
         try:
-            self.delete_tenant_member(username, self.keystone.username, True)
+            self.delete_project_member(username, self.keystone.username, True)
         except ClientException:
             logger.warn('Could not remove role from keystone user %s' %
                         self.keystone.username)
 
         if deleteUser:
             self.delete_user(username)
-        self.delete_tenant(username)
+        self.delete_project(username)
 
     ##ADD##
     def add_role(self, rolename):
@@ -170,23 +152,23 @@ class UserManager():
         """
         return self.keystone.roles.create(name=rolename)
 
-    def add_tenant(self, groupname):
+    def add_project(self, groupname):
         """
-        Create a new tenant
+        Create a new project
         """
         try:
-            return self.keystone.tenants.create(groupname)
+            return self.keystone.projects.create(groupname)
         except Exception, e:
             logger.exception(e)
             raise
 
-    def add_tenant_member(self, groupname, username, adminRole=False):
+    def add_project_member(self, groupname, username, adminRole=False):
         """
         Adds user to group
         Invalid groupname, username, rolename :
             raise keystoneclient.exceptions.NotFound
         """
-        tenant = self.get_tenant(groupname)
+        project = self.get_project(groupname)
         user = self.get_user(username)
         #Only supporting two roles..
         if adminRole:
@@ -194,7 +176,7 @@ class UserManager():
         else:
             role = self.get_role('defaultMemberRole')
         try:
-            return tenant.add_user(user, role)
+            return project.add_user(user, role)
         except Exception, e:
             logger.exception(e)
             raise
@@ -211,8 +193,8 @@ class UserManager():
         }
         if groupname:
             try:
-                tenant = self.get_tenant(groupname)
-                kwargs['tenant_id'] = tenant.id
+                project = self.get_project(groupname)
+                kwargs['project_id'] = project.id
             except NotFound:
                 logger.warn("User %s does not exist" % username)
                 raise
@@ -229,35 +211,35 @@ class UserManager():
             role.delete()
         return True
 
-    def delete_tenant(self, groupname):
+    def delete_project(self, groupname):
         """
-        Retrieve and delete the tenant/group matching groupname
+        Retrieve and delete the project/group matching groupname
         Returns True on success
         Invalid groupname : raise keystoneclient.exceptions.NotFound
         """
-        tenant = self.get_tenant(groupname)
-        if tenant:
-            tenant.delete()
+        project = self.get_project(groupname)
+        if project:
+            project.delete()
         return True
 
-    def delete_tenant_member(self, groupname, username, adminRole=False):
+    def delete_project_member(self, groupname, username, adminRole=False):
         """
-        Retrieves the tenant and user object
+        Retrieves the project and user object
         Removes user of the admin/member role
         Returns True on success
         Invalid username, groupname, rolename:
             raise keystoneclient.exceptions.NotFound
         """
-        tenant = self.get_tenant(groupname)
+        project = self.get_project(groupname)
         user = self.get_user(username)
         if adminRole:
             role = self.get_role('admin')
         else:
             role = self.get_role('defaultMemberRole')
-        if not tenant or not user:
+        if not project or not user:
             return True
         try:
-            tenant.remove_user(user, role)
+            project.remove_user(user, role)
             return True
         except NotFound as no_role_for_user:
             logger.debug('Error - %s: User-role combination does not exist' %
@@ -283,17 +265,17 @@ class UserManager():
         Invalid rolename : raise keystoneclient.exceptions.NotFound
         """
         try:
-            return self.keystone.roles.find(name=rolename)
+            return find(self.keystone.roles, name=rolename)
         except NotFound:
             return None
 
-    def get_tenant(self, groupname):
+    def get_project(self, groupname):
         """
-        Retrieve tenant
+        Retrieve project
         Invalid groupname : raise keystoneclient.exceptions.NotFound
         """
         try:
-            return self.keystone.tenants.find(name=groupname)
+            return find(self.keystone.projects, name=groupname)
         except NotFound:
             return None
 
@@ -303,30 +285,16 @@ class UserManager():
         Invalid username : raise keystoneclient.exceptions.NotFound
         """
         try:
-            return self.keystone.users.find(name=username)
+            return find(self.keystone.users, name=username)
         except NotFound:
             return None
 
     def list_roles(self):
         return self.keystone.roles.list()
 
-    def list_tenants(self):
-        return self.keystone.tenants.list()
+    def list_projects(self):
+        return self.keystone.projects.list()
 
     def list_users(self):
         return self.keystone.users.list()
 
-
-def test():
-    manager = UserManager.settings_init()
-
-    (tenant, user, role) = manager.addUsergroup('estevetest03')
-    print "Created test usergroup"
-
-    print tenant, user, role
-
-    manager.deleteUsergroup('estevetest03')
-    print "Deleted test usergroup"
-
-if __name__ == "__main__":
-    test()

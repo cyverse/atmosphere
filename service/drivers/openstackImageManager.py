@@ -19,13 +19,10 @@ Out[4]: <Image {u'status': u'active', u'name': u'Django WSGI Stack',
 """
 
 
-from atmosphere import settings
 from atmosphere.logger import logger
-from service.drivers.openstack_driver import OpenStack_Esh_NodeDriver\
-                                      as OpenStackDriver
-from glanceclient import Client as GlanceClient
-from novaclient.v1_1.client import Client as NovaClient
-from service.accounts.openstack import AccountDriver as OSAccountDriver
+
+from service.drivers.common import _connect_to_keystone, _connect_to_nova,\
+                                   _connect_to_glance, find
 
 class ImageManager():
     """
@@ -36,42 +33,34 @@ class ImageManager():
     """
     glance = None
     nova = None
-    driver = None
-    account_driver = None
-    def __init__(self, key=settings.OPENSTACK_ADMIN_KEY,
-                 secret=settings.OPENSTACK_ADMIN_SECRET,
-                 url=settings.OPENSTACK_AUTH_URL,
-                 tenant=settings.OPENSTACK_ADMIN_TENANT,
-                 region=settings.OPENSTACK_DEFAULT_REGION):
+    keystone = None
+
+    @classmethod
+    def lc_driver_init(self, lc_driver, region=None, *args, **kwargs):
+        lc_driver_args = {
+            'username': lc_driver.key,
+            'password': lc_driver.secret,
+            'tenant_name': lc_driver._ex_tenant_name,
+            'auth_url': lc_driver._ex_force_auth_url,
+            'region_name': region
+        }
+        lc_driver_args.update(kwargs)
+        manager = ImageManager(*args, **lc_driver_args)
+        return manager
+
+    def __init__(self, *args, **kwargs):
+        if len(args) == 0 and len(kwargs) == 0:
+            raise KeyError("Credentials missing in __init__. ")
+        self.newConnection(*args, **kwargs)
+
+    def newConnection(self, *args, **kwargs):
         """
-        Will initialize with admin settings if no args are passed.
-        Private Key file required to decrypt images.
+        Can be used to establish a new connection for all clients
         """
-        self.account_driver = OSAccountDriver()
-        #TODO: There should be a better way, perhaps just auth w/ keystone..
-        self.driver = OpenStackDriver(key, secret, ex_force_auth_url=url,
-                                ex_force_auth_version='2.0_password',
-                                secure=("https" in url),
-                                ex_tenant_name=tenant)
-        self.driver.connection.service_region = region
-        self.driver.list_sizes()
-        auth_token = self.driver.connection.auth_token
-        catalog = self.driver.connection.service_catalog._service_catalog
-        glance_endpoint_dict = catalog['image']['glance']
-        #print glance_endpoint_dict
-        #Selects the first endpoint listed
-        endpoint = glance_endpoint_dict.keys()[0]
-        glance_endpoint = glance_endpoint_dict[endpoint][0]['publicURL']
-        glance_endpoint = glance_endpoint.replace('/v1', '')
-        logger.debug(auth_token)
-        logger.debug(glance_endpoint)
-        self.glance = GlanceClient('1',
-                                   endpoint=glance_endpoint,
-                                   token=auth_token)
-        self.nova = NovaClient(key, secret,
-                               tenant, url,
-                               service_type="compute")
-        self.nova.client.region_name = settings.OPENSTACK_DEFAULT_REGION
+        self.keystone = _connect_to_keystone(*args, **kwargs)
+        self.glance = _connect_to_glance(self.keystone, *args, **kwargs)
+        self.nova = _connect_to_nova(*args, **kwargs)
+
 
     def upload_euca_image(self, name, image, kernel=None, ramdisk=None):
         """
@@ -146,3 +135,47 @@ class ImageManager():
 
     def list_images(self):
         return [img for img in self.glance.images.list()]
+
+    def get_image_by_name(self, name):
+        for img in self.glance.images.list():
+            if img.name == name:
+                return img
+        return None
+
+    #Image sharing
+    def shared_images_for(self, tenant_name=None, image_name=None):
+        """
+
+        @param can_share
+        @type Str
+        If True, allow that tenant to share image with others
+        """
+        if tenant_name:
+            tenant = find(self.keystone.projects, name=tenant_name)
+            return self.glance.image_members.list(member=tenant)
+        if image_name:
+            image = self.get_image_by_name(image_name)
+            return self.glance.image_members.list(image=image)
+
+    def share_image(self, image_name, tenant_name, can_share=False):
+        """
+
+        @param can_share
+        @type Str
+        If True, allow that tenant to share image with others
+        """
+        image = self.get_image_by_name(image_name)
+        tenant = find(self.keystone.projects, name=tenant_name)
+        return self.glance.image_members.create(
+                    image, tenant.id, can_share=can_share)
+
+    def unshare_image(self, image_name, tenant_name):
+        """
+
+        @param can_share
+        @type Str
+        If True, allow that tenant to share image with others
+        """
+        image = self.get_image_by_name(image_name)
+        tenant = find(self.keystone.projects, name=tenant_name)
+        return self.glance.image_members.delete(image.id, tenant.id)

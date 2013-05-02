@@ -169,7 +169,7 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 		if (state == 'resize') {
 			return 'verify_resize';
 		}
-		else if (task == 'stopping') {
+		else if (task == 'powering-off') {
 			return 'shutoff';
 		}
 		else if (task == 'deleting') {
@@ -201,6 +201,11 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 			var parts = this.model.get('state').split('-');
 			var state = parts[0].trim();
 			var task = parts[1].trim();
+
+			// Deal with Openstack Grizzly's silly hyphenated states "powering-on" and "powering-off"
+			if (parts.length == 3)
+				task = parts[1].trim() + '-' + parts[2].trim();
+
 			percent = this.get_percent_complete(state, task);
 			this.final_state = this.get_final_state(state, task);
 		}
@@ -213,6 +218,9 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 
 	},
 	update_percent_complete: function(percent) {
+
+		console.log(this.model.get('state'), percent);
+
 		var graph_holder, graph_bar, self = this;
 		if (this.$el.find('.graphBar').length == 1) {
 			graph_holder = this.$el.find('.graphBar');
@@ -257,8 +265,8 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 			'build' : {
 				'block_device_mapping' : 25,			// Number represents percent task *completed* when in this state
 				'scheduling' : 50,
-				'spawning' : 75,
-				'networking' : 90,
+				'networking' : 75,
+				'spawning' : 90,
 			},
 			'hard_reboot' : {
 				'rebooting_hard' : 50
@@ -270,12 +278,12 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 				'resize_finish' : 90,
 			},
 			'active' : {
-				'stopping' : 50,
+				'powering-off' : 50,
 				'deleting' : 50,
 				'suspending' : 50,
 			},
 			'shutoff' : {
-				'starting' : 50
+				'powering-on' : 50
 			},
 			'suspended' : {
 				'resuming' : 50
@@ -294,6 +302,7 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 			function poll_instances() {
 
 				if (self.model.get('state') == self.final_state || self.final_state == undefined) {
+					self.poll = undefined;
 					clearInterval(self.poll);
 					return;
 				}
@@ -308,8 +317,10 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 						self.poll = undefined;
 
 						// Instance was deleted
-						if (textStatus.status == 500) {
+						if (textStatus.status == 404) {
 							self.update_percent_complete(100)
+							Atmo.instances.update();
+							return;
 						}
 						else {
 							self.update_percent_complete(0);
