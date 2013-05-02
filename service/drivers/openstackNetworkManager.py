@@ -86,8 +86,9 @@ class NetworkManager():
         delete_subnet
         delete_network
         """
+        logger.info(self.default_router)
         self.remove_router_interface(self.quantum,
-                                     default_router,
+                                     self.default_router,
                                      '%s-subnet' % project_name)
         self.delete_subnet(self.quantum, '%s-subnet' % project_name)
         self.delete_network(self.quantum, '%s-net' % project_name)
@@ -136,7 +137,7 @@ class NetworkManager():
 
     ##Libcloud-Quantum Interface##
     @classmethod
-    def lc_driver_init(self, lc_driver, region, *args, **kwargs):
+    def lc_driver_init(self, lc_driver, *args, **kwargs):
         lc_driver_args = {
             'username': lc_driver.key,
             'password': lc_driver.secret,
