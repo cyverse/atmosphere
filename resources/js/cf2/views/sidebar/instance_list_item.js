@@ -317,8 +317,10 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 						self.poll = undefined;
 
 						// Instance was deleted
-						if (textStatus.status == 500) {
+						if (textStatus.status == 404) {
 							self.update_percent_complete(100)
+							Atmo.instances.update();
+							return;
 						}
 						else {
 							self.update_percent_complete(0);
