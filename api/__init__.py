@@ -133,7 +133,8 @@ def launchEshInstance(driver, extras, *args, **kwargs):
             project_name = os_driver.get_project_name_for(username)
             os_driver.network_manager.create_project_network(username,
                                                      password,
-                                                     project_name)
+                                                     project_name,
+                                                     **settings.OPENSTACK_NETWORK_ARGS)
             #NOTE: Name, deploy are passed in extras
             #TODO: Explicitly set the kwargs here and pass them instead of args
             #will help avoid confusion here..

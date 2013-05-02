@@ -273,6 +273,8 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
 
     def __init__(self, provider, identity):
         super(OSDriver, self).__init__(provider, identity)
+        self._connection._ex_force_service_region =\
+            settings.OPENSTACK_DEFAULT_REGION
         self._connection.connection.service_region =\
             settings.OPENSTACK_DEFAULT_REGION
 

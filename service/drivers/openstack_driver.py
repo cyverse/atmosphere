@@ -837,28 +837,28 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         if not keypair:
             logger.warn("No keypair for %s" % identity.json())
 
-    def _add_floating_ip(self, node, region=None, *args, **kwargs):
+    def _add_floating_ip(self, node, *args, **kwargs):
         """
         Add IP (Quantum)
         There is no good way to interface libcloud + nova + quantum,
         instead we call quantumclient directly..
         Feel free to replace when a better mechanism comes along..
         """
-        network_manager = NetworkManager.lc_driver_init(self, region)
+        network_manager = NetworkManager.lc_driver_init(self)
         floating_ip = network_manager.associate_floating_ip(node.id)
         self.ex_set_metadata(
             node, {'public_ip': floating_ip['floating_ip_address']},
             replace_metadata=False)
         return floating_ip
 
-    def ex_delete_ports(self, node, region=None, *args, **kwargs):
+    def ex_delete_ports(self, node, *args, **kwargs):
         """
         Delete Ports related to node. (Quantum)
         There is no good way to interface libcloud + nova + quantum,
         instead we use quantumclient directly..
         Hopefully Openstack provides a better option soon.
         """
-        network_manager = NetworkManager.lc_driver_init(self, region)
+        network_manager = NetworkManager.lc_driver_init(self)
         ports = network_manager.find_server_ports(node.id)
         for p in ports:
             network_manager.delete_port(p)

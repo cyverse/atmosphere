@@ -36,13 +36,13 @@ class ImageManager():
     keystone = None
 
     @classmethod
-    def lc_driver_init(self, lc_driver, region=None, *args, **kwargs):
+    def lc_driver_init(self, lc_driver, *args, **kwargs):
         lc_driver_args = {
             'username': lc_driver.key,
             'password': lc_driver.secret,
             'tenant_name': lc_driver._ex_tenant_name,
             'auth_url': lc_driver._ex_force_auth_url,
-            'region_name': region
+            'region_name': lc_driver._ex_force_service_region
         }
         lc_driver_args.update(kwargs)
         manager = ImageManager(*args, **lc_driver_args)
