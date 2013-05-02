@@ -728,11 +728,11 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		var data = {};			// Post data for the action to perform on the instance
 
 		// If the instance is already starting/stopping inform user and return false
-		if (this.model.get('state') == 'active - stopping') {
+		if (this.model.get('state') == 'active - powering-off') {
 			Atmo.Utils.notify('Stopping Instance','Please wait while your instance stops. Refresh "My Instances" to check its status.');
 			return;
 		}
-		else if (this.model.get('state') == 'shutoff - starting') {
+		else if (this.model.get('state') == 'shutoff - powering-on') {
 			Atmo.Utils.notify('Starting Instance','Please wait while your instance starts. Refresh "My Instances" to check its status.');
 			return;
 		}
@@ -752,7 +752,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 					Atmo.Utils.notify('Starting Instance', 'Instance will be available momentarily.');
 
 					// Prevent user from being able to quickly start multiple instances and go over quota
-					self.model.set({state: 'shutoff - starting',
+					self.model.set({state: 'shutoff - powering-on',
 									state_is_build: true,
 									state_is_inactive: false});
 
