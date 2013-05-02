@@ -125,15 +125,15 @@ def launchEshInstance(driver, extras, *args, **kwargs):
         elif isinstance(driver.provider, OSProvider):
             extras['deploy'] = True
             extras['token'] = instance_token
-            #Check for tenant network
+            #Check for project network
             os_driver = OSAccountDriver()
             logger.debug(type(username))
             logger.debug(username)
             password = os_driver.hashpass(username)
-            tenant_name = os_driver.get_tenant_name_for(username)
-            os_driver.network_manager.create_tenant_network(username,
+            project_name = os_driver.get_project_name_for(username)
+            os_driver.network_manager.create_project_network(username,
                                                      password,
-                                                     tenant_name)
+                                                     project_name)
             #NOTE: Name, deploy are passed in extras
             #TODO: Explicitly set the kwargs here and pass them instead of args
             #will help avoid confusion here..
