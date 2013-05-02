@@ -14,8 +14,10 @@ from core.models.profile import get_default_subnet
 class NetworkManager():
 
     quantum = None
+    default_router = None
 
     def __init__(self, *args, **kwargs):
+        self.default_router = kwargs.get('router_name')
         self.quantum = self.new_connection(*args, **kwargs)
 
     def new_connection(self, *args, **kwargs):
@@ -33,15 +35,15 @@ class NetworkManager():
         return quantum
 
     ##Admin-specific methods##
-    def list_tenant_network(self):
+    def list_project_network(self):
         named_networks = self.find_subnet('-subnet', contains=True)
         users_with_networks = [net['name'].replace('-net','') for net in named_networks]
         return users_with_networks
 
-    def create_tenant_network(self, username, password,
-                              tenant_name, **kwargs):
+    def create_project_network(self, username, password,
+                              project_name, **kwargs):
         """
-        This method should be run once when a new tenant is created
+        This method should be run once when a new project is created
         (As the user):
         Create a network, subnet, and router
         Add interface between router and network
@@ -54,15 +56,17 @@ class NetworkManager():
         user_creds = {
             'username': username,
             'password': password,
-            'tenant_name': tenant_name,
+            'tenant_name': project_name,
             'auth_url': auth_url,
             'region_name': region_name
         }
         logger.info("Initializing network connection for %s" % username)
+        logger.info(user_creds)
+        logger.info(router_name)
         user_quantum = self.new_connection(**user_creds)
-        network = self.create_network(user_quantum, '%s-net' % tenant_name)
+        network = self.create_network(user_quantum, '%s-net' % project_name)
         subnet = self.create_user_subnet(user_quantum,
-                                         '%s-subnet' % tenant_name,
+                                         '%s-subnet' % project_name,
                                          network['id'],
                                          username,
                                          get_cidr=get_default_subnet)
@@ -71,22 +75,22 @@ class NetworkManager():
             public_router = public_router[0]
         else:
             raise Exception("Default public router was not found.")
-        #self.create_router(user_quantum, '%s-router' % tenant_name)
+        #self.create_router(user_quantum, '%s-router' % project_name)
         self.add_router_interface(public_router,
                                   subnet)
-        #self.set_router_gateway(user_quantum, '%s-router' % tenant_name)
+        #self.set_router_gateway(user_quantum, '%s-router' % project_name)
 
-    def delete_tenant_network(self, username, tenant_name):
+    def delete_project_network(self, username, project_name):
         """
         remove_interface_router
         delete_subnet
         delete_network
         """
         self.remove_router_interface(self.quantum,
-                                   '%s-router' % tenant_name,
-                                   '%s-subnet' % tenant_name)
-        self.delete_subnet(self.quantum, '%s-subnet' % tenant_name)
-        self.delete_network(self.quantum, '%s-net' % tenant_name)
+                                   '%s-router' % project_name,
+                                   '%s-subnet' % project_name)
+        self.delete_subnet(self.quantum, '%s-subnet' % project_name)
+        self.delete_network(self.quantum, '%s-net' % project_name)
 
     def associate_floating_ip(self, server_id):
         """
@@ -136,7 +140,7 @@ class NetworkManager():
         lc_driver_args = {
             'username': lc_driver.key,
             'password': lc_driver.secret,
-            'tenant_name': lc_driver._ex_tenant_name,
+            'project_name': lc_driver._ex_project_name,
             'auth_url': lc_driver._ex_force_auth_url,
             'region_name': region}
         lc_driver_args.update(kwargs)
@@ -239,7 +243,8 @@ class NetworkManager():
                     logger.warn("Unable to create cidr for subnet for user: %s")
                     inc +=1
             except Exception as e:
-                logger.warn("Unable to create subnet for user: %s")
+                logger.exception(e)
+                logger.warn("Unable to create subnet for user: %s" % username)
                 inc += 1
         if not success or not cidr:
             raise Exception("Unable to create subnet for user: %s" % username)

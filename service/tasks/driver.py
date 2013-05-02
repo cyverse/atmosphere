@@ -132,11 +132,11 @@ def destroy_instance(driverCls, provider, identity, instance_alias):
         if isinstance(driver, OSDriver):
             #Spawn off the last two tasks
             logger.debug("OSDriver Logic -- Remove floating ips and check"
-            " for empty tenant")
+            " for empty project")
             chain(_remove_floating_ip.subtask((driverCls,
                                      provider,
                                      identity), immutable=True, countdown=5),
-                  _check_empty_tenant_network.subtask((driverCls,
+                  _check_empty_project_network.subtask((driverCls,
                                      provider,
                                      identity), immutable=True, countdown=60)
                  ).apply_async()
@@ -206,33 +206,34 @@ def _remove_floating_ip(driverCls, provider, identity, *args, **kwargs):
         _remove_floating_ip.retry(exc=exc)
 
 
-# Tenant Network Tasks
-@task(name="add_os_tenant_network",
+# project Network Tasks
+@task(name="add_os_project_network",
       default_retry_delay=15,
       ignore_result=True,
       max_retries=6)
-def add_os_tenant_network(username, *args, **kwargs):
+def add_os_project_network(username, *args, **kwargs):
     try:
-        logger.debug("add_os_tenant_network task started at %s." % datetime.now())
+        logger.debug("add_os_project_network task started at %s." % datetime.now())
         from service.accounts.openstack import AccountDriver as OSAccountDriver
         account_driver = OSAccountDriver()
         password = account_driver.hashpass(username)
-        tenant_name = account_driver.get_tenant_name_for(username)
-        account_driver.network_manager.create_tenant_network(
+        project_name = account_driver.get_project_name_for(username)
+        account_driver.network_manager.create_project_network(
             username,
             password,
-            tenant_name)
-        logger.debug("add_os_tenant_network task finished at %s." % datetime.now())
+            project_name,
+            **settings.OPENSTACK_NETWORK_ARGS)
+        logger.debug("add_os_project_network task finished at %s." % datetime.now())
     except Exception as exc:
-        add_os_tenant_network.retry(exc=exc)
+        add_os_project_network.retry(exc=exc)
 
-@task(name="_check_empty_tenant_network",
+@task(name="_check_empty_project_network",
       default_retry_delay=60,
       ignore_result=True,
       max_retries=1)
-def _check_empty_tenant_network(driverCls, provider, identity, *args, **kwargs):
+def _check_empty_project_network(driverCls, provider, identity, *args, **kwargs):
     try:
-        logger.debug("_check_empty_tenant_network task started at %s." % datetime.now())
+        logger.debug("_check_empty_project_network task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instances = driver.list_instances()
         active_instances = False
@@ -241,18 +242,18 @@ def _check_empty_tenant_network(driverCls, provider, identity, *args, **kwargs):
                 active_instances = True
                 break
         if not active_instances:
-            #Check for tenant network
+            #Check for project network
             from service.accounts.openstack import AccountDriver as\
             OSAccountDriver
             os_acct_driver = OSAccountDriver()
             username = identity.user.username
-            tenant_name = username
-            logger.info("No active instances. Removing tenant network"
+            project_name = username
+            logger.info("No active instances. Removing project network"
                     "from %s"
                     % username)
-            os_acct_driver.network_manager.delete_tenant_network(username,
-                    tenant_name)
-        logger.debug("_check_empty_tenant_network task finished at %s." % datetime.now())
+            os_acct_driver.network_manager.delete_project_network(username,
+                    project_name)
+        logger.debug("_check_empty_project_network task finished at %s." % datetime.now())
     except Exception as exc:
         logger.warn(exc)
-        _check_empty_tenant_network.retry(exc=exc)
+        _check_empty_project_network.retry(exc=exc)

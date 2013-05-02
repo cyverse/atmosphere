@@ -66,7 +66,7 @@ def find(manager, **kwargs):
         This isn't very efficient: it loads the entire list then filters on
         the Python side.
         """
-        rl = self.findall(**kwargs)
+        rl = findall(manager, **kwargs)
         num = len(rl)
 
         if num == 0:
