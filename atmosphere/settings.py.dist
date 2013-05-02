@@ -249,6 +249,9 @@ OPENSTACK_ARGS = {
     'region_name': OPENSTACK_DEFAULT_REGION
 }
 OPENSTACK_NETWORK_ARGS = {
+    'username': OPENSTACK_ADMIN_KEY,
+    'password': OPENSTACK_ADMIN_SECRET,
+    'tenant_name': OPENSTACK_ADMIN_TENANT,
     'auth_url': OPENSTACK_ADMIN_URL,
     'region_name': OPENSTACK_DEFAULT_REGION,
     'router_name': OPENSTACK_DEFAULT_ROUTER
