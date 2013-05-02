@@ -87,8 +87,8 @@ class NetworkManager():
         delete_network
         """
         self.remove_router_interface(self.quantum,
-                                   '%s-router' % project_name,
-                                   '%s-subnet' % project_name)
+                                     default_router,
+                                     '%s-subnet' % project_name)
         self.delete_subnet(self.quantum, '%s-subnet' % project_name)
         self.delete_network(self.quantum, '%s-net' % project_name)
 
