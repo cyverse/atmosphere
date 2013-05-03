@@ -62,7 +62,7 @@ def download_file(url, fileLoc, retry=False, match_hash=None):
         try:
             resp = urllib2.urlopen(url)
         except Exception, e:
-            logging.exception(e)
+            logging.exception("Failed to download URL: %s" % url)
             resp = None
 
         #Download file on success
@@ -81,7 +81,7 @@ def download_file(url, fileLoc, retry=False, match_hash=None):
         file_hash = sha1(contents).hexdigest()
     except Exception, e:
         file_hash = ""
-        logging.exception(e)
+        logging.exception("Failed to create sha1 hash for file")
     #Don't save file if hash exists and doesnt match..
     if match_hash and match_hash != file_hash:
         logging.warn(
@@ -116,7 +116,7 @@ def run_command(commandList, shell=False, bash_wrap=False):
                                 stderr=subprocess.PIPE, shell=shell)
         out, err = proc.communicate()
     except Exception, e:
-        logging.exception(e)
+        logging.exception("Failed to run command")
     if out:
         logging.debug(out)
     if err:
@@ -167,8 +167,7 @@ def collect_metadata():
         content = resp.read()
         meta_list = content.split('\n')
     except Exception, e:
-        logging.error("Could not retrieve meta-data for instance")
-        logging.exception(e)
+        logging.exception("Could not retrieve meta-data for instance")
         return {}
 
     for meta in meta_list:
@@ -270,43 +269,46 @@ def vnc(user, distro, license=None):
                      os.path.join(os.environ['HOME'], 'vnc-config.sh')])
         run_command(['/bin/su', '%s' % user, '-c', '/usr/bin/vncserver'])
     except Exception, e:
-        logging.exception(e)
+        logging.exception("Failed to install VNC")
 
 
 def parrot_install(distro):
-    download_file(
-    'http://www.iplantcollaborative.org/sites/default/files/atmosphere/'
-    'cctools/cctools-3.7.2-x86_64-redhat5.tar.gz',
-    '/opt/cctools-3.7.2-x86_64-redhat5.tar.gz',
-    match_hash='711408a157fa4227c82841cfc7e889c7d4e187cb')
-    run_command(
-        ['/bin/tar', '-zxvf',
-         '/opt/cctools-3.7.2-x86_64-redhat5.tar.gz',
-         '-C' , '/opt/'])
-    if not is_rhel(distro):
-        run_command(['/usr/bin/apt-get', '-qy', 'install',
-                     'libssl-dev'])
-        #Ubuntu needs linking
+    try:
+        download_file(
+        'http://www.iplantcollaborative.org/sites/default/files/atmosphere/'
+        'cctools/cctools-3.7.2-x86_64-redhat5.tar.gz',
+        '/opt/cctools-3.7.2-x86_64-redhat5.tar.gz',
+        match_hash='c65c0791272a81415d2baa4a5aaad0d4dcc1ca76')
         run_command(
-            ['/bin/ln', '-s',
-             '/lib/x86_64-linux-gnu/libssl.so.1.0.0',
-             '/lib/x86_64-linux-gnu/libssl.so.6'])
-        run_command(
-            ['/bin/ln', '-s',
-             '/lib/x86_64-linux-gnu/libcrypto.so.1.0.0',
-             '/lib/x86_64-linux-gnu/libcrypto.so.6'])
-    #link all files
-    for f in os.listdir("/opt/cctools-3.7.2-x86_64-redhat5/bin"):
-        try:
-            link_f = os.path.join("/usr/local/bin", f)
-            logging.debug(link_f)
-            if os.path.exists(link_f):
-                os.remove(link_f)
-            logging.debug(os.path.join("/opt/cctools-3.7.2-x86_64-redhat5/bin", f))
-            os.symlink(os.path.join("/opt/cctools-3.7.2-x86_64-redhat5/bin", f), link_f)
-        except Exception:
-            logging.debug(
-                "Problem linking /opt/cctools-3.7.2-x86_64-redhat5/bin to /usr/local/bin")
+            ['/bin/tar', '-zxf',
+             '/opt/cctools-3.7.2-x86_64-redhat5.tar.gz',
+             '-C' , '/opt/'])
+        if not is_rhel(distro):
+            run_command(['/usr/bin/apt-get', '-qy', 'install',
+                         'libssl-dev'])
+            #Ubuntu needs linking
+            run_command(
+                ['/bin/ln', '-s',
+                 '/lib/x86_64-linux-gnu/libssl.so.1.0.0',
+                 '/lib/x86_64-linux-gnu/libssl.so.6'])
+            run_command(
+                ['/bin/ln', '-s',
+                 '/lib/x86_64-linux-gnu/libcrypto.so.1.0.0',
+                 '/lib/x86_64-linux-gnu/libcrypto.so.6'])
+        #link all files
+        for f in os.listdir("/opt/cctools/bin"):
+            try:
+                link_f = os.path.join("/usr/local/bin", f)
+                logging.debug(link_f)
+                if os.path.exists(link_f):
+                    os.remove(link_f)
+                logging.debug(os.path.join("/opt/cctools/bin", f))
+                os.symlink(os.path.join("/opt/cctools/bin", f), link_f)
+            except Exception:
+                logging.debug(
+                    "Problem linking /opt/cctools/bin to /usr/local/bin")
+    except Exception, e:
+        logging.exception("Failed to install parrot. Details below:")
 
 
 def iplant_files(distro):
@@ -387,8 +389,7 @@ def modify_rclocal(username, distro):
         atmo_rclocal.close()
         os.chmod(atmo_rclocal_path, 0755)
     except Exception, e:
-        logging.warn("Failed to write to rc.local")
-        logging.exception(e)
+        logging.exception("Failed to write to rc.local")
 
 def shellinaboxd(distro):
     if is_rhel(distro):
@@ -654,6 +655,8 @@ def main(argv):
         add_sudoers(linuxuser)
         ssh_config()
 
+    if not is_rhel(distro):
+        run_command(['/usr/bin/apt-get', 'update'])
     instance_metadata = collect_metadata()
     #TODO: REMOVE THIS LEGACY CRAP!
     instance_metadata['linuxusername'] = linuxuser
