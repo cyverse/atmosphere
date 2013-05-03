@@ -277,8 +277,12 @@ def parrot_install(distro):
     download_file(
     'http://www.iplantcollaborative.org/sites/default/files/atmosphere/'
     'cctools/cctools-3.7.2-x86_64-redhat5.tar.gz',
-    '/opt/cctools-latest-redhat5.tar.gz'
+    '/opt/cctools-3.7.2-x86_64-redhat5.tar.gz',
     match_hash='711408a157fa4227c82841cfc7e889c7d4e187cb')
+    run_command(
+        ['/bin/tar', '-zxvf',
+         '/opt/cctools-3.7.2-x86_64-redhat5.tar.gz',
+         '-C' , '/opt/'])
     if not is_rhel(distro):
         run_command(['/usr/bin/apt-get', '-qy', 'install',
                      'libssl-dev'])
@@ -292,17 +296,17 @@ def parrot_install(distro):
              '/lib/x86_64-linux-gnu/libcrypto.so.1.0.0',
              '/lib/x86_64-linux-gnu/libcrypto.so.6'])
     #link all files
-    for f in os.listdir("/opt/cctools/bin"):
+    for f in os.listdir("/opt/cctools-3.7.2-x86_64-redhat5/bin"):
         try:
             link_f = os.path.join("/usr/local/bin", f)
             logging.debug(link_f)
             if os.path.exists(link_f):
                 os.remove(link_f)
-            logging.debug(os.path.join("/opt/cctools/bin", f))
-            os.symlink(os.path.join("/opt/cctools/bin", f), link_f)
+            logging.debug(os.path.join("/opt/cctools-3.7.2-x86_64-redhat5/bin", f))
+            os.symlink(os.path.join("/opt/cctools-3.7.2-x86_64-redhat5/bin", f), link_f)
         except Exception:
             logging.debug(
-                "Problem linking /opt/cctools/bin to /usr/local/bin")
+                "Problem linking /opt/cctools-3.7.2-x86_64-redhat5/bin to /usr/local/bin")
 
 
 def iplant_files(distro):
