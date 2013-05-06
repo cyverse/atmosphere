@@ -86,7 +86,7 @@ def download_file(url, fileLoc, retry=False, match_hash=None):
     if match_hash and match_hash != file_hash:
         logging.warn(
             "Error, The downloaded file <%s - SHA1:%s> "
-            + "does not match expected SHA1:%s"
+            "does not match expected SHA1:%s"
             % (url, file_hash, match_hash))
         return ""
     logging.debug('Saving url:%s to file: %s' % (url, fileLoc))
@@ -340,7 +340,7 @@ def iplant_files(distro):
     run_command(["/bin/mkdir", "-p", "/opt/irodsidrop"])
     download_file("http://www.iplantc.org/sites/default/files/irods/idrop.jar",
                   "/opt/irodsidrop/idrop-latest.jar",
-                  match_hash="8cf73735ab014fe3389c82cc26183685ea579688")
+                  match_hash="275cc7fb744b0f29caa7b276f689651a2159c23e")
     download_file(
         "http://www.iplantcollaborative.org/sites/default/files/"
         + "idroprun.sh.txt", "/opt/irodsidrop/idroprun.sh",
