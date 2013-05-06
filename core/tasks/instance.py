@@ -10,7 +10,7 @@ def test_all_instance_links():
         from api import getEshDriver
         from service.linktest import active_instances
         from datetime import datetime
-        logger.debug("test_all_instance_links task started at %s." % datetime.now())
+        #logger.debug("test_all_instance_links task started at %s." % datetime.now())
         all_instances = []
         for provider in Provider.objects.all():
             identity_list = Identity.objects.filter(provider=provider)
@@ -21,23 +21,28 @@ def test_all_instance_links():
             meta_driver = driver.provider.metaCls(driver)
             all_instances.extend(meta_driver.all_instances())
         linktest_results = active_instances(all_instances)
-        logger.debug("Instance count: %s" % len(linktest_results))
+        #logger.debug("Instance count: %s" % len(linktest_results))
         for (instance_id, link_results) in linktest_results.items():
             try:
                 updated = False
                 instance = Instance.objects.get(provider_alias=instance_id)
                 if link_results['shell'] != instance.shell:
+                    logger.debug('Change Instance %s shell %s-->%s' %
+                            (instance.id, instance.shell,
+                                link_results['shell']))
                     instance.shell = link_results['shell']
                     updated = True
                 if link_results['vnc'] != instance.vnc:
+                    logger.debug('Change Instance %s VNC %s-->%s' %
+                            (instance.id, instance.vnc,
+                                link_results['vnc']))
                     instance.vnc = link_results['vnc']
                     updated = True
                 if updated:
-                    logger.debug(instance)
                     instance.save()
             except Instance.DoesNotExist:
                 continue
-        logger.debug("test_all_instance_links task finished at %s." % datetime.now())
+        #logger.debug("test_all_instance_links task finished at %s." % datetime.now())
     except Exception as exc:
         logger.warn(exc)
         test_all_instance_links.retry(exc=exc)
