@@ -123,10 +123,20 @@ class OSInstance(Instance):
             self.size = self.provider.sizeCls.get_size(size)
 
     def get_public_ip(self):
-        if self.extra \
-           and self.extra.get('addresses') \
-           and self.extra['addresses'].get('public'):
-            return self.extra['addresses'].get('public')[0].get('addr')
+        public_ips = self.get_public_ips()
+        if not public_ips:
+            return None
+        return public_ips[0]
+
+    def get_public_ips(self):
+        #Get a list of all address spaces
+        addresses = getattr(self, 'extra', {}).get('addresses',[])
+        public_ips = []
+        for addr_name,ips in addresses.items():
+            for ip_addr in ips:
+                if ip_addr['OS-EXT-IPS:type'] == 'floating':
+                        public_ips.append(ip_addr['addr'])
+        return public_ips
 
     def get_status(self):
         """

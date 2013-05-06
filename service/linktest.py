@@ -49,7 +49,8 @@ def test_instance_links(alias, uri):
 
 
 def test_link(address):
-    #logger.debug("Testing link " + address)
+    if not address:
+        return False
     try:
         h = httplib2.Http(timeout=2)
         (header, content) = h.request(address, "HEAD")
@@ -57,11 +58,34 @@ def test_link(address):
         if 'status' in header and header['status'] == '200':
             return True
         return False
-    except:
+    except httplib2.ServerNotFoundError:
+        logger.warn("Bad Address: %s" % address)
+        return False
+    except Exception as e:
+        #These are three 'valid' exceptions
+        if 113 in e.args or 'No route to host' in e.args:
+            return False
+        if 111 in e.args or 'Connection refused' in e.args:
+            return False
+        if 'timeout' in e.args or 'timed out' in e.args:
+            return False
+        logger.exception(e)
         return False
 
-
 def active_instances(instances):
+    return active_instances_naive(instances)
+
+def active_instances_naive(instances):
+    test_results = {}
+    for instance in instances:
+        if instance.ip is not None:
+            link_results = test_instance_links(instance.alias, instance.ip)
+        else:
+            logger.info(instance)
+        test_results.update(link_results)
+    return test_results
+
+def active_instances_threaded(instances):
     """
     Creates multiple processes to test instance links
     """
