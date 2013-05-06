@@ -122,22 +122,6 @@ class OSInstance(Instance):
             size = node.driver.ex_get_size(node.extra['flavorId'])
             self.size = self.provider.sizeCls.get_size(size)
 
-    def get_public_ip(self):
-        public_ips = self.get_public_ips()
-        if not public_ips:
-            return None
-        return public_ips[0]
-
-    def get_public_ips(self):
-        #Get a list of all address spaces
-        addresses = getattr(self, 'extra', {}).get('addresses',[])
-        public_ips = []
-        for addr_name,ips in addresses.items():
-            for ip_addr in ips:
-                if ip_addr.get('OS-EXT-IPS:type','') == 'floating':
-                        public_ips.append(ip_addr['addr'])
-        return public_ips
-
     def get_status(self):
         """
         TODO: If openstack: Use extra['task'] and extra['power']
@@ -151,3 +135,7 @@ class OSInstance(Instance):
             if task:
                 status += ' - %s' % self.extra['task']
         return status
+
+    def get_public_ip(self):
+        if self._node.public_ips:
+            return self._node.public_ips[0]

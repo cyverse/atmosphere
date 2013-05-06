@@ -130,39 +130,23 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             Set up ips in the api_node so _to_node may call its super.
             """
             try:
-                api_node['self'] = copy.deepcopy(api_node)
-                #api_node['task'] = api_node['object']['OS-EXT-STS:task_state']
-                api_node['addresses']['public'] = []
-                api_node['addresses']['private'] = []
+                public_ips, private_ips = [], []
 
-                #Retrieve all floating IPs that belong to this instance
-                ips = [floating_ip for floating_ip
-                       in self.ex_list_floating_ips()
-                       if floating_ip['instance_id'] == api_node['id']]
-
-                #Add all the IPs to the 'public_ips' list on the node
-                for ip in ips:
-                    ip_obj = {'version': 4, 'addr': ip['fixed_ip']}
-                    if ip_obj not in api_node['addresses']['private']:
-                        api_node['addresses']['private'].append(ip_obj)
-
-                    ip_obj = {'version': 4, 'addr': ip['ip']}
-                    if ip_obj not in api_node['addresses']['public']:
-                        api_node['addresses']['public'].append(ip_obj)
-
-                #If no floating IPs found, use the private IP given at startup
-                if not ips:
-                    for ip_group in api_node['addresses'].keys():
-                        if api_node['addresses'][ip_group]\
-                        and ip_group != 'private':
-                            for address in api_node['addresses'][ip_group]:
-                                api_node['addresses']['private'].append(
-                                    address)
+                for (label, ip_addrs) in api_node['addresses'].items():
+                    for ip in ip_addrs:
+                        # If OS IP:type floating, assign to public network
+                        # All other 
+                        if ip.get('OS-EXT-IPS:type') == 'floating':
+                            public_ips.append(ip['addr'])
+                        else:
+                            private_ips.append(ip['addr'])
+                node.public_ips = public_ips
+                node.private_ips = private_ips
             except (IndexError, KeyError) as no_ip:
                 logger.warn("No IP for node:%s" % api_node['id'])
 
-        _set_ips()
         node = super(OpenStack_Esh_NodeDriver, self)._to_node(api_node)
+        _set_ips()
         node.extra.update({
             'addresses': api_node.get('addresses'),
             'keypair': api_node.get('key_name'),
@@ -170,7 +154,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             'task': api_node.get('OS-EXT-STS:task_state'),
             'power': api_node.get('OS-EXT-STS:power_state'),
             'instancetype': api_node['flavor']['id'],
-            'object': api_node
+            #'object': api_node
         })
         return node
 
