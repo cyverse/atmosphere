@@ -19,6 +19,8 @@ from atmosphere.logger import logger
 from core.email import send_instance_email
 from core.exceptions import MissingArgsException, ServiceException
 
+from service.drivers.common import LoggedScriptDeployment
+
 from service.provider import AWSProvider
 from service.provider import EucaProvider
 from service.provider import OSProvider
@@ -286,13 +288,24 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         username = self.identity.user.username
         atmo_init = "/usr/sbin/atmo_init_full.py"
         server_atmo_init = "/init_files/30/atmo-init-full.py"
-        script_deps = ScriptDeployment(
+        script_init = ScriptDeployment(
+                'if [ ! -d "/var/log/atmo" ];then\n'
+                'mkdir -p /var/log/atmo\n'
+                'fi\n'
+                'if [ ! -f "/var/log/atmo/deploy.log" ]; then\n'
+                'touch /var/log/atmo/deploy.log\n'
+                'fi')
+        script_deps = LoggedScriptDeployment(
             "apt-get update;apt-get install -y emacs vim wget language-pack-en"
-            + " make gcc g++ gettext texinfo autoconf automake")
-        script_wget = ScriptDeployment("wget -O %s %s%s" %
-                                       (atmo_init, settings.SERVER_URL,
-                                           server_atmo_init))
-        script_chmod = ScriptDeployment("chmod a+x %s" % atmo_init)
+            + " make gcc g++ gettext texinfo autoconf automake",
+            logfile='/var/log/atmo/deploy.log')
+        script_wget = LoggedScriptDeployment(
+            "wget -O %s %s%s" % (atmo_init, settings.SERVER_URL,
+                server_atmo_init),
+            logfile='/var/log/atmo/deploy.log')
+        script_chmod = LoggedScriptDeployment(
+            "chmod a+x %s" % atmo_init,
+            logfile='/var/log/atmo/deploy.log')
         instance_token = kwargs.get('token', '')
         if not instance_token:
             instance_token = instance.id
@@ -311,9 +324,12 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         str_awesome_atmo_call = str(awesome_atmo_call)
         #kludge: weirdness without the str cast...
         logger.debug(isinstance(str_awesome_atmo_call, basestring))
-        script_atmo_init = ScriptDeployment(str_awesome_atmo_call)
+        script_atmo_init = LoggedScriptDeployment(
+            str_awesome_atmo_call,
+            logfile='/var/log/atmo/deploy.log')
         private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
-        msd = MultiStepDeployment([script_deps,
+        msd = MultiStepDeployment([script_init,
+                                   script_deps,
                                    script_wget,
                                    script_chmod,
                                    script_atmo_init])
@@ -342,6 +358,7 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         except DeploymentError as de:
             logger.error(sys.exc_info())
             logger.error(de.value)
+            logger.exception(de)
             return False
         return True
 

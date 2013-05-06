@@ -4,6 +4,35 @@ Common functions used by all Openstack managers
 from keystoneclient.v3 import client as ks_client
 from novaclient import client as nova_client
 import glanceclient
+from libcloud.compute.deployment import ScriptDeployment
+from atmosphere.logger import logger
+
+class LoggedScriptDeployment(ScriptDeployment):
+
+
+    def __init__(self, script, name=None, delete=False, logfile=None):
+        """
+        Use this for client-side logging
+        """
+        super(LoggedScriptDeployment, self).__init__(
+                script, name=name, delete=delete)
+        if logfile:
+            self.script = self.script + " &> %s" % logfile
+        logger.info(self.script)
+
+    def run(self, node, client):
+        """
+        Server-side logging
+        """
+        node = super(LoggedScriptDeployment, self).run(node, client)
+        if self.stdout:
+            logger.debug('%s (%s)STDOUT: %s' % (node.id, self.name,
+                self.stdout))
+        if self.stderr:
+            logger.warn('%s (%s)STDERR: %s' % (node.id, self.name,
+                self.stderr))
+        return node
+
 
 def _connect_to_keystone(*args, **kwargs):
     """

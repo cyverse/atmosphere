@@ -166,7 +166,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
             _deploy_init_to.retry()
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
     except Exception as exc:
-        logger.warn(exc)
+        logger.exception(exc)
         _deploy_init_to.retry(exc=exc)
 
 

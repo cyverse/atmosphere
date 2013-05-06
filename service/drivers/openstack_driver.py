@@ -259,17 +259,18 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                     ssh_username=username, ssh_password=password,
                     ssh_key_file=ssh_key_file, ssh_timeout=ssh_timeout,
                     timeout=timeout, max_tries=max_tries)
-            except Exception:
+            except Exception as exc:
                 # Try alternate username
                 # Todo: Need to fix paramiko so we can catch a more specific
                 # exception
+                logger.exception('FAIL')
+                logger.exception(exc)
                 e = sys.exc_info()[1]
                 deploy_error = e
             else:
                 # Script sucesfully executed, don't try alternate username
                 deploy_error = None
                 break
-
         if deploy_error is not None:
             raise DeploymentError(node=node, original_exception=deploy_error,
                                   driver=self)
@@ -656,12 +657,12 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         """
         try:
             if not address:
-                public_ips = server.extra['addresses']['public']
+                public_ips = server.public_ips
                 if not public_ips:
                     logger.warn("Could not determine public IP address,\
                     please provide the floating IP address")
                     return None
-                address = public_ips[0]['addr']
+                address = public_ips[0]
             server_resp = self.connection.request(
                 '/servers/%s/action' % server.id,
                 method='POST',
