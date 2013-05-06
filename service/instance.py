@@ -134,7 +134,7 @@ class OSInstance(Instance):
         public_ips = []
         for addr_name,ips in addresses.items():
             for ip_addr in ips:
-                if ip_addr['OS-EXT-IPS:type'] == 'floating':
+                if ip_addr.get('OS-EXT-IPS:type','') == 'floating':
                         public_ips.append(ip_addr['addr'])
         return public_ips
 
