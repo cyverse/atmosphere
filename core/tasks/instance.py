@@ -7,10 +7,10 @@ from datetime import datetime
 @periodic_task(run_every=crontab(hour='*', minute='*/5', day_of_week='*'))
 def test_all_instance_links():
     try:
-        #logger.debug("test_all_instance_links task started at %s." % datetime.now())
+        logger.debug("test_all_instance_links task started at %s." % datetime.now())
         instances = get_all_instances()
         update_links(instances)
-        #logger.debug("test_all_instance_links task finished at %s." % datetime.now())
+        logger.debug("test_all_instance_links task finished at %s." % datetime.now())
     except Exception as exc:
         logger.warn(exc)
         test_all_instance_links.retry(exc=exc)
@@ -51,8 +51,8 @@ def update_links(instances):
                 instance.vnc = link_results['vnc']
                 update = True
             if update:
-                updated.append(instance)
                 instance.save()
+                updated.append(instance)
         except Instance.DoesNotExist:
             continue
     logger.debug("Instances updated: %d" % len(updated))
