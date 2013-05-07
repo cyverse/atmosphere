@@ -19,7 +19,7 @@ def get_driver(driverCls, provider, identity):
         return driver
 
 @task(name="_send_instance_email",
-      default_retry_delay=120,
+      default_retry_delay=10,
       ignore_result=True,
       max_retries=2)
 def _send_instance_email(driverCls, provider, identity, instance_id):
