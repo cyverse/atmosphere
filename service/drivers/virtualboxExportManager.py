@@ -21,7 +21,6 @@ import glob
 import subprocess
 import time
 from hashlib import md5
-
 from datetime import datetime
 from urlparse import urlparse
 from xml.dom import minidom
@@ -32,15 +31,18 @@ from boto.ec2.instance import Instance
 from boto.s3.connection import S3Connection, OrdinaryCallingFormat
 from boto.exception import S3ResponseError, S3CreateError
 from boto.s3.key import Key
+from boto.resultset import ResultSet
 
 from euca2ools import Euca2ool, FileValidationError, Util, ConnectionFailed
 
+from threepio import logger
+
 from atmosphere import settings
-from atmosphere.logger import logger
+
 from service.drivers.eucalyptusImageManager import ImageManager as EucaImageManager
-from boto.resultset import ResultSet
 
 #A list of supported distros (And their VBox equivilant)
+
 
 class ExportManager():
     """

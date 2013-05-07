@@ -2,12 +2,14 @@
 LDAP authentication methods
 """
 from __future__ import absolute_import
+import string
 
 from django.core.handlers.wsgi import WSGIRequest
 
 import ldap as ldap_driver
-import string
-from atmosphere.logger import logger
+
+from threepio import logger
+
 from atmosphere import settings
 
 

@@ -3,7 +3,7 @@ from datetime import datetime
 from celery.decorators import task
 from celery import chain
 
-from atmosphere.logger import logger
+from threepio import logger
 
 from core.email import send_instance_email
 

@@ -6,7 +6,7 @@ import sys
 
 from abc import ABCMeta
 
-from atmosphere.logger import logger
+from threepio import logger
 
 from atmosphere import settings
 

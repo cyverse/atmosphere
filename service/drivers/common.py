@@ -4,8 +4,10 @@ Common functions used by all Openstack managers
 from keystoneclient.v3 import client as ks_client
 from novaclient import client as nova_client
 import glanceclient
+
 from libcloud.compute.deployment import ScriptDeployment
-from atmosphere.logger import logger
+
+from threepio import logger
 
 class LoggedScriptDeployment(ScriptDeployment):
 

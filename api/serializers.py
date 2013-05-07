@@ -11,7 +11,8 @@ from core.models.volume import Volume
 from core.models.group import Group
 
 from rest_framework import serializers
-from atmosphere.logger import logger
+
+from threepio import logger
 
 class CredentialSerializer(serializers.ModelSerializer):
     class Meta:

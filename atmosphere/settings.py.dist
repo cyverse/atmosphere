@@ -1,17 +1,19 @@
 # Settings for atmosphere project.
 
 from __future__ import absolute_import
+from datetime import timedelta
 import logging
-#from atmosphere.logger import logger, initialize
-import atmosphere.logger
-import caslib
-import sys
 import os
 import os.path
-from datetime import timedelta
+import sys
+
+import threepio
+import caslib
+
+import atmosphere
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__),'..')) 
-SERVER_URL = 'https://your_server_here.iplantc.org'
+SERVER_URL = 'https://yourserver.iplantc.org'
 REDIRECT_URL = '' # IF on the root directory, this should be BLANK, else: /path/to/web (NO TRAILING /)
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
@@ -24,13 +26,12 @@ ADMINS = (
     ('J. Matt Peterson', 'jmatt@iplantcollaborative.org'),
     ('Steven Gregory', 'esteve@iplantcollaborative.org'),
 )
-SERVER_EMAIL = 'atmo@iplantcollaborative.org'
 
 MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        'NAME': 'atmosphere',
+        'NAME': 'space_dev',
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'USER': 'atmo_app',
         'PASSWORD': 'atmosphere',
@@ -134,10 +135,10 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 
 ## ATMOSPHERE APP CONFIGS
-#INSTANCE_SERVICE_URL = SERVER_URL+REDIRECT_URL+'/instanceservice/'
-INSTANCE_SERVICE_URL = SERVER_URL+REDIRECT_URL+'/api/notification/'
-API_SERVER_URL = SERVER_URL+REDIRECT_URL+'/resources/v1'
-AUTH_SERVER_URL = SERVER_URL+REDIRECT_URL+'/auth'
+# INSTANCE_SERVICE_URL = SERVER_URL + REDIRECT_URL+'/instanceservice/'
+INSTANCE_SERVICE_URL = SERVER_URL + REDIRECT_URL + '/api/notification/'
+API_SERVER_URL = SERVER_URL + REDIRECT_URL + '/resources/v1'
+AUTH_SERVER_URL = SERVER_URL + REDIRECT_URL + '/auth'
 INIT_SCRIPT_PREFIX = '/init_files/'
 
 
@@ -145,9 +146,20 @@ INIT_SCRIPT_PREFIX = '/init_files/'
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 LOGGING_LEVEL = logging.DEBUG
-DEP_LOGGING_LEVEL = logging.INFO#Logging level for dependencies.
-atmosphere.logger.initialize(LOGGING_LEVEL, DEP_LOGGING_LEVEL)
-
+DEP_LOGGING_LEVEL = logging.DEBUG # Logging level for dependencies.
+LOG_FILENAME = os.path.abspath(os.path.join(
+    os.path.dirname(atmosphere.__file__),
+    '..',
+    'logs/atmosphere.log'))
+threepio.initialize("atmosphere",
+                    log_filename=LOG_FILENAME,
+                    app_logging_level=LOGGING_LEVEL,
+                    dep_logging_level=DEP_LOGGING_LEVEL)
+threepio.email_logger = threepio.initialize("atmosphere_email",
+                                            log_filename=LOG_FILENAME,
+                                            app_logging_level=LOGGING_LEVEL,
+                                            dep_logging_level=DEP_LOGGING_LEVEL,
+                                            global_logger=False)
 
 ##Directory that the app (One level above this file) exists (TEST if this is necessary)
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -190,8 +202,11 @@ CACHES = {
     }
 }
 
-#SECRETS LINE:
-#CLEAR ALL VALUES BELOW THIS LINE BEFORE PUSHING TO DIST
+###############
+#   SECRETS   #
+###############
+
+# CLEAR ALL VALUES BELOW THIS LINE BEFORE PUSHING TO DIST
 
 ##ATMO SETTINGS
 ATMOSPHERE_VNC_LICENSE=""

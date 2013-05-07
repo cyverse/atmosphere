@@ -3,8 +3,9 @@ import time, requests
 
 from django.contrib.auth.models import User
 
+from threepio import logger
+
 from atmosphere import settings
-from atmosphere.logger import logger
 
 from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
 from service.accounts.openstack import AccountDriver as OSAccountDriver

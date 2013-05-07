@@ -8,8 +8,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
+from threepio import logger
+
 from atmosphere import settings
-from atmosphere.logger import logger
 
 from authentication.decorators import api_auth_token_required
 

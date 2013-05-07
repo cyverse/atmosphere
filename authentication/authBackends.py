@@ -5,7 +5,7 @@ Authentication Backends and validation methods
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth.models import User as DjangoUser
 
-from atmosphere.logger import logger
+from threepio import logger
 
 from authentication.protocol.ldap import ldap_validate, ldap_formatAttrs, lookupUser
 from authentication.protocol.cas import cas_validateUser, cas_formatAttrs

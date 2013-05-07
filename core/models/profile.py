@@ -3,7 +3,7 @@ from django.contrib.auth.models import User as DjangoUser
 from django.db.models.signals import post_save
 from django.db import models
 
-from atmosphere.logger import logger
+from threepio import logger
 from atmosphere import settings
 
 from core.ldap import get_uid_number

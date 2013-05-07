@@ -6,8 +6,8 @@ Atmosphere service instance rest api.
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from threepio import logger
 ## Atmosphere Libraries
-from atmosphere.logger import logger
 
 from authentication.decorators import api_auth_token_required
 

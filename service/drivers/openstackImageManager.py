@@ -18,11 +18,11 @@ Out[4]: <Image {u'status': u'active', u'name': u'Django WSGI Stack',
 
 """
 
-
-from atmosphere.logger import logger
+from threepio import logger
 
 from service.drivers.common import _connect_to_keystone, _connect_to_nova,\
                                    _connect_to_glance, find
+
 
 class ImageManager():
     """

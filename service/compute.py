@@ -1,9 +1,9 @@
 """
 Atmosphere service compute.
 """
+from threepio import logger
 
 from atmosphere import settings
-from atmosphere.logger import logger
 
 from service.provider import AWSProvider, EucaProvider, OSProvider
 from service.driver import EucaDriver, AWSDriver

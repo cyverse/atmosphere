@@ -7,7 +7,7 @@ import os
 
 from quantumclient.v2_0 import client as quantum_client
 
-from atmosphere.logger import logger
+from threepio import logger
 
 from core.models.profile import get_default_subnet
 

@@ -33,7 +33,7 @@ from boto.s3.key import Key
 
 from euca2ools import Euca2ool, FileValidationError
 
-from atmosphere.logger import logger
+from threepio import logger
 
 
 class ImageManager():

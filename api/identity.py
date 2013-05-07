@@ -7,7 +7,7 @@ from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from atmosphere.logger import logger
+from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 

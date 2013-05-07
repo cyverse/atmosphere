@@ -6,7 +6,7 @@ from django.http import HttpResponseRedirect
 from django.contrib.auth.models import User
 
 from atmosphere import settings
-#from atmosphere.logger import logger
+
 from authentication.models import Token as AuthToken
 
 

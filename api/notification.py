@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from atmosphere.logger import logger
+from threepio import logger
 
 from core.email import send_instance_email
 from core.models.instance import Instance as CoreInstance

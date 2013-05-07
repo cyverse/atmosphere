@@ -6,7 +6,7 @@ from datetime import datetime
 
 from django.core.mail import EmailMessage
 from atmosphere import settings
-from atmosphere.logger import logger, email_logger
+from threepio import logger, email_logger
 
 from authentication.protocol.ldap import lookupEmail
 

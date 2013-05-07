@@ -4,7 +4,7 @@ Atmosphere service identity.
 """
 from abc import ABCMeta, abstractmethod
 
-from atmosphere.logger import logger
+from threepio import logger
 
 from core import Persist
 from core.models import Provider

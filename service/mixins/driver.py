@@ -2,7 +2,8 @@
 Atmosphere service mixin driver
 Mixin classes implement additional functionality for Drivers.
 """
-from atmosphere.logger import logger
+from threepio import logger
+
 from service.tasks.driver import deploy_to,\
     deploy_init_to, add_floating_ip, destroy_instance
 

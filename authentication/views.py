@@ -11,8 +11,9 @@ from django.contrib.auth import authenticate, login
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 
+from threepio import logger
+
 from atmosphere import settings
-from atmosphere.logger import logger
 from authentication import createAuthToken, userCanEmulate, cas_loginRedirect
 from authentication.models import Token as AuthToken
 from authentication.protocol.ldap import ldap_validate

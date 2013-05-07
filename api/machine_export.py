@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from atmosphere.logger import logger
+from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 from service.tasks.machine import machine_export_task

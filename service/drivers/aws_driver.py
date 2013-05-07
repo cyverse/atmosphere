@@ -15,7 +15,7 @@ from libcloud.compute.drivers.ec2 import EC2NodeDriver, NAMESPACE
 from libcloud.utils.py3 import urlencode
 from libcloud.utils.py3 import urlquote, b
 
-from atmosphere.logger import logger
+from threepio import logger
 
 class Esh_EC2NodeDriver(EC2NodeDriver):
     """

@@ -5,7 +5,7 @@ from django.db import models
 from django.utils import timezone
 
 from core.models.provider import Provider
-from atmosphere.logger import logger
+from threepio import logger
 
 
 class Volume(models.Model):
