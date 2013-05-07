@@ -2,7 +2,7 @@
 Atmosphere service instance.
 
 """
-from atmosphere.logger import logger
+from threepio import logger
 
 from core import Persist
 

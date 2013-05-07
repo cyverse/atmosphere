@@ -1,8 +1,9 @@
-from atmosphere.logger import logger
+from datetime import timedelta, datetime
+
+from threepio import logger
+
 from authentication.models import Token as AuthToken
 from authentication.protocol.cas import cas_validateUser
-
-from datetime import timedelta, datetime
 
 from rest_framework.authentication import BaseAuthentication
 

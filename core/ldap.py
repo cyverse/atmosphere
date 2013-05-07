@@ -5,7 +5,8 @@ from __future__ import absolute_import
 
 import ldap as ldap_driver
 
-from atmosphere.logger import logger
+from threepio import logger
+
 from atmosphere import settings
 
 

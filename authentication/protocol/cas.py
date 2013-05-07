@@ -5,16 +5,17 @@ Contact:        Steven Gregory <esteve@iplantcollaborative.org>
                 J. Matt Peterson <jmatt@iplantcollaborative.org>
 
 """
+from datetime import datetime, timedelta
 
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 from django.contrib.auth.models import User
 
-from datetime import datetime, timedelta
 import caslib
 
+from threepio import logger
+
 from atmosphere import settings
-from atmosphere.logger import logger
 
 from authentication import createAuthToken
 from authentication.models import UserProxy

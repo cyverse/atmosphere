@@ -12,7 +12,7 @@ from boto.ec2.regioninfo import RegionInfo
 from boto.exception import EC2ResponseError
 
 from urlparse import urlparse
-from atmosphere.logger import logger
+from threepio import logger
 
 #Enter euca admin credentials here!
 EUCA_ADMIN_KEY = ""

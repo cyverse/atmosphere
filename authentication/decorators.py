@@ -6,9 +6,10 @@ from django.http import HttpResponseRedirect, HttpResponseForbidden
 from rest_framework.response import Response
 from rest_framework import status
 
+from threepio import logger
+
 # atmosphere libraries
 from atmosphere import settings
-from atmosphere.logger import logger
 
 from authentication import cas_loginRedirect
 from authentication.token import validate_token

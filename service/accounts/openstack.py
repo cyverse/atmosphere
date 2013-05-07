@@ -10,8 +10,9 @@ from django.db.models import Max
 from novaclient.v1_1 import client as nova_client
 from novaclient.exceptions import OverLimit
 
+from threepio import logger
+
 from atmosphere import settings
-from atmosphere.logger import logger
 
 from core.models.identity import Identity
 from core.models.group import Group, IdentityMembership, ProviderMembership

@@ -11,17 +11,11 @@ import service.compute
 
 from django.contrib.auth.models import User as DjangoUser
 
-from atmosphere import settings
-from atmosphere.logger import logger
+from threepio import logger
 
-#from core.models.group import Group
-#from core.models.provider import Provider as CoreProvider
-#from core.models.provider import ProviderSize as CoreSize
-#from core.models.machine import ProviderMachine as CoreProviderMachine
-#from core.models.machine import Machine as CoreMachine
-#from core.models.volume import Volume as CoreVolume
+from atmosphere import settings
+
 from core.models.identity import Identity as CoreIdentity
-#from core.models.instance import Instance as CoreInstance
 
 from service.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
@@ -31,6 +25,8 @@ from service.identity import AWSIdentity, EucaIdentity,\
 from service.driver import AWSDriver, EucaDriver, OSDriver
 
 from service.accounts.openstack import AccountDriver as OSAccountDriver
+
+
 #These functions return ESH related information based on the core repr
 ESH_MAP = {
     'openstack': {

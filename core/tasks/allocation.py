@@ -3,7 +3,7 @@
 
 from celery.task import task
 
-from atmosphere.logger import logger
+from threepio import logger
 
 from core.models.instance import Instance
 

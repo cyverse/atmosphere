@@ -6,7 +6,8 @@ import json
 
 from django.http import HttpResponse, HttpResponseServerError
 
-from atmosphere.logger import logger
+from threepio import logger
+
 from core.email import email_admin, user_address
 
 

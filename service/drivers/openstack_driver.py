@@ -9,6 +9,8 @@ import sys
 import time
 from datetime import datetime
 
+from threepio import logger
+
 import libcloud.compute.ssh
 from libcloud.compute.ssh import SSHClient
 from libcloud.compute.types import Provider, NodeState, DeploymentError,\
@@ -18,8 +20,6 @@ from libcloud.compute.base import StorageVolume,\
     NodeAuthPassword, NodeDriver
 from libcloud.compute.drivers.openstack import OpenStack_1_1_NodeDriver
 from libcloud.utils.py3 import httplib
-
-from atmosphere.logger import logger
 
 from service.drivers.openstackNetworkManager import NetworkManager
 

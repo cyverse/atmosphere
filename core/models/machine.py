@@ -7,8 +7,7 @@ from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
 
-
-from atmosphere.logger import logger
+from threepio import logger
 
 from core.models.script import Package
 from core.models.provider import Provider

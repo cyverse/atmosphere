@@ -1,7 +1,7 @@
 from celery.decorators import periodic_task
 from celery.task.schedules import crontab
 
-from atmosphere.logger import logger
+from threepio import logger
 from datetime import datetime
 
 @periodic_task(run_every=crontab(hour='*', minute='*/5', day_of_week='*'))

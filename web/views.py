@@ -23,9 +23,10 @@ from django.template.loader import get_template
 
 import caslib
 
+from threepio import logger
+
 # atmosphere libraries
 from atmosphere import settings
-from atmosphere.logger import logger
 
 from authentication import cas_loginRedirect, cas_logoutRedirect
 from authentication.models import Token as AuthToken

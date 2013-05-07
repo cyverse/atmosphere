@@ -3,7 +3,7 @@ from datetime import datetime
 from celery.decorators import task
 from celery import chain
 
-from atmosphere.logger import logger
+from threepio import logger
 
 from core.email import send_instance_email
 
@@ -124,7 +124,7 @@ def destroy_instance(driverCls, provider, identity, instance_alias):
         if instance:
             #First disassociate
             if isinstance(driver, OSDriver):
-                driver._connection.ex_disassociate_floating_ip(instance)
+                driver._connection.ex_disassociate_floating_ip(instance._node)
             #Then destroy
             node_destroyed = driver._connection.destroy_node(instance)
         else:

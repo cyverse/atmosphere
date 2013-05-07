@@ -9,7 +9,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from atmosphere.logger import logger
+from threepio import logger
 
 from core.models.machine import ProviderMachine, convertEshMachine
 from core.models.tag import Tag

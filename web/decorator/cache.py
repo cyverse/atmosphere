@@ -4,8 +4,9 @@ Cache for atmosphere.web
 
 from django.core.cache import cache as dcache
 
+from threepio import logger
+
 import atmosphere.settings as settings
-from atmosphere.logger import logger
 
 
 def cache_key(func, args, kwargs):

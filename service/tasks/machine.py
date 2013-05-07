@@ -4,7 +4,7 @@ from datetime import datetime
 
 from celery.decorators import task
 
-from atmosphere.logger import logger
+from threepio import logger
 
 from core.email import send_image_request_email
 from core.models.machine import createProviderMachine

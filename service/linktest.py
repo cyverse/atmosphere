@@ -5,7 +5,7 @@ import multiprocessing
 
 import httplib2
 
-from atmosphere.logger import logger
+from threepio import logger
 
 
 class LinkTestProcess(multiprocessing.Process):

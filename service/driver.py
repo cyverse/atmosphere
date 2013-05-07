@@ -13,8 +13,9 @@ from libcloud.compute.deployment import ScriptDeployment
 from libcloud.compute.deployment import MultiStepDeployment
 from libcloud.compute.types import DeploymentError
 
+from threepio import logger
+
 from atmosphere import settings
-from atmosphere.logger import logger
 
 from core.email import send_instance_email
 from core.exceptions import MissingArgsException, ServiceException

@@ -12,11 +12,15 @@ Migrating an Instance/Image (Example: Eucalyptus --> Openstack)
                                 '/temp/image/path/kernel/vmlinuz-...el5', 
                                 '/temp/image/path/ramdisk/initrd-...el5.img')
 """
-from atmosphere.logger import logger
-from service.drivers.openstackImageManager import ImageManager as OSImageManager
-from service.drivers.eucalyptusImageManager import ImageManager as EucaImageManager
 import os
 import glob
+
+from threepio import logger
+
+from service.drivers.openstackImageManager import ImageManager as OSImageManager
+from service.drivers.eucalyptusImageManager import ImageManager as EucaImageManager
+
+
 class EucaToOpenstack:
 
     def __init__(self, euca_creds, os_creds):

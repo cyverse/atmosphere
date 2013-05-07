@@ -4,8 +4,10 @@ from keystoneclient.exceptions import NotFound, ClientException
 from keystoneclient.v3 import client as ks_client
 from novaclient import client as nova_client
 
-from atmosphere.logger import logger
-from service.drivers.common import _connect_to_keystone, _connect_to_nova, find
+from threepio import logger
+
+from service.drivers.common import _connect_to_keystone,\
+    _connect_to_nova, find
 """
 OpenStack CloudAdmin Libarary
     Use this library to:

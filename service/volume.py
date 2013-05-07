@@ -4,11 +4,11 @@ Atmosphere service volume.
 """
 from abc import ABCMeta
 
+from threepio import logger
+
 from core import Persist
 
 from service.provider import AWSProvider, EucaProvider, OSProvider
-
-from atmosphere.logger import logger
 
 
 class BaseVolume(Persist):

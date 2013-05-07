@@ -9,7 +9,7 @@ from libcloud.utils.xml import fixxpath, findall, findtext, findattr
 from libcloud.compute.base import NodeSize, StorageVolume, NodeImage
 from libcloud.compute.drivers.ec2 import EucNodeDriver, NAMESPACE
 
-from atmosphere.logger import logger
+from threepio import logger
 
 
 class Eucalyptus_Esh_NodeDriver(EucNodeDriver):

@@ -1,5 +1,5 @@
 import time
-from atmosphere.logger import logger
+from threepio import logger
 from api import getEshDriver, launchEshInstance
 from core.models import Identity, ProviderMembership, IdentityMembership,\
                         Provider, Group, UserProfile, Instance, Machine,\

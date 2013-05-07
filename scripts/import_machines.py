@@ -2,10 +2,13 @@
 # Takes a single command-line argument, a .json file generated from `./manage.py dumpdata service_old.machine &> machines.json`
 import sys
 import json
-from core.models import Machine, Provider, ProviderMachine, Tag
-from django.contrib.auth.models import User
 from datetime import datetime
+
+from django.contrib.auth.models import User
+
 from pytz import timezone
+
+from core.models import Machine, Provider, ProviderMachine, Tag
 
 
 #Tags are global, can be added to each machine

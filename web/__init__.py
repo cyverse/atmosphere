@@ -5,7 +5,8 @@ Atmosphere web helper methods..
 
 from django.contrib.auth.models import User as DjangoUser
 
-from atmosphere.logger import logger
+from threepio import logger
+
 from core.models import Provider, Identity
 
 

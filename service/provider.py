@@ -7,6 +7,8 @@ from abc import ABCMeta, abstractmethod
 
 from libcloud.compute.types import Provider as LProvider
 
+from threepio import logger
+
 from core import Persist
 from core.exceptions import ServiceException
 from core.models import get_or_create
@@ -16,7 +18,6 @@ from core.models.provider import ProviderType as CoreProviderType
 from service.drivers.openstack_driver import OpenStack_Esh_NodeDriver
 from service.drivers.eucalyptus_driver import Eucalyptus_Esh_NodeDriver
 from service.drivers.aws_driver import Esh_EC2NodeDriver
-from atmosphere.logger import logger
 
 
 def lc_provider_id(provider):
