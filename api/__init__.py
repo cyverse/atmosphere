@@ -123,8 +123,6 @@ def launchEshInstance(driver, extras, *args, **kwargs):
             extras['token'] = instance_token
             #Check for project network
             os_driver = OSAccountDriver()
-            logger.debug(type(username))
-            logger.debug(username)
             password = os_driver.hashpass(username)
             project_name = os_driver.get_project_name_for(username)
             os_driver.network_manager.create_project_network(username,
@@ -134,6 +132,7 @@ def launchEshInstance(driver, extras, *args, **kwargs):
             #NOTE: Name, deploy are passed in extras
             #TODO: Explicitly set the kwargs here and pass them instead of args
             #will help avoid confusion here..
+            logger.debug("OS Launch params: %s" % extras)
             eshInstance = driver.create_instance(size=size,
                                                  image=machine, **extras)
             # call async tasks.

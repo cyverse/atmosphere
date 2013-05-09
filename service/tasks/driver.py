@@ -160,10 +160,11 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
             #Breakout if instance is destroyed
             logger.debug("Instance already deleted: %s." % instance_id)
             return
+        logger.info(instance.extra)
         instance._node.extra['password'] = None
         deployed = driver.deploy_init_to(instance)
         if not deployed:
-            _deploy_init_to.retry()
+            raise Exception("Instance was not successfully deployed")
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
     except Exception as exc:
         logger.exception(exc)
@@ -181,6 +182,7 @@ def add_floating_ip(driverCls, provider, identity, instance_alias, *args, **kwar
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_alias)
         if not instance.ip:
+            logger.debug("floating IP args %s kwargs %s" % (args, kwargs))
             driver._add_floating_ip(instance, *args, **kwargs)
         else:
             logger.debug("public ip already found! %s" % instance.ip)

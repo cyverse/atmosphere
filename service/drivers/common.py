@@ -23,7 +23,7 @@ class LoggedScriptDeployment(ScriptDeployment):
                 script, name=name, delete=delete)
         if logfile:
             self.script = self.script + " &> %s" % logfile
-        logger.info(self.script)
+        #logger.info(self.script)
 
     def run(self, node, client):
         """
@@ -62,7 +62,7 @@ def _connect_to_glance(keystone, version='1', *args, **kwargs):
     return glance
 
 def _connect_to_nova(version='1.1', *args, **kwargs):
-    region_name = kwargs.get('region_name'),
+    region_name = kwargs.get('region_name')
     nova = nova_client.Client(version,
                               kwargs.pop('username'),
                               kwargs.pop('password'),

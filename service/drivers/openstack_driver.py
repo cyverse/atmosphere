@@ -131,7 +131,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             """
             try:
                 public_ips, private_ips = [], []
-
                 for (label, ip_addrs) in api_node['addresses'].items():
                     for ip in ip_addrs:
                         # If OS IP:type floating, assign to public network
@@ -140,6 +139,9 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                             public_ips.append(ip['addr'])
                         else:
                             private_ips.append(ip['addr'])
+                #NOTE: This is a hack until we update grizzly
+                if api_node['metadata'].get('public_ip'):
+                    public_ips.append(api_node['metadata']['public_ip'])
                 [node.public_ips.append(ip) for ip in public_ips 
 		 if ip not in node.public_ips]
                 [node.private_ips.append(ip) for ip in private_ips
@@ -231,14 +233,15 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         ssh_interface = kwargs.get('ssh_interface', 'public_ips')
 
         # Wait until node is up and running and has IP assigned
-        max_tries = kwargs.get('max_tries', 3)
         try:
             node, ip_addresses = self.wait_until_running(
                 nodes=[node],
                 wait_period=3, timeout=NODE_ONLINE_WAIT_TIMEOUT,
                 ssh_interface=ssh_interface)[0]
+            logger.info(node)
             if not ip_addresses:
                 raise Exception('IP address was not found')
+            logger.info(ip_addresses)
         except Exception:
             e = sys.exc_info()[1]
             raise DeploymentError(node=node, original_exception=e, driver=self)
@@ -268,7 +271,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 # exception
                 logger.exception('FAIL')
                 logger.exception(exc)
-                deploy_error = exc
+                e = sys.exc_info()[1]
+                deploy_error = e
             else:
                 # Script sucesfully executed, don't try alternate username
                 deploy_error = None

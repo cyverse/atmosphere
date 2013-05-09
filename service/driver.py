@@ -282,6 +282,11 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
             settings.OPENSTACK_DEFAULT_REGION
 
     def deploy_init_to(self, *args, **kwargs):
+        """
+        Creates a multi script deployment to prepare and call
+        the latest init script
+        TODO: Add versioning for 30+
+        """
         if args:
             instance = args[0]
         else:
@@ -295,17 +300,21 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
                 'fi\n'
                 'if [ ! -f "/var/log/atmo/deploy.log" ]; then\n'
                 'touch /var/log/atmo/deploy.log\n'
-                'fi')
+                'fi', 
+                name='deploy_init_log.sh')
         script_deps = LoggedScriptDeployment(
             "apt-get update;apt-get install -y emacs vim wget language-pack-en"
             + " make gcc g++ gettext texinfo autoconf automake",
+            name='deploy_aptget_update.sh',
             logfile='/var/log/atmo/deploy.log')
         script_wget = LoggedScriptDeployment(
             "wget -O %s %s%s" % (atmo_init, settings.SERVER_URL,
                 server_atmo_init),
+            name='deploy_wget_atmoinit.sh',
             logfile='/var/log/atmo/deploy.log')
         script_chmod = LoggedScriptDeployment(
             "chmod a+x %s" % atmo_init,
+            name='deploy_chmod_atmoinit.sh',
             logfile='/var/log/atmo/deploy.log')
         instance_token = kwargs.get('token', '')
         if not instance_token:
@@ -321,21 +330,23 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
             username,
             instance_token,
             settings.ATMOSPHERE_VNC_LICENSE)
-        logger.debug(awesome_atmo_call)
-        str_awesome_atmo_call = str(awesome_atmo_call)
         #kludge: weirdness without the str cast...
-        logger.debug(isinstance(str_awesome_atmo_call, basestring))
+        str_awesome_atmo_call = str(awesome_atmo_call)
+        #logger.debug(isinstance(str_awesome_atmo_call, basestring))
         script_atmo_init = LoggedScriptDeployment(
             str_awesome_atmo_call,
+            name='deploy_call_atmoinit.sh',
             logfile='/var/log/atmo/deploy.log')
-        private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
         msd = MultiStepDeployment([script_init,
                                    script_deps,
                                    script_wget,
                                    script_chmod,
                                    script_atmo_init])
-        kwargs.update({'ssh_key': private_key})
         kwargs.update({'deploy': msd})
+
+        private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
+        kwargs.update({'ssh_key': private_key})
+
         kwargs.update({'timeout': 120})
         return self.deploy_to(instance, *args, **kwargs)
 
@@ -343,23 +354,27 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         """
         Deploy to an instance.
         """
+
+
         if args:
             instance = args[0]
         else:
             raise MissingArgsException("Missing instance argument.")
         if not kwargs.get('deploy'):
             raise MissingArgsException("Missing deploy argument.")
+        if not kwargs.get('ssh_key'):
+            private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
+            kwargs.update({'ssh_key': private_key})
+        if not kwargs.get('timeout'):
+            kwargs.update({'timeout': 120})
+
         username = self.identity.user.username
-        private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
-        kwargs.update({'ssh_key': private_key})
-        kwargs.update({'timeout': 120})
         try:
+            logger.info("Attempting deployment to node")
             self._connection.ex_deploy_to_node(instance._node,
                                                *args, **kwargs)
         except DeploymentError as de:
-            logger.error(sys.exc_info())
-            logger.error(de.value)
-            logger.exception(de)
+            logger.exception("Failed to deploy to node")
             return False
         return True
 
