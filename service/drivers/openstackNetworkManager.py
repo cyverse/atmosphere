@@ -36,9 +36,19 @@ class NetworkManager():
 
     ##Admin-specific methods##
     def list_project_network(self):
-        named_networks = self.find_subnet('-subnet', contains=True)
-        users_with_networks = [net['name'].replace('-net','') for net in named_networks]
-        return users_with_networks
+        named_subnets = self.find_subnet('-subnet', contains=True)
+        users_with_networks = [net['name'].replace('-subnet','') for net in named_subnets]
+        user_map = {}
+        for u in users_with_networks:
+            my_network = self.find_network('%s-net' % u)[0]
+            my_subnet = self.find_subnet('%s-subnet' % u)[0]
+            my_router_interface = self.find_router_interface(
+                self.find_router(self.default_router)[0],
+                my_subnet)
+            user_map[u] = {'network':my_network,
+                           'subnet':my_subnet, 
+                           'interface':my_router_interface}
+        return user_map
 
     def create_project_network(self, username, password,
                               project_name, **kwargs):
@@ -162,9 +172,10 @@ class NetworkManager():
                                 driver=self)
 
     ##LOOKUP##
-    def find_network(self, network_name):
+    def find_network(self, network_name, contains=False):
         return [net for net in self.quantum.list_networks()['networks']
-                if network_name == net['name']]
+                if network_name == net['name']
+                or (contains and network_name in net['name'])]
 
     def find_subnet(self, subnet_name, contains=False):
         return [net for net in self.quantum.list_subnets()['subnets']

@@ -238,10 +238,9 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 nodes=[node],
                 wait_period=3, timeout=NODE_ONLINE_WAIT_TIMEOUT,
                 ssh_interface=ssh_interface)[0]
-            logger.info(node)
             if not ip_addresses:
                 raise Exception('IP address was not found')
-            logger.info(ip_addresses)
+            logger.info("Ip Address found after calling wait_until_running: %s" % ip_addresses)
         except Exception:
             e = sys.exc_info()[1]
             raise DeploymentError(node=node, original_exception=e, driver=self)
@@ -330,6 +329,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                                timeout=ssh_timeout)
 
         # Connect to the SSH server running on the node
+        logger.info(ssh_client.__dict__)
         ssh_client = self._ssh_client_connect(ssh_client=ssh_client,
                                               timeout=timeout)
 
