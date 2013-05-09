@@ -140,8 +140,10 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                             public_ips.append(ip['addr'])
                         else:
                             private_ips.append(ip['addr'])
-                node.public_ips = public_ips
-                node.private_ips = private_ips
+                [node.public_ips.append(ip) for ip in public_ips 
+		 if ip not in node.public_ips]
+                [node.private_ips.append(ip) for ip in private_ips
+		 if ip not in node.private_ips]
             except (IndexError, KeyError) as no_ip:
                 logger.warn("No IP for node:%s" % api_node['id'])
 
@@ -235,6 +237,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 nodes=[node],
                 wait_period=3, timeout=NODE_ONLINE_WAIT_TIMEOUT,
                 ssh_interface=ssh_interface)[0]
+            if not ip_addresses:
+                raise Exception('IP address was not found')
         except Exception:
             e = sys.exc_info()[1]
             raise DeploymentError(node=node, original_exception=e, driver=self)
@@ -250,7 +254,6 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         timeout = kwargs.get('timeout', SSH_CONNECT_TIMEOUT)
 
         deploy_error = None
-
         for username in ([ssh_username] + ssh_alternate_usernames):
             try:
                 self._connect_and_run_deployment_script(
@@ -265,8 +268,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 # exception
                 logger.exception('FAIL')
                 logger.exception(exc)
-                e = sys.exc_info()[1]
-                deploy_error = e
+                deploy_error = exc
             else:
                 # Script sucesfully executed, don't try alternate username
                 deploy_error = None
@@ -657,7 +659,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         """
         try:
             if not address:
-                public_ips = server.public_ips
+                public_ips = server._node.public_ips
                 if not public_ips:
                     logger.warn("Could not determine public IP address,\
                     please provide the floating IP address")
