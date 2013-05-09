@@ -269,8 +269,8 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 # Try alternate username
                 # Todo: Need to fix paramiko so we can catch a more specific
                 # exception
-                logger.exception('FAIL')
-                logger.exception(exc)
+                logger.exception("Could not connect to SSH on IP address %s" %
+                        ip_addresses[0])
                 e = sys.exc_info()[1]
                 deploy_error = e
             else:
@@ -836,7 +836,23 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         Feel free to replace when a better mechanism comes along..
         """
         network_manager = NetworkManager.lc_driver_init(self)
-        floating_ip = network_manager.associate_floating_ip(node.id)
+
+        #Did we already assign a public ip? lets use that instead.
+        if node.extra['metadata'].get('public_ip'):
+            return node.extra['metadata']['public_ip']
+
+        try:
+            floating_ip = network_manager.associate_floating_ip(node.id)
+        except QuantumClientException as q_error:
+            if q_error.status_code == 409:
+                #409 == Conflict
+                #Lets look through the message and determine why:
+                logger.info("Conflict stopped node from associating new "
+                "floating IP. Message=%s" % q_error.message)
+            #Handle any conflicts that make sense and return, all others:
+            raise
+
+        #A floating IP has been assigned, save it to metadata
         self.ex_set_metadata(
             node, {'public_ip': floating_ip['floating_ip_address']},
             replace_metadata=False)

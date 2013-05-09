@@ -369,13 +369,9 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
             kwargs.update({'timeout': 120})
 
         username = self.identity.user.username
-        try:
-            logger.info("Attempting deployment to node")
-            self._connection.ex_deploy_to_node(instance._node,
-                                               *args, **kwargs)
-        except DeploymentError as de:
-            logger.exception("Failed to deploy to node")
-            return False
+        logger.info("Attempting deployment to node")
+        self._connection.ex_deploy_to_node(instance._node,
+                                           *args, **kwargs)
         return True
 
     def deploy_instance(self, *args, **kwargs):
