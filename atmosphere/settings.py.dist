@@ -223,6 +223,17 @@ EUCA_EC2_URL=""
 EUCA_ADMIN_KEY=""
 EUCA_ADMIN_SECRET=""
 
+#
+# IMAGING SETTINGS
+#
+ 
+# LOCAL STORAGE
+# Local storage is necessary for imaging Eucalyptus
+# There should be a minimum of 10GB of space remaining
+# before attempting imaging.
+# Ideally, this location should point to a storage volume
+LOCAL_STORAGE='/tmp'
+
 #Eucalyptus Imaging secrets
 EUCA_PRIVATE_KEY=""
 EC2_CERT_PATH=""

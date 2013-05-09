@@ -19,7 +19,7 @@ from threepio import logger
 
 from service.drivers.openstackImageManager import ImageManager as OSImageManager
 from service.drivers.eucalyptusImageManager import ImageManager as EucaImageManager
-
+from service.drivers.common import sed_delete_one, run_command
 
 class EucaToOpenstack:
 
@@ -35,20 +35,16 @@ class EucaToOpenstack:
         TODO: Add in public, private_user_list, exclude_files
         """
         if not euca_image_path:
-            euca_image_path = self.euca_img_manager.download_image(local_download_dir, euca_image_id)
-            #Downloads image to local_download_dir/emi-###
-            local_download_dir = os.path.join(local_download_dir, euca_image_id)
-            mount_point = os.path.join(local_download_dir,'mount_point')
-            self.euca_img_manager._clean_local_image(euca_image_path, mount_point, ["usr/sbin/atmo_boot"])
+            euca_image_path = self._download_and_clean_image(local_download_dir, euca_image_id)
         distro = self._determine_distro(euca_image_path, local_download_dir)
         if distro == 'centos':
-            (image, kernel, ramdisk) = self._convert_centos(euca_image_path, local_download_dir)
+            (image, kernel, ramdisk) = self._euca_rhel_migration(euca_image_path, local_download_dir)
         elif distro == 'ubuntu':
-            (image, kernel, ramdisk) = self._convert_ubuntu(euca_image_path, local_download_dir, euca_image_id)
+            (image, kernel, ramdisk) = self._euca_debian_migration(euca_image_path, local_download_dir, euca_image_id)
         else:
             logger.error("Failed to find a conversion for this OS.")
             return
-
+        logger.debug("Image ready for upload")
         if not no_upload:
             os_image = self.os_img_manager.upload_euca_image(name, image, kernel, ramdisk)
         if not keep_image:
@@ -63,29 +59,36 @@ class EucaToOpenstack:
         TODO: Add in public, private_user_list, exclude_files
         """
         if not euca_image_path:
-            euca_image_path = self.euca_img_manager.download_instance(local_download_dir, euca_instance_id)
-            #Downloads instance to local_download_dir/i-###
-            local_download_dir = os.path.join(local_download_dir, euca_instance_id)
+            local_download_dir, euca_image_path = self.euca_img_manager.download_instance(local_download_dir, euca_instance_id)
+            #Downloads instance to local_download_dir/user/i-###
             mount_point = os.path.join(local_download_dir, 'mount_point')
             self.euca_img_manager._clean_local_image(euca_image_path, mount_point, ["usr/sbin/atmo_boot"])
         distro = self._determine_distro(euca_image_path, local_download_dir)
         logger.info("Migrating using the %s distro conversion" % distro)
         if distro == 'centos':
-            (image, kernel, ramdisk) = self._convert_centos(euca_image_path, local_download_dir)
+            (image, kernel, ramdisk) = self._euca_rhel_migration(euca_image_path, local_download_dir)
         elif distro == 'ubuntu':
             euca_image_id = self.euca_img_manager.find_instance(euca_instance_id)[0].instances[0].image_id
-            (image, kernel, ramdisk) = self._convert_ubuntu(euca_image_path, local_download_dir, euca_image_id)
+            (image, kernel, ramdisk) = self._euca_debian_migration(euca_image_path, local_download_dir, euca_image_id)
         else:
             logger.error("Failed to find a conversion for this OS.")
             return
         if not no_upload:
-            os_instance = self.os_img_manager.upload_euca_image(name, image, kernel, ramdisk)
+            os_image = self.os_img_manager.upload_euca_image(name, image, kernel, ramdisk)
+            logger.debug("Successfully uploaded eucalyptus image: %s" %
+                    os_image)
         if not keep_image:
             os.remove(image)
             os.remove(kernel)
             os.remove(ramdisk)
-        if os_instance:
-            return os_instance
+        if os_image:
+            return os_image.id
+
+    def _download_and_clean_image(self, local_download_dir, euca_image_id):
+        local_download_dir, euca_image_path = self.euca_img_manager.download_image(local_download_dir, euca_image_id)
+        mount_point = os.path.join(local_download_dir,'mount_point')
+        self.euca_img_manager._clean_local_image(euca_image_path, mount_point, ["usr/sbin/atmo_boot"])
+        return euca_image_path
 
     def _determine_distro(self, image_path, download_dir):
         """
@@ -96,15 +99,12 @@ class EucaToOpenstack:
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
 
-        self.euca_img_manager.run_command(["mount", "-o", "loop", image_path, mount_point])
+        run_command(["mount", "-o", "loop", image_path, mount_point])
 
         issue_file = os.path.join(mount_point, "etc/issue.net")
-        (issue_out,err) = self.euca_img_manager.run_command(["cat", issue_file])
+        (issue_out,err) = run_command(["cat", issue_file])
 
-        #release_file = os.path.join(mount_point, "etc/*release*")
-        #(centos_out,err) = self.euca_img_manager.run_command(['/usr/bin/env', 'bash', '-c', 'cat %s' % release_file])
-
-        self.euca_img_manager.run_command(["umount", mount_point])
+        run_command(["umount", mount_point])
 
         if 'ubuntu' in issue_out.lower():
             return 'ubuntu'
@@ -113,7 +113,7 @@ class EucaToOpenstack:
         else:
             return 'unknown'
         
-    def _convert_ubuntu(self, image_path, download_dir, euca_image_id):
+    def _euca_debian_migration(self, image_path, download_dir, euca_image_id):
         """
         Clean the image as you would normally, but apply a few specific changes
         Returns: ("/path/to/img", "/path/to/kernel", "/path/to/ramdisk")
@@ -129,34 +129,37 @@ class EucaToOpenstack:
                 os.makedirs(dir_path)
 
         #Mount the image
-        self.euca_img_manager.run_command(["mount", "-o", "loop", image_path, mount_point])
+        run_command(["mount", "-o", "loop", image_path, mount_point])
         #REMOVE (1-line):
         for (remove_line_w_str, remove_from) in [ ("atmo_boot",  "etc/rc.local"),
                                                   ("sda2", "etc/fstab"),
                                                   ("sda3",  "etc/fstab") ]:
-            replace_file_path = os.path.join(mount_point, remove_from)
-            if os.path.exists(replace_file_path):
-                self.euca_img_manager.run_command(["/bin/sed", "-i", "/%s/d" % remove_line_w_str, replace_file_path])
+            mounted_filepath = os.path.join(mount_point, remove_from)
+            sed_delete_one(remove_line_w_str, mounted_filepath)
 
         #Un-mount the image
-        self.euca_img_manager.run_command(["umount", mount_point])
+        run_command(["umount", mount_point])
 
         image = self.euca_img_manager.get_image(euca_image_id)
         kernel = self.euca_img_manager.get_image(image.kernel_id)
         ramdisk = self.euca_img_manager.get_image(image.ramdisk_id)
 
-        kernel_fname  = self.euca_img_manager._retrieve_euca_image(kernel.location, kernel_dir, kernel_dir)[0]
-        ramdisk_fname = self.euca_img_manager._retrieve_euca_image(ramdisk.location, ramdisk_dir, ramdisk_dir)[0]
+        kernel_fname  = self.euca_img_manager._unbundle_euca_image(
+            kernel.location, kernel_dir, 
+            kernel_dir, self.euca_img_manager.pk_path)[0]
+        ramdisk_fname = self.euca_img_manager._unbundle_euca_image(
+            ramdisk.location, ramdisk_dir,
+            ramdisk_dir, self.euca_img_manager.pk_path)[0]
 
         kernel_path = os.path.join(kernel_dir,kernel_fname)
         ramdisk_path = os.path.join(ramdisk_dir,ramdisk_fname)
 
         return (image_path, kernel_path, ramdisk_path)
 
-    def _convert_centos(self, image_path, download_dir):
+    def _euca_rhel_migration(self, image_path, download_dir):
         """
         Clean the image as you would normally, but apply a few specific changes
         Returns: ("/path/to/img", "/path/to/kernel", "/path/to/ramdisk")
         """
-        (image, kernel, ramdisk) = self.euca_img_manager._openstack_kvm_export(image_path, download_dir)
+        (image, kernel, ramdisk) = self.euca_img_manager._prepare_kvm_export(image_path, download_dir)
         return (image, kernel, ramdisk)

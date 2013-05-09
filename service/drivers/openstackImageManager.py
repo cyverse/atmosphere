@@ -104,6 +104,9 @@ class ImageManager():
         raise NotImplemented("not yet..")
 
     def create_image(self, instance_id, name=None, username=None, **kwargs):
+        """
+        Creates a SNAPSHOT, not an image!
+        """
         metadata = kwargs
         if not name:
             name = 'Image of %s' % instance_id

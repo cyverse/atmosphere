@@ -16,6 +16,7 @@ from service.drivers.openstackImageManager import\
     ImageManager as OSImageManager
 from service.drivers.migrate import EucaToOpenstack as EucaOSMigrater
 
+from atmosphere import settings
 
 @task()
 def machine_export_task(machine_export):
@@ -28,8 +29,9 @@ def machine_imaging_task(machine_request, euca_imaging_creds, openstack_creds):
         machine_request.status = 'processing'
         machine_request.save()
         logger.debug('%s' % machine_request)
+        local_download_dir = settings.LOCAL_STORAGE
         new_image_id = select_and_build_image(machine_request,
-                euca_imaging_creds, openstack_creds)
+                euca_imaging_creds, openstack_creds, local_download_dir)
         if new_image_id is None:
             raise Exception('The image cannot be built as requested. '
                             + 'The provider combination is probably bad.')
@@ -60,7 +62,8 @@ def machine_imaging_task(machine_request, euca_imaging_creds, openstack_creds):
         machine_request.save()
         return None
 
-def select_and_build_image(machine_request, euca_imaging_creds, openstack_creds):
+def select_and_build_image(machine_request, euca_imaging_creds,
+                           openstack_creds, local_download_dir='/tmp'):
     """
     Directing traffic between providers
     Fill out all available fields using machine request data
@@ -92,7 +95,7 @@ def select_and_build_image(machine_request, euca_imaging_creds, openstack_creds)
                 exclude=re.split(", | |\n",
                                  machine_request.exclude_files),
                 meta_name=meta_name,
-                local_download_dir='/Storage/',
+                local_download_dir=local_download_dir,
             )
         elif new_provider == 'openstack':
             logger.info('Create openstack image from euca image')
@@ -102,7 +105,7 @@ def select_and_build_image(machine_request, euca_imaging_creds, openstack_creds)
             new_image_id = manager.migrate_instance(
                 machine_request.instance.provider_alias,
                 machine_request.new_machine_name,
-		local_download_dir='/Storage/')
+                local_download_dir=local_download_dir) 
     elif old_provider == 'openstack':
         if new_provider == 'eucalyptus':
             logger.info('Create euca image from openstack image')
