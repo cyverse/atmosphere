@@ -22,7 +22,7 @@ from libcloud.compute.drivers.openstack import OpenStack_1_1_NodeDriver
 from libcloud.utils.py3 import httplib
 
 from service.drivers.openstackNetworkManager import NetworkManager
-
+from quantumclient.common.exceptions import QuantumClientException
 
 class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     """
@@ -644,6 +644,15 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         except Exception, e:
             raise
 
+    def ex_clean_floating_ip(self, **kwargs):
+        """
+        Check for floating IPs without an instance ID
+        and remove them from the driver
+        """
+        for f_ip in self.ex_list_floating_ips():
+            if not f_ip.get('instance_id'):
+                self.ex_deallocate_floating_ip(f_ip['id'])
+
     def ex_associate_floating_ip(self, server, address, **kwargs):
         """
         Associate an allocated floating IP to the node
@@ -836,6 +845,11 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         Feel free to replace when a better mechanism comes along..
         """
         network_manager = NetworkManager.lc_driver_init(self)
+
+        #Can we assign a public ip? Node must be active
+        if node.extra['status'] != 'active':
+            raise Exception("Instance %s must be active before associating "
+                            "floating IP" % node.id)
 
         #Did we already assign a public ip? lets use that instead.
         if node.extra['metadata'].get('public_ip'):

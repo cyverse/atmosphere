@@ -424,6 +424,9 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
     def _add_floating_ip(self, instance, *args, **kwargs):
         return self._connection._add_floating_ip(instance, *args, **kwargs)
 
+    def _clean_floating_ip(self, *args, **kwargs):
+        return self._connection.ex_clean_floating_ip(**kwargs)
+
     def _is_active_instance(self, instance):
         #Other things may need to be tested
         status = instance.extra['status']

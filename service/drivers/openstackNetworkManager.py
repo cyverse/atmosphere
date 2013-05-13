@@ -35,17 +35,17 @@ class NetworkManager():
         return quantum
 
     ##Admin-specific methods##
-    def list_project_network(self):
+    def project_network_map(self):
         named_subnets = self.find_subnet('-subnet', contains=True)
         users_with_networks = [net['name'].replace('-subnet','') for net in named_subnets]
         user_map = {}
-        for u in users_with_networks:
-            my_network = self.find_network('%s-net' % u)[0]
-            my_subnet = self.find_subnet('%s-subnet' % u)[0]
+        for user in users_with_networks:
+            my_network = self.find_network('%s-net' % user)[0]
+            my_subnet = self.find_subnet('%s-subnet' % user)[0]
             my_router_interface = self.find_router_interface(
-                self.find_router(self.default_router)[0],
-                my_subnet)
-            user_map[u] = {'network':my_network,
+                self.default_router,
+                '%s-subnet' % user)
+            user_map[user] = {'network':my_network,
                            'subnet':my_subnet, 
                            'interface':my_router_interface}
         return user_map
@@ -96,7 +96,6 @@ class NetworkManager():
         delete_subnet
         delete_network
         """
-        logger.info(self.default_router)
         self.remove_router_interface(self.quantum,
                                      self.default_router,
                                      '%s-subnet' % project_name)
@@ -195,8 +194,25 @@ class NetworkManager():
                 if router_id == port['device_id']]
 
     def find_router_interface(self, router, subnet):
+        #If no router/subnet, return None
         if not router or not subnet:
             return None
+        #If str router/subnet, find the obj
+        if type(router) != dict:
+            routers = self.find_router(router)
+            if not routers:
+                logger.info('Router %s does not exists' % router)
+                return None
+            router = routers[0]
+
+        if type(subnet) != dict:
+            subnets = self.find_subnet(subnet)
+            if not subnets:
+                logger.info('Subnet %s does not exists' % subnet)
+                return None
+            subnet = subnets[0]
+
+        #Return the router interfaces matching router+subnet
         router_name = router['name']
         subnet_id = subnet['id']
         router_ports = self.find_ports(router_name)

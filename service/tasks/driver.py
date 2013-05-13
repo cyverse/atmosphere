@@ -154,15 +154,19 @@ def destroy_instance(driverCls, provider, identity, instance_alias):
 def _deploy_init_to(driverCls, provider, identity, instance_id):
     try:
         logger.debug("_deploy_init_to task started at %s." % datetime.now())
+
+        #Check if instance still exists
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         if not instance:
-            #Breakout if instance is destroyed
             logger.debug("Instance already deleted: %s." % instance_id)
             return
+
+        #Deploy with no password to use ssh keys
         logger.info(instance.extra)
         instance._node.extra['password'] = None
         driver.deploy_init_to(instance)
+
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
     except Exception as exc:
         logger.exception(exc)
@@ -177,14 +181,21 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
 def add_floating_ip(driverCls, provider, identity, instance_alias, *args, **kwargs):
     try:
         logger.debug("add_floating_ip task started at %s." % datetime.now())
+
+        #Remove unused floating IPs first, so they can be re-used
         driver = get_driver(driverCls, provider, identity)
+        driver._clean_floating_ip()
+
+        #assign if instance doesn't already have an IP addr
         instance = driver.get_instance(instance_alias)
         if not instance.ip:
             driver._add_floating_ip(instance, *args, **kwargs)
         else:
             logger.debug("public ip already found! %s" % instance.ip)
+
         logger.debug("add_floating_ip task finished at %s." % datetime.now())
     except Exception as exc:
+        logger.exception("Error occurred while assigning a floating IP")
         add_floating_ip.retry(exc=exc)
 
 @task(name="_remove_floating_ip",
@@ -195,10 +206,7 @@ def _remove_floating_ip(driverCls, provider, identity, *args, **kwargs):
     try:
         logger.debug("remove_floating_ip task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
-        for f_ip in driver._connection.ex_list_floating_ips():
-            if not f_ip.get('instance_id'):
-                driver._connection.ex_deallocate_floating_ip(f_ip['id'])
-                logger.info("Removed unused Floating IP: %s" % f_ip)
+        driver._clean_floating_ip()
         logger.debug("remove_floating_ip task finished at %s." % datetime.now())
     except Exception as exc:
         logger.warn(exc)

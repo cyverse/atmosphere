@@ -644,6 +644,7 @@ title Atmosphere VM (%s)
         #Removes file (Matches wildcards)
         for rm_file in ['home/*', 'mnt/*', 'tmp/*', 'root/*', 'dev/*',
                         'proc/*', 'var/lib/puppet/run/*.pid',
+                        'etc/rc.local.atmo',
                         'etc/puppet/ssl', 'usr/sbin/atmo_boot.py',
                         'var/log/atmo/atmo_boot.log',
                         'var/log/atmo/atmo_init.log']:
@@ -675,7 +676,11 @@ title Atmosphere VM (%s)
         #Single line replacement..
         for (replace_str, replace_with, replace_where) in [
                 ("\(users:x:100:\).*", "users:x:100:", "etc/group"),
-                ("AllowGroups users root.*", "", "etc/ssh/sshd_config")]:
+                ("AllowGroups users root.*", "", "etc/ssh/sshd_config"),
+                #TODO:Remove the edge cases (Shell & VNC lines in rc.local)
+                (".*vncserver$", "", "etc/rc.local"),
+                (".*shellinbaox.*", "", "etc/rc.local")
+                ]:
             replace_where = self._check_mount_path(replace_where)
             mounted_filepath = os.path.join(mount_point, replace_where)
             sed_replace(replace_str, replace_with, mounted_filepath)
