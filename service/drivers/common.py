@@ -6,6 +6,7 @@ import subprocess
 
 import glanceclient
 from keystoneclient.v3 import client as ks_client
+from keystoneclient.exceptions import AuthorizationFailure
 from novaclient import client as nova_client
 
 from libcloud.compute.deployment import ScriptDeployment
@@ -42,7 +43,11 @@ class LoggedScriptDeployment(ScriptDeployment):
 def _connect_to_keystone(*args, **kwargs):
     """
     """
-    keystone = ks_client.Client(*args, **kwargs)
+    try:
+        keystone = ks_client.Client(*args, **kwargs)
+    except AuthorizationFailure as e:
+        raise Exception("""Authorization Failure: Bad keystone secrets or 
+        firewall causing a timeout.""")
     keystone.management_url = keystone.management_url.replace('v2.0','v3')
     keystone.version = 'v3'
     return keystone

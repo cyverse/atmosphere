@@ -197,7 +197,7 @@ def instance_graph(request, instance_id=None, metric=None):
         if request.GET.__contains__('start'):
             params['start'] = request.GET.get('start')
     resp, content = h.request(url + "?" + urllib.urlencode(params), "GET")
-    logger.debug('request against %s returned reponse %s' % (url, resp))
+    #logger.debug('request against %s returned reponse %s' % (url, resp))
     response = HttpResponse(content,
                             content_type='application/json',
                             status=int(resp['status']))
