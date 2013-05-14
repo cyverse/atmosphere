@@ -35,7 +35,7 @@ from euca2ools import Euca2ool, FileValidationError
 
 from service.drivers.common import sed_delete_multi, sed_delete_one
 from service.drivers.common import sed_replace, sed_prepend
-from service.drivers.common import run_command, install_cloud_init
+from service.drivers.common import run_command, chroot_local_image, install_cloud_init
 from threepio import logger
 
 

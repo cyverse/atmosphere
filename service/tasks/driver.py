@@ -179,7 +179,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
 
 # Floating IP Tasks
 @task(name="add_floating_ip",
-      default_retry_delay=15,
+      default_retry_delay=50,
       ignore_result=True,
       max_retries=6)
 def add_floating_ip(driverCls, provider, identity, instance_alias, *args, **kwargs):

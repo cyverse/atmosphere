@@ -293,7 +293,7 @@ cloud_final_modules:
  - final-message
 """ 
 
-def prepare_cloud_init_script(self):
+def prepare_cloud_init_script():
 
     """
     The most complete list of cloud-init modules can be found here:
