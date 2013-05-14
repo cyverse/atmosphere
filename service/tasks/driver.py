@@ -27,6 +27,9 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
         logger.debug("_send_instance_email task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
+        #Breakout if instance has been deleted at this point
+        if not instance:
+            return
         username = identity.user.username
         created = datetime.strptime(instance.extra['created'],
                                     "%Y-%m-%dT%H:%M:%SZ")
@@ -35,6 +38,7 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
                             instance.ip,
                             created,
                             username)
+        logger.debug("_send_instance_email task finished at %s." % datetime.now())
     except Exception as exc:
         logger.warn(exc)
         _send_instance_email.retry(exc=exc)

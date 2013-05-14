@@ -19,9 +19,10 @@ from threepio import logger
 
 from service.drivers.openstackImageManager import ImageManager as OSImageManager
 from service.drivers.eucalyptusImageManager import ImageManager as EucaImageManager
-from service.drivers.common import sed_delete_one, run_command
+from service.drivers.common import sed_delete_one
+from service.drivers.common import run_command, install_cloud_init
 
-class EucaToOpenstack:
+class EucaOSMigrater:
 
     def __init__(self, euca_creds, os_creds):
         self.os_img_manager = OSImageManager(**os_creds)
@@ -35,7 +36,7 @@ class EucaToOpenstack:
         TODO: Add in public, private_user_list, exclude_files
         """
         if not euca_image_path:
-            euca_image_path = self._download_and_clean_image(local_download_dir, euca_image_id)
+            local_download_dir, euca_image_path = self._download_and_clean_image(local_download_dir, euca_image_id)
         distro = self._determine_distro(euca_image_path, local_download_dir)
         if distro == 'centos':
             (image, kernel, ramdisk) = self._euca_rhel_migration(euca_image_path, local_download_dir)
@@ -86,9 +87,9 @@ class EucaToOpenstack:
 
     def _download_and_clean_image(self, local_download_dir, euca_image_id):
         local_download_dir, euca_image_path = self.euca_img_manager.download_image(local_download_dir, euca_image_id)
-        mount_point = os.path.join(local_download_dir,'mount_point')
+        mount_point = os.path.join(local_download_dir, 'mount_point')
         self.euca_img_manager._clean_local_image(euca_image_path, mount_point, ["usr/sbin/atmo_boot"])
-        return euca_image_path
+        return local_download_dir, euca_image_path
 
     def _determine_distro(self, image_path, download_dir):
         """
@@ -136,6 +137,9 @@ class EucaToOpenstack:
                                                   ("sda3",  "etc/fstab") ]:
             mounted_filepath = os.path.join(mount_point, remove_from)
             sed_delete_one(remove_line_w_str, mounted_filepath)
+
+        #Install cloud-init awesomeness
+        install_cloud_init(mount_point, 'Ubuntu')
 
         #Un-mount the image
         run_command(["umount", mount_point])

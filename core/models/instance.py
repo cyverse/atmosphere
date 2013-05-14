@@ -186,6 +186,7 @@ def createInstance(provider_id, provider_alias, provider_machine,
                                        created_by=creator, token=token)
     if create_stamp:
         new_inst.start_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+        new_inst.start_date.replace(tzinfo=pytz.utc)
     new_inst.save()
     logger.debug("New instance created - %s (Token = %s)" %
                  (provider_alias, token))

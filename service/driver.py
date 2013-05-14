@@ -348,6 +348,10 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         kwargs.update({'ssh_key': private_key})
 
         kwargs.update({'timeout': 120})
+
+        cloud_init_script = self._get_cloud_init_script()
+        kwargs.update({'ex_userdata': cloud_init_script})
+
         return self.deploy_to(instance, *args, **kwargs)
 
     def deploy_to(self, *args, **kwargs):
@@ -374,6 +378,7 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
                                            *args, **kwargs)
         return True
 
+
     def deploy_instance(self, *args, **kwargs):
         """
         Deploy instance.
@@ -383,9 +388,13 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         if not kwargs.get('deploy'):
             raise MissingArgsException("Missing deploy argument.")
         username = self.identity.user.username
+
         private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'timeout': 120})
+
+        cloud_init_script = self._get_cloud_init_script()
+        kwargs.update({'ex_userdata': cloud_init_script})
         try:
             self.deploy_node(*args, **kwargs)
         except DeploymentError as de:
