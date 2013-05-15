@@ -102,59 +102,17 @@ Atmo.Router = Backbone.Router.extend({
             e.preventDefault();
             $('#feedback_link').trigger('click');
         });
-        $('#beta_tester_link').click(function(e) {
-            e.preventDefault();
-            var header = 'A new cloud is coming!';
-            var body = 'Atmosphere will soon host OpenStack cloud.<br /><br />';
-            body += 'We need beta testers who can help us by reporting the problems and errors they experience.<br /><br />';
-            body += 'If you would like to try the OpenStack cloud integration early, please click the "Notify me when it\'s ready" button and we will send you an email when the beta program is available in early January.';
-            Atmo.Utils.confirm(header, body, { 
-                on_confirm: function() { 
-                    var data = {};
-                    data["username"] = Atmo.profile.get('id');
-                    data["message"] = data["username"] + ' wants to beta test OpenStack.\n';
-                    data["subject"] = 'Atmosphere User ' + data["username"] + ' wants to beta test OpenStack';
-					// Create a list of user's instances and volumes to make support easier
-					data["message"] += '\n\n' + Atmo.profile.get('id') + "'s Instances:";
-					for (var i = 0; i < Atmo.instances.length; i++) {
-						var instance = Atmo.instances.models[i];
-						data["message"] += '\nID:\t\t' + instance.get('id') + '\nEMI:\t\t' + instance.get('image_id') + '\nIP:\t\t' + instance.get('public_dns_name');
-					}
-					data["message"] += '\n\n' + Atmo.profile.get('id') + "'s Volumes:";
-					for (var i = 0; i < Atmo.volumes.length; i++) {
-						var volume = Atmo.volumes.models[i];
-						data["message"] += '\nID:\t\t' + volume.get('id') + '\nName:\t\t' + volume.get('name');
-					}
-					data["message"] += '\n\n';
 
-					data['location'] = window.location.href,
-					data['resolution'] = { 
-						'viewport': {
-							'width': $(window).width(),
-							'height': $(window).height()
-						},
-						'screen': {
-							'width':  screen.width,
-							'height': screen.height
-						}
-					};
-
-                    $.ajax({
-                        type: 'POST',
-                        url: site_root + '/api/email_support/', 
-                        data: data,
-                        statusCode: {
-                            200:  function() {
-                                Atmo.Utils.notify("Thank you!", "We will email you when the OpenStack cloud is ready for testing.");
-                            }
-                        },
-                        contentType: 'json',
-                        dataType: 'json'
-                    });
-                }, 
-                ok_button: 'Notify me when it\'s ready'
-            });
-        });
+		// Populate version number
+		$.ajax({
+			type: 'GET',
+			url: site_root + '/api/version/', 
+			statusCode: {
+				200:  function(response) {
+					$('#version').html('(v. ' + response['short'] + ')');
+				}
+			},
+		});
 
 
         new Atmo.Views.NotificationHolder({el: $('#alert_holder')[0]});

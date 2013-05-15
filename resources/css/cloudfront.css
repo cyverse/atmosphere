@@ -1780,3 +1780,6 @@ a.selected.thumbnail {
 	text-decoration: none;
 	border-bottom: 0 !important;
 }
+#version {
+	color: #a4dfe5;
+}
