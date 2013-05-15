@@ -23,7 +23,7 @@ Atmo.Views.VolumeScreen = Backbone.View.extend({
 
         // Create context help for a few volume functions
         this.$el.find('#help_available_volumes').popover({
-            placement: 'top',
+            placement: 'bottom',
             html: true,
             title: 'Available Volumes <a class="close" data-parent="help_available_volumes" data-dismiss="popover" href="#volumes">&times</a>',
             content: function() {

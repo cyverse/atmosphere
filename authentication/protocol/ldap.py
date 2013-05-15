@@ -72,7 +72,7 @@ def lookupEmail(userid):
         emailaddr = attr[0][1]['mail'][0]
         return emailaddr
     except Exception as e:
-        logger.warn("Error occurred looking up email for user: " % userid)
+        logger.warn("Error occurred looking up email for user: %s" % userid)
         logger.exception(e)
         import traceback
         import sys
