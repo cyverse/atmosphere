@@ -38,7 +38,9 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 							|| response.status == 'resize - resize_migrating'
 							|| response.status == 'resize - resize_migrated'
 							|| response.status == 'resize - resize_finish'
-							|| response.state == 'hard_reboot - rebooting_hard'
+							|| response.status == 'active - networking'
+							|| response.status == 'active - deploying'
+							|| response.status == 'hard_reboot - rebooting_hard'
 							|| response.status == 'revert_resize - resize_reverting' );
 		attributes.state_is_delete = (    response.status == 'delete'
 	  						|| response.status == 'active - deleting'
