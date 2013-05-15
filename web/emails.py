@@ -112,7 +112,16 @@ def email_support(request):
     Returns a response.
     """
     message = request.POST.get('message')
+    if not message:
+        return HttpResponseServerError({'email_sent': False,
+                                        'reason': 'Message contents missing'},
+                                       content_type='application/json')
     subject = request.POST.get('subject')
+    if not subject:
+        return HttpResponseServerError({'email_sent': False,
+                                        'reason': 'E-Mail Subject missing'},
+                                       content_type='application/json')
+
     email_success = email_admin(request, subject, message)
     resp = json.dumps({'email_sent': email_success})
     if email_success:
