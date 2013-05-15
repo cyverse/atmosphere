@@ -12,6 +12,7 @@ from novaclient import client as nova_client
 from libcloud.compute.deployment import ScriptDeployment
 
 from threepio import logger
+from atmosphere import settings
 
 class LoggedScriptDeployment(ScriptDeployment):
 
@@ -298,7 +299,7 @@ cloud_final_modules:
  - final-message
 """ 
 
-def prepare_cloud_init_script():
+def prepare_cloudinit_script():
 
     """
     The most complete list of cloud-init modules can be found here:
@@ -345,7 +346,7 @@ phone_home:
     logger.info(prepared_script)
     return prepared_script
 
-def install_cloud_init(mount_point, distro='CentOS'):
+def install_cloudinit(mount_point, distro='CentOS'):
     if distro == 'CentOS':
         #Install it
         chroot_local_image(mount_point, mount_point, [

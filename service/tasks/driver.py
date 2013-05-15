@@ -192,6 +192,8 @@ def add_floating_ip(driverCls, provider, identity, instance_alias, *args, **kwar
 
         #assign if instance doesn't already have an IP addr
         instance = driver.get_instance(instance_alias)
+        if not instance:
+            return
         if not instance.ip:
             driver._add_floating_ip(instance, *args, **kwargs)
         else:

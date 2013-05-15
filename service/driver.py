@@ -21,6 +21,7 @@ from core.email import send_instance_email
 from core.exceptions import MissingArgsException, ServiceException
 
 from service.drivers.common import LoggedScriptDeployment
+from service.drivers.common import prepare_cloudinit_script
 
 from service.provider import AWSProvider
 from service.provider import EucaProvider
@@ -349,8 +350,8 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
 
         kwargs.update({'timeout': 120})
 
-        cloud_init_script = self._get_cloud_init_script()
-        kwargs.update({'ex_userdata': cloud_init_script})
+        cloudinit_script = prepare_cloudinit_script()
+        kwargs.update({'ex_userdata': cloudinit_script})
 
         return self.deploy_to(instance, *args, **kwargs)
 
@@ -393,8 +394,8 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'timeout': 120})
 
-        cloud_init_script = self._get_cloud_init_script()
-        kwargs.update({'ex_userdata': cloud_init_script})
+        cloudinit_script = prepare_cloudinit_script()
+        kwargs.update({'ex_userdata': cloudinit_script})
         try:
             self.deploy_node(*args, **kwargs)
         except DeploymentError as de:

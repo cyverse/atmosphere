@@ -20,7 +20,7 @@ from threepio import logger
 from service.drivers.openstackImageManager import ImageManager as OSImageManager
 from service.drivers.eucalyptusImageManager import ImageManager as EucaImageManager
 from service.drivers.common import sed_delete_one
-from service.drivers.common import run_command, install_cloud_init
+from service.drivers.common import run_command, install_cloudinit
 
 class EucaOSMigrater:
 
@@ -139,7 +139,7 @@ class EucaOSMigrater:
             sed_delete_one(remove_line_w_str, mounted_filepath)
 
         #Install cloud-init awesomeness
-        install_cloud_init(mount_point, 'Ubuntu')
+        #install_cloudinit(mount_point, 'Ubuntu')
 
         #Un-mount the image
         run_command(["umount", mount_point])
