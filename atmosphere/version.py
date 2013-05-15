@@ -1,8 +1,10 @@
 """
 Atmosphere version.
 """
-from subprocess import Popen, PIPE
+import collections
 from os.path import abspath, dirname
+from subprocess import Popen, PIPE
+
 
 VERSION = (0, 9, 5, 'dev', 0)
 
@@ -34,7 +36,7 @@ def get_version(form='short'):
     B.b.t _type type_num@git_sha
     * ``all`` Returns a dict of all versions.
     """
-    versions = {}
+    versions = collections.OrderedDict()
     branch = "%s.%s" % (VERSION[0], VERSION[1])
     tertiary = VERSION[2]
     type_ = VERSION[3]
@@ -52,7 +54,8 @@ def get_version(form='short'):
     versions["normal"] = v
     if form is "normal":
         return v
-    v += " @" + git_sha()
+    versions["git_sha"] = "@" + git_sha()
+    v += " " + versions["git_sha"]
     versions["verbose"] = v
     if form is "verbose":
         return v
