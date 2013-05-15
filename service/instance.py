@@ -134,6 +134,10 @@ class OSInstance(Instance):
             task = self.extra.get('task')
             if task:
                 status += ' - %s' % self.extra['task']
+            extra_status = self.extra.get('metadata',{}).get('tmp_status')
+            if extra_status:
+                status += ' - %s' % self.extra_status
+
         return status
 
     def get_public_ip(self):

@@ -1,8 +1,6 @@
 import os
 
 from keystoneclient.exceptions import NotFound, ClientException
-from keystoneclient.v3 import client as ks_client
-from novaclient import client as nova_client
 
 from threepio import logger
 
@@ -90,12 +88,13 @@ class UserManager():
 
     def build_security_group(self, username, password, project_name,
             protocol_list=None, *args, **kwargs):
-        nova = nova_client.Client(username,
-                                  password,
-                                  project_name,
-                                  self.nova.client.auth_url,
-                                  self.nova.client.region_name,
-                                  *args, no_cache=True, **kwargs)
+        converted_kwargs = {
+            'username':username,
+            'password':password,
+            'tenant_name':project_name,
+            'auth_url':self.nova.client.auth_url,
+            'region_name':self.nova.client.region_name}
+        nova = _connect_to_nova(*args, **converted_kwargs)
         nova.client.region_name = self.nova.client.region_name
         if not protocol_list:
             #Build a "good" one.
@@ -159,7 +158,7 @@ class UserManager():
         Create a new project
         """
         try:
-            return self.keystone.projects.create(groupname)
+            return self.keystone_projects().create(groupname)
         except Exception, e:
             logger.exception(e)
             raise
@@ -277,7 +276,7 @@ class UserManager():
         Invalid groupname : raise keystoneclient.exceptions.NotFound
         """
         try:
-            return find(self.keystone.projects, name=groupname)
+            return find(self.keystone_projects(), name=groupname)
         except NotFound:
             return None
 
@@ -295,7 +294,13 @@ class UserManager():
         return self.keystone.roles.list()
 
     def list_projects(self):
-        return self.keystone.projects.list()
+        return self.keystone_projects().list()
+
+    def keystone_projects(self):
+        if self.keystone.version == 'v3':
+            return self.keystone.projects
+        elif self.keystone.version == 'v2.0':
+            return self.keystone.tenants
 
     def list_users(self):
         return self.keystone.users.list()
