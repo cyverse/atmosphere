@@ -6,7 +6,7 @@ from celery import chain
 from threepio import logger
 
 from core.email import send_instance_email
-
+from core.models.instance import update_instance_metadata
 
 # Utility methods and tasks
 def get_driver(driverCls, provider, identity):
@@ -166,11 +166,18 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
             logger.debug("Instance already deleted: %s." % instance_id)
             return
 
+        update_instance_metadata(driver, instance,
+                                 data={'tmp_status':'deploying'},
+                                 replace=False)
+
         #Deploy with no password to use ssh keys
         logger.info(instance.extra)
         instance._node.extra['password'] = None
         driver.deploy_init_to(instance)
 
+        update_instance_metadata(driver, instance,
+                                 data={'tmp_status':''},
+                                 replace=False)
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
     except Exception as exc:
         logger.exception(exc)
@@ -185,7 +192,6 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
 def add_floating_ip(driverCls, provider, identity, instance_alias, *args, **kwargs):
     try:
         logger.debug("add_floating_ip task started at %s." % datetime.now())
-
         #Remove unused floating IPs first, so they can be re-used
         driver = get_driver(driverCls, provider, identity)
         driver._clean_floating_ip()
@@ -194,11 +200,19 @@ def add_floating_ip(driverCls, provider, identity, instance_alias, *args, **kwar
         instance = driver.get_instance(instance_alias)
         if not instance:
             return
+
+        update_instance_metadata(driver, instance,
+                                 data={'tmp_status':'networking'},
+                                 replace=False)
+
         if not instance.ip:
             driver._add_floating_ip(instance, *args, **kwargs)
         else:
             logger.debug("public ip already found! %s" % instance.ip)
 
+        update_instance_metadata(driver, instance,
+                                 data={'tmp_status':''},
+                                 replace=False)
         logger.debug("add_floating_ip task finished at %s." % datetime.now())
     except Exception as exc:
         logger.exception("Error occurred while assigning a floating IP")

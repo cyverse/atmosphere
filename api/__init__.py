@@ -16,6 +16,7 @@ from threepio import logger
 from atmosphere import settings
 
 from core.models.identity import Identity as CoreIdentity
+from core.models.instance import update_instance_metadata
 
 from service.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\

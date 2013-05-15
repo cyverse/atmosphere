@@ -5,7 +5,6 @@ import os
 import subprocess
 
 import glanceclient
-from keystoneclient.v3 import client as ks_client
 from keystoneclient.exceptions import AuthorizationFailure
 from novaclient import client as nova_client
 
@@ -45,12 +44,18 @@ def _connect_to_keystone(*args, **kwargs):
     """
     """
     try:
+        version = kwargs.get('version','v2.0')
+        if version == 'v2.0':
+            from keystoneclient.v2_0 import client as ks_client
+        else:
+            from keystoneclient.v3 import client as ks_client
         keystone = ks_client.Client(*args, **kwargs)
     except AuthorizationFailure as e:
         raise Exception("""Authorization Failure: Bad keystone secrets or 
         firewall causing a timeout.""")
-    keystone.management_url = keystone.management_url.replace('v2.0','v3')
-    keystone.version = 'v3'
+    if version != 'v2.0':
+        keystone.management_url = keystone.management_url.replace('v2.0','v3')
+        keystone.version = 'v3'
     return keystone
 
 def _connect_to_glance(keystone, version='1', *args, **kwargs):
@@ -67,7 +72,8 @@ def _connect_to_glance(keystone, version='1', *args, **kwargs):
                           token=auth_token['id'])
     return glance
 
-def _connect_to_nova(version='1.1', *args, **kwargs):
+def _connect_to_nova(*args, **kwargs):
+    version = kwargs.get('version','1.1')
     region_name = kwargs.get('region_name')
     nova = nova_client.Client(version,
                               kwargs.pop('username'),

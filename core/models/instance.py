@@ -156,7 +156,7 @@ def set_instance_from_metadata(esh_driver, core_instance):
     core_instance.esh = esh_instance
     return core_instance
 
-def update_instance_metadata(esh_driver, esh_instance, data={}):
+def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
     """
     NOTE: This will NOT WORK for TAGS until openstack
     allows JSONArrays as values for metadata!
@@ -170,7 +170,7 @@ def update_instance_metadata(esh_driver, esh_instance, data={}):
         esh_driver._connection.ex_set_server_name(esh_instance, data['name'])
     try:
         return esh_driver._connection.ex_set_metadata(esh_instance, data,
-                replace_metadata=True)
+                replace_metadata=replace)
     except Exception, e:
         if 'incapable of performing the request' in e.message:
             return {}
