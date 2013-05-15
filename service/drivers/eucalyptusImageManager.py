@@ -35,7 +35,7 @@ from euca2ools import Euca2ool, FileValidationError
 
 from service.drivers.common import sed_delete_multi, sed_delete_one
 from service.drivers.common import sed_replace, sed_prepend
-from service.drivers.common import run_command, chroot_local_image
+from service.drivers.common import run_command, chroot_local_image, install_cloudinit
 from threepio import logger
 
 
@@ -267,6 +267,9 @@ class ImageManager():
                 ("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.d/rc.local")]:
             mounted_filepath = os.path.join(mount_point, replace_where)
             sed_delete_multi(delete_from, delete_to, mounted_filepath)
+
+        #Install cloud-init awesomeness
+        #install_cloudinit(mount_point, distro='CentOS')
 
         #First chroot with bind-mounted dev, proc and sys: update kernel, mkinitrd, and grub
         chroot_local_image(mount_point, mount_point, [

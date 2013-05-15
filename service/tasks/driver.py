@@ -27,6 +27,9 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
         logger.debug("_send_instance_email task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
+        #Breakout if instance has been deleted at this point
+        if not instance:
+            return
         username = identity.user.username
         created = datetime.strptime(instance.extra['created'],
                                     "%Y-%m-%dT%H:%M:%SZ")
@@ -35,6 +38,7 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
                             instance.ip,
                             created,
                             username)
+        logger.debug("_send_instance_email task finished at %s." % datetime.now())
     except Exception as exc:
         logger.warn(exc)
         _send_instance_email.retry(exc=exc)
@@ -175,7 +179,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
 
 # Floating IP Tasks
 @task(name="add_floating_ip",
-      default_retry_delay=15,
+      default_retry_delay=50,
       ignore_result=True,
       max_retries=6)
 def add_floating_ip(driverCls, provider, identity, instance_alias, *args, **kwargs):
@@ -188,6 +192,8 @@ def add_floating_ip(driverCls, provider, identity, instance_alias, *args, **kwar
 
         #assign if instance doesn't already have an IP addr
         instance = driver.get_instance(instance_alias)
+        if not instance:
+            return
         if not instance.ip:
             driver._add_floating_ip(instance, *args, **kwargs)
         else:

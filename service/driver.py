@@ -21,6 +21,7 @@ from core.email import send_instance_email
 from core.exceptions import MissingArgsException, ServiceException
 
 from service.drivers.common import LoggedScriptDeployment
+from service.drivers.common import prepare_cloudinit_script
 
 from service.provider import AWSProvider
 from service.provider import EucaProvider
@@ -348,6 +349,10 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         kwargs.update({'ssh_key': private_key})
 
         kwargs.update({'timeout': 120})
+
+        cloudinit_script = prepare_cloudinit_script()
+        kwargs.update({'ex_userdata': cloudinit_script})
+
         return self.deploy_to(instance, *args, **kwargs)
 
     def deploy_to(self, *args, **kwargs):
@@ -374,6 +379,7 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
                                            *args, **kwargs)
         return True
 
+
     def deploy_instance(self, *args, **kwargs):
         """
         Deploy instance.
@@ -383,9 +389,13 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         if not kwargs.get('deploy'):
             raise MissingArgsException("Missing deploy argument.")
         username = self.identity.user.username
+
         private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'timeout': 120})
+
+        cloudinit_script = prepare_cloudinit_script()
+        kwargs.update({'ex_userdata': cloudinit_script})
         try:
             self.deploy_node(*args, **kwargs)
         except DeploymentError as de:

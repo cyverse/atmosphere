@@ -14,7 +14,7 @@ from service.drivers.eucalyptusImageManager import\
     ImageManager as EucaImageManager
 from service.drivers.openstackImageManager import\
     ImageManager as OSImageManager
-from service.drivers.migrate import EucaToOpenstack as EucaOSMigrater
+from service.drivers.migrate import EucaOSMigrater
 
 from atmosphere import settings
 
@@ -22,6 +22,21 @@ from atmosphere import settings
 def machine_export_task(machine_export):
     pass
 
+@task(name='machine_migration_task', ignore_result=True)
+def machine_migration_task(new_machine_name, old_machine_id,
+                           local_download_dir='/tmp',
+                           migrate_from='eucalyptus',
+                           migrate_to='openstack'):
+        logger.debug("machine_migration_task task started at %s." % datetime.now())
+        if migrate_from == 'eucalyptus' and migrate_to == 'openstack':
+            manager = EucaOSMigrater(settings.EUCA_IMAGING_ARGS,
+                                     settings.OPENSTACK_ARGS)
+            manager.migrate_image(old_machine_id, new_machine_name,
+                                  local_download_dir)
+        else:
+            raise Exception("Cannot migrate from %s to %s" % (migrate_from,
+                                                              migrate_to))
+        logger.debug("machine_migration_task task finished at %s." % datetime.now())
 
 @task(name='machine_imaging_task', ignore_result=True)
 def machine_imaging_task(machine_request, euca_imaging_creds, openstack_creds):

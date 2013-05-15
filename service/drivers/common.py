@@ -6,11 +6,13 @@ import subprocess
 
 import glanceclient
 from keystoneclient.v3 import client as ks_client
+from keystoneclient.exceptions import AuthorizationFailure
 from novaclient import client as nova_client
 
 from libcloud.compute.deployment import ScriptDeployment
 
 from threepio import logger
+from atmosphere import settings
 
 class LoggedScriptDeployment(ScriptDeployment):
 
@@ -42,7 +44,11 @@ class LoggedScriptDeployment(ScriptDeployment):
 def _connect_to_keystone(*args, **kwargs):
     """
     """
-    keystone = ks_client.Client(*args, **kwargs)
+    try:
+        keystone = ks_client.Client(*args, **kwargs)
+    except AuthorizationFailure as e:
+        raise Exception("""Authorization Failure: Bad keystone secrets or 
+        firewall causing a timeout.""")
     keystone.management_url = keystone.management_url.replace('v2.0','v3')
     keystone.version = 'v3'
     return keystone
@@ -191,6 +197,183 @@ def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE, std
     logger.debug("STDOUT: %s" % out)
     logger.debug("STDERR: %s" % err)
     return (out,err)
+
+def _configure_cloudinit_ubuntu():
+    return """#cloud-config
+user: ubuntu
+manage_etc_hosts: True
+disable_root: 0
+preserve_hostname: False
+datasource_list: [ NoCloud, ConfigDrive, OVF, MAAS, Ec2, CloudStack ]
+
+cloud_init_modules:
+ - bootcmd
+ - resizefs
+ - set_hostname
+ - update_hostname
+ - update_etc_hosts
+ - ca-certs
+ - rsyslog
+ - ssh
+
+cloud_config_modules:
+ - mounts
+ - ssh-import-id
+ - locale
+ - set-passwords
+ - grub-dpkg
+ - apt-pipelining
+ - apt-update-upgrade
+ - landscape
+ - timezone
+ - puppet
+ - chef
+ - salt-minion
+ - mcollective
+ - runcmd
+ - byobu
+
+cloud_final_modules:
+ - rightscale_userdata
+ - scripts-per-once
+ - scripts-per-boot
+ - scripts-per-instance
+ - scripts-user
+ - keys-to-console
+ - phone-home
+ - final-message
+
+system_info:
+   package_mirrors:
+     - arches: [i386, amd64]
+       failsafe:
+         primary: http://archive.ubuntu.com/ubuntu
+         security: http://security.ubuntu.com/ubuntu
+       search:
+         primary:
+           - http://%(ec2_region)s.ec2.archive.ubuntu.com/ubuntu/
+           - http://%(availability_zone)s.clouds.archive.ubuntu.com/ubuntu/
+         security: []
+     - arches: [armhf, armel, default]
+       failsafe:
+         primary: http://ports.ubuntu.com/ubuntu-ports
+         security: http://ports.ubuntu.com/ubuntu-ports
+""" 
+
+def _configure_cloudinit_centos():
+    return """#cloud-config
+user: ec2-user
+manage_etc_hosts: True
+disable_root: 0
+preserve_hostname: False
+datasource_list: [ NoCloud, ConfigDrive, OVF, MAAS, Ec2, CloudStack ]
+
+cloud_init_modules:
+ - bootcmd
+ - resizefs
+ - set_hostname
+ - update_hostname
+ - update_etc_hosts
+ - rsyslog
+ - ssh
+
+cloud_config_modules:
+ - mounts
+ - ssh-import-id
+ - locale
+ - set-passwords
+ - timezone
+ - puppet
+ - chef
+ - salt-minion
+ - runcmd
+
+cloud_final_modules:
+ - rightscale_userdata
+ - scripts-per-once
+ - scripts-per-boot
+ - scripts-per-instance
+ - scripts-user
+ - keys-to-console
+ - phone-home
+ - final-message
+""" 
+
+def prepare_cloudinit_script():
+
+    """
+    The most complete list of cloud-init modules can be found here:
+    http://bazaar.launchpad.net/~cloud-init-dev/cloud-init/trunk/view/head:/doc/examples/cloud-config.txt
+    """
+    prepared_script = """#cloud-config
+# final_message
+# default: cloud-init boot finished at $TIMESTAMP. Up $UPTIME seconds
+# this message is written by cloud-final when the system is finished
+# its first boot
+final_message: "The system is finally up, after $UPTIME seconds"
+
+# configure where output will go
+# 'output' entry is a dict with 'init', 'config', 'final' or 'all'
+# entries.  Each one defines where 
+#  cloud-init, cloud-config, cloud-config-final or all output will go
+# each entry in the dict can be a string, list or dict.
+#  if it is a string, it refers to stdout and stderr
+#  if it is a list, entry 0 is stdout, entry 1 is stderr
+#  if it is a dict, it is expected to have 'output' and 'error' fields
+# default is to write to console only
+# the special entry "&1" for an error means "same location as stdout"
+#  (Note, that '&1' has meaning in yaml, so it must be quoted)
+output:
+ all:
+   output: "| tee /var/log/atmosphere-cloud-init.log"
+   error: "&1"
+
+# phone_home: if this dictionary is present, then the phone_home
+# cloud-config module will post specified data back to the given
+# url
+# default: none
+# phone_home:
+#  url: http://my.foo.bar/$INSTANCE/
+#  post: all
+#  tries: 10
+#
+phone_home:
+ url: %s
+ post: all
+ tries: 10
+""" % (settings.INSTANCE_SERVICE_URL)
+
+    logger.info(prepared_script)
+    return prepared_script
+
+def install_cloudinit(mount_point, distro='CentOS'):
+    if distro == 'CentOS':
+        #Install it
+        chroot_local_image(mount_point, mount_point, [
+            ["/bin/bash", "-c", "yum install -qy cloud-init"]],
+            bind=True, mounted=True, keep_mounted=True)
+        #Get CentOS default overrides
+        cloud_config = _configure_cloudinit_centos()
+    else:
+        #For Ubuntu:
+        chroot_local_image(mount_point, mount_point, [
+            ["/bin/bash", "-c", "apt-get install -qy cloud-init"]],
+            bind=True, mounted=True, keep_mounted=True)
+        cloud_config = _configure_cloudinit_ubuntu()
+
+    #Overwrite the cloud.cfg defaults
+    mounted_filepath = os.path.join(mount_point, 'etc/cloud/cloud.cfg')
+    with open(mounted_filepath,'w') as cloud_config_file:
+        cloud_config_file.write(cloud_config)
+
+    #If Ubuntu, remove the cloud.cfg.d for dpkg, it is not properly configured.
+    if distro != 'CentOS':
+        mounted_config_d = os.path.join(mount_point,
+            'etc/cloud/cloud.cfg.d/90_dpkg.cfg')
+        if os.path.exists(mounted_config_d):
+            os.remove(mounted_config_d)
+
+
 
 def chroot_local_image(image_path, mount_point, commands_list,
         bind=False, mounted=False, keep_mounted=False):

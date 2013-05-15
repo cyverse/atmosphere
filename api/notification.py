@@ -70,7 +70,8 @@ class NotificationList(APIView):
         TODO: Record launched activity in log/db for profiling later
         """
         params = request.DATA
-
+        logger.info(request)
+        logger.info(params)
         action = params.get('action', 'instance_launched')
         self._select_action(request, action, params)
         response = Response(status=status.HTTP_200_OK)
