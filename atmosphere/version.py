@@ -1,12 +1,12 @@
 """
 Atmosphere version.
 """
-import collections
 from os.path import abspath, dirname
 from subprocess import Popen, PIPE
 
 
 VERSION = (0, 9, 5, 'dev', 0)
+
 
 def git_sha():
     loc = abspath(dirname(__file__))
@@ -36,7 +36,7 @@ def get_version(form='short'):
     B.b.t _type type_num@git_sha
     * ``all`` Returns a dict of all versions.
     """
-    versions = collections.OrderedDict()
+    versions = {}
     branch = "%s.%s" % (VERSION[0], VERSION[1])
     tertiary = VERSION[2]
     type_ = VERSION[3]
