@@ -144,8 +144,6 @@ def launchEshInstance(driver, extras, *args, **kwargs):
             extras['token'] = instance_token
             eshInstance = driver.deploy_instance(size=size,
                                                  image=machine, **extras)
-            update_instance_metadata(driver, eshInstance,
-                    data={'tmp_status':'Acquiring Floating IP'}, replace=False)
         else:
             raise Exception("Unable to launch with this provider.")
         #POST-Provider Hooks

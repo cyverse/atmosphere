@@ -136,7 +136,7 @@ class OSInstance(Instance):
                 status += ' - %s' % self.extra['task']
             extra_status = self.extra.get('metadata',{}).get('tmp_status')
             if extra_status:
-                status += ' - %s' % self.extra_status
+                status += ' - %s' % extra_status
 
         return status
 
