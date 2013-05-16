@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from celery.decorators import task
+from celery.task import current
 from celery import chain
 
 from threepio import logger
@@ -186,9 +187,10 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
 
 # Floating IP Tasks
 @task(name="add_floating_ip",
-      default_retry_delay=50,
+      #Defaults will not be used, see countdown call below
+      default_retry_delay=15,
       ignore_result=True,
-      max_retries=6)
+      max_retries=10)
 def add_floating_ip(driverCls, provider, identity,
                     instance_alias, delete_status=True,
                     *args, **kwargs):
@@ -212,6 +214,8 @@ def add_floating_ip(driverCls, provider, identity,
         else:
             logger.debug("public ip already found! %s" % instance.ip)
 
+        #Useful for chaining floating-ip + Deployment without returning
+        #a 'fully active' state
         if delete_status:
             update_instance_metadata(driver, instance,
                                      data={'tmp_status':''},
@@ -219,7 +223,13 @@ def add_floating_ip(driverCls, provider, identity,
         logger.debug("add_floating_ip task finished at %s." % datetime.now())
     except Exception as exc:
         logger.exception("Error occurred while assigning a floating IP")
-        add_floating_ip.retry(exc=exc)
+        #Networking can take a LONG time when an instance first launches,
+        #it can also be one of those things you 'just miss' by a few seconds..
+        #So we will retry 10 times using exp.backoff
+        #Max Time: 10.6min
+        countdown = min(2**current.request.retries, 128)
+        add_floating_ip.retry(exc=exc,
+                              countdown=countdown)
 
 @task(name="_remove_floating_ip",
       default_retry_delay=15,
