@@ -281,7 +281,7 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 				'suspending' : 50,
 				'initializing' :50,
 				'networking' : 60,
-				'deploying' : 70`
+				'deploying' : 70
 			},
 			'shutoff' : {
 				'powering-on' : 50
