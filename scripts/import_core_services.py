@@ -33,7 +33,8 @@ def get_core_services():
     """
     core_services = members_query_groupy('core-services')
     atmo_users = members_query_groupy('atmo-user')
-    return [user for user in core_services if user in atmo_users]
+    users = [user for user in core_services if user in atmo_users]
+    return users
 
 def members_query_groupy(groupname):
     r = requests.get(
@@ -42,7 +43,7 @@ def members_query_groupy(groupname):
     json_obj = r.json()
     usernames = []
     for user in json_obj['data']:
-	    usernames.append(user['name'])
+	    usernames.append(user['name'].replace('esteve','sgregory'))
     return usernames
 
 def fix_openstack_network(os_driver):

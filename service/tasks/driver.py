@@ -75,7 +75,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id, *args, **kwargs):
             chain(add_floating_ip.si(driverCls,
                                      provider,
                                      identity,
-                                     instance_id),
+                                     instance_id, delete_status=False),
                   _deploy_init_to.si(driverCls,
                                      provider,
                                      identity,
@@ -99,7 +99,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id, *args, **kwargs):
             chain(add_floating_ip.si(driverCls,
                                      provider,
                                      identity,
-                                     instance_id),
+                                     instance_id, delete_status=True),
                   _send_instance_email.si(driverCls,
                                           provider,
                                           identity,
@@ -189,7 +189,9 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
       default_retry_delay=50,
       ignore_result=True,
       max_retries=6)
-def add_floating_ip(driverCls, provider, identity, instance_alias, *args, **kwargs):
+def add_floating_ip(driverCls, provider, identity,
+                    instance_alias, delete_status=True,
+                    *args, **kwargs):
     try:
         logger.debug("add_floating_ip task started at %s." % datetime.now())
         #Remove unused floating IPs first, so they can be re-used
@@ -210,9 +212,10 @@ def add_floating_ip(driverCls, provider, identity, instance_alias, *args, **kwar
         else:
             logger.debug("public ip already found! %s" % instance.ip)
 
-        update_instance_metadata(driver, instance,
-                                 data={'tmp_status':''},
-                                 replace=False)
+        if delete_status:
+            update_instance_metadata(driver, instance,
+                                     data={'tmp_status':''},
+                                     replace=False)
         logger.debug("add_floating_ip task finished at %s." % datetime.now())
     except Exception as exc:
         logger.exception("Error occurred while assigning a floating IP")
