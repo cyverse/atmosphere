@@ -350,8 +350,8 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
 
         kwargs.update({'timeout': 120})
 
-        cloudinit_script = prepare_cloudinit_script()
-        kwargs.update({'ex_userdata': cloudinit_script})
+        #cloudinit_script = prepare_cloudinit_script()
+        #kwargs.update({'ex_userdata': cloudinit_script})
 
         return self.deploy_to(instance, *args, **kwargs)
 
@@ -394,8 +394,8 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'timeout': 120})
 
-        cloudinit_script = prepare_cloudinit_script()
-        kwargs.update({'ex_userdata': cloudinit_script})
+        #cloudinit_script = prepare_cloudinit_script()
+        #kwargs.update({'ex_userdata': cloudinit_script})
         try:
             self.deploy_node(*args, **kwargs)
         except DeploymentError as de:

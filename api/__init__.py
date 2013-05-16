@@ -122,6 +122,7 @@ def launchEshInstance(driver, extras, *args, **kwargs):
         elif isinstance(driver.provider, OSProvider):
             extras['deploy'] = True
             extras['token'] = instance_token
+            extras['ex_metadata'] = {'tmp_status':'initializing'}
             #Check for project network
             os_driver = OSAccountDriver()
             password = os_driver.hashpass(username)
