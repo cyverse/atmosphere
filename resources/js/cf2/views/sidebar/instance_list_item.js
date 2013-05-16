@@ -261,10 +261,10 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 	get_percent_complete: function(state, task) {
 		var states = {
 			'build' : {
-				'block_device_mapping' : 15,			// Number represents percent task *completed* when in this state
-				'scheduling' : 30,
-				'networking' : 45,
-				'spawning' : 60,
+				'block_device_mapping' : 10,			// Number represents percent task *completed* when in this state
+				'scheduling' : 20,
+				'networking' : 30,
+				'spawning' : 40,
 			},
 			'hard_reboot' : {
 				'rebooting_hard' : 50
@@ -279,8 +279,9 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 				'powering-off' : 50,
 				'deleting' : 50,
 				'suspending' : 50,
-				'networking' : 75,
-				'deploying' : 90
+				'initializing' :50,
+				'networking' : 60,
+				'deploying' : 70
 			},
 			'shutoff' : {
 				'powering-on' : 50

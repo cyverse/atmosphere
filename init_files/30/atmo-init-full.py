@@ -376,9 +376,18 @@ def modify_rclocal(username, distro):
                             '\t%s\n'
                             'fi\n' % (atmo_rclocal_path, atmo_rclocal_path))
             open_file.close()
+        #If there was an exit line, it is now too high! We must bring it back
+        #to the bottom of the file
+        if line_in_file('exit', distro_rc_local):
+            run_command(['/bin/sed', '-i',
+                         "'s/exit.*//'", '/etc/rc.local'])
+            open_file = open(distro_rc_local,'a')
+            open_file.write('exit 0\n')
+            open_file.close()
         # Intentionally REPLACE the entire contents of file on each run
         atmo_rclocal = open(atmo_rclocal_path,'w')
-        atmo_rclocal.write('hostname localhost\n'
+        atmo_rclocal.write('#!/bin/sh -e'
+                          'hostname localhost\n'
                           '/bin/su %s -c /usr/bin/vncserver\n'
                           '/usr/bin/nohup /usr/local/bin/shellinaboxd -b -t '
                           '-f beep.wav:/dev/null '
