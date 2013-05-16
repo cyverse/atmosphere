@@ -114,6 +114,10 @@ Atmo.Router = Backbone.Router.extend({
 			},
 		});
 
+		$('#total_cpu_time a').click(function() {
+			$('#cpu_modal').modal('show');
+		});
+
 
         new Atmo.Views.NotificationHolder({el: $('#alert_holder')[0]});
     },
