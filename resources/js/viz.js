@@ -1,5 +1,5 @@
 Number.prototype.toNumberCommaString = function() {
-	return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/, '1,');
+	return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/, '$1,');
 };
 
 $(function() {
@@ -126,6 +126,6 @@ $(function() {
 		.style('color', 'white')
 		.style('text-anchor', 'middle')
 		.text(function(d) {
-	                  return Math.floor(d.data.total_cpu_time / 3600).toNumberCommaString();
+			  return Math.floor(d.data.total_cpu_time / 3600).toNumberCommaString();
 		});
 });
