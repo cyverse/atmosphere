@@ -183,27 +183,6 @@ def compile_templates():
     output = template.render(context)
     return output
 
-
-@atmo_valid_token_required
-def instance_graph(request, instance_id=None, metric=None):
-    h = httplib2.Http()
-    if metric is not None:
-        url = "http://dedalus.iplantcollaborative.org/"\
-              + "instances/graph_data/%s/%s" % (instance_id, metric)
-        params = {}
-    else:
-        url = "http://dedalus.iplantcollaborative.org/instances/instance_data"
-        params = {"euca_id": request.GET.get('instance_id')}
-        if request.GET.__contains__('start'):
-            params['start'] = request.GET.get('start')
-    resp, content = h.request(url + "?" + urllib.urlencode(params), "GET")
-    #logger.debug('request against %s returned reponse %s' % (url, resp))
-    response = HttpResponse(content,
-                            content_type='application/json',
-                            status=int(resp['status']))
-    return response
-
-
 @atmo_login_required
 def application(request):
     try:
