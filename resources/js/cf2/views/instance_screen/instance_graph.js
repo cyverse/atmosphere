@@ -32,7 +32,6 @@ Atmo.Views.InstanceGraph = Backbone.View.extend({
                 type: 'GET',
                 dataType: 'json',
                 success: function(data, textStatus) {
-                    console.log(data);
                     self.data[type] = data;
                     if (self.data[type].length >= 3) 
                         callback(self.data[type]);
@@ -168,7 +167,6 @@ Atmo.Views.InstanceGraph = Backbone.View.extend({
 
             var rows = _.map(data, row_formatter);
             
-            console.log(rows);
             self.table.addRows(rows);
 
             var date_formatter = new google.visualization.DateFormat({pattern: 'MMM d h:mm a'});
