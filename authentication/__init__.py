@@ -14,13 +14,15 @@ def cas_logoutRedirect():
     return HttpResponseRedirect(settings.CAS_SERVER
                                 + "/cas/logout?service="+settings.SERVER_URL)
 
-
-def cas_loginRedirect(request, redirect=None):
+def cas_loginRedirect(request, redirect=None, gateway=False):
     if not redirect:
         redirect = request.get_full_path()
-    return HttpResponseRedirect(settings.CAS_SERVER
-                                + "/cas/login?service="+settings.SERVER_URL
-                                + "/CAS_serviceValidater?sendback="+redirect)
+    login_url = settings.CAS_SERVER +\
+                "/cas/login?service="+settings.SERVER_URL +\
+                "/CAS_serviceValidater?sendback="+redirect
+    if gateway:
+        login_url += '&gateway=true'
+    return HttpResponseRedirect(login_url)
 
 
 def createAuthToken(username):
