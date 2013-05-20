@@ -2,6 +2,7 @@
  * View for displaying stacked charts for CPU and Load
  */
 Atmo.Views.InstanceGraph = Backbone.View.extend({
+    className: 'tab-pane',
     initialize: function(options) {
         this.stop = new Date();
         this.range = 7*24*60*60*1000; // seven days
@@ -16,6 +17,7 @@ Atmo.Views.InstanceGraph = Backbone.View.extend({
     },
     render: function() {
         this.$el
+            .attr('id', 'instance_graph_' + this.type + '_' + this.model.get('id'))
             .append($("<div>", {id: "chart-" + this.type + '-' + this.model.get('id')}).css('height', '220px'))
             .append($("<div>", {id: "control-" + this.type + '-' + this.model.get('id')}).css('height', '40px'));
         return this;
