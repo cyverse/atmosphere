@@ -24,6 +24,9 @@ a:hover {
 	border-bottom: 1px solid #0098aa;
 	text-decoration: none;
 }
+h4, h5 {
+	font-weight: normal;
+}
 
 #wrapper {
 	position: absolute;

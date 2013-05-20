@@ -67,8 +67,8 @@ class ImageManager():
     def create_image(self, instance_id, image_name, public=True,
                      private_user_list=[], exclude=[], kernel=None,
                      ramdisk=None, meta_name=None,
-                     local_download_dir='/tmp',
-                     remote_img_path=None, keep_image=False):
+                     local_download_dir='/tmp', local_image_path=None,
+                     clean_image=True, remote_img_path=None, keep_image=False):
         """
         Creates an image of a running instance
         Required Args:
@@ -115,27 +115,29 @@ class ImageManager():
             ramdisk = instance_ramdisk
         if not remote_img_path:
             remote_img_path = self._format_nc_path(owner, instance_id)
+
         if not meta_name:
             #Format empty meta strings to match current iPlant
             #image naming convention, if not given
             meta_name = self._format_meta_name(image_name, owner, creator='admin')
+        if not local_image_path:
+            local_image_path = os.path.join(local_download_dir, '%s.img' % meta_name)
 
-        image_path = os.path.join(local_download_dir, '%s.img' % meta_name)
-
-        ##Run sub-scripts to retrieve,
-        node_controller_ip = self._find_node(instance_id)
-        self._retrieve_instance(node_controller_ip,
-                                    image_path, remote_img_path)
-        #ASSERT: image_path contains 
-        # mount and clean image, 
-        self._clean_local_image(
-            image_path, 
-            os.path.join(local_download_dir, 'mount/'),
-            exclude=exclude)
+            ##Run sub-scripts to retrieve,
+            node_controller_ip = self._find_node(instance_id)
+            self._retrieve_instance(node_controller_ip,
+                                        local_image_path, remote_img_path)
+        #ASSERT: local_image_path contains full RAW img
+        # mount and clean image 
+        if clean_image:
+            self._clean_local_image(
+                local_image_path, 
+                os.path.join(local_download_dir, 'mount/'),
+                exclude=exclude)
 
         #upload image
         new_image_id = self._upload_image(
-            image_path, kernel, ramdisk, local_download_dir, parent_emi,
+            local_image_path, kernel, ramdisk, local_download_dir, parent_emi,
             meta_name, image_name, public, private_user_list)
 
         #Cleanup, return
@@ -731,7 +733,7 @@ title Atmosphere VM (%s)
             raise
 
         cert_path = self.ec2_cert_path
-        private_key_path = self.euca_private_key
+        private_key_path = self.pk_path
         euca_cert_path = self.euca_cert_path
         try:
             self.euca.validate_file(cert_path)

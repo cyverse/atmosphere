@@ -12,6 +12,13 @@
 		<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.2.2/bootstrap.min.js"></script>
 		<script type="text/javascript" src="{{ site_root }}/resources/js/d3.v3.min.js"></script>
 		<script type="text/javascript" src="{{ site_root }}/resources/js/viz.js"></script>
+		<script type="text/javascript">
+			$(function() {
+				$('[data-toggle="modal"]').click(function() {
+					$('#cpu_modal').modal('show');
+				});
+			});
+		</script>
 	</head>
 	<body>
 		<div id="wrapper">
@@ -28,8 +35,10 @@
 							<div class="active item">
 								<div id="first_viz"></div>
 								<h3>Accelerating research with the cloud!</h3>
-								<p>Atmosphere's <strong>top eight users</strong> have used<br>over <strong><span id="total_cpu_time">0</span> CPU hours since</strong> July 2012.</p>
-								<p>Log in to find out how much you've used!</p>
+								<h4>Atmosphere's <strong>top eight users</strong> have used<br>over <strong><span id="total_cpu_time">0</span> CPU hours since</strong> July 2012.</h4>
+								<h5>Log in to find out how many you've used!</h5>
+
+								<p><a href="#" data-toggle="modal">What's a CPU Hour?</a></p>
 							</div>
 						</div>
 
@@ -65,6 +74,20 @@
 		</div>
 	</div>
 	
+<div id="cpu_modal" class="modal hide fade">
+	<div class="modal-header" style="text-align: left">
+		<h3>CPU Hours on Atmosphere</h3>
+	</div>
+	<div class="modal-body" style="text-align: left">
+		<p>A CPU hour is a CPU core used for one hour. For example, an instance that uses four CPU cores will consume four CPU hours for every hour that it is running.</p>
+
+		<p>When your instance is stopped or paused, it will not contribute to the number of CPU hours your instances have used.</p>
+
+	</div>
+	<div class="modal-footer">
+		<button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+	</div>
+</div>
 
 
 </body></html>
