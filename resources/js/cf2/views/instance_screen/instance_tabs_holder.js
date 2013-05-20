@@ -196,7 +196,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
             this.$el.find('.instance_graph').html('Your browser does not support the features necessary to display instance metrics graphs. Please <a href="http://windows.microsoft.com/en-us/internet-explorer/products/ie/home">upgrade</a> to the lastest version or use <a href="https://google.com/chrome">another browser</a>.');
         else {
 		    this.$el.find('.instance_graph');
-		    this.instance_graph = new Atmo.Views.InstanceGraph({model: this.model, el: this.$el.find('.instance_graph')}).render();
+		    this.instance_graph = new Atmo.Views.InstanceGraphContainer({model: this.model, el: this.$el.find('.instance_graph')}).render();
         }
     },
 	instance_info: function() {
