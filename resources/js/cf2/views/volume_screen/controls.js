@@ -18,16 +18,20 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
 		'change input[name="new_volume_size"]' : 'add_usage'
 	},
 	initialize: function() {
-		Atmo.volumes.bind("reset", this.render, this);
-		Atmo.instances.bind("add", this.render, this);
-		Atmo.instances.bind("remove", this.render, this);
-		Atmo.instances.bind("change", this.render, this);
-		Atmo.volumes.bind("add", this.render, this);
-		Atmo.volumes.bind("remove", this.render, this);
-		Atmo.volumes.bind("change", this.render, this);
+		Atmo.instances.bind("add", this.render_attach_detach, this);
+		Atmo.instances.bind("remove", this.render_attach_detach, this);
+		Atmo.instances.bind("change:state", this.render_attach_detach, this);
+		Atmo.volumes.bind("reset", this.render_attach_detach, this);
+		Atmo.volumes.bind("add", this.render_attach_detach, this);
+		Atmo.volumes.bind("remove", this.render_attach_detach, this);
+		Atmo.volumes.bind("change", this.render_attach_detach, this);
 	},
 	render: function() {
 		this.$el.html(this.template());
+		this.render_attach_detach();
+		return this;
+	},
+	render_attach_detach: function() {
 		
         var self = this;
 
@@ -42,6 +46,12 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
             }
         }
 
+		this.$el.find('select[name="all_volumes"]').html('<option>You have no volumes</option>');
+
+        if (Atmo.volumes.models.length > 0 && available_instances > 0) {
+            self.$el.find('select[name="all_volumes"]').removeAttr('disabled');
+            self.$el.find('select[name="all_volumes"]').children().eq(0).html('Choose a Volume');
+        }
         if (available_instances > 0) {
             $.each(Atmo.volumes.models, function(i, volume) {
 
@@ -52,11 +62,6 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
 
                 self.$el.find('select[name="all_volumes"]').append(volume_option);
             });
-        }
-
-        if (Atmo.volumes.models.length > 0 && available_instances > 0) {
-            self.$el.find('select[name="all_volumes"]').removeAttr('disabled');
-            self.$el.find('select[name="all_volumes"]').children().eq(0).html('Choose a Volume').attr('disabled', 'disabled');
         }
         if (available_instances == 0 && Atmo.volumes.models.length > 0) {
             self.$el.find('select[name="all_volumes"]').hide();
@@ -89,6 +94,7 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
         }
 
 		return this;
+
 	},
 	show_quota: function() {
 		// Populate the volume quota container
@@ -165,6 +171,13 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
         var volume_form = this.$el.find('form[name="attach_detach_volume"]');
         var operation = (selected_volume.data('status') == 'in-use') ? 'Detach' : 'Attach';
   
+		// The first element is the direction
+		if (selected_volume.is(':first-child')) {
+			volume_form.find('select').eq(1).remove();
+			volume_form.find('button').remove();
+			return;
+		}
+
         // Append a button at the end if it's already there. Otherwise, just change the button's html appropriately.  
         if (volume_form.find('button').length == 0) {
             volume_form.append($('<button>', {

@@ -21,6 +21,8 @@ Atmo.Views.VolumeScreen = Backbone.View.extend({
 		this.$el.html(this.template());
         var self = this;
 
+		console.log("Rendering volume screen.");
+
         // Create context help for a few volume functions
         this.$el.find('#help_available_volumes').popover({
             placement: 'bottom',
