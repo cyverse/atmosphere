@@ -188,19 +188,26 @@ def collect_metadata():
     return metadata
 
 
-def mount_home():
+def mount_storage():
     """
-    Is this a hack? Mount the second device if it's partition size is larger
-    User should have the most available space,
-    and that will be second partition
-    if the size of instance is > medium/large/etc.
+    In addition to the 'root disk' (Generally small)
+    An instance usually has epehemeral disk storage
+    This is TEMPORARY space you can use while working on your instance
+    It is deleted when the instance is terminated.
+    #TODO: Refactor.
     """
     logging.debug("Mount test")
     (out, err) = run_command(['/sbin/fdisk', '-l'])
     if 'sda1' in out:
+        #Eucalyptus CentOS format
         dev_1 = 'sda1'
         dev_2 = 'sda2'
+    elif 'vda' in out:
+        #Openstack format for Root/Ephem. Disk
+        dev_1 = 'vda'
+        dev_2 = 'vdb'
     else:
+        #Eucalyptus Ubuntu format
         dev_1 = 'xvda1'
         dev_2 = 'xvda2'
     outLines = out.split('\n')
@@ -213,9 +220,9 @@ def mount_home():
             dev_2_size = match.group(1)
     if dev_2_size > dev_1_size:
         logging.warn(
-            "%s is larger than %s, Mounting %s to home"
+            "%s is larger than %s, Mounting %s to mnt"
             % (dev_2, dev_1, dev_2))
-        run_command(["/bin/mount", "-text3", "/dev/%s" % dev_2, "/home"])
+        run_command(["/bin/mount", "-text3", "/dev/%s" % dev_2, "/mnt"])
 
 
 def vnc(user, distro, license=None):
@@ -578,7 +585,7 @@ def update_sshkeys():
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDgvgRtXgkvM/+eCSEqVuTiUpZMjRfA9AnXfz0YWS93uKImoodE5oJ7wUZqjpOmgXyX0xUDI4O4bCGiWVmSyiRiQpqZrRrF7Lzs4j0Nf6WvbKblPQMwcmhMJuaI9CwU5aEbEqkV5DhBHcUe4bFEb28rOXuUW6WMLzr4GrdGUMd3Fex64Bmn3FU7s6Av0orsgzVHKmoaCbqK2t3ioGAt1ISmeJwH6GasxmrSOsLLW+L5F65WrYFe0AhvxMsRLKQsuAbGDtFclOzrOmBudKEBLkvwkblW8PKg06hOv9axNX7C9xlalzEFnlqNWSJDu1DzIa2NuOr8paW5jgKeM78yuywt jmatt@leia",
         "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA2TtX9DohsBaOEoLlm8MN+W+gVp40jyv752NbMP/PV/LAz5MnScJcvbResAJx2AusL1F6sRNvo9poNZiab6wpfErQPZLfKGanPZGYSdonsNAhTu/XI+4ERPQXUA/maQ2qZtL1b+bmZxg9n/5MsZFpA1HrXP3M2LzYafF2IzZYWfsPuuZPsO3m/cUi0G8n7n0IKXZ4XghjGP5y/kmh5Udy9I5qreaTvvFlNJtBE9OL39EfWtjOxNGllwlGIAdsljfRxkeOzlahgtCJcaoW7X2A7GcV52itUwMKfTIboAXnZriwh5n0o1aLHCCdUAGDGHBYmP7fO7/2gIQKgpLfRkDEiQ== sangeeta@iplant",
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+SYMny6H2B5IjXe6gxofHRNza5LE3NqTCe6YgYnnzYjyXWtopSeb8mK2q1ODzlaQyqYoTvPqtn6rSyN+5oHGV4o6yU+Fl664t5rOdAwz/jGJK3WwG60Pc0eGQco0ldgjD7K6LWYVPIJZs+rGpZ70jF5JsTuHeplXOn5MX9oUvNxxgXRuySxvBNOGMn0RxydK8tBTbZMlJ5MkAi/bIOrEDHEfejCxKGWITpXGkdTS2s4THiY8WqFdHUPtQkEfQkXCsRpZ6HPw1gN+JYD5NI38dVVmrA+3MgFVJkwtLUbbAM0yxgKwaUaipNN1+DeYOxBuVRlRwrrAp3+fq+4QCJrXd root@dalloway",
-        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDGCC+Q1yS/9iDkYyrVEFpE7qWFXK/2QSX6Fa1mNKWZiopztmzfEeqUYtiPRqyXSH6M6+L/sjR2TVfI8CzAB+pW42sPoTjER9tfPad8yV7JmCZPGAekI4/2COj3gDuGc9TcX2Dfu+h14M2hUhC8sJsomUm+0ALzBfSSFD4sF+4jDfZSbjrUzelDE11UFDNenGx9pNRVwXLNuxwqv8To9U3C7/ZdO8o3+jL1m4LT+8dGgAp+a0Eq99fTi86fmg1sRri2OJLngEDCEjutPckmXhF2Db3wo3R/I0I7nUXkXf0LfEFWNSaZdXYvIscWzm8P8yaK+GieGtNaB7fBscogLELT root@mickey",
+        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFE/lyzLdFYZF3mxYwzrTITgov1NqtLuS5IY0fgjpdiVpHjWBUdXspTafKORbbM+t0ERTOqcSt24Vj5B8XUXImpzw2OAsl//AiKvHGRUenk7qY6/9IEUcay5mGAoiRpjLzDIDdtiQUAAEMKvkzanUBQOBJWVyO4Gq2aFUr4zweVLfvjejOspf2cZll/ojcPYmI9cKMq7fOgKSmRH2zUg+ORFlP1rQYugoETcGkcQg0IBsSMLT8gnYt3UWTW8S8ugtb4aaWVrId14Nc3sk+yDzPBaRX7iM3CQ5uKXPwjeID59RLMjQUFlHjqDSdZBOjXCFRHZbrbZZjS42o4OJAoLvF sgregory@mickey",
 		"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDQNBua13LVIG61LNztP9b7k7T+Qg8t22Drhpy17WVwbBH1CPYdn5NR2rXUmfiOa3RhC5Pz6uXsYUJ4xexOUJaFKY3S8h9VaeaPxMyeA8oj9ssZC6tNLqNxqGzKJbHfSzQXofKwBH87e+du34mzqzm2apOMT2JVzxWmTwrl3JWnd2HG0odeVKMNsXLuQFN6jzCeJdLxHpu+dJOL6gJTW5t9AwoJ8jxmwO8xgUbk+7s38VATSuaV/RiIfXfGFv34CT7AY1gRxm1og9jjP6qkFMyZiO6M+lwrJIlHKTOKxw+xc15w/tIssUkeflzAcrkkNGzT8sBL39BoQOo9RTrMD2QL weather-balloon@wesley.iplantcollaborative.org"
     ]
     root_ssh_dir = '/root/.ssh'
@@ -667,11 +674,10 @@ def main(argv):
     if not is_rhel(distro):
         run_command(['/usr/bin/apt-get', 'update'])
     instance_metadata = collect_metadata()
-    #TODO: REMOVE THIS LEGACY CRAP!
     instance_metadata['linuxusername'] = linuxuser
     instance_metadata["linuxuserpassword"] = linuxpass
     instance_metadata["linuxuservncpassword"] = linuxpass
-    #mount_home() #kludge
+    mount_storage()
     ldap_replace()
     run_command(['/bin/cp', '-rp', '/etc/skel/.', '/home/%s' % linuxuser])
     run_command(['/bin/chown', '-R',

@@ -51,12 +51,9 @@ def redirectApp(request):
     """
     Redirects to /application if user is authorized, otherwise forces a login
     """
-    newURL = (settings.REDIRECT_URL+'/application/') \
-        if request.session.get('username') else \
-        (settings.REDIRECT_URL+'/login/')
-    logger.info('Sending user to:%s' % newURL)
-    return HttpResponseRedirect(newURL)
-
+    return cas_loginRedirect(request,
+                             settings.REDIRECT_URL+'/application/',
+			     gateway=True)
 
 def login(request):
     """

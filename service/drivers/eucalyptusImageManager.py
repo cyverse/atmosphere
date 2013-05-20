@@ -14,6 +14,7 @@ Creating an Image from an Instance (Manual image requests)
                                 '/temp/image/path/ramdisk/initrd-...el5.img')
 """
 
+import time
 import sys
 import os
 import math
@@ -67,8 +68,8 @@ class ImageManager():
     def create_image(self, instance_id, image_name, public=True,
                      private_user_list=[], exclude=[], kernel=None,
                      ramdisk=None, meta_name=None,
-                     local_download_dir='/tmp',
-                     remote_img_path=None, keep_image=False):
+                     local_download_dir='/tmp', local_image_path=None,
+                     clean_image=True, remote_img_path=None, keep_image=False):
         """
         Creates an image of a running instance
         Required Args:
@@ -115,27 +116,29 @@ class ImageManager():
             ramdisk = instance_ramdisk
         if not remote_img_path:
             remote_img_path = self._format_nc_path(owner, instance_id)
+
         if not meta_name:
             #Format empty meta strings to match current iPlant
             #image naming convention, if not given
             meta_name = self._format_meta_name(image_name, owner, creator='admin')
+        if not local_image_path:
+            local_image_path = os.path.join(local_download_dir, '%s.img' % meta_name)
 
-        image_path = os.path.join(local_download_dir, '%s.img' % meta_name)
-
-        ##Run sub-scripts to retrieve,
-        node_controller_ip = self._find_node(instance_id)
-        self._retrieve_instance(node_controller_ip,
-                                    image_path, remote_img_path)
-        #ASSERT: image_path contains 
-        # mount and clean image, 
-        self._clean_local_image(
-            image_path, 
-            os.path.join(local_download_dir, 'mount/'),
-            exclude=exclude)
+            ##Run sub-scripts to retrieve,
+            node_controller_ip = self._find_node(instance_id)
+            self._retrieve_instance(node_controller_ip,
+                                        local_image_path, remote_img_path)
+        #ASSERT: local_image_path contains full RAW img
+        # mount and clean image 
+        if clean_image:
+            self._clean_local_image(
+                local_image_path, 
+                os.path.join(local_download_dir, 'mount/'),
+                exclude=exclude)
 
         #upload image
-        new_image_id = self._upload_image(
-            image_path, kernel, ramdisk, local_download_dir, parent_emi,
+        new_image_id = self._upload_instance(
+            local_image_path, kernel, ramdisk, local_download_dir, parent_emi,
             meta_name, image_name, public, private_user_list)
 
         #Cleanup, return
@@ -501,22 +504,20 @@ title Atmosphere VM (%s)
                                              local_img_path)
         return local_img_path
 
-    def _upload_image(self, image_path, kernel, ramdisk,
+        
+    def _upload_instance(self, image_path, kernel, ramdisk,
                             destination_path, parent_emi, meta_name,
                             image_name, public, private_user_list):
         """
         Upload a local image, kernel and ramdisk to the Eucalyptus Cloud
         """
-        logger.debug('Uploading image from dir:%s' % destination_path)
-        self._bundle_image(image_path, destination_path, kernel,
-                           ramdisk, ancestor_ami_ids=[parent_emi, ])
-        manifest_loc = '%s/%s.img.manifest.xml' % (destination_path, meta_name)
-        logger.debug(manifest_loc)
-        s3_manifest_loc = self._upload_bundle(meta_name.lower(), manifest_loc)
-        logger.debug(s3_manifest_loc)
-        new_image_id = self._register_bundle(s3_manifest_loc)
-        logger.info("New image created! Name:%s ID:%s"
-                    % (image_name, new_image_id))
+        bucket_name = meta_name.lower()
+        ancestor_ami_ids = [parent_emi, ] if parent_emi else []
+
+        new_image_id = self._upload_and_register(
+                image_path, bucket_name, kernel, ramdisk,
+                destination_path, ancestor_ami_ids)
+
         if not public:
             try:
                 #Someday this will matter. Euca doesn't respect it though..
@@ -537,6 +538,43 @@ title Atmosphere VM (%s)
                 logger.error("Private List - %s" % private_user_list)
                 logger.exception(call_failed)
         return new_image_id
+
+    def _upload_new_image(self, new_image_name, image_path, 
+                          kernel_path, ramdisk_path, bucket_name,
+                          download_dir='/tmp', private_users=[]):
+        public = False
+        if not private_users:
+            public = True
+
+        kernel_id = self._upload_kernel(kernel_path, bucket_name, download_dir)
+        ramdisk_id = self._upload_ramdisk(ramdisk_path, bucket_name, download_dir)
+        new_image_id = self._upload_instance(image_path, kernel_id, ramdisk_id,
+                download_dir, None, bucket_name, new_image_name, public,
+                private_users) 
+
+    def _upload_kernel(self, image_path, bucket_name, download_dir='/tmp'):
+        return self._upload_and_register(image_path, bucket_name,
+                kernel='true', download_dir=download_dir)
+
+    def _upload_ramdisk(self, image_path, bucket_name, download_dir='/tmp'):
+        return self._upload_and_register(image_path, bucket_name,
+                ramdisk='true', download_dir=download_dir)
+
+    def _upload_and_register(self, image_path, bucket_name, kernel=None, ramdisk=None,
+                            download_dir='/tmp', ancestor_ami_ids=None):
+        bucket_name = bucket_name.lower()
+        logger.debug('Bundling image %s to dir:%s'
+                     % (image_path, destination_path))
+        manifest_loc = self._bundle_image(image_path, download_dir, 
+                                          kernel, ramdisk,
+                                          ancestor_ami_ids=ancestor_ami_ids)
+        logger.debug(manifest_loc)
+        s3_manifest = self._upload_bundle(bucket_name, manifest_loc)
+        new_image_id = self._register_bundle(s3_manifest)
+        logger.info("New image created! ID:%s"
+                    % new_image_id)
+        return new_image_id
+
 
     def _old_nc_scp(self, node_controller_ip, remote_img_path, local_img_path):
         """
@@ -731,7 +769,7 @@ title Atmosphere VM (%s)
             raise
 
         cert_path = self.ec2_cert_path
-        private_key_path = self.euca_private_key
+        private_key_path = self.pk_path
         euca_cert_path = self.euca_cert_path
         try:
             self.euca.validate_file(cert_path)
@@ -775,6 +813,9 @@ title Atmosphere VM (%s)
         logger.debug('Manifest Generated')
         #Destroyed encrypted file
         os.remove(encrypted_file)
+        manifest_loc =  os.path.join(destination_path, '%s.manifest.xml' %
+                prefix)
+        return manifest_loc
 
     def _export_to_s3(self, keyname,
                       the_file, bucketname='eucalyptus_exports',

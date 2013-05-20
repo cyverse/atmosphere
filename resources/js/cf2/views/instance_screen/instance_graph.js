@@ -2,6 +2,7 @@
  * View for displaying stacked charts for CPU and Load
  */
 Atmo.Views.InstanceGraph = Backbone.View.extend({
+    className: 'tab-pane',
     initialize: function(options) {
         this.stop = new Date();
         this.range = 7*24*60*60*1000; // seven days
@@ -16,6 +17,7 @@ Atmo.Views.InstanceGraph = Backbone.View.extend({
     },
     render: function() {
         this.$el
+            .attr('id', 'instance_graph_' + this.type + '_' + this.model.get('id'))
             .append($("<div>", {id: "chart-" + this.type + '-' + this.model.get('id')}).css('height', '220px'))
             .append($("<div>", {id: "control-" + this.type + '-' + this.model.get('id')}).css('height', '40px'));
         return this;
@@ -93,7 +95,8 @@ Atmo.Views.InstanceGraph = Backbone.View.extend({
                 },
                 'legend': {'position': 'top'},
                 'backgroundColor': 'transparent',
-                'interpolateNulls': true
+                'interpolateNulls': true,
+                'colors': this.colors
             },
             // Convert the first column from 'date' to 'string'.
             'view': {
@@ -149,7 +152,8 @@ Atmo.Views.InstanceMemoryGraph = Atmo.Views.InstanceGraph.extend({
             d['memory.inactive'] / 1024, 
             d['memory.free'] / 1024
         ];
-    }
+    },
+    colors: ['#00008B', '#0000ff', '#999999']
 });
 
 Atmo.Views.InstanceCPUGraph = Atmo.Views.InstanceGraph.extend({
@@ -169,5 +173,6 @@ Atmo.Views.InstanceCPUGraph = Atmo.Views.InstanceGraph.extend({
             d['cpu.idle'],
             d['cpu.waiting']
         ];
-    }
+    },
+    //colors: ['#00008B', '#0000ff', '#ffd700', '#999999']
 });

@@ -268,7 +268,7 @@ h4 {
 }
 #main a {
 	cursor: pointer;
-	color: #00AABE;
+	/*color: #00AABE;*/
 	font-weight: normal;
     border-bottom: 1px dotted #41BDCC;
 }
@@ -881,6 +881,10 @@ ul.instance_state_indicators li {
 	background-color: transparent !important;
     border: 1px solid transparent !important;
     cursor: default !important;
+}
+
+#main .instance_graph .nav a {
+    border-bottom-width: 0;
 }
 
 .rect-delete {
