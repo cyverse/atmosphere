@@ -80,7 +80,6 @@ urlpatterns = patterns(
     url(r'^application/$', 'web.views.app'),
 
     url(r'^partials/(?P<path>.*)$', 'web.views.partial'),
-    url(r'^instance_graph$', 'web.views.instance_graph'),
     url(r'^no_user/$', 'web.views.no_user_redirect'),
 
     ### DJANGORESTFRAMEWORK ###
