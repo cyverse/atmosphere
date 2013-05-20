@@ -260,7 +260,7 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
 			errors.push("Volume name must be between 1 and 50 characters.");
 		}
 		if (!/^[a-z]([0-9a-z_])*$/i.test(params['name'])) { 
-			errors.push("Volume name must begin with a letter and contain only alaphumeric characters and underscores.");
+			errors.push("Volume name must begin with a letter and contain only alphanumeric characters and underscores.");
 		}
 		if (params['size'] > 100 || params['size'] < 1) {
 			errors.push("Volume size must be between 1 GB and 100 GB.");
@@ -284,7 +284,7 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
 			});
 		}
 		else {
-			Atmo.Utils.notify("Errors with Volume Creation", errors.join(', '));
+			Atmo.Utils.notify("Errors with Volume Creation", errors.join(' '));
             this.$el.find('button[name="create_volume"]').removeAttr('disabled');
 		}
 
