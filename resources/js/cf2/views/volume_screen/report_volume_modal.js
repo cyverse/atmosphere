@@ -44,7 +44,7 @@ Atmo.Views.ReportVolumeModal = Backbone.View.extend({
             var body = '<p class="alert alert-info"><i class="icon-info-sign"></i> You don\'t have any volumes.</p>'
             body += 'If you need help with something else, please contact the Atmosphere support team. You can: ';
             body += '<ul><li>Email <a href="mailto:atmo@iplantcollaborative.org">atmo@iplantcollaborative.org</a></li>';
-            body += '<li>Use the feedback form by clicking the "Tell us what you think!" button in the footer</li></ul>';
+            body += '<li>Use the feedback form by clicking the "Feedback &amp; Support" button in the footer</li></ul>';
             ok_button = 'Ok';
 
 			this.$el.find('.modal-body').html(body);
