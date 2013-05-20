@@ -13,7 +13,7 @@ def test_all_instance_links():
         update_links(instances)
         logger.debug("test_all_instance_links task finished at %s." % datetime.now())
     except Exception as exc:
-        logger.warn(exc)
+        logger.exception(exc)
         test_all_instance_links.retry(exc=exc)
 
 def get_all_instances():
