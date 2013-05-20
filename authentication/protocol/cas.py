@@ -105,14 +105,14 @@ def cas_validateTicket(request):
     Authorized Users are redirected to the GET param 'sendback'
     """
 
-    redirect_logout_url = settings.REDIRECT_URL+"/"
-    no_user_url = settings.REDIRECT_URL + "/no_user"
+    redirect_logout_url = settings.REDIRECT_URL+"/login/"
+    no_user_url = settings.REDIRECT_URL + "/no_user/"
 
     ticket = request.GET.get('ticket', None)
     sendback = request.GET.get('sendback', None)
 
     if not ticket:
-        logger.info("No Ticket")
+        logger.info("No Ticket -- GoTo %s" % redirect_logout_url)
         return HttpResponseRedirect(redirect_logout_url)
 
     # ReturnLocation set, apply on successful authentication
