@@ -504,9 +504,6 @@ title Atmosphere VM (%s)
                                              local_img_path)
         return local_img_path
 
-    def _upload_image(self, image_path, download_path,
-            kernel=False, ramdisk=False):
-        return
         
     def _upload_instance(self, image_path, kernel, ramdisk,
                             destination_path, parent_emi, meta_name,
@@ -514,23 +511,13 @@ title Atmosphere VM (%s)
         """
         Upload a local image, kernel and ramdisk to the Eucalyptus Cloud
         """
-        logger.debug('Uploading image from dir:%s' % destination_path)
+        bucket_name = meta_name.lower()
         ancestor_ami_ids = [parent_emi, ] if parent_emi else []
-        self._bundle_image(image_path, destination_path, kernel,
-                           ramdisk, ancestor_ami_ids=ancestor_ami_ids)
-        manifest_loc = os.path.join(destination_path, '%s.img.manifest.xml' %
-                                    (meta_name,))
-        #NOTE: This is added to account because on large manifests
-        # eucalyptus will choke and consider the file invalid
-        # although we just created the file above
-        time.sleep(1)
 
-        logger.debug(manifest_loc)
-        s3_manifest_loc = self._upload_bundle(meta_name.lower(), manifest_loc)
-        logger.debug(s3_manifest_loc)
-        new_image_id = self._register_bundle(s3_manifest_loc)
-        logger.info("New image created! Name:%s ID:%s"
-                    % (image_name, new_image_id))
+        new_image_id = self._upload_and_register(
+                image_path, bucket_name, kernel, ramdisk,
+                destination_path, ancestor_ami_ids)
+
         if not public:
             try:
                 #Someday this will matter. Euca doesn't respect it though..
@@ -551,6 +538,43 @@ title Atmosphere VM (%s)
                 logger.error("Private List - %s" % private_user_list)
                 logger.exception(call_failed)
         return new_image_id
+
+    def _upload_new_image(self, new_image_name, image_path, 
+                          kernel_path, ramdisk_path, bucket_name,
+                          download_dir='/tmp', private_users=[]):
+        public = False
+        if not private_users:
+            public = True
+
+        kernel_id = self._upload_kernel(kernel_path, bucket_name, download_dir)
+        ramdisk_id = self._upload_ramdisk(ramdisk_path, bucket_name, download_dir)
+        new_image_id = self._upload_instance(image_path, kernel_id, ramdisk_id,
+                download_dir, None, bucket_name, new_image_name, public,
+                private_users) 
+
+    def _upload_kernel(self, image_path, bucket_name, download_dir='/tmp'):
+        return self._upload_and_register(image_path, bucket_name,
+                kernel='true', download_dir=download_dir)
+
+    def _upload_ramdisk(self, image_path, bucket_name, download_dir='/tmp'):
+        return self._upload_and_register(image_path, bucket_name,
+                ramdisk='true', download_dir=download_dir)
+
+    def _upload_and_register(self, image_path, bucket_name, kernel=None, ramdisk=None,
+                            download_dir='/tmp', ancestor_ami_ids=None):
+        bucket_name = bucket_name.lower()
+        logger.debug('Bundling image %s to dir:%s'
+                     % (image_path, destination_path))
+        manifest_loc = self._bundle_image(image_path, download_dir, 
+                                          kernel, ramdisk,
+                                          ancestor_ami_ids=ancestor_ami_ids)
+        logger.debug(manifest_loc)
+        s3_manifest = self._upload_bundle(bucket_name, manifest_loc)
+        new_image_id = self._register_bundle(s3_manifest)
+        logger.info("New image created! ID:%s"
+                    % new_image_id)
+        return new_image_id
+
 
     def _old_nc_scp(self, node_controller_ip, remote_img_path, local_img_path):
         """
@@ -789,6 +813,9 @@ title Atmosphere VM (%s)
         logger.debug('Manifest Generated')
         #Destroyed encrypted file
         os.remove(encrypted_file)
+        manifest_loc =  os.path.join(destination_path, '%s.manifest.xml' %
+                prefix)
+        return manifest_loc
 
     def _export_to_s3(self, keyname,
                       the_file, bucketname='eucalyptus_exports',
