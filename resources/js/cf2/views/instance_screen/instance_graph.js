@@ -95,7 +95,8 @@ Atmo.Views.InstanceGraph = Backbone.View.extend({
                 },
                 'legend': {'position': 'top'},
                 'backgroundColor': 'transparent',
-                'interpolateNulls': true
+                'interpolateNulls': true,
+                'colors': this.colors
             },
             // Convert the first column from 'date' to 'string'.
             'view': {
@@ -151,7 +152,8 @@ Atmo.Views.InstanceMemoryGraph = Atmo.Views.InstanceGraph.extend({
             d['memory.inactive'] / 1024, 
             d['memory.free'] / 1024
         ];
-    }
+    },
+    colors: ['#00008B', '#0000ff', '#999999']
 });
 
 Atmo.Views.InstanceCPUGraph = Atmo.Views.InstanceGraph.extend({
@@ -171,5 +173,6 @@ Atmo.Views.InstanceCPUGraph = Atmo.Views.InstanceGraph.extend({
             d['cpu.idle'],
             d['cpu.waiting']
         ];
-    }
+    },
+    //colors: ['#00008B', '#0000ff', '#ffd700', '#999999']
 });
