@@ -14,6 +14,7 @@ Creating an Image from an Instance (Manual image requests)
                                 '/temp/image/path/ramdisk/initrd-...el5.img')
 """
 
+import time
 import sys
 import os
 import math
@@ -136,7 +137,7 @@ class ImageManager():
                 exclude=exclude)
 
         #upload image
-        new_image_id = self._upload_image(
+        new_image_id = self._upload_instance(
             local_image_path, kernel, ramdisk, local_download_dir, parent_emi,
             meta_name, image_name, public, private_user_list)
 
@@ -503,16 +504,27 @@ title Atmosphere VM (%s)
                                              local_img_path)
         return local_img_path
 
-    def _upload_image(self, image_path, kernel, ramdisk,
+    def _upload_image(self, image_path, download_path,
+            kernel=False, ramdisk=False):
+        return
+        
+    def _upload_instance(self, image_path, kernel, ramdisk,
                             destination_path, parent_emi, meta_name,
                             image_name, public, private_user_list):
         """
         Upload a local image, kernel and ramdisk to the Eucalyptus Cloud
         """
         logger.debug('Uploading image from dir:%s' % destination_path)
+        ancestor_ami_ids = [parent_emi, ] if parent_emi else []
         self._bundle_image(image_path, destination_path, kernel,
-                           ramdisk, ancestor_ami_ids=[parent_emi, ])
-        manifest_loc = '%s/%s.img.manifest.xml' % (destination_path, meta_name)
+                           ramdisk, ancestor_ami_ids=ancestor_ami_ids)
+        manifest_loc = os.path.join(destination_path, '%s.img.manifest.xml' %
+                                    (meta_name,))
+        #NOTE: This is added to account because on large manifests
+        # eucalyptus will choke and consider the file invalid
+        # although we just created the file above
+        time.sleep(1)
+
         logger.debug(manifest_loc)
         s3_manifest_loc = self._upload_bundle(meta_name.lower(), manifest_loc)
         logger.debug(s3_manifest_loc)

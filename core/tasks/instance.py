@@ -4,7 +4,8 @@ from celery.task.schedules import crontab
 from threepio import logger
 from datetime import datetime
 
-@periodic_task(run_every=crontab(hour='*', minute='*/5', day_of_week='*'))
+@periodic_task(run_every=crontab(hour='*', minute='*/5', day_of_week='*'),
+               time_limit=120) # 2min timeout
 def test_all_instance_links():
     try:
         logger.debug("test_all_instance_links task started at %s." % datetime.now())
