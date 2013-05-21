@@ -195,7 +195,10 @@ class UserManager():
         if groupname:
             try:
                 project = self.get_project(groupname)
-                kwargs['project_id'] = project.id
+                if self.keystone_version() == 3:
+                    kwargs['project'] = groupname
+                elif self.keystone_version() == 2:
+                    kwargs['tenant_id'] = project.id
             except NotFound:
                 logger.warn("User %s does not exist" % username)
                 raise
@@ -297,10 +300,16 @@ class UserManager():
         return self.keystone_projects().list()
 
     def keystone_projects(self):
-        if self.keystone.version == 'v3':
+        if self.keystone_version() == 3:
             return self.keystone.projects
-        elif self.keystone.version == 'v2.0':
+        elif self.keystone_version() == 2:
             return self.keystone.tenants
+
+    def keystone_version(self):
+        if self.keystone.version == 'v3':
+            return 3
+        elif self.keystone.version == 'v2.0':
+            return 2
 
     def list_users(self):
         return self.keystone.users.list()

@@ -72,8 +72,8 @@ class AccountDriver():
                 print 'Requests are rate limited. Pausing for one minute.'
                 time.sleep(60)  # Wait one minute
         ident = self.create_openstack_identity(username,
-                                                    password,
-                                                    project_name=username, max_quota=max_quota)
+                                               password,
+                                               project_name=username, max_quota=max_quota)
         return ident
 
     def create_openstack_identity(self, username, password, project_name, max_quota=False):

@@ -12,18 +12,18 @@ def main():
     driver = AccountDriver()
 
     success = 0
-    core_services = ['esteve', 'jmatt', 'edwins', 'cjlarose','mlent']
+    core_services = ['jmatt']#'sgregory', 'jmatt', 'edwins', 'cjlarose','mlent']
     for username in core_services:
         try:
             password = driver.hashpass(username)
             user = driver.get_user(username)
             if not user:
-                (username, password) = driver.create_user(username, True, True)
-                print 'New OStack User - %s Pass - %s' % (username,password)
+                user = driver.create_user(username, usergroup=True)
+                print 'New OStack User - %s Pass - %s' % (user.name,password)
             else:
-                print 'Found OStack User - %s Pass - %s' % (username,password)
+                print 'Found OStack User - %s Pass - %s' % (user.name,password)
             #ASSERT: User exists on openstack, create an identity for them.
-            ident = driver.create_openstack_identity(username, password, tenant_name=username)
+            ident = driver.create_openstack_identity(user.name, password, project_name=username)
             success += 1
             print 'New OStack Identity - %s:%s' % (ident.id, ident)
         except Exception as e:

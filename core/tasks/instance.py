@@ -5,7 +5,7 @@ from threepio import logger
 from datetime import datetime
 
 @periodic_task(run_every=crontab(hour='*', minute='*/5', day_of_week='*'),
-               time_limit=120) # 2min timeout
+               time_limit=120, retry=1) # 2min timeout
 def test_all_instance_links():
     try:
         logger.debug("test_all_instance_links task started at %s." % datetime.now())
@@ -21,13 +21,16 @@ def get_all_instances():
     from api import getEshDriver
     all_instances = []
     for provider in Provider.objects.all():
-        identity_list = Identity.objects.filter(provider=provider)
-        if not identity_list:
-            continue
-        identity = identity_list[0]
-        driver = getEshDriver(identity)
-        meta_driver = driver.provider.metaCls(driver)
-        all_instances.extend(meta_driver.all_instances())
+        identity_list = None
+        try:
+            identity_list = Identity.objects.filter(provider=provider)
+            if identity_list and provider.type.name != "":
+                identity = identity_list[0]
+                driver = getEshDriver(identity)
+                meta_driver = driver.provider.metaCls(driver)
+                all_instances.extend(meta_driver.all_instances())
+        except:
+            logger.info("Problem accessing all instances for provider: %s" % provider)
     return all_instances
 
 def update_links(instances):

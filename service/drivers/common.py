@@ -6,6 +6,7 @@ import subprocess
 
 import glanceclient
 from keystoneclient.exceptions import AuthorizationFailure
+from keystoneclient import exceptions
 from novaclient import client as nova_client
 
 from libcloud.compute.deployment import ScriptDeployment
