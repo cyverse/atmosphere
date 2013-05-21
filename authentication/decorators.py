@@ -62,7 +62,7 @@ def atmo_valid_token_required(func):
         """
         Used for requests that require a valid token
         """
-        token_key = request.session['token']
+        token_key = request.session.get('token')
         if validate_token(token_key, request):
             return func(request, *args, **kwargs)
         else:

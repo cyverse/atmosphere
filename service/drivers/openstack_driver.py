@@ -698,7 +698,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
                 }
             }
             server_resp = self.connection.request(
-                '/os-security-groups/',
+                '/os-security-groups',
                 method='POST',
                 data=data)
             return server_resp.object
@@ -717,7 +717,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
     def ex_list_security_groups(self, **kwargs):
         try:
             server_resp = self.connection.request(
-                '/os-security-groups/',
+                '/os-security-groups',
                 method='GET')
             #PARSE _to_sec_groups & to_sec_group
             return server_resp.object
@@ -784,6 +784,16 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
             raise
 
     #API Limits
+    def ex_get_quota(self):
+        if not self.connection.request_path:
+            try:
+                #Will fail,but we MUST make a request to authenticate
+                self.connection.request('')
+            except:
+                pass
+        tenant_id = self.connection.request_path.split('/')[-1]
+        return self.connection.request("/os-quota-sets/%s" % tenant_id).object
+
     def ex_get_limits(self):
         """
         _to_rate and _to_absolute
