@@ -65,7 +65,7 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 
 		this.rendered = true;
 
-		if (this.model.get('state').indexOf('-') != -1)
+		if (this.model.get('state').indexOf('-') != -1 && Atmo.profile.get('selected_identity').get('provider_id') == 2)
 			this.trigger_transition();
 
 		return this;

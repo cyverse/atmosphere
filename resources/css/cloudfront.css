@@ -831,9 +831,21 @@ ul.instance_state_indicators li {
 .nav-tabs > li {
 	margin-bottom: -2px;
 }
+.nav-pills > .active > a, .nav-pills > .active > a:hover, .nav-pills > .active > a:focus {
+	background-color: #41BDCC;
+}
+.nav-pills .active > a:hover {
+	color: #FFF !important;
+}
+.nav-pills a {
+	color: #0098aa;
+}
 .tab_instance_opts {
 	text-align: right !important;
 	margin-top: 10px;
+}
+.instance_graph .tab-content {
+	overflow-x: hidden;
 }
 .tab-content {
 	font-size: 12px;
@@ -907,7 +919,6 @@ ul.instance_state_indicators li {
 	border-radius: 3px;
 	padding: 10px;
 	border: 1px solid #BBB;
-	padding-bottom: 35px;
 }
 /* Applies to disabled buttons, volumeboxes, etc.  */
 .disabled, .disabled:hover, .volumeBox .disabled, button:disabled, button[disabled] .btn:disabled, .btn[disabled]{

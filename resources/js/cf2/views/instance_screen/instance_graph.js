@@ -14,6 +14,16 @@ Atmo.Views.InstanceGraph = Backbone.View.extend({
         this.data = null;
 
         this.on_failure = this.options.on_failure;
+
+		var self = this;
+		this.available_memory = 0;
+		$.each(Atmo.instances.models, function(i, instance) {
+			var instance_type = instance.get('type');
+			var to_add = _.filter(Atmo.instance_types.models, function(model) {
+				return model.attributes.alias == instance_type;
+			});
+			self.available_memory = to_add[0].attributes['mem'];
+		});
     },
     render: function() {
         this.$el
@@ -68,7 +78,8 @@ Atmo.Views.InstanceGraph = Backbone.View.extend({
                         'hAxis': {'baselineColor': 'none'},
                         'vAxis': {'maxValue': 1, 'minValue': 0},
                         'backgroundColor': 'transparent',
-                        'interpolateNulls': true
+                        'interpolateNulls': true,
+						'colors' : [this.range_line_color]
                     },
                     // Display a single series that shows the closing value of the stock.
                     // Thus, this view has two columns: the date (axis) and the stock value (line series).
@@ -120,7 +131,7 @@ Atmo.Views.InstanceGraph = Backbone.View.extend({
                 self.table.addColumn(d[0], d[1]);
             });
 
-            var rows = _.map(data, self.format_rows);
+            var rows = _.map(data, _.bind(self.format_rows, self));
             
             self.table.addRows(rows);
 
@@ -139,7 +150,7 @@ Atmo.Views.InstanceGraph = Backbone.View.extend({
 
 Atmo.Views.InstanceMemoryGraph = Atmo.Views.InstanceGraph.extend({
     type: 'memory',
-    vaxis_title: 'Memory (MB)',
+    vaxis_title: 'Memory (%)',
     columns: [
         ['number', 'Active'], 
         ['number', 'Inactive'], 
@@ -148,12 +159,13 @@ Atmo.Views.InstanceMemoryGraph = Atmo.Views.InstanceGraph.extend({
     format_rows: function(d) {
         return [
             new Date(d.time * 1000), 
-            d['memory.active'] / 1024, 
-            d['memory.inactive'] / 1024, 
-            d['memory.free'] / 1024
+            (d['memory.active'] / 1024 / this.available_memory) * 100, 
+            (d['memory.inactive'] / 1024 / this.available_memory) * 100, 
+            (d['memory.free'] / 1024 / this.available_memory) * 100
         ];
     },
-    colors: ['#00008B', '#0000ff', '#999999']
+    colors: ['rgb(47, 167, 24)', 'rgb(139, 204, 0)', '#999999'],
+	range_line_color: 'rgb(47, 167, 24)'
 });
 
 Atmo.Views.InstanceCPUGraph = Atmo.Views.InstanceGraph.extend({
@@ -174,5 +186,6 @@ Atmo.Views.InstanceCPUGraph = Atmo.Views.InstanceGraph.extend({
             d['cpu.waiting']
         ];
     },
+	range_line_color: '#3366cc'
     //colors: ['#00008B', '#0000ff', '#ffd700', '#999999']
 });
