@@ -65,6 +65,7 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
         }
         if (available_instances == 0 && Atmo.volumes.models.length > 0) {
             self.$el.find('select[name="all_volumes"]').hide();
+			self.$el.find('span').remove();
             self.$el.find('select[name="all_volumes"]').after($('<span>', {
                 html: function() {
                     // User has no instances whatsoever
