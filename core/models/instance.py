@@ -37,7 +37,9 @@ class Instance(models.Model):
     provider_alias = models.CharField(max_length=256)
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     created_by = models.ForeignKey(User)
-    start_date = models.DateTimeField(default=lambda:datetime.now(pytz.utc))
+    # do not set a default value for start_date
+    # it creates more problems than it solves; trust me.
+    start_date = models.DateTimeField()
     end_date = models.DateTimeField(null=True)
     shell = models.BooleanField()
     vnc = models.BooleanField()
@@ -108,6 +110,8 @@ def findInstance(alias):
 def convertEshInstance(esh_driver, esh_instance, provider_id, user, token=None):
     """
     """
+    logger.debug(esh_instance.__dict__)
+    logger.debug(esh_instance.extra)
     alias = esh_instance.alias
     try:
         ip_address = esh_instance._node.public_ips[0]
@@ -122,14 +126,31 @@ def convertEshInstance(esh_driver, esh_instance, provider_id, user, token=None):
         core_instance.ip_address = ip_address
         core_instance.save()
     else:
-        create_stamp = esh_instance.extra.get('launchdatetime')
-        #if not create_stamp:
-        #Openstack?
+        if 'launchdatetime' in esh_instance.extra:
+            create_stamp = esh_instance.extra.get('launchdatetime')
+        elif 'created' in esh_instance.extra:
+            create_stamp = esh_instance.extra.get('created')
+        else:
+            raise Exception("Instance does not have a created timestamp.  This"
+            "should never happen. Don't cheat and assume it was created just "
+            "now. Get the real launch time, bra.")
+
+        # create_stamp is an iso 8601 timestamp string that may or may not
+        # include microseconds start_date is a timezone-aware datetime object
+        try:
+            start_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+        except ValueError:
+            start_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%SZ')
+        start_date = start_date.replace(tzinfo=pytz.utc)
+
+        logger.debug("CREATED: %s" % create_stamp)
+        logger.debug("START: %s" % start_date)
+
         coreMachine = convertEshMachine(esh_driver, eshMachine, provider_id)
         core_instance = createInstance(provider_id, alias,
                                       coreMachine, ip_address,
                                       esh_instance.name, user,
-                                      create_stamp, token)
+                                      start_date, token)
 
     core_instance.esh = esh_instance
 
@@ -183,10 +204,9 @@ def createInstance(provider_id, provider_alias, provider_machine,
                                        provider_alias=provider_alias,
                                        provider_machine=provider_machine,
                                        ip_address=ip_address,
-                                       created_by=creator, token=token)
-    if create_stamp:
-        new_inst.start_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%S.%fZ')
-        new_inst.start_date.replace(tzinfo=pytz.utc)
+                                       created_by=creator,
+                                       token=token,
+                                       start_date=create_stamp)
     new_inst.save()
     logger.debug("New instance created - %s (Token = %s)" %
                  (provider_alias, token))

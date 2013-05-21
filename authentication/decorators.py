@@ -23,14 +23,14 @@ def atmo_login_required(func):
         by the available server session data
         @redirect - location to redirect user after logging in
         """
-        #logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
+        logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
         if request is None or request.session is None:
             return HttpResponseRedirect(settings.SERVER_URL+"/logout/")
 
         username = request.session.get('username', None)
         redirect = kwargs.get('redirect', request.get_full_path())
         emulator = request.session.get('emulated_by', None)
-        #logger.info("%s\n%s\n%s" % (username, redirect, emulator))
+        logger.info("%s\n%s\n%s" % (username, redirect, emulator))
 
         if emulator:
             logger.info("Test emulator %s instead of %s" %

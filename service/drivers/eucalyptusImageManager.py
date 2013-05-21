@@ -564,7 +564,7 @@ title Atmosphere VM (%s)
                             download_dir='/tmp', ancestor_ami_ids=None):
         bucket_name = bucket_name.lower()
         logger.debug('Bundling image %s to dir:%s'
-                     % (image_path, destination_path))
+                     % (image_path, download_dir))
         manifest_loc = self._bundle_image(image_path, download_dir, 
                                           kernel, ramdisk,
                                           ancestor_ami_ids=ancestor_ami_ids)
