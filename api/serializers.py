@@ -161,6 +161,9 @@ class ProfileSerializer(serializers.ModelSerializer):
         Check that profile is an identitymember & providermember
         Returns the dict of attrs
         """
+	#Short-circut if source (identity) not in attrs
+        if source not in attrs:
+            return attrs
         selected_identity = attrs[source]
         logger.debug(attrs)
         logger.debug(source)
