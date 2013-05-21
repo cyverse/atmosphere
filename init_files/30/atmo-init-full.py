@@ -198,18 +198,20 @@ def mount_storage():
     """
     logging.debug("Mount test")
     (out, err) = run_command(['/sbin/fdisk', '-l'])
+    dev_1 = None
+    dev_2 = None
     if 'sda1' in out:
         #Eucalyptus CentOS format
         dev_1 = 'sda1'
         dev_2 = 'sda2'
+    elif 'xvda1' in out:
+        #Eucalyptus Ubuntu format
+        dev_1 = 'xvda1'
+        dev_2 = 'xvda2'
     elif 'vda' in out:
         #Openstack format for Root/Ephem. Disk
         dev_1 = 'vda'
         dev_2 = 'vdb'
-    else:
-        #Eucalyptus Ubuntu format
-        dev_1 = 'xvda1'
-        dev_2 = 'xvda2'
     outLines = out.split('\n')
     for line in outLines:
         r = re.compile(', (.*?) bytes')
