@@ -394,6 +394,8 @@ def modify_rclocal(username, distro):
         # Intentionally REPLACE the entire contents of file on each run
         atmo_rclocal = open(atmo_rclocal_path,'w')
         atmo_rclocal.write('#!/bin/sh -e'
+                          'depmod -a\n'
+                          'modprobe acpiphp\n'
                           'hostname localhost\n'
                           '/bin/su %s -c /usr/bin/vncserver\n'
                           '/usr/bin/nohup /usr/local/bin/shellinaboxd -b -t '
@@ -611,6 +613,11 @@ def ldap_replace():
                  '/etc/ldap.conf'])
 
 
+def insert_modprobe():
+    run_command(['depmod','-a'])
+    run_command(['modprobe','acpiphp'])
+
+
 def main(argv):
     init_logs('/var/log/atmo/atmo_init_full.log')
     atmoObj = {'atmosphere': {}}
@@ -694,6 +701,7 @@ def main(argv):
 #    install_icommands(distro)
     update_timezone()
     shellinaboxd(distro)
+    insert_modprobe()
     modify_rclocal(linuxuser, distro)
     logging.info("Complete.")
 
