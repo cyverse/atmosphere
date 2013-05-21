@@ -117,7 +117,7 @@ def logout(request):
 @atmo_login_required
 def app(request):
     try:
-        if MaintenanceRecord.disable_login_access():
+        if MaintenanceRecord.disable_login_access(request):
             return HttpResponseRedirect('/login/')
         template = get_template("cf2/index.html")
         context = RequestContext(request, {

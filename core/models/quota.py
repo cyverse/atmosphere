@@ -14,7 +14,7 @@ class Quota(models.Model):
     memory = models.IntegerField(null=True, blank=True, default=4)  # In GB
     storage = models.IntegerField(null=True, blank=True, default=50)  # In GB
     # In #Volumes allowed
-    storage_count = models.IntegerField(null=True, blank=True, default=2)
+    storage_count = models.IntegerField(null=True, blank=True, default=1)
 
     def __unicode__(self):
         return "CPU:%s, MEM:%s, DISK:%s DISK #:%s" %\

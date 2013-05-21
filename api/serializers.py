@@ -154,6 +154,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     #TODO:Need to validate provider/identityy membership on id change
     username = serializers.CharField(read_only=True, source='user.username')
     groups = serializers.CharField(read_only=True, source='user.groups.all')
+    icon_set = serializers.CharField(source='icon_set')
     selected_identity = IdentityRelatedField()
 
     def validate_selected_identity(self, attrs, source):
@@ -161,18 +162,19 @@ class ProfileSerializer(serializers.ModelSerializer):
         Check that profile is an identitymember & providermember
         Returns the dict of attrs
         """
-        selected_identity = attrs[source]
-        logger.debug(attrs)
-        logger.debug(source)
-        logger.debug(selected_identity)
-        groups = self.object.user.group_set.all()
-        for g in groups:
-            for id_member in g.identitymembership_set.all():
-                if id_member.identity == selected_identity:
-                    return attrs
-        raise serializers.ValidationError("User is not a member of"
-                                          "selected_identity = %s"
-                                          % selected_identity)
+        if attrs and attrs.get("selected_identity"):
+            selected_identity = attrs[source]
+            logger.debug(attrs)
+            logger.debug(source)
+            logger.debug(selected_identity)
+            groups = self.object.user.group_set.all()
+            for g in groups:
+                for id_member in g.identitymembership_set.all():
+                    if id_member.identity == selected_identity:
+                        return attrs
+            raise serializers.ValidationError("User is not a member of"
+                                              "selected_identity = %s"
+                                              % selected_identity)
 
     class Meta:
         model = UserProfile

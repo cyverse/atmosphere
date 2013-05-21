@@ -40,12 +40,17 @@ class Profile(APIView):
         profile = user.get_profile()
         serializer = ProfileSerializer(profile,
                                        data=request.DATA, partial=True)
-        if serializer.is_valid():
+        if serializer.data.get("selected_identity"):
+            if serializer.is_valid():
+                serializer.save()
+                response = Response(serializer.data)
+                return response
+            else:
+                return Response(serializer.errors)
+        elif serializer.data.get("icon_set"):
             serializer.save()
             response = Response(serializer.data)
             return response
-        else:
-            return Response(serializer.errors)
 
     @api_auth_token_required
     def put(self, request, provider_id=None, identity_id=None):

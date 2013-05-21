@@ -1,6 +1,6 @@
 from datetime import datetime
 from django.db import models
-
+from django.contrib.auth.models import User
 
 class MaintenanceRecord(models.Model):
     """
@@ -27,8 +27,13 @@ class MaintenanceRecord(models.Model):
         return records
 
     @classmethod
-    def disable_login_access(cls):
+    def disable_login_access(cls, request):
         disable_login = False
+        if request and 'username' in request.session:
+            username = request.session['username']
+        user = User.objects.get(username=username)
+        if user.is_staff or user.is_superuser:
+            return False
         records = MaintenanceRecord.active()
         for record in records:
             if record.disable_login:
