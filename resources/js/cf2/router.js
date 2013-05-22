@@ -109,7 +109,7 @@ Atmo.Router = Backbone.Router.extend({
 			url: site_root + '/api/version/', 
 			statusCode: {
 				200:  function(response) {
-					$('#version').html('(v. ' + response['short'] + ')');
+					$('#version').html('(v. ' + response['normal'] + ')');
 				}
 			},
 		});
