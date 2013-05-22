@@ -157,12 +157,13 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 		}
 
 		// Now, deal with task states -- initialize task format: 'state - task' 
-		if (this.model.get('state').indexOf('-') != -1)
+		if (this.model.get('state').indexOf('-') != -1 && Atmo.profile.get('selected_identity').get('provider_id') == 2) {
 			this.add_instance_task();
 
-		setTimeout(function() {
-			self.$el.find('div').slideDown();
-		}, 1500);
+			setTimeout(function() {
+				self.$el.find('div').slideDown();
+			}, 1500);
+		}
 	},
 	get_final_state: function(state, task) {
 		// Check for the final state to prevent reverting if a queued task hasn't begun yet

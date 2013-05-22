@@ -331,7 +331,6 @@ class Instance(APIView):
 
     @api_auth_token_required
     def delete(self, request, provider_id, identity_id, instance_id):
-
         user = request.user
         esh_driver = prepareDriver(request, identity_id)
 
