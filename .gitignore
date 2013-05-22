@@ -13,6 +13,7 @@ nohup.out
 #*.*#
 logs/*
 static/*
+extras/euca/*
 extras/goodies/*
 extras/install-scripts/*
 extras/sql/*
