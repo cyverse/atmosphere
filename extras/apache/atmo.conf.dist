@@ -60,6 +60,7 @@ SetEnvIf User-Agent ".*MSIE.*" \
          downgrade-1.0 force-response-1.0
 
 #This is for atmosphere
+Alias /favicon.ico /opt/dev/atmosphere/static/images/favicon.ico
 
 #init_files && resources will auto-direct to the file
 Alias /init_files /opt/dev/atmosphere/init_files

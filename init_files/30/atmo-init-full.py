@@ -125,10 +125,10 @@ def run_command(commandList, shell=False, bash_wrap=False):
 
 
 def add_etc_group(user):
-    run_command(["/bin/sed -i 's/users:x:.*/&#%s,/' /etc/group" % (user, )])
+    run_command(["/bin/sed -i 's/users:x:.*/&%s,/' /etc/group" % (user, )])
 
 
-def comment_test(filename):
+def is_updated_test(filename):
     if '## Atmosphere System' in open(filename).read():
         return True
     return False
@@ -672,13 +672,13 @@ def main(argv):
     logging.debug("Distro - %s" % distro)
     #TODO: Test this is multi-call safe
     #Add linux user to etc-group
-    #comment_test determines if this sensitive file needs
+    #is_updated_test determines if this sensitive file needs
     update_sshkeys()
     update_sudoers()
-    if comment_test('/etc/sudoers'):
+    if not is_updated_test('/etc/sudoers'):
         add_etc_group(linuxuser)
         add_sudoers(linuxuser)
-        ssh_config()
+        ssh_config(distro)
 
     if not is_rhel(distro):
         run_command(['/usr/bin/apt-get', 'update'])
