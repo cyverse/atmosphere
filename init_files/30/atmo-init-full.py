@@ -125,7 +125,7 @@ def run_command(commandList, shell=False, bash_wrap=False):
 
 
 def add_etc_group(user):
-    run_command(["/bin/sed -i 's/users:x:.*/&#%s,/' /etc/group" % (user, )])
+    run_command(["/bin/sed -i 's/users:x:.*/&%s,/' /etc/group" % (user, )])
 
 
 def is_updated_test(filename):
