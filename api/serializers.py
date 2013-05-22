@@ -36,6 +36,24 @@ class IdentitySerializer(serializers.ModelSerializer):
         fields = ('id', 'created_by', 'provider', 'credentials', 'quota')
 
 
+class TagRelatedField(serializers.ManySlugRelatedField):
+
+    def to_native(self, tag):
+        return super(TagRelatedField, self).to_native(tag)
+
+    def field_from_native(self, data, files, field_name, into):
+        value = data.get(field_name)
+        if value is None:
+            return
+        try:
+            tags = []
+            for tag in value:
+                tags.append(Tag.objects.get(name__iexact=tag))
+            into[field_name] = tags
+        except Identity.DoesNotExist:
+            into[field_name] = None
+        return
+
 class InstanceSerializer(serializers.ModelSerializer):
     #R/O Fields first!
     alias = serializers.CharField(read_only=True, source='provider_alias')
@@ -55,8 +73,8 @@ class InstanceSerializer(serializers.ModelSerializer):
     has_vnc = serializers.BooleanField(read_only=True, source='vnc')
     #Writeable fields
     name = serializers.CharField(source='name')
-    tags = serializers.ManySlugRelatedField(slug_field='name',
-                                            source='tags', read_only=False)
+    tags = TagRelatedField(slug_field='name',
+                                            source='tags')
 
     class Meta:
         model = Instance
@@ -126,7 +144,6 @@ class IdentityDetailSerializer(serializers.ModelSerializer):
 class IdentityRelatedField(serializers.RelatedField):
 
     def to_native(self, identity):
-        logger.info('to native')
         quota_dict = identity.get_quota_dict()
         return {
             "id": identity.id,
@@ -135,13 +152,9 @@ class IdentityRelatedField(serializers.RelatedField):
         }
 
     def field_from_native(self, data, files, field_name, into):
-        logger.info('data = %s' % data)
-        logger.info('field_name = %s' % field_name)
         value = data.get(field_name)
-        logger.info('value = %s' % value)
         if value is None:
             return
-        logger.info('into = %s' % into)
         try:
             into[field_name] = Identity.objects.get(id=value)
         except Identity.DoesNotExist:
