@@ -55,15 +55,17 @@ ESH_MAP = {
 
 def _get_init_script(instance_service_url, instance_token,
                      username, init_file_version):
-    instance_config = """arg = '{
-    "atmosphere":{  "servicename":"instance service",
-                "instance_service_url":"%s",
-                "server":"%s",
-                "token":"%s",
-                "userid":"%s",
-                "vnc_license":"%s"
-              }
-    }'""" % (instance_service_url, settings.SERVER_URL,
+    instance_config = """\
+arg = '{
+ "atmosphere":{
+  "servicename":"instance service",
+  "instance_service_url":"%s",
+  "server":"%s",
+  "token":"%s",
+  "userid":"%s",
+  "vnc_license":"%s"
+ }
+}'""" % (instance_service_url, settings.SERVER_URL,
             instance_token, username, settings.ATMOSPHERE_VNC_LICENSE)
 
     init_script_file = os.path.join(
