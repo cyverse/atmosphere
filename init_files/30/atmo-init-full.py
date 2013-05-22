@@ -125,7 +125,8 @@ def run_command(commandList, shell=False, bash_wrap=False):
 
 
 def add_etc_group(user):
-    run_command(["/bin/sed -i 's/users:x:.*/&#%s,/' /etc/group" % (user, )])
+    run_command(["/bin/sed -i 's/users:x:.*/&%s,/' /etc/group" % (user, )],
+                bash_wrap=True)
 
 
 def is_updated_test(filename):
@@ -198,18 +199,20 @@ def mount_storage():
     """
     logging.debug("Mount test")
     (out, err) = run_command(['/sbin/fdisk', '-l'])
+    dev_1 = None
+    dev_2 = None
     if 'sda1' in out:
         #Eucalyptus CentOS format
         dev_1 = 'sda1'
         dev_2 = 'sda2'
+    elif 'xvda1' in out:
+        #Eucalyptus Ubuntu format
+        dev_1 = 'xvda1'
+        dev_2 = 'xvda2'
     elif 'vda' in out:
         #Openstack format for Root/Ephem. Disk
         dev_1 = 'vda'
         dev_2 = 'vdb'
-    else:
-        #Eucalyptus Ubuntu format
-        dev_1 = 'xvda1'
-        dev_2 = 'xvda2'
     outLines = out.split('\n')
     for line in outLines:
         r = re.compile(', (.*?) bytes')
@@ -676,7 +679,7 @@ def main(argv):
     if not is_updated_test('/etc/sudoers'):
         add_etc_group(linuxuser)
         add_sudoers(linuxuser)
-        ssh_config()
+        ssh_config(distro)
 
     if not is_rhel(distro):
         run_command(['/usr/bin/apt-get', 'update'])

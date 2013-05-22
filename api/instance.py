@@ -37,7 +37,7 @@ class InstanceList(APIView):
         try:
             esh_instance_list = esh_driver.list_instances(method_params)
         except InvalidCredsError:
-            logger.warn(
+            logger.exception(
                 'Authentication Failed. Provider-id:%s Identity-id:%s'
                 % (provider_id, identity_id))
             errorObj = failureJSON([{

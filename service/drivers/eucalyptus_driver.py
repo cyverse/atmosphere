@@ -257,10 +257,11 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
     def attach_volume(self, node, volume, device=None):
         if device is None:
             device = self._getNextAvailableDevice(node.id)
-            logger.debug('Next device location - %s' % device)
-        return super(Eucalyptus_Esh_NodeDriver, self).attach_volume(node,
+        result = super(Eucalyptus_Esh_NodeDriver, self).attach_volume(node,
                                                                     volume,
                                                                     device)
+        logger.debug('Result of attaching device to %s:%s' % (device, result))
+        return result
 
     def create_volume(self, size, name, location='bespin', *args, **kwargs):
         params = {'Action': 'CreateVolume',
