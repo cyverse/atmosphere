@@ -11,7 +11,7 @@ celery==3.0.16
 distribute==0.6.31
 django-celery-with-redis==3.0
 django-nose2==0.1.1
-djangorestframework==2.2.4
+djangorestframework==2.3.3
 git+git://github.com/iPlantCollaborativeOpenSource/caslib.py.git#egg=caslib
 git+git://github.com/iPlantCollaborativeOpenSource/euca2ools.git@1.3-maint#egg=euca2ools
 httplib2==0.7.7
