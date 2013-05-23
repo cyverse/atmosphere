@@ -24,7 +24,7 @@ from api.group import GroupList, Group
 from api.tag import TagList, Tag
 from api.meta import Meta, MetaAction
 from api.version import Version
-from api.hyperlinked import APIRoot
+from api.root import APIRoot
 
 from authentication.decorators import atmo_valid_token_required
 
