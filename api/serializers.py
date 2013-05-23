@@ -6,7 +6,7 @@ from core.models.machine_request import MachineRequest, MachineExport
 from core.models.profile import UserProfile
 from core.models.provider import ProviderType, Provider
 from core.models.size import Size
-from core.models.tag import Tag
+from core.models.tag import Tag, updateTags
 from core.models.volume import Volume
 from core.models.group import Group
 
@@ -36,7 +36,7 @@ class IdentitySerializer(serializers.ModelSerializer):
         fields = ('id', 'created_by', 'provider', 'credentials', 'quota')
 
 
-class TagRelatedField(serializers.ManySlugRelatedField):
+class TagRelatedField(serializers.SlugRelatedField):
 
     def to_native(self, tag):
         return super(TagRelatedField, self).to_native(tag)
@@ -47,8 +47,9 @@ class TagRelatedField(serializers.ManySlugRelatedField):
             return
         try:
             tags = []
-            for tag in value:
-                tags.append(Tag.objects.get(name__iexact=tag))
+            for tagname in value:
+                tag = find_or_create_tag(tagname, None)
+                tags.append(tag)
             into[field_name] = tags
         except Identity.DoesNotExist:
             into[field_name] = None
@@ -73,8 +74,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     has_vnc = serializers.BooleanField(read_only=True, source='vnc')
     #Writeable fields
     name = serializers.CharField(source='name')
-    tags = TagRelatedField(slug_field='name',
-                                            source='tags')
+    tags = TagRelatedField(slug_field='name', source='tags', many=True)
 
     class Meta:
         model = Instance

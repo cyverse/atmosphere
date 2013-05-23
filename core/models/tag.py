@@ -41,9 +41,15 @@ def updateTags(coreObject, tagNameList, user=None):
             tag.machinerequest_set.remove(coreObject)
     #Add all tags in tagNameList to core*
     for tagName in tagNameList:
-        (tag, created) = Tag.objects.get_or_create(name=tagName.strip())
-        if created and user:
-            tag.user = user
-            tag.save()
+        tag = find_or_create_tag(tagName, user)
         coreObject.tags.add(tag)
     return coreObject
+
+def find_or_create_tag(name, user=None):
+    tag = Tag.objects.filter(name__iexact=name)
+    if not tag:
+        tag = Tag.objects.create(name=name, user=user)
+        tag.save()
+    else:
+        tag = tag[0]
+    return tag

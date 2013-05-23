@@ -1,6 +1,8 @@
 """
   Machine models for atmosphere.
 """
+import json
+
 from hashlib import md5
 
 from django.db import models
@@ -90,7 +92,7 @@ class ProviderMachine(models.Model):
     cached_machines = None
     provider = models.ForeignKey(Provider)
     machine = models.ForeignKey(Machine)
-    identifier = models.CharField(max_length=256)  # EMI-12341234
+    identifier = models.CharField(max_length=256, unique=True)  # EMI-12341234
 
     def icon_url(self):
         return self.machine.icon.url if self.machine.icon else None
@@ -227,7 +229,7 @@ def convertEshMachine(esh_driver, esh_machine, provider_id):
 
 def set_machine_from_metadata(esh_driver, core_machine):
     #Fixes Dep. loop - Do not remove
-    from api.serializers import InstanceSerializer
+    from api.serializers import ProviderMachineSerializer
     if not hasattr(esh_driver._connection, 'ex_get_image_metadata'):
         #NOTE: This can get chatty, only uncomment for debugging
         #Breakout for drivers (Eucalyptus) that don't support metadata
@@ -236,7 +238,10 @@ def set_machine_from_metadata(esh_driver, core_machine):
         return core_machine
     esh_machine = core_machine.esh
     metadata =  esh_driver._connection.ex_get_image_metadata(esh_machine)
-    serializer = InstanceSerializer(core_machine, data=metadata, partial=True)
+    if 'tags' in metadata and type(metadata['tags']) != list:
+        metadata['tags'] = json.loads(metadata['tags'])
+    logger.info("Testing new metadata %s" % metadata)
+    serializer = ProviderMachineSerializer(core_machine, data=metadata, partial=True)
     if not serializer.is_valid():
         logger.warn("Encountered errors serializing metadata:%s"
                     % serializer.errors)
@@ -244,6 +249,9 @@ def set_machine_from_metadata(esh_driver, core_machine):
     serializer.save()
     # Retrieve and prepare the new obj
     core_machine = serializer.object
+    if 'tags' in metadata:
+        updateTags(core_machine.machine, metadata['tags'])
+        core_machine.machine.save()
     core_machine.esh = esh_machine
     return core_machine
 
@@ -257,6 +265,9 @@ def update_machine_metadata(esh_driver, esh_machine, data={}):
                     % esh_driver._connection.__class__)
         return {}
     try:
+        if 'tags' in data and type(data['tags']) == list:
+            data['tags'] = json.dumps(data['tags'])
+        logger.info("New metadata:%s" % data)
         return esh_driver._connection.ex_set_image_metadata(esh_machine, data)
     except Exception, e:
         if 'incapable of performing the request' in e.message:

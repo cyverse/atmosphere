@@ -5,6 +5,7 @@ Atmosphere service instance rest api.
 ## Frameworks
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.reverse import reverse
 
 from threepio import logger
 ## Atmosphere Libraries
@@ -25,7 +26,13 @@ class Profile(APIView):
         #logger.info(request.user)
         user = request.user
         #logger.debug(user.get_profile())
-        serialized_data = ProfileSerializer(user.get_profile()).data
+        profile = user.get_profile() 
+        serialized_data = ProfileSerializer(profile).data
+        identity_id = profile.selected_identity.id
+        provider_id = profile.selected_identity.provider.id
+        serialized_data.update({
+
+        })
         response = Response(serialized_data)
         return response
 
