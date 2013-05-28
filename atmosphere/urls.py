@@ -24,7 +24,6 @@ from api.group import GroupList, Group
 from api.tag import TagList, Tag
 from api.meta import Meta, MetaAction
 from api.version import Version
-from api.root import APIRoot
 
 from authentication.decorators import atmo_valid_token_required
 
@@ -90,7 +89,7 @@ urlpatterns = patterns(
 
 urlpatterns += format_suffix_patterns(patterns(
     '',
-    url(r'api/$', APIRoot.as_view()),
+    url(r'api/$', Meta.as_view()),
     url(r'api/version/$', Version.as_view()),
     url(r'^api/notification/$', NotificationList.as_view()),
 
