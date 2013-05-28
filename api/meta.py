@@ -2,11 +2,15 @@
 Atmosphere service meta rest api.
 
 """
+from datetime import datetime
+import time
+
+from libcloud.common.types import InvalidCredsError
+
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-
-from libcloud.common.types import InvalidCredsError
+from rest_framework.reverse import reverse
 
 from threepio import logger
 
@@ -22,32 +26,30 @@ class Meta(APIView):
     @api_auth_token_required
     def get(self, request, provider_id=None, identity_id=None):
         """
+        Returns all available URLs based on the user profile.
         """
-        params = request.DATA
-        esh_driver = prepareDriver(request, identity_id)
-        try:
-            esh_meta = esh_driver.meta()
-            esh_meta_data = {'driver': unicode(esh_meta.driver),
-                             'identity':
-                             unicode(esh_meta.identity.user.username),
-                             'provider': unicode(esh_meta.provider.name)}
-            logger.info(esh_meta_data)
-            return Response(esh_meta_data, status=status.HTTP_200_OK)
-        except InvalidCredsError:
-            logger.warn('Authentication Failed. Provider-id:%s Identity-id:%s'
-                        % (provider_id, identity_id))
-            errorObj = failureJSON([{
-                'code': 401,
-                'message': 'Identity/Provider Authentication Failed'}])
-            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
-        except NotImplemented, ne:
-            logger.exception(ne)
-            errorObj = failureJSON([{
-                'code': 404,
-                'message':
-                'The requested resource %s is not available on this provider'
-                % params['action']}])
-            return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+        user = request.user
+        profile = user.get_profile() 
+        identity_id = profile.selected_identity.id
+        provider_id = profile.selected_identity.provider.id
+        data = {
+                'provider':reverse('provider-list',
+                    request=request),
+                'identity':reverse('identity-list',
+                    args=(provider_id,), request=request),
+                'volume':reverse('volume-list',
+                    args=(provider_id, identity_id), request=request),
+                'meta':reverse('meta-detail',
+                    args=(provider_id, identity_id), request=request),
+                'instance':reverse('instance-list',
+                    args=(provider_id, identity_id), request=request),
+                'machine':reverse('machine-list',
+                    args=(provider_id, identity_id), request=request),
+                'size':reverse('size-list',
+                    args=(provider_id, identity_id), request=request),
+                'profile':reverse('profile', request=request)
+               }
+        return Response(data)
 
 
 class MetaAction(APIView):
