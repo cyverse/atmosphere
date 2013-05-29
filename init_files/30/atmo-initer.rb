@@ -8,7 +8,7 @@ require 'json'
 require 'logger'
 
 $log = Logger.new('/var/log/atmo/atmo_init.log')
-$this_version = '2013.05.22'
+$this_version = '2013.05.29'
 $version = '30'
 $resource_url = 'http://128.196.172.136:8773/latest/meta-data/'
 $instance_info_hash = Hash.new
@@ -61,7 +61,7 @@ def main(args)
   atmo_userid = args_dict['atmosphere']['userid']
   atmo_instance_url = args_dict['atmosphere']['instance_service_url']
   atmo_vnc_license = args_dict['atmosphere']['vnc_license']
-  hashCheck("#{atmo_server}/init_files/#{$version}/atmo-init-full.py", "854a194eddbc833c940b8324295044346dbf0913", "/usr/sbin/atmo_init_full")
+  hashCheck("#{atmo_server}/init_files/#{$version}/atmo-init-full.py", "6af37c10c2a47f7d234076cf00c1896affaaf263", "/usr/sbin/atmo_init_full")
   IO.popen("/bin/chmod a+x /usr/sbin/atmo_init_full") { |f| }
   stdin, stdout, stderr, wait_thr = Open3.popen3('/usr/sbin/atmo_init_full --service_type="%s" --token="%s" --server="%s" --service_url="%s" --user_id="%s" --vnc_license="%s"' % [atmo_service_type, atmo_token, atmo_server, atmo_instance_url, atmo_userid, atmo_vnc_license])
   $log.debug stdout.read
