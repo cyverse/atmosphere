@@ -14,8 +14,8 @@ from libcloud.compute.deployment import ScriptDeployment
 from threepio import logger
 from atmosphere import settings
 
-class LoggedScriptDeployment(ScriptDeployment):
 
+class LoggedScriptDeployment(ScriptDeployment):
 
     def __init__(self, script, name=None, delete=False, logfile=None):
         """

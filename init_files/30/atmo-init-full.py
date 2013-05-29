@@ -284,14 +284,15 @@ def vnc(user, distro, license=None):
 
 def parrot_install(distro):
     try:
+        cctools_file = "cctools-3.7.2-x86_64-redhat5.tar.gz"
         download_file(
         'http://www.iplantcollaborative.org/sites/default/files/atmosphere/'
-        'cctools/cctools-3.7.2-x86_64-redhat5.tar.gz',
-        '/opt/cctools-3.7.2-x86_64-redhat5.tar.gz',
-        match_hash='c65c0791272a81415d2baa4a5aaad0d4dcc1ca76')
+        + 'cctools/%s' % (cctools_file),
+        '/opt/%s' % (cctools_file),
+        match_hash='04e0ef9e11e8ef7ac28ef694fd57e75b09455084')
         run_command(
-            ['/bin/tar', '-zxf',
-             '/opt/cctools-3.7.2-x86_64-redhat5.tar.gz',
+            ['/bin/tar', 'zxf',
+             '/opt/%s' % (cctools_file),
              '-C' , '/opt/'])
         if not is_rhel(distro):
             run_command(['/usr/bin/apt-get', '-qy', 'install',
@@ -306,6 +307,7 @@ def parrot_install(distro):
                  '/lib/x86_64-linux-gnu/libcrypto.so.1.0.0',
                  '/lib/x86_64-linux-gnu/libcrypto.so.6'])
         #link all files
+        
         for f in os.listdir("/opt/cctools/bin"):
             try:
                 link_f = os.path.join("/usr/local/bin", f)
