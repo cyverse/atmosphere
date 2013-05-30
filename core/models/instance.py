@@ -34,7 +34,7 @@ class Instance(models.Model):
     tags = models.ManyToManyField(Tag)
     # The specific machine & provider for which this instance exists
     provider_machine = models.ForeignKey(ProviderMachine)
-    provider_alias = models.CharField(max_length=256)
+    provider_alias = models.CharField(max_length=256, unique=True)
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     created_by = models.ForeignKey(User)
     # do not set a default value for start_date

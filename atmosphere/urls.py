@@ -126,11 +126,13 @@ urlpatterns += format_suffix_patterns(patterns(
         Profile.as_view(), name='profile-detail'),
 
     url(r'^api/provider/(?P<provider_id>\d+)/identity'
-        + '/(?P<identity_id>\d+)/instance/(?P<instance_id>\d+)/action/$',
+        + '/(?P<identity_id>\d+)/instance/(?P<instance_id>[a-zA-Z0-9-]+)/action/$',
         InstanceAction.as_view(), name='instance-action'),
+
     url(r'^api/provider/(?P<provider_id>\d+)/identity'
-        + '/(?P<identity_id>\d+)/instance/(?P<instance_id>\d+)/$',
+        + '/(?P<identity_id>\d+)/instance/(?P<instance_id>[a-zA-Z0-9-]+)/$',
         Instance.as_view(), name='instance-detail'),
+
     url(r'^api/provider/(?P<provider_id>\d+)/identity'
         + '/(?P<identity_id>\d+)/instance/$',
         InstanceList.as_view(), name='instance-list'),
@@ -146,14 +148,14 @@ urlpatterns += format_suffix_patterns(patterns(
         + '/(?P<identity_id>\d+)/volume/$',
         VolumeList.as_view(), name='volume-list'),
     url(r'^api/provider/(?P<provider_id>\d+)/identity'
-        + '/(?P<identity_id>\d+)/volume/(?P<volume_id>\d+)/$',
+        + '/(?P<identity_id>\d+)/volume/(?P<volume_id>[a-zA-Z0-9-]+)/$',
         Volume.as_view(), name='volume-detail'),
 
     url(r'^api/provider/(?P<provider_id>\d+)/identity'
         + '/(?P<identity_id>\d+)/machine/$',
         MachineList.as_view(), name='machine-list'),
     url(r'^api/provider/(?P<provider_id>\d+)/identity'
-        + '/(?P<identity_id>\d+)/machine/(?P<machine_id>\d+)/$',
+        + '/(?P<identity_id>\d+)/machine/(?P<machine_id>[a-zA-Z0-9-]+)/$',
         Machine.as_view(), name='machine-detail'),
 
     url(r'^api/provider/(?P<provider_id>\d+)/identity'
