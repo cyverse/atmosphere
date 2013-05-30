@@ -6,9 +6,13 @@ import json
 
 from django.http import HttpResponse, HttpResponseServerError
 
+from django.contrib.auth.models import User
+from django.core import urlresolvers
+
 from threepio import logger
 
 from core.email import email_admin, user_address
+from core.models import IdentityMembership
 
 
 def requestImaging(request, approve_link, deny_link):
@@ -54,14 +58,24 @@ def requestQuota(request):
 
     Returns a response.
     """
+    if request.method != 'POST':
+        return HttpResponse('')
     username = request.POST['username']
     new_quota = request.POST['quota']
     reason = request.POST['reason']
+    user = User.objects.get(username=username)
+    profile = user.get_profile()
+    membership = IdentityMembership.objects.get(identity=profile.selected_identity,
+            member__in=user.group_set.all())
+    admin_url = urlresolvers.reverse('admin:core_identitymembership_change',
+                                     args=(membership.id,))
     message = """
     Username : %s
     Quota Requested: %s
     Reason for Quota Increase: %s
-    """ % (username, new_quota, reason)
+    URL for Quota Increase:%s
+    """ % (username, new_quota, reason, 
+           request.build_absolute_uri(admin_url))
     subject = "Atmosphere Quota Request - %s" % username
     logger.info(message)
     email_success = email_admin(request, subject, message)

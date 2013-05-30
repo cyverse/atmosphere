@@ -96,7 +96,7 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/user/$', atmo_valid_token_required(UserManagement.as_view())),
     url(r'^api/user/(?P<username>.*)/$', User.as_view()),
     url(r'^api/profile/$', Profile.as_view(), name='profile'),
-    url(r'^api/provider/(?P<provider_id>.*)/occupancy/$', Occupancy.as_view()),
+    url(r'^api/provider/(?P<provider_id>\d+)/occupancy/$', Occupancy.as_view()),
 
     url(r'^api/group/$', GroupList.as_view()),
     url(r'^api/group/(?P<groupname>.*)/$', Group.as_view()),
@@ -104,74 +104,74 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/tag/$', TagList.as_view()),
     url(r'^api/tag/(?P<tag_slug>.*)/$', Tag.as_view()),
 
-    url(r'^api/provider/(?P<provider_id>.*)/identity'
-        + '/(?P<identity_id>.*)/image_export/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/image_export/$',
         MachineExportList.as_view(), name='machine-export-list'),
-    url(r'^api/provider/(?P<provider_id>.*)/identity'
-        + '/(?P<identity_id>.*)/image_export/(?P<machine_request_id>.*)/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/image_export/(?P<machine_request_id>\d+)/$',
         MachineExport.as_view(), name='machine-export'),
 
-    url(r'^api/provider/(?P<provider_id>.*)/identity/'
-        + '(?P<identity_id>.*)/request_image/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/identity/'
+        + '(?P<identity_id>\d+)/request_image/$',
         MachineRequestList.as_view(), name='machine-request-list'),
-    url(r'^api/provider/(?P<provider_id>.*)/identity/'
-        + '(?P<identity_id>.*)/request_image/(?P<machine_request_id>.*)/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/identity/'
+        + '(?P<identity_id>\d+)/request_image/(?P<machine_request_id>\d+)/$',
         MachineRequest.as_view(), name='machine-request'),
 
-    url(r'^api/request_image/(?P<machine_request_id>.*)/(?P<action>.*)/$',
+    url(r'^api/request_image/(?P<machine_request_id>\d+)/(?P<action>.*)/$',
         MachineRequestAction.as_view(), name='machine-request-detail'),
 
-    url(r'^api/provider/(?P<provider_id>.*)/identity/'
-        + '(?P<identity_id>.*)/profile/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/identity/'
+        + '(?P<identity_id>\d+)/profile/$',
         Profile.as_view(), name='profile-detail'),
 
-    url(r'^api/provider/(?P<provider_id>.*)/identity'
-        + '/(?P<identity_id>.*)/instance/(?P<instance_id>.*)/action/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/instance/(?P<instance_id>\d+)/action/$',
         InstanceAction.as_view(), name='instance-action'),
-    url(r'^api/provider/(?P<provider_id>.*)/identity'
-        + '/(?P<identity_id>.*)/instance/(?P<instance_id>.*)/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/instance/(?P<instance_id>\d+)/$',
         Instance.as_view(), name='instance-detail'),
-    url(r'^api/provider/(?P<provider_id>.*)/identity'
-        + '/(?P<identity_id>.*)/instance/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/instance/$',
         InstanceList.as_view(), name='instance-list'),
 
-    url(r'^api/provider/(?P<provider_id>.*)/identity'
-        + '/(?P<identity_id>.*)/size/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/size/$',
         SizeList.as_view(), name='size-list'),
-    url(r'^api/provider/(?P<provider_id>.*)/identity'
-        + '/(?P<identity_id>.*)/size/(?P<size_id>.*)/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/size/(?P<size_id>\d+)/$',
         Size.as_view(), name='size-detail'),
 
-    url(r'^api/provider/(?P<provider_id>.*)/identity'
-        + '/(?P<identity_id>.*)/volume/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/volume/$',
         VolumeList.as_view(), name='volume-list'),
-    url(r'^api/provider/(?P<provider_id>.*)/identity'
-        + '/(?P<identity_id>.*)/volume/(?P<volume_id>.*)/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/volume/(?P<volume_id>\d+)/$',
         Volume.as_view(), name='volume-detail'),
 
-    url(r'^api/provider/(?P<provider_id>.*)/identity'
-        + '/(?P<identity_id>.*)/machine/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/machine/$',
         MachineList.as_view(), name='machine-list'),
-    url(r'^api/provider/(?P<provider_id>.*)/identity'
-        + '/(?P<identity_id>.*)/machine/(?P<machine_id>.*)/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/machine/(?P<machine_id>\d+)/$',
         Machine.as_view(), name='machine-detail'),
 
-    url(r'^api/provider/(?P<provider_id>.*)/identity'
-        + '/(?P<identity_id>.*)/meta/$', Meta.as_view(), name='meta-detail'),
-    url(r'^api/provider/(?P<provider_id>.*)/identity'
-        + '/(?P<identity_id>.*)/meta/(?P<action>.*)/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/meta/$', Meta.as_view(), name='meta-detail'),
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/meta/(?P<action>.*)/$',
         MetaAction.as_view(), name='meta-action'),
 
-    url(r'^api/provider/(?P<provider_id>.*)/identity'
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
         + '/$', IdentityList.as_view(), name='identity-list'),
-    url(r'^api/provider/(?P<provider_id>.*)/identity'
-        + '/(?P<identity_id>.*)/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/$',
         Identity.as_view(), name='identity-detail'),
 
     url(r'^api/identity/$', IdentityDetailList.as_view(), name='identity-detail-list'),
 
     url(r'^api/provider/$', ProviderList.as_view(), name='provider-list'),
-    url(r'^api/provider/(?P<provider_id>.*)/$',
+    url(r'^api/provider/(?P<provider_id>\d+)/$',
         Provider.as_view(), name='provider-detail'),
 
 ))

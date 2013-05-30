@@ -28,12 +28,12 @@ def user_address(request):
     """ Return the username and email given a django request object.
     """
     logger.debug("request = %s" % str(request))
-    user = request.session.get('username', '')
-    logger.debug("user = %s" % user)
-    user_email = lookupEmail(user)
+    username = request.session.get('username', '')
+    logger.debug("user = %s" % username)
+    user_email = lookupEmail(username)
     if not user_email:
-        user_email = "%s@iplantcollaborative.org" % user
-    return (user, user_email)
+        user_email = "%s@iplantcollaborative.org" % username
+    return (username, user_email)
 
 
 def request_info(request):
@@ -85,29 +85,43 @@ def email_admin(request, subject, message):
     """
     user_agent, remote_ip, location, resolution = request_info(request)
     user, user_email = user_address(request)
-    sendto, sendto_email = admin_address()
     # build email body.
     body = u"%s\nLocation: %s\nSent From: %s - %s\nSent By: %s - %s"
     body %= (message,
              location,
              user, remote_ip,
              user_agent, resolution)
+    return email_to_admin(subject, body, user, user_email)
+
+def email_to_admin(subject, body, username=None, user_email=None):
+    """
+    Send a basic email to the admins. Nothing more than subject and message
+    are required.
+    """
+    sendto, sendto_email = admin_address()
+    #E-mail yourself if no users are provided
+    if not username and not user_email:
+        username, user_email = username, user_email
+    elif not user_email:  # Username provided
+        user_email = lookupEmail(username)
+    elif not username:  # user_email provided
+        username = 'Unknown'
     return send_email(subject, body,
-                      from_email=email_address_str(user, user_email),
+                      from_email=email_address_str(username, user_email),
                       to=[email_address_str(sendto, sendto_email)],
-                      cc=[email_address_str(user, user_email)])
+                      cc=[email_address_str(username, user_email)])
 
 
-def email_from_admin(user, subject, message):
+def email_from_admin(username, subject, message):
     """ Use user, subject and message to build and send a standard
         Atmosphere admin email from admins to a user.
         Returns True on success and False on failure.
     """
     from_name, from_email = admin_address()
-    user_email = lookupEmail(user)
+    user_email = lookupEmail(username)
     return send_email(subject, message,
                       from_email=email_address_str(from_name, from_email),
-                      to=[email_address_str(user, user_email)],
+                      to=[email_address_str(username, user_email)],
                       cc=[email_address_str(from_name, from_email)])
 
 
@@ -141,16 +155,21 @@ Helpful links:
 
 def send_image_request_email(user, new_machine, name):
     """
-    Sends an email to the user providing information about the new image.
-
-    Returns a boolean
+    Sends an email to the admins, who will verify the image boots successfully.
+    Upon launching, the admins will forward this email to the user,
+    which will provide useful information about the new image.
     """
-    body = """Hello %s,
+    user_email = lookupEmail(user.username)
+    body = """ADMINS: A new image has been completed. 
+Please ensure the image launches correctly.
+After verifying the image, forward the contents of this e-mail to: %s
+------------------------------------------------------------------
+Hello %s,
 
 Your image is ready. The image ID is "%s" and the image is named "%s".
 
 Thank you for using atmosphere!
 If you have any questions please contact: support@iplantcollaborative.org""" %\
-        (user.username, new_machine.identifier, name)
+        (user_email, user.username, new_machine.identifier, name)
     subject = 'Your Atmosphere Image is Complete'
-    return email_from_admin(user.username, subject, body)
+    return email_to_admin(subject, body, user.username, user_email)
