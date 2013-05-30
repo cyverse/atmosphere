@@ -135,6 +135,25 @@ def is_updated_test(filename):
     return False
 
 
+def etc_skel_bashrc(user):
+    filename = "/etc/skel/.bashrc"
+    if not is_updated_test(filename):
+        append_to_file(filename, """
+export IDS_HOME="/irods/data.iplantc.org/iplant/home/%s"
+alias ids_home="cd $IDS_HOME""" % user)
+
+
+def append_to_file(filename, block):
+    try:
+        f = open(filename, "a")
+        f.write("## Atmosphere System\n")
+        f.write(block)
+        f.close()
+    except Exception, e:
+        logging.exception("Failed to append to %s" % filename)
+        logging.exception("Failed to append block: %s" % block)
+
+
 def add_sudoers(user):
     f = open("/etc/sudoers", "a")
     f.write("""## Atmosphere System
@@ -691,6 +710,7 @@ def main(argv):
     instance_metadata["linuxuservncpassword"] = linuxpass
     mount_storage()
     ldap_replace()
+    etc_skel_bashrc(linuxuser)
     run_command(['/bin/cp', '-rp', '/etc/skel/.', '/home/%s' % linuxuser])
     run_command(['/bin/chown', '-R',
                  '%s:iplant-everyone' % (linuxuser,), '/home/%s' % linuxuser])
