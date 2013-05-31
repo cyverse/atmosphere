@@ -29,7 +29,7 @@ from boto import connect_ec2
 from boto.ec2.regioninfo import RegionInfo
 from boto.ec2.instance import Instance as BotoInstance
 from boto.s3.connection import S3Connection, OrdinaryCallingFormat
-from boto.exception import S3ResponseError, S3CreateError
+from boto.exception import S3ResponseError, S3CreateError, EC2ResponseError
 from boto.s3.key import Key
 
 from euca2ools import Euca2ool, FileValidationError
