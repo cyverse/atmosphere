@@ -109,25 +109,27 @@ Atmo.Views.ReportInstanceForm = Backbone.View.extend({
                 type: 'POST',
                 url: site_root + '/api/email_support/', 
                 data: data,
-                statusCode: {
-                    200: function() {
-                        loader.remove();
-                        btn.val("Report Submitted")
-                            .attr("disabled", "disabled")
-                        btn.after($('<a/>', {
-                            href: '#',
-                            style: 'margin-left: 10px;',
-                            html: 'Send another report',
-                            click: function(e) {
-                                e.preventDefault();
-                                self.render();
-                            }
-                        }))
-                        .after("Your report has been sent to support. Reports are typically answered in one to two business days.");
-                    }
-                },
-                contentType: 'json',
-                dataType: 'json'
+                success: function() {
+					loader.remove();
+					btn.val("Report Submitted")
+						.attr("disabled", "disabled")
+					btn.after($('<a/>', {
+						href: '#',
+						style: 'margin-left: 10px;',
+						html: 'Send another report',
+						click: function(e) {
+							e.preventDefault();
+							self.render();
+						}
+					}))
+					.after("Your report has been sent to support. Reports are typically answered in one to two business days.");
+				},
+				error: function() {
+					loader.remove();
+					btn.val("Report Submitted")
+						.attr("disabled", "disabled")
+					Atmo.Utils.notify('Could not send report', 'Please email your issue directly to <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>.');
+				},
             });
         }
         return false;
