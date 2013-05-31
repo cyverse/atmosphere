@@ -95,10 +95,6 @@ class ImageManager():
         #Prepare name for imaging
         image_name = image_name.replace(' ', '_').replace('/', '-')
 
-        #Prepare private list, if necessary
-        if not public and owner not in private_user_list:
-            private_user_list.append(owner)
-        
         try:
             reservation = self.find_instance(instance_id)[0]
             #Collect information about instance to fill arguments
@@ -109,6 +105,10 @@ class ImageManager():
         except IndexError:
             raise Exception("No Instance Found with ID %s" % instance_id)
 
+        #Prepare private list, if necessary
+        if not public and owner not in private_user_list:
+            private_user_list.append(owner)
+        
         logger.info("Instance belongs to: %s" % owner)
         if not kernel:
             kernel = instance_kernel
@@ -633,6 +633,7 @@ title Atmosphere VM (%s)
         """
         Expand the wildcard to match all files, delete each one.
         """
+        logger.debug(wildcard_path)
         glob_list = glob.glob(wildcard_path)
         if glob_list:
             for filename in glob_list:
@@ -677,7 +678,10 @@ title Atmosphere VM (%s)
         #self._readd_atmo_boot(mount_point)
 
         #Begin removing user-specified files (Matches wildcards)
+        logger.info("Exclude files: %s" % exclude)
         for rm_file in exclude:
+            if not rm_file:
+                continue
             rm_file = self._check_mount_path(rm_file)
             rm_file_path = os.path.join(mount_point, rm_file)
             self._wildcard_remove(rm_file_path)

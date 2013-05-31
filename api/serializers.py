@@ -6,7 +6,7 @@ from core.models.machine_request import MachineRequest, MachineExport
 from core.models.profile import UserProfile
 from core.models.provider import ProviderType, Provider
 from core.models.size import Size
-from core.models.tag import Tag, updateTags
+from core.models.tag import Tag, find_or_create_tag
 from core.models.volume import Volume
 from core.models.group import Group
 
