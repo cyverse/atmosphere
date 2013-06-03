@@ -73,6 +73,14 @@ def convertEshSize(eshSize, provider_id, user):
     alias = eshSize._size.id
     try:
         coreSize = Size.objects.get(alias=alias, provider__id=provider_id)
+        new_esh_data = {
+            'name':eshSize._size.name,
+            'ram':eshSize._size.ram,
+            'disk':eshSize._size.disk,
+            'cpu':eshSize.cpu,
+        }
+        #Update changed values..
+        coreSize.update(**new_esh_data)
     except Size.DoesNotExist:
         #Gather up the additional, necessary information to create a DB repr
         name = eshSize._size.name
