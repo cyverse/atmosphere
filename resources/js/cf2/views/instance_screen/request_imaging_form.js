@@ -23,6 +23,21 @@ Atmo.Views.RequestImagingForm = Backbone.View.extend({
             }
         });
         this.tagger.render().$el.prependTo(this.$el.find('.tagger_container'));
+
+		// Populate cloud for deployment only with user's available providers
+
+		// Populate the top menu with a provider switcher 
+		for (var i = 0; i < Atmo.identities.length; i++) {
+
+			var identity = Atmo.identities.models[i];
+			var name = Atmo.identities.models[i].get('provider').get('type');
+
+			if (identity.get('selected'))
+				this.$el.find('select[name="provider"]').prepend('<option value="' + identity.get('provider_id') + '">' + name + '</option>');
+			else
+				this.$el.find('select[name="provider"]').append('<option value="' + identity.get('provider_id') + '">' + name + '</option>');
+		}
+
 		return this;
 	},
 	certify_image: function(e) {
