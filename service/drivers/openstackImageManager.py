@@ -51,9 +51,9 @@ class ImageManager():
     def __init__(self, *args, **kwargs):
         if len(args) == 0 and len(kwargs) == 0:
             raise KeyError("Credentials missing in __init__. ")
-        self.newConnection(*args, **kwargs)
+        self.new_connection(*args, **kwargs)
 
-    def newConnection(self, *args, **kwargs):
+    def new_connection(self, *args, **kwargs):
         """
         Can be used to establish a new connection for all clients
         """

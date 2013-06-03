@@ -125,6 +125,9 @@ def email_support(request):
 
     Returns a response.
     """
+    if request.META['REQUEST_METHOD'] != 'POST':
+        return HttpResponse("Expecting POST with message and subject"
+                            "parameters.")
     message = request.POST.get('message')
     if not message:
         return HttpResponseServerError({'email_sent': False,
