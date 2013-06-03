@@ -73,7 +73,7 @@ def machine_imaging_task(machine_request, euca_imaging_creds, openstack_creds):
         return new_image_id
     except Exception as e:
         logger.exception(e)
-        machine_request.status = 'error'
+        machine_request.status = 'error - %s' % (e,)
         machine_request.save()
         return None
 
@@ -128,7 +128,7 @@ def select_and_build_image(machine_request, euca_imaging_creds,
             new_image_id = None
         elif new_provider == 'openstack':
             logger.info('Create openstack image from openstack image')
-            manager = OSImageManager(openstack_creds)
+            manager = OSImageManager(**openstack_creds)
             #NOTE: This will create a snapshot, (Private-?), but is not a full
             #fledged image
             new_image_id = manager.create_image(
@@ -136,7 +136,7 @@ def select_and_build_image(machine_request, euca_imaging_creds,
                 machine_request.new_machine_name,
                 machine_request.new_machine_owner.username)
             #TODO: Grab the machine, then add image metadata here
-            machine = [img for img in manager.driver.list_images()
+            machine = [img for img in manager.list_images()
                        if img.id == new_image_id]
             if not machine:
                 return

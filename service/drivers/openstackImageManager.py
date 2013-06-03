@@ -137,7 +137,7 @@ class ImageManager():
         return True
 
     def list_images(self):
-        return [img for img in self.glance.images.list()]
+        return self.nova.images.list()
 
     def get_image_by_name(self, name):
         for img in self.glance.images.list():
