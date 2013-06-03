@@ -34,11 +34,12 @@ class UserManager():
         return manager
 
     def __init__(self, *args, **kwargs):
-        self.newConnection(*args, **kwargs)
+        self.keystone, self.nova = self.new_connection(*args, **kwargs)
 
-    def newConnection(self, *args, **kwargs):
-        self.keystone = _connect_to_keystone(*args, **kwargs)
-        self.nova = _connect_to_nova(*args, **kwargs)
+    def new_connection(self, *args, **kwargs):
+        keystone = _connect_to_keystone(*args, **kwargs)
+        nova = _connect_to_nova(*args, **kwargs)
+        return keystone, nova
 
 
     ##Composite Classes##

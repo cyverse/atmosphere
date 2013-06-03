@@ -35,6 +35,22 @@ class AccountDriver():
         self.network_manager = NetworkManager(**network_args)
         self.openstack_prov = Provider.objects.get(location='OPENSTACK')
 
+    def get_openstack_clients(self, username, password=None, tenant_name=None):
+        if not tenant_name:
+            tenant_name = self.get_project_name_for(username)
+        if not password:
+            password = self.hashpass(tenant_name)
+        user_creds = {
+            'auth_url':self.user_manager.nova.client.auth_url,
+            'region_name':self.user_manager.nova.client.region_name,
+            'username':username,
+            'password':password,
+            'tenant_name':tenant_name
+        }
+        keystone, nova = self.user_manager.newConnection(**user_creds)
+        quantum = self.network_manager.new_connection(**user_creds)
+        return keystone, nova, quantum
+
     def create_account(self, username, admin_role=False, max_quota=False):
         """
         Create (And Update 'latest changes') to an account
