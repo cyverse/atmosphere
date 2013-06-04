@@ -140,7 +140,8 @@ def etc_skel_bashrc(user):
     if not is_updated_test(filename):
         append_to_file(filename, """
 export IDS_HOME="/irods/data.iplantc.org/iplant/home/%s"
-alias ids_home="cd $IDS_HOME""" % user)
+alias ids_home="cd $IDS_HOME"
+""" % user)
 
 
 def append_to_file(filename, block):
