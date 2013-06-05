@@ -174,7 +174,7 @@ class AccountDriver():
         user = self.create_user(username, password, usergroup, admin)
         return user
 
-    def create_user(self, username, password=None, usergroup=True, admin=False,):
+    def create_user(self, username, password=None, usergroup=True, admin=False):
         if not password:
             password = self.hashpass(username)
         if usergroup:
