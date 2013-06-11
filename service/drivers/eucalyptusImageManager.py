@@ -92,9 +92,6 @@ class ImageManager():
             (On the Node Controller -- Must be exact to the image file (root))
         """
 
-        #Prepare name for imaging
-        image_name = image_name.replace(' ', '_').replace('/', '-')
-
         try:
             reservation = self.find_instance(instance_id)[0]
             #Collect information about instance to fill arguments
@@ -461,6 +458,9 @@ title Atmosphere VM (%s)
             run_command(['/bin/bash','-c','cp -f %s/extras/export/grub_files/ubuntu/* %s/boot/grub/' % (self.extras_root, root_dir)])
 
     def _format_meta_name(self, name, owner, creator='admin'):
+
+        #Prepare name for imaging
+        name = name.replace(' ', '_').replace('/', '-')
         meta_name = '%s_%s_%s_%s' % (creator, owner, name,
                                      datetime.now().strftime(
                                          '%m%d%Y_%H%M%S'))
@@ -506,12 +506,11 @@ title Atmosphere VM (%s)
 
         
     def _upload_instance(self, image_path, kernel, ramdisk,
-                            destination_path, parent_emi, meta_name,
+                            destination_path, parent_emi, bucket_name,
                             image_name, public, private_user_list):
         """
         Upload a local image, kernel and ramdisk to the Eucalyptus Cloud
         """
-        bucket_name = meta_name.lower()
         ancestor_ami_ids = [parent_emi, ] if parent_emi else []
 
         new_image_id = self._upload_and_register(
@@ -541,16 +540,28 @@ title Atmosphere VM (%s)
 
     def _upload_new_image(self, new_image_name, image_path, 
                           kernel_path, ramdisk_path, bucket_name,
-                          download_dir='/tmp', private_users=[]):
+                          download_dir='/tmp', private_users=[], uploaded_by='admin'):
         public = False
         if not private_users:
             public = True
 
         kernel_id = self._upload_kernel(kernel_path, bucket_name, download_dir)
         ramdisk_id = self._upload_ramdisk(ramdisk_path, bucket_name, download_dir)
-        new_image_id = self._upload_instance(image_path, kernel_id, ramdisk_id,
-                download_dir, None, bucket_name, new_image_name, public,
-                private_users) 
+
+        new_image_path = os.path.join(
+                            os.path.dirname(image_path),
+                            '%s%s' % (self._format_meta_name(new_image_name,uploaded_by),
+                                      os.path.splitext(image_path)[1]))
+        #In order to use the image name we must change the name during upload
+        # to match the 'metadata' criteria for an image on atmosphere
+        os.rename(image_path,new_image_path)
+        new_image_id = self._upload_instance(new_image_path, kernel_id, ramdisk_id,
+                                             download_dir, None, bucket_name,
+                                             new_image_name, public,
+                                             private_users) 
+        os.rename(new_image_path,image_path)
+
+        return (kernel_id, ramdisk_id, new_image_id)
 
     def _upload_kernel(self, image_path, bucket_name, download_dir='/tmp'):
         return self._upload_and_register(image_path, bucket_name,

@@ -22,7 +22,7 @@ from threepio import logger
 
 from service.drivers.common import _connect_to_keystone, _connect_to_nova,\
                                    _connect_to_glance, find
-
+from keystoneclient.exceptions import NotFound
 
 class ImageManager():
     """
@@ -51,15 +51,16 @@ class ImageManager():
     def __init__(self, *args, **kwargs):
         if len(args) == 0 and len(kwargs) == 0:
             raise KeyError("Credentials missing in __init__. ")
-        self.new_connection(*args, **kwargs)
+        self.keystone, self.nova, self.glance = self.new_connection(*args, **kwargs)
 
     def new_connection(self, *args, **kwargs):
         """
         Can be used to establish a new connection for all clients
         """
-        self.keystone = _connect_to_keystone(*args, **kwargs)
-        self.glance = _connect_to_glance(self.keystone, *args, **kwargs)
-        self.nova = _connect_to_nova(*args, **kwargs)
+        keystone = _connect_to_keystone(*args, **kwargs)
+        nova = _connect_to_nova(*args, **kwargs)
+        glance = _connect_to_glance(keystone, *args, **kwargs)
+        return (keystone, nova, glance)
 
 
     def upload_euca_image(self, name, image, kernel=None, ramdisk=None):
@@ -103,7 +104,8 @@ class ImageManager():
     def download_image(self, download_dir, image_id):
         raise NotImplemented("not yet..")
 
-    def create_image(self, instance_id, name=None, username=None, **kwargs):
+    def create_image(self, instance_id, name=None, username=None,
+                     **kwargs):
         """
         Creates a SNAPSHOT, not an image!
         """
@@ -136,6 +138,15 @@ class ImageManager():
 
         return True
 
+    def admin_list_images(self):
+        """
+        These images have an update() function
+        to update attributes like public/private, min_disk, min_ram
+
+        NOTE: glance.images.list() returns a generator, we return lists
+        """
+        return [i for i in self.glance.images.list()]
+
     def list_images(self):
         return [img for img in self.glance.images.list()]
 
@@ -144,6 +155,13 @@ class ImageManager():
             if img.name == name:
                 return img
         return None
+
+    def find_tenant(self, tenant_name):
+        try:
+            tenant = find(self.keystone.tenants, name=tenant_name)
+            return tenant
+        except NotFound:
+            return None
 
     #Image sharing
     def shared_images_for(self, tenant_name=None, image_name=None):
@@ -154,31 +172,22 @@ class ImageManager():
         If True, allow that tenant to share image with others
         """
         if tenant_name:
-            tenant = find(self.keystone.projects, name=tenant_name)
+            tenant = self.find_tenant(tenant_name)
             return self.glance.image_members.list(member=tenant)
         if image_name:
             image = self.get_image_by_name(image_name)
             return self.glance.image_members.list(image=image)
 
-    def share_image(self, image_name, tenant_name, can_share=False):
+    def share_image(self, image, tenant_id, can_share=False):
         """
 
         @param can_share
         @type Str
         If True, allow that tenant to share image with others
         """
-        image = self.get_image_by_name(image_name)
-        tenant = find(self.keystone.projects, name=tenant_name)
         return self.glance.image_members.create(
-                    image, tenant.id, can_share=can_share)
+                    image, tenant_id, can_share=can_share)
 
-    def unshare_image(self, image_name, tenant_name):
-        """
-
-        @param can_share
-        @type Str
-        If True, allow that tenant to share image with others
-        """
-        image = self.get_image_by_name(image_name)
-        tenant = find(self.keystone.projects, name=tenant_name)
+    def unshare_image(self, image, tenant_id):
+        tenant = find(self.keystone.tenants, name=tenant_name)
         return self.glance.image_members.delete(image.id, tenant.id)

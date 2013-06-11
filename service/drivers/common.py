@@ -8,6 +8,7 @@ import glanceclient
 from keystoneclient.exceptions import AuthorizationFailure
 from keystoneclient import exceptions
 from novaclient import client as nova_client
+from quantumclient.v2_0 import client as quantum_client
 
 from libcloud.compute.deployment import ScriptDeployment
 
@@ -39,6 +40,14 @@ class LoggedScriptDeployment(ScriptDeployment):
             logger.warn('%s (%s)STDERR: %s' % (node.id, self.name,
                 self.stderr))
         return node
+
+
+def _connect_to_quantum(*args, **kwargs):
+    """
+    """
+    quantum = quantum_client.Client(*args, **kwargs)
+    quantum.format = 'json'
+    return quantum
 
 
 def _connect_to_keystone(*args, **kwargs):
