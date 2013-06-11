@@ -216,35 +216,38 @@ def mount_storage():
     It is deleted when the instance is terminated.
     #TODO: Refactor.
     """
-    logging.debug("Mount test")
-    (out, err) = run_command(['/sbin/fdisk', '-l'])
-    dev_1 = None
-    dev_2 = None
-    if 'sda1' in out:
-        #Eucalyptus CentOS format
-        dev_1 = 'sda1'
-        dev_2 = 'sda2'
-    elif 'xvda1' in out:
-        #Eucalyptus Ubuntu format
-        dev_1 = 'xvda1'
-        dev_2 = 'xvda2'
-    elif 'vda' in out:
-        #Openstack format for Root/Ephem. Disk
-        dev_1 = 'vda'
-        dev_2 = 'vdb'
-    outLines = out.split('\n')
-    for line in outLines:
-        r = re.compile(', (.*?) bytes')
-        match = r.search(line)
-        if dev_1 in line:
-            dev_1_size = match.group(1)
-        elif dev_2 in line:
-            dev_2_size = match.group(1)
-    if dev_2_size > dev_1_size:
-        logging.warn(
-            "%s is larger than %s, Mounting %s to mnt"
-            % (dev_2, dev_1, dev_2))
-        run_command(["/bin/mount", "-text3", "/dev/%s" % dev_2, "/mnt"])
+    try:
+        logging.debug("Mount test")
+        (out, err) = run_command(['/sbin/fdisk', '-l'])
+        dev_1 = None
+        dev_2 = None
+        if 'sda1' in out:
+            #Eucalyptus CentOS format
+            dev_1 = 'sda1'
+            dev_2 = 'sda2'
+        elif 'xvda1' in out:
+            #Eucalyptus Ubuntu format
+            dev_1 = 'xvda1'
+            dev_2 = 'xvda2'
+        elif 'vda' in out:
+            #Openstack format for Root/Ephem. Disk
+            dev_1 = 'vda'
+            dev_2 = 'vdb'
+        outLines = out.split('\n')
+        for line in outLines:
+            r = re.compile(', (.*?) bytes')
+            match = r.search(line)
+            if dev_1 in line:
+                dev_1_size = match.group(1)
+            elif dev_2 in line:
+                dev_2_size = match.group(1)
+        if dev_2_size > dev_1_size:
+            logging.warn(
+                "%s is larger than %s, Mounting %s to mnt"
+                % (dev_2, dev_1, dev_2))
+            run_command(["/bin/mount", "-text3", "/dev/%s" % dev_2, "/mnt"])
+    except Exception, e:
+        logging.exception("Could not mount storage. Error below:")
 
 
 def vnc(user, distro, license=None):
