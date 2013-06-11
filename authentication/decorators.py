@@ -23,16 +23,18 @@ def atmo_login_required(func):
         by the available server session data
         @redirect - location to redirect user after logging in
         """
-        logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
         if request is None or request.session is None:
+            logger.debug("User is being logged out because request/session"
+                         "info could not be found")
+            logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
             return HttpResponseRedirect(settings.SERVER_URL+"/logout/")
 
         username = request.session.get('username', None)
         redirect = kwargs.get('redirect', request.get_full_path())
         emulator = request.session.get('emulated_by', None)
-        logger.info("%s\n%s\n%s" % (username, redirect, emulator))
 
         if emulator:
+            logger.info("%s\n%s\n%s" % (username, redirect, emulator))
             logger.info("Test emulator %s instead of %s" %
                         (emulator, username))
             logger.debug(request.session.__dict__)
@@ -48,6 +50,7 @@ def atmo_login_required(func):
         user = authenticate(username=username, password="")
         if not user:
             logger.info("Could not authenticate user %s" % username)
+            logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
             return cas_loginRedirect(request, redirect)
         django_login(request, user)
         return func(request, *args, **kwargs)
@@ -71,23 +74,59 @@ def atmo_valid_token_required(func):
     return atmo_validate_token
 
 
-def api_auth_token_required(func):
+def api_auth_token_required(*args, **options):
     """
-    Use this decorator to authenticate rest_framework.request.Request objects
+    api_auth_options : Use this decorator when your request requires a valid API token
+
+    This is v2 of api_auth_token_required.
+
+    Has a set of args and kwargs to extend authorization and
+    validation of a user prior to calling the target function
     """
-    def validate_auth_token(decorated_func, *args, **kwargs):
+    def api_auth_decorator(func):
         """
-        Used for requests that require a valid token
-        NOTE: Calling request.user for the first time will call 'authenticate'
-            in the auth.token.TokenAuthentication class
+        This is a traditional decorator, it takes the target function
+        and all work is done in the wrapper below
         """
-        request = args[0]
-        user = request.user
-        if user and user.is_authenticated():
+
+        def validate_options(user):
+            """
+            Useful authorization/validation tests should be added here
+            """
+
+            if options.get('is_staff') and not user.is_staff:
+                logger.warn("This user is not staff")
+                return Response(
+                        "Authorization Error: You are not a staff member.",
+                    status=status.HTTP_401_UNAUTHORIZED)
+            return
+
+        def api_authorization_required(target, *args, **kwargs):
+            """
+            The actual API authorization, as well as any
+            additional authorization as required by 'options',
+            occurs here. On success the user will call the target function.
+            #Used for requests that require a valid token
+            #NOTE: Calling request.user for the first time will call 'authenticate'
+            #    in the auth.token.TokenAuthentication class
+            """
+
+            request = args[0]
+            user = request.user
+
+            if not user or not  user.is_authenticated():
+                logger.warn('invalid token used')
+                return Response(
+                    "Expected header parameter: Authorization Token <TokenID>",
+                    status=status.HTTP_401_UNAUTHORIZED)
+
+            validate_options(user)
+
+            #All validation has passed, let the user call the original function
             return func(request, *args, **kwargs)
-        else:
-            logger.warn('invalid token used')
-            return Response(
-                "Expected header parameter: Authorization Token <TokenID>",
-                status=status.HTTP_401_UNAUTHORIZED)
-    return validate_auth_token
+
+        #Return from api_auth_decorator
+        return api_authorization_required
+
+    #Return from api_auth_options
+    return api_auth_decorator

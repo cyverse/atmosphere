@@ -190,6 +190,10 @@ class EshDriver(LibcloudDriver, MetaMixin):
     """
     """
 
+    @classmethod
+    def settings_init(cls):
+        raise ServiceException('Settings init not available for this class')
+
     def __init__(self, provider, identity):
         super(EshDriver, self).__init__(provider, identity)
         if not(isinstance(provider, self.providerCls)
@@ -274,6 +278,24 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
     providerCls = OSProvider
 
     identityCls = OSIdentity
+
+    @classmethod
+    def settings_init(cls):
+        try:
+            username = settings.OPENSTACK_ARGS.pop('username')
+            password = settings.OPENSTACK_ARGS.pop('password')
+            tenant_name = settings.OPENSTACK_ARGS.pop('tenant_name')
+        except:
+            raise ServiceException('Settings init not available for this class:'
+                                   'Expected settings.OPENSTACK_ARGS with'
+                                   'username/password/tenant_name fields')
+        OSProvider.set_meta()
+        provider = OSProvider()
+        identity = OSIdentity(provider, username, password,
+                               ex_tenant_name=tenant_name,
+                               **settings.OPENSTACK_ARGS)
+        driver = cls(provider, identity)
+        return driver
 
     def __init__(self, provider, identity):
         super(OSDriver, self).__init__(provider, identity)

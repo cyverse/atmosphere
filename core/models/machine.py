@@ -217,9 +217,14 @@ def createGenericMachine(name, description, creator=None):
     return new_mach
 
 
-def convertEshMachine(esh_driver, esh_machine, provider_id):
+def convertEshMachine(esh_driver, esh_machine, provider_id, image_id=None):
     """
     """
+    if image_id and not esh_machine:
+        provider_machine = loadMachine('Unknown Image', image_id, provider_id)
+        return provider_machine
+    elif not esh_machine:
+        return None
     name = esh_machine.name
     alias = esh_machine.alias
     provider_machine = loadMachine(name, alias, provider_id)
@@ -238,6 +243,8 @@ def set_machine_from_metadata(esh_driver, core_machine):
         return core_machine
     esh_machine = core_machine.esh
     metadata =  esh_driver._connection.ex_get_image_metadata(esh_machine)
+
+    #TAGS must be converted from String --> List
     if 'tags' in metadata and type(metadata['tags']) != list:
         metadata['tags'] = json.loads(metadata['tags'])
     logger.info("Testing new metadata %s" % metadata)
@@ -265,6 +272,7 @@ def update_machine_metadata(esh_driver, esh_machine, data={}):
                     % esh_driver._connection.__class__)
         return {}
     try:
+        #TAGS must be converted from list --> String
         if 'tags' in data and type(data['tags']) == list:
             data['tags'] = json.dumps(data['tags'])
         logger.info("New metadata:%s" % data)

@@ -15,6 +15,7 @@ manager.create_image('75fdfca4-d49d-4b2d-b919-a3297bc6d7ae', 'my new name')
 
 from threepio import logger
 
+from service.driver import OSDriver
 from service.drivers.common import _connect_to_keystone, _connect_to_nova,\
                                    _connect_to_glance, find
 from keystoneclient.exceptions import NotFound
@@ -46,6 +47,9 @@ class ImageManager():
     def __init__(self, *args, **kwargs):
         if len(args) == 0 and len(kwargs) == 0:
             raise KeyError("Credentials missing in __init__. ")
+
+
+        self.admin_driver = OSDriver.settings_init()
         self.keystone, self.nova, self.glance = self.new_connection(*args, **kwargs)
 
     def new_connection(self, *args, **kwargs):
