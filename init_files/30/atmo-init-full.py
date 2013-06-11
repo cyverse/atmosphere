@@ -140,7 +140,8 @@ def etc_skel_bashrc(user):
     if not is_updated_test(filename):
         append_to_file(filename, """
 export IDS_HOME="/irods/data.iplantc.org/iplant/home/%s"
-alias ids_home="cd $IDS_HOME""" % user)
+alias ids_home="cd $IDS_HOME"
+""" % user)
 
 
 def append_to_file(filename, block):
@@ -214,6 +215,9 @@ def mount_storage():
     An instance usually has epehemeral disk storage
     This is TEMPORARY space you can use while working on your instance
     It is deleted when the instance is terminated.
+
+    For Eucalyptus only.
+
     #TODO: Refactor.
     """
     try:
@@ -639,6 +643,9 @@ def ldap_replace():
                  "s/128.196.124.23/ldap.iplantcollaborative.org/",
                  '/etc/ldap.conf'])
 
+def ldap_install():
+    # package install
+    ldap_replace()
 
 def insert_modprobe():
     run_command(['depmod','-a'])
@@ -712,7 +719,7 @@ def main(argv):
     instance_metadata["linuxuserpassword"] = linuxpass
     instance_metadata["linuxuservncpassword"] = linuxpass
     mount_storage()
-    ldap_replace()
+    ldap_install()
     etc_skel_bashrc(linuxuser)
     run_command(['/bin/cp', '-rp', '/etc/skel/.', '/home/%s' % linuxuser])
     run_command(['/bin/chown', '-R',

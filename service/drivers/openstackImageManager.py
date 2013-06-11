@@ -4,17 +4,12 @@ ImageManager:
 
 EXAMPLE USAGE:
 from service.drivers.openstackImageManager import ImageManager
-manager = ImageManager()
-new_image = manager.upload_image("/home/esteve/images/wsgi_v3/sangeeta_esteve_DjangoWSGIStack-v3_11072012_105500.img", 'Django WSGI Stack')
-In [4]: new_image
-Out[4]: <Image {u'status': u'active', u'name': u'Django WSGI Stack',
-    u'deleted': False, u'container_format': u'ovf', u'created_at':
-    u'2012-11-20T20:35:01', u'disk_format': u'raw', u'updated_at':
-    u'2012-11-20T20:37:01', u'id': u'07b745b1-a8ca-4751-afc0-35f524f332db',
-    u'owner': u'4ceae82d4bd44fb48aa7f5fcd36bcc4e', u'protected': False,
-    u'min_ram': 0, u'checksum': u'3849fe55340d5a75f077086b73c349e4',
-    u'min_disk': 0, u'is_public': True, u'deleted_at': None, u'properties': {},
-    u'size': 10067378176}>
+
+from atmosphere import settings
+
+manager = ImageManager(**settings.OPENSTACK_ARGS)
+
+manager.create_image('75fdfca4-d49d-4b2d-b919-a3297bc6d7ae', 'my new name')
 
 """
 
