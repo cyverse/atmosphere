@@ -11,6 +11,7 @@ from django.core import urlresolvers
 
 from threepio import logger
 
+from atmosphere import settings
 from core.email import email_admin, user_address
 from core.models import IdentityMembership
 

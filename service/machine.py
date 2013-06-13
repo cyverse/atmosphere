@@ -9,8 +9,24 @@ from core import Persist
 from service.provider import AWSProvider, EucaProvider, OSProvider
 
 
-class BaseMachine(Persist):
+class BaseMachine():
     __metaclass__ = ABCMeta
+
+
+class MockMachine(BaseMachine):
+
+    def __init__(self, image_id, provider):
+        self.id = image_id
+        self.alias = image_id
+        self.name = 'Unknown image %s' % image_id
+        self._image = None
+        self.provider = provider
+
+    def json(self):
+        return {'id': self.id,
+                'alias': self.alias,
+                'name': self.name,
+                'provider': self.provider.name}
 
 
 class Machine(BaseMachine):
@@ -47,15 +63,6 @@ class Machine(BaseMachine):
         if not cls.machines or not cls.lc_images:
             cls.lc_images = lc_list_images_method(*args, **kwargs)
         return map(cls.get_machine, cls.lc_images)
-
-    def load(self):
-        raise NotImplemented
-
-    def save(self):
-        raise NotImplemented
-
-    def delete(self):
-        raise NotImplemented
 
     def reset(self):
         Machine.reset()

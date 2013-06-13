@@ -7,7 +7,7 @@ from threepio import logger
 from core import Persist
 
 from service.provider import AWSProvider, EucaProvider, OSProvider
-from service.machine import Machine
+from service.machine import Machine, MockMachine
 from service.size import Size
 
 
@@ -116,8 +116,14 @@ class OSInstance(Instance):
     def __init__(self, node):
         Instance.__init__(self, node)
         if not self.machine:
-            image = node.driver.ex_get_image(node.extra['imageId'])
-            self.machine = self.provider.machineCls.get_machine(image)
+            try:
+                image = node.driver.ex_get_image(node.extra['imageId'])
+                self.machine = self.provider.machineCls.get_machine(image)
+            except Exception, no_image_found:
+                logger.warn("Warning image %s no longer exists.. Providing a"
+                "placeholder")
+                self.machine = MockMachine(node.extra['imageId'],
+                                           self.provider)
         if not self.size:
             size = node.driver.ex_get_size(node.extra['flavorId'])
             self.size = self.provider.sizeCls.get_size(size)

@@ -8,7 +8,7 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime
 import sys
 import time
-
+import copy
 from libcloud.compute.deployment import ScriptDeployment
 from libcloud.compute.deployment import MultiStepDeployment
 from libcloud.compute.types import DeploymentError
@@ -281,10 +281,11 @@ class OSDriver(EshDriver, InstanceActionMixin, TaskMixin):
 
     @classmethod
     def settings_init(cls):
+        os_args = copy.deepcopy(settings.OPENSTACK_ARGS)
         try:
-            username = settings.OPENSTACK_ARGS.pop('username')
-            password = settings.OPENSTACK_ARGS.pop('password')
-            tenant_name = settings.OPENSTACK_ARGS.pop('tenant_name')
+            username = os_args.pop('username')
+            password = os_args.pop('password')
+            tenant_name = os_args.pop('tenant_name')
         except:
             raise ServiceException('Settings init not available for this class:'
                                    'Expected settings.OPENSTACK_ARGS with'

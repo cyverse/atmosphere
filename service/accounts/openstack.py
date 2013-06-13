@@ -34,10 +34,12 @@ class AccountDriver():
     openstack_prov = None
 
     def __init__(self, *args, **kwargs):
-        self.user_manager = UserManager(**settings.OPENSTACK_ARGS)
-        self.image_manager = ImageManager(**settings.OPENSTACK_ARGS)
-        network_args = settings.OPENSTACK_NETWORK_ARGS.copy()
+        network_args = {}
         network_args.update(settings.OPENSTACK_ARGS)
+        network_args.update(settings.OPENSTACK_NETWORK_ARGS)
+
+        self.user_manager = UserManager(**settings.OPENSTACK_ARGS.copy())
+        self.image_manager = ImageManager(**settings.OPENSTACK_ARGS.copy())
         self.network_manager = NetworkManager(**network_args)
         self.openstack_prov = Provider.objects.get(location='OPENSTACK')
 

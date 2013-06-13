@@ -2,6 +2,7 @@
 Common functions used by all Openstack managers 
 """
 import os
+import copy
 import subprocess
 
 import glanceclient
@@ -83,6 +84,7 @@ def _connect_to_glance(keystone, version='1', *args, **kwargs):
     return glance
 
 def _connect_to_nova(*args, **kwargs):
+    kwargs = copy.deepcopy(kwargs)
     version = kwargs.get('version','1.1')
     region_name = kwargs.get('region_name')
     nova = nova_client.Client(version,

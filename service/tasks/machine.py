@@ -29,8 +29,8 @@ def machine_migration_task(new_machine_name, old_machine_id,
                            migrate_to='openstack'):
         logger.debug("machine_migration_task task started at %s." % datetime.now())
         if migrate_from == 'eucalyptus' and migrate_to == 'openstack':
-            manager = EucaOSMigrater(settings.EUCA_IMAGING_ARGS,
-                                     settings.OPENSTACK_ARGS)
+            manager = EucaOSMigrater(settings.EUCA_IMAGING_ARGS.copy(),
+                                     settings.OPENSTACK_ARGS.copy())
             manager.migrate_image(old_machine_id, new_machine_name,
                                   local_download_dir)
         else:
@@ -58,7 +58,7 @@ def machine_imaging_task(machine_request, euca_imaging_creds, openstack_creds):
         return new_image_id
     except Exception as e:
         logger.exception(e)
-        machine_request.status = 'error'
+        machine_request.status = 'error - %s' % e
         machine_request.save()
         return None
 
@@ -115,7 +115,7 @@ def select_and_build_image(machine_request, euca_imaging_creds,
         manager = None
         new_image_id = None
     elif old_provider == 'openstack' and new_provider == 'openstack':
-        manager = OSImageManager(openstack_creds)
+        manager = OSImageManager(**openstack_creds)
         #NOTE: This will create a snapshot, not an image
         new_image_id = manager.create_image(
             machine_request.instance.provider_alias,
@@ -141,18 +141,21 @@ def set_machine_visibility(image_mgr, machine_request, machine):
     if machine_request.new_machine_is_public():
         #Public (All users)
         machine.update(is_public=True)
+        logger.debug("Machine %s is publically available" % machine)
     elif machine_request.access_list:
         #Private (Selected users only)
+        user_list = machine_request.access_list.split(',')
+    else:
+        #Private (Only available to me)
+        user_list = [machine_request.new_machine_owner.username]
         image_admins = []
-        image_admins.append(machine_request.new_machine_owner.username)
-        for user in image_admins:
+        user_list.extend(image_admins)
+        for user in user_list:
             tenant = image_mgr.find_tenant(user)
             if tenant:
                 image_mgr.share_image(machine, tenant.id, can_share=True)
-        for user in machine_request.access_list.split(','):
-            tenant = image_mgr.find_tenant(user)
-            if tenant:
-                image_mgr.share_image(machine, tenant.id)
+        logger.debug("Machine %s is available to selected users only: %s" %
+                     (machine, user_list))
         pass
 
 def set_machine_metadata(machine_request, lc_driver, machine):
@@ -161,6 +164,8 @@ def set_machine_metadata(machine_request, lc_driver, machine):
         metadata['description'] = machine_request.new_machine_description
     if machine_request.new_machine_tags:
         metadata['tags'] = machine_request.new_machine_tags
+    logger.info("LC Driver %s machine %s metadata %s" % (lc_driver, machine,
+            metadata))
     lc_driver.ex_set_image_metadata(machine, metadata)
     return machine
 

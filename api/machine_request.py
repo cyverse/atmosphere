@@ -54,7 +54,7 @@ class MachineRequestList(APIView):
         if serializer.is_valid():
             #Add parent machine to request
             machine_request = serializer.object
-            machine_request.parent_machine = obj.instance.provider_machine
+            machine_request.parent_machine = machine_request.instance.provider_machine
             serializer.save()
             #Object now has an ID for links..
             machine_request_id = serializer.object.id
@@ -73,7 +73,7 @@ class MachineRequestStaff(APIView):
     """
 
     @api_auth_token_required#(is_staff=True)
-    def get(self, request, machine_request_id, action):
+    def get(self, request, machine_request_id, action=None):
         """
         OPT 1 for approval: via GET with /approve or /deny
         This is a convenient way to approve requests remotely
@@ -106,7 +106,7 @@ class MachineRequestStaff(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @api_auth_token_required#(is_staff=True)
-    def patch(self, request, machine_request_id):
+    def patch(self, request, machine_request_id, action=None):
         """
         OPT2 for approval: sending a PATCH to the machine request with
           {"status":"approve/deny"}
@@ -129,8 +129,8 @@ class MachineRequestStaff(APIView):
             if machine_request.status == 'approve':
                 machine_request.status = 'enqueued'
                 machine_imaging_task.si(machine_request,
-                                        settings.EUCA_IMAGING_ARGS,
-                                        settings.OPENSTACK_ARGS).apply_async()
+                                        settings.EUCA_IMAGING_ARGS.copy(),
+                                        settings.OPENSTACK_ARGS.copy()).apply_async()
             serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
