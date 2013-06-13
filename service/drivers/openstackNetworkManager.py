@@ -5,11 +5,11 @@ OpenStack CloudAdmin Libarary
 """
 import os
 
-from quantumclient.v2_0 import client as quantum_client
 
 from threepio import logger
 
 from core.models.profile import get_default_subnet
+from service.drivers.common import _connect_to_quantum
 
 class NetworkManager():
 
@@ -24,14 +24,7 @@ class NetworkManager():
         """
         Allows us to make another connection (As the user)
         """
-        quantum = self.connect_to_quantum(*args, **kwargs)
-        return quantum
-
-    def connect_to_quantum(self, *args, **kwargs):
-        """
-        """
-        quantum = quantum_client.Client(*args, **kwargs)
-        quantum.format = 'json'
+        quantum = _connect_to_quantum(*args, **kwargs)
         return quantum
 
     ##Admin-specific methods##

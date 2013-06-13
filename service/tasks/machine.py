@@ -8,7 +8,7 @@ from threepio import logger
 
 from core.email import send_image_request_email
 from core.models.machine import createProviderMachine
-from core.models.tag import Tag
+from core.models.machine_request import process_machine_request
 
 from service.drivers.eucalyptusImageManager import\
     ImageManager as EucaImageManager
@@ -51,22 +51,7 @@ def machine_imaging_task(machine_request, euca_imaging_creds, openstack_creds):
             raise Exception('The image cannot be built as requested. '
                             + 'The provider combination is probably bad.')
         logger.info('New image created - %s' % new_image_id)
-
-        #Build the new provider-machine object and associate
-        new_machine = createProviderMachine(
-            machine_request.new_machine_name, new_image_id,
-            machine_request.new_machine_provider_id)
-        generic_mach = new_machine.machine
-        tags = [Tag.objects.get(name=tag) for tag in
-                machine_request.new_machine_tags.split(',')] \
-            if machine_request.new_machine_tags else []
-        generic_mach.tags = tags
-        generic_mach.description = machine_request.new_machine_description
-        generic_mach.save()
-        machine_request.new_machine = new_machine
-        machine_request.end_date = datetime.now()
-        machine_request.status = 'completed'
-        machine_request.save()
+        process_machine_request(machine_request, new_image_id)
         send_image_request_email(machine_request.new_machine_owner,
                                  machine_request.new_machine,
                                  machine_request.new_machine_name)
@@ -83,72 +68,100 @@ def select_and_build_image(machine_request, euca_imaging_creds,
     Directing traffic between providers
     Fill out all available fields using machine request data
     """
+
     old_provider = machine_request.instance.provider_machine\
         .provider.type.name.lower()
     new_provider = machine_request.new_machine_provider.type.name.lower()
     new_image_id = None
+    logger.info('Processing machine request to create a %s image from a %s'
+                'instance' % (new_provider, old_provider))
     
-    if old_provider == 'eucalyptus':
-        if new_provider == 'eucalyptus':
-            logger.info('Create euca image from euca image')
-            manager = EucaImageManager(**euca_imaging_creds)
-            #Build the meta_name so we can re-start if necessary
-            meta_name = '%s_%s_%s_%s' % ('admin',
-                machine_request.new_machine_owner.username,
-                machine_request.new_machine_name.replace(
-                    ' ','_').replace('/','-'),
-                machine_request.start_date.strftime('%m%d%Y_%H%M%S'))
-            new_image_id = manager.create_image(
-                machine_request.instance.provider_alias,
-                image_name=machine_request.new_machine_name,
-                public=True if
-                "public" in machine_request.new_machine_visibility.lower()
-                else False,
-                #Split the string by ", " OR " " OR "\n" to create the list
-                private_user_list=re.split(', | |\n',
-                                           machine_request.access_list),
-                exclude=re.split(", | |\n",
-                                 machine_request.exclude_files),
-                meta_name=meta_name,
-                local_download_dir=local_download_dir,
-            )
-        elif new_provider == 'openstack':
-            logger.info('Create openstack image from euca image')
-            manager = EucaOSMigrater(
-                    euca_imaging_creds,
-                    openstack_creds)
-            new_image_id = manager.migrate_instance(
-                machine_request.instance.provider_alias,
-                machine_request.new_machine_name,
-                local_download_dir=local_download_dir) 
-    elif old_provider == 'openstack':
-        if new_provider == 'eucalyptus':
-            logger.info('Create euca image from openstack image')
-            #TODO: Replace with OSEucaMigrater when this feature is complete
-            new_image_id = None
-        elif new_provider == 'openstack':
-            logger.info('Create openstack image from openstack image')
-            manager = OSImageManager(openstack_creds)
-            #NOTE: This will create a snapshot, (Private-?), but is not a full
-            #fledged image
-            new_image_id = manager.create_image(
-                machine_request.instance.provider_alias,
-                machine_request.new_machine_name,
-                machine_request.new_machine_owner.username)
-            #TODO: Grab the machine, then add image metadata here
-            machine = [img for img in manager.driver.list_images()
-                       if img.id == new_image_id]
-            if not machine:
-                return
-	    set_machine_request_metadata(machine_request, machine)
+    if old_provider == 'eucalyptus' and new_provider == 'eucalyptus':
+        manager = EucaImageManager(**euca_imaging_creds)
+
+        #Build the meta_name so we can re-start if necessary
+        meta_name = '%s_%s_%s_%s' % ('admin',
+            machine_request.new_machine_owner.username,
+            machine_request.new_machine_name.replace(
+                ' ','_').replace('/','-'),
+            machine_request.start_date.strftime('%m%d%Y_%H%M%S'))
+
+        new_image_id = manager.create_image(
+            machine_request.instance.provider_alias,
+            image_name=machine_request.new_machine_name,
+            public=True if
+            "public" in machine_request.new_machine_visibility.lower()
+            else False,
+            #Split the string by ", " OR " " OR "\n" to create the list
+            private_user_list=re.split(', | |\n',
+                                       machine_request.access_list),
+            exclude=re.split(", | |\n",
+                             machine_request.exclude_files),
+            meta_name=meta_name,
+            local_download_dir=local_download_dir,
+        )
+
+    elif old_provider =='eucalyptus' and new_provider == 'openstack':
+        manager = EucaOSMigrater(
+                euca_imaging_creds,
+                openstack_creds)
+
+        new_image_id = manager.migrate_instance(
+            machine_request.instance.provider_alias,
+            machine_request.new_machine_name,
+            local_download_dir=local_download_dir) 
+    elif old_provider == 'openstack' and new_provider == 'eucalyptus':
+        #TODO: Replace with OSEucaMigrater when this feature is complete
+        manager = None
+        new_image_id = None
+    elif old_provider == 'openstack' and new_provider == 'openstack':
+        manager = OSImageManager(openstack_creds)
+        #NOTE: This will create a snapshot, not an image
+        new_image_id = manager.create_image(
+            machine_request.instance.provider_alias,
+            machine_request.new_machine_name,
+            machine_request.new_machine_owner.username,
+            is_public=machine_request.new_machine_is_public())
+        #TODO: Grab the machine, then add image metadata here
+        new_machine = [img for img in manager.admin_list_images()
+                   if new_image_id in img.id]
+        if not new_machine:
+            return
+	    set_machine_visibility(manager, machine_request, new_machine[0])
+        set_machine_metadata(machine_request, manager.admin_driver._connection, new_machine[0])
     return new_image_id
 
-def set_machine_request_metadata(machine_request, machine):
-    manager.driver.ex_set_image_metadata(machine, {'deployed':'True'})
+def set_machine_visibility(image_mgr, machine_request, machine):
+    """
+    In Openstack, snapshotting is private by default
+    To share the snapshot with others we need to change
+    the visibility of 'is_public' or share the image
+    with each tenant individually.
+    """
+    if machine_request.new_machine_is_public():
+        #Public (All users)
+        machine.update(is_public=True)
+    elif machine_request.access_list:
+        #Private (Selected users only)
+        image_admins = []
+        image_admins.append(machine_request.new_machine_owner.username)
+        for user in image_admins:
+            tenant = image_mgr.find_tenant(user)
+            if tenant:
+                image_mgr.share_image(machine, tenant.id, can_share=True)
+        for user in machine_request.access_list.split(','):
+            tenant = image_mgr.find_tenant(user)
+            if tenant:
+                image_mgr.share_image(machine, tenant.id)
+        pass
+
+def set_machine_metadata(machine_request, lc_driver, machine):
+    metadata = {'deployed':'True'}
     if machine_request.new_machine_description:
-    	manager.driver.ex_set_image_metadata(machine, {'description':machine_request.new_machine_description})
+        metadata['description'] = machine_request.new_machine_description
     if machine_request.new_machine_tags:
-    	manager.driver.ex_set_image_metadata(machine, {'tags':machine_request.new_machine_tags})
+        metadata['tags'] = machine_request.new_machine_tags
+    lc_driver.ex_set_image_metadata(machine, metadata)
     return machine
 
 

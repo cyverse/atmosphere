@@ -21,15 +21,21 @@ from core.models.credential import Credential
 from core.models.quota import Quota
 
 from service.drivers.openstackUserManager import UserManager
+from service.drivers.openstackImageManager import ImageManager
 from service.drivers.openstackNetworkManager import NetworkManager
+from service.drivers.common import _connect_to_glance, _connect_to_nova,\
+                                   _connect_to_keystone
 
 
 class AccountDriver():
     user_manager = None
+    image_manager = None
+    network_manager = None
     openstack_prov = None
 
     def __init__(self, *args, **kwargs):
         self.user_manager = UserManager(**settings.OPENSTACK_ARGS)
+        self.image_manager = ImageManager(**settings.OPENSTACK_ARGS)
         network_args = settings.OPENSTACK_NETWORK_ARGS.copy()
         network_args.update(settings.OPENSTACK_ARGS)
         self.network_manager = NetworkManager(**network_args)
@@ -47,9 +53,14 @@ class AccountDriver():
             'password':password,
             'tenant_name':tenant_name
         }
-        keystone, nova = self.user_manager.newConnection(**user_creds)
         quantum = self.network_manager.new_connection(**user_creds)
-        return keystone, nova, quantum
+        keystone, nova, glance = self.image_manager.new_connection(**user_creds)
+        return {
+            'glance':glance, 
+            'keystone':keystone, 
+            'nova':nova, 
+            'quantum':quantum
+            }
 
     def create_account(self, username, admin_role=False, max_quota=False):
         """
@@ -153,6 +164,9 @@ class AccountDriver():
                     identity=identity, member=group,
                     quota=quota)
 
+            #Save the user (Calls a hook to update selected identity)
+            id_membership.identity.created_by.save()
+
             #Return the identity
             return id_membership.identity
 
@@ -174,7 +188,7 @@ class AccountDriver():
         user = self.create_user(username, password, usergroup, admin)
         return user
 
-    def create_user(self, username, password=None, usergroup=True, admin=False,):
+    def create_user(self, username, password=None, usergroup=True, admin=False):
         if not password:
             password = self.hashpass(username)
         if usergroup:

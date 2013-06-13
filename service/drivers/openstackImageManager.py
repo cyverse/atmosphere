@@ -4,25 +4,21 @@ ImageManager:
 
 EXAMPLE USAGE:
 from service.drivers.openstackImageManager import ImageManager
-manager = ImageManager()
-new_image = manager.upload_image("/home/esteve/images/wsgi_v3/sangeeta_esteve_DjangoWSGIStack-v3_11072012_105500.img", 'Django WSGI Stack')
-In [4]: new_image
-Out[4]: <Image {u'status': u'active', u'name': u'Django WSGI Stack',
-    u'deleted': False, u'container_format': u'ovf', u'created_at':
-    u'2012-11-20T20:35:01', u'disk_format': u'raw', u'updated_at':
-    u'2012-11-20T20:37:01', u'id': u'07b745b1-a8ca-4751-afc0-35f524f332db',
-    u'owner': u'4ceae82d4bd44fb48aa7f5fcd36bcc4e', u'protected': False,
-    u'min_ram': 0, u'checksum': u'3849fe55340d5a75f077086b73c349e4',
-    u'min_disk': 0, u'is_public': True, u'deleted_at': None, u'properties': {},
-    u'size': 10067378176}>
+
+from atmosphere import settings
+
+manager = ImageManager(**settings.OPENSTACK_ARGS)
+
+manager.create_image('75fdfca4-d49d-4b2d-b919-a3297bc6d7ae', 'my new name')
 
 """
 
 from threepio import logger
 
+from service.driver import OSDriver
 from service.drivers.common import _connect_to_keystone, _connect_to_nova,\
                                    _connect_to_glance, find
-
+from keystoneclient.exceptions import NotFound
 
 class ImageManager():
     """
@@ -51,17 +47,85 @@ class ImageManager():
     def __init__(self, *args, **kwargs):
         if len(args) == 0 and len(kwargs) == 0:
             raise KeyError("Credentials missing in __init__. ")
-        self.new_connection(*args, **kwargs)
+
+
+        self.admin_driver = OSDriver.settings_init()
+        self.keystone, self.nova, self.glance = self.new_connection(*args, **kwargs)
 
     def new_connection(self, *args, **kwargs):
         """
         Can be used to establish a new connection for all clients
         """
-        self.keystone = _connect_to_keystone(*args, **kwargs)
-        self.glance = _connect_to_glance(self.keystone, *args, **kwargs)
-        self.nova = _connect_to_nova(*args, **kwargs)
+        keystone = _connect_to_keystone(*args, **kwargs)
+        nova = _connect_to_nova(*args, **kwargs)
+        glance = _connect_to_glance(keystone, *args, **kwargs)
+        return (keystone, nova, glance)
+
+    def create_image(self, instance_id, name=None, username=None,
+                     **kwargs):
+        """
+        Creates a SNAPSHOT, not an image!
+        """
+        metadata = kwargs
+        if not name:
+            name = 'Image of %s' % instance_id
+        servers = [server for server in
+                self.nova.servers.list(search_opts={'all_tenants':1}) if
+                server.id == instance_id]
+        if not servers:
+            return None
+        server = servers[0]
+        return self.nova.servers.create_image(server, name, metadata)
+
+    def delete_images(self, image_id=None, image_name=None):
+        if not image_id and not image_name:
+            raise Exception("delete_image expects image_name or image_id as keyword"
+            " argument")
+
+        if image_name:
+            images = [img for img in self.list_images()
+                      if image_name in img.name]
+        else:
+            images = [self.glance.images.get(image_id)]
+
+        if len(images) == 0:
+            return False
+        for image in images:
+            self.glance.images.delete(image)
+
+        return True
 
 
+    #Image sharing
+    def shared_images_for(self, tenant_name=None, image_name=None):
+        """
+
+        @param can_share
+        @type Str
+        If True, allow that tenant to share image with others
+        """
+        if tenant_name:
+            tenant = self.find_tenant(tenant_name)
+            return self.glance.image_members.list(member=tenant)
+        if image_name:
+            image = self.get_image_by_name(image_name)
+            return self.glance.image_members.list(image=image)
+
+    def share_image(self, image, tenant_id, can_share=False):
+        """
+
+        @param can_share
+        @type Str
+        If True, allow that tenant to share image with others
+        """
+        return self.glance.image_members.create(
+                    image, tenant_id, can_share=can_share)
+
+    def unshare_image(self, image, tenant_id):
+        tenant = find(self.keystone.tenants, name=tenant_name)
+        return self.glance.image_members.delete(image.id, tenant.id)
+
+    #Alternative image uploading
     def upload_euca_image(self, name, image, kernel=None, ramdisk=None):
         """
         Upload a euca image to glance..
@@ -69,7 +133,8 @@ class ImageManager():
             image - File containing the image
             kernel - File containing the kernel
             ramdisk - File containing the ramdisk
-        Requires 3 separate uploads for the Ramdisk, Kernel, and Image
+        Requires 3 separate filepaths to uploads the Ramdisk, Kernel, and Image
+        This is useful for migrating from Eucalyptus/AWS --> Openstack
         """
         opts = {}
         if kernel:
@@ -90,6 +155,7 @@ class ImageManager():
                      disk_format='raw',
                      is_public=True, properties={}):
         """
+        Upload a single file as a glance image
         Defaults ovf/raw are correct for a eucalyptus .img file
         """
         new_meta = self.glance.images.create(name=name,
@@ -100,85 +166,39 @@ class ImageManager():
                                              data=open(download_loc))
         return new_meta
 
-    def download_image(self, download_dir, image_id):
-        raise NotImplemented("not yet..")
+    def download_image(self, download_dir, image_id, extension='raw'):
+        image = self.glance.images.get(image_id)
+        download_to = os.path.join(download_dir, '%s.%s' %
+                                   (image_id,extension))
+        #These lines are failing, look into it later..
+        #with open(download_to, 'w') as imgf:
+        #    imgf.writelines(image.data())
+        #return download_to
+        raise Exception("download_image is not supported at this time")
 
-    def create_image(self, instance_id, name=None, username=None, **kwargs):
+    #Lists
+    def admin_list_images(self):
         """
-        Creates a SNAPSHOT, not an image!
+        These images have an update() function
+        to update attributes like public/private, min_disk, min_ram
+
+        NOTE: glance.images.list() returns a generator, we return lists
         """
-        metadata = kwargs
-        if not name:
-            name = 'Image of %s' % instance_id
-        servers = [server for server in
-                self.nova.servers.list(search_opts={'all_tenants':1}) if
-                server.id == instance_id]
-        if not servers:
-            return None
-        server = servers[0]
-        return self.nova.servers.create_image(server, name, metadata)
-
-    def delete_images(self, image_id=None, name=None):
-        if not image_id and not name:
-            raise Exception("delete_image expects a name or id as keyword"
-            " argument")
-
-        if name:
-            images = [img for img in self.list_images()
-                      if name in img.name]
-        else:
-            images = [self.glance.images.get(image_id)]
-
-        if len(images) == 0:
-            return False
-        for image in images:
-            self.glance.images.delete(image)
-
-        return True
+        return [i for i in self.glance.images.list()]
 
     def list_images(self):
         return [img for img in self.glance.images.list()]
 
+    #Finds
     def get_image_by_name(self, name):
         for img in self.glance.images.list():
             if img.name == name:
                 return img
         return None
 
-    #Image sharing
-    def shared_images_for(self, tenant_name=None, image_name=None):
-        """
-
-        @param can_share
-        @type Str
-        If True, allow that tenant to share image with others
-        """
-        if tenant_name:
-            tenant = find(self.keystone.projects, name=tenant_name)
-            return self.glance.image_members.list(member=tenant)
-        if image_name:
-            image = self.get_image_by_name(image_name)
-            return self.glance.image_members.list(image=image)
-
-    def share_image(self, image_name, tenant_name, can_share=False):
-        """
-
-        @param can_share
-        @type Str
-        If True, allow that tenant to share image with others
-        """
-        image = self.get_image_by_name(image_name)
-        tenant = find(self.keystone.projects, name=tenant_name)
-        return self.glance.image_members.create(
-                    image, tenant.id, can_share=can_share)
-
-    def unshare_image(self, image_name, tenant_name):
-        """
-
-        @param can_share
-        @type Str
-        If True, allow that tenant to share image with others
-        """
-        image = self.get_image_by_name(image_name)
-        tenant = find(self.keystone.projects, name=tenant_name)
-        return self.glance.image_members.delete(image.id, tenant.id)
+    def find_tenant(self, tenant_name):
+        try:
+            tenant = find(self.keystone.tenants, name=tenant_name)
+            return tenant
+        except NotFound:
+            return None

@@ -65,7 +65,7 @@ class Instance(models.Model):
         return self.esh._node.extra['instancetype']
 
     def esh_machine_name(self):
-        if not self.esh:
+        if not self.esh or not self.esh.machine:
             return "Unknown"
         return self.esh.machine.name
 
@@ -146,7 +146,8 @@ def convertEshInstance(esh_driver, esh_instance, provider_id, user, token=None):
         logger.debug("CREATED: %s" % create_stamp)
         logger.debug("START: %s" % start_date)
 
-        coreMachine = convertEshMachine(esh_driver, eshMachine, provider_id)
+        coreMachine = convertEshMachine(esh_driver, eshMachine, provider_id,
+                                        image_id=esh_instance.image_id)
         core_instance = createInstance(provider_id, alias,
                                       coreMachine, ip_address,
                                       esh_instance.name, user,

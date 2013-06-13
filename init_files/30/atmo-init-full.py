@@ -140,7 +140,8 @@ def etc_skel_bashrc(user):
     if not is_updated_test(filename):
         append_to_file(filename, """
 export IDS_HOME="/irods/data.iplantc.org/iplant/home/%s"
-alias ids_home="cd $IDS_HOME""" % user)
+alias ids_home="cd $IDS_HOME"
+""" % user)
 
 
 def append_to_file(filename, block):
@@ -214,37 +215,43 @@ def mount_storage():
     An instance usually has epehemeral disk storage
     This is TEMPORARY space you can use while working on your instance
     It is deleted when the instance is terminated.
+
+    For Eucalyptus only.
+
     #TODO: Refactor.
     """
-    logging.debug("Mount test")
-    (out, err) = run_command(['/sbin/fdisk', '-l'])
-    dev_1 = None
-    dev_2 = None
-    if 'sda1' in out:
-        #Eucalyptus CentOS format
-        dev_1 = 'sda1'
-        dev_2 = 'sda2'
-    elif 'xvda1' in out:
-        #Eucalyptus Ubuntu format
-        dev_1 = 'xvda1'
-        dev_2 = 'xvda2'
-    elif 'vda' in out:
-        #Openstack format for Root/Ephem. Disk
-        dev_1 = 'vda'
-        dev_2 = 'vdb'
-    outLines = out.split('\n')
-    for line in outLines:
-        r = re.compile(', (.*?) bytes')
-        match = r.search(line)
-        if dev_1 in line:
-            dev_1_size = match.group(1)
-        elif dev_2 in line:
-            dev_2_size = match.group(1)
-    if dev_2_size > dev_1_size:
-        logging.warn(
-            "%s is larger than %s, Mounting %s to mnt"
-            % (dev_2, dev_1, dev_2))
-        run_command(["/bin/mount", "-text3", "/dev/%s" % dev_2, "/mnt"])
+    try:
+        logging.debug("Mount test")
+        (out, err) = run_command(['/sbin/fdisk', '-l'])
+        dev_1 = None
+        dev_2 = None
+        if 'sda1' in out:
+            #Eucalyptus CentOS format
+            dev_1 = 'sda1'
+            dev_2 = 'sda2'
+        elif 'xvda1' in out:
+            #Eucalyptus Ubuntu format
+            dev_1 = 'xvda1'
+            dev_2 = 'xvda2'
+        elif 'vda' in out:
+            #Openstack format for Root/Ephem. Disk
+            dev_1 = 'vda'
+            dev_2 = 'vdb'
+        outLines = out.split('\n')
+        for line in outLines:
+            r = re.compile(', (.*?) bytes')
+            match = r.search(line)
+            if dev_1 in line:
+                dev_1_size = match.group(1)
+            elif dev_2 in line:
+                dev_2_size = match.group(1)
+        if dev_2_size > dev_1_size:
+            logging.warn(
+                "%s is larger than %s, Mounting %s to mnt"
+                % (dev_2, dev_1, dev_2))
+            run_command(["/bin/mount", "-text3", "/dev/%s" % dev_2, "/mnt"])
+    except Exception, e:
+        logging.exception("Could not mount storage. Error below:")
 
 
 def vnc(user, distro, license=None):
@@ -636,6 +643,9 @@ def ldap_replace():
                  "s/128.196.124.23/ldap.iplantcollaborative.org/",
                  '/etc/ldap.conf'])
 
+def ldap_install():
+    # package install
+    ldap_replace()
 
 def insert_modprobe():
     run_command(['depmod','-a'])
@@ -709,7 +719,7 @@ def main(argv):
     instance_metadata["linuxuserpassword"] = linuxpass
     instance_metadata["linuxuservncpassword"] = linuxpass
     mount_storage()
-    ldap_replace()
+    ldap_install()
     etc_skel_bashrc(linuxuser)
     run_command(['/bin/cp', '-rp', '/etc/skel/.', '/home/%s' % linuxuser])
     run_command(['/bin/chown', '-R',

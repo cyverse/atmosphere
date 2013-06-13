@@ -12,7 +12,7 @@ from api.instance import InstanceList, Instance, InstanceAction
 from api.notification import NotificationList
 from api.machine import MachineList, Machine
 from api.machine_request import MachineRequestList, MachineRequest,\
-    MachineRequestAction
+    MachineRequestStaff
 from api.machine_export import MachineExportList, MachineExport
 from api.size import SizeList, Size
 from api.volume import VolumeList, Volume
@@ -118,8 +118,10 @@ urlpatterns += format_suffix_patterns(patterns(
         + '(?P<identity_id>\d+)/request_image/(?P<machine_request_id>\d+)/$',
         MachineRequest.as_view(), name='machine-request'),
 
+    url(r'^api/request_image/(?P<machine_request_id>\d+)/$',
+        MachineRequestStaff.as_view(), name='direct-machine-request-detail'),
     url(r'^api/request_image/(?P<machine_request_id>\d+)/(?P<action>.*)/$',
-        MachineRequestAction.as_view(), name='machine-request-detail'),
+        MachineRequestStaff.as_view(), name='direct-machine-request-action'),
 
     url(r'^api/provider/(?P<provider_id>\d+)/identity/'
         + '(?P<identity_id>\d+)/profile/$',

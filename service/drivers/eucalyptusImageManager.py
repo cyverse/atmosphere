@@ -92,9 +92,6 @@ class ImageManager():
             (On the Node Controller -- Must be exact to the image file (root))
         """
 
-        #Prepare name for imaging
-        image_name = image_name.replace(' ', '_').replace('/', '-')
-
         try:
             reservation = self.find_instance(instance_id)[0]
             #Collect information about instance to fill arguments
@@ -105,22 +102,25 @@ class ImageManager():
         except IndexError:
             raise Exception("No Instance Found with ID %s" % instance_id)
 
+        logger.info("Instance %s belongs to: %s" % (instance_id, owner))
         #Prepare private list, if necessary
         if not public and owner not in private_user_list:
             private_user_list.append(owner)
-        
-        logger.info("Instance belongs to: %s" % owner)
+        # Collect kernel, ramdisk
         if not kernel:
             kernel = instance_kernel
         if not ramdisk:
             ramdisk = instance_ramdisk
+
+        #Format paths for downloading
         if not remote_img_path:
             remote_img_path = self._format_nc_path(owner, instance_id)
-
         if not meta_name:
-            #Format empty meta strings to match current iPlant
-            #image naming convention, if not given
+            #meta strings should match current iPlant
+            #image naming convention
             meta_name = self._format_meta_name(image_name, owner, creator='admin')
+
+        #Image doesn't exist locally, download it
         if not local_image_path:
             local_image_path = os.path.join(local_download_dir, '%s.img' % meta_name)
 
@@ -128,7 +128,8 @@ class ImageManager():
             node_controller_ip = self._find_node(instance_id)
             self._retrieve_instance(node_controller_ip,
                                         local_image_path, remote_img_path)
-        #ASSERT: local_image_path contains full RAW img
+
+        #ASSERT: by this line -- local_image_path contains a complete RAW img
         # mount and clean image 
         if clean_image:
             self._clean_local_image(
@@ -199,10 +200,12 @@ class ImageManager():
         if not machine:
             raise Exception("Machine Not Found.")
 
+        #We need more directories to store things..
         download_dir, part_dir = self._download_image_dirs(download_dir, image_id)
 
+        #Get image location and unbundle the files based on the manifest and
+        #parts
         image_location = machine.location
-
         whole_image = self._unbundle_euca_image(image_location, download_dir,
                                                 part_dir, self.pk_path)[0]
         #Return download_path and image_path
@@ -235,7 +238,7 @@ class ImageManager():
         """
         (kernel_dir, ramdisk_dir, mount_point) = self._export_dirs(download_dir)
 
-        #First, label the image as 'root' - the root disk image
+        #Labeling the image as 'root' allows for less reliance on UUID
         run_command(['e2label', image_path, 'root'])
 
         #Replace XEN/Euca lines with KVM/Openstack
@@ -270,9 +273,6 @@ class ImageManager():
                 ("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.d/rc.local")]:
             mounted_filepath = os.path.join(mount_point, replace_where)
             sed_delete_multi(delete_from, delete_to, mounted_filepath)
-
-        #Install cloud-init awesomeness
-        #install_cloudinit(mount_point, distro='CentOS')
 
         #First chroot with bind-mounted dev, proc and sys: update kernel, mkinitrd, and grub
         chroot_local_image(mount_point, mount_point, [
@@ -461,6 +461,9 @@ title Atmosphere VM (%s)
             run_command(['/bin/bash','-c','cp -f %s/extras/export/grub_files/ubuntu/* %s/boot/grub/' % (self.extras_root, root_dir)])
 
     def _format_meta_name(self, name, owner, creator='admin'):
+
+        #Prepare name for imaging
+        name = name.replace(' ', '_').replace('/', '-')
         meta_name = '%s_%s_%s_%s' % (creator, owner, name,
                                      datetime.now().strftime(
                                          '%m%d%Y_%H%M%S'))
@@ -506,12 +509,11 @@ title Atmosphere VM (%s)
 
         
     def _upload_instance(self, image_path, kernel, ramdisk,
-                            destination_path, parent_emi, meta_name,
+                            destination_path, parent_emi, bucket_name,
                             image_name, public, private_user_list):
         """
         Upload a local image, kernel and ramdisk to the Eucalyptus Cloud
         """
-        bucket_name = meta_name.lower()
         ancestor_ami_ids = [parent_emi, ] if parent_emi else []
 
         new_image_id = self._upload_and_register(
@@ -541,16 +543,28 @@ title Atmosphere VM (%s)
 
     def _upload_new_image(self, new_image_name, image_path, 
                           kernel_path, ramdisk_path, bucket_name,
-                          download_dir='/tmp', private_users=[]):
+                          download_dir='/tmp', private_users=[], uploaded_by='admin'):
         public = False
         if not private_users:
             public = True
 
         kernel_id = self._upload_kernel(kernel_path, bucket_name, download_dir)
         ramdisk_id = self._upload_ramdisk(ramdisk_path, bucket_name, download_dir)
-        new_image_id = self._upload_instance(image_path, kernel_id, ramdisk_id,
-                download_dir, None, bucket_name, new_image_name, public,
-                private_users) 
+
+        new_image_path = os.path.join(
+                            os.path.dirname(image_path),
+                            '%s%s' % (self._format_meta_name(new_image_name,uploaded_by),
+                                      os.path.splitext(image_path)[1]))
+        #In order to use the image name we must change the name during upload
+        # to match the 'metadata' criteria for an image on atmosphere
+        os.rename(image_path,new_image_path)
+        new_image_id = self._upload_instance(new_image_path, kernel_id, ramdisk_id,
+                                             download_dir, None, bucket_name,
+                                             new_image_name, public,
+                                             private_users) 
+        os.rename(new_image_path,image_path)
+
+        return (kernel_id, ramdisk_id, new_image_id)
 
     def _upload_kernel(self, image_path, bucket_name, download_dir='/tmp'):
         return self._upload_and_register(image_path, bucket_name,

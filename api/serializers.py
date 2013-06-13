@@ -267,7 +267,7 @@ class ProviderTypeSerializer(serializers.ModelSerializer):
 
 class TagSerializer(serializers.ModelSerializer):
     user = serializers.SlugRelatedField(slug_field='username')
-    description = serializers.CharField(blank=True)
+    description = serializers.CharField(required=False)
 
     class Meta:
         model = Tag
