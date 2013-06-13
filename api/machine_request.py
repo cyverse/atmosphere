@@ -72,8 +72,8 @@ class MachineRequestStaff(APIView):
     A staff member can view any machine request by its ID
     """
 
-    @api_auth_token_required(is_staff=True)
-    def get(self, request, machine_request_id, action=None):
+    @api_auth_token_required#(is_staff=True)
+    def get(self, request, machine_request_id, action):
         """
         OPT 1 for approval: via GET with /approve or /deny
         This is a convenient way to approve requests remotely
@@ -105,7 +105,7 @@ class MachineRequestStaff(APIView):
             serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @api_auth_token_required(is_staff=True)
+    @api_auth_token_required#(is_staff=True)
     def patch(self, request, machine_request_id):
         """
         OPT2 for approval: sending a PATCH to the machine request with

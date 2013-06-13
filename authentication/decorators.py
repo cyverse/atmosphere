@@ -73,60 +73,23 @@ def atmo_valid_token_required(func):
             return HttpResponseForbidden("403 Forbidden")
     return atmo_validate_token
 
-
-def api_auth_token_required(*args, **options):
+def api_auth_token_required(func):
     """
-    api_auth_options : Use this decorator when your request requires a valid API token
-
-    This is v2 of api_auth_token_required.
-
-    Has a set of args and kwargs to extend authorization and
-    validation of a user prior to calling the target function
+    Use this decorator to authenticate rest_framework.request.Request objects
     """
-    def api_auth_decorator(func):
+    def validate_auth_token(decorated_func, *args, **kwargs):
         """
-        This is a traditional decorator, it takes the target function
-        and all work is done in the wrapper below
+        Used for requests that require a valid token
+        NOTE: Calling request.user for the first time will call 'authenticate'
+            in the auth.token.TokenAuthentication class
         """
-
-        def validate_options(user):
-            """
-            Useful authorization/validation tests should be added here
-            """
-
-            if options.get('is_staff') and not user.is_staff:
-                logger.warn("This user is not staff")
-                return Response(
-                        "Authorization Error: You are not a staff member.",
-                    status=status.HTTP_401_UNAUTHORIZED)
-            return
-
-        def api_authorization_required(target, *args, **kwargs):
-            """
-            The actual API authorization, as well as any
-            additional authorization as required by 'options',
-            occurs here. On success the user will call the target function.
-            #Used for requests that require a valid token
-            #NOTE: Calling request.user for the first time will call 'authenticate'
-            #    in the auth.token.TokenAuthentication class
-            """
-
-            request = args[0]
-            user = request.user
-
-            if not user or not  user.is_authenticated():
-                logger.warn('invalid token used')
-                return Response(
-                    "Expected header parameter: Authorization Token <TokenID>",
-                    status=status.HTTP_401_UNAUTHORIZED)
-
-            validate_options(user)
-
-            #All validation has passed, let the user call the original function
+        request = args[0]
+        user = request.user
+        if user and user.is_authenticated():
             return func(request, *args, **kwargs)
-
-        #Return from api_auth_decorator
-        return api_authorization_required
-
-    #Return from api_auth_options
-    return api_auth_decorator
+        else:
+            logger.warn('invalid token used')
+            return Response(
+                "Expected header parameter: Authorization Token <TokenID>",
+                status=status.HTTP_401_UNAUTHORIZED)
+    return validate_auth_token
