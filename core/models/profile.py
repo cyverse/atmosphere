@@ -10,6 +10,7 @@ from core.ldap import get_uid_number
 from core.models.group import getUsergroup
 from core.models.identity import Identity
 
+from hashlib import md5
 
 class UserProfile(models.Model):
     user = models.OneToOneField(DjangoUser, primary_key=True)
@@ -27,6 +28,11 @@ class UserProfile(models.Model):
         identity = getDefaultIdentity(self.user.username)
         identity_member = identity.identitymembership_set.all()[0]
         return identity_member.quota
+
+    def email_hash(self):
+        m = md5()
+        m.update(self.user.email)
+        return m.hexdigest()
 
     class Meta:
         db_table = 'user_profile'

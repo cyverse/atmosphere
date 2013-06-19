@@ -35,34 +35,17 @@ body {
 #weather_report.stormy {
     background: url(../images/weather_stormy.png) no-repeat 16px 0px;
 }
-/* Weather 
-body.weather_sunny {
-    background: url(../images/biplane.png) no-repeat 80% 5px,
-        url(../images/sunny_sky_opt.png) repeat-x left top;
-    background-color: #97e2e7 !important; 
-}
-body.weather_cloudy {
-    background: url(../images/biplane.png) no-repeat 80% 5px,
-        url(../images/cloudy_sky_opt.png) repeat-x left top;
-    background-color: #4fbce1 !important; 
-}
-body.weather_rainy {
-    background: url(../images/biplane.png) no-repeat 80% 5px,
-        url(../images/rainy_sky_opt.png) repeat-x left top;
-    background-color: #62b1c5 !important; 
-}
-body.weather_stormy {
-    background: url(../images/biplane.png) no-repeat 80% 5px,
-        url(../images/stormy_sky_opt.png) repeat-x left top;
-    background-color: #62b1c6 !important; 
-}*/
 
 a {
 	cursor: pointer;
 	color: #00AABE;
 	font-weight: normal;
-   /* border-bottom: 1px dotted #41BDCC; */
 }
+a:hover {
+    color: #0098aa;
+    text-decoration: none;
+}
+
 a.accordion-toggle {
     border-bottom: 0 !important;
 }
@@ -72,10 +55,9 @@ a.accordion-toggle .caret {
     float: right;
     display: block;
 }
-a:hover {
-    /*border-bottom: 1px dotted #0098aa; */
-    color: #0098aa;
-    text-decoration: none;
+.accordion-group {
+	background-color: #FFF;
+	box-shadow: 1px 1px 3px 0px rgba(0, 0, 0, 0.1);
 }
 li {
 	line-height: 15px; /* Condensed from boostrap's line height */
@@ -120,6 +102,18 @@ li {
     background-color: #DAF5F8;
     /*background: url(../images/sunny_sky_tile.png);*/
 }
+#footer #version {
+	color: #a4dfe5;
+}
+.card {
+	padding: 20px;
+	background-color: #FFF;
+	border: 1px solid rgb(219, 219, 219);
+	box-shadow: 2px 2px 2px #EFEFEF;
+	border-radius: 3px; 
+	margin-bottom: 20px;
+}
+
 @media (max-width: 767px) {
     #wrap {
         position: inherit;
@@ -156,8 +150,12 @@ li {
     #top_menu a {
         display: block;
     }
+	#header .btn-mini {
+		display: block;
+		margin: 5px;
+	}
     #header_container {
-        height: 225px !important;
+        height: 250px !important;
         margin-bottom: 20px;
     }
     .modal.fade.in {
@@ -258,6 +256,10 @@ h4 {
     font-size: 12px;
     font-weight: normal;
     line-height: 16px;
+}
+h2 small {
+	font-size: 14px;
+	margin-left: 5px;
 }
 #main p {	
 	font-size: 12px !important;
@@ -515,11 +517,6 @@ textarea.error:focus {
 	padding: 5px 15px;
 	text-decoration: none;
 }
-.btn i[class^="icon-"], .btn i[class*=" icon-"] {
-	margin-right: 1px;
-	position: relative;
-	top: -1px;
-}
 .btn:hover {
     border: none;
     text-decoration: none;
@@ -529,7 +526,6 @@ textarea.error:focus {
 .btn.btn-primary {
 	color: #FFF !important;
 	font-family: Univers,Calibri,"Gill Sans","Gill Sans MT","Myriad Pro",Myriad,"DejaVu Sans Condensed","Liberation Sans","Nimbus Sans L",Tahoma,Geneva,"Helvetica Neue",Helvetica,Arial,sans-serif !important;
-	/*padding: 6px 15px;*/
 	border: none;
 	background-color: #0098aa;
 	background-image: linear-gradient(bottom, #0098AA 0%, #73CBD5 100%);
@@ -553,19 +549,12 @@ textarea.error:focus {
 	width: 20px;
 }
 
-
-
 /* Header Styles */
 #header_container {
     background: url(../images/header_bg.png) no-repeat, url(../images/header_bg_bg.png);
     background-color: #222;
     height: 39px;
     box-shadow: 0 2px 10px #999;
-
-	/*margin-top: 5px;
-	margin-bottom: 5px;
-	/*margin-left: 10px;
-	text-align: left;*/
 }
 #logo_container {
     margin-left: 0px;
@@ -600,6 +589,12 @@ textarea.error:focus {
 }
 #header a:disabled {
 	color: #666;
+}
+#header .btn-mini {
+	padding: 2px 10px;
+	color: #333;
+	box-shadow: 1px 1px 2px rgb(63, 124, 136);
+	margin-right: 5px;
 }
 /* Top Navigation */
 #username {
@@ -1056,22 +1051,24 @@ select {
 
 /* Page for users without instances*/
 .option {
-	font-size: 12px;
+	font-size: 13px !important;
 	font-family: Univers,Calibri,"Gill Sans","Gill Sans MT","Myriad Pro",Myriad,"DejaVu Sans Condensed","Liberation Sans","Nimbus Sans L",Tahoma,Geneva,"Helvetica Neue",Helvetica,Arial,sans-serif;
-	background-color: #EFEFEF; 
-    border: 0;
+	background-color: #FFF; 
+	box-shadow: 1px 1px 3px 0px rgba(0, 0, 0, 0.1);
 	border-radius: 3px;
-	padding: 10px;
+	border: 1px solid rgb(241, 241, 241) !important;
+	padding: 20px;
 	text-align: center !important;
 	margin-bottom: 20px;
-	color: #000 !important;
+	color: #555 !important;
 	font-weight: normal !important;
-        font-size: 12px !important;
 	text-decoration: none;
 	display: block;
+	line-height: 16px;
+	height: 230px;
 }
 .option hr {
-	border: 1px solid #ddd !important;
+	border: 1px solid #EEE !important;
 }
 .option strong {
 	color: #0098aa;
@@ -1079,9 +1076,10 @@ select {
 }
 .option img {
 	text-align: center !important;
+	margin-bottom: 10px;
 }
 .option:visited {
-	border: 1px solid #ddd;
+	border: 1px solid rgb(241, 241, 241);
 }
 .option:visited hr {
 	border: 1px solid #aaa;
@@ -1747,7 +1745,7 @@ a.context-holder:hover, .context-helper:hover {
 }
 
 
-/* Settings */
+/* Profile/Settings/Preferences Page */
 a.thumbnail:hover {
     border-color: #00b6cc;
 }
@@ -1764,13 +1762,50 @@ a.selected.thumbnail {
     padding-top: 5px;
     margin-right: 10px;
 }
-/*.provider_controls {
-    padding-left: 15px;
-    padding-bottom: 8px;
+img.gravatar {
+	float: left;
+	margin-right: 10px;
 }
-.provider_controls > a {
-    margin: 0 10px;
-}*/
+table.image-table {
+	background-color: #FFF;
+	box-shadow: 1px 1px 3px 0px rgba(0, 0, 0, 0.1);
+}
+.image-table thead td {
+	font-weight: bold;
+}
+.image-table img.gravatar {
+	float: none;
+}
+.table.image-table td {
+	vertical-align: middle;
+}
+.image-table tr.image-details {
+	display: none;
+}
+.image-table tr.image-overview {
+	cursor: pointer;
+}
+.image-table tr.image-overview td {
+	position: relative;
+}
+.image-table tr.image-overview td .caret {
+	position: relative;
+	top: 8px;
+	right: 10px;
+	float: right;
+	display: block;
+}
+.image-table em {
+	margin-left: 5px;
+	color: #999;
+}
+.image-table td.actions a {
+	margin-right: 12px; 
+	border: 0 !important;
+}
+.image0table td.actions a > i {
+	margin-right: 8px;
+}
 
 /* Resize Instance Tab */
 .resize_statuses {
@@ -1794,7 +1829,4 @@ a.selected.thumbnail {
 .resize_statuses .refresh a {
 	text-decoration: none;
 	border-bottom: 0 !important;
-}
-#version {
-	color: #a4dfe5;
 }
