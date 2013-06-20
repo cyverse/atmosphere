@@ -78,7 +78,7 @@ def send_email(subject, body, from_email, to, cc=None, fail_silently=False):
         return False
 
 
-def email_admin(request, subject, message):
+def email_admin(request, subject, message, cc_user=True):
     """ Use request, subject and message to build and send a standard
         Atmosphere user request email. From an atmosphere user to admins.
         Returns True on success and False on failure.
@@ -91,9 +91,9 @@ def email_admin(request, subject, message):
              location,
              user, remote_ip,
              user_agent, resolution)
-    return email_to_admin(subject, body, user, user_email)
+    return email_to_admin(subject, body, user, user_email, cc_user=cc_user)
 
-def email_to_admin(subject, body, username=None, user_email=None):
+def email_to_admin(subject, body, username=None, user_email=None, cc_user=True):
     """
     Send a basic email to the admins. Nothing more than subject and message
     are required.
@@ -106,6 +106,12 @@ def email_to_admin(subject, body, username=None, user_email=None):
         user_email = lookupEmail(username)
     elif not username:  # user_email provided
         username = 'Unknown'
+    if not cc_user:
+        #Send w/o the CC
+        return send_email(subject, body,
+                          from_email=email_address_str(username, user_email),
+                          to=[email_address_str(sendto, sendto_email)])
+    #Send w/ the CC
     return send_email(subject, body,
                       from_email=email_address_str(username, user_email),
                       to=[email_address_str(sendto, sendto_email)],
@@ -172,4 +178,5 @@ Thank you for using atmosphere!
 If you have any questions please contact: support@iplantcollaborative.org""" %\
         (user_email, user.username, new_machine.identifier, name)
     subject = 'Your Atmosphere Image is Complete'
-    return email_to_admin(subject, body, user.username, user_email)
+    return email_to_admin(subject, body, user.username, user_email,
+            cc_user=False)

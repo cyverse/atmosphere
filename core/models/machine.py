@@ -251,9 +251,9 @@ def set_machine_from_metadata(esh_driver, core_machine):
     #TAGS must be converted from String --> List
     if 'tags' in metadata and type(metadata['tags']) != list:
         metadata['tags'] = json.loads(metadata['tags'])
-    logger.info("Testing new metadata %s" % metadata)
     serializer = ProviderMachineSerializer(core_machine, data=metadata, partial=True)
     if not serializer.is_valid():
+        logger.info("New metadata failed: %s" % metadata)
         logger.warn("Encountered errors serializing metadata:%s"
                     % serializer.errors)
         return core_machine

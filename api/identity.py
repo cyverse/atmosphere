@@ -38,7 +38,7 @@ class IdentityDetailList(APIView):
 	#	if profile.selected_identity and profile.selected_identity.id == identity.id:
 	#		identity.selected = True
 	#TODO: IdentityDetailSerializer should expect new 
-        serialized_data = IdentityDetailSerializer(identities).data
+        serialized_data = IdentityDetailSerializer(identities, many=True).data
         return Response(serialized_data)
 
 
@@ -63,7 +63,7 @@ class IdentityList(APIView):
                                        active=True, end_date=None)
 
         identities = group.identities.filter(provider=provider).order_by('id')
-        serialized_data = IdentitySerializer(identities).data
+        serialized_data = IdentitySerializer(identities, many=True).data
         return Response(serialized_data)
 
 

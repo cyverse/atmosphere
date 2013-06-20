@@ -1,19 +1,25 @@
-from service.system_calls import run_command
+from service.system_calls import run_command, wildcard_remove, overwrite_file,\
+                                 sed_append, sed_delete_multi, sed_delete_one,\
+                                 sed_prepend, sed_replace
 
+
+import os
+
+from threepio import logger
 
 ##
 # Tools
 ##
 def get_latest_ramdisk(mounted_path):
     boot_dir = os.path.join(mounted_path,'boot/')
-    output, _ = run_command(("/bin/bash", "-c", "ls -Fah /boot/"])
+    output, _ = run_command(["/bin/bash", "-c", "ls -Fah /boot/"])
     #Determine the latest (KVM) ramdisk to use
-        latest_rmdisk = ''
-        rmdisk_version = ''
-        for line in output.split('\n'):
-            if 'initrd' in line and 'xen' not in line:
-                latest_rmdisk = line
-                rmdisk_version = line.replace('.img','').replace('initrd-','')
+    latest_rmdisk = ''
+    rmdisk_version = ''
+    for line in output.split('\n'):
+        if 'initrd' in line and 'xen' not in line:
+            latest_rmdisk = line
+            rmdisk_version = line.replace('.img','').replace('initrd-','')
     if not latest_rmdisk or not rmdisk_version:
         raise Exception("Could not determine the latest ramdisk. Is the "
                         "ramdisk located in %s?" % boot_dir)
@@ -24,7 +30,7 @@ def get_latest_ramdisk(mounted_path):
 def mount_image(image_path, mount_point):
     if not check_dir(mount_point):
         os.makedirs(mount_point)
-    _detect_and_mount_image(image_path, mount_point)
+    return _detect_and_mount_image(image_path, mount_point)
 
 
 def create_empty_image(new_image_path, image_type='raw',
@@ -77,6 +83,81 @@ def check_mounted(mount_point):
 ##
 # Private Methods
 ##
+
+def append_line_in_files(append_files, mount_point, dry_run=False):
+    for (append_line, append_to) in append_files:
+        append_to = _check_mount_path(append_to)
+        mounted_filepath = os.path.join(mount_point, append_to)
+        sed_append(append_line, mounted_filepath, dry_run=dry_run)
+
+def prepend_line_in_files(prepend_files, mount_point, dry_run=False):
+    for (prepend_line, prepend_to) in prepend_files:
+        prepend_to = _check_mount_path(prepend_to)
+        mounted_filepath = os.path.join(mount_point, prepend_to)
+        sed_prepend(prepend_line, mounted_filepath, dry_run=dry_run)
+
+
+
+def remove_files(rm_files, mount_point, dry_run=False):
+    """
+    #Removes file (Matches wildcards)
+    """
+    for rm_file in rm_files:
+        rm_file = _check_mount_path(rm_file)
+        rm_file_path = os.path.join(mount_point, rm_file)
+        wildcard_remove(rm_file_path, dry_run=dry_run)
+
+
+def overwrite_files(overwrite_files, mount_point, dry_run=False):
+    """
+    #Copy /dev/null to clear sensitive logging data
+    """
+    for overwrite_path in overwrite_files:
+        overwrite_path = _check_mount_path(overwrite_path)
+        overwrite_file_path = os.path.join(mount_point, overwrite_path)
+        overwrite_file(overwrite_file_path, dry_run=dry_run)
+
+
+def remove_line_in_files(remove_line_files, mount_point, dry_run=False):
+    """
+    #Single line removal..
+    """
+    for (remove_line_w_str, remove_from) in remove_line_files:
+        remove_from = _check_mount_path(remove_from)
+        mounted_filepath = os.path.join(mount_point, remove_from)
+        sed_delete_one(remove_line_w_str, mounted_filepath, dry_run=dry_run)
+
+
+def replace_line_in_files(replace_line_files, mount_point, dry_run=False):
+    """
+    #Single line replacement..
+    """
+    for (replace_str, replace_with, replace_where) in replace_line_files:
+        replace_where = _check_mount_path(replace_where)
+        mounted_filepath = os.path.join(mount_point, replace_where)
+        sed_replace(replace_str, replace_with, mounted_filepath,
+                    dry_run=dry_run)
+
+
+def remove_multiline_in_files(multiline_delete_files, mount_point, dry_run=False):
+    """
+    #Remove EVERYTHING between these lines..
+    """
+    for (delete_from, delete_to, replace_where) in multiline_delete_files:
+        replace_where = _check_mount_path(replace_where)
+        mounted_filepath = os.path.join(mount_point, replace_where)
+        sed_delete_multi(delete_from, delete_to, mounted_filepath,
+                         dry_run=dry_run)
+
+
+def _check_mount_path(filepath):
+    if not filepath:
+        return filepath
+    if filepath.startswith('/'):
+        filepath = filepath[1:]
+    return filepath
+
+
 def _grub_base_install(image_path, mounted_root):
     #Edit grub.conf
     #Move rc.local
@@ -140,31 +221,34 @@ def _losetup_extract_device(loop_str):
 
 def _detect_and_mount_image(image_path, mount_point):
     file_name, file_ext= os.path.splitext(image_path)
-    if file_ext == 'qcow':
-        mount_qcow(image_path, mount_point)
-        # nbd -c /dev/nbd* (Empty nbd test needed) /full/path/to/img
-        # mount /dev/nbd*(p1) mount_point
-    elif file_ext == 'raw' or file_ext == 'img':
-        _mount_raw(image_path, mount_point)
-    return True
+    if file_ext == '.qcow':
+        return mount_qcow(image_path, mount_point)
+    elif file_ext == '.raw' or file_ext == '.img':
+        return mount_raw(image_path, mount_point)
+    raise Exception("Encountered an unknown image type -- Extension : %s" %
+            file_ext)
 
 
-def _remove_chroot_env(mount_point):
+def remove_chroot_env(mount_point):
     proc_dir = os.path.join(mount_point,'proc/')
     sys_dir = os.path.join(mount_point,'sys/')
     dev_dir = os.path.join(mount_point,'dev/')
+    etc_resolv_file = os.path.join(mount_point,'etc/resolv.conf')
     run_command(['umount', proc_dir])
     run_command(['umount', sys_dir])
     run_command(['umount', dev_dir])
+    run_command(['umount', etc_resolv_file])
 
 
-def _prepare_chroot_env(mount_point):
+def prepare_chroot_env(mount_point):
     proc_dir = os.path.join(mount_point,'proc/')
     sys_dir = os.path.join(mount_point,'sys/')
     dev_dir = os.path.join(mount_point,'dev/')
+    etc_resolv_file = os.path.join(mount_point,'etc/resolv.conf')
     run_command(['mount', '-t', 'proc', '/proc', proc_dir])
     run_command(['mount', '-t', 'sysfs', '/sys', sys_dir])
     run_command(['mount', '-o', 'bind', '/dev',  dev_dir])
+    run_command(['mount', '--bind', '/etc/resolv.conf', etc_resolv_file])
 
 
 def _mount_qcow(image_path, mount_point):
@@ -203,14 +287,19 @@ def _get_next_nbd():
     raise Exception("Error: All /dev/nbd* devices are in use")
 
 
-def _mount_raw(image_path, mount_point):
+def mount_raw(image_path, mount_point):
     out, err = run_command(['mount','-o','loop',image_path,mount_point])
+    logger.debug("Mount Output:%s\nMount Error:%s" % (out, err))
     if 'specify the filesystem' in err:
-        return _mount_raw_with_offsets(image_path, mount_point)
-    #The raw image has been mounted
-    return True
+        return mount_raw_with_offsets(image_path, mount_point)
+    elif 'already mounted' in err and mount_point in err:
+        #Already mounted in this location. Everything is fine.
+        return '', ''
 
-def _mount_raw_with_offsets(image_path, mount_point):
+    #Return output/error from the mount
+    return out, err
+
+def mount_raw_with_offsets(image_path, mount_point):
     partition = _fdisk_get_partition(image_path)
     offset = fdisk_stats['disk']['unit_byte_size'] * partition['start']
     out, err = run_command(['mount', '-o', 'loop,offset=%s' %  offset,
@@ -218,6 +307,7 @@ def _mount_raw_with_offsets(image_path, mount_point):
     if err:
         raise Exception("Could not auto-mount the RAW partition: %s" %
                 partition)
+    return out, err
 
 
 def _mount_lvm(image_path, mount_point):

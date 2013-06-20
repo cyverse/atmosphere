@@ -61,8 +61,7 @@ class ImageManager():
         glance = _connect_to_glance(keystone, *args, **kwargs)
         return (keystone, nova, glance)
 
-    def create_image(self, instance_id, name=None, username=None,
-                     **kwargs):
+    def create_image(self, instance_id, name=None, **kwargs):
         """
         Creates a SNAPSHOT, not an image!
         """
@@ -108,7 +107,7 @@ class ImageManager():
             tenant = self.find_tenant(tenant_name)
             return self.glance.image_members.list(member=tenant)
         if image_name:
-            image = self.get_image_by_name(image_name)
+            image = self.find_image(image_name)
             return self.glance.image_members.list(image=image)
 
     def share_image(self, image, tenant_id, can_share=False):
@@ -190,11 +189,10 @@ class ImageManager():
         return [img for img in self.glance.images.list()]
 
     #Finds
-    def get_image_by_name(self, name):
-        for img in self.glance.images.list():
-            if img.name == name:
-                return img
-        return None
+    def find_image(self, image_name, contains=False):
+        return [i for i in self.glance.images.list() if
+                i.name == image_name or
+                (contains and image_name in i.name)]
 
     def find_tenant(self, tenant_name):
         try:

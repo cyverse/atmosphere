@@ -35,7 +35,7 @@ class VolumeList(APIView):
         esh_volume_list = esh_driver.list_volumes()
         core_volume_list = [convertEshVolume(volume, provider_id, user)
                             for volume in esh_volume_list]
-        serializer = VolumeSerializer(core_volume_list)
+        serializer = VolumeSerializer(core_volume_list, many=True)
         response = Response(serializer.data)
         return response
 

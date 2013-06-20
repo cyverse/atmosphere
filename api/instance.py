@@ -50,7 +50,7 @@ class InstanceList(APIView):
 
         #TODO: Core/Auth checks for shared instances
 
-        serialized_data = InstanceSerializer(core_instance_list).data
+        serialized_data = InstanceSerializer(core_instance_list, many=True).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response

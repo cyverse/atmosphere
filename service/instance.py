@@ -120,8 +120,8 @@ class OSInstance(Instance):
                 image = node.driver.ex_get_image(node.extra['imageId'])
                 self.machine = self.provider.machineCls.get_machine(image)
             except Exception, no_image_found:
-                logger.warn("Warning image %s no longer exists.. Providing a"
-                "placeholder")
+                logger.warn("Instance %s is using an image %s that has been "
+                "deleted." % (node.id, node.extra['imageId']))
                 self.machine = MockMachine(node.extra['imageId'],
                                            self.provider)
         if not self.size:

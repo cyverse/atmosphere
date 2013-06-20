@@ -36,7 +36,7 @@ def requestImaging(request, machine_request_id):
     tags = request.POST.get('tags', '')
     public = request.POST.get('vis', '')
     shared_with = request.POST.get('shared_with', '')
-    username = request.POST.get('owner', '')
+    username = request.POST.get('owner', request.user.username)
     message = """
     URLs require staff access to view/approve/deny:
     View Request: %s
@@ -57,7 +57,7 @@ def requestImaging(request, machine_request_id):
     """ % (view_link, approve_link, deny_link, username, instance_id, software,
            sys_files, public, shared_with, name, description, tags)
     subject = 'Atmosphere Imaging Request - %s' % username
-    email_success = email_admin(request, subject, message)
+    email_success = email_admin(request, subject, message, cc_user=False)
     return email_success
 
 

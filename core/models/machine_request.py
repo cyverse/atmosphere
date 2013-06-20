@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 
 
 from core.models.provider import Provider
+from core.models.machine import createProviderMachine
 
 
 class MachineRequest(models.Model):

@@ -1,7 +1,11 @@
 """
 System calls that get used all the time..
 """
+import glob
+import os
 import subprocess
+
+from threepio import logger
 
 def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 stdin=None, dry_run=False):
@@ -11,9 +15,10 @@ def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     """
     out = None
     err = None
-    logger.debug("Command:<%s>" % ' '.join(commandList))
+    cmd_str = ' '.join(commandList)
     if dry_run:
         #Bail before making the call
+        logger.debug("Mock Command: %s" % cmd_str)
         return ('','')
     try:
         if stdin:
@@ -24,24 +29,22 @@ def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     except Exception, e:
         logger.error(e)
     if stdin:
-        logger.debug("STDIN: %s" % stdin)
-    logger.debug("STDOUT: %s" % out)
-    logger.debug("STDERR: %s" % err)
+        logger.debug("%s STDIN: %s" % (cmd_str, stdin))
+    logger.debug("%s STDOUT: %s" % (cmd_str, out))
+    logger.debug("%s STDERR: %s" % (cmd_str, err))
     return (out,err)
 
 
 def overwrite_file(filepath, dry_run=False):
     if not os.path.exists(filepath):
-        raise Exception("Cannot remove lines from non-existent file: %s" %
+        logger.warn("Cannot remove lines from non-existent file: %s" %
                 filepath)
-    cmd_list = ['/bin/cp', '-f', '/dev/null', '%s' % filepath]
-    if dry_run:
-        logger.info(cmd_list)
         return
-    run_command(cmd_list)
+    cmd_list = ['/bin/cp', '-f', '/dev/null', '%s' % filepath]
+    run_command(cmd_list, dry_run=dry_run)
 
 
-def wildcard_remove(self, wildcard_path, dry_run=False):
+def wildcard_remove(wildcard_path, dry_run=False):
     """
     Expand the wildcard to match all files, delete each one.
     """
@@ -50,10 +53,7 @@ def wildcard_remove(self, wildcard_path, dry_run=False):
     if glob_list:
         for filename in glob_list:
             cmd_list = ['/bin/rm', '-rf', filename]
-            if dry_run:
-                logger.info(cmd_list)
-                continue
-            run_command(cmd_list)
+            run_command(cmd_list, dry_run=dry_run)
 
 """
 SED tools - in-place editing of files on the system
@@ -65,30 +65,21 @@ def sed_delete_multi(from_here,to_here,filepath, dry_run=False):
                 filepath)
     cmd_list = ["/bin/sed", "-i", "/%s/,/%s/d" % (from_here, to_here),
                 filepath]
-    if dry_run:
-        logger.info(cmd_list)
-        return
-    run_command(cmd_list)
+    run_command(cmd_list, dry_run=dry_run)
 
 def sed_replace(find,replace,filepath, dry_run=False):
     if not os.path.exists(filepath):
         raise Exception("Cannot replace line from non-existent file: %s" %
                 filepath)
     cmd_list = ["/bin/sed", "-i", "s/%s/%s/" % (find,replace), filepath]
-    if dry_run:
-        logger.info(cmd_list)
-        return
-    run_command(cmd_list)
+    run_command(cmd_list, dry_run=dry_run)
 
 def sed_delete_one(remove_string, filepath, dry_run=False):
     if not os.path.exists(filepath):
         raise Exception("Cannot remove line from non-existent file: %s" %
                 filepath)
     cmd_list = ["/bin/sed", "-i", "/%s/d" % remove_string, filepath]
-    if dry_run:
-        logger.info(cmd_list)
-        return
-    run_command(cmd_list)
+    run_command(cmd_list, dry_run=dry_run)
 
 def sed_append(append_string, filepath, dry_run=False):
     if not os.path.exists(filepath):
@@ -97,10 +88,7 @@ def sed_append(append_string, filepath, dry_run=False):
     if _line_exists_in_file(prepend_string, filepath):
         return
     cmd_list = ["/bin/sed", "-i", "$ a\\%s" % append_line, filepath]
-    if dry_run:
-        logger.info(cmd_list)
-        return
-    run_command(cmd_list)
+    run_command(cmd_list, dry_run=dry_run)
 
 def sed_prepend(prepend_string, filepath, dry_run=False):
     if not os.path.exists(filepath):
@@ -109,10 +97,7 @@ def sed_prepend(prepend_string, filepath, dry_run=False):
     if _line_exists_in_file(prepend_string, filepath):
         return
     cmd_list = ["/bin/sed", "-i", "1i %s" % prepend_string, filepath]
-    if dry_run:
-        logger.info(cmd_list)
-        return
-    run_command(cmd_list)
+    run_command(cmd_list, dry_run=dry_run)
 
 def _line_exists_in_file(needle, filepath):
     with open(filepath,'r') as _file:

@@ -25,7 +25,7 @@ class TagList(APIView):
         List of all tags
         """
         tags = CoreTag.objects.all()
-        serializer = TagSerializer(tags)
+        serializer = TagSerializer(tags, many=True)
         return Response(serializer.data)
 
     @api_auth_token_required

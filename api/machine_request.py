@@ -5,6 +5,7 @@ Atmosphere service machine rest api.
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.exceptions import NotAuthenticated
 from rest_framework import status
 
 from threepio import logger
@@ -65,6 +66,23 @@ class MachineRequestList(APIView):
             return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
 
+class MachineRequestStaffList(APIView):
+    """
+    """
+
+    @api_auth_token_required
+    def get(self, request):
+        """
+        """
+        if not request.user.is_staff:
+            raise NotAuthenticated("Must be a staff user to view requests "
+                                   "directly")
+
+        machine_requests = CoreMachineRequest.objects.all()
+
+        serializer = MachineRequestSerializer(machine_requests, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class MachineRequestStaff(APIView):
     """
@@ -72,12 +90,16 @@ class MachineRequestStaff(APIView):
     A staff member can view any machine request by its ID
     """
 
-    @api_auth_token_required#(is_staff=True)
+    @api_auth_token_required
     def get(self, request, machine_request_id, action=None):
         """
         OPT 1 for approval: via GET with /approve or /deny
         This is a convenient way to approve requests remotely
         """
+        if not request.user.is_staff:
+            raise NotAuthenticated("Must be a staff user to view requests "
+                                   "directly")
+
         try:
             machine_request = CoreMachineRequest.objects.get(
                 id=machine_request_id)
@@ -105,7 +127,7 @@ class MachineRequestStaff(APIView):
             serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @api_auth_token_required#(is_staff=True)
+    @api_auth_token_required
     def patch(self, request, machine_request_id, action=None):
         """
         OPT2 for approval: sending a PATCH to the machine request with
@@ -113,6 +135,10 @@ class MachineRequestStaff(APIView):
         
         Modfiy attributes on a machine request
         """
+        if not request.user.is_staff:
+            raise NotAuthenticated("Must be a staff user to view requests "
+                                   "directly")
+
         try:
             machine_request = CoreMachineRequest.objects.get(
                 id=machine_request_id)

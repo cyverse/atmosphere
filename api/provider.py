@@ -27,7 +27,7 @@ class ProviderList(APIView):
         providers = group.providers.filter(active=True,
                                            end_date=None).order_by('id')
         #providers = CoreProvider.objects.order_by('id')
-        serialized_data = ProviderSerializer(providers).data
+        serialized_data = ProviderSerializer(providers, many=True).data
         return Response(serialized_data)
 
 

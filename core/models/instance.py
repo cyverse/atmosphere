@@ -110,8 +110,8 @@ def findInstance(alias):
 def convertEshInstance(esh_driver, esh_instance, provider_id, user, token=None):
     """
     """
-    logger.debug(esh_instance.__dict__)
-    logger.debug(esh_instance.extra)
+    #logger.debug(esh_instance.__dict__)
+    #logger.debug(esh_instance.extra)
     alias = esh_instance.alias
     try:
         ip_address = esh_instance._node.public_ips[0]
@@ -143,6 +143,7 @@ def convertEshInstance(esh_driver, esh_instance, provider_id, user, token=None):
             start_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%SZ')
         start_date = start_date.replace(tzinfo=pytz.utc)
 
+        logger.debug("Instance %s" % alias)
         logger.debug("CREATED: %s" % create_stamp)
         logger.debug("START: %s" % start_date)
 

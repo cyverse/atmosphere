@@ -116,7 +116,7 @@ class OpenStack_Esh_NodeDriver(OpenStack_1_1_NodeDriver):
         Extends Openstack_1_1_NodeDriver._to_image,
         adds support for architecture and state
         """
-        logger.debug(api_machine)
+        #logger.debug(api_machine)
         image = super(OpenStack_Esh_NodeDriver, self)._to_image(api_machine)
         image.extra['state'] = api_machine['status'].lower()
         return image

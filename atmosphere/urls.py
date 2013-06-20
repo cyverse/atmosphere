@@ -12,7 +12,7 @@ from api.instance import InstanceList, Instance, InstanceAction
 from api.notification import NotificationList
 from api.machine import MachineList, Machine
 from api.machine_request import MachineRequestList, MachineRequest,\
-    MachineRequestStaff
+     MachineRequestStaffList, MachineRequestStaff
 from api.machine_export import MachineExportList, MachineExport
 from api.size import SizeList, Size
 from api.volume import VolumeList, Volume
@@ -52,7 +52,6 @@ urlpatterns = patterns(
     #In v2 this is /api/provider/<id>/identity/<id>/instance/action
     #&& POST['action'] = request_image
     url(r'^api/request_quota/$', 'web.emails.requestQuota'),
-    url(r'^api/request_image/$', 'web.emails.requestImaging'),
 
     # static files
     url(r'^init_files/(?P<file_location>.*)$', 'web.views.get_resource'),
@@ -117,6 +116,9 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/provider/(?P<provider_id>\d+)/identity/'
         + '(?P<identity_id>\d+)/request_image/(?P<machine_request_id>\d+)/$',
         MachineRequest.as_view(), name='machine-request'),
+
+    url(r'^api/request_image/$', 
+        MachineRequestStaffList.as_view(), name='direct-machine-request-list'),
 
     url(r'^api/request_image/(?P<machine_request_id>\d+)/$',
         MachineRequestStaff.as_view(), name='direct-machine-request-detail'),
