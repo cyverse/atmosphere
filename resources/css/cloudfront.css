@@ -492,13 +492,6 @@ a.context-holder:hover, .context-helper:hover {
 .modal-footer a[disabled="disabled"] {
 	color: #A7A9AC !important;
 }
-.disabled, .disabled:hover, .volumeBox .disabled, button:disabled, button[disabled] .btn:disabled, .btn[disabled]{
-	color: #A7A9AC !important;
-	border-color: #A7A9AC !important;
-	background: none !important;
-	background-color: #F1F2F2 !important;
-	cursor: default !important;
-}
 .btn:disabled, .btn[disabled] {
 	opacity: 1;
 }
@@ -645,6 +638,13 @@ textarea.error:focus {
 	color: inherit !important;
 	font-family: Univers,Calibri,"Gill Sans","Gill Sans MT","Myriad Pro",Myriad,"DejaVu Sans Condensed","Liberation Sans","Nimbus Sans L",Tahoma,Geneva,"Helvetica Neue",Helvetica,Arial,sans-serif;
     border: none !important;
+}
+.disabled, .disabled:hover, .volumeBox .disabled, button:disabled, button[disabled] .btn:disabled, .btn[disabled]{
+	color: #A7A9AC !important;
+	border-color: #A7A9AC !important;
+	background: none !important;
+	background-color: #F1F2F2 !important;
+	cursor: default !important;
 }
 .btn, a.btn {
 	color: #555;
