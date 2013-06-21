@@ -3,6 +3,7 @@ UserManager:
   Remote Openstack  Admin controls..
 """
 from hashlib import sha1
+from urlparse import urlparse
 
 from django.contrib.auth.models import User
 from django.db.models import Max
@@ -42,27 +43,26 @@ class AccountDriver():
         self.image_manager = ImageManager(**settings.OPENSTACK_ARGS.copy())
         self.network_manager = NetworkManager(**network_args)
         self.openstack_prov = Provider.objects.get(location='OPENSTACK')
-
     def get_openstack_clients(self, username, password=None, tenant_name=None):
-        if not tenant_name:
-            tenant_name = self.get_project_name_for(username)
-        if not password:
-            password = self.hashpass(tenant_name)
-        user_creds = {
-            'auth_url':self.user_manager.nova.client.auth_url,
-            'region_name':self.user_manager.nova.client.region_name,
-            'username':username,
-            'password':password,
-            'tenant_name':tenant_name
-        }
+
+        user_creds = self._get_openstack_credentials(
+                            username, password, tenant_name)
         quantum = self.network_manager.new_connection(**user_creds)
         keystone, nova, glance = self.image_manager.new_connection(**user_creds)
         return {
             'glance':glance, 
             'keystone':keystone, 
             'nova':nova, 
-            'quantum':quantum
+            'quantum':quantum,
+            'horizon':self._get_horizon_url(keystone.tenant_id)
             }
+
+
+    def _get_horizon_url(self, tenant_id):
+        parsed_url = urlparse(settings.OPENSTACK_AUTH_URL)
+        return 'https://%s/horizon/auth/switch/%s/?next=/horizon/project/' %\
+            (parsed_url.hostname, tenant_id)
+
 
     def create_account(self, username, admin_role=False, max_quota=False):
         """
@@ -268,3 +268,18 @@ class AccountDriver():
                     usergroups.append((user,group))
                     break
         return usergroups
+
+    def _get_openstack_credentials(self, username, password=None, tenant_name=None):
+        if not tenant_name:
+            tenant_name = self.get_project_name_for(username)
+        if not password:
+            password = self.hashpass(tenant_name)
+        user_creds = {
+            'auth_url':self.user_manager.nova.client.auth_url,
+            'region_name':self.user_manager.nova.client.region_name,
+            'username':username,
+            'password':password,
+            'tenant_name':tenant_name
+        }
+        return user_creds
+

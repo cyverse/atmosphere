@@ -16,6 +16,7 @@ from libcloud.compute.deployment import ScriptDeployment
 from threepio import logger
 from atmosphere import settings
 
+from service.system_calls import run_command
 
 class LoggedScriptDeployment(ScriptDeployment):
 
@@ -191,30 +192,6 @@ def _line_exists_in_file(needle, filepath):
             if needle == line]:
             return True
     return False
-
-"""
-Running general system commands, wrapped around a logger
-"""
-def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=None):
-    """
-    Using Popen, run any command at the system level and record the output and error streams
-    """
-    out = None
-    err = None
-    logger.debug("Running Command:<%s>" % ' '.join(commandList))
-    try:
-        if stdin:
-            proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr, stdin=subprocess.PIPE)
-        else:
-            proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr)
-        out,err = proc.communicate(input=stdin)
-    except Exception, e:
-        logger.error(e)
-    if stdin:
-        logger.debug("STDIN: %s" % stdin)
-    logger.debug("STDOUT: %s" % out)
-    logger.debug("STDERR: %s" % err)
-    return (out,err)
 
 def _configure_cloudinit_ubuntu():
     return """#cloud-config

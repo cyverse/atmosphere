@@ -10,6 +10,8 @@ from core.email import send_image_request_email
 from core.models.machine import createProviderMachine
 from core.models.machine_request import process_machine_request
 
+from service.accounts.openstack import AccountDriver as OSAccountDriver
+
 from service.drivers.eucalyptusImageManager import\
     ImageManager as EucaImageManager
 from service.drivers.openstackImageManager import\
@@ -115,20 +117,23 @@ def select_and_build_image(machine_request, euca_imaging_creds,
         manager = None
         new_image_id = None
     elif old_provider == 'openstack' and new_provider == 'openstack':
-        manager = OSImageManager(**openstack_creds)
+
+        account_driver = OSAccountDriver()
+        username = machine_request.new_machine_owner.username
+        user_creds = account_driver._get_openstack_credentials(username)
+        manager = OSImageManager(**user_creds)
+
         #NOTE: This will create a snapshot, not an image
         new_image_id = manager.create_image(
             machine_request.instance.provider_alias,
-            machine_request.new_machine_name,
-            machine_request.new_machine_owner.username,
-            is_public=machine_request.new_machine_is_public())
+            machine_request.new_machine_name)
         #TODO: Grab the machine, then add image metadata here
         new_machine = [img for img in manager.admin_list_images()
                    if new_image_id in img.id]
         if not new_machine:
             return
-	    set_machine_visibility(manager, machine_request, new_machine[0])
-        set_machine_metadata(machine_request, manager.admin_driver._connection, new_machine[0])
+	    #set_machine_visibility(manager, machine_request, new_machine[0])
+        #set_machine_metadata(machine_request, manager.admin_driver._connection, new_machine[0])
     return new_image_id
 
 def set_machine_visibility(image_mgr, machine_request, machine):
@@ -141,7 +146,7 @@ def set_machine_visibility(image_mgr, machine_request, machine):
     if machine_request.new_machine_is_public():
         #Public (All users)
         machine.update(is_public=True)
-        logger.debug("Machine %s is publically available" % machine)
+        logger.debug("Machine %s is publically available" % machine.alias)
     elif machine_request.access_list:
         #Private (Selected users only)
         user_list = machine_request.access_list.split(',')
@@ -155,7 +160,7 @@ def set_machine_visibility(image_mgr, machine_request, machine):
             if tenant:
                 image_mgr.share_image(machine, tenant.id, can_share=True)
         logger.debug("Machine %s is available to selected users only: %s" %
-                     (machine, user_list))
+                     (machine.alias, user_list))
         pass
 
 def set_machine_metadata(machine_request, lc_driver, machine):
@@ -164,8 +169,8 @@ def set_machine_metadata(machine_request, lc_driver, machine):
         metadata['description'] = machine_request.new_machine_description
     if machine_request.new_machine_tags:
         metadata['tags'] = machine_request.new_machine_tags
-    logger.info("LC Driver %s machine %s metadata %s" % (lc_driver, machine,
-            metadata))
+    logger.info("LC Driver:%s - Machine:%s - Metadata:%s" % (lc_driver,
+            machine.id, metadata))
     lc_driver.ex_set_image_metadata(machine, metadata)
     return machine
 

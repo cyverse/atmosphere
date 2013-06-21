@@ -19,8 +19,9 @@ from threepio import logger
 
 from service.drivers.openstackImageManager import ImageManager as OSImageManager
 from service.drivers.eucalyptusImageManager import ImageManager as EucaImageManager
-from service.drivers.common import sed_delete_one
-from service.drivers.common import run_command, install_cloudinit
+from service.system_calls import run_command
+from service.imaging.common import mount_image
+from service.imaging.convert import xen_to_kvm_ubuntu
 
 class EucaOSMigrater:
 
@@ -100,7 +101,9 @@ class EucaOSMigrater:
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
 
-        run_command(["mount", "-o", "loop", image_path, mount_point])
+        out, err = mount_image(image_path, mount_point)
+        if err:
+            raise Exception("Encountered errors mounting image:%s" % err)
 
         issue_file = os.path.join(mount_point, "etc/issue.net")
         (issue_out,err) = run_command(["cat", issue_file])
@@ -130,16 +133,9 @@ class EucaOSMigrater:
                 os.makedirs(dir_path)
 
         #Mount the image
-        run_command(["mount", "-o", "loop", image_path, mount_point])
-        #REMOVE (1-line):
-        for (remove_line_w_str, remove_from) in [ ("atmo_boot",  "etc/rc.local"),
-                                                  ("sda2", "etc/fstab"),
-                                                  ("sda3",  "etc/fstab") ]:
-            mounted_filepath = os.path.join(mount_point, remove_from)
-            sed_delete_one(remove_line_w_str, mounted_filepath)
+        mount_image(image_path, mount_point)
 
-        #Install cloud-init awesomeness
-        #install_cloudinit(mount_point, 'Ubuntu')
+        xen_to_kvm_ubuntu(mount_point)
 
         #Un-mount the image
         run_command(["umount", mount_point])

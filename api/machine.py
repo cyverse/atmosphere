@@ -37,7 +37,8 @@ class MachineList(APIView):
             black_list=['eki-', 'eri-'])
         core_machine_list = [convertEshMachine(esh_driver, mach, provider_id)
                              for mach in esh_machine_list]
-        serialized_data = ProviderMachineSerializer(core_machine_list).data
+        serialized_data = ProviderMachineSerializer(core_machine_list,
+                many=True).data
         response = Response(serialized_data)
         return response
 

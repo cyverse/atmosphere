@@ -37,6 +37,12 @@ from euca2ools import Euca2ool, FileValidationError
 from service.drivers.common import sed_delete_multi, sed_delete_one
 from service.drivers.common import sed_replace, sed_prepend
 from service.drivers.common import run_command, chroot_local_image, install_cloudinit
+
+from service.system_calls import run_command, wildcard_remove
+from service.imaging.common import mount_image, remove_files
+from service.imaging.clean import remove_user_data, remove_atmo_data,\
+                                  remove_vm_specific_data
+
 from threepio import logger
 
 
@@ -144,7 +150,7 @@ class ImageManager():
 
         #Cleanup, return
         if not keep_image:
-            self._wildcard_remove(os.path.join(local_download_dir, '%s*' % meta_name))
+            wildcard_remove(os.path.join(local_download_dir, '%s*' % meta_name))
 
         return new_image_id
 
@@ -241,57 +247,14 @@ class ImageManager():
         #Labeling the image as 'root' allows for less reliance on UUID
         run_command(['e2label', image_path, 'root'])
 
-        #Replace XEN/Euca lines with KVM/Openstack
-        run_command(["mount", "-o", "loop", image_path, mount_point])
+        out, err = mount_image(image_path, mount_point)
+        if err:
+            raise Exception("Encountered errors mounting the image: %s" % err)
 
-        #PREPEND:
-        for (prepend_line, prepend_to) in [("LABEL=root       /             "
-                                            + "ext3     defaults,errors="
-                                            + "remount-ro 1 1", "etc/fstab")]:
-            mounted_filepath = os.path.join(mount_point, prepend_to)
-            sed_prepend(prepend_line, mounted_filepath)
-
-        #Delete these lines..
-        for (remove_line_containing, remove_from) in [("alias scsi",
-                                                  "etc/modprobe.conf"),
-                                                 ("atmo_boot",
-                                                  "etc/rc.local")]:
-            mounted_filepath = os.path.join(mount_point, remove_from)
-            sed_delete_one(remove_line_containing, mounted_filepath)
-
-        #Replace these lines..
-        for (replace_str, replace_with, replace_where) in [
-                ("^\/dev\/sda", "\#\/dev\/sda", "etc/fstab"),
-                ("^xvc0", "\#xvc0", "etc/inittab"),
-                ("xennet", "8139cp", "etc/modprobe.conf")]:
-            mounted_filepath = os.path.join(mount_point, replace_where)
-            sed_replace(replace_str, replace_with, mounted_filepath)
-
-        #Delete EVERYTHING between these lines..
-        for (delete_from, delete_to, replace_where) in [
-                ("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.local"),
-                ("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.d/rc.local")]:
-            mounted_filepath = os.path.join(mount_point, replace_where)
-            sed_delete_multi(delete_from, delete_to, mounted_filepath)
-
-        #First chroot with bind-mounted dev, proc and sys: update kernel, mkinitrd, and grub
-        chroot_local_image(mount_point, mount_point, [
-            ["/bin/bash", "-c", "yum install -qy kernel mkinitrd grub"]],
-            bind=True, mounted=True, keep_mounted=True)
+        xen_to_kvm_centos(mount_point)
 
         #Determine the latest (KVM) ramdisk to use
-        latest_rmdisk, rmdisk_version = self._get_latest_ramdisk(mount_point)
-
-        #This step isn't necessary, but keeps grub consistent
-        self._rewrite_grub_conf(mount_point, latest_rmdisk, rmdisk_version)
-
-        #Next, Create a brand new ramdisk using the KVM variables set above
-        chroot_local_image(mount_point, mount_point, [
-            ["/bin/bash", "-c", "mkinitrd --with virtio_pci --with "
-            + "virtio_ring --with virtio_blk --with virtio_net --with "
-            + "virtio_balloon --with virtio -f /boot/%s %s"
-            % (latest_rmdisk, rmdisk_version)]],
-            bind=True, mounted=True, keep_mounted=True)
+        latest_rmdisk, rmdisk_version = get_latest_ramdisk(mount_point)
 
         #Copy new kernel & ramdisk to the folder
         local_ramdisk_path = self._copy_ramdisk(mount_point, rmdisk_version, ramdisk_dir)
@@ -423,36 +386,6 @@ class ImageManager():
                 rmdisk_version = line.replace('.img','').replace('initrd-','')
         return latest_rmdisk, rmdisk_version
 
-
-    def _rewrite_grub_conf(self, mount_point, latest_rmdisk, rmdisk_version,
-            root_string='root=LABEL=root'):
-        new_grub_conf = """default=0
-timeout=3
-splashimage=(hd0,0)/boot/grub/splash.xpm.gz
-title Atmosphere VM (%s)
-    root (hd0,0)
-    kernel /boot/vmlinuz-%s %s ro
-    initrd /boot/%s
-""" % (rmdisk_version, rmdisk_version, root_string, latest_rmdisk)
-        with open(os.path.join(mount_point,'boot/grub/grub.conf'),
-                  'w') as grub_file:
-            grub_file.write(new_grub_conf)
-        run_command(['/bin/bash','-c', 
-                          'cd %s/boot/grub/;ln -s grub.conf menu.lst'
-                          % mount_point])
-        run_command(['/bin/bash','-c',
-                          'cd %s/boot/grub/;ln -s grub.conf grub.cfg'
-                          % mount_point])
-
-    def _get_distro(self, root_dir=''):
-        """
-        Either your CentOS or your Ubuntu.
-        """
-        (out,err) = run_command(['/bin/bash','-c','cat %s/etc/*release*' % root_dir])
-        if 'CentOS' in out:
-            return 'CentOS'
-        else:
-            return 'Ubuntu'
 
     def _get_stage_files(self, root_dir, distro):
         if distro == 'centos':
@@ -643,16 +576,6 @@ title Atmosphere VM (%s)
     Indirect Create Image Functions -
     These functions are called indirectly during the 'create_image' process.
     """
-    def _wildcard_remove(self, wildcard_path):
-        """
-        Expand the wildcard to match all files, delete each one.
-        """
-        logger.debug(wildcard_path)
-        glob_list = glob.glob(wildcard_path)
-        if glob_list:
-            for filename in glob_list:
-                run_command(['/bin/rm', '-rf', filename])
-
     def _readd_atmo_boot(self, mount_point):
         #TODO: This function should no longer be necessary.
         #If it is, we need to recreate goodies/atmo_boot
@@ -685,73 +608,20 @@ title Atmosphere VM (%s)
 
         if not os.path.exists(mount_point):
             os.makedirs(mount_point)
-        #Mount the directory
-        run_command(['mount', '-o', 'loop', image_path, mount_point])
 
-        #Patchfix
-        #self._readd_atmo_boot(mount_point)
+        #Mount the directory
+        out, err = mount_image(image_path, mount_point)
+        if err:
+            raise Exception("Encountered errors mounting the image: %s" % err)
 
         #Begin removing user-specified files (Matches wildcards)
-        logger.info("Exclude files: %s" % exclude)
-        for rm_file in exclude:
-            if not rm_file:
-                continue
-            rm_file = self._check_mount_path(rm_file)
-            rm_file_path = os.path.join(mount_point, rm_file)
-            self._wildcard_remove(rm_file_path)
+        if exclude and exclude[0]:
+            logger.info("User-initiated files to be removed: %s" % exclude)
+            remove_files(exclude, mount_point)
 
-        #Removes file (Matches wildcards)
-        for rm_file in ['home/*', 'mnt/*', 'tmp/*', 'root/*', 'dev/*',
-                        'proc/*', 'var/lib/puppet/run/*.pid',
-                        'etc/rc.local.atmo',
-                        'etc/puppet/ssl', 'usr/sbin/atmo_boot.py',
-                        'var/log/atmo/atmo_boot.log',
-                        'var/log/atmo/atmo_init.log']:
-            rm_file = self._check_mount_path(rm_file)
-            rm_file_path = os.path.join(mount_point, rm_file)
-            self._wildcard_remove(rm_file_path)
-
-        #Copy /dev/null to clear sensitive logging data
-        for overwrite_file in ['root/.bash_history', 'var/log/auth.log',
-                               'var/log/boot.log', 'var/log/daemon.log',
-                               'var/log/denyhosts.log', 'var/log/dmesg',
-                               'var/log/secure', 'var/log/messages',
-                               'var/log/lastlog', 'var/log/cups/access_log',
-                               'var/log/cups/error_log', 'var/log/syslog',
-                               'var/log/user.log', 'var/log/wtmp',
-                               'var/log/atmo/atmo_boot.log',
-                               'var/log/atmo/atmo_init.log',
-                               'var/log/apache2/access.log',
-                               'var/log/apache2/error.log',
-                               'var/log/yum.log', 'var/log/atmo/puppet',
-                               'var/log/puppet',
-                               'var/log/atmo/atmo_init_full.log']:
-            overwrite_file = self._check_mount_path(overwrite_file)
-            overwrite_file_path = os.path.join(mount_point, overwrite_file)
-            if os.path.exists(overwrite_file_path):
-                run_command(['/bin/cp', '-f',
-                                  '/dev/null', '%s' % overwrite_file_path])
-
-        #Single line replacement..
-        for (replace_str, replace_with, replace_where) in [
-                ("\(users:x:100:\).*", "users:x:100:", "etc/group"),
-                ("AllowGroups users root.*", "", "etc/ssh/sshd_config"),
-                #TODO:Remove the edge cases (Shell & VNC lines in rc.local)
-                (".*vncserver$", "", "etc/rc.local"),
-                (".*shellinbaox.*", "", "etc/rc.local")
-                ]:
-            replace_where = self._check_mount_path(replace_where)
-            mounted_filepath = os.path.join(mount_point, replace_where)
-            sed_replace(replace_str, replace_with, mounted_filepath)
-
-        #Remove EVERYTHING between these lines..
-        for (delete_from, delete_to, replace_where) in [
-                ("## Atmosphere system", "# End Nagios", "etc/sudoers"),
-                ("## Atmosphere", "AllowGroups users core-services root",
-                 "etc/ssh/sshd_config")]:
-            replace_where = self._check_mount_path(replace_where)
-            mounted_filepath = os.path.join(mount_point, replace_where)
-            sed_delete_multi(delete_from, delete_to, mounted_filepath)
+        remove_user_data(mount_point)
+        remove_atmo_data(mount_point)
+        remove_vm_specific_data(mount_point)
 
         #Don't forget to unmount!
         run_command(['umount', mount_point])
