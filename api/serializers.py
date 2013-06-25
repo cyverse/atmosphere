@@ -164,8 +164,9 @@ class IdentityRelatedField(serializers.RelatedField):
 class ProfileSerializer(serializers.ModelSerializer):
     """
     """
-    #TODO:Need to validate provider/identityy membership on id change
+    #TODO:Need to validate provider/identity membership on id change
     username = serializers.CharField(read_only=True, source='user.username')
+    email = serializers.CharField(read_only=True, source='email_hash')
     groups = serializers.CharField(read_only=True, source='user.groups.all')
     selected_identity = IdentityRelatedField()
 
@@ -174,7 +175,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         Check that profile is an identitymember & providermember
         Returns the dict of attrs
         """
-	#Short-circut if source (identity) not in attrs
+        #Short-circut if source (identity) not in attrs
         if source not in attrs:
             return attrs
         selected_identity = attrs[source]
