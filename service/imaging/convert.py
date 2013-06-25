@@ -45,14 +45,16 @@ def xen_to_kvm_centos(mounted_path):
     remove_multiline_in_files(multiline_delete_files, mounted_path)
 
 
-    #Run this command in a prepared chroot
-    latest_rmdisk, rmdisk_version = get_latest_ramdisk(mounted_path)
-
     ### PREPARE CHROOT
     prepare_chroot_env(mounted_path)
     #Run this command in a prepared chroot
     run_command(["/usr/sbin/chroot", mounted_path, "/bin/bash", "-c",
                  "yum install -qy kernel mkinitrd grub"])
+
+
+    #Run this command after installing the latest (non-xen) kernel
+    latest_rmdisk, rmdisk_version = get_latest_ramdisk(mounted_path)
+
     #Next, Create a brand new ramdisk using the KVM variables set above
     run_command(["/usr/sbin/chroot", mounted_path, "/bin/bash", "-c",
                 "mkinitrd --with virtio_pci --with virtio_ring "

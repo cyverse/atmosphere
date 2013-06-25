@@ -118,6 +118,16 @@ def select_and_build_image(machine_request, euca_imaging_creds,
             machine_request.new_machine_name,
             meta_name=meta_name,
             local_download_dir=local_download_dir) 
+        new_machine = [img for img in manager.admin_list_images()
+                   if new_image_id in img.id]
+        if not new_machine:
+            return
+	    set_machine_visibility(manager.os_img_manager, 
+                               machine_request, 
+                               new_machine[0])
+        set_machine_metadata(machine_request,
+                             manager.os_img_manager.admin_driver._connection,
+                             new_machine[0])
     elif old_provider == 'openstack' and new_provider == 'eucalyptus':
         #TODO: Replace with OSEucaMigrater when this feature is complete
         manager = None

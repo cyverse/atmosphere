@@ -22,7 +22,7 @@ def remove_user_data(mounted_path, dry_run=False):
     remove_line_files = []
     replace_line_files = [
         #('replace_pattern','replace_with','in_file'),
-        ("\(users:x:100:\).*", "users:x:100:", "etc/group"),
+        ("users:x:100:.*", "users:x:100:", "etc/group"),
         #TODO: Check this should not be 'AllowGroups users core-services root'
         ("AllowGroups users root.*", "", "etc/ssh/sshd_config"),
     ]
@@ -65,9 +65,13 @@ def remove_atmo_data(mounted_path, dry_run=False):
     ]
     multiline_delete_files = [
         #('delete_from', 'delete_to', 'replace_where')
-        ("## Atmosphere system", "# End Nagios", "etc/sudoers"),
-        ("## Atmosphere", "AllowGroups users core-services root",
+        ("## Atmosphere System", "# End Nagios", "etc/sudoers"),
+        #Just in case nagios isn't there..
+        ("## Atmosphere System", "# End Atmosphere System", "etc/sudoers"),
+        ("## Atmosphere System", "## End Atmosphere System",
          "etc/ssh/sshd_config")
+        ("## Atmosphere System", "## End Atmosphere System",
+         "etc/skel/.bashrc")
     ]
     _perform_cleaning(mounted_path, rm_files=remove_files,
                       remove_line_files=remove_line_files,

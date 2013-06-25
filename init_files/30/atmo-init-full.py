@@ -149,6 +149,7 @@ def append_to_file(filename, block):
         f = open(filename, "a")
         f.write("## Atmosphere System\n")
         f.write(block)
+        f.write("## End Atmosphere System\n")
         f.close()
     except Exception, e:
         logging.exception("Failed to append to %s" % filename)
@@ -156,11 +157,11 @@ def append_to_file(filename, block):
 
 
 def add_sudoers(user):
-    f = open("/etc/sudoers", "a")
-    f.write("""## Atmosphere System
-%s ALL=(ALL)ALL
-""" % user)
-    f.close()
+    atmo_sudo_file = "/etc/sudoers"
+    append_to_file(
+        atmo_sudo_file,
+        "%s ALL=(ALL)ALL" % user)
+    os.chmod(atmo_sudo_file, 0440)
 
 
 def restart_ssh(distro):
@@ -171,10 +172,9 @@ def restart_ssh(distro):
 
 
 def ssh_config(distro):
-    f = open("/etc/ssh/sshd_config", "a")
-    f.write("""## Atmosphere System
-AllowGroups users core-services root
-""")
+    append_to_file(
+        "/etc/ssh/sshd_config",
+        "AllowGroups users core-services root")
     f.close()
     restart_ssh(distro)
 
