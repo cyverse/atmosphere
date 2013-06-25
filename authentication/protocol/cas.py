@@ -186,7 +186,7 @@ def cas_proxyCallback(request):
     This is a placeholder for a proxyCallback service
     needed for CAS authentication
     """
-    logger.info("Incoming request to CASPROXY (Proxy Callback):")
+    logger.debug("Incoming request to CASPROXY (Proxy Callback):")
     return HttpResponse("I am at a RSA-2 or VeriSigned SSL Cert. website.")
 
 
@@ -195,7 +195,9 @@ def cas_formatAttrs(cas_response):
     Formats attrs into a unified dict to ease in user creation
     """
     try:
-        cas_attrs = cas_response.map[cas_response.type]['attributes']
+        cas_response_obj = cas_response.map[cas_response.type]
+        logger.debug(cas_response_obj)
+        cas_attrs = cas_response_obj['attributes']
         return cas_attrs
     except KeyError, nokey:
         logger.debug("Error retrieving attributes")

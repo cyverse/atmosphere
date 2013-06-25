@@ -414,14 +414,10 @@ def modify_rclocal(username, distro):
                             '\t%s\n'
                             'fi\n' % (atmo_rclocal_path, atmo_rclocal_path))
             open_file.close()
-        #If there was an exit line, it is now too high! We must bring it back
-        #to the bottom of the file
+        #If there was an exit line, it must be removed
         if line_in_file('exit', distro_rc_local):
             run_command(['/bin/sed', '-i',
                          "'s/exit.*//'", '/etc/rc.local'])
-            open_file = open(distro_rc_local,'a')
-            open_file.write('exit 0\n')
-            open_file.close()
         # Intentionally REPLACE the entire contents of file on each run
         atmo_rclocal = open(atmo_rclocal_path,'w')
         atmo_rclocal.write('#!/bin/sh -e'
@@ -434,6 +430,7 @@ def modify_rclocal(username, distro):
                           '> /var/log/atmo/shellinaboxd.log 2>&1 &\n'
                           #Add new rc.local commands here
                           #And they will be excecuted on startup
+                          #Don't forget the newline char
                           % username)
         atmo_rclocal.close()
         os.chmod(atmo_rclocal_path, 0755)

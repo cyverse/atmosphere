@@ -14,6 +14,7 @@ Migrating an Instance/Image (Example: Eucalyptus --> Openstack)
 """
 import os
 import glob
+import shutil
 
 from threepio import logger
 
@@ -56,12 +57,13 @@ class EucaOSMigrater:
         if os_image:
             return os_image
 
-    def migrate_instance(self, euca_instance_id, name, local_download_dir='/tmp/', euca_image_path=None, no_upload=False, keep_image=False):
+    def migrate_instance(self, euca_instance_id, name, local_download_dir='/tmp/', meta_name=None, euca_image_path=None, no_upload=False, keep_image=False):
         """
         TODO: Add in public, private_user_list, exclude_files
         """
         if not euca_image_path:
-            local_download_dir, euca_image_path = self.euca_img_manager.download_instance(local_download_dir, euca_instance_id)
+            local_download_dir, euca_image_path = self.euca_img_manager.download_instance(local_download_dir,
+                    euca_instance_id, meta_name=meta_name)
             #Downloads instance to local_download_dir/user/i-###
             mount_point = os.path.join(local_download_dir, 'mount_point')
             self.euca_img_manager._clean_local_image(euca_image_path, mount_point, ["usr/sbin/atmo_boot"])
@@ -79,10 +81,8 @@ class EucaOSMigrater:
             os_image = self.os_img_manager.upload_euca_image(name, image, kernel, ramdisk)
             logger.debug("Successfully uploaded eucalyptus image: %s" %
                     os_image)
-        if not keep_image:
-            os.remove(image)
-            os.remove(kernel)
-            os.remove(ramdisk)
+        #if not keep_image:
+        #    shutil.rmtree(local_download_dir)
         if os_image:
             return os_image.id
 

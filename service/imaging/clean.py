@@ -56,7 +56,7 @@ def remove_atmo_data(mounted_path, dry_run=False):
                     'etc/puppet/ssl', 
                     'var/log/puppet',
                    ]
-    overwrite_files = ['', ]
+    overwrite_files = []
     remove_line_files = []
     replace_line_files = [
         #('replace_pattern','replace_with','in_file'),

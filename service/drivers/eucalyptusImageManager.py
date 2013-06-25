@@ -39,9 +39,10 @@ from service.drivers.common import sed_replace, sed_prepend
 from service.drivers.common import run_command, chroot_local_image, install_cloudinit
 
 from service.system_calls import run_command, wildcard_remove
-from service.imaging.common import mount_image, remove_files
+from service.imaging.common import mount_image, remove_files, get_latest_ramdisk
 from service.imaging.clean import remove_user_data, remove_atmo_data,\
                                   remove_vm_specific_data
+from service.imaging.convert import xen_to_kvm_centos
 
 from threepio import logger
 
@@ -155,7 +156,8 @@ class ImageManager():
         return new_image_id
 
     def download_instance(self, download_dir, instance_id,
-                          local_img_path=None, remote_img_path=None):
+                          local_img_path=None, remote_img_path=None,
+                          meta_name=None):
         """
         Download an existing instance to local download directory
         Required Args:
@@ -179,10 +181,12 @@ class ImageManager():
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
 
+        if not meta_name:
+            meta_name = self._format_meta_name(instance.id, owner)
+
         if not local_img_path:
             #Format empty meta strings to match
             #current iPlant imaging standard, if not given
-            meta_name = self._format_meta_name(instance.id, owner)
             local_img_path = '%s/%s.img' % (download_dir, meta_name)
 
         if not remote_img_path:
@@ -393,13 +397,13 @@ class ImageManager():
         elif distro == 'ubuntu':
             run_command(['/bin/bash','-c','cp -f %s/extras/export/grub_files/ubuntu/* %s/boot/grub/' % (self.extras_root, root_dir)])
 
-    def _format_meta_name(self, name, owner, creator='admin'):
+    def _format_meta_name(self, name, owner, creator='admin', timestamp_str=None):
 
+        if not timestamp_str:
+            timestamp_str = datetime.now().strftime('%m%d%Y_%H%M%S')
         #Prepare name for imaging
         name = name.replace(' ', '_').replace('/', '-')
-        meta_name = '%s_%s_%s_%s' % (creator, owner, name,
-                                     datetime.now().strftime(
-                                         '%m%d%Y_%H%M%S'))
+        meta_name = '%s_%s_%s_%s' % (creator, owner, name, timestamp_str)
         return meta_name
 
     def _format_nc_path(self, owner, instance_id,

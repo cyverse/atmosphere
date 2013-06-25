@@ -31,11 +31,12 @@ class Machine(models.Model):
     """
     name = models.CharField(max_length=256)
     description = models.TextField(null=True, blank=True)
-    tags = models.ManyToManyField(Tag)
+    tags = models.ManyToManyField(Tag, blank=True)
     icon = models.ImageField(upload_to="machine_images", null=True, blank=True)
     init_package = models.ForeignKey(Package, null=True, blank=True)
     private = models.BooleanField(default=False)
-    providers = models.ManyToManyField(Provider, through="ProviderMachine")
+    providers = models.ManyToManyField(Provider, through="ProviderMachine",
+            blank=True)
     featured = models.BooleanField(default=False)
     created_by = models.ForeignKey(User)  # The user that requested imaging
     start_date = models.DateTimeField(default=timezone.now())
@@ -232,6 +233,13 @@ def convertEshMachine(esh_driver, esh_machine, provider_id, image_id=None):
     provider_machine = set_machine_from_metadata(esh_driver, provider_machine)
     return provider_machine
 
+def filterCoreMachine(provider_machine):
+    """
+    Filter conditions:
+    * Machine does not have an end-date
+    """
+    return not provider_machine.machine.end_date
+
 def set_machine_from_metadata(esh_driver, core_machine):
     #Fixes Dep. loop - Do not remove
     from api.serializers import ProviderMachineSerializer
@@ -250,7 +258,8 @@ def set_machine_from_metadata(esh_driver, core_machine):
 
     #TAGS must be converted from String --> List
     if 'tags' in metadata and type(metadata['tags']) != list:
-        metadata['tags'] = json.loads(metadata['tags'])
+        tags_as_list = metadata['tags'].split(', ')
+        metadata['tags'] = tags_as_list
     serializer = ProviderMachineSerializer(core_machine, data=metadata, partial=True)
     if not serializer.is_valid():
         logger.info("New metadata failed: %s" % metadata)
