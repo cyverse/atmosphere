@@ -85,7 +85,8 @@ def select_and_build_image(machine_request, euca_imaging_creds,
         meta_name = manager._format_meta_name(
             machine_request.new_machine_name,
             machine_request.new_machine_owner.username,
-            machine_request.start_date.strftime('%m%d%Y_%H%M%S'))
+            machine_request.start_date\
+                .strftime('%m%d%Y_%H%M%S'))
 
         new_image_id = manager.create_image(
             machine_request.instance.provider_alias,

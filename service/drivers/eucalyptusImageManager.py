@@ -129,6 +129,9 @@ class ImageManager():
 
         #Image doesn't exist locally, download it
         if not local_image_path:
+            local_download_dir = os.path.join(local_download_dir, owner, instance_id)
+            if not os.path.exists(local_download_dir):
+                os.makedirs(local_download_dir)
             local_image_path = os.path.join(local_download_dir, '%s.img' % meta_name)
 
             ##Run sub-scripts to retrieve,
@@ -397,7 +400,7 @@ class ImageManager():
         elif distro == 'ubuntu':
             run_command(['/bin/bash','-c','cp -f %s/extras/export/grub_files/ubuntu/* %s/boot/grub/' % (self.extras_root, root_dir)])
 
-    def _format_meta_name(self, name, owner, creator='admin', timestamp_str=None):
+    def _format_meta_name(self, name, owner, timestamp_str=None, creator='admin'):
 
         if not timestamp_str:
             timestamp_str = datetime.now().strftime('%m%d%Y_%H%M%S')

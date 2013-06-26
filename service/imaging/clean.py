@@ -64,14 +64,22 @@ def remove_atmo_data(mounted_path, dry_run=False):
         (".*shellinbaox.*", "", "etc/rc.local")
     ]
     multiline_delete_files = [
+        #TEMPLATE:
         #('delete_from', 'delete_to', 'replace_where')
+
         ("## Atmosphere System", "# End Nagios", "etc/sudoers"),
         #Just in case nagios isn't there..
         ("## Atmosphere System", "# End Atmosphere System", "etc/sudoers"),
         ("## Atmosphere System", "## End Atmosphere System",
-         "etc/ssh/sshd_config")
+         "etc/ssh/sshd_config"),
+
+        #Remove lines below after next maintenance period..
+        ("## Atmosphere System", "Allowgroups users root core-services",
+         "etc/ssh/sshd_config"),
+        #Remove lines above after next maintenance period..
+
         ("## Atmosphere System", "## End Atmosphere System",
-         "etc/skel/.bashrc")
+         "etc/skel/.bashrc"),
     ]
     _perform_cleaning(mounted_path, rm_files=remove_files,
                       remove_line_files=remove_line_files,
