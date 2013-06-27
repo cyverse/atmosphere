@@ -2,7 +2,8 @@ from core.models.credential import Credential
 from core.models.identity import Identity
 from core.models.instance import Instance
 from core.models.machine import ProviderMachine
-from core.models.machine_request import MachineRequest, MachineExport
+from core.models.machine_request import MachineRequest
+from core.models.machine_export import MachineExport
 from core.models.profile import UserProfile
 from core.models.provider import ProviderType, Provider
 from core.models.size import Size
@@ -85,8 +86,10 @@ class InstanceSerializer(serializers.ModelSerializer):
 class MachineExportSerializer(serializers.ModelSerializer):
     """
     """
+    name = serializers.CharField(source='export_name')
     instance = serializers.SlugRelatedField(slug_field='provider_alias')
     status = serializers.CharField(default="pending")
+    disk_format = serializers.CharField(source='export_format')
 
     owner = serializers.SlugRelatedField(slug_field='username',
                                          source='export_owner')
