@@ -35,7 +35,7 @@ def get_all_instances():
 
 def update_links(instances):
     from core.models import Instance
-    from service.linktest import active_instances
+    from rtwo.linktest import active_instances
     updated = []
     linktest_results = active_instances(instances)
     for (instance_id, link_results) in linktest_results.items():

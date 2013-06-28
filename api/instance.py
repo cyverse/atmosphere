@@ -18,9 +18,11 @@ from authentication.decorators import api_auth_token_required
 
 from core.models.instance import convertEshInstance, update_instance_metadata
 from core.models.volume import convertEshVolume
+
 from api import failureJSON, launchEshInstance, prepareDriver
 from api.serializers import InstanceSerializer, VolumeSerializer
 
+from service import task
 
 class InstanceList(APIView):
     """
@@ -376,7 +378,7 @@ class Instance(APIView):
             esh_instance = esh_driver.get_instance(instance_id)
             if not esh_instance:
                 return instance_not_found(instance_id)
-            esh_driver.destroy_instance_to_task(esh_instance)
+            task.destroy_instance_task(esh_driver, esh_instance)
             esh_instance = esh_driver.get_instance(instance_id)
             if esh_instance.extra\
                and 'task' not in esh_instance.extra:
