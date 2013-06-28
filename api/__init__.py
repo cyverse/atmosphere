@@ -7,7 +7,7 @@ import uuid
 import os.path
 
 #Necessary to initialize Meta classes
-import service.compute
+import rtwo.compute
 
 from django.contrib.auth.models import User as DjangoUser
 
@@ -18,12 +18,12 @@ from atmosphere import settings
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import update_instance_metadata
 
-from service.provider import AWSProvider, AWSUSEastProvider,\
+from rtwo.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
     OSProvider, OSValhallaProvider
-from service.identity import AWSIdentity, EucaIdentity,\
+from rtwo.identity import AWSIdentity, EucaIdentity,\
     OSIdentity
-from service.driver import AWSDriver, EucaDriver, OSDriver
+from rtwo.driver import AWSDriver, EucaDriver, OSDriver
 
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 
@@ -187,6 +187,7 @@ def getEshDriver(core_identity, username=None):
         else:
             user = DjangoUser.objects.get(username=username)
         provider = eshMap['provider']()
+        logger.debug("cred_args = %s" % cred_args)
         identity = eshMap['identity'](provider, user=user, **cred_args)
         driver = eshMap['driver'](provider, identity)
         return driver
