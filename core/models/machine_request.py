@@ -74,7 +74,7 @@ def process_machine_request(machine_request, new_image_id):
     generic_mach.description = machine_request.new_machine_description
     generic_mach.save()
     machine_request.new_machine = new_machine
-    machine_request.end_date = datetime.now()
+    machine_request.end_date = timezone.now()
     machine_request.status = 'completed'
     machine_request.save()
     return machine_request

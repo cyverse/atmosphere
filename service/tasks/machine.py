@@ -82,11 +82,11 @@ def select_and_build_image(machine_request, euca_imaging_creds,
         manager = EucaImageManager(**euca_imaging_creds)
 
         #Build the meta_name so we can re-start if necessary
-        meta_name = '%s_%s_%s_%s' % ('admin',
+        meta_name = manager._format_meta_name(
+            machine_request.new_machine_name,
             machine_request.new_machine_owner.username,
-            machine_request.new_machine_name.replace(
-                ' ','_').replace('/','-'),
-            machine_request.start_date.strftime('%m%d%Y_%H%M%S'))
+            machine_request.start_date\
+                .strftime('%m%d%Y_%H%M%S'))
 
         new_image_id = manager.create_image(
             machine_request.instance.provider_alias,
@@ -108,10 +108,27 @@ def select_and_build_image(machine_request, euca_imaging_creds,
                 euca_imaging_creds,
                 openstack_creds)
 
+        meta_name = manager.euca_img_manager._format_meta_name(
+            machine_request.new_machine_name,
+            machine_request.new_machine_owner.username,
+            timestamp_str = machine_request.start_date\
+                .strftime('%m%d%Y_%H%M%S'))
+
         new_image_id = manager.migrate_instance(
             machine_request.instance.provider_alias,
             machine_request.new_machine_name,
+            meta_name=meta_name,
             local_download_dir=local_download_dir) 
+        new_machine = [img for img in manager.admin_list_images()
+                   if new_image_id in img.id]
+        if not new_machine:
+            return
+	    set_machine_visibility(manager.os_img_manager, 
+                               machine_request, 
+                               new_machine[0])
+        set_machine_metadata(machine_request,
+                             manager.os_img_manager.admin_driver._connection,
+                             new_machine[0])
     elif old_provider == 'openstack' and new_provider == 'eucalyptus':
         #TODO: Replace with OSEucaMigrater when this feature is complete
         manager = None
@@ -132,8 +149,8 @@ def select_and_build_image(machine_request, euca_imaging_creds,
                    if new_image_id in img.id]
         if not new_machine:
             return
-	    #set_machine_visibility(manager, machine_request, new_machine[0])
-        #set_machine_metadata(machine_request, manager.admin_driver._connection, new_machine[0])
+	    set_machine_visibility(manager, machine_request, new_machine[0])
+        set_machine_metadata(machine_request, manager.admin_driver._connection, new_machine[0])
     return new_image_id
 
 def set_machine_visibility(image_mgr, machine_request, machine):
@@ -145,26 +162,27 @@ def set_machine_visibility(image_mgr, machine_request, machine):
     """
     if machine_request.new_machine_is_public():
         #Public (All users)
-        machine.update(is_public=True)
-        logger.debug("Machine %s is publically available" % machine.alias)
+        machine.update(is_public=True, purge_props=False)
+        logger.debug("Machine %s is public" % machine.id)
+        return
     elif machine_request.access_list:
         #Private (Selected users only)
         user_list = machine_request.access_list.split(',')
     else:
         #Private (Only available to me)
         user_list = [machine_request.new_machine_owner.username]
-        image_admins = []
-        user_list.extend(image_admins)
-        for user in user_list:
-            tenant = image_mgr.find_tenant(user)
-            if tenant:
-                image_mgr.share_image(machine, tenant.id, can_share=True)
-        logger.debug("Machine %s is available to selected users only: %s" %
-                     (machine.alias, user_list))
-        pass
+    image_admins = []
+    user_list.extend(image_admins)
+    for user in user_list:
+        tenant = image_mgr.find_tenant(user)
+        if tenant:
+            image_mgr.share_image(machine, tenant.id, can_share=True)
+    logger.debug("Machine %s is available to selected users only: %s" %
+                 (machine.id, user_list))
+    pass
 
 def set_machine_metadata(machine_request, lc_driver, machine):
-    metadata = {'deployed':'True'}
+    metadata = {}
     if machine_request.new_machine_description:
         metadata['description'] = machine_request.new_machine_description
     if machine_request.new_machine_tags:

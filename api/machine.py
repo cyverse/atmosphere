@@ -13,7 +13,7 @@ from authentication.decorators import api_auth_token_required
 
 from api import prepareDriver, failureJSON
 from api.serializers import ProviderMachineSerializer
-from core.models.machine import convertEshMachine, update_machine_metadata
+from core.models.machine import filterCoreMachine, convertEshMachine, update_machine_metadata
 
 
 class MachineList(APIView):
@@ -37,7 +37,8 @@ class MachineList(APIView):
             black_list=['eki-', 'eri-'])
         core_machine_list = [convertEshMachine(esh_driver, mach, provider_id)
                              for mach in esh_machine_list]
-        serialized_data = ProviderMachineSerializer(core_machine_list,
+        filtered_machine_list = filter(filterCoreMachine, core_machine_list)
+        serialized_data = ProviderMachineSerializer(filtered_machine_list,
                 many=True).data
         response = Response(serialized_data)
         return response

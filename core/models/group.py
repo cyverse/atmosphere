@@ -19,10 +19,14 @@ class Group(DjangoGroup):
     Extend the Django Group model to support 'membership'
     """
     leaders = models.ManyToManyField(DjangoUser)
-    providers = models.ManyToManyField(Provider, through='ProviderMembership')
-    identities = models.ManyToManyField(Identity, through='IdentityMembership')
-    instances = models.ManyToManyField(Instance, through='InstanceMembership')
-    machines = models.ManyToManyField(Machine, through='MachineMembership')
+    providers = models.ManyToManyField(Provider, through='ProviderMembership',
+        blank=True)
+    identities = models.ManyToManyField(Identity, through='IdentityMembership',
+        blank=True)
+    instances = models.ManyToManyField(Instance, through='InstanceMembership',
+        blank=True)
+    machines = models.ManyToManyField(Machine, through='MachineMembership',
+        blank=True)
 
     def json(self):
         return {

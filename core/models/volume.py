@@ -45,6 +45,9 @@ class Volume(models.Model):
         self.save()
         return self
 
+    def __unicode__(self):
+        return "%s" % (self.alias,)
+
     def esh_status(self):
         if not self.esh or not self.esh.extra:
             return "Unknown"

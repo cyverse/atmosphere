@@ -7,7 +7,8 @@ from service.imaging.common import prepend_line_in_files,\
                                    replace_line_in_files,\
                                    remove_multiline_in_files
 
-def xen_to_kvm_ubuntu(self, mounted_path):
+from service.system_calls import run_command
+def xen_to_kvm_ubuntu(mounted_path):
     """
     These operations must be run to convert an Ubuntu Machine from XEN-based
     virtualization to KVM-based virtualization
@@ -20,7 +21,7 @@ def xen_to_kvm_ubuntu(self, mounted_path):
     remove_line_in_files(remove_line_file_list, mounted_path)
 
 
-def xen_to_kvm_centos(self, mounted_path):
+def xen_to_kvm_centos(mounted_path):
     #replace \t w/ 4-space if this doesn't work so well..
     prepend_line_list = [
         ("LABEL=root\t\t/\t\t\text3\tdefaults,errors=remount-ro 1 1",
@@ -44,20 +45,22 @@ def xen_to_kvm_centos(self, mounted_path):
     remove_multiline_in_files(multiline_delete_files, mounted_path)
 
 
+    ### PREPARE CHROOT
+    prepare_chroot_env(mounted_path)
     #Run this command in a prepared chroot
+    run_command(["/usr/sbin/chroot", mounted_path, "/bin/bash", "-c",
+                 "yum install -qy kernel mkinitrd grub"])
+
+
+    #Run this command after installing the latest (non-xen) kernel
     latest_rmdisk, rmdisk_version = get_latest_ramdisk(mounted_path)
 
-    ### PREPARE CHROOT
-    prepare_chroot_env(mount_point)
-    #Run this command in a prepared chroot
-    run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c",
-                 "yum install -qy kernel mkinitrd grub"])
     #Next, Create a brand new ramdisk using the KVM variables set above
-    run_command(["/usr/sbin/chroot", mount_point, "/bin/bash", "-c",
+    run_command(["/usr/sbin/chroot", mounted_path, "/bin/bash", "-c",
                 "mkinitrd --with virtio_pci --with virtio_ring "
                 "--with virtio_blk --with virtio_net "
                 "--with virtio_balloon --with virtio "
                 "-f /boot/%s %s"  % (latest_rmdisk, rmdisk_version)])
 
-    remove_chroot_env(mount_point)
+    remove_chroot_env(mounted_path)
     ### REMOVE PREPARED CHROOT

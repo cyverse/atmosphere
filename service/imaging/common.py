@@ -12,7 +12,7 @@ from threepio import logger
 ##
 def get_latest_ramdisk(mounted_path):
     boot_dir = os.path.join(mounted_path,'boot/')
-    output, _ = run_command(["/bin/bash", "-c", "ls -Fah /boot/"])
+    output, _ = run_command(["/bin/bash", "-c", "ls -Fah %s" % boot_dir])
     #Determine the latest (KVM) ramdisk to use
     latest_rmdisk = ''
     rmdisk_version = ''

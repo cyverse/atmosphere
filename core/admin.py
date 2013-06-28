@@ -36,11 +36,51 @@ class QuotaAdmin(admin.ModelAdmin):
 
 class ProviderMachineAdmin(admin.ModelAdmin):
     search_fields = ["machine__name", "provider__location", "identifier"]
-    list_display = ["identifier", "provider", "machine",]
+    list_display = ["identifier", "provider", "machine"]
+    list_filter = [
+        "provider__location",
+    ]
+
+
+class ProviderAdmin(admin.ModelAdmin):
+    list_display = ["location", "id", "provider_type", "active",
+                    "public","start_date","end_date"]
+    list_filter = [
+        "active", "public", "type__name"
+    ]
+    def provider_type(self, provider):
+        if provider.type:
+            return provider.type.name
+        return None
+
+
+class TagAdmin(admin.ModelAdmin):
+    search_fields = ["name"]
+    list_display = ["name", "description"]
+
+
+class SizeAdmin(admin.ModelAdmin):
+    search_fields = ["name", "alias", "provider__location"]
+    list_display = [
+        "name", "provider", "cpu", "mem", "disk", "start_date", "end_date"]
+    list_filter = [
+        "provider__location",
+    ]
+
+
+class VolumeAdmin(admin.ModelAdmin):
+    search_fields = ["alias", "name", "provider__location"]
+    list_display = [
+        "alias", "size", "provider", "start_date", "end_date"]
+    list_filter = [
+        "provider__location",
+    ]
 
 
 class MachineAdmin(admin.ModelAdmin):
     search_fields = ["name", "id"]
+    list_display = [
+        "name", "start_date", "end_date", "private", "featured"]
 
 
 class CredentialInline(admin.TabularInline):
@@ -54,6 +94,9 @@ class IdentityAdmin(admin.ModelAdmin):
     ]
     list_display = ("created_by", "provider", "_credential_info")
     search_fields = ["created_by__username", ]
+    list_filter = [
+        "provider__location",
+    ]
 
     def _credential_info(self, obj):
         return_text = ""
@@ -81,11 +124,17 @@ admin.site.register(DjangoUser, UserAdmin)
 
 class ProviderMembershipAdmin(admin.ModelAdmin):
     search_fields = ["member__name", ]
+    list_filter = [
+        "provider__location",
+    ]
 
 
 class IdentityMembershipAdmin(admin.ModelAdmin):
     search_fields = ["identity__created_by__username", ]
     list_display = ["_identity_user", "_identity_provider", "quota"]
+    list_filter = [
+        "identity__provider__location",
+    ]
 
     def _identity_provider(self, obj):
         return obj.identity.provider.location
@@ -98,6 +147,32 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
 
 class MachineRequestAdmin(admin.ModelAdmin):
     search_fields = ["created_by", "instance__provider_alias"]
+    list_display = [
+        "new_machine_name", "new_machine_owner",
+        "new_machine_provider",  "start_date", 
+        "end_date","opt_parent_machine", 
+        "opt_new_machine"]
+    list_filter = [
+        "instance__provider_machine__provider__location",
+        "new_machine_provider__location",
+    ]
+
+    def opt_parent_machine(self, machine_request):
+        if machine_request.parent_machine:
+            return machine_request.parent_machine.identifier
+        return None
+
+    def opt_new_machine(self, machine_request):
+        if machine_request.new_machine:
+            return machine_request.new_machine.identifier
+        return None
+
+class InstanceAdmin(admin.ModelAdmin):
+    search_fields = ["created_by__username", "provider_alias", "ip_address"]
+    list_display = ["provider_alias","created_by", "ip_address"]
+    list_filter = [
+        "provider_machine__provider__location",
+    ]
 
 admin.site.register(Credential)
 admin.site.unregister(DjangoGroup)
@@ -105,15 +180,15 @@ admin.site.register(Group)
 admin.site.register(Identity, IdentityAdmin)
 admin.site.register(IdentityMembership, IdentityMembershipAdmin)
 admin.site.register(ProviderMembership, ProviderMembershipAdmin)
-admin.site.register(Instance)
+admin.site.register(Instance, InstanceAdmin)
 admin.site.register(Machine, MachineAdmin)
 admin.site.register(MachineRequest, MachineRequestAdmin)
 admin.site.register(MaintenanceRecord, MaintenanceAdmin)
 admin.site.register(NodeController, NodeControllerAdmin)
 admin.site.register(ProviderMachine, ProviderMachineAdmin)
-admin.site.register(Provider)
+admin.site.register(Provider, ProviderAdmin)
 admin.site.register(ProviderType)
 admin.site.register(Quota, QuotaAdmin)
-admin.site.register(Size)
-admin.site.register(Tag)
-admin.site.register(Volume)
+admin.site.register(Size, SizeAdmin)
+admin.site.register(Tag, TagAdmin)
+admin.site.register(Volume, VolumeAdmin)
