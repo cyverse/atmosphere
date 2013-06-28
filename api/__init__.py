@@ -15,6 +15,8 @@ from threepio import logger
 
 from atmosphere import settings
 
+from core.ldap import get_uid_number
+
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import update_instance_metadata
 
@@ -26,7 +28,7 @@ from rtwo.identity import AWSIdentity, EucaIdentity,\
 from rtwo.driver import AWSDriver, EucaDriver, OSDriver
 
 from service.accounts.openstack import AccountDriver as OSAccountDriver
-
+from service import task
 
 #These functions return ESH related information based on the core repr
 ESH_MAP = {
@@ -129,10 +131,12 @@ def launchEshInstance(driver, extras, *args, **kwargs):
             os_driver = OSAccountDriver()
             password = os_driver.hashpass(username)
             project_name = os_driver.get_project_name_for(username)
-            os_driver.network_manager.create_project_network(username,
-                                                     password,
-                                                     project_name,
-                                                     **settings.OPENSTACK_NETWORK_ARGS)
+            os_driver.network_manager\
+                     .create_project_network(username,
+                                             password,
+                                             project_name,
+                                             get_cidr=get_uid_number,
+                                             **settings.OPENSTACK_NETWORK_ARGS)
             #NOTE: Name, deploy are passed in extras
             #TODO: Explicitly set the kwargs here and pass them instead of args
             #will help avoid confusion here..
@@ -140,7 +144,8 @@ def launchEshInstance(driver, extras, *args, **kwargs):
             eshInstance = driver.create_instance(size=size,
                                                  image=machine, **extras)
             # call async tasks.
-            driver.deploy_init_to_task(eshInstance)
+            task.deploy_init_task(driver, eshInstance)
+            #driver.deploy_init_to_task(eshInstance)
         elif isinstance(driver.provider, AWSProvider):
             #TODO:Extra stuff needed for AWS provider here
             extras['deploy'] = True
