@@ -217,6 +217,7 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     tags = serializers.CharField(source='machine.tags.all')
     description = serializers.CharField(source='machine.description')
     start_date = serializers.CharField(source='machine.start_date')
+    end_date = serializers.CharField(source='machine.end_date', required=False)
     featured = serializers.BooleanField(source='machine.featured')
 
     class Meta:
