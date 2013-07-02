@@ -140,10 +140,10 @@ def select_and_build_image(machine_request, euca_imaging_creds,
                        if img.id == new_image_id]
             if not machine:
                 return
-	    set_machine_request_metadata(machine_request, machine)
+	    set_machine_request_metadata(manager, machine_request, machine)
     return new_image_id
 
-def set_machine_request_metadata(machine_request, machine):
+def set_machine_request_metadata(manager, machine_request, machine):
     manager.driver.ex_set_image_metadata(machine, {'deployed':'True'})
     if machine_request.new_machine_description:
     	manager.driver.ex_set_image_metadata(machine, {'description':machine_request.new_machine_description})
