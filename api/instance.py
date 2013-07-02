@@ -3,6 +3,9 @@ Atmosphere service instance rest api.
 """
 from datetime import datetime
 import time
+
+from django.contrib.auth.models import User
+
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -15,9 +18,11 @@ from authentication.decorators import api_auth_token_required
 
 from core.models.instance import convertEshInstance, update_instance_metadata
 from core.models.volume import convertEshVolume
+
 from api import failureJSON, launchEshInstance, prepareDriver
 from api.serializers import InstanceSerializer, VolumeSerializer
 
+from service import task
 
 class InstanceList(APIView):
     """
@@ -92,6 +97,41 @@ class InstanceList(APIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+class InstanceHistory(APIView):
+    """
+    An InstanceHistory provides instance history for an identity.
+
+    GET - A chronologically ordered list of Instances.
+    """
+    
+    @api_auth_token_required
+    def get(self, request, provider_id, identity_id):
+        data = request.DATA
+        user = User.objects.filter(username=request.user)
+        if user:
+            user = user[0]
+        else:
+            errorObj = failureJSON([{
+                'code': 401,
+                'message': 'User not found'}])
+            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Active Instances
+        esh_driver = prepareDriver(request, identity_id)
+        esh_instance_list = esh_driver.list_instances()
+        active_instance_list = [convertEshInstance(esh_driver, inst, provider_id, user)
+                              for inst in esh_instance_list]
+
+        # Historic Instances
+        history_instance_list = Instance.objects.filter(created_by=user.id)
+        merged_instance_list = dict(history_instance_list.items()
+                                    + active_instance_list.items())
+        # fix [:20]!
+        serialized_data = InstanceSerializer(merged_instance_list[:20], many=True).data
+        response = Response(serialized_data)
+        response['Cache-Control'] = 'no-cache'
+        return response
 
 class InstanceAction(APIView):
     """
@@ -338,7 +378,7 @@ class Instance(APIView):
             esh_instance = esh_driver.get_instance(instance_id)
             if not esh_instance:
                 return instance_not_found(instance_id)
-            esh_driver.destroy_instance_to_task(esh_instance)
+            task.destroy_instance_task(esh_driver, esh_instance)
             esh_instance = esh_driver.get_instance(instance_id)
             if esh_instance.extra\
                and 'task' not in esh_instance.extra:

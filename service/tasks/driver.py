@@ -12,7 +12,7 @@ from core.models.instance import update_instance_metadata
 # Utility methods and tasks
 def get_driver(driverCls, provider, identity):
     logger.debug("getting driver...")
-    from service import compute
+    from rtwo import compute
     compute.initialize()
     driver = driverCls(provider, identity)
     if driver:
@@ -125,7 +125,7 @@ def destroy_instance(driverCls, provider, identity, instance_alias):
         logger.debug("destroy_instance task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_alias)
-        from service.driver import OSDriver
+        from rtwo.driver import OSDriver
         if instance:
             #First disassociate
             if isinstance(driver, OSDriver):
@@ -254,7 +254,7 @@ def _remove_floating_ip(driverCls, provider, identity, *args, **kwargs):
 def add_os_project_network(username, *args, **kwargs):
     try:
         logger.debug("add_os_project_network task started at %s." % datetime.now())
-        from service.accounts.openstack import AccountDriver as OSAccountDriver
+        from rtwo.accounts.openstack import AccountDriver as OSAccountDriver
         account_driver = OSAccountDriver()
         password = account_driver.hashpass(username)
         project_name = account_driver.get_project_name_for(username)

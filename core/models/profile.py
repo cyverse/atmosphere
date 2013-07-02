@@ -12,6 +12,7 @@ from core.models.identity import Identity
 
 from hashlib import md5
 
+
 class UserProfile(models.Model):
     user = models.OneToOneField(DjangoUser, primary_key=True)
     #Backend Profile attributes
@@ -104,41 +105,3 @@ def getDefaultIdentity(username, provider=None):
         except Exception, e:
             logger.exception(e)
             return None
-
-
-def get_ranges(uid_number, inc=0):
-    """
-    Return two block ranges to be used to create subnets for
-    Atmosphere users.
-
-    NOTE: If you change MAX_SUBNET then you should likely change
-    the related math.
-    """
-    MAX_SUBNET = 4064  # Note 
-    n = uid_number % MAX_SUBNET
-
-    #16-31
-    block1 = (n + inc) % 16 + 16
-
-    #1-254
-    block2 = ((n + inc) / 16) % 254 + 1
-    
-    return (block1, block2)
-
-def get_default_subnet(username, inc=0):
-    """
-    Return the default subnet for the username and provider.
-
-    Add and mod by inc to allow for collitions.
-    """
-    uid_number = get_uid_number(username)
-
-    if uid_number:
-        (block1, block2) = get_ranges(uid_number, inc)
-    else:
-        (block1, block2) = get_ranges(0, inc)
-
-    if username == "jmatt":
-        return "172.16.42.0/24"  # /flex
-    else:
-        return "172.%s.%s.0/24" % (block1, block2)

@@ -11,6 +11,7 @@ nohup.out
 .*
 #*#
 #*.*#
+docs/*.org
 logs/*
 static/*
 extras/euca/*

@@ -13,6 +13,9 @@ from novaclient.exceptions import OverLimit
 
 from threepio import logger
 
+from rtwo.drivers.openstack_network import NetworkManager
+from rtwo.drivers.openstack_user import UserManager
+
 from atmosphere import settings
 
 from core.models.identity import Identity
@@ -21,9 +24,7 @@ from core.models.provider import Provider
 from core.models.credential import Credential
 from core.models.quota import Quota
 
-from service.drivers.openstackUserManager import UserManager
 from service.drivers.openstackImageManager import ImageManager
-from service.drivers.openstackNetworkManager import NetworkManager
 from service.drivers.common import _connect_to_glance, _connect_to_nova,\
                                    _connect_to_keystone
 
@@ -252,10 +253,7 @@ class AccountDriver():
         return self.user_manager.list_users()
 
     def list_usergroup_names(self):
-        usernames = []
-        for (user,project) in self.list_usergroups():
-                usernames.append(user.name)
-        return usernames
+        return [user.name for (user, project) in self.list_usergroups()]
 
     def list_usergroups(self):
         users = self.list_users()

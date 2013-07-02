@@ -18,7 +18,6 @@ import time
 import sys
 import os
 import math
-import glob
 import subprocess
 
 from datetime import datetime
@@ -551,6 +550,7 @@ class ImageManager():
             from core.models.node import NodeController
             nc = NodeController.objects.get(alias=node_controller_ip)
         except ImportError:
+            logger.exception("Unable to import or use node controller.")
             return self._old_nc_scp(node_controller_ip,
                                     remote_img_path, local_img_path)
         except NodeController.DoesNotExist:

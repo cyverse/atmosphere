@@ -15,8 +15,8 @@ manager.create_image('75fdfca4-d49d-4b2d-b919-a3297bc6d7ae', 'my new name')
 
 from threepio import logger
 
-from service.driver import OSDriver
-from service.drivers.common import _connect_to_keystone, _connect_to_nova,\
+from rtwo.driver import OSDriver
+from rtwo.drivers.common import _connect_to_keystone, _connect_to_nova,\
                                    _connect_to_glance, find
 from keystoneclient.exceptions import NotFound
 

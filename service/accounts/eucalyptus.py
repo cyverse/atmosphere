@@ -17,7 +17,7 @@ from core.models.provider import Provider
 from core.models.credential import Credential
 from core.models.quota import Quota
 
-from service.drivers.eucalyptusUserManager import UserManager
+from rtwo.drivers.eucalyptus_user import UserManager
 
 from atmosphere import settings
 

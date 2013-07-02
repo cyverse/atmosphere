@@ -7,7 +7,7 @@ import uuid
 import os.path
 
 #Necessary to initialize Meta classes
-import service.compute
+import rtwo.compute
 
 from django.contrib.auth.models import User as DjangoUser
 
@@ -15,18 +15,20 @@ from threepio import logger
 
 from atmosphere import settings
 
+from core.ldap import get_uid_number
+
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import update_instance_metadata
 
-from service.provider import AWSProvider, AWSUSEastProvider,\
+from rtwo.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
     OSProvider, OSValhallaProvider
-from service.identity import AWSIdentity, EucaIdentity,\
+from rtwo.identity import AWSIdentity, EucaIdentity,\
     OSIdentity
-from service.driver import AWSDriver, EucaDriver, OSDriver
+from rtwo.driver import AWSDriver, EucaDriver, OSDriver
 
 from service.accounts.openstack import AccountDriver as OSAccountDriver
-
+from service import task
 
 #These functions return ESH related information based on the core repr
 ESH_MAP = {
@@ -129,10 +131,12 @@ def launchEshInstance(driver, extras, *args, **kwargs):
             os_driver = OSAccountDriver()
             password = os_driver.hashpass(username)
             project_name = os_driver.get_project_name_for(username)
-            os_driver.network_manager.create_project_network(username,
-                                                     password,
-                                                     project_name,
-                                                     **settings.OPENSTACK_NETWORK_ARGS)
+            os_driver.network_manager\
+                     .create_project_network(username,
+                                             password,
+                                             project_name,
+                                             get_cidr=get_uid_number,
+                                             **settings.OPENSTACK_NETWORK_ARGS)
             #NOTE: Name, deploy are passed in extras
             #TODO: Explicitly set the kwargs here and pass them instead of args
             #will help avoid confusion here..
@@ -140,7 +144,8 @@ def launchEshInstance(driver, extras, *args, **kwargs):
             eshInstance = driver.create_instance(size=size,
                                                  image=machine, **extras)
             # call async tasks.
-            driver.deploy_init_to_task(eshInstance)
+            task.deploy_init_task(driver, eshInstance)
+            #driver.deploy_init_to_task(eshInstance)
         elif isinstance(driver.provider, AWSProvider):
             #TODO:Extra stuff needed for AWS provider here
             extras['deploy'] = True
@@ -187,6 +192,7 @@ def getEshDriver(core_identity, username=None):
         else:
             user = DjangoUser.objects.get(username=username)
         provider = eshMap['provider']()
+        logger.debug("cred_args = %s" % cred_args)
         identity = eshMap['identity'](provider, user=user, **cred_args)
         driver = eshMap['driver'](provider, identity)
         return driver
