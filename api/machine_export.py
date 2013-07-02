@@ -44,12 +44,15 @@ class MachineExportList(APIView):
         """
         #request.DATA is r/o
         data = copy.deepcopy(request.DATA)
-        data.update({'owner': data.get('created_for', request.user.username)})
+        owner = request.user.username
+        #Staff members can export on users behalf..
+        if data.get('created_for') and request.user.is_staff:
+            owner = data.get('created_for')
+        data['owner'] = owner
         logger.info(data)
         serializer = MachineExportSerializer(data=data)
         if serializer.is_valid():
-            serializer.save()
-            export_request = serializer.object
+            export_request = serializer.save()
             machine_export_task.delay(export_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

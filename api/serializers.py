@@ -90,13 +90,14 @@ class MachineExportSerializer(serializers.ModelSerializer):
     instance = serializers.SlugRelatedField(slug_field='provider_alias')
     status = serializers.CharField(default="pending")
     disk_format = serializers.CharField(source='export_format')
-
     owner = serializers.SlugRelatedField(slug_field='username',
                                          source='export_owner')
-    export_file = serializers.CharField(read_only=True)
+    file = serializers.CharField(read_only=True, default="")
 
     class Meta:
         model = MachineExport
+        fields = ('id', 'instance', 'status', 'name', 
+                 'owner', 'disk_format', 'file')
 
 
 class MachineRequestSerializer(serializers.ModelSerializer):

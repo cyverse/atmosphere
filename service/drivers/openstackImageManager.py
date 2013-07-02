@@ -94,6 +94,14 @@ class ImageManager():
 
         return True
 
+    def list_images(self):
+        return self.nova.images.list()
+
+    def get_image_by_name(self, name):
+        for img in self.glance.images.list():
+            if img.name == name:
+                return img
+        return None
 
     #Image sharing
     def shared_images_for(self, tenant_name=None, image_name=None):

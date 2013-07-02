@@ -35,6 +35,8 @@ class Size(models.Model):
 
     def esh_occupancy(self):
         total = self.esh_total()
+        if total == 0:
+            return 0
         remaining = self.esh_remaining()
         used = total - remaining
         return used * 100 / total
