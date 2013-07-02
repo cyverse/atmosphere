@@ -3,6 +3,8 @@ from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.models import User as DjangoUser
 from django.contrib.auth.models import Group as DjangoGroup
 
+from django.utils import timezone
+
 from core.models.credential import Credential
 from core.models.group import Group, IdentityMembership, ProviderMembership
 from core.models.identity import Identity
@@ -18,8 +20,14 @@ from core.models.size import Size
 from core.models.tag import Tag
 from core.models.volume import Volume
 
+#Admin Actions
+def end_date_object(modeladmin, request, queryset):
+        queryset.update(end_date=timezone.now())
+end_date_object.short_description = 'Add end-date to objects'
+
 
 class NodeControllerAdmin(admin.ModelAdmin):
+    actions = [end_date_object,]
     list_display = ("alias", "hostname",
                     "start_date", "end_date",
                     "ssh_key_added")
@@ -35,6 +43,7 @@ class QuotaAdmin(admin.ModelAdmin):
 
 
 class ProviderMachineAdmin(admin.ModelAdmin):
+    actions = [end_date_object,]
     search_fields = ["machine__name", "provider__location", "identifier"]
     list_display = ["identifier", "provider", "machine"]
     list_filter = [
@@ -43,6 +52,7 @@ class ProviderMachineAdmin(admin.ModelAdmin):
 
 
 class ProviderAdmin(admin.ModelAdmin):
+    actions = [end_date_object,]
     list_display = ["location", "id", "provider_type", "active",
                     "public","start_date","end_date"]
     list_filter = [
@@ -60,6 +70,7 @@ class TagAdmin(admin.ModelAdmin):
 
 
 class SizeAdmin(admin.ModelAdmin):
+    actions = [end_date_object,]
     search_fields = ["name", "alias", "provider__location"]
     list_display = [
         "name", "provider", "cpu", "mem", "disk", "start_date", "end_date"]
@@ -69,6 +80,7 @@ class SizeAdmin(admin.ModelAdmin):
 
 
 class VolumeAdmin(admin.ModelAdmin):
+    actions = [end_date_object,]
     search_fields = ["alias", "name", "provider__location"]
     list_display = [
         "alias", "size", "provider", "start_date", "end_date"]
@@ -78,6 +90,7 @@ class VolumeAdmin(admin.ModelAdmin):
 
 
 class MachineAdmin(admin.ModelAdmin):
+    actions = [end_date_object,]
     search_fields = ["name", "id"]
     list_display = [
         "name", "start_date", "end_date", "private", "featured"]
