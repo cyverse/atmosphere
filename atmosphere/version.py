@@ -5,7 +5,7 @@ from os.path import abspath, dirname
 from subprocess import Popen, PIPE
 
 
-VERSION = (0, 9, 9, 'prod', 0)
+VERSION = (0, 9, 9, 'dev', 0)
 
 
 def git_sha():
