@@ -18,10 +18,44 @@ from service.drivers.openstackImageManager import\
     ImageManager as OSImageManager
 from service.drivers.migrate import EucaOSMigrater
 
+from service.drivers.virtualboxExportManager import\
+    ExportManager
+
 from atmosphere import settings
 
 @task()
 def machine_export_task(machine_export):
+    logger.debug("machine_export_task task started at %s." % datetime.now())
+
+    local_download_dir = settings.LOCAL_STORAGE
+    exp_provider = machine_export.instance.provider_machine\
+        .provider.type.name.lower()
+
+    manager = ExportManager()
+    #ExportManager().eucalyptus/openstack()
+    if 'euca' in exp_provider:
+        export_fn = manager.eucalyptus
+    elif 'openstack' in exp_provider:
+        export_fn = manager.openstack
+    else:
+        raise Exception("Unknown Provider %s, expected eucalyptus/openstack"
+                        % (exp_provider, ))
+
+    meta_name = manager.euca_img_manager._format_meta_name(
+        machine_export.export_name,
+        machine_export.export_owner.username,
+        timestamp_str = machine_export.start_date.strftime('%m%d%Y_%H%M%S'))
+
+    md5_sum, url = export_fn(machine_export.instance.provider_alias,
+                             machine_export.export_name,
+                             machine_export.export_owner.username,
+                             download_dir=local_download_dir,
+                             meta_name=meta_name)
+    pass
+    #Retrieve information needed
+    #run the op
+    #send an email
+    logger.debug("machine_export_task task finished at %s." % datetime.now())
     pass
 
 @task(name='machine_migration_task', ignore_result=True)
@@ -29,16 +63,16 @@ def machine_migration_task(new_machine_name, old_machine_id,
                            local_download_dir='/tmp',
                            migrate_from='eucalyptus',
                            migrate_to='openstack'):
-        logger.debug("machine_migration_task task started at %s." % datetime.now())
-        if migrate_from == 'eucalyptus' and migrate_to == 'openstack':
-            manager = EucaOSMigrater(settings.EUCA_IMAGING_ARGS.copy(),
-                                     settings.OPENSTACK_ARGS.copy())
-            manager.migrate_image(old_machine_id, new_machine_name,
-                                  local_download_dir)
-        else:
-            raise Exception("Cannot migrate from %s to %s" % (migrate_from,
-                                                              migrate_to))
-        logger.debug("machine_migration_task task finished at %s." % datetime.now())
+    logger.debug("machine_migration_task task started at %s." % datetime.now())
+    if migrate_from == 'eucalyptus' and migrate_to == 'openstack':
+        manager = EucaOSMigrater(settings.EUCA_IMAGING_ARGS.copy(),
+                                 settings.OPENSTACK_ARGS.copy())
+        manager.migrate_image(old_machine_id, new_machine_name,
+                              local_download_dir)
+    else:
+        raise Exception("Cannot migrate from %s to %s" % (migrate_from,
+                                                          migrate_to))
+    logger.debug("machine_migration_task task finished at %s." % datetime.now())
 
 @task(name='machine_imaging_task', ignore_result=True)
 def machine_imaging_task(machine_request, euca_imaging_creds, openstack_creds):
