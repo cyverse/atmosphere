@@ -149,6 +149,7 @@ def append_to_file(filename, block):
         f = open(filename, "a")
         f.write("## Atmosphere System\n")
         f.write(block)
+        f.write("## End Atmosphere System\n")
         f.close()
     except Exception, e:
         logging.exception("Failed to append to %s" % filename)
@@ -156,11 +157,11 @@ def append_to_file(filename, block):
 
 
 def add_sudoers(user):
-    f = open("/etc/sudoers", "a")
-    f.write("""## Atmosphere System
-%s ALL=(ALL)ALL
-""" % user)
-    f.close()
+    atmo_sudo_file = "/etc/sudoers"
+    append_to_file(
+        atmo_sudo_file,
+        "%s ALL=(ALL)ALL" % user)
+    os.chmod(atmo_sudo_file, 0440)
 
 
 def restart_ssh(distro):
@@ -171,10 +172,9 @@ def restart_ssh(distro):
 
 
 def ssh_config(distro):
-    f = open("/etc/ssh/sshd_config", "a")
-    f.write("""## Atmosphere System
-AllowGroups users core-services root
-""")
+    append_to_file(
+        "/etc/ssh/sshd_config",
+        "AllowGroups users core-services root")
     f.close()
     restart_ssh(distro)
 
@@ -215,6 +215,9 @@ def mount_storage():
     An instance usually has epehemeral disk storage
     This is TEMPORARY space you can use while working on your instance
     It is deleted when the instance is terminated.
+
+    For Eucalyptus only.
+
     #TODO: Refactor.
     """
     try:
@@ -248,7 +251,7 @@ def mount_storage():
                 % (dev_2, dev_1, dev_2))
             run_command(["/bin/mount", "-text3", "/dev/%s" % dev_2, "/mnt"])
     except Exception, e:
-        logging.exception("An error occurred while mounting storage:")
+        logging.exception("Could not mount storage. Error below:")
 
 
 def vnc(user, distro, license=None):
@@ -411,14 +414,10 @@ def modify_rclocal(username, distro):
                             '\t%s\n'
                             'fi\n' % (atmo_rclocal_path, atmo_rclocal_path))
             open_file.close()
-        #If there was an exit line, it is now too high! We must bring it back
-        #to the bottom of the file
+        #If there was an exit line, it must be removed
         if line_in_file('exit', distro_rc_local):
             run_command(['/bin/sed', '-i',
                          "'s/exit.*//'", '/etc/rc.local'])
-            open_file = open(distro_rc_local,'a')
-            open_file.write('exit 0\n')
-            open_file.close()
         # Intentionally REPLACE the entire contents of file on each run
         atmo_rclocal = open(atmo_rclocal_path,'w')
         atmo_rclocal.write('#!/bin/sh -e'
@@ -431,6 +430,7 @@ def modify_rclocal(username, distro):
                           '> /var/log/atmo/shellinaboxd.log 2>&1 &\n'
                           #Add new rc.local commands here
                           #And they will be excecuted on startup
+                          #Don't forget the newline char
                           % username)
         atmo_rclocal.close()
         os.chmod(atmo_rclocal_path, 0755)
@@ -640,6 +640,9 @@ def ldap_replace():
                  "s/128.196.124.23/ldap.iplantcollaborative.org/",
                  '/etc/ldap.conf'])
 
+def ldap_install():
+    # package install
+    ldap_replace()
 
 def insert_modprobe():
     run_command(['depmod','-a'])
@@ -713,7 +716,7 @@ def main(argv):
     instance_metadata["linuxuserpassword"] = linuxpass
     instance_metadata["linuxuservncpassword"] = linuxpass
     mount_storage()
-    ldap_replace()
+    ldap_install()
     etc_skel_bashrc(linuxuser)
     run_command(['/bin/cp', '-rp', '/etc/skel/.', '/home/%s' % linuxuser])
     run_command(['/bin/chown', '-R',

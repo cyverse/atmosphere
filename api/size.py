@@ -30,7 +30,7 @@ class SizeList(APIView):
         esh_size_list = esh_driver.list_sizes()
         core_size_list = [convertEshSize(size, provider_id, user)
                           for size in esh_size_list]
-        serialized_data = ProviderSizeSerializer(core_size_list).data
+        serialized_data = ProviderSizeSerializer(core_size_list, many=True).data
         response = Response(serialized_data)
         return response
 

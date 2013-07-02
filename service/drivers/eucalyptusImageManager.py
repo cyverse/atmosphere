@@ -18,7 +18,6 @@ import time
 import sys
 import os
 import math
-import glob
 import subprocess
 
 from datetime import datetime
@@ -37,6 +36,13 @@ from euca2ools import Euca2ool, FileValidationError
 from service.drivers.common import sed_delete_multi, sed_delete_one
 from service.drivers.common import sed_replace, sed_prepend
 from service.drivers.common import run_command, chroot_local_image, install_cloudinit
+
+from service.system_calls import run_command, wildcard_remove
+from service.imaging.common import mount_image, remove_files, get_latest_ramdisk
+from service.imaging.clean import remove_user_data, remove_atmo_data,\
+                                  remove_vm_specific_data
+from service.imaging.convert import xen_to_kvm_centos
+
 from threepio import logger
 
 
@@ -92,9 +98,6 @@ class ImageManager():
             (On the Node Controller -- Must be exact to the image file (root))
         """
 
-        #Prepare name for imaging
-        image_name = image_name.replace(' ', '_').replace('/', '-')
-
         try:
             reservation = self.find_instance(instance_id)[0]
             #Collect information about instance to fill arguments
@@ -105,30 +108,37 @@ class ImageManager():
         except IndexError:
             raise Exception("No Instance Found with ID %s" % instance_id)
 
+        logger.info("Instance %s belongs to: %s" % (instance_id, owner))
         #Prepare private list, if necessary
         if not public and owner not in private_user_list:
             private_user_list.append(owner)
-        
-        logger.info("Instance belongs to: %s" % owner)
+        # Collect kernel, ramdisk
         if not kernel:
             kernel = instance_kernel
         if not ramdisk:
             ramdisk = instance_ramdisk
+
+        #Format paths for downloading
         if not remote_img_path:
             remote_img_path = self._format_nc_path(owner, instance_id)
-
         if not meta_name:
-            #Format empty meta strings to match current iPlant
-            #image naming convention, if not given
+            #meta strings should match current iPlant
+            #image naming convention
             meta_name = self._format_meta_name(image_name, owner, creator='admin')
+
+        #Image doesn't exist locally, download it
         if not local_image_path:
+            local_download_dir = os.path.join(local_download_dir, owner, instance_id)
+            if not os.path.exists(local_download_dir):
+                os.makedirs(local_download_dir)
             local_image_path = os.path.join(local_download_dir, '%s.img' % meta_name)
 
             ##Run sub-scripts to retrieve,
             node_controller_ip = self._find_node(instance_id)
             self._retrieve_instance(node_controller_ip,
                                         local_image_path, remote_img_path)
-        #ASSERT: local_image_path contains full RAW img
+
+        #ASSERT: by this line -- local_image_path contains a complete RAW img
         # mount and clean image 
         if clean_image:
             self._clean_local_image(
@@ -143,12 +153,13 @@ class ImageManager():
 
         #Cleanup, return
         if not keep_image:
-            self._wildcard_remove(os.path.join(local_download_dir, '%s*' % meta_name))
+            wildcard_remove(os.path.join(local_download_dir, '%s*' % meta_name))
 
         return new_image_id
 
     def download_instance(self, download_dir, instance_id,
-                          local_img_path=None, remote_img_path=None):
+                          local_img_path=None, remote_img_path=None,
+                          meta_name=None):
         """
         Download an existing instance to local download directory
         Required Args:
@@ -172,10 +183,12 @@ class ImageManager():
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
 
+        if not meta_name:
+            meta_name = self._format_meta_name(instance.id, owner)
+
         if not local_img_path:
             #Format empty meta strings to match
             #current iPlant imaging standard, if not given
-            meta_name = self._format_meta_name(instance.id, owner)
             local_img_path = '%s/%s.img' % (download_dir, meta_name)
 
         if not remote_img_path:
@@ -199,10 +212,12 @@ class ImageManager():
         if not machine:
             raise Exception("Machine Not Found.")
 
+        #We need more directories to store things..
         download_dir, part_dir = self._download_image_dirs(download_dir, image_id)
 
+        #Get image location and unbundle the files based on the manifest and
+        #parts
         image_location = machine.location
-
         whole_image = self._unbundle_euca_image(image_location, download_dir,
                                                 part_dir, self.pk_path)[0]
         #Return download_path and image_path
@@ -235,63 +250,17 @@ class ImageManager():
         """
         (kernel_dir, ramdisk_dir, mount_point) = self._export_dirs(download_dir)
 
-        #First, label the image as 'root' - the root disk image
+        #Labeling the image as 'root' allows for less reliance on UUID
         run_command(['e2label', image_path, 'root'])
 
-        #Replace XEN/Euca lines with KVM/Openstack
-        run_command(["mount", "-o", "loop", image_path, mount_point])
+        out, err = mount_image(image_path, mount_point)
+        if err:
+            raise Exception("Encountered errors mounting the image: %s" % err)
 
-        #PREPEND:
-        for (prepend_line, prepend_to) in [("LABEL=root       /             "
-                                            + "ext3     defaults,errors="
-                                            + "remount-ro 1 1", "etc/fstab")]:
-            mounted_filepath = os.path.join(mount_point, prepend_to)
-            sed_prepend(prepend_line, mounted_filepath)
-
-        #Delete these lines..
-        for (remove_line_containing, remove_from) in [("alias scsi",
-                                                  "etc/modprobe.conf"),
-                                                 ("atmo_boot",
-                                                  "etc/rc.local")]:
-            mounted_filepath = os.path.join(mount_point, remove_from)
-            sed_delete_one(remove_line_containing, mounted_filepath)
-
-        #Replace these lines..
-        for (replace_str, replace_with, replace_where) in [
-                ("^\/dev\/sda", "\#\/dev\/sda", "etc/fstab"),
-                ("^xvc0", "\#xvc0", "etc/inittab"),
-                ("xennet", "8139cp", "etc/modprobe.conf")]:
-            mounted_filepath = os.path.join(mount_point, replace_where)
-            sed_replace(replace_str, replace_with, mounted_filepath)
-
-        #Delete EVERYTHING between these lines..
-        for (delete_from, delete_to, replace_where) in [
-                ("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.local"),
-                ("depmod -a","\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot", "etc/rc.d/rc.local")]:
-            mounted_filepath = os.path.join(mount_point, replace_where)
-            sed_delete_multi(delete_from, delete_to, mounted_filepath)
-
-        #Install cloud-init awesomeness
-        #install_cloudinit(mount_point, distro='CentOS')
-
-        #First chroot with bind-mounted dev, proc and sys: update kernel, mkinitrd, and grub
-        chroot_local_image(mount_point, mount_point, [
-            ["/bin/bash", "-c", "yum install -qy kernel mkinitrd grub"]],
-            bind=True, mounted=True, keep_mounted=True)
+        xen_to_kvm_centos(mount_point)
 
         #Determine the latest (KVM) ramdisk to use
-        latest_rmdisk, rmdisk_version = self._get_latest_ramdisk(mount_point)
-
-        #This step isn't necessary, but keeps grub consistent
-        self._rewrite_grub_conf(mount_point, latest_rmdisk, rmdisk_version)
-
-        #Next, Create a brand new ramdisk using the KVM variables set above
-        chroot_local_image(mount_point, mount_point, [
-            ["/bin/bash", "-c", "mkinitrd --with virtio_pci --with "
-            + "virtio_ring --with virtio_blk --with virtio_net --with "
-            + "virtio_balloon --with virtio -f /boot/%s %s"
-            % (latest_rmdisk, rmdisk_version)]],
-            bind=True, mounted=True, keep_mounted=True)
+        latest_rmdisk, rmdisk_version = get_latest_ramdisk(mount_point)
 
         #Copy new kernel & ramdisk to the folder
         local_ramdisk_path = self._copy_ramdisk(mount_point, rmdisk_version, ramdisk_dir)
@@ -424,46 +393,19 @@ class ImageManager():
         return latest_rmdisk, rmdisk_version
 
 
-    def _rewrite_grub_conf(self, mount_point, latest_rmdisk, rmdisk_version,
-            root_string='root=LABEL=root'):
-        new_grub_conf = """default=0
-timeout=3
-splashimage=(hd0,0)/boot/grub/splash.xpm.gz
-title Atmosphere VM (%s)
-    root (hd0,0)
-    kernel /boot/vmlinuz-%s %s ro
-    initrd /boot/%s
-""" % (rmdisk_version, rmdisk_version, root_string, latest_rmdisk)
-        with open(os.path.join(mount_point,'boot/grub/grub.conf'),
-                  'w') as grub_file:
-            grub_file.write(new_grub_conf)
-        run_command(['/bin/bash','-c', 
-                          'cd %s/boot/grub/;ln -s grub.conf menu.lst'
-                          % mount_point])
-        run_command(['/bin/bash','-c',
-                          'cd %s/boot/grub/;ln -s grub.conf grub.cfg'
-                          % mount_point])
-
-    def _get_distro(self, root_dir=''):
-        """
-        Either your CentOS or your Ubuntu.
-        """
-        (out,err) = run_command(['/bin/bash','-c','cat %s/etc/*release*' % root_dir])
-        if 'CentOS' in out:
-            return 'CentOS'
-        else:
-            return 'Ubuntu'
-
     def _get_stage_files(self, root_dir, distro):
         if distro == 'centos':
             run_command(['/bin/bash','-c','cp -f %s/extras/export/grub_files/centos/* %s/boot/grub/' % (self.extras_root, root_dir)])
         elif distro == 'ubuntu':
             run_command(['/bin/bash','-c','cp -f %s/extras/export/grub_files/ubuntu/* %s/boot/grub/' % (self.extras_root, root_dir)])
 
-    def _format_meta_name(self, name, owner, creator='admin'):
-        meta_name = '%s_%s_%s_%s' % (creator, owner, name,
-                                     datetime.now().strftime(
-                                         '%m%d%Y_%H%M%S'))
+    def _format_meta_name(self, name, owner, timestamp_str=None, creator='admin'):
+
+        if not timestamp_str:
+            timestamp_str = datetime.now().strftime('%m%d%Y_%H%M%S')
+        #Prepare name for imaging
+        name = name.replace(' ', '_').replace('/', '-')
+        meta_name = '%s_%s_%s_%s' % (creator, owner, name, timestamp_str)
         return meta_name
 
     def _format_nc_path(self, owner, instance_id,
@@ -506,12 +448,11 @@ title Atmosphere VM (%s)
 
         
     def _upload_instance(self, image_path, kernel, ramdisk,
-                            destination_path, parent_emi, meta_name,
+                            destination_path, parent_emi, bucket_name,
                             image_name, public, private_user_list):
         """
         Upload a local image, kernel and ramdisk to the Eucalyptus Cloud
         """
-        bucket_name = meta_name.lower()
         ancestor_ami_ids = [parent_emi, ] if parent_emi else []
 
         new_image_id = self._upload_and_register(
@@ -541,16 +482,28 @@ title Atmosphere VM (%s)
 
     def _upload_new_image(self, new_image_name, image_path, 
                           kernel_path, ramdisk_path, bucket_name,
-                          download_dir='/tmp', private_users=[]):
+                          download_dir='/tmp', private_users=[], uploaded_by='admin'):
         public = False
         if not private_users:
             public = True
 
         kernel_id = self._upload_kernel(kernel_path, bucket_name, download_dir)
         ramdisk_id = self._upload_ramdisk(ramdisk_path, bucket_name, download_dir)
-        new_image_id = self._upload_instance(image_path, kernel_id, ramdisk_id,
-                download_dir, None, bucket_name, new_image_name, public,
-                private_users) 
+
+        new_image_path = os.path.join(
+                            os.path.dirname(image_path),
+                            '%s%s' % (self._format_meta_name(new_image_name,uploaded_by),
+                                      os.path.splitext(image_path)[1]))
+        #In order to use the image name we must change the name during upload
+        # to match the 'metadata' criteria for an image on atmosphere
+        os.rename(image_path,new_image_path)
+        new_image_id = self._upload_instance(new_image_path, kernel_id, ramdisk_id,
+                                             download_dir, None, bucket_name,
+                                             new_image_name, public,
+                                             private_users) 
+        os.rename(new_image_path,image_path)
+
+        return (kernel_id, ramdisk_id, new_image_id)
 
     def _upload_kernel(self, image_path, bucket_name, download_dir='/tmp'):
         return self._upload_and_register(image_path, bucket_name,
@@ -597,6 +550,7 @@ title Atmosphere VM (%s)
             from core.models.node import NodeController
             nc = NodeController.objects.get(alias=node_controller_ip)
         except ImportError:
+            logger.exception("Unable to import or use node controller.")
             return self._old_nc_scp(node_controller_ip,
                                     remote_img_path, local_img_path)
         except NodeController.DoesNotExist:
@@ -629,16 +583,6 @@ title Atmosphere VM (%s)
     Indirect Create Image Functions -
     These functions are called indirectly during the 'create_image' process.
     """
-    def _wildcard_remove(self, wildcard_path):
-        """
-        Expand the wildcard to match all files, delete each one.
-        """
-        logger.debug(wildcard_path)
-        glob_list = glob.glob(wildcard_path)
-        if glob_list:
-            for filename in glob_list:
-                run_command(['/bin/rm', '-rf', filename])
-
     def _readd_atmo_boot(self, mount_point):
         #TODO: This function should no longer be necessary.
         #If it is, we need to recreate goodies/atmo_boot
@@ -671,73 +615,20 @@ title Atmosphere VM (%s)
 
         if not os.path.exists(mount_point):
             os.makedirs(mount_point)
-        #Mount the directory
-        run_command(['mount', '-o', 'loop', image_path, mount_point])
 
-        #Patchfix
-        #self._readd_atmo_boot(mount_point)
+        #Mount the directory
+        out, err = mount_image(image_path, mount_point)
+        if err:
+            raise Exception("Encountered errors mounting the image: %s" % err)
 
         #Begin removing user-specified files (Matches wildcards)
-        logger.info("Exclude files: %s" % exclude)
-        for rm_file in exclude:
-            if not rm_file:
-                continue
-            rm_file = self._check_mount_path(rm_file)
-            rm_file_path = os.path.join(mount_point, rm_file)
-            self._wildcard_remove(rm_file_path)
+        if exclude and exclude[0]:
+            logger.info("User-initiated files to be removed: %s" % exclude)
+            remove_files(exclude, mount_point)
 
-        #Removes file (Matches wildcards)
-        for rm_file in ['home/*', 'mnt/*', 'tmp/*', 'root/*', 'dev/*',
-                        'proc/*', 'var/lib/puppet/run/*.pid',
-                        'etc/rc.local.atmo',
-                        'etc/puppet/ssl', 'usr/sbin/atmo_boot.py',
-                        'var/log/atmo/atmo_boot.log',
-                        'var/log/atmo/atmo_init.log']:
-            rm_file = self._check_mount_path(rm_file)
-            rm_file_path = os.path.join(mount_point, rm_file)
-            self._wildcard_remove(rm_file_path)
-
-        #Copy /dev/null to clear sensitive logging data
-        for overwrite_file in ['root/.bash_history', 'var/log/auth.log',
-                               'var/log/boot.log', 'var/log/daemon.log',
-                               'var/log/denyhosts.log', 'var/log/dmesg',
-                               'var/log/secure', 'var/log/messages',
-                               'var/log/lastlog', 'var/log/cups/access_log',
-                               'var/log/cups/error_log', 'var/log/syslog',
-                               'var/log/user.log', 'var/log/wtmp',
-                               'var/log/atmo/atmo_boot.log',
-                               'var/log/atmo/atmo_init.log',
-                               'var/log/apache2/access.log',
-                               'var/log/apache2/error.log',
-                               'var/log/yum.log', 'var/log/atmo/puppet',
-                               'var/log/puppet',
-                               'var/log/atmo/atmo_init_full.log']:
-            overwrite_file = self._check_mount_path(overwrite_file)
-            overwrite_file_path = os.path.join(mount_point, overwrite_file)
-            if os.path.exists(overwrite_file_path):
-                run_command(['/bin/cp', '-f',
-                                  '/dev/null', '%s' % overwrite_file_path])
-
-        #Single line replacement..
-        for (replace_str, replace_with, replace_where) in [
-                ("\(users:x:100:\).*", "users:x:100:", "etc/group"),
-                ("AllowGroups users root.*", "", "etc/ssh/sshd_config"),
-                #TODO:Remove the edge cases (Shell & VNC lines in rc.local)
-                (".*vncserver$", "", "etc/rc.local"),
-                (".*shellinbaox.*", "", "etc/rc.local")
-                ]:
-            replace_where = self._check_mount_path(replace_where)
-            mounted_filepath = os.path.join(mount_point, replace_where)
-            sed_replace(replace_str, replace_with, mounted_filepath)
-
-        #Remove EVERYTHING between these lines..
-        for (delete_from, delete_to, replace_where) in [
-                ("## Atmosphere system", "# End Nagios", "etc/sudoers"),
-                ("## Atmosphere", "AllowGroups users core-services root",
-                 "etc/ssh/sshd_config")]:
-            replace_where = self._check_mount_path(replace_where)
-            mounted_filepath = os.path.join(mount_point, replace_where)
-            sed_delete_multi(delete_from, delete_to, mounted_filepath)
+        remove_user_data(mount_point)
+        remove_atmo_data(mount_point)
+        remove_vm_specific_data(mount_point)
 
         #Don't forget to unmount!
         run_command(['umount', mount_point])

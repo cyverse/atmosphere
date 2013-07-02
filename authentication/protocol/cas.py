@@ -44,7 +44,7 @@ def cas_validateUser(username):
         )
         return (validUser, cas_response)
     except Exception, e:
-        logger.info(str(e))
+        logger.exception('Error validating user %s' % username)
         return (False, None)
 
 
@@ -165,15 +165,19 @@ def cas_storeProxyIOU_ID(request):
     Any request to the proxy url will contain the PROXY-TICKET IOU and ID
     IOU and ID are mapped to a DB so they can be used later
     """
-    logger.info("CASPROXY Call Received:%s" % request.GET)
     if "pgtIou" in request.GET and "pgtId" in request.GET:
         proxy = UserProxy(
             proxyIOU=request.GET["pgtIou"],
             proxyTicket=request.GET["pgtId"]
         )
         proxy.save()
-        logger.debug("CASPROXY cas_getProxyID saved IOU,ID:("
-                     + proxy.proxyIOU+","+proxy.proxyTicket+")")
+        logger.debug("CASPROXY new proxy ID saved, look in serviceValidate "
+                     "to match this IOU ticket: %s" % proxy.proxyIOU)
+    else:
+        logger.debug("GET request did not include pgtIou && pgtId - "
+                     "This happens when the CAS server is validating the proxy"
+                     "link..")
+
     return HttpResponse("Received proxy request. Thank you.")
 
 
@@ -182,7 +186,7 @@ def cas_proxyCallback(request):
     This is a placeholder for a proxyCallback service
     needed for CAS authentication
     """
-    logger.info("Incoming request to CASPROXY (Proxy Callback):")
+    logger.debug("Incoming request to CASPROXY (Proxy Callback):")
     return HttpResponse("I am at a RSA-2 or VeriSigned SSL Cert. website.")
 
 
@@ -191,7 +195,9 @@ def cas_formatAttrs(cas_response):
     Formats attrs into a unified dict to ease in user creation
     """
     try:
-        cas_attrs = cas_response.map[cas_response.type]['attributes']
+        cas_response_obj = cas_response.map[cas_response.type]
+        logger.debug(cas_response_obj)
+        cas_attrs = cas_response_obj['attributes']
         return cas_attrs
     except KeyError, nokey:
         logger.debug("Error retrieving attributes")

@@ -5,13 +5,14 @@ Atmosphere service machine rest api.
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.exceptions import NotAuthenticated
 from rest_framework import status
 
 from threepio import logger
 
 from atmosphere import settings
 
-from authentication.decorators import api_auth_token_required
+from authentication.decorators import api_auth_token_required#, api_auth_options
 
 from api.serializers import MachineRequestSerializer
 from core.models.machine_request import MachineRequest as CoreMachineRequest
@@ -24,7 +25,9 @@ import copy
 
 class MachineRequestList(APIView):
     """
-    Starts the process of bundling a running instance
+    This is the user portal for machine requests
+    Here they can view all the machine requests they made
+    as well as e-mail the admins to approve a machine request
     """
 
     @api_auth_token_required
@@ -40,12 +43,8 @@ class MachineRequestList(APIView):
     @api_auth_token_required
     def post(self, request, provider_id, identity_id):
         """
-        Create a new object based on DATA
-        Start the MachineRequestThread if not running
-            & Add all images marked 'queued'
-        OR
-        Add self to MachineRequestQueue
-        Return to user with "queued"
+        Sends an e-mail to the admins to start
+        the create_image process.
         """
         #request.DATA is r/o
         #Copy allows for editing
@@ -54,51 +53,110 @@ class MachineRequestList(APIView):
         logger.info(data)
         serializer = MachineRequestSerializer(data=data)
         if serializer.is_valid():
-            obj = serializer.object
-            obj.parent_machine = obj.instance.provider_machine
+            #Add parent machine to request
+            machine_request = serializer.object
+            machine_request.parent_machine = machine_request.instance.provider_machine
             serializer.save()
+            #Object now has an ID for links..
             machine_request_id = serializer.object.id
-            approve_link = '%s/api/request_image/%s/approve' \
-                % (settings.SERVER_URL, machine_request_id)
-            deny_link = '%s/api/request_image/%s/deny' \
-                % (settings.SERVER_URL, machine_request_id)
-            requestImaging(request, approve_link, deny_link)
+            requestImaging(request, machine_request_id)
             return Response(serializer.data,
                             status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
 
-
-class MachineRequestAction(APIView):
+class MachineRequestStaffList(APIView):
     """
-    Starts the process of bundling a running instance
     """
 
     @api_auth_token_required
-    def get(self, request, machine_request_id, action):
+    def get(self, request):
         """
         """
+        if not request.user.is_staff:
+            raise NotAuthenticated("Must be a staff user to view requests "
+                                   "directly")
+
+        machine_requests = CoreMachineRequest.objects.all()
+
+        serializer = MachineRequestSerializer(machine_requests, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class MachineRequestStaff(APIView):
+    """
+    This is the staff portal for machine requests
+    A staff member can view any machine request by its ID
+    """
+
+    @api_auth_token_required
+    def get(self, request, machine_request_id, action=None):
+        """
+        OPT 1 for approval: via GET with /approve or /deny
+        This is a convenient way to approve requests remotely
+        """
+        if not request.user.is_staff:
+            raise NotAuthenticated("Must be a staff user to view requests "
+                                   "directly")
+
         try:
-            mach_request = CoreMachineRequest.objects.get(
+            machine_request = CoreMachineRequest.objects.get(
                 id=machine_request_id)
         except CoreMachineRequest.DoesNotExist:
             return Response('No machine request with id %s'
                             % machine_request_id,
                             status=status.HTTP_404_NOT_FOUND)
 
-        serializer = MachineRequestSerializer(mach_request)
+        serializer = MachineRequestSerializer(machine_request)
+        if not action:
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
         machine_request = serializer.object
         #Don't update the request unless its pending
-        if machine_request.status == 'pending':
+        if machine_request.status in ['error','pending']:
             machine_request.status = action
-        serializer.save()
+            serializer.save()
+
         #Only run task if status is 'approve'
         if machine_request.status == 'approve':
-            machine_request.status = 'queued'
+            machine_request.status = 'enqueued'
             machine_imaging_task.si(machine_request,
                                     settings.EUCA_IMAGING_ARGS,
                                     settings.OPENSTACK_ARGS).apply_async()
+            serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @api_auth_token_required
+    def patch(self, request, machine_request_id, action=None):
+        """
+        OPT2 for approval: sending a PATCH to the machine request with
+          {"status":"approve/deny"}
+        
+        Modfiy attributes on a machine request
+        """
+        if not request.user.is_staff:
+            raise NotAuthenticated("Must be a staff user to view requests "
+                                   "directly")
+
+        try:
+            machine_request = CoreMachineRequest.objects.get(
+                id=machine_request_id)
+        except CoreMachineRequest.DoesNotExist:
+            return Response('No machine request with id %s'
+                            % machine_request_id,
+                            status=status.HTTP_404_NOT_FOUND)
+
+        data = request.DATA
+        serializer = MachineRequestSerializer(machine_request, data=data,
+                partial=True)
+        if serializer.is_valid():
+            #Only run task if status is 'approve'
+            if machine_request.status == 'approve':
+                machine_request.status = 'enqueued'
+                machine_imaging_task.si(machine_request,
+                                        settings.EUCA_IMAGING_ARGS.copy(),
+                                        settings.OPENSTACK_ARGS.copy()).apply_async()
             serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -117,14 +175,14 @@ class MachineRequest(APIView):
         Update on server (If applicable)
         """
         try:
-            mach_request = CoreMachineRequest.objects.get(
+            machine_request = CoreMachineRequest.objects.get(
                 id=machine_request_id)
         except CoreMachineRequest.DoesNotExist:
             return Response('No machine request with id %s'
                             % machine_request_id,
                             status=status.HTTP_404_NOT_FOUND)
 
-        serialized_data = MachineRequestSerializer(mach_request).data
+        serialized_data = MachineRequestSerializer(machine_request).data
         response = Response(serialized_data)
         return response
 
@@ -135,17 +193,16 @@ class MachineRequest(APIView):
         Status change 'pending' --> 'cancel' are OK
         All other changes should FAIL
         """
-        #user = request.user
         data = request.DATA
         try:
-            mach_request = CoreMachineRequest.objects.get(
+            machine_request = CoreMachineRequest.objects.get(
                 id=machine_request_id)
         except CoreMachineRequest.DoesNotExist:
             return Response('No machine request with id %s'
                             % machine_request_id,
                             status=status.HTTP_404_NOT_FOUND)
 
-        serializer = MachineRequestSerializer(mach_request,
+        serializer = MachineRequestSerializer(machine_request,
                                               data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -159,17 +216,16 @@ class MachineRequest(APIView):
         Status change 'pending' --> 'cancel' are OK
         All other changes should FAIL
         """
-        #user = request.user
         data = request.DATA
         try:
-            mach_request = CoreMachineRequest.objects.get(
+            machine_request = CoreMachineRequest.objects.get(
                 id=machine_request_id)
         except CoreMachineRequest.DoesNotExist:
             return Response('No machine request with id %s'
                             % machine_request_id,
                             status=status.HTTP_404_NOT_FOUND)
 
-        serializer = MachineRequestSerializer(mach_request,
+        serializer = MachineRequestSerializer(machine_request,
                                               data=data, partial=True)
         if serializer.is_valid():
             serializer.save()

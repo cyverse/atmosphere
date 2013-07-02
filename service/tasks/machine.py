@@ -8,7 +8,9 @@ from threepio import logger
 
 from core.email import send_image_request_email
 from core.models.machine import createProviderMachine
-from core.models.tag import Tag
+from core.models.machine_request import process_machine_request
+
+from service.accounts.openstack import AccountDriver as OSAccountDriver
 
 from service.drivers.eucalyptusImageManager import\
     ImageManager as EucaImageManager
@@ -29,8 +31,8 @@ def machine_migration_task(new_machine_name, old_machine_id,
                            migrate_to='openstack'):
         logger.debug("machine_migration_task task started at %s." % datetime.now())
         if migrate_from == 'eucalyptus' and migrate_to == 'openstack':
-            manager = EucaOSMigrater(settings.EUCA_IMAGING_ARGS,
-                                     settings.OPENSTACK_ARGS)
+            manager = EucaOSMigrater(settings.EUCA_IMAGING_ARGS.copy(),
+                                     settings.OPENSTACK_ARGS.copy())
             manager.migrate_image(old_machine_id, new_machine_name,
                                   local_download_dir)
         else:
@@ -51,22 +53,7 @@ def machine_imaging_task(machine_request, euca_imaging_creds, openstack_creds):
             raise Exception('The image cannot be built as requested. '
                             + 'The provider combination is probably bad.')
         logger.info('New image created - %s' % new_image_id)
-
-        #Build the new provider-machine object and associate
-        new_machine = createProviderMachine(
-            machine_request.new_machine_name, new_image_id,
-            machine_request.new_machine_provider_id)
-        generic_mach = new_machine.machine
-        tags = [Tag.objects.get(name=tag) for tag in
-                machine_request.new_machine_tags.split(',')] \
-            if machine_request.new_machine_tags else []
-        generic_mach.tags = tags
-        generic_mach.description = machine_request.new_machine_description
-        generic_mach.save()
-        machine_request.new_machine = new_machine
-        machine_request.end_date = datetime.now()
-        machine_request.status = 'completed'
-        machine_request.save()
+        process_machine_request(machine_request, new_image_id)
         send_image_request_email(machine_request.new_machine_owner,
                                  machine_request.new_machine,
                                  machine_request.new_machine_name)
@@ -83,10 +70,13 @@ def select_and_build_image(machine_request, euca_imaging_creds,
     Directing traffic between providers
     Fill out all available fields using machine request data
     """
+
     old_provider = machine_request.instance.provider_machine\
         .provider.type.name.lower()
     new_provider = machine_request.new_machine_provider.type.name.lower()
     new_image_id = None
+    logger.info('Processing machine request to create a %s image from a %s'
+                'instance' % (new_provider, old_provider))
     
     if old_provider == 'eucalyptus':
         if new_provider == 'eucalyptus':
@@ -146,9 +136,12 @@ def select_and_build_image(machine_request, euca_imaging_creds,
 def set_machine_request_metadata(manager, machine_request, machine):
     manager.driver.ex_set_image_metadata(machine, {'deployed':'True'})
     if machine_request.new_machine_description:
-    	manager.driver.ex_set_image_metadata(machine, {'description':machine_request.new_machine_description})
+        metadata['description'] = machine_request.new_machine_description
     if machine_request.new_machine_tags:
-    	manager.driver.ex_set_image_metadata(machine, {'tags':machine_request.new_machine_tags})
+        metadata['tags'] = machine_request.new_machine_tags
+    logger.info("LC Driver:%s - Machine:%s - Metadata:%s" % (lc_driver,
+            machine.id, metadata))
+    lc_driver.ex_set_image_metadata(machine, metadata)
     return machine
 
 

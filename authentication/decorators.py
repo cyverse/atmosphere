@@ -23,16 +23,18 @@ def atmo_login_required(func):
         by the available server session data
         @redirect - location to redirect user after logging in
         """
-        logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
         if request is None or request.session is None:
+            logger.debug("User is being logged out because request/session"
+                         "info could not be found")
+            logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
             return HttpResponseRedirect(settings.SERVER_URL+"/logout/")
 
         username = request.session.get('username', None)
         redirect = kwargs.get('redirect', request.get_full_path())
         emulator = request.session.get('emulated_by', None)
-        logger.info("%s\n%s\n%s" % (username, redirect, emulator))
 
         if emulator:
+            logger.info("%s\n%s\n%s" % (username, redirect, emulator))
             logger.info("Test emulator %s instead of %s" %
                         (emulator, username))
             logger.debug(request.session.__dict__)
@@ -48,6 +50,7 @@ def atmo_login_required(func):
         user = authenticate(username=username, password="")
         if not user:
             logger.info("Could not authenticate user %s" % username)
+            logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
             return cas_loginRedirect(request, redirect)
         django_login(request, user)
         return func(request, *args, **kwargs)
@@ -69,7 +72,6 @@ def atmo_valid_token_required(func):
             logger.warn('invalid token used')
             return HttpResponseForbidden("403 Forbidden")
     return atmo_validate_token
-
 
 def api_auth_token_required(func):
     """

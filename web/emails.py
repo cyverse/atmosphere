@@ -11,15 +11,23 @@ from django.core import urlresolvers
 
 from threepio import logger
 
+from atmosphere import settings
 from core.email import email_admin, user_address
 from core.models import IdentityMembership
 
 
-def requestImaging(request, approve_link, deny_link):
+def requestImaging(request, machine_request_id):
     """
     Processes image request, sends an email to atmo@iplantc.org
     Returns a response.
     """
+    view_link = '%s/api/request_image/%s' \
+        % (settings.SERVER_URL, machine_request_id)
+    approve_link = '%s/api/request_image/%s/approve' \
+        % (settings.SERVER_URL, machine_request_id)
+    deny_link = '%s/api/request_image/%s/deny' \
+        % (settings.SERVER_URL, machine_request_id)
+
     name = request.POST.get('name', '')
     instance_id = request.POST.get('instance', '')
     description = request.POST.get('description', '')
@@ -28,10 +36,12 @@ def requestImaging(request, approve_link, deny_link):
     tags = request.POST.get('tags', '')
     public = request.POST.get('vis', '')
     shared_with = request.POST.get('shared_with', '')
-    username = request.POST.get('owner', '')
+    username = request.POST.get('owner', request.user.username)
     message = """
-    Approve Request: %s
-    Deny Request: %s
+    URLs require staff access to view/approve/deny:
+    View Request: %s
+    Auto-Approve Request: %s
+    Auto-Deny Request: %s
     ---
     Username : %s
     Instance ID:%s
@@ -44,11 +54,10 @@ def requestImaging(request, approve_link, deny_link):
     New Image name:%s
     New Image description:%s
     New Image tags:%s
-    """ % (approve_link, deny_link, username, instance_id, software,
+    """ % (view_link, approve_link, deny_link, username, instance_id, software,
            sys_files, public, shared_with, name, description, tags)
     subject = 'Atmosphere Imaging Request - %s' % username
-    email_success = email_admin(request, subject, message)
-    json.dumps({})
+    email_success = email_admin(request, subject, message, cc_user=False)
     return email_success
 
 
@@ -125,6 +134,9 @@ def email_support(request):
 
     Returns a response.
     """
+    if request.META['REQUEST_METHOD'] != 'POST':
+        return HttpResponse("Expecting POST with message and subject"
+                            "parameters.")
     message = request.POST.get('message')
     if not message:
         return HttpResponseServerError({'email_sent': False,

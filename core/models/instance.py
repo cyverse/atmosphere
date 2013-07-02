@@ -31,7 +31,7 @@ class Instance(models.Model):
     #TODO: Create custom Uuidfield?
     #token = Used for looking up the instance on deployment
     token = models.CharField(max_length=36, blank=True, null=True)
-    tags = models.ManyToManyField(Tag)
+    tags = models.ManyToManyField(Tag, blank=True)
     # The specific machine & provider for which this instance exists
     provider_machine = models.ForeignKey(ProviderMachine)
     provider_alias = models.CharField(max_length=256, unique=True)
@@ -65,7 +65,7 @@ class Instance(models.Model):
         return self.esh._node.extra['instancetype']
 
     def esh_machine_name(self):
-        if not self.esh:
+        if not self.esh or not self.esh.machine:
             return "Unknown"
         return self.esh.machine.name
 
@@ -110,8 +110,8 @@ def findInstance(alias):
 def convertEshInstance(esh_driver, esh_instance, provider_id, user, token=None):
     """
     """
-    logger.debug(esh_instance.__dict__)
-    logger.debug(esh_instance.extra)
+    #logger.debug(esh_instance.__dict__)
+    #logger.debug(esh_instance.extra)
     alias = esh_instance.alias
     try:
         ip_address = esh_instance._node.public_ips[0]
@@ -143,10 +143,12 @@ def convertEshInstance(esh_driver, esh_instance, provider_id, user, token=None):
             start_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%SZ')
         start_date = start_date.replace(tzinfo=pytz.utc)
 
+        logger.debug("Instance %s" % alias)
         logger.debug("CREATED: %s" % create_stamp)
         logger.debug("START: %s" % start_date)
 
-        coreMachine = convertEshMachine(esh_driver, eshMachine, provider_id)
+        coreMachine = convertEshMachine(esh_driver, eshMachine, provider_id,
+                                        image_id=esh_instance.image_id)
         core_instance = createInstance(provider_id, alias,
                                       coreMachine, ip_address,
                                       esh_instance.name, user,

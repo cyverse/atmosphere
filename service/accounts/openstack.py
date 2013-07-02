@@ -3,6 +3,7 @@ UserManager:
   Remote Openstack  Admin controls..
 """
 from hashlib import sha1
+from urlparse import urlparse
 
 from django.contrib.auth.models import User
 from django.db.models import Max
@@ -12,6 +13,9 @@ from novaclient.exceptions import OverLimit
 
 from threepio import logger
 
+from rtwo.drivers.openstack_network import NetworkManager
+from rtwo.drivers.openstack_user import UserManager
+
 from atmosphere import settings
 
 from core.models.identity import Identity
@@ -20,20 +24,46 @@ from core.models.provider import Provider
 from core.models.credential import Credential
 from core.models.quota import Quota
 
-from service.drivers.openstackUserManager import UserManager
-from service.drivers.openstackNetworkManager import NetworkManager
+from service.drivers.openstackImageManager import ImageManager
+from service.drivers.common import _connect_to_glance, _connect_to_nova,\
+                                   _connect_to_keystone
 
 
 class AccountDriver():
     user_manager = None
+    image_manager = None
+    network_manager = None
     openstack_prov = None
 
     def __init__(self, *args, **kwargs):
-        self.user_manager = UserManager(**settings.OPENSTACK_ARGS)
-        network_args = settings.OPENSTACK_NETWORK_ARGS.copy()
+        network_args = {}
         network_args.update(settings.OPENSTACK_ARGS)
+        network_args.update(settings.OPENSTACK_NETWORK_ARGS)
+
+        self.user_manager = UserManager(**settings.OPENSTACK_ARGS.copy())
+        self.image_manager = ImageManager(**settings.OPENSTACK_ARGS.copy())
         self.network_manager = NetworkManager(**network_args)
         self.openstack_prov = Provider.objects.get(location='OPENSTACK')
+    def get_openstack_clients(self, username, password=None, tenant_name=None):
+
+        user_creds = self._get_openstack_credentials(
+                            username, password, tenant_name)
+        quantum = self.network_manager.new_connection(**user_creds)
+        keystone, nova, glance = self.image_manager.new_connection(**user_creds)
+        return {
+            'glance':glance, 
+            'keystone':keystone, 
+            'nova':nova, 
+            'quantum':quantum,
+            'horizon':self._get_horizon_url(keystone.tenant_id)
+            }
+
+
+    def _get_horizon_url(self, tenant_id):
+        parsed_url = urlparse(settings.OPENSTACK_AUTH_URL)
+        return 'https://%s/horizon/auth/switch/%s/?next=/horizon/project/' %\
+            (parsed_url.hostname, tenant_id)
+
 
     def create_account(self, username, admin_role=False, max_quota=False):
         """
@@ -137,6 +167,9 @@ class AccountDriver():
                     identity=identity, member=group,
                     quota=quota)
 
+            #Save the user (Calls a hook to update selected identity)
+            id_membership.identity.created_by.save()
+
             #Return the identity
             return id_membership.identity
 
@@ -158,7 +191,7 @@ class AccountDriver():
         user = self.create_user(username, password, usergroup, admin)
         return user
 
-    def create_user(self, username, password=None, usergroup=True, admin=False,):
+    def create_user(self, username, password=None, usergroup=True, admin=False):
         if not password:
             password = self.hashpass(username)
         if usergroup:
@@ -220,10 +253,7 @@ class AccountDriver():
         return self.user_manager.list_users()
 
     def list_usergroup_names(self):
-        usernames = []
-        for (user,project) in self.list_usergroups():
-                usernames.append(user.name)
-        return usernames
+        return [user.name for (user, project) in self.list_usergroups()]
 
     def list_usergroups(self):
         users = self.list_users()
@@ -236,3 +266,18 @@ class AccountDriver():
                     usergroups.append((user,group))
                     break
         return usergroups
+
+    def _get_openstack_credentials(self, username, password=None, tenant_name=None):
+        if not tenant_name:
+            tenant_name = self.get_project_name_for(username)
+        if not password:
+            password = self.hashpass(tenant_name)
+        user_creds = {
+            'auth_url':self.user_manager.nova.client.auth_url,
+            'region_name':self.user_manager.nova.client.region_name,
+            'username':username,
+            'password':password,
+            'tenant_name':tenant_name
+        }
+        return user_creds
+

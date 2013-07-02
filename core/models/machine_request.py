@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 
 
 from core.models.provider import Provider
+from core.models.machine import createProviderMachine
 
 
 class MachineRequest(models.Model):
@@ -43,6 +44,12 @@ class MachineRequest(models.Model):
     new_machine = models.ForeignKey("ProviderMachine",
                                     null=True, blank=True,
                                     related_name="created_machine")
+    def new_machine_is_public(self):
+        """
+        Return True if public, False if private
+        """
+        return self.new_machine_visibility == 'public'
+
     def __unicode__(self):
         return '%s Instance: %s Name: %s Status: %s'\
                 % (self.new_machine_owner, self.instance.provider_alias,
@@ -51,6 +58,26 @@ class MachineRequest(models.Model):
     class Meta:
         db_table = "machine_request"
         app_label = "core"
+
+
+def process_machine_request(machine_request, new_image_id):
+    from core.models.tag import Tag
+    #Build the new provider-machine object and associate
+    new_machine = createProviderMachine(
+        machine_request.new_machine_name, new_image_id,
+        machine_request.new_machine_provider_id)
+    generic_mach = new_machine.machine
+    tags = [Tag.objects.get(name__iexact=tag) for tag in
+            machine_request.new_machine_tags.split(',')] \
+        if machine_request.new_machine_tags else []
+    generic_mach.tags = tags
+    generic_mach.description = machine_request.new_machine_description
+    generic_mach.save()
+    machine_request.new_machine = new_machine
+    machine_request.end_date = timezone.now()
+    machine_request.status = 'completed'
+    machine_request.save()
+    return machine_request
 
 
 class MachineExport(models.Model):

@@ -30,6 +30,7 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 	  						|| response.status == 'build - spawning'
 							|| response.status == 'build - networking' 
 							|| response.status == 'active - powering-off'
+							|| response.status == 'active - image_uploading'
 							|| response.status == 'shutoff - powering-on'
 							|| response.status == 'pending'
 							|| response.status == 'suspended - resuming'

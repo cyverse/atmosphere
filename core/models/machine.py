@@ -31,11 +31,12 @@ class Machine(models.Model):
     """
     name = models.CharField(max_length=256)
     description = models.TextField(null=True, blank=True)
-    tags = models.ManyToManyField(Tag)
+    tags = models.ManyToManyField(Tag, blank=True)
     icon = models.ImageField(upload_to="machine_images", null=True, blank=True)
     init_package = models.ForeignKey(Package, null=True, blank=True)
     private = models.BooleanField(default=False)
-    providers = models.ManyToManyField(Provider, through="ProviderMachine")
+    providers = models.ManyToManyField(Provider, through="ProviderMachine",
+            blank=True)
     featured = models.BooleanField(default=False)
     created_by = models.ForeignKey(User)  # The user that requested imaging
     start_date = models.DateTimeField(default=timezone.now())
@@ -217,15 +218,27 @@ def createGenericMachine(name, description, creator=None):
     return new_mach
 
 
-def convertEshMachine(esh_driver, esh_machine, provider_id):
+def convertEshMachine(esh_driver, esh_machine, provider_id, image_id=None):
     """
     """
+    if image_id and not esh_machine:
+        provider_machine = loadMachine('Unknown Image', image_id, provider_id)
+        return provider_machine
+    elif not esh_machine:
+        return None
     name = esh_machine.name
     alias = esh_machine.alias
     provider_machine = loadMachine(name, alias, provider_id)
     provider_machine.esh = esh_machine
     provider_machine = set_machine_from_metadata(esh_driver, provider_machine)
     return provider_machine
+
+def filterCoreMachine(provider_machine):
+    """
+    Filter conditions:
+    * Machine does not have an end-date
+    """
+    return not provider_machine.machine.end_date
 
 def set_machine_from_metadata(esh_driver, core_machine):
     #Fixes Dep. loop - Do not remove
@@ -237,12 +250,19 @@ def set_machine_from_metadata(esh_driver, core_machine):
         #            % esh_driver._connection.__class__)
         return core_machine
     esh_machine = core_machine.esh
-    metadata =  esh_driver._connection.ex_get_image_metadata(esh_machine)
+    try:
+        metadata =  esh_driver._connection.ex_get_image_metadata(esh_machine)
+    except Exception:
+	logger.warn('Warning: Metadata could not be retrieved for: %s' % esh_machine)
+	return core_machine
+
+    #TAGS must be converted from String --> List
     if 'tags' in metadata and type(metadata['tags']) != list:
-        metadata['tags'] = json.loads(metadata['tags'])
-    logger.info("Testing new metadata %s" % metadata)
+        tags_as_list = metadata['tags'].split(', ')
+        metadata['tags'] = tags_as_list
     serializer = ProviderMachineSerializer(core_machine, data=metadata, partial=True)
     if not serializer.is_valid():
+        logger.info("New metadata failed: %s" % metadata)
         logger.warn("Encountered errors serializing metadata:%s"
                     % serializer.errors)
         return core_machine
@@ -265,6 +285,7 @@ def update_machine_metadata(esh_driver, esh_machine, data={}):
                     % esh_driver._connection.__class__)
         return {}
     try:
+        #TAGS must be converted from list --> String
         if 'tags' in data and type(data['tags']) == list:
             data['tags'] = json.dumps(data['tags'])
         logger.info("New metadata:%s" % data)

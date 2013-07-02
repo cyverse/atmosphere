@@ -33,5 +33,5 @@ class Occupancy(APIView):
         core_size_list = [convertEshSize(size, provider_id, None)
                           for size in esh_size_list]
         #return it
-        serialized_data = ProviderSizeSerializer(core_size_list).data
+        serialized_data = ProviderSizeSerializer(core_size_list, many=True).data
         return Response(serialized_data)
