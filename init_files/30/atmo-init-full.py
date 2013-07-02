@@ -175,7 +175,6 @@ def ssh_config(distro):
     append_to_file(
         "/etc/ssh/sshd_config",
         "AllowGroups users core-services root")
-    f.close()
     restart_ssh(distro)
 
 
