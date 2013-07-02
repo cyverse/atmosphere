@@ -20,7 +20,8 @@ class Eucalyptus_Esh_NodeDriver(EucNodeDriver):
     def _is_name(self, name):
         for n in ['admin', 'edwins', 'edwin',
                   'esteve', 'jmatt', 'nirav',
-                  'nmatasci', 'sangeeta', 'aedmonds']:
+                  'nmatasci', 'sangeeta', 
+                  'sgregory', 'aedmonds']:
             if n == name:
                 return name
         return False
