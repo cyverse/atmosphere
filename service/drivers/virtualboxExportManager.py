@@ -114,7 +114,7 @@ class ExportManager():
         #Get the hash of the converted file
         md5sum = self._large_file_hash(appliance_path)
         if no_upload:
-            return (md5sum, None)
+            return (md5sum, appliance_path)
         ##Archive/Compress/Send to S3
         tarfile_name = appliance_path+'.tar.gz'
         self._tarzip_image(tarfile_name, [appliance_path])
@@ -133,7 +133,7 @@ class ExportManager():
         export_dir = os.path.dirname(harddrive_path)
         export_file = os.path.join(export_dir,'%s.ova' % name)
         out, err = run_command(['VBoxManage','createvm','--name', name, '--ostype', distro, '--register'])
-        vm_uuid = _strip_uuid(out)
+        vm_uuid = self._strip_uuid(out)
         modify_vm_opts = {
             'memory':512,
             'acpi': 'on',

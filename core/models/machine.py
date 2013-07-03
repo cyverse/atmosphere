@@ -238,7 +238,8 @@ def filterCoreMachine(provider_machine):
     Filter conditions:
     * Machine does not have an end-date
     """
-    return not provider_machine.machine.end_date
+    if provider_machine.end_date or provider_machine.machine.end_date:
+        return False
 
 def set_machine_from_metadata(esh_driver, core_machine):
     #Fixes Dep. loop - Do not remove
