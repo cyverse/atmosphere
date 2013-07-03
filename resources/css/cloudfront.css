@@ -331,6 +331,10 @@ select {
 }
 
 /* Instance screen, buttons to edit names of tags and instances*/
+.instance_controls_container .btn i[class^="icon-"] {
+	position: relative;
+	top: -2px;
+}
 .editable img {
 	position: relative;
 	top: -3px;
@@ -639,13 +643,6 @@ textarea.error:focus {
 	font-family: Univers,Calibri,"Gill Sans","Gill Sans MT","Myriad Pro",Myriad,"DejaVu Sans Condensed","Liberation Sans","Nimbus Sans L",Tahoma,Geneva,"Helvetica Neue",Helvetica,Arial,sans-serif;
     border: none !important;
 }
-.disabled, .disabled:hover, .volumeBox .disabled, button:disabled, button[disabled] .btn:disabled, .btn[disabled]{
-	color: #A7A9AC !important;
-	border-color: #A7A9AC !important;
-	background: none !important;
-	background-color: #F1F2F2 !important;
-	cursor: default !important;
-}
 .btn, a.btn {
 	color: #555;
 	border-radius: 3px;
@@ -691,6 +688,13 @@ textarea.error:focus {
 		color-stop(0, #0099AA),
 		color-stop(1, #73CBD5)
 	);
+}
+.disabled, .disabled:hover, .volumeBox .disabled, button:disabled, button[disabled] .btn:disabled, .btn[disabled]{
+	color: #A7A9AC !important;
+	border-color: #A7A9AC !important;
+	background: none !important;
+	background-color: #F1F2F2 !important;
+	cursor: default !important;
 }
 /* Loader gif */
 .loader {
@@ -1180,7 +1184,7 @@ ul.instance_state_indicators li {
 	text-decoration: none;
 	display: block;
 	line-height: 16px;
-	height: 230px;
+	min-height: 230px;
 }
 .option hr {
 	border: 1px solid #EEE !important;
