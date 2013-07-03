@@ -149,6 +149,7 @@ def append_to_file(filename, block):
         f = open(filename, "a")
         f.write("## Atmosphere System\n")
         f.write(block)
+        f.write("\n")
         f.write("## End Atmosphere System\n")
         f.close()
     except Exception, e:
@@ -175,7 +176,6 @@ def ssh_config(distro):
     append_to_file(
         "/etc/ssh/sshd_config",
         "AllowGroups users core-services root")
-    f.close()
     restart_ssh(distro)
 
 

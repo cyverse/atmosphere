@@ -1,6 +1,8 @@
 from service.imaging.common import prepare_chroot_env,\
                                    remove_chroot_env,\
-                                   get_latest_ramdisk
+                                   get_latest_ramdisk,\
+                                   rebuild_ramdisk,\
+                                   check_distro
 
 from service.imaging.common import prepend_line_in_files,\
                                    remove_line_in_files,\
@@ -8,6 +10,18 @@ from service.imaging.common import prepend_line_in_files,\
                                    remove_multiline_in_files
 
 from service.system_calls import run_command
+
+def xen_to_kvm(mounted_path):
+    """
+    Determine distro and convert from XEN to KVM
+    """
+    distro = check_distro(mounted_path)
+    if 'CentOS' in distro:
+        return xen_to_kvm_centos(mounted_path)
+    elif 'Ubuntu' in distro:
+        return xen_to_kvm_ubuntu(mounted_path)
+
+
 def xen_to_kvm_ubuntu(mounted_path):
     """
     These operations must be run to convert an Ubuntu Machine from XEN-based
@@ -50,17 +64,6 @@ def xen_to_kvm_centos(mounted_path):
     #Run this command in a prepared chroot
     run_command(["/usr/sbin/chroot", mounted_path, "/bin/bash", "-c",
                  "yum install -qy kernel mkinitrd grub"])
-
-
-    #Run this command after installing the latest (non-xen) kernel
-    latest_rmdisk, rmdisk_version = get_latest_ramdisk(mounted_path)
-
-    #Next, Create a brand new ramdisk using the KVM variables set above
-    run_command(["/usr/sbin/chroot", mounted_path, "/bin/bash", "-c",
-                "mkinitrd --with virtio_pci --with virtio_ring "
-                "--with virtio_blk --with virtio_net "
-                "--with virtio_balloon --with virtio "
-                "-f /boot/%s %s"  % (latest_rmdisk, rmdisk_version)])
-
     remove_chroot_env(mounted_path)
-    ### REMOVE PREPARED CHROOT
+
+    rebuild_ramdisk(mounted_path)

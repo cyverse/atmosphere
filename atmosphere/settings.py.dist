@@ -119,6 +119,9 @@ INSTALLED_APPS = (
     'south',
     'djcelery',
 
+    #iPlant apps
+    'rtwo',
+
     #atmosphere apps
     'authentication',
     'service',

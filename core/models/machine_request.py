@@ -78,21 +78,3 @@ def process_machine_request(machine_request, new_image_id):
     machine_request.status = 'completed'
     machine_request.save()
     return machine_request
-
-
-class MachineExport(models.Model):
-    # The instance to export
-    instance = models.ForeignKey("Instance")
-    # Request related metadata
-    status = models.CharField(max_length=256)
-    #The exported image
-    export_owner = models.ForeignKey(User)
-    export_format = models.CharField(max_length=256)
-    export_file = models.CharField(max_length=256, null=True, blank=True)
-    #Request start to image exported
-    start_date = models.DateTimeField(default=timezone.now())
-    end_date = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        db_table = "machine_export"
-        app_label = "core"

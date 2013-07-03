@@ -10,6 +10,26 @@ from threepio import logger
 ##
 # Tools
 ##
+def rebuild_ramdisk(mounted_path):
+    """
+    This function will get more complicated in the future... We will need to
+    support opts in mkinitrd, etc.
+    """
+
+    #Run this command after installing the latest (non-xen) kernel
+    latest_rmdisk, rmdisk_version = get_latest_ramdisk(mounted_path)
+
+    prepare_chroot_env(mounted_path)
+
+    #Create a brand new ramdisk using the KVM variables set above
+    run_command(["/usr/sbin/chroot", mounted_path, "/bin/bash", "-c",
+                "mkinitrd --with virtio_pci --with virtio_ring "
+                "--with virtio_blk --with virtio_net "
+                "--with virtio_balloon --with virtio "
+                "-f /boot/%s %s"  % (latest_rmdisk, rmdisk_version)])
+    remove_chroot_env(mounted_path)
+
+
 def get_latest_ramdisk(mounted_path):
     boot_dir = os.path.join(mounted_path,'boot/')
     output, _ = run_command(["/bin/bash", "-c", "ls -Fah %s" % boot_dir])
@@ -26,6 +46,25 @@ def get_latest_ramdisk(mounted_path):
     return latest_rmdisk, rmdisk_version
 
 
+def copy_disk(old_image, new_image, download_dir):
+    old_img_dir = os.path.join(download_dir, 'old_image')
+    new_img_dir  = os.path.join(download_dir, 'new_image')
+    run_command(['mkdir', '-p', old_img_dir])
+    run_command(['mkdir', '-p', new_img_dir])
+    try:
+        mount_image(old_image, old_img_dir)
+        mount_image(new_image, new_img_dir)
+
+        run_command(['/bin/bash', '-c', 'rsync --inplace -a %s/* %s'
+                     % (old_img_dir, new_img_dir)])
+    finally:
+        run_command(['umount', old_img_dir])
+        run_command(['umount', new_img_dir])
+    ##TODO: Delete the directories
+    #old_img_dir)
+    #new_img_dir)
+
+
 
 def mount_image(image_path, mount_point):
     if not check_dir(mount_point):
@@ -34,9 +73,12 @@ def mount_image(image_path, mount_point):
 
 
 def create_empty_image(new_image_path, image_type='raw',
-                      image_size_gb=5, bootable=False):
-    run_command(['qemu-img','create','-f','%s' % image_type, new_image_path, "%sG" %
-        image_size_gb])
+                      image_size_gb=5, bootable=False, label='root'):
+    run_command(['qemu-img', 'create', '-f', image_type,
+                 new_image_path, "%sG" % image_size_gb])
+
+    #SFDisk script by stdin
+    #See http://linuxgazette.net/issue46/nielsen.html#create
     if bootable:
         line_one = ",,L,*\n"
     else:
@@ -47,7 +89,8 @@ def create_empty_image(new_image_path, image_type='raw',
     out, err = run_command(['fdisk','-l',new_image_path])
     fdisk_stats = _parse_fdisk_stats(out)
     partition = _select_partition(fdisk_stats['devices'])
-    _format_partition(fdisk_stats['disk'], partition, new_image_path)
+    _format_partition(fdisk_stats['disk'], partition, new_image_path,
+            label=label)
     return new_image_path
 
 
@@ -158,29 +201,12 @@ def _check_mount_path(filepath):
     return filepath
 
 
-def _grub_base_install(image_path, mounted_root):
-    #Edit grub.conf
-    #Move rc.local
-
-    #Inject stage files
-    _get_stage_files(mounted_root, check_distro(mounted_root))
-    disk = fdisk_stats['disk']
-    #SETUP GRUB
-    grub_stdin = """device (hd0) %s
-    geometry (hd0) %s %s %s
-    root (hd0,0)
-    setup (hd0)
-    quit""" % (image_path,disk['cylinders'], disk['heads'],
-            disk['sectors_per_track'])
-    run_command(['grub', '--device-map=/dev/null', '--batch'], stdin=grub_stdin)
-
-
 def check_distro(root_dir=''):
     """
     Either your CentOS or your Ubuntu.
     """
     etc_release_path = os.path.join(root_dir,'etc/*release*')
-    (out,err) = run_command(['/bin/bash','-c',etc_release_path])
+    (out,err) = run_command(['/bin/bash','-c','cat %s' % etc_release_path])
     if 'CentOS' in out:
         return 'CentOS'
     else:
@@ -192,7 +218,7 @@ def _get_stage_files(root_dir, distro):
     elif distro == 'Ubuntu':
         run_command(['/bin/bash','-c','cp -f %s/extras/export/grub_files/ubuntu/* %s/boot/grub/' % (settings.PROJECT_ROOT, root_dir)])
 
-def _format_partition(disk, part, image_path):
+def _format_partition(disk, part, image_path, label=None):
     #This is a 'known constant'.. It should never change..
     #4096 = Default block size for ext2/ext3
     BLOCK_SIZE = 4096
@@ -210,7 +236,8 @@ def _format_partition(disk, part, image_path):
     unit_length = part['end'] - part['start']
     fs_size = unit_length * disk['unit_byte_size'] / BLOCK_SIZE
     run_command(['mkfs.ext3', '-b', '%s' % BLOCK_SIZE, loop_dev])
-
+    if label:
+        run_command(['e2label', loop_dev, label])
     #Then unmount it all
     run_command(['losetup', '-d', loop_dev])
 
@@ -268,9 +295,14 @@ def _mount_qcow(image_path, mount_point):
     return True
 
 
-def _fdisk_get_partition(image_path):
+def fdisk_image(image_path):
     out, err = run_command(['fdisk','-l',image_path])
     fdisk_stats = _parse_fdisk_stats(out)
+    return fdisk_stats
+
+
+def _fdisk_get_partition(image_path):
+    fdisk_stats = fdisk_image(image_path)
     partition = _select_partition(fdisk_stats['devices'])
     return partition
 
@@ -300,7 +332,8 @@ def mount_raw(image_path, mount_point):
     return out, err
 
 def mount_raw_with_offsets(image_path, mount_point):
-    partition = _fdisk_get_partition(image_path)
+    fdisk_stats = fdisk_image(image_path)
+    partition = _select_partition(fdisk_stats['devices'])
     offset = fdisk_stats['disk']['unit_byte_size'] * partition['start']
     out, err = run_command(['mount', '-o', 'loop,offset=%s' %  offset,
                              image_path, mount_point])
@@ -309,6 +342,22 @@ def mount_raw_with_offsets(image_path, mount_point):
                 partition)
     return out, err
 
+def prepare_losetup(image_path):
+    out, err = run_command(['fdisk','-l',image_path])
+    fdisk_stats = _parse_fdisk_stats(out)
+    partition = _select_partition(fdisk_stats['devices'])
+    #This is a 'known constant'.. It should never change..
+    #4096 = Default block size for ext2/ext3
+    BLOCK_SIZE = 4096
+
+    #First mount the loopback device
+    loop_offset = part['start'] * disk['logical_sector_size']
+    (loop_str, _) = run_command(['losetup', '-fv', '-o', '%s' % loop_offset,
+        image_path])
+
+    #The last word of the output is the device
+    loop_dev = _losetup_extract_device(loop_str)
+    return loop_dev
 
 def _mount_lvm(image_path, mount_point):
     """
