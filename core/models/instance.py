@@ -51,7 +51,12 @@ class Instance(models.Model):
         return md5(self.provider_alias).hexdigest()
 
     def hash_machine_alias(self):
-        return md5(self.esh._node.extra['imageId']).hexdigest()
+        if self.esh and self.esh._node\
+           and self.esh._node.extra\
+           and self.esh._node.extra.get('imageId'):
+            return md5(self.esh._node.extra['imageId']).hexdigest()
+        else:
+            return self.hash_alias()
 
     def esh_status(self):
         if not self.esh:

@@ -2,6 +2,9 @@
 Atmosphere service machine rest api.
 
 """
+from django.contrib.auth.models import User
+from django.core.paginator import Paginator,\
+    PageNotAnInteger, EmptyPage
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -11,9 +14,27 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
+from core.models.machine import filter_core_machine,\
+    convertEshMachine, update_machine_metadata
+
 from api import prepareDriver, failureJSON
-from api.serializers import ProviderMachineSerializer
-from core.models.machine import filterCoreMachine, convertEshMachine, update_machine_metadata
+from api.serializers import ProviderMachineSerializer,\
+    PaginatedProviderMachineSerializer
+
+
+def all_filtered_machines(request, provider_id, identity_id):
+    """
+    Return all filtered machines. Uses the most common,
+    default filtering method.
+    """
+    esh_driver = prepareDriver(request, identity_id)
+    esh_machine_list = esh_driver.list_machines()
+    esh_machine_list = esh_driver.filter_machines(
+        esh_machine_list,
+        black_list=['eki-', 'eri-'])
+    core_machine_list = [convertEshMachine(esh_driver, mach, provider_id)
+                         for mach in esh_machine_list]
+    filtered_machine_list = filter(filter_core_machine, core_machine_list)
 
 
 class MachineList(APIView):
@@ -30,17 +51,68 @@ class MachineList(APIView):
         Using provider and identity, getlist of machines
         TODO: Cache this request
         """
-        esh_driver = prepareDriver(request, identity_id)
-        esh_machine_list = esh_driver.list_machines()
-        esh_machine_list = esh_driver.filter_machines(
-            esh_machine_list,
-            black_list=['eki-', 'eri-'])
-        core_machine_list = [convertEshMachine(esh_driver, mach, provider_id)
-                             for mach in esh_machine_list]
-        filtered_machine_list = filter(filterCoreMachine, core_machine_list)
+        filtered_machine_list = all_filtered_machines(request, identity_id)
         serialized_data = ProviderMachineSerializer(filtered_machine_list,
-                many=True).data
+                                                    many=True).data
         response = Response(serialized_data)
+        return response
+
+
+class MachineHistory(APIView):
+    """
+    A MachineHistory provides machine history for an identity.
+
+    GET - A chronologically ordered list of ProviderMachines for the identity.
+    """
+
+    @api_auth_token_required
+    def get(self, request, provider_id, identity_id):
+        data = request.DATA
+        user = User.objects.filter(username=request.user)
+
+        if user and len(user) > 0:
+            user = user[0]
+        else:
+            errorObj = failureJSON([{
+                'code': 401,
+                'message': 'User not found'}])
+            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
+
+        esh_driver = prepareDriver(request, identity_id)
+
+        # Historic Instances
+        all_machines_list = all_filtered_machines(request,
+                                                  provider_id,
+                                                  identity_id)
+        if all_machines_list:
+            history_machine_list =\
+                [lambda: m.machine.created_by.username == user
+                 for m in all_machines_list]
+        else:
+            history_machine_list = []
+
+        page = request.QUERY_PARAMS.get('page')
+        if page:
+            paginator = Paginator(history_machine_list, 20)
+            try:
+                history_machine_page = paginator.page(page)
+            except PageNotAnInteger:
+                # If page is not an integer, deliver first page.
+                history_machine_page = paginator.page(1)
+            except EmptyPage:
+                # Page is out of range.
+                # deliver last page of results.
+                history_machine_page = paginator.page(paginator.num_pages)
+            serialized_data = \
+                PaginatedProviderMachineSerializer(
+                    history_machine_page,
+                    many=True).data
+        else:
+            serialized_data = ProviderMachineSerializer(history_machine_list,
+                                                        many=True).data
+
+        response = Response(serialized_data)
+        response['Cache-Control'] = 'no-cache'
         return response
 
 

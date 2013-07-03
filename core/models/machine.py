@@ -233,7 +233,7 @@ def convertEshMachine(esh_driver, esh_machine, provider_id, image_id=None):
     provider_machine = set_machine_from_metadata(esh_driver, provider_machine)
     return provider_machine
 
-def filterCoreMachine(provider_machine):
+def filter_core_machine(provider_machine):
     """
     Filter conditions:
     * Machine does not have an end-date

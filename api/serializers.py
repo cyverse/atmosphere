@@ -12,6 +12,8 @@ from core.models.group import Group
 
 from rest_framework import serializers
 
+from rest_framework import pagination
+
 from threepio import logger
 
 class CredentialSerializer(serializers.ModelSerializer):
@@ -81,6 +83,12 @@ class InstanceSerializer(serializers.ModelSerializer):
         exclude = ('id', 'end_date', 'provider_machine', 'provider_alias',
         'shell', 'vnc')
 
+class PaginatedInstanceSerializer(pagination.PaginationSerializer):
+    """
+    Serializes page objects of Instance querysets.
+    """
+    class Meta:
+        object_serializer_class = InstanceSerializer
 
 class MachineExportSerializer(serializers.ModelSerializer):
     """
@@ -218,6 +226,14 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProviderMachine
         exclude = ('id', 'provider', 'machine', 'identity')
+
+
+class PaginatedProviderMachineSerializer(pagination.PaginationSerializer):
+    """
+    Serializes page objects of ProviderMachine querysets.
+    """
+    class Meta:
+        object_serializer_class = ProviderMachineSerializer
 
 
 class ProviderSerializer(serializers.ModelSerializer):

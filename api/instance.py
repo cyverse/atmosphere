@@ -5,6 +5,8 @@ from datetime import datetime
 import time
 
 from django.contrib.auth.models import User
+from django.core.paginator import Paginator,\
+    PageNotAnInteger, EmptyPage
 
 from rest_framework import status
 from rest_framework.views import APIView
@@ -17,12 +19,16 @@ from threepio import logger
 from authentication.decorators import api_auth_token_required
 
 from core.models.instance import convertEshInstance, update_instance_metadata
+from core.models.instance import Instance as CoreInstance
+
 from core.models.volume import convertEshVolume
 
 from api import failureJSON, launchEshInstance, prepareDriver
-from api.serializers import InstanceSerializer, VolumeSerializer
+from api.serializers import InstanceSerializer, VolumeSerializer,\
+    PaginatedInstanceSerializer
 
 from service import task
+
 
 class InstanceList(APIView):
     """
@@ -50,12 +56,16 @@ class InstanceList(APIView):
                 'message': 'Identity/Provider Authentication Failed'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
-        core_instance_list = [convertEshInstance(esh_driver, inst, provider_id, user)
+        core_instance_list = [convertEshInstance(esh_driver,
+                                                 inst,
+                                                 provider_id,
+                                                 user)
                               for inst in esh_instance_list]
 
         #TODO: Core/Auth checks for shared instances
 
-        serialized_data = InstanceSerializer(core_instance_list, many=True).data
+        serialized_data = InstanceSerializer(core_instance_list,
+                                             many=True).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
@@ -95,7 +105,8 @@ class InstanceList(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
 
 
 class InstanceHistory(APIView):
@@ -104,34 +115,48 @@ class InstanceHistory(APIView):
 
     GET - A chronologically ordered list of Instances.
     """
-    
+
     @api_auth_token_required
     def get(self, request, provider_id, identity_id):
         data = request.DATA
         user = User.objects.filter(username=request.user)
-        if user:
+
+        if user and len(user) > 0:
             user = user[0]
         else:
             errorObj = failureJSON([{
                 'code': 401,
                 'message': 'User not found'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
-        
-        # Active Instances
+
         esh_driver = prepareDriver(request, identity_id)
-        esh_instance_list = esh_driver.list_instances()
-        active_instance_list = [convertEshInstance(esh_driver, inst, provider_id, user)
-                              for inst in esh_instance_list]
 
         # Historic Instances
-        history_instance_list = Instance.objects.filter(created_by=user.id)
-        merged_instance_list = dict(history_instance_list.items()
-                                    + active_instance_list.items())
-        # fix [:20]!
-        serialized_data = InstanceSerializer(merged_instance_list[:20], many=True).data
+        history_instance_list = CoreInstance.objects.filter(created_by=user.id)
+
+        page = request.QUERY_PARAMS.get('page')
+        if page:
+            paginator = Paginator(history_instance_list, 20)
+            try:
+                history_instance_page = paginator.page(page)
+            except PageNotAnInteger:
+                # If page is not an integer, deliver first page.
+                history_instance_page = paginator.page(1)
+            except EmptyPage:
+                # Page is out of range.
+                # deliver last page of results.
+                history_instance_page = paginator.page(paginator.num_pages)
+            serialized_data = \
+                PaginatedInstanceSerializer(
+                    history_instance_page).data
+        else:
+            serialized_data = InstanceSerializer(history_instance_list,
+                                                 many=True).data
+
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
+
 
 class InstanceAction(APIView):
     """
@@ -177,7 +202,9 @@ class InstanceAction(APIView):
                 attempts = 0
                 while True:
                     esh_volume = esh_driver.get_volume(volume_id)
-                    core_volume = convertEshVolume(esh_volume, provider_id, user)
+                    core_volume = convertEshVolume(esh_volume,
+                                                   provider_id,
+                                                   user)
                     result_obj = VolumeSerializer(core_volume).data
                     logger.debug(result_obj)
                     if attempts >= 6:  # After 6 attempts (~1min)
@@ -193,7 +220,8 @@ class InstanceAction(APIView):
                 if esh_volume.extra['status'] == 'available':
                     errorObj = failureJSON([{
                         'code': 503,
-                        'message': 'Volume attachment failed. Please try again'}])
+                        'message':
+                        'Volume attachment failed. Please try again'}])
                     return Response(
                         errorObj,
                         status=status.HTTP_503_SERVICE_UNAVAILABLE)
@@ -325,8 +353,8 @@ class Instance(APIView):
             return response
         else:
             return Response(
-                    serializer.errors,
-                    status=status.HTTP_400_BAD_REQUEST)
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST)
 
     @api_auth_token_required
     def put(self, request, provider_id, identity_id, instance_id):
@@ -383,7 +411,10 @@ class Instance(APIView):
             if esh_instance.extra\
                and 'task' not in esh_instance.extra:
                 esh_instance.extra['task'] = 'queueing delete'
-            core_instance = convertEshInstance(esh_driver, esh_instance, provider_id, user)
+            core_instance = convertEshInstance(esh_driver,
+                                               esh_instance,
+                                               provider_id,
+                                               user)
             if core_instance:
                 core_instance.end_date = datetime.now()
                 core_instance.save()
@@ -399,6 +430,7 @@ class Instance(APIView):
                 'code': 401,
                 'message': 'Identity/Provider Authentication Failed'}])
             return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+
 
 def instance_not_found(instance_id):
     errorObj = failureJSON([{
