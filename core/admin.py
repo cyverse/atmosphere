@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.models import User as DjangoUser
 from django.contrib.auth.models import Group as DjangoGroup
+from django.utils import timezone
 
 from django.utils import timezone
 
@@ -34,6 +35,7 @@ class NodeControllerAdmin(admin.ModelAdmin):
 
 
 class MaintenanceAdmin(admin.ModelAdmin):
+    actions = [end_date_object,]
     list_display = ("title", "start_date",
                     "end_date", "disable_login")
 

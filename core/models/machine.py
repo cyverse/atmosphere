@@ -253,8 +253,8 @@ def set_machine_from_metadata(esh_driver, core_machine):
     try:
         metadata =  esh_driver._connection.ex_get_image_metadata(esh_machine)
     except Exception:
-	logger.warn('Warning: Metadata could not be retrieved for: %s' % esh_machine)
-	return core_machine
+        logger.warn('Warning: Metadata could not be retrieved for: %s' % esh_machine)
+        return core_machine
 
     #TAGS must be converted from String --> List
     if 'tags' in metadata and type(metadata['tags']) != list:

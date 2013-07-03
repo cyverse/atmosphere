@@ -4,7 +4,8 @@ from core.models.identity import Identity
 from core.models.profile import UserProfile
 from core.models.provider import ProviderType, ProviderSize, Provider
 from core.models.machine import Machine, ProviderMachine
-from core.models.machine_request import MachineRequest, MachineExport
+from core.models.machine_request import MachineRequest
+from core.models.machine_export import MachineExport
 from core.models.maintenance import MaintenanceRecord
 from core.models.instance import Instance
 from core.models.node import NodeController
