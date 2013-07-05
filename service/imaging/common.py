@@ -10,7 +10,22 @@ from threepio import logger
 ##
 # Tools
 ##
-def rebuild_ramdisk(mounted_path):
+   
+def _mkinitrd_command(latest_rmdisk, rmdisk_version, preload=[], include=[]):
+    preload.extend(['ahci'])
+    include.extend(['virtio_pci', 'virtio_ring',
+                    'virtio_blk', 'virtio_net',
+                    'virtio_balloon', 'virtio'])
+
+    mkinitrd_str = "mkinitrd"
+    for module in preload:
+        mkinitrd_str += " --preload %s" % module
+    for module in include:
+        mkinitrd_str += " --with %s" % module
+    mkinitrd_str += " -f /boot/%s %s" % (latest_rmdisk, rmdisk_version)
+    return mkinitrd_str
+
+def rebuild_ramdisk(mounted_path, preload=[], include=[]):
     """
     This function will get more complicated in the future... We will need to
     support opts in mkinitrd, etc.
@@ -18,16 +33,15 @@ def rebuild_ramdisk(mounted_path):
 
     #Run this command after installing the latest (non-xen) kernel
     latest_rmdisk, rmdisk_version = get_latest_ramdisk(mounted_path)
-
-    prepare_chroot_env(mounted_path)
-
-    #Create a brand new ramdisk using the KVM variables set above
-    run_command(["/usr/sbin/chroot", mounted_path, "/bin/bash", "-c",
-                "mkinitrd --with virtio_pci --with virtio_ring "
-                "--with virtio_blk --with virtio_net "
-                "--with virtio_balloon --with virtio "
-                "-f /boot/%s %s"  % (latest_rmdisk, rmdisk_version)])
-    remove_chroot_env(mounted_path)
+    mkinitrd_str = _mkinitrd_command(latest_rmdisk, rmdisk_version,
+                                     preload=preload, include=include)
+    try:
+        prepare_chroot_env(mounted_path)
+        #Create a brand new ramdisk using the KVM variables set above
+        run_command(["/usr/sbin/chroot", mounted_path,
+                     "/bin/bash", "-c", mkinitrd_str])
+    finally:
+        remove_chroot_env(mounted_path)
 
 
 def get_latest_ramdisk(mounted_path):

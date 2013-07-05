@@ -38,7 +38,7 @@ def xen_to_kvm_ubuntu(mounted_path):
 def xen_to_kvm_centos(mounted_path):
     #replace \t w/ 4-space if this doesn't work so well..
     prepend_line_list = [
-        ("LABEL=root\t\t/\t\t\text3\tdefaults,errors=remount-ro 1 1",
+        ("LABEL=root\t\t/\t\t\text3\tdefaults,errors=remount-ro 0 0",
         "etc/fstab"),
         ]
     remove_line_file_list = [("alias scsi", "etc/modprobe.conf"),

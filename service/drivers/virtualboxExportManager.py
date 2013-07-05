@@ -48,7 +48,7 @@ class ExportManager():
         self.euca_img_manager = EucaImageManager(**euca_creds)
 
 
-    def eucalyptus(self, instance_id, vm_name, owner, disk_type='vdi',
+    def eucalyptus(self, instance_id, vm_name, owner, disk_type='vmdk',
                    download_dir='/tmp', local_raw_path=None,
                    harddrive_path=None, appliance_path=None,
                    no_upload=False, meta_name=None):
@@ -96,7 +96,7 @@ class ExportManager():
                       download_dir=download_dir)
             #Add grub.
             try:
-                mount_image(local_img_path, mount_point)
+                mount_image(local_raw_path, mount_point)
                 add_grub(mount_point, local_raw_path)
             finally:
                 run_command(['umount', mount_point])
@@ -129,12 +129,20 @@ class ExportManager():
         uuid = r.groupdict()['uuid']
         return uuid
 
+
     def _build_and_export_vm(self, name, harddrive_path, vm_opts={}, distro='Linux'):
         export_dir = os.path.dirname(harddrive_path)
         export_file = os.path.join(export_dir,'%s.ova' % name)
-        out, err = run_command(['VBoxManage','createvm','--name', name, '--ostype', distro, '--register'])
+        if os.path.exists(export_file):
+            #Remove vm method here..
+            pass
+
+        out, err = run_command(['VBoxManage','createvm','--basefolder',
+            export_dir, '--name', name, '--ostype', distro, '--register'])
         vm_uuid = self._strip_uuid(out)
         modify_vm_opts = {
+            'vram':'16',  # vram <= 8 MB causes poor performance..
+
             'memory':512,
             'acpi': 'on',
             'ioapic':'on'
@@ -192,6 +200,7 @@ class ExportManager():
                 run_command(['qemu-img', 'convert', local_img_path, '-O', 'raw', raw_img_path])
             #Convert from raw to vdi
             convert_img_path = os.path.splitext(local_img_path)[0] + '.vdi'
+            #NOTE: Must DELETE first!
             run_command(['VBoxManage', 'convertdd',raw_img_path, convert_img_path])
         else:
             convert_img_path = None
