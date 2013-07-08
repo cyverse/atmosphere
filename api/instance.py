@@ -131,8 +131,9 @@ class InstanceHistory(APIView):
 
         esh_driver = prepareDriver(request, identity_id)
 
-        # Historic Instances
-        history_instance_list = CoreInstance.objects.filter(created_by=user.id)
+        # Historic Instances in reverse chronological order
+        history_instance_list = CoreInstance.objects.filter(
+            created_by=user.id).order_by("-start_date")
 
         page = request.QUERY_PARAMS.get('page')
         if page:

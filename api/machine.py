@@ -85,6 +85,10 @@ class MachineHistory(APIView):
         all_machines_list = all_filtered_machines(request,
                                                   provider_id,
                                                   identity_id)
+
+        # Reverse chronological order
+        all_machines_list.reverse()
+
         if all_machines_list:
             history_machine_list =\
                 [m for m in all_machines_list if
