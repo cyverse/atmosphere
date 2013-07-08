@@ -26,12 +26,15 @@ from atmosphere import settings
 @task()
 def machine_export_task(machine_export):
     logger.debug("machine_export_task task started at %s." % datetime.now())
+    machine_export.status = 'processing'
+    machine_export.save()
 
     local_download_dir = settings.LOCAL_STORAGE
     exp_provider = machine_export.instance.provider_machine\
         .provider.type.name.lower()
 
-    manager = ExportManager()
+    manager = ExportManager(settings.EUCA_IMAGING_ARGS,
+                            settings.OPENSTACK_ARGS)
     #ExportManager().eucalyptus/openstack()
     if 'euca' in exp_provider:
         export_fn = manager.eucalyptus
@@ -51,10 +54,12 @@ def machine_export_task(machine_export):
                              machine_export.export_owner.username,
                              download_dir=local_download_dir,
                              meta_name=meta_name)
-    pass
-    #Retrieve information needed
-    #run the op
-    #send an email
+    #TODO: Pass in kwargs (Like md5sum, url, etc. that are useful)
+    process_machine_export(machine_export, md5_sum=md5_sum, url=url)
+    #TODO: Option to copy this file into iRODS
+    #TODO: Option to upload this file into S3 
+    #TODO: send an email with instructions on how/where to go from here
+
     logger.debug("machine_export_task task finished at %s." % datetime.now())
     pass
 

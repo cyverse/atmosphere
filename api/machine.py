@@ -35,6 +35,7 @@ def all_filtered_machines(request, provider_id, identity_id):
     core_machine_list = [convertEshMachine(esh_driver, mach, provider_id)
                          for mach in esh_machine_list]
     filtered_machine_list = filter(filter_core_machine, core_machine_list)
+    return filtered_machine_list
 
 
 class MachineList(APIView):
@@ -51,7 +52,7 @@ class MachineList(APIView):
         Using provider and identity, getlist of machines
         TODO: Cache this request
         """
-        filtered_machine_list = all_filtered_machines(request, identity_id)
+        filtered_machine_list = all_filtered_machines(request, provider_id, identity_id)
         serialized_data = ProviderMachineSerializer(filtered_machine_list,
                                                     many=True).data
         response = Response(serialized_data)

@@ -100,7 +100,7 @@ class MachineExportSerializer(serializers.ModelSerializer):
     disk_format = serializers.CharField(source='export_format')
     owner = serializers.SlugRelatedField(slug_field='username',
                                          source='export_owner')
-    file = serializers.CharField(read_only=True, default="")
+    file = serializers.CharField(read_only=True, default="", blank=True, source='export_file')
 
     class Meta:
         model = MachineExport

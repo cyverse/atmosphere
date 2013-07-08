@@ -1,6 +1,6 @@
 import os
 
-from service.imaging.clean import remove_ldap, remove_vnc
+from service.imaging.clean import remove_ldap, remove_vnc, remove_sensu
 from service.imaging.common import prepare_chroot_env, remove_chroot_env,\
                                    run_command,\
                                    rebuild_ramdisk,\
@@ -16,6 +16,7 @@ def add_virtualbox_support(mounted_path, image_path):
     """
     #remove_ldap(mounted_path)
     remove_vnc(mounted_path)
+    remove_sensu(mounted_path)
 
     add_gnome_support(mounted_path)
 

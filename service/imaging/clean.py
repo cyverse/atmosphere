@@ -146,6 +146,14 @@ def _perform_cleaning(mounted_path, rm_files=None,
     remove_multiline_in_files(multiline_delete_files, mounted_path, dry_run)
 
 
+def remove_sensu(mounted_path):
+    try:
+        prepare_chroot_env(mounted_path)
+        run_command(["/usr/sbin/chroot", mounted_path, 'yum',
+                     'remove', '-qy', 'sensu'])
+    finally:
+        remove_chroot_env(mounted_path)
+
 def remove_ldap(mounted_path, new_password='atmosphere'):
     try:
         prepare_chroot_env(mounted_path)

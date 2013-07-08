@@ -72,7 +72,7 @@ class ExportManager():
 
             if distro.lower() != 'centos':
                 #TODO: Get it working for ubuntu
-                raise Exception("Whoa! This process only works for CentOS machines!")
+                pass#raise Exception("Whoa! This process only works for CentOS machines!")
 
 
             self.euca_img_manager._clean_local_image(local_img_path, mount_point)

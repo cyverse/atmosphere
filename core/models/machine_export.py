@@ -15,6 +15,7 @@ class MachineExport(models.Model):
     #Request start to image exported
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
+    #TODO: Perhaps a field for the MD5 Hash?
 
     def __unicode__(self):
         return '%s Instance export of: %s Status:%s'\
@@ -27,6 +28,11 @@ class MachineExport(models.Model):
         app_label = "core"
 
 def process_machine_export(machine_export, *args, **kwargs):
+    if kwargs.get('url'):
+        machine_export.export_file = 'S3://%s ' % kwargs['url']
+    machine_export.status = 'Completed'
+    machine_export.end_date = timezone.now()
+    machine_export.save()
     """
     This function will define all the operations that should
     occur after a successful machine export (see service/)
