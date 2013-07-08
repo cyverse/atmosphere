@@ -26,6 +26,8 @@ from euca2ools import Euca2ool, FileValidationError, Util, ConnectionFailed
 
 from threepio import logger
 
+from django.utils import timezone
+
 from atmosphere import settings
 
 from service.drivers.openstackImageManager import ImageManager as OSImageManager
@@ -132,7 +134,8 @@ class ExportManager():
 
     def _build_and_export_vm(self, name, harddrive_path, vm_opts={}, distro='Linux'):
         export_dir = os.path.dirname(harddrive_path)
-        export_file = os.path.join(export_dir,'%s.ova' % name)
+        hostname_out, _ = run_command(['hostname'])
+        export_file = os.path.join(export_dir,'%s_%s_%s.ova' % (name, hostname_out.strip(), timezone.now()))
         if os.path.exists(export_file):
             #Remove vm method here..
             pass

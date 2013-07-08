@@ -85,10 +85,14 @@ class MachineHistory(APIView):
         all_machines_list = all_filtered_machines(request,
                                                   provider_id,
                                                   identity_id)
+
+        # Reverse chronological order
+        all_machines_list.reverse()
+
         if all_machines_list:
             history_machine_list =\
-                [lambda: m.machine.created_by.username == user
-                 for m in all_machines_list]
+                [m for m in all_machines_list if
+                 m.machine.created_by.username == user]
         else:
             history_machine_list = []
 
@@ -106,11 +110,10 @@ class MachineHistory(APIView):
                 history_machine_page = paginator.page(paginator.num_pages)
             serialized_data = \
                 PaginatedProviderMachineSerializer(
-                    history_machine_page,
-                    many=True).data
+                    history_machine_page).data
         else:
-            serialized_data = ProviderMachineSerializer(history_machine_list,
-                                                        many=True).data
+            serialized_data = ProviderMachineSerializer(
+                history_machine_list).data
 
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
