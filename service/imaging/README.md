@@ -102,12 +102,17 @@ Here are a few very important files and the changes I had to make to transition 
 1. /etc/inittab:
 
     Original: id:3:initdefault
+
     Change: id:5:initdefault
+
     Reason: Boot the user in X11 instead of CLI
+
     ...
     Original: xvc0:2345:respawn:/sbin/mingetty xvc0
+
     Change: <Remove the line>
-    #Reason: xvc0 did not exist on virtualbox, presumably this is specific to being run withing the XEN environment.
+
+    Reason: xvc0 did not exist on virtualbox, presumably this is specific to being run withing the XEN environment.
 
 ORIGINAL (XEN) SAMPLE:
     # inittab       This file describes how the INIT process should set up
@@ -116,7 +121,6 @@ ORIGINAL (XEN) SAMPLE:
     # Author:       Miquel van Smoorenburg, <miquels@drinkel.nl.mugnet.org>
     #               Modified for RHS Linux by Marc Ewing and Donnie Barnes
     #
-    
     # Default runlevel. The runlevels used by RHS are:
     #   0 - halt (Do NOT set initdefault to this)
     #   1 - Single user mode
@@ -166,14 +170,21 @@ ORIGINAL (XEN) SAMPLE:
 
 2. /etc/modprobe.conf:
 
-    The modprobe.conf file contains a list of additional modules that are necessary when building a new ramdisk, and will probably contain xen specific modules that should be replaced. The lines in the replacement/kvm sample were selected by CentOS when installing the OS on a blank hard drive. These modules may be different on OS that aren't CentOS 5
+    The modprobe.conf file contains a list of additional modules that are necessary when building a new ramdisk, and will probably contain xen specific modules that should be replaced.
+    
+    The lines in the replacement/kvm sample were selected by CentOS when installing the OS on a blank hard drive. These modules may be different on OS that aren't CentOS 5
 
 ORIGINAL (XEN) SAMPLE:
+
     alias scsi_hostadapter xenblk
     alias eth0 xennet
+
 REPLACEMENT (KVM) SAMPLE:
+
+    # Necessary for KVM/OpenStack
+    alias eth0 e1000 
+    # All these below are for VirtualBox (SoundCard)
     alias scsi_hostadapter ata_piix
-    alias eth0 e1000
     alias scsi_hostadapter1 ahci
     install pciehp /sbin/modprobe -q --ignore-install acpiphp; /bin/true
     alias snd-card-0 snd-intel8x0
@@ -182,10 +193,13 @@ REPLACEMENT (KVM) SAMPLE:
     remove snd-intel8x0 { /usr/sbin/alsactl store 0 >/dev/null 2>&1 || : ; }; /sbin/modprobe -r --ignore-remove snd-intel8x0
 
 3. /etc/fstab
-    Ensure that root (/) is set to sda:
+    
+    NOTE: Ensure that root (/) is set to sda:
 
     ...
+
     /dev/sda1         /             ext3     defaults,errors=remount-ro 0 0
+
     ...
 
 4. CHROOT FUN!
@@ -193,6 +207,7 @@ REPLACEMENT (KVM) SAMPLE:
 
     3a. Set a new root password
         A random root password is set when booting from the cloud, so change it to something you will remember!
+
         passwd root
     
     3b. Yum install 
@@ -210,6 +225,7 @@ REPLACEMENT (KVM) SAMPLE:
         * The --with virtio* stuff was necessary when converting Image/Instances (from Eucalyptus --> Openstack) , so I left it in, but it may not be used by VirtualBox.
     
 5. /boot/grub/grub.conf 
+
     Now that we know grub is installed, we need to update our grub.conf
     Grub is not used to boot VMs in a cloud environment, so you may or may not already have a grub.conf. 
     Here is what a sample grub.conf should look like (Note that root=/dev/sda1, and that ramdisk_name and kernel_version should be replaced appropriately):
