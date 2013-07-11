@@ -192,7 +192,7 @@ def getEshDriver(core_identity, username=None):
         else:
             user = DjangoUser.objects.get(username=username)
         provider = eshMap['provider']()
-        logger.debug("cred_args = %s" % cred_args)
+        #logger.debug("cred_args = %s" % cred_args)
         identity = eshMap['identity'](provider, user=user, **cred_args)
         driver = eshMap['driver'](provider, identity)
         return driver

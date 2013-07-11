@@ -12,7 +12,7 @@ from threepio import logger
 from authentication.decorators import api_auth_token_required
 from service.tasks.machine import machine_export_task
 from api.serializers import MachineExportSerializer
-from core.models.machine_request import MachineExport as CoreMachineExport
+from core.models.machine_export import MachineExport as CoreMachineExport
 
 import copy
 
@@ -44,12 +44,15 @@ class MachineExportList(APIView):
         """
         #request.DATA is r/o
         data = copy.deepcopy(request.DATA)
-        data.update({'owner': data.get('created_for', request.user.username)})
+        owner = request.user.username
+        #Staff members can export on users behalf..
+        if data.get('created_for') and request.user.is_staff:
+            owner = data.get('created_for')
+        data['owner'] = owner
         logger.info(data)
         serializer = MachineExportSerializer(data=data)
         if serializer.is_valid():
-            serializer.save()
-            export_request = serializer.object
+            export_request = serializer.save()
             machine_export_task.delay(export_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

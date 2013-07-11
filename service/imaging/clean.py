@@ -4,11 +4,14 @@ imaging/clean.py
 These functions are used to strip data from a VM before imaging occurs.
 
 """
-from service.imaging.common import check_mounted
 from service.imaging.common import remove_files, overwrite_files,\
                                    remove_line_in_files,\
                                    replace_line_in_files,\
-                                   remove_multiline_in_files
+                                   remove_multiline_in_files,\
+                                   run_command,\
+                                   check_mounted,\
+                                   prepare_chroot_env,\
+                                   remove_chroot_env
 
 
 def remove_user_data(mounted_path, dry_run=False):
@@ -141,3 +144,35 @@ def _perform_cleaning(mounted_path, rm_files=None,
     remove_line_in_files(remove_line_files, mounted_path, dry_run)
     replace_line_in_files(replace_line_files, mounted_path, dry_run)
     remove_multiline_in_files(multiline_delete_files, mounted_path, dry_run)
+
+
+def remove_sensu(mounted_path):
+    try:
+        prepare_chroot_env(mounted_path)
+        run_command(["/usr/sbin/chroot", mounted_path, 'yum',
+                     'remove', '-qy', 'sensu'])
+    finally:
+        remove_chroot_env(mounted_path)
+
+def remove_ldap(mounted_path, new_password='atmosphere'):
+    try:
+        prepare_chroot_env(mounted_path)
+        run_command(["/usr/sbin/chroot", mounted_path, "/bin/bash", "-c",
+                     "echo %s | passwd root --stdin" % new_password])
+        run_command(["/usr/sbin/chroot", mounted_path, 'yum',
+                     'remove', '-qy', 'openldap'])
+    finally:
+        remove_chroot_env(mounted_path)
+
+def remove_vnc(mounted_path):
+    try:
+        prepare_chroot_env(mounted_path)
+        run_command(["/usr/sbin/chroot", mounted_path, 'yum',
+            'remove', '-qy', 'realvnc-vnc-server'])
+        #remove rpmsave.. to get rid of vnc for good.
+        #["/usr/sbin/chroot", mounted_path, 'find', '/',
+        #'-type', 'f', '-name', '*.rpmsave', '-exec', 'rm', '-f',
+        #'{}', ';']
+    finally:
+        remove_chroot_env(mounted_path)
+

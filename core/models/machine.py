@@ -233,12 +233,14 @@ def convertEshMachine(esh_driver, esh_machine, provider_id, image_id=None):
     provider_machine = set_machine_from_metadata(esh_driver, provider_machine)
     return provider_machine
 
-def filterCoreMachine(provider_machine):
+def filter_core_machine(provider_machine):
     """
     Filter conditions:
     * Machine does not have an end-date
     """
-    return not provider_machine.machine.end_date
+    if provider_machine.machine.end_date:
+        return False
+    return True
 
 def set_machine_from_metadata(esh_driver, core_machine):
     #Fixes Dep. loop - Do not remove
@@ -253,8 +255,8 @@ def set_machine_from_metadata(esh_driver, core_machine):
     try:
         metadata =  esh_driver._connection.ex_get_image_metadata(esh_machine)
     except Exception:
-	logger.warn('Warning: Metadata could not be retrieved for: %s' % esh_machine)
-	return core_machine
+        logger.warn('Warning: Metadata could not be retrieved for: %s' % esh_machine)
+        return core_machine
 
     #TAGS must be converted from String --> List
     if 'tags' in metadata and type(metadata['tags']) != list:

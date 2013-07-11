@@ -8,11 +8,12 @@ from django.conf.urls import patterns, url, include
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from api.identity import IdentityList, Identity, IdentityDetailList
-from api.instance import InstanceList, Instance, InstanceAction
+from api.instance import InstanceList, Instance,\
+    InstanceAction, InstanceHistory
 from api.notification import NotificationList
-from api.machine import MachineList, Machine
+from api.machine import MachineList, Machine, MachineHistory
 from api.machine_request import MachineRequestList, MachineRequest,\
-     MachineRequestStaffList, MachineRequestStaff
+    MachineRequestStaffList, MachineRequestStaff
 from api.machine_export import MachineExportList, MachineExport
 from api.size import SizeList, Size
 from api.volume import VolumeList, Volume
@@ -67,11 +68,14 @@ urlpatterns = patterns(
     url(r'^$', 'web.views.redirectApp'),
 
     #This URL validates the ticket returned after CAS login
-    url(r'^CAS_serviceValidater', 'authentication.protocol.cas.cas_validateTicket'),
+    url(r'^CAS_serviceValidater',
+        'authentication.protocol.cas.cas_validateTicket'),
     #This URL is a dummy callback
-    url(r'^CAS_proxyCallback', 'authentication.protocol.cas.cas_proxyCallback'),
+    url(r'^CAS_proxyCallback',
+        'authentication.protocol.cas.cas_proxyCallback'),
     #This URL records Proxy IOU & ID
-    url(r'^CAS_proxyUrl', 'authentication.protocol.cas.cas_storeProxyIOU_ID'),
+    url(r'^CAS_proxyUrl',
+        'authentication.protocol.cas.cas_storeProxyIOU_ID'),
 
     url(r'^login/$', 'web.views.login'),
     url(r'^logout/$', 'web.views.logout'),
@@ -95,7 +99,8 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/user/$', atmo_valid_token_required(UserManagement.as_view())),
     url(r'^api/user/(?P<username>.*)/$', User.as_view()),
     url(r'^api/profile/$', Profile.as_view(), name='profile'),
-    url(r'^api/provider/(?P<provider_id>\d+)/occupancy/$', Occupancy.as_view()),
+    url(r'^api/provider/(?P<provider_id>\d+)/occupancy/$',
+        Occupancy.as_view()),
 
     url(r'^api/group/$', GroupList.as_view()),
     url(r'^api/group/(?P<groupname>.*)/$', Group.as_view()),
@@ -117,7 +122,7 @@ urlpatterns += format_suffix_patterns(patterns(
         + '(?P<identity_id>\d+)/request_image/(?P<machine_request_id>\d+)/$',
         MachineRequest.as_view(), name='machine-request'),
 
-    url(r'^api/request_image/$', 
+    url(r'^api/request_image/$',
         MachineRequestStaffList.as_view(), name='direct-machine-request-list'),
 
     url(r'^api/request_image/(?P<machine_request_id>\d+)/$',
@@ -130,8 +135,13 @@ urlpatterns += format_suffix_patterns(patterns(
         Profile.as_view(), name='profile-detail'),
 
     url(r'^api/provider/(?P<provider_id>\d+)/identity'
-        + '/(?P<identity_id>\d+)/instance/(?P<instance_id>[a-zA-Z0-9-]+)/action/$',
+        + '/(?P<identity_id>\d+)/instance/'
+        + '(?P<instance_id>[a-zA-Z0-9-]+)/action/$',
         InstanceAction.as_view(), name='instance-action'),
+
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/instance/history/$',
+        InstanceHistory.as_view(), name='instance-history'),
 
     url(r'^api/provider/(?P<provider_id>\d+)/identity'
         + '/(?P<identity_id>\d+)/instance/(?P<instance_id>[a-zA-Z0-9-]+)/$',
@@ -159,6 +169,9 @@ urlpatterns += format_suffix_patterns(patterns(
         + '/(?P<identity_id>\d+)/machine/$',
         MachineList.as_view(), name='machine-list'),
     url(r'^api/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/machine/history/$',
+        MachineHistory.as_view(), name='machine-history'),
+    url(r'^api/provider/(?P<provider_id>\d+)/identity'
         + '/(?P<identity_id>\d+)/machine/(?P<machine_id>[a-zA-Z0-9-]+)/$',
         Machine.as_view(), name='machine-detail'),
 
@@ -174,7 +187,8 @@ urlpatterns += format_suffix_patterns(patterns(
         + '/(?P<identity_id>\d+)/$',
         Identity.as_view(), name='identity-detail'),
 
-    url(r'^api/identity/$', IdentityDetailList.as_view(), name='identity-detail-list'),
+    url(r'^api/identity/$', IdentityDetailList.as_view(),
+        name='identity-detail-list'),
 
     url(r'^api/provider/$', ProviderList.as_view(), name='provider-list'),
     url(r'^api/provider/(?P<provider_id>\d+)/$',
