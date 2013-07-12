@@ -56,28 +56,45 @@ class Instance(models.Model):
            and self.esh._node.extra.get('imageId'):
             return md5(self.esh._node.extra['imageId']).hexdigest()
         else:
-            return self.hash_alias()
+            try:
+                if self.provider_machine:
+                    return self.provider_machine.identifier
+            except ProviderMachine.DoesNotExist as dne:
+                logger.exception("Unable to find provider_machine for %s." % self.provider_alias)
+        return 'Unknown'
 
     def esh_status(self):
-        if not self.esh:
-            return "Unknown"
-        status = self.esh.get_status()
-        return status
+        if self.esh:
+            return self.esh.get_status()
+        return "Unknown"
 
     def esh_size(self):
-        if not self.esh:
-            return "Unknown"
-        return self.esh._node.extra['instancetype']
+        if self.esh:
+            return self.esh._node.extra['instancetype']
+        
+        return "Unknown"
 
     def esh_machine_name(self):
-        if not self.esh or not self.esh.machine:
-            return "Unknown"
-        return self.esh.machine.name
+        if self.esh and self.esh.machine:
+            return self.esh.machine.name
+        else:
+            try:
+                if self.provider_machine and self.provider_machine.machine:
+                    return self.provider_machine.machine.name
+            except ProviderMachine.DoesNotExist as dne:
+                logger.exception("Unable to find provider_machine for %s." % self.provider_alias)
+        return "Unknown"
 
     def esh_machine(self):
-        if not self.esh:
-            return "Unknown"
-        return self.esh._node.extra['imageId']
+        if self.esh:
+            return self.esh._node.extra['imageId']
+        else:
+            try:
+                if self.provider_machine:
+                    return self.provider_machine.identifier
+            except ProviderMachine.DoesNotExist as dne:
+                logger.exception("Unable to find provider_machine for %s." % self.provider_alias)
+        return "Unknown"
 
     def json(self):
         return {
