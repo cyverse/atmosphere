@@ -92,7 +92,7 @@ class MachineHistory(APIView):
         if all_machines_list:
             history_machine_list =\
                 [m for m in all_machines_list if
-                 m.machine.created_by.username == user]
+                 m.machine.created_by == user]
         else:
             history_machine_list = []
 
