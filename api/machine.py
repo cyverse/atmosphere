@@ -5,6 +5,7 @@ Atmosphere service machine rest api.
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
+from django.db.models import Q
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -15,14 +16,15 @@ from threepio import logger
 from authentication.decorators import api_auth_token_required
 
 from core.models.machine import filter_core_machine,\
-    convertEshMachine, update_machine_metadata
+    convertEshMachine, update_machine_metadata,\
+    ProviderMachine
 
 from api import prepareDriver, failureJSON
 from api.serializers import ProviderMachineSerializer,\
     PaginatedProviderMachineSerializer
 
 
-def all_filtered_machines(request, provider_id, identity_id):
+def provider_filtered_machines(request, provider_id, identity_id):
     """
     Return all filtered machines. Uses the most common,
     default filtering method.
@@ -36,6 +38,12 @@ def all_filtered_machines(request, provider_id, identity_id):
                          for mach in esh_machine_list]
     filtered_machine_list = filter(filter_core_machine, core_machine_list)
     return filtered_machine_list
+
+
+def all_filtered_machines():
+    return ProviderMachine.objects.exclude(
+        Q(identifier__startswith="eki-") |
+        Q(identifier__startswith="eri")).order_by("-machine__start_date")
 
 
 class MachineList(APIView):
@@ -52,7 +60,7 @@ class MachineList(APIView):
         Using provider and identity, getlist of machines
         TODO: Cache this request
         """
-        filtered_machine_list = all_filtered_machines(request, provider_id, identity_id)
+        filtered_machine_list = provider_filtered_machines(request, provider_id, identity_id)
         serialized_data = ProviderMachineSerializer(filtered_machine_list,
                                                     many=True).data
         response = Response(serialized_data)
@@ -81,18 +89,18 @@ class MachineHistory(APIView):
 
         esh_driver = prepareDriver(request, identity_id)
 
-        # Historic Instances
-        all_machines_list = all_filtered_machines(request,
-                                                  provider_id,
-                                                  identity_id)
+        # Historic Machines
+        all_machines_list = all_filtered_machines()
 
         # Reverse chronological order
-        all_machines_list.reverse()
+        #all_machines_list.reverse()
 
+        logger.warn(len(all_machines_list))
         if all_machines_list:
             history_machine_list =\
                 [m for m in all_machines_list if
-                 m.machine.created_by == user]
+                 m.machine.created_by.username == user.username]
+            logger.warn(len(history_machine_list))
         else:
             history_machine_list = []
 
