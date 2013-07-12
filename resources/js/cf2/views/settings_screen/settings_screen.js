@@ -67,6 +67,29 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
 		var provider = Atmo.profile.get('selected_identity').get('provider_id');
 		var identity = Atmo.profile.get('selected_identity').get('id');
 
+		// Grab first page of machine history
+		$.ajax({
+			type: 'GET',
+			url: site_root + '/api/provider/' + provider + '/identity/' + identity + '/machine/history/?page=1', 
+			success: function(response_text) {
+
+				// Loop through given instances and append them.
+				var container = self.$el.find('#profile_image_list');
+				var machines = response_text.results;
+
+				if (machines.length == 0)
+					container.find('td').html('You have not imaged any of your instances yet.');
+				else
+					container.empty();
+
+				for (var i = 0; i < machines.length; i++) {
+					container.append(_.template(Atmo.Templates['machine_history_row'], machines[i]));
+				}
+			},
+			error: function() {
+				console.log("ERROR!!!!");
+			}
+		});
 		// Grab first page of instance history
 		$.ajax({
 			type: 'GET',
@@ -83,7 +106,7 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
 					container.empty();
 
 				for (var i = 0; i < instances.length; i++) {
-					container.append(_.template(Atmo.Templates['history_row'], instances[i]));
+					container.append(_.template(Atmo.Templates['instance_history_row'], instances[i]));
 				}
 			},
 			error: function() {
