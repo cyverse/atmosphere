@@ -1,5 +1,5 @@
 <tr class="image-overview">
-	<td><img class="img-polaroid gravatar" src="https://www.gravatar.com/avatar/<%= alias_hash %>?s=25&d=identicon" alt="<%= name %>" title="<%= name %>">
+	<td><img class="img-polaroid gravatar" src="<% print(Atmo.profile.get_icon(machine_alias_hash) + '&s=25'); %>" alt="<%= name %>" title="<%= name %>">
 		<%= name %> <em><%= alias %></em>
 	</td>
 	<td><% var d = new Date(start_date); print((d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear()); %></td>
