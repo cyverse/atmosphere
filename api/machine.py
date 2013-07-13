@@ -106,7 +106,7 @@ class MachineHistory(APIView):
 
         page = request.QUERY_PARAMS.get('page')
         if page:
-            paginator = Paginator(history_machine_list, 20)
+            paginator = Paginator(history_machine_list, 5)
             try:
                 history_machine_page = paginator.page(page)
             except PageNotAnInteger:

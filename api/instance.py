@@ -137,7 +137,7 @@ class InstanceHistory(APIView):
 
         page = request.QUERY_PARAMS.get('page')
         if page:
-            paginator = Paginator(history_instance_list, 20)
+            paginator = Paginator(history_instance_list, 5)
             try:
                 history_instance_page = paginator.page(page)
             except PageNotAnInteger:
