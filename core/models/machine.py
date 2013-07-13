@@ -114,17 +114,17 @@ class ProviderMachine(models.Model):
 
     def esh_architecture(self):
         if self.esh and self.esh._image\
-           and self.esh.image.extra:
+           and self.esh._image.extra:
             return self.esh._image.extra.get('architecture', "N/A")
 
     def esh_ownerid(self):
         if self.esh and self.esh._image\
-           and self.esh.image.extra:
+           and self.esh._image.extra:
             return self.esh._image.extra.get('ownerid', "admin")
 
     def esh_state(self):
         if self.esh and self.esh._image\
-           and self.esh.image.extra:
+           and self.esh._image.extra:
             return self.esh._image.extra['state']
 
     def json(self):
