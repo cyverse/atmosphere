@@ -29,7 +29,7 @@ Atmo.Views.Tagger = Backbone.View.extend({
 		if (!this.options.suggestions) {
 			$.ajax({
 				type: 'GET',
-				url: site_root + '/api/tag/',
+				url: site_root + '/api/v1/tag/',
 				dataType: 'json',
 				success: function(response_text) {
 					var tags = response_text;
@@ -135,7 +135,7 @@ Atmo.Views.Tagger = Backbone.View.extend({
             // Check to see if the tag already exists. If yes, add the tag, if not, ask user to describe tag, then add it.
             $.ajax({
                 type: 'GET',
-                url: site_root + '/api/tag/' + text + '/', 
+                url: site_root + '/api/v1/tag/' + text + '/', 
 				statusCode: {
 					200: function(response_text) {
 						// Tag exists! Add it.
@@ -155,7 +155,7 @@ Atmo.Views.Tagger = Backbone.View.extend({
 								$.ajax({
 									type: 'POST',
 									data: data,
-									url: site_root + '/api/tag/',
+									url: site_root + '/api/v1/tag/',
 									success: function() {
 										self.add_tag(text);
 									},

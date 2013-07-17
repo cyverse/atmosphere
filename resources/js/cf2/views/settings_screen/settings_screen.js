@@ -70,7 +70,7 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
 		// Grab first page of machine history
 		$.ajax({
 			type: 'GET',
-			url: site_root + '/api/provider/' + provider + '/identity/' + identity + '/machine/history/?page=1', 
+			url: site_root + '/api/v1/provider/' + provider + '/identity/' + identity + '/machine/history/?page=1', 
 			success: function(response_text) {
 
 				// Loop through given instances and append them.
@@ -93,7 +93,7 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
 		// Grab first page of instance history
 		$.ajax({
 			type: 'GET',
-			url: site_root + '/api/provider/' + provider + '/identity/' + identity + '/instance/history/?page=1', 
+			url: site_root + '/api/v1/provider/' + provider + '/identity/' + identity + '/instance/history/?page=1', 
 			success: function(response_text) {
 
 				// Loop through given instances and append them.
@@ -140,7 +140,7 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
 
         $.ajax({
             type: 'POST',
-            url: site_root + '/api/email_support/', 
+            url: site_root + '/api/v1/email_support/', 
             data: data,
             statusCode: {
                 200: function() {

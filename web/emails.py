@@ -21,11 +21,11 @@ def requestImaging(request, machine_request_id):
     Processes image request, sends an email to atmo@iplantc.org
     Returns a response.
     """
-    view_link = '%s/api/request_image/%s' \
+    view_link = '%s/api/v1/request_image/%s' \
         % (settings.SERVER_URL, machine_request_id)
-    approve_link = '%s/api/request_image/%s/approve' \
+    approve_link = '%s/api/v1/request_image/%s/approve' \
         % (settings.SERVER_URL, machine_request_id)
-    deny_link = '%s/api/request_image/%s/deny' \
+    deny_link = '%s/api/v1/request_image/%s/deny' \
         % (settings.SERVER_URL, machine_request_id)
 
     name = request.POST.get('name', '')

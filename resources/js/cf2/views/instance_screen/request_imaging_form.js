@@ -66,7 +66,7 @@ Atmo.Views.RequestImagingForm = Backbone.View.extend({
 
         $.ajax({
             type: 'POST',
-            url: site_root + '/api/provider/'+Atmo.profile.get('selected_identity').get('provider_id') + '/identity/' + Atmo.profile.get('selected_identity').id + '/request_image/', 
+            url: site_root + '/api/v1/provider/'+Atmo.profile.get('selected_identity').get('provider_id') + '/identity/' + Atmo.profile.get('selected_identity').id + '/request_image/', 
             data: this.$el.find('.request_imaging_form').serialize(),
             success: function() {
                 self.$el.find('.request_image_submit').val("Request Submitted!").attr("disabled", "disabled").click(function() { return false; });

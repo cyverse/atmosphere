@@ -106,7 +106,7 @@ Atmo.Router = Backbone.Router.extend({
 		// Populate version number
 		$.ajax({
 			type: 'GET',
-			url: site_root + '/api/version/', 
+			url: site_root + '/api/v1/version/', 
 			statusCode: {
 				200:  function(response) {
 					$('#version').html('(v. ' + response['normal'] + ')');
