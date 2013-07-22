@@ -129,7 +129,7 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
 				// Get instances and volumes of this provider and identity 
 				$.ajax({
 					type: 'GET',
-					url: site_root + '/api/provider/' + self.provider + '/identity/' + self.identity_id + '/instance/', 
+					url: site_root + '/api/v1/provider/' + self.provider + '/identity/' + self.identity_id + '/instance/', 
 					success: function(response_text) {
 						self.instances = response_text;
 
@@ -193,7 +193,7 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
 				
 				$.ajax({
 					type: 'GET',
-					url: site_root + '/api/provider/' + self.provider + '/identity/' + self.identity_id + '/volume/', 
+					url: site_root + '/api/v1/provider/' + self.provider + '/identity/' + self.identity_id + '/volume/', 
 					success: function(response_text) {
 						self.volumes = response_text;
 

@@ -107,7 +107,7 @@ Atmo.Views.ReportInstanceForm = Backbone.View.extend({
 
             $.ajax({
                 type: 'POST',
-                url: site_root + '/api/email_support/', 
+                url: site_root + '/api/v1/email_support/', 
                 data: data,
                 success: function() {
 					loader.remove();

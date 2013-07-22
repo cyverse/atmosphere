@@ -99,7 +99,10 @@ class ProviderMachine(models.Model):
         return self.machine.icon.url if self.machine.icon else None
 
     def creator_name(self):
-        return self.machine.created_by.username
+        if self.machine:
+            return self.machine.created_by.username
+        else:
+            return "Unknown"
 
     def hash_alias(self):
         return md5(self.identifier).hexdigest()
@@ -110,13 +113,19 @@ class ProviderMachine(models.Model):
         return ""
 
     def esh_architecture(self):
-        return self.esh._image.extra.get('architecture', "N/A")
+        if self.esh and self.esh._image\
+           and self.esh._image.extra:
+            return self.esh._image.extra.get('architecture', "N/A")
 
     def esh_ownerid(self):
-        return self.esh._image.extra.get('ownerid', "admin")
+        if self.esh and self.esh._image\
+           and self.esh._image.extra:
+            return self.esh._image.extra.get('ownerid', "admin")
 
     def esh_state(self):
-        return self.esh._image.extra['state']
+        if self.esh and self.esh._image\
+           and self.esh._image.extra:
+            return self.esh._image.extra['state']
 
     def json(self):
         return {

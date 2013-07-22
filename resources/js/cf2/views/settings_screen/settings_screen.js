@@ -53,9 +53,67 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
 			self.$el.find('#providers').prepend(identity_view.render().el);
 		}
 
+		// Do initial population of histories
+		this.populate_histories();
+
         this.rendered = true;
 
 		return this;
+	},
+	populate_histories: function() {
+		// Render pagination buttons
+
+		var self = this;
+		var provider = Atmo.profile.get('selected_identity').get('provider_id');
+		var identity = Atmo.profile.get('selected_identity').get('id');
+
+		// Grab first page of machine history
+		$.ajax({
+			type: 'GET',
+			url: site_root + '/api/v1/provider/' + provider + '/identity/' + identity + '/machine/history/?page=1', 
+			success: function(response_text) {
+
+				// Loop through given instances and append them.
+				var container = self.$el.find('#profile_image_list');
+				var machines = response_text.results;
+
+				if (machines.length == 0)
+					container.find('td').html('You have not imaged any of your instances yet.');
+				else
+					container.empty();
+
+				for (var i = 0; i < machines.length; i++) {
+					container.append(_.template(Atmo.Templates['machine_history_row'], machines[i]));
+				}
+			},
+			error: function() {
+				console.log("ERROR!!!!");
+			}
+		});
+		// Grab first page of instance history
+		$.ajax({
+			type: 'GET',
+			url: site_root + '/api/v1/provider/' + provider + '/identity/' + identity + '/instance/history/?page=1', 
+			success: function(response_text) {
+
+				// Loop through given instances and append them.
+				var container = self.$el.find('#profile_instance_list');
+				var instances = response_text.results;
+
+				if (instances.length == 0)
+					container.find('td').html('You have not launched any instances yet');
+				else
+					container.empty();
+
+				for (var i = 0; i < instances.length; i++) {
+					container.append(_.template(Atmo.Templates['instance_history_row'], instances[i]));
+				}
+			},
+			error: function() {
+				console.log("ERROR!!!!");
+			}
+		});
+
 	},
 	switch_identity: function() {
 		var self = this;
@@ -82,7 +140,7 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
 
         $.ajax({
             type: 'POST',
-            url: site_root + '/api/email_support/', 
+            url: site_root + '/api/v1/email_support/', 
             data: data,
             statusCode: {
                 200: function() {

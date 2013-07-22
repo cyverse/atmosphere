@@ -1,0 +1,14 @@
+<tr class="image-overview">
+	<td><img class="img-polaroid gravatar" src="<% print(Atmo.profile.get_icon(alias_hash) + '&s=25'); %>" alt="<%= name %>" title="<%= name %>">
+		<%= name %> <em><%= alias %></em>
+	</td>
+	<td><% var d = new Date(start_date); print((d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear()); %></td>
+	<td class="actions">
+		<a href="#"><i class="icon-inbox"></i> Report</a>
+		<span class="caret"></span>
+	</td>
+</tr>
+<tr class="image-details">
+	<td colspan="4">
+	</td>
+</tr>

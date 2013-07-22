@@ -3,7 +3,7 @@
  */
 
 Atmo.Collections.Base = Backbone.Collection.extend({
-	urlRoot: '/api',
+	urlRoot: '/api/v1',
 	url: function() {
 		var creds = Atmo.get_credentials();
 		return url = this.urlRoot
@@ -12,7 +12,7 @@ Atmo.Collections.Base = Backbone.Collection.extend({
 			+ '/' + this.model.prototype.defaults.model_name + '/';
 	},
 	defaults: {
-		'api_url': '/api',
+		'api_url': '/api/v1',
 		'model_name': 'base'
 	},
 	fetch: function(options) {

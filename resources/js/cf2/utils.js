@@ -63,7 +63,7 @@ Atmo.Utils.hide_all_help = function() {
 Atmo.Utils.update_weather = function() {
 
     $.ajax({
-		url: '/api/provider/' + Atmo.profile.get('selected_identity').get('provider_id') + '/occupancy/', 
+		url: '/api/v1/provider/' + Atmo.profile.get('selected_identity').get('provider_id') + '/occupancy/', 
 		type: 'GET',
 		success: function(response_text) {
 

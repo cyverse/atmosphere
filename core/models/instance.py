@@ -58,7 +58,7 @@ class Instance(models.Model):
         else:
             try:
                 if self.provider_machine:
-                    return self.provider_machine.identifier
+                    return md5(self.provider_machine.identifier).hexdigest()
             except ProviderMachine.DoesNotExist as dne:
                 logger.exception("Unable to find provider_machine for %s." % self.provider_alias)
         return 'Unknown'

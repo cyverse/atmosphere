@@ -600,7 +600,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		on_confirm = function() {
 			Atmo.Utils.notify('Instance is rebooting...', 'Instance will finish rebooting momentarily.');
 			$.ajax({
-				url: site_root + '/api/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
+				url: site_root + '/api/v1/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
 				type: 'POST',
 				data: data,
 				success: function() {
@@ -660,7 +660,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 					Atmo.Utils.notify('Resuming Instance', 'Instance will be active and available shortly.');
 					$.ajax({
-						url: site_root + '/api/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
+						url: site_root + '/api/v1/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
 						type: 'POST',
 						data: data,
 						success: function() {
@@ -699,7 +699,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				Atmo.Utils.notify('Suspending Instance', 'Instance will be suspended momentarily.');
 
 				$.ajax({
-					url: site_root + '/api/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
+					url: site_root + '/api/v1/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
 					type: 'POST',
 					data: data,
 					success: function() {
@@ -757,7 +757,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 									state_is_inactive: false});
 
 					$.ajax({
-						url: site_root + '/api/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
+						url: site_root + '/api/v1/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
 						type: 'POST',
 						data: data,
 						success: function() {
@@ -791,7 +791,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			on_confirm = function() {
 				Atmo.Utils.notify('Stopping Instance', 'Instance will be stopped momentarily.');
 				$.ajax({
-					url: site_root + '/api/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
+					url: site_root + '/api/v1/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
 					type: 'POST',
 					data: data,
 					success: function() {
