@@ -135,6 +135,10 @@ def is_updated_test(filename):
     return False
 
 
+def file_contains(filename, val):
+    return if val in open(filename, 'r').read()
+    
+
 def etc_skel_bashrc(user):
     filename = "/etc/skel/.bashrc"
     if not is_updated_test(filename):
@@ -704,9 +708,12 @@ def main(argv):
     #is_updated_test determines if this sensitive file needs
     update_sshkeys()
     update_sudoers()
-    if not is_updated_test('/etc/sudoers'):
-        add_etc_group(linuxuser)
+
+    if not file_contains('etc/sudoers', linuxuser):
         add_sudoers(linuxuser)
+    if not file_contains('etc/group', linuxuser):
+        add_etc_group(linuxuser)
+    if not is_updated_test('/etc/sudoers'):
         ssh_config(distro)
 
     if not is_rhel(distro):

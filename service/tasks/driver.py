@@ -48,7 +48,7 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
 # Deploy and Destroy tasks
 @task(name="deploy_to",
       max_retries=2,
-      default_retry_delay=120,
+      default_retry_delay=128,
       ignore_result=True)
 def deploy_to(driverCls, provider, identity, instance, *args, **kwargs):
     try:
@@ -61,9 +61,9 @@ def deploy_to(driverCls, provider, identity, instance, *args, **kwargs):
         deploy_to.retry(exc=exc)
 
 @task(name="deploy_init_to",
-      default_retry_delay=60,
+      default_retry_delay=20,
       ignore_result=True,
-      max_retries=1)
+      max_retries=12)
 def deploy_init_to(driverCls, provider, identity, instance_id, *args, **kwargs):
     try:
         logger.debug("deploy_init_to task started at %s." % datetime.now())
