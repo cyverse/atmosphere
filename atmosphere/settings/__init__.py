@@ -12,13 +12,15 @@ import caslib
 
 import atmosphere
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__),'..')) 
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 SERVER_URL = 'https://yourserver.iplantc.org'
-REDIRECT_URL = '' # IF on the root directory, this should be BLANK, else: /path/to/web (NO TRAILING /)
+# IF on the root directory, this should be BLANK, else: /path/to/web (NO
+# TRAILING /)
+REDIRECT_URL = ''
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = [SERVER_URL.replace('https://','')]
+ALLOWED_HOSTS = [SERVER_URL.replace('https://', '')]
 
 #NOTE: first admin will be sender of atmo emails.
 ADMINS = (
@@ -54,7 +56,7 @@ USE_TZ = True
 
 # Absolute path to the directory that holds media.
 # Example: '/home/media/media.lawrence.com/'
-MEDIA_ROOT = PROJECT_ROOT+'/resources/'
+MEDIA_ROOT = PROJECT_ROOT + '/resources/'
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
@@ -64,7 +66,7 @@ MEDIA_URL = '/resources/'
 # URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
 # trailing slash.
 # Examples: 'http://foo.com/media/', '/media/'.
-STATIC_ROOT = PROJECT_ROOT+'/static/'
+STATIC_ROOT = PROJECT_ROOT + '/static/'
 
 STATIC_URL = '/static/'
 
@@ -95,14 +97,14 @@ ROOT_URLCONF = 'atmosphere.urls'
 WSGI_APPLICATION = 'atmosphere.wsgi.application'
 
 TEMPLATE_DIRS = (
-    os.path.join(PROJECT_ROOT,'templates'),
+    os.path.join(PROJECT_ROOT, 'templates'),
 )
 
 AUTH_PROFILE_MODULE = 'core.UserProfile'
 
 AUTHENTICATION_BACKENDS = (
-    'authentication.authBackends.CASLoginBackend', #For Web-Access
-    'authentication.authBackends.LDAPLoginBackend', #For Service-Access
+    'authentication.authBackends.CASLoginBackend',  # For Web-Access
+    'authentication.authBackends.LDAPLoginBackend',  # For Service-Access
     #'django.contrib.auth.backends.ModelBackend',
 )
 
@@ -149,7 +151,7 @@ INIT_SCRIPT_PREFIX = '/init_files/'
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 LOGGING_LEVEL = logging.DEBUG
-DEP_LOGGING_LEVEL = logging.DEBUG # Logging level for dependencies.
+DEP_LOGGING_LEVEL = logging.DEBUG  # Logging level for dependencies.
 LOG_FILENAME = os.path.abspath(os.path.join(
     os.path.dirname(atmosphere.__file__),
     '..',
@@ -164,10 +166,11 @@ threepio.email_logger = threepio.initialize("atmosphere_email",
                                             dep_logging_level=DEP_LOGGING_LEVEL,
                                             global_logger=False)
 
-##Directory that the app (One level above this file) exists (TEST if this is necessary)
+##Directory that the app (One level above this file) exists
+# (TEST if this is necessary)
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if os.environ.has_key('PYTHONPATH'):
-    os.environ['PYTHONPATH'] = root_dir+':'+os.environ['PYTHONPATH'] 
+    os.environ['PYTHONPATH'] = root_dir + ':' + os.environ['PYTHONPATH']
 else:
     os.environ['PYTHONPATH'] = root_dir
 
@@ -189,11 +192,11 @@ REST_FRAMEWORK = {
         )
 }
 ##CASLIB
-SERVER_URL = SERVER_URL+REDIRECT_URL
+SERVER_URL = SERVER_URL + REDIRECT_URL
 CAS_SERVER = 'https://auth.iplantcollaborative.org'
-SERVICE_URL = SERVER_URL+'/CAS_serviceValidater?sendback='+REDIRECT_URL+'/application/'
-PROXY_URL = SERVER_URL+'/CAS_proxyUrl'
-PROXY_CALLBACK_URL = SERVER_URL+'/CAS_proxyCallback'
+SERVICE_URL = SERVER_URL + '/CAS_serviceValidater?sendback=' + REDIRECT_URL + '/application/'
+PROXY_URL = SERVER_URL + '/CAS_proxyUrl'
+PROXY_CALLBACK_URL = SERVER_URL + '/CAS_proxyCallback'
 caslib.cas_init(CAS_SERVER, SERVICE_URL, PROXY_URL, PROXY_CALLBACK_URL)
 
 ##CACHE SETTINGS
@@ -212,35 +215,35 @@ CACHES = {
 # CLEAR ALL VALUES BELOW THIS LINE BEFORE PUSHING TO DIST
 
 ##ATMO SETTINGS
-ATMOSPHERE_VNC_LICENSE=""
+ATMOSPHERE_VNC_LICENSE = ""
 
 ##AUTH SETTINGS
-TOKEN_EXPIRY_TIME=timedelta(days=1)
-LDAP_SERVER="ldap://ldap.iplantcollaborative.org"
-LDAP_SERVER_DN="ou=people,dc=iplantcollaborative,dc=org"
+TOKEN_EXPIRY_TIME = timedelta(days=1)
+LDAP_SERVER = "ldap://ldap.iplantcollaborative.org"
+LDAP_SERVER_DN = "ou=people,dc=iplantcollaborative,dc=org"
 
 ##SERVICE SETTINGS
 #Eucalyptus provider secrets
-EUCA_S3_URL=""
-EUCA_EC2_URL=""
-EUCA_ADMIN_KEY=""
-EUCA_ADMIN_SECRET=""
+EUCA_S3_URL = ""
+EUCA_EC2_URL = ""
+EUCA_ADMIN_KEY = ""
+EUCA_ADMIN_SECRET = ""
 
 #
 # IMAGING SETTINGS
 #
- 
+
 # LOCAL STORAGE
 # Local storage is necessary for imaging Eucalyptus
 # There should be a minimum of 10GB of space remaining
 # before attempting imaging.
 # Ideally, this location should point to a storage volume
-LOCAL_STORAGE='/tmp'
+LOCAL_STORAGE = '/tmp'
 
 #Eucalyptus Imaging secrets
-EUCA_PRIVATE_KEY=""
-EC2_CERT_PATH=""
-EUCALYPTUS_CERT_PATH=""
+EUCA_PRIVATE_KEY = ""
+EC2_CERT_PATH = ""
+EUCALYPTUS_CERT_PATH = ""
 
 #Eucalyptus Dicts
 EUCA_IMAGING_ARGS = {
@@ -262,13 +265,13 @@ EUCALYPTUS_ARGS = {
 }
 
 #Openstack provider secrets
-OPENSTACK_ADMIN_KEY=""
-OPENSTACK_ADMIN_SECRET=""
-OPENSTACK_AUTH_URL=''
-OPENSTACK_ADMIN_URL=OPENSTACK_AUTH_URL.replace("5000","35357")
-OPENSTACK_ADMIN_TENANT=""
-OPENSTACK_DEFAULT_REGION=""
-OPENSTACK_DEFAULT_ROUTER=""
+OPENSTACK_ADMIN_KEY = ""
+OPENSTACK_ADMIN_SECRET = ""
+OPENSTACK_AUTH_URL = ''
+OPENSTACK_ADMIN_URL = OPENSTACK_AUTH_URL.replace("5000", "35357")
+OPENSTACK_ADMIN_TENANT = ""
+OPENSTACK_DEFAULT_REGION = ""
+OPENSTACK_DEFAULT_ROUTER = ""
 
 OPENSTACK_ARGS = {
     'username': OPENSTACK_ADMIN_KEY,
@@ -284,18 +287,18 @@ OPENSTACK_NETWORK_ARGS = {
 }
 
 #AWS Provider secrets
-AWS_KEY=""
-AWS_SECRET=""
-AWS_S3_URL=""
-AWS_S3_KEY=""
-AWS_S3_SECRET=""
+AWS_KEY = ""
+AWS_SECRET = ""
+AWS_S3_URL = ""
+AWS_S3_KEY = ""
+AWS_S3_SECRET = ""
 
 #pyes secrets
 ELASTICSEARCH_HOST = SERVER_URL
 ELASTICSEARCH_PORT = 9200
 
 #Django-Celery secrets
-BROKER_URL=""
+BROKER_URL = ""
 BROKER_BACKEND = "redis"
 REDIS_PORT = 6379
 REDIS_HOST = ""
@@ -303,12 +306,22 @@ BROKER_USER = ""
 BROKER_PASSWORD = ""
 REDIS_DB = 0
 REDIS_CONNECT_RETRY = True
-CELERY_SEND_EVENTS=True
-CELERY_RESULT_BACKEND='redis'
-CELERY_TASK_RESULT_EXPIRES=10
-CELERYBEAT_SCHEDULER="djcelery.schedulers.DatabaseScheduler"
+CELERY_SEND_EVENTS = True
+CELERY_RESULT_BACKEND = 'redis'
+CELERY_TASK_RESULT_EXPIRES = 10
+CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
 #Django-Celery Development settings
 #CELERY_ALWAYS_EAGER = True
 
 import djcelery
 djcelery.setup_loader()
+
+"""
+Import local settings, specific to the server this code is running on.
+Mostly good for TEST settings, especially DB conf.
+"""
+try:
+    from settings.local import *
+# Its OK if there is no local.py on the server!
+except ImportError:
+    pass
