@@ -136,7 +136,7 @@ def is_updated_test(filename):
 
 
 def file_contains(filename, val):
-    return if val in open(filename, 'r').read()
+    return val in open(filename, 'r').read()
     
 
 def etc_skel_bashrc(user):
