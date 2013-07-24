@@ -709,9 +709,9 @@ def main(argv):
     update_sshkeys()
     update_sudoers()
 
-    if not file_contains('etc/sudoers', linuxuser):
+    if not file_contains('/etc/sudoers', linuxuser):
         add_sudoers(linuxuser)
-    if not file_contains('etc/group', linuxuser):
+    if not file_contains('/etc/group', linuxuser):
         add_etc_group(linuxuser)
     if not is_updated_test('/etc/sudoers'):
         ssh_config(distro)
