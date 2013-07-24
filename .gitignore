@@ -11,6 +11,8 @@ nohup.out
 .*
 #*#
 #*.*#
+atmosphere/settings/local.py
+atmosphere/settings/secrets.py
 docs/*.org
 logs/*
 static/*

@@ -1,4 +1,7 @@
-# Settings for atmosphere project.
+"""
+Settings for atmosphere project.
+
+"""
 
 from __future__ import absolute_import
 from datetime import timedelta
@@ -12,7 +15,7 @@ import caslib
 
 import atmosphere
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 SERVER_URL = 'https://yourserver.iplantc.org'
 # IF on the root directory, this should be BLANK, else: /path/to/web (NO
 # TRAILING /)
@@ -33,7 +36,7 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        'NAME': 'space_dev',
+        'NAME': 'atmosphere',
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'USER': 'atmo_app',
         'PASSWORD': 'atmosphere',
@@ -133,7 +136,7 @@ INSTALLED_APPS = (
 
 # The age of session cookies, in seconds.
 # http://docs.djangoproject.com/en/dev/ref/settings/
-# http://docs.djangoproject.com/en/dev/topics/http/sessions/#topics-http-sessions
+# http://docs.djangoproject.com/en/dev/topics/http/sessions/
 # Now I set sessio cookies life time = 3600 seconds = 1 hour
 #SESSION_COOKIE_AGE = 3600
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
@@ -160,16 +163,17 @@ threepio.initialize("atmosphere",
                     log_filename=LOG_FILENAME,
                     app_logging_level=LOGGING_LEVEL,
                     dep_logging_level=DEP_LOGGING_LEVEL)
-threepio.email_logger = threepio.initialize("atmosphere_email",
-                                            log_filename=LOG_FILENAME,
-                                            app_logging_level=LOGGING_LEVEL,
-                                            dep_logging_level=DEP_LOGGING_LEVEL,
-                                            global_logger=False)
+threepio.email_logger = threepio\
+        .initialize("atmosphere_email",
+                    log_filename=LOG_FILENAME,
+                    app_logging_level=LOGGING_LEVEL,
+                    dep_logging_level=DEP_LOGGING_LEVEL,
+                    global_logger=False)
 
 ##Directory that the app (One level above this file) exists
 # (TEST if this is necessary)
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if os.environ.has_key('PYTHONPATH'):
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+if 'PYTHONPATH' in os.environ:
     os.environ['PYTHONPATH'] = root_dir + ':' + os.environ['PYTHONPATH']
 else:
     os.environ['PYTHONPATH'] = root_dir
@@ -180,21 +184,22 @@ sys.stdout = sys.stderr
 
 ##REST FRAMEWORK
 REST_FRAMEWORK = {
-        'DEFAULT_RENDERER_CLASSES': (
-                'rest_framework.renderers.JSONRenderer',
-                'rest_framework.renderers.JSONPRenderer',
-                'rest_framework.renderers.BrowsableAPIRenderer',
-                'rest_framework.renderers.YAMLRenderer',
-                'rest_framework.renderers.XMLRenderer',
-        ),
-        'DEFAULT_AUTHENTICATION_CLASSES': (
-            'authentication.token.TokenAuthentication',
-        )
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.JSONPRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+        'rest_framework.renderers.YAMLRenderer',
+        'rest_framework.renderers.XMLRenderer',
+    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'authentication.token.TokenAuthentication',
+    )
 }
 ##CASLIB
 SERVER_URL = SERVER_URL + REDIRECT_URL
 CAS_SERVER = 'https://auth.iplantcollaborative.org'
-SERVICE_URL = SERVER_URL + '/CAS_serviceValidater?sendback=' + REDIRECT_URL + '/application/'
+SERVICE_URL = SERVER_URL + '/CAS_serviceValidater?sendback='\
+    + REDIRECT_URL + '/application/'
 PROXY_URL = SERVER_URL + '/CAS_proxyUrl'
 PROXY_CALLBACK_URL = SERVER_URL + '/CAS_proxyCallback'
 caslib.cas_init(CAS_SERVER, SERVICE_URL, PROXY_URL, PROXY_CALLBACK_URL)
@@ -321,7 +326,13 @@ Import local settings, specific to the server this code is running on.
 Mostly good for TEST settings, especially DB conf.
 """
 try:
-    from settings.local import *
+    from atmosphere.settings.local import *
 # Its OK if there is no local.py on the server!
+except ImportError:
+    pass
+
+try:
+    from atmosphere.settings.secrets import *
+# Its OK if there is no secrets.py on the server!
 except ImportError:
     pass
