@@ -2,7 +2,6 @@
   Machine models for atmosphere.
 """
 import json
-
 from hashlib import md5
 
 from django.db import models
@@ -94,6 +93,8 @@ class ProviderMachine(models.Model):
     provider = models.ForeignKey(Provider)
     machine = models.ForeignKey(Machine)
     identifier = models.CharField(max_length=256, unique=True)  # EMI-12341234
+    start_date = models.DateTimeField(default=timezone.now())
+    end_date = models.DateTimeField(null=True, blank=True)
 
     def icon_url(self):
         return self.machine.icon.url if self.machine.icon else None
@@ -242,14 +243,22 @@ def convertEshMachine(esh_driver, esh_machine, provider_id, image_id=None):
     provider_machine = set_machine_from_metadata(esh_driver, provider_machine)
     return provider_machine
 
+
 def filter_core_machine(provider_machine):
     """
     Filter conditions:
-    * Machine does not have an end-date
+    * Machine does not have an end_date
+    * end_date < now
     """
-    if provider_machine.machine.end_date:
-        return False
+    now = timezone.now()
+    if provider_machine.end_date or\
+       provider_machine.machine.end_date:
+        if provider_machine.end_date:
+            return not(provider_machine.end_date < now)
+        if provider_machine.machine.end_date:
+            return not(provider_machine.machine.end_date < now)
     return True
+
 
 def set_machine_from_metadata(esh_driver, core_machine):
     #Fixes Dep. loop - Do not remove
