@@ -63,7 +63,7 @@ def deploy_to(driverCls, provider, identity, instance, *args, **kwargs):
 @task(name="deploy_init_to",
       default_retry_delay=20,
       ignore_result=True,
-      max_retries=12)
+      max_retries=3)
 def deploy_init_to(driverCls, provider, identity, instance_id, *args, **kwargs):
     try:
         logger.debug("deploy_init_to task started at %s." % datetime.now())
@@ -153,9 +153,9 @@ def destroy_instance(driverCls, provider, identity, instance_alias):
         destroy_instance.retry(exc=exc)
 
 @task(name="_deploy_init_to",
-      default_retry_delay=120,
+      default_retry_delay=32,
       ignore_result=True,
-      max_retries=2)
+      max_retries=8)
 def _deploy_init_to(driverCls, provider, identity, instance_id):
     try:
         logger.debug("_deploy_init_to task started at %s." % datetime.now())
