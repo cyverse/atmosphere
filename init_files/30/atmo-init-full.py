@@ -713,7 +713,7 @@ def main(argv):
         add_sudoers(linuxuser)
     if not file_contains('/etc/group', linuxuser):
         add_etc_group(linuxuser)
-    if not is_updated_test('/etc/sudoers'):
+    if not is_updated_test("/etc/ssh/sshd_config"):
         ssh_config(distro)
 
     if not is_rhel(distro):

@@ -61,7 +61,7 @@ def main(args)
   atmo_userid = args_dict['atmosphere']['userid']
   atmo_instance_url = args_dict['atmosphere']['instance_service_url']
   atmo_vnc_license = args_dict['atmosphere']['vnc_license']
-  hashCheck("#{atmo_server}/init_files/#{$version}/atmo-init-full.py", "6564ee0a16a3612ca90aacd26053897b86f329dc", "/usr/sbin/atmo_init_full")
+  hashCheck("#{atmo_server}/init_files/#{$version}/atmo-init-full.py", "c3a156ba32b5389c4c450e9011fac6b5f467b564", "/usr/sbin/atmo_init_full")
   IO.popen("/bin/chmod a+x /usr/sbin/atmo_init_full") { |f| }
   stdin, stdout, stderr, wait_thr = Open3.popen3('/usr/sbin/atmo_init_full --service_type="%s" --token="%s" --server="%s" --service_url="%s" --user_id="%s" --vnc_license="%s"' % [atmo_service_type, atmo_token, atmo_server, atmo_instance_url, atmo_userid, atmo_vnc_license])
   $log.debug stdout.read
