@@ -1,4 +1,12 @@
 #!/usr/bin/env python
+"""
+Debugging atmo-init-full locally:
+    cd /usr/sbin
+    touch __init__.py
+    python
+    >>> import atmo-init-full
+    >>>
+"""
 import getopt
 import logging
 import os
@@ -142,23 +150,34 @@ def file_contains(filename, val):
 def etc_skel_bashrc(user):
     filename = "/etc/skel/.bashrc"
     if not is_updated_test(filename):
+        #TODO: Should this be $USER instead of %s?
         append_to_file(filename, """
 export IDS_HOME="/irods/data.iplantc.org/iplant/home/%s"
 alias ids_home="cd $IDS_HOME"
 """ % user)
 
+def text_in_file(filename, text):
+    f = open(filename, 'r')
+    whole_file = f.read()
+    if text in whole_file:
+        f.close()
+        return True
+    f.close()
+    return False
 
-def append_to_file(filename, block):
+def append_to_file(filename, text):
     try:
+        if text_in_file(filename, text):
+            return
         f = open(filename, "a")
         f.write("## Atmosphere System\n")
-        f.write(block)
+        f.write(text)
         f.write("\n")
         f.write("## End Atmosphere System\n")
         f.close()
     except Exception, e:
         logging.exception("Failed to append to %s" % filename)
-        logging.exception("Failed to append block: %s" % block)
+        logging.exception("Failed to append text: %s" % text)
 
 
 def add_sudoers(user):
