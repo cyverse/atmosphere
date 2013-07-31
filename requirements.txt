@@ -38,6 +38,7 @@ python-ldap==2.4.10
 python-magic==0.4.3
 git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient
 git+git://github.com/openstack/python-quantumclient.git#egg=python-quantumclient
+git+git://github.com/openstack/python-neutronclient.git#egg=python-neutronclient
 pytz==2012j
 redis==2.7.2
 requests==1.1.0

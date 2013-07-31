@@ -9,7 +9,7 @@ import glanceclient
 from keystoneclient.exceptions import AuthorizationFailure
 from keystoneclient import exceptions
 from novaclient import client as nova_client
-from quantumclient.v2_0 import client as quantum_client
+from neutronclient.v2_0 import client as neutron_client
 
 from libcloud.compute.deployment import ScriptDeployment
 
@@ -45,12 +45,12 @@ class LoggedScriptDeployment(ScriptDeployment):
         return node
 
 
-def _connect_to_quantum(*args, **kwargs):
+def _connect_to_neutron(*args, **kwargs):
     """
     """
-    quantum = quantum_client.Client(*args, **kwargs)
-    quantum.format = 'json'
-    return quantum
+    neutron = neutron_client.Client(*args, **kwargs)
+    neutron.format = 'json'
+    return neutron
 
 
 def _connect_to_keystone(*args, **kwargs):

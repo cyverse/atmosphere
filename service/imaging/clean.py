@@ -106,15 +106,18 @@ def remove_vm_specific_data(mounted_path, dry_run=False):
     """
     if not check_mounted(mounted_path):
         raise Exception("Expected a mounted path at %s" % mounted_path)
-    remove_files = ['mnt/*', 'tmp/*', 'root/*', 'dev/*',
-                    'proc/*',
+    remove_files = ['mnt/*', 'tmp/*', 'root/*',
+                    'dev/*', 'proc/*',
+                    'var/log/*',
                    ]
     remove_line_files = []
     overwrite_files = [
         'root/.bash_history', 'var/log/auth.log',
         'var/log/boot.log', 'var/log/daemon.log',
+        'var/log/denyhosts',
         'var/log/denyhosts.log', 'var/log/dmesg',
-        'var/log/secure', 'var/log/messages',
+        'var/log/secure',
+        'var/log/messages', 'var/log/maillog', 
         'var/log/lastlog', 'var/log/cups/access_log',
         'var/log/cups/error_log', 'var/log/syslog',
         'var/log/user.log', 'var/log/wtmp',

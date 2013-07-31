@@ -9,9 +9,6 @@ CELERYD_CHDIR="/opt/dev/atmosphere/"
 # Python interpreter from environment.
 ENV_PYTHON="/opt/env/atmo/bin/python"
 
-# How to call "manage.py celeryd"
-CELERYD_MULTI="$ENV_PYTHON $CELERYD_CHDIR/manage.py celeryd"
-
 # How to call "manage.py celeryd_multi"
 CELERYD_MULTI="$ENV_PYTHON $CELERYD_CHDIR/manage.py celeryd_multi"
 
