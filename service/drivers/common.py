@@ -458,3 +458,14 @@ def get_default_subnet(username, inc=0):
         return "172.16.42.0/24"  # /flex
     else:
         return "172.%s.%s.0/24" % (block1, block2)
+
+
+def get_driver(driverCls, provider, identity):
+    """
+    Create a driver object from a class, provider and identity.
+    """
+    from rtwo import compute
+    compute.initialize()
+    driver = driverCls(provider, identity)
+    if driver:
+        return driver

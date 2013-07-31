@@ -1,3 +1,6 @@
+"""
+Tasks for driver operations.
+"""
 from datetime import datetime
 
 from celery.decorators import task
@@ -7,17 +10,11 @@ from celery import chain
 from threepio import logger
 
 from core.email import send_instance_email
+from core.ldap import get_uid_number as get_unique_number
 from core.models.instance import update_instance_metadata
 
-# Utility methods and tasks
-def get_driver(driverCls, provider, identity):
-    logger.debug("getting driver...")
-    from rtwo import compute
-    compute.initialize()
-    driver = driverCls(provider, identity)
-    if driver:
-        logger.debug("created driver.")
-        return driver
+from service.drivers.common import get_driver
+
 
 @task(name="_send_instance_email",
       default_retry_delay=10,
@@ -54,7 +51,7 @@ def deploy_to(driverCls, provider, identity, instance, *args, **kwargs):
     try:
         logger.debug("deploy_to task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
-        driver.deploy_init_to(instance, *args, **kwargs)
+        driver.deploy_to(instance, *args, **kwargs)
         logger.debug("deploy_to task finished at %s." % datetime.now())
     except Exception as exc:
         logger.warn(exc)
@@ -262,6 +259,7 @@ def add_os_project_network(username, *args, **kwargs):
             username,
             password,
             project_name,
+            get_unique_number=get_unique_number,
             **settings.OPENSTACK_NETWORK_ARGS)
         logger.debug("add_os_project_network task finished at %s." % datetime.now())
     except Exception as exc:
