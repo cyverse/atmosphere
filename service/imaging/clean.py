@@ -66,23 +66,27 @@ def remove_atmo_data(mounted_path, dry_run=False):
         (".*vncserver$", "", "etc/rc.local"),
         (".*shellinbaox.*", "", "etc/rc.local")
     ]
+
+    ###
+    #NOTE:
+    # The end-of-file deletes are necessary until the next maintenance period
+    # when we should check that these lines are no longer needed
+    ###
     multiline_delete_files = [
         #TEMPLATE:
         #('delete_from', 'delete_to', 'replace_where')
 
-        ("## Atmosphere System", "# End Nagios", "etc/sudoers"),
-        #Just in case nagios isn't there..
-        ("## Atmosphere System", "# End Atmosphere System", "etc/sudoers"),
+        ("## Atmosphere System", "## End Atmosphere System", "etc/sudoers"),
+        ("# Begin Nagios", "# End Nagios", "etc/sudoers"),
+        ("# Begin Sensu", "# End Sensu", "etc/sudoers"),
+        ("## Atmosphere System", "", "etc/sudoers"), #Delete to end-of-file..
         ("## Atmosphere System", "## End Atmosphere System",
          "etc/ssh/sshd_config"),
-
-        #Remove lines below after next maintenance period..
-        ("## Atmosphere System", "Allowgroups users root core-services",
-         "etc/ssh/sshd_config"),
-        #Remove lines above after next maintenance period..
+        ("## Atmosphere System", "", "etc/ssh/sshd_config"), #Delete to end-of-file..
 
         ("## Atmosphere System", "## End Atmosphere System",
          "etc/skel/.bashrc"),
+        ("## Atmosphere System", "", "etc/skel/.bashrc"), #Delete to end-of-file..
     ]
     _perform_cleaning(mounted_path, rm_files=remove_files,
                       remove_line_files=remove_line_files,
