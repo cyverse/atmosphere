@@ -42,11 +42,11 @@ git+git://github.com/openstack/python-neutronclient.git#egg=python-neutronclient
 pytz==2012j
 redis==2.7.2
 requests==1.1.0
+git+git://github.com/jmatt/threepio.git#egg=threepio
 git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive
 git+git://github.com/iPlantCollaborativeOpenSource/rtwo.git#egg=rtwo
 simplejson==3.1.0
 six==1.1.0
-git+git://github.com/jmatt/threepio.git#egg=threepio
 urllib3==1.5
 warlock==0.8.1
 wsgiref==0.1.2
