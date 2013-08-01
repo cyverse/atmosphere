@@ -29,7 +29,6 @@ from api.serializers import InstanceSerializer, VolumeSerializer,\
 
 from service import task
 
-
 class InstanceList(APIView):
     """
     Represents:
@@ -190,42 +189,22 @@ class InstanceAction(APIView):
             result_obj = None
             if 'volume' in action:
                 volume_id = action_params.get('volume_id')
-                esh_volume = esh_driver.get_volume(volume_id)
-                device = action_params.get('device', None)
                 if 'attach_volume' == action:
-                    esh_driver.attach_volume(
-                        esh_instance,
-                        esh_volume,
-                        device)
+                    #TODO: Make this async again by changing our volume
+                    # workflow
+                    device = action_params.get('device', None)
+                    task.attach_volume_task(esh_driver, esh_instance.alias,
+                                            volume_id, device)
                 elif 'detach_volume' == action:
-                    esh_driver.detach_volume(esh_volume)
-                #If attaching, wait until we leave the intermediary state...
-                attempts = 0
-                while True:
-                    esh_volume = esh_driver.get_volume(volume_id)
-                    core_volume = convertEshVolume(esh_volume,
-                                                   provider_id,
-                                                   user)
-                    result_obj = VolumeSerializer(core_volume).data
-                    logger.debug(result_obj)
-                    if attempts >= 6:  # After 6 attempts (~1min)
-                        break
-                    if 'attaching' not in esh_volume.extra['status']\
-                            and 'detaching' not in esh_volume.extra['status']:
-                        break
-                    time.sleep(2**attempts)  # Exponential backoff..
-                    attempts += 1
-                logger.debug(
-                    "%s completed in %s attempts"
-                    % (action, attempts))
-                if esh_volume.extra['status'] == 'available':
-                    errorObj = failureJSON([{
-                        'code': 503,
-                        'message':
-                        'Volume attachment failed. Please try again'}])
-                    return Response(
-                        errorObj,
-                        status=status.HTTP_503_SERVICE_UNAVAILABLE)
+                    task.detach_volume_task(esh_driver, esh_instance.alias,
+                                            volume_id)
+                #Task complete, convert the volume and return the object
+                esh_volume = esh_driver.get_volume(volume_id)
+                core_volume = convertEshVolume(esh_volume,
+                                               provider_id,
+                                               user)
+                result_obj = VolumeSerializer(core_volume).data
+                logger.debug(result_obj)
             elif 'resize' == action:
                 size_alias = action_params.get('size_alias', '')
                 size = esh_driver.get_size(size_alias)
