@@ -140,7 +140,7 @@ def umount_task(driverCls, provider, identity, instance_id, volume_id, *args, **
             if device == dev_found:
                 mount_location = search_dict['location']
                 break
-        Volume not mounted, move along..
+        #Volume not mounted, move along..
         if not mount_location:
             return
 
