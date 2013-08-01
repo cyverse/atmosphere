@@ -2,6 +2,7 @@ Django==1.5
 PIL==1.1.7
 South==0.7.6
 apache-libcloud==0.12.1
+boto==2.9.9
 celery==3.0.16
 django-celery-with-redis==3.0
 django-nose2==0.1.1
