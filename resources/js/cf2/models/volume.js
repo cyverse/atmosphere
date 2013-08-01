@@ -105,10 +105,10 @@ Atmo.Models.Volume = Atmo.Models.Base.extend({
 			data: param, 
 			success: function(response_data) {
 				self.set({
-					'attach_data_attach_time': null,
-					'attach_data_device': null,
-					'attach_data_instance_id': null,
-					'status': 'available'
+					//'attach_data_attach_time': null,
+					//'attach_data_device': null,
+					//'attach_data_instance_id': null,
+					'status': 'detaching'
 				});
 				self.trigger('detach');
 				options.success();

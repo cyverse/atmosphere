@@ -38,13 +38,20 @@ Atmo.Views.VolumeScreenVolume = Backbone.View.extend({
             .find('.volume_info')
                 .remove()
                 .end()
-            // set draggable 
-            .draggable('option', 'disabled', this.model.get('status') == 'attaching');
+            // Disable draggable if attaching/detaching
+            .draggable('option', 'disabled', this.model.get('status') == 'attaching' || this.model.get('status') == 'detaching');
 
         if (this.model.get('status') == "attaching") 
             this.$el
                 .addClass('attaching')
                 .append('<div class="volume_info">Device Location: <span data-id="'+this.model.get('id')+'"><img src="../resources/images/loader.gif" /> Attaching</span></div>');
+        else if (this.model.get('status') == 'detaching') {
+            //TODO: This is a hack to get 'detaching' volumes to revert to their original position.. Css/js wizards approval required
+            this.$el.removeAttr('style')
+            this.$el
+                .addClass('attaching')
+                .append('<div class="volume_info"><span data-id="'+this.model.get('id')+'"><img src="../resources/images/loader.gif" /> Detaching</span></div>');
+        }
         else if (this.model.get('status') == 'in-use') {
             this.$el
                 .addClass('attached')

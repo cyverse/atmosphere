@@ -217,7 +217,6 @@ Atmo.Utils.confirm_detach_volume = function(volume, instance, options) {
 
     Atmo.Utils.confirm(header, body, { 
         on_confirm: function() {
-            Atmo.Utils.notify("<img src=\""+site_root +"/resources/images/loader_bluebg.gif\" /> Detaching volume.", "", {no_timeout: true});
             volume.detach(instance, {
                 success: function() {
                     Atmo.Utils.notify("Volume Detached", "Volume is now available to attach to another instance or to destroy.");
@@ -228,9 +227,6 @@ Atmo.Utils.confirm_detach_volume = function(volume, instance, options) {
                     body += "<p>Please correct the problem and try again. If the problem persists, or you are unsure how to fix the problem, please email <a href=\"mailto:support@iplantcollaborative.org\">support@iplantcollaborative.org</a>.</p>"
                     Atmo.Utils.confirm("Volume failed to detach", body, {
                     });
-                    //TODO: Get rid of 'Detaching Volume' notification, instead
-                    //we should leave the volume in the instance and show
-                    //'detaching ()' similar to the attaching box...
                     //TODO: Remove the 'Cancel' button on this box
                 }
             }); 
