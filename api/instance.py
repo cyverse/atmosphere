@@ -196,8 +196,18 @@ class InstanceAction(APIView):
                     task.attach_volume_task(esh_driver, esh_instance.alias,
                                             volume_id, device)
                 elif 'detach_volume' == action:
-                    task.detach_volume_task(esh_driver, esh_instance.alias,
-                                            volume_id)
+                    (result, error_msg) = \
+                        task.detach_volume_task(
+                            esh_driver, esh_instance.alias,
+                            volume_id)
+                    if not result and error_msg:
+                        errorObj = failureJSON([{
+                            'code': 400,
+                            'message': error_msg}])
+                        return Response(
+                            errorObj,
+                            status=status.HTTP_400_BAD_REQUEST)
+
                 #Task complete, convert the volume and return the object
                 esh_volume = esh_driver.get_volume(volume_id)
                 core_volume = convertEshVolume(esh_volume,

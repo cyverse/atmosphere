@@ -172,7 +172,7 @@ def umount_task(driverCls, provider, identity, instance_id, volume_id, *args, **
                 offending_processes.append(
                     (search_dict['name'],search_dict['pid']))
 
-            raise DeviceBusyException(offending_processes)
+            raise DeviceBusyException(mount_location, offending_processes)
         #Return here if no errors occurred..
         logger.debug("umount_task finished at %s." % datetime.now())
     except DeviceBusyException:

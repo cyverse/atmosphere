@@ -7,6 +7,8 @@ from threepio import logger
 from service.tasks.driver import deploy_to,\
     deploy_init_to, add_floating_ip, destroy_instance
 from service.tasks.volume import detach_task, attach_task
+from service.exceptions import DeviceBusyException
+import service
 
 def deploy_init_task(driver, instance, *args, **kwargs):
     deploy_init_to.apply_async((driver.__class__,
@@ -42,10 +44,17 @@ def destroy_instance_task(driver, instance, *args, **kwargs):
 
 def detach_volume_task(driver, instance_id, volume_id, *args, **kwargs):
     #TODO: Handle the DeviceBusyException
-    async_task = detach_task.delay(
-        driver.__class__, driver.provider, driver.identity,
-        instance_id, volume_id, *args, **kwargs)
-    async_task.wait()
+    try:
+        async_task = detach_task.delay(
+            driver.__class__, driver.provider, driver.identity,
+            instance_id, volume_id, *args, **kwargs)
+        async_task.wait()
+        return (True, None)
+    except service.exceptions.DeviceBusyException, dbe:
+        return (False, dbe.message)
+    except DeviceBusyException, dbe:
+        return (False, dbe.message)
+
 
 
 

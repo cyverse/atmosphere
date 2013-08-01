@@ -212,8 +212,8 @@ Atmo.Utils.attach_volume = function(volume, instance, options) {
 
 Atmo.Utils.confirm_detach_volume = function(volume, instance, options) {
     var header = "Do you want to detach <strong>"+volume.get('name_or_id')+'</strong>?';
-    var body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> If this volume is mounted, you <u>must</u> unmount it before detaching it.</p>'; 
-    body += '<p>If you detach a mounted volume, you run the risk of corrupting your data and the volume itself. (<a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step7%3AUnmountanddetachthevolume." target="_blank">Learn more about unmounting and detaching a volume</a>)</p>';
+    var body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> If this volume is mounted, you <u>must</u> stop any running processes that are writing to the mount location before you can detach.</p>'; 
+    body += '<p>(<a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step7%3AUnmountanddetachthevolume." target="_blank">Learn more about unmounting and detaching a volume</a>)</p>';
 
     Atmo.Utils.confirm(header, body, { 
         on_confirm: function() {
@@ -222,8 +222,16 @@ Atmo.Utils.confirm_detach_volume = function(volume, instance, options) {
                 success: function() {
                     Atmo.Utils.notify("Volume Detached", "Volume is now available to attach to another instance or to destroy.");
                 },
-                error: function() {
-                    Atmo.Utils.notify("Volume failed to detach", "If the problem persists, please email <a href=\"mailto:support@iplantcollaborative.org\">support@iplantcollaborative.org</a>.", {no_timeout: true});
+                error: function(message, response) {
+                    errors = $.parseJSON(response.responseText).errors
+                    var body = '<p class="alert alert-warn">' + errors[0].message.replace(/\n/g, '<br />') + '</p>'
+                    body += "<p>Please correct the problem and try again. If the problem persists, or you are unsure how to fix the problem, please email <a href=\"mailto:support@iplantcollaborative.org\">support@iplantcollaborative.org</a>.</p>"
+                    Atmo.Utils.confirm("Volume failed to detach", body, {
+                    });
+                    //TODO: Get rid of 'Detaching Volume' notification, instead
+                    //we should leave the volume in the instance and show
+                    //'detaching ()' similar to the attaching box...
+                    //TODO: Remove the 'Cancel' button on this box
                 }
             }); 
         },

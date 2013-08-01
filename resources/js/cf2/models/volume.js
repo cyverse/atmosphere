@@ -114,7 +114,7 @@ Atmo.Models.Volume = Atmo.Models.Base.extend({
 				options.success();
 			},
 			error: function(response_data) {
-				options.error('failed to detach volume');
+				options.error('failed to detach volume', response_data);
 				self.set({'status': 'in-use'});
 			}
 		});
