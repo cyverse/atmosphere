@@ -59,12 +59,13 @@ def detach_volume_task(driver, instance_id, volume_id, *args, **kwargs):
 
 
 
-def attach_volume_task(driver, instance_id, volume_id, device=None, *args, **kwargs):
+def attach_volume_task(driver, instance_id, volume_id, device=None,
+        mount_location=None, *args, **kwargs):
     #TODO: Include the volume mount_location in data
     async_task = attach_task.delay(
         driver.__class__, driver.provider, driver.identity,
-        instance_id, volume_id, device, *args, **kwargs)
-    async_task.wait()
+        instance_id, volume_id, device, mount_location, *args, **kwargs)
+    #async_task.wait()
 
 
 

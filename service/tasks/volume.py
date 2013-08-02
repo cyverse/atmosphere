@@ -63,7 +63,7 @@ def check_volume_task(driverCls, provider, identity, instance, volume, *args, **
         check_volume_task.retry(exc=exc)
 
 
-@task(name="mount",
+@task(name="mount_task",
       max_retries=3,
       default_retry_delay=32,
       ignore_result=True)
@@ -96,6 +96,7 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
             return
         
         #Step 3. Find a suitable location to mount the volume
+        logger.info("Original mount location - %s" % mount_location)
         if not mount_location:
             inc = 1
             while True:
@@ -104,6 +105,9 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
                 else:
                     break
             mount_location = '/vol%s' % inc
+
+        logger.info("Device location - %s" % device)
+        logger.info("New mount location - %s" % mount_location)
 
         mv_script = mount_volume(device, mount_location)
         kwargs.update({'deploy': mv_script})
@@ -187,7 +191,8 @@ def umount_task(driverCls, provider, identity, instance_id, volume_id, *args, **
       ignore_result=False,
       max_retries=3)
 def attach_task(driverCls, provider, identity, instance_id, volume_id,
-                device=None, *args, **kwargs):
+                device=None, mount_location=None, *args, **kwargs):
+    #TODO: chain task attach THEN mount for more robust-ness
     try:
         logger.debug("attach_task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
@@ -198,6 +203,7 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
         driver.attach_volume(instance,
                              volume,
                              device)
+
         #When the reslt returns the volume will be 'attaching'
         #We can't do anything until the volume is 'available/in-use'
         attempts = 0
@@ -219,8 +225,9 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
                             % (volume, instance))
 
         #Step 2. Prepare and mount the volume
-        mount_location = mount_task(driverCls, provider, identity, instance_id, volume_id,
-                   *args, **kwargs)
+        mount_location = mount_task(driverCls, provider, identity,
+                                    instance_id, volume_id, mount_location, 
+                                    *args, **kwargs)
 
         logger.debug("attach_task finished at %s." % datetime.now())
         return mount_location

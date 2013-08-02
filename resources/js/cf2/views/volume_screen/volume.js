@@ -83,7 +83,12 @@ Atmo.Views.VolumeScreenVolume = Backbone.View.extend({
 
         } else if (this.model.get('status') == 'in-use') {
             var instance = Atmo.instances.get(this.model.get("attach_data").instanceId);
-            Atmo.Utils.confirm_detach_volume(this.model, instance);
+            Atmo.Utils.confirm_detach_volume(this.model, instance, {
+                success: function() {
+                    Atmo.volumes.fetch();
+                    console.log('success - volume')
+                }
+            });
         }
 
     }

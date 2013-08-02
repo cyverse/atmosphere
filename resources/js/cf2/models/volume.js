@@ -31,7 +31,7 @@ Atmo.Models.Volume = Atmo.Models.Base.extend({
 			return model.get('status') == 'available';
 		});
 	},
-	attach_to: function(instance, options) {
+	attach_to: function(instance, mount_location, options) {
 		if (!options) options = {};
 		if (!options.success) options.success = function() {};
 
@@ -49,7 +49,8 @@ Atmo.Models.Volume = Atmo.Models.Base.extend({
 		
 		var param = {
 			volume_id: this.get('id'),
-			action: "attach_volume"
+			action: "attach_volume",
+			mount_location: mount_location
 		};
   
 		var self = this;

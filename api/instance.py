@@ -192,9 +192,10 @@ class InstanceAction(APIView):
                 if 'attach_volume' == action:
                     #TODO: Make this async again by changing our volume
                     # workflow
+                    mount_location = action_params.get('mount_location',None)
                     device = action_params.get('device', None)
                     task.attach_volume_task(esh_driver, esh_instance.alias,
-                                            volume_id, device)
+                                            volume_id, device, mount_location)
                 elif 'detach_volume' == action:
                     (result, error_msg) = \
                         task.detach_volume_task(

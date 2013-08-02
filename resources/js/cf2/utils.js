@@ -186,11 +186,11 @@ Atmo.Utils.current_credentials = function() {
            "identity_id": Atmo.profile.get('selected_identity').id
          };
 }
-Atmo.Utils.attach_volume = function(volume, instance, options) {
+Atmo.Utils.attach_volume = function(volume, instance, mount_location, options) {
     var options = options || {};
     console.log("instance to attach to", instance);
 
-    volume.attach_to(instance, {
+    volume.attach_to(instance, mount_location, {
         success: function(response_text) {
             var header = "Volume Successfully Attached";
             var body = 'You must <a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step6%3AMountthefilesystemonthepartition." target="_blank">mount the volume</a> you before you can use it.<br />';
@@ -220,6 +220,8 @@ Atmo.Utils.confirm_detach_volume = function(volume, instance, options) {
             volume.detach(instance, {
                 success: function() {
                     Atmo.Utils.notify("Volume Detached", "Volume is now available to attach to another instance or to destroy.");
+                    if (options.success)
+                        options.success();
                 },
                 error: function(message, response) {
                     errors = $.parseJSON(response.responseText).errors

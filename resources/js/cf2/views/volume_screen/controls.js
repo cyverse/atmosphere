@@ -10,6 +10,7 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
 	template: _.template(Atmo.Templates.volume_screen_controls),
 	events: {
         'change select[name="all_volumes"]' : 'volume_form_completer',
+        'change select[name="running_instances"]' : 'volume_form_instance_select',
         'click form[name="attach_detach_volume"] button' : 'attach_or_detach_volume',
 		'submit form[name="create_volume_form"]' : 'create_volume',
 		'keyup input[name="new_volume_name"], input[name="new_volume_size"]' : 'new_volume_form_activator',
@@ -47,6 +48,9 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
         }
 
 		this.$el.find('select[name="all_volumes"]').html('<option>You have no volumes</option>');
+		this.$el.find('select[name="running_instances"]').remove();
+		this.$el.find('input[name="mount_location"]').remove();
+		this.$el.find('button').remove();
 
         if (Atmo.volumes.models.length > 0 && available_instances > 0) {
             self.$el.find('select[name="all_volumes"]').removeAttr('disabled');
@@ -92,6 +96,7 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
         else {
             self.$el.find('select[name="all_volumes"]').show();
             self.$el.find('form[name="attach_detach_volume"]').find('span').remove();
+
         }
 
 		return this;
@@ -167,10 +172,37 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
 			this.disk_count_resource_chart.render();
 		}
 	},
+    volume_form_instance_select: function(e) {
+        var volume_select = this.$el.find('select[name="all_volumes"]')
+        var instance_select = this.$el.find('select[name="running_instances"]')
+        var selected_volume = this.$el.find('select[name="all_volumes"] option').filter(':selected');
+        var selected_instance = this.$el.find('select[name="running_instances"] option').filter(':selected');
+        var volume_form = this.$el.find('form[name="attach_detach_volume"]');
+
+		// The first element is the direction
+		if (selected_instance.is(':first-child')) {
+			volume_form.find('input').eq(0).remove(); // Remove mount location
+			volume_form.find('button')[0].disabled = true; //Not ready to attach
+			return;
+		}
+        //Ready to attach, but make an optional input for mount location
+        volume_form.find('button')[0].disabled = false;
+        // Append a button at the end if it's already there. Otherwise, just change the button's html appropriately.  
+        if (volume_form.find('input[name="mount_location"]').length == 0) {
+            var mount_input = $('<input>', {
+                name: 'mount_location',
+                type: 'text',
+                placeholder: '(Optional) Mount location: (default:/vol[1,2,3,..])',
+                width: instance_select.width() + volume_select.width() - 10
+            })
+            this.$el.find('select[name="running_instances"]').after(mount_input);
+        }
+	},
     volume_form_completer: function(e) {
         var selected_volume = this.$el.find('select[name="all_volumes"] option').filter(':selected');
         var volume_form = this.$el.find('form[name="attach_detach_volume"]');
         var operation = (selected_volume.data('status') == 'in-use') ? 'Detach' : 'Attach';
+        var disable_button = (selected_volume.data('status') == 'in-use') ? false : true;
   
 		// The first element is the direction
 		if (selected_volume.is(':first-child')) {
@@ -182,15 +214,20 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
         // Append a button at the end if it's already there. Otherwise, just change the button's html appropriately.  
         if (volume_form.find('button').length == 0) {
             volume_form.append($('<button>', {
+                disabled: disable_button,
                 html: operation,
                 class: 'btn'
+
             }));
         }
         else {
             volume_form.find('button').html(operation);
+            volume_form.find("input[name='mount_location']").remove();
+            volume_form.find('button')[0].disabled = disable_button;
         }
 
-        // If the volume must be attached, determine whether or not you need to add another select box
+        // On detach, remove instance screen
+        // On attach, add instance screen and create the button
         if (operation == 'Detach' && volume_form.find('select').length == 2) {
             volume_form.find('select').eq(1).remove();
         }
@@ -199,7 +236,12 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
             var available_instances = $('<select>', {
                 name: 'running_instances'
             });
-
+            //Give directions first
+            var directions = ( Atmo.instances.models.length == 0 ) ? 'You have no running instances' : 'Select a running instance';
+            available_instances.append($('<option>', {
+                value: 0,
+                html: directions
+            }));
             for (var i = 0; i < Atmo.instances.models.length; i++) {
                 if (Atmo.instances.models[i].get('state_is_active')) {
                     available_instances.append($('<option>', {
@@ -225,14 +267,17 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
            this.detach_volume(selected_volume.val()); 
         }
         else if (volume_status == 'available') {
-            this.attach_volume(selected_volume.val(), instance_id);
+            var mount_input = this.$el.find('input[name="mount_location"]');
+            var mount_location = (mount_input.val() && mount_input.val().length !== 1) ? mount_input.val() : null;
+            this.attach_volume(selected_volume.val(), instance_id, mount_location);
         }
     },
-	attach_volume: function(volume_id, instance_id) {
+	attach_volume: function(volume_id, instance_id, mount_location) {
 		var self = this;
         var selected_volume = Atmo.volumes.get(volume_id);
         var selected_instance = Atmo.instances.get(instance_id);
-        Atmo.Utils.attach_volume(selected_volume, selected_instance, {
+        Atmo.Utils.attach_volume(selected_volume, selected_instance, 
+                                 mount_location, {
 			success: function() {
 				self.render;
 			},
@@ -245,7 +290,11 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
         var selected_volume = Atmo.volumes.get(volume_id);
         var selected_instance = Atmo.instances.get(selected_volume.get("attach_data_instance_id"));
 
-        Atmo.Utils.confirm_detach_volume(selected_volume, selected_instance);
+        Atmo.Utils.confirm_detach_volume(selected_volume, selected_instance, {
+           success: function() {
+                Atmo.volumes.fetch();
+           }
+        });
     },
 	create_volume: function(e) {
         //Prevents double-clicking the button..
