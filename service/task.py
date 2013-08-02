@@ -2,11 +2,14 @@
 Atmosphere service tasks methods
 
 """
+from celery import chain
+
 from threepio import logger
 
 from service.tasks.driver import deploy_to,\
     deploy_init_to, add_floating_ip, destroy_instance
-from service.tasks.volume import detach_task, attach_task
+from service.tasks.volume import detach_task, umount_task,\
+    attach_task, mount_task, check_volume_task
 from service.exceptions import DeviceBusyException
 import service
 
@@ -45,13 +48,13 @@ def destroy_instance_task(driver, instance, *args, **kwargs):
 def detach_volume_task(driver, instance_id, volume_id, *args, **kwargs):
     #TODO: Handle the DeviceBusyException
     try:
-        async_task = detach_task.delay(
+        umount_task.delay(
             driver.__class__, driver.provider, driver.identity,
-            instance_id, volume_id, *args, **kwargs)
-        async_task.wait()
+            instance_id, volume_id).get()
+        detach_task.delay(
+            driver.__class__, driver.provider, driver.identity,
+            instance_id, volume_id).get()
         return (True, None)
-    except service.exceptions.DeviceBusyException, dbe:
-        return (False, dbe.message)
     except DeviceBusyException, dbe:
         return (False, dbe.message)
 
@@ -61,12 +64,12 @@ def detach_volume_task(driver, instance_id, volume_id, *args, **kwargs):
 
 def attach_volume_task(driver, instance_id, volume_id, device=None,
         mount_location=None, *args, **kwargs):
-    #TODO: Include the volume mount_location in data
-    async_task = attach_task.delay(
+    attach_task.delay(
         driver.__class__, driver.provider, driver.identity,
-        instance_id, volume_id, device, mount_location, *args, **kwargs)
-    #async_task.wait()
-
-
-
-
+        instance_id, volume_id, device).get()
+    check_volume_task.delay(
+        driver.__class__, driver.provider, driver.identity,
+        instance_id, volume_id).get()
+    mount_task.delay(
+        driver.__class__, driver.provider, driver.identity,
+        instance_id, volume_id, mount_location).get()

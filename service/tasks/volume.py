@@ -23,10 +23,10 @@ from service.drivers.common import get_driver
 from service.exceptions import DeviceBusyException
 
 @task(name="check_volume_task",
-      max_retries=3,
-      default_retry_delay=32,
-      ignore_result=True)
-def check_volume_task(driverCls, provider, identity, instance, volume, *args, **kwargs):
+      max_retries=0,
+      default_retry_delay=20,
+      ignore_result=False)
+def check_volume_task(driverCls, provider, identity, instance_id, volume_id, *args, **kwargs):
     try:
         logger.debug("check_volume task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
@@ -64,9 +64,9 @@ def check_volume_task(driverCls, provider, identity, instance, volume, *args, **
 
 
 @task(name="mount_task",
-      max_retries=3,
-      default_retry_delay=32,
-      ignore_result=True)
+      max_retries=0,
+      default_retry_delay=20,
+      ignore_result=False)
 def mount_task(driverCls, provider, identity, instance_id, volume_id,
                mount_location=None, *args, **kwargs):
     try:
@@ -75,12 +75,10 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         instance = driver.get_instance(instance_id)
         volume = driver.get_volume(volume_id)
         logger.debug(volume)
-        device = volume.extra['attachmentSet'][0]['device']
-
-        #Step 1. Check the volume exists on the fsys and is capable of mounting
-        check_volume_task.si(driverCls, provider, identity, instance_id,
-                                volume_id, *args, **kwargs)
-
+        try:
+            device = volume.extra['attachmentSet'][0]['device']
+        except:
+            device = None
 
         private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
         kwargs.update({'ssh_key': private_key})
@@ -123,7 +121,7 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
 @task(name="umount_task",
       max_retries=3,
       default_retry_delay=32,
-      ignore_result=True)
+      ignore_result=False)
 def umount_task(driverCls, provider, identity, instance_id, volume_id, *args, **kwargs):
     try:
         logger.debug("umount_task started at %s." % datetime.now())
@@ -189,9 +187,9 @@ def umount_task(driverCls, provider, identity, instance_id, volume_id, *args, **
 @task(name="attach_task",
       default_retry_delay=20,
       ignore_result=False,
-      max_retries=3)
+      max_retries=1)
 def attach_task(driverCls, provider, identity, instance_id, volume_id,
-                device=None, mount_location=None, *args, **kwargs):
+                device_choice=None, *args, **kwargs):
     #TODO: chain task attach THEN mount for more robust-ness
     try:
         logger.debug("attach_task started at %s." % datetime.now())
@@ -199,10 +197,11 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
         instance = driver.get_instance(instance_id)
         volume = driver.get_volume(volume_id)
 
-        #Step 1. Attach the volume
+        #Step 1. Attach the volume (
+        #NOTE: device_choice !== device 100%
         driver.attach_volume(instance,
                              volume,
-                             device)
+                             device_choice)
 
         #When the reslt returns the volume will be 'attaching'
         #We can't do anything until the volume is 'available/in-use'
@@ -223,14 +222,14 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
         if 'available' in volume.extra['status']:
             raise Exception("Volume %s failed to attach to instance %s"
                             % (volume, instance))
-
-        #Step 2. Prepare and mount the volume
-        mount_location = mount_task(driverCls, provider, identity,
-                                    instance_id, volume_id, mount_location, 
-                                    *args, **kwargs)
-
+        #Retrieve device
+        try:
+            device = volume.extra['attachmentSet'][0]['device']
+        except:
+            device = None
+        #TODO: Move this to driver specific code (driver.get_driver(volume))
         logger.debug("attach_task finished at %s." % datetime.now())
-        return mount_location
+        return device
     except Exception as exc:
         logger.warn(exc)
         attach_task.retry(exc=exc)
@@ -247,11 +246,6 @@ def detach_task(driverCls, provider, identity, instance_id, volume_id, *args, **
         instance = driver.get_instance(instance_id)
         volume = driver.get_volume(volume_id)
 
-        #Step 1. Ensure the volume is unmounted
-        umount_task(driverCls, provider, identity, instance_id,
-                                volume_id, *args, **kwargs)
-
-        #Step 2. Detach the volume
         driver.detach_volume(volume)
         #When the reslt returns the volume will be 'detaching'
         #We will ensure the volume does not return to 'in-use'
