@@ -50,7 +50,7 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
 		this.$el.find('select[name="all_volumes"]').html('<option>You have no volumes</option>');
 		this.$el.find('select[name="running_instances"]').remove();
 		this.$el.find('input[name="mount_location"]').remove();
-		this.$el.find('button').remove();
+		this.$el.find('form[name="attach_detach_volume"] button').remove();
 
         if (Atmo.volumes.models.length > 0 && available_instances > 0) {
             self.$el.find('select[name="all_volumes"]').removeAttr('disabled');
@@ -206,8 +206,9 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
   
 		// The first element is the direction
 		if (selected_volume.is(':first-child')) {
-			volume_form.find('select').eq(1).remove();
+			volume_form.find('select[name="running_instances"]').remove();
 			volume_form.find('button').remove();
+            volume_form.find("input[name='mount_location']").remove();
 			return;
 		}
 

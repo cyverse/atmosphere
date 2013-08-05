@@ -11,7 +11,7 @@ from celery.task import current
 from celery import chain
 
 from threepio import logger
-
+from rtwo.driver import EucaDriver, OSDriver
 from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
 from core.models.instance import update_instance_metadata
@@ -210,7 +210,12 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
             volume = driver.get_volume(volume_id)
             if attempts > 6:  # After 6 attempts (~1min)
                 break
-            if 'attaching' not in volume.extra['status']:
+            #Openstack Check
+            if isinstance(driver, OSDriver) and 'attaching' not in volume.extra['status']:
+                break
+            attach_set = volume.extra['attachmentSet'][0]
+            if isinstance(driver, EucaDriver) and\
+                    'attaching' not in attach_set.get('status',''):
                 break
             # Exponential backoff..
             attempts += 1
@@ -222,12 +227,13 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
         if 'available' in volume.extra['status']:
             raise Exception("Volume %s failed to attach to instance %s"
                             % (volume, instance))
-        #Retrieve device
+
+        #Device path for euca == openstack
         try:
             device = volume.extra['attachmentSet'][0]['device']
         except:
             device = None
-        #TODO: Move this to driver specific code (driver.get_driver(volume))
+
         logger.debug("attach_task finished at %s." % datetime.now())
         return device
     except Exception as exc:
@@ -236,8 +242,8 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
 
 
 @task(name="detach_task",
-      max_retries=3,
-      default_retry_delay=32,
+      max_retries=1,
+      default_retry_delay=20,
       ignore_result=False)
 def detach_task(driverCls, provider, identity, instance_id, volume_id, *args, **kwargs):
     try:
@@ -254,7 +260,12 @@ def detach_task(driverCls, provider, identity, instance_id, volume_id, *args, **
             volume = driver.get_volume(volume_id)
             if attempts > 6:  # After 6 attempts (~1min)
                 break
-            if 'detaching' not in volume.extra['status']:
+            #The Openstack way
+            if isinstance(driver, OSDriver) and 'detaching' not in volume.extra['status']:
+                break
+            #The Eucalyptus way
+            attach_set = volume.extra['attachmentSet']
+            if isinstance(driver, EucaDriver) and attach_set and 'detaching' not in attach_set[0].get('status'):
                 break
             # Exponential backoff..
             attempts += 1
@@ -264,7 +275,7 @@ def detach_task(driverCls, provider, identity, instance_id, volume_id, *args, **
             time.sleep(sleep_time)
 
         if 'in-use' in volume.extra['status']:
-            raise Exception("Volume %s failed to detach to instance %s"
+            raise Exception("Failed to detach Volume %s to instance %s"
                             % (volume, instance))
 
         logger.debug("detach_task finished at %s." % datetime.now())
@@ -272,5 +283,8 @@ def detach_task(driverCls, provider, identity, instance_id, volume_id, *args, **
         #We should NOT retry if the device is busy
         raise
     except Exception as exc:
+        #If the volume is NOT attached, do not retry.
+        if 'Volume is not attached' in exc.message:
+            return
         logger.warn(exc)
         detach_task.retry(exc=exc)

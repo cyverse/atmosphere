@@ -48,9 +48,11 @@ def destroy_instance_task(driver, instance, *args, **kwargs):
 def detach_volume_task(driver, instance_id, volume_id, *args, **kwargs):
     #TODO: Handle the DeviceBusyException
     try:
-        umount_task.delay(
-            driver.__class__, driver.provider, driver.identity,
-            instance_id, volume_id).get()
+        if hasattr(driver, 'deploy_to'):
+            #Only attempt to umount if we have sh access
+            umount_task.delay(
+                driver.__class__, driver.provider, driver.identity,
+                instance_id, volume_id).get()
         detach_task.delay(
             driver.__class__, driver.provider, driver.identity,
             instance_id, volume_id).get()
@@ -67,6 +69,11 @@ def attach_volume_task(driver, instance_id, volume_id, device=None,
     attach_task.delay(
         driver.__class__, driver.provider, driver.identity,
         instance_id, volume_id, device).get()
+
+    if not hasattr(driver, 'deploy_to'):
+        #Do not attempt to mount if we don't have sh access
+        return
+
     check_volume_task.delay(
         driver.__class__, driver.provider, driver.identity,
         instance_id, volume_id).get()
