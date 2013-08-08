@@ -154,7 +154,6 @@ restart_workers () {
                            --loglevel="$CELERYD_LOG_LEVEL"  \
                            --cmd="$CELERYD"                 \
                            $CELERYD_OPTS
-    sleep $SLEEP_SECONDS
 }
 
 check_status () {

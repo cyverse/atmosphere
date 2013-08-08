@@ -53,8 +53,12 @@ stop)
 ;;
 
 restart)
-    $0 stop
-    $0 start
+    if [[ $EUID -ne 0 ]]; then
+        echo "You must be a root user to restart atmosphere"
+        exit 1
+    fi
+    service apache2 restart
+    service celeryd restart
 ;;
 
 *)
