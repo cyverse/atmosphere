@@ -1,5 +1,5 @@
 Number.prototype.toNumberCommaString = function() {
-	return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/, '$1,');
+	return this.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 };
 
 $(function() {

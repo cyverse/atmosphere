@@ -12,7 +12,7 @@ def main():
     driver = AccountDriver()
 
     success = 0
-    core_services = ['jmatt']#'sgregory', 'jmatt', 'edwins', 'cjlarose','mlent']
+    core_services = ['atmo_test']#'sgregory', 'jmatt', 'edwins', 'cjlarose','mlent']
     for username in core_services:
         try:
             password = driver.hashpass(username)

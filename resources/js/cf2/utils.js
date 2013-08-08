@@ -4,50 +4,50 @@
 
 Atmo.Utils.seconds_to_pretty_time = function(seconds, precision) {
 
-	// Precision refers to how many subdivisions of time to return
+    // Precision refers to how many subdivisions of time to return
 
-	var pretty_time = "";
-	var units_used = 0;
-	if (precision == undefined)
-		precision = 1;
+    var pretty_time = "";
+    var units_used = 0;
+    if (precision == undefined)
+        precision = 1;
 
-	var periods = [ 
-		{'sec' : 31536000, 	'unit' : ' year'},
-		{'sec' : 2592000, 	'unit' : ' month'},
-		{'sec' : 86400, 	'unit' : ' day'},
-		{'sec' : 3600, 		'unit' : ' hour'},
-		{'sec' : 60, 		'unit' : ' minute'},
-		{'sec' : 1, 		'unit' : ' second'}];
+    var periods = [ 
+        {'sec' : 31536000,     'unit' : ' year'},
+        {'sec' : 2592000,     'unit' : ' month'},
+        {'sec' : 86400,     'unit' : ' day'},
+        {'sec' : 3600,         'unit' : ' hour'},
+        {'sec' : 60,         'unit' : ' minute'},
+        {'sec' : 1,         'unit' : ' second'}];
 
-	var interval = 0;
+    var interval = 0;
 
-	if (seconds < 1)
-		return '0 seconds';
+    if (seconds < 1)
+        return '0 seconds';
 
-	for (var i = 0; i < periods.length; i++) {
-		interval = Math.floor(seconds / periods[i]['sec']);	
+    for (var i = 0; i < periods.length; i++) {
+        interval = Math.floor(seconds / periods[i]['sec']);    
 
-		if (interval >= 1) {
-			units_used++;
-			pretty_time += (pretty_time.length > 1) ? (', ' + interval + periods[i]['unit']) : (interval + periods[i]['unit']);
-			if (interval > 1) pretty_time += 's';
+        if (interval >= 1) {
+            units_used++;
+            pretty_time += (pretty_time.length > 1) ? (', ' + interval + periods[i]['unit']) : (interval + periods[i]['unit']);
+            if (interval > 1) pretty_time += 's';
 
-			seconds = (seconds - (interval * periods[i]['sec']));
+            seconds = (seconds - (interval * periods[i]['sec']));
 
-			if (precision == units_used || i == periods.length) 
-				return pretty_time;
-		}
-	}
-	
+            if (precision == units_used || i == periods.length) 
+                return pretty_time;
+        }
+    }
+    
 };
 
 Atmo.Utils.relative_time = function(date_obj) {
-	var now = new Date();
+    var now = new Date();
     var seconds = Math.floor((new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds()) - date_obj) / 1000);
 
-	var time = Atmo.Utils.seconds_to_pretty_time(seconds, 1);
+    var time = Atmo.Utils.seconds_to_pretty_time(seconds, 1);
 
-	return time + ' ago';
+    return time + ' ago';
 };
 
 Atmo.Utils.evil_chris_time_parse = function(str_date) {
@@ -63,50 +63,50 @@ Atmo.Utils.hide_all_help = function() {
 Atmo.Utils.update_weather = function() {
 
     $.ajax({
-		url: '/api/v1/provider/' + Atmo.profile.get('selected_identity').get('provider_id') + '/occupancy/', 
-		type: 'GET',
-		success: function(response_text) {
+        url: '/api/v1/provider/' + Atmo.profile.get('selected_identity').get('provider_id') + '/occupancy/', 
+        type: 'GET',
+        success: function(response_text) {
 
-			var occupancy = Math.round(((response_text[0]["total"] - response_text[0]["remaining"]) / response_text[0]["total"]) * 100);
-			var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
-			var weather = '';
+            var occupancy = Math.round(((response_text[0]["total"] - response_text[0]["remaining"]) / response_text[0]["total"]) * 100);
+            var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
+            var weather = '';
 
-			if(occupancy > 85)
-				weather = weather_classes[3]
-			else if(occupancy > 60)
-				weather = weather_classes[2]
-			else if(occupancy > 35)
-				weather = weather_classes[1]
-			else if(occupancy >= 0)
-				weather = weather_classes[0]
+            if(occupancy > 85)
+                weather = weather_classes[3]
+            else if(occupancy > 60)
+                weather = weather_classes[2]
+            else if(occupancy > 35)
+                weather = weather_classes[1]
+            else if(occupancy >= 0)
+                weather = weather_classes[0]
 
-			if (!$('#weather_report').hasClass(weather)) {
-				$.each(weather_classes, function(k, v) {
-					$('body').removeClass(v);
-				});
-				$('#weather_report').addClass(weather);
+            if (!$('#weather_report').hasClass(weather)) {
+                $.each(weather_classes, function(k, v) {
+                    $('body').removeClass(v);
+                });
+                $('#weather_report').addClass(weather);
 
-				// Hardcoded for now, replace when we have identities in backbone models
-				$('#weather_report').html(function() {
-					var content = (Atmo.profile.get('selected_identity').get('provider_id') == 2) ? 'OpenStack' : 'Eucalyptus';
-					content += ' is at ' + occupancy + '% capacity.<br /> The forecast is '+weather+'.';
-					return content;
-				});
-			}
+                // Hardcoded for now, replace when we have identities in backbone models
+                $('#weather_report').html(function() {
+                    var content = (Atmo.profile.get('selected_identity').get('provider_id') == 2) ? 'OpenStack' : 'Eucalyptus';
+                    content += ' is at ' + occupancy + '% capacity.<br /> The forecast is '+weather+'.';
+                    return content;
+                });
+            }
 
-		}, 
-		error: function() {
-			var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
-			weather = 'rainy';
-			if (!$('#weather_report').hasClass(weather)) {
-				$.each(weather_classes, function(k, v) {
-					$('body').removeClass(v);
-				});
-				$('#weather_report').addClass(weather);
-			}
-			$('#weather_report').html('Atmosphere could not determine the capacity and forecast for this cloud.');
-		}
-	});
+        }, 
+        error: function() {
+            var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
+            weather = 'rainy';
+            if (!$('#weather_report').hasClass(weather)) {
+                $.each(weather_classes, function(k, v) {
+                    $('body').removeClass(v);
+                });
+                $('#weather_report').addClass(weather);
+            }
+            $('#weather_report').html('Atmosphere could not determine the capacity and forecast for this cloud.');
+        }
+    });
 };
 
 Atmo.Utils.confirm = function(header, body, options) {
@@ -186,17 +186,17 @@ Atmo.Utils.current_credentials = function() {
            "identity_id": Atmo.profile.get('selected_identity').id
          };
 }
-Atmo.Utils.attach_volume = function(volume, instance, options) {
+Atmo.Utils.attach_volume = function(volume, instance, mount_location, options) {
     var options = options || {};
     console.log("instance to attach to", instance);
 
-    volume.attach_to(instance, {
+    volume.attach_to(instance, mount_location, {
         success: function(response_text) {
             var header = "Volume Successfully Attached";
             var body = 'You must <a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step6%3AMountthefilesystemonthepartition." target="_blank">mount the volume</a> you before you can use it.<br />';
             body += 'If the volume is new, you will need to <a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step5%3ACreatethefilesystem%28onetimeonly%29." target="_blank">create the file system</a> first.';
 
-			console.log("success response text", response_text);
+            console.log("success response text", response_text);
 
             Atmo.Utils.notify(header, body, { no_timeout: true });
             if (options.success)
@@ -212,18 +212,38 @@ Atmo.Utils.attach_volume = function(volume, instance, options) {
 
 Atmo.Utils.confirm_detach_volume = function(volume, instance, options) {
     var header = "Do you want to detach <strong>"+volume.get('name_or_id')+'</strong>?';
-    var body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> If this volume is mounted, you <u>must</u> unmount it before detaching it.</p>'; 
-    body += '<p>If you detach a mounted volume, you run the risk of corrupting your data and the volume itself. (<a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step7%3AUnmountanddetachthevolume." target="_blank">Learn more about unmounting and detaching a volume</a>)</p>';
+    //TODO: Replace this with a global var Atmo.provider or some such..
+    var identity_id = Atmo.profile.get('selected_identity').id;
+    var identity = Atmo.identities.get(identity_id);
+    var provider_name = identity.get('provider').get('type');
+    var body;
+    if (provider_name.toLowerCase() === 'openstack') {
+        body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> If this volume is mounted, you <u>must</u> stop any running processes that are writing to the mount location before you can detach.</p>'; 
+        body += '<p>(<a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step7%3AUnmountanddetachthevolume." target="_blank">Learn more about unmounting and detaching a volume</a>)</p>';
+    } else {
+        body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> If this volume is mounted, you <u>must</u> unmount it before detaching it.</p>'; 
+        body += '<p>If you detach a mounted volume, you run the risk of corrupting your data and the volume itself. (<a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step7%3AUnmountanddetachthevolume." target="_blank">Learn more about unmounting and detaching a volume</a>)</p>';
+    }
 
     Atmo.Utils.confirm(header, body, { 
         on_confirm: function() {
-            Atmo.Utils.notify("<img src=\""+site_root +"/resources/images/loader_bluebg.gif\" /> Detaching volume.", "", {no_timeout: true});
             volume.detach(instance, {
                 success: function() {
                     Atmo.Utils.notify("Volume Detached", "Volume is now available to attach to another instance or to destroy.");
+                    if (options.success)
+                        options.success();
                 },
-                error: function() {
-                    Atmo.Utils.notify("Volume failed to detach", "If the problem persists, please email <a href=\"mailto:support@iplantcollaborative.org\">support@iplantcollaborative.org</a>.", {no_timeout: true});
+                error: function(message, response) {
+                    if (provider_name.toLowerCase() === 'openstack') {
+                        errors = $.parseJSON(response.responseText).errors
+                        var body = '<p class="alert alert-error">' + errors[0].message.replace(/\n/g, '<br />') + '</p>'
+                        body += "<p>Please correct the problem and try again. If the problem persists, or you are unsure how to fix the problem, please email <a href=\"mailto:support@iplantcollaborative.org\">support@iplantcollaborative.org</a>.</p>"
+                        Atmo.Utils.confirm("Volume failed to detach", body, {
+                            //TODO: Remove the 'Cancel' button on this box
+                        });
+                    } else {
+                        Atmo.Utils.notify("Volume failed to detach", "If the problem persists, please email <a href=\"mailto:support@iplantcollaborative.org\">support@iplantcollaborative.org</a>.", {no_timeout: true});
+                    }
                 }
             }); 
         },
@@ -238,5 +258,5 @@ Atmo.Utils.confirm_detach_volume = function(volume, instance, options) {
 // To show people how much money they've saved by using Atmosphere!
 
 Number.prototype.toCurrencyString = function() {
-	return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/, '$1,');	
+    return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/, '$1,');    
 };

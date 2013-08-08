@@ -31,7 +31,7 @@ Atmo.Models.Volume = Atmo.Models.Base.extend({
 			return model.get('status') == 'available';
 		});
 	},
-	attach_to: function(instance, options) {
+	attach_to: function(instance, mount_location, options) {
 		if (!options) options = {};
 		if (!options.success) options.success = function() {};
 
@@ -49,7 +49,8 @@ Atmo.Models.Volume = Atmo.Models.Base.extend({
 		
 		var param = {
 			volume_id: this.get('id'),
-			action: "attach_volume"
+			action: "attach_volume",
+			mount_location: mount_location
 		};
   
 		var self = this;
@@ -105,16 +106,16 @@ Atmo.Models.Volume = Atmo.Models.Base.extend({
 			data: param, 
 			success: function(response_data) {
 				self.set({
-					'attach_data_attach_time': null,
-					'attach_data_device': null,
-					'attach_data_instance_id': null,
-					'status': 'available'
+					//'attach_data_attach_time': null,
+					//'attach_data_device': null,
+					//'attach_data_instance_id': null,
+					'status': 'detaching'
 				});
 				self.trigger('detach');
 				options.success();
 			},
 			error: function(response_data) {
-				options.error('failed to detach volume');
+				options.error('failed to detach volume', response_data);
 				self.set({'status': 'in-use'});
 			}
 		});

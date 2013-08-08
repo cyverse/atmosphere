@@ -53,7 +53,12 @@ Atmo.Views.SidebarVolumeListItem = Backbone.View.extend({
 		var collection = this.model.collection;
 		if (this.model.get('status') == 'in-use') {
             var instance = Atmo.instances.get(this.model.get("attach_data_instance_id"));
-            Atmo.Utils.confirm_detach_volume(this.model, instance);
+            Atmo.Utils.confirm_detach_volume(this.model, instance, {
+                success: function() {
+                    Atmo.volumes.fetch();
+                    console.log('success - volume_list_item')
+                }
+            });
 		}
 		else {
 			this.model.confirm_destroy({

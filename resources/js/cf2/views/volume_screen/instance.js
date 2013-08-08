@@ -33,7 +33,7 @@ Atmo.Views.VolumeScreenInstance = Backbone.View.extend({
         if (volume.get('status') == 'in-use') 
             Atmo.Utils.notify("ERROR", "Volume is not ready. Please refresh and try again.");
         else {
-            Atmo.Utils.attach_volume(volume, this.model);
+            Atmo.Utils.attach_volume(volume, this.model, null);
             $(ui.draggable).remove();
         };
     }

@@ -28,7 +28,7 @@ class LoggedScriptDeployment(ScriptDeployment):
         super(LoggedScriptDeployment, self).__init__(
             script, name=name, delete=delete)
         if logfile:
-            self.script = self.script + " &> %s" % logfile
+            self.script = self.script + " >> %s 2>&1" % logfile
         #logger.info(self.script)
 
     def run(self, node, client):

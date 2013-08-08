@@ -22,13 +22,13 @@ Atmo.Views.VolumeScreenDraggableInstances = Backbone.View.extend({
         // if the volume is now in use, append it to the appropriate instance list.
         // if the volume is now available, get rid of it's representation here
         console.log('volume status changed');
-        if (volume.get('status') == 'attaching' || volume.get('status') == 'in-use') {
+        if (volume.get('status') == 'attaching' || volume.get('status') == 'detaching' || volume.get('status') == 'in-use') {
             if (!this.volume_map[volume.get('id')]) {
                 new_view = new Atmo.Views.VolumeScreenVolume({model: volume});
                 this.volume_map[volume.get('id')] = new_view;
                 this.instance_map[volume.get('attach_data_instance_id')].append_volume(new_view);
             }
-        } else if (volume.get('status') == 'available' || volume.get('status') == 'detaching') {
+        } else if (volume.get('status') == 'available') {
             this.remove_volume(volume);
         }
     },
@@ -81,7 +81,8 @@ Atmo.Views.VolumeScreenDraggableInstances = Backbone.View.extend({
 
         // Now that all the instance list items have been created, append all the attached volumes to their instances
         $.each(Atmo.volumes.models, function(i, volume) {
-            if (volume.get('status') == 'in-use') {
+            if (volume.get('status') == 'in-use' || volume.get('status') == 'detaching') {
+                //TODO: If we are in the detaching state we should poll until we change states..
                 var new_view = new Atmo.Views.VolumeScreenVolume({model: volume});
                 self.volume_map[volume.get('id')] = new_view;
                 instance_id = volume.get('attach_data').instanceId;

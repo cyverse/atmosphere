@@ -23,8 +23,9 @@ Atmo.Views.VolumeScreenDraggableVolumes = Backbone.View.extend({
 		}
     },
     status_changed: function(volume) {
-        if (volume.get('status') == 'available') 
+        if (volume.get('status') == 'available') {
             this.append_volume(volume);
+        }
         else if (volume.get('status') == 'in-use' || volume.get('status') == 'attaching') {
             this.volume_map[volume.get('id')] && this.volume_map[volume.get('id')].remove();
             this.volume_removed(volume);
@@ -58,8 +59,13 @@ Atmo.Views.VolumeScreenDraggableVolumes = Backbone.View.extend({
                 var volume = $(ui.draggable).data('volume');
                 var instance_id = volume.attributes.attach_data_instance_id;
                 var instance = Atmo.instances.get(instance_id)
-                Atmo.Utils.confirm_detach_volume(volume, instance);
-                $(ui.draggable).remove();
+                Atmo.Utils.confirm_detach_volume(volume, instance, {
+                    success: function() {
+                        Atmo.volumes.fetch();
+                        console.log('success - volume_list')
+                    }
+                });
+                //$(ui.draggable).remove();
             }
         });
 

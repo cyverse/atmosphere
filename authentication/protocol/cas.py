@@ -6,6 +6,7 @@ Contact:        Steven Gregory <esteve@iplantcollaborative.org>
 
 """
 from datetime import datetime, timedelta
+import time
 
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
@@ -58,20 +59,24 @@ def parse_cas_response(cas_response):
     return (user, pgtIOU)
 
 
-def updateUserProxy(user, pgtIou):
-    try:
-        #If PGTIOU exists, a UserProxy object was created
-        #match the user to this ticket.
-        userProxy = UserProxy.objects.get(proxyIOU=pgtIou)
-        userProxy.username = user
-        userProxy.expiresOn = datetime.now() + PROXY_TICKET_EXPIRY
-        userProxy.save()
-        return True
-    except UserProxy.DoesNotExist:
-        logger.error("Could not find UserProxy object!"
-                     + "ProxyIOU & ID was not saved at proxy url endpoint.")
-        return False
-
+def updateUserProxy(user, pgtIou, max_try=3):
+    attempts = 0
+    while attempts < max_try:
+        try:
+            #If PGTIOU exists, a UserProxy object was created
+            #match the user to this ticket.
+            userProxy = UserProxy.objects.get(proxyIOU=pgtIou)
+            userProxy.username = user
+            userProxy.expiresOn = datetime.now() + PROXY_TICKET_EXPIRY
+            logger.debug("Found a matching proxy IOU for %s" % userProxy.username)
+            userProxy.save()
+            return True
+        except UserProxy.DoesNotExist:
+            logger.error("Could not find UserProxy object!"
+                         + "ProxyIOU & ID was not saved at proxy url endpoint.")
+            time.sleep(min(2**attempts,8))
+            attempts += 1
+    return False
 
 def createSessionToken(request, auth_token):
     request.session['username'] = auth_token.user.username
@@ -107,7 +112,7 @@ def cas_validateTicket(request):
 
     redirect_logout_url = settings.REDIRECT_URL+"/login/"
     no_user_url = settings.REDIRECT_URL + "/no_user/"
-
+    logger.debug(request)
     ticket = request.GET.get('ticket', None)
     sendback = request.GET.get('sendback', None)
 
