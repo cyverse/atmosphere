@@ -4,6 +4,7 @@ from service.system_calls import run_command, wildcard_remove, overwrite_file,\
 
 
 import os
+import re
 
 from threepio import logger
 
@@ -118,23 +119,6 @@ def check_file(file_path):
 
 def check_dir(dir_path):
     return os.path.isdir(dir_path)
-
-
-def check_mounted(mount_point):
-    """
-    Testing for mount: 
-      1. Does the mountpoint exist?
-      2. Is a filesystem mounted?
-        * Does /bin/bash exist?
-      OPT:
-        * Check 'mount' for mount_point..
-    """
-    if not check_dir(mount_point):
-        return False
-    bashtest = os.path.isfile(
-                   os.path.join(
-                       mount_point,'bin/bash'))
-    return bashtest
 
 
 ##
@@ -262,13 +246,59 @@ def _losetup_extract_device(loop_str):
 
 def _detect_and_mount_image(image_path, mount_point):
     file_name, file_ext= os.path.splitext(image_path)
-    if file_ext == '.qcow':
+    if file_ext == '.qcow' or file_ext == '.qcow2':
         return mount_qcow(image_path, mount_point)
     elif file_ext == '.raw' or file_ext == '.img':
         return mount_raw(image_path, mount_point)
     raise Exception("Encountered an unknown image type -- Extension : %s" %
             file_ext)
 
+def check_mounted(mount_point):
+    dev_location = None
+    #Drop trailing slash to match 'mount' syntax
+    if mount_point and mount_point.endswith('/'):
+        mount_point = mount_point[:-1]
+    #Run mount and scan the output for 'mount_point'
+    stdout, stderr = run_command(['mount'])
+    regex = re.compile("(?P<device>[\w/]+) on (?P<location>.*) type")
+    for line in stdout.split('\n'):
+        res = regex.search(line)
+        if not res:
+            continue
+        search_dict = res.groupdict()
+        mount_location = search_dict['location']
+        if mount_point == mount_location:
+            dev_location = search_dict['device']
+
+    return dev_location
+
+def unmount_image(image_path, mount_point):
+    device = check_mounted(mount_point)
+    if not device:
+        return ('', '%s is not mounted' % image_path)
+    #Check extension to determine how to unmount
+    file_name, file_ext= os.path.splitext(image_path)
+    if file_ext == '.qcow' or file_ext == '.qcow2':
+        return unmount_qcow(device)
+    elif file_ext == '.raw' or file_ext == '.img':
+        return unmount_raw(device)
+    raise Exception("Encountered an unknown image type -- Extension : %s" %
+            file_ext)
+
+def unmount_raw(block_device):
+    #Remove net block device
+    out, err = run_command(['umount', block_device])
+    if err:
+        return out, err
+
+def unmount_qcow(nbd_device):
+    #Remove net block device
+    out, err = run_command(['umount', nbd_device])
+    if err:
+        return out, err
+    out, err = run_command(['qemu-nbd', '-d', nbd_device])
+    if err:
+        return out, err
 
 def remove_chroot_env(mount_point):
     proc_dir = os.path.join(mount_point,'proc/')
@@ -291,22 +321,34 @@ def prepare_chroot_env(mount_point):
     run_command(['mount', '-o', 'bind', '/dev',  dev_dir])
     run_command(['mount', '--bind', '/etc/resolv.conf', etc_resolv_file])
 
+def fsck_qcow(image_path):
+    if 'qcow' not in image_path:
+        return
+    nbd_dev = _get_next_nbd()
+    run_command(['qemu-nbd', '-c', nbd_dev, image_path])
+    run_command(['fsck', '-y', nbd_dev])
+    run_command(['qemu-nbd', '-d', nbd_dev])
 
-def _mount_qcow(image_path, mount_point):
+def mount_qcow(image_path, mount_point):
     nbd_dev = _get_next_nbd()
     #Mount disk to /dev/nbd*
     run_command(['qemu-nbd', '-c', nbd_dev, image_path])
+    #Check if filesystem has multiple partitions
     try:
-        #Attempting to mount the file system partition
         partition = _fdisk_get_partition(nbd_dev)
-        out, err = run_command(['mount', '%s' % partition['image_name'], mount_point])
+        mount_from = partition['image_name']
+    except Exception:
+        mount_from = nbd_dev
+    try:
+        out, err = run_command(['mount', mount_from, mount_point])
         if err:
-            raise Exception("Could not mount QCOW partiton: %s" % partition)
+            raise Exception("Failed to mount QCOW. STDERR: %s" % err)
+        #The qcow image has been mounted
+        return out, err
     except Exception:
         run_command(['qemu-nbd', '-d', nbd_dev])
-
-    #The qcow image has been mounted
-    return True
+        logger.exception('Failed to mount QCOW')
+        return '', 'Could not mount QCOW image:%s to device:%s' % (image_path, nbd_dev)
 
 
 def fdisk_image(image_path):
@@ -390,6 +432,8 @@ def _select_partition(partitions):
       System == 'Linux'
       Select if bootable
     """
+    if not partitions:
+        return None
     partition = partitions[0]
     return partition
 
@@ -422,7 +466,6 @@ def _parse_fdisk_stats(output):
     if not output:
         return {}
 
-    import re
     lines = output.split('\n')
     #Going line-by-line here.. Line 2
     disk_map = {}
@@ -446,10 +489,10 @@ def _parse_fdisk_stats(output):
     while len(lines) > DEVICE_LINE:
         #TODO: For each partition, capture this input.. Also add optional
         # bootable flag
-        regex = re.compile("(?P<image_name>[\S]+)[ ]+(?P<bootable>[*]+)?[ ]+"
-                           "(?P<start>[0-9]+)[ ]+(?P<end>[0-9]+)[ ]+"
-                           "(?P<blocks>[0-9]+)[+]?[ ]+(?P<id>[0-9]+)[ ]+"
-                           "(?P<system>[\S]+)")
+        regex = re.compile("(?P<image_name>[\S]+)\s+(?P<bootable>[*]+)?\s+"
+                           "(?P<start>[0-9]+)\s+(?P<end>[0-9]+)\s+"
+                           "(?P<blocks>[0-9]+)[+]?\s+(?P<id>\w+)\s+"
+                           "(?P<system>.*)")
         r = regex.search(lines[DEVICE_LINE])
         #Ignore the empty lines
         if r:

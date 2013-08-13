@@ -31,6 +31,7 @@ def provider_filtered_machines(request, provider_id, identity_id):
     """
     esh_driver = prepareDriver(request, identity_id)
     esh_machine_list = esh_driver.list_machines()
+    logger.info("Total machines from esh:%s" % len(esh_machine_list))
     esh_machine_list = esh_driver.filter_machines(
         esh_machine_list,
         black_list=['eki-', 'eri-'])

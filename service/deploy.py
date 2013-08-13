@@ -10,6 +10,26 @@ from libcloud.compute.deployment import ScriptDeployment
 from rtwo.drivers.common import LoggedScriptDeployment
 
 
+def sync_instance():
+    return ScriptDeployment("sync", name="./deploy_sync_instance.sh")
+
+def get_distro(distro='ubuntu'):
+    return ScriptDeployment("cat /etc/*-release",
+                             name="./deploy_get_distro.sh")
+    
+
+def install_util_linux(distro='ubuntu'):
+    return ScriptDeployment(
+        "%s install -qy utils-linux"\
+	 % 'apt-get' if 'ubuntu' in distro.to_lower() else 'yum',
+         name="./deploy_freeze_instance.sh")
+    
+
+def freeze_instance(sleep_time=45):
+    return ScriptDeployment(
+        "fsfreeze -f / && sleep %s && fsfreeze -u /" % sleep_time,
+        name="./deploy_freeze_instance.sh")
+
 def mount_volume(device, mount_location):
     return ScriptDeployment("mkdir -p %s\n" % (mount_location)
                             + "mount %s %s" % (device, mount_location),

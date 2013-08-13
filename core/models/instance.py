@@ -15,7 +15,6 @@ from core.models.machine import ProviderMachine, convertEshMachine
 from core.models.tag import Tag
 
 
-
 class Instance(models.Model):
     """
     When a user launches a machine, an Instance is created.
@@ -114,6 +113,43 @@ class Instance(models.Model):
     class Meta:
         db_table = "instance"
         app_label = "core"
+
+
+class InstanceStatus(models.Model):
+    """
+    Used to enumerate the types of actions
+    (I.e. Stopped, Suspended, Active, Deleted)
+    """
+    name = models.CharField(max_length=128)
+
+    def __unicode__(self):
+        return "%s" % self.name
+
+    class Meta:
+        db_table = "instance_status"
+        app_label = "core"
+
+
+class InstanceStatusHistory(models.Model):
+    """
+    Used to keep track of each change in instance status
+    (Useful for time management)
+    """
+    instance = models.ForeignKey(Instance)
+    status = models.ForeignKey(InstanceStatus)
+    start_date = models.DateTimeField(default=timezone.now())
+    end_date = models.DateTimeField(null=True, blank=True)
+
+    def __unicode__(self):
+        return "%s (%s-%s)" % (self.status, 
+                               self.start_date,
+                               self.end_date if self.end_date else '')
+
+    class Meta:
+        db_table = "instance_status_history"
+        app_label = "core"
+
+
 
 """
 Useful utility methods for the Core Model..
