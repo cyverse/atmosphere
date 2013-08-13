@@ -141,7 +141,7 @@ class InstanceStatusHistory(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
 
     def __unicode__(self):
-        return "%s (%s-%s)" % (self.status, 
+        return "%s (FROM:%s TO:%s)" % (self.status, 
                                self.start_date,
                                self.end_date if self.end_date else '')
 
@@ -155,6 +155,43 @@ class InstanceStatusHistory(models.Model):
 Useful utility methods for the Core Model..
 """
 
+def has_history(core_instance):
+    return core_instance.instancestatushistory_set.all()
+
+
+def update_instance_history(core_instance, status_name, start_time=None):
+    """
+    Update instance status history
+
+    if no status history, create an active state first
+
+    if status history exists, grab the latest status and mark it finished
+    then set the start_time for the newest history
+    """
+    last = core_instance.instancestatushistory_set\
+            .order_by('-start_date')
+    now = timezone.now()
+    if not last and start_time:
+        # Edge-case: VM never had instance history, needs an 'active' state first
+        first_hist = InstanceStatusHistory()
+        first_hist.instance = core_instance
+        first_hist.status, created = InstanceStatus.objects.get_or_create(name='active')
+        first_hist.start_date = start_time
+        first_hist.save()
+        last = [first_hist] # Lets pretend this came from .order_by
+
+    if last:
+        if last.status.name == status_name:
+            return
+        last = last[0]
+        last.end_date = now
+        last.save()
+
+    new_hist = InstanceStatusHistory()
+    new_hist.instance = core_instance
+    new_hist.status, created = InstanceStatus.objects.get_or_create(name=status_name)
+    new_hist.start_date = now
+    new_hist.save()
 
 def findInstance(alias):
     core_instance = Instance.objects.filter(provider_alias=alias)

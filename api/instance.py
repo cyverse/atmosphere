@@ -18,7 +18,8 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
-from core.models.instance import convertEshInstance, update_instance_metadata
+from core.models.instance import convertEshInstance, update_instance_metadata,\
+                                 update_instance_history, has_history
 from core.models.instance import Instance as CoreInstance
 
 from core.models.volume import convertEshVolume
@@ -98,6 +99,7 @@ class InstanceList(APIView):
 
         core_instance = convertEshInstance(
             esh_driver, esh_instance, provider_id, user, token)
+        update_instance_history(core_instance, 'active')
         serializer = InstanceSerializer(core_instance, data=data)
         #NEVER WRONG
         if serializer.is_valid():
@@ -187,6 +189,7 @@ class InstanceAction(APIView):
         try:
             action = action_params['action']
             result_obj = None
+            update_status = False
             if 'volume' in action:
                 volume_id = action_params.get('volume_id')
                 if 'attach_volume' == action:
@@ -225,12 +228,16 @@ class InstanceAction(APIView):
             elif 'revert_resize' == action:
                 esh_driver.revert_resize_instance(esh_instance)
             elif 'resume' == action:
+                update_status = True
                 esh_driver.resume_instance(esh_instance)
             elif 'suspend' == action:
+                update_status = True
                 esh_driver.suspend_instance(esh_instance)
             elif 'start' == action:
+                update_status = True
                 esh_driver.start_instance(esh_instance)
             elif 'stop' == action:
+                update_status = True
                 esh_driver.stop_instance(esh_instance)
             elif 'reboot' == action:
                 esh_driver.reboot_instance(esh_instance)
@@ -245,6 +252,17 @@ class InstanceAction(APIView):
                 return Response(
                     errorObj,
                     status=status.HTTP_400_BAD_REQUEST)
+            if update_status:
+                core_instance = convertEshInstance(esh_driver,
+                                                   esh_instance,
+                                                   provider_id,
+                                                   user)
+                start_time = None
+                if action in ['suspend', 'stop'] and not has_history(core_instance):
+                    start_time = core_instance.start_date
+                update_instance_history(core_instance,
+                                        esh_instance.extra['status'],
+                                        start_time)
             api_response = {
                 'result': 'success',
                 'message': 'The requested action <%s> was run successfully'
