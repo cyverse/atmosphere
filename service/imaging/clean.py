@@ -4,14 +4,11 @@ imaging/clean.py
 These functions are used to strip data from a VM before imaging occurs.
 
 """
+from service.imaging.common import check_mounted
 from service.imaging.common import remove_files, overwrite_files,\
                                    remove_line_in_files,\
                                    replace_line_in_files,\
-                                   remove_multiline_in_files,\
-                                   run_command,\
-                                   check_mounted,\
-                                   prepare_chroot_env,\
-                                   remove_chroot_env
+                                   remove_multiline_in_files
 
 
 def remove_user_data(mounted_path, dry_run=False):
@@ -66,27 +63,23 @@ def remove_atmo_data(mounted_path, dry_run=False):
         (".*vncserver$", "", "etc/rc.local"),
         (".*shellinbaox.*", "", "etc/rc.local")
     ]
-
-    ###
-    #NOTE:
-    # The end-of-file deletes are necessary until the next maintenance period
-    # when we should check that these lines are no longer needed
-    ###
     multiline_delete_files = [
         #TEMPLATE:
         #('delete_from', 'delete_to', 'replace_where')
 
-        ("## Atmosphere System", "## End Atmosphere System", "etc/sudoers"),
-        ("# Begin Nagios", "# End Nagios", "etc/sudoers"),
-        ("# Begin Sensu", "# End Sensu", "etc/sudoers"),
-        ("## Atmosphere System", "", "etc/sudoers"), #Delete to end-of-file..
+        ("## Atmosphere System", "# End Nagios", "etc/sudoers"),
+        #Just in case nagios isn't there..
+        ("## Atmosphere System", "# End Atmosphere System", "etc/sudoers"),
         ("## Atmosphere System", "## End Atmosphere System",
          "etc/ssh/sshd_config"),
-        ("## Atmosphere System", "", "etc/ssh/sshd_config"), #Delete to end-of-file..
+
+        #Remove lines below after next maintenance period..
+        ("## Atmosphere System", "Allowgroups users root core-services",
+         "etc/ssh/sshd_config"),
+        #Remove lines above after next maintenance period..
 
         ("## Atmosphere System", "## End Atmosphere System",
          "etc/skel/.bashrc"),
-        ("## Atmosphere System", "", "etc/skel/.bashrc"), #Delete to end-of-file..
     ]
     _perform_cleaning(mounted_path, rm_files=remove_files,
                       remove_line_files=remove_line_files,
@@ -106,18 +99,15 @@ def remove_vm_specific_data(mounted_path, dry_run=False):
     """
     if not check_mounted(mounted_path):
         raise Exception("Expected a mounted path at %s" % mounted_path)
-    remove_files = ['mnt/*', 'tmp/*', 'root/*',
-                    'dev/*', 'proc/*',
-                    'var/log/*',
+    remove_files = ['mnt/*', 'tmp/*', 'root/*', 'dev/*',
+                    'proc/*',
                    ]
     remove_line_files = []
     overwrite_files = [
         'root/.bash_history', 'var/log/auth.log',
         'var/log/boot.log', 'var/log/daemon.log',
-        'var/log/denyhosts',
         'var/log/denyhosts.log', 'var/log/dmesg',
-        'var/log/secure',
-        'var/log/messages', 'var/log/maillog', 
+        'var/log/secure', 'var/log/messages',
         'var/log/lastlog', 'var/log/cups/access_log',
         'var/log/cups/error_log', 'var/log/syslog',
         'var/log/user.log', 'var/log/wtmp',
@@ -151,35 +141,3 @@ def _perform_cleaning(mounted_path, rm_files=None,
     remove_line_in_files(remove_line_files, mounted_path, dry_run)
     replace_line_in_files(replace_line_files, mounted_path, dry_run)
     remove_multiline_in_files(multiline_delete_files, mounted_path, dry_run)
-
-
-def remove_sensu(mounted_path):
-    try:
-        prepare_chroot_env(mounted_path)
-        run_command(["/usr/sbin/chroot", mounted_path, 'yum',
-                     'remove', '-qy', 'sensu'])
-    finally:
-        remove_chroot_env(mounted_path)
-
-def remove_ldap(mounted_path, new_password='atmosphere'):
-    try:
-        prepare_chroot_env(mounted_path)
-        run_command(["/usr/sbin/chroot", mounted_path, "/bin/bash", "-c",
-                     "echo %s | passwd root --stdin" % new_password])
-        run_command(["/usr/sbin/chroot", mounted_path, 'yum',
-                     'remove', '-qy', 'openldap'])
-    finally:
-        remove_chroot_env(mounted_path)
-
-def remove_vnc(mounted_path):
-    try:
-        prepare_chroot_env(mounted_path)
-        run_command(["/usr/sbin/chroot", mounted_path, 'yum',
-            'remove', '-qy', 'realvnc-vnc-server'])
-        #remove rpmsave.. to get rid of vnc for good.
-        #["/usr/sbin/chroot", mounted_path, 'find', '/',
-        #'-type', 'f', '-name', '*.rpmsave', '-exec', 'rm', '-f',
-        #'{}', ';']
-    finally:
-        remove_chroot_env(mounted_path)
-
