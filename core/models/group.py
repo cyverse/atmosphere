@@ -12,6 +12,7 @@ from core.models.provider import Provider
 from core.models.machine import Machine
 from core.models.instance import Instance
 from core.models.quota import Quota
+from core.models.allocation import Allocation
 
 
 class Group(DjangoGroup):
@@ -72,6 +73,7 @@ class IdentityMembership(models.Model):
     identity = models.ForeignKey(Identity)
     member = models.ForeignKey(Group)
     quota = models.ForeignKey(Quota)
+    allocation = models.ForeignKey(Allocation, null=True, blank=True)
 
     def __unicode__(self):
         return "%s can use identity %s" % (self.member, self.identity)

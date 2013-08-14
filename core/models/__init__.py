@@ -16,6 +16,7 @@ from core.models.tag import Tag
 from core.models.volume import Volume
 from core.models.group import Group, ProviderMembership, IdentityMembership,\
     InstanceMembership, MachineMembership
+from core.models.allocation import Allocation
 
 
 def get_or_create(Model, *args, **kwargs):
