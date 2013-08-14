@@ -253,15 +253,23 @@ class InstanceAction(APIView):
                     errorObj,
                     status=status.HTTP_400_BAD_REQUEST)
             if update_status:
+                esh_instance = esh_driver.get_instance(instance_id)
                 core_instance = convertEshInstance(esh_driver,
                                                    esh_instance,
                                                    provider_id,
                                                    user)
                 start_time = None
-                if action in ['suspend', 'stop'] and not has_history(core_instance):
-                    start_time = core_instance.start_date
+                instance_status = 'active'
+                if action in ['suspend', 'stop']:
+                    instance_status = action
+                    if not has_history(core_instance):
+                        start_time = core_instance.start_date
+
+                logger.warn(esh_instance.extra['status'])
+                logger.warn(instance_status)
+
                 update_instance_history(core_instance,
-                                        esh_instance.extra['status'],
+                                        instance_status,
                                         start_time)
             api_response = {
                 'result': 'success',
