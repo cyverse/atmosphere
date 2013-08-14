@@ -322,17 +322,17 @@ import djcelery
 djcelery.setup_loader()
 
 """
-Import local settings, specific to the server this code is running on.
+Import local settings specific to the server, and secrets not checked into Git.
+"""
+from atmosphere.settings.local import *
+from atmosphere.settings.secrets import *
+
+"""
 Mostly good for TEST settings, especially DB conf.
 """
-try:
-    from atmosphere.settings.local import *
-# Its OK if there is no local.py on the server!
-except ImportError:
-    pass
-
-try:
-    from atmosphere.settings.secrets import *
-# Its OK if there is no secrets.py on the server!
-except ImportError:
-    pass
+if DEBUG:
+    # Its OK if there is no testing.py on the server!
+    try:
+        from atmosphere.settings.testing import *
+    except ImportError:
+        pass
