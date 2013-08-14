@@ -108,7 +108,6 @@ def remove_vm_specific_data(mounted_path, dry_run=False):
         raise Exception("Expected a mounted path at %s" % mounted_path)
     remove_files = ['mnt/*', 'tmp/*', 'root/*',
                     'dev/*', 'proc/*',
-                    'var/log/*',
                    ]
     remove_line_files = []
     overwrite_files = [
