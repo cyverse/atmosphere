@@ -10,6 +10,7 @@ from django.contrib.auth.models import User
 
 from threepio import logger
 
+from core.models.identity import Identity
 from core.models.script import Package
 from core.models.provider import Provider
 from core.models.tag import Tag, updateTags
@@ -38,6 +39,7 @@ class Machine(models.Model):
             blank=True)
     featured = models.BooleanField(default=False)
     created_by = models.ForeignKey(User)  # The user that requested imaging
+    created_by_identity = models.ForeignKey(Identity, null=True)
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
 
@@ -93,6 +95,8 @@ class ProviderMachine(models.Model):
     provider = models.ForeignKey(Provider)
     machine = models.ForeignKey(Machine)
     identifier = models.CharField(max_length=256, unique=True)  # EMI-12341234
+    created_by = models.ForeignKey(User, null=True)
+    created_by_identity = models.ForeignKey(Identity, null=True)
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
 

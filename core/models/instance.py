@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from threepio import logger
 
+from core.models.identity import Identity
 from core.models.machine import ProviderMachine, convertEshMachine
 from core.models.tag import Tag
 
@@ -36,12 +37,11 @@ class Instance(models.Model):
     provider_alias = models.CharField(max_length=256, unique=True)
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     created_by = models.ForeignKey(User)
-    # do not set a default value for start_date
-    # it creates more problems than it solves; trust me.
-    start_date = models.DateTimeField()
-    end_date = models.DateTimeField(null=True)
+    created_by_identity = models.ForeignKey(Identity, null=True)
     shell = models.BooleanField()
     vnc = models.BooleanField()
+    start_date = models.DateTimeField() # Problems when setting a default.
+    end_date = models.DateTimeField(null=True)
 
     def creator_name(self):
         return self.created_by.username
@@ -168,6 +168,10 @@ def update_instance_history(core_instance, status_name, start_time=None):
     if status history exists, grab the latest status and mark it finished
     then set the start_time for the newest history
     """
+    logger.warn("update_instance_history!")
+    logger.warn(core_instance)
+    logger.warn(status_name)
+    logger.warn(start_time)
     last = core_instance.instancestatushistory_set\
             .order_by('-start_date')
     now = timezone.now()
@@ -181,9 +185,9 @@ def update_instance_history(core_instance, status_name, start_time=None):
         last = [first_hist] # Lets pretend this came from .order_by
 
     if last:
+        last = last[0]
         if last.status.name == status_name:
             return
-        last = last[0]
         last.end_date = now
         last.save()
 
