@@ -14,3 +14,7 @@ Mostly, this will be the DATABASES dict:
         },
     }
 """
+
+import sys
+
+globals().update(vars(sys.modules['atmosphere.settings']))
