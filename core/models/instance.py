@@ -206,7 +206,7 @@ def findInstance(alias):
     return None
 
 
-def convertEshInstance(esh_driver, esh_instance, provider_id, user, token=None):
+def convertEshInstance(esh_driver, esh_instance, provider_id, identity_id, user, token=None):
     """
     """
     #logger.debug(esh_instance.__dict__)
@@ -248,7 +248,7 @@ def convertEshInstance(esh_driver, esh_instance, provider_id, user, token=None):
 
         coreMachine = convertEshMachine(esh_driver, eshMachine, provider_id,
                                         image_id=esh_instance.image_id)
-        core_instance = createInstance(provider_id, alias,
+        core_instance = createInstance(provider_id, identity_id, alias,
                                       coreMachine, ip_address,
                                       esh_instance.name, user,
                                       start_date, token)
@@ -299,13 +299,15 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
         else:
             raise
 
-def createInstance(provider_id, provider_alias, provider_machine,
+def createInstance(provider_id, identity_id, provider_alias, provider_machine,
                    ip_address, name, creator, create_stamp, token=None):
+    identity = Identity.objects.get(id=identity_id)
     new_inst = Instance.objects.create(name=name,
                                        provider_alias=provider_alias,
                                        provider_machine=provider_machine,
                                        ip_address=ip_address,
                                        created_by=creator,
+                                       created_by_identity=identity,
                                        token=token,
                                        start_date=create_stamp)
     new_inst.save()

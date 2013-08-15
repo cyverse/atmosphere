@@ -29,8 +29,8 @@ def atmo_login_required(func):
             logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
             return HttpResponseRedirect(settings.SERVER_URL+"/logout/")
 
-	#logger.info('atmo_login_required session info: %s' % request.session.__dict__)
-	logger.info('atmo_login_required authentication: %s' % request.session.get('username','<Username not in session>'))
+        #logger.info('atmo_login_required session info: %s' % request.session.__dict__)
+        logger.info('atmo_login_required authentication: %s' % request.session.get('username','<Username not in session>'))
         username = request.session.get('username', None)
         redirect = kwargs.get('redirect', request.get_full_path())
         emulator = request.session.get('emulated_by', None)
@@ -87,7 +87,7 @@ def api_auth_token_required(func):
         """
         request = args[0]
         user = request.user
-	#logger.info('api_auth_token authentication: %s' % user)
+        #logger.info('api_auth_token authentication: %s' % user)
         if user and user.is_authenticated():
             return func(request, *args, **kwargs)
         else:

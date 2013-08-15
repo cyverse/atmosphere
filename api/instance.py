@@ -59,6 +59,7 @@ class InstanceList(APIView):
         core_instance_list = [convertEshInstance(esh_driver,
                                                  inst,
                                                  provider_id,
+                                                 identity_id,
                                                  user)
                               for inst in esh_instance_list]
 
@@ -98,7 +99,7 @@ class InstanceList(APIView):
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
         core_instance = convertEshInstance(
-            esh_driver, esh_instance, provider_id, user, token)
+            esh_driver, esh_instance, provider_id, identity_id, user, token)
         update_instance_history(core_instance, 'active')
         serializer = InstanceSerializer(core_instance, data=data)
         #NEVER WRONG
@@ -257,6 +258,7 @@ class InstanceAction(APIView):
                 core_instance = convertEshInstance(esh_driver,
                                                    esh_instance,
                                                    provider_id,
+                                                   identity_id,
                                                    user)
                 start_time = None
                 instance_status = 'active'
@@ -328,7 +330,7 @@ class Instance(APIView):
             return instance_not_found(instance_id)
 
         core_instance = convertEshInstance(esh_driver, esh_instance,
-                                           provider_id, user)
+                                           provider_id, identity_id, user)
         serialized_data = InstanceSerializer(core_instance).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
@@ -358,7 +360,7 @@ class Instance(APIView):
 
         #Gather the DB related item and update
         core_instance = convertEshInstance(esh_driver, esh_instance,
-                                           provider_id, user)
+                                           provider_id, identity_id, user)
         serializer = InstanceSerializer(core_instance, data=data, partial=True)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
@@ -401,7 +403,7 @@ class Instance(APIView):
 
         #Gather the DB related item and update
         core_instance = convertEshInstance(esh_driver, esh_instance,
-                                           provider_id, user)
+                                           provider_id, identity_id, user)
         serializer = InstanceSerializer(core_instance, data=data)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
@@ -431,6 +433,7 @@ class Instance(APIView):
             core_instance = convertEshInstance(esh_driver,
                                                esh_instance,
                                                provider_id,
+                                               identity_id,
                                                user)
             if core_instance:
                 core_instance.end_date = datetime.now()
