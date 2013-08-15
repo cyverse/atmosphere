@@ -13,7 +13,6 @@ from threepio import logger
 
 from core.models.identity import Identity
 from core.models.machine import ProviderMachine, convertEshMachine
-from core.models.provider import Provider
 from core.models.tag import Tag
 
 
@@ -207,7 +206,7 @@ def findInstance(alias):
     return None
 
 
-def convertEshInstance(esh_driver, esh_instance, provider_id, user, token=None):
+def convertEshInstance(esh_driver, esh_instance, provider_id, identity_id, user, token=None):
     """
     """
     #logger.debug(esh_instance.__dict__)
@@ -243,25 +242,16 @@ def convertEshInstance(esh_driver, esh_instance, provider_id, user, token=None):
             start_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%SZ')
         start_date = start_date.replace(tzinfo=pytz.utc)
 
-        # Get the created_by_identity
-        identity = None
-        try:
-            provider = Provider.objects.filter(type__name=esh_driver.provider.name)[0]
-            identity = Identity.objects.filter(provider=provider,
-                                               userprofile=me.userprofile)[0]
-        except:
-            logger.warn("Unable to find provider and identity for %s:%s"\
-                        % (esh_driver.provider.name, esh_driver.identity.user))
         logger.debug("Instance %s" % alias)
         logger.debug("CREATED: %s" % create_stamp)
         logger.debug("START: %s" % start_date)
 
         coreMachine = convertEshMachine(esh_driver, eshMachine, provider_id,
                                         image_id=esh_instance.image_id)
-        core_instance = createInstance(provider_id, alias,
-                                       coreMachine, ip_address,
-                                       esh_instance.name, user,
-                                       identity, start_date, token)
+        core_instance = createInstance(provider_id, identity_id, alias,
+                                      coreMachine, ip_address,
+                                      esh_instance.name, user,
+                                      start_date, token)
 
     core_instance.esh = esh_instance
 
@@ -309,15 +299,15 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
         else:
             raise
 
-def createInstance(provider_id, provider_alias, provider_machine,
-                   ip_address, name, creator, created_by_identity,
-                   create_stamp, token=None):
+def createInstance(provider_id, identity_id, provider_alias, provider_machine,
+                   ip_address, name, creator, create_stamp, token=None):
+    identity = Identity.objects.get(id=identity_id)
     new_inst = Instance.objects.create(name=name,
                                        provider_alias=provider_alias,
                                        provider_machine=provider_machine,
                                        ip_address=ip_address,
                                        created_by=creator,
-                                       created_by_identity=created_by_identity,
+                                       created_by_identity=identity,
                                        token=token,
                                        start_date=create_stamp)
     new_inst.save()
