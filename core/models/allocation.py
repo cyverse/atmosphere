@@ -15,7 +15,7 @@ class Allocation(models.Model):
     delta = models.IntegerField(null=True, blank=True, default=20160) # In Minutes
 
     def __unicode__(self):
-        return "Threshold: %s over Delta: %s" % (self.threshold, self.delta)
+        return "Threshold: %s over Delta: %s minutes" % (self.threshold, self.delta)
 
     @classmethod
     def defaults(self):

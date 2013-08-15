@@ -17,6 +17,7 @@ from core.models.node import NodeController
 from core.models.profile import UserProfile
 from core.models.provider import Provider, ProviderType
 from core.models.quota import Quota
+from core.models.allocation import Allocation
 from core.models.size import Size
 from core.models.tag import Tag
 from core.models.volume import Volume
@@ -42,6 +43,10 @@ class MaintenanceAdmin(admin.ModelAdmin):
 
 class QuotaAdmin(admin.ModelAdmin):
     list_display = ("__unicode__", "cpu", "memory", "storage", "storage_count")
+
+
+class AllocationAdmin(admin.ModelAdmin):
+    list_display = ("__unicode__", "threshold", "delta")
 
 
 class ProviderMachineAdmin(admin.ModelAdmin):
@@ -146,7 +151,7 @@ class ProviderMembershipAdmin(admin.ModelAdmin):
 
 class IdentityMembershipAdmin(admin.ModelAdmin):
     search_fields = ["identity__created_by__username", ]
-    list_display = ["_identity_user", "_identity_provider", "quota"]
+    list_display = ["_identity_user", "_identity_provider", "quota", "allocation"]
     list_filter = [
         "identity__provider__location",
     ]
@@ -204,6 +209,7 @@ admin.site.register(ProviderMachine, ProviderMachineAdmin)
 admin.site.register(Provider, ProviderAdmin)
 admin.site.register(ProviderType)
 admin.site.register(Quota, QuotaAdmin)
+admin.site.register(Allocation, AllocationAdmin)
 admin.site.register(Size, SizeAdmin)
 admin.site.register(Tag, TagAdmin)
 admin.site.register(Volume, VolumeAdmin)
