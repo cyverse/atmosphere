@@ -9,6 +9,56 @@ class Migration(DataMigration):
     def forwards(self, orm):
         "Write your forwards methods here."
         # Note: Remember to use orm['appname.ModelName'] rather than "from appname.models..."
+        print '> core - data: Updating Instance'
+        self.update_instance(orm)
+        print '> core - data: Updating Volume'
+        self.update_volume(orm)
+
+    def convertEshVolume(self, orm, eshVolume, provider_id, identity_id, user):
+        """
+        Get or create the core representation of eshVolume
+        Attach eshVolume to the object for further introspection..
+        """
+        alias = eshVolume.id
+        name = eshVolume.name
+        size = eshVolume.size
+        created_on = eshVolume.extra.get('createTime')
+        volume = orm.Volume.objects.get(alias=alias, provider__id=provider_id)
+        volume.esh = eshVolume
+        return volume
+
+    def getEshDriver(self, core_identity):
+        from api import getEshMap
+        cred_dict = {}
+        credentials = core_identity.credential_set.all()
+        for cred in credentials:
+            cred_dict[cred.key] = cred.value
+        user = core_identity.created_by
+        eshMap = getEshMap(core_identity.provider)
+        provider = eshMap['provider']()
+        identity = eshMap['identity'](provider, user=user, **cred_dict)
+        driver = eshMap['driver'](provider, identity)
+        return driver
+
+    def update_volume(self, orm):
+        from libcloud.common.types import InvalidCredsError
+        for identity in orm.Identity.objects.all():
+            if 'admin' in identity.created_by.username:
+                continue
+            driver = self.getEshDriver(identity)
+            try:
+                esh_volumes = driver.list_volumes()
+            except InvalidCredsError, ice:
+                print 'Failed to list volumes for %s' % identity.created_by.username
+            core_volumes = [self.convertEshVolume(orm, vol, identity.provider.id, identity.id, identity.created_by) for vol in esh_volumes]
+            for vol in core_volumes:
+                print 'Updating Volume %s - created by %s' % (vol.alias,\
+                        identity.created_by.username)
+                vol.created_by = identity.created_by
+                vol.created_by_identity = identity
+                vol.save()
+
+    def update_instance(self, orm):
         for instance in orm.Instance.objects.all():
             instance.created_by_identity = orm.Identity.objects.get(created_by__username=instance.created_by.username, provider=instance.provider_machine.provider.id)
             instance.save()

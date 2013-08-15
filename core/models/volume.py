@@ -70,7 +70,7 @@ class Volume(models.Model):
         return attach_data
 
 
-def convertEshVolume(eshVolume, provider_id, user):
+def convertEshVolume(eshVolume, provider_id, identity_id, user):
     """
     Get or create the core representation of eshVolume
     Attach eshVolume to the object for further introspection..
@@ -78,25 +78,29 @@ def convertEshVolume(eshVolume, provider_id, user):
     alias = eshVolume.id
     name = eshVolume.name
     size = eshVolume.size
-    created = eshVolume.extra.get('createTime')
+    created_on = eshVolume.extra.get('createTime')
     try:
         volume = Volume.objects.get(alias=alias, provider__id=provider_id)
     except Volume.DoesNotExist:
-        volume = createVolume(name, alias, size, provider_id, created)
+        volume = createVolume(name, alias, size, provider_id, identity_id,
+                user, created_on)
     volume.esh = eshVolume
     return volume
 
 
 #TODO:Belongs in core.volume
-def createVolume(name, alias, size, provider_id, created=None):
+def createVolume(name, alias, size, provider_id, identity_id, creator, created_on=None):
     provider = Provider.objects.get(id=provider_id)
+    identity = Identity.objects.get(id=identity_id)
     volume = Volume.objects.create(name=name, alias=alias,
                                    size=size, provider=provider,
+                                   created_by=creator,
+                                   created_by_identity=identity,
                                    description='')
-    if created:
-    # Taking advantage of the ability to save string dates as datetime
-    # but we need to get the actual date time after we are done..
-        volume.start_date = pytz.utc.localize(created)
+    if created_on:
+        # Taking advantage of the ability to save string dates as datetime
+        # but we need to get the actual date time after we are done..
+        volume.start_date = pytz.utc.localize(created_on)
         volume.save()
     volume = Volume.objects.get(id=volume.id)
     return volume
