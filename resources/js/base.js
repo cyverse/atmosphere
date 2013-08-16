@@ -10,7 +10,7 @@ function setAtmoUser(aUser, aToken) {
 }
 
 Number.prototype.toNumberCommaString = function() {
-	return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/, '1,');
+	return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/, '$1,');
 };
 
 // function postAtmoJSON(param,data) {
