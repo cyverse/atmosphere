@@ -76,6 +76,7 @@ class Provider(models.Model):
     def get_admin_identity(self):
         #NOTE: Do not move import up.
         from core.models import Identity
+        from django.contrib.auth.models import User
         if self.location.lower() == 'openstack':
             admin = User.objects.get(username=settings.OPENSTACK_ADMIN_KEY)
         if self.location.lower() == 'eucalyptus':

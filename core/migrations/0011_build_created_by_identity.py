@@ -18,7 +18,9 @@ class Migration(DataMigration):
 
     def update_machine(self, orm):
         for prov in orm.Provider.objects.all():
-            admin_id = prov.get_admin_identity()
+            admin_id = self.get_admin_identity(orm, prov)
+            if not admin_id:
+                continue
             core_machines = orm.ProviderMachine.objects.filter(provider=prov)
             for pm in core_machines:
                 pm.created_by = admin_id.created_by
@@ -44,8 +46,68 @@ class Migration(DataMigration):
             mach.created_by = request.new_machine_owner
             mach.created_by_identity = new_owner
             mach.save()
-        #TODO: Optionally, parse the name to find the 'real' owner.. meh.
+        try:
+            self.retrieve_euca_owners(orm)
+        except:
+            #Will fail on an empty database
+            pass
 
+    def retrieve_euca_owners(self, orm):
+        provider = Provider.objects.get(location='EUCALYPTUS')
+        admin_id = self.get_admin_identity(orm, prov)
+        driver = self.getEshDriver(admin_id)
+        for machine in driver.list_machines():
+            try:
+                location = machine._image.extra['location']
+                owner = self.parse_location(location)
+                owner_id = orm.Identity.objects.get(\
+                        created_by__username=request.new_machine_owner,\
+                        provider=pm.new_machine_provider)
+                pm.created_by = owner_id.created_by
+                pm.created_by_identity = owner_id
+                pm.save()
+                mach.created_by = owner_id.created_by
+                mach.created_by_identity = owner_id
+                mach.save()
+            except:
+                print 'Failed to parse location for %s' % machine
+
+
+    def parse_location(self, location):
+        import re
+        bucket, image = location.split('/')
+        bucket_regex = re.compile("(?P<admin_tag>[^_]+)_(?P<owner_name>[^_]+).*$")
+        image_regex = re.compile("(?P<admin_or_owner>[^_]+)_(?P<owner_name>[^_]+).*$")
+        r = bucket_regex.search(bucket)
+        search_results = r.groupdict()
+        owner_name = search_results['owner_name']
+        if owner_name not in ['admin', 'mi']: # username found on bucket
+            user_found = owner_name
+        else:
+            #Check the image name
+            r = image_regex.search(image)
+            search_results = r.groupdict()
+            owner_name = search_results['owner_name']
+            if owner_name not in ['admin', 'mi']: # username found on bucket
+                user_found = owner_name
+            else:
+                user_found = search_results['admin_or_owner']
+        return user_found
+
+
+    def get_admin_identity(self, orm, provider):
+        #NOTE: Do not move import up.
+        try:
+        if provider.location.lower() == 'openstack':
+            admin =\
+            orm.UserProfile.objects.get(user__username=settings.OPENSTACK_ADMIN_KEY).user
+        if provider.location.lower() == 'eucalyptus':
+            admin =\
+            orm.UserProfile.objects.get(user__username=settings.EUCA_ADMIN_KEY).user
+            return orm.Identity.objects.get(provider=provider, created_by=admin)
+        except:
+            #On first initialization, you may not have an admin identity
+            return None
 
 
     def convertEshVolume(self, orm, eshVolume, provider_id):
