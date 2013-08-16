@@ -111,9 +111,8 @@ class Migration(DataMigration):
 
 
     def convertEshVolume(self, orm, eshVolume, provider_id):
-        alias = eshVolume.id
         try:
-            volume = orm.Volume.objects.get(alias=alias, provider__id=provider_id)
+            volume = orm.Volume.objects.get(alias=eshVolume.id, provider__id=provider_id)
             return volume
         except:
             return None
@@ -141,9 +140,12 @@ class Migration(DataMigration):
                 esh_volumes = driver.list_volumes()
             except InvalidCredsError, ice:
                 print 'Failed to list volumes for %s' % identity.created_by.username
-		continue
+		        continue
             core_volumes = [self.convertEshVolume(orm, vol, identity.provider.id) for vol in esh_volumes]
             for vol in core_volumes:
+                #Skip the volumes that aren't in your DB
+                if not vol:
+                    continue
                 print 'Updating Volume %s - created by %s' % (vol.alias,\
                         identity.created_by.username)
                 vol.created_by = identity.created_by
