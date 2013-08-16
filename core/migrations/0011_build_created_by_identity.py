@@ -11,15 +11,20 @@ class Migration(DataMigration):
         # Note: Remember to use orm['appname.ModelName'] rather than "from appname.models..."
         print ' > core - data: Updating Instance'
         self.update_instance(orm)
-        print ' > core - data: Updating Volume'
-        self.update_volume(orm)
         print ' > core - data: Updating Machine'
         self.update_machine(orm)
+        print ' > core - data: Updating Volume'
+        self.update_volume(orm)
 
     def update_machine(self, orm):
+        print 'Machine Update (1/3) : Set created_by to admin identity'
         for prov in orm.Provider.objects.all():
             admin_id = self.get_admin_identity(orm, prov)
             if not admin_id:
+                print "ERROR: No admin identity found for %s\n" %\
+                        prov.location
+                print "ERROR: Machines were not updated for %s\n" %\
+                        prov.location
                 continue
             core_machines = orm.ProviderMachine.objects.filter(provider=prov)
             for pm in core_machines:
@@ -30,65 +35,91 @@ class Migration(DataMigration):
                 mach.created_by = admin_id.created_by
                 mach.created_by_identity = admin_id
                 mach.save()
-        #Now replace with all the machine requests
+        print 'Machine Update (2/3) : Parse location to find created_by'
+        try:
+            self.retrieve_euca_owners(orm)
+        except:
+            #Will fail on an empty database
+            pass
+        print 'Machine Update (3/3) : Set created_by based on MachineRequest'
         machine_requests = orm.MachineRequest.objects.all()
         for request in machine_requests:
             if not request.new_machine:
                 continue
             pm = request.new_machine
+            print 'Updating from MachineRequest: %s created by %s' %\
+                (pm.identifier, request.new_machine_owner.username)
             mach = pm.machine
             new_owner  =\
-            orm.Identity.objects.get(created_by__username=request.new_machine_owner,\
-                    provider=pm.new_machine_provider)
+            orm.Identity.objects.get(created_by=request.new_machine_owner,\
+                    provider=request.new_machine_provider)
             pm.created_by = request.new_machine_owner
             pm.created_by_identity = new_owner
             pm.save()
             mach.created_by = request.new_machine_owner
             mach.created_by_identity = new_owner
             mach.save()
-        try:
-            self.retrieve_euca_owners(orm)
-        except:
-            #Will fail on an empty database
-            pass
 
     def retrieve_euca_owners(self, orm):
-        provider = Provider.objects.get(location='EUCALYPTUS')
-        admin_id = self.get_admin_identity(orm, prov)
-        driver = self.getEshDriver(admin_id)
-        for machine in driver.list_machines():
-            try:
-                location = machine._image.extra['location']
-                owner = self.parse_location(location)
-                owner_id = orm.Identity.objects.get(\
-                        created_by__username=request.new_machine_owner,\
-                        provider=pm.new_machine_provider)
-                pm.created_by = owner_id.created_by
-                pm.created_by_identity = owner_id
-                pm.save()
-                mach.created_by = owner_id.created_by
-                mach.created_by_identity = owner_id
-                mach.save()
-            except:
-                print 'Failed to parse location for %s' % machine
+        euca_providers = orm.Provider.objects.filter(location='EUCALYPTUS')
+        for prov in euca_providers:
+            admin_id = self.get_admin_identity(orm, prov)
+            driver = self.getEshDriver(admin_id)
+            updated = 0
+            machine_list = driver.list_machines()
+            for machine in machine_list:
+                try:
+                    location = machine._image.extra['location']
+                    owner = self.parse_location(orm, location)
+                    #print 'Location parsing %s found owner %s' % (location, owner)
+                    owner_id = orm.Identity.objects.get(\
+                            created_by__username=owner,
+                            provider=prov)
+                    pm = orm.ProviderMachine.objects.filter(identifier=machine.id)
+                    if not pm:
+                        continue
+                    #print 'Updating %s - created by %s' % (machine.id, owner)
+                    pm = pm[0]
+                    pm.created_by = owner_id.created_by
+                    pm.created_by_identity = owner_id
+                    pm.save()
+                    mach = pm.machine
+                    mach.created_by = owner_id.created_by
+                    mach.created_by_identity = owner_id
+                    mach.save()
+                    updated += 1
+                except orm.Identity.DoesNotExist:
+                    print 'Cannot rename machine %s: location %s parsed owner'\
+                    ' of %s. User does not exist' %\
+                    (machine.id, location, owner)
+            print '%s/%s machines updated from parsing location' %\
+                    (updated, len(machine_list))
 
 
-    def parse_location(self, location):
+    def parse_location(self, orm, location):
         import re
         bucket, image = location.split('/')
         bucket_regex = re.compile("(?P<admin_tag>[^_]+)_(?P<owner_name>[^_]+).*$")
         image_regex = re.compile("(?P<admin_or_owner>[^_]+)_(?P<owner_name>[^_]+).*$")
         r = bucket_regex.search(bucket)
+        if not r:
+            #Non-standard bucket location.. Skip it
+            return
         search_results = r.groupdict()
         owner_name = search_results['owner_name']
-        if owner_name not in ['admin', 'mi']: # username found on bucket
+        if owner_name not in ['admin', 'mi'] and\
+        orm.UserProfile.objects.filter(user__username=owner_name): # username found on bucket
             user_found = owner_name
         else:
             #Check the image name
             r = image_regex.search(image)
+            if not r:
+                #Non-standard image location.. Skip it
+                return
             search_results = r.groupdict()
             owner_name = search_results['owner_name']
-            if owner_name not in ['admin', 'mi']: # username found on bucket
+            if owner_name not in ['admin', 'mi'] and\
+            orm.UserProfile.objects.filter(user__username=owner_name): # username found on image
                 user_found = owner_name
             else:
                 user_found = search_results['admin_or_owner']
@@ -96,17 +127,17 @@ class Migration(DataMigration):
 
 
     def get_admin_identity(self, orm, provider):
-        #NOTE: Do not move import up.
         try:
-        if provider.location.lower() == 'openstack':
-            admin =\
-            orm.UserProfile.objects.get(user__username=settings.OPENSTACK_ADMIN_KEY).user
-        if provider.location.lower() == 'eucalyptus':
-            admin =\
-            orm.UserProfile.objects.get(user__username=settings.EUCA_ADMIN_KEY).user
-            return orm.Identity.objects.get(provider=provider, created_by=admin)
+            from atmosphere import settings
+            if provider.location.lower() == 'openstack':
+                admin_name = settings.OPENSTACK_ADMIN_KEY
+            elif provider.location.lower() == 'eucalyptus':
+                admin_name = 'admin'
+            admin = orm.UserProfile.objects.get(user__username=admin_name).user
+            return orm.Identity.objects.get(provider=provider,
+                                            created_by=admin)
         except:
-            #On first initialization, you may not have an admin identity
+            #If admin does not have an identity, skip it.
             return None
 
 
@@ -140,14 +171,14 @@ class Migration(DataMigration):
                 esh_volumes = driver.list_volumes()
             except InvalidCredsError, ice:
                 print 'Failed to list volumes for %s' % identity.created_by.username
-		        continue
+                continue
             core_volumes = [self.convertEshVolume(orm, vol, identity.provider.id) for vol in esh_volumes]
             for vol in core_volumes:
                 #Skip the volumes that aren't in your DB
                 if not vol:
                     continue
-                print 'Updating Volume %s - created by %s' % (vol.alias,\
-                        identity.created_by.username)
+                #print 'Updating Volume %s - created by %s' % (vol.alias,\
+                #        identity.created_by.username)
                 vol.created_by = identity.created_by
                 vol.created_by_identity = identity
                 vol.save()
@@ -158,7 +189,21 @@ class Migration(DataMigration):
             instance.save()
 
     def backwards(self, orm):
-        "Backward method is complete because column will be removed next"
+        "Backward method removes all saved created_by_identity fields"
+        for instance in orm.Instance.objects.all():
+            instance.created_by_identity = None
+            instance.save()
+        for volume in orm.Volume.objects.all():
+            volume.created_by = None
+            volume.created_by_identity = None
+            volume.save()
+        for pm in orm.ProviderMachine.objects.all():
+            pm.created_by = None
+            pm.created_by_identity = None
+            pm.save()
+            mach = pm.machine
+            mach.created_by_identity = None
+            mach.save()
 
 
     models = {
