@@ -9,23 +9,52 @@ class Migration(DataMigration):
     def forwards(self, orm):
         "Write your forwards methods here."
         # Note: Remember to use orm['appname.ModelName'] rather than "from appname.models..."
-        print '> core - data: Updating Instance'
+        print ' > core - data: Updating Instance'
         self.update_instance(orm)
-        print '> core - data: Updating Volume'
+        print ' > core - data: Updating Volume'
         self.update_volume(orm)
+        print ' > core - data: Updating Machine'
+        self.update_machine(orm)
 
-    def convertEshVolume(self, orm, eshVolume, provider_id, identity_id, user):
-        """
-        Get or create the core representation of eshVolume
-        Attach eshVolume to the object for further introspection..
-        """
+    def update_machine(self, orm):
+        for prov in orm.Provider.objects.all():
+            admin_id = prov.get_admin_identity()
+            core_machines = orm.ProviderMachine.objects.filter(provider=prov)
+            for pm in core_machines:
+                pm.created_by = admin_id.created_by
+                pm.created_by_identity = admin_id
+                pm.save()
+                mach = pm.machine
+                mach.created_by = admin_id.created_by
+                mach.created_by_identity = admin_id
+                mach.save()
+        #Now replace with all the machine requests
+        machine_requests = orm.MachineRequest.objects.all()
+        for request in machine_requests:
+            if not request.new_machine:
+                continue
+            pm = request.new_machine
+            mach = pm.machine
+            new_owner  =\
+            orm.Identity.objects.get(created_by__username=request.new_machine_owner,\
+                    provider=pm.new_machine_provider)
+            pm.created_by = request.new_machine_owner
+            pm.created_by_identity = new_owner
+            pm.save()
+            mach.created_by = request.new_machine_owner
+            mach.created_by_identity = new_owner
+            mach.save()
+        #TODO: Optionally, parse the name to find the 'real' owner.. meh.
+
+
+
+    def convertEshVolume(self, orm, eshVolume, provider_id):
         alias = eshVolume.id
-        name = eshVolume.name
-        size = eshVolume.size
-        created_on = eshVolume.extra.get('createTime')
-        volume = orm.Volume.objects.get(alias=alias, provider__id=provider_id)
-        volume.esh = eshVolume
-        return volume
+        try:
+            volume = orm.Volume.objects.get(alias=alias, provider__id=provider_id)
+            return volume
+        except:
+            return None
 
     def getEshDriver(self, core_identity):
         from api import getEshMap
@@ -50,7 +79,8 @@ class Migration(DataMigration):
                 esh_volumes = driver.list_volumes()
             except InvalidCredsError, ice:
                 print 'Failed to list volumes for %s' % identity.created_by.username
-            core_volumes = [self.convertEshVolume(orm, vol, identity.provider.id, identity.id, identity.created_by) for vol in esh_volumes]
+		continue
+            core_volumes = [self.convertEshVolume(orm, vol, identity.provider.id) for vol in esh_volumes]
             for vol in core_volumes:
                 print 'Updating Volume %s - created by %s' % (vol.alias,\
                         identity.created_by.username)

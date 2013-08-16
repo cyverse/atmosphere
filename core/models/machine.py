@@ -188,17 +188,22 @@ def createProviderMachine(machine_name, provider_alias,
                           provider_id, description=None):
     #No Provider Machine.. Time to build one
     provider = Provider.objects.get(id=provider_id)
+    admin_id = provider.get_admin_identity()
     logger.debug("Provider %s" % provider)
     machine = getGenericMachine(machine_name)
     if not machine:
         #Build a machine to match
         if not description:
             description = "Describe Machine %s" % provider_alias
-        machine = createGenericMachine(machine_name, description)
+        #NOTE: Admin id must be used here until we KNOW who the owner is..
+        machine = createGenericMachine(machine_name, description, admin_id)
     logger.debug("Machine %s" % machine)
+    #NOTE: Admin id must be used here until we KNOW who the owner is..
     provider_machine = ProviderMachine.objects.create(
         machine=machine,
         provider=provider,
+        created_by=admin_id.created_by,
+        created_by_identity=admin_id,
         identifier=provider_alias)
     logger.info("New ProviderMachine created: %s" % provider_machine)
     if ProviderMachine.cached_machines:
@@ -221,14 +226,15 @@ def getGenericMachine(name):
         logger.error(type(e))
 
 
-def createGenericMachine(name, description, creator=None):
+def createGenericMachine(name, description, creator_id=None):
     if not description:
         description = ""
     if not creator:
         creator = User.objects.get_or_create(username='admin')[0]
     new_mach = Machine.objects.create(name=name,
                                       description=description,
-                                      created_by=creator)
+                                      created_by=creator_id.created_by,
+                                      created_by_id=creator_id)
     return new_mach
 
 
