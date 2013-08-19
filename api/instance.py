@@ -89,7 +89,12 @@ class InstanceList(APIView):
         esh_driver = prepareDriver(request, identity_id)
         size_alias = extras.get('size_alias', '')
         size = esh_driver.get_size(size_alias)
-        check_quota(request.user.username, identity_id, size)
+        if not check_quota(request.user.username, identity_id, size):
+            errorObj = failureJSON([{
+                'code': 403,
+                'message': 'Exceeds resource quota'}])
+            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
+
         try:
             (esh_instance, token) = launchEshInstance(esh_driver, data)
         except InvalidCredsError:

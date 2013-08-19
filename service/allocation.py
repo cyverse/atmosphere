@@ -39,3 +39,22 @@ def get_allocation(username, identity_id):
     membership = IdentityMembership.objects.get(identity__id=identity_id,
                                                 member__name=username)
     return membership.allocation
+
+def check_allocation(username, identity_id):
+    """
+    Get identity-specific allocation
+    Grab all instances created between now and 'delta'
+    Check that cumulative time of instances do not exceed threshold
+    TRUE = Okay to launch
+    """
+    allocation = get_allocation(username, identity_id)
+    if not allocation:
+        #No allocation, not over quota
+        return True
+    delta_time = timedelta(minutes=allocation.delta)
+    total_time_used = get_time(username, delta_time)
+    max_time_allowed = timedelta(minutes=allocation.threshold)
+    if total_time_used >= max_time_allowed:
+        logger.info("%s is over their allowed quota by %s minutes" % (username, 
+    return total_time_used < max_time_allowed
+
