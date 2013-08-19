@@ -87,6 +87,9 @@ class InstanceList(APIView):
         data = request.DATA
         user = request.user
         esh_driver = prepareDriver(request, identity_id)
+        size_alias = extras.get('size_alias', '')
+        size = esh_driver.get_size(size_alias)
+        check_quota(request.user.username, identity_id, size)
         try:
             (esh_instance, token) = launchEshInstance(esh_driver, data)
         except InvalidCredsError:

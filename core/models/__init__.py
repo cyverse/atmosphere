@@ -7,7 +7,8 @@ from core.models.machine import Machine, ProviderMachine
 from core.models.machine_request import MachineRequest
 from core.models.machine_export import MachineExport
 from core.models.maintenance import MaintenanceRecord
-from core.models.instance import Instance, InstanceStatusHistory
+from core.models.instance import Instance, InstanceStatusHistory,\
+                                 InstanceStatus
 from core.models.node import NodeController
 from core.models.size import Size
 from core.models.quota import Quota
@@ -15,7 +16,7 @@ from core.models.script import Script, Package
 from core.models.tag import Tag
 from core.models.volume import Volume
 from core.models.group import Group, ProviderMembership, IdentityMembership,\
-    InstanceMembership, MachineMembership
+                              InstanceMembership, MachineMembership
 from core.models.allocation import Allocation
 
 
