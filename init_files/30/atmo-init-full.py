@@ -132,6 +132,13 @@ def run_command(commandList, shell=False, bash_wrap=False):
     return (out, err)
 
 
+def in_etc_group(filename, val):
+    for line in open(filename, 'r').read().split('\n'):
+        if 'users' in line and val in line:
+            return True
+    return False
+
+
 def add_etc_group(user):
     run_command(["/bin/sed -i 's/users:x:.*/&%s,/' /etc/group" % (user, )],
                 bash_wrap=True)
@@ -730,7 +737,7 @@ def main(argv):
 
     if not file_contains('/etc/sudoers', linuxuser):
         add_sudoers(linuxuser)
-    if not file_contains('/etc/group', linuxuser):
+    if not in_etc_group('/etc/group', linuxuser):
         add_etc_group(linuxuser)
     if not is_updated_test("/etc/ssh/sshd_config"):
         ssh_config(distro)
