@@ -76,14 +76,16 @@ def remove_atmo_data(mounted_path, dry_run=False):
         #TEMPLATE:
         #('delete_from', 'delete_to', 'replace_where')
 
+        #SUDOERS:
         ("## Atmosphere System", "## End Atmosphere System", "etc/sudoers"),
         ("# Begin Nagios", "# End Nagios", "etc/sudoers"),
         ("# Begin Sensu", "# End Sensu", "etc/sudoers"),
         ("## Atmosphere System", "", "etc/sudoers"), #Delete to end-of-file..
+        #SSHD_CONFIG:
         ("## Atmosphere System", "## End Atmosphere System",
          "etc/ssh/sshd_config"),
         ("## Atmosphere System", "", "etc/ssh/sshd_config"), #Delete to end-of-file..
-
+        #.BASHRC:
         ("## Atmosphere System", "## End Atmosphere System",
          "etc/skel/.bashrc"),
         ("## Atmosphere System", "", "etc/skel/.bashrc"), #Delete to end-of-file..
