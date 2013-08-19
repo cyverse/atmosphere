@@ -1,10 +1,11 @@
+from datetime import timedelta
+
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.models import User as DjangoUser
 from django.contrib.auth.models import Group as DjangoGroup
 from django.utils import timezone
 
-from django.utils import timezone
 
 from core.models.credential import Credential
 from core.models.group import Group, IdentityMembership, ProviderMembership
@@ -46,7 +47,20 @@ class QuotaAdmin(admin.ModelAdmin):
 
 
 class AllocationAdmin(admin.ModelAdmin):
-    list_display = ("__unicode__", "threshold", "delta")
+    list_display = ("threshold_str", "delta_str")
+    def threshold_str(self, obj):
+        td = timedelta(minutes=obj.threshold)
+        return '%s days, %s hours, %s minutes' % (td.days,
+                                            td.seconds//3600,
+                                            (td.seconds//60)%60)
+    threshold_str.short_description = 'Threshold'
+
+    def delta_str(self, obj):
+        td = timedelta(minutes=obj.delta)
+        return '%s days, %s hours, %s minutes' % (td.days,
+                                            td.seconds//3600,
+                                            (td.seconds//60)%60)
+    delta_str.short_description = 'Delta'
 
 
 class ProviderMachineAdmin(admin.ModelAdmin):

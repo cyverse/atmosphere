@@ -155,6 +155,15 @@ class InstanceStatusHistory(models.Model):
 Useful utility methods for the Core Model..
 """
 
+def map_to_identity(core_instances):
+    instance_id_map = {}
+    for instance in core_instances:
+        identity_id = instance.created_by_identity_id
+        instance_list = instance_id_map.get(identity_id,[])
+        instance_list.append(instance)
+        instance_id_map[identity_id] = instance_list
+    return instance_id_map
+
 def has_history(core_instance):
     return core_instance.instancestatushistory_set.all()
 
