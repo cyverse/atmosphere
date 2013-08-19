@@ -1,5 +1,7 @@
+import glob
 import os
 import re
+import subprocess
 
 from threepio import logger
 
