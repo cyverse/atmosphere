@@ -9,7 +9,7 @@ from service.imaging.common import prepend_line_in_files,\
                                    replace_line_in_files,\
                                    remove_multiline_in_files
 
-from service.system_calls import run_command
+from service.imaging.common import run_command
 
 def xen_to_kvm(mounted_path):
     """

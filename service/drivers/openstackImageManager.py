@@ -23,7 +23,7 @@ from rtwo.drivers.common import _connect_to_keystone, _connect_to_nova,\
 
 from service.deploy import freeze_instance, sync_instance
 from service.tasks.driver import deploy_to
-from service.system_calls import run_command, wildcard_remove
+from service.imaging.common import run_command, wildcard_remove
 from service.imaging.clean import remove_user_data, remove_atmo_data,\
                                   remove_vm_specific_data
 from service.imaging.common import unmount_image, mount_image, remove_files,\

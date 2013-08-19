@@ -6,7 +6,7 @@ from service.imaging.common import prepare_chroot_env, remove_chroot_env,\
                                    append_line_in_files,\
                                    prepend_line_in_files,\
                                    replace_line_in_files
-from service.system_calls import sed_replace
+from service.imaging.common import sed_replace
 
 
 def add_virtualbox_support(mounted_path, image_path):
