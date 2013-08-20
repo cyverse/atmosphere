@@ -45,11 +45,11 @@ def check_allocation(username, identity_id):
     Get identity-specific allocation
     Grab all instances created between now and 'delta'
     Check that cumulative time of instances do not exceed threshold
-    TRUE = Okay to launch
+    True if there is no allocation.
     """
     allocation = get_allocation(username, identity_id)
     if not allocation:
-        #No allocation, not over quota
+        #No allocation, so you fail.
         return True
     delta_time = timedelta(minutes=allocation.delta)
     total_time_used = get_time(username, delta_time)
