@@ -18,7 +18,7 @@ from core.models.volume import convertEshVolume
 
 from api.serializers import VolumeSerializer
 
-from api import prepareDriver, failureJSON
+from api import prepare_driver, failureJSON
 
 
 class VolumeList(APIView):
@@ -31,7 +31,7 @@ class VolumeList(APIView):
         Retrieves list of volumes and updates the DB
         """
         user = request.user
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         esh_volume_list = esh_driver.list_volumes()
         core_volume_list = [convertEshVolume(volume, provider_id, user)
                             for volume in esh_volume_list]
@@ -45,7 +45,7 @@ class VolumeList(APIView):
         Creates a new volume and adds it to the DB
         """
         user = request.user
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         data = request.DATA
         if not data.get('name') or not data.get('size'):
             errorObj = failureJSON([{
@@ -92,7 +92,7 @@ class Volume(APIView):
         """
         """
         user = request.user
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         eshVolume = esh_driver.get_volume(volume_id)
         if not eshVolume:
             errorObj = failureJSON([{'code': 404,
@@ -111,7 +111,7 @@ class Volume(APIView):
         user = request.user
         data = request.DATA
         #Ensure volume exists
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         eshVolume = esh_driver.get_volume(volume_id)
         if not eshVolume:
             errorObj = failureJSON([{'code': 404,
@@ -134,7 +134,7 @@ class Volume(APIView):
         user = request.user
         data = request.DATA
         #Ensure volume exists
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         eshVolume = esh_driver.get_volume(volume_id)
         if not eshVolume:
             errorObj = failureJSON([{'code': 404,
@@ -156,7 +156,7 @@ class Volume(APIView):
         """
         user = request.user
         #Ensure volume exists
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         eshVolume = esh_driver.get_volume(volume_id)
         if not eshVolume:
             errorObj = failureJSON([{'code': 404,

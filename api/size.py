@@ -12,7 +12,7 @@ from core.models.size import convertEshSize
 
 from api.serializers import ProviderSizeSerializer
 
-from api import prepareDriver
+from api import prepare_driver
 
 
 class SizeList(APIView):
@@ -26,7 +26,7 @@ class SizeList(APIView):
         TODO: Cache this request
         """
         user = request.user
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         esh_size_list = esh_driver.list_sizes()
         core_size_list = [convertEshSize(size, provider_id, user)
                           for size in esh_size_list]
@@ -46,7 +46,7 @@ class Size(APIView):
         Update on server DB (If applicable)
         """
         user = request.user
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         eshSize = esh_driver.get_size(size_id)
         coreSize = convertEshSize(eshSize, provider_id, user)
         serialized_data = ProviderSizeSerializer(coreSize).data

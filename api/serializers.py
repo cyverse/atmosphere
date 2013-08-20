@@ -62,7 +62,10 @@ class InstanceSerializer(serializers.ModelSerializer):
     #R/O Fields first!
     alias = serializers.CharField(read_only=True, source='provider_alias')
     alias_hash = serializers.CharField(read_only=True, source='hash_alias')
-    created_by = serializers.CharField(read_only=True, source='creator_name')
+    #created_by = serializers.CharField(read_only=True, source='creator_name')
+    created_by = serializers.SlugRelatedField(slug_field='username',
+                                         source='created_by',
+                                         read_only=True)
     status = serializers.CharField(read_only=True, source='esh_status')
     size_alias = serializers.CharField(read_only=True, source='esh_size')
     machine_alias = serializers.CharField(read_only=True, source='esh_machine')
@@ -82,7 +85,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Instance
         exclude = ('id', 'end_date', 'provider_machine', 'provider_alias',
-        'shell', 'vnc')
+        'shell', 'vnc', 'created_by_identity')
 
 class PaginatedInstanceSerializer(pagination.PaginationSerializer):
     """

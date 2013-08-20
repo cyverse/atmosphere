@@ -12,7 +12,7 @@ from django.utils import timezone
 from threepio import logger
 
 from core.models.identity import Identity
-from core.models.machine import ProviderMachine, convertEshMachine
+from core.models.machine import ProviderMachine, convert_esh_machine
 from core.models.tag import Tag
 
 
@@ -42,6 +42,95 @@ class Instance(models.Model):
     vnc = models.BooleanField()
     start_date = models.DateTimeField() # Problems when setting a default.
     end_date = models.DateTimeField(null=True)
+
+    def last_history(self):
+        """
+        Returns the newest InstanceStatusHistory
+        """
+        last_hist = InstanceStatusHistory.objects\
+                .filter(instance=self).order_by('-start_date')
+        if not last_hist:
+            return None
+        return last_hist[0]
+
+    def new_history(self, status_name, start_date=None):
+        """
+        Creates a new (Unsaved!) InstanceStatusHistory
+        """
+        new_hist = InstanceStatusHistory()
+        new_hist.instance = self
+        new_hist.status, created = InstanceStatus.objects\
+                                      .get_or_create(name=status_name)
+        if start_date:
+            new_hist.start_date=start_date
+        return new_hist
+
+    def update_history(self, status_name, task=None, first_update=False):
+        if task:
+            logger.info("Task provided:%s" % task)
+            task_to_status = {
+                    'suspending':'suspended',
+                    'resuming':'active',
+                    'stopping':'suspended',
+                    'starting':'active',
+                    'initializing':'build',
+                    'scheduling':'build',
+                    'spawning':'build',
+                    #Atmosphere Task-specific lines
+                    'networking':'build',
+                    'deploying':'build',
+                    #There are more.. Must find table..
+            }
+            status_2 = task_to_status.get(task,'')
+            #Update to the more relevant task
+            if status_2:
+                logger.info("Name changed from %s --> %s"\
+                            % (status_name, status_2))
+                status_name = status_2
+
+        last_hist = self.last_history()
+        #1. Build an active status if this is the first time
+        if not last_hist:
+            #This is the first status
+            if first_update or status_name in ['build', 'pending']:
+                #First update, just assign the 'normal' status..
+                first_status = status_name
+            else:
+                #Not the first update, so we must
+                #Assume instance was Active from start of instance to now
+                first_status = 'active'
+            first_hist = self.new_history(first_status, self.start_date)
+            first_hist.save()
+            logger.info("Created the first history %s" % first_hist)
+            last_hist = first_hist
+        #2. If we wanted to assign active status, thats done now.
+        if last_hist.status.name == status_name:
+            logger.info("status_name matches last history:%s " % last_hist)
+            return
+        #3. ASSERT: A status update is required (Non-active state)
+        logger.info("Update required: History:%s != %s " % (last_hist,
+                status_name))
+        now_time = timezone.now()
+        last_hist.end_date = now_time
+        last_hist.save()
+        new_hist = self.new_history(status_name, now_time)
+        new_hist.save()
+        
+
+    def end_date_all(self):
+        """
+        Call this function to tie up loose ends when the instance is finished
+        (Destroyed, terminated, no longer exists..)
+        """
+        now_time = timezone.now()
+        if not self.end_date:
+            self.end_date = now_time
+            self.save()
+        ish_list = InstanceStatusHistory.objects.filter(instance=self)
+        for ish in ish_list:
+            if not ish.end_date:
+                ish.end_date = now_time
+                ish.save()
 
     def creator_name(self):
         return self.created_by.username
@@ -155,49 +244,16 @@ class InstanceStatusHistory(models.Model):
 Useful utility methods for the Core Model..
 """
 
-def has_history(core_instance):
-    return core_instance.instancestatushistory_set.all()
+def map_to_identity(core_instances):
+    instance_id_map = {}
+    for instance in core_instances:
+        identity_id = instance.created_by_identity_id
+        instance_list = instance_id_map.get(identity_id,[])
+        instance_list.append(instance)
+        instance_id_map[identity_id] = instance_list
+    return instance_id_map
 
-
-def update_instance_history(core_instance, status_name, start_time=None):
-    """
-    Update instance status history
-
-    if no status history, create an active state first
-
-    if status history exists, grab the latest status and mark it finished
-    then set the start_time for the newest history
-    """
-    logger.warn("update_instance_history!")
-    logger.warn(core_instance)
-    logger.warn(status_name)
-    logger.warn(start_time)
-    last = core_instance.instancestatushistory_set\
-            .order_by('-start_date')
-    now = timezone.now()
-    if not last and start_time:
-        # Edge-case: VM never had instance history, needs an 'active' state first
-        first_hist = InstanceStatusHistory()
-        first_hist.instance = core_instance
-        first_hist.status, created = InstanceStatus.objects.get_or_create(name='active')
-        first_hist.start_date = start_time
-        first_hist.save()
-        last = [first_hist] # Lets pretend this came from .order_by
-
-    if last:
-        last = last[0]
-        if last.status.name == status_name:
-            return
-        last.end_date = now
-        last.save()
-
-    new_hist = InstanceStatusHistory()
-    new_hist.instance = core_instance
-    new_hist.status, created = InstanceStatus.objects.get_or_create(name=status_name)
-    new_hist.start_date = now
-    new_hist.save()
-
-def findInstance(alias):
+def find_instance(alias):
     core_instance = Instance.objects.filter(provider_alias=alias)
     if len(core_instance) > 1:
         logger.warn("Multiple instances returned for alias - %s" % alias)
@@ -206,7 +262,7 @@ def findInstance(alias):
     return None
 
 
-def convertEshInstance(esh_driver, esh_instance, provider_id, identity_id, user, token=None):
+def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id, user, token=None):
     """
     """
     #logger.debug(esh_instance.__dict__)
@@ -220,7 +276,7 @@ def convertEshInstance(esh_driver, esh_instance, provider_id, identity_id, user,
         except IndexError:  # no private ip
             ip_address = '0.0.0.0'
     eshMachine = esh_instance.machine
-    core_instance = findInstance(alias)
+    core_instance = find_instance(alias)
     if core_instance:
         core_instance.ip_address = ip_address
         core_instance.save()
@@ -246,9 +302,9 @@ def convertEshInstance(esh_driver, esh_instance, provider_id, identity_id, user,
         logger.debug("CREATED: %s" % create_stamp)
         logger.debug("START: %s" % start_date)
 
-        coreMachine = convertEshMachine(esh_driver, eshMachine, provider_id,
+        coreMachine = convert_esh_machine(esh_driver, eshMachine, provider_id,
                                         image_id=esh_instance.image_id)
-        core_instance = createInstance(provider_id, identity_id, alias,
+        core_instance = create_instance(provider_id, identity_id, alias,
                                       coreMachine, ip_address,
                                       esh_instance.name, user,
                                       start_date, token)
@@ -299,7 +355,7 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
         else:
             raise
 
-def createInstance(provider_id, identity_id, provider_alias, provider_machine,
+def create_instance(provider_id, identity_id, provider_alias, provider_machine,
                    ip_address, name, creator, create_stamp, token=None):
     identity = Identity.objects.get(id=identity_id)
     new_inst = Instance.objects.create(name=name,
@@ -313,4 +369,5 @@ def createInstance(provider_id, identity_id, provider_alias, provider_machine,
     new_inst.save()
     logger.debug("New instance created - %s (Token = %s)" %
                  (provider_alias, token))
+    #NOTE: No instance_status_history here, because status is not passed
     return new_inst

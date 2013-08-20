@@ -77,10 +77,11 @@ class Provider(models.Model):
         #NOTE: Do not move import up.
         from core.models import Identity
         from django.contrib.auth.models import User
+        from atmosphere import settings
         if self.location.lower() == 'openstack':
             admin = User.objects.get(username=settings.OPENSTACK_ADMIN_KEY)
         if self.location.lower() == 'eucalyptus':
-            admin = User.objects.get(username=settings.EUCA_ADMIN_KEY)
+            admin = User.objects.get(username='admin')
         return Identity.objects.get(provider=self, created_by=admin)
 
     def __unicode__(self):

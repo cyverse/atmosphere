@@ -164,39 +164,39 @@ Useful utility methods for the Core Model..
 """
 
 
-def findProviderMachine(provider_alias, provider_id):
+def find_provider_machine(provider_alias, provider_id):
     if not ProviderMachine.cached_machines:
         build_cached_machines()
     return ProviderMachine.cached_machines.get(
         (int(provider_id), provider_alias))
 
 
-def loadMachine(machine_name, provider_alias, provider_id):
+def load_machine(machine_name, provider_alias, provider_id):
     """
     Returns List<ProviderMachine>
     Each object contains reference to a new machine-alias combination
     Will create a new machine if one does not exist
     """
-    machine = findProviderMachine(provider_alias, provider_id)
+    machine = find_provider_machine(provider_alias, provider_id)
     if machine:
         return machine
     else:
-        return createProviderMachine(machine_name, provider_alias, provider_id)
+        return create_provider_machine(machine_name, provider_alias, provider_id)
 
 
-def createProviderMachine(machine_name, provider_alias,
+def create_provider_machine(machine_name, provider_alias,
                           provider_id, description=None):
     #No Provider Machine.. Time to build one
     provider = Provider.objects.get(id=provider_id)
     admin_id = provider.get_admin_identity()
     logger.debug("Provider %s" % provider)
-    machine = getGenericMachine(machine_name)
+    machine = get_generic_machine(machine_name)
     if not machine:
         #Build a machine to match
         if not description:
             description = "Describe Machine %s" % provider_alias
         #NOTE: Admin id must be used here until we KNOW who the owner is..
-        machine = createGenericMachine(machine_name, description, admin_id)
+        machine = create_generic_machine(machine_name, description, admin_id)
     logger.debug("Machine %s" % machine)
     #NOTE: Admin id must be used here until we KNOW who the owner is..
     provider_machine = ProviderMachine.objects.create(
@@ -213,7 +213,7 @@ def createProviderMachine(machine_name, provider_alias,
     return provider_machine
 
 
-def getGenericMachine(name):
+def get_generic_machine(name):
     try:
         machine = Machine.objects.get(name=name)
         return machine
@@ -226,29 +226,29 @@ def getGenericMachine(name):
         logger.error(type(e))
 
 
-def createGenericMachine(name, description, creator_id=None):
+def create_generic_machine(name, description, creator_id=None):
     if not description:
         description = ""
-    if not creator:
-        creator = User.objects.get_or_create(username='admin')[0]
+    if not creator_id:
+        creator_id = User.objects.get_or_create(username='admin')[0]
     new_mach = Machine.objects.create(name=name,
                                       description=description,
                                       created_by=creator_id.created_by,
-                                      created_by_id=creator_id)
+                                      created_by_identity=creator_id)
     return new_mach
 
 
-def convertEshMachine(esh_driver, esh_machine, provider_id, image_id=None):
+def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
     """
     """
     if image_id and not esh_machine:
-        provider_machine = loadMachine('Unknown Image', image_id, provider_id)
+        provider_machine = load_machine('Unknown Image', image_id, provider_id)
         return provider_machine
     elif not esh_machine:
         return None
     name = esh_machine.name
     alias = esh_machine.alias
-    provider_machine = loadMachine(name, alias, provider_id)
+    provider_machine = load_machine(name, alias, provider_id)
     provider_machine.esh = esh_machine
     provider_machine = set_machine_from_metadata(esh_driver, provider_machine)
     return provider_machine

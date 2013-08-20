@@ -6,7 +6,7 @@ def retrieve_euca_owners(self, orm):
     euca_providers = Provider.objects.filter(location='EUCALYPTUS')
     for prov in euca_providers:
         admin_id = self.get_admin_identity(orm, prov)
-        driver = self.getEshDriver(admin_id)
+        driver = self.get_esh_driver(admin_id)
         for machine in driver.list_machines():
             try:
                 location = machine._image.extra['location']

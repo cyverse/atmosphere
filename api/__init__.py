@@ -78,7 +78,7 @@ arg = '{
     return init_script_contents
 
 
-def launchEshInstance(driver, extras, *args, **kwargs):
+def launch_esh_instance(driver, extras, *args, **kwargs):
     """
     TODO: Remove extras, pass as kwarg_dict instead
 
@@ -183,7 +183,7 @@ def getEshProvider(core_provider):
         raise
 
 
-def getEshDriver(core_identity, username=None):
+def get_esh_driver(core_identity, username=None):
     try:
         eshMap = getEshMap(core_identity.provider)
         cred_args = core_identity.credential_list()
@@ -201,14 +201,14 @@ def getEshDriver(core_identity, username=None):
         raise
 
 
-def prepareDriver(request, identity_id):
+def prepare_driver(request, identity_id):
     """
     TODO: Cache driver based on specific provider
     return esh_driver
     """
     username = request.user
     core_identity = CoreIdentity.objects.get(id=identity_id)
-    esh_driver = getEshDriver(core_identity, username)
+    esh_driver = get_esh_driver(core_identity, username)
     return esh_driver
 
 
