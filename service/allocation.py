@@ -61,8 +61,7 @@ def check_allocation(username, identity_id):
     allocation = get_allocation(username, identity_id)
     if not allocation:
         #No allocation, not over quota
-        pass
-    return True
+        return True
     delta_time = timedelta(minutes=allocation.delta)
     total_time_used = get_time(username, delta_time)
     max_time_allowed = timedelta(minutes=allocation.threshold)

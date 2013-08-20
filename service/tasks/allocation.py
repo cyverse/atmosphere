@@ -14,6 +14,13 @@ def suspend_over_quota_task(driver, username, identity_id, *args, **kwargs):
         for instance in driver.list_instances():
             driver.suspend_instance(instance)
 
+def monitor_instances():
+    #TODO: Combine all of these functions
+    #1. End-date missing instances (They were terminated)
+    #2. Update status of instances who dont have matching last_history
+    #3. Handling instances that dont exist yet (Is this a valid use case?)
+    pass
+
 def correct_missing_instances():
     #These instances are running or missing
     core_instances = Instance.objects.filter(end_date=None)

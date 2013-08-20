@@ -63,6 +63,12 @@ class InstanceList(APIView):
                                                  user)
                               for inst in esh_instance_list]
 
+        [core_instance.update_history(
+            core_instance.esh.extra['status'],
+            core_instance.esh.extra.get('task') or\
+            core_instance.esh.extra.get('metadata',{}).get('tmp_status'))
+         for core_instance in core_instance_list]
+
         #TODO: Core/Auth checks for shared instances
 
         serialized_data = InstanceSerializer(core_instance_list,
@@ -111,9 +117,11 @@ class InstanceList(APIView):
 
         core_instance = convert_esh_instance(
             esh_driver, esh_instance, provider_id, identity_id, user, token)
-        core_instance.update_history(esh_instance.extra['status'],
-                                     esh_instance.extra.get('task',''),
-                                     first_update=True)
+        core_instance.update_history(
+            core_instance.esh.extra['status'],
+            core_instance.esh.extra.get('task') or\
+            core_instance.esh.extra.get('metadata',{}).get('tmp_status'),
+            first_update=True)
         logger.info("Statushistory updated")
         serializer = InstanceSerializer(core_instance, data=data)
         #NEVER WRONG
@@ -275,8 +283,8 @@ class InstanceAction(APIView):
                                                    identity_id,
                                                    user)
                 core_instance.update_history(
-                                        esh_instance.extra['status'],
-                                        esh_instance.extra.get('task',''))
+                    core_instance.esh.extra['status'],
+                    core_instance.esh.extra.get('task'))
             api_response = {
                 'result': 'success',
                 'message': 'The requested action <%s> was run successfully'
@@ -335,6 +343,10 @@ class Instance(APIView):
 
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                            provider_id, identity_id, user)
+
+        core_instance.update_history(core_instance.esh.extra['status'],
+                                     core_instance.esh.extra.get('task') or\
+                                     core_instance.esh.extra.get('metadata',{}).get('tmp_status'))
         serialized_data = InstanceSerializer(core_instance).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'

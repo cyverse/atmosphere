@@ -67,28 +67,32 @@ class Instance(models.Model):
 
     def update_history(self, status_name, task=None, first_update=False):
         if task:
+            logger.info("Task provided:%s" % task)
             task_to_status = {
                     'suspending':'suspended',
                     'resuming':'active',
                     'stopping':'suspended',
                     'starting':'active',
-                    'deploying':'build',
-                    'networking':'build',
                     'initializing':'build',
                     'scheduling':'build',
                     'spawning':'build',
+                    #Atmosphere Task-specific lines
+                    'networking':'build',
+                    'deploying':'build',
                     #There are more.. Must find table..
             }
             status_2 = task_to_status.get(task,'')
             #Update to the more relevant task
             if status_2:
+                logger.info("Name changed from %s --> %s"\
+                            % (status_name, status_2))
                 status_name = status_2
 
         last_hist = self.last_history()
         #1. Build an active status if this is the first time
         if not last_hist:
             #This is the first status
-            if first_update:
+            if first_update or status_name in ['build', 'pending']:
                 #First update, just assign the 'normal' status..
                 first_status = status_name
             else:
