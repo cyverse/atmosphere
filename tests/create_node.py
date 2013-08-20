@@ -1,6 +1,6 @@
 import time
 from threepio import logger
-from api import getEshDriver, launch_esh_instance
+from api import get_esh_driver, launch_esh_instance
 from core.models import Identity, ProviderMembership, IdentityMembership,\
                         Provider, Group, UserProfile, Instance, Machine,\
                         ProviderMachine, Credential, Quota, Tag
@@ -11,7 +11,7 @@ PROVIDERS=['OPENSTACK',]
 
 def run():
     for provider_name in PROVIDERS:
-        driver = getEshDriver(
+        driver = get_esh_driver(
             Identity.objects.get(
                 provider__location=provider_name,
                 created_by__username=RUNNER_USERNAME),

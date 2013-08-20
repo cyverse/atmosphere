@@ -7,7 +7,6 @@ from celery.decorators import task
 from threepio import logger
 
 from core.email import send_image_request_email
-from core.models.machine import createProviderMachine
 from core.models.machine_request import process_machine_request
 
 from service.accounts.openstack import AccountDriver as OSAccountDriver

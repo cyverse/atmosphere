@@ -11,7 +11,7 @@ from authentication.decorators import api_auth_token_required
 from core.models.identity import Identity
 from core.models.size import convertEshSize
 
-from api import getEshDriver
+from api import get_esh_driver
 from api.serializers import ProviderSizeSerializer
 
 
@@ -25,7 +25,7 @@ class Occupancy(APIView):
         return occupancy data for the specific provider
         """
         #Get meta for provider to call occupancy
-        driver = getEshDriver(Identity.objects.filter(
+        driver = get_esh_driver(Identity.objects.filter(
             provider__id=provider_id)[0])
         meta_driver = driver.meta()
         esh_size_list  = meta_driver.occupancy()

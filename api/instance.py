@@ -23,7 +23,7 @@ from core.models.instance import Instance as CoreInstance
 
 from core.models.volume import convertEshVolume
 
-from api import failureJSON, launch_esh_instance, prepareDriver
+from api import failureJSON, launch_esh_instance, prepare_driver
 from api.serializers import InstanceSerializer, VolumeSerializer,\
     PaginatedInstanceSerializer
 
@@ -43,7 +43,7 @@ class InstanceList(APIView):
         """
         method_params = {}
         user = request.user
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
 
         try:
             esh_instance_list = esh_driver.list_instances(method_params)
@@ -86,7 +86,7 @@ class InstanceList(APIView):
         """
         data = request.DATA
         user = request.user
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         size_alias = data.get('size_alias', '')
         size = esh_driver.get_size(size_alias)
         if not size:
@@ -145,7 +145,7 @@ class InstanceHistory(APIView):
                 'message': 'User not found'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
 
         # Historic Instances in reverse chronological order
         history_instance_list = CoreInstance.objects.filter(
@@ -199,7 +199,7 @@ class InstanceAction(APIView):
                 'message':
                 'POST request to /action require a BODY with \'action\':'}])
             return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         esh_instance = esh_driver.get_instance(instance_id)
         try:
             action = action_params['action']
@@ -317,7 +317,7 @@ class Instance(APIView):
         TODO: Filter out instances you shouldnt see (permissions..)
         """
         user = request.user
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
 
         try:
             esh_instance = esh_driver.get_instance(instance_id)
@@ -347,7 +347,7 @@ class Instance(APIView):
         user = request.user
         data = request.DATA
         #Ensure item exists on the server first
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
         except InvalidCredsError:
@@ -390,7 +390,7 @@ class Instance(APIView):
         user = request.user
         data = request.DATA
         #Ensure item exists on the server first
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
         except InvalidCredsError:
@@ -423,7 +423,7 @@ class Instance(APIView):
     @api_auth_token_required
     def delete(self, request, provider_id, identity_id, instance_id):
         user = request.user
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
 
         try:
             esh_instance = esh_driver.get_instance(instance_id)

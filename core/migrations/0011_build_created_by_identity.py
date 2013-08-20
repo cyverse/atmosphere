@@ -64,7 +64,7 @@ class Migration(DataMigration):
         euca_providers = orm.Provider.objects.filter(location='EUCALYPTUS')
         for prov in euca_providers:
             admin_id = self.get_admin_identity(orm, prov)
-            driver = self.getEshDriver(admin_id)
+            driver = self.get_esh_driver(admin_id)
             updated = 0
             machine_list = driver.list_machines()
             for machine in machine_list:
@@ -148,7 +148,7 @@ class Migration(DataMigration):
         except:
             return None
 
-    def getEshDriver(self, core_identity):
+    def get_esh_driver(self, core_identity):
         from api import getEshMap
         cred_dict = {}
         credentials = core_identity.credential_set.all()
@@ -166,7 +166,7 @@ class Migration(DataMigration):
         for identity in orm.Identity.objects.all():
             if 'admin' in identity.created_by.username:
                 continue
-            driver = self.getEshDriver(identity)
+            driver = self.get_esh_driver(identity)
             try:
                 esh_volumes = driver.list_volumes()
             except InvalidCredsError, ice:

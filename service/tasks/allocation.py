@@ -1,7 +1,7 @@
 from datetime import timedelta
 from django.utils import timezone
 
-from api import getEshDriver
+from api import get_esh_driver
 from core.models import Instance, Identity
 from core.models.instance import map_to_identity
 from service.allocation import check_allocation
@@ -24,7 +24,7 @@ def correct_missing_instances():
     #2. For each Identity, build the driver, check the instance_list
     for identity_id, instance_list in instance_identity_map.iteritems():
         identity = Identity.objects.get(id=identity_id)
-        driver = getEshDriver(identity)
+        driver = get_esh_driver(identity)
         existing_list = driver.list_instances()
         existing_ids = [instance.id for instance in existing_list]
         dead_instances = [instance for instance in instance_list \
@@ -46,7 +46,7 @@ def check_build_instances():
 
     for identity_id, instance_list in instance_identity_map.iteritems():
         identity = Identity.objects.get(id=identity_id)
-        driver = getEshDriver(identity)
+        driver = get_esh_driver(identity)
         esh_instances = driver.list_instances()
         id_list = [core_i.provider_alias for core_i in instance_list]
         for instance in instance_list:

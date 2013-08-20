@@ -12,7 +12,7 @@ from django.utils import timezone
 from threepio import logger
 
 from core.models.identity import Identity
-from core.models.machine import ProviderMachine, convertEshMachine
+from core.models.machine import ProviderMachine, convert_esh_machine
 from core.models.tag import Tag
 
 
@@ -249,7 +249,7 @@ def map_to_identity(core_instances):
         instance_id_map[identity_id] = instance_list
     return instance_id_map
 
-def findInstance(alias):
+def find_instance(alias):
     core_instance = Instance.objects.filter(provider_alias=alias)
     if len(core_instance) > 1:
         logger.warn("Multiple instances returned for alias - %s" % alias)
@@ -272,7 +272,7 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id, use
         except IndexError:  # no private ip
             ip_address = '0.0.0.0'
     eshMachine = esh_instance.machine
-    core_instance = findInstance(alias)
+    core_instance = find_instance(alias)
     if core_instance:
         core_instance.ip_address = ip_address
         core_instance.save()
@@ -298,9 +298,9 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id, use
         logger.debug("CREATED: %s" % create_stamp)
         logger.debug("START: %s" % start_date)
 
-        coreMachine = convertEshMachine(esh_driver, eshMachine, provider_id,
+        coreMachine = convert_esh_machine(esh_driver, eshMachine, provider_id,
                                         image_id=esh_instance.image_id)
-        core_instance = createInstance(provider_id, identity_id, alias,
+        core_instance = create_instance(provider_id, identity_id, alias,
                                       coreMachine, ip_address,
                                       esh_instance.name, user,
                                       start_date, token)
@@ -351,7 +351,7 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
         else:
             raise
 
-def createInstance(provider_id, identity_id, provider_alias, provider_machine,
+def create_instance(provider_id, identity_id, provider_alias, provider_machine,
                    ip_address, name, creator, create_stamp, token=None):
     identity = Identity.objects.get(id=identity_id)
     new_inst = Instance.objects.create(name=name,
