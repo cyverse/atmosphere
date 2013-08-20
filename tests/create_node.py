@@ -1,6 +1,6 @@
 import time
 from threepio import logger
-from api import getEshDriver, launchEshInstance
+from api import getEshDriver, launch_esh_instance
 from core.models import Identity, ProviderMembership, IdentityMembership,\
                         Provider, Group, UserProfile, Instance, Machine,\
                         ProviderMachine, Credential, Quota, Tag
@@ -21,7 +21,7 @@ def run():
                              and 'eri' not in m.name]
         for idx, m in enumerate(runnable_machines):
             try:
-                (token, esh_instance) = launchEshInstance(driver, {
+                (token, esh_instance) = launch_esh_instance(driver, {
                     'machine_alias': m.alias,
                     'size_alias': '2',
                     'name': 'Testing Deploy and Networking %s' % ((idx + 1), )})

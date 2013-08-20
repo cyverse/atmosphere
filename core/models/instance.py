@@ -258,7 +258,7 @@ def findInstance(alias):
     return None
 
 
-def convertEshInstance(esh_driver, esh_instance, provider_id, identity_id, user, token=None):
+def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id, user, token=None):
     """
     """
     #logger.debug(esh_instance.__dict__)

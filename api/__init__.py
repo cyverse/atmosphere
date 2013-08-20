@@ -78,7 +78,7 @@ arg = '{
     return init_script_contents
 
 
-def launchEshInstance(driver, extras, *args, **kwargs):
+def launch_esh_instance(driver, extras, *args, **kwargs):
     """
     TODO: Remove extras, pass as kwarg_dict instead
 

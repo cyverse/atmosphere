@@ -18,12 +18,12 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
-from core.models.instance import convertEshInstance, update_instance_metadata
+from core.models.instance import convert_esh_instance, update_instance_metadata
 from core.models.instance import Instance as CoreInstance
 
 from core.models.volume import convertEshVolume
 
-from api import failureJSON, launchEshInstance, prepareDriver
+from api import failureJSON, launch_esh_instance, prepareDriver
 from api.serializers import InstanceSerializer, VolumeSerializer,\
     PaginatedInstanceSerializer
 
@@ -56,7 +56,7 @@ class InstanceList(APIView):
                 'message': 'Identity/Provider Authentication Failed'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
-        core_instance_list = [convertEshInstance(esh_driver,
+        core_instance_list = [convert_esh_instance(esh_driver,
                                                  inst,
                                                  provider_id,
                                                  identity_id,
@@ -87,9 +87,11 @@ class InstanceList(APIView):
         data = request.DATA
         user = request.user
         esh_driver = prepareDriver(request, identity_id)
-        #TODO: Test size_alias thats wrong
         size_alias = data.get('size_alias', '')
         size = esh_driver.get_size(size_alias)
+        if not size:
+            raise Exception(
+                "Size %s could not be located with this driver" % size_alias)
         if not check_quota(request.user.username, identity_id, size):
             errorObj = failureJSON([{
                 'code': 403,
@@ -97,7 +99,7 @@ class InstanceList(APIView):
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
         try:
-            (esh_instance, token) = launchEshInstance(esh_driver, data)
+            (esh_instance, token) = launch_esh_instance(esh_driver, data)
         except InvalidCredsError:
             logger.warn(
                 'Authentication Failed. Provider-id:%s Identity-id:%s'
@@ -107,7 +109,7 @@ class InstanceList(APIView):
                 'message': 'Identity/Provider Authentication Failed'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
-        core_instance = convertEshInstance(
+        core_instance = convert_esh_instance(
             esh_driver, esh_instance, provider_id, identity_id, user, token)
         core_instance.update_history(esh_instance.extra['status'],
                                      esh_instance.extra.get('task',''),
@@ -267,7 +269,7 @@ class InstanceAction(APIView):
                     status=status.HTTP_400_BAD_REQUEST)
             if update_status:
                 esh_instance = esh_driver.get_instance(instance_id)
-                core_instance = convertEshInstance(esh_driver,
+                core_instance = convert_esh_instance(esh_driver,
                                                    esh_instance,
                                                    provider_id,
                                                    identity_id,
@@ -331,7 +333,7 @@ class Instance(APIView):
         if not esh_instance:
             return instance_not_found(instance_id)
 
-        core_instance = convertEshInstance(esh_driver, esh_instance,
+        core_instance = convert_esh_instance(esh_driver, esh_instance,
                                            provider_id, identity_id, user)
         serialized_data = InstanceSerializer(core_instance).data
         response = Response(serialized_data)
@@ -361,7 +363,7 @@ class Instance(APIView):
             return instance_not_found(instance_id)
 
         #Gather the DB related item and update
-        core_instance = convertEshInstance(esh_driver, esh_instance,
+        core_instance = convert_esh_instance(esh_driver, esh_instance,
                                            provider_id, identity_id, user)
         serializer = InstanceSerializer(core_instance, data=data, partial=True)
         if serializer.is_valid():
@@ -404,7 +406,7 @@ class Instance(APIView):
             return instance_not_found(instance_id)
 
         #Gather the DB related item and update
-        core_instance = convertEshInstance(esh_driver, esh_instance,
+        core_instance = convert_esh_instance(esh_driver, esh_instance,
                                            provider_id, identity_id, user)
         serializer = InstanceSerializer(core_instance, data=data)
         if serializer.is_valid():
@@ -432,7 +434,7 @@ class Instance(APIView):
             if esh_instance.extra\
                and 'task' not in esh_instance.extra:
                 esh_instance.extra['task'] = 'queueing delete'
-            core_instance = convertEshInstance(esh_driver,
+            core_instance = convert_esh_instance(esh_driver,
                                                esh_instance,
                                                provider_id,
                                                identity_id,
