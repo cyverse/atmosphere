@@ -119,3 +119,22 @@ def ldap_formatAttrs(ldap_attrs):
     except KeyError as nokey:
         logger.exception(nokey)
         return None
+
+def is_atmo_user(username):
+    """
+    ldap_validate
+    Using the username is in the atmo-user group return True
+    otherwise False.
+    """
+    try:
+        ldap_server = settings.LDAP_SERVER
+        ldap_group_dn = settings.LDAP_SERVER_DN.replace("ou=people",
+                                                         "ou=Groups")
+        ldap_conn = ldap_driver.initialize(ldap_server)
+        atmo_users = ldap_conn.search_s(ldap_group_dn,
+                                        ldap_driver.SCOPE_SUBTREE,
+                                        '(cn=atmo-user)')
+        return username in  atmo_users[0][1]['memberUid']
+    except Exception as e:
+        logger.exception(e)
+        return False
