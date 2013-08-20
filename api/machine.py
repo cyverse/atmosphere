@@ -16,10 +16,10 @@ from threepio import logger
 from authentication.decorators import api_auth_token_required
 
 from core.models.machine import filter_core_machine,\
-    convertEshMachine, update_machine_metadata,\
+    convert_esh_machine, update_machine_metadata,\
     ProviderMachine
 
-from api import prepareDriver, failureJSON
+from api import prepare_driver, failureJSON
 from api.serializers import ProviderMachineSerializer,\
     PaginatedProviderMachineSerializer
 
@@ -29,13 +29,13 @@ def provider_filtered_machines(request, provider_id, identity_id):
     Return all filtered machines. Uses the most common,
     default filtering method.
     """
-    esh_driver = prepareDriver(request, identity_id)
+    esh_driver = prepare_driver(request, identity_id)
     esh_machine_list = esh_driver.list_machines()
     logger.info("Total machines from esh:%s" % len(esh_machine_list))
     esh_machine_list = esh_driver.filter_machines(
         esh_machine_list,
         black_list=['eki-', 'eri-'])
-    core_machine_list = [convertEshMachine(esh_driver, mach, provider_id)
+    core_machine_list = [convert_esh_machine(esh_driver, mach, provider_id)
                          for mach in esh_machine_list]
     filtered_machine_list = filter(filter_core_machine, core_machine_list)
     return filtered_machine_list
@@ -88,7 +88,7 @@ class MachineHistory(APIView):
                 'message': 'User not found'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
 
         # Historic Machines
         all_machines_list = all_filtered_machines()
@@ -143,9 +143,9 @@ class Machine(APIView):
         (Lookup using the given provider/identity)
         Update on server (If applicable)
         """
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         eshMachine = esh_driver.get_machine(machine_id)
-        coreMachine = convertEshMachine(esh_driver, eshMachine, provider_id)
+        coreMachine = convert_esh_machine(esh_driver, eshMachine, provider_id)
         serialized_data = ProviderMachineSerializer(coreMachine).data
         response = Response(serialized_data)
         return response
@@ -158,9 +158,9 @@ class Machine(APIView):
         """
         user = request.user
         data = request.DATA
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         esh_machine = esh_driver.get_machine(machine_id)
-        coreMachine = convertEshMachine(esh_driver, esh_machine, provider_id)
+        coreMachine = convert_esh_machine(esh_driver, esh_machine, provider_id)
 
         if not user.is_staff and user is not coreMachine.machine.created_by:
             logger.warn('%s is Non-staff/non-owner trying to update a machine'
@@ -191,9 +191,9 @@ class Machine(APIView):
         """
         user = request.user
         data = request.DATA
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         esh_machine = esh_driver.get_machine(machine_id)
-        coreMachine = convertEshMachine(esh_driver, esh_machine, provider_id)
+        coreMachine = convert_esh_machine(esh_driver, esh_machine, provider_id)
 
         if not user.is_staff and user is not coreMachine.machine.created_by:
             logger.warn('Non-staff/non-owner trying to update a machine')

@@ -16,7 +16,7 @@ from libcloud.compute.deployment import ScriptDeployment
 from threepio import logger
 from atmosphere import settings
 
-from service.system_calls import run_command
+from service.imaging.common import run_command
 
 
 class LoggedScriptDeployment(ScriptDeployment):

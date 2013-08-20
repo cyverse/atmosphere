@@ -61,9 +61,6 @@ def detach_volume_task(driver, instance_id, volume_id, *args, **kwargs):
         return (False, dbe.message)
 
 
-
-
-
 def attach_volume_task(driver, instance_id, volume_id, device=None,
         mount_location=None, *args, **kwargs):
     attach_task.delay(

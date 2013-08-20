@@ -37,7 +37,7 @@ from service.drivers.common import sed_delete_multi, sed_delete_one
 from service.drivers.common import sed_replace, sed_prepend
 from service.drivers.common import run_command, chroot_local_image, install_cloudinit
 
-from service.system_calls import run_command, wildcard_remove
+from service.imaging.common import run_command, wildcard_remove
 from service.imaging.common import mount_image, remove_files, get_latest_ramdisk
 from service.imaging.clean import remove_user_data, remove_atmo_data,\
                                   remove_vm_specific_data

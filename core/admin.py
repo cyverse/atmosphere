@@ -1,10 +1,11 @@
+from datetime import timedelta
+
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.models import User as DjangoUser
 from django.contrib.auth.models import Group as DjangoGroup
 from django.utils import timezone
 
-from django.utils import timezone
 
 from core.models.credential import Credential
 from core.models.group import Group, IdentityMembership, ProviderMembership
@@ -17,6 +18,7 @@ from core.models.node import NodeController
 from core.models.profile import UserProfile
 from core.models.provider import Provider, ProviderType
 from core.models.quota import Quota
+from core.models.allocation import Allocation
 from core.models.size import Size
 from core.models.tag import Tag
 from core.models.volume import Volume
@@ -42,6 +44,23 @@ class MaintenanceAdmin(admin.ModelAdmin):
 
 class QuotaAdmin(admin.ModelAdmin):
     list_display = ("__unicode__", "cpu", "memory", "storage", "storage_count")
+
+
+class AllocationAdmin(admin.ModelAdmin):
+    list_display = ("threshold_str", "delta_str")
+    def threshold_str(self, obj):
+        td = timedelta(minutes=obj.threshold)
+        return '%s days, %s hours, %s minutes' % (td.days,
+                                            td.seconds//3600,
+                                            (td.seconds//60)%60)
+    threshold_str.short_description = 'Threshold'
+
+    def delta_str(self, obj):
+        td = timedelta(minutes=obj.delta)
+        return '%s days, %s hours, %s minutes' % (td.days,
+                                            td.seconds//3600,
+                                            (td.seconds//60)%60)
+    delta_str.short_description = 'Delta'
 
 
 class ProviderMachineAdmin(admin.ModelAdmin):
@@ -146,7 +165,7 @@ class ProviderMembershipAdmin(admin.ModelAdmin):
 
 class IdentityMembershipAdmin(admin.ModelAdmin):
     search_fields = ["identity__created_by__username", ]
-    list_display = ["_identity_user", "_identity_provider", "quota"]
+    list_display = ["_identity_user", "_identity_provider", "quota", "allocation"]
     list_filter = [
         "identity__provider__location",
     ]
@@ -204,6 +223,7 @@ admin.site.register(ProviderMachine, ProviderMachineAdmin)
 admin.site.register(Provider, ProviderAdmin)
 admin.site.register(ProviderType)
 admin.site.register(Quota, QuotaAdmin)
+admin.site.register(Allocation, AllocationAdmin)
 admin.site.register(Size, SizeAdmin)
 admin.site.register(Tag, TagAdmin)
 admin.site.register(Volume, VolumeAdmin)
