@@ -39,19 +39,11 @@ class CredentialTests(TestCase):
         c.key = self.KEY
         c.value = self.VALUE
 
-        expected = "{'key': %s, 'value': %s}", self.KEY, self.VALUE
+        """ is actually a dict for later serialization """
+        expected = {'key': self.KEY, 'value': self.VALUE}
 
-        self.assertTrue(json.loads(c.json()), "Returned JSON is malformed.")
-
-        """
-        try:
-            print json.dumps(data)
-        except (TypeError, ValueError) as err:
-            print 'ERROR:', err
-        """
-
-        self.assertJSONEqual(expected, c.json,
-                             "Returned JSON is not equal to expected.")
+        self.assertDictEqual(expected, c.json,
+                            "Returned Dict is not equal to expected.")
 
     # should fail
     def testKeyExceedingMaxLength(self):
