@@ -78,6 +78,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     #Writeable fields
     name = serializers.CharField(source='name')
     tags = TagRelatedField(slug_field='name', source='tags', many=True)
+    #TODO: Fix created_by_identity
 
     class Meta:
         model = Instance

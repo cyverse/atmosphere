@@ -29,7 +29,7 @@ def get_instance_time(instance):
 
 def get_time(user, delta):
     total_time = timedelta(0)
-    if type(user) is str:
+    if type(user) is not User:
         user = User.objects.filter(username=user)
     instances = filter_by_time_delta(Instance.objects.filter(created_by=user),
                                      delta)
@@ -61,13 +61,14 @@ def check_allocation(username, identity_id):
     allocation = get_allocation(username, identity_id)
     if not allocation:
         #No allocation, not over quota
-        return True
+        pass
+    return True
     delta_time = timedelta(minutes=allocation.delta)
     total_time_used = get_time(username, delta_time)
     max_time_allowed = timedelta(minutes=allocation.threshold)
     time_diff = max_time_allowed - total_time_used
     if time_diff.total_seconds() <= 0:
-        logger.info("%s is over their allowed quota by %s"
+        logger.debug("%s is over their allowed quota by %s"
                     % (username, print_timedelta(time_diff)))
         return False
     return True

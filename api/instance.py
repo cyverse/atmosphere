@@ -18,8 +18,7 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
-from core.models.instance import convertEshInstance, update_instance_metadata,\
-                                 update_instance_history, has_history
+from core.models.instance import convertEshInstance, update_instance_metadata
 from core.models.instance import Instance as CoreInstance
 
 from core.models.volume import convertEshVolume
@@ -29,6 +28,7 @@ from api.serializers import InstanceSerializer, VolumeSerializer,\
     PaginatedInstanceSerializer
 
 from service import task
+from service.quota import check_quota
 
 class InstanceList(APIView):
     """
@@ -87,7 +87,8 @@ class InstanceList(APIView):
         data = request.DATA
         user = request.user
         esh_driver = prepareDriver(request, identity_id)
-        size_alias = extras.get('size_alias', '')
+        #TODO: Test size_alias thats wrong
+        size_alias = data.get('size_alias', '')
         size = esh_driver.get_size(size_alias)
         if not check_quota(request.user.username, identity_id, size):
             errorObj = failureJSON([{
@@ -108,7 +109,10 @@ class InstanceList(APIView):
 
         core_instance = convertEshInstance(
             esh_driver, esh_instance, provider_id, identity_id, user, token)
-        update_instance_history(core_instance, 'active')
+        core_instance.update_history(esh_instance.extra['status'],
+                                     esh_instance.extra.get('task',''),
+                                     first_update=True)
+        logger.info("Statushistory updated")
         serializer = InstanceSerializer(core_instance, data=data)
         #NEVER WRONG
         if serializer.is_valid():
@@ -268,19 +272,9 @@ class InstanceAction(APIView):
                                                    provider_id,
                                                    identity_id,
                                                    user)
-                start_time = None
-                instance_status = 'active'
-                if action in ['suspend', 'stop']:
-                    instance_status = action
-                    if not has_history(core_instance):
-                        start_time = core_instance.start_date
-
-                logger.warn(esh_instance.extra['status'])
-                logger.warn(instance_status)
-
-                update_instance_history(core_instance,
-                                        instance_status,
-                                        start_time)
+                core_instance.update_history(
+                                        esh_instance.extra['status'],
+                                        esh_instance.extra.get('task',''))
             api_response = {
                 'result': 'success',
                 'message': 'The requested action <%s> was run successfully'
@@ -444,8 +438,7 @@ class Instance(APIView):
                                                identity_id,
                                                user)
             if core_instance:
-                core_instance.end_date = datetime.now()
-                core_instance.save()
+                core_instance.end_date_all()
             serialized_data = InstanceSerializer(core_instance).data
             response = Response(serialized_data, status=200)
             response['Cache-Control'] = 'no-cache'
