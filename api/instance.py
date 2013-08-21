@@ -28,6 +28,7 @@ from api.serializers import InstanceSerializer, VolumeSerializer,\
     PaginatedInstanceSerializer
 
 from service import task
+from service.deploy import build_script
 from service.quota import check_quota
 
 class InstanceList(APIView):
@@ -264,6 +265,20 @@ class InstanceAction(APIView):
                 esh_driver.stop_instance(esh_instance)
             elif 'reboot' == action:
                 esh_driver.reboot_instance(esh_instance)
+            elif 'deploy' == action:
+                #TODO: Get script input (deploy)
+                deploy_script = build_script(str(action_params.get('script')),
+                                             action_params.get('script_name'))
+                deploy_params = {'deploy':deploy_script,
+                                 'timeout':120,
+                                 'ssh_key':
+                                 '/opt/dev/atmosphere/extras/ssh/id_rsa'}
+                success = esh_driver.deploy_to(esh_instance, **deploy_params)
+                result_obj = {'success':success,
+                              'stdout': deploy_script.stdout,
+                              'stderr': deploy_script.stderr,
+                              'exit_code': deploy_script.exit_status}
+                #TODO: Return script output, error, & RetCode
             elif 'rebuild' == action:
                 machine_alias = action_params.get('machine_alias', '')
                 machine = esh_driver.get_machine(machine_alias)

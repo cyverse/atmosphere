@@ -16,7 +16,9 @@ def sync_instance():
 def get_distro(distro='ubuntu'):
     return ScriptDeployment("cat /etc/*-release",
                              name="./deploy_get_distro.sh")
-    
+
+def build_script(script_input, name=None):
+    return ScriptDeployment(script_input, name=name)
 
 def install_util_linux(distro='ubuntu'):
     return ScriptDeployment(
