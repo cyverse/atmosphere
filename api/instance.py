@@ -63,11 +63,11 @@ class InstanceList(APIView):
                                                  user)
                               for inst in esh_instance_list]
 
-        [core_instance.update_history(
-            core_instance.esh.extra['status'],
-            core_instance.esh.extra.get('task') or\
-            core_instance.esh.extra.get('metadata',{}).get('tmp_status'))
-         for core_instance in core_instance_list]
+        #[core_instance.update_history(
+        #    core_instance.esh.extra['status'],
+        #    core_instance.esh.extra.get('task') or\
+        #    core_instance.esh.extra.get('metadata',{}).get('tmp_status'))
+        # for core_instance in core_instance_list]
 
         #TODO: Core/Auth checks for shared instances
 
@@ -344,9 +344,9 @@ class Instance(APIView):
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                            provider_id, identity_id, user)
 
-        core_instance.update_history(core_instance.esh.extra['status'],
-                                     core_instance.esh.extra.get('task') or\
-                                     core_instance.esh.extra.get('metadata',{}).get('tmp_status'))
+        #core_instance.update_history(core_instance.esh.extra['status'],
+        #                             core_instance.esh.extra.get('task') or\
+        #                             core_instance.esh.extra.get('metadata',{}).get('tmp_status'))
         serialized_data = InstanceSerializer(core_instance).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'

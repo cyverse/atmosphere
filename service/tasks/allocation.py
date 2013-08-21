@@ -62,4 +62,12 @@ def check_build_instances():
                 instance.end_date_all()
             instance.update_status(instance.status, instance.extra.get('task'))
     
-
+def check_allocation_overage():
+    for im in IdentityMembership.objects.all():
+        if im.allocation and not check_allocation(
+                im.identity.created_by.username,
+                im.identity.id):
+            #User is over allocated time, suspend all instances
+            driver = get_esh_driver(im.identity)
+            for instance in driver.list_instances():
+                driver.suspend_instance(instance)
