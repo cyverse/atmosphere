@@ -2,15 +2,41 @@ from datetime import timedelta
 from django.utils import timezone
 
 from api import get_esh_driver
-from core.models import Instance, Identity
-from core.models.instance import map_to_identity
+from core.models import Instance, IdentityMembership
+from core.models.instance import convert_esh_instance
 from service.allocation import check_allocation
 
 from threepio import logger
 
+@periodic_task(run_every=crontab(hour='*', minute='*/15', day_of_week='*'),
+               time_limit=120, retry=0) # 2min timeout
+def monitor_instances():
+    """
+    This task should be run every 5m-15m
+    """
+    for im in IdentityMembership.objects.all():
+        #Start by checking for running/missing instances
+        core_instances = im.identity.instance_set.filter(end_date=None)
+        if not core_instances:
+            continue
+
+        #Running/missing instances found. We may have to do something!
+        driver = get_esh_driver(im.identity)
+        esh_instances = driver.list_instances()
+
+        #Test allocation && Suspend instances if we are over allocated time
+        instances_suspended = over_allocation_test(im.identity, esh_instances)
+        if instances_suspended:
+            continue
+
+        #We may need to update instance status history
+        update_instances(im.identity, esh_instances, core_instances)
+
+
 def over_allocation_test(identity, esh_instances):
     if check_allocation(identity.created_by.username, identity.id):
-        return False # Nothing changed
+        # Nothing changed, bail.
+        return False
 
     #ASSERT:Over the allocation, suspend all instances for the identity
 
@@ -18,10 +44,14 @@ def over_allocation_test(identity, esh_instances):
     # instance.created_by == im.member.name
     # (At this point, it doesnt matter)
 
-    driver = get_esh_driver(im.identity)
+    driver = get_esh_driver(identity)
     for instance in esh_instances:
         #Suspend, get updated status/task, and update the DB
-        driver.suspend_instance(instance)
+        try:
+            driver.suspend_instance(instance)
+        except Exception, e:
+            if 'in vm_state suspended' not in e.message:
+                raise
         updated_esh = driver.get_instance(instance.id)
         updated_core = convert_esh_instance(driver, updated_esh,
                                             identity.provider.id,
@@ -31,6 +61,7 @@ def over_allocation_test(identity, esh_instances):
                                     updated_esh.extra.get('task'))
     #All instances are dealt with, move along.
     return True # User was over_allocation
+
 
 def update_instances(identity, esh_list, core_list):
     """
@@ -50,19 +81,3 @@ def update_instances(identity, esh_list, core_list):
             esh_instance.extra.get('task') or\
             esh_instance.extra.get('metadata',{}).get('tmp_status'))
     return
-
-def monitor_instances():
-    """
-    This task should be run every 5m-15m
-    """
-    for im in IdentityMembership.objects.all():
-        core_instances = im.identity.instance_set.filter(end_date=None)
-        if not core_instances:
-            continue
-        driver = get_esh_driver(im.identity)
-        esh_instances = driver.list_instances()
-
-        instances_suspended = over_allocation_test(im.identity, esh_instances)
-        if instances_suspended:
-            continue
-        update_instances(im.identity, esh_instances, core_instances)
