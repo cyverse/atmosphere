@@ -2,72 +2,82 @@ from datetime import timedelta
 from django.utils import timezone
 
 from api import get_esh_driver
-from core.models import Instance, Identity
-from core.models.instance import map_to_identity
+from core.models import Instance, IdentityMembership
+from core.models.instance import convert_esh_instance
 from service.allocation import check_allocation
 
 from threepio import logger
 
-def suspend_over_quota_task(driver, username, identity_id, *args, **kwargs):
-    if check_allocation(username, identity_id)\
-            and hasattr(driver, 'suspend_instance'):
-        for instance in driver.list_instances():
-            driver.suspend_instance(instance)
-
+@periodic_task(run_every=crontab(hour='*', minute='*/15', day_of_week='*'),
+               time_limit=120, retry=0) # 2min timeout
 def monitor_instances():
-    #TODO: Combine all of these functions
-    #1. End-date missing instances (They were terminated)
-    #2. Update status of instances who dont have matching last_history
-    #3. Handling instances that dont exist yet (Is this a valid use case?)
-    pass
-
-def correct_missing_instances():
-    #These instances are running or missing
-    core_instances = Instance.objects.filter(end_date=None)
-
-    #1. Optimize: Get list of instances to be tested for each ID
-    instance_identity_map = map_to_identity(core_instances)
-
-    #2. For each Identity, build the driver, check the instance_list
-    for identity_id, instance_list in instance_identity_map.iteritems():
-        identity = Identity.objects.get(id=identity_id)
-        driver = get_esh_driver(identity)
-        existing_list = driver.list_instances()
-        existing_ids = [instance.id for instance in existing_list]
-        dead_instances = [instance for instance in instance_list \
-                          if instance.provider_alias not in existing_ids]
-        if not dead_instances:
-            continue
-        logger.info("Adding enddate to %s for %s" %
-                ([i.provider_alias for i in dead_instances], identity))
-        for instance in dead_instances:
-            instance.end_date_all()
-
-def check_build_instances():
-    ish_list = InstanceStatusHistory.objects.filter(
-            status__name='build',
-            end_date=None)
-
-    instances = [ish.instance for ish in ish_list]
-    instance_identity_map = map_to_identity(instances)
-
-    for identity_id, instance_list in instance_identity_map.iteritems():
-        identity = Identity.objects.get(id=identity_id)
-        driver = get_esh_driver(identity)
-        esh_instances = driver.list_instances()
-        id_list = [core_i.provider_alias for core_i in instance_list]
-        for instance in instance_list:
-            if instance.id not in id_list:
-                #Instance was destroyed, end-date instance & status
-                instance.end_date_all()
-            instance.update_status(instance.status, instance.extra.get('task'))
-    
-def check_allocation_overage():
+    """
+    This task should be run every 5m-15m
+    """
     for im in IdentityMembership.objects.all():
-        if im.allocation and not check_allocation(
-                im.identity.created_by.username,
-                im.identity.id):
-            #User is over allocated time, suspend all instances
-            driver = get_esh_driver(im.identity)
-            for instance in driver.list_instances():
-                driver.suspend_instance(instance)
+        #Start by checking for running/missing instances
+        core_instances = im.identity.instance_set.filter(end_date=None)
+        if not core_instances:
+            continue
+
+        #Running/missing instances found. We may have to do something!
+        driver = get_esh_driver(im.identity)
+        esh_instances = driver.list_instances()
+
+        #Test allocation && Suspend instances if we are over allocated time
+        instances_suspended = over_allocation_test(im.identity, esh_instances)
+        if instances_suspended:
+            continue
+
+        #We may need to update instance status history
+        update_instances(im.identity, esh_instances, core_instances)
+
+
+def over_allocation_test(identity, esh_instances):
+    if check_allocation(identity.created_by.username, identity.id):
+        # Nothing changed, bail.
+        return False
+
+    #ASSERT:Over the allocation, suspend all instances for the identity
+
+    #TODO: It may be beneficial to only suspend if: 
+    # instance.created_by == im.member.name
+    # (At this point, it doesnt matter)
+
+    driver = get_esh_driver(identity)
+    for instance in esh_instances:
+        #Suspend, get updated status/task, and update the DB
+        try:
+            driver.suspend_instance(instance)
+        except Exception, e:
+            if 'in vm_state suspended' not in e.message:
+                raise
+        updated_esh = driver.get_instance(instance.id)
+        updated_core = convert_esh_instance(driver, updated_esh,
+                                            identity.provider.id,
+                                            identity.id,
+                                            identity.created_by)
+        updated_core.update_history(updated_esh.extra['status'],
+                                    updated_esh.extra.get('task'))
+    #All instances are dealt with, move along.
+    return True # User was over_allocation
+
+
+def update_instances(identity, esh_list, core_list):
+    """
+    End-date core instances that don't show up in esh_list
+    && Update the values of instances that do 
+    """
+    esh_ids = [instance.id for instance in esh_list]
+    for core_instance in core_list:
+        try:
+            index = esh_ids.index(core_instance.provider_alias)
+        except ValueError:
+            core_instance.end_date_all()
+            continue
+        esh_instance = esh_list[index]
+        core_instance.update_history(
+            esh_instance.extra['status'],
+            esh_instance.extra.get('task') or\
+            esh_instance.extra.get('metadata',{}).get('tmp_status'))
+    return

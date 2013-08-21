@@ -92,7 +92,7 @@ class Instance(models.Model):
         #1. Build an active status if this is the first time
         if not last_hist:
             #This is the first status
-            if first_update or status_name in ['build', 'pending']:
+            if first_update or status_name in ['build', 'pending', 'running']:
                 #First update, just assign the 'normal' status..
                 first_status = status_name
             else:
