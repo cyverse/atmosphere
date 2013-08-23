@@ -62,6 +62,10 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
 			el: this.$el.find('#cpuHolder'),
 			quota_type: 'cpu'
 		}).render();
+		this.time_resource_chart = new Atmo.Views.ResourceCharts({
+			el: this.$el.find('#allocationHolder'),
+			quota_type: 'allocation'
+		}).render();
 	},
 	update_resource_charts: function() {
 		this.cpu_resource_chart.render();
