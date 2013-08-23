@@ -4,9 +4,10 @@ Note:
   Multiple users can 'own' an identity (IdentityMembership - group.py)
 """
 
+from datetime import timedelta
+
 from django.db import models
 from django.contrib.auth.models import User
-
 
 class Identity(models.Model):
     """
@@ -31,6 +32,8 @@ class Identity(models.Model):
         return id_member.quota
 
     def get_quota_dict(self):
+        #Don't move it up. Circular reference.
+        from service.allocation import get_time, print_timedelta
         id_member = self.identitymembership_set.all()[0]
         quota = id_member.quota
         quota_dict = {
@@ -39,6 +42,18 @@ class Identity(models.Model):
             "disk": quota.storage,
             "disk_count": quota.storage_count,
         }
+        if id_member.allocation:
+            allocation = id_member.allocation
+            time_used = get_time(id_member.identity.created_by,
+                                 id_member.identity.id,
+                                 timedelta(minutes=allocation.delta))
+            quota_dict.update({
+                "allocation": {
+                    "threshold": allocation.threshold,
+                    "current": int(time_used.total_seconds() / 60),
+                    "delta": allocation.delta
+                }
+            })
         return quota_dict
 
     def json(self):

@@ -12,30 +12,18 @@ def filter_by_time_delta(instances, delta):
     min_time = timezone.now() - delta
     return [i for i in instances if not i.end_date or i.end_date > min_time]
 
-def get_instance_time(instance):
-    status_history = instance.instancestatushistory_set.all()
-    if not status_history:
-        # No status history, use entire length of instance
-        return timezone.now() - instance.start_date
-    active_time = timedelta(0)
-    for inst_state in status_history:
-        if not inst_state.status == 'active':
-            continue
-        if inst_state.end_date:
-            active_time += inst_state.end_date - inst_state.start_date
-        else:
-            active_time += timezone.now() - inst_state.start_date
-    return active_time
-
-def get_time(user, delta):
+def get_time(user, identity_id, delta):
     total_time = timedelta(0)
     if type(user) is not User:
         user = User.objects.filter(username=user)
-    instances = filter_by_time_delta(Instance.objects.filter(created_by=user),
-                                     delta)
+    if type(delta) is not timedelta:
+        delta = timedelta(minutes=delta)
+    instances = filter_by_time_delta(Instance.objects.filter(
+        created_by=user,
+        created_by_identity__id=identity_id), delta)
     logger.debug('Calculating time of %s instances' % len(instances))
     for i in instances:
-        run_time = get_instance_time(i)
+        run_time = min(i.get_active_time(), delta)
         logger.debug( 'Instance %s running for %s' %\
                      (i.provider_alias, print_timedelta(run_time)))
         total_time += run_time
@@ -51,24 +39,26 @@ def print_timedelta(td):
                                         td.seconds//3600,
                                         (td.seconds//60)%60)
 
-def check_allocation(username, identity_id):
+def check_over_allocation(username, identity_id):
     """
     Get identity-specific allocation
     Grab all instances created between now and 'delta'
     Check that cumulative time of instances do not exceed threshold
-    True if there is no allocation.
+
+    False if there is no allocation OR okay to launch.
+    True if time allocation is exceeded
     """
     allocation = get_allocation(username, identity_id)
     if not allocation:
         #No allocation, so you fail.
-        return True
+        return (False, timedelta(0))
     delta_time = timedelta(minutes=allocation.delta)
-    total_time_used = get_time(username, delta_time)
     max_time_allowed = timedelta(minutes=allocation.threshold)
+    total_time_used = get_time(username, identity_id, delta_time)
     time_diff = max_time_allowed - total_time_used
     if time_diff.total_seconds() <= 0:
         logger.debug("%s is over their allowed quota by %s"
                     % (username, print_timedelta(time_diff)))
-        return False
-    return True
+        return (True, time_diff)
+    return (False, time_diff)
 

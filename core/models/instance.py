@@ -3,7 +3,7 @@
 """
 import pytz
 from hashlib import md5
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -115,6 +115,23 @@ class Instance(models.Model):
         last_hist.save()
         new_hist = self.new_history(status_name, now_time)
         new_hist.save()
+
+
+    def get_active_time(self):
+        status_history = self.instancestatushistory_set.all()
+        if not status_history:
+            # No status history, use entire length of instance
+            return timezone.now() - self.start_date
+        active_time = timedelta(0)
+        for inst_state in status_history:
+            if not inst_state.status.name == 'active':
+                continue
+            if inst_state.end_date:
+                active_time += inst_state.end_date - inst_state.start_date
+            else:
+                active_time += timezone.now() - inst_state.start_date
+        return active_time
+
         
 
     def end_date_all(self):

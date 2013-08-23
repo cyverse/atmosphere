@@ -70,7 +70,7 @@ class Volume(models.Model):
         return attach_data
 
 
-def convertEshVolume(eshVolume, provider_id, identity_id, user):
+def convert_esh_volume(eshVolume, provider_id, identity_id, user):
     """
     Get or create the core representation of eshVolume
     Attach eshVolume to the object for further introspection..

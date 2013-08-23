@@ -14,7 +14,7 @@ from authentication.decorators import api_auth_token_required
 
 from core.models.quota import\
     getQuota, Quota as CoreQuota, storageQuotaTest, storageCountQuotaTest
-from core.models.volume import convertEshVolume
+from core.models.volume import convert_esh_volume
 
 from api.serializers import VolumeSerializer
 
@@ -33,7 +33,7 @@ class VolumeList(APIView):
         user = request.user
         esh_driver = prepare_driver(request, identity_id)
         esh_volume_list = esh_driver.list_volumes()
-        core_volume_list = [convertEshVolume(volume, provider_id, user)
+        core_volume_list = [convert_esh_volume(volume, provider_id, identity_id, user)
                             for volume in esh_volume_list]
         serializer = VolumeSerializer(core_volume_list, many=True)
         response = Response(serializer.data)
@@ -77,7 +77,7 @@ class VolumeList(APIView):
                                     'message': 'Volume creation failed'})
             return Response(errorObj,
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        coreVolume = convertEshVolume(eshVolume, provider_id, user)
+        coreVolume = convert_esh_volume(eshVolume, provider_id, user)
         serialized_data = VolumeSerializer(coreVolume).data
         response = Response(serialized_data)
         return response
@@ -98,7 +98,7 @@ class Volume(APIView):
             errorObj = failureJSON([{'code': 404,
                                     'message': 'Volume does not exist'}])
             return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
-        coreVolume = convertEshVolume(eshVolume, provider_id, user)
+        coreVolume = convert_esh_volume(eshVolume, provider_id, user)
         serialized_data = VolumeSerializer(coreVolume).data
         response = Response(serialized_data)
         return response
@@ -117,7 +117,7 @@ class Volume(APIView):
             errorObj = failureJSON([{'code': 404,
                                      'message': 'Volume does not exist'}])
             return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
-        coreVolume = convertEshVolume(eshVolume, provider_id, user)
+        coreVolume = convert_esh_volume(eshVolume, provider_id, user)
         serializer = VolumeSerializer(coreVolume, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -140,7 +140,7 @@ class Volume(APIView):
             errorObj = failureJSON([{'code': 404,
                                      'message': 'Volume does not exist'}])
             return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
-        coreVolume = convertEshVolume(eshVolume, provider_id, user)
+        coreVolume = convert_esh_volume(eshVolume, provider_id, user)
         serializer = VolumeSerializer(coreVolume, data=data)
         if serializer.is_valid():
             serializer.save()
@@ -162,7 +162,7 @@ class Volume(APIView):
             errorObj = failureJSON([{'code': 404,
                                      'message': 'Volume does not exist'}])
             return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
-        coreVolume = convertEshVolume(eshVolume, provider_id, user)
+        coreVolume = convert_esh_volume(eshVolume, provider_id, user)
         #Delete the object, update the DB
         esh_driver.destroy_volume(eshVolume)
         coreVolume.end_date = datetime.now()

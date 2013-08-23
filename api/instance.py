@@ -21,7 +21,7 @@ from authentication.decorators import api_auth_token_required
 from core.models.instance import convert_esh_instance, update_instance_metadata
 from core.models.instance import Instance as CoreInstance
 
-from core.models.volume import convertEshVolume
+from core.models.volume import convert_esh_volume
 
 from api import failureJSON, launch_esh_instance, prepare_driver
 from api.serializers import InstanceSerializer, VolumeSerializer,\
@@ -29,7 +29,8 @@ from api.serializers import InstanceSerializer, VolumeSerializer,\
 
 from service import task
 from service.deploy import build_script
-from service.quota import check_quota
+from service.quota import check_over_quota
+from service.allocation import check_over_allocation
 
 class InstanceList(APIView):
     """
@@ -95,17 +96,27 @@ class InstanceList(APIView):
         user = request.user
         esh_driver = prepare_driver(request, identity_id)
         size_alias = data.get('size_alias', '')
-        size = esh_driver.get_size(size_alias)
-        if not size:
-            raise Exception(
-                "Size %s could not be located with this driver" % size_alias)
-        if not check_quota(request.user.username, identity_id, size):
-            errorObj = failureJSON([{
-                'code': 403,
-                'message': 'Exceeds resource quota'}])
-            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
         try:
+            size = esh_driver.get_size(size_alias)
+
+            #TEST 1 - Over on resouces
+            if check_over_quota(request.user.username, identity_id, size):
+                errorObj = failureJSON([{
+                    'code': 403,
+                    'message': 'Exceeds resource quota'}])
+                return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
+            #TEST 2 - Over on time ( and by how much)
+            over_allocation, time_diff = check_over_allocation(
+                    request.user.username,
+                    identity_id)
+            if over_allocation:
+                errorObj = failureJSON([{
+                    'code': 403,
+                    'message': 'Exceeds time allocation. Wait %s before launching'
+                               'instance' % print_time(time_diff)}])
+                return Response(errorObj, status=status.HTTP_403_FORBIDDEN)
+            #ASSERT: OK To Launch
             (esh_instance, token) = launch_esh_instance(esh_driver, data)
         except InvalidCredsError:
             logger.warn(
@@ -238,7 +249,7 @@ class InstanceAction(APIView):
 
                 #Task complete, convert the volume and return the object
                 esh_volume = esh_driver.get_volume(volume_id)
-                core_volume = convertEshVolume(esh_volume,
+                core_volume = convert_esh_volume(esh_volume,
                                                provider_id,
                                                user)
                 result_obj = VolumeSerializer(core_volume).data
@@ -252,6 +263,24 @@ class InstanceAction(APIView):
             elif 'revert_resize' == action:
                 esh_driver.revert_resize_instance(esh_instance)
             elif 'resume' == action:
+                if not check_quota(request.user.username,
+                                   identity_id,
+                                   esh_instance.size):
+                    errorObj = failureJSON([{
+                        'code': 403,
+                        'message': 'Exceeds resource quota'}])
+                    return Response(errorObj, status=status.HTTP_403_FORBIDDEN)
+                over_allocation, time_diff = check_over_allocation(
+                        request.user.username,
+                        identity_id,
+                        esh_instance.size)
+                if over_allocation:
+                    errorObj = failureJSON([{
+                        'code': 403,
+                        'message': 'Exceeds time allocation. Wait %s before'
+                                   'resuming instance' % print_time(time_diff)
+                        }])
+                    return Response(errorObj, status=status.HTTP_403_FORBIDDEN)
                 update_status = True
                 esh_driver.resume_instance(esh_instance)
             elif 'suspend' == action:

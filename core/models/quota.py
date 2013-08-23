@@ -15,6 +15,8 @@ class Quota(models.Model):
     storage = models.IntegerField(null=True, blank=True, default=50)  # In GB
     # In #Volumes allowed
     storage_count = models.IntegerField(null=True, blank=True, default=1)
+    # In #Suspended instances allowed
+    suspended_count = models.IntegerField(null=True, blank=True, default=2)
 
     def __unicode__(self):
         return "CPU:%s, MEM:%s, DISK:%s DISK #:%s" %\
