@@ -11,7 +11,6 @@ from django.contrib.auth.models import User
 from threepio import logger
 
 from core.models.identity import Identity
-from core.models.script import Package
 from core.models.provider import Provider
 from core.models.tag import Tag, updateTags
 
@@ -33,7 +32,6 @@ class Machine(models.Model):
     description = models.TextField(null=True, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
     icon = models.ImageField(upload_to="machine_images", null=True, blank=True)
-    init_package = models.ForeignKey(Package, null=True, blank=True)
     private = models.BooleanField(default=False)
     providers = models.ManyToManyField(Provider, through="ProviderMachine",
             blank=True)

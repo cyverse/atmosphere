@@ -13,7 +13,7 @@ from threepio import logger
 class Volume(models.Model):
     """
     """
-    # esh field is filled out when converting an eshVolume
+    # esh field is filled out when converting an esh_volume
     esh = None
     alias = models.CharField(max_length=256)
     provider = models.ForeignKey(Provider)
@@ -22,7 +22,7 @@ class Volume(models.Model):
     description = models.TextField(blank=True, null=True)
     created_by = models.ForeignKey(User, null=True)
     created_by_identity = models.ForeignKey(Identity, null=True)
-    start_date = models.DateTimeField(default=lambda:datetime.now(pytz.utc))
+    start_date = models.DateTimeField(default=lambda: datetime.now(pytz.utc))
     end_date = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -70,26 +70,26 @@ class Volume(models.Model):
         return attach_data
 
 
-def convert_esh_volume(eshVolume, provider_id, identity_id, user):
+def convert_esh_volume(esh_volume, provider_id, identity_id, user):
     """
-    Get or create the core representation of eshVolume
-    Attach eshVolume to the object for further introspection..
+    Get or create the core representation of esh_volume
+    Attach esh_volume to the object for further introspection..
     """
-    alias = eshVolume.id
-    name = eshVolume.name
-    size = eshVolume.size
-    created_on = eshVolume.extra.get('createTime')
+    alias = esh_volume.id
+    name = esh_volume.name
+    size = esh_volume.size
+    created_on = esh_volume.extra.get('createTime')
     try:
         volume = Volume.objects.get(alias=alias, provider__id=provider_id)
     except Volume.DoesNotExist:
-        volume = createVolume(name, alias, size, provider_id, identity_id,
-                user, created_on)
-    volume.esh = eshVolume
+        volume = create_volume(name, alias, size, provider_id, identity_id,
+                               user, created_on)
+    volume.esh = esh_volume
     return volume
 
 
-#TODO:Belongs in core.volume
-def createVolume(name, alias, size, provider_id, identity_id, creator, created_on=None):
+def create_volume(name, alias, size, provider_id, identity_id,
+                  creator, created_on=None):
     provider = Provider.objects.get(id=provider_id)
     identity = Identity.objects.get(id=identity_id)
     volume = Volume.objects.create(name=name, alias=alias,

@@ -1,209 +1,76 @@
 # -*- coding: utf-8 -*-
 import datetime
 from south.db import db
-from south.v2 import DataMigration
+from south.v2 import SchemaMigration
 from django.db import models
 
-class Migration(DataMigration):
+
+class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        "Write your forwards methods here."
-        # Note: Remember to use orm['appname.ModelName'] rather than "from appname.models..."
-        print ' > core - data: Updating Instance'
-        self.update_instance(orm)
-        print ' > core - data: Updating Machine'
-        self.update_machine(orm)
-        print ' > core - data: Updating Volume'
-        self.update_volume(orm)
+        # Deleting model 'Package'
+        db.delete_table('package')
 
-    def update_machine(self, orm):
-        print 'Machine Update (1/3) : Set created_by to admin identity'
-        for prov in orm.Provider.objects.all():
-            admin_id = self.get_admin_identity(orm, prov)
-            if not admin_id:
-                print "ERROR: No admin identity found for %s\n" %\
-                        prov.location
-                print "ERROR: Machines were not updated for %s\n" %\
-                        prov.location
-                continue
-            core_machines = orm.ProviderMachine.objects.filter(provider=prov)
-            for pm in core_machines:
-                pm.created_by = admin_id.created_by
-                pm.created_by_identity = admin_id
-                pm.save()
-                mach = pm.machine
-                mach.created_by = admin_id.created_by
-                mach.created_by_identity = admin_id
-                mach.save()
-        print 'Machine Update (2/3) : Parse location to find created_by'
-        try:
-            self.retrieve_euca_owners(orm)
-        except:
-            #Will fail on an empty database
-            pass
-        print 'Machine Update (3/3) : Set created_by based on MachineRequest'
-        machine_requests = orm.MachineRequest.objects.all()
-        for request in machine_requests:
-            if not request.new_machine:
-                continue
-            pm = request.new_machine
-            print 'Updating from MachineRequest: %s created by %s' %\
-                (pm.identifier, request.new_machine_owner.username)
-            mach = pm.machine
-            new_owner  =\
-            orm.Identity.objects.get(created_by=request.new_machine_owner,\
-                    provider=request.new_machine_provider)
-            pm.created_by = request.new_machine_owner
-            pm.created_by_identity = new_owner
-            pm.save()
-            mach.created_by = request.new_machine_owner
-            mach.created_by_identity = new_owner
-            mach.save()
+        # Removing M2M table for field scripts on 'Package'
+        db.delete_table('package_scripts')
 
-    def retrieve_euca_owners(self, orm):
-        euca_providers = orm.Provider.objects.filter(location='EUCALYPTUS')
-        for prov in euca_providers:
-            admin_id = self.get_admin_identity(orm, prov)
-            driver = self.get_esh_driver(admin_id)
-            updated = 0
-            machine_list = driver.list_machines()
-            for machine in machine_list:
-                try:
-                    location = machine._image.extra['location']
-                    owner = self.parse_location(orm, location)
-                    #print 'Location parsing %s found owner %s' % (location, owner)
-                    owner_id = orm.Identity.objects.get(\
-                            created_by__username=owner,
-                            provider=prov)
-                    pm = orm.ProviderMachine.objects.filter(identifier=machine.id)
-                    if not pm:
-                        continue
-                    #print 'Updating %s - created by %s' % (machine.id, owner)
-                    pm = pm[0]
-                    pm.created_by = owner_id.created_by
-                    pm.created_by_identity = owner_id
-                    pm.save()
-                    mach = pm.machine
-                    mach.created_by = owner_id.created_by
-                    mach.created_by_identity = owner_id
-                    mach.save()
-                    updated += 1
-                except orm.Identity.DoesNotExist:
-                    print 'Cannot rename machine %s: location %s parsed owner'\
-                    ' of %s. User does not exist' %\
-                    (machine.id, location, owner)
-            print '%s/%s machines updated from parsing location' %\
-                    (updated, len(machine_list))
+        # Deleting model 'Script'
+        db.delete_table('script')
 
+        # Adding model 'Step'
+        db.create_table('step', (
+            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('alias', self.gf('django.db.models.fields.CharField')(max_length=36)),
+            ('name', self.gf('django.db.models.fields.CharField')(max_length=1024, blank=True)),
+            ('script', self.gf('django.db.models.fields.TextField')()),
+            ('exit_code', self.gf('django.db.models.fields.IntegerField')(null=True, blank=True)),
+            ('instance', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Instance'], null=True, blank=True)),
+            ('created_by', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'])),
+            ('created_by_identity', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Identity'], null=True)),
+            ('start_date', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime(2013, 8, 21, 0, 0))),
+            ('end_date', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
+        ))
+        db.send_create_signal('core', ['Step'])
 
-    def parse_location(self, orm, location):
-        import re
-        bucket, image = location.split('/')
-        bucket_regex = re.compile("(?P<admin_tag>[^_]+)_(?P<owner_name>[^_]+).*$")
-        image_regex = re.compile("(?P<admin_or_owner>[^_]+)_(?P<owner_name>[^_]+).*$")
-        r = bucket_regex.search(bucket)
-        if not r:
-            #Non-standard bucket location.. Skip it
-            return
-        search_results = r.groupdict()
-        owner_name = search_results['owner_name']
-        if owner_name not in ['admin', 'mi'] and\
-        orm.UserProfile.objects.filter(user__username=owner_name): # username found on bucket
-            user_found = owner_name
-        else:
-            #Check the image name
-            r = image_regex.search(image)
-            if not r:
-                #Non-standard image location.. Skip it
-                return
-            search_results = r.groupdict()
-            owner_name = search_results['owner_name']
-            if owner_name not in ['admin', 'mi'] and\
-            orm.UserProfile.objects.filter(user__username=owner_name): # username found on image
-                user_found = owner_name
-            else:
-                user_found = search_results['admin_or_owner']
-        return user_found
+        # Deleting field 'Machine.init_package'
+        db.delete_column('machine', 'init_package_id')
 
-
-    def get_admin_identity(self, orm, provider):
-        try:
-            from atmosphere import settings
-            if provider.location.lower() == 'openstack':
-                admin_name = settings.OPENSTACK_ADMIN_KEY
-            elif provider.location.lower() == 'eucalyptus':
-                admin_name = 'admin'
-            admin = orm.UserProfile.objects.get(user__username=admin_name).user
-            return orm.Identity.objects.get(provider=provider,
-                                            created_by=admin)
-        except:
-            #If admin does not have an identity, skip it.
-            return None
-
-
-    def convert_esh_volume(self, orm, esh_volume, provider_id):
-        try:
-            volume = orm.Volume.objects.get(alias=esh_volume.id, provider__id=provider_id)
-            return volume
-        except:
-            return None
-
-    def get_esh_driver(self, core_identity):
-        from api import getEshMap
-        cred_dict = {}
-        credentials = core_identity.credential_set.all()
-        for cred in credentials:
-            cred_dict[cred.key] = cred.value
-        user = core_identity.created_by
-        eshMap = getEshMap(core_identity.provider)
-        provider = eshMap['provider']()
-        identity = eshMap['identity'](provider, user=user, **cred_dict)
-        driver = eshMap['driver'](provider, identity)
-        return driver
-
-    def update_volume(self, orm):
-        from libcloud.common.types import InvalidCredsError
-        for identity in orm.Identity.objects.all():
-            if 'admin' in identity.created_by.username:
-                continue
-            driver = self.get_esh_driver(identity)
-            try:
-                esh_volumes = driver.list_volumes()
-            except InvalidCredsError, ice:
-                print 'Failed to list volumes for %s' % identity.created_by.username
-                continue
-            core_volumes = [self.convert_esh_volume(orm, vol, identity.provider.id) for vol in esh_volumes]
-            for vol in core_volumes:
-                #Skip the volumes that aren't in your DB
-                if not vol:
-                    continue
-                #print 'Updating Volume %s - created by %s' % (vol.alias,\
-                #        identity.created_by.username)
-                vol.created_by = identity.created_by
-                vol.created_by_identity = identity
-                vol.save()
-
-    def update_instance(self, orm):
-        for instance in orm.Instance.objects.all():
-            instance.created_by_identity = orm.Identity.objects.get(created_by__username=instance.created_by.username, provider=instance.provider_machine.provider.id)
-            instance.save()
 
     def backwards(self, orm):
-        "Backward method removes all saved created_by_identity fields"
-        for instance in orm.Instance.objects.all():
-            instance.created_by_identity = None
-            instance.save()
-        for volume in orm.Volume.objects.all():
-            volume.created_by = None
-            volume.created_by_identity = None
-            volume.save()
-        for pm in orm.ProviderMachine.objects.all():
-            pm.created_by = None
-            pm.created_by_identity = None
-            pm.save()
-            mach = pm.machine
-            mach.created_by_identity = None
-            mach.save()
+        # Adding model 'Package'
+        db.create_table('package', (
+            ('name', self.gf('django.db.models.fields.CharField')(max_length=256)),
+            ('location', self.gf('django.db.models.fields.files.FileField')(max_length=100)),
+            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('sha1sum', self.gf('django.db.models.fields.CharField')(max_length=50)),
+        ))
+        db.send_create_signal('core', ['Package'])
+
+        # Adding M2M table for field scripts on 'Package'
+        db.create_table('package_scripts', (
+            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
+            ('package', models.ForeignKey(orm['core.package'], null=False)),
+            ('script', models.ForeignKey(orm['core.script'], null=False))
+        ))
+        db.create_unique('package_scripts', ['package_id', 'script_id'])
+
+        # Adding model 'Script'
+        db.create_table('script', (
+            ('description', self.gf('django.db.models.fields.TextField')()),
+            ('version', self.gf('django.db.models.fields.IntegerField')()),
+            ('location', self.gf('django.db.models.fields.files.FileField')(max_length=100)),
+            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('name', self.gf('django.db.models.fields.CharField')(max_length=256)),
+        ))
+        db.send_create_signal('core', ['Script'])
+
+        # Deleting model 'Step'
+        db.delete_table('step')
+
+        # Adding field 'Machine.init_package'
+        db.add_column('machine', 'init_package',
+                      self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Package'], null=True, blank=True),
+                      keep_default=False)
 
 
     models = {
@@ -311,7 +178,7 @@ class Migration(DataMigration):
             'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'instance': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Instance']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 14, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 21, 0, 0)'}),
             'status': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.InstanceStatus']"})
         },
         'core.machine': {
@@ -323,11 +190,10 @@ class Migration(DataMigration):
             'featured': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'icon': ('django.db.models.fields.files.ImageField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'init_package': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Package']", 'null': 'True', 'blank': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'private': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'providers': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['core.Provider']", 'symmetrical': 'False', 'through': "orm['core.ProviderMachine']", 'blank': 'True'}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 14, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 21, 0, 0)'}),
             'tags': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['core.Tag']", 'symmetrical': 'False', 'blank': 'True'})
         },
         'core.machineexport': {
@@ -339,7 +205,7 @@ class Migration(DataMigration):
             'export_owner': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']"}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'instance': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Instance']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 14, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 21, 0, 0)'}),
             'status': ('django.db.models.fields.CharField', [], {'max_length': '256'})
         },
         'core.machinemembership': {
@@ -365,7 +231,7 @@ class Migration(DataMigration):
             'new_machine_tags': ('django.db.models.fields.TextField', [], {'default': "''", 'blank': 'True'}),
             'new_machine_visibility': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'parent_machine': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'ancestor_machine'", 'to': "orm['core.ProviderMachine']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 14, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 21, 0, 0)'}),
             'status': ('django.db.models.fields.CharField', [], {'max_length': '256'})
         },
         'core.maintenancerecord': {
@@ -385,15 +251,7 @@ class Migration(DataMigration):
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'private_ssh_key': ('django.db.models.fields.TextField', [], {}),
             'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 14, 0, 0)'})
-        },
-        'core.package': {
-            'Meta': {'object_name': 'Package', 'db_table': "'package'"},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'location': ('django.db.models.fields.files.FileField', [], {'max_length': '100'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
-            'scripts': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['core.Script']", 'symmetrical': 'False'}),
-            'sha1sum': ('django.db.models.fields.CharField', [], {'max_length': '50'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 21, 0, 0)'})
         },
         'core.provider': {
             'Meta': {'object_name': 'Provider', 'db_table': "'provider'"},
@@ -414,7 +272,7 @@ class Migration(DataMigration):
             'identifier': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '256'}),
             'machine': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Machine']"}),
             'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 14, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 21, 0, 0)'})
         },
         'core.providermembership': {
             'Meta': {'object_name': 'ProviderMembership', 'db_table': "'provider_membership'"},
@@ -438,7 +296,7 @@ class Migration(DataMigration):
             'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 14, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 21, 0, 0)'})
         },
         'core.quota': {
             'Meta': {'object_name': 'Quota', 'db_table': "'quota'"},
@@ -447,14 +305,6 @@ class Migration(DataMigration):
             'memory': ('django.db.models.fields.IntegerField', [], {'default': '4', 'null': 'True', 'blank': 'True'}),
             'storage': ('django.db.models.fields.IntegerField', [], {'default': '50', 'null': 'True', 'blank': 'True'}),
             'storage_count': ('django.db.models.fields.IntegerField', [], {'default': '1', 'null': 'True', 'blank': 'True'})
-        },
-        'core.script': {
-            'Meta': {'object_name': 'Script', 'db_table': "'script'"},
-            'description': ('django.db.models.fields.TextField', [], {}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'location': ('django.db.models.fields.files.FileField', [], {'max_length': '100'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
-            'version': ('django.db.models.fields.IntegerField', [], {})
         },
         'core.size': {
             'Meta': {'object_name': 'Size', 'db_table': "'size'"},
@@ -466,7 +316,20 @@ class Migration(DataMigration):
             'mem': ('django.db.models.fields.IntegerField', [], {}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 14, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 21, 0, 0)'})
+        },
+        'core.step': {
+            'Meta': {'object_name': 'Step', 'db_table': "'step'"},
+            'alias': ('django.db.models.fields.CharField', [], {'max_length': '36'}),
+            'created_by': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']"}),
+            'created_by_identity': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Identity']", 'null': 'True'}),
+            'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
+            'exit_code': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'instance': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Instance']", 'null': 'True', 'blank': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'}),
+            'script': ('django.db.models.fields.TextField', [], {}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 21, 0, 0)'})
         },
         'core.tag': {
             'Meta': {'object_name': 'Tag', 'db_table': "'tag'"},
@@ -497,9 +360,8 @@ class Migration(DataMigration):
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"}),
             'size': ('django.db.models.fields.IntegerField', [], {}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 14, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 8, 21, 0, 0)'})
         }
     }
 
     complete_apps = ['core']
-    symmetrical = True

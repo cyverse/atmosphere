@@ -251,6 +251,7 @@ class InstanceAction(APIView):
                 esh_volume = esh_driver.get_volume(volume_id)
                 core_volume = convert_esh_volume(esh_volume,
                                                provider_id,
+                                               identity_id,
                                                user)
                 result_obj = VolumeSerializer(core_volume).data
                 logger.debug(result_obj)
@@ -294,20 +295,6 @@ class InstanceAction(APIView):
                 esh_driver.stop_instance(esh_instance)
             elif 'reboot' == action:
                 esh_driver.reboot_instance(esh_instance)
-            elif 'deploy' == action:
-                #TODO: Get script input (deploy)
-                deploy_script = build_script(str(action_params.get('script')),
-                                             action_params.get('script_name'))
-                deploy_params = {'deploy':deploy_script,
-                                 'timeout':120,
-                                 'ssh_key':
-                                 '/opt/dev/atmosphere/extras/ssh/id_rsa'}
-                success = esh_driver.deploy_to(esh_instance, **deploy_params)
-                result_obj = {'success':success,
-                              'stdout': deploy_script.stdout,
-                              'stderr': deploy_script.stderr,
-                              'exit_code': deploy_script.exit_status}
-                #TODO: Return script output, error, & RetCode
             elif 'rebuild' == action:
                 machine_alias = action_params.get('machine_alias', '')
                 machine = esh_driver.get_machine(machine_alias)

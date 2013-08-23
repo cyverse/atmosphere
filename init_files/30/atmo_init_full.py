@@ -533,12 +533,14 @@ def notify_launched_instance(atmoObj, metadata):
     service_url = atmoObj['atmosphere']['instance_service_url']
     userid = atmoObj['atmosphere']['userid']
     instance_token = atmoObj['atmosphere']['instance_token']
+    instance_name = atmoObj['atmosphere']['name']
     data = {
         'action': 'instance_launched',
         'userid': userid,
         'vminfo': metadata,
         'arg': atmoObj,
         'token': instance_token,
+        'name': instance_name,
     }
     h = Http(disable_ssl_certificate_validation=True)
     headers = {'Content-type': 'application/json'}
@@ -690,9 +692,9 @@ def main(argv):
     try:
         opts, args = getopt.getopt(
             argv,
-            "t:u:s:i:T:v:",
+            "t:u:s:i:T:N:v:",
             ["service_type=", "service_url=", "server=", "user_id=", "token=",
-             "vnc_license="])
+             "name=", "vnc_license="])
     except getopt.GetoptError:
         logging.error("Invalid arguments provided.")
         sys.exit(2)
@@ -702,6 +704,9 @@ def main(argv):
             service_type = arg
         elif opt in ("-T", "--token"):
             atmoObj["atmosphere"]["instance_token"] = arg
+            instance_token = arg
+        elif opt in ("-N", "--name"):
+            atmoObj["atmosphere"]["name"] = arg
             instance_token = arg
         elif opt in ("-u", "--service_url"):
             atmoObj["atmosphere"]["instance_service_url"] = arg

@@ -36,9 +36,11 @@ class Quota(models.Model):
         app_label = 'core'
 
 
-def cpuQuotaTest(driver, quota, new_size=0):
+def has_cpu_quota(driver, quota, new_size=0):
     """
-    Test if the total # of CPU cores found on driver is <= Quota.cpu
+    True if the total number of CPU cores found on
+    driver is less than or equal to Quota.cpu,
+    otherwise False.
     """
     #Always False if quota doesnt exist, new size is negative
     if not quota or new_size < 0:
@@ -53,9 +55,10 @@ def cpuQuotaTest(driver, quota, new_size=0):
     return total_size <= quota.cpu
 
 
-def memQuotaTest(driver, quota, new_size=0):
+def has_mem_quota(driver, quota, new_size=0):
     """
-    Test if the total # of RAM found on driver is <= Quota.mem
+    True if the total amount of RAM found on driver is
+    less than or equal to Quota.mem, otherwise False.
     """
     #Always False if quota doesnt exist, new size is negative
     if not quota or new_size < 0:
@@ -70,9 +73,10 @@ def memQuotaTest(driver, quota, new_size=0):
     return total_size <= quota.memory
 
 
-def storageQuotaTest(driver, quota, new_size=0):
+def has_storage_quota(driver, quota, new_size=0):
     """
-    Test if the total size of volumes found on driver is <= Quota.storage
+    True if the total size of volumes found on driver is
+    less than or equal to Quota.storage, otherwise False.
     """
     #Always False if quota doesnt exist, new size is negative
     if not quota or new_size < 0:
@@ -87,9 +91,10 @@ def storageQuotaTest(driver, quota, new_size=0):
     return total_size <= quota.storage
 
 
-def storageCountQuotaTest(driver, quota, new_size=0):
+def has_storage_count_quota(driver, quota, new_size=0):
     """
-    Test if the total size of volumes found on driver is <= Quota.storage
+    True if the total size of volumes found on driver is
+    greater than or equal to Quota.storage otherwise False.
     """
     #Always False if quota doesnt exist, new size is negative
     if not quota or new_size < 0:
@@ -102,7 +107,7 @@ def storageCountQuotaTest(driver, quota, new_size=0):
     return num_vols <= quota.storage_count
 
 
-def getQuota(identity_id):
+def get_quota(identity_id):
     try:
         return Quota.objects.get(identitymembership__identity__id=identity_id)
     except Quota.DoesNotExist:

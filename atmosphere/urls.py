@@ -16,6 +16,7 @@ from api.machine_request import MachineRequestList, MachineRequest,\
     MachineRequestStaffList, MachineRequestStaff
 from api.machine_export import MachineExportList, MachineExport
 from api.size import SizeList, Size
+from api.step import StepList, Step
 from api.volume import VolumeList, Volume
 from api.profile import Profile
 from api.occupancy import Occupancy
@@ -157,6 +158,13 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/v1/provider/(?P<provider_id>\d+)/identity'
         + '/(?P<identity_id>\d+)/size/(?P<size_id>\d+)/$',
         Size.as_view(), name='size-detail'),
+
+    url(r'^api/v1/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/step/$',
+        StepList.as_view(), name='step-list'),
+    url(r'^api/v1/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/step/(?P<step_id>\d+)/$',
+        Step.as_view(), name='step-detail'),
 
     url(r'^api/v1/provider/(?P<provider_id>\d+)/identity'
         + '/(?P<identity_id>\d+)/volume/$',

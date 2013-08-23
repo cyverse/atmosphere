@@ -56,7 +56,7 @@ ESH_MAP = {
 
 
 def _get_init_script(instance_service_url, instance_token,
-                     username, init_file_version):
+                     instance_name, username, init_file_version):
     instance_config = """\
 arg = '{
  "atmosphere":{
@@ -64,11 +64,13 @@ arg = '{
   "instance_service_url":"%s",
   "server":"%s",
   "token":"%s",
+  "name":"%s",
   "userid":"%s",
   "vnc_license":"%s"
  }
 }'""" % (instance_service_url, settings.SERVER_URL,
-            instance_token, username, settings.ATMOSPHERE_VNC_LICENSE)
+         instance_token, instance_name, username,
+         settings.ATMOSPHERE_VNC_LICENSE)
 
     init_script_file = os.path.join(
         settings.PROJECT_ROOT,
@@ -84,8 +86,8 @@ def launch_esh_instance(driver, extras, *args, **kwargs):
 
     1. Pull the necessary parameters
         machine_alias, size_alias, name
-    2. Create a core repr. of the EshInstance
-    3. return the eshInstance & instance token
+    2. Create a core repr. of the esh_instance
+    3. return the esh_instance & instance token
     """
     try:
         #create a reference to this attempted instance launch.
@@ -117,16 +119,18 @@ def launch_esh_instance(driver, extras, *args, **kwargs):
             init_file_version = extras.get('init_file', 30)
             userdata_contents = _get_init_script(instance_service_url,
                                                  instance_token,
+                                                 extras['name'],
                                                  username, init_file_version)
             #Create/deploy the instance -- NOTE: Name is passed in extras
-            eshInstance = driver.create_instance(size=size,
-                                                 image=machine,
-                                                 ex_userdata=userdata_contents,
-                                                 **extras)
+            esh_instance = driver\
+                .create_instance(size=size,
+                                 image=machine,
+                                 ex_userdata=userdata_contents,
+                                 **extras)
         elif isinstance(driver.provider, OSProvider):
             extras['deploy'] = True
             extras['token'] = instance_token
-            extras['ex_metadata'] = {'tmp_status':'initializing'}
+            extras['ex_metadata'] = {'tmp_status': 'initializing'}
             #Check for project network
             os_driver = OSAccountDriver()
             password = os_driver.hashpass(username)
@@ -141,30 +145,30 @@ def launch_esh_instance(driver, extras, *args, **kwargs):
             #TODO: Explicitly set the kwargs here and pass them instead of args
             #will help avoid confusion here..
             logger.debug("OS Launch params: %s" % extras)
-            eshInstance = driver.create_instance(size=size,
-                                                 image=machine, **extras)
+            esh_instance = driver.create_instance(size=size,
+                                                  image=machine, **extras)
             # call async tasks.
-            task.deploy_init_task(driver, eshInstance)
-            #driver.deploy_init_to_task(eshInstance)
+            task.deploy_init_task(driver, esh_instance)
+            #driver.deploy_init_to_task(esh_instance)
         elif isinstance(driver.provider, AWSProvider):
             #TODO:Extra stuff needed for AWS provider here
             extras['deploy'] = True
             extras['token'] = instance_token
-            eshInstance = driver.deploy_instance(size=size,
-                                                 image=machine, **extras)
+            esh_instance = driver.deploy_instance(size=size,
+                                                  image=machine, **extras)
         else:
             raise Exception("Unable to launch with this provider.")
         #POST-Provider Hooks
         #OPENSTACK:
         #   - Add floating IP
         #   - Add security group
-        return (eshInstance, instance_token)
+        return (esh_instance, instance_token)
     except Exception as e:
         logger.exception(e)
         raise
 
 
-def getEshMap(core_provider):
+def get_esh_map(core_provider):
     try:
         provider_name = core_provider.location.lower()
         return ESH_MAP[provider_name]
@@ -173,10 +177,10 @@ def getEshMap(core_provider):
         return None
 
 
-def getEshProvider(core_provider):
+def get_esh_provider(core_provider):
     try:
-        eshMap = getEshMap(core_provider)
-        provider = eshMap['provider']()
+        esh_map = get_esh_map(core_provider)
+        provider = esh_map['provider']()
         return provider
     except Exception, e:
         logger.exception(e)
@@ -185,16 +189,16 @@ def getEshProvider(core_provider):
 
 def get_esh_driver(core_identity, username=None):
     try:
-        eshMap = getEshMap(core_identity.provider)
+        esh_map = get_esh_map(core_identity.provider)
         cred_args = core_identity.credential_list()
         if not username:
             user = core_identity.created_by
         else:
             user = DjangoUser.objects.get(username=username)
-        provider = eshMap['provider']()
+        provider = esh_map['provider']()
         #logger.debug("cred_args = %s" % cred_args)
-        identity = eshMap['identity'](provider, user=user, **cred_args)
-        driver = eshMap['driver'](provider, identity)
+        identity = esh_map['identity'](provider, user=user, **cred_args)
+        driver = esh_map['driver'](provider, identity)
         return driver
     except Exception, e:
         logger.exception(e)
