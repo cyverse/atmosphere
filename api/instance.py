@@ -30,7 +30,7 @@ from api.serializers import InstanceSerializer, VolumeSerializer,\
 from service import task
 from service.deploy import build_script
 from service.quota import check_over_quota
-from service.allocation import check_over_allocation
+from service.allocation import check_over_allocation, print_timedelta
 
 class InstanceList(APIView):
     """
@@ -114,7 +114,7 @@ class InstanceList(APIView):
                 errorObj = failureJSON([{
                     'code': 403,
                     'message': 'Exceeds time allocation. Wait %s before launching'
-                               'instance' % print_time(time_diff)}])
+                               'instance' % print_timedelta(time_diff)}])
                 return Response(errorObj, status=status.HTTP_403_FORBIDDEN)
             #ASSERT: OK To Launch
             (esh_instance, token) = launch_esh_instance(esh_driver, data)
@@ -279,7 +279,7 @@ class InstanceAction(APIView):
                     errorObj = failureJSON([{
                         'code': 403,
                         'message': 'Exceeds time allocation. Wait %s before'
-                                   'resuming instance' % print_time(time_diff)
+                                   'resuming instance' % print_timedelta(time_diff)
                         }])
                     return Response(errorObj, status=status.HTTP_403_FORBIDDEN)
                 update_status = True

@@ -41,6 +41,7 @@ class Identity(models.Model):
             "cpu": quota.cpu,
             "disk": quota.storage,
             "disk_count": quota.storage_count,
+            "suspended_count": quota.suspended_count,
         }
         if id_member.allocation:
             allocation = id_member.allocation

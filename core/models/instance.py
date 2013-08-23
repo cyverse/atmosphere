@@ -63,11 +63,11 @@ class Instance(models.Model):
                                       .get_or_create(name=status_name)
         if start_date:
             new_hist.start_date=start_date
+        logger.debug("Created new history object: %s " % (new_hist))
         return new_hist
 
     def update_history(self, status_name, task=None, first_update=False):
         if task:
-            logger.info("Task provided:%s" % task)
             task_to_status = {
                     'suspending':'suspended',
                     'resuming':'active',
@@ -82,10 +82,9 @@ class Instance(models.Model):
                     #There are more.. Must find table..
             }
             status_2 = task_to_status.get(task,'')
+            logger.debug("Task provided:%s, Status should be %s" % task, status_2)
             #Update to the more relevant task
             if status_2:
-                logger.info("Name changed from %s --> %s"\
-                            % (status_name, status_2))
                 status_name = status_2
 
         last_hist = self.last_history()
@@ -101,15 +100,14 @@ class Instance(models.Model):
                 first_status = 'active'
             first_hist = self.new_history(first_status, self.start_date)
             first_hist.save()
-            logger.info("Created the first history %s" % first_hist)
+            logger.debug("Created the first history %s" % first_hist)
             last_hist = first_hist
         #2. If we wanted to assign active status, thats done now.
         if last_hist.status.name == status_name:
-            logger.info("status_name matches last history:%s " % last_hist)
+            #logger.info("status_name matches last history:%s " %
+            #        last_hist.status.name)
             return
         #3. ASSERT: A status update is required (Non-active state)
-        logger.info("Update required: History:%s != %s " % (last_hist,
-                status_name))
         now_time = timezone.now()
         last_hist.end_date = now_time
         last_hist.save()
@@ -121,7 +119,8 @@ class Instance(models.Model):
         status_history = self.instancestatushistory_set.all()
         if not status_history:
             # No status history, use entire length of instance
-            return timezone.now() - self.start_date
+            end_date = self.end_date if self.end_date else timezone.now()
+            return end_date - self.start_date
         active_time = timedelta(0)
         for inst_state in status_history:
             if not inst_state.status.name == 'active':

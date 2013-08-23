@@ -1,10 +1,12 @@
 from datetime import timedelta
 from django.utils import timezone
+from celery.task import periodic_task
+from celery.task.schedules import crontab
 
 from api import get_esh_driver
 from core.models import Instance, IdentityMembership
 from core.models.instance import convert_esh_instance
-from service.allocation import check_allocation
+from service.allocation import check_over_allocation
 
 from threepio import logger
 
@@ -34,7 +36,8 @@ def monitor_instances():
 
 
 def over_allocation_test(identity, esh_instances):
-    if check_allocation(identity.created_by.username, identity.id):
+    over_allocated, time_diff = check_over_allocation(identity.created_by.username, identity.id)
+    if not over_allocated:
         # Nothing changed, bail.
         return False
 

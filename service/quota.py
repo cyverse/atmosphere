@@ -1,6 +1,5 @@
 from api import get_esh_driver
 from core.models import IdentityMembership, Identity
-from service.allocation import check_allocation
 
 from threepio import logger
 

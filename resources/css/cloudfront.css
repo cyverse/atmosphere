@@ -1616,23 +1616,26 @@ div.img_name {
 
 }
 
-/* Maybe move these animations */
+/* TODO: Maybe move these animations elsewhere */
+/* TODO: Test all web browsers to ensure this works.. */
 @-webkit-keyframes animate-stripes-forward { 
-    from { background-position: 0 0 }
-
-    to { background-position: 40px 0 }
+    0% {background-position: 0 0;} 100% {background-position: 60px 0;}
 }
 @-moz-keyframes progress-bar-stripes { 
-    from { background-position: 0 0 }
-
-    to { background-position: 40px 0 }
+    0% {background-position: 0 0;} 100% {background-position: 60px 0;}
 }
 
+@keyframes progress-bar-stripes { 
+    0% {background-position: 0 0;} 100% {background-position: 60px 0;}
+}
+/**
+ * TODO: Remove this if the above keyframes works..
 @keyframes progress-bar-stripes { 
     from { background-position: 0 0 }
 
     to { background-position: 40px 0 }
 }
+*/
 
 .orangeGraphBar {
 	transition: width 2s;

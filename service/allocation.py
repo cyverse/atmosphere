@@ -9,15 +9,20 @@ from core.models.instance import Instance
 from threepio import logger
 
 def filter_by_time_delta(instances, delta):
+    """
+    Return all running instances AND all instances between now and 'delta'
+    """
     min_time = timezone.now() - delta
     return [i for i in instances if not i.end_date or i.end_date > min_time]
 
 def get_time(user, identity_id, delta):
-    total_time = timedelta(0)
     if type(user) is not User:
         user = User.objects.filter(username=user)
     if type(delta) is not timedelta:
         delta = timedelta(minutes=delta)
+
+    total_time = timedelta(0)
+
     instances = filter_by_time_delta(Instance.objects.filter(
         created_by=user,
         created_by_identity__id=identity_id), delta)
