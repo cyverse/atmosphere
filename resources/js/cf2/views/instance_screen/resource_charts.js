@@ -305,6 +305,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
         usage_bar.css('width', '' + cssPercent + '%');
         if (animate) {
             usage_bar.addClass('active');
+            usage_bar.addClass('positive-stripes');
         }
 
         if (usage_bar != existing_bar)
