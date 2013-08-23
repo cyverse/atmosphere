@@ -21,7 +21,7 @@ from authentication.decorators import api_auth_token_required
 from core.models.instance import convert_esh_instance, update_instance_metadata
 from core.models.instance import Instance as CoreInstance
 
-from core.models.volume import convertEshVolume
+from core.models.volume import convert_esh_volume
 
 from api import failureJSON, launch_esh_instance, prepare_driver
 from api.serializers import InstanceSerializer, VolumeSerializer,\
@@ -238,7 +238,7 @@ class InstanceAction(APIView):
 
                 #Task complete, convert the volume and return the object
                 esh_volume = esh_driver.get_volume(volume_id)
-                core_volume = convertEshVolume(esh_volume,
+                core_volume = convert_esh_volume(esh_volume,
                                                provider_id,
                                                user)
                 result_obj = VolumeSerializer(core_volume).data
@@ -265,20 +265,6 @@ class InstanceAction(APIView):
                 esh_driver.stop_instance(esh_instance)
             elif 'reboot' == action:
                 esh_driver.reboot_instance(esh_instance)
-            elif 'deploy' == action:
-                #TODO: Get script input (deploy)
-                deploy_script = build_script(str(action_params.get('script')),
-                                             action_params.get('script_name'))
-                deploy_params = {'deploy':deploy_script,
-                                 'timeout':120,
-                                 'ssh_key':
-                                 '/opt/dev/atmosphere/extras/ssh/id_rsa'}
-                success = esh_driver.deploy_to(esh_instance, **deploy_params)
-                result_obj = {'success':success,
-                              'stdout': deploy_script.stdout,
-                              'stderr': deploy_script.stderr,
-                              'exit_code': deploy_script.exit_status}
-                #TODO: Return script output, error, & RetCode
             elif 'rebuild' == action:
                 machine_alias = action_params.get('machine_alias', '')
                 machine = esh_driver.get_machine(machine_alias)
