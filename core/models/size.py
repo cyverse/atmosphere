@@ -89,8 +89,8 @@ def convert_esh_size(esh_size, provider_id, user):
         ram = esh_size._size.ram
         disk = esh_size._size.disk
         cpu = esh_size.cpu
-        coreSize = create_size(name, alias, cpu, ram, disk, provider_id)
-    coreSize.esh = esh_size
+        core_size = create_size(name, alias, cpu, ram, disk, provider_id)
+    core_size.esh = esh_size
     return core_size
 
 
