@@ -1619,14 +1619,14 @@ div.img_name {
 /* TODO: Maybe move these animations elsewhere */
 /* TODO: Test all web browsers to ensure this works.. */
 @-webkit-keyframes animate-stripes-forward { 
-    0% {background-position: 0 0;} 100% {background-position: 60px 0;}
+    0% {background-position: 0 0;} 100% {background-position: 40px 0;}
 }
 @-moz-keyframes progress-bar-stripes { 
-    0% {background-position: 0 0;} 100% {background-position: 60px 0;}
+    0% {background-position: 0 0;} 100% {background-position: 40px 0;}
 }
 
 @keyframes progress-bar-stripes { 
-    0% {background-position: 0 0;} 100% {background-position: 60px 0;}
+    0% {background-position: 0 0;} 100% {background-position: 40px 0;}
 }
 /**
  * TODO: Remove this if the above keyframes works..

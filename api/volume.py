@@ -12,6 +12,7 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
+from core.models.volume import convert_esh_volume
 from core.models.quota import\
     Quota as CoreQuota, get_quota, has_storage_quota, has_storage_count_quota
 
