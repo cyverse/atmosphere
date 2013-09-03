@@ -3,7 +3,7 @@ ImageManager:
     Remote Openstack Image management (euca2ools 1.3.1)
 
 EXAMPLE USAGE:
-from service.drivers.openstackImageManager import ImageManager
+from service.imaging.drivers.openstack import ImageManager
 
 from atmosphere import settings
 

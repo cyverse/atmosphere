@@ -24,10 +24,7 @@ from core.models.provider import Provider
 from core.models.credential import Credential
 from core.models.quota import Quota
 
-from service.drivers.openstackImageManager import ImageManager
-from service.drivers.common import _connect_to_glance, _connect_to_nova,\
-                                   _connect_to_keystone
-
+from service.imaging.drivers.openstack import ImageManager
 
 class AccountDriver():
     user_manager = None
@@ -44,8 +41,8 @@ class AccountDriver():
         self.image_manager = ImageManager(**settings.OPENSTACK_ARGS.copy())
         self.network_manager = NetworkManager(**network_args)
         self.openstack_prov = Provider.objects.get(location='OPENSTACK')
-    def get_openstack_clients(self, username, password=None, tenant_name=None):
 
+    def get_openstack_clients(self, username, password=None, tenant_name=None):
         user_creds = self._get_openstack_credentials(
                             username, password, tenant_name)
         neutron = self.network_manager.new_connection(**user_creds)

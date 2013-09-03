@@ -12,14 +12,14 @@ from celery import chain
 
 from threepio import logger
 from rtwo.driver import EucaDriver, OSDriver
+from rtwo.drivers.common import get_driver
+
 from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
 from core.models.instance import update_instance_metadata
 
 from service.deploy import mount_volume, check_volume, mkfs_volume,\
                            check_mount, umount_volume, lsof_location
-
-from service.drivers.common import get_driver
 from service.exceptions import DeviceBusyException
 
 @task(name="check_volume_task",

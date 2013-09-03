@@ -115,6 +115,7 @@ def remove_vm_specific_data(mounted_path, dry_run=False):
         'var/log/yum.log']
     replace_line_files = [
         #('replace_pattern','replace_with','in_file'),
+        ("SELINUX=.*", "SELINUX=disabled", "etc/syslinux/selinux"),
     ]
     multiline_delete_files = [
         #('delete_from', 'delete_to', 'replace_where')

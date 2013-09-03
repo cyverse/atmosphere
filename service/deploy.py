@@ -7,8 +7,39 @@ from libcloud.compute.deployment import ScriptDeployment
 
 #from threepio import logger
 
-from rtwo.drivers.common import LoggedScriptDeployment
 
+#
+# Deployment Classes
+#
+class LoggedScriptDeployment(ScriptDeployment):
+
+    def __init__(self, script, name=None, delete=False, logfile=None):
+        """
+        Use this for client-side logging
+        """
+        super(LoggedScriptDeployment, self).__init__(
+            script, name=name, delete=delete)
+        if logfile:
+            self.script = self.script + " >> %s 2>&1" % logfile
+        #logger.info(self.script)
+
+    def run(self, node, client):
+        """
+        Server-side logging
+        """
+        node = super(LoggedScriptDeployment, self).run(node, client)
+        if self.stdout:
+            logger.debug('%s (%s)STDOUT: %s' % (node.id, self.name,
+                                                self.stdout))
+        if self.stderr:
+            logger.warn('%s (%s)STDERR: %s' % (node.id, self.name,
+                                               self.stderr))
+        return node
+
+
+#
+# Specific Deployments
+#
 
 def sync_instance():
     return ScriptDeployment("sync", name="./deploy_sync_instance.sh")

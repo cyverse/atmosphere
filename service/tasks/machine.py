@@ -11,14 +11,10 @@ from core.models.machine_request import process_machine_request
 
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 
-from service.drivers.eucalyptusImageManager import\
-    ImageManager as EucaImageManager
-from service.drivers.openstackImageManager import\
-    ImageManager as OSImageManager
-from service.drivers.migrate import EucaOSMigrater
-
-from service.drivers.virtualboxExportManager import\
-    ExportManager
+from service.imaging.drivers.eucalyptus import ImageManager as EucaImageManager
+from service.imaging.drivers.openstack import ImageManager as OSImageManager
+from service.imaging.drivers.migration import EucaOSMigrater
+from service.imaging.drivers.virtualbox import ExportManager
 
 from atmosphere import settings
 

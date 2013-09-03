@@ -27,8 +27,8 @@ def monitor_instances():
         esh_instances = driver.list_instances()
 
         #Test allocation && Suspend instances if we are over allocated time
-        instances_suspended = over_allocation_test(im.identity, esh_instances)
-        if instances_suspended:
+        over_allocation = over_allocation_test(im.identity, esh_instances)
+        if over_allocation:
             continue
 
         #We may need to update instance status history
