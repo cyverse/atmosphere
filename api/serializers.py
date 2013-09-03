@@ -7,6 +7,7 @@ from core.models.machine_export import MachineExport
 from core.models.profile import UserProfile
 from core.models.provider import ProviderType, Provider
 from core.models.size import Size
+from core.models.step import Step
 from core.models.tag import Tag, find_or_create_tag
 from core.models.volume import Volume
 from core.models.group import Group
@@ -79,7 +80,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     has_shell = serializers.BooleanField(read_only=True, source='shell')
     has_vnc = serializers.BooleanField(read_only=True, source='vnc')
     #Writeable fields
-    name = serializers.CharField(source='name')
+    name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', source='tags', many=True)
 
     class Meta:
@@ -283,6 +284,19 @@ class ProviderSizeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Size
         exclude = ('id', 'start_date', 'end_date')
+
+class StepSerializer(serializers.ModelSerializer):
+    alias = serializers.CharField(read_only=True, source='alias')
+    name = serializers.CharField()
+    script = serializers.CharField()
+    created_by = serializers.CharField(source='created_by')
+    quota = serializers.Field(source='get_quota_dict')
+    provider_id = serializers.Field(source='provider.id')
+    start_date = serializers.DateTimeField(read_only=True)
+    end_date = serializers.DateTimeField(read_only=True, required=False)
+    class Meta:
+        model = Step
+        exclude = ('id', 'created_by_identity')
 
 
 class ProviderTypeSerializer(serializers.ModelSerializer):
