@@ -39,8 +39,7 @@ def provider_filtered_machines(request, provider_id, identity_id):
                          for mach in esh_machine_list]
     filtered_machine_list = filter(filter_core_machine, core_machine_list)
     sorted_machine_list = sorted(filtered_machine_list,
-                                 cmp=compare_core_machines,
-                                 reverse=True)
+                                 cmp=compare_core_machines)
     return sorted_machine_list
 
 

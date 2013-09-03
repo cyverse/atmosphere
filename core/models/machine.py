@@ -259,10 +259,17 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
 
 
 def compare_core_machines(mach_1, mach_2):
-    #Mach_1 comes before mach_2
-    if mach_1.start_date < mach_2.start_date:
+    """
+    Comparison puts machines in LATEST start_date, then Lexographical ordering
+    """
+    if mach_1.machine.featured and not mach_2.machine.featured:
         return -1
-    elif mach_1.start_date > mach_2.start_date:
+    elif not mach_1.machine.featured and mach_2.machine.featured:
+        return 1
+    #Neither/Both images are featured.. Check start_date
+    if mach_1.machine.start_date > mach_2.machine.start_date:
+        return -1
+    elif mach_1.machine.start_date < mach_2.machine.start_date:
         return 1
     else:
         return cmp(mach_1.identifier, mach_2.identifier)
