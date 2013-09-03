@@ -264,7 +264,7 @@ class InstanceAction(APIView):
             elif 'revert_resize' == action:
                 esh_driver.revert_resize_instance(esh_instance)
             elif 'resume' == action:
-                if not check_quota(request.user.username,
+                if check_over_quota(request.user.username,
                                    identity_id,
                                    esh_instance.size):
                     errorObj = failureJSON([{
@@ -273,8 +273,7 @@ class InstanceAction(APIView):
                     return Response(errorObj, status=status.HTTP_403_FORBIDDEN)
                 over_allocation, time_diff = check_over_allocation(
                         request.user.username,
-                        identity_id,
-                        esh_instance.size)
+                        identity_id)
                 if over_allocation:
                     errorObj = failureJSON([{
                         'code': 403,

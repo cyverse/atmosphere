@@ -82,7 +82,8 @@ class Instance(models.Model):
                     #There are more.. Must find table..
             }
             status_2 = task_to_status.get(task,'')
-            logger.debug("Task provided:%s, Status should be %s" % task, status_2)
+            logger.debug("Task provided:%s, Status should be %s"
+                         % (task, status_2))
             #Update to the more relevant task
             if status_2:
                 status_name = status_2

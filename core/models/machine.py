@@ -177,6 +177,12 @@ def load_machine(machine_name, provider_alias, provider_id):
     """
     machine = find_provider_machine(provider_alias, provider_id)
     if machine:
+        if not machine.created_by_identity:
+            provider = Provider.objects.get(id=provider_id)
+            admin_id = provider.get_admin_identity()
+            machine.created_by=admin_id.created_by
+            machine.created_by_identity=admin_id
+            machine.save()
         return machine
     else:
         return create_provider_machine(machine_name, provider_alias, provider_id)
