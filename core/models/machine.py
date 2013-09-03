@@ -258,6 +258,15 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
     return provider_machine
 
 
+def compare_core_machines(mach_1, mach_2):
+    #Mach_1 comes before mach_2
+    if mach_1.start_date < mach_2.start_date:
+        return -1
+    elif mach_1.start_date > mach_2.start_date:
+        return 1
+    else:
+        return cmp(mach_1.identifier, mach_2.identifier)
+
 def filter_core_machine(provider_machine):
     """
     Filter conditions:

@@ -13,8 +13,7 @@ from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
 from core.models.instance import update_instance_metadata
 
-from rtwo.drivers.common import get_driver
-
+from service.driver import get_driver
 
 @task(name="_send_instance_email",
       default_retry_delay=10,
