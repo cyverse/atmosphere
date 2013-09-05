@@ -7,7 +7,6 @@ import time
 from datetime import datetime
 
 from celery.decorators import task
-from celery.task import current
 from celery import chain
 
 from threepio import logger
