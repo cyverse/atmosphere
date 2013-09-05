@@ -1,6 +1,11 @@
 from datetime import datetime
-from django.db import models
+
 from django.contrib.auth.models import User
+from django.db import models
+from django.db.models import Q
+
+from core.models.provider import Provider
+
 
 class MaintenanceRecord(models.Model):
     """
@@ -10,20 +15,18 @@ class MaintenanceRecord(models.Model):
     end_date = models.DateTimeField(blank=True, null=True)
     title = models.CharField(max_length=256)
     message = models.TextField()
+    provider = models.ForeignKey(Provider, blank=True, null=True)
     disable_login = models.BooleanField(default=True)
 
     @classmethod
-    def active(cls):
+    def active(cls, provider=None):
         now = datetime.now()
-        records = []
-        for r in MaintenanceRecord.objects.filter(
-                start_date__lt=now,
-                end_date__isnull=True):
-            records.append(r)
-        for r in MaintenanceRecord.objects.filter(
-                start_date__lt=now,
-                end_date__gt=now):
-            records.append(r)
+        records = MaintenanceRecord.objects.filter(
+            start_date__lt=now,
+            Q(end_date__gt=now) | Q(end_date__isnull=True))
+        if provider:
+            records = records.filter(Q(provider__exact=provider)\
+                                     | Q(provider__isnull=True))
         return records
 
     @classmethod

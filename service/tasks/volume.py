@@ -7,14 +7,10 @@ import time
 from datetime import datetime
 
 from celery.decorators import task
-from celery.task import current
 from celery import chain
 
 from threepio import logger
 from rtwo.driver import EucaDriver, OSDriver
-from core.email import send_instance_email
-from core.ldap import get_uid_number as get_unique_number
-from core.models.instance import update_instance_metadata
 
 from service.deploy import mount_volume, check_volume, mkfs_volume,\
                            check_mount, umount_volume, lsof_location

@@ -1,7 +1,9 @@
 from django.db import models
 from django.utils import timezone
+from django.utils import text
 from django.contrib.auth.models import User
 
+from core.models.flow import Flow
 from core.models.identity import Identity
 from core.models.instance import Instance
 
@@ -14,6 +16,7 @@ class Step(models.Model):
     name = models.CharField(max_length=1024, blank=True)
     script = models.TextField()
     exit_code = models.IntegerField(null=True, blank=True)
+    flow = models.ForeignKey(Flow, null=True, blank=True)
     instance = models.ForeignKey(Instance, null=True, blank=True)
     created_by = models.ForeignKey(User)
     created_by_identity = models.ForeignKey(Identity, null=True)
@@ -24,6 +27,10 @@ class Step(models.Model):
         db_table = "step"
         app_label = "core"
 
+
+    def get_script_name(self):
+        return text.slugify(self.name + _ + self.alias) + ".sh"
+
     def abbreviate_script(self, max_length=24):
         if self.script:
             return self.script.replace("\n", "")[0:max_length]
@@ -31,13 +38,15 @@ class Step(models.Model):
             return self.script
 
     def __unicode__(self):
-        return "alias=%s (id=%s|name=%s) {%s} exit_code=%s created_by=%s "\
+        return "alias=%s (id=%s|name=%s) {%s} exit_code=%s flow=%s instance=%s created_by=%s "\
             "identity=%s start_date: %s end_date %s" % (
                 self.alias,
                 self.id,
                 self.name,
                 self.abbreviate_script(128),
                 self.exit_code,
+                self.flow,
+                self.instance,
                 self.created_by,
                 self.created_by_identity,
                 self.start_date,
