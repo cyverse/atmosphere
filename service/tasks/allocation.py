@@ -3,7 +3,6 @@ from django.utils import timezone
 from celery.task import periodic_task
 from celery.task.schedules import crontab
 
-from api import get_esh_driver
 from core.models import Instance, IdentityMembership
 from core.models.instance import convert_esh_instance
 from service.allocation import check_over_allocation
@@ -16,6 +15,7 @@ def monitor_instances():
     """
     This task should be run every 5m-15m
     """
+    from api import get_esh_driver
     for im in IdentityMembership.objects.all():
         #Start by checking for running/missing instances
         core_instances = im.identity.instance_set.filter(end_date=None)
@@ -36,6 +36,7 @@ def monitor_instances():
 
 
 def over_allocation_test(identity, esh_instances):
+    from api import get_esh_driver
     over_allocated, time_diff = check_over_allocation(identity.created_by.username, identity.id)
     if not over_allocated:
         # Nothing changed, bail.
