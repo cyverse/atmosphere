@@ -37,11 +37,6 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Flow'], null=True, blank=True),
                       keep_default=False)
 
-        # Adding field 'Quota.suspended_count'
-        db.add_column('quota', 'suspended_count',
-                      self.gf('django.db.models.fields.IntegerField')(default=2, null=True, blank=True),
-                      keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting model 'FlowType'
@@ -52,9 +47,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'Step.flow'
         db.delete_column('step', 'flow_id')
-
-        # Deleting field 'Quota.suspended_count'
-        db.delete_column('quota', 'suspended_count')
 
 
     models = {
