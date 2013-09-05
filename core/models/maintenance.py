@@ -22,7 +22,7 @@ class MaintenanceRecord(models.Model):
     def active(cls, provider=None):
         now = datetime.now()
         records = MaintenanceRecord.objects.filter(
-            start_date__lt=now,
+            Q(start_date__lt=now),
             Q(end_date__gt=now) | Q(end_date__isnull=True))
         if provider:
             records = records.filter(Q(provider__exact=provider)\
