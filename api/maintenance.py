@@ -27,13 +27,29 @@ class MaintenanceRecordList(APIView):
     def get(self, request):
         """
         """
-        records = CoreMaintenanceRecord.objects.all()
+        user = request.user
+        groups = user.group_set.all()
+        providers = []
+        for g in groups:
+            for p in g.providers.all():
+                if p not in providers:
+                    providers.append(p)
+
         if 'active' in request.GET:
             now_time = timezone.now()
-            records = records.filter(start_date__gte=now_time)
+            records = MaintenanceRecord.active()
+            for p in providers:
+                records.extend(MaintenanceRecord.active(p)
+            serialized_data = MaintenanceRecordSerializer(records).data
+            response = Response(serialized_data)
+            return response
+
+        records = CoreMaintenanceRecord.objects.filter(
+            Q(provider__in=providers) | Q(provider=None))
         serialized_data = MaintenanceRecordSerializer(records).data
         response = Response(serialized_data)
         return response
+
 
     @api_auth_token_required
     def post(self, request, provider_id, identity_id):
