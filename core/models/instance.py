@@ -82,7 +82,8 @@ class Instance(models.Model):
                     #There are more.. Must find table..
             }
             status_2 = task_to_status.get(task,'')
-            logger.debug("Task provided:%s, Status should be %s" % task, status_2)
+            logger.debug("Task provided:%s, Status should be %s"
+                         % (task, status_2))
             #Update to the more relevant task
             if status_2:
                 status_name = status_2
@@ -119,16 +120,25 @@ class Instance(models.Model):
         status_history = self.instancestatushistory_set.all()
         if not status_history:
             # No status history, use entire length of instance
-            end_date = self.end_date if self.end_date else timezone.now()
+            now = timezone.now()
+            logger.info("First history update: %s starting %s" %
+                        (self.provider_alias, now))
+            end_date = self.end_date if self.end_date else now
             return end_date - self.start_date
         active_time = timedelta(0)
         for inst_state in status_history:
             if not inst_state.status.name == 'active':
                 continue
             if inst_state.end_date:
-                active_time += inst_state.end_date - inst_state.start_date
+                time_diff = inst_state.end_date - inst_state.start_date
+                active_time += time_diff
             else:
-                active_time += timezone.now() - inst_state.start_date
+                logger.info("Status %s has no end-date." %
+                        inst_state.status.name)
+                time_diff = timezone.now() - inst_state.start_date
+                active_time += time_diff
+            logger.info("Include %s time: %s | New total time: %s" %
+                        (inst_state.status.name, time_diff, active_time))
         return active_time
 
         
@@ -139,14 +149,16 @@ class Instance(models.Model):
         (Destroyed, terminated, no longer exists..)
         """
         now_time = timezone.now()
-        if not self.end_date:
-            self.end_date = now_time
-            self.save()
         ish_list = InstanceStatusHistory.objects.filter(instance=self)
         for ish in ish_list:
             if not ish.end_date:
+                logger.info('Saving history:%s' % ish)
                 ish.end_date = now_time
                 ish.save()
+        if not self.end_date:
+            logger.info("Saving Instance:%s" % self)
+            self.end_date = now_time
+            self.save()
 
     def creator_name(self):
         return self.created_by.username

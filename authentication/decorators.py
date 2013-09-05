@@ -91,7 +91,7 @@ def api_auth_token_required(func):
         if user and user.is_authenticated():
             return func(request, *args, **kwargs)
         else:
-            logger.warn('invalid token used')
+            logger.debug('Unauthorized access by %s - Invalid Token' % user)
             return Response(
                 "Expected header parameter: Authorization Token <TokenID>",
                 status=status.HTTP_401_UNAUTHORIZED)

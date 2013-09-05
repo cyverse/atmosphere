@@ -48,11 +48,13 @@ class Identity(models.Model):
             time_used = get_time(id_member.identity.created_by,
                                  id_member.identity.id,
                                  timedelta(minutes=allocation.delta))
+            current_mins = int(time_used.total_seconds() / 60)
             quota_dict.update({
                 "allocation": {
                     "threshold": allocation.threshold,
-                    "current": int(time_used.total_seconds() / 60),
-                    "delta": allocation.delta
+                    "current": current_mins,
+                    "delta": allocation.delta,
+                    "ttz": allocation.threshold - current_mins
                 }
             })
         return quota_dict

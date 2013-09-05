@@ -9,9 +9,13 @@ def main():
     """
     Generate openstack users then add them to the DB
     """
-    driver = AccountDriver()
-
-    success = 0
+    driver = AccountDriver(settings.OPENSTACK_ARGS)
+    #Build the admin driver for openstack first.
+    driver.create_openstack_identity(settings.OPENSTACK_ADMIN_KEY,
+            settings.OPENSTACK_ADMIN_SECRET, settings.OPENSTACK_ADMIN_TENANT,
+            True)
+    success = 1
+    #Add the others
     core_services = ['atmo_test']#'sgregory', 'jmatt', 'edwins', 'cjlarose','mlent']
     for username in core_services:
         try:

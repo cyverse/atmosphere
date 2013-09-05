@@ -27,3 +27,4 @@ requests==1.1
 git+git://github.com/jmatt/threepio.git#egg=threepio
 git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive
 git+git://github.com/iPlantCollaborativeOpenSource/rtwo.git#egg=rtwo
+git+git://github.com/iPlantCollaborativeOpenSource/jwt.py.git#egg=jwt

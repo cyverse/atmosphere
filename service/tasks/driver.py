@@ -13,8 +13,7 @@ from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
 from core.models.instance import update_instance_metadata
 
-from service.drivers.common import get_driver
-
+from service.driver import get_driver
 
 @task(name="_send_instance_email",
       default_retry_delay=10,
@@ -200,7 +199,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
       #Defaults will not be used, see countdown call below
       default_retry_delay=15,
       ignore_result=True,
-      max_retries=10)
+      max_retries=30)
 def add_floating_ip(driverCls, provider, identity,
                     instance_alias, delete_status=True,
                     *args, **kwargs):
@@ -214,7 +213,7 @@ def add_floating_ip(driverCls, provider, identity,
         instance = driver.get_instance(instance_alias)
         if not instance:
             return
-
+        #TODO: Don't even attempt this until we are out of build
         update_instance_metadata(driver, instance,
                                  data={'tmp_status': 'networking'},
                                  replace=False)
@@ -235,8 +234,8 @@ def add_floating_ip(driverCls, provider, identity,
         logger.exception("Error occurred while assigning a floating IP")
         #Networking can take a LONG time when an instance first launches,
         #it can also be one of those things you 'just miss' by a few seconds..
-        #So we will retry 10 times using exp.backoff
-        #Max Time: 10.6min
+        #So we will retry 30 times using limited exp.backoff
+        #Max Time: 53min
         countdown = min(2**current.request.retries, 128)
         add_floating_ip.retry(exc=exc,
                               countdown=countdown)

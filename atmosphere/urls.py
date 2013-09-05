@@ -16,6 +16,7 @@ from api.machine import MachineList, Machine, MachineHistory
 from api.machine_request import MachineRequestList, MachineRequest,\
     MachineRequestStaffList, MachineRequestStaff
 from api.machine_export import MachineExportList, MachineExport
+from api.maintenance import MaintenanceRecordList, MaintenanceRecord
 from api.size import SizeList, Size
 from api.step import StepList, Step
 from api.volume import VolumeList, Volume
@@ -96,6 +97,12 @@ urlpatterns += format_suffix_patterns(patterns(
     '',
     url(r'api/v1/$', Meta.as_view()),
     url(r'api/v1/version/$', Version.as_view()),
+    url(r'^api/v1/maintenance/$',
+        MaintenanceRecordList.as_view(),
+        name='maintenance-record-list'),
+    url(r'^api/v1/maintenance/(?P<record_id>\d+)/$',
+        MaintenanceRecord.as_view(),
+        name='maintenance-record-list'),
     url(r'^api/v1/notification/$', NotificationList.as_view()),
 
     url(r'^api/v1/user/$', atmo_valid_token_required(UserManagement.as_view())),

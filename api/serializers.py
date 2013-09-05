@@ -4,6 +4,7 @@ from core.models.instance import Instance
 from core.models.machine import ProviderMachine
 from core.models.machine_request import MachineRequest
 from core.models.machine_export import MachineExport
+from core.models.maintenance import MaintenanceRecord
 from core.models.profile import UserProfile
 from core.models.provider import ProviderType, Provider
 from core.models.size import Size
@@ -145,6 +146,11 @@ class MachineRequestSerializer(serializers.ModelSerializer):
         fields = ('id', 'instance', 'status', 'name', 'owner', 'provider',
                   'vis', 'description', 'tags', 'sys', 'software',
                   'shared_with')
+
+
+class MaintenanceRecordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MaintenanceRecord
 
 
 class IdentityDetailSerializer(serializers.ModelSerializer):

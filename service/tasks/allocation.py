@@ -3,7 +3,6 @@ from django.utils import timezone
 from celery.task import periodic_task
 from celery.task.schedules import crontab
 
-from api import get_esh_driver
 from core.models import Instance, IdentityMembership
 from core.models.instance import convert_esh_instance
 from service.allocation import check_over_allocation
@@ -16,6 +15,7 @@ def monitor_instances():
     """
     This task should be run every 5m-15m
     """
+    from api import get_esh_driver
     for im in IdentityMembership.objects.all():
         #Start by checking for running/missing instances
         core_instances = im.identity.instance_set.filter(end_date=None)
@@ -26,16 +26,17 @@ def monitor_instances():
         driver = get_esh_driver(im.identity)
         esh_instances = driver.list_instances()
 
-        #Test allocation && Suspend instances if we are over allocated time
-        instances_suspended = over_allocation_test(im.identity, esh_instances)
-        if instances_suspended:
-            continue
-
         #We may need to update instance status history
         update_instances(im.identity, esh_instances, core_instances)
 
+        #Test allocation && Suspend instances if we are over allocated time
+        over_allocation = over_allocation_test(im.identity, esh_instances)
+        if over_allocation:
+            continue
+
 
 def over_allocation_test(identity, esh_instances):
+    from api import get_esh_driver
     over_allocated, time_diff = check_over_allocation(identity.created_by.username, identity.id)
     if not over_allocated:
         # Nothing changed, bail.
@@ -72,10 +73,13 @@ def update_instances(identity, esh_list, core_list):
     && Update the values of instances that do 
     """
     esh_ids = [instance.id for instance in esh_list]
+    logger.info(esh_ids)
     for core_instance in core_list:
         try:
             index = esh_ids.index(core_instance.provider_alias)
         except ValueError:
+            logger.info("Did not find instance %s in ID List: %s" %
+                        (core_instance.provider_alias, esh_ids))
             core_instance.end_date_all()
             continue
         esh_instance = esh_list[index]
