@@ -65,3 +65,6 @@ def umount_volume(mount_location):
 def lsof_location(mount_location):
     return ScriptDeployment("lsof | grep %s" % (mount_location),
                             name="./deploy_lsof_location.sh")
+
+def step_script(step):
+    return ScriptDeployment(step.script, name="./" + step.get_script_name())
