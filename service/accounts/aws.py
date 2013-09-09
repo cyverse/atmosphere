@@ -13,6 +13,14 @@ class AccountDriver():
     def __init__(self, *args, **kwargs):
         self.aws_prov = Provider.objects.get(location='EC2_US_EAST')
 
+    def create_account(self, username, key, secret):
+        """
+        Create an identity with these credentials
+        """
+        identity = self.create_identity(username, key, secret):
+        return identity
+        pass
+
     def create_usergroup(self, username):
         user = User.objects.get_or_create(username=username)[0]
         group = Group.objects.get_or_create(name=username)[0]
@@ -23,7 +31,20 @@ class AccountDriver():
         group.save()
         return (user, group)
 
-    def create_aws_identity(self, username, key, secret):
+    def clean_credentials(self, credential_dict):
+        creds = ["username", "access_key", "secret_key"]
+        missing_creds = []
+        #1. Remove non-credential information from the dict
+        for key in credential_dict.keys():
+            if key not in creds:
+                credential_dict.pop(key)
+        #2. Check the dict has all the required credentials
+        for c in creds:
+            if not hasattr(credential_dict, c):
+                missing_creds.append(c)
+        return missing_creds
+
+    def create_identity(self, username, key, secret):
         """
         Create a new AWS identity (key/secret required) for User:<username>
         """
@@ -35,7 +56,7 @@ class AccountDriver():
             id_member = IdentityMembership.objects.filter(
                 identity__provider=self.aws_prov,
                 member__name=username,
-                identity__credential__value__in=[key, secret]).distinct()[0]
+                identity__credential__value__in=[access_key, secret_key]).distinct()[0]
             return id_member.identity
         except (IndexError, ProviderMembership.DoesNotExist):
             #Add provider membership
@@ -50,9 +71,9 @@ class AccountDriver():
             identity = Identity.objects.get_or_create(
                 created_by=user, provider=self.aws_prov)[0]
             Credential.objects.get_or_create(
-                identity=identity, key='key', value=key)[0]
+                identity=identity, key='key', value=access_key)[0]
             Credential.objects.get_or_create(
-                identity=identity, key='secret', value=secret)[0]
+                identity=identity, key='secret', value=secret_key)[0]
             #Link it to the usergroup
             id_member = IdentityMembership.objects.get_or_create(
                 identity=identity, member=group, quota=quota)[0]

@@ -40,7 +40,28 @@ class AccountDriver():
         max_quota - Set this user to have the maximum quota, instead of the
         default quota
         """
-        (user, group) = self.create_usergroup(euca_user['username'])
+        return self.create_identity(euca_user['username'],
+                                    euca_user['access_key'],
+                                    euca_user['secret_key'],
+                                    max_quota=max_quota)
+
+
+    def clean_credentials(self, credential_dict):
+        creds = ["username", "access_key", "secret_key"]
+        missing_creds = []
+        #1. Remove non-credential information from the dict
+        for key in credential_dict.keys():
+            if key not in creds:
+                credential_dict.pop(key)
+        #2. Check the dict has all the required credentials
+        for c in creds:
+            if not hasattr(credential_dict, c):
+                missing_creds.append(c)
+        return missing_creds
+
+    def create_identity(self, username, access_key, secret_key,
+            max_quota=False):
+        (user, group) = self.create_usergroup(username)
         try:
             id_membership = IdentityMembership.objects.get(
                 identity__provider=self.euca_prov,
@@ -52,7 +73,6 @@ class AccountDriver():
                 id_membership.save()
             return id_membership.identity
         except IdentityMembership.DoesNotExist:
-            logger.debug(euca_user)
             #Provider Membership
             p_membership = ProviderMembership.objects.get_or_create(
                 provider=self.euca_prov, member=group)[0]
@@ -63,10 +83,10 @@ class AccountDriver():
 
             Credential.objects.get_or_create(
                 identity=identity, key='key',
-                value=euca_user['access_key'])[0]
+                value=access_key)[0]
             Credential.objects.get_or_create(
                 identity=identity, key='secret',
-                value=euca_user['secret_key'])[0]
+                value=secret_key)[0]
 
             if max_quota:
                 quota = self.get_max_quota()

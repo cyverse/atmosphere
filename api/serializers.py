@@ -19,6 +19,11 @@ from rest_framework import pagination
 
 from threepio import logger
 
+class AccountSerializer(serializers.Serializer):
+    pass
+    #Define fields here
+    #TODO: Define a spec that we expect from list_users across all providers
+
 class CredentialSerializer(serializers.ModelSerializer):
     class Meta:
         model = Credential

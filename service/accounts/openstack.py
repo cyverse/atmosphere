@@ -69,8 +69,8 @@ class AccountDriver():
         """
         finished = False
         # Special case for admin.. Use the Openstack admin identity..
-        if username == 'admin':
-            ident = self.create_openstack_identity(
+        if username == settings.OPENSTACK_ADMIN_KEY:
+            ident = self.create_identity(
                 settings.OPENSTACK_ADMIN_KEY,
                 settings.OPENSTACK_ADMIN_SECRET,
                 settings.OPENSTACK_ADMIN_TENANT)
@@ -98,12 +98,32 @@ class AccountDriver():
             except OverLimit:
                 print 'Requests are rate limited. Pausing for one minute.'
                 time.sleep(60)  # Wait one minute
-        ident = self.create_openstack_identity(username,
+        ident = self.create_identity(username,
                                                password,
                                                project_name=username, max_quota=max_quota)
         return ident
 
-    def create_openstack_identity(self, username, password, project_name, max_quota=False):
+    def clean_credentials(self, credential_dict):
+        """
+        This function cleans up a dictionary of credentials.
+        After running this function:
+        * Erroneous dictionary keys are removed
+        * Missing credentials are listed
+        """
+        creds = ["username", "password", "project_name"]
+        missing_creds = []
+        #1. Remove non-credential information from the dict
+        for key in credential_dict.keys():
+            if key not in creds:
+                credential_dict.pop(key)
+        #2. Check the dict has all the required credentials
+        for c in creds:
+            if not hasattr(credential_dict, c):
+                missing_creds.append(c)
+        return missing_creds
+
+
+    def create_identity(self, username, password, project_name, max_quota=False):
         #Get the usergroup
         (user, group) = self.create_usergroup(username)
         try:
