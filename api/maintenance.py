@@ -39,7 +39,7 @@ class MaintenanceRecordList(APIView):
             now_time = timezone.now()
             records = MaintenanceRecord.active()
             for p in providers:
-                records.extend(MaintenanceRecord.active(p)
+                records.extend(MaintenanceRecord.active(p))
             serialized_data = MaintenanceRecordSerializer(records).data
             response = Response(serialized_data)
             return response
