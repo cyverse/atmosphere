@@ -17,9 +17,8 @@ class AccountDriver():
         """
         Create an identity with these credentials
         """
-        identity = self.create_identity(username, key, secret):
+        identity = self.create_identity(username, key, secret)
         return identity
-        pass
 
     def create_usergroup(self, username):
         user = User.objects.get_or_create(username=username)[0]
