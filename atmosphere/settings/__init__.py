@@ -151,7 +151,7 @@ INIT_SCRIPT_PREFIX = '/init_files/'
 
 
 ## logging
-DEBUG = True
+DEBUG = True #
 TEMPLATE_DEBUG = DEBUG
 LOGGING_LEVEL = logging.DEBUG
 DEP_LOGGING_LEVEL = logging.INFO  # Logging level for dependencies.
