@@ -18,8 +18,10 @@ from authentication import createAuthToken, userCanEmulate, cas_loginRedirect
 from authentication.models import Token as AuthToken
 from authentication.protocol.ldap import ldap_validate
 from authentication.protocol.cas import cas_validateUser
+from django.views.decorators.csrf import csrf_exempt
 
 
+@csrf_exempt
 def token_auth(request):
     """
     VERSION 2 AUTH
@@ -41,15 +43,15 @@ def token_auth(request):
         username = request.session.get('username', None)
 
     password = request.POST.get('password', None)
-
+    logger.info(request)
     #LDAP Authenticate if password provided.
-    if password:
+    if username and password:
         if ldap_validate(username, password):
             token = createAuthToken(username)
             expireTime = token.issuedTime + settings.TOKEN_EXPIRY_TIME
             auth_json = {
                 'token': token.key,
-                'username': token.user,
+                'username': token.user.username,
                 'expires': expireTime.strftime("%b %d, %Y %H:%M:%S")
             }
             return HttpResponse(
@@ -70,7 +72,7 @@ def token_auth(request):
         expireTime = token.issuedTime + settings.TOKEN_EXPIRY_TIME
         auth_json = {
             'token': token.key,
-            'username': token.user,
+            'username': token.user.username,
             'expires': expireTime.strftime("%b %d, %Y %H:%M:%S")
         }
         return HttpResponse(

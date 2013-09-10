@@ -7,7 +7,10 @@ from keystoneclient.exceptions import NotFound
 
 from atmosphere import settings
 
-from authentication.protocol import ldap
+try:
+    from authentication.protocol.oauth import is_atmo_user
+except ImportError:
+    from authentication.protocol.ldap import is_atmo_user
 
 from core.email import email_from_admin
 
@@ -36,7 +39,7 @@ def main():
     for username in args.users:
         print "Adding username... %s" % username
         try:
-            if not ldap.is_atmo_user(username):
+            if not is_atmo_user(username):
                 print "User is not in the atmo-user group.\n"\
                     + "User does not exist in Atmosphere."
                 raise Exception("User does not exist in Atmosphere.")
@@ -50,7 +53,7 @@ def main():
                 print 'Found OStack User - %s Pass - %s' % (user.name,
                                                             password)
             #ASSERT: User exists on openstack, create an identity for them.
-            ident = driver.create_openstack_identity(user.name,
+            ident = driver.create_identity(user.name,
                                                      password,
                                                      project_name=username)
             success += 1

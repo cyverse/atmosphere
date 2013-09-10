@@ -4,7 +4,7 @@ ImageManager:
 
 Creating an Image from an Instance (Manual image requests)
 
->> from service.drivers.eucalyptusImageManager import ImageManager
+>> from service.imaging.drivers.eucalyptus import ImageManager
 >> manager = ImageManager()
 >> manager.create_image('i-12345678', 'New image name v1')
 
@@ -33,11 +33,10 @@ from boto.s3.key import Key
 
 from euca2ools import Euca2ool, FileValidationError
 
-from service.drivers.common import sed_delete_multi, sed_delete_one
-from service.drivers.common import sed_replace, sed_prepend
-from service.drivers.common import run_command, chroot_local_image, install_cloudinit
+from service.imaging.common import sed_delete_multi, sed_delete_one
+from service.imaging.common import sed_replace, sed_prepend
 
-from service.system_calls import run_command, wildcard_remove
+from service.imaging.common import run_command, wildcard_remove
 from service.imaging.common import mount_image, remove_files, get_latest_ramdisk
 from service.imaging.clean import remove_user_data, remove_atmo_data,\
                                   remove_vm_specific_data
@@ -845,6 +844,14 @@ class ImageManager():
         logger.debug("Complete. Begin Download of Image  @ %s.."
                      % datetime.now())
         (bucket_name, manifest_loc) = image_location.split('/')
+        whole_image =  os.path.join(
+            download_dir,
+            manifest_loc.replace('.manifest.xml',''))
+        if os.path.isfile(whole_image):
+            # DONT re-download the file if it exists!
+            logger.debug("Found image file: %s -- Skipping download"
+                         % whole_image)
+            return whole_image
         bucket = self.get_bucket(bucket_name)
         logger.debug("Bucket found : %s" % bucket)
         self._download_manifest(bucket, part_dir, manifest_loc)

@@ -16,7 +16,7 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
-from api import failureJSON, prepareDriver
+from api import failureJSON, prepare_driver
 
 
 class Meta(APIView):
@@ -65,7 +65,7 @@ class MetaAction(APIView):
                 'code': 400,
                 'message': 'Action is not supported.'}])
             return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         esh_meta = esh_driver.meta()
         try:
             if 'test_links' in action:

@@ -1,15 +1,115 @@
-from service.system_calls import run_command, wildcard_remove, overwrite_file,\
-                                 sed_append, sed_delete_multi, sed_delete_one,\
-                                 sed_prepend, sed_replace
-
-
+import glob
 import os
+import re
+import subprocess
 
 from threepio import logger
 
 ##
 # Tools
 ##
+
+def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                stdin=None, dry_run=False, shell=False):
+    """
+    NOTE: Use this to run ANY system command, because its wrapped around a loggger
+    Using Popen, run any command at the system level and record the output and error streams
+    """
+    out = None
+    err = None
+    cmd_str = ' '.join(commandList)
+    if dry_run:
+        #Bail before making the call
+        logger.debug("Mock Command: %s" % cmd_str)
+        return ('','')
+    try:
+        if stdin:
+            proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr,
+                    stdin=subprocess.PIPE, shell=shell)
+        else:
+            proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr,
+                    shell=shell)
+        out,err = proc.communicate(input=stdin)
+    except Exception, e:
+        logger.exception(e)
+    if stdin:
+        logger.debug("%s STDIN: %s" % (cmd_str, stdin))
+    logger.debug("%s STDOUT: %s" % (cmd_str, out))
+    logger.debug("%s STDERR: %s" % (cmd_str, err))
+    return (out,err)
+
+
+def overwrite_file(filepath, dry_run=False):
+    if not os.path.exists(filepath):
+        logger.warn("Cannot copy /dev/null to non-existent file: %s" %
+                filepath)
+        return
+    cmd_list = ['/bin/cp', '-f', '/dev/null', '%s' % filepath]
+    run_command(cmd_list, dry_run=dry_run)
+
+
+def wildcard_remove(wildcard_path, dry_run=False):
+    """
+    Expand the wildcard to match all files, delete each one.
+    """
+    logger.debug("Wildcard remove: %s" % wildcard_path)
+    glob_list = glob.glob(wildcard_path)
+    if glob_list:
+        for filename in glob_list:
+            cmd_list = ['/bin/rm', '-rf', filename]
+            run_command(cmd_list, dry_run=dry_run)
+
+"""
+SED tools - in-place editing of files on the system
+BE VERY CAREFUL USING THESE -- YOU HAVE BEEN WARNED!
+"""
+def sed_delete_multi(from_here,to_here,filepath, dry_run=False):
+    if not os.path.exists(filepath):
+        logger.info("File not found: %s Cannot delete lines" % filepath)
+        return
+    cmd_list = ["/bin/sed", "-i", "/%s/,/%s/d" % (from_here, to_here),
+                filepath]
+    run_command(cmd_list, dry_run=dry_run)
+
+def sed_replace(find,replace,filepath, dry_run=False):
+    if not os.path.exists(filepath):
+        logger.info("File not found: %s Cannot replace lines" % filepath)
+        return
+    cmd_list = ["/bin/sed", "-i", "s/%s/%s/" % (find,replace), filepath]
+    run_command(cmd_list, dry_run=dry_run)
+
+def sed_delete_one(remove_string, filepath, dry_run=False):
+    if not os.path.exists(filepath):
+        logger.info("File not found: %s Cannot delete lines" % filepath)
+        return
+    cmd_list = ["/bin/sed", "-i", "/%s/d" % remove_string, filepath]
+    run_command(cmd_list, dry_run=dry_run)
+
+def sed_append(append_string, filepath, dry_run=False):
+    if not os.path.exists(filepath):
+        logger.info("File not found: %s Cannot append lines" % filepath)
+        return
+    if _line_exists_in_file(append_string, filepath):
+        return
+    cmd_list = ["/bin/sed", "-i", "$ a\\%s" % append_string, filepath]
+    run_command(cmd_list, dry_run=dry_run)
+
+def sed_prepend(prepend_string, filepath, dry_run=False):
+    if not os.path.exists(filepath):
+        logger.info("File not found: %s Cannot prepend lines" % filepath)
+        return
+    if _line_exists_in_file(prepend_string, filepath):
+        return
+    cmd_list = ["/bin/sed", "-i", "1i %s" % prepend_string, filepath]
+    run_command(cmd_list, dry_run=dry_run)
+
+def _line_exists_in_file(needle, filepath):
+    with open(filepath,'r') as _file:
+        if [line for line in _file.readlines()
+            if needle.strip() == line.strip()]:
+            return True
+    return False
+
    
 def _mkinitrd_command(latest_rmdisk, rmdisk_version, preload=[], include=[]):
     preload.extend(['ahci'])
@@ -118,23 +218,6 @@ def check_file(file_path):
 
 def check_dir(dir_path):
     return os.path.isdir(dir_path)
-
-
-def check_mounted(mount_point):
-    """
-    Testing for mount: 
-      1. Does the mountpoint exist?
-      2. Is a filesystem mounted?
-        * Does /bin/bash exist?
-      OPT:
-        * Check 'mount' for mount_point..
-    """
-    if not check_dir(mount_point):
-        return False
-    bashtest = os.path.isfile(
-                   os.path.join(
-                       mount_point,'bin/bash'))
-    return bashtest
 
 
 ##
@@ -262,13 +345,59 @@ def _losetup_extract_device(loop_str):
 
 def _detect_and_mount_image(image_path, mount_point):
     file_name, file_ext= os.path.splitext(image_path)
-    if file_ext == '.qcow':
+    if file_ext == '.qcow' or file_ext == '.qcow2':
         return mount_qcow(image_path, mount_point)
     elif file_ext == '.raw' or file_ext == '.img':
         return mount_raw(image_path, mount_point)
     raise Exception("Encountered an unknown image type -- Extension : %s" %
             file_ext)
 
+def check_mounted(mount_point):
+    dev_location = None
+    #Drop trailing slash to match 'mount' syntax
+    if mount_point and mount_point.endswith('/'):
+        mount_point = mount_point[:-1]
+    #Run mount and scan the output for 'mount_point'
+    stdout, stderr = run_command(['mount'])
+    regex = re.compile("(?P<device>[\w/]+) on (?P<location>.*) type")
+    for line in stdout.split('\n'):
+        res = regex.search(line)
+        if not res:
+            continue
+        search_dict = res.groupdict()
+        mount_location = search_dict['location']
+        if mount_point == mount_location:
+            dev_location = search_dict['device']
+
+    return dev_location
+
+def unmount_image(image_path, mount_point):
+    device = check_mounted(mount_point)
+    if not device:
+        return ('', '%s is not mounted' % image_path)
+    #Check extension to determine how to unmount
+    file_name, file_ext= os.path.splitext(image_path)
+    if file_ext == '.qcow' or file_ext == '.qcow2':
+        return unmount_qcow(device)
+    elif file_ext == '.raw' or file_ext == '.img':
+        return unmount_raw(device)
+    raise Exception("Encountered an unknown image type -- Extension : %s" %
+            file_ext)
+
+def unmount_raw(block_device):
+    #Remove net block device
+    out, err = run_command(['umount', block_device])
+    if err:
+        return out, err
+
+def unmount_qcow(nbd_device):
+    #Remove net block device
+    out, err = run_command(['umount', nbd_device])
+    if err:
+        return out, err
+    out, err = run_command(['qemu-nbd', '-d', nbd_device])
+    if err:
+        return out, err
 
 def remove_chroot_env(mount_point):
     proc_dir = os.path.join(mount_point,'proc/')
@@ -291,22 +420,34 @@ def prepare_chroot_env(mount_point):
     run_command(['mount', '-o', 'bind', '/dev',  dev_dir])
     run_command(['mount', '--bind', '/etc/resolv.conf', etc_resolv_file])
 
+def fsck_qcow(image_path):
+    if 'qcow' not in image_path:
+        return
+    nbd_dev = _get_next_nbd()
+    run_command(['qemu-nbd', '-c', nbd_dev, image_path])
+    run_command(['fsck', '-y', nbd_dev])
+    run_command(['qemu-nbd', '-d', nbd_dev])
 
-def _mount_qcow(image_path, mount_point):
+def mount_qcow(image_path, mount_point):
     nbd_dev = _get_next_nbd()
     #Mount disk to /dev/nbd*
     run_command(['qemu-nbd', '-c', nbd_dev, image_path])
+    #Check if filesystem has multiple partitions
     try:
-        #Attempting to mount the file system partition
         partition = _fdisk_get_partition(nbd_dev)
-        out, err = run_command(['mount', '%s' % partition['image_name'], mount_point])
+        mount_from = partition['image_name']
+    except Exception:
+        mount_from = nbd_dev
+    try:
+        out, err = run_command(['mount', mount_from, mount_point])
         if err:
-            raise Exception("Could not mount QCOW partiton: %s" % partition)
+            raise Exception("Failed to mount QCOW. STDERR: %s" % err)
+        #The qcow image has been mounted
+        return out, err
     except Exception:
         run_command(['qemu-nbd', '-d', nbd_dev])
-
-    #The qcow image has been mounted
-    return True
+        logger.exception('Failed to mount QCOW')
+        return '', 'Could not mount QCOW image:%s to device:%s' % (image_path, nbd_dev)
 
 
 def fdisk_image(image_path):
@@ -390,6 +531,8 @@ def _select_partition(partitions):
       System == 'Linux'
       Select if bootable
     """
+    if not partitions:
+        return None
     partition = partitions[0]
     return partition
 
@@ -422,7 +565,6 @@ def _parse_fdisk_stats(output):
     if not output:
         return {}
 
-    import re
     lines = output.split('\n')
     #Going line-by-line here.. Line 2
     disk_map = {}
@@ -446,10 +588,10 @@ def _parse_fdisk_stats(output):
     while len(lines) > DEVICE_LINE:
         #TODO: For each partition, capture this input.. Also add optional
         # bootable flag
-        regex = re.compile("(?P<image_name>[\S]+)[ ]+(?P<bootable>[*]+)?[ ]+"
-                           "(?P<start>[0-9]+)[ ]+(?P<end>[0-9]+)[ ]+"
-                           "(?P<blocks>[0-9]+)[+]?[ ]+(?P<id>[0-9]+)[ ]+"
-                           "(?P<system>[\S]+)")
+        regex = re.compile("(?P<image_name>[\S]+)\s+(?P<bootable>[*]+)?\s+"
+                           "(?P<start>[0-9]+)\s+(?P<end>[0-9]+)\s+"
+                           "(?P<blocks>[0-9]+)[+]?\s+(?P<id>\w+)\s+"
+                           "(?P<system>.*)")
         r = regex.search(lines[DEVICE_LINE])
         #Ignore the empty lines
         if r:

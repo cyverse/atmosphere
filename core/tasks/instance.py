@@ -18,7 +18,7 @@ def test_all_instance_links():
 
 def get_all_instances():
     from core.models import Identity, Provider
-    from api import getEshDriver
+    from api import get_esh_driver
     all_instances = []
     for provider in Provider.objects.all():
         identity_list = None
@@ -26,7 +26,7 @@ def get_all_instances():
             identity_list = Identity.objects.filter(provider=provider)
             if identity_list and provider.type.name != "":
                 identity = identity_list[0]
-                driver = getEshDriver(identity)
+                driver = get_esh_driver(identity)
                 meta_driver = driver.provider.metaCls(driver)
                 all_instances.extend(meta_driver.all_instances())
         except:

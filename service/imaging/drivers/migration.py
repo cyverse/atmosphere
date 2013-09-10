@@ -18,9 +18,9 @@ import shutil
 
 from threepio import logger
 
-from service.drivers.openstackImageManager import ImageManager as OSImageManager
-from service.drivers.eucalyptusImageManager import ImageManager as EucaImageManager
-from service.system_calls import run_command
+from service.imaging.drivers.openstack import ImageManager as OSImageManager
+from service.imaging.drivers.eucalyptus import ImageManager as EucaImageManager
+from service.imaging.common import run_command
 from service.imaging.common import mount_image
 from service.imaging.convert import xen_to_kvm_ubuntu
 

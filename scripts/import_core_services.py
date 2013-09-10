@@ -19,7 +19,7 @@ def main():
     os_driver = OSAccountDriver()
     found = 0
     create = 0
-    core_services = get_core_services()
+    core_services = ['estevetest02', 'estevetest03']#get_core_services()
     for user in core_services:
         euca_driver.create_account(user, max_quota=True)
         # Then add the Openstack Identity

@@ -125,6 +125,12 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
 					provider_id: self.provider,
 					identity_id: self.identity_id
 				}).render();
+				self.time_resource_chart = new Atmo.Views.ResourceCharts({
+					el: self.$el.find('#allocationHolder'),
+					quota_type: 'allocation',
+					provider_id: self.provider,
+					identity_id: self.identity_id
+				}).render();
 
 				// Get instances and volumes of this provider and identity 
 				$.ajax({
@@ -292,6 +298,10 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
 				self.mem_resource_chart = new Atmo.Views.ResourceCharts({
 					el: self.$el.find('#memHolder'),
 					quota_type: 'mem',
+				}).render();
+				self.time_resource_chart = new Atmo.Views.ResourceCharts({
+					el: self.$el.find('#allocationHolder'),
+					quota_type: 'allocation',
 				}).render();
 				self.disk_count_resource_chart = new Atmo.Views.ResourceCharts({
 					el: self.$el.find('#disk_countHolder'),

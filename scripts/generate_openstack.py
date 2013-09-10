@@ -9,9 +9,13 @@ def main():
     """
     Generate openstack users then add them to the DB
     """
-    driver = AccountDriver()
-
-    success = 0
+    driver = AccountDriver(settings.OPENSTACK_ARGS)
+    #Build the admin driver for openstack first.
+    driver.create_identity(settings.OPENSTACK_ADMIN_KEY,
+            settings.OPENSTACK_ADMIN_SECRET, settings.OPENSTACK_ADMIN_TENANT,
+            True)
+    success = 1
+    #Add the others
     core_services = ['atmo_test']#'sgregory', 'jmatt', 'edwins', 'cjlarose','mlent']
     for username in core_services:
         try:
@@ -23,7 +27,7 @@ def main():
             else:
                 print 'Found OStack User - %s Pass - %s' % (user.name,password)
             #ASSERT: User exists on openstack, create an identity for them.
-            ident = driver.create_openstack_identity(user.name, password, project_name=username)
+            ident = driver.create_identity(user.name, password, project_name=username)
             success += 1
             print 'New OStack Identity - %s:%s' % (ident.id, ident)
         except Exception as e:

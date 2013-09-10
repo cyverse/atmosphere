@@ -3,7 +3,7 @@ ImageManager:
     Remote Openstack Image management (euca2ools 1.3.1)
 
 EXAMPLE USAGE:
-from service.drivers.openstackImageManager import ImageManager
+from service.imaging.drivers.openstack import ImageManager
 
 from atmosphere import settings
 
@@ -12,12 +12,22 @@ manager = ImageManager(**settings.OPENSTACK_ARGS)
 manager.create_image('75fdfca4-d49d-4b2d-b919-a3297bc6d7ae', 'my new name')
 
 """
+import os
+import time
 
 from threepio import logger
 
 from rtwo.driver import OSDriver
 from rtwo.drivers.common import _connect_to_keystone, _connect_to_nova,\
                                    _connect_to_glance, find
+
+from service.deploy import freeze_instance, sync_instance
+from service.tasks.driver import deploy_to
+from service.imaging.common import run_command, wildcard_remove
+from service.imaging.clean import remove_user_data, remove_atmo_data,\
+                                  remove_vm_specific_data
+from service.imaging.common import unmount_image, mount_image, remove_files,\
+                                    fsck_qcow, get_latest_ramdisk
 from keystoneclient.exceptions import NotFound
 
 class ImageManager():
@@ -61,20 +71,138 @@ class ImageManager():
         glance = _connect_to_glance(keystone, *args, **kwargs)
         return (keystone, nova, glance)
 
-    def create_image(self, instance_id, name=None, **kwargs):
-        """
-        Creates a SNAPSHOT, not an image!
-        """
-        metadata = kwargs
-        if not name:
-            name = 'Image of %s' % instance_id
+    def list_servers(self):
+        return [server for server in
+                self.nova.servers.list(search_opts={'all_tenants':1})]
+
+    def get_instance(self, instance_id):
+        instances = self.admin_driver._connection.ex_list_all_instances()
+        for inst in instances:
+            if inst.id == instance_id:
+                return inst
+        return None
+
+    def get_server(self, server_id):
         servers = [server for server in
                 self.nova.servers.list(search_opts={'all_tenants':1}) if
-                server.id == instance_id]
+                server.id == server_id]
         if not servers:
             return None
-        server = servers[0]
-        return self.nova.servers.create_image(server, name, metadata)
+        return servers[0]
+
+    def create_snapshot(self, instance_id, name, **kwargs):
+        metadata = kwargs
+        server = self.get_server(instance_id)
+        if not server:
+            raise Exception("Server %s does not exist" % instance_id)
+        #self.prepare_snapshot(instance_id)
+        logger.debug("Instance is prepared to create a snapshot")
+        snapshot_id = self.nova.servers.create_image(server, name, metadata)
+
+        #Step 2: Wait (Exponentially) until status moves from:
+        # queued --> saving --> active
+        attempts = 0
+        while True:
+            snapshot = self.get_image(snapshot_id)
+            if attempts >= 40:
+                break
+            if snapshot.status is 'active':
+                break
+            attempts += 1
+            logger.debug("Snapshot %s in non-active state %s" % (snapshot_id, snapshot.status))
+            logger.debug("Attempt:%s, wait 1 minute" % attempts)
+            time.sleep(60)
+        if snapshot.status is not 'active':
+            raise Exception("Create_snapshot timeout. Operation exceeded 40m")
+        return snapshot
+
+    def create_image(self, instance_id, name,
+                     local_download_dir='/tmp',
+                     exclude=None,
+                     snapshot_id=None,
+                     **kwargs):
+        #Step 1: Build the snapshot
+        ss_name = 'TEMP_SNAPSHOT <%s>' % name
+        if not snapshot_id:
+            snapshot = self.create_snapshot(instance_id, ss_name, **kwargs)
+        else:
+            snapshot = self.get_image(snapshot_id)
+        #Step 3: Download local copy of the image
+        server = self.get_server(instance_id)
+        tenant = find(self.keystone.tenants, id=server.tenant_id)
+        local_user_dir = os.path.join(local_download_dir, tenant.name)
+        if not os.path.exists(local_user_dir):
+            os.makedirs(local_user_dir)
+        local_image = os.path.join(local_user_dir, '%s.qcow2' % name)
+        logger.debug("Snapshot downloading to %s" % local_image)
+        with open(local_image,'w') as f:
+            for chunk in snapshot.data():
+                f.write(chunk)
+        logger.debug("Snapshot downloaded to %s" % local_image)
+        #Step 4: Clean the local image
+        fsck_qcow(local_image)
+        self.clean_local_image(
+                local_image,
+                os.path.join(local_user_dir, 'mount/'),
+                exclude=exclude)
+
+        #Step 5: Upload the local copy as a 'real' image
+        prev_kernel = snapshot.properties['kernel_id']
+        prev_ramdisk = snapshot.properties['ramdisk_id']
+        new_image = self.upload_image(local_image, name, 'ami', 'ami', True, {
+            'kernel_id': prev_kernel,
+            'ramdisk_id': prev_ramdisk})
+        #TODO: Step 6: Verify the image works
+        #TODO: Step 7: Delete the snapshot
+        return new_image.id
+
+    def prepare_snapshot(self, instance_id):
+        kwargs = {}
+        private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
+        kwargs.update({'ssh_key': private_key})
+        kwargs.update({'timeout': 120})
+
+        si_script = sync_instance()
+        kwargs.update({'deploy': si_script})
+
+        instance = self.get_instance(instance_id)
+        self.admin_driver.deploy_to(instance, **kwargs)
+
+        fi_script = freeze_instance()
+        kwargs.update({'deploy': fi_script})
+        deploy_to.delay(
+            driver.__class__, driver.provider, dirver.identity, 
+            instance)
+        #Give it a head-start..
+        time.sleep(1)
+
+    def clean_local_image(self, image_path, mount_point, exclude=[]):
+        #Prepare the paths
+        if not os.path.exists(image_path):
+            logger.error("Could not find local image!")
+            raise Exception("Image file not found")
+
+        if not os.path.exists(mount_point):
+            os.makedirs(mount_point)
+
+        #Mount the directory
+        out, err = mount_image(image_path, mount_point)
+
+        if err:
+            raise Exception("Encountered errors mounting the image: %s" % err)
+
+        #Begin removing user-specified files (Matches wildcards)
+        if exclude and exclude[0]:
+            logger.info("User-initiated files to be removed: %s" % exclude)
+            remove_files(exclude, mount_point)
+
+        remove_user_data(mount_point)
+        remove_atmo_data(mount_point)
+        remove_vm_specific_data(mount_point)
+
+        #Don't forget to unmount!
+        unmount_image(image_path, mount_point)
+        return
 
     def delete_images(self, image_id=None, image_name=None):
         if not image_id and not image_name:
@@ -197,6 +325,13 @@ class ImageManager():
         return [img for img in self.glance.images.list()]
 
     #Finds
+    def get_image(self, image_id):
+        found_images = [i for i in self.glance.images.list() if
+                i.id == image_id]
+        if not found_images:
+            return None
+        return found_images[0]
+
     def find_image(self, image_name, contains=False):
         return [i for i in self.glance.images.list() if
                 i.name == image_name or

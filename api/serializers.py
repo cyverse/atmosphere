@@ -4,9 +4,11 @@ from core.models.instance import Instance
 from core.models.machine import ProviderMachine
 from core.models.machine_request import MachineRequest
 from core.models.machine_export import MachineExport
+from core.models.maintenance import MaintenanceRecord
 from core.models.profile import UserProfile
 from core.models.provider import ProviderType, Provider
 from core.models.size import Size
+from core.models.step import Step
 from core.models.tag import Tag, find_or_create_tag
 from core.models.volume import Volume
 from core.models.group import Group
@@ -16,6 +18,11 @@ from rest_framework import serializers
 from rest_framework import pagination
 
 from threepio import logger
+
+class AccountSerializer(serializers.Serializer):
+    pass
+    #Define fields here
+    #TODO: Define a spec that we expect from list_users across all providers
 
 class CredentialSerializer(serializers.ModelSerializer):
     class Meta:
@@ -62,7 +69,10 @@ class InstanceSerializer(serializers.ModelSerializer):
     #R/O Fields first!
     alias = serializers.CharField(read_only=True, source='provider_alias')
     alias_hash = serializers.CharField(read_only=True, source='hash_alias')
-    created_by = serializers.CharField(read_only=True, source='creator_name')
+    #created_by = serializers.CharField(read_only=True, source='creator_name')
+    created_by = serializers.SlugRelatedField(slug_field='username',
+                                         source='created_by',
+                                         read_only=True)
     status = serializers.CharField(read_only=True, source='esh_status')
     size_alias = serializers.CharField(read_only=True, source='esh_size')
     machine_alias = serializers.CharField(read_only=True, source='esh_machine')
@@ -76,13 +86,13 @@ class InstanceSerializer(serializers.ModelSerializer):
     has_shell = serializers.BooleanField(read_only=True, source='shell')
     has_vnc = serializers.BooleanField(read_only=True, source='vnc')
     #Writeable fields
-    name = serializers.CharField(source='name')
+    name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', source='tags', many=True)
 
     class Meta:
         model = Instance
         exclude = ('id', 'end_date', 'provider_machine', 'provider_alias',
-        'shell', 'vnc')
+        'shell', 'vnc', 'created_by_identity')
 
 class PaginatedInstanceSerializer(pagination.PaginationSerializer):
     """
@@ -141,6 +151,11 @@ class MachineRequestSerializer(serializers.ModelSerializer):
         fields = ('id', 'instance', 'status', 'name', 'owner', 'provider',
                   'vis', 'description', 'tags', 'sys', 'software',
                   'shared_with')
+
+
+class MaintenanceRecordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MaintenanceRecord
 
 
 class IdentityDetailSerializer(serializers.ModelSerializer):
@@ -280,6 +295,19 @@ class ProviderSizeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Size
         exclude = ('id', 'start_date', 'end_date')
+
+class StepSerializer(serializers.ModelSerializer):
+    alias = serializers.CharField(read_only=True, source='alias')
+    name = serializers.CharField()
+    script = serializers.CharField()
+    created_by = serializers.CharField(source='created_by')
+    quota = serializers.Field(source='get_quota_dict')
+    provider_id = serializers.Field(source='provider.id')
+    start_date = serializers.DateTimeField(read_only=True)
+    end_date = serializers.DateTimeField(read_only=True, required=False)
+    class Meta:
+        model = Step
+        exclude = ('id', 'created_by_identity')
 
 
 class ProviderTypeSerializer(serializers.ModelSerializer):

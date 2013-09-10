@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 
 
 from core.models.provider import Provider
-from core.models.machine import createProviderMachine
+from core.models.machine import create_provider_machine
 
 
 class MachineRequest(models.Model):
@@ -63,16 +63,22 @@ class MachineRequest(models.Model):
 def process_machine_request(machine_request, new_image_id):
     from core.models.tag import Tag
     #Build the new provider-machine object and associate
-    new_machine = createProviderMachine(
+    new_machine = create_provider_machine(
         machine_request.new_machine_name, new_image_id,
         machine_request.new_machine_provider_id)
+    new_identity = Identity.objects.get(created_by=machine_request.new_machine_owner, provider=machine_request.new_machine_provider)
     generic_mach = new_machine.machine
     tags = [Tag.objects.get(name__iexact=tag) for tag in
             machine_request.new_machine_tags.split(',')] \
         if machine_request.new_machine_tags else []
+    generic_mach.created_by = machine_request.new_machine_owner
+    generic_mach.created_by_identity = new_identity
     generic_mach.tags = tags
     generic_mach.description = machine_request.new_machine_description
     generic_mach.save()
+    new_machine.created_by = machine_request.new_machine_owner
+    new_machine.created_by_identity = new_identity
+    new_machine.save()
     machine_request.new_machine = new_machine
     machine_request.end_date = timezone.now()
     machine_request.status = 'completed'

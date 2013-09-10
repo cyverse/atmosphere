@@ -67,17 +67,16 @@ def remove_atmo_data(mounted_path, dry_run=False):
         #TEMPLATE:
         #('delete_from', 'delete_to', 'replace_where')
 
-        ("## Atmosphere System", "# End Nagios", "etc/sudoers"),
-        #Just in case nagios isn't there..
-        ("## Atmosphere System", "# End Atmosphere System", "etc/sudoers"),
+        #SUDOERS:
+        ("## Atmosphere System", "## End Atmosphere System", "etc/sudoers"),
+        ("# Begin Nagios", "# End Nagios", "etc/sudoers"),
+        ("# Begin Sensu", "# End Sensu", "etc/sudoers"),
+        ("## Atmosphere System", "", "etc/sudoers"), #Delete to end-of-file..
+        #SSHD_CONFIG:
         ("## Atmosphere System", "## End Atmosphere System",
          "etc/ssh/sshd_config"),
-
-        #Remove lines below after next maintenance period..
-        ("## Atmosphere System", "Allowgroups users root core-services",
-         "etc/ssh/sshd_config"),
-        #Remove lines above after next maintenance period..
-
+        ("## Atmosphere System", "", "etc/ssh/sshd_config"), #Delete to end-of-file..
+        #.BASHRC:
         ("## Atmosphere System", "## End Atmosphere System",
          "etc/skel/.bashrc"),
     ]
@@ -99,8 +98,8 @@ def remove_vm_specific_data(mounted_path, dry_run=False):
     """
     if not check_mounted(mounted_path):
         raise Exception("Expected a mounted path at %s" % mounted_path)
-    remove_files = ['mnt/*', 'tmp/*', 'root/*', 'dev/*',
-                    'proc/*',
+    remove_files = ['mnt/*', 'tmp/*', 'root/*',
+                    'dev/*', 'proc/*',
                    ]
     remove_line_files = []
     overwrite_files = [
@@ -116,6 +115,7 @@ def remove_vm_specific_data(mounted_path, dry_run=False):
         'var/log/yum.log']
     replace_line_files = [
         #('replace_pattern','replace_with','in_file'),
+        ("SELINUX=.*", "SELINUX=disabled", "etc/syslinux/selinux"),
     ]
     multiline_delete_files = [
         #('delete_from', 'delete_to', 'replace_where')

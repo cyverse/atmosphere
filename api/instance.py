@@ -18,16 +18,19 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
-from core.models.instance import convertEshInstance, update_instance_metadata
+from core.models.instance import convert_esh_instance, update_instance_metadata
 from core.models.instance import Instance as CoreInstance
 
-from core.models.volume import convertEshVolume
+from core.models.volume import convert_esh_volume
 
-from api import failureJSON, launchEshInstance, prepareDriver
+from api import failureJSON, launch_esh_instance, prepare_driver
 from api.serializers import InstanceSerializer, VolumeSerializer,\
     PaginatedInstanceSerializer
 
 from service import task
+from service.deploy import build_script
+from service.quota import check_over_quota
+from service.allocation import check_over_allocation, print_timedelta
 
 class InstanceList(APIView):
     """
@@ -42,7 +45,7 @@ class InstanceList(APIView):
         """
         method_params = {}
         user = request.user
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
 
         try:
             esh_instance_list = esh_driver.list_instances(method_params)
@@ -55,11 +58,18 @@ class InstanceList(APIView):
                 'message': 'Identity/Provider Authentication Failed'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
-        core_instance_list = [convertEshInstance(esh_driver,
+        core_instance_list = [convert_esh_instance(esh_driver,
                                                  inst,
                                                  provider_id,
+                                                 identity_id,
                                                  user)
                               for inst in esh_instance_list]
+
+        #[core_instance.update_history(
+        #    core_instance.esh.extra['status'],
+        #    core_instance.esh.extra.get('task') or\
+        #    core_instance.esh.extra.get('metadata',{}).get('tmp_status'))
+        # for core_instance in core_instance_list]
 
         #TODO: Core/Auth checks for shared instances
 
@@ -84,9 +94,30 @@ class InstanceList(APIView):
         """
         data = request.DATA
         user = request.user
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
+        size_alias = data.get('size_alias', '')
+
         try:
-            (esh_instance, token) = launchEshInstance(esh_driver, data)
+            size = esh_driver.get_size(size_alias)
+
+            #TEST 1 - Over on resouces
+            if check_over_quota(request.user.username, identity_id, size):
+                errorObj = failureJSON([{
+                    'code': 403,
+                    'message': 'Exceeds resource quota'}])
+                return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
+            #TEST 2 - Over on time ( and by how much)
+            over_allocation, time_diff = check_over_allocation(
+                    request.user.username,
+                    identity_id)
+            if over_allocation:
+                errorObj = failureJSON([{
+                    'code': 403,
+                    'message': 'Exceeds time allocation. Wait %s before launching'
+                               'instance' % print_timedelta(time_diff)}])
+                return Response(errorObj, status=status.HTTP_403_FORBIDDEN)
+            #ASSERT: OK To Launch
+            (esh_instance, token) = launch_esh_instance(esh_driver, data)
         except InvalidCredsError:
             logger.warn(
                 'Authentication Failed. Provider-id:%s Identity-id:%s'
@@ -96,8 +127,14 @@ class InstanceList(APIView):
                 'message': 'Identity/Provider Authentication Failed'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
-        core_instance = convertEshInstance(
-            esh_driver, esh_instance, provider_id, user, token)
+        core_instance = convert_esh_instance(
+            esh_driver, esh_instance, provider_id, identity_id, user, token)
+        core_instance.update_history(
+            core_instance.esh.extra['status'],
+            core_instance.esh.extra.get('task') or\
+            core_instance.esh.extra.get('metadata',{}).get('tmp_status'),
+            first_update=True)
+        logger.info("Statushistory updated")
         serializer = InstanceSerializer(core_instance, data=data)
         #NEVER WRONG
         if serializer.is_valid():
@@ -128,7 +165,7 @@ class InstanceHistory(APIView):
                 'message': 'User not found'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
 
         # Historic Instances in reverse chronological order
         history_instance_list = CoreInstance.objects.filter(
@@ -182,11 +219,12 @@ class InstanceAction(APIView):
                 'message':
                 'POST request to /action require a BODY with \'action\':'}])
             return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         esh_instance = esh_driver.get_instance(instance_id)
         try:
             action = action_params['action']
             result_obj = None
+            update_status = False
             if 'volume' in action:
                 volume_id = action_params.get('volume_id')
                 if 'attach_volume' == action:
@@ -211,8 +249,9 @@ class InstanceAction(APIView):
 
                 #Task complete, convert the volume and return the object
                 esh_volume = esh_driver.get_volume(volume_id)
-                core_volume = convertEshVolume(esh_volume,
+                core_volume = convert_esh_volume(esh_volume,
                                                provider_id,
+                                               identity_id,
                                                user)
                 result_obj = VolumeSerializer(core_volume).data
                 logger.debug(result_obj)
@@ -225,12 +264,33 @@ class InstanceAction(APIView):
             elif 'revert_resize' == action:
                 esh_driver.revert_resize_instance(esh_instance)
             elif 'resume' == action:
+                if check_over_quota(request.user.username,
+                                   identity_id,
+                                   esh_instance.size):
+                    errorObj = failureJSON([{
+                        'code': 403,
+                        'message': 'Exceeds resource quota'}])
+                    return Response(errorObj, status=status.HTTP_403_FORBIDDEN)
+                over_allocation, time_diff = check_over_allocation(
+                        request.user.username,
+                        identity_id)
+                if over_allocation:
+                    errorObj = failureJSON([{
+                        'code': 403,
+                        'message': 'Exceeds time allocation. Wait %s before'
+                                   'resuming instance' % print_timedelta(time_diff)
+                        }])
+                    return Response(errorObj, status=status.HTTP_403_FORBIDDEN)
+                update_status = True
                 esh_driver.resume_instance(esh_instance)
             elif 'suspend' == action:
+                update_status = True
                 esh_driver.suspend_instance(esh_instance)
             elif 'start' == action:
+                update_status = True
                 esh_driver.start_instance(esh_instance)
             elif 'stop' == action:
+                update_status = True
                 esh_driver.stop_instance(esh_instance)
             elif 'reboot' == action:
                 esh_driver.reboot_instance(esh_instance)
@@ -245,6 +305,16 @@ class InstanceAction(APIView):
                 return Response(
                     errorObj,
                     status=status.HTTP_400_BAD_REQUEST)
+            if update_status:
+                esh_instance = esh_driver.get_instance(instance_id)
+                core_instance = convert_esh_instance(esh_driver,
+                                                   esh_instance,
+                                                   provider_id,
+                                                   identity_id,
+                                                   user)
+                core_instance.update_history(
+                    core_instance.esh.extra['status'],
+                    core_instance.esh.extra.get('task'))
             api_response = {
                 'result': 'success',
                 'message': 'The requested action <%s> was run successfully'
@@ -285,7 +355,7 @@ class Instance(APIView):
         TODO: Filter out instances you shouldnt see (permissions..)
         """
         user = request.user
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
 
         try:
             esh_instance = esh_driver.get_instance(instance_id)
@@ -301,8 +371,12 @@ class Instance(APIView):
         if not esh_instance:
             return instance_not_found(instance_id)
 
-        core_instance = convertEshInstance(esh_driver, esh_instance,
-                                           provider_id, user)
+        core_instance = convert_esh_instance(esh_driver, esh_instance,
+                                           provider_id, identity_id, user)
+
+        #core_instance.update_history(core_instance.esh.extra['status'],
+        #                             core_instance.esh.extra.get('task') or\
+        #                             core_instance.esh.extra.get('metadata',{}).get('tmp_status'))
         serialized_data = InstanceSerializer(core_instance).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
@@ -315,7 +389,7 @@ class Instance(APIView):
         user = request.user
         data = request.DATA
         #Ensure item exists on the server first
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
         except InvalidCredsError:
@@ -331,8 +405,8 @@ class Instance(APIView):
             return instance_not_found(instance_id)
 
         #Gather the DB related item and update
-        core_instance = convertEshInstance(esh_driver, esh_instance,
-                                           provider_id, user)
+        core_instance = convert_esh_instance(esh_driver, esh_instance,
+                                           provider_id, identity_id, user)
         serializer = InstanceSerializer(core_instance, data=data, partial=True)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
@@ -358,7 +432,7 @@ class Instance(APIView):
         user = request.user
         data = request.DATA
         #Ensure item exists on the server first
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
         except InvalidCredsError:
@@ -374,8 +448,8 @@ class Instance(APIView):
             return instance_not_found(instance_id)
 
         #Gather the DB related item and update
-        core_instance = convertEshInstance(esh_driver, esh_instance,
-                                           provider_id, user)
+        core_instance = convert_esh_instance(esh_driver, esh_instance,
+                                           provider_id, identity_id, user)
         serializer = InstanceSerializer(core_instance, data=data)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
@@ -391,7 +465,7 @@ class Instance(APIView):
     @api_auth_token_required
     def delete(self, request, provider_id, identity_id, instance_id):
         user = request.user
-        esh_driver = prepareDriver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id)
 
         try:
             esh_instance = esh_driver.get_instance(instance_id)
@@ -402,13 +476,13 @@ class Instance(APIView):
             if esh_instance.extra\
                and 'task' not in esh_instance.extra:
                 esh_instance.extra['task'] = 'queueing delete'
-            core_instance = convertEshInstance(esh_driver,
+            core_instance = convert_esh_instance(esh_driver,
                                                esh_instance,
                                                provider_id,
+                                               identity_id,
                                                user)
             if core_instance:
-                core_instance.end_date = datetime.now()
-                core_instance.save()
+                core_instance.end_date_all()
             serialized_data = InstanceSerializer(core_instance).data
             response = Response(serialized_data, status=200)
             response['Cache-Control'] = 'no-cache'

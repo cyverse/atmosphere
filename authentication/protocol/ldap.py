@@ -134,7 +134,7 @@ def is_atmo_user(username):
         atmo_users = ldap_conn.search_s(ldap_group_dn,
                                         ldap_driver.SCOPE_SUBTREE,
                                         '(cn=atmo-user)')
-        return username in  atmo_users[0][1]['memberUid']
+        return username in atmo_users[0][1]['memberUid']
     except Exception as e:
         logger.exception(e)
         return False

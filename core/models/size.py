@@ -6,7 +6,7 @@ from core.models.provider import Provider
 class Size(models.Model):
     """
     """
-    # Special field that is filled out when converting an eshSize
+    # Special field that is filled out when converting an esh_size
     esh = None
     alias = models.CharField(max_length=256)
     name = models.CharField(max_length=256)
@@ -69,32 +69,32 @@ class Size(models.Model):
             self.end_date)
 
 
-def convertEshSize(eshSize, provider_id, user):
+def convert_esh_size(esh_size, provider_id, user):
     """
     """
-    alias = eshSize._size.id
+    alias = esh_size._size.id
     try:
-        coreSize = Size.objects.get(alias=alias, provider__id=provider_id)
+        core_size = Size.objects.get(alias=alias, provider__id=provider_id)
         new_esh_data = {
-            'name':eshSize._size.name,
-            'ram':eshSize._size.ram,
-            'disk':eshSize._size.disk,
-            'cpu':eshSize.cpu,
+            'name':esh_size._size.name,
+            'ram':esh_size._size.ram,
+            'disk':esh_size._size.disk,
+            'cpu':esh_size.cpu,
         }
         #Update changed values..
-        coreSize.update(**new_esh_data)
+        core_size.update(**new_esh_data)
     except Size.DoesNotExist:
         #Gather up the additional, necessary information to create a DB repr
-        name = eshSize._size.name
-        ram = eshSize._size.ram
-        disk = eshSize._size.disk
-        cpu = eshSize.cpu
-        coreSize = createSize(name, alias, cpu, ram, disk, provider_id)
-    coreSize.esh = eshSize
-    return coreSize
+        name = esh_size._size.name
+        ram = esh_size._size.ram
+        disk = esh_size._size.disk
+        cpu = esh_size.cpu
+        core_size = create_size(name, alias, cpu, ram, disk, provider_id)
+    core_size.esh = esh_size
+    return core_size
 
 
-def createSize(name, alias, cpu, mem, disk, provider_id):
+def create_size(name, alias, cpu, mem, disk, provider_id):
     provider = Provider.objects.get(id=provider_id)
     size = Size.objects.create(
         name=name,

@@ -7,6 +7,8 @@ from django.conf.urls import patterns, url, include
 
 from rest_framework.urlpatterns import format_suffix_patterns
 
+from api.accounts import Account
+from api.flow import Flow
 from api.identity import IdentityList, Identity, IdentityDetailList
 from api.instance import InstanceList, Instance,\
     InstanceAction, InstanceHistory
@@ -15,7 +17,9 @@ from api.machine import MachineList, Machine, MachineHistory
 from api.machine_request import MachineRequestList, MachineRequest,\
     MachineRequestStaffList, MachineRequestStaff
 from api.machine_export import MachineExportList, MachineExport
+from api.maintenance import MaintenanceRecordList, MaintenanceRecord
 from api.size import SizeList, Size
+from api.step import StepList, Step
 from api.volume import VolumeList, Volume
 from api.profile import Profile
 from api.occupancy import Occupancy
@@ -47,7 +51,7 @@ urlpatterns = patterns(
     url(r'^api/v1/email_support', 'web.emails.email_support'),
 
     #v2 api url scheme
-    url(r'^auth/$', 'authentication.views.authenticate'),
+    url(r'^auth/$', 'authentication.views.token_auth'),
 
     #This is a TEMPORARY url..
     #In v2 this is /api/provider/<id>/identity/<id>/instance/action
@@ -94,6 +98,12 @@ urlpatterns += format_suffix_patterns(patterns(
     '',
     url(r'api/v1/$', Meta.as_view()),
     url(r'api/v1/version/$', Version.as_view()),
+    url(r'^api/v1/maintenance/$',
+        MaintenanceRecordList.as_view(),
+        name='maintenance-record-list'),
+    url(r'^api/v1/maintenance/(?P<record_id>\d+)/$',
+        MaintenanceRecord.as_view(),
+        name='maintenance-record-list'),
     url(r'^api/v1/notification/$', NotificationList.as_view()),
 
     url(r'^api/v1/user/$', atmo_valid_token_required(UserManagement.as_view())),
@@ -107,6 +117,9 @@ urlpatterns += format_suffix_patterns(patterns(
 
     url(r'^api/v1/tag/$', TagList.as_view()),
     url(r'^api/v1/tag/(?P<tag_slug>.*)/$', Tag.as_view()),
+
+    url(r'^api/v1/provider/(?P<provider_id>\d+)/account/(?P<username>\w+)/$',
+        Account.as_view(), name='account-management'),
 
     url(r'^api/v1/provider/(?P<provider_id>\d+)/identity'
         + '/(?P<identity_id>\d+)/image_export/$',
@@ -157,6 +170,13 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/v1/provider/(?P<provider_id>\d+)/identity'
         + '/(?P<identity_id>\d+)/size/(?P<size_id>\d+)/$',
         Size.as_view(), name='size-detail'),
+
+    url(r'^api/v1/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/step/$',
+        StepList.as_view(), name='step-list'),
+    url(r'^api/v1/provider/(?P<provider_id>\d+)/identity'
+        + '/(?P<identity_id>\d+)/step/(?P<step_id>\d+)/$',
+        Step.as_view(), name='step-detail'),
 
     url(r'^api/v1/provider/(?P<provider_id>\d+)/identity'
         + '/(?P<identity_id>\d+)/volume/$',

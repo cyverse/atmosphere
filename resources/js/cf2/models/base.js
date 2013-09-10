@@ -14,7 +14,7 @@ Atmo.Models.Base = Backbone.Model.extend({
 			+ '/identity/' + creds.identity_id
 			+ '/' + this.defaults.model_name + '/';
 		
-		if (typeof this.get('id') != 'undefined') {
+		if (this.get('id') !== undefined) {
 			url += this.get('id') + '/';
 		}
 

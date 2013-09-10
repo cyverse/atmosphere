@@ -24,10 +24,7 @@ from core.models.provider import Provider
 from core.models.credential import Credential
 from core.models.quota import Quota
 
-from service.drivers.openstackImageManager import ImageManager
-from service.drivers.common import _connect_to_glance, _connect_to_nova,\
-                                   _connect_to_keystone
-
+from service.imaging.drivers.openstack import ImageManager
 
 class AccountDriver():
     user_manager = None
@@ -44,8 +41,8 @@ class AccountDriver():
         self.image_manager = ImageManager(**settings.OPENSTACK_ARGS.copy())
         self.network_manager = NetworkManager(**network_args)
         self.openstack_prov = Provider.objects.get(location='OPENSTACK')
-    def get_openstack_clients(self, username, password=None, tenant_name=None):
 
+    def get_openstack_clients(self, username, password=None, tenant_name=None):
         user_creds = self._get_openstack_credentials(
                             username, password, tenant_name)
         neutron = self.network_manager.new_connection(**user_creds)
@@ -72,8 +69,8 @@ class AccountDriver():
         """
         finished = False
         # Special case for admin.. Use the Openstack admin identity..
-        if username == 'admin':
-            ident = self.create_openstack_identity(
+        if username == settings.OPENSTACK_ADMIN_KEY:
+            ident = self.create_identity(
                 settings.OPENSTACK_ADMIN_KEY,
                 settings.OPENSTACK_ADMIN_SECRET,
                 settings.OPENSTACK_ADMIN_TENANT)
@@ -101,12 +98,32 @@ class AccountDriver():
             except OverLimit:
                 print 'Requests are rate limited. Pausing for one minute.'
                 time.sleep(60)  # Wait one minute
-        ident = self.create_openstack_identity(username,
+        ident = self.create_identity(username,
                                                password,
                                                project_name=username, max_quota=max_quota)
         return ident
 
-    def create_openstack_identity(self, username, password, project_name, max_quota=False):
+    def clean_credentials(self, credential_dict):
+        """
+        This function cleans up a dictionary of credentials.
+        After running this function:
+        * Erroneous dictionary keys are removed
+        * Missing credentials are listed
+        """
+        creds = ["username", "password", "project_name"]
+        missing_creds = []
+        #1. Remove non-credential information from the dict
+        for key in credential_dict.keys():
+            if key not in creds:
+                credential_dict.pop(key)
+        #2. Check the dict has all the required credentials
+        for c in creds:
+            if not hasattr(credential_dict, c):
+                missing_creds.append(c)
+        return missing_creds
+
+
+    def create_identity(self, username, password, project_name, max_quota=False):
         #Get the usergroup
         (user, group) = self.create_usergroup(username)
         try:

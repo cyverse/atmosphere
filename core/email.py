@@ -131,7 +131,7 @@ def email_from_admin(username, subject, message):
                       cc=[email_address_str(from_name, from_email)])
 
 
-def send_instance_email(user, instance_id, ip, launched_at, linuxusername):
+def send_instance_email(user, instance_id, instance_name, ip, launched_at, linuxusername):
     """
     Sends an email to the user providing information about the new instance.
 
@@ -141,6 +141,7 @@ def send_instance_email(user, instance_id, ip, launched_at, linuxusername):
 The atmosphere instance <%s> is running and ready for use.
 
 Your Instance Information:
+* Name: %s
 * IP Address: %s
 * SSH Username: %s
 * Launched at: %s UTC
@@ -153,6 +154,7 @@ Helpful links:
   Atmosphere E-mail Support
   * atmo@iplantcollaborative.org
 """ % (instance_id,
+       instance_name,
        ip, linuxusername,
        launched_at.strftime('%b, %d %Y %H:%M:%S'))
     subject = 'Your Atmosphere Instance is Available'

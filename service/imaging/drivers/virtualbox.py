@@ -30,8 +30,8 @@ from django.utils import timezone
 
 from atmosphere import settings
 
-from service.drivers.openstackImageManager import ImageManager as OSImageManager
-from service.drivers.eucalyptusImageManager import ImageManager as EucaImageManager
+from service.imaging.drivers.openstack import ImageManager as OSImageManager
+from service.imaging.drivers.eucalyptus import ImageManager as EucaImageManager
 from service.imaging.boot import add_grub
 from service.imaging.common import sed_delete_multi, sed_replace, sed_append
 from service.imaging.common import run_command, copy_disk, create_empty_image

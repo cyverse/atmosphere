@@ -7,19 +7,14 @@ from celery.decorators import task
 from threepio import logger
 
 from core.email import send_image_request_email
-from core.models.machine import createProviderMachine
 from core.models.machine_request import process_machine_request
 
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 
-from service.drivers.eucalyptusImageManager import\
-    ImageManager as EucaImageManager
-from service.drivers.openstackImageManager import\
-    ImageManager as OSImageManager
-from service.drivers.migrate import EucaOSMigrater
-
-from service.drivers.virtualboxExportManager import\
-    ExportManager
+from service.imaging.drivers.eucalyptus import ImageManager as EucaImageManager
+from service.imaging.drivers.openstack import ImageManager as OSImageManager
+from service.imaging.drivers.migration import EucaOSMigrater
+from service.imaging.drivers.virtualbox import ExportManager
 
 from atmosphere import settings
 
@@ -158,18 +153,16 @@ def select_and_build_image(machine_request, euca_imaging_creds,
         elif new_provider == 'openstack':
             logger.info('Create openstack image from openstack image')
             manager = OSImageManager(**openstack_creds)
-            #NOTE: This will create a snapshot, (Private-?), but is not a full
-            #fledged image
             new_image_id = manager.create_image(
                 machine_request.instance.provider_alias,
                 machine_request.new_machine_name,
-                machine_request.new_machine_owner.username)
+                local_download_dir=local_download_dir)
             #TODO: Grab the machine, then add image metadata here
             machine = [img for img in manager.list_images()
                        if img.id == new_image_id]
             if not machine:
                 return
-	    set_machine_request_metadata(manager, machine_request, machine)
+            set_machine_request_metadata(manager, machine_request, machine)
     return new_image_id
 
 def set_machine_request_metadata(manager, machine_request, machine):

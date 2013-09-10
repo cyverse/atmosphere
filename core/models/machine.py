@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 
 from threepio import logger
 
-from core.models.script import Package
+from core.models.identity import Identity
 from core.models.provider import Provider
 from core.models.tag import Tag, updateTags
 
@@ -32,12 +32,12 @@ class Machine(models.Model):
     description = models.TextField(null=True, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
     icon = models.ImageField(upload_to="machine_images", null=True, blank=True)
-    init_package = models.ForeignKey(Package, null=True, blank=True)
     private = models.BooleanField(default=False)
     providers = models.ManyToManyField(Provider, through="ProviderMachine",
             blank=True)
     featured = models.BooleanField(default=False)
     created_by = models.ForeignKey(User)  # The user that requested imaging
+    created_by_identity = models.ForeignKey(Identity, null=True)
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
 
@@ -93,6 +93,8 @@ class ProviderMachine(models.Model):
     provider = models.ForeignKey(Provider)
     machine = models.ForeignKey(Machine)
     identifier = models.CharField(max_length=256, unique=True)  # EMI-12341234
+    created_by = models.ForeignKey(User, null=True)
+    created_by_identity = models.ForeignKey(Identity, null=True)
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
 
@@ -160,41 +162,52 @@ Useful utility methods for the Core Model..
 """
 
 
-def findProviderMachine(provider_alias, provider_id):
+def find_provider_machine(provider_alias, provider_id):
     if not ProviderMachine.cached_machines:
         build_cached_machines()
     return ProviderMachine.cached_machines.get(
         (int(provider_id), provider_alias))
 
 
-def loadMachine(machine_name, provider_alias, provider_id):
+def load_machine(machine_name, provider_alias, provider_id):
     """
     Returns List<ProviderMachine>
     Each object contains reference to a new machine-alias combination
     Will create a new machine if one does not exist
     """
-    machine = findProviderMachine(provider_alias, provider_id)
+    machine = find_provider_machine(provider_alias, provider_id)
     if machine:
+        if not machine.created_by_identity:
+            provider = Provider.objects.get(id=provider_id)
+            admin_id = provider.get_admin_identity()
+            machine.created_by=admin_id.created_by
+            machine.created_by_identity=admin_id
+            machine.save()
         return machine
     else:
-        return createProviderMachine(machine_name, provider_alias, provider_id)
+        return create_provider_machine(machine_name, provider_alias, provider_id)
 
 
-def createProviderMachine(machine_name, provider_alias,
+def create_provider_machine(machine_name, provider_alias,
                           provider_id, description=None):
     #No Provider Machine.. Time to build one
     provider = Provider.objects.get(id=provider_id)
+    admin_id = provider.get_admin_identity()
     logger.debug("Provider %s" % provider)
-    machine = getGenericMachine(machine_name)
+    machine = get_generic_machine(machine_name)
     if not machine:
         #Build a machine to match
         if not description:
             description = "Describe Machine %s" % provider_alias
-        machine = createGenericMachine(machine_name, description)
+        #NOTE: Admin id must be used here until we KNOW who the owner is..
+        machine = create_generic_machine(machine_name, description, admin_id)
     logger.debug("Machine %s" % machine)
+    #NOTE: Admin id must be used here until we KNOW who the owner is..
     provider_machine = ProviderMachine.objects.create(
         machine=machine,
         provider=provider,
+        created_by=admin_id.created_by,
+        created_by_identity=admin_id,
         identifier=provider_alias)
     logger.info("New ProviderMachine created: %s" % provider_machine)
     if ProviderMachine.cached_machines:
@@ -204,7 +217,7 @@ def createProviderMachine(machine_name, provider_alias,
     return provider_machine
 
 
-def getGenericMachine(name):
+def get_generic_machine(name):
     try:
         machine = Machine.objects.get(name=name)
         return machine
@@ -217,32 +230,49 @@ def getGenericMachine(name):
         logger.error(type(e))
 
 
-def createGenericMachine(name, description, creator=None):
+def create_generic_machine(name, description, creator_id=None):
     if not description:
         description = ""
-    if not creator:
-        creator = User.objects.get_or_create(username='admin')[0]
+    if not creator_id:
+        creator_id = User.objects.get_or_create(username='admin')[0]
     new_mach = Machine.objects.create(name=name,
                                       description=description,
-                                      created_by=creator)
+                                      created_by=creator_id.created_by,
+                                      created_by_identity=creator_id)
     return new_mach
 
 
-def convertEshMachine(esh_driver, esh_machine, provider_id, image_id=None):
+def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
     """
     """
     if image_id and not esh_machine:
-        provider_machine = loadMachine('Unknown Image', image_id, provider_id)
+        provider_machine = load_machine('Unknown Image', image_id, provider_id)
         return provider_machine
     elif not esh_machine:
         return None
     name = esh_machine.name
     alias = esh_machine.alias
-    provider_machine = loadMachine(name, alias, provider_id)
+    provider_machine = load_machine(name, alias, provider_id)
     provider_machine.esh = esh_machine
     provider_machine = set_machine_from_metadata(esh_driver, provider_machine)
     return provider_machine
 
+
+def compare_core_machines(mach_1, mach_2):
+    """
+    Comparison puts machines in LATEST start_date, then Lexographical ordering
+    """
+    if mach_1.machine.featured and not mach_2.machine.featured:
+        return -1
+    elif not mach_1.machine.featured and mach_2.machine.featured:
+        return 1
+    #Neither/Both images are featured.. Check start_date
+    if mach_1.machine.start_date > mach_2.machine.start_date:
+        return -1
+    elif mach_1.machine.start_date < mach_2.machine.start_date:
+        return 1
+    else:
+        return cmp(mach_1.identifier, mach_2.identifier)
 
 def filter_core_machine(provider_machine):
     """
