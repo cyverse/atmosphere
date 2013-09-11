@@ -949,7 +949,11 @@ class ImageManager():
 
     def get_image(self, image_id):
         euca_conn = self.euca.make_connection()
-        return euca_conn.get_image(image_id)
+        image = euca_conn.get_image(image_id)
+        #Believe it or not, this image may NOT be the one we requested.
+        if image.id != image_id:
+            return None
+        return image
 
     #Parsing classes belong to euca-download-bundle in euca2ools 1.3.1
     def _get_parts(self, manifest_filename):

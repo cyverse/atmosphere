@@ -48,6 +48,19 @@ def overwrite_file(filepath, dry_run=False):
     run_command(cmd_list, dry_run=dry_run)
 
 
+def create_file(filepath, mount_point, text_to_write, dry_run=False):
+    filepath = _check_mount_path(filepath)
+    create_file_path = os.path.join(mount_point, filepath)
+    if  os.path.exists(create_file_path):
+        logger.warn("Cannot create file %s, the file already exists."
+                    % create_file_path)
+        return False
+    with open(create_file_path, 'w') as the_file:
+        #Write the text, end with empty line
+        the_file.write('%s\n' % text_to_write)
+    return True
+
+
 def wildcard_remove(wildcard_path, dry_run=False):
     """
     Expand the wildcard to match all files, delete each one.
