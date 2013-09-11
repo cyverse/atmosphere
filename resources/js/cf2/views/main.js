@@ -3,6 +3,8 @@ Atmo.Views.Main = Backbone.View.extend({
 
     },
     render: function() {
+      var identity_provider_id = Atmo.profile.get('selected_identity').get('provider_id');
+      if(!Atmo.maintenances.in_maintenance(identity_provider_id)) {
         Atmo.instances.bind('select', this.show_instance_screen);
         this.instance_screen  = new Atmo.Views.InstanceScreen();
         this.$el.append(this.instance_screen.render().el);
@@ -12,7 +14,15 @@ Atmo.Views.Main = Backbone.View.extend({
 
         this.settings_screen  = new Atmo.Views.SettingsScreen();
         this.$el.append(this.settings_screen.render().el);
-        return this;
+      } else {
+        this.instance_screen  = new Atmo.Views.InstanceScreen();
+        this.$el.append(this.instance_screen.render().el);
+
+        this.settings_screen  = new Atmo.Views.SettingsScreen();
+        this.$el.append(this.settings_screen.render().el);
+        this.settings_screen.$el.hide();
+      }
+      return this;
     },
     show_volume_screen: function() {
         $('#main .screen').hide();
