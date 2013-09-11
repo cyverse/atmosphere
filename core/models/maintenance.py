@@ -1,3 +1,5 @@
+import collections
+
 from datetime import datetime
 
 from django.contrib.auth.models import User
@@ -25,8 +27,12 @@ class MaintenanceRecord(models.Model):
             Q(start_date__lt=now),
             Q(end_date__gt=now) | Q(end_date__isnull=True))
         if provider:
-            records = records.filter(Q(provider__exact=provider)\
-                                     | Q(provider__isnull=True))
+            if isinstance(provider, collections.Iterable):
+                records = records.filter(Q(provider__in=provider)
+                                         | Q(provider__isnull=True))
+            else:
+                records = records.filter(Q(provider__exact=provider)
+                                         | Q(provider__isnull=True))
         return records
 
     @classmethod
@@ -44,12 +50,15 @@ class MaintenanceRecord(models.Model):
         return disable_login
 
     def json(self):
-        return {
+        json = {
             'start': self.start_date,
             'end': self.end_date,
             'title': self.title,
             'message': self.message,
         }
+        if self.provider:
+            json['provider'] = self.provider.location
+        return json
 
     def __unicode__(self):
         return '%s (Maintenance Times: %s - %s Login disabled: %s)' % (

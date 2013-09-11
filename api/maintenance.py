@@ -1,6 +1,10 @@
 """
 Atmosphere service maintenance record rest api.
 """
+import copy
+
+from django.db.models import Q
+from django.utils import timezone
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -9,18 +13,15 @@ from rest_framework import status
 from threepio import logger
 
 from authentication.decorators import api_auth_token_required
-
-from api.serializers import MaintenanceRecordSerializer
 from core.models.maintenance import MaintenanceRecord as CoreMaintenanceRecord
 
-import copy
-
-from django.utils import timezone
+from api.serializers import MaintenanceRecordSerializer
 
 
 class MaintenanceRecordList(APIView):
     """
-    Starts the process of bundling a running instance
+    A list of all maintenance.
+    Use ?active=True to get current maintenenace.
     """
 
     @api_auth_token_required
@@ -30,75 +31,56 @@ class MaintenanceRecordList(APIView):
         user = request.user
         groups = user.group_set.all()
         providers = []
+        records = CoreMaintenanceRecord.objects.none()
         for g in groups:
             for p in g.providers.all():
                 if p not in providers:
                     providers.append(p)
-
         if 'active' in request.GET:
-            now_time = timezone.now()
-            records = MaintenanceRecord.active()
-            for p in providers:
-                records.extend(MaintenanceRecord.active(p)
-            serialized_data = MaintenanceRecordSerializer(records).data
-            response = Response(serialized_data)
-            return response
-
-        records = CoreMaintenanceRecord.objects.filter(
-            Q(provider__in=providers) | Q(provider=None))
-        serialized_data = MaintenanceRecordSerializer(records).data
-        response = Response(serialized_data)
-        return response
-
-
-    @api_auth_token_required
-    def post(self, request, provider_id, identity_id):
-        """
-        Create a new object based on DATA
-        """
-        pass
+            if request.GET['active'].lower() == "true":
+                now_time = timezone.now()
+                for p in providers:
+                    records |= CoreMaintenanceRecord.active(p)
+            else:
+                all_records = CoreMaintenanceRecord.objects.all()
+                now_time = timezone.now()
+                for p in providers:
+                    records |= CoreMaintenanceRecord.active(p)
+                records = all_records.exclude(id__in=records)
+        else:
+            records = CoreMaintenanceRecord.objects.filter(
+                Q(provider__in=providers) | Q(provider=None))
+        return Response(MaintenanceRecordSerializer(records).data)
 
 
 class MaintenanceRecord(APIView):
     """
-    Represents:
-        Calls to modify the single machine
-    TODO: DELETE when we allow owners to 'end-date' their machine..
+    Represents a maintenance record.
     """
     @api_auth_token_required
     def get(self, request, record_id):
         """
-        Lookup the maintenance record information
-        (Lookup using the given provider/identity)
-        Update on server (If applicable)
+        Get a maintenance record.
         """
         try:
             mach_request = CoreMaintenanceRecord.objects.get(id=record_id)
         except CoreMaintenanceRecord.DoesNotExist:
-            return Response(
-                'No machine request with id %s' % machine_export_id,
-                status=status.HTTP_404_NOT_FOUND)
-
-        serialized_data = MaintenanceRecordSerializer(mach_request).data
-        response = Response(serialized_data)
-        return response
+            return Response('No maintenance record with id %s' % record_id,
+                            status=status.HTTP_404_NOT_FOUND)
+        return Response(MaintenanceRecordSerializer(mach_request).data)
 
     @api_auth_token_required
     def patch(self, request, record_id):
         """
-        Meta data changes in 'pending' are OK
-        Status change 'pending' --> 'cancel' are OK
-        All other changes should FAIL
+        Update a maintenance record.
         """
         #user = request.user
         data = request.DATA
         try:
-            record =\
-            CoreMaintenanceRecord.objects.get(id=record_id)
+            record = CoreMaintenanceRecord.objects.get(id=record_id)
         except CoreMaintenanceRecord.DoesNotExist:
-            return Response(
-                'No machine request with id %s' % record_id,
-                status=status.HTTP_404_NOT_FOUND)
+            return Response('No maintenance record with id %s' % record_id,
+                            status=status.HTTP_404_NOT_FOUND)
 
         serializer = MaintenanceRecordSerializer(record, data=data, partial=True)
         if serializer.is_valid():
@@ -109,9 +91,7 @@ class MaintenanceRecord(APIView):
     @api_auth_token_required
     def put(self, request, record_id):
         """
-        Meta data changes in 'pending' are OK
-        Status change 'pending' --> 'cancel' are OK
-        All other changes should FAIL
+        Update a maintenance record.
         """
         #user = request.user
         data = request.DATA
@@ -121,7 +101,6 @@ class MaintenanceRecord(APIView):
             return Response(
                 'No maintenance record with id %s' % record_id,
                 status=status.HTTP_404_NOT_FOUND)
-
         serializer = MaintenanceRecordSerializer(record,
                                              data=data, partial=True)
         if serializer.is_valid():

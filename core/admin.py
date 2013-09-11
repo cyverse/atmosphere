@@ -39,7 +39,7 @@ class NodeControllerAdmin(admin.ModelAdmin):
 
 class MaintenanceAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
-    list_display = ("title", "start_date",
+    list_display = ("title", "provider", "start_date",
                     "end_date", "disable_login")
 
 
