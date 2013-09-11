@@ -87,7 +87,7 @@ def requestQuota(request):
            request.build_absolute_uri(admin_url))
     subject = "Atmosphere Quota Request - %s" % username
     logger.info(message)
-    email_success = email_admin(request, subject, message)
+    email_success = email_admin(request, subject, message, cc_user=False)
     resp = json.dumps({})
     if email_success:
         return HttpResponse(resp, content_type='application/json')

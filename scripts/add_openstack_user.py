@@ -53,7 +53,7 @@ def main():
                 print 'Found OStack User - %s Pass - %s' % (user.name,
                                                             password)
             #ASSERT: User exists on openstack, create an identity for them.
-            ident = driver.create_openstack_identity(user.name,
+            ident = driver.create_identity(user.name,
                                                      password,
                                                      project_name=username)
             success += 1

@@ -7,6 +7,7 @@ from django.conf.urls import patterns, url, include
 
 from rest_framework.urlpatterns import format_suffix_patterns
 
+from api.accounts import Account
 from api.flow import Flow
 from api.identity import IdentityList, Identity, IdentityDetailList
 from api.instance import InstanceList, Instance,\
@@ -116,6 +117,9 @@ urlpatterns += format_suffix_patterns(patterns(
 
     url(r'^api/v1/tag/$', TagList.as_view()),
     url(r'^api/v1/tag/(?P<tag_slug>.*)/$', Tag.as_view()),
+
+    url(r'^api/v1/provider/(?P<provider_id>\d+)/account/(?P<username>\w+)/$',
+        Account.as_view(), name='account-management'),
 
     url(r'^api/v1/provider/(?P<provider_id>\d+)/identity'
         + '/(?P<identity_id>\d+)/image_export/$',
