@@ -1790,4 +1790,9 @@ table.image-table {
 .image-table td.actions a > i {
 	margin-right: 8px;
 }
-
+#providers_menu i.maint-icon {
+    margin-left: 0px;
+}
+#main a i.maint-icon {
+    margin-left: 14px;
+}

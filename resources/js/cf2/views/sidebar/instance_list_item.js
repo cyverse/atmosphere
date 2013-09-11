@@ -9,13 +9,13 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 		'click .terminate_vnc': 'close_vnc'
 	},
 	initialize: function() {
-		this.in_task = false;
-		this.$el.data('instance', this.model);
-		this.model.bind('change:public_dns_name change:name_or_id change', this.render, this);
-		this.model.bind('change:running_shell', this.update_running_state, this);
-		this.model.bind('change:running_vnc', this.update_running_state, this);
-		this.model.bind('change:state', this.trigger_transition, this);
-        Atmo.instances.bind('select', this.highlight, this);
+	  this.in_task = false;
+	  this.$el.data('instance', this.model);
+	  this.model.bind('change:public_dns_name change:name_or_id change', this.render, this);
+	  this.model.bind('change:running_shell', this.update_running_state, this);
+	  this.model.bind('change:running_vnc', this.update_running_state, this);
+	  this.model.bind('change:state', this.trigger_transition, this);
+          Atmo.instances.bind('select', this.highlight, this);
 	},
 	render: function() {
 
