@@ -191,7 +191,7 @@ def send_new_provider_email(username, provider_name):
     django_user = User.objects.get(username=username)
     first_name = django_user.first_name
     help_link = "https://pods.iplantcollaborative.org/wiki/display/atmman/Changing+Providers"
-    ask_link = "https://ask.iplantcollaborative.org/"
+    ask_link = "http://ask.iplantcollaborative.org/"
     email_body = """Welcome %s,<br/><br/>
 You have been granted access to the %s provider on Atmosphere.
 Instructions to change to a new provider can be found on <a href="%s">this page</a>.
@@ -199,6 +199,7 @@ Instructions to change to a new provider can be found on <a href="%s">this page<
 <br/>
 If you have questions or encounter technical issues while using %s, you can
 browse and post questions to <a href="%s">iPlant Ask</a> or contact support@iplantcollaborative.org.
+<br/>
 <br/>
 Thank you,<br/>
 iPlant Atmosphere Team""" % (first_name, provider_name, help_link,
