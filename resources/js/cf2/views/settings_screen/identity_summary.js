@@ -97,7 +97,7 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
     // This should be majorly refactored when we have time
     if (!this.maintenance) {
       if (Atmo.profile.get('selected_identity').id == this.identity_id) {
-	this.render_local_summary(e);
+    this.render_local_summary(e);
       }
       else {
         console.log(e);
@@ -114,170 +114,170 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
       self.$el.find('.accordion-inner').children().hide();
       
       var loader = $('<div>', {
-	html: '<img src="'+site_root+'/resources/images/loader_large.gif" />',
-	style: 'display: none; text-align: center;'
+    html: '<img src="'+site_root+'/resources/images/loader_large.gif" />',
+    style: 'display: none; text-align: center;'
       });
       self.$el.find('.accordion-inner').prepend(loader);
       
       $(e.target).parent().parent().find('.accordion-body').collapse('toggle');
       loader.slideDown(400, function() {
         
-	// Display the provider's resource charts
-	self.cpu_resource_chart = new Atmo.Views.ResourceCharts({
-	  el: self.$el.find('#cpuHolder'),
-	  quota_type: 'cpu',
-	  provider_id: self.provider,
-	  identity_id: self.identity_id
-	}).render();
-	self.mem_resource_chart = new Atmo.Views.ResourceCharts({
-	  el: self.$el.find('#memHolder'),
-	  quota_type: 'mem',
-	  provider_id: self.provider,
-	  identity_id: self.identity_id
-	}).render();
-	self.time_resource_chart = new Atmo.Views.ResourceCharts({
-	  el: self.$el.find('#allocationHolder'),
-	  quota_type: 'allocation',
-	  provider_id: self.provider,
-	  identity_id: self.identity_id
-	}).render();
+    // Display the provider's resource charts
+    self.cpu_resource_chart = new Atmo.Views.ResourceCharts({
+      el: self.$el.find('#cpuHolder'),
+      quota_type: 'cpu',
+      provider_id: self.provider,
+      identity_id: self.identity_id
+    }).render();
+    self.mem_resource_chart = new Atmo.Views.ResourceCharts({
+      el: self.$el.find('#memHolder'),
+      quota_type: 'mem',
+      provider_id: self.provider,
+      identity_id: self.identity_id
+    }).render();
+    self.time_resource_chart = new Atmo.Views.ResourceCharts({
+      el: self.$el.find('#allocationHolder'),
+      quota_type: 'allocation',
+      provider_id: self.provider,
+      identity_id: self.identity_id
+    }).render();
         
-	// Get instances and volumes of this provider and identity 
-	$.ajax({
-	  type: 'GET',
-	  url: site_root + '/api/v1/provider/' + self.provider + '/identity/' + self.identity_id + '/instance/', 
-	  success: function(response_text) {
-	    self.instances = response_text;
+    // Get instances and volumes of this provider and identity 
+    $.ajax({
+      type: 'GET',
+      url: site_root + '/api/v1/provider/' + self.provider + '/identity/' + self.identity_id + '/instance/', 
+      success: function(response_text) {
+        self.instances = response_text;
             
-	    // Show all instances associated with this identity
-	    if (self.instances && self.instances.length > 0) {
+        // Show all instances associated with this identity
+        if (self.instances && self.instances.length > 0) {
 
-	      var table = $('<table>', {
-		class: 'table table-bordered'
-	      });
+          var table = $('<table>', {
+        class: 'table table-bordered'
+          });
               
-	      table.append($('<thead>', {
-		html: function() {
-		  var content = '<tr><td width="60%"><strong>Instance Name</strong></td>';
-									content += '<td width="15%"><strong>Size</strong></td>';
-		  content += '<td width="25%"><strong>IP Address</strong></td></tr>';
-		  return content;
-		}
-	      }));
-	      var tbody = $('<tbody>');
-	      for (var i = 0; i < self.instances.length; i++) {
-		tbody.append($('<tr>', {
-		  html: function() {
+          table.append($('<thead>', {
+        html: function() {
+          var content = '<tr><td width="60%"><strong>Instance Name</strong></td>';
+                                    content += '<td width="15%"><strong>Size</strong></td>';
+          content += '<td width="25%"><strong>IP Address</strong></td></tr>';
+          return content;
+        }
+          }));
+          var tbody = $('<tbody>');
+          for (var i = 0; i < self.instances.length; i++) {
+        tbody.append($('<tr>', {
+          html: function() {
                     
-		    // Can we get an image URL here?
-		    //var img = '<img src="' + this.instances.models[i].get('image_url') + '" height="20" width="20" style="border: 1px solid #CCC"> ';
-		    
-		    var inst_name = self.instances[i]["name"];
-		    var content = '<td>'+ inst_name + '</td>';
-		    content += '<td>' + self.instances[i]['size_alias'] + '</td>';
-		    content += '<td>' + self.instances[i]['ip_address'] + '</td>';
+            // Can we get an image URL here?
+            //var img = '<img src="' + this.instances.models[i].get('image_url') + '" height="20" width="20" style="border: 1px solid #CCC"> ';
+            
+            var inst_name = self.instances[i]["name"];
+            var content = '<td>'+ inst_name + '</td>';
+            content += '<td>' + self.instances[i]['size_alias'] + '</td>';
+            content += '<td>' + self.instances[i]['ip_address'] + '</td>';
                     
-		    return content;
-		  }
-		}));
-	      }
-							table.append(tbody);
-	      self.$el.find('#instances_'+self.identity_id).html(table);
+            return content;
+          }
+        }));
+          }
+                            table.append(tbody);
+          self.$el.find('#instances_'+self.identity_id).html(table);
               
-	    }
-	  },
-	  error: function() {
-	    errors.push("Could not load instances for this cloud identity.");
-	    self.fail_instances();
-	  },
-	  dataType: 'json'
-	});
+        }
+      },
+      error: function() {
+        errors.push("Could not load instances for this cloud identity.");
+        self.fail_instances();
+      },
+      dataType: 'json'
+    });
         
-	self.disk_count_resource_chart = new Atmo.Views.ResourceCharts({
-	  el: self.$el.find('#disk_countHolder'),
-	  quota_type: 'disk_count',
-	  identity_id: self.identity_id,
-	  provider_id: self.provider
-	}).render();
+    self.disk_count_resource_chart = new Atmo.Views.ResourceCharts({
+      el: self.$el.find('#disk_countHolder'),
+      quota_type: 'disk_count',
+      identity_id: self.identity_id,
+      provider_id: self.provider
+    }).render();
         
-	self.disk_resource_chart = new Atmo.Views.ResourceCharts({
-	  el: self.$el.find('#diskHolder'),
-	  quota_type: 'disk',
-	  identity_id: self.identity_id,
-	  provider_id: self.provider
-	}).render();
-	
-	$.ajax({
-	  type: 'GET',
-	  url: site_root + '/api/v1/provider/' + self.provider + '/identity/' + self.identity_id + '/volume/', 
-	  success: function(response_text) {
-	    self.volumes = response_text;
+    self.disk_resource_chart = new Atmo.Views.ResourceCharts({
+      el: self.$el.find('#diskHolder'),
+      quota_type: 'disk',
+      identity_id: self.identity_id,
+      provider_id: self.provider
+    }).render();
+    
+    $.ajax({
+      type: 'GET',
+      url: site_root + '/api/v1/provider/' + self.provider + '/identity/' + self.identity_id + '/volume/', 
+      success: function(response_text) {
+        self.volumes = response_text;
             
-	    if (self.volumes && self.volumes.length > 0) {
-	      var vol_table = $('<table>', {
-		class: 'table table-bordered'
-	      });
+        if (self.volumes && self.volumes.length > 0) {
+          var vol_table = $('<table>', {
+        class: 'table table-bordered'
+          });
               
-	      vol_table.append($('<thead>', {
-		html: function() {
-		  var content = '<tr><td width="60%"><strong>Volume Name</strong></td>';
-		  content += '<td width="15%"><strong>Capacity</strong></td>';
-		  content += '<td width="25%"><strong>Status</strong></td></tr>';
-		  return content;
-		}
-	      }));
-	      var vol_tbody = $('<tbody>');
-	      for (var i = 0; i < self.volumes.length; i++) {
-		vol_tbody.append($('<tr>', {
-		  html: function() {
+          vol_table.append($('<thead>', {
+        html: function() {
+          var content = '<tr><td width="60%"><strong>Volume Name</strong></td>';
+          content += '<td width="15%"><strong>Capacity</strong></td>';
+          content += '<td width="25%"><strong>Status</strong></td></tr>';
+          return content;
+        }
+          }));
+          var vol_tbody = $('<tbody>');
+          for (var i = 0; i < self.volumes.length; i++) {
+        vol_tbody.append($('<tr>', {
+          html: function() {
                     
-		    var img = '<img src="' + site_root + '/resources/images/mini_vol.png"> ';
-		    var name = (self.volumes[i]['name'] || self.volumes[i]['id']);
-		    var content = '<td>' + img + name + '</td>';
-		    content += '<td>' + self.volumes[i]['size'] + ' GB</td>';
-		    content += '<td>';
-		    if (self.volumes[i]['status'] == 'in-use') {
-		      content += 'Attached';
-		    }
-		    else {
-		      content += 'Available';
-		    }
-		    content += '</td>';
-		    return content;
-		  }
-		}));
-	      }
-	      vol_table.append(vol_tbody);
-	      self.$el.find('#volumes_'+self.identity_id).html(vol_table);
-	    }
-	    // FINALLY: Data-populated is true, show accordion body
-	    $(e.target).closest('.accordion-group').attr('data-populated', 'true');
+            var img = '<img src="' + site_root + '/resources/images/mini_vol.png"> ';
+            var name = (self.volumes[i]['name'] || self.volumes[i]['id']);
+            var content = '<td>' + img + name + '</td>';
+            content += '<td>' + self.volumes[i]['size'] + ' GB</td>';
+            content += '<td>';
+            if (self.volumes[i]['status'] == 'in-use') {
+              content += 'Attached';
+            }
+            else {
+              content += 'Available';
+            }
+            content += '</td>';
+            return content;
+          }
+        }));
+          }
+          vol_table.append(vol_tbody);
+          self.$el.find('#volumes_'+self.identity_id).html(vol_table);
+        }
+        // FINALLY: Data-populated is true, show accordion body
+        $(e.target).closest('.accordion-group').attr('data-populated', 'true');
             
-	    setTimeout(function() { 
-	      loader.remove();
+        setTimeout(function() { 
+          loader.remove();
               
-	      var children = self.$el.find('.accordion-inner .row-fluid');
-	      children.slideDown();
+          var children = self.$el.find('.accordion-inner .row-fluid');
+          children.slideDown();
               
-	    }, 3000);
-	  },
-	  error: function() {
-	    errors.push("Could not load volumes for this cloud identity.");
-	    self.fail_volumes();
+        }, 3000);
+      },
+      error: function() {
+        errors.push("Could not load volumes for this cloud identity.");
+        self.fail_volumes();
             
-	    $(e.target).closest('.accordion-group').attr('data-populated', 'true');
+        $(e.target).closest('.accordion-group').attr('data-populated', 'true');
             
-	    setTimeout(function() { 
-	      loader.remove();
+        setTimeout(function() { 
+          loader.remove();
               
-	      var children = self.$el.find('.accordion-inner .row-fluid');
-	      children.slideDown();
+          var children = self.$el.find('.accordion-inner .row-fluid');
+          children.slideDown();
               
-	    }, 3000);
-	  },
-	  dataType: 'json'
-				});
-	$(e.target).closest('.accordion-group').attr('data-populated', 'true');
+        }, 3000);
+      },
+      dataType: 'json'
+                });
+    $(e.target).closest('.accordion-group').attr('data-populated', 'true');
       });
     }
     else {
@@ -395,17 +395,17 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
 	  vol_table.append(vol_tbody);
 	  self.$el.find('#volumes_'+self.identity_id).html(vol_table);
           
-	  // End loader slidedown function
-	  $(e.target).closest('.accordion-group').attr('data-populated', 'true');
+      // End loader slidedown function
+      $(e.target).closest('.accordion-group').attr('data-populated', 'true');
           
-	  setTimeout(function() { 
-	    loader.remove();
+      setTimeout(function() { 
+        loader.remove();
             
-	    var children = self.$el.find('.accordion-inner .row-fluid');
-	    children.slideDown();
+        var children = self.$el.find('.accordion-inner .row-fluid');
+        children.slideDown();
             
-	  }, 3000);
-	}
+      }, 3000);
+    }
       });
     }
     else {
