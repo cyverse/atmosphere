@@ -62,10 +62,14 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
 			el: this.$el.find('#cpuHolder'),
 			quota_type: 'cpu'
 		}).render();
-		this.time_resource_chart = new Atmo.Views.ResourceCharts({
-			el: this.$el.find('#allocationHolder'),
-			quota_type: 'allocation'
-		}).render();
+        if (Atmo.profile.attributes.selected_identity.has_allocation()) {
+		    this.time_resource_chart = new Atmo.Views.ResourceCharts({
+		    	el: this.$el.find('#allocationHolder'),
+		    	quota_type: 'allocation'
+		    }).render();
+        } else {
+		    this.$el.find('#allocation_holder').html('');
+        }
 	},
 	update_resource_charts: function() {
 		this.cpu_resource_chart.render();
