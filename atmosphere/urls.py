@@ -102,7 +102,7 @@ urlpatterns += format_suffix_patterns(patterns(
         name='maintenance-record-list'),
     url(r'^api/v1/maintenance/(?P<record_id>\d+)/$',
         MaintenanceRecord.as_view(),
-        name='maintenance-record-list'),
+        name='maintenance-record'),
     url(r'^api/v1/notification/$', NotificationList.as_view()),
 
     url(r'^api/v1/user/$', atmo_valid_token_required(UserManagement.as_view())),
