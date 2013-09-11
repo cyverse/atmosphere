@@ -4,6 +4,7 @@ Atmosphere core email.
 """
 from datetime import datetime
 
+from django.contrib.auth.models import User
 from django.core.mail import EmailMessage
 from atmosphere import settings
 from threepio import logger, email_logger
@@ -64,6 +65,7 @@ def send_email(subject, body, from_email, to, cc=None, fail_silently=False):
                            from_email=from_email,
                            to=to,
                            cc=cc)
+        msg.content_subtype = 'html'
         msg.send(fail_silently=fail_silently)
         email_logger.info("Email Sent."
                           + "From:%s\nTo:%sCc:%s\nSubject:%s\nBody:\n%s" %
@@ -182,3 +184,23 @@ If you have any questions please contact: support@iplantcollaborative.org""" %\
     subject = 'Your Atmosphere Image is Complete'
     return email_to_admin(subject, body, user.username, user_email,
             cc_user=False)
+
+def send_new_provider_email(username, provider_name):
+    subject = "Your iPlant Atmosphere account has been granted to the %s"\
+    " provider" % provider_name
+    django_user = User.objects.get(username=username)
+    first_name = django_user.first_name
+    help_link = "https://pods.iplantcollaborative.org/wiki/display/atmman/Changing+Providers"
+    ask_link = "https://ask.iplantcollaborative.org/"
+    email_body = """Welcome %s,<br/><br/>
+You have been granted access to the %s provider on Atmosphere.
+Instructions to change to a new provider can be found on <a href="%s">this page</a>.
+<br/>
+<br/>
+If you have questions or encounter technical issues while using %s, you can
+browse and post questions to <a href="%s">iPlant Ask</a> or contact support@iplantcollaborative.org.
+<br/>
+Thank you,<br/>
+iPlant Atmosphere Team""" % (first_name, provider_name, help_link,
+        provider_name, ask_link)
+    return email_from_admin(username, subject, email_body)
