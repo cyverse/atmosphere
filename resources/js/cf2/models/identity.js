@@ -26,6 +26,9 @@ Atmo.Models.Identity = Atmo.Models.Base.extend({
 		
 		return attributes;
 	},
+    has_allocation: function() {
+        return ( typeof this.attributes.quota.allocation != 'undefined')
+    },
 	url: function() {
 		var creds = Atmo.get_credentials();
 		return url = this.urlRoot

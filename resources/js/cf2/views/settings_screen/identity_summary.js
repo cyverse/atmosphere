@@ -299,10 +299,6 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
 					el: self.$el.find('#memHolder'),
 					quota_type: 'mem',
 				}).render();
-				self.time_resource_chart = new Atmo.Views.ResourceCharts({
-					el: self.$el.find('#allocationHolder'),
-					quota_type: 'allocation',
-				}).render();
 				self.disk_count_resource_chart = new Atmo.Views.ResourceCharts({
 					el: self.$el.find('#disk_countHolder'),
 					quota_type: 'disk_count',
@@ -312,6 +308,13 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
 					quota_type: 'disk',
 				}).render();
 
+                var identity = Atmo.identities.get(self.identity_id);
+                if (identity.has_allocation()) {
+				    self.time_resource_chart = new Atmo.Views.ResourceCharts({
+				    	el: self.$el.find('#allocationHolder'),
+				    	quota_type: 'allocation',
+				    }).render();
+                } 
 
 				// Show all instances associated with this identity
 				if (Atmo.instances.length > 0) {
