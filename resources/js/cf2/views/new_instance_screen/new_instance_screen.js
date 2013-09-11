@@ -39,10 +39,15 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 			el: this.$el.find('#cpuHolder'), 
 			quota_type: 'cpu'
 		}).render();
-		this.time_resource_chart = new Atmo.Views.ResourceCharts({
-			el: this.$el.find('#allocationHolder'), 
-			quota_type: 'allocation'
-		}).render();
+        if (Atmo.profile.attributes.selected_identity.has_allocation()) {
+		    this.time_resource_chart = new Atmo.Views.ResourceCharts({
+		    	el: this.$el.find('#allocationHolder'), 
+		    	quota_type: 'allocation'
+		    }).render();
+        } else {
+            allocation_holder = this.$el.find('#allocation_holder');
+            allocation_holder.html('');
+        }
 
 		// Make the dropdown functional
 		this.$el.find('a[data-target="advanced_options"]').click(function() {
@@ -105,7 +110,9 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
             });
 	},
     render_resource_charts: function() {
-        this.time_resource_chart.render();
+        if (Atmo.profile.attributes.selected_identity.has_allocation()) {
+            this.time_resource_chart.render();
+        }
         this.mem_resource_chart.render();
         this.cpu_resource_chart.render();
         this.$el.find('#newinst_size').trigger('change');
@@ -186,7 +193,11 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 					if (!set_default) {
 						var enough_cpus = self.cpu_resource_chart.add_usage(instance_type.attributes.cpus, "cpuHolder");
 						var enough_mem = self.mem_resource_chart.add_usage(instance_type.attributes.mem, "memHolder");
-						var enough_time = self.time_resource_chart.add_usage(0, "allocationHolder");
+						if (self.time_resource_chart) {
+                            var enough_time = self.time_resource_chart.add_usage(0, "allocationHolder");
+                        } else {
+                            var enough_time = true;
+                        }
 						if (enough_cpus && enough_mem && enough_time) {
 							self.under_quota = true;
 						}
@@ -247,7 +258,11 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 				is_initial: (Atmo.instances.models.length == 0) ? true : false
 			}
 		);
-		var under_time = this.time_resource_chart.add_usage(0,{}); 
+		if (self.time_resource_chart) {
+		    var under_time = this.time_resource_chart.add_usage(0,{}); 
+        } else {
+		    var under_time = true;
+        }
 
 		if ((under_cpu == false) || (under_mem == false) || (under_time == false)) {
 			this.$el.find('#launchInstance').attr('disabled', 'disabled');
