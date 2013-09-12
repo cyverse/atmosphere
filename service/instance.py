@@ -20,6 +20,51 @@ from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 
+def stop_instance(esh_driver, esh_instance, provider_id, identity_id, user):
+    """
+
+    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    """
+    esh_driver.stop_instance(esh_instance)
+    update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
+
+def start_instance(esh_driver, esh_instance, provider_id, identity_id, user):
+    """
+
+    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    """
+    esh_driver.start_instance(esh_instance)
+    update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
+
+def suspend_instance(esh_driver, esh_instance, provider_id, identity_id, user):
+    """
+
+    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    """
+    esh_driver.suspend_instance(esh_instance)
+    update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
+
+def resume_instance(esh_driver, esh_instance, provider_id, identity_id, user):
+    """
+
+    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    """
+    check_quota(user.username, identity_id, esh_instance.size)
+    esh_driver.resume_instance(esh_instance)
+    update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
+
+def update_status(esh_driver, instance_id, provider_id, identity_id, user):
+    #Grab a new copy of the instance
+    esh_instance = esh_driver.get_instance(instance_id)
+    #Convert & Update based on new status change
+    core_instance = convert_esh_instance(esh_driver,
+                                       esh_instance,
+                                       provider_id,
+                                       identity_id,
+                                       user)
+    core_instance.update_history(
+        core_instance.esh.extra['status'],
+        core_instance.esh.extra.get('task'))
 
 def launch_instance(user, provider_id, identity_id, size_alias, machine_alias, **kwargs):
     """
@@ -36,19 +81,8 @@ def launch_instance(user, provider_id, identity_id, size_alias, machine_alias, *
     esh_driver = get_esh_driver(core_identity, user)
     size = esh_driver.get_size(size_alias)
 
-    #TEST 1 - Are we over quota (and which resource, by how much..)
-    (over_quota, resource,\
-     requested, used, allowed) = check_over_quota(username,
-                                                  identity_id,
-                                                  size)
-    if over_quota:
-        raise OverQuotaError(resource, requested, used, allowed)
-
-    #TEST 2 - Are we over time limit ( and by how much..)
-    (over_allocation, time_diff) = check_over_allocation(username,
-                                                         identity_id)
-    if over_allocation:
-        raise OverAllocationError(time_diff)
+    #May raise OverQuotaError or OverAllocationError
+    check_quota(username, identity_id, size)
 
     #May raise InvalidCredsError
     (esh_instance, token) = launch_esh_instance(esh_driver, machine_alias,
@@ -64,6 +98,19 @@ def launch_instance(user, provider_id, identity_id, size_alias, machine_alias, *
         first_update=True)
 
     return core_instance
+
+
+def check_quota(username, identity_id, esh_size):
+    (over_quota, resource,\
+     requested, used, allowed) = check_over_quota(username,
+                                                  identity_id,
+                                                  esh_size)
+    if over_quota:
+        raise OverQuotaError(resource, requested, used, allowed)
+    (over_allocation, time_diff) = check_over_allocation(username,
+                                                         identity_id)
+    if over_allocation:
+        raise OverAllocationError(time_diff)
 
 
 def launch_esh_instance(driver, machine_alias, size_alias,
