@@ -1,5 +1,5 @@
 import requests
-import jwt
+from authentication import jwt
 
 from atmosphere import settings
 
