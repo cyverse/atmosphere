@@ -22,13 +22,13 @@ from core.models.instance import convert_esh_instance, update_instance_metadata
 from core.models.instance import Instance as CoreInstance
 
 from core.models.volume import convert_esh_volume
-
-from api import failureJSON, launch_esh_instance, prepare_driver
+from api import failureJSON, prepare_driver
 from api.serializers import InstanceSerializer, VolumeSerializer,\
     PaginatedInstanceSerializer
 
 from service import task
 from service.deploy import build_script
+from service.instance import launch_esh_instance
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation, print_timedelta
 
@@ -94,30 +94,27 @@ class InstanceList(APIView):
         """
         data = request.DATA
         user = request.user
-        esh_driver = prepare_driver(request, identity_id)
         size_alias = data.get('size_alias', '')
+        machine_alias = data.get('machine_alias', '')
 
         try:
-            size = esh_driver.get_size(size_alias)
-
-            #TEST 1 - Over on resouces
-            if check_over_quota(request.user.username, identity_id, size):
-                errorObj = failureJSON([{
-                    'code': 403,
-                    'message': 'Exceeds resource quota'}])
-                return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
-            #TEST 2 - Over on time ( and by how much)
-            over_allocation, time_diff = check_over_allocation(
-                    request.user.username,
-                    identity_id)
-            if over_allocation:
-                errorObj = failureJSON([{
-                    'code': 403,
-                    'message': 'Exceeds time allocation. Wait %s before launching'
-                               'instance' % print_timedelta(time_diff)}])
-                return Response(errorObj, status=status.HTTP_403_FORBIDDEN)
-            #ASSERT: OK To Launch
-            (esh_instance, token) = launch_esh_instance(esh_driver, data)
+            core_instance = launch_instance(user,
+                                            provider_id, identity_id, 
+                                            size_alias, machine_alias, **data)
+        except OverQuotaError, oqe:
+            errorObj = failureJSON([{
+                'code': 413,
+                'message': oqe.message}])
+            return Response(
+                    errorObj,
+                    status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+        except OverAllocationError, oae:
+            errorObj = failureJSON([{
+                'code': 413,
+                'message': oae.message}])
+            return Response(
+                    errorObj,
+                    status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
         except InvalidCredsError:
             logger.warn(
                 'Authentication Failed. Provider-id:%s Identity-id:%s'
@@ -127,14 +124,6 @@ class InstanceList(APIView):
                 'message': 'Identity/Provider Authentication Failed'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
-        core_instance = convert_esh_instance(
-            esh_driver, esh_instance, provider_id, identity_id, user, token)
-        core_instance.update_history(
-            core_instance.esh.extra['status'],
-            core_instance.esh.extra.get('task') or\
-            core_instance.esh.extra.get('metadata',{}).get('tmp_status'),
-            first_update=True)
-        logger.info("Statushistory updated")
         serializer = InstanceSerializer(core_instance, data=data)
         #NEVER WRONG
         if serializer.is_valid():

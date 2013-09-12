@@ -1,3 +1,26 @@
+class OverAllocationError(Exception):
+
+    def __init__(self, wait_timedelta):
+        self.wait_timedelta = wait_timedelta
+        self.message = "Time allocation exceeded. "\
+            "Wait %s before requesting new resources"\
+            % (print_timedelta(time_diff))
+        super(OverAllocationError, self).__init__(self.message)
+
+    def __str__(self):
+        return "%s" % (self.message, )
+
+class OverQuotaError(Exception):
+
+    def __init__(self, resource, requested, used, limit):
+        self.message = "Quota exceeded: Requested %s %s but already used "\
+        "%s/%s %s." % (requested, resource, used, limit, resource)
+        super(OverQuotaError, self).__init__(self.message)
+
+    def __str__(self):
+        return "%s" % (self.message, )
+        
+
 class DeviceBusyException(Exception):
 
     def __init__(self, mount_loc, process_list):
