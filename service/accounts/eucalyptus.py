@@ -29,9 +29,12 @@ class AccountDriver():
         self.user_manager = UserManager(**settings.EUCALYPTUS_ARGS)
         self.euca_prov = Provider.objects.get(location='EUCALYPTUS')
 
-    def create_account(self, username, max_quota=False):
-        euca_user = self.get_user(username)
-        identity = self.create_identity(euca_user, max_quota=max_quota)
+    def create_account(self, euca_user, max_quota=False):
+        if type(euca_user) == str:
+    	    euca_user = self.get_user(euca_user)
+        identity = self.create_identity(
+            euca_user['username'], euca_user['access_key'],
+            euca_user['secret_key'], max_quota=max_quota)
         return identity
 
     def create_identity(self, euca_user, max_quota=False):
@@ -40,6 +43,8 @@ class AccountDriver():
         max_quota - Set this user to have the maximum quota, instead of the
         default quota
         """
+        if type(euca_user) == str:
+    	    euca_user = self.get_user(euca_user)
         return self.create_identity(euca_user['username'],
                                     euca_user['access_key'],
                                     euca_user['secret_key'],
@@ -115,7 +120,8 @@ class AccountDriver():
                 id_membership = IdentityMembership.objects.create(
                     identity=identity, member=group,
                     quota=quota)
-
+            #Save to activate hook to ensure a selected_identity is chosen
+            user.save()
             #Return the identity
             return id_membership.identity
 

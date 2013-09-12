@@ -15,8 +15,6 @@ from core.email import send_new_provider_email
 from service.accounts.openstack import AccountDriver
 
 
-    
-
 def main():
     """
     Add a user to openstack.
