@@ -5,7 +5,6 @@ Atmo.Collections.Maintenances = Atmo.Collections.Base.extend({
       + '/' + this.model.prototype.defaults.model_name + '/?active=True';
   },
   in_maintenance: function(provider_id){
-    console.log(provider_id);
     var result = false;
     if (!(Atmo.profile.get('is_staff') || Atmo.profile.get('is_superuser'))) {
       if (this.length > 0) {
