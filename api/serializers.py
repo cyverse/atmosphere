@@ -31,7 +31,7 @@ class CredentialSerializer(serializers.ModelSerializer):
 
 class IdentitySerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
-    credentials = serializers.Field(source='credential_list')
+    credentials = serializers.Field(source='get_credentials')
     quota = serializers.Field(source='get_quota_dict')
     #URLs
     #instances = serializers.HyperlinkedIdentityField(

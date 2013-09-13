@@ -77,7 +77,7 @@ def get_esh_provider(core_provider):
 def get_esh_driver(core_identity, username=None):
     try:
         esh_map = get_esh_map(core_identity.provider)
-        cred_args = core_identity.credential_list()
+        cred_args = core_identity.get_credentials()
         if not username:
             user = core_identity.created_by
         else:
