@@ -1,7 +1,6 @@
 """
 Service Provider model for atmosphere.
 """
-# vim: tabstop=2 expandtab shiftwidth=2 softtabstop=2
 
 from django.db import models
 from django.utils import timezone
@@ -73,8 +72,23 @@ class Provider(models.Model):
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
 
+    def get_credentials(self):
+        cred_map = {}
+        for cred in self.providercredential_set.all():
+            cred_map[cred.key] = cred.value
+        return cred_map
+
+    def list_admins(self):
+        return [admin.identity for admin in self.accountprovider_set.all()]
+
+    def list_admin_names(self):
+        return [admin.identity.created_by.username for admin in self.accountprovider_set.all()]
+
     def get_admin_identity(self):
-        #NOTE: Do not move import up.
+        provider_admins = self.list_admins()
+        if provider_admins:
+          return provider_admins[0]
+        #NOTE: Marked for removal
         from core.models import Identity
         from django.contrib.auth.models import User
         from atmosphere import settings
@@ -90,3 +104,20 @@ class Provider(models.Model):
     class Meta:
         db_table = 'provider'
         app_label = 'core'
+
+class AccountProvider(models.Model):
+    """
+    This model is reserved exclusively for accounts that can see everything on
+    a given provider.
+    This class only applies to Private clouds!
+    """
+    provider = models.ForeignKey(Provider)
+    identity = models.ForeignKey('Identity')
+
+    def __unicode__(self):
+        return "Account Admin %s for %s" % (self.identity, self.provider)
+
+    class Meta:
+        db_table = 'provider_admin'
+        app_label = 'core'
+

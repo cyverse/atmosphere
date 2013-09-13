@@ -16,13 +16,7 @@ from threepio import logger
 from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.drivers.openstack_user import UserManager
 
-from atmosphere import settings
-
 from core.models.identity import Identity
-from core.models.group import Group, IdentityMembership, ProviderMembership
-from core.models.provider import Provider
-from core.models.credential import Credential
-from core.models.quota import Quota
 
 from service.imaging.drivers.openstack import ImageManager
 
@@ -32,15 +26,34 @@ class AccountDriver():
     network_manager = None
     openstack_prov = None
 
-    def __init__(self, *args, **kwargs):
-        network_args = {}
-        network_args.update(settings.OPENSTACK_ARGS)
-        network_args.update(settings.OPENSTACK_NETWORK_ARGS)
+    def _lib_to_openstack(self, credentials):
+        credentials['username'] = credentials.pop('key')
+        credentials['password'] = credentials.pop('secret')
+        credentials['tenant_name'] = credentials.pop('ex_tenant_name')
+        return credentials
 
-        self.user_manager = UserManager(**settings.OPENSTACK_ARGS.copy())
-        self.image_manager = ImageManager(**settings.OPENSTACK_ARGS.copy())
-        self.network_manager = NetworkManager(**network_args)
-        self.openstack_prov = Provider.objects.get(location='OPENSTACK')
+
+    def __init__(self, provider, *args, **kwargs):
+        admin_creds = provider.get_admin_identity().get_credentials()
+        # Convert from libcloud names to openstack client names
+        admin_creds = self._lib_to_openstack(admin_creds)
+        self.admin_creds = admin_creds
+        provider_creds = provider.get_credentials()
+        self.provider_creds = provider_creds
+        user_args = {}
+        user_args.update(admin_creds)
+        user_args.update(provider_creds)
+        #These args are NOT required for user manager
+        admin_url = user_args.pop('admin_url', None)
+        router_name = user_args.pop('router_name', None)
+        self.user_manager = UserManager(**user_args)
+        self.image_manager = ImageManager(**user_args)
+        # auth_url --> admin_url && router_name
+        # required for initializing networkmanager
+        user_args['router_name'] = router_name
+        user_args['auth_url'] = admin_url
+        self.network_manager = NetworkManager(**user_args)
+        self.openstack_prov = provider
 
     def get_openstack_clients(self, username, password=None, tenant_name=None):
         user_creds = self._get_openstack_credentials(
@@ -57,7 +70,7 @@ class AccountDriver():
 
 
     def _get_horizon_url(self, tenant_id):
-        parsed_url = urlparse(settings.OPENSTACK_AUTH_URL)
+        parsed_url = urlparse(self.provider_creds['auth_url'])
         return 'https://%s/horizon/auth/switch/%s/?next=/horizon/project/' %\
             (parsed_url.hostname, tenant_id)
 
@@ -68,19 +81,21 @@ class AccountDriver():
 
         """
         finished = False
-        # Special case for admin.. Use the Openstack admin identity..
-        if username == settings.OPENSTACK_ADMIN_KEY:
-            ident = self.create_identity(
-                settings.OPENSTACK_ADMIN_KEY,
-                settings.OPENSTACK_ADMIN_SECRET,
-                settings.OPENSTACK_ADMIN_TENANT)
-            return ident
+        #TODO: How will we handle this special case?
+        # The first time we are running in all users, we will hit 'user with
+        # non-standard password'. How will we know what the right credentials
+        # are?
+
+        if username in self.openstack_prov.list_admin_names():
+            return
+
         #Attempt account creation
         while not finished:
             try:
                 password = self.hashpass(username)
                 # Retrieve user, or create user & project
-                user = self.get_or_create_user(username, password, True, admin_role)
+                user = self.get_or_create_user(username, password,
+                                               usergroup=True, admin=admin_role)
                 logger.debug(user)
                 project = self.get_project(username)
                 logger.debug(project)
@@ -98,9 +113,9 @@ class AccountDriver():
             except OverLimit:
                 print 'Requests are rate limited. Pausing for one minute.'
                 time.sleep(60)  # Wait one minute
-        ident = self.create_identity(username,
-                                               password,
-                                               project_name=username, max_quota=max_quota)
+        ident = self.create_identity(username, password,
+                                     project_name=username,
+                                     max_quota=max_quota)
         return ident
 
     def clean_credentials(self, credential_dict):
@@ -123,80 +138,27 @@ class AccountDriver():
         return missing_creds
 
 
-    def create_identity(self, username, password, project_name, max_quota=False):
-        #Get the usergroup
-        (user, group) = self.create_usergroup(username)
-        try:
-            id_membership = IdentityMembership.objects.filter(
-                identity__provider=self.openstack_prov,
-                member__name=username,
-                identity__credential__value__in=[
-                    username, password, project_name]).distinct()[0]
-            Credential.objects.get_or_create(
-                identity=id_membership.identity,
-                key='ex_project_name', value=project_name)[0]
-            if max_quota:
-                quota = self.get_max_quota()
-                id_membership.quota = quota
-                id_membership.save
-            return id_membership.identity
-        except (IndexError, ProviderMembership.DoesNotExist):
-            #Provider Membership
-            p_membership = ProviderMembership.objects.get_or_create(
-                provider=self.openstack_prov, member=group)[0]
+    def create_identity(self, username, password, project_name,
+            max_quota=False, account_admin=False):
+        identity = Identity.create_identity(
+                username, self.openstack_prov.location,
+                max_quota=max_quota, account_admin=account_admin,
+                cred_key=username, cred_secret=password,
+                cred_ex_tenant_name=project_name,
+                cred_ex_project_name=project_name)
 
-            #Identity Membership
-            identity = Identity.objects.get_or_create(
-                created_by=user, provider=self.openstack_prov)[0]
-
-            Credential.objects.get_or_create(
-                identity=identity, key='key', value=username)[0]
-            Credential.objects.get_or_create(
-                identity=identity, key='secret', value=password)[0]
-            Credential.objects.get_or_create(
-                identity=identity, key='ex_tenant_name', value=project_name)[0]
-
-            if max_quota:
-                quota = self.get_max_quota()
-            else:
-                default_quota = Quota().defaults()
-                quota = Quota.objects.filter(cpu=default_quota['cpu'],
-                                             memory=default_quota['memory'],
-                                             storage=default_quota['storage']
-                                            )[0]
-
-            #Link it to the usergroup -- Don't create more than one membership
-            try:
-                id_membership = IdentityMembership.objects.get(
-                    identity=identity, member=group)
-                id_membership.quota = quota
-                id_membership.save()
-            except IdentityMembership.DoesNotExist:
-                id_membership = IdentityMembership.objects.create(
-                    identity=identity, member=group,
-                    quota=quota)
-            except IdentityMembership.MultipleObjectReturned:
-                #No dupes
-                IdentityMembership.objects.filter(
-                    identity=identity, member=group).delete()
-                #Create one with new quota
-                id_membership = IdentityMembership.objects.create(
-                    identity=identity, member=group,
-                    quota=quota)
-
-            #Save the user (Calls a hook to update selected identity)
-            id_membership.identity.created_by.save()
-
-            #Return the identity
-            return id_membership.identity
+        #Return the identity
+        return identity
 
     def rebuild_project_network(self, username, project_name):
         self.network_manager.delete_project_network(username, project_name)
+        net_args = self.provider_creds.copy()
+        net_args['auth_url'] = net_args.pop('admin_url',None)
         self.network_manager.create_project_network(
             username,
             self.hashpass(username),
             project_name,
-            **settings.OPENSTACK_NETWORK_ARGS)
+            **net_args)
         return True
 
     # Useful methods called from above..
@@ -232,24 +194,9 @@ class AccountDriver():
             deleted = self.user_manager.delete_user(username)
         return deleted
 
-    def create_usergroup(self, username):
-        user = User.objects.get_or_create(username=username)[0]
-        group = Group.objects.get_or_create(name=username)[0]
-
-        user.groups.add(group)
-        user.save()
-        group.leaders.add(user)
-        group.save()
-        return (user, group)
-
-    def get_max_quota(self):
-        max_quota_by_cpu = Quota.objects.all().aggregate(Max('cpu')
-                                                           )['cpu__max']
-        quota = Quota.objects.filter(cpu=max_quota_by_cpu)
-        return quota[0]
-
     def hashpass(self, username):
         return sha1(username).hexdigest()
+
     def get_project_name_for(self, username):
         """
         This should always map project to user
@@ -273,13 +220,18 @@ class AccountDriver():
         return [user.name for (user, project) in self.list_usergroups()]
 
     def list_usergroups(self):
+        """
+        TODO: This function is AWFUL just scrap it.
+        """
         users = self.list_users()
         groups = self.list_projects()
         usergroups = []
+        admin_usernames = self.openstack_prov.list_admin_names()
         for group in groups:
             for user in users:
-                if user.name in group.name and\
-                settings.OPENSTACK_ADMIN_KEY not in user.name:
+                if user.name in admin_usernames:
+                    continue
+                if user.name in group.name:
                     usergroups.append((user,group))
                     break
         return usergroups

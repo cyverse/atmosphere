@@ -29,7 +29,8 @@ def main():
 
 def fix_openstack_network(os_driver):
     """
-    DEPRECATED -- Should only be used when tenant networks are permanent 
+    DEPRECATED -- Should only be used when tenant networks are permanent..
+    Assumes the password can be derived by accountdriver
     """
     usergroups = [usergroup for usergroup in os_driver.list_usergroups()]
     users_with_networks = os_driver.network_manager.list_tenant_network()

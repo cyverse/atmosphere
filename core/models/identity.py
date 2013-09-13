@@ -18,10 +18,99 @@ class Identity(models.Model):
     created_by = models.ForeignKey(User)
     provider = models.ForeignKey("Provider")
 
+    @classmethod
+    def create_identity(cls, username, provider_location,
+                        max_quota=False, account_admin=False, **kwarg_creds):
+        """
+        Create new User/Group & Identity for given provider_location
+        NOTES:
+        * kwargs prefixed with 'cred_' will be collected as credentials
+        * Can assign optional flags:
+          + max_quota - Assign the highest quota available, rather than default.
+          + account_admin - Private Clouds only - This user should have ALL
+            permissions including:
+              * Image creation (Glance)
+              * Account creation (Keystone)
+              * Access to ALL instances launched over ALL users
+
+          Atmosphere will run fine without an account_admin, but the above
+          features will be disabled.
+        """
+        #Do not move up. ImportError.
+        from core.models import Group, Credential, Quota,\
+                                Provider, AccountProvider,\
+                                IdentityMembership, ProviderMembership
+
+        provider = Provider.objects.get(location__iexact=provider_location)
+
+        credentials = {}
+        for (c_key,c_value) in kwarg_creds.items():
+            if 'cred_' not in c_key.lower():
+                continue
+            c_key = c_key.replace('cred_','')
+            credentials[c_key] = c_value
+
+        (user, group) = Group.create_usergroup(username)
+        # A list of memberships
+        id_membership = IdentityMembership.objects.filter(
+            member__name= user.username,
+            identity__provider=provider,
+            identity__created_by__username=user.username)
+            #identity__credential__value__in=[credentials.values()])
+        if not id_membership:
+            #1. Create a Provider Membership
+            p_membership = ProviderMembership.objects.get_or_create(
+                provider=provider, member=group)[0]
+
+            #2. Create an Identity Membership
+            identity = Identity.objects.get_or_create(
+                created_by=user, provider=provider)[0]
+            #Two-tuple, (Object, created)
+            id_membership = IdentityMembership.objects.get_or_create(
+                identity=identity, member=group, quota=Quota.default_quota())
+        #Either first in list OR object from two-tuple.. Its what we need.
+        id_membership = id_membership[0] 
+
+        #ID_Membership exists.
+
+        #3. Make sure that all kwargs exist as credentials
+        # NOTE: This will allow us to add new 
+        #       credentials to existing identities
+        for (c_key,c_value) in credentials.items():
+            if 'cred_' not in c_key.lower():
+                continue
+            c_key = c_key.replace('cred_','')
+            test_key_exists = Credential.objects.filter(
+                    identiy=id_membership.identity,
+                    key=c_key)
+            if test_key_exists:
+                logger.info("Conflicting Key Errror: Key:%s Value:%s "
+                "Replacement:%s" % (c_key, c_value, test_key_exists[0].value))
+                #No Dupes... But should we really throw an Exception here?
+                continue
+            Credential.objects.get_or_create(
+                identity=id_membership.identity,
+                key=c_key,
+                value=c_value)[0]
+        #4. Assign a different quota, if requested
+        if max_quota:
+            quota = Quota.get_max_quota()
+            id_membership.quota = quota
+            id_membership.save
+        if account_admin:
+            admin = AccountProvider.objects.get_or_create(
+                        provider=id_membership.identity.provider,
+                        identity=id_membership.identity)[0]
+
+        #5. Save the user to activate profile on first-time use
+        user.save()
+        #Return the identity
+        return id_membership.identity
+
     def creator_name(self):
         return self.created_by.username
 
-    def credential_list(self):
+    def get_credentials(self):
         cred_dict = {}
         for cred in self.credential_set.all():
             cred_dict[cred.key] = cred.value
