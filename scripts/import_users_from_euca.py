@@ -6,6 +6,7 @@ from threepio import logger
 
 from atmosphere import settings
 from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
+from django.contrib.auth.models import User
 
 def main():
     """
@@ -13,12 +14,12 @@ def main():
     """
     euca_driver = EucaAccountDriver()
     all_users = euca_driver.list_users()
+    total = 0
     for user_dict in all_users.values():
-        #Here we don't call create_account to reduce
-        ## of calls to euca_driver.get_user
-        euca_driver.create_identity(user_dict)
-        #os_driver.create_account(user, admin_role=False)
-    print "Total users added:%s" % len(all_users)
+        if not User.objects.filter(username=user_dict['username']):
+            euca_driver.create_account(user_dict)
+            total += 1
+    print "Total users added:%s" % total
 
 if __name__ == "__main__":
     main()

@@ -69,10 +69,11 @@ class Instance(models.Model):
     def update_history(self, status_name, task=None, first_update=False):
         if task:
             task_to_status = {
-                    'suspending':'suspended',
                     'resuming':'active',
-                    'stopping':'suspended',
-                    'starting':'active',
+                    'suspending':'suspended',
+                    'powering-on':'active',
+                    'powering-off':'suspended',
+                    #Tasks that occur during the normal build process
                     'initializing':'build',
                     'scheduling':'build',
                     'spawning':'build',

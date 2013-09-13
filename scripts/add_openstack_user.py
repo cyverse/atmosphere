@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 import argparse
 
-from django.contrib.auth.models import User
-
 from keystoneclient.exceptions import NotFound
 
 from atmosphere import settings
@@ -12,19 +10,9 @@ try:
 except ImportError:
     from authentication.protocol.ldap import is_atmo_user
 
-from core.email import email_from_admin
+from core.email import send_new_provider_email
 
 from service.accounts.openstack import AccountDriver
-
-
-def send_email(username):
-    email_from_admin(username,
-                     'You have been granted access to OpenStack',
-                     'You now have access to the openstack provider'
-                     ' on Atmosphere. To switch to the new provider,'
-                     ' select Providers from the options button in '
-                     'the top-right corner and select the Openstack'
-                     ' provider. Thank You.')
 
 
 def main():
@@ -48,7 +36,7 @@ def main():
             if not user:
                 user = driver.create_user(username, usergroup=True)
                 print 'New OStack User - %s Pass - %s' % (user.name, password)
-                send_email(username)
+                send_new_provider_email(username, "Openstack")
             else:
                 print 'Found OStack User - %s Pass - %s' % (user.name,
                                                             password)
