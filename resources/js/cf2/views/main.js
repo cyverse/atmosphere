@@ -11,6 +11,7 @@ Atmo.Views.Main = Backbone.View.extend({
 
         this.volume_screen  = new Atmo.Views.VolumeScreen();
         this.$el.append(this.volume_screen.render().el);
+        this.volume_screen.$el.hide();
 
         this.settings_screen  = new Atmo.Views.SettingsScreen();
         this.$el.append(this.settings_screen.render().el);
