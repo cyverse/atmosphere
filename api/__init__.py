@@ -77,15 +77,15 @@ def get_esh_provider(core_provider):
 def get_esh_driver(core_identity, username=None):
     try:
         esh_map = get_esh_map(core_identity.provider)
-        cred_args = core_identity.get_credentials()
         if not username:
             user = core_identity.created_by
         else:
             user = DjangoUser.objects.get(username=username)
         provider = esh_map['provider']()
-        #logger.debug("cred_args = %s" % cred_args)
-        identity = esh_map['identity'](provider, user=user, **cred_args)
-        driver = esh_map['driver'](provider, identity)
+        provider_creds = core_identity.provider.get_esh_credentials(provider)
+        identity_creds = core_identity.get_credentials()
+        identity = esh_map['identity'](provider, user=user, **identity_creds)
+        driver = esh_map['driver'](provider, identity, **provider_creds)
         return driver
     except Exception, e:
         logger.exception(e)
