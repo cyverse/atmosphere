@@ -3,16 +3,17 @@ Atmosphere api size.
 """
 
 # atmosphere libraries
+from django.utils import timezone
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
+
+from api import prepare_driver
+from api.serializers import ProviderSizeSerializer
 
 from authentication.decorators import api_auth_token_required
 
 from core.models.size import convert_esh_size
-
-from api.serializers import ProviderSizeSerializer
-
-from api import prepare_driver
 
 
 class SizeList(APIView):
@@ -28,9 +29,10 @@ class SizeList(APIView):
         user = request.user
         esh_driver = prepare_driver(request, identity_id)
         esh_size_list = esh_driver.list_sizes()
-        core_size_list = [convert_esh_size(size, provider_id, user)
+        all_size_list = [convert_esh_size(size, provider_id, user)
                           for size in esh_size_list]
-        serialized_data = ProviderSizeSerializer(core_size_list, many=True).data
+        active_size_list = [s for s in all_size_list if s.active()]
+        serialized_data = ProviderSizeSerializer(active_size_list, many=True).data
         response = Response(serialized_data)
         return response
 

@@ -21,6 +21,8 @@ from authentication.decorators import api_auth_token_required
 from core.models.instance import convert_esh_instance, update_instance_metadata
 from core.models.instance import Instance as CoreInstance
 
+from core.models.size import convert_esh_size
+
 from core.models.volume import convert_esh_volume
 
 from api import failureJSON, launch_esh_instance, prepare_driver
@@ -115,6 +117,13 @@ class InstanceList(APIView):
                     'code': 403,
                     'message': 'Exceeds time allocation. Wait %s before launching'
                                'instance' % print_timedelta(time_diff)}])
+                return Response(errorObj, status=status.HTTP_403_FORBIDDEN)
+            #TEST 3 - size is unavailable
+            core_size = convert_esh_size(size, provider_id, user)
+            if not core_size.active():
+                errorObj = failureJSON([{
+                    'code': 403,
+                    'message': 'Size not available.'}])
                 return Response(errorObj, status=status.HTTP_403_FORBIDDEN)
             #ASSERT: OK To Launch
             (esh_instance, token) = launch_esh_instance(esh_driver, data)
