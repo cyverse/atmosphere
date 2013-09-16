@@ -93,6 +93,8 @@ class InstanceList(APIView):
             return over_quota(oqe)
         except OverAllocationError, oae:
             return over_quota(oae)
+        except SizeNotAvailable, snae:
+            return size_not_availabe(snae)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
 
@@ -261,6 +263,8 @@ class InstanceAction(APIView):
             return over_quota(oqe)
         except OverAllocationError, oae:
             return over_quota(oae)
+        except SizeNotAvailable, snae:
+            return size_not_availabe(snae)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
         except NotImplemented, ne:
@@ -401,23 +405,36 @@ class Instance(APIView):
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
 
-# Commonnly used error responses
+
 def instance_not_found(instance_id):
     errorObj = failureJSON([{
         'code': 404,
         'message': 'Instance %s does not exist' % instance_id}])
     return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+
+
 def invalid_creds(provider_id, identity_id):
     logger.warn('Authentication Failed. Provider-id:%s Identity-id:%s'
                 % (provider_id, identity_id))
     errorObj = failureJSON([{'code': 401,
         'message': 'Identity/Provider Authentication Failed'}])
     return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+
+
+def size_not_availabe(sna_exception):
+    errorObj = failureJSON([{
+        'code': 413,
+        'message': sna_exception.message}])
+    return Response(errorObj, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+
+
 def over_quota(quota_exception):
     errorObj = failureJSON([{
         'code': 413,
         'message': quota_exception.message}])
     return Response(errorObj, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+
+
 def over_allocation(allocation_exception):
     errorObj = failureJSON([{
         'code': 413,

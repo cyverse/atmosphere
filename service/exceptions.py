@@ -1,3 +1,8 @@
+"""
+Atmosphere service exceptions.
+"""
+
+
 class OverAllocationError(Exception):
 
     def __init__(self, wait_timedelta):
@@ -9,6 +14,7 @@ class OverAllocationError(Exception):
 
     def __str__(self):
         return "%s" % (self.message, )
+
 
 class OverQuotaError(Exception):
 
@@ -37,5 +43,13 @@ class DeviceBusyException(Exception):
 
     def __str__(self):
         return "%s:\n%s" % (self.message, repr(self.process_list))
-        
 
+        
+class SizeNotAvailable(Exception):
+
+    def __init__(self):
+        message = "Size Not Available."
+        super(SizeNotAvailable, self).__init__()
+
+    def __str__(self):
+        return "%s" % (self.message, )
