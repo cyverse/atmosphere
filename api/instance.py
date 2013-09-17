@@ -32,6 +32,7 @@ from service.instance import launch_instance, start_instance, stop_instance,\
                              suspend_instance, resume_instance
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation, print_timedelta
+from service.exceptions import OverAllocationError, OverQuotaError
 
 class InstanceList(APIView):
     """
@@ -83,8 +84,14 @@ class InstanceList(APIView):
         """
         data = request.DATA
         user = request.user
-        size_alias = data.get('size_alias', '')
-        machine_alias = data.get('machine_alias', '')
+        #Check the data is valid
+        missing_keys = valid_post_data(data)
+        if missing_keys:
+            return keys_not_found(missing_keys)
+
+        #Pass these as args
+        size_alias = data.pop('size_alias')
+        machine_alias = data.pop('machine_alias')
 
         try:
             core_instance = launch_instance(user, provider_id, identity_id, 
@@ -93,6 +100,8 @@ class InstanceList(APIView):
             return over_quota(oqe)
         except OverAllocationError, oae:
             return over_quota(oae)
+        except InvalidCredsError:
+            return invalid_creds(provider_id, identity_id)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
 
@@ -402,6 +411,19 @@ class Instance(APIView):
             return invalid_creds(provider_id, identity_id)
 
 # Commonnly used error responses
+def valid_post_data(data):
+    expected_data = ['machine_alias','size_alias']
+    missing_keys = []
+    for key in expected_data:
+        if not data.has_key(key):
+            missing_keys.append(key)
+    return missing_keys
+
+def keys_not_found(missing_keys):
+    errorObj = failureJSON([{
+        'code': 400,
+        'message': 'Missing required POST datavariables : %s' % missing_keys}])
+    return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
 def instance_not_found(instance_id):
     errorObj = failureJSON([{
         'code': 404,

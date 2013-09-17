@@ -16,6 +16,7 @@ from threepio import logger
 from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.drivers.openstack_user import UserManager
 
+from core.ldap import get_uid_number
 from core.models.identity import Identity
 
 from service.imaging.drivers.openstack import ImageManager
@@ -26,7 +27,7 @@ class AccountDriver():
     network_manager = None
     openstack_prov = None
 
-    def _lib_to_openstack(self, credentials):
+    def _libcloud_to_openstack(self, credentials):
         credentials['username'] = credentials.pop('key')
         credentials['password'] = credentials.pop('secret')
         credentials['tenant_name'] = credentials.pop('ex_tenant_name')
@@ -36,7 +37,7 @@ class AccountDriver():
     def __init__(self, provider, *args, **kwargs):
         admin_creds = provider.get_admin_identity().get_credentials()
         # Convert from libcloud names to openstack client names
-        admin_creds = self._lib_to_openstack(admin_creds)
+        admin_creds = self._libcloud_to_openstack(admin_creds)
         self.admin_creds = admin_creds
         provider_creds = provider.get_credentials()
         self.provider_creds = provider_creds
@@ -142,7 +143,9 @@ class AccountDriver():
             max_quota=False, account_admin=False):
         identity = Identity.create_identity(
                 username, self.openstack_prov.location,
+                #Flags..
                 max_quota=max_quota, account_admin=account_admin,
+                ##Pass in credentials with cred_ namespace
                 cred_key=username, cred_secret=password,
                 cred_ex_tenant_name=project_name,
                 cred_ex_project_name=project_name)
@@ -150,16 +153,35 @@ class AccountDriver():
         #Return the identity
         return identity
 
-    def rebuild_project_network(self, username, project_name):
-        self.network_manager.delete_project_network(username, project_name)
+    def _get_net_args(self):
         net_args = self.provider_creds.copy()
         net_args['auth_url'] = net_args.pop('admin_url',None)
+        return net_args
+
+    def rebuild_project_network(self, username, project_name):
+        self.network_manager.delete_project_network(username, project_name)
+        net_args = self._get_net_args()
         self.network_manager.create_project_network(
             username,
             self.hashpass(username),
             project_name,
             **net_args)
         return True
+
+    def create_network(self, identity):
+        #Core credentials need to be converted to openstack names
+        admin_creds = self._libcloud_to_openstack(
+                identity.get_credentials())
+        username = admin_creds['username']
+        password = admin_creds['password']
+        project_name = admin_creds['tenant_name']
+        # Convert from libcloud names to openstack client names
+        net_args = self._get_net_args()
+        self.network_manager.create_project_network(
+                username, password, project_name,
+                get_cidr=get_uid_number, **net_args)
+
+
 
     # Useful methods called from above..
     def get_or_create_user(self, username, password=None,
