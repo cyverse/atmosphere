@@ -28,8 +28,6 @@ from threepio import logger
 
 from django.utils import timezone
 
-from atmosphere import settings
-
 from service.imaging.drivers.openstack import ImageManager as OSImageManager
 from service.imaging.drivers.eucalyptus import ImageManager as EucaImageManager
 from service.imaging.boot import add_grub
