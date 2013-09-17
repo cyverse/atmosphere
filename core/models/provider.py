@@ -5,6 +5,9 @@ Service Provider model for atmosphere.
 from django.db import models
 from django.utils import timezone
 
+from rtwo.provider import AWSProvider, EucaProvider, OSProvider
+from rtwo.provider import Provider as EshProvider
+from threepio import logger
 
 class ProviderType(models.Model):
     """
@@ -73,15 +76,13 @@ class Provider(models.Model):
     end_date = models.DateTimeField(blank=True, null=True)
 
     def get_esh_credentials(self, esh_provider):
-        from rtwo.provider import AWSProvider, EucaProvider, OSProvider
 
-        cred_map = {}
-        for cred in self.providercredential_set.all():
-            cred_map[cred.key] = cred.value
+        cred_map = self.get_credentials()
         if isinstance(esh_provider, OSProvider):
             cred_map['ex_force_auth_url'] = cred_map.pop('auth_url')
         elif isinstance(esh_provider, EucaProvider):
-            url_map = EucaProvider.parse_url(cred_map.pop('ec2_url'))
+            ec2_url = cred_map.pop('ec2_url')
+            url_map = EucaProvider.parse_url(ec2_url)
             cred_map.update(url_map)
         return cred_map
 
