@@ -31,7 +31,7 @@ class Occupancy(APIView):
         meta_driver = driver.meta()
         esh_size_list  = meta_driver.occupancy()
         #Formatting..
-        core_size_list = [convert_esh_size(size, provider_id, None)
+        core_size_list = [convert_esh_size(size, provider_id)
                           for size in esh_size_list]
         #return it
         serialized_data = ProviderSizeSerializer(core_size_list, many=True).data

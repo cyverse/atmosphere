@@ -25,10 +25,11 @@ class StepList(APIView):
         """
         user = request.user
         esh_driver = prepare_driver(request, identity_id)
-        esh_size_list = esh_driver.list_sizes()
-        core_size_list = [convert_esh_size(size, provider_id, user)
-                          for size in esh_size_list]
-        serialized_data = ProviderSizeSerializer(core_size_list, many=True).data
+        serialized_data = []
+#        esh_size_list = esh_driver.list_sizes()
+#        core_size_list = [convert_esh_size(size, provider_id, user)
+#                          for size in esh_size_list]
+#        serialized_data = ProviderSizeSerializer(core_size_list, many=True).data
         response = Response(serialized_data)
         return response
 
@@ -46,9 +47,10 @@ class Step(APIView):
         user = request.user
         esh_driver = prepare_driver(request, identity_id)
         esh_size = []
+        serialized_data = []
 #        esh_size = esh_driver.get_size(size_id)
-        core_size = convert_esh_size(esh_size, provider_id, user)
-        serialized_data = ProviderSizeSerializer(core_size).data
+#        core_size = convert_esh_size(esh_size, provider_id, user)
+#        serialized_data = ProviderSizeSerializer(core_size).data
         response = Response(serialized_data)
         return response
 

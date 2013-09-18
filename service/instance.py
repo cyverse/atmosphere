@@ -9,6 +9,7 @@ from threepio import logger
 
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import convert_esh_instance
+from core.models.size import convert_esh_size
 
 from atmosphere import settings
 
@@ -92,6 +93,9 @@ def launch_instance(user, provider_id, identity_id, size_alias, machine_alias, *
     esh_driver = get_esh_driver(core_identity, user)
     size = esh_driver.get_size(size_alias)
 
+    #May raise SizeNotAvailable
+    check_size(size, provider_id)
+
     #May raise OverQuotaError or OverAllocationError
     check_quota(user.username, identity_id, size)
 
@@ -111,6 +115,12 @@ def launch_instance(user, provider_id, identity_id, size_alias, machine_alias, *
 
     return core_instance
 
+def check_size(esh_size, provider_id):
+    try:
+        if not convert_esh_size(esh_size, provider_id).active():
+            raise SizeNotAvailable()
+    except:
+        raise SizeNotAvailable()
 
 def check_quota(username, identity_id, esh_size):
     (over_quota, resource,\

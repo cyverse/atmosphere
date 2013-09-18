@@ -85,6 +85,7 @@ def get_esh_driver(core_identity, username=None):
         provider_creds = core_identity.provider.get_esh_credentials(provider)
         identity_creds = core_identity.get_credentials()
         identity = esh_map['identity'](provider, user=user, **identity_creds)
+        logger.debug(provider_creds)
         driver = esh_map['driver'](provider, identity, **provider_creds)
         return driver
     except Exception, e:

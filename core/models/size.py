@@ -55,6 +55,15 @@ class Size(models.Model):
         self.save()
         return self
 
+    def active(self):
+        now = timezone.now()
+        if self.start_date <= now:
+            if not self.end_date:
+                return True
+            elif self.end_date >= now:
+                return True
+        return False
+
     def __unicode__(self):
         return "alias=%s \
                 (id=%s|name=%s) - %s - \
@@ -69,7 +78,7 @@ class Size(models.Model):
             self.end_date)
 
 
-def convert_esh_size(esh_size, provider_id, user):
+def convert_esh_size(esh_size, provider_id):
     """
     """
     alias = esh_size._size.id
