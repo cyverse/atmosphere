@@ -18,7 +18,7 @@ from api.serializers import MachineRequestSerializer
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 
 from web.emails import requestImaging
-from service.tasks.machine import machine_imaging_task
+from service.machine_request import start_machine_imaging
 
 import copy
 
@@ -116,15 +116,13 @@ class MachineRequestStaff(APIView):
         #Don't update the request unless its pending
         if machine_request.status in ['error','pending']:
             machine_request.status = action
-            serializer.save()
+            machine_request.save()
 
         #Only run task if status is 'approve'
         if machine_request.status == 'approve':
-            machine_request.status = 'enqueued'
-            machine_imaging_task.si(machine_request,
-                                    settings.EUCA_IMAGING_ARGS,
-                                    settings.OPENSTACK_ARGS).apply_async()
-            serializer.save()
+            start_machine_imaging(machine_request)
+
+        serializer = MachineRequestSerializer(machine_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @api_auth_token_required
@@ -153,11 +151,10 @@ class MachineRequestStaff(APIView):
         if serializer.is_valid():
             #Only run task if status is 'approve'
             if machine_request.status == 'approve':
-                machine_request.status = 'enqueued'
-                machine_imaging_task.si(machine_request,
-                                        settings.EUCA_IMAGING_ARGS.copy(),
-                                        settings.OPENSTACK_ARGS.copy()).apply_async()
-            serializer.save()
+                start_machine_imaging(machine_request)
+            machine_request.save()
+        #Object may have changed
+        serializer = MachineRequestSerializer(machine_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -205,6 +202,9 @@ class MachineRequest(APIView):
         serializer = MachineRequestSerializer(machine_request,
                                               data=data, partial=True)
         if serializer.is_valid():
+            machine_request = serializer.object
+            if machine_request.status == 'approve':
+                start_machine_imaging(machine_request)
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -228,6 +228,10 @@ class MachineRequest(APIView):
         serializer = MachineRequestSerializer(machine_request,
                                               data=data, partial=True)
         if serializer.is_valid():
+            #Only run task if status is 'approve'
+            machine_request = serializer.object
+            if machine_request.status == 'approve':
+                start_machine_imaging(machine_request)
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

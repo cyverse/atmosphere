@@ -10,7 +10,7 @@ from django.utils import timezone
 from core.models.credential import Credential
 from core.models.group import Group, IdentityMembership, ProviderMembership
 from core.models.identity import Identity
-from core.models.instance import Instance
+from core.models.instance import Instance, InstanceStatusHistory
 from core.models.machine import Machine, ProviderMachine
 from core.models.machine_request import MachineRequest
 from core.models.maintenance import MaintenanceRecord
@@ -39,7 +39,7 @@ class NodeControllerAdmin(admin.ModelAdmin):
 
 class MaintenanceAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
-    list_display = ("title", "start_date",
+    list_display = ("title", "provider", "start_date",
                     "end_date", "disable_login")
 
 
@@ -195,6 +195,13 @@ class MachineRequestAdmin(admin.ModelAdmin):
         return None
 
 
+class InstanceStatusAdmin(admin.ModelAdmin):
+    search_fields = ["instance__created_by__username",
+            "instance__provider_alias", "status__name"]
+    list_display = ["instance", "status", "start_date", "end_date"]
+    list_filter = ["instance__created_by__username", "instance__provider_machine__provider__location"]
+
+
 class InstanceAdmin(admin.ModelAdmin):
     search_fields = ["created_by__username", "provider_alias", "ip_address"]
     list_display = ["provider_alias", "created_by", "ip_address"]
@@ -207,6 +214,7 @@ admin.site.register(Group)
 admin.site.register(Identity, IdentityAdmin)
 admin.site.register(IdentityMembership, IdentityMembershipAdmin)
 admin.site.register(ProviderMembership, ProviderMembershipAdmin)
+admin.site.register(InstanceStatusHistory, InstanceStatusAdmin)
 admin.site.register(Instance, InstanceAdmin)
 admin.site.register(Machine, MachineAdmin)
 admin.site.register(MachineRequest, MachineRequestAdmin)

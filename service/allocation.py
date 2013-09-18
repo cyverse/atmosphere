@@ -22,10 +22,10 @@ def get_time(user, identity_id, delta):
         delta = timedelta(minutes=delta)
 
     total_time = timedelta(0)
-
-    instances = filter_by_time_delta(Instance.objects.filter(
-        created_by=user,
-        created_by_identity__id=identity_id), delta)
+    #Calculate only the specific users time allocation..
+    instances = Instance.objects.filter(created_by=user,
+                                        created_by_identity__id=identity_id)
+    instances = filter_by_time_delta(instances, delta)
     logger.debug('Calculating time of %s instances' % len(instances))
     for i in instances:
         run_time = min(i.get_active_time(), delta)

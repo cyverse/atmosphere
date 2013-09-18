@@ -15,11 +15,12 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
-from core.models.machine import filter_core_machine,\
+from core.models.machine import compare_core_machines, filter_core_machine,\
     convert_esh_machine, update_machine_metadata,\
     ProviderMachine
 
 from api import prepare_driver, failureJSON
+from api.permissions import InMaintenance
 from api.serializers import ProviderMachineSerializer,\
     PaginatedProviderMachineSerializer
 
@@ -38,7 +39,9 @@ def provider_filtered_machines(request, provider_id, identity_id):
     core_machine_list = [convert_esh_machine(esh_driver, mach, provider_id)
                          for mach in esh_machine_list]
     filtered_machine_list = filter(filter_core_machine, core_machine_list)
-    return filtered_machine_list
+    sorted_machine_list = sorted(filtered_machine_list,
+                                 cmp=compare_core_machines)
+    return sorted_machine_list
 
 
 def all_filtered_machines():
@@ -74,6 +77,8 @@ class MachineHistory(APIView):
 
     GET - A chronologically ordered list of ProviderMachines for the identity.
     """
+
+    permission_classes = (InMaintenance,)
 
     @api_auth_token_required
     def get(self, request, provider_id, identity_id):

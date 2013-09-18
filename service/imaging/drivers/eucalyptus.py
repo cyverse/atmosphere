@@ -4,7 +4,7 @@ ImageManager:
 
 Creating an Image from an Instance (Manual image requests)
 
->> from service.drivers.eucalyptusImageManager import ImageManager
+>> from service.imaging.drivers.eucalyptus import ImageManager
 >> manager = ImageManager()
 >> manager.create_image('i-12345678', 'New image name v1')
 
@@ -33,9 +33,8 @@ from boto.s3.key import Key
 
 from euca2ools import Euca2ool, FileValidationError
 
-from service.drivers.common import sed_delete_multi, sed_delete_one
-from service.drivers.common import sed_replace, sed_prepend
-from service.drivers.common import run_command, chroot_local_image, install_cloudinit
+from service.imaging.common import sed_delete_multi, sed_delete_one
+from service.imaging.common import sed_replace, sed_prepend
 
 from service.imaging.common import run_command, wildcard_remove
 from service.imaging.common import mount_image, remove_files, get_latest_ramdisk
@@ -283,7 +282,7 @@ class ImageManager():
         self.ec2_cert_path=kwargs.get('ec2_cert_path','')
         self.pk_path=kwargs.get('pk_path','')
         self.euca_cert_path=kwargs.get('euca_cert_path','')
-        self.extras_root=kwargs.get('extras_root','')
+        self.extras_root=kwargs.get('extras_root')
         self.config_path=kwargs.get('config_path','/services/Configuration')
 
     def _env_credentials(self, key, secret, ec2_url, s3_url):
@@ -845,6 +844,14 @@ class ImageManager():
         logger.debug("Complete. Begin Download of Image  @ %s.."
                      % datetime.now())
         (bucket_name, manifest_loc) = image_location.split('/')
+        whole_image =  os.path.join(
+            download_dir,
+            manifest_loc.replace('.manifest.xml',''))
+        if os.path.isfile(whole_image):
+            # DONT re-download the file if it exists!
+            logger.debug("Found image file: %s -- Skipping download"
+                         % whole_image)
+            return whole_image
         bucket = self.get_bucket(bucket_name)
         logger.debug("Bucket found : %s" % bucket)
         self._download_manifest(bucket, part_dir, manifest_loc)
@@ -942,7 +949,11 @@ class ImageManager():
 
     def get_image(self, image_id):
         euca_conn = self.euca.make_connection()
-        return euca_conn.get_image(image_id)
+        image = euca_conn.get_image(image_id)
+        #Believe it or not, this image may NOT be the one we requested.
+        if image.id != image_id:
+            return None
+        return image
 
     #Parsing classes belong to euca-download-bundle in euca2ools 1.3.1
     def _get_parts(self, manifest_filename):

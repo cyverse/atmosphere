@@ -4,9 +4,11 @@ from core.models.instance import Instance
 from core.models.machine import ProviderMachine
 from core.models.machine_request import MachineRequest
 from core.models.machine_export import MachineExport
+from core.models.maintenance import MaintenanceRecord
 from core.models.profile import UserProfile
 from core.models.provider import ProviderType, Provider
 from core.models.size import Size
+from core.models.step import Step
 from core.models.tag import Tag, find_or_create_tag
 from core.models.volume import Volume
 from core.models.group import Group
@@ -17,6 +19,11 @@ from rest_framework import pagination
 
 from threepio import logger
 
+class AccountSerializer(serializers.Serializer):
+    pass
+    #Define fields here
+    #TODO: Define a spec that we expect from list_users across all providers
+
 class CredentialSerializer(serializers.ModelSerializer):
     class Meta:
         model = Credential
@@ -24,7 +31,7 @@ class CredentialSerializer(serializers.ModelSerializer):
 
 class IdentitySerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
-    credentials = serializers.Field(source='credential_list')
+    credentials = serializers.Field(source='get_credentials')
     quota = serializers.Field(source='get_quota_dict')
     #URLs
     #instances = serializers.HyperlinkedIdentityField(
@@ -79,7 +86,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     has_shell = serializers.BooleanField(read_only=True, source='shell')
     has_vnc = serializers.BooleanField(read_only=True, source='vnc')
     #Writeable fields
-    name = serializers.CharField(source='name')
+    name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', source='tags', many=True)
 
     class Meta:
@@ -146,6 +153,14 @@ class MachineRequestSerializer(serializers.ModelSerializer):
                   'shared_with')
 
 
+class MaintenanceRecordSerializer(serializers.ModelSerializer):
+    provider_id = serializers.Field(source='provider.id')
+
+    class Meta:
+        model = MaintenanceRecord
+        exclude = ('provider',)
+
+
 class IdentityDetailSerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
     quota = serializers.Field(source='get_quota_dict')
@@ -183,6 +198,8 @@ class ProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(read_only=True, source='user.username')
     email = serializers.CharField(read_only=True, source='email_hash')
     groups = serializers.CharField(read_only=True, source='user.groups.all')
+    is_staff = serializers.BooleanField(source='user.is_staff')
+    is_superuser = serializers.BooleanField(source='user.is_superuser')
     selected_identity = IdentityRelatedField()
 
     def validate_selected_identity(self, attrs, source):
@@ -283,6 +300,19 @@ class ProviderSizeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Size
         exclude = ('id', 'start_date', 'end_date')
+
+class StepSerializer(serializers.ModelSerializer):
+    alias = serializers.CharField(read_only=True, source='alias')
+    name = serializers.CharField()
+    script = serializers.CharField()
+    created_by = serializers.CharField(source='created_by')
+    quota = serializers.Field(source='get_quota_dict')
+    provider_id = serializers.Field(source='provider.id')
+    start_date = serializers.DateTimeField(read_only=True)
+    end_date = serializers.DateTimeField(read_only=True, required=False)
+    class Meta:
+        model = Step
+        exclude = ('id', 'created_by_identity')
 
 
 class ProviderTypeSerializer(serializers.ModelSerializer):

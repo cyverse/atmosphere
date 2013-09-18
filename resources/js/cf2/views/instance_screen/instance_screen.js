@@ -5,42 +5,49 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
 	id: 'instanceList',
 	template: _.template(Atmo.Templates.instance_screen),
 	alt_template: _.template(Atmo.Templates.instance_screen_alt),
+        maint_template: _.template(Atmo.Templates.instance_screen_maint),
 	events: {
 		'click .terminate_instance': 'terminate',
 		'click #help_request_more_resources': 'show_request_resources_modal'
 	},
 	initialize: function(options) {
-	  Atmo.instances.bind('reset', this.render, this);
-	  Atmo.instances.bind('add', this.append_instance, this);
-	  Atmo.instances.bind('remove', this.remove_instance, this);
-	  Atmo.instances.bind('select', this.select_instance, this);
-	  Atmo.instances.bind('change', this.update_resource_charts, this);
+          var identity = Atmo.profile.get('selected_identity');
+          var identity_provider_id = identity.get("provider_id");
+          if (!Atmo.maintenances.in_maintenance(identity_provider_id)) {
+            Atmo.instances.bind('reset', this.render, this);
+	    Atmo.instances.bind('add', this.append_instance, this);
+	    Atmo.instances.bind('remove', this.remove_instance, this);
+	    Atmo.instances.bind('select', this.select_instance, this);
+	    Atmo.instances.bind('change', this.update_resource_charts, this);
+          }
 	},
 	render: function() {
-		if (Atmo.instances.models.length > 0) {
-
-			if (this.$el.find('#resource_usage_holder').length == 0)
-				this.$el.html(this.template());
-			
-			this.render_resource_charts();
-
-			if (Atmo.instances.models.length > 0) {
-				var self = this;
-                
+          var identity = Atmo.profile.get('selected_identity');
+          var identity_provider_id = identity.get("provider_id");
+          if (Atmo.maintenances.in_maintenance(identity_provider_id)) {
+            this.$el.html(this.maint_template());
+          } else {
+            if (Atmo.instances.models.length > 0) {
+	      if (this.$el.find('#resource_usage_holder').length == 0) {
+                this.$el.html(this.template());
+              }
+	      this.render_resource_charts();
+	      if (Atmo.instances.models.length > 0) {
+	        var self = this;  
                 /* performation optimization */
                 var frag = document.createDocumentFragment();
-				$.each(Atmo.instances.models, function(k, v) {
-					frag.appendChild(self.new_instance_tabs_holder(v).el);
-				});
+	        $.each(Atmo.instances.models, function(k, v) {
+		frag.appendChild(self.new_instance_tabs_holder(v).el);
+	        });
                 this.$el.append(frag);
-			}
-
-		} else {
-			this.$el.html(this.alt_template());
-		}
-
-        // Assign content to the popovers
-        this.$el.find('#help_resource_usage').popover({
+	      }
+	    } else {
+	      this.$el.html(this.alt_template());
+	    }
+          }
+	  
+          // Assign content to the popovers
+          this.$el.find('#help_resource_usage').popover({
             placement: 'bottom',
             title: 'My Resource Usage <a class="close" data-dismiss="popover" href="#instances" data-parent="help_resource_usage">&times</a>',
             html: true,
@@ -62,10 +69,14 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
 			el: this.$el.find('#cpuHolder'),
 			quota_type: 'cpu'
 		}).render();
-		this.time_resource_chart = new Atmo.Views.ResourceCharts({
-			el: this.$el.find('#allocationHolder'),
-			quota_type: 'allocation'
-		}).render();
+        if (Atmo.profile.attributes.selected_identity.has_allocation()) {
+		    this.time_resource_chart = new Atmo.Views.ResourceCharts({
+		    	el: this.$el.find('#allocationHolder'),
+		    	quota_type: 'allocation'
+		    }).render();
+        } else {
+		    this.$el.find('#allocation_holder').html('');
+        }
 	},
 	update_resource_charts: function() {
 		this.cpu_resource_chart.render();

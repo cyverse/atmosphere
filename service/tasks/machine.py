@@ -10,15 +10,12 @@ from core.email import send_image_request_email
 from core.models.machine_request import process_machine_request
 
 from service.accounts.openstack import AccountDriver as OSAccountDriver
+from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
 
-from service.drivers.eucalyptusImageManager import\
-    ImageManager as EucaImageManager
-from service.drivers.openstackImageManager import\
-    ImageManager as OSImageManager
-from service.drivers.migrate import EucaOSMigrater
-
-from service.drivers.virtualboxExportManager import\
-    ExportManager
+from service.imaging.drivers.eucalyptus import ImageManager as EucaImageManager
+from service.imaging.drivers.openstack import ImageManager as OSImageManager
+from service.imaging.drivers.migration import EucaOSMigrater
+from service.imaging.drivers.virtualbox import ExportManager
 
 from atmosphere import settings
 
@@ -62,31 +59,33 @@ def machine_export_task(machine_export):
     logger.debug("machine_export_task task finished at %s." % datetime.now())
     pass
 
-@task(name='machine_migration_task', ignore_result=True)
-def machine_migration_task(new_machine_name, old_machine_id,
-                           local_download_dir='/tmp',
-                           migrate_from='eucalyptus',
-                           migrate_to='openstack'):
-    logger.debug("machine_migration_task task started at %s." % datetime.now())
-    if migrate_from == 'eucalyptus' and migrate_to == 'openstack':
-        manager = EucaOSMigrater(settings.EUCA_IMAGING_ARGS.copy(),
-                                 settings.OPENSTACK_ARGS.copy())
-        manager.migrate_image(old_machine_id, new_machine_name,
-                              local_download_dir)
-    else:
-        raise Exception("Cannot migrate from %s to %s" % (migrate_from,
-                                                          migrate_to))
-    logger.debug("machine_migration_task task finished at %s." % datetime.now())
+#MARKED FOR DELETION, Can only be used effectively if machine migrations can
+# somehow fit into core models.. So we can keep track of provider, etc.
+#@task(name='machine_migration_task', ignore_result=True)
+#def machine_migration_task(new_machine_name, old_machine_id,
+#                           local_download_dir='/tmp',
+#                           migrate_from='eucalyptus',
+#                           migrate_to='openstack'):
+#    logger.debug("machine_migration_task task started at %s." % datetime.now())
+#    if migrate_from == 'eucalyptus' and migrate_to == 'openstack':
+#        manager = EucaOSMigrater(settings.EUCA_IMAGING_ARGS.copy(),
+#                                 settings.OPENSTACK_ARGS.copy())
+#        manager.migrate_image(old_machine_id, new_machine_name,
+#                              local_download_dir)
+#    else:
+#        raise Exception("Cannot migrate from %s to %s" % (migrate_from,
+#                                                          migrate_to))
+#    logger.debug("machine_migration_task task finished at %s." % datetime.now())
 
 @task(name='machine_imaging_task', ignore_result=True)
-def machine_imaging_task(machine_request, euca_imaging_creds, openstack_creds):
+def machine_imaging_task(machine_request, provider_creds, migrate_creds):
     try:
         machine_request.status = 'processing'
         machine_request.save()
         logger.debug('%s' % machine_request)
         local_download_dir = settings.LOCAL_STORAGE
         new_image_id = select_and_build_image(machine_request,
-                euca_imaging_creds, openstack_creds, local_download_dir)
+                provider_creds, migrate_creds, local_download_dir)
         if new_image_id is None:
             raise Exception('The image cannot be built as requested. '
                             + 'The provider combination is probably bad.')
@@ -102,61 +101,63 @@ def machine_imaging_task(machine_request, euca_imaging_creds, openstack_creds):
         machine_request.save()
         return None
 
-def select_and_build_image(machine_request, euca_imaging_creds,
-                           openstack_creds, local_download_dir='/tmp'):
+def select_and_build_image(machine_request, provider_creds,
+                           migrate_creds, local_download_dir='/tmp'):
     """
     Directing traffic between providers
     Fill out all available fields using machine request data
     """
 
-    old_provider = machine_request.instance.provider_machine\
-        .provider.type.name.lower()
-    new_provider = machine_request.new_machine_provider.type.name.lower()
+    old_provider = machine_request.parent_machine.provider
+    new_provider = machine_request.new_machine_provider
+    old_type = old_provider.type.name.lower()
+    new_type = new_provider.type.name.lower()
     new_image_id = None
-    logger.info('Processing machine request to create a %s image from a %s'
+    logger.info('Processing machine request to create a %s image from a %s '
                 'instance' % (new_provider, old_provider))
     
-    if old_provider == 'eucalyptus':
-        if new_provider == 'eucalyptus':
-            logger.info('Create euca image from euca image')
-            manager = EucaImageManager(**euca_imaging_creds)
-            #Build the meta_name so we can re-start if necessary
+    if old_type == 'eucalyptus':
+        euca_accounts = EucaAccountDriver(old_provider)
+        if new_type == 'eucalyptus':
+            manager = accounts.image_manager
+            #Rebuild meta information based on machine_request
             meta_name = '%s_%s_%s_%s' % ('admin',
                 machine_request.new_machine_owner.username,
                 machine_request.new_machine_name.replace(
                     ' ','_').replace('/','-'),
                 machine_request.start_date.strftime('%m%d%Y_%H%M%S'))
+            public_image = "public" in machine_request.new_machine_visibility\
+                                        .lower()
+            private_user_list=re.split(', | |\n', machine_request.access_list)
+            exclude=re.split(", | |\n", machine_request.exclude_files)
+            #Create image on image manager
             new_image_id = manager.create_image(
                 machine_request.instance.provider_alias,
                 image_name=machine_request.new_machine_name,
-                public=True if
-                "public" in machine_request.new_machine_visibility.lower()
-                else False,
+                public=public_image,
                 #Split the string by ", " OR " " OR "\n" to create the list
-                private_user_list=re.split(', | |\n',
-                                           machine_request.access_list),
-                exclude=re.split(", | |\n",
-                                 machine_request.exclude_files),
+                private_user_list=private_user_list,
+                exclude=exclude,
                 meta_name=meta_name,
                 local_download_dir=local_download_dir,
             )
-        elif new_provider == 'openstack':
+        elif new_type == 'openstack':
+            os_accounts = OSAccountDriver(new_provider)
             logger.info('Create openstack image from euca image')
-            manager = EucaOSMigrater(
-                    euca_imaging_creds,
-                    openstack_creds)
+            manager = EucaOSMigrater(euca_accounts, os_accounts)
             new_image_id = manager.migrate_instance(
                 machine_request.instance.provider_alias,
                 machine_request.new_machine_name,
                 local_download_dir=local_download_dir) 
-    elif old_provider == 'openstack':
-        if new_provider == 'eucalyptus':
+    elif old_type == 'openstack':
+        if new_type == 'eucalyptus':
             logger.info('Create euca image from openstack image')
             #TODO: Replace with OSEucaMigrater when this feature is complete
             new_image_id = None
-        elif new_provider == 'openstack':
+        elif new_type == 'openstack':
             logger.info('Create openstack image from openstack image')
-            manager = OSImageManager(**openstack_creds)
+            os_accounts = OSAccountDriver(new_provider)
+            manager = os_accounts.image_manager
             new_image_id = manager.create_image(
                 machine_request.instance.provider_alias,
                 machine_request.new_machine_name,

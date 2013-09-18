@@ -18,17 +18,17 @@ import shutil
 
 from threepio import logger
 
-from service.drivers.openstackImageManager import ImageManager as OSImageManager
-from service.drivers.eucalyptusImageManager import ImageManager as EucaImageManager
+from service.imaging.drivers.openstack import ImageManager as OSImageManager
+from service.imaging.drivers.eucalyptus import ImageManager as EucaImageManager
 from service.imaging.common import run_command
 from service.imaging.common import mount_image
 from service.imaging.convert import xen_to_kvm_ubuntu
 
 class EucaOSMigrater:
 
-    def __init__(self, euca_creds, os_creds):
-        self.os_img_manager = OSImageManager(**os_creds)
-        self.euca_img_manager = EucaImageManager(**euca_creds)
+    def __init__(self, euca_accounts, os_accounts):
+        self.euca_img_manager = euca_accounts.image_manager
+        self.os_img_manager = os_accounts.image_manager
 
     def migrate_image(self, euca_image_id, name, local_download_dir='/tmp/', euca_image_path=None, no_upload=False, keep_image=False):
         """

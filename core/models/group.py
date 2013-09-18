@@ -29,6 +29,18 @@ class Group(DjangoGroup):
     machines = models.ManyToManyField(Machine, through='MachineMembership',
         blank=True)
 
+    @classmethod
+    def create_usergroup(cls, username):
+        user = DjangoUser.objects.get_or_create(username=username)[0]
+        group = Group.objects.get_or_create(name=username)[0]
+
+        user.groups.add(group)
+        user.save()
+        group.leaders.add(user)
+        group.save()
+        return (user, group)
+    
+
     def json(self):
         return {
             'id': self.id,

@@ -23,12 +23,27 @@ class Quota(models.Model):
             (self.cpu, self.memory, self.storage, self.storage_count)
 
     @classmethod
-    def defaults(self):
+    def max_quota(self, by_type='cpu'):
+        """
+        Select max quota (Default - Highest CPU count
+        """
+        max_quota_by_type = Quota.objects.all().aggregate(Max(by_type)
+                                                           )['%s__max' % by_type]
+        quota = Quota.objects.filter(cpu=max_quota_by_type)
+        return quota[0]
+
+    @classmethod
+    def default_quota(self):
+        return Quota.objects.get_or_create(
+                **Quota.default_dict())[0]
+
+    @classmethod
+    def default_dict(cls):
         return {
-            'cpu': self._meta.get_field('cpu').default,
-            'memory': self._meta.get_field('memory').default,
-            'storage': self._meta.get_field('storage').default,
-            'storage_count': self._meta.get_field('storage_count').default
+            'cpu': cls._meta.get_field('cpu').default,
+            'memory': cls._meta.get_field('memory').default,
+            'storage': cls._meta.get_field('storage').default,
+            'storage_count': cls._meta.get_field('storage_count').default
         }
 
     class Meta:

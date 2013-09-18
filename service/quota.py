@@ -20,8 +20,12 @@ def get_current_quota(identity_id):
 def check_over_quota(username, identity_id, esh_size=None):
     """
     Checks quota based on current limits (and an instance of size, if passed).
-    return False if quota is OK
-    return True if quota is exceeded
+
+    return 5-tuple: ((bool) over_quota,
+                     (str) resource_over_quota,
+                     (int) number_requested,
+                     (int) number_used,
+                     (int) number_allowed)
     """
     membership = IdentityMembership.objects.get(identity__id=identity_id,
                                                 member__name=username)
@@ -36,25 +40,26 @@ def check_over_quota(username, identity_id, esh_size=None):
 
     # Add new size to current, check user quota
     if esh_size:
-        cur_cpu += esh_size.cpu
-        cur_ram += esh_size.ram
-        cur_disk += esh_size._size.disk
-        cur_suspended += 1
+        new_cpu = cur_cpu + esh_size.cpu
+        new_ram = cur_ram + esh_size.ram
+        new_disk = cur_disk + esh_size._size.disk
+        new_suspended = cur_suspended + 1
         logger.debug("Quota including size: %s"\
                      % ({'cpu':cur_cpu, 'ram':cur_ram,
                      'disk':cur_disk, 'suspended_count':cur_suspended}))
 
     #Quota tests here
-    if cur_cpu > user_quota.cpu:
+    if new_cpu > user_quota.cpu:
         logger.debug("quota exceeded on cpu: %s" 
                     % user_quota.cpu)
-        return True
-    elif cur_ram > user_quota.memory * 1024:  # Quota memory GB -> MB
+        return (True, 'cpu', esh_size.cpu, cur_cpu, user_quota.cpu)
+    elif new_ram > user_quota.memory * 1024:  # Quota memory GB -> MB
         logger.debug("quota exceeded on memory: %s GB" 
                     % user_quota.cpu)
-        return True
-    elif cur_suspended > user_quota.suspended_count:
+        return (True, 'ram', esh_size.ram, cur_ram, user_quota.memory)
+    elif new_suspended > user_quota.suspended_count:
         logger.debug("Quota exceed on suspended instances: %s"
                      % user_quota.suspended_count)
-        return True
-    return False
+        return (True, 'suspended instance', 1,
+                cur_suspended, user_quota.suspended_count)
+    return (False, '', 0, 0, 0)

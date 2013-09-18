@@ -177,6 +177,12 @@ def load_machine(machine_name, provider_alias, provider_id):
     """
     machine = find_provider_machine(provider_alias, provider_id)
     if machine:
+        if not machine.created_by_identity:
+            provider = Provider.objects.get(id=provider_id)
+            admin_id = provider.get_admin_identity()
+            machine.created_by=admin_id.created_by
+            machine.created_by_identity=admin_id
+            machine.save()
         return machine
     else:
         return create_provider_machine(machine_name, provider_alias, provider_id)
@@ -251,6 +257,22 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
     provider_machine = set_machine_from_metadata(esh_driver, provider_machine)
     return provider_machine
 
+
+def compare_core_machines(mach_1, mach_2):
+    """
+    Comparison puts machines in LATEST start_date, then Lexographical ordering
+    """
+    if mach_1.machine.featured and not mach_2.machine.featured:
+        return -1
+    elif not mach_1.machine.featured and mach_2.machine.featured:
+        return 1
+    #Neither/Both images are featured.. Check start_date
+    if mach_1.machine.start_date > mach_2.machine.start_date:
+        return -1
+    elif mach_1.machine.start_date < mach_2.machine.start_date:
+        return 1
+    else:
+        return cmp(mach_1.identifier, mach_2.identifier)
 
 def filter_core_machine(provider_machine):
     """

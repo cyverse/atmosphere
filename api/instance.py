@@ -22,15 +22,17 @@ from core.models.instance import convert_esh_instance, update_instance_metadata
 from core.models.instance import Instance as CoreInstance
 
 from core.models.volume import convert_esh_volume
-
-from api import failureJSON, launch_esh_instance, prepare_driver
+from api import failureJSON, prepare_driver
 from api.serializers import InstanceSerializer, VolumeSerializer,\
     PaginatedInstanceSerializer
 
 from service import task
 from service.deploy import build_script
+from service.instance import launch_instance, start_instance, stop_instance,\
+                             suspend_instance, resume_instance
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation, print_timedelta
+from service.exceptions import OverAllocationError, OverQuotaError
 
 class InstanceList(APIView):
     """
@@ -50,13 +52,7 @@ class InstanceList(APIView):
         try:
             esh_instance_list = esh_driver.list_instances(method_params)
         except InvalidCredsError:
-            logger.exception(
-                'Authentication Failed. Provider-id:%s Identity-id:%s'
-                % (provider_id, identity_id))
-            errorObj = failureJSON([{
-                'code': 401,
-                'message': 'Identity/Provider Authentication Failed'}])
-            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
+            return invalid_creds(provider_id, identity_id)
 
         core_instance_list = [convert_esh_instance(esh_driver,
                                                  inst,
@@ -64,12 +60,6 @@ class InstanceList(APIView):
                                                  identity_id,
                                                  user)
                               for inst in esh_instance_list]
-
-        #[core_instance.update_history(
-        #    core_instance.esh.extra['status'],
-        #    core_instance.esh.extra.get('task') or\
-        #    core_instance.esh.extra.get('metadata',{}).get('tmp_status'))
-        # for core_instance in core_instance_list]
 
         #TODO: Core/Auth checks for shared instances
 
@@ -94,47 +84,27 @@ class InstanceList(APIView):
         """
         data = request.DATA
         user = request.user
-        esh_driver = prepare_driver(request, identity_id)
-        size_alias = data.get('size_alias', '')
+        #Check the data is valid
+        missing_keys = valid_post_data(data)
+        if missing_keys:
+            return keys_not_found(missing_keys)
+
+        #Pass these as args
+        size_alias = data.pop('size_alias')
+        machine_alias = data.pop('machine_alias')
 
         try:
-            size = esh_driver.get_size(size_alias)
-
-            #TEST 1 - Over on resouces
-            if check_over_quota(request.user.username, identity_id, size):
-                errorObj = failureJSON([{
-                    'code': 403,
-                    'message': 'Exceeds resource quota'}])
-                return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
-            #TEST 2 - Over on time ( and by how much)
-            over_allocation, time_diff = check_over_allocation(
-                    request.user.username,
-                    identity_id)
-            if over_allocation:
-                errorObj = failureJSON([{
-                    'code': 403,
-                    'message': 'Exceeds time allocation. Wait %s before launching'
-                               'instance' % print_timedelta(time_diff)}])
-                return Response(errorObj, status=status.HTTP_403_FORBIDDEN)
-            #ASSERT: OK To Launch
-            (esh_instance, token) = launch_esh_instance(esh_driver, data)
+            core_instance = launch_instance(user, provider_id, identity_id, 
+                                            size_alias, machine_alias, **data)
+        except OverQuotaError, oqe:
+            return over_quota(oqe)
+        except OverAllocationError, oae:
+            return over_quota(oae)
         except InvalidCredsError:
-            logger.warn(
-                'Authentication Failed. Provider-id:%s Identity-id:%s'
-                % (provider_id, identity_id))
-            errorObj = failureJSON([{
-                'code': 401,
-                'message': 'Identity/Provider Authentication Failed'}])
-            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
+            return invalid_creds(provider_id, identity_id)
+        except InvalidCredsError:
+            return invalid_creds(provider_id, identity_id)
 
-        core_instance = convert_esh_instance(
-            esh_driver, esh_instance, provider_id, identity_id, user, token)
-        core_instance.update_history(
-            core_instance.esh.extra['status'],
-            core_instance.esh.extra.get('task') or\
-            core_instance.esh.extra.get('metadata',{}).get('tmp_status'),
-            first_update=True)
-        logger.info("Statushistory updated")
         serializer = InstanceSerializer(core_instance, data=data)
         #NEVER WRONG
         if serializer.is_valid():
@@ -212,40 +182,37 @@ class InstanceAction(APIView):
         """
         #Service-specific call to action
         action_params = request.DATA
-        user = request.user
         if not action_params.get('action', None):
             errorObj = failureJSON([{
                 'code': 400,
                 'message':
                 'POST request to /action require a BODY with \'action\':'}])
             return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+
+        result_obj = None
+        user = request.user
         esh_driver = prepare_driver(request, identity_id)
         esh_instance = esh_driver.get_instance(instance_id)
+        action = action_params['action']
         try:
-            action = action_params['action']
-            result_obj = None
-            update_status = False
             if 'volume' in action:
                 volume_id = action_params.get('volume_id')
                 if 'attach_volume' == action:
-                    #TODO: Make this async again by changing our volume
-                    # workflow
                     mount_location = action_params.get('mount_location',None)
                     device = action_params.get('device', None)
                     task.attach_volume_task(esh_driver, esh_instance.alias,
                                             volume_id, device, mount_location)
                 elif 'detach_volume' == action:
-                    (result, error_msg) = \
-                        task.detach_volume_task(
-                            esh_driver, esh_instance.alias,
-                            volume_id)
+                    (result, error_msg) = task.detach_volume_task(
+                                                            esh_driver, 
+                                                            esh_instance.alias,
+                                                            volume_id)
                     if not result and error_msg:
-                        errorObj = failureJSON([{
-                            'code': 400,
-                            'message': error_msg}])
-                        return Response(
-                            errorObj,
-                            status=status.HTTP_400_BAD_REQUEST)
+                        #Return reason for failed detachment
+                        errorObj = failureJSON([{'code': 400,
+                                                 'message': error_msg}])
+                        return Response(errorObj,
+                                        status=status.HTTP_400_BAD_REQUEST)
 
                 #Task complete, convert the volume and return the object
                 esh_volume = esh_driver.get_volume(volume_id)
@@ -264,35 +231,17 @@ class InstanceAction(APIView):
             elif 'revert_resize' == action:
                 esh_driver.revert_resize_instance(esh_instance)
             elif 'resume' == action:
-                if not check_quota(request.user.username,
-                                   identity_id,
-                                   esh_instance.size):
-                    errorObj = failureJSON([{
-                        'code': 403,
-                        'message': 'Exceeds resource quota'}])
-                    return Response(errorObj, status=status.HTTP_403_FORBIDDEN)
-                over_allocation, time_diff = check_over_allocation(
-                        request.user.username,
-                        identity_id,
-                        esh_instance.size)
-                if over_allocation:
-                    errorObj = failureJSON([{
-                        'code': 403,
-                        'message': 'Exceeds time allocation. Wait %s before'
-                                   'resuming instance' % print_timedelta(time_diff)
-                        }])
-                    return Response(errorObj, status=status.HTTP_403_FORBIDDEN)
-                update_status = True
-                esh_driver.resume_instance(esh_instance)
+                resume_instance(esh_driver, esh_instance,
+                                provider_id, identity_id, user)
             elif 'suspend' == action:
-                update_status = True
-                esh_driver.suspend_instance(esh_instance)
+                suspend_instance(esh_driver, esh_instance,
+                                provider_id, identity_id, user)
             elif 'start' == action:
-                update_status = True
-                esh_driver.start_instance(esh_instance)
+                start_instance(esh_driver, esh_instance,
+                               provider_id, identity_id, user)
             elif 'stop' == action:
-                update_status = True
-                esh_driver.stop_instance(esh_instance)
+                stop_instance(esh_driver, esh_instance,
+                              provider_id, identity_id, user)
             elif 'reboot' == action:
                 esh_driver.reboot_instance(esh_instance)
             elif 'rebuild' == action:
@@ -306,16 +255,8 @@ class InstanceAction(APIView):
                 return Response(
                     errorObj,
                     status=status.HTTP_400_BAD_REQUEST)
-            if update_status:
-                esh_instance = esh_driver.get_instance(instance_id)
-                core_instance = convert_esh_instance(esh_driver,
-                                                   esh_instance,
-                                                   provider_id,
-                                                   identity_id,
-                                                   user)
-                core_instance.update_history(
-                    core_instance.esh.extra['status'],
-                    core_instance.esh.extra.get('task'))
+
+            #ASSERT: The action was executed successfully
             api_response = {
                 'result': 'success',
                 'message': 'The requested action <%s> was run successfully'
@@ -324,14 +265,13 @@ class InstanceAction(APIView):
             }
             response = Response(api_response, status=status.HTTP_200_OK)
             return response
+        ### Exception handling below..
+        except OverQuotaError, oqe:
+            return over_quota(oqe)
+        except OverAllocationError, oae:
+            return over_quota(oae)
         except InvalidCredsError:
-            logger.warn(
-                'Authentication Failed. Provider-id:%s Identity-id:%s'
-                % (provider_id, identity_id))
-            errorObj = failureJSON([{
-                'code': 401,
-                'message': 'Identity/Provider Authentication Failed'}])
-            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
+            return invalid_creds(provider_id, identity_id)
         except NotImplemented, ne:
             logger.exception(ne)
             errorObj = failureJSON([{
@@ -361,13 +301,7 @@ class Instance(APIView):
         try:
             esh_instance = esh_driver.get_instance(instance_id)
         except InvalidCredsError:
-            logger.warn(
-                'Authentication Failed. Provider-id:%s Identity-id:%s'
-                % (provider_id, identity_id))
-            errorObj = failureJSON([{
-                'code': 401,
-                'message': 'Identity/Provider Authentication Failed'}])
-            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
+            return invalid_creds(provider_id, identity_id)
 
         if not esh_instance:
             return instance_not_found(instance_id)
@@ -375,9 +309,6 @@ class Instance(APIView):
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                            provider_id, identity_id, user)
 
-        #core_instance.update_history(core_instance.esh.extra['status'],
-        #                             core_instance.esh.extra.get('task') or\
-        #                             core_instance.esh.extra.get('metadata',{}).get('tmp_status'))
         serialized_data = InstanceSerializer(core_instance).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
@@ -394,13 +325,7 @@ class Instance(APIView):
         try:
             esh_instance = esh_driver.get_instance(instance_id)
         except InvalidCredsError:
-            logger.warn(
-                'Authentication Failed. Provider-id:%s Identity-id:%s'
-                % (provider_id, identity_id))
-            errorObj = failureJSON([{
-                'code': 401,
-                'message': 'Identity/Provider Authentication Failed'}])
-            return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+            return invalid_creds(provider_id, identity_id)
 
         if not esh_instance:
             return instance_not_found(instance_id)
@@ -437,13 +362,7 @@ class Instance(APIView):
         try:
             esh_instance = esh_driver.get_instance(instance_id)
         except InvalidCredsError:
-            logger.warn(
-                'Authentication Failed. Provider-id:%s Identity-id:%s'
-                % (provider_id, identity_id))
-            errorObj = failureJSON([{
-                'code': 401,
-                'message': 'Identity/Provider Authentication Failed'}])
-            return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+            return invalid_creds(provider_id, identity_id)
 
         if not esh_instance:
             return instance_not_found(instance_id)
@@ -489,17 +408,40 @@ class Instance(APIView):
             response['Cache-Control'] = 'no-cache'
             return response
         except InvalidCredsError:
-            logger.warn(
-                'Authentication Failed. Provider-id:%s Identity-id:%s'
-                % (provider_id, identity_id))
-            errorObj = failureJSON([{
-                'code': 401,
-                'message': 'Identity/Provider Authentication Failed'}])
-            return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+            return invalid_creds(provider_id, identity_id)
 
+# Commonnly used error responses
+def valid_post_data(data):
+    expected_data = ['machine_alias','size_alias']
+    missing_keys = []
+    for key in expected_data:
+        if not data.has_key(key):
+            missing_keys.append(key)
+    return missing_keys
 
+def keys_not_found(missing_keys):
+    errorObj = failureJSON([{
+        'code': 400,
+        'message': 'Missing required POST datavariables : %s' % missing_keys}])
+    return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
 def instance_not_found(instance_id):
     errorObj = failureJSON([{
         'code': 404,
         'message': 'Instance %s does not exist' % instance_id}])
     return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+def invalid_creds(provider_id, identity_id):
+    logger.warn('Authentication Failed. Provider-id:%s Identity-id:%s'
+                % (provider_id, identity_id))
+    errorObj = failureJSON([{'code': 401,
+        'message': 'Identity/Provider Authentication Failed'}])
+    return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+def over_quota(quota_exception):
+    errorObj = failureJSON([{
+        'code': 413,
+        'message': quota_exception.message}])
+    return Response(errorObj, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+def over_allocation(allocation_exception):
+    errorObj = failureJSON([{
+        'code': 413,
+        'message': allocation_exception.message}])
+    return Response(errorObj, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
