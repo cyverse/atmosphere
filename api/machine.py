@@ -58,6 +58,8 @@ class MachineList(APIView):
     TODO: POST when we have programmatic image creation/snapshots
     """
 
+    permission_classes = (InMaintenance,)
+
     @api_auth_token_required
     def get(self, request, provider_id, identity_id):
         """

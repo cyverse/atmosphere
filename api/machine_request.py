@@ -10,8 +10,6 @@ from rest_framework import status
 
 from threepio import logger
 
-from atmosphere import settings
-
 from authentication.decorators import api_auth_token_required#, api_auth_options
 
 from api.serializers import MachineRequestSerializer

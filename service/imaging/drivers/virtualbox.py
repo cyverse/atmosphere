@@ -28,7 +28,6 @@ from threepio import logger
 
 from django.utils import timezone
 
-from service.imaging.drivers.openstack import ImageManager as OSImageManager
 from service.imaging.drivers.eucalyptus import ImageManager as EucaImageManager
 from service.imaging.boot import add_grub
 from service.imaging.common import sed_delete_multi, sed_replace, sed_append
@@ -43,9 +42,9 @@ class ExportManager():
     Convienence class that can convert VMs into localized machines for
     Oracle Virtualbox (R)
     """
-    def __init__(self, euca_creds, os_creds):
-        self.os_img_manager = OSImageManager(**os_creds)
-        self.euca_img_manager = EucaImageManager(**euca_creds)
+    def __init__(self, export_credentials):
+
+        self.export_credentials = export_credentials
 
 
     def eucalyptus(self, instance_id, vm_name, owner, disk_type='vmdk',
@@ -55,6 +54,7 @@ class ExportManager():
         """
         Note: vm_name is the name you want for your new virtualbox vm (Does not have to be the same!)
         """
+        self.euca_img_manager = EucaImageManager(**self.export_credentials)
         #Download the image, then make a bootable RAW copy and install a
         # bootloader
         if not local_raw_path or not os.path.exists(local_raw_path):

@@ -325,12 +325,12 @@ class AccountDriver():
         """
         user_args = credentials.copy()
         #Required args:
-        img_args.get('username')
-        img_args.get('password')
-        img_args.get('tenant_name')
+        user_args.get('username')
+        user_args.get('password')
+        user_args.get('tenant_name')
 
-        img_args.get('auth_url')
-        img_args.get('region_name')
+        user_args.get('auth_url')
+        user_args.get('region_name')
         #Removable args:
         user_args.pop('admin_url', None)
         user_args.pop('router_name', None)

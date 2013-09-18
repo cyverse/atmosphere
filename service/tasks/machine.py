@@ -26,11 +26,14 @@ def machine_export_task(machine_export):
     machine_export.save()
 
     local_download_dir = settings.LOCAL_STORAGE
-    exp_provider = machine_export.instance.provider_machine\
-        .provider.type.name.lower()
-
-    manager = ExportManager(settings.EUCA_IMAGING_ARGS,
-                            settings.OPENSTACK_ARGS)
+    exp_provider = machine_export.instance.provider_machine.provider
+    provider_type = exp_provider.type.name.lower()
+    provider_creds = exp_provider.get_credentials()
+    admin_creds = exp_provider.get_admin_identity().get_credentials()
+    all_creds = {}
+    all_creds.update(provider_creds)
+    all_creds.update(admin_creds)
+    manager = ExportManager(all_creds)
     #ExportManager().eucalyptus/openstack()
     if 'euca' in exp_provider:
         export_fn = manager.eucalyptus
