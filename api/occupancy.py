@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from authentication.decorators import api_auth_token_required
 
-from core.models.identity import Identity
+from core.models.provider import Provider
 from core.models.size import convert_esh_size
 
 from api import get_esh_driver
@@ -25,8 +25,9 @@ class Occupancy(APIView):
         return occupancy data for the specific provider
         """
         #Get meta for provider to call occupancy
-        driver = get_esh_driver(Identity.objects.filter(
-            provider__id=provider_id)[0])
+        provider = Provider.objects.get(id=provider_id)
+        ident = provider.identity_set.all()[0]
+        driver = get_esh_driver(ident)
         meta_driver = driver.meta()
         esh_size_list  = meta_driver.occupancy()
         #Formatting..
