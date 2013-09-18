@@ -13,6 +13,7 @@ from datetime import datetime
 # django http libraries
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth import authenticate as django_authenticate
+from django.contrib.auth import logout as django_logout
 from django.contrib.auth.models import User as DjangoUser
 
 from django.template import RequestContext
@@ -103,15 +104,18 @@ def cas_validateTicket(request):
 
 
 def logout(request):
-    if 'emulated_by' in request.session:
-        del request.session['emulated_by']
-    if 'username' in request.session:
-        del request.session['username']
-    if 'token' in request.session:
-        del request.session['token']
-    if 'api_server' in request.session:
-        del request.session['api_server']
-    return cas_logoutRedirect()
+    #if 'emulated_by' in request.session:
+    #    del request.session['emulated_by']
+    #if 'username' in request.session:
+    #    del request.session['username']
+    #if 'token' in request.session:
+    #    del request.session['token']
+    #if 'api_server' in request.session:
+    #    del request.session['api_server']
+    django_logout(request)
+    if request.GET.get('full_logout',False):
+        return cas_logoutRedirect()
+    return HttpResponseRedirect(settings.REDIRECT_URL+'/login')
 
 
 @atmo_login_required

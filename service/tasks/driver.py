@@ -263,20 +263,13 @@ def _remove_floating_ip(driverCls, provider, identity, *args, **kwargs):
       default_retry_delay=15,
       ignore_result=True,
       max_retries=6)
-def add_os_project_network(username, *args, **kwargs):
+def add_os_project_network(core_identity, *args, **kwargs):
     try:
         logger.debug("add_os_project_network task started at %s." %
                      datetime.now())
         from rtwo.accounts.openstack import AccountDriver as OSAccountDriver
-        account_driver = OSAccountDriver()
-        password = account_driver.hashpass(username)
-        project_name = account_driver.get_project_name_for(username)
-        account_driver.network_manager.create_project_network(
-            username,
-            password,
-            project_name,
-            get_unique_number=get_unique_number,
-            **settings.OPENSTACK_NETWORK_ARGS)
+        account_driver = OSAccountDriver(core_identity.provider)
+        account_driver.create_network(core_identity)
         logger.debug("add_os_project_network task finished at %s." %
                      datetime.now())
     except Exception as exc:
