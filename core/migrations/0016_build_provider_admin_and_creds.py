@@ -28,7 +28,7 @@ class Migration(DataMigration):
         
         To create a Eucalyptus AccountProvider via the REPL:
         >>> Identity.create_identity(admin_username, 'EUCALYPTUS', account_admin=True,
-                                     cred_key=admin_username, cred_secret=password)
+                                     cred_key=_key, cred_secret=secret)
         """
 
     def build_provider_creds(self, orm):

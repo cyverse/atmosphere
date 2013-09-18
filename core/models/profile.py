@@ -4,7 +4,6 @@ from django.db.models.signals import post_save
 from django.db import models
 
 from threepio import logger
-from atmosphere import settings
 
 from core.ldap import get_uid_number
 from core.models.group import getUsergroup

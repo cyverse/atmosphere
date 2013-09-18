@@ -9,6 +9,8 @@ from datetime import timedelta
 from django.db import models
 from django.contrib.auth.models import User
 
+from threepio import logger
+
 class Identity(models.Model):
     """
     An Identity is the minimal set of credentials necessary
@@ -43,20 +45,24 @@ class Identity(models.Model):
 
         provider = Provider.objects.get(location__iexact=provider_location)
 
+        print kwarg_creds
         credentials = {}
         for (c_key,c_value) in kwarg_creds.items():
             if 'cred_' not in c_key.lower():
                 continue
             c_key = c_key.replace('cred_','')
             credentials[c_key] = c_value
+        print credentials
 
         (user, group) = Group.create_usergroup(username)
-        # A list of memberships
+
+        #NOTE: This specific query will need to be modified if we want
+        # 2+ Identities on a single provider
+
         id_membership = IdentityMembership.objects.filter(
             member__name= user.username,
             identity__provider=provider,
             identity__created_by__username=user.username)
-            #identity__credential__value__in=[credentials.values()])
         if not id_membership:
             #1. Create a Provider Membership
             p_membership = ProviderMembership.objects.get_or_create(
@@ -74,14 +80,14 @@ class Identity(models.Model):
         #ID_Membership exists.
 
         #3. Make sure that all kwargs exist as credentials
-        # NOTE: This will allow us to add new 
-        #       credentials to existing identities
+        # NOTE: Because we assume only one identity per provider
+        #       We can add new credentials to 
+        #       existing identities if missing..
+        # In the future it will be hard to determine when we want to 
+        # update values on an identity Vs. create a second, new identity.
         for (c_key,c_value) in credentials.items():
-            if 'cred_' not in c_key.lower():
-                continue
-            c_key = c_key.replace('cred_','')
             test_key_exists = Credential.objects.filter(
-                    identiy=id_membership.identity,
+                    identity=id_membership.identity,
                     key=c_key)
             if test_key_exists:
                 logger.info("Conflicting Key Errror: Key:%s Value:%s "

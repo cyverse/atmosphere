@@ -260,7 +260,6 @@ EUCA_IMAGING_ARGS = {
     'pk_path': EUCA_PRIVATE_KEY,
     'euca_cert_path': EUCALYPTUS_CERT_PATH,
     'config_path': '/services/Configuration',
-    'extras_root': PROJECT_ROOT
 }
 EUCALYPTUS_ARGS = {
     'key': EUCA_ADMIN_KEY,

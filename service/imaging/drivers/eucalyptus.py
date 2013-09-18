@@ -282,7 +282,7 @@ class ImageManager():
         self.ec2_cert_path=kwargs.get('ec2_cert_path','')
         self.pk_path=kwargs.get('pk_path','')
         self.euca_cert_path=kwargs.get('euca_cert_path','')
-        self.extras_root=kwargs.get('extras_root','')
+        self.extras_root=kwargs.get('extras_root')
         self.config_path=kwargs.get('config_path','/services/Configuration')
 
     def _env_credentials(self, key, secret, ec2_url, s3_url):

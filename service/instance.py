@@ -6,7 +6,6 @@ from rtwo.provider import AWSProvider, AWSUSEastProvider,\
     OSProvider, OSValhallaProvider
 from threepio import logger
 
-from core.ldap import get_uid_number
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import convert_esh_instance
 from core.models.size import convert_esh_size
@@ -86,11 +85,12 @@ def launch_instance(user, provider_id, identity_id, size_alias, machine_alias, *
     check_size(size, provider_id)
 
     #May raise OverQuotaError or OverAllocationError
-    check_quota(username, identity_id, size)
+    check_quota(user.username, identity_id, size)
 
     #May raise InvalidCredsError
     (esh_instance, token) = launch_esh_instance(esh_driver, machine_alias,
-                                                size_alias, **kwargs)
+                                                size_alias, core_identity,
+                                                **kwargs)
     #Convert esh --> core
     core_instance = convert_esh_instance(
         esh_driver, esh_instance, provider_id, identity_id, user, token)
@@ -122,8 +122,11 @@ def check_quota(username, identity_id, esh_size):
     if over_allocation:
         raise OverAllocationError(time_diff)
 
+def network_init(core_identity):
+    os_driver = OSAccountDriver(core_identity.provider)
+    os_driver.create_network(core_identity)
 
-def launch_esh_instance(driver, machine_alias, size_alias,
+def launch_esh_instance(driver, machine_alias, size_alias, core_identity, 
                         name=None, username=None, *args, **kwargs):
     """
     TODO: Remove extras, pass as kwarg_dict instead
@@ -171,15 +174,7 @@ def launch_esh_instance(driver, machine_alias, size_alias,
             ex_metadata = {'tmp_status': 'initializing'}
             #Check for project network.. TODO: Fix how password/project are
             # retrieved
-            os_driver = OSAccountDriver()
-            password = os_driver.hashpass(username)
-            project_name = os_driver.get_project_name_for(username)
-            os_driver.network_manager\
-                     .create_project_network(username,
-                                             password,
-                                             project_name,
-                                             get_cidr=get_uid_number,
-                                             **settings.OPENSTACK_NETWORK_ARGS)
+            network_init(core_identity)
             logger.debug("OS driver.create_instance kwargs: %s" % kwargs)
             esh_instance = driver.create_instance(name=name, image=machine,
                                                   size=size, token=instance_token,

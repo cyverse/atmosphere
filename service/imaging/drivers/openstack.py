@@ -2,12 +2,19 @@
 ImageManager:
     Remote Openstack Image management (euca2ools 1.3.1)
 
-EXAMPLE USAGE:
+Best set from service.accounts.openstack
+
+To set directly:
 from service.imaging.drivers.openstack import ImageManager
 
-from atmosphere import settings
-
-manager = ImageManager(**settings.OPENSTACK_ARGS)
+credentials = {
+    'username': '',
+    'tenant_name': '',
+    'password': '',
+    'auth_url':'',
+    'region_name':''
+}
+manager = ImageManager(**credentials)
 
 manager.create_image('75fdfca4-d49d-4b2d-b919-a3297bc6d7ae', 'my new name')
 
@@ -17,6 +24,8 @@ import time
 
 from threepio import logger
 
+from rtwo.provider import OSProvider
+from rtwo.identity import OSIdentity
 from rtwo.driver import OSDriver
 from rtwo.drivers.common import _connect_to_keystone, _connect_to_nova,\
                                    _connect_to_glance, find
@@ -58,9 +67,18 @@ class ImageManager():
         if len(args) == 0 and len(kwargs) == 0:
             raise KeyError("Credentials missing in __init__. ")
 
-
-        self.admin_driver = OSDriver.settings_init()
+        self.admin_driver = self.build_admin_driver(**kwargs)
         self.keystone, self.nova, self.glance = self.new_connection(*args, **kwargs)
+
+    def build_admin_driver(self, **kwargs):
+        OSProvider.set_meta()
+        provider = OSProvider()
+        user = kwargs.get('username')
+        secret = kwargs.get('password')
+        tenant_name = kwargs.get('tenant_name')
+        identity = OSIdentity(provider, user, secret, ex_tenant_name=tenant_name, **kwargs)
+        admin_driver = OSDriver(provider, identity, **kwargs)
+        return admin_driver
 
     def new_connection(self, *args, **kwargs):
         """

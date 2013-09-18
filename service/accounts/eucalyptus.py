@@ -15,16 +15,80 @@ from core.models.identity import Identity
 from core.models.provider import Provider
 
 from rtwo.drivers.eucalyptus_user import UserManager
+from service.imaging.drivers.eucalyptus import ImageManager
 
 from atmosphere import settings
 
 class AccountDriver():
     user_manager = None
-    euca_prov = None
+    image_manager = None
+    core_provider = None
 
-    def __init__(self):
-        self.user_manager = UserManager(**settings.EUCALYPTUS_ARGS)
-        self.euca_prov = Provider.objects.get(location='EUCALYPTUS')
+    def __init__(self, provider):
+        if not provider:
+            provider = Provider.objects.get(location='EUCALYPTUS')
+        self.core_provider = provider
+
+        #credential dicts
+        admin_creds = provider.get_admin_identity().get_credentials()
+        provider_creds = provider.get_credentials()
+        self.provider_creds = provider_creds
+        #Merge credential dicts
+        all_creds = provider_creds
+        all_creds.update(admin_creds)
+        # Convert creds for each manager
+        self.user_creds = self._build_user_creds(all_creds)
+        self.user_manager = UserManager(**self.user_creds)
+
+        self.image_creds = self._build_image_creds(all_creds)
+        self.image_manager = ImageManager(**self.image_creds)
+
+    def _build_image_creds(self, credentials):
+        """
+        Credentials - dict()
+
+        return the credentials required to build a "UserManager" object
+        """
+        img_args = credentials.copy()
+        #Required args:
+        img_args.get('key')
+        img_args.get('secret')
+
+        img_args.get('config_path')
+        img_args.get('ec2_cert_path')
+        img_args.get('ec2_url')
+        img_args.get('euca_cert_path')
+        img_args.get('pk_path')
+        img_args.get('s3_url')
+        #Root dir to find extras/...
+        img_args.get('extras_root', settings.PROJECT_ROOT)
+        #Remove if exists:
+        img_args.pop('account_path')
+        return img_args
+
+    def _build_user_creds(self, credentials):
+        """
+        Credentials - dict()
+
+        return the credentials required to build a "UserManager" object
+        """
+        user_args = credentials.copy()
+        #Required args:
+        user_args.get('key')
+        user_args.get('secret')
+        user_args.get('account_path')
+        #ec2_url//url required for user_manager
+        if not user_args.get('url',None):
+            user_args['url'] = user_args.pop('ec2_url',None)
+        #Remove if exists:
+        user_args.pop('config_path',None)
+        user_args.pop('ec2_cert_path',None)
+        user_args.pop('euca_cert_path',None)
+        user_args.pop('pk_path',None)
+        user_args.pop('s3_url',None)
+        return user_args
+
+
 
     def create_account(self, euca_user, max_quota=False, account_admin=False):
         """
@@ -60,7 +124,7 @@ class AccountDriver():
         """
         """
         identity = Identity.create_identity(
-                username, self.euca_prov.location,
+                username, self.core_provider.location,
                 max_quota=max_quota, account_admin=account_admin,
                 cred_key=access_key, cred_secret=secret_key)
 
