@@ -4,6 +4,7 @@ import os.path
 from rtwo.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
     OSProvider, OSValhallaProvider
+from rtwo.drivers import OSDriver
 from threepio import logger
 
 from core.models.identity import Identity as CoreIdentity
@@ -18,6 +19,7 @@ from service.quota import check_over_quota
 from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError
 from service.accounts.openstack import AccountDriver as OSAccountDriver
+
 
 def stop_instance(esh_driver, esh_instance, provider_id, identity_id, user):
     """
@@ -64,6 +66,16 @@ def update_status(esh_driver, instance_id, provider_id, identity_id, user):
     core_instance.update_history(
         core_instance.esh.extra['status'],
         core_instance.esh.extra.get('task'))
+
+def destroy_instance(identity_id, instance_alias):
+    core_identity = CoreIdentity.objects.get(id=identity_id)
+    esh_driver = get_esh_driver(core_identity)
+    instance = driver.get_instance(instance_alias)
+    if isinstance(esh_driver, OSDriver):
+        driver._connection.ex_disassociate_floating_ip(instance)
+    node_destroyed = driver._connection.destroy_node(instance)
+    return node_destroyed
+
 
 def launch_instance(user, provider_id, identity_id, size_alias, machine_alias, **kwargs):
     """

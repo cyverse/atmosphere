@@ -137,6 +137,19 @@ class AccountDriver():
             **net_args)
         return True
 
+    def delete_network(self, identity):
+        #Core credentials need to be converted to openstack names
+        identity_creds = self._libcloud_to_openstack(
+                identity.get_credentials())
+        username = identity_creds['username']
+        password = identity_creds['password']
+        project_name = identity_creds['tenant_name']
+        # Convert from libcloud names to openstack client names
+        net_args = self._base_network_creds()
+        return self.network_manager.delete_project_network(
+                username, project_name,
+                **net_args)
+
     def create_network(self, identity):
         #Core credentials need to be converted to openstack names
         identity_creds = self._libcloud_to_openstack(
@@ -146,7 +159,7 @@ class AccountDriver():
         project_name = identity_creds['tenant_name']
         # Convert from libcloud names to openstack client names
         net_args = self._base_network_creds()
-        self.network_manager.create_project_network(
+        return self.network_manager.create_project_network(
                 username, password, project_name,
                 get_cidr=get_uid_number, **net_args)
 
