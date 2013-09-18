@@ -149,16 +149,16 @@ class Migration(DataMigration):
             return None
 
     def get_esh_driver(self, core_identity):
-        from api import getEshMap
+        from api import get_esh_map
         cred_dict = {}
         credentials = core_identity.credential_set.all()
         for cred in credentials:
             cred_dict[cred.key] = cred.value
         user = core_identity.created_by
-        eshMap = getEshMap(core_identity.provider)
-        provider = eshMap['provider']()
-        identity = eshMap['identity'](provider, user=user, **cred_dict)
-        driver = eshMap['driver'](provider, identity)
+        esh_map = get_esh_map(core_identity.provider)
+        provider = esh_map['provider']()
+        identity = esh_map['identity'](provider, user=user, **cred_dict)
+        driver = esh_map['driver'](provider, identity)
         return driver
 
     def update_volume(self, orm):
