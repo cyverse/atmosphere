@@ -19,8 +19,8 @@ class Allocation(models.Model):
                                 default=20160)  # In Minutes
 
     def __unicode__(self):
-        return "Threshold: %s minutes over Delta: %s minutes" %
-        (self.threshold, self.delta)
+        return "Threshold: %s minutes over Delta: %s minutes" %\
+            (self.threshold, self.delta)
 
     @classmethod
     def defaults(self):
