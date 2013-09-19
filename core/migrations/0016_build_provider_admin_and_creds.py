@@ -42,22 +42,23 @@ class Migration(DataMigration):
             print 'WARN:settings.EUCA_* missing, provider credentials will'\
             ' NOT be created automatically. Instead, be sure to run these'\
             ' commands on the REPL:\n'\
+            "from atmosphere import settings\n"\
             "from core.models import ProviderCredential, Provider\n"\
             "euca = Provider.objects.get(location='EUCALYPTUS')\n"\
             "ProviderCredential.objects.create("\
-            "key='ec2_url', value=EUCA_EC2_URL, "\
+            "key='ec2_url', value=settings.EUCA_EC2_URL, "\
             "provider=euca)\n"\
             "ProviderCredential.objects.create("\
-            "key='s3_url', value=EUCA_S3_URL, "\
+            "key='s3_url', value=settings.EUCA_S3_URL, "\
             "provider=euca)\n"\
             "ProviderCredential.objects.create("\
-            "key='euca_cert_path', value=EUCALYPTUS_CERT_PATH, "\
+            "key='euca_cert_path', value=settings.EUCALYPTUS_CERT_PATH, "\
             "provider=euca)\n"\
             "ProviderCredential.objects.create("\
-            "key='pk_path', value=EUCA_PRIVATE_KEY, "\
+            "key='pk_path', value=settings.EUCA_PRIVATE_KEY, "\
             "provider=euca)\n"\
             "ProviderCredential.objects.create("\
-            "key='ec2_cert_path', value=EC2_CERT_PATH, "\
+            "key='ec2_cert_path', value=settings.EC2_CERT_PATH, "\
             "provider=euca)\n"\
             "ProviderCredential.objects.create("\
             "key='account_path', value='/services/Accounts', "\
@@ -91,13 +92,14 @@ class Migration(DataMigration):
             print 'WARN:settings.OPENSTACK_* missing, provider credentials will'\
             ' NOT be created automatically. Instead, be sure to run these'\
             ' commands on the REPL:\n'\
+            "from atmosphere import settings\n"\
             "from core.models import ProviderCredential, Provider\n"\
             "openstack = Provider.objects.get(location='OPENSTACK')\n"\
             "ProviderCredential.objects.create("\
-            "key='auth_url', value=OPENSTACK_AUTH_URL, "\
+            "key='auth_url', value=settings.OPENSTACK_AUTH_URL, "\
             "provider=openstack)\n"\
             "ProviderCredential.objects.create("\
-            "key='admin_url', value=OPENSTACK_ADMIN_URL, "\
+            "key='admin_url', value=settings.OPENSTACK_ADMIN_URL, "\
             "provider=openstack)\n"\
             "ProviderCredential.objects.create("\
             "key='router_name', value=settings.OPENSTACK_DEFAULT_ROUTER, "\

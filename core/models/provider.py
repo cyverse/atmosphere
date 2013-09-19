@@ -108,8 +108,11 @@ class Provider(models.Model):
         from atmosphere import settings
         if self.location.lower() == 'openstack':
             admin = User.objects.get(username=settings.OPENSTACK_ADMIN_KEY)
-        if self.location.lower() == 'eucalyptus':
+        elif self.location.lower() == 'eucalyptus':
             admin = User.objects.get(username='admin')
+        else:
+            raise Exception("Could not find admin user for provider %s" % self)
+
         return Identity.objects.get(provider=self, created_by=admin)
 
     def __unicode__(self):

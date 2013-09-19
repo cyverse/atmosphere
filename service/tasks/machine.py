@@ -62,24 +62,6 @@ def machine_export_task(machine_export):
     logger.debug("machine_export_task task finished at %s." % datetime.now())
     pass
 
-#MARKED FOR DELETION, Can only be used effectively if machine migrations can
-# somehow fit into core models.. So we can keep track of provider, etc.
-#@task(name='machine_migration_task', ignore_result=True)
-#def machine_migration_task(new_machine_name, old_machine_id,
-#                           local_download_dir='/tmp',
-#                           migrate_from='eucalyptus',
-#                           migrate_to='openstack'):
-#    logger.debug("machine_migration_task task started at %s." % datetime.now())
-#    if migrate_from == 'eucalyptus' and migrate_to == 'openstack':
-#        manager = EucaOSMigrater(settings.EUCA_IMAGING_ARGS.copy(),
-#                                 settings.OPENSTACK_ARGS.copy())
-#        manager.migrate_image(old_machine_id, new_machine_name,
-#                              local_download_dir)
-#    else:
-#        raise Exception("Cannot migrate from %s to %s" % (migrate_from,
-#                                                          migrate_to))
-#    logger.debug("machine_migration_task task finished at %s." % datetime.now())
-
 @task(name='machine_imaging_task', ignore_result=True)
 def machine_imaging_task(machine_request, provider_creds, migrate_creds):
     try:
