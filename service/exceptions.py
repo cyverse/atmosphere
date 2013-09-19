@@ -9,7 +9,7 @@ class OverAllocationError(Exception):
         self.wait_timedelta = wait_timedelta
         self.message = "Time allocation exceeded. "\
             "Wait %s before requesting new resources"\
-            % (print_timedelta(time_diff))
+            % (time_diff)
         super(OverAllocationError, self).__init__(self.message)
 
     def __str__(self):

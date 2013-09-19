@@ -8,12 +8,14 @@ from core.models.instance import Instance
 
 from threepio import logger
 
+
 def filter_by_time_delta(instances, delta):
     """
     Return all running instances AND all instances between now and 'delta'
     """
     min_time = timezone.now() - delta
     return [i for i in instances if not i.end_date or i.end_date > min_time]
+
 
 def get_time(user, identity_id, delta):
     if type(user) is not User:
@@ -29,20 +31,17 @@ def get_time(user, identity_id, delta):
     logger.debug('Calculating time of %s instances' % len(instances))
     for i in instances:
         run_time = min(i.get_active_time(), delta)
-        logger.debug( 'Instance %s running for %s' %\
-                     (i.provider_alias, print_timedelta(run_time)))
+        logger.debug('Instance %s running for %s' %
+                    (i.provider_alias, run_time))
         total_time += run_time
     return total_time
+
 
 def get_allocation(username, identity_id):
     membership = IdentityMembership.objects.get(identity__id=identity_id,
                                                 member__name=username)
     return membership.allocation
 
-def print_timedelta(td):
-    return '%s days, %s hours, %s minutes' % (td.days,
-                                        td.seconds//3600,
-                                        (td.seconds//60)%60)
 
 def check_over_allocation(username, identity_id):
     """
@@ -62,8 +61,7 @@ def check_over_allocation(username, identity_id):
     total_time_used = get_time(username, identity_id, delta_time)
     time_diff = max_time_allowed - total_time_used
     if time_diff.total_seconds() <= 0:
-        logger.debug("%s is over their allowed quota by %s"
-                    % (username, print_timedelta(time_diff)))
+        logger.debug("%s is over their allowed quota by %s" %
+                     (username, time_diff))
         return (True, time_diff)
     return (False, time_diff)
-

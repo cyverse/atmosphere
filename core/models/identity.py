@@ -128,7 +128,7 @@ class Identity(models.Model):
 
     def get_quota_dict(self):
         #Don't move it up. Circular reference.
-        from service.allocation import get_time, print_timedelta
+        from service.allocation import get_time
         id_member = self.identitymembership_set.all()[0]
         quota = id_member.quota
         quota_dict = {
