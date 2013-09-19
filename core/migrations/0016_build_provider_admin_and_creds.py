@@ -37,7 +37,8 @@ class Migration(DataMigration):
 
     def euca_provider_creds(self, orm):
         from atmosphere import settings
-        if not hasattr(settings, 'EUCALYPTUS_ARGS'):
+        euca = orm.Provider.objects.filter(location='EUCALYPTUS')
+        if not hasattr(settings, 'EUCALYPTUS_ARGS') or not euca:
             print 'WARN:settings.EUCA_* missing, provider credentials will'\
             ' NOT be created automatically. Instead, be sure to run these'\
             ' commands on the REPL:\n'\
@@ -65,7 +66,7 @@ class Migration(DataMigration):
             "key='config_path', value='/services/Configuration', "\
             "provider=euca)\n"
             return
-        euca = orm.Provider.objects.get(location='EUCALYPTUS')
+        euca = euca[0]
         # Create provider credentials from settings
         orm.ProviderCredential.objects.get_or_create(
             key='ec2_url', value=settings.EUCA_EC2_URL, provider=euca)
@@ -85,7 +86,8 @@ class Migration(DataMigration):
 
     def openstack_provider_creds(self, orm):
         from atmosphere import settings
-        if not hasattr(settings, 'OPENSTACK_ARGS'):
+        openstack = orm.Provider.objects.filter(location='OPENSTACK')
+        if not hasattr(settings, 'OPENSTACK_ARGS') or not openstack:
             print 'WARN:settings.OPENSTACK_* missing, provider credentials will'\
             ' NOT be created automatically. Instead, be sure to run these'\
             ' commands on the REPL:\n'\
@@ -104,8 +106,8 @@ class Migration(DataMigration):
             "key='region_name', value=settings.OPENSTACK_DEFAULT_REGION, "\
             "provider=openstack)\n"
             return
+        openstack = openstack[0]
 
-        openstack = orm.Provider.objects.get(location='OPENSTACK')
         orm.ProviderCredential.objects.get_or_create(
                 key='auth_url',
                 value=settings.OPENSTACK_AUTH_URL,
