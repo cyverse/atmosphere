@@ -113,7 +113,7 @@ def logout(request):
     #if 'api_server' in request.session:
     #    del request.session['api_server']
     django_logout(request)
-    if request.GET.get('full_logout',False):
+    if request.POST.get('cas',False):
         return cas_logoutRedirect()
     return HttpResponseRedirect(settings.REDIRECT_URL+'/login')
 
