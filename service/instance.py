@@ -4,7 +4,7 @@ import os.path
 from rtwo.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
     OSProvider, OSValhallaProvider
-from rtwo.drivers import OSDriver
+from rtwo.driver import OSDriver
 from threepio import logger
 
 from core.models.identity import Identity as CoreIdentity
