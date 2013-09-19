@@ -20,8 +20,9 @@ from authentication.decorators import api_auth_token_required
 
 from core.models.instance import convert_esh_instance, update_instance_metadata
 from core.models.instance import Instance as CoreInstance
-
+from core.models.size import convert_esh_size
 from core.models.volume import convert_esh_volume
+
 from api import failureJSON, prepare_driver
 from api.serializers import InstanceSerializer, VolumeSerializer,\
     PaginatedInstanceSerializer
@@ -93,7 +94,6 @@ class InstanceList(APIView):
         #Pass these as args
         size_alias = data.pop('size_alias')
         machine_alias = data.pop('machine_alias')
-
         try:
             core_instance = launch_instance(user, provider_id, identity_id, 
                                             size_alias, machine_alias, **data)
@@ -103,8 +103,6 @@ class InstanceList(APIView):
             return over_quota(oae)
         except SizeNotAvailable, snae:
             return size_not_availabe(snae)
-        except InvalidCredsError:
-            return invalid_creds(provider_id, identity_id)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
 
