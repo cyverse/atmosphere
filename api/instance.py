@@ -32,7 +32,7 @@ from service.deploy import build_script
 from service.instance import launch_instance, start_instance, stop_instance,\
     suspend_instance, resume_instance
 from service.quota import check_over_quota
-from service.allocation import check_over_allocation, print_timedelta
+from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable
 
