@@ -104,14 +104,6 @@ def cas_validateTicket(request):
 
 
 def logout(request):
-    #if 'emulated_by' in request.session:
-    #    del request.session['emulated_by']
-    #if 'username' in request.session:
-    #    del request.session['username']
-    #if 'token' in request.session:
-    #    del request.session['token']
-    #if 'api_server' in request.session:
-    #    del request.session['api_server']
     django_logout(request)
     if request.POST.get('cas',False):
         return cas_logoutRedirect()

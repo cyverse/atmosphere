@@ -23,6 +23,36 @@ Atmo.Views.Main = Backbone.View.extend({
         this.$el.append(this.settings_screen.render().el);
         this.settings_screen.$el.hide();
       }
+	  //Logging out of CAS!!!!!
+	  $('#logout_button').click(function(){
+		  var header = "Logging Out of Atmosphere";
+		  var body = "You will be logged out of Atmosphere in <span id='countdown_time'></span> seconds.<br\><br\>Would you like to log out of all iPlant applications?";
+
+		  new Atmo.Views.AlertModal().render().do_alert(header,body,{
+				ok_button: "Log out of all iPlant services",
+				on_confirm: function(){
+					var csrftoken = Atmo.Utils.getCookie('csrftoken');
+					Atmo.Utils.post_to_url(site_root + "/logout/", { cas: true, 'csrfmiddlewaretoken':csrftoken })
+				},
+
+				cancel_button: "Log out of Atmosphere Only",
+		  		on_cancel: function(){
+					window.location.replace(site_root + "/logout/");	
+				}
+		  });
+
+		  var count = 10;
+		  var timeout;
+		  (timeout = function() {
+			$("#countdown_time").html(count);
+			count--;
+			if (count > 0)
+				window.setTimeout(timeout, 1000);
+			else 
+				window.location.replace(site_root + "/logout/");	
+		  })();
+	  });
+
       return this;
     },
     show_volume_screen: function() {
