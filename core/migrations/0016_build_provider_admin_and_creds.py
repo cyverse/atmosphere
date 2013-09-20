@@ -4,6 +4,8 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import models
 
+from atmosphere import settings
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
@@ -11,34 +13,138 @@ class Migration(DataMigration):
         # Note: Don't use "from appname.models import ModelName". 
         # Use orm.ModelName to refer to models in this application,
         # and orm['appname.ModelName'] for models in other applications.
+        print '> core - data: Updating ProviderCredential'
         self.build_provider_creds(orm)
-        self.build_provider_admins(orm)
+        print '> core - data: Updating AccountProvider'
+        self.build_account_admins(orm)
 
     def backwards(self, orm):
         "Write your backwards methods here."
 
-    def build_provider_admins(self, orm):
-        print """AccountProviders are not created by default.
-        They should be initialized from the REPL:
-        To create an AccountProvider for the 'OPENSTACK' location: via the REPL:
-        >>> Identity.create_identity(ADMIN_USERNAME, 'OPENSTACK', account_admin=True,
-                                     cred_key=username, cred_secret=password,
-                                     cred_ex_tenant_name=project_name,
-                                     cred_ex_project_name=project_name)
-        
-        To create a Eucalyptus AccountProvider via the REPL:
-        >>> Identity.create_identity(admin_username, 'EUCALYPTUS', account_admin=True,
-                                     cred_key=_key, cred_secret=secret)
-        """
+    def build_account_admins(self, orm):
+        print '> core - data - accountprovider: Openstack'
+        self.build_os_admin(orm)
+        print '> core - data - accountprovider: Eucalyptus'
+        self.build_euca_admin(orm)
 
     def build_provider_creds(self, orm):
+        print '> core - data - providercredential: Openstack'
         self.openstack_provider_creds(orm)
+        print '> core - data - providercredential: Eucalyptus'
         self.euca_provider_creds(orm)
+
+    def create_identity(self, orm, username, provider_location,
+                        max_quota=False, account_admin=False, **kwarg_creds):
+
+        credentials = {}
+        for (c_key,c_value) in kwarg_creds.items():
+            if 'cred_' not in c_key.lower():
+                continue
+            c_key = c_key.replace('cred_','')
+            credentials[c_key] = c_value
+
+        provider = orm.Provider.objects.get(location__iexact=provider_location)
+        #Create user-group
+        user = orm['auth.User'].objects.get_or_create(username=username)[0]
+        group = orm.Group.objects.get_or_create(name=username)[0]
+        user.groups.add(group)
+        user.save()
+        group.leaders.add(user)
+        group.save()
+
+
+        #NOTE: This specific query will need to be modified if we want
+        # 2+ Identities on a single provider
+
+        id_membership = orm.IdentityMembership.objects.filter(
+            member__name= user.username,
+            identity__provider=provider,
+            identity__created_by__username=user.username)
+        if not id_membership:
+            #1. Create a Provider Membership
+            p_membership = orm.ProviderMembership.objects.get_or_create(
+                provider=provider, member=group)[0]
+
+            #2. Create an Identity Membership
+            identity = orm.Identity.objects.get_or_create(
+                created_by=user, provider=provider)[0]
+            #Two-tuple, (Object, created)
+            quota = orm.Quota.objects.get_or_create(
+                cpu = orm.Quota._meta.get_field('cpu').default,
+                memory = orm.Quota._meta.get_field('memory').default,
+                storage = orm.Quota._meta.get_field('storage').default,
+                suspended_count = orm.Quota._meta.get_field('suspended_count').default,
+                storage_count = orm.Quota._meta.get_field('storage_count').default)[0]
+            id_membership = orm.IdentityMembership.objects.get_or_create(
+                identity=identity, member=group, quota=quota)
+        #Either first in list OR object from two-tuple.. Its what we need.
+        id_membership = id_membership[0] 
+
+        #ID_Membership exists.
+
+        #3. Make sure that all kwargs exist as credentials
+        # NOTE: Because we assume only one identity per provider
+        #       We can add new credentials to 
+        #       existing identities if missing..
+        # In the future it will be hard to determine when we want to 
+        # update values on an identity Vs. create a second, new identity.
+        for (c_key,c_value) in credentials.items():
+            test_key_exists = orm.Credential.objects.filter(
+                    identity=id_membership.identity,
+                    key=c_key)
+            if test_key_exists:
+                logger.info("Conflicting Key Errror: Key:%s Value:%s "
+                "Replacement:%s" % (c_key, c_value, test_key_exists[0].value))
+                #No Dupes... But should we really throw an Exception here?
+                continue
+            orm.Credential.objects.get_or_create(
+                identity=id_membership.identity,
+                key=c_key,
+                value=c_value)[0]
+        if account_admin:
+            admin = orm.ProviderAdmin.objects.get_or_create(
+                        provider=id_membership.identity.provider,
+                        identity=id_membership.identity)[0]
+
+        #5. Save the user to activate profile on first-time use
+        user.save()
+        #Return the identity
+        return id_membership.identity
+
+    def build_os_admin(self, orm):
+        if not hasattr(settings, 'OPENSTACK_ARGS'):
+            print """AccountProvider could not be created from settings.
+To create an AccountProvider for the 'OPENSTACK' location: via the REPL:
+>>> Identity.create_identity(ADMIN_USERNAME, 'OPENSTACK', account_admin=True,
+                             cred_key=username, cred_secret=password,
+                             cred_ex_tenant_name=project_name,
+                             cred_ex_project_name=project_name)"""
+            return
+
+        identity = self.create_identity(orm, 
+            settings.OPENSTACK_ARGS['username'],
+            'OPENSTACK', account_admin=True,
+            cred_key=settings.OPENSTACK_ADMIN_KEY,
+            cred_secret=settings.OPENSTACK_ADMIN_SECRET,
+            cred_ex_tenant_name=settings.OPENSTACK_ADMIN_TENANT,
+            cred_ex_project_name=settings.OPENSTACK_ADMIN_TENANT)
+
+    def build_euca_admin(self, orm):
+        if not hasattr(settings, 'EUCALYPTUS_ARGS'):
+            print """AccountProvider could not be created from settings.
+To create a Eucalyptus AccountProvider via the REPL:
+>>> Identity.create_identity(admin_username, 'EUCALYPTUS', account_admin=True,
+                             cred_key=_key, cred_secret=secret)"""
+            return
+        identity = self.create_identity(orm,
+            'admin', 'EUCALYPTUS',
+            account_admin=True,
+            cred_key=settings.EUCA_ADMIN_KEY,
+            cred_secret=settings.EUCA_ADMIN_SECRET)
 
     def euca_provider_creds(self, orm):
         from atmosphere import settings
-        euca = orm.Provider.objects.filter(location='EUCALYPTUS')
-        if not hasattr(settings, 'EUCALYPTUS_ARGS') or not euca:
+        if not hasattr(settings, 'EUCALYPTUS_ARGS'):
             print 'WARN:settings.EUCA_* missing, provider credentials will'\
             ' NOT be created automatically. Instead, be sure to run these'\
             ' commands on the REPL:\n'\
@@ -67,6 +173,9 @@ class Migration(DataMigration):
             "key='config_path', value='/services/Configuration', "\
             "provider=euca)\n"
             return
+        provider_type = orm.ProviderType.objects.get_or_create(name='Eucalyptus')[0]
+        euca = orm.Provider.objects.get_or_create(location='EUCALYPTUS',
+                                              type=provider_type)
         euca = euca[0]
         # Create provider credentials from settings
         orm.ProviderCredential.objects.get_or_create(
@@ -86,9 +195,7 @@ class Migration(DataMigration):
             key='ec2_cert_path', value=settings.EC2_CERT_PATH, provider=euca)
 
     def openstack_provider_creds(self, orm):
-        from atmosphere import settings
-        openstack = orm.Provider.objects.filter(location='OPENSTACK')
-        if not hasattr(settings, 'OPENSTACK_ARGS') or not openstack:
+        if not hasattr(settings, 'OPENSTACK_ARGS'):
             print 'WARN:settings.OPENSTACK_* missing, provider credentials will'\
             ' NOT be created automatically. Instead, be sure to run these'\
             ' commands on the REPL:\n'\
@@ -108,6 +215,11 @@ class Migration(DataMigration):
             "key='region_name', value=settings.OPENSTACK_DEFAULT_REGION, "\
             "provider=openstack)\n"
             return
+
+        provider_type = orm.ProviderType.objects.get_or_create(name='OpenStack')[0]
+        openstack = orm.Provider.objects.get_or_create(
+                location='OPENSTACK',
+                type=provider_type)
         openstack = openstack[0]
 
         orm.ProviderCredential.objects.get_or_create(

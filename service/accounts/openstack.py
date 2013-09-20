@@ -27,8 +27,7 @@ class AccountDriver():
     network_manager = None
     core_provider = None
 
-    def __init__(self, provider, *args, **kwargs):
-
+    def _init_by_provider(self, provider, *args, **kwargs):
         self.core_provider = provider
 
         provider_creds = provider.get_credentials()
@@ -39,6 +38,14 @@ class AccountDriver():
         all_creds = {}
         all_creds.update(admin_creds)
         all_creds.update(provider_creds)
+        return all_creds
+
+    def __init__(self, provider=None, *args, **kwargs):
+
+        if provider:
+            all_creds = self._init_by_provider(provider, *args, **kwargs)
+        else:
+            all_creds = kwargs
 
         # Build credentials for each manager
         self.user_creds = self._build_user_creds(all_creds)
@@ -50,48 +57,78 @@ class AccountDriver():
         self.image_manager = ImageManager(**self.image_creds)
         self.network_manager = NetworkManager(**self.net_creds)
 
-    def create_account(self, username, admin_role=False, max_quota=False):
+    def create_account(self, username, password=None, project_name=None,
+                       role_name=None, max_quota=False):
         """
         Create (And Update 'latest changes') to an account
 
         """
-        finished = False
-        #TODO: How will we handle this special case?
-        # The first time we are running in all users, we will hit 'user with
-        # non-standard password'. How will we know what the right credentials
-        # are?
+        if not self.core_provider:
+            raise Exception("AccountDriver not initialized by provider,"
+                            " cannot create identity. For account creation use"
+                            " build_account()")
 
         if username in self.core_provider.list_admin_names():
             return
+        self.build_account(username, password, project_name, role_name,
+                           max_quota)
+        ident = self.create_identity(username, password,
+                                     project_name,
+                                     max_quota=max_quota)
+        return ident
+
+    def build_account(self, username, password,
+                      project_name=None, role_name=None, max_quota=False):
+        finished = False
 
         #Attempt account creation
         while not finished:
             try:
-                password = self.hashpass(username)
-                # Retrieve user, or create user & project
-                user = self.get_or_create_user(username, password,
-                                               usergroup=True, admin=admin_role)
-                logger.debug(user)
-                project = self.get_project(username)
-                logger.debug(project)
-                roles = user.list_roles(project)
-                logger.debug(roles)
-                if not roles:
-                    self.user_manager.add_project_member(username,
-                                                           username,
-                                                           admin_role)
+                if not password:
+                    password = self.hashpass(username)
+                if not project_name:
+                    project_name = username
+
+                #1. Project should exist before creating user
+                project = self.user_manager.get_project(project_name)
+                if not project:
+                    project = self.user_manager.create_project(project_name)
+
+                # 2. Get user (And check they are in project)
+                user = self.get_user(username)
+                if not user:
+                    print 'Creating account: %s - %s - %s' % (username,\
+                            password, project)
+                    user = self.user_manager.create_user(username, password,
+                                                      project)
+                # 3. Check the user has an appropriate role (if given)
+                if role_name:
+                    roles = user.list_roles(project)
+                    if not roles:
+                        self.user_manager.add_role(username, project_name,
+                                                   role_name)
+
+                # 4. get protocol list and build security group
+                protocol_list = [
+                    ('TCP', 22, 22),
+                    ('TCP', 80, 80),
+                    ('TCP', 443, 443),
+                    ('TCP', 4200, 4200),
+                    ('TCP', 5500, 5500),
+                    ('TCP', 5666, 5666),
+                    ('TCP', 5900, 5904),
+                    ('TCP', 9418, 9418),
+                    ('ICMP', -1, -1),
+                ]
+                # 5. Update the security group
                 self.user_manager.build_security_group(user.name,
-                        self.hashpass(user.name), project.name)
+                        password, project.name, protocol_list)
 
                 finished = True
 
             except OverLimit:
                 print 'Requests are rate limited. Pausing for one minute.'
                 time.sleep(60)  # Wait one minute
-        ident = self.create_identity(username, password,
-                                     project_name=username,
-                                     max_quota=max_quota)
-        return ident
 
     def clean_credentials(self, credential_dict):
         """
@@ -115,6 +152,11 @@ class AccountDriver():
 
     def create_identity(self, username, password, project_name,
             max_quota=False, account_admin=False):
+
+        if not self.core_provider:
+            raise Exception("AccountDriver not initialized by provider, "
+                            "cannot create identity")
+
         identity = Identity.create_identity(
                 username, self.core_provider.location,
                 #Flags..
@@ -167,7 +209,7 @@ class AccountDriver():
 
     # Useful methods called from above..
     def get_or_create_user(self, username, password=None,
-                           usergroup=True, admin=False):
+                           project=None, admin=False):
         user = self.get_user(username)
         if user:
             return user
@@ -188,15 +230,27 @@ class AccountDriver():
         #TODO: Instead, return user.get_user match, or call it if you have to..
         return user
 
-    def delete_user(self, username, usergroup=True, admin=False):
-        project = self.user_manager.get_project(username)
+    def delete_account(self, username, projectname):
+        self.os_delete_account(username, projectname)
+        Identity.delete_identity(username, self.core_provider.location)
+
+    def os_delete_account(self, username, projectname):
+        project = self.user_manager.get_project(projectname)
+
+        #1. Network cleanup
         if project:
-            self.network_manager.delete_project_network(username, project.name)
-        if usergroup:
-            deleted = self.user_manager.delete_usergroup(username)
-        else:
-            deleted = self.user_manager.delete_user(username)
-        return deleted
+            self.network_manager.delete_project_network(username, projectname)
+
+        #2. Role cleanup (Admin too)
+        self.user_manager.delete_all_roles(username, projectname)
+        adminuser = self.user_manager.keystone.username
+        self.user_manager.delete_all_roles(adminuser, projectname)
+        #TODO: May need to switch this
+        #3. User cleanup
+        self.user_manager.delete_user(username)
+        #4. Project cleanup
+        self.user_manager.delete_project(projectname)
+        return True
 
     def hashpass(self, username):
         #TODO: Must be better.
@@ -327,6 +381,7 @@ class AccountDriver():
         #Ignored:
         img_args.pop('admin_url', None)
         img_args.pop('router_name', None)
+        img_args.pop('ex_project_name', None)
 
         return img_args
 
@@ -347,5 +402,6 @@ class AccountDriver():
         #Removable args:
         user_args.pop('admin_url', None)
         user_args.pop('router_name', None)
+        user_args.pop('ex_project_name', None)
         return user_args
 

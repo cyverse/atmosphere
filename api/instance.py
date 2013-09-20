@@ -394,7 +394,7 @@ class Instance(APIView):
             esh_instance = esh_driver.get_instance(instance_id)
             if not esh_instance:
                 return instance_not_found(instance_id)
-            task.destroy_instance_task(esh_driver, esh_instance, identity_id)
+            task.destroy_instance_task(esh_instance, identity_id)
             esh_instance = esh_driver.get_instance(instance_id)
             if esh_instance.extra\
                and 'task' not in esh_instance.extra:

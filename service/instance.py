@@ -71,10 +71,11 @@ def update_status(esh_driver, instance_id, provider_id, identity_id, user):
 def destroy_instance(identity_id, instance_alias):
     core_identity = CoreIdentity.objects.get(id=identity_id)
     esh_driver = get_esh_driver(core_identity)
-    instance = driver.get_instance(instance_alias)
+    instance = esh_driver.get_instance(instance_alias)
     if isinstance(esh_driver, OSDriver):
-        driver._connection.ex_disassociate_floating_ip(instance)
-    node_destroyed = driver._connection.destroy_node(instance)
+        #Openstack: Remove floating IP first
+        esh_driver._connection.ex_disassociate_floating_ip(instance)
+    node_destroyed = esh_driver._connection.destroy_node(instance)
     return node_destroyed
 
 

@@ -21,6 +21,23 @@ class Identity(models.Model):
     provider = models.ForeignKey("Provider")
 
     @classmethod
+    def delete_identity(cls, username, provider_location):
+        #Do not move up. ImportError.
+        from core.models import Group, Credential, Quota,\
+                                Provider, AccountProvider,\
+                                IdentityMembership, ProviderMembership
+
+        provider = Provider.objects.get(location__iexact=provider_location)
+        user = User.objects.get(username=username)
+        group = Group.objects.get(name=username)
+        identities = Identity.objects.filter(
+            created_by=user, provider=provider)
+        identities.delete()
+        group.delete()
+        user.delete()
+        return
+
+    @classmethod
     def create_identity(cls, username, provider_location,
                         max_quota=False, account_admin=False, **kwarg_creds):
         """
@@ -102,7 +119,7 @@ class Identity(models.Model):
         if max_quota:
             quota = Quota.get_max_quota()
             id_membership.quota = quota
-            id_membership.save
+            id_membership.save()
         if account_admin:
             admin = AccountProvider.objects.get_or_create(
                         provider=id_membership.identity.provider,

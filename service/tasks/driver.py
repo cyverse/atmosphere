@@ -124,10 +124,11 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
       default_retry_delay=15,
       ignore_result=True,
       max_retries=6)
-def destroy_instance(driverCls, provider, identity, core_identity_id, instance_alias):
+def destroy_instance(core_identity_id, instance_alias):
+    from service import instance as instance_service
     try:
         logger.debug("destroy_instance task started at %s." % datetime.now())
-        node_destroyed = destroy_instance(core_identity_id, instance_alias)
+        node_destroyed = instance_service.destroy_instance(core_identity_id, instance_alias)
         if isinstance(driver, OSDriver):
             #Spawn off the last two tasks
             logger.debug("OSDriver Logic -- Remove floating ips and check"
