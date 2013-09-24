@@ -1195,6 +1195,30 @@ img.terminate_shell, img.terminate_vnc {
 	position: relative;
 }
 
+/* Image Screen */
+#image-grid {
+    margin: 0;
+}
+#image-grid li {
+    display: inline-block;
+    width: 100px;
+    vertical-align: top;
+    margin: 0 15px 15px 0
+}
+#image-grid .img-icon-link {
+    display: block;
+    text-align: center;
+    border-bottom: 0 none;
+    padding: 5px 0;
+}
+#image-grid .img-icon-link:hover {
+    border-bottom: 0 none;
+}
+#image-grid .img-icon-link img {
+    width: 100px;
+    height: 100px;
+}
+
 /* New Instance Screen*/
 #newinst_name_title {			/* Available images */
 	display: inline;

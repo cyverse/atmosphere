@@ -33,20 +33,21 @@ Atmo.Models.Profile = Atmo.Models.Base.extend({
 			+ '/' + this.defaults.model_name + '/';
 	},
     // Given a md5 hash, return the URL to a icon
-	get_icon: function(hash) {
+	get_icon: function(hash, size) {
+        var size = size || 50; // height & width in pixels
 		var icon_set = this.get('settings')['icon_set'];
         if (icon_set == 'default')
-            return "//www.gravatar.com/avatar/" + hash + "?d=identicon&s=50"; 
+            return "//www.gravatar.com/avatar/" + hash + "?d=identicon&s=" + size; 
         if (icon_set == 'unicorn')
-            return "//unicornify.appspot.com/avatar/" + hash + "?s=50";
+            return "//unicornify.appspot.com/avatar/" + hash + "?s=" + size;
         if (icon_set == 'wavatar')
-            return "//www.gravatar.com/avatar/" + hash + "?d=wavatar&s=50";
+            return "//www.gravatar.com/avatar/" + hash + "?d=wavatar&s=" + size;
         if (icon_set == 'monster')
-            return "//www.gravatar.com/avatar/" + hash + "?d=monsterid&s=50";
+            return "//www.gravatar.com/avatar/" + hash + "?d=monsterid&s=" + size;
         if (icon_set == 'retro')
-            return "//www.gravatar.com/avatar/" + hash + "?d=retro&s=50";
+            return "//www.gravatar.com/avatar/" + hash + "?d=retro&s=" + size;
         if (icon_set == 'robot')
-            return "//robohash.org/" + hash + "?size=50x50";
+            return "//robohash.org/" + hash + "?size=" + size + "x" + size;
         return null;
     }
 });

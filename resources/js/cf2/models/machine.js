@@ -21,7 +21,14 @@ Atmo.Models.Machine = Atmo.Models.Base.extend({
 		attributes.state = response.state;
 		
 		return attributes;
-	}
+	},
+    icon: function(size) {
+        var size = size || 50;
+        if (this.get('icon'))
+            return this.get('icon');
+        else
+            return Atmo.profile.get_icon(this.get('alias_hash'), size);
+    }
 });
 
 _.extend(Atmo.Models.Machine.defaults, Atmo.Models.Base.defaults);

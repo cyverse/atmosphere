@@ -46,7 +46,7 @@ Atmo.Views.Main = Backbone.View.extend({
         if ($('#imageStore').length) {
             $('#imageStore').show();
         } else {
-            this.new_instance_screen  = new Atmo.Views.NewInstanceScreen(options);
+            this.new_instance_screen  = new Atmo.Views.ImageScreen(options);
             $('#main').append(this.new_instance_screen.render().el);
         }
         resizeApp();
