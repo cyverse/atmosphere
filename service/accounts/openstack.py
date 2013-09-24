@@ -27,6 +27,45 @@ class AccountDriver():
     network_manager = None
     core_provider = None
 
+    MASTER_RULES_LIST = [
+        ('ICMP', -1, 255),
+        #FTP Access
+        ('UDP', 20, 20),  # FTP data transfer
+        ('TCP', 20, 21),  # FTP control
+        #SSH & Telnet Access
+        ('TCP', 22, 23),
+        ('UDP', 22, 23),
+        # SMTP Mail
+        #('TCP', 25, 25),
+        # HTTP Access
+        ('TCP', 80, 80),
+        # POP Mail
+        #('TCP', 109, 110),
+        # SFTP Access
+        ('TCP', 115, 115),
+        # SQL Access
+        #('TCP', 118, 118),
+        #('UDP', 118, 118),
+        # IMAP Access
+        #('TCP', 143, 143),
+        # SNMP Access
+        #('UDP', 161, 161),
+        # LDAP Access
+        ('TCP', 389, 389),
+        ('UDP', 389, 389),
+        # HTTPS Access
+        ('TCP', 443, 443),
+        # LDAPS Access
+        ('TCP', 636, 636),
+        ('UDP', 636, 636),
+        # Open up >1024
+        ('TCP', 1024, 4199),
+        ('UDP', 1024, 4199),
+        # Poke hole 4200 (Shellinabox)
+        ('TCP', 4201, 65535),
+        ('UDP', 4201, 65535),
+    ]
+
     def _init_by_provider(self, provider, *args, **kwargs):
         self.core_provider = provider
 
@@ -109,26 +148,30 @@ class AccountDriver():
                                                    role_name)
 
                 # 4. get protocol list and build security group
-                protocol_list = [
-                    ('TCP', 22, 22),
-                    ('TCP', 80, 80),
-                    ('TCP', 443, 443),
-                    ('TCP', 4200, 4200),
-                    ('TCP', 5500, 5500),
-                    ('TCP', 5666, 5666),
-                    ('TCP', 5900, 5904),
-                    ('TCP', 9418, 9418),
-                    ('ICMP', -1, -1),
-                ]
+                rules_list = self.MASTER_RULES_LIST
                 # 5. Update the security group
                 self.user_manager.build_security_group(user.name,
-                        password, project.name, protocol_list)
+                        password, project.name, rules_list)
 
                 finished = True
 
             except OverLimit:
                 print 'Requests are rate limited. Pausing for one minute.'
                 time.sleep(60)  # Wait one minute
+
+    def rebuild_security_groups(self, core_identity, rules_list=None):
+        creds = self.parse_identity(core_identity)
+        if not rules_list:
+            rules_list = self.MASTER_RULES_LIST
+        return self.user_manager.build_security_group(
+                creds['username'], creds['password'], creds['tenant_name'],
+                rules_list, rebuild=True)
+
+    def parse_identity(self, core_identity):
+        identity_creds = self._libcloud_to_openstack(
+                core_identity.get_credentials())
+        return identity_creds
+
 
     def clean_credentials(self, credential_dict):
         """
@@ -181,8 +224,7 @@ class AccountDriver():
 
     def delete_network(self, identity):
         #Core credentials need to be converted to openstack names
-        identity_creds = self._libcloud_to_openstack(
-                identity.get_credentials())
+        identity_creds = self.parse_identity(identity)
         username = identity_creds['username']
         password = identity_creds['password']
         project_name = identity_creds['tenant_name']
@@ -194,8 +236,7 @@ class AccountDriver():
 
     def create_network(self, identity):
         #Core credentials need to be converted to openstack names
-        identity_creds = self._libcloud_to_openstack(
-                identity.get_credentials())
+        identity_creds = self.parse_identity(identity)
         username = identity_creds['username']
         password = identity_creds['password']
         project_name = identity_creds['tenant_name']

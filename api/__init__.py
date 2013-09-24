@@ -33,7 +33,7 @@ from service import task
 #These functions return ESH related information based on the core repr
 ESH_MAP = {
     'openstack': {
-        'provider': OSValhallaProvider,
+        'provider': OSProvider,
         'identity': OSIdentity,
         'driver': OSDriver
     },
@@ -42,6 +42,7 @@ ESH_MAP = {
         'identity': EucaIdentity,
         'driver': EucaDriver
     },
+    #TODO: Fix this line when we use AWS
     'ec2_us_east':  {
         'provider': AWSUSEastProvider,
         'identity': AWSIdentity,
@@ -56,8 +57,12 @@ ESH_MAP = {
 
 
 def get_esh_map(core_provider):
+    """
+    Based on the type of cloud: (OStack, Euca, AWS)
+    initialize the provider/identity/driver from 'the map'
+    """
     try:
-        provider_name = core_provider.location.lower()
+        provider_name = core_provider.type.name.lower()
         return ESH_MAP[provider_name]
     except Exception, e:
         logger.exception(e)
