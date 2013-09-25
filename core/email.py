@@ -5,6 +5,7 @@ Atmosphere core email.
 from datetime import datetime
 
 from django.contrib.auth.models import User
+from django.utils import timezone
 from django.core.mail import EmailMessage
 from atmosphere import settings
 from threepio import logger, email_logger
@@ -148,7 +149,7 @@ Your Instance Information:
 * Name: %s
 * IP Address: %s
 * SSH Username: %s
-* Launched at: %s UTC
+* Launched at: %s UTC (%s Arizona time)
 
 Please terminate instances when they are no longer needed.
 This e-mail notification was auto-generated after instance launch.
@@ -160,7 +161,8 @@ Helpful links:
 """ % (instance_id,
        instance_name,
        ip, linuxusername,
-       launched_at.strftime('%b, %d %Y %H:%M:%S'))
+       launched_at.strftime('%b, %d %Y %H:%M:%S'),
+       timezone.localtime(launched_at).strftime('%b, %d %Y %H:%M:%S'))
     subject = 'Your Atmosphere Instance is Available'
     return email_from_admin(user, subject, body)
 

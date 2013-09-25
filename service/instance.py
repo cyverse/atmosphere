@@ -136,6 +136,10 @@ def check_quota(username, identity_id, esh_size):
         raise OverAllocationError(time_diff)
 
 def network_init(core_identity):
+    provider_creds = core_identity.provider.get_credentials()
+    if 'router_name' not in provider_creds.keys():
+        logger.warn("ProviderCredential 'router_name' missing: cannot create virtual network")
+        return
     os_driver = OSAccountDriver(core_identity.provider)
     os_driver.create_network(core_identity)
 

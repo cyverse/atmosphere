@@ -27,11 +27,13 @@ class NotificationList(APIView):
         #elif '' in action:
 
     def _email_instance_owner(self, request, params):
-        '''OLD API
+        '''
+        OLD API
         '''
         instance_token = params.get('token')
         username = params.get('userid')
         vm_info = params.get('vminfo')
+        instance_name = params.get('name')
         logger.debug(params)
         instance = CoreInstance.objects.filter(token=instance_token)
         if not instance:
@@ -58,10 +60,12 @@ class NotificationList(APIView):
         if ip_address:
             instance.ip_address = ip_address
             instance.save()
+        launch_time = instance.start_date
 
-        username = vm_info.get('linuxusername', instance.created_by)
+        linuxusername = vm_info.get('linuxusername', instance.created_by)
         instance_id = vm_info.get('instance-id', instance.provider_alias)
-        send_instance_email(username, instance_id, ip_address, username)
+        send_instance_email(username, instance_id, instance_name,
+                            ip_address, launch_time, linuxusername)
 
     def post(self, request):
         """
