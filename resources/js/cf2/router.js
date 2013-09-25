@@ -7,8 +7,8 @@ Atmo.Router = Backbone.Router.extend({
         "instances/:instance_id": "select_instance",
         "volumes": "volumes",
         "volumes/:volume_id": "select_volume",
-        "new_instance": "new_instance",
-        "new_instance/:image_query": "select_image",
+        "images": "images",
+        "images/:image_id": "select_image",
         "settings": "settings"
     },
     initialize: function() {
@@ -156,8 +156,8 @@ Atmo.Router = Backbone.Router.extend({
         Atmo.Utils.hide_all_help();
       }
     },
-    new_instance: function(options) {
-        this.main.show_new_instance_screen();
+    images: function(options) {
+        this.main.show_images_screen();
         // Hide all help tips so none remain after navigating away from it
         Atmo.Utils.hide_all_help();
     },
