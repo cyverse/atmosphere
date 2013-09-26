@@ -1,1 +1,19 @@
-<h1><%= name_or_id %></h1>
+<div class="row-fluid">
+    <div class="span8"> 
+        <h1><%= name_or_id %></h1>
+        <p>by <a href="#images/search/author:<%= ownerid %>"><%= ownerid %></a></p>
+    </div>
+    <div class="span4 launch-instance-container"> 
+        <a href="#" class="btn btn-primary btn-large launch-instance-btn">Launch Instance</a>
+    </div>
+</div>
+<div class="media">
+    <div class="img">
+        <img src="" />
+    </div>
+    <div class="bd">
+        <h2>Description</h2>
+        <p><%= description %></p>
+        <h2>Tags</h2>
+    </div>
+</div>

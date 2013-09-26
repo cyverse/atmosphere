@@ -6,7 +6,15 @@ Atmo.Views.ImageDetail = Backbone.View.extend({
     initialize: function(options) {
     },
     render: function() {
-        this.$el.html(this.template(this.model.toJSON()));
+        var tagger = new Atmo.Views.Tagger({
+            default_tags: this.model.get('tags'),
+            editable: false
+        });
+
+        this.$el
+            .html(this.template(this.model.toJSON()))
+            .find('.img img').attr('src', this.model.icon(200)).end()
+            .find('.bd').append(tagger.render().el);
         return this;
     }
 });

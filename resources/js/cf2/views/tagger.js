@@ -21,12 +21,13 @@ Atmo.Views.Tagger = Backbone.View.extend({
         this.tags = this.options.default_tags ? this.options.default_tags.slice(0) : []; // the set of tags
         this.sticky_tags = this.options.sticky_tags ? this.options.sticky_tags.slice(0) : []; // tags that cannot be removed
         // sticky tags is a subset of tags
+        this.editable = _.has(this.options, 'editable') ? this.options.editable : true;
 
 		// Get all tags in use, or use suggested tags if options.suggestions exists
 		var self = this;
 		this.suggestions = [];
 
-		if (!this.options.suggestions) {
+		if (this.editable && !this.options.suggestions) {
 			$.ajax({
 				type: 'GET',
 				url: site_root + '/api/v1/tag/',
@@ -51,6 +52,7 @@ Atmo.Views.Tagger = Backbone.View.extend({
             this.on('change', this.options.change);
         if (this.options.duplicate_rejected)
             this.on('duplicate_rejected', this.options.duplicate_rejected);
+
     },
     render: function() {
         this.$el.html(this.template({tags: this.tags}));
@@ -58,6 +60,8 @@ Atmo.Views.Tagger = Backbone.View.extend({
         this.tag_input = this.$el.find('.new_tag');
         this.suggestions_holder = this.$el.find('.suggested_tags_holder');
         this.$el.find('.tag_controls, .suggested_tags_holder').hide();
+        if (!this.editable)
+            this.set_editable(false);
         return this;
     },
     set_editable: function(editable) {

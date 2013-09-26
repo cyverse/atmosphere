@@ -1219,6 +1219,11 @@ img.terminate_shell, img.terminate_vnc {
     height: 100px;
 }
 
+/* Image Detail */
+.image-detail .launch-instance-container {
+    text-align: right;
+}
+
 /* New Instance Screen*/
 #newinst_name_title {			/* Available images */
 	display: inline;
