@@ -1223,10 +1223,23 @@ img.terminate_shell, img.terminate_vnc {
 .image-detail .launch-instance-container {
     text-align: right;
 }
-#main a.launch-instance-btn:hover {
+.image-detail .pull-right {
+    text-align: center;
+}
+#main a.launch-instance-btn, #main a.launch-instance-btn:hover {
     border-bottom: 0 none;
     color: #fff;
 }
+.launch-instance-btn {
+    margin-top: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 16px;
+}
+.image-detail .media-body {
+    width: 600px;
+}
+
 .image-details-list {
     margin: 0 0 1.5em;
 }

@@ -13,7 +13,7 @@ Atmo.Views.ImageDetail = Backbone.View.extend({
 
         this.$el
             .html(this.template(this.model.toJSON()))
-            .find('.pull-left img').attr('src', this.model.icon(200)).end()
+            .find('.image-big-icon').attr('src', this.model.icon(200)).end()
             .find('.media-body').append(tagger.render().el);
         return this;
     }
