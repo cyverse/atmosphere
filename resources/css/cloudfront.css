@@ -1223,6 +1223,23 @@ img.terminate_shell, img.terminate_vnc {
 .image-detail .launch-instance-container {
     text-align: right;
 }
+#main a.launch-instance-btn:hover {
+    border-bottom: 0 none;
+    color: #fff;
+}
+.image-details-list {
+    margin: 0;
+}
+.image-details-list li {
+    display: inline-block;
+    color: #666;
+    margin-right: 5px;
+}
+.image-details-list li + li {
+    border: 1px solid #999;
+    border-width: 0 0 0 1px;
+    padding-left: 5px;
+}
 
 /* New Instance Screen*/
 #newinst_name_title {			/* Available images */

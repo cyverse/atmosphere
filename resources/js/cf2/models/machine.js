@@ -9,7 +9,7 @@ Atmo.Models.Machine = Atmo.Models.Base.extend({
 		attributes.id = response.alias;
 		attributes.name = response.name;
 		attributes.architecture = response.architecture;
-		attributes.create_date = response.start_date;
+		attributes.create_date = new Date(response.start_date);
 		attributes.featured = response.featured;
 
 		if (response.icon)
