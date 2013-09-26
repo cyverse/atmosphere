@@ -1,21 +1,21 @@
-<div class="row-fluid">
-    <div class="span8"> 
-        <h1><%= name_or_id %></h1>
-        <ul class="image-details-list">
-            <li>Author: <a href="#images/search/author:<%= ownerid %>"><%= ownerid %></a></li>
-            <li>ID: <%= alias %></li>
-            <li>Created: <%= create_date.toString("MMM d, yyyy") %></li>
-        </ul>
-    </div>
-    <div class="span4 launch-instance-container"> 
-        <a href="#" class="btn btn-primary btn-large launch-instance-btn">Launch Instance</a>
-    </div>
-</div>
 <div class="media">
     <div class="pull-left">
         <img class="media-object" src="" />
     </div>
     <div class="media-body">
+        <div class="row-fluid">
+            <div class="span8"> 
+                <h1><%= name_or_id %></h1>
+                <ul class="image-details-list">
+                    <li>Author: <a href="#images/search/author:<%= ownerid %>"><%= ownerid %></a></li>
+                    <li>ID: <%= alias %></li>
+                    <li>Created: <%= create_date.toString("MMM d, yyyy") %></li>
+                </ul>
+            </div>
+            <div class="span4 launch-instance-container"> 
+                <a href="#" class="btn btn-primary btn-large launch-instance-btn">Launch Instance</a>
+            </div>
+        </div>
         <h2>Description</h2>
         <p><%= description %></p>
         <h2>Tags</h2>
