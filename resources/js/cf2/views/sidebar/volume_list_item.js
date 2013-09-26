@@ -1,5 +1,6 @@
 Atmo.Views.SidebarVolumeListItem = Backbone.View.extend({
 	tagName: 'li',
+    className: 'media',
 	template: _.template(Atmo.Templates.sidebar_volume_list_item),
 	events: {
 		'click' : 'vol_clicked',

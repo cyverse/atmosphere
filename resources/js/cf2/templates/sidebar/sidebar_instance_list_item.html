@@ -1,7 +1,9 @@
 <div style="display: none">
-    <img class="img image_icon" src="<%= image_url %>" height="20" width="20" />
-    <a class="img-ext rect-delete" title="Terminate Instance" href="#"><img src="<%= site_root %>/resources/images/x_close.png" alt="terminate_instance" /></a>
-    <div class="bd">
+    <div class="pull-left">
+        <img class="media-object image_icon" src="<%= image_url %>" height="20" width="20" />
+    </div>
+    <a class="rect-delete" title="Terminate Instance" href="#"><img src="<%= site_root %>/resources/images/x_close.png" alt="terminate_instance" /></a>
+    <div class="media-body">
         <b><%= name_or_id %></b>
         <br /> 
 		<span><%= private_dns_name %></span>
