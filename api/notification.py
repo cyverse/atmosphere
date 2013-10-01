@@ -62,7 +62,7 @@ class NotificationList(APIView):
         linuxusername = vm_info.get('linuxusername', instance.created_by)
         instance_id = vm_info.get('instance-id', instance.provider_alias)
         # Only send email if the provider isn't OpenStack.
-        if instance.provider.type.name != "OpenStack":
+        if instance.created_by_identity.provider.type.name != "OpenStack":
             send_instance_email(username, instance_id, instance_name,
                                 ip_address, launch_time, linuxusername)
 
