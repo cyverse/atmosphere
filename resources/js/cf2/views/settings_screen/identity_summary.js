@@ -44,7 +44,7 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
     var name = _.filter(Atmo.providers.models, function(provider) {
       return provider.get('id') == self.provider;    
     });
-    identity.provider_name = name[0].attributes.type;
+    identity.provider_name = name[0].attributes.location;
     this.$el.html(this.template(identity));
     if (Atmo.profile.get('selected_identity').id == self.identity_id) {
       if(in_maintenance) {

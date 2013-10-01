@@ -61,9 +61,12 @@ class AccountDriver():
         # Open up >1024
         ('TCP', 1024, 4199),
         ('UDP', 1024, 4199),
-        # Poke hole 4200 (Shellinabox)
+        #SKIP PORT 4200.. See Below
         ('TCP', 4201, 65535),
         ('UDP', 4201, 65535),
+        # Poke hole in 4200 for iPlant VMs proxy-access only (Shellinabox)
+        ('TCP', 4200, 4200, '128.196.142.0/24'),
+        ('UDP', 4200, 4200, '128.196.142.0/24'),
     ]
 
     def _init_by_provider(self, provider, *args, **kwargs):

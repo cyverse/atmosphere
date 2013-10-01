@@ -1,3 +1,5 @@
+from service.tasks.machine import machine_imaging_task
+
 def start_machine_imaging(machine_request, delay=False):
     """
     Builds a machine imaging task using the machine_request
@@ -16,6 +18,7 @@ def start_machine_imaging(machine_request, delay=False):
         migrate_creds.update(new_provider.get_credentials())
         migrate_creds.update(new_provider.get_admin_identity().get_credentials())
         
+    #TODO: Logic for if delay = True..
     machine_imaging_task.si(machine_request,
                             provider_creds,
                             migrate_creds).apply_async()

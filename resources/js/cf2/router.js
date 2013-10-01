@@ -76,7 +76,7 @@ Atmo.Router = Backbone.Router.extend({
         var identity_provider_id = identity.get('provider_id');
         var in_maintenance = Atmo.maintenances.in_maintenance(identity_provider_id);
         var result = '';
-	var name = Atmo.identities.models[i].get('provider').get('type');
+	var name = Atmo.identities.models[i].get('provider').get('location');
 	$('#providers_menu').append($('<li>', {
 	  html: function() {
 	    if (identity.get('selected')){
