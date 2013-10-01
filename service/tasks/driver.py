@@ -71,6 +71,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         logger.debug("deploy_init_to task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
+
         image_metadata = driver._connection\
                                .ex_get_image_metadata(instance.machine)
         image_already_deployed = image_metadata.get("deployed")
@@ -129,6 +130,8 @@ def destroy_instance(core_identity_id, instance_alias):
     try:
         logger.debug("destroy_instance task started at %s." % datetime.now())
         node_destroyed = instance_service.destroy_instance(core_identity_id, instance_alias)
+        core_identity = CoreIdentity.objects.get(id=core_identity_id)
+        driver = get_esh_driver(core_identity)
         if isinstance(driver, OSDriver):
             #Spawn off the last two tasks
             logger.debug("OSDriver Logic -- Remove floating ips and check"

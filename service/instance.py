@@ -72,6 +72,9 @@ def destroy_instance(identity_id, instance_alias):
     core_identity = CoreIdentity.objects.get(id=identity_id)
     esh_driver = get_esh_driver(core_identity)
     instance = esh_driver.get_instance(instance_alias)
+    #Bail if instance doesnt exist
+    if not instance:
+        return None
     if isinstance(esh_driver, OSDriver):
         #Openstack: Remove floating IP first
         esh_driver._connection.ex_disassociate_floating_ip(instance)

@@ -263,6 +263,7 @@ class PaginatedProviderMachineSerializer(pagination.PaginationSerializer):
 
 class ProviderSerializer(serializers.ModelSerializer):
     type = serializers.SlugRelatedField(slug_field='name')
+    location = serializers.CharField(source='get_location')
 
     class Meta:
         model = Provider
