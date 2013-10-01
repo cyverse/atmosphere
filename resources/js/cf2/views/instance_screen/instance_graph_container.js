@@ -12,6 +12,9 @@ Atmo.Views.InstanceGraphContainer = Backbone.View.extend({
         this.$el.empty().append("<p>Metrics are not available for your instance.</p>");
     },
     render: function() {
+        if (typeof google === 'undefined')
+            return this;
+
         this.memory_graph = new Atmo.Views.InstanceMemoryGraph({
             model: this.model, 
             on_failure: _.bind(this.on_failure, this)

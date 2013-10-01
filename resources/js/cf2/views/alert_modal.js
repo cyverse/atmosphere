@@ -14,8 +14,6 @@ Atmo.Views.AlertModal = Backbone.View.extend({
     },
     render: function() {
         this.$el.html(this.template());
-		console.log(this.$el);
-		console.log(this.template());
         return this;
     },
     do_alert: function(header, body, options) {
