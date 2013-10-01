@@ -282,7 +282,7 @@ class ImageManager():
         self.ec2_cert_path=kwargs.get('ec2_cert_path','')
         self.pk_path=kwargs.get('pk_path','')
         self.euca_cert_path=kwargs.get('euca_cert_path','')
-        self.extras_root=kwargs.get('extras_root','')
+        self.extras_root=kwargs.get('extras_root')
         self.config_path=kwargs.get('config_path','/services/Configuration')
 
     def _env_credentials(self, key, secret, ec2_url, s3_url):
@@ -949,7 +949,11 @@ class ImageManager():
 
     def get_image(self, image_id):
         euca_conn = self.euca.make_connection()
-        return euca_conn.get_image(image_id)
+        image = euca_conn.get_image(image_id)
+        #Believe it or not, this image may NOT be the one we requested.
+        if image.id != image_id:
+            return None
+        return image
 
     #Parsing classes belong to euca-download-bundle in euca2ools 1.3.1
     def _get_parts(self, manifest_filename):

@@ -12,6 +12,7 @@ from threepio import logger
 from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
 from core.models.instance import update_instance_metadata
+from core.models.identity import Identity
 
 from service.driver import get_driver
 
@@ -123,20 +124,11 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
       default_retry_delay=15,
       ignore_result=True,
       max_retries=6)
-def destroy_instance(driverCls, provider, identity, instance_alias):
+def destroy_instance(core_identity_id, instance_alias):
+    from service import instance as instance_service
     try:
         logger.debug("destroy_instance task started at %s." % datetime.now())
-        driver = get_driver(driverCls, provider, identity)
-        instance = driver.get_instance(instance_alias)
-        from rtwo.driver import OSDriver
-        if instance:
-            #First disassociate
-            if isinstance(driver, OSDriver):
-                driver._connection.ex_disassociate_floating_ip(instance)
-            #Then destroy
-            node_destroyed = driver._connection.destroy_node(instance)
-        else:
-            logger.debug("Instance already deleted: %s." % instance.id)
+        node_destroyed = instance_service.destroy_instance(core_identity_id, instance_alias)
         if isinstance(driver, OSDriver):
             #Spawn off the last two tasks
             logger.debug("OSDriver Logic -- Remove floating ips and check"
@@ -150,7 +142,8 @@ def destroy_instance(driverCls, provider, identity, instance_alias):
                   _check_empty_project_network
                   .subtask((driverCls,
                             provider,
-                            identity),
+                            identity,
+                            core_identity_id),
                            immutable=True,
                            countdown=60)).apply_async()
 
@@ -263,20 +256,13 @@ def _remove_floating_ip(driverCls, provider, identity, *args, **kwargs):
       default_retry_delay=15,
       ignore_result=True,
       max_retries=6)
-def add_os_project_network(username, *args, **kwargs):
+def add_os_project_network(core_identity, *args, **kwargs):
     try:
         logger.debug("add_os_project_network task started at %s." %
                      datetime.now())
         from rtwo.accounts.openstack import AccountDriver as OSAccountDriver
-        account_driver = OSAccountDriver()
-        password = account_driver.hashpass(username)
-        project_name = account_driver.get_project_name_for(username)
-        account_driver.network_manager.create_project_network(
-            username,
-            password,
-            project_name,
-            get_unique_number=get_unique_number,
-            **settings.OPENSTACK_NETWORK_ARGS)
+        account_driver = OSAccountDriver(core_identity.provider)
+        account_driver.create_network(core_identity)
         logger.debug("add_os_project_network task finished at %s." %
                      datetime.now())
     except Exception as exc:
@@ -287,12 +273,15 @@ def add_os_project_network(username, *args, **kwargs):
       default_retry_delay=60,
       ignore_result=True,
       max_retries=1)
-def _check_empty_project_network(driverCls, provider, identity,
-                                 *args, **kwargs):
+def _check_empty_project_network(
+        core_identity_id,
+        *args, **kwargs):
     try:
         logger.debug("_check_empty_project_network task started at %s." %
                      datetime.now())
-        driver = get_driver(driverCls, provider, identity)
+
+        core_identity = CoreIdentity.objects.get(id=identity_id)
+        driver = get_esh_driver(core_identity)
         instances = driver.list_instances()
         active_instances = False
         for instance in instances:
@@ -303,13 +292,10 @@ def _check_empty_project_network(driverCls, provider, identity,
             #Check for project network
             from service.accounts.openstack import AccountDriver as\
                 OSAccountDriver
-            os_acct_driver = OSAccountDriver()
-            username = identity.user.username
-            project_name = username
+            os_acct_driver = OSAccountDriver(core_identity.provider)
             logger.info("No active instances. Removing project network"
-                        "from %s" % username)
-            os_acct_driver.network_manager.delete_project_network(username,
-                                                                  project_name)
+                        "from %s" % core_identity)
+            os_acct_driver.delete_network(core_identity)
         logger.debug("_check_empty_project_network task finished at %s." %
                      datetime.now())
     except Exception as exc:

@@ -78,7 +78,7 @@ class Size(models.Model):
             self.end_date)
 
 
-def convert_esh_size(esh_size, provider_id, user):
+def convert_esh_size(esh_size, provider_id):
     """
     """
     alias = esh_size._size.id

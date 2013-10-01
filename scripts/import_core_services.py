@@ -46,18 +46,6 @@ def members_query_groupy(groupname):
 	    usernames.append(user['name'].replace('esteve','sgregory'))
     return usernames
 
-def fix_openstack_network(os_driver):
-    usergroups = [usergroup for usergroup in os_driver.list_usergroups()]
-    users_with_networks = os_driver.network_manager.list_tenant_network()
-    users_without_networks = []
-    for (user,group) in usergroups:
-        if user.name not in users_with_networks:
-            # This user needs to have a tenant network created
-            password = os_driver.hashpass(user.name)
-            os_driver.network_manager.create_tenant_network(user.name, password,
-                group.name)
-            logger.info("Tenant network built for %s" % user.name)
-
 def make_admin(user):
     u = User.objects.get(username=user)
     u.is_superuser = True

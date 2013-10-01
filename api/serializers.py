@@ -31,7 +31,7 @@ class CredentialSerializer(serializers.ModelSerializer):
 
 class IdentitySerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
-    credentials = serializers.Field(source='credential_list')
+    credentials = serializers.Field(source='get_credentials')
     quota = serializers.Field(source='get_quota_dict')
     #URLs
     #instances = serializers.HyperlinkedIdentityField(
@@ -154,8 +154,11 @@ class MachineRequestSerializer(serializers.ModelSerializer):
 
 
 class MaintenanceRecordSerializer(serializers.ModelSerializer):
+    provider_id = serializers.Field(source='provider.id')
+
     class Meta:
         model = MaintenanceRecord
+        exclude = ('provider',)
 
 
 class IdentityDetailSerializer(serializers.ModelSerializer):
@@ -195,6 +198,8 @@ class ProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(read_only=True, source='user.username')
     email = serializers.CharField(read_only=True, source='email_hash')
     groups = serializers.CharField(read_only=True, source='user.groups.all')
+    is_staff = serializers.BooleanField(source='user.is_staff')
+    is_superuser = serializers.BooleanField(source='user.is_superuser')
     selected_identity = IdentityRelatedField()
 
     def validate_selected_identity(self, attrs, source):

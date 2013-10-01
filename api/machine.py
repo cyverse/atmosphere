@@ -20,6 +20,7 @@ from core.models.machine import compare_core_machines, filter_core_machine,\
     ProviderMachine
 
 from api import prepare_driver, failureJSON
+from api.permissions import InMaintenance
 from api.serializers import ProviderMachineSerializer,\
     PaginatedProviderMachineSerializer
 
@@ -57,6 +58,8 @@ class MachineList(APIView):
     TODO: POST when we have programmatic image creation/snapshots
     """
 
+    permission_classes = (InMaintenance,)
+
     @api_auth_token_required
     def get(self, request, provider_id, identity_id):
         """
@@ -76,6 +79,8 @@ class MachineHistory(APIView):
 
     GET - A chronologically ordered list of ProviderMachines for the identity.
     """
+
+    permission_classes = (InMaintenance,)
 
     @api_auth_token_required
     def get(self, request, provider_id, identity_id):

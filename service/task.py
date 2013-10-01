@@ -37,10 +37,8 @@ def add_floating_ip_task(driver, instance, *args, **kwargs):
                           *args, **kwargs)
 
 
-def destroy_instance_task(driver, instance, *args, **kwargs):
-    destroy_instance.delay(driver.__class__,
-                           driver.provider,
-                           driver.identity,
+def destroy_instance_task(instance, identity_id, *args, **kwargs):
+    destroy_instance.delay(identity_id,
                            instance.alias,
                            *args, **kwargs)
 

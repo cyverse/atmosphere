@@ -10,13 +10,12 @@ from rest_framework import status
 
 from threepio import logger
 
-from atmosphere import settings
 
 from authentication.decorators import api_auth_token_required
 
 from service.accounts.eucalyptus import AccountDriver
 from api.serializers import ProfileSerializer
-
+from core.models.provider import Provider
 
 class UserManagement(APIView):
     """
@@ -40,9 +39,8 @@ class UserManagement(APIView):
 
         username = params['username']
         #STEP1 Create the account on the provider
-        driver = AccountDriver(settings.EUCA_ADMIN_KEY,
-                               settings.EUCA_ADMIN_SECRET,
-                               settings.EUCA_EC2_URL)
+        provider = Provider.objects.get(location='EUCALYPTUS')
+        driver = AccountDriver(provider)
         user = driver.add_user(username)
         #STEP2 Retrieve the identity from the provider
         if user:

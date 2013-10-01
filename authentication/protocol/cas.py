@@ -29,7 +29,7 @@ PROXY_TICKET_EXPIRY = timedelta(days=1)
 def cas_validateUser(username):
     """
     Because this is a programmatic request
-    and CAS requiers user input when expired,
+    and CAS requires user input when expired,
     We MUST use CAS Proxy Service,
     and see if we can reauthenticate the user.
     """
@@ -112,7 +112,7 @@ def cas_validateTicket(request):
 
     redirect_logout_url = settings.REDIRECT_URL+"/login/"
     no_user_url = settings.REDIRECT_URL + "/no_user/"
-    logger.debug(request)
+    logger.debug('GET Variables:%s' % request.GET)
     ticket = request.GET.get('ticket', None)
     sendback = request.GET.get('sendback', None)
 

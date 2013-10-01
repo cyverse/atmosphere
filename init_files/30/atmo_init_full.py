@@ -523,22 +523,21 @@ def deploy_atmo_boot():
                  + "\/usr\/sbin\/atmo_boot/'", '/etc/rc.local'])
 
 
-def notify_launched_instance(atmoObj, metadata):
+def notify_launched_instance(instance_data, metadata):
     try:
         import json
     except ImportError:
         #Support for python 2.4
         import simplejson as json
     from httplib2 import Http
-    service_url = atmoObj['atmosphere']['instance_service_url']
-    userid = atmoObj['atmosphere']['userid']
-    instance_token = atmoObj['atmosphere']['instance_token']
-    instance_name = atmoObj['atmosphere']['name']
+    service_url = instance_data['atmosphere']['instance_service_url']
+    userid = instance_data['atmosphere']['userid']
+    instance_token = instance_data['atmosphere']['instance_token']
+    instance_name = instance_data['atmosphere']['name']
     data = {
         'action': 'instance_launched',
         'userid': userid,
         'vminfo': metadata,
-        'arg': atmoObj,
         'token': instance_token,
         'name': instance_name,
     }
@@ -550,7 +549,7 @@ def notify_launched_instance(atmoObj, metadata):
     logging.debug(content)
 
 
-def distro_files(distro, metadata):
+def distro_files(distro):
     install_irods(distro)
     install_icommands(distro)
 
@@ -683,8 +682,9 @@ def insert_modprobe():
 
 def main(argv):
     init_logs('/var/log/atmo/atmo_init_full.log')
-    atmoObj = {'atmosphere': {}}
+    instance_data = {"atmosphere" : {}}
     service_type = None
+    instance_service_url = None
     instance_service_url = None
     server = None
     user_id = None
@@ -700,27 +700,27 @@ def main(argv):
         sys.exit(2)
     for opt, arg in opts:
         if opt in ("-t", "--service_type"):
-            atmoObj["atmosphere"]["service_type"] = arg
+            instance_data["atmosphere"]["service_type"] = arg
             service_type = arg
         elif opt in ("-T", "--token"):
-            atmoObj["atmosphere"]["instance_token"] = arg
+            instance_data["atmosphere"]["instance_token"] = arg
             instance_token = arg
         elif opt in ("-N", "--name"):
-            atmoObj["atmosphere"]["name"] = arg
+            instance_data["atmosphere"]["name"] = arg
             instance_token = arg
         elif opt in ("-u", "--service_url"):
-            atmoObj["atmosphere"]["instance_service_url"] = arg
+            instance_data["atmosphere"]["instance_service_url"] = arg
             instance_service_url = arg
         elif opt in ("-s", "--server"):
-            atmoObj["atmosphere"]["server"] = arg
+            instance_data["atmosphere"]["server"] = arg
             global ATMOSERVER
             ATMOSERVER = arg
             server = arg
         elif opt in ("-i", "--user_id"):
-            atmoObj["atmosphere"]["userid"] = arg
+            instance_data["atmosphere"]["userid"] = arg
             user_id = arg
         elif opt in ("-v", "--vnc_license"):
-            #atmoObj["atmosphere"]["vnc_license"] = arg
+            #instance_data["atmosphere"]["vnc_license"] = arg
             vnclicense = arg
         elif opt == '-d':
             global _debug
@@ -729,8 +729,17 @@ def main(argv):
 
     source = "".join(args)
 
-    linuxuser = atmoObj['atmosphere']['userid']
+    logging.debug("Atmosphere request object - %s" % instance_data)
+    instance_metadata = collect_metadata()
+    logging.debug("Instance metadata - %s" % instance_metadata)
+
+    linuxuser = instance_data['atmosphere']['userid']
     linuxpass = ""
+
+    instance_metadata['linuxusername'] = linuxuser
+    instance_metadata["linuxuserpassword"] = linuxpass
+    instance_metadata["linuxuservncpassword"] = linuxpass
+
     logging.debug("Atmoserver - %s" % ATMOSERVER)
     distro = get_distro()
     logging.debug("Distro - %s" % distro)
@@ -749,10 +758,6 @@ def main(argv):
 
     if not is_rhel(distro):
         run_command(['/usr/bin/apt-get', 'update'])
-    instance_metadata = collect_metadata()
-    instance_metadata['linuxusername'] = linuxuser
-    instance_metadata["linuxuserpassword"] = linuxpass
-    instance_metadata["linuxuservncpassword"] = linuxpass
     mount_storage()
     ldap_install()
     etc_skel_bashrc(linuxuser)
@@ -766,11 +771,12 @@ def main(argv):
     iplant_files(distro)
     atmo_cl()
     nagios()
-    distro_files(distro, instance_metadata)
+    distro_files(distro)
     update_timezone()
     shellinaboxd(distro)
     insert_modprobe()
     modify_rclocal(linuxuser, distro)
+    notify_launched_instance(instance_data, instance_metadata)
     logging.info("Complete.")
 
 

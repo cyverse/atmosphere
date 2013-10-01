@@ -2,12 +2,19 @@
 ImageManager:
     Remote Openstack Image management (euca2ools 1.3.1)
 
-EXAMPLE USAGE:
+Best set from service.accounts.openstack
+
+To set directly:
 from service.imaging.drivers.openstack import ImageManager
 
-from atmosphere import settings
-
-manager = ImageManager(**settings.OPENSTACK_ARGS)
+credentials = {
+    'username': '',
+    'tenant_name': '',
+    'password': '',
+    'auth_url':'',
+    'region_name':''
+}
+manager = ImageManager(**credentials)
 
 manager.create_image('75fdfca4-d49d-4b2d-b919-a3297bc6d7ae', 'my new name')
 
@@ -17,6 +24,8 @@ import time
 
 from threepio import logger
 
+from rtwo.provider import OSProvider
+from rtwo.identity import OSIdentity
 from rtwo.driver import OSDriver
 from rtwo.drivers.common import _connect_to_keystone, _connect_to_nova,\
                                    _connect_to_glance, find
@@ -58,9 +67,18 @@ class ImageManager():
         if len(args) == 0 and len(kwargs) == 0:
             raise KeyError("Credentials missing in __init__. ")
 
-
-        self.admin_driver = OSDriver.settings_init()
+        self.admin_driver = self.build_admin_driver(**kwargs)
         self.keystone, self.nova, self.glance = self.new_connection(*args, **kwargs)
+
+    def build_admin_driver(self, **kwargs):
+        OSProvider.set_meta()
+        provider = OSProvider()
+        user = kwargs.get('username')
+        secret = kwargs.get('password')
+        tenant_name = kwargs.get('tenant_name')
+        identity = OSIdentity(provider, user, secret, ex_tenant_name=tenant_name, **kwargs)
+        admin_driver = OSDriver(provider, identity, **kwargs)
+        return admin_driver
 
     def new_connection(self, *args, **kwargs):
         """
@@ -106,13 +124,13 @@ class ImageManager():
             snapshot = self.get_image(snapshot_id)
             if attempts >= 40:
                 break
-            if snapshot.status is 'active':
+            if snapshot.status == 'active':
                 break
             attempts += 1
             logger.debug("Snapshot %s in non-active state %s" % (snapshot_id, snapshot.status))
             logger.debug("Attempt:%s, wait 1 minute" % attempts)
             time.sleep(60)
-        if snapshot.status is not 'active':
+        if snapshot.status != 'active':
             raise Exception("Create_snapshot timeout. Operation exceeded 40m")
         return snapshot
 
@@ -127,19 +145,20 @@ class ImageManager():
             snapshot = self.create_snapshot(instance_id, ss_name, **kwargs)
         else:
             snapshot = self.get_image(snapshot_id)
-        #Step 3: Download local copy of the image
+        #Step 2: Create local path for copying image
         server = self.get_server(instance_id)
         tenant = find(self.keystone.tenants, id=server.tenant_id)
         local_user_dir = os.path.join(local_download_dir, tenant.name)
         if not os.path.exists(local_user_dir):
             os.makedirs(local_user_dir)
+        #Step 3: Download local copy of snapshot
         local_image = os.path.join(local_user_dir, '%s.qcow2' % name)
         logger.debug("Snapshot downloading to %s" % local_image)
         with open(local_image,'w') as f:
             for chunk in snapshot.data():
                 f.write(chunk)
         logger.debug("Snapshot downloaded to %s" % local_image)
-        #Step 4: Clean the local image
+        #Step 4: Clean the local copy
         fsck_qcow(local_image)
         self.clean_local_image(
                 local_image,
@@ -147,13 +166,14 @@ class ImageManager():
                 exclude=exclude)
 
         #Step 5: Upload the local copy as a 'real' image
+        # with seperate kernel & ramdisk
         prev_kernel = snapshot.properties['kernel_id']
         prev_ramdisk = snapshot.properties['ramdisk_id']
         new_image = self.upload_image(local_image, name, 'ami', 'ami', True, {
             'kernel_id': prev_kernel,
             'ramdisk_id': prev_ramdisk})
-        #TODO: Step 6: Verify the image works
-        #TODO: Step 7: Delete the snapshot
+        #Step 6: Delete the snapshot
+        snapshot.delete()
         return new_image.id
 
     def prepare_snapshot(self, instance_id):
