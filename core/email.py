@@ -150,6 +150,7 @@ def send_instance_email(user, instance_id, instance_name,
 
     Returns a boolean.
     """
+    launched_at = launched_at.replace(tzinfo=None)
     body = """
 The atmosphere instance <%s> is running and ready for use.
 
