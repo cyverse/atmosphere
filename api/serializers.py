@@ -150,7 +150,7 @@ class MachineRequestSerializer(serializers.ModelSerializer):
         model = MachineRequest
         fields = ('id', 'instance', 'status', 'name', 'owner', 'provider',
                   'vis', 'description', 'tags', 'sys', 'software',
-                  'shared_with')
+                  'shared_with', 'new_machine')
 
 
 class MaintenanceRecordSerializer(serializers.ModelSerializer):
