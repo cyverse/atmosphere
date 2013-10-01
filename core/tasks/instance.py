@@ -24,7 +24,9 @@ def get_all_instances():
         identity_list = None
         try:
             identity_list = Identity.objects.filter(provider=provider)
-            if identity_list and provider.type.name != "":
+            if identity_list\
+               and provider.type.name != ""\
+               and provider.type.name != "Amazon EC2":
                 identity = identity_list[0]
                 driver = get_esh_driver(identity)
                 meta_driver = driver.provider.metaCls(driver)
