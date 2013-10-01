@@ -175,6 +175,8 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 			this.under_quota = false;
 			var self = this;
 			$.each(Atmo.instance_types.models, function(idx, instance_type) {
+				if (instance_type.get('active') == false)
+					return;
 				var opt = $('<option>', {
 					value: instance_type.get('id'),
 					html: function() {

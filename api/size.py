@@ -31,8 +31,8 @@ class SizeList(APIView):
         esh_size_list = esh_driver.list_sizes()
         all_size_list = [convert_esh_size(size, provider_id, user)
                           for size in esh_size_list]
-        active_size_list = [s for s in all_size_list if s.active()]
-        serialized_data = ProviderSizeSerializer(active_size_list, many=True).data
+        #active_size_list = [s for s in all_size_list if s.active()]
+        serialized_data = ProviderSizeSerializer(all_size_list, many=True).data
         response = Response(serialized_data)
         return response
 
