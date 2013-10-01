@@ -30,7 +30,7 @@ def get_all_instances():
                 meta_driver = driver.provider.metaCls(driver)
                 all_instances.extend(meta_driver.all_instances())
         except:
-            logger.info("Problem accessing all instances for provider: %s" % provider)
+            logger.exception("Problem accessing all instances for provider: %s" % provider)
     return all_instances
 
 def update_links(instances):

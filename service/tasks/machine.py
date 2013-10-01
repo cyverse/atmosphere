@@ -104,7 +104,7 @@ def select_and_build_image(machine_request, provider_creds,
     if old_type == 'eucalyptus':
         euca_accounts = EucaAccountDriver(old_provider)
         if new_type == 'eucalyptus':
-            manager = accounts.image_manager
+            manager = euca_accounts.image_manager
             #Rebuild meta information based on machine_request
             meta_name = '%s_%s_%s_%s' % ('admin',
                 machine_request.new_machine_owner.username,
