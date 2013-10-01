@@ -1230,14 +1230,14 @@ img.terminate_shell, img.terminate_vnc {
     border-bottom: 0 none;
     color: #fff;
 }
-.launch-instance-btn {
+a.launch-instance-btn {
     margin-top: 10px;
     width: 100%;
     box-sizing: border-box;
     font-size: 16px;
 }
 .image-detail .media-body {
-    width: 600px;
+    max-width: 600px;
 }
 
 .image-details-list {
@@ -1249,7 +1249,7 @@ img.terminate_shell, img.terminate_vnc {
     margin-right: 5px;
 }
 .image-details-list li + li {
-    border: 1px solid #999;
+    border: 1px solid #ccc;
     border-width: 0 0 0 1px;
     padding-left: 5px;
 }
