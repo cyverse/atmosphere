@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """
-Debugging atmo-init-full locally:
+Debugging atmo_init_full locally:
     cd /usr/sbin
     touch __init__.py
     python
-    >>> import atmo-init-full
+    >>> import atmo_init_full
     >>>
 """
 import getopt
@@ -103,6 +103,23 @@ def download_file(url, fileLoc, retry=False, match_hash=None):
     f.close()
     return contents
 
+
+def get_public_ip(instance_metadata):
+    """
+    Checks multiple locations in metadata for the IP address
+    """
+    ip_addr = instance_metadata.get('public-ipv4')
+    if not ip_addr:
+        ip_addr = instance_metadata.get('local-hostname')
+    if not ip_addr:
+        ip_addr = instance_metadata.get('hostname')
+    if not ip_addr:
+        ip_addr = instance_metadata.get('public-hostname')
+    if not ip_addr:
+        ip_addr = instance_metadata.get('local-ipv4')
+    if not ip_addr:
+        ip_addr = 'localhost'
+    return ip_addr
 
 def get_distro():
     if os.path.isfile('/etc/redhat-release'):
@@ -209,12 +226,20 @@ def ssh_config(distro):
     restart_ssh(distro)
 
 
-def collect_metadata():
-    METADATA_SERVER = 'http://128.196.172.136:8773/latest/meta-data/'
+def get_metadata():
+    eucalyptus_meta_server = 'http://128.196.172.136:8773/latest/meta-data/'
+    openstack_meta_server = 'http://169.254.169.254/latest/meta-data/'
+    metadata = collect_metadata(eucalyptus_meta_server)
+    if not metadata:
+        metadata = collect_metadata(openstack_meta_server)
+    return metadata
+
+
+def collect_metadata(meta_server):
     metadata = {}
     meta_list = []
     try:
-        resp = urllib2.urlopen(METADATA_SERVER)
+        resp = urllib2.urlopen(meta_server)
         content = resp.read()
         meta_list = content.split('\n')
     except Exception, e:
@@ -321,7 +346,6 @@ def vnc(user, distro, license=None):
             new_file = open('/etc/vnc/config.d/common.custom', 'w')
             new_file.write("PamApplicationName=vncserver.custom")
             new_file.close()
-        run_command(['/bin/hostname', 'localhost']) #Testfix
         time.sleep(1)
         run_command(['/usr/bin/vnclicense', '-add', license])
         download_file(
@@ -427,7 +451,7 @@ def line_in_file(needle, filename):
     return found
 
 
-def modify_rclocal(username, distro):
+def modify_rclocal(username, distro, public_ip='localhost'):
     try:
         if is_rhel(distro):
             distro_rc_local = '/etc/rc.d/rc.local'
@@ -450,18 +474,18 @@ def modify_rclocal(username, distro):
                          "'s/exit.*//'", '/etc/rc.local'])
         # Intentionally REPLACE the entire contents of file on each run
         atmo_rclocal = open(atmo_rclocal_path,'w')
-        atmo_rclocal.write('#!/bin/sh -e'
+        atmo_rclocal.write('#!/bin/sh -e\n'
                           'depmod -a\n'
                           'modprobe acpiphp\n'
-                          'hostname localhost\n'
-                          '/bin/su %s -c /usr/bin/vncserver\n'
+                          'hostname %s\n'  # public_ip
+                          '/bin/su %s -c /usr/bin/vncserver\n'  # username
                           '/usr/bin/nohup /usr/local/bin/shellinaboxd -b -t '
                           '-f beep.wav:/dev/null '
                           '> /var/log/atmo/shellinaboxd.log 2>&1 &\n'
                           #Add new rc.local commands here
                           #And they will be excecuted on startup
                           #Don't forget the newline char
-                          % username)
+                          % (public_ip, username))
         atmo_rclocal.close()
         os.chmod(atmo_rclocal_path, 0755)
     except Exception, e:
@@ -588,8 +612,6 @@ def install_irods(distro):
         run_command(['/usr/bin/apt-get', 'update'])
         run_command(['/usr/bin/apt-get', '-qy',
                      'install', 'vim', 'mosh', 'patch'])
-        #hostname = metadata['public-ipv4'] #kludge
-        #run_command(['/bin/hostname', '%s' % hostname]) #kludge
     run_command(['/bin/chmod', 'a+x', '/usr/local/bin/irodsFs.x86_64'])
 
 
@@ -730,12 +752,14 @@ def main(argv):
     source = "".join(args)
 
     logging.debug("Atmosphere request object - %s" % instance_data)
-    instance_metadata = collect_metadata()
+    instance_metadata = get_metadata()
     logging.debug("Instance metadata - %s" % instance_metadata)
 
     linuxuser = instance_data['atmosphere']['userid']
     linuxpass = ""
-
+    public_ip = get_public_ip(instance_metadata)
+    set_hostname(public_ip)
+    run_command(['/bin/hostname', public_ip)  # 'localhost'//ip.addr
     instance_metadata['linuxusername'] = linuxuser
     instance_metadata["linuxuserpassword"] = linuxpass
     instance_metadata["linuxuservncpassword"] = linuxpass
@@ -775,7 +799,7 @@ def main(argv):
     update_timezone()
     shellinaboxd(distro)
     insert_modprobe()
-    modify_rclocal(linuxuser, distro)
+    modify_rclocal(linuxuser, distro, public_ip)
     notify_launched_instance(instance_data, instance_metadata)
     logging.info("Complete.")
 
