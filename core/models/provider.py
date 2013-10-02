@@ -86,6 +86,9 @@ class Provider(models.Model):
             cred_map.update(url_map)
         return cred_map
 
+    def get_location(self):
+        return self.location.title()
+
     def get_credentials(self):
         cred_map = {}
         for cred in self.providercredential_set.all():

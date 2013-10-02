@@ -8,6 +8,7 @@ nohup.out
 *.log
 *.out
 *.pot
+*.json
 .*
 #*#
 #*.*#

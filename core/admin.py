@@ -7,7 +7,7 @@ from django.contrib.auth.models import Group as DjangoGroup
 from django.utils import timezone
 
 
-from core.models.credential import Credential
+from core.models.credential import Credential, ProviderCredential
 from core.models.group import Group, IdentityMembership, ProviderMembership
 from core.models.identity import Identity
 from core.models.instance import Instance, InstanceStatusHistory
@@ -75,11 +75,24 @@ class ProviderMachineAdmin(admin.ModelAdmin):
     ]
 
 
+class ProviderCredentialInline(admin.TabularInline):
+    model = ProviderCredential
+    extra = 1
+
+
 class ProviderAdmin(admin.ModelAdmin):
+    inlines = [ProviderCredentialInline, ]
     actions = [end_date_object, ]
     list_display = ["location", "id", "provider_type", "active",
-                    "public", "start_date", "end_date"]
+                    "public", "start_date", "end_date", "_credential_info"]
     list_filter = ["active", "public", "type__name"]
+    def _credential_info(self, obj):
+        return_text = ""
+        for cred in obj.providercredential_set.order_by('key'):
+            return_text += "<strong>%s</strong>:%s<br/>" % (cred.key, cred.value)
+        return return_text
+    _credential_info.allow_tags = True
+    _credential_info.short_description = 'Provider Credentials'
 
     def provider_type(self, provider):
         if provider.type:
@@ -134,7 +147,7 @@ class IdentityAdmin(admin.ModelAdmin):
     def _credential_info(self, obj):
         return_text = ""
         for cred in obj.credential_set.order_by('key'):
-            return_text += "<strong>%s</strong>:%s " % (cred.key, cred.value)
+            return_text += "<strong>%s</strong>:%s<br/>" % (cred.key, cred.value)
         return return_text
     _credential_info.allow_tags = True
     _credential_info.short_description = 'Credentials'

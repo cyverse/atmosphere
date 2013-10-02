@@ -285,5 +285,5 @@ def detach_task(driverCls, provider, identity, instance_id, volume_id, *args, **
         #If the volume is NOT attached, do not retry.
         if 'Volume is not attached' in exc.message:
             return
-        logger.warn(exc)
+        logger.exception(exc)
         detach_task.retry(exc=exc)

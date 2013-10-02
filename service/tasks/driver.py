@@ -71,6 +71,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         logger.debug("deploy_init_to task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
+
         image_metadata = driver._connection\
                                .ex_get_image_metadata(instance.machine)
         image_already_deployed = image_metadata.get("deployed")
@@ -123,16 +124,23 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
 @task(name="destroy_instance",
       default_retry_delay=15,
       ignore_result=True,
-      max_retries=6)
+      max_retries=3)
 def destroy_instance(core_identity_id, instance_alias):
     from service import instance as instance_service
+    from rtwo.driver import OSDriver
+    from api import get_esh_driver
     try:
         logger.debug("destroy_instance task started at %s." % datetime.now())
         node_destroyed = instance_service.destroy_instance(core_identity_id, instance_alias)
+        core_identity = Identity.objects.get(id=core_identity_id)
+        driver = get_esh_driver(core_identity)
         if isinstance(driver, OSDriver):
             #Spawn off the last two tasks
             logger.debug("OSDriver Logic -- Remove floating ips and check"
                          " for empty project")
+            driverCls = driver.__class__
+            provider = driver.provider
+            identity = driver.identity
             chain(_remove_floating_ip
                   .subtask((driverCls,
                             provider,
@@ -150,7 +158,7 @@ def destroy_instance(core_identity_id, instance_alias):
         logger.debug("destroy_instance task finished at %s." % datetime.now())
         return node_destroyed
     except Exception as exc:
-        logger.warn(exc)
+        logger.exception(exc)
         destroy_instance.retry(exc=exc)
 
 
@@ -276,11 +284,12 @@ def add_os_project_network(core_identity, *args, **kwargs):
 def _check_empty_project_network(
         core_identity_id,
         *args, **kwargs):
+    from api import get_esh_driver
     try:
         logger.debug("_check_empty_project_network task started at %s." %
                      datetime.now())
 
-        core_identity = CoreIdentity.objects.get(id=identity_id)
+        core_identity = Identity.objects.get(id=core_identity_id)
         driver = get_esh_driver(core_identity)
         instances = driver.list_instances()
         active_instances = False

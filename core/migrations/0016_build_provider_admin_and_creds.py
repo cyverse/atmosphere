@@ -5,6 +5,7 @@ from south.v2 import DataMigration
 from django.db import models
 
 from atmosphere import settings
+from threepio import logger
 
 class Migration(DataMigration):
 

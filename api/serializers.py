@@ -150,7 +150,7 @@ class MachineRequestSerializer(serializers.ModelSerializer):
         model = MachineRequest
         fields = ('id', 'instance', 'status', 'name', 'owner', 'provider',
                   'vis', 'description', 'tags', 'sys', 'software',
-                  'shared_with')
+                  'shared_with', 'new_machine')
 
 
 class MaintenanceRecordSerializer(serializers.ModelSerializer):
@@ -263,6 +263,7 @@ class PaginatedProviderMachineSerializer(pagination.PaginationSerializer):
 
 class ProviderSerializer(serializers.ModelSerializer):
     type = serializers.SlugRelatedField(slug_field='name')
+    location = serializers.CharField(source='get_location')
 
     class Meta:
         model = Provider
@@ -296,6 +297,7 @@ class ProviderSizeSerializer(serializers.ModelSerializer):
     occupancy = serializers.CharField(read_only=True, source='esh_occupancy')
     total = serializers.CharField(read_only=True, source='esh_total')
     remaining = serializers.CharField(read_only=True, source='esh_remaining')
+    active = serializers.BooleanField(read_only=True, source="active")
 
     class Meta:
         model = Size
