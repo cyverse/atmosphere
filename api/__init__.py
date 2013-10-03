@@ -103,9 +103,12 @@ def prepare_driver(request, identity_id):
     TODO: Cache driver based on specific provider
     return esh_driver
     """
+    from service.driver import DriverManager
     username = request.user
     core_identity = CoreIdentity.objects.get(id=identity_id)
-    esh_driver = get_esh_driver(core_identity, username)
+    #esh_driver = get_esh_driver(core_identity, username)
+    manager = DriverManager()
+    esh_driver = manager.get_driver(core_identity)
     return esh_driver
 
 

@@ -15,6 +15,7 @@ import caslib
 
 import atmosphere
 
+
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 SERVER_URL = 'https://yourserver.iplantc.org'
 # IF on the root directory, this should be BLANK, else: /path/to/web (NO
@@ -335,3 +336,7 @@ if DEBUG:
         from atmosphere.settings.testing import *
     except ImportError:
         pass
+
+#Must init driver in settings!
+from atmosphere.driver import DriverManager
+manager = DriverManager()
