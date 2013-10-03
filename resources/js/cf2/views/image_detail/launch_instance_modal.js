@@ -10,12 +10,14 @@ Atmo.Views.LaunchInstanceModal = Backbone.View.extend({
         'click .modal-header button' : 'hide'
 	},
     initialize: function() {
+        this.image = this.options.image;
     },
     hide: function() {
         this.$el.modal('hide');
     },
     render: function() {
-        this.$el.html(this.template());
+        this.$el.html(this.template(this.image.toJSON()));
+        this.$el.find(".image-thumb").attr("src", this.image.icon(20));
         return this;
     },
     do_alert: function() {

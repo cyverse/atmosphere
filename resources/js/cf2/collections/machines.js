@@ -8,7 +8,7 @@ Atmo.Collections.Machines = Atmo.Collections.Base.extend({
         return new Atmo.Collections.Machines(this.where({featured: true}));
     },
 	select_machine: function(model) {
-        console.log("selected", model);
+        //console.log("selected", model);
 		if (model == null) 
 			Backbone.history.navigate('images');
 		else {

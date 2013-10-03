@@ -1259,6 +1259,20 @@ a.launch-instance-btn {
     border: 1px solid #999;
 }
 
+/* Launch instance modal */
+#launch_instance_modal .media {
+    margin-top: 5px;
+}
+#launch_instance_modal .media .media-body {
+    margin-left: 6px;
+    line-height: 22px;
+}
+.image-thumb {
+    height: 20px;
+    width: 20px;
+    border: 1px solid #999;
+}
+
 /* New Instance Screen*/
 #newinst_name_title {			/* Available images */
 	display: inline;
