@@ -336,7 +336,3 @@ if DEBUG:
         from atmosphere.settings.testing import *
     except ImportError:
         pass
-
-#Must init driver in settings!
-from atmosphere.driver import DriverManager
-manager = DriverManager()

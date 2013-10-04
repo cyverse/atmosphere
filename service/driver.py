@@ -27,13 +27,15 @@ class DriverManager(object):
 
     def get_driver(self, core_identity):
         from api import get_esh_driver
-        if self.driver_map.get(core_identity):
-            driver = self.driver_map[core_identity]
-            logger.info("Driver reused: %s" % driver)
+        if not self.driver_map.get(core_identity):
+            driver = get_esh_driver(core_identity)
+            self.driver_map[core_identity] = driver
+            logger.info("Driver created for identity %s : %s"
+                        % (core_identity, driver))
             return driver
-        driver = get_esh_driver(core_identity)
-        logger.info("Driver initialized: %s" % driver)
-        self.driver_map[core_identity] = driver
+        driver = self.driver_map[core_identity]
+        logger.info("Driver found for identity %s: %s"
+                    % (core_identity, driver))
         return driver
 
     def release_all_drivers(self):
