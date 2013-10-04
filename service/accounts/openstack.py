@@ -155,12 +155,50 @@ class AccountDriver():
                 # 5. Update the security group
                 self.user_manager.build_security_group(user.name,
                         password, project.name, rules_list)
-
+                # 6. Create a keypair to use when launching with atmosphere
+                keyname = settings.ATMOSPHERE_KEYPAIR_NAME
+                with open(settings.ATMOSPHERE_KEYPAIR_FILE, 'r') as pub_key_file:
+                    public_key = pub_key_file.read()
+                self.get_or_create_keypair(user.name, password, project.name,
+                                           keyname, public_key)
                 finished = True
 
             except OverLimit:
                 print 'Requests are rate limited. Pausing for one minute.'
                 time.sleep(60)  # Wait one minute
+
+    def get_or_create_keypair(self, username, password, project_name,
+                      keyname, public_key):
+        """
+        keyname - Name of the keypair
+        public_key - Contents of public key in OpenSSH format
+        """
+        clients = self.get_openstack_clients(username, password, project_name)
+        nova = clients['nova']
+        keypairs = nova.keypairs.list()
+        for kp in keypairs:
+            if kp.name == keyname:
+                if kp.public_key != public_key:
+                    raise Exception(
+                            "Mismatched public key found for keypair named: %s"
+                            ". Expected: %s Original: %s"
+                            % (keyname, public_key, kp.public_key))
+                return (kp, False)
+        return (self.create_keypair(username, password, project_name,
+                                   keyname, public_key), True)
+       
+    def create_keypair(self, username, password, project_name, keyname,
+            public_key):
+        """
+        keyname - Name of the keypair
+        public_key - Contents of public key in OpenSSH format
+        """
+        clients = self.get_openstack_clients(username, password, project_name)
+        nova = clients['nova']
+        keypair = nova.keypairs.create(
+                keyname,
+                public_key=public_key)
+        return keypair
 
     def rebuild_security_groups(self, core_identity, rules_list=None):
         creds = self.parse_identity(core_identity)

@@ -194,6 +194,7 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
         elif isinstance(driver.provider, OSProvider):
             deploy = True
             ex_metadata = {'tmp_status': 'initializing'}
+            ex_keyname=settings.ATMOSPHERE_KEYPAIR_NAME
             #Check for project network.. TODO: Fix how password/project are
             # retrieved
             network_init(core_identity)
@@ -201,6 +202,7 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
             esh_instance = driver.create_instance(name=name, image=machine,
                                                   size=size, token=instance_token,
                                                   ex_metadata=ex_metadata,
+                                                  ex_keyname=ex_keyname,
                                                   deploy=True, **kwargs)
             # call async task to deploy to instance.
             task.deploy_init_task(driver, esh_instance)

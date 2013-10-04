@@ -17,7 +17,7 @@ from service.imaging.drivers.openstack import ImageManager as OSImageManager
 from service.imaging.drivers.migration import EucaOSMigrater
 from service.imaging.drivers.virtualbox import ExportManager
 
-from atmosphere import settings
+from django.conf import settings
 
 @task()
 def machine_export_task(machine_export):

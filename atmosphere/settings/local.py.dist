@@ -24,6 +24,10 @@ DATABASES = {
 # Prevents warnings
 ALLOWED_HOSTS = [SERVER_URL.replace("https://","")]
 
+#Atmosphere Keypair/Deployment Configs
+ATMOSPHERE_KEYPAIR_FILE=os.path.join(PROJECT_ROOT, "path/to/keypair.pub")
+ATMOSPHERE_KEYPAIR_NAME=""
+
 # Atmosphere App Configs
 INSTANCE_SERVICE_URL = SERVER_URL + REDIRECT_URL + "/api/v1/notification/"
 API_SERVER_URL = SERVER_URL + REDIRECT_URL + "/resources/v1"

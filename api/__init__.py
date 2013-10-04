@@ -81,12 +81,14 @@ def get_esh_provider(core_provider):
 
 def get_esh_driver(core_identity, username=None):
     try:
-        esh_map = get_esh_map(core_identity.provider)
+        core_provider = core_identity.provider
+        esh_map = get_esh_map(core_provider)
         if not username:
             user = core_identity.created_by
         else:
             user = DjangoUser.objects.get(username=username)
-        provider = esh_map['provider']()
+        location = core_provider.location
+        provider = esh_map['provider'](identifier=location)
         provider_creds = core_identity.provider.get_esh_credentials(provider)
         identity_creds = core_identity.get_credentials()
         identity = esh_map['identity'](provider, user=user, **identity_creds)
@@ -103,9 +105,11 @@ def prepare_driver(request, identity_id):
     TODO: Cache driver based on specific provider
     return esh_driver
     """
+    from service.driver import DriverManager
     username = request.user
     core_identity = CoreIdentity.objects.get(id=identity_id)
-    esh_driver = get_esh_driver(core_identity, username)
+    manager = DriverManager()
+    esh_driver = manager.get_driver(core_identity)
     return esh_driver
 
 

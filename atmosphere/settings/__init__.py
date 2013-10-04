@@ -15,6 +15,7 @@ import caslib
 
 import atmosphere
 
+
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 SERVER_URL = 'https://yourserver.iplantc.org'
 # IF on the root directory, this should be BLANK, else: /path/to/web (NO
@@ -59,7 +60,7 @@ USE_TZ = True
 
 # Absolute path to the directory that holds media.
 # Example: '/home/media/media.lawrence.com/'
-MEDIA_ROOT = PROJECT_ROOT + '/resources/'
+MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'resources/')
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
@@ -69,7 +70,7 @@ MEDIA_URL = '/resources/'
 # URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
 # trailing slash.
 # Examples: 'http://foo.com/media/', '/media/'.
-STATIC_ROOT = PROJECT_ROOT + '/static/'
+STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static/')
 
 STATIC_URL = '/static/'
 
