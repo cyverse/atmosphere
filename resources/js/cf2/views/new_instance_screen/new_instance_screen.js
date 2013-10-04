@@ -10,7 +10,6 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		'click .image_list > li': 'img_clicked',
 		'click #launchInstance': 'launch_instance',
 		'keyup #newinst_name' : 'validate_name',
-		'change #newinst_size': 'change_type_selection',
 		//'dblclick .image_list > li' : 'quick_launch',
 		'click #help_request_more_resources2' : 'show_request_resources_modal'
 	},
@@ -21,7 +20,6 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
         Atmo.instances.bind('add', this.render_resource_charts, this);
         Atmo.instances.bind('remove', this.render_resource_charts, this);
 		Atmo.instances.bind('change:state', this.render_resource_charts, this);
-		Atmo.instance_types.bind('reset', this.render_instance_type_list, this);
 		Atmo.instance_types.bind('change:selected', this.update_resource_charts, this);
         this.launch_lock = false;
 		this.under_quota = true;
@@ -169,80 +167,9 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		this.filter_image_list();
     },
 	render_instance_type_list: function() {
-		if (Atmo.instance_types.models.length > 0) {
-			// this.$el.find('#newinst_size').val(Atmo.instance_types.models[0].get('id'));
-			var set_default = false;
-			this.under_quota = false;
-			var self = this;
-			$.each(Atmo.instance_types.models, function(idx, instance_type) {
-				if (instance_type.get('active') == false)
-					return;
-				var opt = $('<option>', {
-					value: instance_type.get('id'),
-					html: function() {
-						// Determine how many digits we want to display
-						var digits = (instance_type.get('mem') % 1024 == 0) ? 0 : 1;
-
-						// Make a human readable number
-						var mem = (instance_type.get('mem') > 1024) ? '' + (instance_type.get('mem') / 1024).toFixed(digits) + ' GB' : (instance_type.get('mem') + ' MB') ;
-						return instance_type.get('name') + ' (' + instance_type.get('cpus') + ' CPUs, ' + mem + ' memory, ' + instance_type.get('disk') + ' GB disk)';
-					},
-					'data' : {'instance_type' : instance_type}
-				});
-
-				if (instance_type.get('remaining') > 0) {
-					opt.data('available', true);
-					if (!set_default) {
-						var enough_cpus = self.cpu_resource_chart.add_usage(instance_type.attributes.cpus, "cpuHolder");
-						var enough_mem = self.mem_resource_chart.add_usage(instance_type.attributes.mem, "memHolder");
-						if (self.time_resource_chart) {
-                            var enough_time = self.time_resource_chart.add_usage(0, "allocationHolder");
-                        } else {
-                            var enough_time = true;
-                        }
-						if (enough_cpus && enough_mem && enough_time) {
-							self.under_quota = true;
-						}
-						else {
-							self.$el.find('#launchInstance').attr('disabled', 'disabled');
-							self.under_quota = false;
-						}
-						set_default = true;
-					}
-				}
-				else {
-					opt.data('available', false);
-					opt.attr('disabled', 'disabled');
-					opt.html(opt.html() + ' (At Capacity)');
-				}
-				self.$el.find('#newinst_size').append(opt);
-			});
-			window.instance_types = Atmo.instance_types.models;	
-
-            // Sets initial selected_instance_type to m1.small
-            default_instance = Atmo.profile.attributes['settings'].default_size;
-            this.$el.find('#newinst_size').val(default_instance);
-            this.$el.find('#newinst_size').trigger('change');
-		}
-		else {
-			// Error getting instance types for this provider, inform user.
-			this.$el.find('#newinst_size').append($('<option>', {
-				html: 'Instance Sizes Unavailable', 
-				disabled: 'disabled'
-			}));
-			this.launch_lock = true;
-			var select_obj = this.$el.find('#newinst_size');
-			select_obj.parent().find('.help-block').remove();
-
-			select_obj.parent().append($('<div/>', {
-				'class': 'help-block',
-				html: 'If this problem persists, please contact Support.'
-			}));
-			select_obj.closest('.control-group').addClass('error');
-		}
-	},
-	change_type_selection: function(e) {
-		$(e.currentTarget).find(':selected').data('instance_type').select();
+        new Atmo.Views.InstanceSizeDropdown({
+            el: this.$el.find('#newinst_size')[0]
+        }).render();
 	},
 	update_resource_charts: function() {
 		var selected_instance_type = Atmo.instance_types.selected_instance_type;
@@ -251,13 +178,13 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		var under_cpu = this.cpu_resource_chart.add_usage(
 			selected_instance_type.attributes.cpus, 
 			{ 
-				is_initial: (Atmo.instances.models.length == 0) ? true : false
+				is_initial: Atmo.instances.models.length == 0
 			}
 		); 
 		var under_mem = this.mem_resource_chart.add_usage(
 			selected_instance_type.attributes.mem,
 			{ 
-				is_initial: (Atmo.instances.models.length == 0) ? true : false
+				is_initial: Atmo.instances.models.length == 0
 			}
 		);
 		if (self.time_resource_chart) {
