@@ -16,8 +16,11 @@ Atmo.Views.LaunchInstanceModal = Backbone.View.extend({
         this.$el.modal('hide');
     },
     render: function() {
-        this.$el.html(this.template(this.image.toJSON()));
-        this.$el.find(".image-thumb").attr("src", this.image.icon(20));
+        this.$el
+            .html(this.template(this.image.toJSON()))
+            .find(".image-thumb").attr("src", this.image.icon(20));
+        new Atmo.Views.InstanceSizeDropdown({el: this.$el.find("#instance_size")[0]}).render();
+
         return this;
     },
     do_alert: function() {

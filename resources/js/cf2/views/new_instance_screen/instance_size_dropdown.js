@@ -11,6 +11,7 @@ Atmo.Views.InstanceSizeDropdown = Backbone.View.extend({
 		$(e.currentTarget).find(':selected').data('instance_type').select();
 	},
     render: function() {
+        this.$el.empty();
 		if (Atmo.instance_types.models.length <= 0) {
             this.no_size_information();
             return this;
