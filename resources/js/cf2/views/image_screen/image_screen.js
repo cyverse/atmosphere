@@ -11,6 +11,7 @@ Atmo.Views.ImageScreen = Backbone.View.extend({
     render: function() {
         this.$el.html(this.template());
         this.render_image_list();
+        new Atmo.Views.ImageSearchForm({el: this.$el.find('#image_search_form_container')[0] }).render();
         return this;
     },
     render_image_list: function() {
