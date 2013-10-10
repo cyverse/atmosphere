@@ -15,7 +15,7 @@ from core.models.identity import Identity
 from core.models.provider import Provider
 
 from rtwo.drivers.eucalyptus_user import UserManager
-from service.imaging.drivers.eucalyptus import ImageManager
+from chromogenic.drivers.eucalyptus import ImageManager
 
 from atmosphere import settings
 

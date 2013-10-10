@@ -19,7 +19,7 @@ from rtwo.drivers.openstack_user import UserManager
 from core.ldap import get_uid_number
 from core.models.identity import Identity
 
-from service.imaging.drivers.openstack import ImageManager
+from chromogenic.drivers.openstack import ImageManager
 
 class AccountDriver():
     user_manager = None

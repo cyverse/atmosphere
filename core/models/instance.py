@@ -186,10 +186,16 @@ class Instance(models.Model):
         return "Unknown"
 
     def esh_size(self):
-        if self.esh:
-            return self.esh._node.extra['instancetype']
+        if not self.esh or not hasattr(self.esh._node, 'extra'):
+            return "Unknown"
+        extras = self.esh._node.extra
+        if extras.has_key('flavorId'):
+            return extras['flavorId']
+        elif extras.has_key('instancetype'):
+            return extras['instancetype']
+        else:
+            return "Unknown"
         
-        return "Unknown"
 
     def esh_machine_name(self):
         if self.esh and self.esh.machine:
