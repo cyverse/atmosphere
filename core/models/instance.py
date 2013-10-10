@@ -186,9 +186,12 @@ class Instance(models.Model):
         return "Unknown"
 
     def esh_size(self):
-        if self.esh:
-            return self.esh._node.extra['instancetype']
-        
+        if self.esh\
+           and self.esh._node.extra:
+            if self.esh._node.extra.get('instancetype'):
+                return self.esh._node.extra['instancetype']
+            elif self.esh._node.extra.get('flavorId'):
+                return self.esh._node.extra['flavorId']
         return "Unknown"
 
     def esh_machine_name(self):
