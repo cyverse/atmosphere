@@ -195,7 +195,6 @@ class Instance(models.Model):
             return extras['instancetype']
         else:
             return "Unknown"
-        
 
     def esh_machine_name(self):
         if self.esh and self.esh.machine:

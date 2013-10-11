@@ -1,6 +1,7 @@
 """
   Machine models for atmosphere.
 """
+import re
 
 from django.db import models
 from django.utils import timezone
@@ -10,6 +11,7 @@ from django.contrib.auth.models import User
 from core.models.provider import Provider
 from core.models.machine import create_provider_machine
 
+from threepio import logger
 
 class MachineRequest(models.Model):
     """
@@ -44,6 +46,69 @@ class MachineRequest(models.Model):
     new_machine = models.ForeignKey("ProviderMachine",
                                     null=True, blank=True,
                                     related_name="created_machine")
+
+
+    def _get_meta_name(self):
+        """
+        admin_<username>_<name_under_scored>_<mmddyyyy_hhmmss>
+        """
+        meta_name = '%s_%s_%s_%s' %\
+            ('admin', self.new_machine_owner.username,
+            self.new_machine_name.replace(' ','_').replace('/','-'),
+            self.start_date.strftime('%m%d%Y_%H%M%S'))
+        return meta_name
+
+    def is_public(self):
+        return "public" in self.new_machine_visibility.lower()
+
+    def get_access_list(self):
+        user_list=re.split(', | |\n', self.access_list)
+        return user_list
+
+    def get_exclude_files(self):
+        exclude=re.split(", | |\n", self.exclude_files)
+        return exclude
+
+    def generate_manager(self):
+        from chromogenic.drivers.openstack import ImageManager as OSImageManager
+        from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
+        old_provider = self.parent_machine.provider
+        old_creds = old_provider.get_credentials()
+        old_admin = old_provider.get_admin_identity().get_credentials()
+        old_creds.update(old_admin)
+
+        new_provider = self.new_machine_provider
+        if old_provider.id == new_provider.id:
+            new_creds = old_creds.copy()
+        else:
+            new_creds = new_provider.get_credentials()
+            new_admin = new_provider.get_admin_identity().get_credentials()
+            new_creds.update(new_admin)
+
+        old_type = old_provider.type.name.lower()
+        new_type = new_provider.type.name.lower()
+        if old_type == 'eucalyptus':
+            if new_type == 'eucalyptus':
+                euca_creds = EucaImageManager._build_image_creds(old_creds)
+                manager = EucaImageManager(**euca_creds)
+            elif new_type == 'openstack':
+                euca_creds = EucaImageManager._build_image_creds(old_creds)
+                euca_manager = EucaImageManager(**euca_creds)
+                os_creds = OSImageManager._build_image_creds(new_creds)
+                os_manager = OSImageManager(**os_creds)
+                manager = EucaOSMigrater(euca_manager, os_manager)
+        elif old_type == 'openstack':
+            if new_type == 'eucalyptus':
+                logger.info('Create euca image from openstack image')
+                #TODO: Replace with OSEucaMigrater when this feature is complete
+                raise Exception("Cannot migrate images from Openstack to Eucalyptus")
+                new_image_id = None
+            elif new_type == 'openstack':
+                logger.info('Create openstack image from openstack image')
+                os_creds = OSImageManager._build_image_creds(old_creds)
+                manager = OSImageManager(**os_creds)
+        return manager
+
     def new_machine_is_public(self):
         """
         Return True if public, False if private
@@ -58,7 +123,6 @@ class MachineRequest(models.Model):
     class Meta:
         db_table = "machine_request"
         app_label = "core"
-
 
 def process_machine_request(machine_request, new_image_id):
     from core.models.tag import Tag

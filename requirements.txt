@@ -4,7 +4,7 @@ PIL==1.1.7
 South==0.7.6
 apache-libcloud==0.13.2
 celery==3.0.16
-git+git://github.com/iPlantCollaborativeOpenSource/chromogenic-cloud.git#egg=chromogenic
+git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.1
 django-celery-with-redis==3.0
 django-nose2==0.1.1
 djangorestframework==2.3.5

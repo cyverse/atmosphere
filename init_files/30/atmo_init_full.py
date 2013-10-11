@@ -204,6 +204,21 @@ def append_to_file(filename, text):
         logging.exception("Failed to append text: %s" % text)
 
 
+def in_sudoers(user):
+    out, err = run_command(['sudo -l -U %s' % user], shell=True)
+    if 'not allowed to run sudo' in out:
+        return False
+    lines = out.split('\n')
+    line_match = '%s may run the following' % user
+    for idx, line in enumerate(lines):
+        if line_match in line:
+            allowed_idx = idx
+    root_allowed = lines[allowed_idx+1:]
+    for line in root_allowed:
+        if line:
+            return True
+    return False
+
 def add_sudoers(user):
     atmo_sudo_file = "/etc/sudoers"
     append_to_file(
@@ -759,7 +774,7 @@ def main(argv):
     linuxpass = ""
     public_ip = get_public_ip(instance_metadata)
     set_hostname(public_ip)
-    run_command(['/bin/hostname', public_ip)  # 'localhost'//ip.addr
+    run_command(['/bin/hostname', public_ip])  # 'localhost'//ip.addr
     instance_metadata['linuxusername'] = linuxuser
     instance_metadata["linuxuserpassword"] = linuxpass
     instance_metadata["linuxuservncpassword"] = linuxpass
@@ -773,7 +788,7 @@ def main(argv):
     update_sshkeys()
     update_sudoers()
 
-    if not file_contains('/etc/sudoers', linuxuser):
+    if not in_sudoers(linuxuser):
         add_sudoers(linuxuser)
     if not in_etc_group('/etc/group', linuxuser):
         add_etc_group(linuxuser)
