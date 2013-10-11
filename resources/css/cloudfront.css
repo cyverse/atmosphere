@@ -1201,22 +1201,32 @@ img.terminate_shell, img.terminate_vnc {
 }
 #image-grid li {
     display: inline-block;
-    width: 100px;
+    width: 220px;
     vertical-align: top;
-    margin: 0 15px 15px 0
+    margin: 0 15px 15px 0;
+    background: #fff;
+    border: 1px solid #ddd;
+}
+#image-grid li p {
+    margin: 10px 10px 10px 0;
+}
+#image-grid li p a {
+    font-size: 14px;
+    line-height: 18px;
+    border-bottom: none;
 }
 #image-grid .img-icon-link {
     display: block;
     text-align: center;
     border-bottom: 0 none;
-    padding: 5px 0;
 }
 #image-grid .img-icon-link:hover {
     border-bottom: 0 none;
 }
 #image-grid .img-icon-link img {
-    width: 100px;
-    height: 100px;
+    width: 70px;
+    height: 70px;
+    padding: 10px 0 10px 10px;
 }
 
 /* Image Detail */

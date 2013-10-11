@@ -1,5 +1,6 @@
 Atmo.Views.ImageGridSquare = Backbone.View.extend({
     tagName: 'li',
+    className: 'media',
     events: {
         'click a': 'select_image'
     },
