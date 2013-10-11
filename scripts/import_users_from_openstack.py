@@ -9,14 +9,17 @@ from atmosphere import settings
 
 from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
 from service.accounts.openstack import AccountDriver as OSAccountDriver
+from core.models import Provider
 
 
 def main():
     """
     TODO: Add argparse, --delete : Deletes existing users in openstack (Never use in PROD)
     """
-    euca_driver = EucaAccountDriver()
-    os_driver = OSAccountDriver()
+    euca = Provider.objects.get(location='EUCALYPTUS')
+    openstack = Provider.objects.get(location='OPENSTACK')
+    euca_driver = EucaAccountDriver(euca)
+    os_driver = OSAccountDriver(openstack)
     found = 0
     create = 0
     usernames = os_driver.list_usergroup_names()
