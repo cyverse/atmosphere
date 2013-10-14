@@ -46,8 +46,8 @@ def provider_filtered_machines(request, provider_id, identity_id):
 
 def all_filtered_machines():
     return ProviderMachine.objects.exclude(
-        Q(identifier__startswith="eki-") |
-        Q(identifier__startswith="eri")).order_by("-machine__start_date")
+        Q(identifier__startswith="eki-")
+        | Q(identifier__startswith="eri")).order_by("-machine__start_date")
 
 
 class MachineList(APIView):
@@ -66,7 +66,9 @@ class MachineList(APIView):
         Using provider and identity, getlist of machines
         TODO: Cache this request
         """
-        filtered_machine_list = provider_filtered_machines(request, provider_id, identity_id)
+        filtered_machine_list = provider_filtered_machines(request,
+                                                           provider_id,
+                                                           identity_id)
         serialized_data = ProviderMachineSerializer(filtered_machine_list,
                                                     many=True).data
         response = Response(serialized_data)
@@ -99,9 +101,6 @@ class MachineHistory(APIView):
 
         # Historic Machines
         all_machines_list = all_filtered_machines()
-
-        # Reverse chronological order
-        #all_machines_list.reverse()
 
         logger.warn(len(all_machines_list))
         if all_machines_list:
