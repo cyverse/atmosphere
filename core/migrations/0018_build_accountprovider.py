@@ -11,118 +11,127 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
-        # Note: Don't use "from appname.models import ModelName". 
-        # Use orm.ModelName to refer to models in this application,
-        # and orm['appname.ModelName'] for models in other applications.
-        print '> core - data: Updating ProviderCredential'
-        self.build_provider_creds(orm)
+        # Note: Remember to use orm['appname.ModelName'] rather than "from appname.models..."
+        print '> core - data: Updating AccountProvider'
+        self.build_account_admins(orm)
 
     def backwards(self, orm):
         "Write your backwards methods here."
 
-    def build_provider_creds(self, orm):
-        print '> core - data - providercredential: Eucalyptus'
-        self.euca_provider_creds(orm)
-        print '> core - data - providercredential: Openstack'
-        self.openstack_provider_creds(orm)
+    def build_account_admins(self, orm):
+        print '> core - data - accountprovider: Openstack'
+        self.build_os_admin(orm)
+        print '> core - data - accountprovider: Eucalyptus'
+        self.build_euca_admin(orm)
 
-    def euca_provider_creds(self, orm):
-        from atmosphere import settings
-        if not hasattr(settings, 'EUCALYPTUS_ARGS'):
-            print 'WARN:settings.EUCA_* missing, provider credentials will'\
-            ' NOT be created automatically. Instead, be sure to run these'\
-            ' commands on the REPL:\n'\
-            "from atmosphere import settings\n"\
-            "from core.models import ProviderCredential, Provider\n"\
-            "euca = Provider.objects.get(location='EUCALYPTUS')\n"\
-            "ProviderCredential.objects.create("\
-            "key='ec2_url', value=settings.EUCA_EC2_URL, "\
-            "provider=euca)\n"\
-            "ProviderCredential.objects.create("\
-            "key='s3_url', value=settings.EUCA_S3_URL, "\
-            "provider=euca)\n"\
-            "ProviderCredential.objects.create("\
-            "key='euca_cert_path', value=settings.EUCALYPTUS_CERT_PATH, "\
-            "provider=euca)\n"\
-            "ProviderCredential.objects.create("\
-            "key='pk_path', value=settings.EUCA_PRIVATE_KEY, "\
-            "provider=euca)\n"\
-            "ProviderCredential.objects.create("\
-            "key='ec2_cert_path', value=settings.EC2_CERT_PATH, "\
-            "provider=euca)\n"\
-            "ProviderCredential.objects.create("\
-            "key='account_path', value='/services/Accounts', "\
-            "provider=euca)\n"\
-            "ProviderCredential.objects.create("\
-            "key='config_path', value='/services/Configuration', "\
-            "provider=euca)\n"
-            return
-        provider_type = orm.ProviderType.objects.get_or_create(name='Eucalyptus')[0]
-        euca = orm.Provider.objects.get_or_create(location='EUCALYPTUS',
-                                              type=provider_type)
-        euca = euca[0]
-        # Create provider credentials from settings
-        orm.ProviderCredential.objects.get_or_create(
-            key='ec2_url', value=settings.EUCA_EC2_URL, provider=euca)
-        orm.ProviderCredential.objects.get_or_create(
-            key='s3_url', value=settings.EUCA_S3_URL, provider=euca)
-        orm.ProviderCredential.objects.get_or_create(
-            key='euca_cert_path', value=settings.EUCALYPTUS_CERT_PATH,
-            provider=euca)
-        orm.ProviderCredential.objects.get_or_create(
-            key='account_path', value='/services/Accounts', provider=euca)
-        orm.ProviderCredential.objects.get_or_create(
-            key='config_path', value='/services/Configuration', provider=euca)
-        orm.ProviderCredential.objects.get_or_create(
-            key='pk_path', value=settings.EUCA_PRIVATE_KEY, provider=euca)
-        orm.ProviderCredential.objects.get_or_create(
-            key='ec2_cert_path', value=settings.EC2_CERT_PATH, provider=euca)
+    def create_identity(self, orm, username, provider_location,
+                        max_quota=False, account_admin=False, **kwarg_creds):
 
-    def openstack_provider_creds(self, orm):
+        credentials = {}
+        for (c_key,c_value) in kwarg_creds.items():
+            if 'cred_' not in c_key.lower():
+                continue
+            c_key = c_key.replace('cred_','')
+            credentials[c_key] = c_value
+
+        provider = orm.Provider.objects.get(location__iexact=provider_location)
+        #Create user-group
+        user = orm['auth.User'].objects.get_or_create(username=username)[0]
+        group = orm.Group.objects.get_or_create(name=username)[0]
+        user.groups.add(group)
+        user.save()
+        group.leaders.add(user)
+        group.save()
+
+
+        #NOTE: This specific query will need to be modified if we want
+        # 2+ Identities on a single provider
+
+        id_membership = orm.IdentityMembership.objects.filter(
+            member__name= user.username,
+            identity__provider=provider,
+            identity__created_by__username=user.username)
+        if not id_membership:
+            #1. Create a Provider Membership
+            p_membership = orm.ProviderMembership.objects.get_or_create(
+                provider=provider, member=group)[0]
+
+            #2. Create an Identity Membership
+            identity = orm.Identity.objects.get_or_create(
+                created_by=user, provider=provider)[0]
+            #Two-tuple, (Object, created)
+            quota = orm.Quota.objects.get_or_create(
+                cpu = orm.Quota._meta.get_field('cpu').default,
+                memory = orm.Quota._meta.get_field('memory').default,
+                storage = orm.Quota._meta.get_field('storage').default,
+                suspended_count = orm.Quota._meta.get_field('suspended_count').default,
+                storage_count = orm.Quota._meta.get_field('storage_count').default)[0]
+            id_membership = orm.IdentityMembership.objects.get_or_create(
+                identity=identity, member=group, quota=quota)
+        #Either first in list OR object from two-tuple.. Its what we need.
+        id_membership = id_membership[0] 
+
+        #ID_Membership exists.
+
+        #3. Make sure that all kwargs exist as credentials
+        # NOTE: Because we assume only one identity per provider
+        #       We can add new credentials to 
+        #       existing identities if missing..
+        # In the future it will be hard to determine when we want to 
+        # update values on an identity Vs. create a second, new identity.
+        for (c_key,c_value) in credentials.items():
+            test_key_exists = orm.Credential.objects.filter(
+                    identity=id_membership.identity,
+                    key=c_key)
+            if test_key_exists:
+                logger.info("Conflicting Key Errror: Key:%s Value:%s "
+                "Replacement:%s" % (c_key, c_value, test_key_exists[0].value))
+                #No Dupes... But should we really throw an Exception here?
+                continue
+            orm.Credential.objects.get_or_create(
+                identity=id_membership.identity,
+                key=c_key,
+                value=c_value)[0]
+        if account_admin:
+            admin = orm.AccountProvider.objects.get_or_create(
+                        provider=id_membership.identity.provider,
+                        identity=id_membership.identity)[0]
+
+        #5. Save the user to activate profile on first-time use
+        user.save()
+        #Return the identity
+        return id_membership.identity
+
+    def build_os_admin(self, orm):
         if not hasattr(settings, 'OPENSTACK_ARGS'):
-            print 'WARN:settings.OPENSTACK_* missing, provider credentials will'\
-            ' NOT be created automatically. Instead, be sure to run these'\
-            ' commands on the REPL:\n'\
-            "from atmosphere import settings\n"\
-            "from core.models import ProviderCredential, Provider\n"\
-            "openstack = Provider.objects.get(location='OPENSTACK')\n"\
-            "ProviderCredential.objects.create("\
-            "key='auth_url', value=settings.OPENSTACK_AUTH_URL, "\
-            "provider=openstack)\n"\
-            "ProviderCredential.objects.create("\
-            "key='admin_url', value=settings.OPENSTACK_ADMIN_URL, "\
-            "provider=openstack)\n"\
-            "ProviderCredential.objects.create("\
-            "key='router_name', value=settings.OPENSTACK_DEFAULT_ROUTER, "\
-            "provider=openstack)\n"\
-            "ProviderCredential.objects.create("\
-            "key='region_name', value=settings.OPENSTACK_DEFAULT_REGION, "\
-            "provider=openstack)\n"
+            print """AccountProvider could not be created from settings.
+To create an AccountProvider for the 'OPENSTACK' location: via the REPL:
+>>> Identity.create_identity(ADMIN_USERNAME, 'OPENSTACK', account_admin=True,
+                             cred_key=username, cred_secret=password,
+                             cred_ex_tenant_name=project_name,
+                             cred_ex_project_name=project_name)"""
             return
 
-        provider_type = orm.ProviderType.objects.get_or_create(name='OpenStack')[0]
-        openstack = orm.Provider.objects.get_or_create(
-                location='OPENSTACK',
-                type=provider_type)
-        openstack = openstack[0]
+        identity = self.create_identity(orm, 
+            settings.OPENSTACK_ARGS['username'],
+            'OPENSTACK', account_admin=True,
+            cred_key=settings.OPENSTACK_ADMIN_KEY,
+            cred_secret=settings.OPENSTACK_ADMIN_SECRET,
+            cred_ex_tenant_name=settings.OPENSTACK_ADMIN_TENANT,
+            cred_ex_project_name=settings.OPENSTACK_ADMIN_TENANT)
 
-        orm.ProviderCredential.objects.get_or_create(
-                key='auth_url',
-                value=settings.OPENSTACK_AUTH_URL,
-                provider=openstack)
-        orm.ProviderCredential.objects.get_or_create(
-                key='admin_url',
-                value=settings.OPENSTACK_ADMIN_URL,
-                provider=openstack)
-        orm.ProviderCredential.objects.get_or_create(
-                key='router_name',
-                value=settings.OPENSTACK_DEFAULT_ROUTER,
-                provider=openstack)
-        orm.ProviderCredential.objects.get_or_create(
-                key='region_name',
-                value=settings.OPENSTACK_DEFAULT_REGION,
-                provider=openstack)
-        return
+    def build_euca_admin(self, orm):
+        if not hasattr(settings, 'EUCALYPTUS_ARGS'):
+            print """AccountProvider could not be created from settings.
+To create a Eucalyptus AccountProvider via the REPL:
+>>> Identity.create_identity(admin_username, 'EUCALYPTUS', account_admin=True,
+                             cred_key=_key, cred_secret=secret)"""
+            return
+        identity = self.create_identity(orm,
+            'admin', 'EUCALYPTUS',
+            account_admin=True,
+            cred_key=settings.EUCA_ADMIN_KEY,
+            cred_secret=settings.EUCA_ADMIN_SECRET)
 
     models = {
         u'auth.group': {
@@ -161,6 +170,12 @@ class Migration(DataMigration):
             'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
+        'core.accountprovider': {
+            'Meta': {'object_name': 'AccountProvider', 'db_table': "'provider_admin'"},
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'identity': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Identity']"}),
+            'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"})
+        },
         'core.allocation': {
             'Meta': {'object_name': 'Allocation', 'db_table': "'allocation'"},
             'delta': ('django.db.models.fields.IntegerField', [], {'default': '20160', 'null': 'True', 'blank': 'True'}),
@@ -183,7 +198,7 @@ class Migration(DataMigration):
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'instance': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Instance']", 'null': 'True', 'blank': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 9, 12, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'}),
             'status': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
             'type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.FlowType']"})
         },
@@ -192,7 +207,7 @@ class Migration(DataMigration):
             'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256', 'blank': 'True'}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 9, 12, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'})
         },
         'core.group': {
             'Meta': {'object_name': 'Group', 'db_table': "'group'", '_ormbases': [u'auth.Group']},
@@ -249,7 +264,7 @@ class Migration(DataMigration):
             'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'instance': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Instance']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 9, 12, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'}),
             'status': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.InstanceStatus']"})
         },
         'core.machine': {
@@ -264,7 +279,7 @@ class Migration(DataMigration):
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'private': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'providers': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['core.Provider']", 'symmetrical': 'False', 'through': "orm['core.ProviderMachine']", 'blank': 'True'}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 9, 12, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'}),
             'tags': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['core.Tag']", 'symmetrical': 'False', 'blank': 'True'})
         },
         'core.machineexport': {
@@ -276,7 +291,7 @@ class Migration(DataMigration):
             'export_owner': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']"}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'instance': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Instance']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 9, 12, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'}),
             'status': ('django.db.models.fields.CharField', [], {'max_length': '256'})
         },
         'core.machinemembership': {
@@ -302,7 +317,7 @@ class Migration(DataMigration):
             'new_machine_tags': ('django.db.models.fields.TextField', [], {'default': "''", 'blank': 'True'}),
             'new_machine_visibility': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'parent_machine': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'ancestor_machine'", 'to': "orm['core.ProviderMachine']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 9, 12, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'}),
             'status': ('django.db.models.fields.CharField', [], {'max_length': '256'})
         },
         'core.maintenancerecord': {
@@ -323,7 +338,7 @@ class Migration(DataMigration):
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'private_ssh_key': ('django.db.models.fields.TextField', [], {}),
             'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 9, 12, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'})
         },
         'core.provider': {
             'Meta': {'object_name': 'Provider', 'db_table': "'provider'"},
@@ -334,12 +349,6 @@ class Migration(DataMigration):
             'public': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'start_date': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.ProviderType']"})
-        },
-        'core.provideradmin': {
-            'Meta': {'object_name': 'ProviderAdmin', 'db_table': "'provider_admin'"},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'identity': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Identity']"}),
-            'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"})
         },
         'core.providercredential': {
             'Meta': {'object_name': 'ProviderCredential', 'db_table': "'provider_credential'"},
@@ -357,7 +366,7 @@ class Migration(DataMigration):
             'identifier': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '256'}),
             'machine': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Machine']"}),
             'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 9, 12, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'})
         },
         'core.providermembership': {
             'Meta': {'object_name': 'ProviderMembership', 'db_table': "'provider_membership'"},
@@ -381,7 +390,7 @@ class Migration(DataMigration):
             'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 9, 12, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'})
         },
         'core.quota': {
             'Meta': {'object_name': 'Quota', 'db_table': "'quota'"},
@@ -402,7 +411,7 @@ class Migration(DataMigration):
             'mem': ('django.db.models.fields.IntegerField', [], {}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 9, 12, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'})
         },
         'core.step': {
             'Meta': {'object_name': 'Step', 'db_table': "'step'"},
@@ -416,7 +425,7 @@ class Migration(DataMigration):
             'instance': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Instance']", 'null': 'True', 'blank': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'}),
             'script': ('django.db.models.fields.TextField', [], {}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 9, 12, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'})
         },
         'core.tag': {
             'Meta': {'object_name': 'Tag', 'db_table': "'tag'"},
@@ -447,7 +456,7 @@ class Migration(DataMigration):
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"}),
             'size': ('django.db.models.fields.IntegerField', [], {}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 9, 12, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'})
         }
     }
 
