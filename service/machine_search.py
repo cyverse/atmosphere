@@ -5,6 +5,7 @@ Provide pluggable machine search for Atmosphere.
 
 
 from abc import ABCMeta, abstractmethod
+import operator
 
 from django.db.models import Q
 
@@ -14,8 +15,7 @@ from core.models.machine import compare_core_machines, filter_core_machine,\
 
 
 def search(providers, identity, query):
-    return reduce(|, [p.search(identity, qeuery) for p in providers])
-        
+    return reduce(operator.or_, [p.search(identity, query) for p in providers])
 
 
 class BaseSearchProvider():
@@ -26,8 +26,9 @@ class BaseSearchProvider():
 
     __metaclass__ = ABCMeta
 
+    @classmethod
     @abstractmethod
-    def search(identity, query):
+    def search(cls, identity, query):
         raise NotImplementedError
 
 
@@ -36,7 +37,8 @@ class CoreSearchProvider(BaseSearchProvider):
     Search core.models.machine ProviderMachine.
     """
 
-    def search(identity, query):
+    @classmethod
+    def search(cls, identity, query):
         return ProviderMachine.objects.filter(
             Q(machine__private=True, created_by_identity=identity)
             | Q(machine__private=False, provider=identity.provider),
