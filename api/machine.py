@@ -197,7 +197,7 @@ class MachineSearch(APIView):
             except EmptyPage:
                 # Page is out of range.
                 # deliver last page of results.
-                history_machine_page = paginator.page(paginator.num_pages)
+                search_page = paginator.page(paginator.num_pages)
             serialized_data = \
                 PaginatedProviderMachineSerializer(
                     search_page).data
