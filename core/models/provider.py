@@ -86,6 +86,9 @@ class Provider(models.Model):
             cred_map.update(url_map)
         return cred_map
 
+    def get_type_name(self):
+        return self.type.name
+
     def get_location(self):
         return self.location.title()
 

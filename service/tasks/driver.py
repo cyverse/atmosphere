@@ -50,10 +50,11 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
       max_retries=2,
       default_retry_delay=128,
       ignore_result=True)
-def deploy_to(driverCls, provider, identity, instance, *args, **kwargs):
+def deploy_to(driverCls, provider, identity, instance_id, *args, **kwargs):
     try:
         logger.debug("deploy_to task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_id)
         driver.deploy_to(instance, *args, **kwargs)
         logger.debug("deploy_to task finished at %s." % datetime.now())
     except Exception as exc:

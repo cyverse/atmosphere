@@ -1,4 +1,4 @@
-from chromogenic.tasks import machine_imaging_task
+from chromogenic.tasks import machine_imaging_task, machine_migration_task
 from chromogenic.drivers.openstack import ImageManager as OSImageManager
 from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
 
@@ -10,51 +10,51 @@ def start_machine_imaging(machine_request, delay=False):
     delay - If true, wait until task is completed before returning
     """
     #TODO: Logic for if delay = True..
-    from service.tasks.machine import process_request
+    from service.tasks.machine import process_request, freeze_instance_task
     machine_request.status = 'processing'
     machine_request.save()
-    manager, args, kwargs = prepare_request(machine_request)
-    machine_imaging_task.si(manager, args, kwargs).apply_async(
-            link=process_request.subtask((machine_request.id,)))
+    instance_id = machine_request.instance.provider_alias
+
+    (orig_managerCls, orig_creds,
+     dest_managerCls, dest_creds) = machine_request.prepare_manager()
+    imaging_args = machine_request.get_imaging_args()
+    if dest_managerCls and dest_creds != orig_creds:
+        machine_migration_task.si(
+                orig_managerCls, orig_creds, dest_managerCls, dest_creds,
+                **imaging_args).apply_async(
+                        link=process_request.subtask(
+                            (machine_request.id,)))
+    else:
+        #Will run machine imaging task..
+        if orig_managerCls == OSImageManager:
+            f_task = freeze_instance_task.si(machine_request.id, instance_id)
+        i_task = machine_imaging_task.si(orig_managerCls, 
+                                         orig_creds,
+                                         **imaging_args)
+        p_task = process_request.subtask((machine_request.id,))
+        #Order on Openstack - Freeze, then create image
+        if orig_managerCls == OSImageManager:
+            init_task = f_task
+            init_task.link(i_task)
+        else:
+            init_task = i_task
+        #After creating image, process machine request
+        init_task.link(p_task)
+        init_task.apply_async()
+
+
 #TODO:
 # After request is finished:
 #
 
-def prepare_request(machine_request):
-    manager = machine_request.generate_manager()
-    local_download_dir = settings.LOCAL_STORAGE
-    if isinstance(manager, EucaImageManager):
-        meta_name = machine_request._get_meta_name()
-        public_image = machine_request.is_public()
-        #Splits the string by ", " OR " " OR "\n" to create the list
-        private_users = machine_request.get_access_list()
-        exclude = machine_request.get_exclude_files()
-        #Create image on image manager
-        args = machine_request.instance.provider_alias
-        kwargs = {
-            "image_name" : machine_request.new_machine_name,
-            "public" : public_image,
-            "private_user_list" : private_users,
-            "exclude" : exclude,
-            "meta_name" : meta_name,
-            "local_download_dir" : local_download_dir
-        }
-    elif isinstance(manager, OSImageManager):
-        args = (machine_request.instance.provider_alias,
-                machine_request.new_machine_name)
-        kwargs = {
-            "local_download_dir": local_download_dir
-        }
-    elif isinstance(manager, EucaOSMigrater):
-        args = (machine_request.instance.provider_alias,
-            machine_request.new_machine_name)
-        kwargs = {"local_download_dir" : local_download_dir}
-    return (manager, args, kwargs)
-
-
 def set_machine_request_metadata(machine_request, machine):
-    manager = machine_request.generate_manager()
-    lc_driver = manager.driver
+    (orig_managerCls, orig_creds,
+        new_managerCls, new_creds) = machine_request.prepare_manager()
+    if not new_manager:
+        manager = orig_managerCls(**orig_creds)
+    else:
+        manager = new_managerCls(**new_creds)
+    lc_driver = manager.admin_driver._connection
     if not hasattr(lc_driver, 'ex_set_image_metadata'):
         return
     lc_driver.ex_set_image_metadata(machine, {'deployed':'True'})

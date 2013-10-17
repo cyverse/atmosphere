@@ -10,7 +10,9 @@ from django.contrib.auth.models import User
 
 from core.models.provider import Provider
 from core.models.machine import create_provider_machine
+from core.models.node import NodeController
 
+from atmosphere import settings
 from threepio import logger
 
 class MachineRequest(models.Model):
@@ -69,9 +71,7 @@ class MachineRequest(models.Model):
         exclude=re.split(", | |\n", self.exclude_files)
         return exclude
 
-    def generate_manager(self):
-        from chromogenic.drivers.openstack import ImageManager as OSImageManager
-        from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
+    def get_credentials(self):
         old_provider = self.parent_machine.provider
         old_creds = old_provider.get_credentials()
         old_admin = old_provider.get_admin_identity().get_credentials()
@@ -84,30 +84,95 @@ class MachineRequest(models.Model):
             new_creds = new_provider.get_credentials()
             new_admin = new_provider.get_admin_identity().get_credentials()
             new_creds.update(new_admin)
+        return (old_creds, new_creds)
 
-        old_type = old_provider.type.name.lower()
-        new_type = new_provider.type.name.lower()
-        if old_type == 'eucalyptus':
-            if new_type == 'eucalyptus':
-                euca_creds = EucaImageManager._build_image_creds(old_creds)
-                manager = EucaImageManager(**euca_creds)
-            elif new_type == 'openstack':
-                euca_creds = EucaImageManager._build_image_creds(old_creds)
-                euca_manager = EucaImageManager(**euca_creds)
-                os_creds = OSImageManager._build_image_creds(new_creds)
-                os_manager = OSImageManager(**os_creds)
-                manager = EucaOSMigrater(euca_manager, os_manager)
-        elif old_type == 'openstack':
-            if new_type == 'eucalyptus':
-                logger.info('Create euca image from openstack image')
-                #TODO: Replace with OSEucaMigrater when this feature is complete
-                raise Exception("Cannot migrate images from Openstack to Eucalyptus")
-                new_image_id = None
-            elif new_type == 'openstack':
-                logger.info('Create openstack image from openstack image')
-                os_creds = OSImageManager._build_image_creds(old_creds)
-                manager = OSImageManager(**os_creds)
-        return manager
+    def prepare_manager(self):
+        """
+        Prepares, but does not initialize, manager(s)
+        This allows the manager and required credentials to be passed to celery
+        without causing serialization errors
+        """
+        from chromogenic.drivers.openstack import ImageManager as OSImageManager
+        from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
+
+        orig_provider = self.parent_machine.provider
+        dest_provider = self.new_machine_provider
+        orig_type = orig_provider.get_type_name().lower()
+        dest_type = dest_provider.get_type_name().lower()
+
+        origCls = destCls = None
+        if orig_type == 'eucalyptus':
+            origCls = EucaImageManager
+        elif orig_type == 'openstack':
+            origCls = OSImageManager
+
+        if dest_type == orig_type:
+            destCls = origCls
+        elif dest_type == 'eucalyptus':
+            destCls = EucaImageManager
+        elif dest_type == 'openstack':
+            destCls = OSImageManager
+
+        orig_creds, dest_creds = self.get_credentials()
+        orig_creds = origCls._build_image_creds(orig_creds)
+        dest_creds = destCls._build_image_creds(dest_creds)
+
+        return (origCls, orig_creds, destCls, dest_creds)
+
+    def get_imaging_args(self):
+        """
+        Prepares the entire machine request for serialization to celery
+
+        TODO: Add things like description and tags to export and migration drivers
+        """
+        from chromogenic.drivers.openstack import ImageManager as OSImageManager
+        from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
+
+        (orig_managerCls, orig_creds,
+         dest_managerCls, dest_creds) = self.prepare_manager()
+    
+        download_dir = settings.LOCAL_STORAGE
+    
+        imaging_args = {
+            "instance_id": self.instance.provider_alias,
+            "image_name": self.new_machine_name,
+            "download_dir" : download_dir}
+        if issubclass(orig_managerCls, EucaImageManager):
+            meta_name = self._get_meta_name()
+            public_image = self.is_public()
+            #Splits the string by ", " OR " " OR "\n" to create the list
+            private_users = self.get_access_list()
+            exclude = self.get_exclude_files()
+            #Create image on image manager
+            node_scp_info = self.get_euca_node_info(orig_managerCls, orig_creds)
+            imaging_args.update({
+                "public" : public_image,
+                "private_user_list" : private_users,
+                "exclude" : exclude,
+                "meta_name" : meta_name,
+                "node_scp_info" : node_scp_info,
+            })
+        return imaging_args
+
+    def get_euca_node_info(self, euca_managerCls, euca_creds):
+        instance_id = self.instance.provider_alias
+        #Prepare and use the manager
+        euca_manager = euca_managerCls(**euca_creds)
+        node_ip = euca_manager.get_instance_node(instance_id)
+        #Find the matching node
+        try:
+            core_node = NodeController.objects.get(alias=node_ip)
+        except NodeController.DoesNotExist:
+            logger.error("Must create a nodecontroller for IP: %s" % node_ip)
+            return None
+    
+        #Return a dict containing information on how to SCP to the node
+        node_dict = {
+                'hostname':core_node.hostname,
+                'port':core_node.port,
+                'private_key':core_node.private_ssh_key
+        }
+        return node_dict
 
     def new_machine_is_public(self):
         """
