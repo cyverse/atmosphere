@@ -773,7 +773,6 @@ def main(argv):
     linuxuser = instance_data['atmosphere']['userid']
     linuxpass = ""
     public_ip = get_public_ip(instance_metadata)
-    set_hostname(public_ip)
     run_command(['/bin/hostname', public_ip])  # 'localhost'//ip.addr
     instance_metadata['linuxusername'] = linuxuser
     instance_metadata["linuxuserpassword"] = linuxpass
