@@ -16,6 +16,7 @@ class NodeController(models.Model):
     provider = models.ForeignKey(Provider)
     alias = models.CharField(max_length=256)
     hostname = models.CharField(max_length=256)
+    port = models.IntegerField(default=22)
     private_ssh_key = models.TextField()
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
