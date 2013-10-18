@@ -152,6 +152,15 @@ class MachineRequest(models.Model):
                 "meta_name" : meta_name,
                 "node_scp_info" : node_scp_info,
             })
+        orig_provider = self.parent_machine.provider
+        dest_provider = self.new_machine_provider
+        orig_platform = orig_provider.get_platform_name().lower()
+        dest_platform = dest_provider.get_platform_name().lower()
+        if orig_platform != dest_platform:
+            if orig_platform == 'kvm' and dest_platform == 'xen':
+                imaging_args['kvm_to_xen'] = True
+            elif orig_platform == 'xen' and dest_platform == 'kvm':
+                imaging_args['xen_to_kvm'] = True
         return imaging_args
 
     def get_euca_node_info(self, euca_managerCls, euca_creds):

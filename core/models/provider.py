@@ -9,6 +9,26 @@ from rtwo.provider import AWSProvider, EucaProvider, OSProvider
 from rtwo.provider import Provider as EshProvider
 from threepio import logger
 
+class PlatformType(models.Model):
+    """
+    Keep track of Virtualization Platform via type
+    """
+    name = models.CharField(max_length=256)
+    start_date = models.DateTimeField(default=timezone.now())
+    end_date = models.DateTimeField(null=True, blank=True)
+
+    def json(self):
+        return {
+            'name': self.name
+        }
+
+    class Meta:
+        db_table = 'platform_type'
+        app_label = 'core'
+
+    def __unicode__(self):
+        return self.name
+
 class ProviderType(models.Model):
     """
     Keep track of Provider via type
@@ -70,6 +90,7 @@ class Provider(models.Model):
     """
     location = models.CharField(max_length=256)
     type = models.ForeignKey(ProviderType)
+    virtualization = models.ForeignKey(PlatformType, null=True, blank=True)
     active = models.BooleanField(default=True)
     public = models.BooleanField(default=False)
     start_date = models.DateTimeField(auto_now_add=True)
@@ -85,6 +106,9 @@ class Provider(models.Model):
             url_map = EucaProvider.parse_url(ec2_url)
             cred_map.update(url_map)
         return cred_map
+
+    def get_platform_name(self):
+        return self.virtualization.name
 
     def get_type_name(self):
         return self.type.name
