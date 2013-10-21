@@ -98,7 +98,7 @@ class ImageManager():
         """
 
         try:
-            reservation = self.find_instance(instance_id)[0]
+            reservation, instance = self.find_instance(instance_id)
             #Collect information about instance to fill arguments
             owner = reservation.owner_id
             instance_kernel = reservation.instances[0].kernel
@@ -171,8 +171,7 @@ class ImageManager():
         """
 
         try:
-            reservation = self.find_instance(instance_id)[0]
-            instance = reservation.instances[0]
+            reservation, instance = self.find_instance(instance_id)
             owner = reservation.owner_id
         except IndexError:
             raise Exception("No Instance Found with ID %s" % instance_id)
@@ -935,9 +934,11 @@ class ImageManager():
         euca_conn = self.euca.make_connection()
         return euca_conn.get_all_instances()
 
-    def find_instance(self, name):
-        return [m for m in self.list_instances()
-                if name.lower() in m.instances[0].id.lower()]
+    def find_instance(self, instance_id):
+        for res in self.list_instances():
+            for instance in res.instances:
+                if instance_id.lower() in instance.id.lower():
+                    return (res, instance)
 
     def list_images(self):
         euca_conn = self.euca.make_connection()

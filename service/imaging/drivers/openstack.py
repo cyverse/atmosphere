@@ -191,7 +191,7 @@ class ImageManager():
         fi_script = freeze_instance()
         kwargs.update({'deploy': fi_script})
         deploy_to.delay(
-            driver.__class__, driver.provider, dirver.identity, 
+            driver.__class__, driver.provider, driver.identity, 
             instance)
         #Give it a head-start..
         time.sleep(1)

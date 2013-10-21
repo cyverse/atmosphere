@@ -112,8 +112,9 @@ class AccountDriver():
 
         if username in self.core_provider.list_admin_names():
             return
-        self.build_account(username, password, project_name, role_name,
-                           max_quota)
+        (username, password, project_name) = self.build_account(
+				username, password, project_name, role_name,
+                           	max_quota)
         ident = self.create_identity(username, password,
                                      project_name,
                                      max_quota=max_quota)
@@ -161,6 +162,7 @@ class AccountDriver():
             except OverLimit:
                 print 'Requests are rate limited. Pausing for one minute.'
                 time.sleep(60)  # Wait one minute
+        return (username, password, project)
 
     def rebuild_security_groups(self, core_identity, rules_list=None):
         creds = self.parse_identity(core_identity)

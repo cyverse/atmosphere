@@ -156,7 +156,8 @@ def select_and_build_image(machine_request, provider_creds,
     return new_image_id
 
 def set_machine_request_metadata(manager, machine_request, machine):
-    manager.driver.ex_set_image_metadata(machine, {'deployed':'True'})
+    lc_driver = manager.admin_driver._connection
+    lc_driver.ex_set_image_metadata(machine, {'deployed':'True'})
     if machine_request.new_machine_description:
         metadata['description'] = machine_request.new_machine_description
     if machine_request.new_machine_tags:
