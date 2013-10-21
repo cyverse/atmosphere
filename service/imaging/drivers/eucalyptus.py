@@ -99,11 +99,13 @@ class ImageManager():
 
         try:
             reservation, instance = self.find_instance(instance_id)
+            if not reservation or not instance:
+                raise Exception("Instance does not exist.")
             #Collect information about instance to fill arguments
             owner = reservation.owner_id
-            instance_kernel = reservation.instances[0].kernel
-            instance_ramdisk = reservation.instances[0].ramdisk
-            parent_emi = reservation.instances[0].image_id
+            instance_kernel = instance.kernel
+            instance_ramdisk = instance.ramdisk
+            parent_emi = instance.image_id
         except IndexError:
             raise Exception("No Instance Found with ID %s" % instance_id)
 
