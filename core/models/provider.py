@@ -90,7 +90,7 @@ class Provider(models.Model):
     """
     location = models.CharField(max_length=256)
     type = models.ForeignKey(ProviderType)
-    virtualization = models.ForeignKey(PlatformType, null=True, blank=True)
+    virtualization = models.ForeignKey(PlatformType)
     active = models.BooleanField(default=True)
     public = models.BooleanField(default=False)
     start_date = models.DateTimeField(auto_now_add=True)

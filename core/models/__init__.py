@@ -2,7 +2,7 @@ from core.tasks import allocation, synchronize
 from core.models.credential import Credential, ProviderCredential
 from core.models.identity import Identity
 from core.models.profile import UserProfile
-from core.models.provider import AccountProvider, ProviderType,\
+from core.models.provider import AccountProvider, ProviderType, PlatformType,\
                                  ProviderSize, Provider
 from core.models.machine import Machine, ProviderMachine
 from core.models.machine_request import MachineRequest
