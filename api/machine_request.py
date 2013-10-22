@@ -16,7 +16,7 @@ from api.serializers import MachineRequestSerializer
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 
 from web.emails import requestImaging
-from service.machine_request import start_machine_imaging
+from service.tasks.machine import start_machine_imaging
 
 import copy
 

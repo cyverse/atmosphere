@@ -4,17 +4,17 @@ from celery.task.schedules import crontab
 from threepio import logger
 from datetime import datetime
 
-@periodic_task(run_every=crontab(hour='*', minute='*/5', day_of_week='*'),
-               time_limit=120, retry=1) # 2min timeout
-def test_all_instance_links():
-    try:
-        logger.debug("test_all_instance_links task started at %s." % datetime.now())
-        instances = get_all_instances()
-        update_links(instances)
-        logger.debug("test_all_instance_links task finished at %s." % datetime.now())
-    except Exception as exc:
-        logger.exception(exc)
-        test_all_instance_links.retry(exc=exc)
+#@periodic_task(run_every=crontab(hour='*', minute='*/5', day_of_week='*'),
+#               time_limit=120, retry=1) # 2min timeout
+#def test_all_instance_links():
+#    try:
+#        logger.debug("test_all_instance_links task started at %s." % datetime.now())
+#        instances = get_all_instances()
+#        update_links(instances)
+#        logger.debug("test_all_instance_links task finished at %s." % datetime.now())
+#    except Exception as exc:
+#        logger.exception(exc)
+#        test_all_instance_links.retry(exc=exc)
 
 def get_all_instances():
     from core.models import Identity, Provider
