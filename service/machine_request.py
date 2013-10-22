@@ -18,29 +18,31 @@ def start_machine_imaging(machine_request, delay=False):
     (orig_managerCls, orig_creds,
      dest_managerCls, dest_creds) = machine_request.prepare_manager()
     imaging_args = machine_request.get_imaging_args()
+
+    #Step 1 - On OpenStack, sync/freeze BEFORE starting migration/imaging
+    if orig_managerCls == OSImageManager:
+        freeze_task = freeze_instance_task.si(machine_request.id, instance_id)
+        init_task = freeze_task
     if dest_managerCls and dest_creds != orig_creds:
-        machine_migration_task.si(
-                orig_managerCls, orig_creds, dest_managerCls, dest_creds,
-                **imaging_args).apply_async(
-                        link=process_request.subtask(
-                            (machine_request.id,)))
-    else:
         #Will run machine imaging task..
-        if orig_managerCls == OSImageManager:
-            f_task = freeze_instance_task.si(machine_request.id, instance_id)
-        i_task = machine_imaging_task.si(orig_managerCls, 
-                                         orig_creds,
-                                         **imaging_args)
-        p_task = process_request.subtask((machine_request.id,))
-        #Order on Openstack - Freeze, then create image
-        if orig_managerCls == OSImageManager:
-            init_task = f_task
-            init_task.link(i_task)
+        migrate_task = machine_migration_task.si(
+                orig_managerCls, orig_creds, dest_managerCls, dest_creds,
+                **imaging_args)
+        if not init_task:
+            init_task = migrate_task
         else:
-            init_task = i_task
-        #After creating image, process machine request
-        init_task.link(p_task)
-        init_task.apply_async()
+            init_task.link(migrate_task)
+    else:
+        image_task = machine_imaging_task.si(orig_managerCls, orig_creds,
+                                             **imaging_args)
+        if not init_task:
+            init_task = image_task
+        else:
+            init_task.link(image_task)
+    process_task = process_request.subtask((machine_request.id,))
+    #After the init_task is completed (And any other links..)
+    init_task.link(process_task)
+    init_task.apply_async()
 
 
 #TODO:
