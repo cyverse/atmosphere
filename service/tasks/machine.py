@@ -33,6 +33,7 @@ def start_machine_imaging(machine_request, delay=False):
     imaging_args = machine_request.get_imaging_args()
 
     #Step 1 - On OpenStack, sync/freeze BEFORE starting migration/imaging
+    init_task = None
     if orig_managerCls == OSImageManager:
         freeze_task = freeze_instance_task.si(machine_request.id, instance_id)
         init_task = freeze_task
@@ -55,23 +56,28 @@ def start_machine_imaging(machine_request, delay=False):
     process_task = process_request.subtask((machine_request.id,))
     #After init_task is completed (And any other links..) process the request
     init_task.link(process_task)
-    result = init_task.apply_async(link_error=machine_request_error.s(machine_request.id,))
+    async = init_task.apply_async(link_error=machine_request_error.s((machine_request.id,)))
     if delay:
-        result.get()
-    return result
+        async.get()
+    return async
 
 
-def set_machine_request_metadata(machine_request, machine):
+def set_machine_request_metadata(machine_request, image_id):
     (orig_managerCls, orig_creds,
         new_managerCls, new_creds) = machine_request.prepare_manager()
-    if not new_manager:
-        manager = orig_managerCls(**orig_creds)
-    else:
+    if new_managerCls:
         manager = new_managerCls(**new_creds)
+    else:
+        manager = orig_managerCls(**orig_creds)
+    if not hasattr(manager, 'admin_driver'):
+        return
+    #Update metadata on rtwo/libcloud machine -- NOT a glance machine
+    machine = manager.admin_driver.get_machine(image_id)
     lc_driver = manager.admin_driver._connection
     if not hasattr(lc_driver, 'ex_set_image_metadata'):
         return
-    lc_driver.ex_set_image_metadata(machine, {'deployed':'True'})
+    metadata = lc_driver.ex_get_image_metadata(machine)
+
     if machine_request.new_machine_description:
         metadata['description'] = machine_request.new_machine_description
     if machine_request.new_machine_tags:
@@ -84,8 +90,8 @@ def set_machine_request_metadata(machine_request, machine):
 
 
 @task(name='machine_request_error', ignore_result=False)
-def machine_request_error(result_uuid, machine_request_id):
-    result = AsyncResult(uuid)
+def machine_request_error(task_uuid, machine_request_id):
+    result = AsyncResult(task_uuid)
     exc = result.get(propagate=False)
     err_str = "Task %r raised exception: %r\n%r" % (exc, result.traceback)
     logger.error(err_str)
@@ -97,7 +103,7 @@ def machine_request_error(result_uuid, machine_request_id):
 @task(name='process_request', ignore_result=False)
 def process_request(new_image_id, machine_request_id):
     machine_request = MachineRequest.objects.get(id=machine_request_id)
-    set_machine_request_metadata(machine_request, machine)
+    set_machine_request_metadata(machine_request, new_image_id)
     process_machine_request(machine_request, new_image_id)
     send_image_request_email(machine_request.new_machine_owner,
                              machine_request.new_machine,

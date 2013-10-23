@@ -203,11 +203,11 @@ def process_machine_request(machine_request, new_image_id):
     from core.models import Identity, ProviderMachine
     #Build the new provider-machine object and associate
     try:
-	new_machine = ProviderMachine.objects.get(identifier=new_image_id)
+        new_machine = ProviderMachine.objects.get(identifier=new_image_id)
     except ProviderMachine.DoesNotExist:
-    	new_machine = create_provider_machine(
-    	    machine_request.new_machine_name, new_image_id,
-    	    machine_request.new_machine_provider_id)
+        new_machine = create_provider_machine(
+            machine_request.new_machine_name, new_image_id,
+            machine_request.new_machine_provider_id)
 
     new_identity = Identity.objects.get(created_by=machine_request.new_machine_owner, provider=machine_request.new_machine_provider)
     generic_mach = new_machine.machine

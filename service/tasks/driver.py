@@ -309,5 +309,5 @@ def _check_empty_project_network(
         logger.debug("_check_empty_project_network task finished at %s." %
                      datetime.now())
     except Exception as exc:
-        logger.warn(exc)
+        logger.exception("Failed to check if project network is empty")
         _check_empty_project_network.retry(exc=exc)
