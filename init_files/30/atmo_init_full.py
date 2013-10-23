@@ -488,7 +488,7 @@ def modify_rclocal(username, distro, public_ip='localhost'):
         #If there was an exit line, it must be removed
         if line_in_file('exit', distro_rc_local):
             run_command(['/bin/sed', '-i',
-                         "'s/exit.*//'", '/etc/rc.local'])
+                         "s/exit.*//", '/etc/rc.local'])
         # Intentionally REPLACE the entire contents of file on each run
         atmo_rclocal = open(atmo_rclocal_path,'w')
         atmo_rclocal.write('#!/bin/sh -e\n'
@@ -551,17 +551,6 @@ def nagios():
     run_command([os.path.join(os.environ['HOME'], 'nrpe-snmp-install.sh')])
     run_command(['/bin/rm',
                  os.path.join(os.environ['HOME'], 'nrpe-snmp-install.sh')])
-
-
-def deploy_atmo_boot():
-    download_file('%s/init_files/%s/atmo_boot.py'
-                  % (ATMOSERVER, SCRIPT_VERSION),
-                  '/usr/sbin/atmo_boot',
-                  match_hash='e6bef1f831f81939a325084123a3d064c4845b5f')
-    run_command(['/bin/chmod', 'a+x', '/usr/sbin/atmo_boot'])
-    run_command(['/bin/sed', '-i',
-                 "'s/\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot/"
-                 + "\/usr\/sbin\/atmo_boot/'", '/etc/rc.local'])
 
 
 def notify_launched_instance(instance_data, metadata):
