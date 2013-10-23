@@ -208,6 +208,8 @@ def in_sudoers(user):
     out, err = run_command(['sudo -l -U %s' % user], shell=True)
     if 'not allowed to run sudo' in out:
         return False
+    if 'unknown user' in err:
+        return False
     lines = out.split('\n')
     line_match = '%s may run the following' % user
     for idx, line in enumerate(lines):
