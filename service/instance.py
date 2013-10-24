@@ -193,7 +193,8 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
                                  **kwargs)
         elif isinstance(driver.provider, OSProvider):
             deploy = True
-            ex_metadata = {'tmp_status': 'initializing'}
+            ex_metadata = {'tmp_status': 'initializing',
+                           'creator': '%s' % username}
             ex_keyname=settings.ATMOSPHERE_KEYPAIR_NAME
             #Check for project network.. TODO: Fix how password/project are
             # retrieved
