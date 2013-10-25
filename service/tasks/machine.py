@@ -3,7 +3,7 @@ import time
 from celery.decorators import task
 from celery.result import AsyncResult
 
-from chromogenic.tasks import machine_imaging_task, machine_migration_task
+from chromogenic.tasks import machine_imaging_task, migrate_instance_task
 from chromogenic.drivers.openstack import ImageManager as OSImageManager
 from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
 
@@ -39,7 +39,7 @@ def start_machine_imaging(machine_request, delay=False):
         init_task = freeze_task
     if dest_managerCls and dest_creds != orig_creds:
         #Will run machine imaging task..
-        migrate_task = machine_migration_task.si(
+        migrate_task = migrate_instance_task.si(
                 orig_managerCls, orig_creds, dest_managerCls, dest_creds,
                 **imaging_args)
         if not init_task:
