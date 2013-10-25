@@ -3,6 +3,7 @@ from celery.task.schedules import crontab
 
 from threepio import logger
 from datetime import datetime
+from django.conf import settings
 
 @periodic_task(run_every=crontab(hour='*', minute='*/5', day_of_week='*'),
                time_limit=120, retry=1) # 2min timeout
@@ -35,9 +36,25 @@ def get_all_instances():
             logger.exception("Problem accessing all instances for provider: %s" % provider)
     return all_instances
 
+def active_instances(instances):
+    tested_instances = {}
+    for instance in instances:
+	results = test_instance_links(instance.alias, instance.ip)
+        tested_instances.update(results)
+    return tested_instances
+
+def test_instance_links(alias, uri):
+    if uri is None:
+	return {alias: {'vnc':False, 'shell':False}}
+    shell_address = '%s/shell/%s' % (settings.SERVER_URL, uri)
+    shell_success = test_link(shell_address)
+    vnc_address = 'http://%s:5904' % uri
+    vnc_success = test_link(vnc_address)
+    return {alias: {'vnc': vnc_success, 'shell': shell_success}}
+
+
 def update_links(instances):
     from core.models import Instance
-    from rtwo.linktest import active_instances
     updated = []
     linktest_results = active_instances(instances)
     for (instance_id, link_results) in linktest_results.items():
