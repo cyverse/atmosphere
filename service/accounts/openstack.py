@@ -65,8 +65,11 @@ class AccountDriver():
         ('TCP', 4201, 65535),
         ('UDP', 4201, 65535),
         # Poke hole in 4200 for iPlant VMs proxy-access only (Shellinabox)
-        ('TCP', 4200, 4200, '128.196.142.0/24'),
-        ('UDP', 4200, 4200, '128.196.142.0/24'),
+        ('TCP', 4200, 4200, '128.196.0.0/16'),
+        ('UDP', 4200, 4200, '128.196.0.0/16'),
+        ('TCP', 4200, 4200, '150.135.0.0/16'),
+        ('UDP', 4200, 4200, '150.135.0.0/16'),
+
     ]
 
     def _init_by_provider(self, provider, *args, **kwargs):
@@ -113,8 +116,8 @@ class AccountDriver():
         if username in self.core_provider.list_admin_names():
             return
         (username, password, project_name) = self.build_account(
-				username, password, project_name, role_name,
-                           	max_quota)
+                                username, password, project_name, role_name,
+                                   max_quota)
         ident = self.create_identity(username, password,
                                      project_name,
                                      max_quota=max_quota)
@@ -163,6 +166,23 @@ class AccountDriver():
                 print 'Requests are rate limited. Pausing for one minute.'
                 time.sleep(60)  # Wait one minute
         return (username, password, project)
+
+    def add_rules_to_security_groups(self, core_identity_list, rules_list, 
+                                   security_group_name='default'):
+        for identity in core_identity_list:
+            creds = self.parse_identity(identity)
+            sec_group = self.user_manager.find_security_group(
+                            creds['username'], creds['password'],
+                            creds['tenant_name'], security_group_name)
+            if not sec_group:
+                raise Exception("No security gruop found matching name %s"
+                                % security_group_name)
+            self.user_manager.add_security_group_rules(
+                creds['username'], creds['password'], creds['tenant_name'],
+                security_group_name, rules_list)
+
+
+
 
     def rebuild_security_groups(self, core_identity, rules_list=None):
         creds = self.parse_identity(core_identity)
