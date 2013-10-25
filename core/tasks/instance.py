@@ -14,7 +14,7 @@ def test_all_instance_links():
         update_links(instances)
         logger.debug("test_all_instance_links task finished at %s." % datetime.now())
     except Exception as exc:
-        logger.exception(exc)
+        logger.exception('Error during test_all_instance_links task')
         test_all_instance_links.retry(exc=exc)
 
 def get_all_instances():
@@ -44,6 +44,7 @@ def active_instances(instances):
     return tested_instances
 
 def test_instance_links(alias, uri):
+    from rtwo.linktest import test_link
     if uri is None:
 	return {alias: {'vnc':False, 'shell':False}}
     shell_address = '%s/shell/%s' % (settings.SERVER_URL, uri)
