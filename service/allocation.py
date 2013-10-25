@@ -58,7 +58,8 @@ def check_over_allocation(username, identity_id):
         return (False, timedelta(0))
     delta_time = timedelta(minutes=allocation.delta)
     max_time_allowed = timedelta(minutes=allocation.threshold)
-    total_time_used = get_time(username, identity_id, delta_time)
+    total_time_used = get_time(username, identity_id, delta_time,
+                               max_time_allowed)
     time_diff = max_time_allowed - total_time_used
     if time_diff.total_seconds() <= 0:
         logger.debug("%s is over their allowed quota by %s" %
