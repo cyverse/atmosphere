@@ -43,8 +43,12 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		    	quota_type: 'allocation'
 		    }).render();
         } else {
-            allocation_holder = this.$el.find('#allocation_holder');
-            allocation_holder.html('');
+            graph_holders = this.$el.find('#resource_usage_holder');
+            alloc_graph = this.$el.find("#allocationHolder").parent();
+            alloc_graph.remove();
+            graph_holders.children().each( function() {
+                $(this).removeClass('span4').addClass('span6');
+            });
         }
 
 		// Make the dropdown functional
