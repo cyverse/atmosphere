@@ -2,7 +2,7 @@
 Atmosphere utilizes the DjangoGroup model
 to manage users via the membership relationship
 """
-# vim: tabstop=2 expandtab shiftwidth=2 softtabstop=2
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
 from django.db import models
 from django.contrib.auth.models import Group as DjangoGroup
@@ -14,6 +14,7 @@ from core.models.instance import Instance
 from core.models.quota import Quota
 from core.models.allocation import Allocation
 
+from datetime import timedelta
 
 class Group(DjangoGroup):
     """
@@ -86,6 +87,35 @@ class IdentityMembership(models.Model):
     member = models.ForeignKey(Group)
     quota = models.ForeignKey(Quota)
     allocation = models.ForeignKey(Allocation, null=True, blank=True)
+
+    def get_allocation_dict(self):
+        if not self.allocation:
+            return {}
+        #Don't move it up. Circular reference.
+        from service.allocation import get_time, delta_to_hours
+        time_used = get_time(self.identity.created_by,
+                             self.identity.id,
+                             timedelta(
+                                 minutes=self.allocation.delta))
+        hours_consumed = delta_to_hours(time_used)
+
+        allocation_dict = {
+            "threshold": self.allocation.threshold,
+            "current": hours_consumed*60,
+            "delta": self.allocation.delta,
+            "ttz": self.allocation.threshold - hours_consumed*60}
+        return allocation_dict
+
+    def get_quota_dict(self):
+        quota = self.quota
+        quota_dict = {
+            "mem": quota.memory,
+            "cpu": quota.cpu,
+            "disk": quota.storage,
+            "disk_count": quota.storage_count,
+            "suspended_count": quota.suspended_count,
+        }
+        return quota_dict
 
     def __unicode__(self):
         return "%s can use identity %s" % (self.member, self.identity)

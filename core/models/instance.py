@@ -116,8 +116,18 @@ class Instance(models.Model):
         new_hist = self.new_history(status_name, now_time)
         new_hist.save()
 
+    def get_active_hours(self):
+        #Don't move it up. Circular reference.
+        from service.allocation import delta_to_hours
+        total_time = self._calculate_active_time()
+        return delta_to_hours(total_time)
 
     def get_active_time(self):
+        total_time = self._calculate_active_time()
+        return total_time
+
+    def _calculate_active_time(self):
+        #from service.allocation import delta_to_hours
         status_history = self.instancestatushistory_set.all()
         if not status_history:
             # No status history, use entire length of instance
@@ -126,21 +136,23 @@ class Instance(models.Model):
                         (self.provider_alias, now))
             end_date = self.end_date if self.end_date else now
             return end_date - self.start_date
-        active_time = timedelta(0)
-        for inst_state in status_history:
-            if not inst_state.status.name == 'active':
+        #Start counting..
+        total_time = timedelta()
+        for state in status_history:
+            if not state.is_active():
                 continue
-            if inst_state.end_date:
-                time_diff = inst_state.end_date - inst_state.start_date
-                active_time += time_diff
-            else:
-                logger.info("Status %s has no end-date." %
-                        inst_state.status.name)
-                time_diff = timezone.now() - inst_state.start_date
-                active_time += time_diff
-            logger.info("Include %s time: %s | New total time: %s" %
-                        (inst_state.status.name, time_diff, active_time))
-        return active_time
+            if not state.end_date:
+                logger.debug("Status %s has no end-date." %
+                        state.status.name)
+                state.end_date = timezone.now()
+            active_time = state.end_date - state.start_date
+            new_total = active_time + total_time
+            #logger.info("%s + %s = %s" % 
+            #        (delta_to_hours(active_time), 
+            #         delta_to_hours(total_time),
+            #         delta_to_hours(new_total)))
+            total_time = new_total
+        return total_time
 
         
 
@@ -267,6 +279,16 @@ class InstanceStatusHistory(models.Model):
         return "%s (FROM:%s TO:%s)" % (self.status, 
                                self.start_date,
                                self.end_date if self.end_date else '')
+    
+    def is_active(self):
+        """
+        Use this function to determine whether or not a specific instance
+        status history should be considered 'active'
+        """
+        if self.status.name == 'active':
+            return True
+        else:
+            return False
 
     class Meta:
         db_table = "instance_status_history"

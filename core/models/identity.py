@@ -139,36 +139,26 @@ class Identity(models.Model):
             cred_dict[cred.key] = cred.value
         return cred_dict
 
+    def get_allocation(self):
+        id_member = self.identitymembership_set.all()[0]
+        return id_member.allocation
+
     def get_quota(self):
         id_member = self.identitymembership_set.all()[0]
         return id_member.quota
 
-    def get_quota_dict(self):
-        #Don't move it up. Circular reference.
-        from service.allocation import get_time
+    def get_allocation_dict(self):
         id_member = self.identitymembership_set.all()[0]
-        quota = id_member.quota
-        quota_dict = {
-            "mem": quota.memory,
-            "cpu": quota.cpu,
-            "disk": quota.storage,
-            "disk_count": quota.storage_count,
-            "suspended_count": quota.suspended_count,
-        }
-        if id_member.allocation:
-            allocation = id_member.allocation
-            time_used = get_time(id_member.identity.created_by,
-                                 id_member.identity.id,
-                                 timedelta(minutes=allocation.delta))
-            current_mins = int(time_used.total_seconds() / 60)
-            quota_dict.update({
-                "allocation": {
-                    "threshold": allocation.threshold,
-                    "current": current_mins,
-                    "delta": allocation.delta,
-                    "ttz": allocation.threshold - current_mins
-                }
-            })
+        allocation_dict = id_member.get_allocation_dict()
+        return allocation_dict
+
+    def get_quota_dict(self):
+        id_member = self.identitymembership_set.all()[0]
+        #See core/models/group.py#IdentityMembership
+        quota_dict = id_member.get_quota_dict()
+        allocation_dict = self.get_allocation_dict()
+        if allocation_dict:
+            quota_dict.update({"allocation":allocation_dict})
         return quota_dict
 
     def json(self):
