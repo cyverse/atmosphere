@@ -33,14 +33,14 @@ def get_burn_time(user, identity_id, delta, threshold):
         delta = timedelta(minutes=threshold)
     time_used = get_time(user, identity_id, delta)
     time_remaining = threshold - time_used
-    #If we are out of time, burn-time does not apply
-    if time_remaining < 0:
+    #If we used all of our allocation, dont calculate burn time
+    if time_remaining < timedelta(0):
         return None
     instances = get_core_instances(identity_id)
     #If we have no instances, burn-time does not apply
     if not instances:
         return None
-    cpu_cores = sum([inst.esh_size().cpu for inst in instances
+    cpu_cores = sum([inst.esh.size.cpu for inst in instances
                         if inst.last_history().is_active()])
     #If we have no active cores, burn-time does not apply
     if cpu_cores == 0:
