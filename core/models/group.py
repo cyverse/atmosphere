@@ -92,18 +92,24 @@ class IdentityMembership(models.Model):
         if not self.allocation:
             return {}
         #Don't move it up. Circular reference.
-        from service.allocation import get_time, delta_to_hours
+        from service.allocation import get_time, get_burn_time, delta_to_minutes
         time_used = get_time(self.identity.created_by,
                              self.identity.id,
                              timedelta(
                                  minutes=self.allocation.delta))
-        hours_consumed = delta_to_hours(time_used)
+        burn_time = get_burn_time(self.identity.created_by, self.identity.id,
+                                  timedelta(minutes=self.allocation.delta),
+                                  timedelta(minutes=self.allocation.threshold))
+        mins_consumed = delta_to_minutes(time_used)
+        if burn_time:
+            burn_time = delta_to_minutes(burn_time)
 
         allocation_dict = {
             "threshold": self.allocation.threshold,
-            "current": hours_consumed*60,
+            "current": mins_consumed,
             "delta": self.allocation.delta,
-            "ttz": self.allocation.threshold - hours_consumed*60}
+            "burn": burn_time,
+            "ttz": self.allocation.threshold - mins_consumed }
         return allocation_dict
 
     def get_quota_dict(self):

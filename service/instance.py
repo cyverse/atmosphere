@@ -68,6 +68,18 @@ def update_status(esh_driver, instance_id, provider_id, identity_id, user):
         core_instance.esh.extra['status'],
         core_instance.esh.extra.get('task'))
 
+def get_core_instances(identity_id):
+    identity = CoreIdentity.objects.get(id=identity_id)
+    driver = get_esh_driver(identity)
+    instances = driver.list_instances()
+    core_instances = [convert_esh_instance(driver,
+                                       esh_instance,
+                                       identity.provider.id,
+                                       identity.id,
+                                       identity.created_by)
+                      for esh_instance in instances]
+    return core_instances
+
 def destroy_instance(identity_id, instance_alias):
     core_identity = CoreIdentity.objects.get(id=identity_id)
     esh_driver = get_esh_driver(core_identity)

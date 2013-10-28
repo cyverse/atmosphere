@@ -11,7 +11,9 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		'click #launchInstance': 'launch_instance',
 		'keyup #newinst_name' : 'validate_name',
 		//'dblclick .image_list > li' : 'quick_launch',
-		'click #help_request_more_resources2' : 'show_request_resources_modal'
+		'click #help_request_more_resources2' : 'show_request_resources_modal',
+        //'mouseenter #allocationHolder' : 'show_burn_time',
+        //'mouseleave #allocationHolder' : 'hide_burn_time'
 	},
 	template: _.template(Atmo.Templates.new_instance_screen),
 	initialize: function(options) {
@@ -66,6 +68,20 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		this.render_instance_type_list();
 
         // Assign content to the popovers
+        this.$el.find('#allocationHolder').popover({
+            placement: 'bottom',
+            title: 'Time Allocation <a class="close" data-dismiss="popover" href="#new_instance" data-parent="help_image">&times</a>',
+            html: true,
+            content: function() {
+                allocation = Atmo.profile.attributes.selected_identity.attributes.quota.allocation;
+                hours_remaining = allocation.ttz / 60;
+                burn_time = allocation.burn / 60;
+                var content = 'The graph above represents the <b>time you have currently used</b> for this provider.<br /><br />';
+                content += 'As of now, you have <b>' + hours_remaining + ' hours remaining.</b><br /><br />';
+                content += "Given your current instance configuration, you will <b>run out of ALL your time in " + burn_time + ' hours</b>';
+                return content;
+            }
+        }).click(this.x_close);
         this.$el.find('#help_image').popover({
             placement: 'bottom',
             title: 'Select an Image <a class="close" data-dismiss="popover" href="#new_instance" data-parent="help_image">&times</a>',
@@ -476,5 +492,11 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 	},
 	show_request_resources_modal: function() {
 		Atmo.request_resources_modal.do_alert();
-	}
+	},
+    hide_burn_time: function() {
+        console.log(Atmo.profile);
+    },
+    show_burn_time: function() {
+        console.log(Atmo.profile);
+    }
 });

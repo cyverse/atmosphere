@@ -3,9 +3,8 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from django.contrib.auth.models import User
 
-from core.models import IdentityMembership
+from core.models import IdentityMembership, Identity
 from core.models.instance import Instance
-
 from threepio import logger
 
 
@@ -19,6 +18,36 @@ def filter_by_time_delta(instances, delta):
     older_insts.extend(running_insts)
     return older_insts
 
+def get_burn_time(user, identity_id, delta, threshold):
+    """
+    INPUT: Total time allowed, total time used (so far),
+    The CPU cores multiplier
+    """
+    #DONT MOVE -- Circ.Dep.
+    from service.instance import get_core_instances
+    if type(user) is not User:
+        user = User.objects.filter(username=user)
+    if type(delta) is not timedelta:
+        delta = timedelta(minutes=delta)
+    if type(threshold) is not timedelta:
+        delta = timedelta(minutes=threshold)
+    time_used = get_time(user, identity_id, delta)
+    time_remaining = threshold - time_used
+    #If we are out of time, burn-time does not apply
+    if time_remaining < 0:
+        return None
+    instances = get_core_instances(identity_id)
+    #If we have no instances, burn-time does not apply
+    if not instances:
+        return None
+    cpu_cores = sum([inst.esh_size().cpu for inst in instances
+                        if inst.last_history().is_active()])
+    #If we have no active cores, burn-time does not apply
+    if cpu_cores == 0:
+        return None
+    #Calculate burn time by dividing remaining time over running cores
+    burn_time = time_remaining/cpu_cores
+    return burn_time
 
 def get_time(user, identity_id, delta):
     if type(user) is not User:
