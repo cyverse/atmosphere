@@ -5,7 +5,7 @@
     <title>Atmosphere Admin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ site_root }}/resources/bootstrap/css/bootstrap.css"/>
-    <link href="{{ site_root }}/resources/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet"/>
+    <!--link href="{{ site_root }}/resources/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet"/ BU-->
 
     <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
@@ -21,7 +21,7 @@
   </head>
 
   <body>
-    <div class="navbar navbar-inverse navbar-fixed-top">
+    <!--div class="navbar navbar-inverse navbar-fixed-top">
       <div class="navbar-inner">
         <div class="container-fluid">
           <a class="brand" href="{{ site_root }}/admin">Atmosphere Admin</a>
@@ -38,12 +38,28 @@
           </div><!--/.nav-collapse -->
         </div>
       </div>
-    </div>
+    </div BU-->
 
-    <div class="container-fluid">
-      <div class="row-fluid">
-{% block content %}
-{% endblock %}
+	<div class="navbar navbar-inverse navbar-fixed-top">
+		<div class="navbar-inner">
+			<div class="container"> 
+				<a class="navbar-brand" href="{{ site_root }}/admin">Atmosphere Admin</a>
+				<div class="nav-collapse collapse">
+					<p class="navbar-text pull-right">Logged in as <a href="#" class="navbar-link">{{ username }}</a></p>
+					<ul class="nav">
+						<li><a href="{{ site_root }}/admin">Home</a></li>
+						<li class="active"><a href="{{ site_root }}/admin/logs">Logs</a></li>
+					</ul>{% block nav %} {% endblock %}</div>
+				</div><!--/.navbar-collapse -->
+			</div>
+		</div>
+	</div>
+
+
+    <div class="container">
+      <div class="row">
+		{% block content %}
+		{% endblock %}
       </div><!--/row-->
 
       <hr>
