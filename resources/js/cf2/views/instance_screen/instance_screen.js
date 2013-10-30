@@ -84,8 +84,12 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
         }
 	},
 	update_resource_charts: function() {
-		this.cpu_resource_chart.render();
-		this.mem_resource_chart.render();
+        var self = this;
+        Atmo.profile.fetch({success:function() {
+		    self.time_resource_chart.render();
+		    self.cpu_resource_chart.render();
+		    self.mem_resource_chart.render();
+        }});
 	},
     x_close: function() {
             // Must assign this function after the popover is actually rendered, so we find '.close' element

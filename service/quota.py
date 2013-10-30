@@ -17,7 +17,7 @@ def get_current_quota(identity_id):
         disk += size._size.disk
     return {'cpu':cpu, 'ram':ram, 'disk':disk, 'suspended_count':suspended}
 
-def check_over_quota(username, identity_id, esh_size=None):
+def check_over_quota(username, identity_id, esh_size=None, resuming=False):
     """
     Checks quota based on current limits (and an instance of size, if passed).
 
@@ -43,10 +43,15 @@ def check_over_quota(username, identity_id, esh_size=None):
         new_cpu = cur_cpu + esh_size.cpu
         new_ram = cur_ram + esh_size.ram
         new_disk = cur_disk + esh_size._size.disk
-        new_suspended = cur_suspended + 1
         logger.debug("Quota including size: %s"\
                      % ({'cpu':cur_cpu, 'ram':cur_ram,
-                     'disk':cur_disk, 'suspended_count':cur_suspended}))
+                     'disk':cur_disk}))
+    if resuming:
+        logger.debug("User is resuming an already suspended instance")
+        new_suspended = cur_suspended
+    else:
+        new_suspended = cur_suspended + 1
+        logger.debug("User attempting to suspend/launch another instance")
 
     #Quota tests here
     if new_cpu > user_quota.cpu:

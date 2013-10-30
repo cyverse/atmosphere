@@ -51,7 +51,7 @@ def resume_instance(esh_driver, esh_instance, provider_id, identity_id, user):
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
-    check_quota(user.username, identity_id, esh_instance.size)
+    check_quota(user.username, identity_id, esh_instance.size, resuming=True)
     esh_driver.resume_instance(esh_instance)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
@@ -138,13 +138,14 @@ def check_size(esh_size, provider_id):
     except:
         raise SizeNotAvailable()
 
-def check_quota(username, identity_id, esh_size):
+def check_quota(username, identity_id, esh_size, resuming=False):
     (over_quota, resource,\
      requested, used, allowed) = check_over_quota(username,
                                                   identity_id,
-                                                  esh_size)
+                                                  esh_size, resuming=resuming)
     if over_quota:
         raise OverQuotaError(resource, requested, used, allowed)
+
     (over_allocation, time_diff) = check_over_allocation(username,
                                                          identity_id)
     if over_allocation:

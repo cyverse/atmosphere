@@ -13,7 +13,10 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
             this.provider_id = options.provider_id;
             this.identity_id = options.identity_id;
         }
+
+	    Atmo.profile.bind('reset', this.render, this);
     },
+    
     render: function() {
 
         var used = 0;        // Units of quota used
@@ -40,11 +43,15 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
                     used = -1;
                     total = -1;
                 } else {
-                    used = total['current'];
-                    total = total['threshold'];
+                    quota_obj = total;
+                    used = quota_obj['current']; //THIS IS A LIE!
+                    total = quota_obj['threshold'];
+                    alloc_obj = new Object();
+                    alloc_obj.burn_time = quota_obj['burn'] //THIS IS ALSO A LIE! Damn.
+                    alloc_obj.delta_time = quota_obj['delta']
                     // Make chart with our data and return
                     //TODO: true will instead be -1, 0, 1 to denote direction
-                    this.make_chart(used, total, true);
+                    this.make_chart(used, total, true, alloc_obj);
                     return this;
                 }
             }
@@ -259,7 +266,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 
         return usage_bar;
     },
-    make_chart: function(used, total, animate) {
+    make_chart: function(used, total, animate, time_obj) {
         
         // this.$el is the graph container
         this.$el.addClass('graphBar');
@@ -315,41 +322,53 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
         this.$el.data('total', total);
         var total_usage = Math.floor(( this.$el.data('used') / this.$el.data('total')) * 100);
         var under_quota = (total_usage > 100) ? false : true;
-        this.show_quota_info(used, total, false, under_quota);
+        this.show_quota_info(used, total, false, under_quota, time_obj);
     },
     /** 
      * Populates the informational field below the graph to tell the user exactly what their resource usage is. 
      */
-    show_quota_info: function(used, total, is_projected, under_quota) {
+    show_quota_info: function(used, total, is_projected, under_quota, time_obj) {
         // is_projected: boolean, should quota denote future use or current use
         
         var info = '';
 
         if (this.quota_type == 'cpu') {
+            quota_title = "Atmosphere Unit";
+            quota_desc = "aproximation of CPU hours";
+            quota_unit = "AU";
             this.$el.data('unit', 'CPUs');
-            info = used + ' of ' + total + ' available CPUs.';
         }
         else if (this.quota_type == 'mem') {
+            quota_title = "Memory";
+            quota_desc = "total amount of memory";
+            quota_unit = "GB";
 
             // Determine whether memory should be in GB or MB
             this.$el.data('unit', 'memory');
-            var digits = (used % 1024 == 0) ? 0 : 1;
-            var readable_used = (used >= 1024) ? ('' + (used / 1024).toFixed(digits) + ' GB') : ('' + used + ' MB');
-
-            info = readable_used + ' of ' + (total / 1024) + ' GB allotted memory.';
+            used = (used / 1024).toFixed(0);
+            total = (total / 1024).toFixed(0);
         }
         else if (this.quota_type == 'disk') {
+            quota_title = "Disk Space";
+            quota_desc = "total amount of storage";
+            quota_unit = "GB";
             this.$el.data('unit', 'storage');
-            info = used + ' of ' + total + ' GB available storage.';
         }
         else if (this.quota_type == 'disk_count') {
+            quota_title = "Storage Count";
+            quota_desc = "total number of volumes";
+            quota_unit = "volume";
             this.$el.data('unit', 'volumes');
-            info = used + ' of ' + total + ' available volumes.';
         }
         else if (this.quota_type == 'allocation') {
+            quota_title = "Time";
+            d = new Date();
+            d.setTime(d.getTime() - (time_obj.delta_time * 60 * 1000)) // ms to minutes
+            quota_desc = "total number of Atmosphere Units used since "+d.toString('MMMM dS, yyyy');
+            quota_unit = "minute";
             this.$el.data('unit', 'minute');
-            info = used + ' of ' + total + ' minutes.';
         }
+        info = used + ' of ' + total + ' allotted ' + quota_unit + 's.';
 
         if (is_projected)
             info = 'You will use ' + info;
@@ -375,6 +394,24 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
         // Place info into sibling div element
         var info_holder = this.$el.parent().find('#' + this.quota_type + 'Holder_info');
         info_holder.html(info);
+        var remaining = total - used;
+        var remaining_str = remaining + ' ' + quota_unit + 's';
+
+        popover_content = 'The graph above represents the <b>' + quota_desc + ' you have currently used</b> for this provider.<br /><br />';
+        popover_content += 'As of now, you have <b>' +  remaining_str + ' remaining.</b><br /><br />';
+        if (time_obj) {
+            popover_content += "Given your current instance configuration, you will <b>run out of ALL your " + quota_title.toLowerCase() + " in " + time_obj.burn_time + ' ' + quota_unit +'s</b>';
+        }
+        this.$el.popover('destroy');
+        this.$el.popover({
+            placement: 'bottom',
+            delay: {'hide':400},
+            trigger: 'hover',
+            title: quota_title + ' Allocation <a class="close" data-dismiss="popover" href="#new_instance" data-parent="help_image">&times</a>',
+            html: true,
+            content: popover_content,
+        });
+
 
     },
     /**

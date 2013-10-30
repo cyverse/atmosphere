@@ -12,8 +12,6 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		'keyup #newinst_name' : 'validate_name',
 		//'dblclick .image_list > li' : 'quick_launch',
 		'click #help_request_more_resources2' : 'show_request_resources_modal',
-        //'mouseenter #allocationHolder' : 'show_burn_time',
-        //'mouseleave #allocationHolder' : 'hide_burn_time'
 	},
 	template: _.template(Atmo.Templates.new_instance_screen),
 	initialize: function(options) {
@@ -70,15 +68,18 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
         // Assign content to the popovers
         this.$el.find('#allocationHolder').popover({
             placement: 'bottom',
+            trigger: 'hover',
             title: 'Time Allocation <a class="close" data-dismiss="popover" href="#new_instance" data-parent="help_image">&times</a>',
             html: true,
             content: function() {
                 allocation = Atmo.profile.attributes.selected_identity.attributes.quota.allocation;
-                hours_remaining = allocation.ttz / 60;
-                burn_time = allocation.burn / 60;
+                hours_remaining = Math.floor(allocation.ttz / 60);
+                burn_time = Math.floor(allocation.burn / 60);
                 var content = 'The graph above represents the <b>time you have currently used</b> for this provider.<br /><br />';
                 content += 'As of now, you have <b>' + hours_remaining + ' hours remaining.</b><br /><br />';
-                content += "Given your current instance configuration, you will <b>run out of ALL your time in " + burn_time + ' hours</b>';
+                if (burn_time != 0) {
+                    content += "Given your current instance configuration, you will <b>run out of ALL your time in " + burn_time + ' hours</b>';
+                }
                 return content;
             }
         }).click(this.x_close);
