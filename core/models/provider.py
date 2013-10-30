@@ -96,6 +96,33 @@ class Provider(models.Model):
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
 
+    def share(self, core_group):
+        """
+        """
+        from core.models import IdentityMembership, ProviderMembership
+        #Does this group already have membership?
+        existing_membership = ProviderMembership.objects.filter(
+                member=core_group, provider=self)
+        if existing_membership:
+            return existing_membership[0]
+        #Create new membership for this group
+        new_membership = ProviderMembership.objects.get_or_create(
+                member=core_group, provider=self)
+        return new_membership[0]
+
+    def unshare(self, core_group):
+        """
+        """
+        from core.models import IdentityMembership, ProviderMembership
+        identity_memberships = IdentityMembership.objects.filter(
+                member=core_group, identity__provider=self)
+        if identity_memberships:
+            raise Exception("Cannot unshare provider membership until all"
+                            " Identities on that provider have been removed")
+        existing_membership = ProviderMembership.objects.filter(member=core_group, provider=self)
+        if existing_membership:
+            existing_membership[0].delete()
+
     def get_esh_credentials(self, esh_provider):
 
         cred_map = self.get_credentials()
@@ -160,6 +187,21 @@ class AccountProvider(models.Model):
     """
     provider = models.ForeignKey(Provider)
     identity = models.ForeignKey('Identity')
+
+    @classmethod
+    def make_superuser(cls, core_group, quota=None):
+        from core.models import Quota
+        if not quota:
+            quota = Quota.max_quota()
+        account_providers = AccountProvider.objects.distinct('provider')
+        for acct in account_providers:
+            acct.share_with(core_group)
+
+    def share_with(self, core_group, quota=None):
+        prov_member = self.provider.share(core_group)
+        id_member = self.identity.share(core_group, quota=quota)
+        return (prov_member, id_member)
+
 
     def __unicode__(self):
         return "Account Admin %s for %s" % (self.identity, self.provider)

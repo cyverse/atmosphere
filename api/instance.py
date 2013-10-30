@@ -18,6 +18,7 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
+from core.models.provider import AccountProvider
 from core.models.instance import convert_esh_instance, update_instance_metadata
 from core.models.instance import Instance as CoreInstance
 from core.models.size import convert_esh_size
@@ -51,8 +52,14 @@ class InstanceList(APIView):
         user = request.user
         esh_driver = prepare_driver(request, identity_id)
 
+        instance_list_method = esh_driver.list_instances
+
+        if AccountProvider.objects.filter(identity__id=identity_id):
+            # Instance list method changes when using the OPENSTACK provider
+            instance_list_method = esh_driver.list_all_instances
+
         try:
-            esh_instance_list = esh_driver.list_instances(method_params)
+            esh_instance_list = instance_list_method(method_params)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
 

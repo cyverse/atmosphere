@@ -380,6 +380,12 @@ def set_instance_from_metadata(esh_driver, core_instance):
         return core_instance
     esh_instance = core_instance.esh
     metadata =  esh_driver._connection.ex_get_metadata(esh_instance)
+
+    #TODO: Match with actual instance launch metadata in service/instance.py
+    #TODO: Probably better to redefine serializer as InstanceMetadataSerializer
+    #TODO: Define a creator and their identity by the METADATA instead of
+    # assuming its the person who 'found' the instance
+
     serializer = InstanceSerializer(core_instance, data=metadata, partial=True)
     if not serializer.is_valid():
         logger.warn("Encountered errors serializing metadata:%s"
@@ -413,6 +419,8 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
 
 def create_instance(provider_id, identity_id, provider_alias, provider_machine,
                    ip_address, name, creator, create_stamp, token=None):
+    #TODO: Define a creator and their identity by the METADATA instead of
+    # assuming its the person who 'found' the instance
     identity = Identity.objects.get(id=identity_id)
     new_inst = Instance.objects.create(name=name,
                                        provider_alias=provider_alias,

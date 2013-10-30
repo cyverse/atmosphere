@@ -62,7 +62,7 @@ class Volume(models.Model):
             return "Unknown"
         attach_data = self.esh.extra.get('attachmentSet', {})
         #Convert OpenStack attach_data to Euca-based
-        if type(attach_data) is list:
+        if type(attach_data) is list and attach_data:
             attach_data = attach_data[0]
 
         if 'serverId' in attach_data:

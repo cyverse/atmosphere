@@ -32,6 +32,9 @@ Atmo.Views.Sidebar = Backbone.View.extend({
       type: 'GET',
       statusCode: {
 	200: function(data) {
+        if(data.length == 0) {
+            return;
+        }
 	  var used = ""+(data[0]["total_cpu_time"] / 3600).toNumberCommaString();
 	  var time = Atmo.Utils.seconds_to_pretty_time(data[0]["total_uptime"], 3);
           

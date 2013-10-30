@@ -43,11 +43,14 @@ class UserProfile(models.Model):
 def get_or_create_user_profile(sender, instance, created, **kwargs):
     #logger.debug("Get or Creating Profile for %s" % instance)
     prof = UserProfile.objects.get_or_create(user=instance)[0]
+    groupname = instance.group_set.all()[0].name
     if not prof.selected_identity:
-        available_identities = instance.identity_set.all()
+        from core.models import IdentityMembership
+        available_identities = IdentityMembership.objects.filter(
+                member__name=groupname)
         logger.info("No selected identity. Has:%s" % available_identities)
         if available_identities:
-                prof.selected_identity = available_identities[0]
+                prof.selected_identity = available_identities[0].identity
                 prof.save()
 
 post_save.connect(get_or_create_user_profile, sender=DjangoUser)

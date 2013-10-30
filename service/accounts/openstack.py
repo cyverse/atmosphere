@@ -2,6 +2,8 @@
 UserManager:
   Remote Openstack  Admin controls..
 """
+import time
+
 from hashlib import sha1
 from urlparse import urlparse
 

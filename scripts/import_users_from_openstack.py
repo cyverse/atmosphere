@@ -25,9 +25,9 @@ def main():
     usernames = os_driver.list_usergroup_names()
     for user in usernames:
         # Add the Euca Account
-        euca_driver.create_account(user)
+        #euca_driver.create_account(user)
         # Add the Openstack Account
-        os_driver.create_account(user, admin_role=False)
+        os_driver.create_account(user)
     print "Total users added to atmosphere:%s" % len(usernames)
 
 def fix_openstack_network(os_driver):

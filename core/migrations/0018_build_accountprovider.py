@@ -23,6 +23,48 @@ class Migration(DataMigration):
         self.build_os_admin(orm)
         print '> core - data - accountprovider: Eucalyptus'
         self.build_euca_admin(orm)
+        print '> core - data - accountprovider: Atmosphere'
+        self.build_atmo_admin(orm)
+
+    def create_usergroup(self, orm, username):
+        user = orm['auth.User'].objects.get_or_create(username=username)[0]
+        group = orm.Group.objects.get_or_create(name=username)[0]
+        user.groups.add(group)
+        user.save()
+        group.leaders.add(user)
+        group.save()
+        return (user, group)
+
+    def build_atmo_admin(self, orm):
+        if not hasattr(settings, 'ATMOSPHERE_SUPERUSER'):
+            print """Atmosphere Administrator could not be created from settings.
+To create an Administrator account for Atmosphere via the REPL:
+>>> Identity.make_account_admin(ATMOSPHERE_SUPERUSER_NAME)"""
+        user, group = self.create_usergroup(orm,username=settings.ATMOSPHERE_SUPERUSER)
+        quota = orm.Quota.objects.get_or_create(
+                cpu = orm.Quota._meta.get_field('cpu').default,
+                memory = orm.Quota._meta.get_field('memory').default,
+                storage = orm.Quota._meta.get_field('storage').default,
+                suspended_count = orm.Quota._meta.get_field('suspended_count').default,
+                storage_count = orm.Quota._meta.get_field('storage_count').default)[0]
+        #Prepare to update profile
+        prof = UserProfile.objects.get_or_create(user=user)[0]
+
+        account_providers = orm.AccountProvider.objects.distinct('provider')
+        for account_provider in account_providers:
+            identity = account_provider.identity
+            provider = account_provider.provider
+            if not orm.ProviderMembership.objects.filter(
+                                provider=provider, member=group):
+                p_membership = orm.ProviderMembership.objects.get_or_create(
+                    provider=provider, member=group)[0]
+                id_membership = orm.IdentityMembership.objects.get_or_create(
+                    identity=identity, member=group, quota=quota)[0]
+                prof.selected_identity = identity
+
+        #5. Save the profile to prepare user for first-time use
+        prof.save()
+        user.save()
 
     def create_identity(self, orm, username, provider_location,
                         max_quota=False, account_admin=False, **kwarg_creds):
@@ -36,12 +78,8 @@ class Migration(DataMigration):
 
         provider = orm.Provider.objects.get(location__iexact=provider_location)
         #Create user-group
-        user = orm['auth.User'].objects.get_or_create(username=username)[0]
-        group = orm.Group.objects.get_or_create(name=username)[0]
-        user.groups.add(group)
-        user.save()
-        group.leaders.add(user)
-        group.save()
+        user, group = self.create_usergroup(orm, username)
+
 
 
         #NOTE: This specific query will need to be modified if we want

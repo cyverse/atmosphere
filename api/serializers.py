@@ -1,4 +1,5 @@
 from core.models.credential import Credential
+from core.models.group import IdentityMembership
 from core.models.identity import Identity
 from core.models.instance import Instance
 from core.models.machine import ProviderMachine
@@ -28,6 +29,11 @@ class CredentialSerializer(serializers.ModelSerializer):
     class Meta:
         model = Credential
         exclude = ('identity',)
+
+class IdentityMembershipSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IdentityMembership
+
 
 class IdentitySerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
