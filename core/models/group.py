@@ -6,7 +6,6 @@ to manage users via the membership relationship
 
 from django.db import models
 from django.contrib.auth.models import Group as DjangoGroup
-from django.contrib.auth.models import User as DjangoUser
 from core.models.identity import Identity
 from core.models.provider import Provider
 from core.models.machine import Machine
@@ -20,7 +19,7 @@ class Group(DjangoGroup):
     """
     Extend the Django Group model to support 'membership'
     """
-    leaders = models.ManyToManyField(DjangoUser)
+    leaders = models.ManyToManyField('AtmosphereUser')
     providers = models.ManyToManyField(Provider, through='ProviderMembership',
         blank=True)
     identities = models.ManyToManyField(Identity, through='IdentityMembership',

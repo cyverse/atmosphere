@@ -6,7 +6,8 @@ from hashlib import md5
 from datetime import datetime, timedelta
 
 from django.db import models
-from django.contrib.auth.models import User
+#from django.contrib.auth.models import User
+#from core.models import AtmosphereUser as User
 from django.utils import timezone
 
 from threepio import logger
@@ -36,7 +37,7 @@ class Instance(models.Model):
     provider_machine = models.ForeignKey(ProviderMachine)
     provider_alias = models.CharField(max_length=256, unique=True)
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
-    created_by = models.ForeignKey(User)
+    created_by = models.ForeignKey('AtmosphereUser')
     created_by_identity = models.ForeignKey(Identity, null=True)
     shell = models.BooleanField()
     vnc = models.BooleanField()

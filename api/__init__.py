@@ -9,7 +9,7 @@ import os.path
 #Necessary to initialize Meta classes
 import rtwo.compute
 
-from django.contrib.auth.models import User as DjangoUser
+from core.models import AtmosphereUser as DjangoUser
 
 from threepio import logger
 

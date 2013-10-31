@@ -6,7 +6,7 @@ import json
 
 from django.http import HttpResponse, HttpResponseServerError
 
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 from django.core import urlresolvers
 
 from threepio import logger

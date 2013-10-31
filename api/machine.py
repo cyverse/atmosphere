@@ -2,7 +2,7 @@
 Atmosphere service machine rest api.
 
 """
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 from django.db.models import Q

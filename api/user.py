@@ -2,7 +2,8 @@
 Atmosphere service user rest api.
 
 """
-from django.contrib.auth.models import User as AuthUser
+#from django.contrib.auth.models import User as AuthUser
+from core.models import AtmosphereUser as AuthUser
 
 from rest_framework.views import APIView
 from rest_framework.response import Response

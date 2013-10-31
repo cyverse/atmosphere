@@ -4,7 +4,7 @@ Atmosphere core email.
 """
 from datetime import datetime
 
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 from django.utils import timezone as django_timezone
 from django.core.mail import EmailMessage
 

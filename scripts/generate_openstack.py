@@ -2,7 +2,7 @@
 
 from atmosphere import settings
 from service.accounts.openstack import AccountDriver
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 from keystoneclient.exceptions import NotFound
 
 def main():

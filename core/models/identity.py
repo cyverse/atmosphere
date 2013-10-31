@@ -7,7 +7,7 @@ Note:
 from datetime import timedelta
 
 from django.db import models
-from django.contrib.auth.models import User
+#from core.models import AtmosphereUser as User
 
 from threepio import logger
 
@@ -17,18 +17,18 @@ class Identity(models.Model):
     to authenticate against a single provider
     """
 
-    created_by = models.ForeignKey(User)
+    created_by = models.ForeignKey("AtmosphereUser")
     provider = models.ForeignKey("Provider")
 
     @classmethod
     def delete_identity(cls, username, provider_location):
         #Do not move up. ImportError.
-        from core.models import Group, Credential, Quota,\
+        from core.models import AtmosphereUser, Group, Credential, Quota,\
                                 Provider, AccountProvider,\
                                 IdentityMembership, ProviderMembership
 
         provider = Provider.objects.get(location__iexact=provider_location)
-        user = User.objects.get(username=username)
+        user = AtmosphereUser.objects.get(username=username)
         group = Group.objects.get(name=username)
         identities = Identity.objects.filter(
             created_by=user, provider=provider)

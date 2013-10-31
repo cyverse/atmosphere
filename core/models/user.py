@@ -1,9 +1,8 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from core.models import Identity
 
 class AtmosphereUser(AbstractUser):
-    selected_identity = models.ForeignKey(Identity, blank=True, null=True)
+    selected_identity = models.ForeignKey('Identity', blank=True, null=True)
 
     def user_quota(self):
         identity = self.select_identity()

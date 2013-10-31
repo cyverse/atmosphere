@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import time
 
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 
 from threepio import logger
 

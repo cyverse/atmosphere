@@ -105,6 +105,7 @@ TEMPLATE_DIRS = (
 )
 
 AUTH_USER_MODULE = 'core.AtmosphereUser'
+AUTH_PROFILE_MODULE = 'core.UserProfile'
 
 AUTHENTICATION_BACKENDS = (
     'authentication.authBackends.CASLoginBackend',  # For Web-Access

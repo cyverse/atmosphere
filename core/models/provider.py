@@ -161,7 +161,7 @@ class Provider(models.Model):
           return provider_admins[0]
         #NOTE: Marked for removal
         from core.models import Identity
-        from django.contrib.auth.models import User
+        from core.models import AtmosphereUser as User
         from atmosphere import settings
         if self.location.lower() == 'openstack':
             admin = User.objects.get(username=settings.OPENSTACK_ADMIN_KEY)
