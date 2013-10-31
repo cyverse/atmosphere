@@ -73,8 +73,7 @@ def requestQuota(request):
     new_quota = request.POST['quota']
     reason = request.POST['reason']
     user = User.objects.get(username=username)
-    profile = user.get_profile()
-    membership = IdentityMembership.objects.get(identity=profile.selected_identity,
+    membership = IdentityMembership.objects.get(identity=user.select_identity(),
             member__in=user.group_set.all())
     admin_url = urlresolvers.reverse('admin:core_identitymembership_change',
                                      args=(membership.id,))

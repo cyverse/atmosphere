@@ -22,7 +22,6 @@ class UserProfile(models.Model):
     default_size = models.CharField(max_length=255, default='m1.small')
     background = models.CharField(max_length=255, default='default')
     icon_set = models.CharField(max_length=255, default='default')
-    selected_identity = models.ForeignKey(Identity, blank=True, null=True)
 
     def user_quota(self):
         identity = getDefaultIdentity(self.user.username)
@@ -41,17 +40,9 @@ class UserProfile(models.Model):
 
 #Connects a user profile to created accounts
 def get_or_create_user_profile(sender, instance, created, **kwargs):
-    #logger.debug("Get or Creating Profile for %s" % instance)
-    prof = UserProfile.objects.get_or_create(user=instance)[0]
-    groupname = instance.group_set.all()[0].name
-    if not prof.selected_identity:
-        from core.models import IdentityMembership
-        available_identities = IdentityMembership.objects.filter(
-                member__name=groupname)
-        logger.info("No selected identity. Has:%s" % available_identities)
-        if available_identities:
-                prof.selected_identity = available_identities[0].identity
-                prof.save()
+    prof = UserProfile.objects.get_or_create(user=instance)
+    if prof[1] == True:
+        logger.debug("Creating User Profile for %s" % instance)
 
 post_save.connect(get_or_create_user_profile, sender=DjangoUser)
 

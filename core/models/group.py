@@ -88,6 +88,26 @@ class IdentityMembership(models.Model):
     quota = models.ForeignKey(Quota)
     allocation = models.ForeignKey(Allocation, null=True, blank=True)
 
+    def get_membership_for(self, groupname):
+
+        from core.models import ProviderMembership, Group
+        try:
+            group = Group.objects.get(name=group)
+        except Group.DoesNotExist:
+            logger.warn("Group %s does not exist" % groupname)
+            return None
+        providers = ProviderMembership.objects.filter(member__name=groupname)
+        if not providers:
+            logger.warn("%s is not a member of any provider" % groupname)
+        for prov in providers:
+            identities = IdentityMembership.objects.filter(
+                    member=group, 
+                    identity__provider=prov)
+            if identities:
+                return identities[0]
+        logger.warn("%s is not a member of any identities" % groupname)
+        return None
+
     def get_allocation_dict(self):
         if not self.allocation:
             return {}

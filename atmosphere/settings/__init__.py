@@ -104,7 +104,7 @@ TEMPLATE_DIRS = (
     os.path.join(PROJECT_ROOT, 'templates'),
 )
 
-AUTH_PROFILE_MODULE = 'core.UserProfile'
+AUTH_USER_MODULE = 'core.AtmosphereUser'
 
 AUTHENTICATION_BACKENDS = (
     'authentication.authBackends.CASLoginBackend',  # For Web-Access

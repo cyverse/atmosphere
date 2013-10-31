@@ -14,6 +14,7 @@ from core.models.node import NodeController
 from core.models.size import Size
 from core.models.quota import Quota
 from core.models.tag import Tag
+from core.models.user import AtmosphereUser
 from core.models.volume import Volume
 from core.models.group import Group, ProviderMembership, IdentityMembership,\
                               InstanceMembership, MachineMembership
