@@ -51,6 +51,7 @@ def cas_validateUser(username):
 
 def parse_cas_response(cas_response):
     xml_root_dict = cas_response.map
+    logger.info(xml_root_dict)
     #A Success responses will return a dict
     #failed responses will be replaced by an empty dict
     xml_response_dict = xml_root_dict.get(cas_response.type, {})

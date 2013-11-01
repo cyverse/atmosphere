@@ -20,7 +20,7 @@ from core.ldap import get_uid_number
 from core.models.identity import Identity
 
 from chromogenic.drivers.openstack import ImageManager
-
+from atmosphere import settings
 class AccountDriver():
     user_manager = None
     image_manager = None
@@ -409,7 +409,7 @@ class AccountDriver():
         user_creds = self._get_openstack_credentials(
                             username, password, tenant_name)
         neutron = self.network_manager.new_connection(**user_creds)
-        keystone, nova, glance = self.image_manager.new_connection(**user_creds)
+        keystone, nova, glance = self.image_manager._new_connection(**user_creds)
         return {
             'glance':glance, 
             'keystone':keystone, 
