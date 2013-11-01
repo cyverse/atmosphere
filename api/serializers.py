@@ -214,16 +214,21 @@ class ProfileSerializer(serializers.ModelSerializer):
         Returns the dict of attrs
         """
         #Short-circut if source (identity) not in attrs
-        if source not in attrs:
-            return attrs
-        selected_identity = attrs[source]
         logger.debug(attrs)
         logger.debug(source)
+        if 'selected_identity' not in attrs:
+            return attrs
+        selected_identity = attrs['selected_identity']
         logger.debug(selected_identity)
-        groups = self.object.user.group_set.all()
+        user = self.object.user
+        logger.info("Validating identity for %s" % user)
+        groups = user.group_set.all()
         for g in groups:
             for id_member in g.identitymembership_set.all():
                 if id_member.identity == selected_identity:
+                    logger.info("Saving new identity:%s" % selected_identity)
+                    user.selected_identity = selected_identity
+                    user.save()
                     return attrs
         raise serializers.ValidationError("User is not a member of"
                                           "selected_identity = %s"

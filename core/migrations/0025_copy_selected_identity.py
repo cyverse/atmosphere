@@ -14,7 +14,11 @@ class Migration(DataMigration):
             user.save()
 
     def backwards(self, orm):
-        "Write your backwards methods here."
+        for user in orm['core.AtmosphereUser'].objects.all():
+            profile = orm['core.UserProfile'].objects.get(
+                    user__id=user.id)
+            profile.selected_identity = user.selected_identity
+            profile.save()
 
     models = {
         u'auth.group': {

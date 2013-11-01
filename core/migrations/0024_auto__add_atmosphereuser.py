@@ -14,30 +14,11 @@ class Migration(SchemaMigration):
                       keep_default=False)
         db.send_create_signal('core', ['AtmosphereUser'])
 
-        # Adding M2M table for field groups on 'AtmosphereUser'
-        db.create_table('atmosphere_user_groups', (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('atmosphereuser', models.ForeignKey(orm['core.atmosphereuser'], null=False)),
-            ('group', models.ForeignKey(orm[u'auth.group'], null=False))
-        ))
-        db.create_unique('atmosphere_user_groups', ['atmosphereuser_id', 'group_id'])
-
-        # Adding M2M table for field user_permissions on 'AtmosphereUser'
-        db.create_table('atmosphere_user_user_permissions', (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('atmosphereuser', models.ForeignKey(orm['core.atmosphereuser'], null=False)),
-            ('permission', models.ForeignKey(orm[u'auth.permission'], null=False))
-        ))
-        db.create_unique('atmosphere_user_user_permissions', ['atmosphereuser_id', 'permission_id'])
 
 
     def backwards(self, orm):
-        # Removing M2M table for field groups on 'AtmosphereUser'
-        db.delete_table('atmosphere_user_groups')
-
-        # Removing M2M table for field user_permissions on 'AtmosphereUser'
-        db.delete_table('atmosphere_user_user_permissions')
-
+        db.delete_column('atmosphere_user', 'selected_identity_id')
+	pass
 
     models = {
         u'auth.group': {

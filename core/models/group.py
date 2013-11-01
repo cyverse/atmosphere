@@ -14,12 +14,13 @@ from core.models.quota import Quota
 from core.models.allocation import Allocation
 
 from datetime import timedelta
+from threepio import logger
 
 class Group(DjangoGroup):
     """
     Extend the Django Group model to support 'membership'
     """
-    leaders = models.ManyToManyField('AtmosphereUser')
+    leaders = models.ManyToManyField('AtmosphereUser', through='Leadership')
     providers = models.ManyToManyField(Provider, through='ProviderMembership',
         blank=True)
     identities = models.ManyToManyField(Identity, through='IdentityMembership',
@@ -49,6 +50,14 @@ class Group(DjangoGroup):
 
     class Meta:
         db_table = 'group'
+        app_label = 'core'
+
+
+class Leadership(models.Model):
+    user = models.ForeignKey('AtmosphereUser')
+    group = models.ForeignKey(Group)
+    class Meta:
+        db_table = 'group_leaders'
         app_label = 'core'
 
 
@@ -87,21 +96,22 @@ class IdentityMembership(models.Model):
     quota = models.ForeignKey(Quota)
     allocation = models.ForeignKey(Allocation, null=True, blank=True)
 
-    def get_membership_for(self, groupname):
+    @classmethod
+    def get_membership_for(cls, groupname):
 
         from core.models import ProviderMembership, Group
         try:
-            group = Group.objects.get(name=group)
+            group = Group.objects.get(name=groupname)
         except Group.DoesNotExist:
             logger.warn("Group %s does not exist" % groupname)
             return None
-        providers = ProviderMembership.objects.filter(member__name=groupname)
-        if not providers:
+        provider_members = ProviderMembership.objects.filter(member__name=groupname)
+        if not provider_members:
             logger.warn("%s is not a member of any provider" % groupname)
-        for prov in providers:
+        for pm in provider_members:
             identities = IdentityMembership.objects.filter(
                     member=group, 
-                    identity__provider=prov)
+                    identity__provider=pm.provider)
             if identities:
                 return identities[0]
         logger.warn("%s is not a member of any identities" % groupname)

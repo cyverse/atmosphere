@@ -9,10 +9,14 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         db.rename_table('auth_user','atmosphere_user')
+        db.rename_table('auth_user_groups', 'atmosphere_user_groups')
+        db.rename_table('auth_user_user_permissions', 'atmosphere_user_user_permissions')
         pass
 
     def backwards(self, orm):
         db.rename_table('atmosphere_user','auth_user')
+        db.rename_table('atmosphere_user_groups', 'auth_user_groups')
+        db.rename_table('atmosphere_user_user_permissions', 'auth_user_user_permissions')
         pass
 
     models = {

@@ -165,7 +165,7 @@ class UserProfileInline(admin.StackedInline):
 class UserAdmin(AuthUserAdmin):
     inlines = [UserProfileInline]
 
-admin.site.unregister(DjangoUser)
+#admin.site.unregister(DjangoUser)
 admin.site.register(AtmosphereUser, UserAdmin)
 
 

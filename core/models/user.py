@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from threepio import logger
 
 class AtmosphereUser(AbstractUser):
     selected_identity = models.ForeignKey('Identity', blank=True, null=True)
@@ -20,8 +21,11 @@ class AtmosphereUser(AbstractUser):
 
         from core.models import IdentityMembership
 
-        for g in self.group_set.all():
-            self.selected_identity = IdentityMembership.get_membership_for(groupname)
+        for group in self.group_set.all():
+            membership = IdentityMembership.get_membership_for(group.name)
+            if not membership:
+                continue
+            self.selected_identity = membership.identity
             if self.selected_identity:
                 logger.debug("Selected Identity:%s" % self.selected_identity)
                 self.save()
