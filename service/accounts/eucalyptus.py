@@ -6,7 +6,7 @@ User, BooleanField, StringList
   These XML parsing classes belong to euca_admin.py,
   and can be found on the Cloud Controller
 """
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 from django.db.models import Max
 
 from threepio import logger

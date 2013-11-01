@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
 
 from django.utils import timezone
-from django.contrib.auth.models import User
+#from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 
 from core.models import IdentityMembership, Identity
 from core.models.instance import Instance

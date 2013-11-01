@@ -3,7 +3,7 @@ Atmosphere web helper methods..
 
 """
 
-from django.contrib.auth.models import User as DjangoUser
+from core.models import AtmosphereUser as DjangoUser
 
 from threepio import logger
 

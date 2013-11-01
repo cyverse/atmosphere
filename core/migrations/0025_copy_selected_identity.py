@@ -4,172 +4,17 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import models
 
-from atmosphere import settings
-from threepio import logger
-
 class Migration(DataMigration):
 
     def forwards(self, orm):
-        "Write your forwards methods here."
-        # Note: Remember to use orm['appname.ModelName'] rather than "from appname.models..."
-        print '> core - data: Updating AccountProvider'
-        self.build_account_admins(orm)
+        for userprofile in orm['core.UserProfile'].objects.all():
+            user = orm['core.AtmosphereUser'].objects.get(
+                    id=userprofile.user_id)
+            user.selected_identity = userprofile.selected_identity
+            user.save()
 
     def backwards(self, orm):
         "Write your backwards methods here."
-
-    def build_account_admins(self, orm):
-        print '> core - data - accountprovider: Openstack'
-        self.build_os_admin(orm)
-        print '> core - data - accountprovider: Eucalyptus'
-        self.build_euca_admin(orm)
-        print '> core - data - accountprovider: Atmosphere'
-        self.build_atmo_admin(orm)
-
-    def create_usergroup(self, orm, username):
-        user = orm['auth.User'].objects.get_or_create(username=username)[0]
-        group = orm.Group.objects.get_or_create(name=username)[0]
-        user.groups.add(group)
-        user.save()
-        group.leaders.add(user)
-        group.save()
-        return (user, group)
-
-    def build_atmo_admin(self, orm):
-        if not hasattr(settings, 'ATMOSPHERE_SUPERUSER'):
-            print """Atmosphere Administrator could not be created from settings.
-To create an Administrator account for Atmosphere via the REPL:
->>> Identity.make_account_admin(ATMOSPHERE_SUPERUSER_NAME)"""
-        user, group = self.create_usergroup(orm,username=settings.ATMOSPHERE_SUPERUSER)
-        quota = orm.Quota.objects.get_or_create(
-                cpu = orm.Quota._meta.get_field('cpu').default,
-                memory = orm.Quota._meta.get_field('memory').default,
-                storage = orm.Quota._meta.get_field('storage').default,
-                suspended_count = orm.Quota._meta.get_field('suspended_count').default,
-                storage_count = orm.Quota._meta.get_field('storage_count').default)[0]
-        #Prepare to update profile
-        prof = UserProfile.objects.get_or_create(user=user)[0]
-
-        account_providers = orm.AccountProvider.objects.distinct('provider')
-        for account_provider in account_providers:
-            identity = account_provider.identity
-            provider = account_provider.provider
-            if not orm.ProviderMembership.objects.filter(
-                                provider=provider, member=group):
-                p_membership = orm.ProviderMembership.objects.get_or_create(
-                    provider=provider, member=group)[0]
-                id_membership = orm.IdentityMembership.objects.get_or_create(
-                    identity=identity, member=group, quota=quota)[0]
-                prof.selected_identity = identity
-
-        #5. Save the profile to prepare user for first-time use
-        prof.save()
-        user.save()
-
-    def create_identity(self, orm, username, provider_location,
-                        max_quota=False, account_admin=False, **kwarg_creds):
-
-        credentials = {}
-        for (c_key,c_value) in kwarg_creds.items():
-            if 'cred_' not in c_key.lower():
-                continue
-            c_key = c_key.replace('cred_','')
-            credentials[c_key] = c_value
-
-        provider = orm.Provider.objects.get(location__iexact=provider_location)
-        #Create user-group
-        user, group = self.create_usergroup(orm, username)
-
-
-
-        #NOTE: This specific query will need to be modified if we want
-        # 2+ Identities on a single provider
-
-        id_membership = orm.IdentityMembership.objects.filter(
-            member__name= user.username,
-            identity__provider=provider,
-            identity__created_by__username=user.username)
-        if not id_membership:
-            #1. Create a Provider Membership
-            p_membership = orm.ProviderMembership.objects.get_or_create(
-                provider=provider, member=group)[0]
-
-            #2. Create an Identity Membership
-            identity = orm.Identity.objects.get_or_create(
-                created_by=user, provider=provider)[0]
-            #Two-tuple, (Object, created)
-            quota = orm.Quota.objects.get_or_create(
-                cpu = orm.Quota._meta.get_field('cpu').default,
-                memory = orm.Quota._meta.get_field('memory').default,
-                storage = orm.Quota._meta.get_field('storage').default,
-                suspended_count = orm.Quota._meta.get_field('suspended_count').default,
-                storage_count = orm.Quota._meta.get_field('storage_count').default)[0]
-            id_membership = orm.IdentityMembership.objects.get_or_create(
-                identity=identity, member=group, quota=quota)
-        #Either first in list OR object from two-tuple.. Its what we need.
-        id_membership = id_membership[0] 
-
-        #ID_Membership exists.
-
-        #3. Make sure that all kwargs exist as credentials
-        # NOTE: Because we assume only one identity per provider
-        #       We can add new credentials to 
-        #       existing identities if missing..
-        # In the future it will be hard to determine when we want to 
-        # update values on an identity Vs. create a second, new identity.
-        for (c_key,c_value) in credentials.items():
-            test_key_exists = orm.Credential.objects.filter(
-                    identity=id_membership.identity,
-                    key=c_key)
-            if test_key_exists:
-                logger.info("Conflicting Key Errror: Key:%s Value:%s "
-                "Replacement:%s" % (c_key, c_value, test_key_exists[0].value))
-                #No Dupes... But should we really throw an Exception here?
-                continue
-            orm.Credential.objects.get_or_create(
-                identity=id_membership.identity,
-                key=c_key,
-                value=c_value)[0]
-        if account_admin:
-            admin = orm.AccountProvider.objects.get_or_create(
-                        provider=id_membership.identity.provider,
-                        identity=id_membership.identity)[0]
-
-        #5. Save the user to activate profile on first-time use
-        user.save()
-        #Return the identity
-        return id_membership.identity
-
-    def build_os_admin(self, orm):
-        if not hasattr(settings, 'OPENSTACK_ARGS'):
-            print """AccountProvider could not be created from settings.
-To create an AccountProvider for the 'OPENSTACK' location: via the REPL:
->>> Identity.create_identity(ADMIN_USERNAME, 'OPENSTACK', account_admin=True,
-                             cred_key=username, cred_secret=password,
-                             cred_ex_tenant_name=project_name,
-                             cred_ex_project_name=project_name)"""
-            return
-
-        identity = self.create_identity(orm, 
-            settings.OPENSTACK_ARGS['username'],
-            'OPENSTACK', account_admin=True,
-            cred_key=settings.OPENSTACK_ADMIN_KEY,
-            cred_secret=settings.OPENSTACK_ADMIN_SECRET,
-            cred_ex_tenant_name=settings.OPENSTACK_ADMIN_TENANT,
-            cred_ex_project_name=settings.OPENSTACK_ADMIN_TENANT)
-
-    def build_euca_admin(self, orm):
-        if not hasattr(settings, 'EUCALYPTUS_ARGS'):
-            print """AccountProvider could not be created from settings.
-To create a Eucalyptus AccountProvider via the REPL:
->>> Identity.create_identity(admin_username, 'EUCALYPTUS', account_admin=True,
-                             cred_key=_key, cred_secret=secret)"""
-            return
-        identity = self.create_identity(orm,
-            'admin', 'EUCALYPTUS',
-            account_admin=True,
-            cred_key=settings.EUCA_ADMIN_KEY,
-            cred_secret=settings.EUCA_ADMIN_SECRET)
 
     models = {
         u'auth.group': {
@@ -220,6 +65,23 @@ To create a Eucalyptus AccountProvider via the REPL:
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'threshold': ('django.db.models.fields.IntegerField', [], {'default': '10080', 'null': 'True', 'blank': 'True'})
         },
+        'core.atmosphereuser': {
+            'Meta': {'object_name': 'AtmosphereUser', 'db_table': "'atmosphere_user'"},
+            'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'blank': 'True'}),
+            'first_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
+            'groups': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Group']", 'symmetrical': 'False', 'blank': 'True'}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
+            'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'is_superuser': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'last_login': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'last_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
+            'password': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
+            'selected_identity': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Identity']", 'null': 'True', 'blank': 'True'}),
+            'user_permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'}),
+            'username': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '30'})
+        },
         'core.credential': {
             'Meta': {'object_name': 'Credential', 'db_table': "'credential'"},
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
@@ -236,7 +98,7 @@ To create a Eucalyptus AccountProvider via the REPL:
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'instance': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Instance']", 'null': 'True', 'blank': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 31, 0, 0)'}),
             'status': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
             'type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.FlowType']"})
         },
@@ -245,7 +107,7 @@ To create a Eucalyptus AccountProvider via the REPL:
             'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256', 'blank': 'True'}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 31, 0, 0)'})
         },
         'core.group': {
             'Meta': {'object_name': 'Group', 'db_table': "'group'", '_ormbases': [u'auth.Group']},
@@ -302,7 +164,7 @@ To create a Eucalyptus AccountProvider via the REPL:
             'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'instance': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Instance']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 31, 0, 0)'}),
             'status': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.InstanceStatus']"})
         },
         'core.machine': {
@@ -317,7 +179,7 @@ To create a Eucalyptus AccountProvider via the REPL:
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'private': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'providers': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['core.Provider']", 'symmetrical': 'False', 'through': "orm['core.ProviderMachine']", 'blank': 'True'}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 31, 0, 0)'}),
             'tags': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['core.Tag']", 'symmetrical': 'False', 'blank': 'True'})
         },
         'core.machineexport': {
@@ -329,7 +191,7 @@ To create a Eucalyptus AccountProvider via the REPL:
             'export_owner': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']"}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'instance': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Instance']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 31, 0, 0)'}),
             'status': ('django.db.models.fields.CharField', [], {'max_length': '256'})
         },
         'core.machinemembership': {
@@ -355,7 +217,7 @@ To create a Eucalyptus AccountProvider via the REPL:
             'new_machine_tags': ('django.db.models.fields.TextField', [], {'default': "''", 'blank': 'True'}),
             'new_machine_visibility': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'parent_machine': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'ancestor_machine'", 'to': "orm['core.ProviderMachine']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 31, 0, 0)'}),
             'status': ('django.db.models.fields.CharField', [], {'max_length': '256'})
         },
         'core.maintenancerecord': {
@@ -374,9 +236,17 @@ To create a Eucalyptus AccountProvider via the REPL:
             'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'hostname': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'port': ('django.db.models.fields.IntegerField', [], {'default': '22'}),
             'private_ssh_key': ('django.db.models.fields.TextField', [], {}),
             'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 31, 0, 0)'})
+        },
+        'core.platformtype': {
+            'Meta': {'object_name': 'PlatformType', 'db_table': "'platform_type'"},
+            'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 31, 0, 0)'})
         },
         'core.provider': {
             'Meta': {'object_name': 'Provider', 'db_table': "'provider'"},
@@ -386,7 +256,8 @@ To create a Eucalyptus AccountProvider via the REPL:
             'location': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'public': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'start_date': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.ProviderType']"})
+            'type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.ProviderType']"}),
+            'virtualization': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.PlatformType']"})
         },
         'core.providercredential': {
             'Meta': {'object_name': 'ProviderCredential', 'db_table': "'provider_credential'"},
@@ -404,7 +275,7 @@ To create a Eucalyptus AccountProvider via the REPL:
             'identifier': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '256'}),
             'machine': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Machine']"}),
             'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 31, 0, 0)'})
         },
         'core.providermembership': {
             'Meta': {'object_name': 'ProviderMembership', 'db_table': "'provider_membership'"},
@@ -428,7 +299,7 @@ To create a Eucalyptus AccountProvider via the REPL:
             'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 31, 0, 0)'})
         },
         'core.quota': {
             'Meta': {'object_name': 'Quota', 'db_table': "'quota'"},
@@ -449,7 +320,7 @@ To create a Eucalyptus AccountProvider via the REPL:
             'mem': ('django.db.models.fields.IntegerField', [], {}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 31, 0, 0)'})
         },
         'core.step': {
             'Meta': {'object_name': 'Step', 'db_table': "'step'"},
@@ -463,7 +334,7 @@ To create a Eucalyptus AccountProvider via the REPL:
             'instance': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Instance']", 'null': 'True', 'blank': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'}),
             'script': ('django.db.models.fields.TextField', [], {}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 31, 0, 0)'})
         },
         'core.tag': {
             'Meta': {'object_name': 'Tag', 'db_table': "'tag'"},
@@ -494,7 +365,7 @@ To create a Eucalyptus AccountProvider via the REPL:
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"}),
             'size': ('django.db.models.fields.IntegerField', [], {}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 11, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 10, 31, 0, 0)'})
         }
     }
 

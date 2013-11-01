@@ -7,7 +7,7 @@ Note:
 from datetime import timedelta
 
 from django.db import models
-from django.contrib.auth.models import User
+#from core.models import AtmosphereUser as User
 
 from threepio import logger
 
@@ -17,18 +17,18 @@ class Identity(models.Model):
     to authenticate against a single provider
     """
 
-    created_by = models.ForeignKey(User)
+    created_by = models.ForeignKey("AtmosphereUser")
     provider = models.ForeignKey("Provider")
 
     @classmethod
     def delete_identity(cls, username, provider_location):
         #Do not move up. ImportError.
-        from core.models import Group, Credential, Quota,\
+        from core.models import AtmosphereUser, Group, Credential, Quota,\
                                 Provider, AccountProvider,\
                                 IdentityMembership, ProviderMembership
 
         provider = Provider.objects.get(location__iexact=provider_location)
-        user = User.objects.get(username=username)
+        user = AtmosphereUser.objects.get(username=username)
         group = Group.objects.get(name=username)
         identities = Identity.objects.filter(
             created_by=user, provider=provider)
@@ -36,6 +36,80 @@ class Identity(models.Model):
         group.delete()
         user.delete()
         return
+
+    def can_share(self, django_user):
+        """
+        You CAN share an identity IFF:
+        0. You are a staff user
+        1. You are the original owner of the identity
+        2. You are the leader of a group who contains the owner of the identity
+        """
+        #This person leads a group, may be able to share.
+        #Check 0
+        if django_user.is_staff:
+            return True
+        #Check 1
+        original_owner = self.created_by
+        if original_owner == django_user:
+            return True
+        #Check 2
+        shared = False
+        leader_groups = django_user.group_set.get(leaders__in=[django_user])
+        for group in leader_groups:
+            id_member = g.identitymembership_set.get(identity=self)
+            if not id_member:
+                continue
+            #ASSERT: You have SHARED access to the identity
+            shared = True
+            if original_owner in group.user_set.all():
+                return True
+        #User can't share.. Log the attempt for record-keeping
+        if shared:
+            logger.info("FAILED SHARE ATTEMPT: User:%s Identity:%s "
+                         "Reason: You are not a leader of any group that "
+                         "contains the actual owner of the identity (%s)."
+                         % (django_user, self, original_owner))
+        else:
+            logger.info("FAILED SHARE ATTEMPT: User:%s Identity:%s "
+                         % (django_user, self))
+
+        return False
+    def share(self, core_group, quota=None):
+        """
+        """
+        from core.models import IdentityMembership, ProviderMembership
+        existing_membership = IdentityMembership.objects.filter(
+                member=core_group, identity=self)
+        if existing_membership:
+            return existing_membership[0]
+
+        #User does not already have membership - Check for provider membership
+        prov_membership = ProviderMembership.objects.filter(
+                member=core_group, provider=self.provider)
+        if not prov_membership:
+            raise Exception("Cannot share identity membership before the"
+                            " provider is shared")
+
+        #Ready to create new membership for this group
+        if not quota:
+            quota = Quota.default_quota()
+
+        new_membership = IdentityMembership.objects.get_or_create(member=core_group, identity=self, quota=quota)[0]
+        return new_membership
+
+    def unshare(self, core_group):
+        """
+        Potential problem:
+        1. User X creates/imports an openstack account (& is the owner), 
+        2. User X shares identitymembership with User Y, 
+        3. User X or Y tries to unshare IdentityMembership with the opposing user. 
+        
+        Solution:
+        ONLY unshare if this user is the original owner of the identity
+        """
+        from core.models import IdentityMembership
+        existing_membership = IdentityMembership.objects.filter(member=core_group, identity=self)
+        return existing_membership[0].delete()
 
     @classmethod
     def create_identity(cls, username, provider_location,
@@ -117,7 +191,7 @@ class Identity(models.Model):
                 value=c_value)[0]
         #4. Assign a different quota, if requested
         if max_quota:
-            quota = Quota.get_max_quota()
+            quota = Quota.max_quota()
             id_membership.quota = quota
             id_membership.save()
         if account_admin:

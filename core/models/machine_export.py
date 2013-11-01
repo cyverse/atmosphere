@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from django.contrib.auth.models import User
+from core.models.user import AtmosphereUser as User
 
 class MachineExport(models.Model):
     # The instance to export

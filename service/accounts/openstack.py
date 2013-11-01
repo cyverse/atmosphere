@@ -2,10 +2,12 @@
 UserManager:
   Remote Openstack  Admin controls..
 """
+import time
+
 from hashlib import sha1
 from urlparse import urlparse
 
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 from django.db.models import Max
 
 from novaclient.v1_1 import client as nova_client

@@ -22,7 +22,7 @@ from service.accounts.aws import AccountDriver as AWSAccountDriver
 import copy
 
 from django.utils import timezone
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 
 def get_account_driver(provider_id):
     try:

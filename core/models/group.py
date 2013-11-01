@@ -6,7 +6,6 @@ to manage users via the membership relationship
 
 from django.db import models
 from django.contrib.auth.models import Group as DjangoGroup
-from django.contrib.auth.models import User as DjangoUser
 from core.models.identity import Identity
 from core.models.provider import Provider
 from core.models.machine import Machine
@@ -20,7 +19,7 @@ class Group(DjangoGroup):
     """
     Extend the Django Group model to support 'membership'
     """
-    leaders = models.ManyToManyField(DjangoUser)
+    leaders = models.ManyToManyField('AtmosphereUser')
     providers = models.ManyToManyField(Provider, through='ProviderMembership',
         blank=True)
     identities = models.ManyToManyField(Identity, through='IdentityMembership',
@@ -87,6 +86,26 @@ class IdentityMembership(models.Model):
     member = models.ForeignKey(Group)
     quota = models.ForeignKey(Quota)
     allocation = models.ForeignKey(Allocation, null=True, blank=True)
+
+    def get_membership_for(self, groupname):
+
+        from core.models import ProviderMembership, Group
+        try:
+            group = Group.objects.get(name=group)
+        except Group.DoesNotExist:
+            logger.warn("Group %s does not exist" % groupname)
+            return None
+        providers = ProviderMembership.objects.filter(member__name=groupname)
+        if not providers:
+            logger.warn("%s is not a member of any provider" % groupname)
+        for prov in providers:
+            identities = IdentityMembership.objects.filter(
+                    member=group, 
+                    identity__provider=prov)
+            if identities:
+                return identities[0]
+        logger.warn("%s is not a member of any identities" % groupname)
+        return None
 
     def get_allocation_dict(self):
         if not self.allocation:

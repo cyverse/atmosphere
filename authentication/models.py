@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 #Django libraries
 from django.db import models
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 
 
 class Token(models.Model):

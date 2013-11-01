@@ -5,7 +5,7 @@ import re
 
 from django.db import models
 from django.utils import timezone
-from django.contrib.auth.models import User
+from core.models.user import AtmosphereUser as User
 
 
 from core.models.provider import Provider

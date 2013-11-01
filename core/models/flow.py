@@ -2,7 +2,7 @@
 """
 from django.db import models
 from django.utils import timezone
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 
 from core.models.identity import Identity
 from core.models.instance import Instance

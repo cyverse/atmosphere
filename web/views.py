@@ -14,7 +14,7 @@ from datetime import datetime
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth import authenticate as django_authenticate
 from django.contrib.auth import logout as django_logout
-from django.contrib.auth.models import User as DjangoUser
+from core.models import AtmosphereUser as DjangoUser
 
 from django.template import RequestContext
 

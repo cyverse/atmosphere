@@ -1,4 +1,5 @@
 from core.models.credential import Credential
+from core.models.group import IdentityMembership
 from core.models.identity import Identity
 from core.models.instance import Instance
 from core.models.machine import ProviderMachine
@@ -28,6 +29,11 @@ class CredentialSerializer(serializers.ModelSerializer):
     class Meta:
         model = Credential
         exclude = ('identity',)
+
+class IdentityMembershipSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IdentityMembership
+
 
 class IdentitySerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
@@ -200,7 +206,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     groups = serializers.CharField(read_only=True, source='user.groups.all')
     is_staff = serializers.BooleanField(source='user.is_staff')
     is_superuser = serializers.BooleanField(source='user.is_superuser')
-    selected_identity = IdentityRelatedField()
+    selected_identity = IdentityRelatedField(source='user.select_identity')
 
     def validate_selected_identity(self, attrs, source):
         """

@@ -104,6 +104,7 @@ TEMPLATE_DIRS = (
     os.path.join(PROJECT_ROOT, 'templates'),
 )
 
+AUTH_USER_MODULE = 'core.AtmosphereUser'
 AUTH_PROFILE_MODULE = 'core.UserProfile'
 
 AUTHENTICATION_BACKENDS = (

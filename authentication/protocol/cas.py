@@ -10,7 +10,7 @@ import time
 
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 
 import caslib
 
