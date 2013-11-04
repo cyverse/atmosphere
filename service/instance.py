@@ -151,6 +151,16 @@ def check_quota(username, identity_id, esh_size, resuming=False):
     if over_allocation:
         raise OverAllocationError(time_diff)
 
+def keypair_init(core_identity):
+    os_driver = OSAccountDriver(core_identity.provider)
+    creds = core_identity.get_credentials()
+    with open(settings.ATMOSPHERE_KEYPAIR_FILE, 'r') as pub_key_file:
+        public_key = pub_key_file.read()
+    keypair, created = os_driver.get_or_create_keypair(creds['key'], creds['secret'], creds['ex_tenant_name'], settings.ATMOSPHERE_KEYPAIR_NAME, public_key)
+    if created:
+        logger.info("Created keypair for %s" % creds['key'])
+    return keypair
+
 def network_init(core_identity):
     provider_creds = core_identity.provider.get_credentials()
     if 'router_name' not in provider_creds.keys():
@@ -212,6 +222,7 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
             #Check for project network.. TODO: Fix how password/project are
             # retrieved
             network_init(core_identity)
+            keypair_init(core_identity)
             logger.debug("OS driver.create_instance kwargs: %s" % kwargs)
             esh_instance = driver.create_instance(name=name, image=machine,
                                                   size=size, token=instance_token,

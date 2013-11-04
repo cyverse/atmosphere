@@ -5,7 +5,7 @@ from threepio import logger
 from datetime import datetime
 from django.conf import settings
 
-@periodic_task(run_every=crontab(hour='*', minute='*/5', day_of_week='*'),
+@periodic_task(run_every=crontab(hour='*', minute='*/25', day_of_week='*'),
                time_limit=120, retry=1) # 2min timeout
 def test_all_instance_links():
     try:

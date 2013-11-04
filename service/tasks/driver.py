@@ -283,15 +283,16 @@ def add_os_project_network(core_identity, *args, **kwargs):
       ignore_result=True,
       max_retries=1)
 def _check_empty_project_network(
+        driverCls, provider, identity,
         core_identity_id,
         *args, **kwargs):
-    from api import get_esh_driver
     try:
         logger.debug("_check_empty_project_network task started at %s." %
                      datetime.now())
 
+        logger.debug("Params - %s" % core_identity_id)
         core_identity = Identity.objects.get(id=core_identity_id)
-        driver = get_esh_driver(core_identity)
+        driver = get_driver(driverCls, provider, identity)
         instances = driver.list_instances()
         active_instances = False
         for instance in instances:
@@ -306,8 +307,10 @@ def _check_empty_project_network(
             logger.info("No active instances. Removing project network"
                         "from %s" % core_identity)
             os_acct_driver.delete_network(core_identity)
+            return True
         logger.debug("_check_empty_project_network task finished at %s." %
                      datetime.now())
+        return False
     except Exception as exc:
         logger.exception("Failed to check if project network is empty")
         _check_empty_project_network.retry(exc=exc)
