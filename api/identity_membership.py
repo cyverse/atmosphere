@@ -12,8 +12,10 @@ from threepio import logger
 from authentication.decorators import api_auth_token_required
 
 from core.models.group import Group
+from core.models import IdentityMembership as CoreIdentityMembership
 
 from api.serializers import IdentityMembershipSerializer
+
 
 class IdentityMembershipList(APIView):
     """
@@ -64,7 +66,7 @@ class IdentityMembershipList(APIView):
         identity = group.identities.get(provider=provider, id=identity_id)
 
         # All other members of the identity are visible
-        id_members = IdentityMembership.objects.filter(
+        id_members = CoreIdentityMembership.objects.filter(
                 identity__id=identity_id)
         serializer = IdentityMembershipSerializer(id_members, many=True)
         serialized_data = serializer.data
