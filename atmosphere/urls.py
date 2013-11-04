@@ -121,6 +121,9 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/v1/tag/(?P<tag_slug>.*)/$', Tag.as_view()),
 
 
+    url(r'^api/v1/instance/$', InstanceHistory.as_view(),
+        name='instance-history'),
+
     url(r'^api/v1/request_image/$',
         MachineRequestStaffList.as_view(), name='direct-machine-request-list'),
     url(r'^api/v1/request_image/(?P<machine_request_id>\d+)/$',

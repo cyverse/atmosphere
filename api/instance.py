@@ -7,6 +7,7 @@ import time
 from core.models import AtmosphereUser as User
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
+from django.db.models import Q
 
 from rest_framework import status
 from rest_framework.views import APIView
@@ -131,10 +132,12 @@ class InstanceHistory(APIView):
     """
 
     @api_auth_token_required
-    def get(self, request, provider_id, identity_id):
+    def get(self, request, provider_id=None, identity_id=None):
         data = request.DATA
-        user = User.objects.filter(username=request.user)
+        params = request.QUERY_PARAMS.copy()
+        logger.info(params.items())
 
+        user = User.objects.filter(username=request.user)
         if user and len(user) > 0:
             user = user[0]
         else:
@@ -143,13 +146,40 @@ class InstanceHistory(APIView):
                 'message': 'User not found'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
-        esh_driver = prepare_driver(request, identity_id)
+        page = params.pop('page',None)
+        emulate_name = params.pop('username',None)
+        try:
+            #Support for staff users to emulate a specific user history
+            if user.is_staff and emulate_name:
+                emualate_name = emulate_name[0] # Querystring conversion
+                user = User.objects.get(username=emulate_name)
 
-        # Historic Instances in reverse chronological order
-        history_instance_list = CoreInstance.objects.filter(
-            created_by=user.id).order_by("-start_date")
+            # List of all instances created by user
+            history_instance_list = CoreInstance.objects.filter(
+                created_by=user).order_by("-start_date")
 
-        page = request.QUERY_PARAMS.get('page')
+            #Filter the list based on query strings
+            for filter_key, value in params.items():
+                if 'start_date' == filter_key:
+                    history_instance_list = history_instance_list.filter(
+                                            start_date__gt=value)
+                elif 'end_date' == filter_key:
+                    history_instance_list = history_instance_list.filter(
+                                            Q(end_date=None) |
+                                            Q(end_date__lt=value))
+                elif 'ip_address' == filter_key:
+                    history_instance_list = history_instance_list.filter(
+                                            ip_address__contains=value)
+                elif 'alias' == filter_key:
+                    history_instance_list = history_instance_list.filter(
+                                            provider_alias__contains=value)
+
+        except Exception as e:
+            errorObj = failureJSON([{
+                'code': 400,
+                'message': 'Bad query string caused filter validation errors : %s'
+                           % (e,)}])
+            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
         if page:
             paginator = Paginator(history_instance_list, 5)
             try:
