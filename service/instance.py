@@ -21,7 +21,7 @@ from service.quota import check_over_quota
 from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError
 from service.accounts.openstack import AccountDriver as OSAccountDriver
-
+from service.tasks.driver import add_floating_ip
 
 def stop_instance(esh_driver, esh_instance, provider_id, identity_id, user):
     """
@@ -39,21 +39,37 @@ def start_instance(esh_driver, esh_instance, provider_id, identity_id, user):
     esh_driver.start_instance(esh_instance)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
-def suspend_instance(esh_driver, esh_instance, provider_id, identity_id, user):
+def suspend_instance(esh_driver, esh_instance,
+                     provider_id, identity_id,
+                     user, reclaim_ip=True):
     """
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
+    if reclaim_ip:
+        esh_driver._del_floating_ip(esh_instance)
     esh_driver.suspend_instance(esh_instance)
+    if reclaim_ip:
+        remove_empty_network.delay(esh_driver.__class__, esh_driver.provider,
+                                   esh_driver.identity, identity_id)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
-def resume_instance(esh_driver, esh_instance, provider_id, identity_id, user):
+def resume_instance(esh_driver, esh_instance,
+                    provider_id, identity_id, 
+                    user, restore_ip=True):
     """
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
     check_quota(user.username, identity_id, esh_instance.size, resuming=True)
+    core_identity = CoreIdentity.objects.get(id=identity_id)
+    if restore_ip:
+        network_init(core_identity)
     esh_driver.resume_instance(esh_instance)
+    if restore_ip:
+        add_floating_ip.s(esh_driver.__class__, esh_driver.provider,
+                        esh_driver.identity,
+                        esh_instance.id).apply_async(countdown=10)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
 def update_status(esh_driver, instance_id, provider_id, identity_id, user):

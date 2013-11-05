@@ -294,8 +294,10 @@ class InstanceAction(APIView):
                 resume_instance(esh_driver, esh_instance,
                                 provider_id, identity_id, user)
             elif 'suspend' == action:
+                reclaim_ip = True
+                #TODO: Provider dependent
                 suspend_instance(esh_driver, esh_instance,
-                                provider_id, identity_id, user)
+                                provider_id, identity_id, user, reclaim_ip)
             elif 'start' == action:
                 start_instance(esh_driver, esh_instance,
                                provider_id, identity_id, user)

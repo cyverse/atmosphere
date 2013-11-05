@@ -148,7 +148,7 @@ def destroy_instance(core_identity_id, instance_alias):
                             identity),
                            immutable=True,
                            countdown=5),
-                  _check_empty_project_network
+                  remove_empty_network
                   .subtask((driverCls,
                             provider,
                             identity,
@@ -278,16 +278,16 @@ def add_os_project_network(core_identity, *args, **kwargs):
         add_os_project_network.retry(exc=exc)
 
 
-@task(name="_check_empty_project_network",
+@task(name="remove_empty_network",
       default_retry_delay=60,
       ignore_result=True,
       max_retries=1)
-def _check_empty_project_network(
+def remove_empty_network(
         driverCls, provider, identity,
         core_identity_id,
         *args, **kwargs):
     try:
-        logger.debug("_check_empty_project_network task started at %s." %
+        logger.debug("remove_empty_network task started at %s." %
                      datetime.now())
 
         logger.debug("Params - %s" % core_identity_id)
@@ -308,9 +308,9 @@ def _check_empty_project_network(
                         "from %s" % core_identity)
             os_acct_driver.delete_network(core_identity)
             return True
-        logger.debug("_check_empty_project_network task finished at %s." %
+        logger.debug("remove_empty_network task finished at %s." %
                      datetime.now())
         return False
     except Exception as exc:
         logger.exception("Failed to check if project network is empty")
-        _check_empty_project_network.retry(exc=exc)
+        remove_empty_network.retry(exc=exc)
