@@ -68,9 +68,7 @@
 					  {% endfor %}
 					  <form method="post" action=".">
 						{% csrf_token %}
-						{% if not disable_login %}
 						<input type="submit" value="Log in with your iPlant ID" class="submitButton">
-						{% endif %}
 						<input type="hidden" name="next" value="/">
 					  </form>
 

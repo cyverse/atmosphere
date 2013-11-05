@@ -90,10 +90,10 @@ def set_machine_request_metadata(machine_request, image_id):
 
 
 @task(name='machine_request_error', ignore_result=False)
-def machine_request_error(task_uuid, machine_request_id):
+def machine_request_error(machine_request_id, task_uuid):
     result = AsyncResult(task_uuid)
     exc = result.get(propagate=False)
-    err_str = "Task %r raised exception: %r\n%r" % (exc, result.traceback)
+    err_str = "Task %s raised exception: %r\n%r" % (task_uuid, exc, result.traceback)
     logger.error(err_str)
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.status = err_str
