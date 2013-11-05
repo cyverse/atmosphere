@@ -14,7 +14,7 @@ from authentication.decorators import api_auth_token_required
 from core.models.group import Group
 from core.models import IdentityMembership as CoreIdentityMembership
 
-from api.serializers import IdentityMembershipSerializer
+from api.serializers import IdentitySerializer
 
 
 class IdentityMembershipList(APIView):
@@ -44,7 +44,7 @@ class IdentityMembershipList(APIView):
         #Ensure provider_membership exists
         prov_member = identity.provider.share(group)
         id_member = identity.share(group)
-        serializer = IdentityMembershipSerializer(id_member)
+        serializer = IdentitySerializer(id_member.identity)
         serialized_data = serializer.data
         return Response(serialized_data)
 
@@ -64,14 +64,13 @@ class IdentityMembershipList(APIView):
                                        active=True, end_date=None)
         # Group has access to the identity on that provider
         identity = group.identities.get(provider=provider, id=identity_id)
-
         # All other members of the identity are visible
         id_members = CoreIdentityMembership.objects.filter(
                 identity__id=identity_id)
-        serializer = IdentityMembershipSerializer(id_members, many=True)
-        serialized_data = serializer.data
-        logger.debug(type(serialized_data))
-        return Response(serialized_data)
+        return Response(IdentitySerializer(
+            [id_member.identity for id_member in id_members],
+            many=True).data)
+
 
 
 class IdentityMembership(APIView):
@@ -95,7 +94,7 @@ class IdentityMembership(APIView):
                             % (user, identity_id))
         group = Group.objects.get(name=group_name)
         id_member = identity.unshare(group)
-        serializer = IdentityMembershipSerializer(id_member)
+        serializer = IdentitySerializer(id_member.identity)
         serialized_data = serializer.data
         return Response(serialized_data)
 

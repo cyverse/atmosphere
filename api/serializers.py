@@ -20,19 +20,27 @@ from rest_framework import pagination
 
 from threepio import logger
 
+
 class AccountSerializer(serializers.Serializer):
     pass
     #Define fields here
     #TODO: Define a spec that we expect from list_users across all providers
+
 
 class CredentialSerializer(serializers.ModelSerializer):
     class Meta:
         model = Credential
         exclude = ('identity',)
 
-class IdentityMembershipSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = IdentityMembership
+
+# class IdentityMembershipSerializer(serializers.ModelSerializer):
+#     created_by = serializers.CharField(source='creator_name')
+#     credentials = serializers.Field(source='get_credentials')
+#     quota = serializers.Field(source='get_quota_dict')
+
+#     class Meta:
+#         model = IdentityMembership
+#         fields = ('id', 'identity', 'member', 'quota', 'allocation')
 
 
 class IdentitySerializer(serializers.ModelSerializer):
