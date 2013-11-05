@@ -126,7 +126,7 @@ class Provider(models.Model):
     def get_membership(self):
         provider_members = self.providermembership_set.all()
         group_names = [prov_member.member for prov_member in provider_members]
-        #TODO: Add 'rules' if we want to hide specific users (staff, admins, etc.)
+        #TODO: Add 'rules' if we want to hide specific users (staff, etc.)
         return group_names
 
     def get_esh_credentials(self, esh_provider):

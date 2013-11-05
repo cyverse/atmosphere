@@ -118,7 +118,7 @@ class Identity(models.Model):
     def get_membership(self):
         identity_members = self.identitymembership_set.all()
         group_names = [id_member.member for id_member in identity_members]
-        #TODO: Add 'rules' if we want to hide specific users (staff, admins, etc.)
+        #TODO: Add 'rules' if we want to hide specific users (staff, etc.)
         return group_names
 
     @classmethod
