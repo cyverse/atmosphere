@@ -7,9 +7,9 @@ Note:
 from datetime import timedelta
 
 from django.db import models
-#from core.models import AtmosphereUser as User
 
 from threepio import logger
+
 
 class Identity(models.Model):
     """
@@ -24,8 +24,8 @@ class Identity(models.Model):
     def delete_identity(cls, username, provider_location):
         #Do not move up. ImportError.
         from core.models import AtmosphereUser, Group, Credential, Quota,\
-                                Provider, AccountProvider,\
-                                IdentityMembership, ProviderMembership
+            Provider, AccountProvider,\
+            IdentityMembership, ProviderMembership
 
         provider = Provider.objects.get(location__iexact=provider_location)
         user = AtmosphereUser.objects.get(username=username)
@@ -66,26 +66,27 @@ class Identity(models.Model):
         #User can't share.. Log the attempt for record-keeping
         if shared:
             logger.info("FAILED SHARE ATTEMPT: User:%s Identity:%s "
-                         "Reason: You are not a leader of any group that "
-                         "contains the actual owner of the identity (%s)."
-                         % (django_user, self, original_owner))
+                        "Reason: You are not a leader of any group that "
+                        "contains the actual owner of the identity (%s)."
+                        % (django_user, self, original_owner))
         else:
             logger.info("FAILED SHARE ATTEMPT: User:%s Identity:%s "
-                         % (django_user, self))
+                        % (django_user, self))
 
         return False
+
     def share(self, core_group, quota=None):
         """
         """
         from core.models import IdentityMembership, ProviderMembership
         existing_membership = IdentityMembership.objects.filter(
-                member=core_group, identity=self)
+            member=core_group, identity=self)
         if existing_membership:
             return existing_membership[0]
 
         #User does not already have membership - Check for provider membership
         prov_membership = ProviderMembership.objects.filter(
-                member=core_group, provider=self.provider)
+            member=core_group, provider=self.provider)
         if not prov_membership:
             raise Exception("Cannot share identity membership before the"
                             " provider is shared")
@@ -94,21 +95,24 @@ class Identity(models.Model):
         if not quota:
             quota = Quota.default_quota()
 
-        new_membership = IdentityMembership.objects.get_or_create(member=core_group, identity=self, quota=quota)[0]
+        new_membership = IdentityMembership.objects.get_or_create(
+            member=core_group, identity=self, quota=quota)[0]
         return new_membership
 
     def unshare(self, core_group):
         """
         Potential problem:
-        1. User X creates/imports an openstack account (& is the owner), 
-        2. User X shares identitymembership with User Y, 
-        3. User X or Y tries to unshare IdentityMembership with the opposing user. 
-        
+        1. User X creates/imports an openstack account (& is the owner),
+        2. User X shares identitymembership with User Y,
+        3. User X or Y tries to unshare IdentityMembership with the opposing
+        user.
+
         Solution:
         ONLY unshare if this user is the original owner of the identity
         """
         from core.models import IdentityMembership
-        existing_membership = IdentityMembership.objects.filter(member=core_group, identity=self)
+        existing_membership = IdentityMembership.objects.filter(
+            member=core_group, identity=self)
         return existing_membership[0].delete()
 
     @classmethod
@@ -119,7 +123,8 @@ class Identity(models.Model):
         NOTES:
         * kwargs prefixed with 'cred_' will be collected as credentials
         * Can assign optional flags:
-          + max_quota - Assign the highest quota available, rather than default.
+          + max_quota - Assign the highest quota available, rather than
+            default.
           + account_admin - Private Clouds only - This user should have ALL
             permissions including:
               * Image creation (Glance)
@@ -131,17 +136,17 @@ class Identity(models.Model):
         """
         #Do not move up. ImportError.
         from core.models import Group, Credential, Quota,\
-                                Provider, AccountProvider,\
-                                IdentityMembership, ProviderMembership
+            Provider, AccountProvider,\
+            IdentityMembership, ProviderMembership
 
         provider = Provider.objects.get(location__iexact=provider_location)
 
         print kwarg_creds
         credentials = {}
-        for (c_key,c_value) in kwarg_creds.items():
+        for (c_key, c_value) in kwarg_creds.items():
             if 'cred_' not in c_key.lower():
                 continue
-            c_key = c_key.replace('cred_','')
+            c_key = c_key.replace('cred_', '')
             credentials[c_key] = c_value
         print credentials
 
@@ -151,7 +156,7 @@ class Identity(models.Model):
         # 2+ Identities on a single provider
 
         id_membership = IdentityMembership.objects.filter(
-            member__name= user.username,
+            member__name=user.username,
             identity__provider=provider,
             identity__created_by__username=user.username)
         if not id_membership:
@@ -166,23 +171,25 @@ class Identity(models.Model):
             id_membership = IdentityMembership.objects.get_or_create(
                 identity=identity, member=group, quota=Quota.default_quota())
         #Either first in list OR object from two-tuple.. Its what we need.
-        id_membership = id_membership[0] 
+        id_membership = id_membership[0]
 
         #ID_Membership exists.
 
         #3. Make sure that all kwargs exist as credentials
         # NOTE: Because we assume only one identity per provider
-        #       We can add new credentials to 
+        #       We can add new credentials to
         #       existing identities if missing..
-        # In the future it will be hard to determine when we want to 
-        # update values on an identity Vs. create a second, new identity.
-        for (c_key,c_value) in credentials.items():
+        # In the future it will be hard to determine when we want to
+        # update values on an identity Vs. create a second, new
+        # identity.
+        for (c_key, c_value) in credentials.items():
             test_key_exists = Credential.objects.filter(
-                    identity=id_membership.identity,
-                    key=c_key)
+                identity=id_membership.identity,
+                key=c_key)
             if test_key_exists:
                 logger.info("Conflicting Key Errror: Key:%s Value:%s "
-                "Replacement:%s" % (c_key, c_value, test_key_exists[0].value))
+                            "Replacement:%s" %
+                            (c_key, c_value, test_key_exists[0].value))
                 #No Dupes... But should we really throw an Exception here?
                 continue
             Credential.objects.get_or_create(
@@ -196,8 +203,8 @@ class Identity(models.Model):
             id_membership.save()
         if account_admin:
             admin = AccountProvider.objects.get_or_create(
-                        provider=id_membership.identity.provider,
-                        identity=id_membership.identity)[0]
+                provider=id_membership.identity.provider,
+                identity=id_membership.identity)[0]
 
         #5. Save the user to activate profile on first-time use
         user.save()
@@ -232,7 +239,7 @@ class Identity(models.Model):
         quota_dict = id_member.get_quota_dict()
         allocation_dict = self.get_allocation_dict()
         if allocation_dict:
-            quota_dict.update({"allocation":allocation_dict})
+            quota_dict.update({"allocation": allocation_dict})
         return quota_dict
 
     def json(self):
