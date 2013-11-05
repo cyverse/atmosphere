@@ -23,7 +23,6 @@ class IdentityMembershipList(APIView):
         A List of people who are members of this identity
     """
 
-
     @api_auth_token_required
     def post(self, request, provider_id, identity_id, format=None):
         """
@@ -48,7 +47,6 @@ class IdentityMembershipList(APIView):
         serialized_data = serializer.data
         return Response(serialized_data)
 
-
     @api_auth_token_required
     def get(self, request, provider_id, identity_id, format=None):
         """
@@ -66,11 +64,10 @@ class IdentityMembershipList(APIView):
         identity = group.identities.get(provider=provider, id=identity_id)
         # All other members of the identity are visible
         id_members = CoreIdentityMembership.objects.filter(
-                identity__id=identity_id)
+            identity__id=identity_id)
         return Response(IdentitySerializer(
             [id_member.identity for id_member in id_members],
             many=True).data)
-
 
 
 class IdentityMembership(APIView):
@@ -79,7 +76,8 @@ class IdentityMembership(APIView):
         Calls to modify the single Identity
     """
     @api_auth_token_required
-    def delete(self, request, provider_id, identity_id, group_name, format=None):
+    def delete(self, request, provider_id,
+               identity_id, group_name, format=None):
         """
         Unshare the identity
         """
@@ -97,4 +95,3 @@ class IdentityMembership(APIView):
         serializer = IdentitySerializer(id_member.identity)
         serialized_data = serializer.data
         return Response(serialized_data)
-
