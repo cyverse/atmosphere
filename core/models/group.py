@@ -16,19 +16,20 @@ from core.models.allocation import Allocation
 from datetime import timedelta
 from threepio import logger
 
+
 class Group(DjangoGroup):
     """
     Extend the Django Group model to support 'membership'
     """
     leaders = models.ManyToManyField('AtmosphereUser', through='Leadership')
     providers = models.ManyToManyField(Provider, through='ProviderMembership',
-        blank=True)
+                                       blank=True)
     identities = models.ManyToManyField(Identity, through='IdentityMembership',
-        blank=True)
+                                        blank=True)
     instances = models.ManyToManyField(Instance, through='InstanceMembership',
-        blank=True)
+                                       blank=True)
     machines = models.ManyToManyField(Machine, through='MachineMembership',
-        blank=True)
+                                      blank=True)
 
     @classmethod
     def create_usergroup(cls, username):
@@ -40,7 +41,6 @@ class Group(DjangoGroup):
         group.leaders.add(user)
         group.save()
         return (user, group)
-    
 
     def json(self):
         return {
@@ -56,6 +56,7 @@ class Group(DjangoGroup):
 class Leadership(models.Model):
     user = models.ForeignKey('AtmosphereUser')
     group = models.ForeignKey(Group)
+
     class Meta:
         db_table = 'group_leaders'
         app_label = 'core'
@@ -105,13 +106,14 @@ class IdentityMembership(models.Model):
         except Group.DoesNotExist:
             logger.warn("Group %s does not exist" % groupname)
             return None
-        provider_members = ProviderMembership.objects.filter(member__name=groupname)
+        provider_members = ProviderMembership.objects.filter(
+            member__name=groupname)
         if not provider_members:
             logger.warn("%s is not a member of any provider" % groupname)
         for pm in provider_members:
             identities = IdentityMembership.objects.filter(
-                    member=group, 
-                    identity__provider=pm.provider)
+                member=group,
+                identity__provider=pm.provider)
             if identities:
                 return identities[0]
         logger.warn("%s is not a member of any identities" % groupname)
@@ -121,7 +123,8 @@ class IdentityMembership(models.Model):
         if not self.allocation:
             return {}
         #Don't move it up. Circular reference.
-        from service.allocation import get_time, get_burn_time, delta_to_minutes
+        from service.allocation import get_time, get_burn_time,\
+            delta_to_minutes
         time_used = get_time(self.identity.created_by,
                              self.identity.id,
                              timedelta(
@@ -138,7 +141,7 @@ class IdentityMembership(models.Model):
             "current": mins_consumed,
             "delta": self.allocation.delta,
             "burn": burn_time,
-            "ttz": self.allocation.threshold - mins_consumed }
+            "ttz": self.allocation.threshold - mins_consumed}
         return allocation_dict
 
     def get_quota_dict(self):
