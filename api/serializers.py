@@ -37,10 +37,12 @@ class IdentitySerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
     credentials = serializers.Field(source='get_credentials')
     quota = serializers.Field(source='get_quota_dict')
+    membership = serializers.Field(source='get_membership')
 
     class Meta:
         model = Identity
-        fields = ('id', 'created_by', 'provider', 'credentials', 'quota')
+        fields = ('id', 'created_by', 'provider', 'credentials', 'quota',
+        'membership')
 
 
 class TagRelatedField(serializers.SlugRelatedField):
@@ -271,6 +273,7 @@ class PaginatedProviderMachineSerializer(pagination.PaginationSerializer):
 class ProviderSerializer(serializers.ModelSerializer):
     type = serializers.SlugRelatedField(slug_field='name')
     location = serializers.CharField(source='get_location')
+    membership = serializers.Field(source='get_membership')
 
     class Meta:
         model = Provider

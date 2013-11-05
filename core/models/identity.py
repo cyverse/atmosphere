@@ -115,6 +115,12 @@ class Identity(models.Model):
             member=core_group, identity=self)
         return existing_membership[0].delete()
 
+    def get_membership(self):
+        identity_members = self.identitymembership_set.all()
+        group_names = [id_member.member for id_member in identity_members]
+        #TODO: Add 'rules' if we want to hide specific users (staff, admins, etc.)
+        return group_names
+
     @classmethod
     def create_identity(cls, username, provider_location,
                         max_quota=False, account_admin=False, **kwarg_creds):
