@@ -42,7 +42,8 @@ def get_burn_time(user, identity_id, delta, threshold):
     if not instances:
         return None
     cpu_cores = sum([inst.esh.size.cpu for inst in instances
-                        if inst.last_history().is_active()])
+                        if inst.last_history()
+                        and inst.last_history().is_active()])
     #If we have no active cores, burn-time does not apply
     if cpu_cores == 0:
         return None
