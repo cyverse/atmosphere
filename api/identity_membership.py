@@ -65,7 +65,7 @@ class IdentityMembershipList(APIView):
         # All other members of the identity are visible
         id_members = CoreIdentityMembership.objects.filter(
             identity__id=identity_id)
-        id_list = [id_member.identity for id_member in id_members]
+        id_list = [id_member.identity for id_member in id_members[:1]]
         serializer = IdentitySerializer(id_list, many=True)
         serialized_data = serializer.data
         return Response(serialized_data)
