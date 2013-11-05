@@ -230,7 +230,27 @@ class InstanceAction(APIView):
         result_obj = None
         user = request.user
         esh_driver = prepare_driver(request, identity_id)
-        esh_instance = esh_driver.get_instance(instance_id)
+
+        instance_list_method = esh_driver.list_instances
+
+        if AccountProvider.objects.filter(identity__id=identity_id):
+            # Instance list method changes when using the OPENSTACK provider
+            instance_list_method = esh_driver.list_all_instances
+
+        try:
+            esh_instance_list = instance_list_method()
+        except InvalidCredsError:
+            return invalid_creds(provider_id, identity_id)
+
+        esh_instance = [instance for instance in esh_instance_list if
+                        instance.id == instance_id]
+        if not esh_instance:
+            errorObj = failureJSON([{
+                'code': 400,
+                'message': 'Instance %s no longer exists' % (instance_id,)}])
+            return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+        esh_instance = esh_instance[0]
+
         action = action_params['action']
         try:
             if 'volume' in action:

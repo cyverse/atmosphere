@@ -10,6 +10,7 @@ from threepio import logger
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import convert_esh_instance
 from core.models.size import convert_esh_size
+from core.models.provider import AccountProvider
 
 from atmosphere import settings
 
@@ -57,13 +58,27 @@ def resume_instance(esh_driver, esh_instance, provider_id, identity_id, user):
 
 def update_status(esh_driver, instance_id, provider_id, identity_id, user):
     #Grab a new copy of the instance
-    esh_instance = esh_driver.get_instance(instance_id)
+    instance_list_method = esh_driver.list_instances
+
+    if AccountProvider.objects.filter(identity__id=identity_id):
+        # Instance list method changes when using the OPENSTACK provider
+        instance_list_method = esh_driver.list_all_instances
+
+    try:
+        esh_instance_list = instance_list_method()
+    except InvalidCredsError:
+        return invalid_creds(provider_id, identity_id)
+
+    esh_instance = [instance for instance in esh_instance_list if
+                    instance.id == instance_id]
+    esh_instance = esh_instance[0]
+
     #Convert & Update based on new status change
     core_instance = convert_esh_instance(esh_driver,
-                                       esh_instance,
-                                       provider_id,
-                                       identity_id,
-                                       user)
+                                         esh_instance,
+                                         provider_id,
+                                         identity_id,
+                                         user)
     core_instance.update_history(
         core_instance.esh.extra['status'],
         core_instance.esh.extra.get('task'))
