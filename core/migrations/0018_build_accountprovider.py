@@ -48,7 +48,7 @@ To create an Administrator account for Atmosphere via the REPL:
                 suspended_count = orm.Quota._meta.get_field('suspended_count').default,
                 storage_count = orm.Quota._meta.get_field('storage_count').default)[0]
         #Prepare to update profile
-        prof = UserProfile.objects.get_or_create(user=user)[0]
+        prof = orm.UserProfile.objects.get_or_create(user=user)[0]
 
         account_providers = orm.AccountProvider.objects.distinct('provider')
         for account_provider in account_providers:
