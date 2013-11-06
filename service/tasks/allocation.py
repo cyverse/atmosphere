@@ -42,6 +42,9 @@ def over_allocation_test(identity, esh_instances):
         # Nothing changed, bail.
         return False
 
+    #NOTE: For this roll out, allocations will NOT auto-suspend when the user has expired
+    return True
+
     #ASSERT:Over the allocation, suspend all instances for the identity
 
     #TODO: It may be beneficial to only suspend if: 

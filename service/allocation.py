@@ -108,6 +108,8 @@ def check_over_allocation(username, identity_id):
     False if there is no allocation OR okay to launch.
     True if time allocation is exceeded
     """
+    #NOTE: Allocations are NON-ENFORCING while this line is in effect:
+    return (False, timedelta(0))
     allocation = get_allocation(username, identity_id)
     if not allocation:
         #No allocation, so you fail.

@@ -2,10 +2,11 @@
 Atmosphere utilizes the DjangoGroup model
 to manage users via the membership relationship
 """
-# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
 from django.db import models
 from django.contrib.auth.models import Group as DjangoGroup
+
+from core.models.user import AtmosphereUser
 from core.models.identity import Identity
 from core.models.provider import Provider
 from core.models.machine import Machine
@@ -33,13 +34,12 @@ class Group(DjangoGroup):
 
     @classmethod
     def create_usergroup(cls, username):
-        user = DjangoUser.objects.get_or_create(username=username)[0]
+        user = AtmosphereUser.objects.get_or_create(username=username)[0]
         group = Group.objects.get_or_create(name=username)[0]
-
-        user.groups.add(group)
-        user.save()
-        group.leaders.add(user)
-        group.save()
+        if group not in user.groups.all():
+            user.groups.add(group)
+            user.save()
+        l = Leadership.objects.get_or_create(user=user, group=group)[0]
         return (user, group)
 
     def json(self):
@@ -199,3 +199,5 @@ class MachineMembership(models.Model):
     class Meta:
         db_table = 'machine_membership'
         app_label = 'core'
+
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
