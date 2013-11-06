@@ -390,19 +390,17 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
           }
           vol_table.append(vol_tbody);
           self.$el.find('#volumes_'+self.identity_id).html(vol_table);
-          
+          }
           // End loader slidedown function
-          $(e.target).closest('.accordion-group').attr('data-populated', 'true');
-          
           setTimeout(function() { 
             loader.remove();
-            
             var children = self.$el.find('.accordion-inner .row-fluid');
             children.slideDown();
-            
           }, 3000);
-        }
+          $(e.target).closest('.accordion-group').attr('data-populated', 'true');
+      
       });
+      $(e.target).find('.accordion-body').collapse('toggle');
     }
     else {
       $(e.target).parent().parent().find('.accordion-body').collapse('toggle');
