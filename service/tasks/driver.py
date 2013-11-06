@@ -220,7 +220,7 @@ def add_floating_ip(driverCls, provider, identity,
                                  data={'tmp_status': 'networking'},
                                  replace=False)
 
-        driver.neutron_associate_ip(instance, *args, **kwargs)
+        driver._connection.neutron_associate_ip(instance, *args, **kwargs)
 
         #Useful for chaining floating-ip + Deployment without returning
         #a 'fully active' state

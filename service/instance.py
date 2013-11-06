@@ -21,7 +21,7 @@ from service.quota import check_over_quota
 from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError
 from service.accounts.openstack import AccountDriver as OSAccountDriver
-from service.tasks.driver import add_floating_ip
+from service.tasks.driver import add_floating_ip, remove_empty_network
 
 def stop_instance(esh_driver, esh_instance, provider_id, identity_id, user):
     """
@@ -47,7 +47,7 @@ def suspend_instance(esh_driver, esh_instance,
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
     if reclaim_ip:
-        esh_driver.neutron_disassociate_ip(esh_instance)
+        esh_driver._connection.neutron_disassociate_ip(esh_instance)
     suspended = esh_driver.suspend_instance(esh_instance)
     if reclaim_ip:
         remove_empty_network.delay(esh_driver.__class__, esh_driver.provider,
