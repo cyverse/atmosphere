@@ -47,12 +47,13 @@ def suspend_instance(esh_driver, esh_instance,
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
     if reclaim_ip:
-        esh_driver._del_floating_ip(esh_instance)
-    esh_driver.suspend_instance(esh_instance)
+        esh_driver.neutron_disassociate_ip(esh_instance)
+    suspended = esh_driver.suspend_instance(esh_instance)
     if reclaim_ip:
         remove_empty_network.delay(esh_driver.__class__, esh_driver.provider,
                                    esh_driver.identity, identity_id)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
+    return suspended
 
 def resume_instance(esh_driver, esh_instance,
                     provider_id, identity_id, 

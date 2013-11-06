@@ -220,10 +220,7 @@ def add_floating_ip(driverCls, provider, identity,
                                  data={'tmp_status': 'networking'},
                                  replace=False)
 
-        if not instance.ip:
-            driver._add_floating_ip(instance, *args, **kwargs)
-        else:
-            logger.debug("public ip already found! %s" % instance.ip)
+        driver.neutron_associate_ip(instance, *args, **kwargs)
 
         #Useful for chaining floating-ip + Deployment without returning
         #a 'fully active' state
@@ -241,23 +238,6 @@ def add_floating_ip(driverCls, provider, identity,
         countdown = min(2**current.request.retries, 128)
         add_floating_ip.retry(exc=exc,
                               countdown=countdown)
-
-
-@task(name="_remove_floating_ip",
-      default_retry_delay=15,
-      ignore_result=True,
-      max_retries=6)
-def _remove_floating_ip(driverCls, provider, identity, *args, **kwargs):
-    try:
-        logger.debug("remove_floating_ip task started at %s." %
-                     datetime.now())
-        driver = get_driver(driverCls, provider, identity)
-        driver._clean_floating_ip()
-        logger.debug("remove_floating_ip task finished at %s." %
-                     datetime.now())
-    except Exception as exc:
-        logger.warn(exc)
-        _remove_floating_ip.retry(exc=exc)
 
 
 # project Network Tasks
