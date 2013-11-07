@@ -41,7 +41,7 @@ def start_instance(esh_driver, esh_instance, provider_id, identity_id, user):
 
 def suspend_instance(esh_driver, esh_instance,
                      provider_id, identity_id,
-                     user, reclaim_ip=True):
+                     user, reclaim_ip=False):
     """
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
@@ -62,7 +62,7 @@ def suspend_instance(esh_driver, esh_instance,
 
 def resume_instance(esh_driver, esh_instance,
                     provider_id, identity_id, 
-                    user, restore_ip=True):
+                    user, restore_ip=False):
     """
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
