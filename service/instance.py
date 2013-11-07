@@ -47,7 +47,8 @@ def suspend_instance(esh_driver, esh_instance,
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
     if reclaim_ip:
-        esh_driver._connection.neutron_disassociate_ip(esh_instance)
+        network_manager = esh_driver._connection.get_network_manager()
+        network_manager.disassociate_floating_ip(esh_instance.id)
     suspended = esh_driver.suspend_instance(esh_instance)
     #NOTE: Cannot remove empty networks, errors out with:
     #NeutronClientException: 409- Unable to complete operation on subnet.
@@ -68,7 +69,9 @@ def resume_instance(esh_driver, esh_instance,
     check_quota(user.username, identity_id, esh_instance.size, resuming=True)
     core_identity = CoreIdentity.objects.get(id=identity_id)
     if restore_ip:
-        network_init(core_identity)
+        (network, subnet) = network_init(core_identity)
+        network_manager = esh_driver._connection.get_network_manager()
+        network_manager.create_port(esh_instance.id, network.id)
     esh_driver.resume_instance(esh_instance)
     if restore_ip:
         add_floating_ip.s(esh_driver.__class__, esh_driver.provider,
@@ -202,7 +205,8 @@ def network_init(core_identity):
         logger.warn("ProviderCredential 'router_name' missing: cannot create virtual network")
         return
     os_driver = OSAccountDriver(core_identity.provider)
-    os_driver.create_network(core_identity)
+    (network, subnet) = os_driver.create_network(core_identity)
+    return (network, subnet)
 
 def launch_esh_instance(driver, machine_alias, size_alias, core_identity, 
                         name=None, username=None, *args, **kwargs):
