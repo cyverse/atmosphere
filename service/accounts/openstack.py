@@ -117,11 +117,11 @@ class AccountDriver():
 
         if username in self.core_provider.list_admin_names():
             return
-        (username, password, project_name) = self.build_account(
+        (username, password, project) = self.build_account(
                                 username, password, project_name, role_name,
                                    max_quota)
         ident = self.create_identity(username, password,
-                                     project_name,
+                                     project.name,
                                      max_quota=max_quota)
         return ident
 
