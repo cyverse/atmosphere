@@ -62,7 +62,7 @@ def check_over_quota(username, identity_id, esh_size=None, resuming=False):
         logger.debug("quota exceeded on memory: %s GB" 
                     % user_quota.cpu)
         return (True, 'ram', esh_size.ram, cur_ram, user_quota.memory)
-    elif new_suspended > user_quota.suspended_count:
+    elif not resuming and new_suspended > user_quota.suspended_count:
         logger.debug("Quota exceed on suspended instances: %s"
                      % user_quota.suspended_count)
         return (True, 'suspended instance', 1,
