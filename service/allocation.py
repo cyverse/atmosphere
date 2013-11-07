@@ -62,17 +62,17 @@ def get_time(user, identity_id, delta):
     instances = Instance.objects.filter(created_by=user,
                                         created_by_identity__id=identity_id)
     instances = filter_by_time_delta(instances, delta)
-    logger.debug('Calculating time of %s instances' % len(instances))
+    logger.debug("Calculating time of %s's %s instances" % (user,len(instances)))
     for idx, i in enumerate(instances):
         #Runtime cannot be larger than the total 'window' of time observed
         run_time = min(i.get_active_time(), delta)
         new_total = run_time + total_time
-        logger.debug(
-                '%s:<Instance %s> %s + %s = %s'
-                % (idx, i.provider_alias[-5:], 
-                   delta_to_minutes(run_time), 
-                   delta_to_minutes(total_time),
-                   delta_to_minutes(new_total)))
+        #logger.debug(
+        #        '%s:<Instance %s> %s + %s = %s'
+        #        % (idx, i.provider_alias[-5:], 
+        #           delta_to_minutes(run_time), 
+        #           delta_to_minutes(total_time),
+        #           delta_to_minutes(new_total)))
         total_time = new_total
     logger.debug("%s hours == %s minutes == %s"
             % (delta_to_hours(total_time), 

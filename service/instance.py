@@ -54,8 +54,9 @@ def suspend_instance(esh_driver, esh_instance,
             network_manager.delete_port(fixed_ip_port[0])
     suspended = esh_driver.suspend_instance(esh_instance)
     if reclaim_ip:
-        remove_empty_network.delay(esh_driver.__class__, esh_driver.provider,
-                                   esh_driver.identity, identity_id)
+        remove_empty_network.s(esh_driver.__class__, esh_driver.provider,
+                                   esh_driver.identity,
+                                   identity_id).apply_async(countdown=20)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
     return suspended
 
