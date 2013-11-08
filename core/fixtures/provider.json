@@ -16,7 +16,7 @@
     "end_date": null, 
     "start_date": "2013-10-18T07:00:00Z"
   }
-}
+},
 {
     "pk": 1, 
     "model": "core.providertype", 
