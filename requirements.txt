@@ -6,6 +6,7 @@ apache-libcloud>=0.13.2,<=0.14
 celery>=3.0.16
 git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.3
 django-celery-with-redis==3.0
+django-jenkins==0.14.1
 django-nose2==0.1.1
 djangorestframework==2.3.5
 git+git://github.com/iPlantCollaborativeOpenSource/caslib.py.git#egg=caslib
