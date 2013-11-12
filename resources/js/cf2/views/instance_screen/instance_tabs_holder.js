@@ -61,7 +61,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			var vnc_help = $('<a/>', {
 				class: 'context-helper',
 				id: 'help_no_vnc_'+self.model.get('id'),
-				html: '<i class="icon-question-sign"></i>'
+				html: '<i class="glyphicon glyphicon-question-sign"></i>'
 			}).popover({
 				title: 'VNC Unavailable <a class="close" data-dismiss="popover" href="#instances" data-parent="help_no_vnc_'+self.model.get('id')+'">&times</a>',
 				html: true,
@@ -106,7 +106,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			var shell_help = $('<a/>', {
 				class: 'context-helper',
 				id: 'help_no_shell_'+self.model.get('id'),
-				html: '<i class="icon-question-sign"></i>'
+				html: '<i class="glyphicon glyphicon-question-sign"></i>'
 			}).popover({
 				title: 'Shell Unavailable <a class="close" data-dismiss="popover" href="#instances" data-parent="help_no_shell_'+self.model.get('id')+'">&times</a>',
 				html: true,
@@ -243,12 +243,12 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			this.$el.find('#openstack_controls').fadeIn('fast');
 
 			if (this.model.get('state') == 'suspended')
-				this.$el.find('.btn.suspend_resume_instance_btn').html('<i class="icon-play"></i> Resume').removeClass('disabled').removeAttr('disabled');
+				this.$el.find('.btn.suspend_resume_instance_btn').html('<i class="glyphicon glyphicon-play"></i> Resume').removeClass('disabled').removeAttr('disabled');
 			else 
 				this.$el.find('.btn.suspend_resume_instance_btn').fadeIn('fast');
 
 			if (this.model.get('state') == 'shutoff')
-				this.$el.find('.btn.start_stop_instance_btn').html('<i class="icon-share-alt"></i> Start').removeClass('disabled').removeAttr('disabled');
+				this.$el.find('.btn.start_stop_instance_btn').html('<i class="glyphicon glyphicon-share-alt"></i> Start').removeClass('disabled').removeAttr('disabled');
 			else
 				this.$el.find('.btn.start_stop_instance_btn').fadeIn('fast');
 		}
@@ -588,7 +588,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 		// Reboot is hard or soft depending on whether you're on OpenStack or Eucalyptus, respectively
 		if (Atmo.profile.get('selected_identity').get('provider_id') == 2) {
-			body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> '
+			body = '<p class="alert alert-error"><i class="glyphicon glyphicon-question-sign"></i> <strong>WARNING</strong> '
 				+ 'Rebooting an instance will cause it to temporarily shut down and become inaccessible during that time.';
 		}
 		else {
@@ -681,14 +681,14 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				};
 			}
 			else {
-				body = '<p class="alert alert-error"><i class="icon-ban-circle"></i> <strong>Cannot resume instance</strong> '
+				body = '<p class="alert alert-error"><i class="glyphicon glyphicon-ban-circle"></i> <strong>Cannot resume instance</strong> '
 					+ 'You do not have enough resources to resume this instance. You must terminate, suspend, or stop another running instance, or request more resources.';
 				ok_button = 'Ok';
 			}
 		}
 		else {
 			header = 'Suspend Instance';
-			body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> '
+			body = '<p class="alert alert-error"><i class="glyphicon glyphicon-warning-sign"></i> <strong>WARNING</strong> '
 				+ 'Suspending an instance will freeze its state, and the IP address may change when you resume the instance.</p>'
 				+ 'Suspending an instance frees up resources for other users and allows you to safely preserve the state of your instance without imaging.'
 				+ '<br><br>'
@@ -744,7 +744,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			// Make sure user has enough quota to resume this instance
 			if (this.check_quota()) {
 				header = 'Start Instance';
-				body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> '
+				body = '<p class="alert alert-error"><i class="glyphicon glyphicon-warning-sign"></i> <strong>WARNING</strong> '
 					+ 'In order to start a stopped instance, you must have sufficient quota and the cloud must have enough room to support your instance\'s size.';
 				ok_button = 'Start Instance';
 				data = { "action" : "start" };
@@ -778,7 +778,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				};
 			}
 			else {
-				body = '<p class="alert alert-error"><i class="icon-ban-circle"></i> <strong>Cannot start instance</strong> '
+				body = '<p class="alert alert-error"><i class="glyphicon glyphicon-ban-circle"></i> <strong>Cannot start instance</strong> '
 					+ 'You do not have enough resources to start this instance. You must terminate, suspend, or stop another running instance, or request more resources.';
 				ok_button = 'Ok';
 			}

@@ -7,7 +7,7 @@
 
 Atmo.Views.AlertModal = Backbone.View.extend({
     id: 'alert_modal',
-    className: 'modal hide fade',
+    className: 'modal fade',
     template: _.template(Atmo.Templates.alert_modal),
     initialize: function() {
         

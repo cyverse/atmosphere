@@ -1,14 +1,15 @@
-<div class="span4">
+<div class="col-md-4">
+
     <div id="image_header">
         <h1>Select an Image
-        <a class="context-helper" id="help_image"><i class="icon-question-sign"></i></a>
+        <a class="context-helper" id="help_image"><i class="glyphicon glyphicon-question-sign"></i></a>
         </h1>
     </div>
 
     <div id="image_search_holder">
         <div id="image_search_input" class="controls">
-            <input style="height: 37px" class="span5" id="image_search" type="text" placeholder='Search by name, emi, tag, description.' name="image_search" spellcheck="false" x-webkit-speech x-webkit-grammar="builtin:search" lang="en"></input>
-            <a class="context-helper" id="help_image_search"><i class="icon-question-sign"></i></a>
+            <input style="height: 37px" class="col-md-5" id="image_search" type="text" placeholder='Search by name, emi, tag, description.' name="image_search" spellcheck="false" x-webkit-speech x-webkit-grammar="builtin:search" lang="en"></input>
+            <a class="context-helper" id="help_image_search"><i class="glyphicon glyphicon-question-sign"></i></a>
         </div>
     </div>
 
@@ -20,26 +21,26 @@
     </div>
 </div>
 
-<div class="span8" style="overflow: auto" id="selected_image">
+<div class="col-md-8" style="overflow: auto" id="selected_image">
 
     <h2>My Projected Resource Usage
-        <a class="context-helper" id="help_resource_usage_newinst"><i class="icon-question-sign"></i></a>
-        <a class="context-helper" id="help_request_more_resources2"><i class="icon-tasks"></i> Request More Resources</a>
+        <a class="context-helper" id="help_resource_usage_newinst"><i class="glyphicon glyphicon-question-sign"></i></a>
+        <a class="context-helper" id="help_request_more_resources2"><i class="glyphicon glyphicon-tasks"></i> Request More Resources</a>
     </h2>
-    <div class="row-fluid" id="resource_usage_holder">
+    <div class="row" id="resource_usage_holder">
 
-        <div class="span6">
+        <div class="col-md-6">
             <div id="cpuHolder"></div>
             <div id="cpuHolder_info"></div>
         </div>
-        <div class="span6">
+        <div class="col-md-6">
             <div id="memHolder"></div>
             <div id="memHolder_info"></div>
         </div>
     </div>
-    <div class="row-fluid" id="allocation_holder">
+    <div class="row" id="allocation_holder">
 
-        <div class="span12">
+        <div class="col-md-12">
             <div id="allocationHolder"></div>
             <div id="allocationHolder_info"></div>
         </div>
@@ -50,7 +51,7 @@
     <div id="image_customlaunch">
 
         <div id="selected_image_icon_container">
-            <i class="icon-arrow-left"></i>
+            <i class="glyphicon glyphicon--arrow-left"></i>
             <br />
             Select Image
         </div>
