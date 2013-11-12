@@ -5,7 +5,7 @@
  */
 Atmo.Views.BackupVolumeModal = Backbone.View.extend({
     id: 'backup_modal',
-    className: 'modal hide fade',
+    className: 'modal fade',
     template: _.template(Atmo.Templates.backup_volume_modal),
 	events: {
 		'change select[name="volume_to_backup"]' : 'backup_location_change',
