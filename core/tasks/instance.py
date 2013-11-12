@@ -47,7 +47,7 @@ def test_instance_links(alias, uri):
     from rtwo.linktest import test_link
     if uri is None:
 	return {alias: {'vnc':False, 'shell':False}}
-    shell_address = '%s/shell/%s' % (settings.SERVER_URL, uri)
+    shell_address = '%s/shell/%s/' % (settings.SERVER_URL, uri)
     shell_success = test_link(shell_address)
     vnc_address = 'http://%s:5904' % uri
     vnc_success = test_link(vnc_address)
