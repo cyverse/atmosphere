@@ -137,6 +137,7 @@ def cas_validateTicket(request):
         logger.error("""Proxy Granting Ticket missing!
         Atmosphere requires CAS proxy as a service to authenticate users.
             Possible Causes:
+              * ServerName variable is wrong in /etc/apache2/apache2.conf
               * Proxy URL does not exist
               * Proxy URL is not a valid RSA-2/VeriSigned SSL certificate
               * /etc/host and hostname do not match machine.""")

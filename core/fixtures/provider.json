@@ -1,5 +1,23 @@
 [
 {
+  "pk": 1, 
+  "model": "core.platformtype", 
+  "fields": {
+    "name": "Xen", 
+    "end_date": null, 
+    "start_date": "2013-10-18T07:00:00Z"
+  }
+},
+{
+  "pk": 2, 
+  "model": "core.platformtype", 
+  "fields": {
+    "name": "KVM", 
+    "end_date": null, 
+    "start_date": "2013-10-18T07:00:00Z"
+  }
+},
+{
     "pk": 1, 
     "model": "core.providertype", 
     "fields": {
@@ -34,7 +52,8 @@
         "public": false, 
         "location": "EUCALYPTUS", 
         "active": true, 
-        "type": 1, 
+        "type": 1,
+        "virtualization": 1,
         "start_date": "2012-10-29T16:21:37.844"
     }
 },
@@ -47,6 +66,7 @@
         "location": "OPENSTACK", 
         "active": true, 
         "type": 2, 
+        "virtualization": 2,
         "start_date": "2012-12-12T15:27:41.698"
     }
 },

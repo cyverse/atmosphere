@@ -49,7 +49,6 @@ class InstanceList(APIView):
         """
         Returns a list of all instances
         """
-        method_params = {}
         user = request.user
         esh_driver = prepare_driver(request, identity_id)
 
@@ -60,7 +59,7 @@ class InstanceList(APIView):
             instance_list_method = esh_driver.list_all_instances
 
         try:
-            esh_instance_list = instance_list_method(method_params)
+            esh_instance_list = instance_list_method()
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
 

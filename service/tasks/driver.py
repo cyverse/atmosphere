@@ -142,7 +142,7 @@ def destroy_instance(core_identity_id, instance_alias):
             driverCls = driver.__class__
             provider = driver.provider
             identity = driver.identity
-            chain(_remove_floating_ip
+            chain(clean_empty_ips
                   .subtask((driverCls,
                             provider,
                             identity),
@@ -238,6 +238,22 @@ def add_floating_ip(driverCls, provider, identity,
         countdown = min(2**current.request.retries, 128)
         add_floating_ip.retry(exc=exc,
                               countdown=countdown)
+
+@task(name="clean_empty_ips",
+      default_retry_delay=15,
+      ignore_result=True,
+      max_retries=6)
+def clean_empty_ips(driverCls, provider, identity, *args, **kwargs):
+    try:
+        logger.debug("remove_floating_ip task started at %s." %
+                     datetime.now())
+        driver = get_driver(driverCls, provider, identity)
+        driver._clean_floating_ip()
+        logger.debug("remove_floating_ip task finished at %s." %
+                     datetime.now())
+    except Exception as exc:
+        logger.warn(exc)
+        clean_empty_ips.retry(exc=exc)
 
 
 # project Network Tasks
