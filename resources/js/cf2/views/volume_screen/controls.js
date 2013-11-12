@@ -6,7 +6,7 @@
  */
 Atmo.Views.VolumeScreenControls = Backbone.View.extend({
 	'tagName': 'div',
-	'className' : 'row-fluid',
+	'className' : 'row',
 	template: _.template(Atmo.Templates.volume_screen_controls),
 	events: {
         'change select[name="all_volumes"]' : 'volume_form_completer',
