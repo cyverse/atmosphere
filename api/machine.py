@@ -106,7 +106,6 @@ class MachineHistory(APIView):
         # Historic Machines
         all_machines_list = all_filtered_machines()
 
-        logger.warn(len(all_machines_list))
         if all_machines_list:
             history_machine_list =\
                 [m for m in all_machines_list if
