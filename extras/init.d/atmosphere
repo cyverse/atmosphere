@@ -14,6 +14,15 @@ CELERY_DEFAULT="/etc/default/celeryd"
 
 if [ ! -f  $CELERY_INITD ]; then
     echo "Expected celery service file $CELERY_INITD missing"
+    echo "For Ubuntu:"
+    echo "ln -s /opt/dev/atmosphere/extras/init.d/ubuntu.celeryd $CELERY_DEFAULT"
+    echo "For CentOS:"
+    echo "ln -s /opt/dev/atmosphere/extras/init.d/centos.celeryd $CELERY_DEFAULT"
+    exit 1
+elif [ ! -f  $CELERYBEAT_INITD ]; then
+    echo "Expected celery service file $CELERYBEAT_INITD missing"
+    echo "For Ubuntu:"
+    echo "ln -s /opt/dev/atmosphere/extras/init.d/ubuntu.celerybeat $CELERY_DEFAULT"
     exit 1
 elif [ ! -f  $CELERY_DEFAULT ]; then
     echo "Celery config file $CELERY_DEFAULT missing."
@@ -28,6 +37,7 @@ case "$1" in
 status)
     service apache2 status
     service celeryd status
+    service celerybeat status
 ;;
 start)
     printf "Starting $NAME...\n"
@@ -39,6 +49,8 @@ start)
     service $WEB_SERVICE start
     printf "Starting Celery..\n"
     service celeryd start
+    printf "Starting Celerybeat..\n"
+    service celerybeat start
 ;;
 stop)
     printf "Stopping $NAME...\n"
@@ -50,6 +62,7 @@ stop)
     service $WEB_SERVICE stop
     printf "Stopping Celery..\n"
     service celeryd stop
+    service celerybeat stop
 ;;
 
 restart)
@@ -59,6 +72,7 @@ restart)
     fi
     service apache2 restart
     service celeryd restart
+    service celerybeat restart
 ;;
 
 *)
