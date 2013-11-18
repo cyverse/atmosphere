@@ -5,7 +5,7 @@ import os
 from celery import Celery
 from django.conf import settings
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'atmosphere.settings')
+#os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'atmosphere.settings')
 
 app = Celery('atmosphere')
 app.config_from_object('django.conf:settings')

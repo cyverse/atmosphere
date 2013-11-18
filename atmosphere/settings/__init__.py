@@ -207,15 +207,6 @@ PROXY_URL = SERVER_URL + '/CAS_proxyUrl'
 PROXY_CALLBACK_URL = SERVER_URL + '/CAS_proxyCallback'
 caslib.cas_init(CAS_SERVER, SERVICE_URL, PROXY_URL, PROXY_CALLBACK_URL)
 
-##CACHE SETTINGS
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-        'LOCATION': 'atmosphere_cache_requests',
-        'TIMEOUT': 18000,
-    }
-}
-
 ###############
 #   SECRETS   #
 ###############
@@ -317,6 +308,7 @@ CELERY_SEND_EVENTS = True
 CELERY_RESULT_BACKEND = 'redis'
 CELERY_TASK_RESULT_EXPIRES = 10
 CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
+CELERY_CACHE_BACKEND='djcelery.backends.database:DatabaseBackend'
 CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s @ %(pathname)s on %(lineno)d] %(message)s"
 CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
 #Django-Celery Development settings
@@ -324,6 +316,7 @@ CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [%(task_nam
 
 import djcelery
 djcelery.setup_loader()
+
 
 """
 Import local settings specific to the server, and secrets not checked into Git.
