@@ -34,7 +34,7 @@ SSH_CERT_FILE="/etc/ssl/certs/iplantc.org.crt"
 SSH_KEY_FILE="/etc/ssl/private/iplantc.key"
 # Flower (Task monitoring)
 CELERYD_FLOWER="$ENV_PYTHON $CELERYD_CHDIR/manage.py celery flower"
-CELERY_FLOWER_OPTS="--url_prefix=flower --certfile=$SSH_CERT_FILE --keyfile=$SSH_KEY_FILE --port=5555"
+CELERY_FLOWER_OPTS="--certfile=$SSH_CERT_FILE --keyfile=$SSH_KEY_FILE --port=5555"
 # How to call "manage.py celeryctl"
 CELERYCTL="$ENV_PYTHON $CELERYD_CHDIR/manage.py celeryctl"
 

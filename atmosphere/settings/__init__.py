@@ -310,6 +310,7 @@ CELERY_SEND_EVENTS = True
 CELERY_RESULT_BACKEND = 'redis'
 CELERY_TASK_RESULT_EXPIRES = 10
 CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
+CELERY_CACHE_BACKEND='djcelery.backends.database:DatabaseBackend'
 CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s @ %(pathname)s on %(lineno)d] %(message)s"
 CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
 #Django-Celery Development settings
@@ -317,6 +318,7 @@ CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [%(task_nam
 
 import djcelery
 djcelery.setup_loader()
+
 
 """
 Import local settings specific to the server, and secrets not checked into Git.
