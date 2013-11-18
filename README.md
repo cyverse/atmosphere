@@ -19,5 +19,5 @@ See LICENSE.txt for license information
 + **Steven Gregory <esteve@iplantcollaborative.org>**
 + **Monica Lent <mlent@iplantcollaborative.org>**
 + **Christopher James LaRose <cjlarose@iplantcollaborative.org>**
-
++ **Andre Mercer <amercer@iplantcollaborative.org>**
 Where cloud lives!
