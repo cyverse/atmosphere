@@ -198,6 +198,7 @@ REST_FRAMEWORK = {
         'authentication.token.TokenAuthentication',
     )
 }
+
 ##CASLIB
 SERVER_URL = SERVER_URL + REDIRECT_URL
 CAS_SERVER = 'https://auth.iplantcollaborative.org'
@@ -206,6 +207,7 @@ SERVICE_URL = SERVER_URL + '/CAS_serviceValidater?sendback='\
 PROXY_URL = SERVER_URL + '/CAS_proxyUrl'
 PROXY_CALLBACK_URL = SERVER_URL + '/CAS_proxyCallback'
 caslib.cas_init(CAS_SERVER, SERVICE_URL, PROXY_URL, PROXY_CALLBACK_URL)
+
 
 ###############
 #   SECRETS   #
