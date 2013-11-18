@@ -53,7 +53,7 @@ CELERYD_USER="root"
 CELERYD_GROUP="root"
 
 ## Name of the projects settings module.
-export DJANGO_SETTINGS_MODULE="atmosphere.settings"
+#export DJANGO_SETTINGS_MODULE="atmosphere.settings"
 ###
 #
 # Additional celerybeat settings
