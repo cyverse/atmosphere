@@ -26,7 +26,10 @@ VIRTUALENV="/opt/env/atmo"
 # Abs path to the 'celery' command
 CELERY_BIN="$VIRTUALENV/bin/celery"
 
+#Set the env properly
 export PYTHONPATH="$CELERYD_CHDIR:$VIRTUALENV/bin:$VIRTUALENV/lib/python2.7/site-packages:$PYTHONPATH"
+export DJANGO_SETTINGS_MODULE="atmosphere.settings"
+
 # Extra arguments to pass to celeryd
 CELERYD_OPTS="--concurrency=8"
 
@@ -61,8 +64,8 @@ CELERYBEAT="$CELERYD_CHDIR/manage.py celery beat"
 CELERYBEAT_OPTS="--schedule=/var/run/celerybeat-schedule"
 
 #Where to log and store process id
-CELERYBEAT_LOG_FILE="/var/log/celeryd.log"
-CELERYBEAT_PID_FILE="/var/run/celeryd.pid"
+CELERYBEAT_LOG_FILE="/var/log/celerybeat.log"
+CELERYBEAT_PID_FILE="/var/run/celerybeat.pid"
 
 #Default is INFO
 #CELERYBEAT_LOG_LEVEL="INFO"
