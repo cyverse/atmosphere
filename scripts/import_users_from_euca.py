@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 import time, requests
 
-from core.models.user import AtmosphereUser as User
 from threepio import logger
 
 from atmosphere import settings
 from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
 from core.models import Provider
+from core.models.user import AtmosphereUser as User
 
 
 def main():
