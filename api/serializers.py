@@ -112,8 +112,7 @@ class InstanceHistorySerializer(serializers.ModelSerializer):
     start_date = serializers.DateTimeField(read_only=True)
     end_date = serializers.DateTimeField(read_only=True)
     active_time = serializers.DateTimeField(read_only=True, source='get_active_time')
-    provider = serializers.Field(read_only=True,
-                                 source='provider_machine__provider')
+    provider = serializers.Field(source='provider_machine__provider')
     #Writeable fields
     name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', source='tags', many=True)
