@@ -126,6 +126,7 @@ INSTALLED_APPS = (
     'rest_framework',
     'south',
     'djcelery',
+    'django_jenkins',
 
     #iPlant apps
     'rtwo',
@@ -137,6 +138,10 @@ INSTALLED_APPS = (
     'core',
 )
 
+JENKINS_TASKS = (
+    'django_jenkins.tasks.with_coverage',
+    'django_jenkins.tasks.run_flake8',
+)
 # The age of session cookies, in seconds.
 # http://docs.djangoproject.com/en/dev/ref/settings/
 # http://docs.djangoproject.com/en/dev/topics/http/sessions/
