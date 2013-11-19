@@ -14,7 +14,6 @@ CELERYD_CHDIR="/opt/dev/atmosphere"
 #Imaging requires this -- Sorry I.T!
 C_FORCE_ROOT="True"
 export C_FORCE_ROOT
-
 # SSH Key files
 SSH_CERT_FILE="/etc/ssl/certs/iplantc.org.crt"
 SSH_KEY_FILE="/etc/ssl/private/iplantc.key"
@@ -27,6 +26,7 @@ VIRTUALENV="/opt/env/atmo"
 # Abs path to the 'celery' command
 CELERY_BIN="$VIRTUALENV/bin/celery"
 
+export PYTHONPATH="$CELERYD_CHDIR:$VIRTUALENV/bin:$VIRTUALENV/lib/python2.7/site-packages:$PYTHONPATH"
 # Extra arguments to pass to celeryd
 CELERYD_OPTS="--concurrency=8"
 
