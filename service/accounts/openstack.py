@@ -307,8 +307,8 @@ class AccountDriver():
         # Convert from libcloud names to openstack client names
         net_args = self._base_network_creds()
         return self.network_manager.create_project_network(
-                username, password, project_name,
-                get_cidr=get_uid_number, **net_args)
+            username, password, project_name,
+            get_cidr=get_uid_number, **net_args)
 
 
 

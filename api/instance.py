@@ -26,8 +26,9 @@ from core.models.size import convert_esh_size
 from core.models.volume import convert_esh_volume
 
 from api import failureJSON, prepare_driver
-from api.serializers import InstanceSerializer, VolumeSerializer,\
-    PaginatedInstanceSerializer
+from api.serializers import InstanceSerializer, PaginatedInstanceSerializer
+from api.serializers import InstanceHistorySerializer, PaginatedInstanceHistorySerializer
+from api.serializers import VolumeSerializer
 
 from service import task
 from service.deploy import build_script
@@ -191,10 +192,10 @@ class InstanceHistory(APIView):
                 # deliver last page of results.
                 history_instance_page = paginator.page(paginator.num_pages)
             serialized_data = \
-                PaginatedInstanceSerializer(
+                PaginatedInstanceHistorySerializer(
                     history_instance_page).data
         else:
-            serialized_data = InstanceSerializer(history_instance_list,
+            serialized_data = InstanceHistorySerializer(history_instance_list,
                                                  many=True).data
 
         response = Response(serialized_data)

@@ -55,6 +55,7 @@ class MaintenanceRecord(models.Model):
             'end': self.end_date,
             'title': self.title,
             'message': self.message,
+            'disable': self.disable_login,
         }
         if self.provider:
             json['provider'] = self.provider.location

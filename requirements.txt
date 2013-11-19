@@ -3,9 +3,10 @@ Fabric==1.7.0
 PIL==1.1.7
 South==0.7.6
 apache-libcloud>=0.13.2,<=0.14
-celery>=3.0.16
-git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.3
-django-celery-with-redis==3.0
+git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.4
+django-celery==3.1.1
+# git+git://github.com/celery/celery#egg=celery[redis] # install by hand for now
+django-jenkins==0.14.1
 django-nose2==0.1.1
 djangorestframework==2.3.5
 git+git://github.com/iPlantCollaborativeOpenSource/caslib.py.git#egg=caslib
@@ -23,6 +24,7 @@ git+git://github.com/openstack/python-neutronclient.git#egg=python-neutronclient
 git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient
 pytz==2012j
 redis==2.7
+django-redis-cache==0.10.0
 requests==1.1
 git+git://github.com/jmatt/threepio.git#egg=threepio
 git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive

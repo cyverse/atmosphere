@@ -50,7 +50,7 @@ class MaintenanceRecordList(APIView):
         else:
             records = CoreMaintenanceRecord.objects.filter(
                 Q(provider__in=providers) | Q(provider=None))
-        return Response(MaintenanceRecordSerializer(records).data)
+        return Response(MaintenanceRecordSerializer(records, many=True).data)
 
 
 class MaintenanceRecord(APIView):
