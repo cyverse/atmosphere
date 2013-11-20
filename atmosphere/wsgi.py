@@ -32,3 +32,6 @@ try:
 except Exception, e:
     e.msg = os.path.dirname(__file__)
     raise e
+
+#import djcelery
+#djcelery.setup_loader()

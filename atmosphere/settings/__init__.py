@@ -298,26 +298,28 @@ ELASTICSEARCH_HOST = SERVER_URL
 ELASTICSEARCH_PORT = 9200
 
 #Django-Celery secrets
-BROKER_URL = ""
+BROKER_URL = 'redis://localhost:6379/0'
 BROKER_BACKEND = "redis"
 REDIS_PORT = 6379
-REDIS_HOST = ""
+REDIS_HOST = "localhost"
 BROKER_USER = ""
 BROKER_PASSWORD = ""
 REDIS_DB = 0
 REDIS_CONNECT_RETRY = True
+CELERY_ENABLE_UTC = False
+CELERY_TIMEZONE = "America/Phoenix"
 CELERY_SEND_EVENTS = True
-CELERY_RESULT_BACKEND = 'redis'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_TASK_RESULT_EXPIRES = 10
 CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
-CELERY_CACHE_BACKEND='djcelery.backends.database:DatabaseBackend'
 CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s @ %(pathname)s on %(lineno)d] %(message)s"
 CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
+
 #Django-Celery Development settings
 #CELERY_ALWAYS_EAGER = True
 
-import djcelery
-djcelery.setup_loader()
+#import djcelery
+#djcelery.setup_loader()
 
 
 """

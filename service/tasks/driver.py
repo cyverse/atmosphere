@@ -78,38 +78,41 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         image_already_deployed = image_metadata.get("deployed")
         if not instance.ip and not image_already_deployed:
             logger.debug("Chain -- Floating_ip + deploy_init + email")
-            chain(add_floating_ip.si(driverCls,
-                                     provider,
-                                     identity,
-                                     instance_id, delete_status=False),
-                  _deploy_init_to.si(driverCls,
-                                     provider,
-                                     identity,
-                                     instance_id),
-                  _send_instance_email.si(driverCls,
-                                          provider,
-                                          identity,
-                                          instance_id)).apply_async()
+            cflow = chain(add_floating_ip.si(driverCls,
+                                             provider,
+                                             identity,
+                                             instance_id, delete_status=False),
+                          _deploy_init_to.si(driverCls,
+                                             provider,
+                                             identity,
+                                             instance_id),
+                          _send_instance_email.si(driverCls,
+                                                  provider,
+                                                  identity,
+                                                  instance_id))
+            cflow()
         elif not image_already_deployed:
             logger.debug("Chain -- deploy_init + email")
-            chain(_deploy_init_to.si(driverCls,
-                                     provider,
-                                     identity,
-                                     instance_id),
-                  _send_instance_email.si(driverCls,
-                                          provider,
-                                          identity,
-                                          instance_id)).apply_async()
+            cflow = chain(_deploy_init_to.si(driverCls,
+                                             provider,
+                                             identity,
+                                             instance_id),
+                          _send_instance_email.si(driverCls,
+                                                  provider,
+                                                  identity,
+                                                  instance_id))
+            cflow()
         elif not instance.ip:
             logger.debug("Chain -- Floating_ip + email")
-            chain(add_floating_ip.si(driverCls,
-                                     provider,
-                                     identity,
-                                     instance_id, delete_status=True),
-                  _send_instance_email.si(driverCls,
-                                          provider,
-                                          identity,
-                                          instance_id)).apply_async()
+            cflow = chain(add_floating_ip.si(driverCls,
+                                             provider,
+                                             identity,
+                                             instance_id, delete_status=True),
+                          _send_instance_email.si(driverCls,
+                                                  provider,
+                                                  identity,
+                                                  instance_id))
+            cflow()
         else:
             logger.debug("delay -- email")
             _send_instance_email.delay(driverCls,
@@ -142,20 +145,20 @@ def destroy_instance(core_identity_id, instance_alias):
             driverCls = driver.__class__
             provider = driver.provider
             identity = driver.identity
-            chain(clean_empty_ips
-                  .subtask((driverCls,
-                            provider,
-                            identity),
-                           immutable=True,
-                           countdown=5),
-                  remove_empty_network
-                  .subtask((driverCls,
-                            provider,
-                            identity,
-                            core_identity_id),
-                           immutable=True,
-                           countdown=60)).apply_async()
-
+            cflow = chain(clean_empty_ips
+                          .subtask((driverCls,
+                                    provider,
+                                    identity),
+                                   immutable=True,
+                                   countdown=5),
+                          remove_empty_network
+                          .subtask((driverCls,
+                                    provider,
+                                    identity,
+                                    core_identity_id),
+                                   immutable=True,
+                                   countdown=60))
+            cflow()
         logger.debug("destroy_instance task finished at %s." % datetime.now())
         return node_destroyed
     except Exception as exc:

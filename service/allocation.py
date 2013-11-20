@@ -15,9 +15,11 @@ def filter_by_time_delta(instances, delta):
     """
     time_ago = timezone.now() - delta
     running_insts = [i for i in instances if not i.end_date]
-    older_insts = [i for i in instances if i.end_date and i.end_date > time_ago]
+    older_insts = [i for i in instances if i.end_date
+                   and i.end_date > time_ago]
     older_insts.extend(running_insts)
     return older_insts
+
 
 def get_burn_time(user, identity_id, delta, threshold):
     """
@@ -42,14 +44,15 @@ def get_burn_time(user, identity_id, delta, threshold):
     if not instances:
         return None
     cpu_cores = sum([inst.esh.size.cpu for inst in instances
-                        if inst.last_history()
-                        and inst.last_history().is_active()])
+                     if inst.last_history()
+                     and inst.last_history().is_active()])
     #If we have no active cores, burn-time does not apply
     if cpu_cores == 0:
         return None
     #Calculate burn time by dividing remaining time over running cores
     burn_time = time_remaining/cpu_cores
     return burn_time
+
 
 def get_time(user, identity_id, delta):
     if type(user) is not User:
@@ -69,16 +72,17 @@ def get_time(user, identity_id, delta):
         new_total = run_time + total_time
         #logger.debug(
         #        '%s:<Instance %s> %s + %s = %s'
-        #        % (idx, i.provider_alias[-5:], 
-        #           delta_to_minutes(run_time), 
-        #           delta_to_minutes(total_time),
+        #        % (idx, i.provider_alias[-5:],
+        #           delta_to_minutes(run_time),
+        #           delta_to_minutes(total_time)
         #           delta_to_minutes(new_total)))
         total_time = new_total
     #logger.debug("%s hours == %s minutes == %s"
-    #        % (delta_to_hours(total_time), 
-    #           delta_to_minutes(total_time), 
+    #        % (delta_to_hours(total_time),
+    #           delta_to_minutes(total_time),
     #            total_time))
     return total_time
+
 
 def delta_to_minutes(tdelta):
     total_seconds = tdelta.days*86400 + tdelta.seconds
@@ -90,7 +94,6 @@ def delta_to_hours(tdelta):
     total_mins = delta_to_minutes(tdelta)
     hours = total_mins / 60
     return hours
-
 
 
 def get_allocation(username, identity_id):
