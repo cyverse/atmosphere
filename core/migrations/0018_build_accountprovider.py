@@ -40,6 +40,7 @@ class Migration(DataMigration):
             print """Atmosphere Administrator could not be created from settings.
 To create an Administrator account for Atmosphere via the REPL:
 >>> Identity.make_account_admin(ATMOSPHERE_SUPERUSER_NAME)"""
+            return
         user, group = self.create_usergroup(orm,username=settings.ATMOSPHERE_SUPERUSER)
         quota = orm.Quota.objects.get_or_create(
                 cpu = orm.Quota._meta.get_field('cpu').default,
