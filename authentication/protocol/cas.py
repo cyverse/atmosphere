@@ -5,9 +5,10 @@ Contact:        Steven Gregory <esteve@iplantcollaborative.org>
                 J. Matt Peterson <jmatt@iplantcollaborative.org>
 
 """
-from datetime import datetime, timedelta
+from datetime import timedelta
 import time
 
+from django.utils import timezone
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 from core.models import AtmosphereUser as User
@@ -68,7 +69,7 @@ def updateUserProxy(user, pgtIou, max_try=3):
             #match the user to this ticket.
             userProxy = UserProxy.objects.get(proxyIOU=pgtIou)
             userProxy.username = user
-            userProxy.expiresOn = datetime.now() + PROXY_TICKET_EXPIRY
+            userProxy.expiresOn = timezone.now() + PROXY_TICKET_EXPIRY
             logger.debug("Found a matching proxy IOU for %s" % userProxy.username)
             userProxy.save()
             return True

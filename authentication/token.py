@@ -1,11 +1,13 @@
-from datetime import timedelta, datetime
+from datetime import timedelta
+
+from django.utils import timezone
+
+from rest_framework.authentication import BaseAuthentication
 
 from threepio import logger
 
 from authentication.models import Token as AuthToken
 from authentication.protocol.cas import cas_validateUser
-
-from rest_framework.authentication import BaseAuthentication
 
 
 class TokenAuthentication(BaseAuthentication):
@@ -106,7 +108,7 @@ def validate_token1_0(request):
         return False
 
     #Expired Token
-    if token.issuedTime + tokenExpireTime < datetime.now():
+    if token.issuedTime + tokenExpireTime < timezone.now():
         if request.META["REQUEST_METHOD"] == "GET":
             #logger.debug("Token Expired - %s requesting GET data OK" % user)
             return True
@@ -120,6 +122,6 @@ def validate_token1_0(request):
         #logger.debug("%s reauthenticated with CAS" % user)
 
     #Valid Token
-    token.issuedTime = datetime.now()
+    token.issuedTime = timezone.now()
     token.save()
     return True
