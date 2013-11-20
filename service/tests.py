@@ -50,18 +50,19 @@ class ServiceTests(TestCase):
         os_accounts.delete_account('test_user', 'test_project')
 
     def test_eucalyptus_identity_creation(self):
-        username = 'estevetest03'
-        provider = Provider.objects.get(location='EUCALYPTUS')
-        accounts = EucaAccounts(provider)
-        user = accounts.get_user(username)
-        self.assertIsNotNone(
-                user, 'Expected user %s exists in eucalyptus, got None' % username)
-        identity = accounts.delete_user(username)
-        self.assertIsNotNone(
-                identity, 'Expected new identity for %s, got None' % identity)
-        identity = accounts.create_identity(user)
-        accounts.delete_identity(username)
-        self.assertEqual(1,1,"Account deleted succesfully")
+        pass
+        #username = 'estevetest03'
+        #provider = Provider.objects.get(location='EUCALYPTUS')
+        #accounts = EucaAccounts(provider)
+        #user = accounts.get_user(username)
+        #self.assertIsNotNone(
+        #        user, 'Expected user %s exists in eucalyptus, got None' % username)
+        #identity = accounts.delete_user(username)
+        #self.assertIsNotNone(
+        #        identity, 'Expected new identity for %s, got None' % identity)
+        #identity = accounts.create_identity(user)
+        #accounts.delete_identity(username)
+        #self.assertEqual(1,1,"Account deleted succesfully")
 
     def create_euca_provider(self):
         provider_type = ProviderType.objects.get_or_create(name='Eucalyptus')[0]
