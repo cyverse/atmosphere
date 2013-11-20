@@ -22,7 +22,7 @@ class ServiceTests(TestCase):
     def tearDown(self):
         pass
 
-    def testOpenStackAccountCreation(self):
+    def test_openstack_account_creation(self):
         provider = Provider.objects.get(location='OPENSTACK')
         os_accounts = OSAccounts(provider)
         new_identity = os_accounts.create_account('test_user', 'test_pass',
@@ -48,6 +48,21 @@ class ServiceTests(TestCase):
                 'A usergroup was created when project was specified')
 
         os_accounts.delete_account('test_user', 'test_project')
+
+    def test_eucalyptus_identity_creation(self):
+        pass
+        #username = 'estevetest03'
+        #provider = Provider.objects.get(location='EUCALYPTUS')
+        #accounts = EucaAccounts(provider)
+        #user = accounts.get_user(username)
+        #self.assertIsNotNone(
+        #        user, 'Expected user %s exists in eucalyptus, got None' % username)
+        #identity = accounts.delete_user(username)
+        #self.assertIsNotNone(
+        #        identity, 'Expected new identity for %s, got None' % identity)
+        #identity = accounts.create_identity(user)
+        #accounts.delete_identity(username)
+        #self.assertEqual(1,1,"Account deleted succesfully")
 
     def create_euca_provider(self):
         provider_type = ProviderType.objects.get_or_create(name='Eucalyptus')[0]
