@@ -1,7 +1,7 @@
 # The 'standard' requirements:
 # Use these EXACT versions, found in the pypi
 # and installable via pip
-Django==1.5
+Django==1.6
 Fabric==1.7.0
 PIL==1.1.7
 South==0.8.3
