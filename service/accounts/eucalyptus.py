@@ -153,6 +153,10 @@ class AccountDriver():
         user = self.user_manager.get_user(username)
         return user
 
+    def delete_identity(self, username):
+        ident = Identity.objects.get(created_by__username=username, provider=core_provider)
+        return ident.delete()
+
     def delete_user(self, username):
         userDeleted = self.user_manager.delete_user(username)
         return userDeleted
