@@ -39,8 +39,8 @@ class Instance(models.Model):
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     created_by = models.ForeignKey('AtmosphereUser')
     created_by_identity = models.ForeignKey(Identity, null=True)
-    shell = models.BooleanField()
-    vnc = models.BooleanField()
+    shell = models.BooleanField(default=False)
+    vnc = models.BooleanField(default=False)
     start_date = models.DateTimeField() # Problems when setting a default.
     end_date = models.DateTimeField(null=True)
 
@@ -430,6 +430,7 @@ def create_instance(provider_id, identity_id, provider_alias, provider_machine,
                                        created_by=creator,
                                        created_by_identity=identity,
                                        token=token,
+                                       shell=False,
                                        start_date=create_stamp)
     new_inst.save()
     logger.debug("New instance created - %s (Token = %s)" %
