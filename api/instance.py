@@ -282,7 +282,9 @@ class InstanceAction(APIView):
                 result_obj = VolumeSerializer(core_volume).data
                 logger.debug(result_obj)
             elif 'resize' == action:
-                size_alias = action_params.get('size_alias', '')
+                size_alias = action_params.get('size', '')
+                if type(size_alias) == int:
+                    size_alias = str(size_alias)
                 size = esh_driver.get_size(size_alias)
                 esh_driver.resize_instance(esh_instance, size)
             elif 'confirm_resize' == action:
