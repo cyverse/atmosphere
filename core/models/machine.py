@@ -38,6 +38,7 @@ class Machine(models.Model):
     created_by_identity = models.ForeignKey(Identity, null=True)
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
+    application = models.ForeignKey('Application', null=True)
 
     def update(self, *args, **kwargs):
         """

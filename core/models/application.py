@@ -10,6 +10,7 @@ class Application(models.Model):
   """
   name = models.CharField(max_length=256)
   private = models.BooleanField(default=False)
+  featured = models.BooleanField(default=False)
   icon = models.ImageField(upload_to="machine_images", null=True, blank=True)
   created_by = models.ForeignKey('AtmosphereUser')
   start_date = models.DateTimeField(default=lambda: timezone.now())
