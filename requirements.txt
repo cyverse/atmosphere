@@ -8,7 +8,7 @@ South==0.8.3
 apache-libcloud==0.14.0-beta3
 django-celery==3.1.1
 django-nose2==0.1.1
-djangorestframework==2.3.5
+djangorestframework==2.3.9
 boto==2.9
 httplib2==0.7.7
 ipython==1.1

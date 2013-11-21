@@ -50,7 +50,7 @@ CELERYD_GROUP="root"
 
 FLOWER_LOG_FILE="/var/log/celery/flower_log"
 CELERYD_FLOWER="$CELERYD_CHDIR/manage.py celery flower"
-CELERY_FLOWER_OPTS="--url_prefix=flower --certfile=$SSH_CERT_FILE --keyfile=$SSH_KEY_FILE --port=8443 --log_file_prefix=$FLOWER_LOG_FILE --logging=debug"
+CELERY_FLOWER_OPTS="--url_prefix=flower --certfile=$SSH_CERT_FILE --keyfile=$SSH_KEY_FILE --port=8443 --log_file_prefix=$FLOWER_LOG_FILE --logging=warn"
 
 ###
 #
