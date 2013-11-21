@@ -23,6 +23,7 @@ from core.models.identity import Identity
 
 from chromogenic.drivers.openstack import ImageManager
 from atmosphere import settings
+
 class AccountDriver():
     user_manager = None
     image_manager = None

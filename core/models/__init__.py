@@ -20,6 +20,7 @@ from core.models.group import Group, ProviderMembership, IdentityMembership,\
     InstanceMembership, MachineMembership
 from core.models.allocation import Allocation
 from core.models.step import Step
+from core.models.application import Application, ApplicationMembership
 
 
 def get_or_create(Model, *args, **kwargs):

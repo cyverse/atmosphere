@@ -140,7 +140,8 @@ INSTALLED_APPS = (
 
 JENKINS_TASKS = (
     'django_jenkins.tasks.with_coverage',
-    'django_jenkins.tasks.run_flake8',
+    'django_jenkins.tasks.run_pep8',
+    'django_jenkins.tasks.run_pyflakes',
 )
 # The age of session cookies, in seconds.
 # http://docs.djangoproject.com/en/dev/ref/settings/
