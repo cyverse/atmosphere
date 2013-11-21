@@ -466,7 +466,7 @@ class AccountDriver():
         net_args.get('router_name')
         net_args.get('region_name')
         #Ignored:
-        net_args['auth_url'] = net_args.pop('admin_url')
+        net_args['auth_url'] = net_args.pop('admin_url').replace('/tokens','')
 
         return net_args
 
@@ -482,7 +482,7 @@ class AccountDriver():
         img_args.get('password')
         img_args.get('tenant_name')
 
-        img_args.get('auth_url')
+        img_args['auth_url'] = img_args.get('auth_url').replace('/tokens','')
         img_args.get('region_name')
         #Ignored:
         img_args.pop('admin_url', None)
@@ -503,7 +503,7 @@ class AccountDriver():
         user_args.get('password')
         user_args.get('tenant_name')
 
-        user_args.get('auth_url')
+        user_args['auth_url'] = user_args.get('auth_url').replace('/tokens','')
         user_args.get('region_name')
         #Removable args:
         user_args.pop('admin_url', None)
