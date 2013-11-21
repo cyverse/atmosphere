@@ -5,7 +5,7 @@ Django==1.6
 Fabric==1.7.0
 PIL==1.1.7
 South==0.8.3
-apache-libcloud>=0.13.2,<=0.14
+apache-libcloud==0.14.0-beta3
 django-celery==3.1.1
 django-nose2==0.1.1
 djangorestframework==2.3.5

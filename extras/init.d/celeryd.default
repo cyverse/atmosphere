@@ -27,7 +27,7 @@ VIRTUALENV="/opt/env/atmo"
 CELERY_BIN="$VIRTUALENV/bin/celery"
 
 #Set the env properly
-export PYTHONPATH="$CELERYD_CHDIR:$VIRTUALENV/bin:$VIRTUALENV/lib/python2.7/site-packages:$PYTHONPATH"
+export PATH="$CELERYD_CHDIR:$VIRTUALENV/bin:$VIRTUALENV/lib/python2.7/site-packages:$PATH"
 export DJANGO_SETTINGS_MODULE="atmosphere.settings"
 
 # Extra arguments to pass to celeryd
