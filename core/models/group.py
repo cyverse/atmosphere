@@ -2,9 +2,12 @@
 Atmosphere utilizes the DjangoGroup model
 to manage users via the membership relationship
 """
+from datetime import timedelta
 
 from django.db import models
 from django.contrib.auth.models import Group as DjangoGroup
+
+from threepio import logger
 
 from core.models.user import AtmosphereUser
 from core.models.identity import Identity
@@ -13,9 +16,6 @@ from core.models.machine import Machine
 from core.models.instance import Instance
 from core.models.quota import Quota
 from core.models.allocation import Allocation
-
-from datetime import timedelta
-from threepio import logger
 
 
 class Group(DjangoGroup):
@@ -147,13 +147,26 @@ class IdentityMembership(models.Model):
     def get_quota_dict(self):
         quota = self.quota
         quota_dict = {
-            "mem": quota.memory,
+            "memory": quota.memory,
             "cpu": quota.cpu,
-            "disk": quota.storage,
-            "disk_count": quota.storage_count,
+            "storage": quota.storage,
+            "storage_count": quota.storage_count,
             "suspended_count": quota.suspended_count,
         }
         return quota_dict
+
+    def save(self, *args, **kwargs):
+        """
+        Whenever an IdentityMembership changes, update the provider
+        specific quota too.
+        """
+        super(IdentityMembership, self).save(*args, **kwargs)
+        try:
+            from service.quota import set_provider_quota
+            set_provider_quota(self.identity.id)
+        except Exception as ex:
+            logger.warn("Unable to improve service.quota.set_provider_quota.")
+            raise ex
 
     def __unicode__(self):
         return "%s can use identity %s" % (self.member, self.identity)
