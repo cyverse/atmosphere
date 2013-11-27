@@ -53,7 +53,7 @@ urlpatterns = patterns(
     url(r'^api/v1/email_support', 'web.emails.email_support'),
 
     #v2 api url scheme
-    url(r'^auth/$', 'authentication.views.token_auth'),
+    url(r'^auth/$', 'authentication.views.token_auth', name='token-auth'),
 
     #This is a TEMPORARY url..
     #In v2 this is /api/provider/<id>/identity/<id>/instance/action
