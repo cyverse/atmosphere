@@ -3,7 +3,6 @@ UserManager:
   Remote Openstack  Admin controls..
 """
 import time
-
 from hashlib import sha1
 from urlparse import urlparse
 
@@ -146,8 +145,8 @@ class AccountDriver():
                 # 2. Get user (And check they are in project)
                 user = self.get_user(username)
                 if not user:
-                    print 'Creating account: %s - %s - %s' % (username,\
-                            password, project)
+                    logger.info('Creating account: %s - %s - %s'
+                                % (username, password, project))
                     user = self.user_manager.create_user(username, password,
                                                       project)
                 # 3. Check the user has an appropriate role (if given)
@@ -171,7 +170,7 @@ class AccountDriver():
                 finished = True
 
             except OverLimit:
-                print 'Requests are rate limited. Pausing for one minute.'
+                logger.warn('Requests are rate limited. Pausing for one minute.')
                 time.sleep(60)  # Wait one minute
         return (username, password, project)
 
@@ -448,7 +447,7 @@ class AccountDriver():
         combination will be used
         """
         net_args = self.provider_creds.copy()
-        net_args['auth_url'] = net_args.pop('admin_url',None)
+        net_args['auth_url'] = net_args.pop('admin_url').replace('/tokens','')
         return net_args
 
     def _build_network_creds(self, credentials):

@@ -36,10 +36,8 @@ class AccountDriver():
         #Merge credential dicts
         all_creds = provider_creds
         all_creds.update(admin_creds)
-        print all_creds
         # Convert creds for each manager
         self.user_creds = self._build_user_creds(all_creds)
-        print self.user_creds
         self.user_manager = UserManager(**self.user_creds)
 
         self.image_creds = self._build_image_creds(all_creds)
