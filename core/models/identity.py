@@ -10,7 +10,6 @@ from django.db import models
 
 from threepio import logger
 
-
 class Identity(models.Model):
     """
     An Identity is the minimal set of credentials necessary
