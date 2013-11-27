@@ -381,6 +381,12 @@ case "$1" in
         check_paths
         kill_flower
     ;;
+    flower-restart)
+        check_dev_null
+        check_paths
+        kill_flower
+        start_flower
+    ;;
 
     *)
         echo -n "Usage: /etc/init.d/${SCRIPT_NAME}"
