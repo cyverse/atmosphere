@@ -1,7 +1,32 @@
-from api import get_esh_driver
-from core.models import IdentityMembership, Identity
-
 from threepio import logger
+
+from api import get_esh_driver
+
+from core.models import IdentityMembership, Identity, Provider
+
+from service.accounts.openstack import AccountDriver
+
+
+def set_provider_quota(identity_id):
+    identity = Identity.objects.get(id=identity_id)
+    os_provider = Provider.objects.get(type__name="OpenStack")
+    if identity.provider == os_provider:
+        driver = get_esh_driver(identity)
+        ad = AccountDriver(os_provider)
+        username = identity.creator_name()
+        user_id = ad.user_manager.get_user(username).id
+        tenant_id = driver._connection._get_tenant_id()
+        admin_driver = driver.meta().admin_driver
+        membership = IdentityMembership.objects.get(identity__id=identity_id,
+                                                    member__name=username)
+        user_quota = membership.quota
+        if user_quota:
+            values = {'cores': user_quota.cpu,
+                      'ram': user_quota.memory * 1024}
+            admin_driver._connection.ex_update_quota_for_user(tenant_id,
+                                                              user_id,
+                                                              values)
+    return True
 
 def get_current_quota(identity_id):
     driver = get_esh_driver(Identity.objects.get(id=identity_id))
@@ -68,3 +93,4 @@ def check_over_quota(username, identity_id, esh_size=None, resuming=False):
         return (True, 'suspended instance', 1,
                 cur_suspended, user_quota.suspended_count)
     return (False, '', 0, 0, 0)
+
