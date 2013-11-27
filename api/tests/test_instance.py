@@ -45,11 +45,12 @@ class InstanceTests(TestCase):
         #Ensure there is an account created/ready to go
         euca_accounts = EucaAccounts(self.euca_provider)
         euca_user = euca_accounts.get_user(settings.TEST_RUNNER_USER)
-        self.euca_id = euca_accounts.create_account(euca_user)
+        self.euca_id = euca_accounts.create_account(euca_user, max_quota=True)
         os_accounts = OSAccounts(self.os_provider)
         self.os_id = os_accounts.create_account(
                 settings.TEST_RUNNER_USER, 
-                os_accounts.hashpass(settings.TEST_RUNNER_USER))
+                os_accounts.hashpass(settings.TEST_RUNNER_USER),
+                max_quota=True)
         #Initialize API
         self.client = TokenAPIClient()
         self.client.login(
@@ -87,9 +88,9 @@ class InstanceTests(TestCase):
         self.expected_output['size_alias'] = euca_launch_data['size_alias']
         self.expected_output['tags'] = euca_launch_data['tags']
         deleted = self.predelete_step_euca()
-        if deleted:
-            # Give it some time to clear, so we dont go over-quota..
-            time.sleep(60*4) # Sorry, its euca.
+        #if deleted:
+        #    # Give it some time to clear, so we dont go over-quota..
+        #    time.sleep(60*4) # Sorry, its euca.
 
         instance_id = self.launch_step_euca(euca_launch_data)
         self.detail_step_euca(instance_id)
@@ -154,9 +155,9 @@ class InstanceTests(TestCase):
         self.expected_output['size_alias'] = os_launch_data['size_alias']
         self.expected_output['tags'] = os_launch_data['tags']
         deleted = self.predelete_step_os()
-        if deleted:
-            # Give it some time to clear, so we dont go over-quota..
-            time.sleep(30)
+        #if deleted:
+        #    # Give it some time to clear, so we dont go over-quota..
+        #    time.sleep(30)
         instance_id = self.launch_step_os(os_launch_data)
         self.detail_step_os(instance_id)
         #self.delete_step_os(instance_id)
