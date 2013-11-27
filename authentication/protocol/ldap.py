@@ -95,7 +95,7 @@ def ldap_validate(username, password):
     try:
         ldap_server = settings.LDAP_SERVER
         ldap_server_dn = settings.LDAP_SERVER_DN
-        logger.debug("[LDAP] Validation Test - %s" % username)
+        logger.warn("[LDAP] Validation Test - %s" % username)
         ldap_conn = ldap_driver.initialize(ldap_server)
         dn = "uid="+username+","+ldap_server_dn
         ldap_conn.simple_bind_s(dn, password)

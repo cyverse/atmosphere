@@ -38,12 +38,13 @@ def cas_validateUser(username):
         userProxy = UserProxy.objects.filter(username=username).latest('pk')
         logger.debug("[CAS] Validation Test - %s" % username)
         if userProxy is None:
+            logger.debug("User %s does not have a proxy" % username)
             return (False, None)
         proxyTicket = userProxy.proxyTicket
-        (validUser, cas_response) = caslib.cas_reauthenticate(
-            username,
-            proxyTicket
-        )
+        (validUser, cas_response) = caslib.cas_reauthenticate(username,
+                                                              proxyTicket)
+        logger.debug("Valid User: %s Proxy response: %s"
+                     % (validUser, cas_response))
         return (validUser, cas_response)
     except Exception, e:
         logger.exception('Error validating user %s' % username)
@@ -84,7 +85,7 @@ def createSessionToken(request, auth_token):
     request.session['username'] = auth_token.user.username
     request.session['token'] = auth_token.key
     #TODO: Remove line below
-    request.session['api_server'] = settings.API_SERVER_URL
+    #request.session['api_server'] = settings.API_SERVER_URL
 
 
 """
@@ -119,14 +120,20 @@ def cas_validateTicket(request):
     sendback = request.GET.get('sendback', None)
 
     if not ticket:
-        logger.info("No Ticket -- GoTo %s" % redirect_logout_url)
+        logger.info("No Ticket received in GET string "
+                    "-- Logout user: %s" % redirect_logout_url)
         return HttpResponseRedirect(redirect_logout_url)
+
+    logger.debug("ServiceValidate endpoint includes a ticket."
+                 " Ticket must now be validated with CAS")
 
     # ReturnLocation set, apply on successful authentication
     cas_setReturnLocation(sendback)
     cas_response = caslib.cas_serviceValidate(ticket)
     if not cas_response.success:
-        #logger.debug("cas_serviceValidate failed")
+        logger.debug("CAS Server did NOT validate ticket:%s"
+                     " and included this response:%s"
+                     % (ticket, cas_response))
         return HttpResponseRedirect(redirect_logout_url)
     (user, pgtIou) = parse_cas_response(cas_response)
 
@@ -147,6 +154,7 @@ def cas_validateTicket(request):
     updated = updateUserProxy(user, pgtIou)
     if not updated:
         return HttpResponseRedirect(redirect_logout_url)
+    logger.info("Updated proxy for <%s> -- Auth success!" % user)
 
     try:
         auth_token = createAuthToken(user)
@@ -156,8 +164,9 @@ def cas_validateTicket(request):
         logger.info("Failed to create AuthToken")
         HttpResponseRedirect(redirect_logout_url)
     createSessionToken(request, auth_token)
-
-    return HttpResponseRedirect(request.GET['sendback'])
+    return_to = request.GET['sendback']
+    logger.info("Session token created, return to: %s" % return_to)
+    return HttpResponseRedirect(return_to)
 
 
 """
@@ -174,17 +183,21 @@ def cas_storeProxyIOU_ID(request):
     IOU and ID are mapped to a DB so they can be used later
     """
     if "pgtIou" in request.GET and "pgtId" in request.GET:
+        iou_token = request.GET["pgtIou"]
+        proxy_ticket = request.GET["pgtId"]
+        logger.debug("PROXY HIT 2 - CAS server sends two IDs: "
+                     "1.ProxyIOU (%s) 2. ProxyGrantingTicket (%s)"
+                     % (iou_token, proxy_ticket))
         proxy = UserProxy(
-            proxyIOU=request.GET["pgtIou"],
-            proxyTicket=request.GET["pgtId"]
+            proxyIOU=iou_token,
+            proxyTicket=proxy_ticket
         )
         proxy.save()
-        logger.debug("CASPROXY new proxy ID saved, look in serviceValidate "
-                     "to match this IOU ticket: %s" % proxy.proxyIOU)
+        logger.debug("Proxy ID has been saved, match ProxyIOU(%s) "
+                     "from the proxyIOU returned in service validate."
+                     % (proxy.proxyIOU,))
     else:
-        logger.debug("GET request did not include pgtIou && pgtId - "
-                     "This happens when the CAS server is validating the proxy"
-                     "link..")
+        logger.debug("Proxy HIT 1 - CAS server tests that this link is HTTPS")
 
     return HttpResponse("Received proxy request. Thank you.")
 

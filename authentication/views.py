@@ -19,6 +19,7 @@ from authentication.models import Token as AuthToken
 from authentication.protocol.ldap import ldap_validate
 from authentication.protocol.cas import cas_validateUser
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework import status
 
 
 @csrf_exempt
@@ -56,6 +57,7 @@ def token_auth(request):
             }
             return HttpResponse(
                 content=json.dumps(auth_json),
+                status=status.HTTP_201_CREATED,
                 content_type='application/json')
         else:
             logger.debug("[LDAP] Failed to validate %s" % username)
