@@ -18,7 +18,7 @@ from service.accounts.eucalyptus import AccountDriver as EucaAccounts
 class TokenAPIClient(APIClient):
     token = None
 
-    def ldap_new_token(self, client, **credentials):
+    def ldap_new_token(self, api_client, **credentials):
         """
         Authenticate **credentials, create a token and return the tokens uuid
         """
@@ -28,7 +28,7 @@ class TokenAPIClient(APIClient):
             "password":credentials.get('password'),
             }
         full_url = urljoin(settings.SERVER_URL, reverse_url)
-        response = client.post(full_url, data, format='multipart')
+        response = api_client.post(full_url, data, format='multipart')
         json_data = json.loads(response.content)
         return json_data
 
@@ -44,7 +44,7 @@ class TokenAPIClient(APIClient):
         return True
 
 class AuthTests(TestCase):
-    client = None
+    api_client = None
 
     expected_output = {
         "username":"",
@@ -59,17 +59,17 @@ class AuthTests(TestCase):
         euca_accounts = EucaAccounts(self.euca_provider)
         euca_user = euca_accounts.get_user(settings.TEST_RUNNER_USER)
         self.euca_id = euca_accounts.create_account(euca_user)
-        self.client = TokenAPIClient()
-        self.client.login(
+        self.api_client = TokenAPIClient()
+        self.api_client.login(
                 username=settings.TEST_RUNNER_USER,
                 password=settings.TEST_RUNNER_PASS)
 
     def tearDown(self):
-        self.client.logout()
+        self.api_client.logout()
 
     def test_token_output(self):
         """
         Explicitly call auth and test that tokens can be created.
         """
-        verify_expected_output(self, self.client.token, self.expected_output)
+        verify_expected_output(self, self.api_client.token, self.expected_output)
 

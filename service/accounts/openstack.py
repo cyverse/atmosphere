@@ -13,7 +13,7 @@ from novaclient.v1_1 import client as nova_client
 from novaclient.exceptions import OverLimit
 
 from threepio import logger
-
+from requests.exceptions import ConnectionError
 from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.drivers.openstack_user import UserManager
 
@@ -75,12 +75,15 @@ class AccountDriver():
     ]
 
     def _init_by_provider(self, provider, *args, **kwargs):
+        from api import get_esh_driver
+
         self.core_provider = provider
 
         provider_creds = provider.get_credentials()
         self.provider_creds = provider_creds
-
-        admin_creds = provider.get_admin_identity().get_credentials()
+        admin_identity = provider.get_admin_identity()
+        admin_creds = admin_identity.get_credentials()
+        self.admin_driver = get_esh_driver(admin_identity)
         admin_creds = self._libcloud_to_openstack(admin_creds)
         all_creds = {}
         all_creds.update(admin_creds)
@@ -155,8 +158,12 @@ class AccountDriver():
                     if not roles:
                         self.user_manager.add_role(username, project_name,
                                                    role_name)
-
-                # 4. get protocol list and build security group
+                # 4.1. Update the account quota to hold a larger number of
+                # roles
+                nc = self.user_manager.nova
+                rule_max = max(len(self.MASTER_RULES_LIST),100)
+                nc.quotas.update(project.id, security_group_rules=rule_max)
+                # 4.2. get protocol list and build security group
                 rules_list = self.MASTER_RULES_LIST
                 # 5. Update the security group
                 self.user_manager.build_security_group(user.name,
@@ -169,8 +176,11 @@ class AccountDriver():
                                            keyname, public_key)
                 finished = True
 
+            except ConnectionError:
+                logger.exception('Connection reset by peer. Waiting for one minute.')
+                time.sleep(60)  # Wait one minute
             except OverLimit:
-                logger.warn('Requests are rate limited. Pausing for one minute.')
+                logger.exception('OverLimit on POST requests. Waiting for one minute.')
                 time.sleep(60)  # Wait one minute
         return (username, password, project)
 

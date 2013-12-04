@@ -183,7 +183,7 @@ class MachineRequestSerializer(serializers.ModelSerializer):
                                         required=False)
     tags = serializers.CharField(source='new_machine_tags', required=False)
 
-    new_machine = serializers.RelatedField(read_only=True)
+    new_machine = serializers.RelatedField(read_only=True, source='new_machine_id')
 
     class Meta:
         model = MachineRequest
