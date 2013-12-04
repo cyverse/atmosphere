@@ -319,9 +319,9 @@ def mount_storage():
                 dev_2_size = match.group(1)
         if dev_2_size > dev_1_size:
             logging.warn(
-                "%s is larger than %s, Mounting %s to mnt"
+                "%s is larger than %s, Mounting %s to home"
                 % (dev_2, dev_1, dev_2))
-            run_command(["/bin/mount", "-text3", "/dev/%s" % dev_2, "/mnt"])
+            run_command(["/bin/mount", "-text3", "/dev/%s" % dev_2, "/home"])
     except Exception, e:
         logging.exception("Could not mount storage. Error below:")
 
