@@ -28,7 +28,7 @@ requests==1.1
 # --upgrade is executed
 git+git://github.com/iPlantCollaborativeOpenSource/caslib.py.git#egg=caslib
 git+git://github.com/celery/celery#egg=celery[redis]
-git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.4
+git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.5
 git+git://github.com/kmmbvnr/django-jenkins
 git+git://github.com/iPlantCollaborativeOpenSource/jwt.py.git#egg=jwt
 git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient
