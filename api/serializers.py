@@ -113,7 +113,7 @@ class InstanceHistorySerializer(serializers.ModelSerializer):
     start_date = serializers.DateTimeField(read_only=True)
     end_date = serializers.DateTimeField(read_only=True)
     active_time = serializers.DateTimeField(read_only=True, source='get_active_time')
-    provider = serializers.Field(source='provider_machine__provider')
+    #provider = serializers.Field(source='provider_machine__provider')
     #Writeable fields
     name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', source='tags', many=True)
@@ -316,7 +316,7 @@ class PaginatedProviderMachineSerializer(pagination.PaginationSerializer):
 class ProviderSerializer(serializers.ModelSerializer):
     type = serializers.SlugRelatedField(slug_field='name')
     location = serializers.CharField(source='get_location')
-    membership = serializers.Field(source='get_membership')
+    #membership = serializers.Field(source='get_membership')
 
     class Meta:
         model = Provider
