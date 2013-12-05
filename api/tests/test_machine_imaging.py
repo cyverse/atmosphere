@@ -81,36 +81,36 @@ class MachineRequestTests(TestCase):
         self.api_client.logout()
 
     #TEST CASES:
-    #def test_euca_machine_request(self):
-    #    """
-    #    Testing machine requests require specific order:
-    #      * "Stand-up" an instance
-    #      * Create a machine request
-    #      * Approve a machine request
-    #      * Verify machine request has gone to 'completed'
-    #      * "Stand-up" the new machine
-    #      * Delete an existing machine request
-    #    """
-    #    machine_alias = "emi-E7F8300F"
-    #    size_alias = "m1.small"
-    #    instance_id, instance_ip = standup_instance(
-    #            self, self.euca_instance_url,
-    #            machine_alias, size_alias, "test imaging")
-    #    request_id = self.create_machine_request(
-    #            self.euca_request_url,
-    #            instance_id, instance_ip, self.euca_id.provider.id)
-    #    approval_link = reverse('direct-machine-request-action',
-    #                          args=[request_id, 'approve'])
-    #    euca_approval_url = urljoin(settings.SERVER_URL, approval_link)
-    #    self.approve_machine_request(euca_approval_url)
-    #    machine_request_url = reverse('direct-machine-request-detail',
-    #            args=[request_id,])
-    #    new_machine_id = self.wait_for_machine_request(machine_request_url)
-    #    machine_alias = new_machine_id
-    #    instance_id, instance_ip = standup_instance(
-    #            self, self.euca_instance_url,
-    #            machine_alias, size_alias, "test imaging was successful",
-    #            delete_after=True)
+    def test_euca_machine_request(self):
+        """
+        Testing machine requests require specific order:
+          * "Stand-up" an instance
+          * Create a machine request
+          * Approve a machine request
+          * Verify machine request has gone to 'completed'
+          * "Stand-up" the new machine
+          * Delete an existing machine request
+        """
+        machine_alias = "emi-E7F8300F"
+        size_alias = "m1.small"
+        instance_id, instance_ip = standup_instance(
+                self, self.euca_instance_url,
+                machine_alias, size_alias, "test imaging")
+        request_id = self.create_machine_request(
+                self.euca_request_url,
+                instance_id, instance_ip, self.euca_id.provider.id)
+        approval_link = reverse('direct-machine-request-action',
+                              args=[request_id, 'approve'])
+        euca_approval_url = urljoin(settings.SERVER_URL, approval_link)
+        self.approve_machine_request(euca_approval_url)
+        machine_request_url = reverse('direct-machine-request-detail',
+                args=[request_id,])
+        new_machine_id = self.wait_for_machine_request(machine_request_url)
+        machine_alias = new_machine_id
+        instance_id, instance_ip = standup_instance(
+                self, self.euca_instance_url,
+                machine_alias, size_alias, "test imaging was successful",
+                delete_after=True)
 
     def test_openstack_machine_request(self):
         """
@@ -179,20 +179,19 @@ class MachineRequestTests(TestCase):
         self.assertEqual(mach_request_put.status_code, status.HTTP_200_OK)
 
     def wait_for_machine_request(self, machine_request_url):
-        begin_time = datetime.now()
         finished = False
         minutes = 1
         attempts = 1
         while not finished:
             mach_request_get = self.api_client.get(machine_request_url)
             self.assertEqual(mach_request_get.status_code, status.HTTP_200_OK)
-            status = mach_request_get.data['status']
+            mach_status = mach_request_get.data['status']
             new_machine = mach_request_get.data['new_machine']
-            if 'error' in status:
+            if 'error' in mach_status:
                 raise Exception("Error occurred during imaging. "
                                 "Will not wait for machine request to finish.")
                 break
-            if status != 'completed':
+            if mach_status != 'completed':
                 #5m, 5m, 5m, 5m, 5m, ...
                 attempts += 1
                 minutes = 5
@@ -201,9 +200,9 @@ class MachineRequestTests(TestCase):
                     "Giving up..")
                 continue
             finished = True
-        image_duration = datetime.now() - begin_time
-        logger.info("Machine Request marked as completed. Imaging time:%s"
-                    % (image_duration))
+        complete_time = datetime.now()
+        logger.info("Machine Request marked as completed. complete time:%s"
+                    % (complete_time))
         return new_machine
 
 
