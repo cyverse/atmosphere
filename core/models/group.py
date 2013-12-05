@@ -147,7 +147,7 @@ class IdentityMembership(models.Model):
     def get_quota_dict(self):
         quota = self.quota
         quota_dict = {
-            "memory": quota.memory,
+            "mem": quota.memory,
             "cpu": quota.cpu,
             "storage": quota.storage,
             "storage_count": quota.storage_count,
