@@ -103,7 +103,7 @@ class MachineRequestTests(TestCase):
     #                          args=[request_id, 'approve'])
     #    euca_approval_url = urljoin(settings.SERVER_URL, approval_link)
     #    self.approve_machine_request(euca_approval_url)
-    #    machine_request_url = reverse('direct-machine-request',
+    #    machine_request_url = reverse('direct-machine-request-detail',
     #            args=[request_id,])
     #    new_machine_id = self.wait_for_machine_request(machine_request_url)
     #    machine_alias = new_machine_id
@@ -137,7 +137,7 @@ class MachineRequestTests(TestCase):
         os_approval_url = urljoin(settings.SERVER_URL, approval_link)
         self.approve_machine_request(os_approval_url)
         #Machine will be imaged HERE.. Image EXISTS after this line returns!
-        machine_request_url = reverse('direct-machine-request',
+        machine_request_url = reverse('direct-machine-request-detail',
                 args=[request_id,])
         new_machine_id = self.wait_for_machine_request(machine_request_url)
         machine_alias = new_machine_id
