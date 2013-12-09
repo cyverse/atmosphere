@@ -1,20 +1,10 @@
 """
 Use this file to change settings needed to run the test suite.
-
-Mostly, this will be the DATABASES dict:
-
-    DATABASES = {
-        'default': {
-            'NAME': 'atmosphere',
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',
-            'USER': '',
-            'PASSWORD': '',
-            'HOST': 'localhost',
-            'PORT': '5432'
-        },
-    }
 """
 
 import sys
 
 globals().update(vars(sys.modules['atmosphere.settings']))
+
+TEST_RUNNER_USER=''
+TEST_RUNNER_PASS=''

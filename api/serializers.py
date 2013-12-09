@@ -11,6 +11,7 @@ from core.models.provider import ProviderType, Provider
 from core.models.size import Size
 from core.models.step import Step
 from core.models.tag import Tag, find_or_create_tag
+from core.models.user import AtmosphereUser
 from core.models.volume import Volume
 from core.models.group import Group
 
@@ -112,7 +113,7 @@ class InstanceHistorySerializer(serializers.ModelSerializer):
     start_date = serializers.DateTimeField(read_only=True)
     end_date = serializers.DateTimeField(read_only=True)
     active_time = serializers.DateTimeField(read_only=True, source='get_active_time')
-    provider = serializers.Field(source='provider_machine__provider')
+    #provider = serializers.Field(source='provider_machine__provider')
     #Writeable fields
     name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', source='tags', many=True)
@@ -182,7 +183,7 @@ class MachineRequestSerializer(serializers.ModelSerializer):
                                         required=False)
     tags = serializers.CharField(source='new_machine_tags', required=False)
 
-    new_machine = serializers.RelatedField(read_only=True)
+    new_machine = serializers.RelatedField(read_only=True, source='new_machine_id')
 
     class Meta:
         model = MachineRequest
@@ -228,17 +229,8 @@ class IdentityRelatedField(serializers.RelatedField):
         except Identity.DoesNotExist:
             into[field_name] = None
 
-
-class ProfileSerializer(serializers.ModelSerializer):
-    """
-    """
-    #TODO:Need to validate provider/identity membership on id change
-    username = serializers.CharField(read_only=True, source='user.username')
-    email = serializers.CharField(read_only=True, source='email_hash')
-    groups = serializers.CharField(read_only=True, source='user.groups.all')
-    is_staff = serializers.BooleanField(source='user.is_staff')
-    is_superuser = serializers.BooleanField(source='user.is_superuser')
-    selected_identity = IdentityRelatedField(source='user.select_identity')
+class AtmoUserSerializer(serializers.ModelSerializer):
+    selected_identity = IdentityRelatedField(source='select_identity')
 
     def validate_selected_identity(self, attrs, source):
         """
@@ -250,10 +242,10 @@ class ProfileSerializer(serializers.ModelSerializer):
         logger.debug(source)
         if 'selected_identity' not in attrs:
             return attrs
-        selected_identity = attrs['selected_identity']
-        logger.debug(selected_identity)
         user = self.object.user
         logger.info("Validating identity for %s" % user)
+        selected_identity = attrs['selected_identity']
+        logger.debug(selected_identity)
         groups = user.group_set.all()
         for g in groups:
             for id_member in g.identitymembership_set.all():
@@ -263,8 +255,24 @@ class ProfileSerializer(serializers.ModelSerializer):
                     user.save()
                     return attrs
         raise serializers.ValidationError("User is not a member of"
-                                          "selected_identity = %s"
+                                          "selected_identity: %s"
                                           % selected_identity)
+
+
+    class Meta:
+        model = AtmosphereUser
+        exclude = ('id','password')
+
+class ProfileSerializer(serializers.ModelSerializer):
+    """
+    """
+    #TODO:Need to validate provider/identity membership on id change
+    username = serializers.CharField(read_only=True, source='user.username')
+    email = serializers.CharField(read_only=True, source='email_hash')
+    groups = serializers.CharField(read_only=True, source='user.groups.all')
+    is_staff = serializers.BooleanField(source='user.is_staff')
+    is_superuser = serializers.BooleanField(source='user.is_superuser')
+    selected_identity = IdentityRelatedField(source='user.select_identity')
 
     class Meta:
         model = UserProfile
@@ -308,7 +316,7 @@ class PaginatedProviderMachineSerializer(pagination.PaginationSerializer):
 class ProviderSerializer(serializers.ModelSerializer):
     type = serializers.SlugRelatedField(slug_field='name')
     location = serializers.CharField(source='get_location')
-    membership = serializers.Field(source='get_membership')
+    #membership = serializers.Field(source='get_membership')
 
     class Meta:
         model = Provider

@@ -4,7 +4,6 @@ Service Quota model for atmosphere.
 
 from django.db import models
 
-
 class Quota(models.Model):
     """
     Quota limits the amount of resources that can be used for a User/Group
@@ -28,16 +27,33 @@ class Quota(models.Model):
         Select max quota (Default - Highest CPU count
         """
         from django.db.models import Max
-        max_quota_by_type = Quota.objects.all().aggregate(Max(by_type)
-                                                           )['%s__max' % by_type]
-        quota = Quota.objects.filter(cpu=max_quota_by_type)
-        return quota[0]
+        if not Quota.objects.all():
+            return self.unreachable_quota()
+        max_quota_by_type = Quota.objects.all().aggregate(
+                                        Max(by_type))['%s__max' % by_type]
+        quota = Quota.objects.filter(cpu=max_quota_by_type)[0]
+        if quota.cpu <= self._meta.get_field('cpu').default:
+            return self.unreachable_quota()
+        return quota
 
     @classmethod
     def default_quota(self):
         return Quota.objects.get_or_create(
                 **Quota.default_dict())[0]
 
+    @classmethod
+    def unreachable_quota(self):
+        return Quota.objects.get_or_create(
+                **Quota.unreachable_dict())[0]
+
+    @classmethod
+    def unreachable_dict(cls):
+        return {
+            'cpu': 1000,
+            'memory': 1000,
+            'storage': 1000,
+            'storage_count': 1000
+        }
     @classmethod
     def default_dict(cls):
         return {

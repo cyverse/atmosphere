@@ -60,6 +60,9 @@ class MachineRequest(models.Model):
             self.start_date.strftime('%m%d%Y_%H%M%S'))
         return meta_name
 
+    def new_machine_id(self):
+        return self.new_machine.id if self.new_machine else None
+
     def is_public(self):
         return "public" in self.new_machine_visibility.lower()
 

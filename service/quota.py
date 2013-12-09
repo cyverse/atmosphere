@@ -9,10 +9,12 @@ from service.accounts.openstack import AccountDriver
 
 def set_provider_quota(identity_id):
     identity = Identity.objects.get(id=identity_id)
-    os_provider = Provider.objects.get(type__name="OpenStack")
-    if identity.provider == os_provider:
+    if not identity.credential_set.all():
+        #Can't update quota if credentials arent set
+        return
+    if identity.provider.get_type_name().lower() == 'openstack':
         driver = get_esh_driver(identity)
-        ad = AccountDriver(os_provider)
+        ad = AccountDriver(identity.provider)
         username = identity.creator_name()
         user_id = ad.user_manager.get_user(username).id
         tenant_id = driver._connection._get_tenant_id()

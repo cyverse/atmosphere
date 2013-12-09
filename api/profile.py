@@ -12,7 +12,7 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
-from api.serializers import ProfileSerializer
+from api.serializers import ProfileSerializer, AtmoUserSerializer
 
 
 class Profile(APIView):
@@ -46,8 +46,18 @@ class Profile(APIView):
         """
         user = request.user
         profile = user.get_profile()
+        mutable_data = request.DATA.copy()
+
+        if mutable_data.has_key('selected_identity'):
+            user_data = {'selected_identity':mutable_data.pop('selected_identity')}
+            serializer = AtmoUserSerializer(user,
+                                            data=user_data,
+                                            partial=True)
+            if serializer.is_valid():
+                serializer.save()
         serializer = ProfileSerializer(profile,
-                                       data=request.DATA, partial=True)
+                                       data=mutable_data,
+                                       partial=True)
         if serializer.is_valid():
             serializer.save()
             response = Response(serializer.data)

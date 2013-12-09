@@ -12,9 +12,9 @@ djangorestframework==2.3.9
 boto==2.9
 httplib2==0.7.7
 ipython==1.1
+ipdb==0.8
 paramiko==1.11.0
 flake8==2.1.0
-git+git://github.com/mher/flower
 hiredis==0.1.1
 pep8==1.4.6
 psycopg2==2.4.5
@@ -26,15 +26,16 @@ requests==1.1
 # The github repos:
 # These repos will install the master/latest branch each time pip install
 # --upgrade is executed
-git+git://github.com/iPlantCollaborativeOpenSource/caslib.py.git#egg=caslib
 git+git://github.com/celery/celery#egg=celery[redis]
-git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.4
-git+git://github.com/kmmbvnr/django-jenkins
+git+git://github.com/iPlantCollaborativeOpenSource/caslib.py.git#egg=caslib
+git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.5
 git+git://github.com/iPlantCollaborativeOpenSource/jwt.py.git#egg=jwt
+git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive
+git+git://github.com/iPlantCollaborativeOpenSource/rtwo.git#egg=rtwo
+git+git://github.com/jmatt/threepio.git#egg=threepio
+git+git://github.com/kmmbvnr/django-jenkins
+git+git://github.com/mher/flower
 git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient
 git+git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient
 git+git://github.com/openstack/python-neutronclient.git#egg=python-neutronclient
 git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient
-git+git://github.com/jmatt/threepio.git#egg=threepio
-git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive
-git+git://github.com/iPlantCollaborativeOpenSource/rtwo.git#egg=rtwo

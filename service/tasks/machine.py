@@ -1,4 +1,5 @@
 import time
+import ipdb
 
 from celery.decorators import task
 from celery.result import AsyncResult
@@ -8,7 +9,6 @@ from chromogenic.drivers.openstack import ImageManager as OSImageManager
 from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
 
 from threepio import logger
-
 from atmosphere import settings
 
 from core.email import send_image_request_email
@@ -47,15 +47,18 @@ def start_machine_imaging(machine_request, delay=False):
         else:
             init_task.link(migrate_task)
     else:
-        image_task = machine_imaging_task.si(orig_managerCls, orig_creds,
-                                             **imaging_args)
+        image_task = machine_imaging_task.si(orig_managerCls, orig_creds, imaging_args)
         if not init_task:
             init_task = image_task
         else:
             init_task.link(image_task)
-    process_task = process_request.subtask((machine_request.id,))
-    #After init_task is completed (And any other links..) process the request
-    init_task.link(process_task)
+    #The new image ID will be the first argument in process_request
+    process_task = process_request.s(machine_request.id)
+    if dest_managerCls and dest_creds != orig_creds:
+        migrate_task.link(process_task)
+    else:
+        image_task.link(process_task)
+
     async = init_task.apply_async(link_error=machine_request_error.s((machine_request.id,)))
     if delay:
         async.get()
@@ -105,6 +108,7 @@ def machine_request_error(machine_request_id, task_uuid):
 
 @task(name='process_request', ignore_result=False)
 def process_request(new_image_id, machine_request_id):
+    ipdb.set_trace()
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     set_machine_request_metadata(machine_request, new_image_id)
     process_machine_request(machine_request, new_image_id)

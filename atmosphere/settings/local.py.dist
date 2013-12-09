@@ -5,6 +5,9 @@ globals().update(vars(sys.modules['atmosphere.settings']))
 PROJECT_ROOT = os.path.abspath(
     os.path.join(
         os.path.dirname(__file__), "../.."))
+TEST_RUNNER='atmosphere.test_runner.CeleryDiscoverTestSuiteRunner'
+TEST_RUNNER_USER=''
+TEST_RUNNER_PASS=''
 
 SERVER_URL = ""
 
