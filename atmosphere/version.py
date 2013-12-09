@@ -58,7 +58,7 @@ def get_version(form='short'):
     info = git_info()
     versions["git_sha"] = info[0:39]
     versions["git_sha_abbrev"] = "@" + info[0:6]
-    versions["datetime"] = parser.parse(info[40:])
+    versions["date"] = parser.parse(info[40:])
     v += " " + versions["git_sha_abbrev"]
     versions["verbose"] = v
     if form is "verbose":

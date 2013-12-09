@@ -353,15 +353,18 @@ class StepSerializer(serializers.ModelSerializer):
     alias = serializers.CharField(read_only=True, source='alias')
     name = serializers.CharField()
     script = serializers.CharField()
+    exit_code = serializers.IntegerField(read_only=True,
+                                         source='exit_code',
+                                         required=False)
+    instance_alias = serializers.CharField(read_only=True,
+                                           source='instance.provider_alias')
     created_by = serializers.CharField(source='created_by')
-    quota = serializers.Field(source='get_quota_dict')
-    provider_id = serializers.Field(source='provider.id')
     start_date = serializers.DateTimeField(read_only=True)
     end_date = serializers.DateTimeField(read_only=True, required=False)
 
     class Meta:
         model = Step
-        exclude = ('id', 'created_by_identity')
+        exclude = ('id', 'instance', 'created_by_identity')
 
 
 class ProviderTypeSerializer(serializers.ModelSerializer):
