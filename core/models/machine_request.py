@@ -61,7 +61,7 @@ class MachineRequest(models.Model):
         return meta_name
 
     def new_machine_id(self):
-        return self.new_machine.id if self.new_machine else None
+        return self.new_machine.identifier if self.new_machine else None
 
     def is_public(self):
         return "public" in self.new_machine_visibility.lower()

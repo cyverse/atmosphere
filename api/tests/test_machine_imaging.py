@@ -8,7 +8,7 @@ from datetime import datetime
 from rest_framework import status
 from threepio import logger
 from urlparse import urljoin
-
+import ipdb
 from atmosphere import settings
 from core.models import AtmosphereUser
 from core.tests import create_euca_provider, create_os_provider
@@ -107,6 +107,7 @@ class MachineRequestTests(TestCase):
                 args=[request_id,])
         new_machine_id = self.wait_for_machine_request(machine_request_url)
         machine_alias = new_machine_id
+        ipdb.set_trace()
         instance_id, instance_ip = standup_instance(
                 self, self.euca_instance_url,
                 machine_alias, size_alias, "test imaging was successful",
@@ -141,6 +142,7 @@ class MachineRequestTests(TestCase):
                 args=[request_id,])
         new_machine_id = self.wait_for_machine_request(machine_request_url)
         machine_alias = new_machine_id
+        ipdb.set_trace()
         instance_id, instance_ip = standup_instance(
                 self, self.os_instance_url,
                 machine_alias, size_alias, "test imaging was successful",
