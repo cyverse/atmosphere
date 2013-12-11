@@ -29,7 +29,7 @@ class Step(models.Model):
 
 
     def get_script_name(self):
-        return text.slugify(self.name + _ + self.alias) + ".sh"
+        return text.slugify(self.name + "_" + self.alias) + ".sh"
 
     def abbreviate_script(self, max_length=24):
         if self.script:

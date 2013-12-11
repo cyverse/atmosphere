@@ -6,9 +6,9 @@ from rest_framework.response import Response
 
 from authentication.decorators import api_auth_token_required
 
-from core.models.size import convert_esh_size
+from core.models.step import Step as CoreStep
 
-from api.serializers import ProviderSizeSerializer
+from api.serializers import StepSerializer
 
 from api import prepare_driver
 
@@ -26,10 +26,11 @@ class StepList(APIView):
         user = request.user
         esh_driver = prepare_driver(request, identity_id)
         serialized_data = []
-#        esh_size_list = esh_driver.list_sizes()
-#        core_size_list = [convert_esh_size(size, provider_id, user)
-#                          for size in esh_size_list]
-#        serialized_data = ProviderSizeSerializer(core_size_list, many=True).data
+        step_list = [s for s in CoreStep.objects.filter(created_by_identity__id=identity_id)]
+        #        esh_size_list = esh_driver.list_sizes()
+        #        core_size_list = [convert_esh_size(size, provider_id, user)
+        #                          for size in esh_size_list]
+        serialized_data = StepSerializer(step_list, many=True).data
         response = Response(serialized_data)
         return response
 

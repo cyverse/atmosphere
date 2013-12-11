@@ -1,5 +1,4 @@
 import time
-import ipdb
 
 from celery.decorators import task
 from celery.result import AsyncResult
@@ -16,6 +15,13 @@ from core.models.machine_request import MachineRequest, process_machine_request
 
 from service.deploy import freeze_instance, sync_instance
 from service.tasks.driver import deploy_to
+
+# For development
+try:
+    import ipdb
+except ImportError:
+    ipdb = False
+    pass
 
 
 def start_machine_imaging(machine_request, delay=False):
@@ -108,7 +114,8 @@ def machine_request_error(machine_request_id, task_uuid):
 
 @task(name='process_request', ignore_result=False)
 def process_request(new_image_id, machine_request_id):
-    ipdb.set_trace()
+    if ipdb:
+        ipdb.set_trace()
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     set_machine_request_metadata(machine_request, new_image_id)
     process_machine_request(machine_request, new_image_id)
