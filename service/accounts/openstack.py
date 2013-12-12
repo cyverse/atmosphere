@@ -2,6 +2,7 @@
 UserManager:
   Remote Openstack  Admin controls..
 """
+import ipdb
 import time
 from hashlib import sha1
 from urlparse import urlparse
@@ -152,12 +153,16 @@ class AccountDriver():
                                 % (username, password, project))
                     user = self.user_manager.create_user(username, password,
                                                       project)
-                # 3. Check the user has an appropriate role (if given)
+                # 3.1 Include the admin
+                #TODO: providercredential initialization of
+                #  'default_admin_role'
+                self.user_manager.include_admin(username, projectname)
+                # 3.2 Check the user has been given an appropriate role (if given)
+                ipdb.set_trace()
                 if role_name:
-                    roles = user.list_roles(project)
-                    if not roles:
-                        self.user_manager.add_role(username, project_name,
-                                                   role_name)
+                    role_name = '_member_'
+                self.user_manager.add_role(username, project_name,
+                                           role_name)
                 # 4.1. Update the account quota to hold a larger number of
                 # roles
                 nc = self.user_manager.nova
