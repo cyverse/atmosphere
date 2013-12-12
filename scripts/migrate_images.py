@@ -1,13 +1,12 @@
 #!/usr/bin/env python
-import ipdb
-
 from chromogenic.migrate import migrate_image
 from core.models import Provider, Identity, ProviderMachine
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
 
 image_these = [
-"emi-F1F122E4", "emi-E7F8300F", "emi-968E2F96", "emi-BE9C2D12", "emi-A33C2C8E",
+#"emi-F1F122E4", "emi-E7F8300F",
+"emi-968E2F96", "emi-BE9C2D12", "emi-A33C2C8E",
 "emi-C6E5248C", "emi-CC741A8B", "emi-A7321D22", "emi-F13821D0", "emi-BA292148",
 "emi-F8C42B73", "emi-0B423174", "emi-99433292", "emi-9394226D", "emi-4A9B29D1",
 "emi-088720A6", "emi-3BA02651", "emi-6A1E30D5", "emi-B42A1FBE", "emi-586A2363",
@@ -19,23 +18,26 @@ image_these = [
 "emi-484D219F", "emi-D3B22F44", "emi-746826E5", "emi-BCEA2112", "emi-47BB2669",
 "emi-CB8B2921", "emi-EA68274A", "emi-2F0222B1", "emi-77B821E5", "emi-0BEB20AD",
 ]
+def start(images):
+    euca_accounts = EucaAccountDriver(Provider.objects.get(id=1))
+    euca_img_class = euca_accounts.image_manager.__class__
+    euca_img_creds = euca_accounts.image_creds
+    os_accounts = OSAccountDriver(Provider.objects.get(id=2))
+    os_img_class = os_accounts.image_manager.__class__
+    os_img_creds = os_accounts.image_creds
+    migrate_args = {
+            'download_dir':"/Storage",
+            'image_id':None,
+            'kvm_to_xen':True,
+            }
+    
+    for mach_to_migrate in images:
+        migrate_args['image_id'] = mach_to_migrate
+        pm = ProviderMachine.objects.get(identifier=mach_to_migrate)
+        migrate_args['image_name'] = pm.machine.name
+        # Lookup machine, set nme
+        migrate_image(euca_img_class, euca_img_creds, os_img_class, os_img_creds,
+                **migrate_args)
 
-os_accounts = OSAccountDriver(Provider.objects.get(id=2))
-euca_accounts = EucaAccountDriver(Provider.objects.get(id=1))
-euca_img_class = euca_accounts.image_manager.__class__
-euca_img_creds = euca_accounts.image_creds
-os_img_class = os_accounts.image_manager.__class__
-os_img_creds = os_accounts.image_creds
-migrate_args = {
-        'download_dir':"/Storage",
-        'image_id':None,
-        'kvm_to_xen':True,
-        }
-for mach_to_migrate in image_these:
-    migrate_args['image_id'] = mach_to_migrate
-    pm = ProviderMachine.objects.get(identifier=mach_to_migrate)
-    migrate_args['image_name'] = pm.machine.name
-    # Lookup machine, set nme
-    ipdb.set_trace()
-    migrate_image(euca_img_class, euca_img_creds, os_img_class, os_img_creds,
-            **migrate_args)
+if __name__ == "__main__":
+    start(image_these)
