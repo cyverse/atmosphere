@@ -17,6 +17,16 @@ class BearerTokenAuth(requests.auth.AuthBase):
         return r
 
 
+def get_core_services():
+    access_token = generate_access_token(
+                    open(settings.OAUTH_PRIVATE_KEY).read(),
+                    iss=settings.OAUTH_ISSUE_USER,
+                    scope=settings.OAUTH_SCOPE)
+    response = requests.get('%s/api/groups/core-services/members' % settings.GROUPY_SERVER)
+    cs_users = [user['name'] for user in response.json()['data']]
+    return cs_users
+
+
 def is_atmo_user(username):
     access_token = generate_access_token(
                     open(settings.OAUTH_PRIVATE_KEY).read(),

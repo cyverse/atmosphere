@@ -29,8 +29,8 @@ def start_machine_imaging(machine_request, delay=False):
     Builds up a machine imaging task using the core.models.machine_request object
     delay - If true, wait until task is completed before returning
     """
-    #NOTE: Do not move up -- Circular dependency
     machine_request.status = 'processing'
+    check_shared_users(machine_request)
     machine_request.save()
     instance_id = machine_request.instance.provider_alias
 
@@ -114,8 +114,8 @@ def machine_request_error(machine_request_id, task_uuid):
 
 @task(name='process_request', ignore_result=False)
 def process_request(new_image_id, machine_request_id):
-    if ipdb:
-        ipdb.set_trace()
+    #if ipdb:
+    #    ipdb.set_trace()
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     set_machine_request_metadata(machine_request, new_image_id)
     process_machine_request(machine_request, new_image_id)

@@ -230,3 +230,22 @@ def process_machine_request(machine_request, new_image_id):
     machine_request.status = 'completed'
     machine_request.save()
     return machine_request
+
+def share_with_admins(private_userlist, provider_id):
+    """
+    NOTE: This will always work, but the userlist could get long some day.
+    Another option would be to create an 'admin' tenant that all of core
+    services and the admin are members of, and add only that tenant to the
+    list.
+    """
+    if type(private_userlist) != list:
+        raise Exception("Expected private_userlist to be list, got %s: %s"
+                        % (type(private_userlist), private_userlist))
+
+    from authentication.protocol.oauth import get_core_services
+    core_services = get_core_services()
+    admin_users = [ap.identity.created_by.username for ap in
+            AccountProvider.objects.filter(provider__id=provider_id)]
+    private_userlist.extend(core_services)
+    private_userlist.extend(admin_users)
+    return private_userlist
