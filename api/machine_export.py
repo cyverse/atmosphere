@@ -10,7 +10,7 @@ from rest_framework import status
 from threepio import logger
 
 from authentication.decorators import api_auth_token_required
-from service.tasks.machine import machine_export_task
+from chromogenic.tasks import machine_export_task
 from api.serializers import MachineExportSerializer
 from core.models.machine_export import MachineExport as CoreMachineExport
 

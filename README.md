@@ -6,8 +6,8 @@ Atmosphere addresses the growing needs for highly configurable and customized co
 ## Some Features
 
 + A powerful web client for management and administration of virtual machines
-+ An API service for integrating with existing infrastructure components
-+ Virtual machine images preconfigured for computational science and iPlant's infrastructre
++ A fully RESTful API service for integrating with existing infrastructure components
++ Virtual machine images preconfigured for computational science and iPlant's infrastructure
 
 ## License
 
@@ -16,7 +16,7 @@ See LICENSE.txt for license information
 ## Authors
 
 + **J. Matt Peterson <jmatt@iplantcollaborative.org>**
-+ **Steven Gregory <esteve@iplantcollaborative.org>**
++ **Steven Gregory <sgregory@iplantcollaborative.org>**
 + **Monica Lent <mlent@iplantcollaborative.org>**
 + **Christopher James LaRose <cjlarose@iplantcollaborative.org>**
 + **Andre Mercer <amercer@iplantcollaborative.org>**

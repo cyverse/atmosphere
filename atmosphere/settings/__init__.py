@@ -104,6 +104,8 @@ TEMPLATE_DIRS = (
     os.path.join(PROJECT_ROOT, 'templates'),
 )
 
+AUTH_USER_MODEL = 'core.AtmosphereUser'
+AUTH_USER_MODULE = 'core.AtmosphereUser'
 AUTH_PROFILE_MODULE = 'core.UserProfile'
 
 AUTHENTICATION_BACKENDS = (
@@ -154,8 +156,8 @@ INIT_SCRIPT_PREFIX = '/init_files/'
 ## logging
 DEBUG = True 
 TEMPLATE_DEBUG = DEBUG
-LOGGING_LEVEL = logging.DEBUG
-DEP_LOGGING_LEVEL = logging.INFO  # Logging level for dependencies.
+LOGGING_LEVEL = logging.WARN
+DEP_LOGGING_LEVEL = logging.WARN  # Logging level for dependencies.
 LOG_FILENAME = os.path.abspath(os.path.join(
     os.path.dirname(atmosphere.__file__),
     '..',
@@ -196,6 +198,7 @@ REST_FRAMEWORK = {
         'authentication.token.TokenAuthentication',
     )
 }
+
 ##CASLIB
 SERVER_URL = SERVER_URL + REDIRECT_URL
 CAS_SERVER = 'https://auth.iplantcollaborative.org'
@@ -205,14 +208,6 @@ PROXY_URL = SERVER_URL + '/CAS_proxyUrl'
 PROXY_CALLBACK_URL = SERVER_URL + '/CAS_proxyCallback'
 caslib.cas_init(CAS_SERVER, SERVICE_URL, PROXY_URL, PROXY_CALLBACK_URL)
 
-##CACHE SETTINGS
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-        'LOCATION': 'atmosphere_cache_requests',
-        'TIMEOUT': 18000,
-    }
-}
 
 ###############
 #   SECRETS   #
@@ -315,11 +310,15 @@ CELERY_SEND_EVENTS = True
 CELERY_RESULT_BACKEND = 'redis'
 CELERY_TASK_RESULT_EXPIRES = 10
 CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
+CELERY_CACHE_BACKEND='djcelery.backends.database:DatabaseBackend'
+CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s @ %(pathname)s on %(lineno)d] %(message)s"
+CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
 #Django-Celery Development settings
 #CELERY_ALWAYS_EAGER = True
 
 import djcelery
 djcelery.setup_loader()
+
 
 """
 Import local settings specific to the server, and secrets not checked into Git.

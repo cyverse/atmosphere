@@ -10,7 +10,7 @@ import time
 
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 
 import caslib
 
@@ -51,6 +51,7 @@ def cas_validateUser(username):
 
 def parse_cas_response(cas_response):
     xml_root_dict = cas_response.map
+    logger.info(xml_root_dict)
     #A Success responses will return a dict
     #failed responses will be replaced by an empty dict
     xml_response_dict = xml_root_dict.get(cas_response.type, {})
@@ -136,6 +137,7 @@ def cas_validateTicket(request):
         logger.error("""Proxy Granting Ticket missing!
         Atmosphere requires CAS proxy as a service to authenticate users.
             Possible Causes:
+              * ServerName variable is wrong in /etc/apache2/apache2.conf
               * Proxy URL does not exist
               * Proxy URL is not a valid RSA-2/VeriSigned SSL certificate
               * /etc/host and hostname do not match machine.""")

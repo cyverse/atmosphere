@@ -6,8 +6,6 @@ from hashlib import md5
 
 from django.db import models
 from django.utils import timezone
-from django.contrib.auth.models import User
-
 from threepio import logger
 
 from core.models.identity import Identity
@@ -36,7 +34,7 @@ class Machine(models.Model):
     providers = models.ManyToManyField(Provider, through="ProviderMachine",
             blank=True)
     featured = models.BooleanField(default=False)
-    created_by = models.ForeignKey(User)  # The user that requested imaging
+    created_by = models.ForeignKey('AtmosphereUser')  # The user that requested imaging
     created_by_identity = models.ForeignKey(Identity, null=True)
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
@@ -93,7 +91,7 @@ class ProviderMachine(models.Model):
     provider = models.ForeignKey(Provider)
     machine = models.ForeignKey(Machine)
     identifier = models.CharField(max_length=256, unique=True)  # EMI-12341234
-    created_by = models.ForeignKey(User, null=True)
+    created_by = models.ForeignKey('AtmosphereUser', null=True)
     created_by_identity = models.ForeignKey(Identity, null=True)
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
@@ -250,10 +248,11 @@ def get_generic_machine(name):
 
 
 def create_generic_machine(name, description, creator_id=None):
+    from core.models import AtmosphereUser
     if not description:
         description = ""
     if not creator_id:
-        creator_id = User.objects.get_or_create(username='admin')[0]
+        creator_id = AtmosphereUser.objects.get_or_create(username='admin')[0]
     new_mach = Machine.objects.create(name=name,
                                       description=description,
                                       created_by=creator_id.created_by,

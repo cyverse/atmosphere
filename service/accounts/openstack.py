@@ -2,10 +2,12 @@
 UserManager:
   Remote Openstack  Admin controls..
 """
+import time
+
 from hashlib import sha1
 from urlparse import urlparse
 
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 from django.db.models import Max
 
 from novaclient.v1_1 import client as nova_client
@@ -19,8 +21,8 @@ from rtwo.drivers.openstack_user import UserManager
 from core.ldap import get_uid_number
 from core.models.identity import Identity
 
-from service.imaging.drivers.openstack import ImageManager
-
+from chromogenic.drivers.openstack import ImageManager
+from atmosphere import settings
 class AccountDriver():
     user_manager = None
     image_manager = None
@@ -65,8 +67,11 @@ class AccountDriver():
         ('TCP', 4201, 65535),
         ('UDP', 4201, 65535),
         # Poke hole in 4200 for iPlant VMs proxy-access only (Shellinabox)
-        ('TCP', 4200, 4200, '128.196.142.0/24'),
-        ('UDP', 4200, 4200, '128.196.142.0/24'),
+        ('TCP', 4200, 4200, '128.196.0.0/16'),
+        ('UDP', 4200, 4200, '128.196.0.0/16'),
+        ('TCP', 4200, 4200, '150.135.0.0/16'),
+        ('UDP', 4200, 4200, '150.135.0.0/16'),
+
     ]
 
     def _init_by_provider(self, provider, *args, **kwargs):
@@ -112,10 +117,11 @@ class AccountDriver():
 
         if username in self.core_provider.list_admin_names():
             return
-        self.build_account(username, password, project_name, role_name,
-                           max_quota)
+        (username, password, project) = self.build_account(
+                                username, password, project_name, role_name,
+                                   max_quota)
         ident = self.create_identity(username, password,
-                                     project_name,
+                                     project.name,
                                      max_quota=max_quota)
         return ident
 
@@ -166,6 +172,24 @@ class AccountDriver():
             except OverLimit:
                 print 'Requests are rate limited. Pausing for one minute.'
                 time.sleep(60)  # Wait one minute
+        return (username, password, project)
+
+    def add_rules_to_security_groups(self, core_identity_list, rules_list, 
+                                   security_group_name='default'):
+        for identity in core_identity_list:
+            creds = self.parse_identity(identity)
+            sec_group = self.user_manager.find_security_group(
+                            creds['username'], creds['password'],
+                            creds['tenant_name'], security_group_name)
+            if not sec_group:
+                raise Exception("No security gruop found matching name %s"
+                                % security_group_name)
+            self.user_manager.add_security_group_rules(
+                creds['username'], creds['password'], creds['tenant_name'],
+                security_group_name, rules_list)
+
+
+
 
     def get_or_create_keypair(self, username, password, project_name,
                       keyname, public_key):
@@ -267,13 +291,12 @@ class AccountDriver():
         #Core credentials need to be converted to openstack names
         identity_creds = self.parse_identity(identity)
         username = identity_creds['username']
-        password = identity_creds['password']
+        #password = identity_creds['password']
         project_name = identity_creds['tenant_name']
         # Convert from libcloud names to openstack client names
-        net_args = self._base_network_creds()
+        #net_args = self._base_network_creds()
         return self.network_manager.delete_project_network(
-                username, project_name,
-                **net_args)
+                username, project_name)
 
     def create_network(self, identity):
         #Core credentials need to be converted to openstack names
@@ -284,8 +307,8 @@ class AccountDriver():
         # Convert from libcloud names to openstack client names
         net_args = self._base_network_creds()
         return self.network_manager.create_project_network(
-                username, password, project_name,
-                get_cidr=get_uid_number, **net_args)
+            username, password, project_name,
+            get_cidr=get_uid_number, **net_args)
 
 
 
@@ -387,7 +410,7 @@ class AccountDriver():
         user_creds = self._get_openstack_credentials(
                             username, password, tenant_name)
         neutron = self.network_manager.new_connection(**user_creds)
-        keystone, nova, glance = self.image_manager.new_connection(**user_creds)
+        keystone, nova, glance = self.image_manager._new_connection(**user_creds)
         return {
             'glance':glance, 
             'keystone':keystone, 

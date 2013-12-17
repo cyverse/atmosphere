@@ -192,6 +192,7 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
             var mount_input = $('<input>', {
                 name: 'mount_location',
                 type: 'text',
+                class: 'form-control',
                 placeholder: '(Optional) Mount location: (default:/vol[1,2,3,..])',
                 width: instance_select.width() + volume_select.width() - 10
             })

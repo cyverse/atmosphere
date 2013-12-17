@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 import time, requests
 
-from django.contrib.auth.models import User
+from core.models.user import AtmosphereUser as User
 from threepio import logger
 
 from atmosphere import settings
 from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
 from core.models import Provider
-from django.contrib.auth.models import User
+
 
 def main():
     """

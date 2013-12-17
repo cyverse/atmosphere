@@ -27,6 +27,7 @@ class Quota(models.Model):
         """
         Select max quota (Default - Highest CPU count
         """
+        from django.db.models import Max
         max_quota_by_type = Quota.objects.all().aggregate(Max(by_type)
                                                            )['%s__max' % by_type]
         quota = Quota.objects.filter(cpu=max_quota_by_type)

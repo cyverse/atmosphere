@@ -3,7 +3,7 @@ Authentication Backends and validation methods
 
 """
 from django.contrib.auth.backends import ModelBackend
-from django.contrib.auth.models import User as DjangoUser
+from core.models import AtmosphereUser as DjangoUser
 
 from threepio import logger
 

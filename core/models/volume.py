@@ -1,7 +1,6 @@
 from datetime import datetime
 import pytz
 
-from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 
@@ -20,7 +19,7 @@ class Volume(models.Model):
     size = models.IntegerField()
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
-    created_by = models.ForeignKey(User, null=True)
+    created_by = models.ForeignKey('AtmosphereUser', null=True)
     created_by_identity = models.ForeignKey(Identity, null=True)
     start_date = models.DateTimeField(default=lambda: datetime.now(pytz.utc))
     end_date = models.DateTimeField(null=True, blank=True)
@@ -62,7 +61,7 @@ class Volume(models.Model):
             return "Unknown"
         attach_data = self.esh.extra.get('attachmentSet', {})
         #Convert OpenStack attach_data to Euca-based
-        if type(attach_data) is list:
+        if type(attach_data) is list and attach_data:
             attach_data = attach_data[0]
 
         if 'serverId' in attach_data:

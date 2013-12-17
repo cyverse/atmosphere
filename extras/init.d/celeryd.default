@@ -3,20 +3,43 @@ CELERYD_NODES="atmosphere-node_1"
 # or we could have three nodes:
 #CELERYD_NODES="atmosphere-node_1 atmosphere-node_2 atmosphere-node_3"
 
+# App instance to use
+#CELERY_APP="atmosphere"
+
+#Imaging requires this -- Sorry I.T!
+C_FORCE_ROOT="True"
+export C_FORCE_ROOT
+
+# Safe list of serializers used by celery
+CELERY_ACCEPT_CONTENT="['pickle', 'json', 'msgpack']"
+
 # Where to chdir at start.
-CELERYD_CHDIR="/opt/dev/atmosphere/"
+CELERYD_CHDIR="/opt/dev/atmosphere"
+
+VIRTUALENV="/opt/env/atmo"
+# Abs path to the 'celery' command
+CELERY_BIN="$VIRTUALENV/bin/celery"
+
+#Activate the virtualenv
+export PATH="$CELERYD_CHDIR:$VIRTUALENV/bin:$VIRTUALENV/lib/python-2.7/site-packages:$PATH"
 
 # Python interpreter from environment.
-ENV_PYTHON="/opt/env/atmo/bin/python"
+ENV_PYTHON="$VIRTUALENV/bin/python"
 
 # How to call "manage.py celeryd_multi"
 CELERYD_MULTI="$ENV_PYTHON $CELERYD_CHDIR/manage.py celeryd_multi"
 
+# SSH Key files
+SSH_CERT_FILE="/etc/ssl/certs/iplantc.org.crt"
+SSH_KEY_FILE="/etc/ssl/private/iplantc.key"
+# Flower (Task monitoring)
+CELERYD_FLOWER="$ENV_PYTHON $CELERYD_CHDIR/manage.py celery flower"
+CELERY_FLOWER_OPTS="--certfile=$SSH_CERT_FILE --keyfile=$SSH_KEY_FILE --port=5555"
 # How to call "manage.py celeryctl"
 CELERYCTL="$ENV_PYTHON $CELERYD_CHDIR/manage.py celeryctl"
 
 # Extra arguments to pass to celeryd
-CELERYD_OPTS="--concurrency=8 --beat"
+CELERYD_OPTS="--concurrency=8"
 
 # %n will be replaced with the nodename.
 CELERYD_LOG_FILE="/var/log/celery/%n.log"
@@ -35,13 +58,13 @@ export DJANGO_SETTINGS_MODULE="atmosphere.settings"
 #
 # Additional celerybeat settings
 ###
-CELERYBEAT_CHDIR=$CELERYD_CHDIR
-#
-#
-## How to call "manage.py celerybeat"
-#CELERYBEAT=$ENV_PYTHON $CELERYBEAT_CHDIR/manage.py celerybeat"
-#CELERYBEAT_OPTS="--schedule=/var/run/celerybeat-schedule"
-#
+
+# Where to chdir at start.
+CELERYBEAT="$ENV_PYTHON $CELERYD_CHDIR/manage.py celery beat"
+
+# Extra arguments to celerybeat
+CELERYBEAT_OPTS="--schedule=/var/run/celerybeat-schedule"
+
 ##Where to log and store process id
 #CELERYBEAT_LOG_FILE="/var/log/celeryd.log"
 #CELERYBEAT_PID_FILE="/var/run/celeryd.pid"

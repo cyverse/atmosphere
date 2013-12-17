@@ -70,6 +70,7 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
                mount_location=None, *args, **kwargs):
     try:
         logger.debug("mount task started at %s." % datetime.now())
+        logger.debug("mount_location: %s" % (mount_location,))
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         volume = driver.get_volume(volume_id)
@@ -78,6 +79,9 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
             device = volume.extra['attachmentSet'][0]['device']
         except:
             device = None
+        if not device:
+            #Device was never attached -- Nothing to mount
+            return
 
         private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
         kwargs.update({'ssh_key': private_key})
@@ -219,8 +223,8 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
             # Exponential backoff..
             attempts += 1
             sleep_time = 2**attempts
-            logger.debug("Volume %s is not ready. Sleep for %s"
-                         % (volume, sleep_time))
+            logger.debug("Volume %s is not ready (%s). Sleep for %s"
+                         % (volume.id, volume.extra['status'], sleep_time))
             time.sleep(sleep_time)
 
         if 'available' in volume.extra['status']:
@@ -269,8 +273,8 @@ def detach_task(driverCls, provider, identity, instance_id, volume_id, *args, **
             # Exponential backoff..
             attempts += 1
             sleep_time = 2**attempts
-            logger.debug("Volume %s is not ready. Sleep for %s"
-                         % (volume, sleep_time))
+            logger.debug("Volume %s is not ready (%s). Sleep for %s"
+                         % (volume.id, volume.extra['status'], sleep_time))
             time.sleep(sleep_time)
 
         if 'in-use' in volume.extra['status']:

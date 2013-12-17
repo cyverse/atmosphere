@@ -7,9 +7,13 @@
     </div>
 
     <div id="image_search_holder">
-        <div id="image_search_input" class="controls">
-            <input style="height: 37px" class="col-md-5" id="image_search" type="text" placeholder='Search by name, emi, tag, description.' name="image_search" spellcheck="false" x-webkit-speech x-webkit-grammar="builtin:search" lang="en"></input>
-            <a class="context-helper" id="help_image_search"><i class="glyphicon glyphicon-question-sign"></i></a>
+        <div id="image_search_input" class="">
+            <!--<div class="col-md-11">-->
+              <input id="image_search" type="text" placeholder='Search by name, emi, tag, description.' name="image_search" spellcheck="false" x-webkit-speech x-webkit-grammar="builtin:search" lang="en" class="form-control"></input>
+            <!--</div>-->
+            <!--<div class="col-md-1">-->
+               <a class="context-helper" id="help_image_search"><i class="glyphicon glyphicon-question-sign"></i></a>
+            <!--</div>-->
         </div>
     </div>
 
@@ -29,20 +33,17 @@
     </h2>
     <div class="row" id="resource_usage_holder">
 
-        <div class="col-md-6">
+        <div class="col-md-4">
+            <div id="allocationHolder"></div>
+            <div id="allocationHolder_info"></div>
+        </div>
+        <div class="col-md-4">
             <div id="cpuHolder"></div>
             <div id="cpuHolder_info"></div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div id="memHolder"></div>
             <div id="memHolder_info"></div>
-        </div>
-    </div>
-    <div class="row" id="allocation_holder">
-
-        <div class="col-md-12">
-            <div id="allocationHolder"></div>
-            <div id="allocationHolder_info"></div>
         </div>
     </div>
 
@@ -51,7 +52,7 @@
     <div id="image_customlaunch">
 
         <div id="selected_image_icon_container">
-            <i class="glyphicon glyphicon--arrow-left"></i>
+            <i class="glyphicon glyphicon-arrow-left"></i>
             <br />
             Select Image
         </div>
@@ -64,33 +65,33 @@
         <br style="clear: both" />
         <form class="form-horizontal">
             <input type="hidden" id="newinst_image_id" name="image_id"/>
-            <div class="control-group">
-                <label class="control-label" for="name">Name</label>
-                <div class="controls">
-                    <input type="text" id="newinst_name" name="name"/>
+            <div class="form-group">
+                <label class="col-sm-2 control-label" for="name">Name</label>
+                <div class="col-sm-10">
+                    <input class="form-control" type="text" id="newinst_name" name="name"/>
                 </div>
             </div>
 
-            <div class="control-group">
-                <label class="control-label" for="description">Description</label>
-                <div class="controls">
-                    <div id="selected_image_description">Select an image from the list to view its description.</div>
+            <div class="form-group">
+                <label class="col-sm-2 control-label" for="description">Description</label>
+                <div class="col-sm-10">
+                    <div style="padding-top:7px" id="selected_image_description">Select an image from the list to view its description.</div>
                 </div>
             </div>
 
 
-            <div class="control-group">
-                <label class="control-label">
+            <div class="form-group">
+                <label class="col-sm-2 control-label">
                     Instance Size
                 </label>
-                <div class="controls">
-                    <select id="newinst_size" name="newinst_size"></select>
+                <div class="col-sm-10">
+                    <select class="form-control" id="newinst_size" name="newinst_size"></select>
                 </div>
             </div>
 
             <hr />
 
-            <div class="control-group">
+            <div class="form-group">
                 <div class="controls">
                     <h3><a style="width: 100%; text-align: left" data-toggle="collapse" data-target="advanced_options">
                         Advanced Options <span class="caret" style="float: right"></span>
@@ -98,22 +99,24 @@
                 </div>
             </div>
             <div class="collapse" id="advanced_options">
-                <div class="control-group">
-                    <label class="control-label" for="owner">Owner</label>
-                    <div class="controls">
-                        <input disabled="disabled" type="text" id="newinst_owner" name="owner"/>
+                <div class="form-group">
+                    <label class="col-sm-2 control-label" for="owner">Owner</label>
+                    <div class="col-sm-10">
+                        <input class="form-control" disabled="disabled" type="text" id="newinst_owner" name="owner"/>
                     </div>
                 </div>
-                <div class="control-group">
-                    <label class="control-label" for="createdate">Built On</label>
-                    <div class="controls">
-                        <input disabled="disabled" type="text" id="newinst_createdate" name="createdate"/>
+                <div class="form-group">
+                    <label class="col-sm-2 control-label" for="createdate">Built On</label>
+                    <div class="col-sm-10">
+                        <input class="form-control" disabled="disabled" type="text" id="newinst_createdate" name="createdate"/>
                     </div>
                 </div>
-                <div class="control-group">
-                    <label class="control-label" for="tags">Image Tags</label>
-                    <div class="controls" id="newinst_tags">
-                    </div>
+                <div class="form-group">
+                    <label class="col-sm-2 control-label" for="tags">Image Tags</label>
+                     <div class="col-sm-10">
+                        <div style="padding-top:5px" id="newinst_tags">
+                        </div>
+                     </div>
                 </div>
 
             </div>		

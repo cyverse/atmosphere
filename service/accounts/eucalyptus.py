@@ -6,7 +6,7 @@ User, BooleanField, StringList
   These XML parsing classes belong to euca_admin.py,
   and can be found on the Cloud Controller
 """
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 from django.db.models import Max
 
 from threepio import logger
@@ -15,7 +15,7 @@ from core.models.identity import Identity
 from core.models.provider import Provider
 
 from rtwo.drivers.eucalyptus_user import UserManager
-from service.imaging.drivers.eucalyptus import ImageManager
+from chromogenic.drivers.eucalyptus import ImageManager
 
 from atmosphere import settings
 
@@ -36,8 +36,10 @@ class AccountDriver():
         #Merge credential dicts
         all_creds = provider_creds
         all_creds.update(admin_creds)
+        print all_creds
         # Convert creds for each manager
         self.user_creds = self._build_user_creds(all_creds)
+        print self.user_creds
         self.user_manager = UserManager(**self.user_creds)
 
         self.image_creds = self._build_image_creds(all_creds)

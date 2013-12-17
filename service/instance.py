@@ -10,6 +10,7 @@ from threepio import logger
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import convert_esh_instance
 from core.models.size import convert_esh_size
+from core.models.provider import AccountProvider
 
 from atmosphere import settings
 
@@ -20,7 +21,7 @@ from service.quota import check_over_quota
 from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError
 from service.accounts.openstack import AccountDriver as OSAccountDriver
-
+from service.tasks.driver import add_floating_ip, remove_empty_network
 
 def stop_instance(esh_driver, esh_instance, provider_id, identity_id, user):
     """
@@ -38,35 +39,85 @@ def start_instance(esh_driver, esh_instance, provider_id, identity_id, user):
     esh_driver.start_instance(esh_instance)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
-def suspend_instance(esh_driver, esh_instance, provider_id, identity_id, user):
+def suspend_instance(esh_driver, esh_instance,
+                     provider_id, identity_id,
+                     user, reclaim_ip=False):
     """
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
-    esh_driver.suspend_instance(esh_instance)
+    if reclaim_ip:
+        network_manager = esh_driver._connection.get_network_manager()
+        network_manager.disassociate_floating_ip(esh_instance.id)
+        fixed_ip_port = network_manager.list_ports(device_id=esh_instance.id)
+        if fixed_ip_port:
+            network_manager.delete_port(fixed_ip_port[0])
+    suspended = esh_driver.suspend_instance(esh_instance)
+    if reclaim_ip:
+        remove_empty_network.s(esh_driver.__class__, esh_driver.provider,
+                                   esh_driver.identity,
+                                   identity_id).apply_async(countdown=20)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
+    return suspended
 
-def resume_instance(esh_driver, esh_instance, provider_id, identity_id, user):
+def resume_instance(esh_driver, esh_instance,
+                    provider_id, identity_id, 
+                    user, restore_ip=False):
     """
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
-    check_quota(user.username, identity_id, esh_instance.size)
+    check_quota(user.username, identity_id, esh_instance.size, resuming=True)
+    core_identity = CoreIdentity.objects.get(id=identity_id)
+    if restore_ip:
+        (network, subnet) = network_init(core_identity)
+        network_manager = esh_driver._connection.get_network_manager()
+        network_manager.create_port(esh_instance.id, network.id)
     esh_driver.resume_instance(esh_instance)
+    if restore_ip:
+        add_floating_ip.s(esh_driver.__class__, esh_driver.provider,
+                        esh_driver.identity,
+                        esh_instance.id).apply_async(countdown=10)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
 def update_status(esh_driver, instance_id, provider_id, identity_id, user):
     #Grab a new copy of the instance
-    esh_instance = esh_driver.get_instance(instance_id)
+    instance_list_method = esh_driver.list_instances
+
+    if AccountProvider.objects.filter(identity__id=identity_id):
+        # Instance list method changes when using the OPENSTACK provider
+        instance_list_method = esh_driver.list_all_instances
+
+    try:
+        esh_instance_list = instance_list_method()
+    except InvalidCredsError:
+        return invalid_creds(provider_id, identity_id)
+
+    esh_instance = [instance for instance in esh_instance_list if
+                    instance.id == instance_id]
+    esh_instance = esh_instance[0]
+
     #Convert & Update based on new status change
     core_instance = convert_esh_instance(esh_driver,
-                                       esh_instance,
-                                       provider_id,
-                                       identity_id,
-                                       user)
+                                         esh_instance,
+                                         provider_id,
+                                         identity_id,
+                                         user)
     core_instance.update_history(
         core_instance.esh.extra['status'],
         core_instance.esh.extra.get('task'))
+
+def get_core_instances(identity_id):
+    identity = CoreIdentity.objects.get(id=identity_id)
+    driver = get_esh_driver(identity)
+    instances = driver.list_instances()
+    core_instances = [convert_esh_instance(driver,
+                                       esh_instance,
+                                       identity.provider.id,
+                                       identity.id,
+                                       identity.created_by)
+                      for esh_instance in instances]
+    return core_instances
 
 def destroy_instance(identity_id, instance_alias):
     core_identity = CoreIdentity.objects.get(id=identity_id)
@@ -126,17 +177,28 @@ def check_size(esh_size, provider_id):
     except:
         raise SizeNotAvailable()
 
-def check_quota(username, identity_id, esh_size):
+def check_quota(username, identity_id, esh_size, resuming=False):
     (over_quota, resource,\
      requested, used, allowed) = check_over_quota(username,
                                                   identity_id,
-                                                  esh_size)
+                                                  esh_size, resuming=resuming)
     if over_quota:
         raise OverQuotaError(resource, requested, used, allowed)
+
     (over_allocation, time_diff) = check_over_allocation(username,
                                                          identity_id)
     if over_allocation:
         raise OverAllocationError(time_diff)
+
+def keypair_init(core_identity):
+    os_driver = OSAccountDriver(core_identity.provider)
+    creds = core_identity.get_credentials()
+    with open(settings.ATMOSPHERE_KEYPAIR_FILE, 'r') as pub_key_file:
+        public_key = pub_key_file.read()
+    keypair, created = os_driver.get_or_create_keypair(creds['key'], creds['secret'], creds['ex_tenant_name'], settings.ATMOSPHERE_KEYPAIR_NAME, public_key)
+    if created:
+        logger.info("Created keypair for %s" % creds['key'])
+    return keypair
 
 def network_init(core_identity):
     provider_creds = core_identity.provider.get_credentials()
@@ -144,7 +206,8 @@ def network_init(core_identity):
         logger.warn("ProviderCredential 'router_name' missing: cannot create virtual network")
         return
     os_driver = OSAccountDriver(core_identity.provider)
-    os_driver.create_network(core_identity)
+    (network, subnet) = os_driver.create_network(core_identity)
+    return (network, subnet)
 
 def launch_esh_instance(driver, machine_alias, size_alias, core_identity, 
                         name=None, username=None, *args, **kwargs):
@@ -193,11 +256,13 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
                                  **kwargs)
         elif isinstance(driver.provider, OSProvider):
             deploy = True
-            ex_metadata = {'tmp_status': 'initializing'}
+            ex_metadata = {'tmp_status': 'initializing',
+                           'creator': '%s' % username}
             ex_keyname=settings.ATMOSPHERE_KEYPAIR_NAME
             #Check for project network.. TODO: Fix how password/project are
             # retrieved
             network_init(core_identity)
+            keypair_init(core_identity)
             logger.debug("OS driver.create_instance kwargs: %s" % kwargs)
             esh_instance = driver.create_instance(name=name, image=machine,
                                                   size=size, token=instance_token,
