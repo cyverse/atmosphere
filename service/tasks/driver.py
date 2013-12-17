@@ -50,10 +50,11 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
       max_retries=2,
       default_retry_delay=128,
       ignore_result=True)
-def deploy_to(driverCls, provider, identity, instance, *args, **kwargs):
+def deploy_to(driverCls, provider, identity, instance_id, *args, **kwargs):
     try:
         logger.debug("deploy_to task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_id)
         driver.deploy_to(instance, *args, **kwargs)
         logger.debug("deploy_to task finished at %s." % datetime.now())
     except Exception as exc:
@@ -141,13 +142,13 @@ def destroy_instance(core_identity_id, instance_alias):
             driverCls = driver.__class__
             provider = driver.provider
             identity = driver.identity
-            chain(_remove_floating_ip
+            chain(clean_empty_ips
                   .subtask((driverCls,
                             provider,
                             identity),
                            immutable=True,
                            countdown=5),
-                  _check_empty_project_network
+                  remove_empty_network
                   .subtask((driverCls,
                             provider,
                             identity,
@@ -219,10 +220,7 @@ def add_floating_ip(driverCls, provider, identity,
                                  data={'tmp_status': 'networking'},
                                  replace=False)
 
-        if not instance.ip:
-            driver._add_floating_ip(instance, *args, **kwargs)
-        else:
-            logger.debug("public ip already found! %s" % instance.ip)
+        driver._connection.neutron_associate_ip(instance, *args, **kwargs)
 
         #Useful for chaining floating-ip + Deployment without returning
         #a 'fully active' state
@@ -241,12 +239,11 @@ def add_floating_ip(driverCls, provider, identity,
         add_floating_ip.retry(exc=exc,
                               countdown=countdown)
 
-
-@task(name="_remove_floating_ip",
+@task(name="clean_empty_ips",
       default_retry_delay=15,
       ignore_result=True,
       max_retries=6)
-def _remove_floating_ip(driverCls, provider, identity, *args, **kwargs):
+def clean_empty_ips(driverCls, provider, identity, *args, **kwargs):
     try:
         logger.debug("remove_floating_ip task started at %s." %
                      datetime.now())
@@ -256,7 +253,7 @@ def _remove_floating_ip(driverCls, provider, identity, *args, **kwargs):
                      datetime.now())
     except Exception as exc:
         logger.warn(exc)
-        _remove_floating_ip.retry(exc=exc)
+        clean_empty_ips.retry(exc=exc)
 
 
 # project Network Tasks
@@ -277,20 +274,21 @@ def add_os_project_network(core_identity, *args, **kwargs):
         add_os_project_network.retry(exc=exc)
 
 
-@task(name="_check_empty_project_network",
+@task(name="remove_empty_network",
       default_retry_delay=60,
       ignore_result=True,
       max_retries=1)
-def _check_empty_project_network(
+def remove_empty_network(
+        driverCls, provider, identity,
         core_identity_id,
         *args, **kwargs):
-    from api import get_esh_driver
     try:
-        logger.debug("_check_empty_project_network task started at %s." %
+        logger.debug("remove_empty_network task started at %s." %
                      datetime.now())
 
+        logger.debug("Params - %s" % core_identity_id)
         core_identity = Identity.objects.get(id=core_identity_id)
-        driver = get_esh_driver(core_identity)
+        driver = get_driver(driverCls, provider, identity)
         instances = driver.list_instances()
         active_instances = False
         for instance in instances:
@@ -305,8 +303,10 @@ def _check_empty_project_network(
             logger.info("No active instances. Removing project network"
                         "from %s" % core_identity)
             os_acct_driver.delete_network(core_identity)
-        logger.debug("_check_empty_project_network task finished at %s." %
+            return True
+        logger.debug("remove_empty_network task finished at %s." %
                      datetime.now())
+        return False
     except Exception as exc:
-        logger.warn(exc)
-        _check_empty_project_network.retry(exc=exc)
+        logger.exception("Failed to check if project network is empty")
+        remove_empty_network.retry(exc=exc)

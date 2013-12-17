@@ -159,6 +159,7 @@ class Migration(DataMigration):
         provider = esh_map['provider']()
         identity = esh_map['identity'](provider, user=user, **cred_dict)
         driver = esh_map['driver'](provider, identity)
+	driver._connection.connection.service_region = 'ValhallaRegion'
         return driver
 
     def update_volume(self, orm):

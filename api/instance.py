@@ -4,9 +4,10 @@ Atmosphere service instance rest api.
 from datetime import datetime
 import time
 
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
+from django.db.models import Q
 
 from rest_framework import status
 from rest_framework.views import APIView
@@ -18,6 +19,7 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
+from core.models.provider import AccountProvider
 from core.models.instance import convert_esh_instance, update_instance_metadata
 from core.models.instance import Instance as CoreInstance
 from core.models.size import convert_esh_size
@@ -47,12 +49,17 @@ class InstanceList(APIView):
         """
         Returns a list of all instances
         """
-        method_params = {}
         user = request.user
         esh_driver = prepare_driver(request, identity_id)
 
+        instance_list_method = esh_driver.list_instances
+
+        if AccountProvider.objects.filter(identity__id=identity_id):
+            # Instance list method changes when using the OPENSTACK provider
+            instance_list_method = esh_driver.list_all_instances
+
         try:
-            esh_instance_list = esh_driver.list_instances(method_params)
+            esh_instance_list = instance_list_method()
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
 
@@ -124,10 +131,12 @@ class InstanceHistory(APIView):
     """
 
     @api_auth_token_required
-    def get(self, request, provider_id, identity_id):
+    def get(self, request, provider_id=None, identity_id=None):
         data = request.DATA
-        user = User.objects.filter(username=request.user)
+        params = request.QUERY_PARAMS.copy()
+        logger.info(params.items())
 
+        user = User.objects.filter(username=request.user)
         if user and len(user) > 0:
             user = user[0]
         else:
@@ -136,13 +145,40 @@ class InstanceHistory(APIView):
                 'message': 'User not found'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
-        esh_driver = prepare_driver(request, identity_id)
+        page = params.pop('page',None)
+        emulate_name = params.pop('username',None)
+        try:
+            #Support for staff users to emulate a specific user history
+            if user.is_staff and emulate_name:
+                emualate_name = emulate_name[0] # Querystring conversion
+                user = User.objects.get(username=emulate_name)
 
-        # Historic Instances in reverse chronological order
-        history_instance_list = CoreInstance.objects.filter(
-            created_by=user.id).order_by("-start_date")
+            # List of all instances created by user
+            history_instance_list = CoreInstance.objects.filter(
+                created_by=user).order_by("-start_date")
 
-        page = request.QUERY_PARAMS.get('page')
+            #Filter the list based on query strings
+            for filter_key, value in params.items():
+                if 'start_date' == filter_key:
+                    history_instance_list = history_instance_list.filter(
+                                            start_date__gt=value)
+                elif 'end_date' == filter_key:
+                    history_instance_list = history_instance_list.filter(
+                                            Q(end_date=None) |
+                                            Q(end_date__lt=value))
+                elif 'ip_address' == filter_key:
+                    history_instance_list = history_instance_list.filter(
+                                            ip_address__contains=value)
+                elif 'alias' == filter_key:
+                    history_instance_list = history_instance_list.filter(
+                                            provider_alias__contains=value)
+
+        except Exception as e:
+            errorObj = failureJSON([{
+                'code': 400,
+                'message': 'Bad query string caused filter validation errors : %s'
+                           % (e,)}])
+            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
         if page:
             paginator = Paginator(history_instance_list, 5)
             try:
@@ -193,14 +229,36 @@ class InstanceAction(APIView):
         result_obj = None
         user = request.user
         esh_driver = prepare_driver(request, identity_id)
+
+        instance_list_method = esh_driver.list_instances
+
+        if AccountProvider.objects.filter(identity__id=identity_id):
+            # Instance list method changes when using the OPENSTACK provider
+            instance_list_method = esh_driver.list_all_instances
+
+        try:
+            esh_instance_list = instance_list_method()
+        except InvalidCredsError:
+            return invalid_creds(provider_id, identity_id)
+
         esh_instance = esh_driver.get_instance(instance_id)
+        if not esh_instance:
+            errorObj = failureJSON([{
+                'code': 400,
+                'message': 'Instance %s no longer exists' % (instance_id,)}])
+            return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+
         action = action_params['action']
         try:
             if 'volume' in action:
                 volume_id = action_params.get('volume_id')
                 if 'attach_volume' == action:
                     mount_location = action_params.get('mount_location',None)
+                    if mount_location == 'null' or mount_location == 'None':
+                        mount_location = None
                     device = action_params.get('device', None)
+                    if device == 'null' or device == 'None':
+                        device = None
                     task.attach_volume_task(esh_driver, esh_instance.alias,
                                             volume_id, device, mount_location)
                 elif 'detach_volume' == action:
@@ -235,8 +293,10 @@ class InstanceAction(APIView):
                 resume_instance(esh_driver, esh_instance,
                                 provider_id, identity_id, user)
             elif 'suspend' == action:
+                reclaim_ip = True
+                #TODO: Provider dependent
                 suspend_instance(esh_driver, esh_instance,
-                                provider_id, identity_id, user)
+                                provider_id, identity_id, user, reclaim_ip)
             elif 'start' == action:
                 start_instance(esh_driver, esh_instance,
                                provider_id, identity_id, user)

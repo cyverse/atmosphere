@@ -22,6 +22,7 @@ from core.models.allocation import Allocation
 from core.models.size import Size
 from core.models.step import Step
 from core.models.tag import Tag
+from core.models.user import AtmosphereUser
 from core.models.volume import Volume
 
 
@@ -164,8 +165,8 @@ class UserProfileInline(admin.StackedInline):
 class UserAdmin(AuthUserAdmin):
     inlines = [UserProfileInline]
 
-admin.site.unregister(DjangoUser)
-admin.site.register(DjangoUser, UserAdmin)
+#admin.site.unregister(DjangoUser)
+admin.site.register(AtmosphereUser, UserAdmin)
 
 
 class ProviderMembershipAdmin(admin.ModelAdmin):

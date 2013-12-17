@@ -9,6 +9,26 @@ from rtwo.provider import AWSProvider, EucaProvider, OSProvider
 from rtwo.provider import Provider as EshProvider
 from threepio import logger
 
+class PlatformType(models.Model):
+    """
+    Keep track of Virtualization Platform via type
+    """
+    name = models.CharField(max_length=256)
+    start_date = models.DateTimeField(default=timezone.now())
+    end_date = models.DateTimeField(null=True, blank=True)
+
+    def json(self):
+        return {
+            'name': self.name
+        }
+
+    class Meta:
+        db_table = 'platform_type'
+        app_label = 'core'
+
+    def __unicode__(self):
+        return self.name
+
 class ProviderType(models.Model):
     """
     Keep track of Provider via type
@@ -70,10 +90,44 @@ class Provider(models.Model):
     """
     location = models.CharField(max_length=256)
     type = models.ForeignKey(ProviderType)
+    virtualization = models.ForeignKey(PlatformType)
     active = models.BooleanField(default=True)
     public = models.BooleanField(default=False)
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
+
+    def share(self, core_group):
+        """
+        """
+        from core.models import IdentityMembership, ProviderMembership
+        #Does this group already have membership?
+        existing_membership = ProviderMembership.objects.filter(
+                member=core_group, provider=self)
+        if existing_membership:
+            return existing_membership[0]
+        #Create new membership for this group
+        new_membership = ProviderMembership.objects.get_or_create(
+                member=core_group, provider=self)
+        return new_membership[0]
+
+    def unshare(self, core_group):
+        """
+        """
+        from core.models import IdentityMembership, ProviderMembership
+        identity_memberships = IdentityMembership.objects.filter(
+                member=core_group, identity__provider=self)
+        if identity_memberships:
+            raise Exception("Cannot unshare provider membership until all"
+                            " Identities on that provider have been removed")
+        existing_membership = ProviderMembership.objects.filter(member=core_group, provider=self)
+        if existing_membership:
+            existing_membership[0].delete()
+
+    def get_membership(self):
+        provider_members = self.providermembership_set.all()
+        group_names = [prov_member.member for prov_member in provider_members]
+        #TODO: Add 'rules' if we want to hide specific users (staff, etc.)
+        return group_names
 
     def get_esh_credentials(self, esh_provider):
 
@@ -85,6 +139,12 @@ class Provider(models.Model):
             url_map = EucaProvider.parse_url(ec2_url)
             cred_map.update(url_map)
         return cred_map
+
+    def get_platform_name(self):
+        return self.virtualization.name
+
+    def get_type_name(self):
+        return self.type.name
 
     def get_location(self):
         return self.location.title()
@@ -107,7 +167,7 @@ class Provider(models.Model):
           return provider_admins[0]
         #NOTE: Marked for removal
         from core.models import Identity
-        from django.contrib.auth.models import User
+        from core.models import AtmosphereUser as User
         from atmosphere import settings
         if self.location.lower() == 'openstack':
             admin = User.objects.get(username=settings.OPENSTACK_ADMIN_KEY)
@@ -133,6 +193,21 @@ class AccountProvider(models.Model):
     """
     provider = models.ForeignKey(Provider)
     identity = models.ForeignKey('Identity')
+
+    @classmethod
+    def make_superuser(cls, core_group, quota=None):
+        from core.models import Quota
+        if not quota:
+            quota = Quota.max_quota()
+        account_providers = AccountProvider.objects.distinct('provider')
+        for acct in account_providers:
+            acct.share_with(core_group)
+
+    def share_with(self, core_group, quota=None):
+        prov_member = self.provider.share(core_group)
+        id_member = self.identity.share(core_group, quota=quota)
+        return (prov_member, id_member)
+
 
     def __unicode__(self):
         return "Account Admin %s for %s" % (self.identity, self.provider)

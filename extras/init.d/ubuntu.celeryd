@@ -17,19 +17,42 @@
 # Default-Stop:      0 1 6
 # Short-Description: celery task worker daemon
 ### END INIT INFO
+#
+#
+# To implement separate init scripts, do NOT copy this script.  Instead,
+# symlink it.  I.e., if my new application, "little-worker" needs an init, I
+# should just use:
+#
+#   ln -s /etc/init.d/celeryd /etc/init.d/little-worker
+#
+# You can then configure this by manipulating /etc/default/little-worker.
+#
+# If you want to have separate LSB headers in each script you can source this
+# script instead of symlinking:
+#   # ...
+#   ### END INIT INFO
+#   source /etc/init.d/celeryd
+#
+# Setting `SCRIPT_NAME` here allows you to symlink/source this init script,
+# making it easy to run multiple processes on the system.
+SCRIPT_NAME="$(basename $0)"
 
-# some commands work asyncronously, so we'll wait this many seconds
-SLEEP_SECONDS=5
-
-DEFAULT_PID_FILE="/var/run/celery/%n.pid"
-DEFAULT_LOG_FILE="/var/log/celery/%n.log"
+DEFAULT_PID_FILE="/var/run/celery/${SCRIPT_NAME}/%n.pid"
+DEFAULT_LOG_FILE="/var/log/celery/${SCRIPT_NAME}/%n.log"
 DEFAULT_LOG_LEVEL="INFO"
 DEFAULT_NODES="celery"
-DEFAULT_CELERYD="-m celery.bin.celeryd_detach"
+DEFAULT_CELERYD="-m celery worker --detach"
 
-CELERY_DEFAULTS=${CELERY_DEFAULTS:-"/etc/default/celeryd"}
+CELERY_DEFAULTS=${CELERY_DEFAULTS:-"/etc/default/${SCRIPT_NAME}"}
 
 test -f "$CELERY_DEFAULTS" && . "$CELERY_DEFAULTS"
+
+# Sets --app argument for CELERY_BIN
+CELERY_APP_ARG=""
+if [ ! -z "$CELERY_APP" ]; then
+    CELERY_APP_ARG="--app=$CELERY_APP"
+fi
+
 
 # Set CELERY_CREATE_DIRS to always create log/pid dirs.
 CELERY_CREATE_DIRS=${CELERY_CREATE_DIRS:-0}
@@ -45,8 +68,9 @@ if [ -z "$CELERYD_LOG_FILE" ]; then
 fi
 
 CELERYD_LOG_LEVEL=${CELERYD_LOG_LEVEL:-${CELERYD_LOGLEVEL:-$DEFAULT_LOG_LEVEL}}
-CELERYD_MULTI=${CELERYD_MULTI:-"celeryd-multi"}
-CELERYD=${CELERYD:-$DEFAULT_CELERYD}
+CELERY_BIN=${CELERY_BIN:-"celery"}
+CELERYD_MULTI=${CELERYD_MULTI:-"$CELERY_BIN multi"}
+CELERYD_FLOWER=${CELERYD_FLOWER:-"$CELERY_BIN flower"}
 CELERYD_NODES=${CELERYD_NODES:-$DEFAULT_NODES}
 
 export CELERY_LOADER
@@ -130,20 +154,55 @@ _get_pid_files() {
     echo `ls -1 "$CELERYD_PID_DIR"/*.pid 2> /dev/null`
 }
 
-stop_workers () {
-    $CELERYD_MULTI stopwait $CELERYD_NODES --pidfile="$CELERYD_PID_FILE"
-    sleep $SLEEP_SECONDS
+_get_pids() {
+    local pid_files=
+    pid_files=`_get_pid_files`
+    [ -z "$pid_files" ] && echo "${SCRIPT_NAME} is stopped" && exit 1
+
+    for pid_file in $pid_files; do
+        local pid=`cat "$pid_file"`
+        local cleaned_pid=`echo "$pid" | sed -e 's/[^0-9]//g'`
+        if [ -z "$pid" ] || [ "$cleaned_pid" != "$pid" ]; then
+            echo "bad pid file ($pid_file)"
+            one_failed=true
+        else
+            echo "$pid"
+        fi
+    done
+}
+
+_get_worker_pids() {
+    local pids=
+    pids=`_get_pids`
+    local worker_pids=
+    for pid in $pids; do
+        worker_pids=`ps h --ppid $pid -o pid`
+        [ "$worker_pids" ] && echo "$worker_pids" || one_failed=true
+    done
 }
 
 
 start_workers () {
-    $CELERYD_MULTI start $CELERYD_NODES $DAEMON_OPTS        \
+    echo -n "PATH=$PATH"
+    if [ -z "$CELERYD_ULIMIT" ]; then
+        ulimit $CELERYD_ULIMIT
+    fi
+    $CELERYD_MULTI $* start $CELERYD_NODES $DAEMON_OPTS     \
                          --pidfile="$CELERYD_PID_FILE"      \
                          --logfile="$CELERYD_LOG_FILE"      \
                          --loglevel="$CELERYD_LOG_LEVEL"    \
-                         --cmd="$CELERYD"                   \
+                         $CELERY_APP_ARG                    \
                          $CELERYD_OPTS
-    sleep $SLEEP_SECONDS
+}
+
+
+dryrun () {
+    (C_FAKEFORK=1 start_workers --verbose)
+}
+
+
+stop_workers () {
+    $CELERYD_MULTI stopwait $CELERYD_NODES --pidfile="$CELERYD_PID_FILE"
 }
 
 
@@ -152,13 +211,40 @@ restart_workers () {
                            --pidfile="$CELERYD_PID_FILE"    \
                            --logfile="$CELERYD_LOG_FILE"    \
                            --loglevel="$CELERYD_LOG_LEVEL"  \
-                           --cmd="$CELERYD"                 \
+                           $CELERY_APP_ARG                  \
                            $CELERYD_OPTS
 }
 
+
+kill_workers() {
+    $CELERYD_MULTI kill $CELERYD_NODES --pidfile="$CELERYD_PID_FILE"
+}
+
+
+restart_workers_graceful () {
+    local worker_pids=
+    worker_pids=`_get_worker_pids`
+    [ "$one_failed" ] && exit 1
+
+    for worker_pid in $worker_pids; do
+        local failed=
+        kill -HUP $worker_pid 2> /dev/null || failed=true
+        if [ "$failed" ]; then
+            echo "${SCRIPT_NAME} worker (pid $worker_pid) could not be restarted"
+            one_failed=true
+        else
+            echo "${SCRIPT_NAME} worker (pid $worker_pid) received SIGHUP"
+        fi
+    done
+
+    [ "$one_failed" ] && exit 1 || exit 0
+}
+
+
 check_status () {
-    local pid_files=`_get_pid_files`
-    [ -z "$pid_files" ] && echo "celeryd is stopped" && exit 1
+    local pid_files=
+    pid_files=`_get_pid_files`
+    [ -z "$pid_files" ] && echo "${SCRIPT_NAME} not running (no pidfile)" && exit 1
 
     local one_failed=
     for pid_file in $pid_files; do
@@ -171,10 +257,10 @@ check_status () {
             local failed=
             kill -0 $pid 2> /dev/null || failed=true
             if [ "$failed" ]; then
-                echo "celeryd (node $node) (pid $pid) is stopped, but pid file exists!"
+                echo "${SCRIPT_NAME} (node $node) (pid $pid) is stopped, but pid file exists!"
                 one_failed=true
             else
-                echo "celeryd (node $node) (pid $pid) is running..."
+                echo "${SCRIPT_NAME} (node $node) (pid $pid) is running..."
             fi
         fi
     done
@@ -183,17 +269,56 @@ check_status () {
 }
 
 
+start_flower() {
+    FLOWER_PID_FILE="$CELERYD_PID_DIR/flower.pid"
+    if [ -f "$FLOWER_PID_FILE" ]; then
+        echo "Pidfile exists for flower: $FLOWER_PID_FILE"
+        return
+    fi 
+    #Start a new one
+    echo $CELERYD_FLOWER $CELERY_FLOWER_OPTS
+    $CELERYD_FLOWER $CELERY_FLOWER_OPTS &
+    FLOWER_PID=$!
+    echo $FLOWER_PID > $FLOWER_PID_FILE
+    echo "Flower (pid $FLOWER_PID) is running..."
+}
+kill_flower() {
+    echo "Killing flower processes..."
+    FLOWER_PID_FILE="$CELERYD_PID_DIR/flower.pid"
+    if [ -f "$FLOWER_PID_FILE" ]; then
+        echo "Pidfile found for flower: $FLOWER_PID_FILE"
+        FLOWER_PID=`cat "$FLOWER_PID_FILE"`
+    else 
+        echo "pid file missing (Is it running?). Searching for flower.."
+        FLOWER_PID=`ps aux | grep -v 'grep' | grep 'celery flower' | awk '{print $2}'`
+    fi
+    if [ -z "$FLOWER_PID" ] ; then
+        echo "Flower is not running."
+    elif kill -9 "$FLOWER_PID" > /dev/null 2>&1; then
+        echo "Killed running flower PID: $FLOWER_PID"
+    fi
+    #File cleanup
+    if [ -f "$FLOWER_PID_FILE" ]; then
+        echo "Cleaning up stale pid: $FLOWER_PID_FILE"
+        rm $FLOWER_PID_FILE
+    fi
+}
+
+
 case "$1" in
     start)
         check_dev_null
         check_paths
         start_workers
+        kill_flower
+        start_flower
     ;;
 
     stop)
         check_dev_null
         check_paths
         stop_workers
+        kill_flower
     ;;
 
     reload|force-reload)
@@ -208,22 +333,58 @@ case "$1" in
         check_dev_null
         check_paths
         restart_workers
+        kill_flower
+        start_flower
     ;;
+
+    graceful)
+        check_dev_null
+        restart_workers_graceful
+    ;;
+
+    kill)
+        check_dev_null
+        kill_workers
+        kill_flower
+    ;;
+
+    dryrun)
+        check_dev_null
+        dryrun
+    ;;
+
     try-restart)
         check_dev_null
         check_paths
         restart_workers
+        kill_flower
+        start_flower
     ;;
+
     create-paths)
         check_dev_null
         create_paths
     ;;
+
     check-paths)
         check_dev_null
         check_paths
     ;;
+    flower-start)
+        check_dev_null
+        check_paths
+        start_flower
+    ;;
+
+    flower-stop)
+        check_dev_null
+        check_paths
+        kill_flower
+    ;;
+
     *)
-        echo "Usage: /etc/init.d/celeryd {start|stop|restart|kill|create-paths}"
+        echo -n "Usage: /etc/init.d/${SCRIPT_NAME}"
+        echo "{start|stop|flower-start|flower-stop|restart|graceful|kill|dryrun|create-paths}"
         exit 64  # EX_USAGE
     ;;
 esac

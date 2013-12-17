@@ -92,7 +92,7 @@ select {
 	overflow-x: hidden;
 }
 .screen {
-	padding: 10px;
+	padding: 10px 0;
 }
 #main p {	
 	font-size: 12px !important;
@@ -162,16 +162,9 @@ select {
 }
 #logo_container {
     margin-left: 0px;
-}
-#logo_container div {
-    border-radius: 3px;
     padding: 5px;
-    height: 28px;
-    overflow: hidden;
 }
 #logo_container img {
-    max-width: 100%;
-    max-height: 100%;
     height: 28px;
 }
 #logo_container a, #logo_container a:hover {
@@ -822,8 +815,9 @@ textarea.error:focus {
 	cursor: pointer;
 }
 ul.instance_state_indicators {		/* Instance status indicators, in sidebar */
-    margin: 0;
-    list-style: none;
+   padding: 0;
+   margin: 0;
+   list-style: none;
 }
 ul.instance_state_indicators li {
     padding: 0 0 0 21px;
@@ -897,7 +891,6 @@ ul.instance_state_indicators li {
 	-webkit-box-sizing: border-box;
 	padding: 10px; 
 	position: relative; 
-	top: -18px;
 }
 .instance_tabs a {
     text-decoration: none !important;
@@ -1204,6 +1197,11 @@ img.terminate_shell, img.terminate_vnc {
 #newinst_name_title {			/* Available images */
 	display: inline;
 }
+#help_image_search {
+   position: absolute;
+   right: 0;
+   top: 5px;
+}
 #image_search {
 	box-sizing: border-box;
 	-moz-box-sizing: border-box;
@@ -1222,7 +1220,6 @@ img.terminate_shell, img.terminate_vnc {
 #image_search_holder input {
 	width: 100%;
 	box-sizing: border-box;
-	height: 28px;
 }
 #instance_search_holder {
 	text-align: right;
@@ -1234,6 +1231,7 @@ img.terminate_shell, img.terminate_vnc {
 .image_list {
 	list-style: none;
 	margin: 0 10px 0 0;
+   padding: 0;
 }
 .image_list > li {
 	padding: 5px 0;
@@ -1450,7 +1448,6 @@ ul.tag_list > li.tag_controls {
 	float: left;
 	height: 50px; 
 	width: 50px; 
-	border: 1px solid #999; 
 	margin-right: 10px; 
 	text-align: center; 
 	color: #999; 
@@ -1717,9 +1714,10 @@ a.selected.thumbnail {
 }
 .provider_controls {
     float: left;
-    padding-left: 10px;
-    padding-top: 5px;
     margin-right: 10px;
+}
+#control_radio_button{
+   margin: 0px;
 }
 img.gravatar {
 	float: left;
@@ -1778,6 +1776,9 @@ table.image-table {
 }
 #main a i.maint-icon {
     margin-left: 14px;
+}
+.bottom-half-settings{
+   margin-top: 30px;
 }
 
 

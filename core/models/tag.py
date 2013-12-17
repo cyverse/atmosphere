@@ -3,14 +3,12 @@
 """
 
 from django.db import models
-from django.contrib.auth.models import User
-
 
 class Tag(models.Model):
     name = models.SlugField(max_length=128)
     description = models.CharField(max_length=1024)
     #Not-Null="User-Specific"
-    user = models.ForeignKey(User, null=True, blank=True)
+    user = models.ForeignKey('AtmosphereUser', null=True, blank=True)
 
     def __unicode__(self):
         return "%s" % (self.name,)

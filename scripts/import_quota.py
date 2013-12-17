@@ -4,7 +4,7 @@ import sys
 import json
 from datetime import datetime
 
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 
 from pytz import timezone
 

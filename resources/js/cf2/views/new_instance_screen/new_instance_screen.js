@@ -11,7 +11,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		'click #launchInstance': 'launch_instance',
 		'keyup #newinst_name' : 'validate_name',
 		//'dblclick .image_list > li' : 'quick_launch',
-		'click #help_request_more_resources2' : 'show_request_resources_modal'
+		'click #help_request_more_resources2' : 'show_request_resources_modal',
 	},
 	template: _.template(Atmo.Templates.new_instance_screen),
 	initialize: function(options) {
@@ -43,8 +43,12 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		    	quota_type: 'allocation'
 		    }).render();
         } else {
-            allocation_holder = this.$el.find('#allocation_holder');
-            allocation_holder.html('');
+            graph_holders = this.$el.find('#resource_usage_holder');
+            alloc_graph = this.$el.find("#allocationHolder").parent();
+            alloc_graph.remove();
+            graph_holders.children().each( function() {
+                $(this).removeClass('span4').addClass('span6');
+            });
         }
 
 		// Make the dropdown functional
@@ -62,6 +66,23 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		this.render_instance_type_list();
 
         // Assign content to the popovers
+        this.$el.find('#allocationHolder').popover({
+            placement: 'bottom',
+            trigger: 'hover',
+            title: 'Time Allocation <a class="close" data-dismiss="popover" href="#new_instance" data-parent="help_image">&times</a>',
+            html: true,
+            content: function() {
+                allocation = Atmo.profile.attributes.selected_identity.attributes.quota.allocation;
+                hours_remaining = Math.floor(allocation.ttz / 60);
+                burn_time = Math.floor(allocation.burn / 60);
+                var content = 'The graph above represents the <b>time you have currently used</b> for this provider.<br /><br />';
+                content += 'As of now, you have <b>' + hours_remaining + ' hours remaining.</b><br /><br />';
+                if (burn_time != 0) {
+                    content += "Given your current instance configuration, you will <b>run out of ALL your time in " + burn_time + ' hours</b>';
+                }
+                return content;
+            }
+        }).click(this.x_close);
         this.$el.find('#help_image').popover({
             placement: 'bottom',
             title: 'Select an Image <a class="close" data-dismiss="popover" href="#new_instance" data-parent="help_image">&times</a>',
@@ -334,7 +355,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 			this.$el.find('#launchInstance').attr('disabled', 'disabled');
 
 
-		this.$el.find('#selected_image_icon_container').html('<img src="'+img.get('image_url')+'" width="75" height="75" />');
+		this.$el.find('#selected_image_icon_container').html('<img src="'+img.get('image_url')+'" width="50" height="50"/>');
 		this.$el.find('#selected_image_description')
 			.html(img.get('description'));
 		this.$el.find('#newinst_name_title').html('of ' + img.get('name_or_id'));
@@ -472,5 +493,11 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 	},
 	show_request_resources_modal: function() {
 		Atmo.request_resources_modal.do_alert();
-	}
+	},
+    hide_burn_time: function() {
+        console.log(Atmo.profile);
+    },
+    show_burn_time: function() {
+        console.log(Atmo.profile);
+    }
 });

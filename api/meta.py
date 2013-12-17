@@ -30,8 +30,9 @@ class Meta(APIView):
         """
         user = request.user
         profile = user.get_profile() 
-        identity_id = profile.selected_identity.id
-        provider_id = profile.selected_identity.provider.id
+        identity = user.select_identity()
+        identity_id = identity.id
+        provider_id = identity.provider.id
         data = {
                 'provider':reverse('provider-list',
                     request=request),

@@ -61,10 +61,11 @@ def detach_volume_task(driver, instance_id, volume_id, *args, **kwargs):
 
 def attach_volume_task(driver, instance_id, volume_id, device=None,
         mount_location=None, *args, **kwargs):
+    logger.info("P_device - %s" % device)
+    logger.info("P_mount_location - %s" % mount_location)
     attach_task.delay(
         driver.__class__, driver.provider, driver.identity,
         instance_id, volume_id, device).get()
-
     if not hasattr(driver, 'deploy_to'):
         #Do not attempt to mount if we don't have sh access
         return

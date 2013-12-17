@@ -19,7 +19,6 @@ class GroupList(APIView):
     Represents both the collection of groups
     AND
     Objects on the Group class
-    TODO: LOCK THIS CLASS DOWN!!!
     """
     @api_auth_token_required
     def post(self, request):
@@ -41,6 +40,10 @@ class GroupList(APIView):
 
     @api_auth_token_required
     def get(self, request):
+        """
+        Return all groups that 'user' is a member of
+        including the providers/identities shared with that group
+        """
         user = request.user
         all_groups = user.group_set.order_by('name')
         serialized_data = GroupSerializer(all_groups).data
@@ -54,12 +57,7 @@ class Group(APIView):
     def get(self, request, groupname):
         """
         Return the object belonging to the group
-        as well as the 'default' provider/identity
-        1. Test for authenticated groupname
-        (Or if admin is the groupname for emulate functionality)
-        2. <DEFAULT PROVIDER> Select first provider groupname can use
-        3. <DEFAULT IDENTITY> Select first provider groupname can use
-        4. Set in session THEN pass in response
+        including the providers/identities shared with that group
         """
         logger.info(request.__dict__)
         user = request.user

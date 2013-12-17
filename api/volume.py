@@ -12,6 +12,7 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
+from core.models.provider import AccountProvider
 from core.models.volume import convert_esh_volume
 from core.models.quota import\
     Quota as CoreQuota, get_quota, has_storage_quota, has_storage_count_quota
@@ -32,7 +33,14 @@ class VolumeList(APIView):
         """
         user = request.user
         esh_driver = prepare_driver(request, identity_id)
-        esh_volume_list = esh_driver.list_volumes()
+        volume_list_method = esh_driver.list_volumes
+
+        if AccountProvider.objects.filter(identity__id=identity_id):
+            # Instance list method changes when using the OPENSTACK provider
+            volume_list_method = esh_driver.list_all_volumes
+
+        esh_volume_list = volume_list_method()
+
         core_volume_list = [convert_esh_volume(volume, provider_id, identity_id, user)
                             for volume in esh_volume_list]
         serializer = VolumeSerializer(core_volume_list, many=True)

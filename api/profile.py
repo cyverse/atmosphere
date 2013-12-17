@@ -28,8 +28,9 @@ class Profile(APIView):
         #logger.debug(user.get_profile())
         profile = user.get_profile() 
         serialized_data = ProfileSerializer(profile).data
-        identity_id = profile.selected_identity.id
-        provider_id = profile.selected_identity.provider.id
+        identity = user.select_identity()
+        identity_id = identity.id
+        provider_id = identity.provider.id
         serialized_data.update({
 
         })

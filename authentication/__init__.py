@@ -3,12 +3,11 @@ authentication helper methods.
 
 """
 from django.http import HttpResponseRedirect
-from django.contrib.auth.models import User
 
 from atmosphere import settings
 
 from authentication.models import Token as AuthToken
-
+from core.models import AtmosphereUser as User
 
 def cas_logoutRedirect():
     return HttpResponseRedirect(settings.CAS_SERVER

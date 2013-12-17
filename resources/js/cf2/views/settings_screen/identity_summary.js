@@ -48,7 +48,7 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
     this.$el.html(this.template(identity));
     if (Atmo.profile.get('selected_identity').id == self.identity_id) {
       if(in_maintenance) {
-        this.$el.find('a.accordion-toggle').html(identity.provider_name + ' <span class="label" style="background-color: #0098aa">CURRENT</span><i class="maint-icon icon-warning-sign"></i>maintenance<span class="caret"></span>');
+        this.$el.find('a.accordion-toggle').html(identity.provider_name + ' <span class="label" style="background-color: #0098aa">CURRENT</span><i class="maint-icon glphicon glphicon-warning-sign"></i>maintenance<span class="caret"></span>');
       this.$el.find('.control_radio').attr('checked', 'checked');
       } else {
         this.$el.find('a.accordion-toggle').html(identity.provider_name + ' <span class="label" style="background-color: #0098aa">CURRENT</span><span class="caret"></span>');
@@ -56,7 +56,7 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
       }
     } else {
       if(in_maintenance) {
-        this.$el.find('a.accordion-toggle').html(identity.provider_name + ' <i class="maint-icon icon-warning-sign"></i>maintenance<span class="caret"></span>');
+        this.$el.find('a.accordion-toggle').html(identity.provider_name + ' <i class="maint-icon glphicon glphicon-warning-sign"></i>maintenance<span class="caret"></span>');
       }
     }
 
@@ -390,19 +390,17 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
           }
           vol_table.append(vol_tbody);
           self.$el.find('#volumes_'+self.identity_id).html(vol_table);
-          
+          }
           // End loader slidedown function
-          $(e.target).closest('.accordion-group').attr('data-populated', 'true');
-          
           setTimeout(function() { 
             loader.remove();
-            
             var children = self.$el.find('.accordion-inner .row-fluid');
             children.slideDown();
-            
           }, 3000);
-        }
+          $(e.target).closest('.accordion-group').attr('data-populated', 'true');
+      
       });
+      $(e.target).find('.accordion-body').collapse('toggle');
     }
     else {
       $(e.target).parent().parent().find('.accordion-body').collapse('toggle');

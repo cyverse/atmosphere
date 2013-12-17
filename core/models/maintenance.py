@@ -2,7 +2,7 @@ import collections
 
 from datetime import datetime
 
-from django.contrib.auth.models import User
+from core.models.user import AtmosphereUser as User
 from django.db import models
 from django.db.models import Q
 
@@ -55,6 +55,7 @@ class MaintenanceRecord(models.Model):
             'end': self.end_date,
             'title': self.title,
             'message': self.message,
+            'disable': self.disable_login,
         }
         if self.provider:
             json['provider'] = self.provider.location
