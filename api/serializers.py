@@ -357,18 +357,34 @@ class ProviderSizeSerializer(serializers.ModelSerializer):
         exclude = ('id', 'start_date', 'end_date')
 
 
+class InstanceRelatedField(serializers.RelatedField):
+    def to_native(self, instance_alias):
+        instance = Instance.objects.get(provider_alias=instance_alias)
+        return instance.provider_alias
+
+    def field_from_native(self, data, files, field_name, into):
+        value = data.get(field_name)
+        if value is None:
+            return
+        try:
+            into["instance"] = Instance.objects.get(provider_alias=value)
+            into[field_name] = Instance.objects.get(provider_alias=value).provider_alias
+        except Instance.DoesNotExist:
+            into[field_name] = None
+
+
 class StepSerializer(serializers.ModelSerializer):
     alias = serializers.CharField(read_only=True, source='alias')
     name = serializers.CharField()
     script = serializers.CharField()
     exit_code = serializers.IntegerField(read_only=True,
-                                         source='exit_code',
-                                         required=False)
-    instance_alias = serializers.CharField(read_only=True,
-                                           source='instance.provider_alias')
-    created_by = serializers.CharField(source='created_by')
+                                         source='exit_code')
+    instance_alias = InstanceRelatedField(source='instance.provider_alias')
+    created_by = serializers.SlugRelatedField(slug_field='username',
+                                              source='created_by',
+                                              read_only=True)
     start_date = serializers.DateTimeField(read_only=True)
-    end_date = serializers.DateTimeField(read_only=True, required=False)
+    end_date = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = Step
