@@ -33,5 +33,5 @@ except Exception, e:
     e.msg = os.path.dirname(__file__)
     raise e
 
-#import djcelery
-#djcelery.setup_loader()
+#from helloworld.wsgi import HelloWorldApplication
+#application = HelloWorldApplication(application)

@@ -317,7 +317,7 @@ def mount_storage():
                 dev_1_size = match.group(1)
             elif dev_2 in line:
                 dev_2_size = match.group(1)
-        if dev_2_size > dev_1_size:
+        if int(dev_2_size) > int(dev_1_size):
             logging.warn(
                 "%s is larger than %s, Mounting %s to home"
                 % (dev_2, dev_1, dev_2))
