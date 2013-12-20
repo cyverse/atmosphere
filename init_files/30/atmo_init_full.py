@@ -263,21 +263,21 @@ def collect_metadata(meta_server):
         logging.exception("Could not retrieve meta-data for instance")
         return {}
 
-    for meta in meta_list:
-        print meta
+    for meta_key in meta_list:
+        if not meta_key:
+            continue
         try:
-            resp = urllib2.urlopen(
-                'http://128.196.172.136:8773/latest/meta-data/' + meta)
-            content = resp.read()
-            if meta.endswith('/'):
-                content_list = content.split('\n')
-                for content in content_list:
-                    print "new meta: %s%s" % (meta, content)
-                    meta_list.append("%s%s" % (meta, content))
+            meta_item_resp = urllib2.urlopen('%s%s' % (meta_server,meta_key))
+            meta_value = meta_item_resp.read()
+            if meta_key.endswith('/'):
+                meta_values = meta_value.split('\n')
+                for value in meta_values:
+                    print "new meta: %s%s" % (meta_key, value)
+                    meta_list.append("%s%s" % (meta_key, value))
             else:
-                metadata[meta] = content
+                metadata[meta_key] = meta_value
         except Exception:
-            metadata[meta] = None
+            metadata[meta_key] = None
     return metadata
 
 
