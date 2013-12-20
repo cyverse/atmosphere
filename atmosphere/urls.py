@@ -184,7 +184,7 @@ urlpatterns += format_suffix_patterns(patterns(
         + '/identity/(?P<identity_id>\d+)/step/$',
         StepList.as_view(), name='step-list'),
     url(r'^api/v1/provider/(?P<provider_id>\d+)'
-        + '/identity/(?P<identity_id>\d+)/step/(?P<step_id>\d+)/$',
+        + '/identity/(?P<identity_id>\d+)/step/(?P<step_id>[a-zA-Z0-9-]+)/$',
         Step.as_view(), name='step-detail'),
 
 

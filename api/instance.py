@@ -134,7 +134,6 @@ class InstanceHistory(APIView):
     def get(self, request, provider_id=None, identity_id=None):
         data = request.DATA
         params = request.QUERY_PARAMS.copy()
-        logger.info(params.items())
 
         user = User.objects.filter(username=request.user)
         if user and len(user) > 0:
@@ -280,7 +279,6 @@ class InstanceAction(APIView):
                                                identity_id,
                                                user)
                 result_obj = VolumeSerializer(core_volume).data
-                logger.debug(result_obj)
             elif 'resize' == action:
                 size_alias = action_params.get('size', '')
                 if type(size_alias) == int:
