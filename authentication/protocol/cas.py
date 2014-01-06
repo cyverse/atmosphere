@@ -84,8 +84,6 @@ def updateUserProxy(user, pgtIou, max_try=3):
 def createSessionToken(request, auth_token):
     request.session['username'] = auth_token.user.username
     request.session['token'] = auth_token.key
-    #TODO: Remove line below
-    #request.session['api_server'] = settings.API_SERVER_URL
 
 
 """

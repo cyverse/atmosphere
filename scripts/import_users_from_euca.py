@@ -3,13 +3,12 @@ import time, requests
 
 from threepio import logger
 
-from atmosphere import settings
 from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 from core.models import Provider, Identity
 from core.models import AtmosphereUser as User
 
-include_openstack = False
+include_openstack = True
 
 def main():
     """
@@ -17,7 +16,7 @@ def main():
     """
     euca = Provider.objects.get(location='EUCALYPTUS')
     euca_driver = EucaAccountDriver(euca)
-    openstack = Provider.objects.get(location='OPENSTACK')
+    openstack = Provider.objects.get(location='HavanaStack')
     os_driver = OSAccountDriver(openstack)
     all_users = euca_driver.list_users()
     #Sort by users

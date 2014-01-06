@@ -200,7 +200,7 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
         instance = driver.get_instance(instance_id)
         volume = driver.get_volume(volume_id)
 
-        #Step 1. Attach the volume (
+        #Step 1. Attach the volume
         #NOTE: device_choice !== device 100%
         driver.attach_volume(instance,
                              volume,

@@ -18,7 +18,7 @@ def set_provider_quota(identity_id):
         username = identity.creator_name()
         user_id = ad.user_manager.get_user(username).id
         tenant_id = driver._connection._get_tenant_id()
-        admin_driver = driver.meta().admin_driver
+        admin_driver = ad.admin_driver
         membership = IdentityMembership.objects.get(identity__id=identity_id,
                                                     member__name=username)
         user_quota = membership.quota

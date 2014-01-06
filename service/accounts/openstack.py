@@ -2,7 +2,6 @@
 UserManager:
   Remote Openstack  Admin controls..
 """
-import ipdb
 import time
 from hashlib import sha1
 from urlparse import urlparse
@@ -156,7 +155,6 @@ class AccountDriver():
                 # 3.1 Include the admin
                 #TODO: providercredential initialization of
                 #  'default_admin_role'
-                ipdb.set_trace()
                 self.user_manager.include_admin(project_name)
                 # 3.2 Check the user has been given an appropriate role (if given)
                 if not role_name:

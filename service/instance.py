@@ -1,4 +1,5 @@
 import uuid
+import time
 import os.path
 
 from rtwo.provider import AWSProvider, AWSUSEastProvider,\
@@ -13,6 +14,7 @@ from core.models.size import convert_esh_size
 from core.models.provider import AccountProvider
 
 from atmosphere import settings
+from atmosphere.settings import secrets
 
 from api import get_esh_driver
 
@@ -269,6 +271,10 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
                                                   ex_metadata=ex_metadata,
                                                   ex_keyname=ex_keyname,
                                                   deploy=True, **kwargs)
+            #NOTE: Should be used for testing ONLY, to get around lack of
+            # celery delay/retry
+            if kwargs.get('delay'):
+                time.sleep(kwargs['delay'])
             # call async task to deploy to instance.
             task.deploy_init_task(driver, esh_instance)
         elif isinstance(driver.provider, AWSProvider):
@@ -300,7 +306,7 @@ arg = '{
  }
 }'""" % (instance_service_url, settings.SERVER_URL,
          instance_token, instance_name, username,
-         settings.ATMOSPHERE_VNC_LICENSE)
+         secrets.ATMOSPHERE_VNC_LICENSE)
 
     init_script_file = os.path.join(
         settings.PROJECT_ROOT,

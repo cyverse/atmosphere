@@ -2,7 +2,6 @@ from django.core.urlresolvers import reverse
 from django.test import TestCase
 from django.utils import unittest
 
-import ipdb
 import os
 import time
 
@@ -102,20 +101,19 @@ class VolumeTests(TestCase):
         * Detail the volume
         * Delete the volume
         """
-        os_launch_data = {
+        volume_post_data = {
             "name":"openstack_vol_test1",
             "size":1,
         }
-        self.expected_output['name'] = os_launch_data['name']
-        self.expected_output['size'] = os_launch_data['size']
+        self.expected_output['name'] = volume_post_data['name']
+        self.expected_output['size'] = volume_post_data['size']
         volume_id = self.create_volume(self.os_volume_url, volume_post_data)
-        self.detail_volume(self, self.os_volume_url, volume_id)
+        self.detail_volume(self.os_volume_url, volume_id)
         # Wait time associated between 'create' and 'attachment'
-        ipdb.set_trace()
         time.sleep(30)
-        self.attach_volume(self.os_instance_url, self.instance_id, volume_id)
+        self.attach_volume(self.os_instance_url, self.os_instance_id, volume_id)
         time.sleep(30)
-        self.detach_volume(self.os_instance_url, self.instance_id, volume_id)
+        self.detach_volume(self.os_instance_url, self.os_instance_id, volume_id)
         #Delete all volumes
         deleted = self.delete_all_volumes(self.os_volume_url)
         if deleted:
@@ -143,15 +141,14 @@ class VolumeTests(TestCase):
             "name":"euca_vol_test1",
             "size":1,
         }
-        self.expected_output['name'] = euca_launch_data['name']
-        self.expected_output['size'] = euca_launch_data['size']
+        self.expected_output['name'] = volume_post_data['name']
+        self.expected_output['size'] = volume_post_data['size']
 
         volume_id = self.create_volume(self.euca_volume_url, volume_post_data)
-        self.detail_volume(self, self.euca_volume_url, volume_id)
+        self.detail_volume(self.euca_volume_url, volume_id)
         # Wait time associated between 'create' and 'attachment'
-        ipdb.set_trace()
         time.sleep(30)
-        self.attach_volume(self.euca_instance_url, self.os_instance_id, volume_id)
+        self.attach_volume(self.euca_instance_url, self.euca_instance_id, volume_id)
         time.sleep(30)
         self.detach_volume(self.euca_instance_url, self.euca_instance_id, volume_id)
         #Delete all volumes
@@ -170,7 +167,7 @@ class VolumeTests(TestCase):
                 'volume_id':volume_id,
                 #'device':'/dev/xvdb',
             }
-        volume_launch_resp = self.api_client.post(instance_action_url,
+        volume_attach_resp = self.api_client.post(instance_action_url,
                                                   action_params, format='json')
         #Wait and see..
 
@@ -184,7 +181,7 @@ class VolumeTests(TestCase):
                 'volume_id':volume_id,
                 #'device':'/dev/xvdb',
             }
-        volume_launch_resp = self.api_client.post(instance_action_url,
+        volume_detach_resp = self.api_client.post(instance_action_url,
                                                   action_params, format='json')
         #Wait and see..
 
@@ -232,4 +229,3 @@ class VolumeTests(TestCase):
 
 if __name__ == "__main__":
    unittest.main()
-
