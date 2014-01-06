@@ -2,6 +2,7 @@
   Instance model for atmosphere.
 """
 import pytz
+import time
 from hashlib import md5
 from datetime import datetime, timedelta
 
@@ -379,7 +380,9 @@ def set_instance_from_metadata(esh_driver, core_instance):
         #logger.debug("EshDriver %s does not have function 'ex_get_metadata'"
         #            % esh_driver._connection.__class__)
         return core_instance
-    esh_instance = core_instance.esh
+    esh_instance = esh_driver.get_instance(core_instance.provider_alias)
+    if not esh_instance:
+        return core_instance
     metadata =  esh_driver._connection.ex_get_metadata(esh_instance)
 
     #TODO: Match with actual instance launch metadata in service/instance.py
@@ -402,11 +405,26 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
     NOTE: This will NOT WORK for TAGS until openstack
     allows JSONArrays as values for metadata!
     """
+    wait_time = 1
+    instance_id = esh_instance.id
+
     if not hasattr(esh_driver._connection, 'ex_set_metadata'):
         logger.info("EshDriver %s does not have function 'ex_set_metadata'"
                     % esh_driver._connection.__class__)
         return {}
+    while True:
+        if esh_instance.extra['status'] != 'build':
+            break
+        # Wait at most 5 minutes
+        wait_time = min(wait_time + 1, 5)
+        logger.info("Metadata cannot be applied while EshInstance %s is in"
+                    "the build state. Will try again in %s minutes"
+                    % (esh_instance, wait_time))
+        time.sleep(wait_time*60)
+        # Check if the instance status has been updated
+        esh_instance = driver.get_instance(instance_id)
 
+    # ASSERT: We are ready to update the metadata
     if data.get('name'):
         esh_driver._connection.ex_set_server_name(esh_instance, data['name'])
     try:
@@ -433,7 +451,7 @@ def create_instance(provider_id, identity_id, provider_alias, provider_machine,
                                        shell=False,
                                        start_date=create_stamp)
     new_inst.save()
-    logger.debug("New instance created - %s (Token = %s)" %
-                 (provider_alias, token))
+    logger.debug("New instance created - %s<%s> (Token = %s)" %
+                 (name, provider_alias, token))
     #NOTE: No instance_status_history here, because status is not passed
     return new_inst
