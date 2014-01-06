@@ -6,7 +6,7 @@
  */
 Atmo.Views.ResourceCharts = Backbone.View.extend({
     initialize: function(options) {
-        this.quota_type = options.quota_type; // REQUIRED. Options: mem, cpu, disk, disk_count, allocation
+        this.quota_type = options.quota_type; // REQUIRED. Options: mem, cpu, storage, storage_count, allocation
 
         // If provider_id and identity_id are not provided, defaults to using the selected provider/identity
         if (options.provider_id && options.identity_id) {
@@ -29,13 +29,14 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
         }
         else {
             total = Atmo.profile.get('selected_identity').get('quota')[this.quota_type];
+            //console.log(Atmo.profile.get('selected_identity').get('quota'));
 
-            if (this.quota_type == 'disk') {
+            if (this.quota_type == 'storage') {
                 $.each(Atmo.volumes.models, function(i, volume) {
                     used += parseInt(volume.get('size'));
                 });
             }
-            else if (this.quota_type == 'disk_count') {
+            else if (this.quota_type == 'storage_count') {
                 used = Atmo.volumes.models.length;
             }
             else if (this.quota_type == 'allocation') {
@@ -83,7 +84,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
             // Make chart with our data
             this.make_chart(used, total, false);
         }
-
+        
         return this;
 
     },
@@ -132,19 +133,19 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
             }
         }
         // Volume-related Quotas
-        else if (quota_type == 'disk' || quota_type == 'disk_count') {
+        else if (quota_type == 'storage' || quota_type == 'storage_count') {
 
             $.ajax({
                 type: 'GET',
                 url: site_root + '/api/v1/provider/' + provider + '/identity/' + identity + '/volume/',
                 success: function(volumes) {
 
-                    if (quota_type == 'disk') {
+                    if (quota_type == 'storage') {
                         for (var i = 0; i < volumes.length; i++) {
                             used += parseInt(volumes[i].size);
                         }
                     }
-                    else if (quota_type == 'disk_count') {
+                    else if (quota_type == 'storage_count') {
                         used = volumes.length;
                     }
 
@@ -155,7 +156,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
                     // Error handling
                     var info_holder = self.$el.parent().find('#' + quota_type + 'Holder_info');
                     var info = 'Could not fetch volume ';
-                    info += (quota_type == 'disk') ? 'capacity quota.' : 'quantity quota.';
+                    info += (quota_type == 'storage') ? 'capacity quota.' : 'quantity quota.';
                     info_holder.html(info);
 
                     // this.$el is the graph container
@@ -348,13 +349,13 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
             used = (used / 1024).toFixed(0);
             total = (total / 1024).toFixed(0);
         }
-        else if (this.quota_type == 'disk') {
+        else if (this.quota_type == 'storage') {
             quota_title = "Disk Space";
             quota_desc = "total amount of storage";
             quota_unit = "GB";
             this.$el.data('unit', 'storage');
         }
-        else if (this.quota_type == 'disk_count') {
+        else if (this.quota_type == 'storage_count') {
             quota_title = "Storage Count";
             quota_desc = "total number of volumes";
             quota_unit = "volume";
@@ -383,9 +384,9 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 
             if (this.quota_type == 'mem' || this.quota_type == 'cpu')
                 info += 'Choose a smaller size or terminate a running instance.';
-            else if (this.quota_type == 'disk')
+            else if (this.quota_type == 'storage')
                 info += 'Choose a smaller size or destroy an existing volume.';
-            else if (this.quota_type == 'disk_count')
+            else if (this.quota_type == 'storage_count')
                 info += 'You must destroy an existing volume or request more resources.';
             else if (this.quota_type == 'allocation')
                 info += 'You must request more allocation or wait until your running time is below 100% to resume your instances or create new instances.';
