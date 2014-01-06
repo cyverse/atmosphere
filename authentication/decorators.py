@@ -1,4 +1,3 @@
-import ipdb
 # django http libraries
 from django.contrib.auth import authenticate, login as django_login
 from django.http import HttpResponseRedirect, HttpResponseForbidden
@@ -102,7 +101,6 @@ def api_auth_token_required(func):
         user = request.user
         #logger.info('api_auth_token authentication: %s' % user)
         if user and user.is_authenticated():
-            ipdb.set_trace()
             return func(request, *args, **kwargs)
         else:
             logger.debug('Unauthorized access by %s - %s - Invalid Token' %
