@@ -241,8 +241,8 @@ CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [%(task_nam
 #Django-Celery Development settings
 #CELERY_ALWAYS_EAGER = True
 
-#import djcelery
-#djcelery.setup_loader()
+import djcelery
+djcelery.setup_loader()
 
 
 """
