@@ -415,14 +415,14 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
     while True:
         if esh_instance.extra['status'] != 'build':
             break
-        # Wait at most 5 minutes
-        wait_time = min(wait_time + 1, 5)
+        # Wait at most 1 minutes
+        wait_time = min(wait_time + 1, 1)
         logger.info("Metadata cannot be applied while EshInstance %s is in"
-                    "the build state. Will try again in %s minutes"
+                    " the build state. Will try again in %s minute(s)"
                     % (esh_instance, wait_time))
         time.sleep(wait_time*60)
         # Check if the instance status has been updated
-        esh_instance = driver.get_instance(instance_id)
+        esh_instance = esh_driver.get_instance(instance_id)
 
     # ASSERT: We are ready to update the metadata
     if data.get('name'):

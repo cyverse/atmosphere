@@ -103,7 +103,6 @@ def ldap_validate(username, password):
         ldap_conn.simple_bind_s(dn, password)
         return True
     except Exception as e:
-        import ipb;ipdb.set_trace()
         logger.exception(e)
         return False
 
