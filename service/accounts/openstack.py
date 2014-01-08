@@ -190,8 +190,8 @@ class AccountDriver():
     def init_security_group(self, username, password, project_name, security_group_name, rules_list):
         # 4.1. Update the account quota to hold a larger number of
         # roles than what is necessary
-        user = accounts.user_manager.keystone.users.find(name=username)
-        project = accounts.user_manager.keystone.users.find(name=project_name)
+        user = self.user_manager.keystone.users.find(name=username)
+        project = self.user_manager.keystone.tenants.find(name=project_name)
         nc = self.user_manager.nova
         rule_max = max(len(rules_list),100)
         nc.quotas.update(project.id, security_group_rules=rule_max)
