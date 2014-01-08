@@ -70,7 +70,7 @@ def lookupEmail(userid):
         logger.debug(type(userid))
         if isinstance(userid, WSGIRequest):
             raise Exception("WSGIRequest invalid.")
-        attr = _search_ldap("%s*" % letter, conn)
+        attr = _search_ldap(userid, conn)
         emailaddr = attr[0][1]['mail'][0]
         return emailaddr
     except Exception as e:
