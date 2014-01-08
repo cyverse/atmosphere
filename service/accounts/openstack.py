@@ -140,43 +140,36 @@ class AccountDriver():
                 if not project_name:
                     project_name = username
 
-                #1. Project should exist before creating user
+                #1. Create Project: should exist before creating user
                 project = self.user_manager.get_project(project_name)
                 if not project:
                     project = self.user_manager.create_project(project_name)
 
-                # 2. Get user (And check they are in project)
+                # 2. Create User (And add them to the project)
                 user = self.get_user(username)
                 if not user:
                     logger.info('Creating account: %s - %s - %s'
                                 % (username, password, project))
                     user = self.user_manager.create_user(username, password,
                                                       project)
-                # 3.1 Include the admin
+                # 3.1 Include the admin in the project
                 #TODO: providercredential initialization of
                 #  'default_admin_role'
                 self.user_manager.include_admin(project_name)
+
                 # 3.2 Check the user has been given an appropriate role (if given)
                 if not role_name:
                     role_name = '_member_'
-                self.user_manager.add_project_member(
+                self.user_manager.add_project_membership(
                         username, project_name, role_name)
-                # 4.1. Update the account quota to hold a larger number of
-                # roles
-                nc = self.user_manager.nova
-                rule_max = max(len(self.MASTER_RULES_LIST),100)
-                nc.quotas.update(project.id, security_group_rules=rule_max)
-                # 4.2. get protocol list and build security group
-                rules_list = self.MASTER_RULES_LIST
-                # 5. Update the security group
-                self.user_manager.build_security_group(user.name,
-                        password, project.name, rules_list)
-                # 6. Create a keypair to use when launching with atmosphere
-                keyname = settings.ATMOSPHERE_KEYPAIR_NAME
-                with open(settings.ATMOSPHERE_KEYPAIR_FILE, 'r') as pub_key_file:
-                    public_key = pub_key_file.read()
-                self.get_or_create_keypair(user.name, password, project.name,
-                                           keyname, public_key)
+
+                # 4. Create a security group -- SUSPENDED.. Will occur on
+                # instance launch instead.
+                #self.init_security_group(user, password, project, project.name,
+                #                         self.MASTER_RULES_LIST)
+
+                # 5. Create a keypair to use when launching with atmosphere
+                self.init_keypair(user.name, password, project.name)
                 finished = True
 
             except ConnectionError:
@@ -187,8 +180,29 @@ class AccountDriver():
                 time.sleep(60)  # Wait one minute
         return (username, password, project)
 
-    def add_rules_to_security_groups(self, core_identity_list, rules_list, 
-                                   security_group_name='default'):
+    def init_keypair(self, username, password, project_name):
+        keyname = settings.ATMOSPHERE_KEYPAIR_NAME
+        with open(settings.ATMOSPHERE_KEYPAIR_FILE, 'r') as pub_key_file:
+            public_key = pub_key_file.read()
+        return self.get_or_create_keypair(username, password, project_name,
+                                   keyname, public_key)
+
+    def init_security_group(self, username, password, project_name, security_group_name, rules_list):
+        # 4.1. Update the account quota to hold a larger number of
+        # roles than what is necessary
+        user = accounts.user_manager.keystone.users.find(name=username)
+        project = accounts.user_manager.keystone.users.find(name=project_name)
+        nc = self.user_manager.nova
+        rule_max = max(len(rules_list),100)
+        nc.quotas.update(project.id, security_group_rules=rule_max)
+        #Change the description of the security group to match the project name
+        self.network_manager.rename_security_group(project)
+        #Start creating security group
+        return self.user_manager.build_security_group(user.name,
+                password, project.name, security_group_name, rules_list)
+
+    def add_rules_to_security_groups(self, core_identity_list,
+                                     security_group_name, rules_list):
         for identity in core_identity_list:
             creds = self.parse_identity(identity)
             sec_group = self.user_manager.find_security_group(
@@ -200,8 +214,6 @@ class AccountDriver():
             self.user_manager.add_security_group_rules(
                 creds['username'], creds['password'], creds['tenant_name'],
                 security_group_name, rules_list)
-
-
 
 
     def get_or_create_keypair(self, username, password, project_name,
@@ -243,7 +255,7 @@ class AccountDriver():
             rules_list = self.MASTER_RULES_LIST
         return self.user_manager.build_security_group(
                 creds['username'], creds['password'], creds['tenant_name'],
-                rules_list, rebuild=True)
+                creds['tenant_name'], rules_list, rebuild=True)
 
     def parse_identity(self, core_identity):
         identity_creds = self._libcloud_to_openstack(
@@ -299,6 +311,17 @@ class AccountDriver():
             project_name,
             **net_args)
         return True
+
+    def delete_security_group(self, identity):
+        identity_creds = self.parse_identity(identity)
+        project_name = identity_creds['tenant_name']
+        project = self.user_manager.keystone.tenants.find(name=project_name)
+        sec_group_r = self.network_manager.neutron.list_security_groups(tenant_id=project.id)
+        sec_groups = sec_group_r['security_groups']
+        for sec_group in sec_groups:
+            self.network_manager.neutron.delete_security_group(sec_group['id'])
+        return True
+
 
     def delete_network(self, identity):
         #Core credentials need to be converted to openstack names

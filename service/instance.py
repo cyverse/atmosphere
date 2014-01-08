@@ -192,6 +192,14 @@ def check_quota(username, identity_id, esh_size, resuming=False):
     if over_allocation:
         raise OverAllocationError(time_diff)
 
+def security_group_init(core_identity):
+    os_driver = OSAccountDriver(core_identity.provider)
+    creds = core_identity.get_credentials()
+    security_group = os_driver.init_security_group(creds['key'],
+            creds['secret'], creds['ex_tenant_name'], creds['ex_tenant_name'],
+            os_driver.MASTER_RULES_LIST)
+    return security_group
+
 def keypair_init(core_identity):
     os_driver = OSAccountDriver(core_identity.provider)
     creds = core_identity.get_credentials()
@@ -263,6 +271,7 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
             ex_keyname=settings.ATMOSPHERE_KEYPAIR_NAME
             #Check for project network.. TODO: Fix how password/project are
             # retrieved
+            security_group_init(core_identity)
             network_init(core_identity)
             keypair_init(core_identity)
             logger.debug("OS driver.create_instance kwargs: %s" % kwargs)
