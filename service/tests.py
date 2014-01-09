@@ -27,8 +27,7 @@ class ServiceTests(TestCase):
 
     def test_openstack_account_creation(self):
         os_accounts = OSAccounts(self.os_provider)
-        new_identity = os_accounts.create_account('test_user', 'test_pass',
-        'test_project')
+        new_identity = os_accounts.create_account('test_user', 'test_pass', 'test_project')
         credentials = new_identity.credential_set.all()
         self.assertEqual(
                 credentials.get(key='key').value, 'test_user',
@@ -48,6 +47,7 @@ class ServiceTests(TestCase):
         self.assertIsNone(
                 os_accounts.get_project('test_user'),
                 'A usergroup was created when project was specified')
+        #TODO: Remove if not necessary..
         os_accounts.delete_account('test_user', 'test_project')
         #Test account was deleted
 

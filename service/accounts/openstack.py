@@ -11,6 +11,7 @@ from django.db.models import Max
 
 from novaclient.v1_1 import client as nova_client
 from novaclient.exceptions import OverLimit
+from neutronclient.common.exceptions import NeutronClientException
 
 from threepio import logger
 from requests.exceptions import ConnectionError
@@ -139,7 +140,6 @@ class AccountDriver():
                     password = self.hashpass(username)
                 if not project_name:
                     project_name = username
-
                 #1. Create Project: should exist before creating user
                 project = self.user_manager.get_project(project_name)
                 if not project:
@@ -161,7 +161,7 @@ class AccountDriver():
                 if not role_name:
                     role_name = '_member_'
                 self.user_manager.add_project_membership(
-                        username, project_name, role_name)
+                        project_name, username, role_name)
 
                 # 4. Create a security group -- SUSPENDED.. Will occur on
                 # instance launch instead.
@@ -196,7 +196,13 @@ class AccountDriver():
         rule_max = max(len(rules_list),100)
         nc.quotas.update(project.id, security_group_rules=rule_max)
         #Change the description of the security group to match the project name
-        self.network_manager.rename_security_group(project)
+        try:
+            self.network_manager.rename_security_group(project)
+        except NeutronClientException, nce:
+            if nce.status_code != 404:
+                logger.exception("Encountered unknown exception while renaming"
+                        " the security group")
+
         #Start creating security group
         return self.user_manager.build_security_group(user.name,
                 password, project.name, security_group_name, rules_list)
@@ -381,16 +387,16 @@ class AccountDriver():
         #1. Network cleanup
         if project:
             self.network_manager.delete_project_network(username, projectname)
-
-        #2. Role cleanup (Admin too)
-        self.user_manager.delete_all_roles(username, projectname)
-        adminuser = self.user_manager.keystone.username
-        self.user_manager.delete_all_roles(adminuser, projectname)
-        #TODO: May need to switch this
-        #3. User cleanup
-        self.user_manager.delete_user(username)
-        #4. Project cleanup
-        self.user_manager.delete_project(projectname)
+            #2. Role cleanup (Admin too)
+            self.user_manager.delete_all_roles(username, projectname)
+            adminuser = self.user_manager.keystone.username
+            self.user_manager.delete_all_roles(adminuser, projectname)
+            #3. Project cleanup
+            self.user_manager.delete_project(projectname)
+        #4. User cleanup
+        user = self.user_manager.get_user(username)
+        if user:
+            self.user_manager.delete_user(username)
         return True
 
     def hashpass(self, username):

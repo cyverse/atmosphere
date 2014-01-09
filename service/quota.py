@@ -3,7 +3,7 @@ from threepio import logger
 from api import get_esh_driver
 
 from core.models import IdentityMembership, Identity, Provider
-
+from service.accounts.openstack import AccountDriver
 
 def set_provider_quota(identity_id):
     """
@@ -15,15 +15,17 @@ def set_provider_quota(identity_id):
         return
     if identity.provider.get_type_name().lower() == 'openstack':
         driver = get_esh_driver(identity)
+        username = identity.created_by.username
         user_id = driver._connection._get_user_id()
         tenant_id = driver._connection._get_tenant_id()
-        admin_driver = ad.admin_driver
         membership = IdentityMembership.objects.get(identity__id=identity_id,
                                                     member__name=username)
         user_quota = membership.quota
         if user_quota:
             values = {'cores': user_quota.cpu,
                       'ram': user_quota.memory * 1024}
+            ad = AccountDriver(identity.provider)
+            admin_driver = ad.admin_driver
             admin_driver._connection.ex_update_quota_for_user(tenant_id,
                                                               user_id,
                                                               values)
