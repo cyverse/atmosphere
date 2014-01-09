@@ -8,13 +8,13 @@ from threepio import logger
 from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 from core.models import AtmosphereUser as User
-from core.models import Provider, Quota
+from core.models import Provider, Quota, Allocation
 
 def main():
     """
     TODO: Add argparse, --delete : Deletes existing users in openstack (Never use in PROD)
     """
-    openstack = Provider.objects.get(location='Openstack-Tucson (BETA)')
+    openstack = Provider.objects.get(location='OpenStack-Tucson (BETA)')
     os_driver = OSAccountDriver(openstack)
     found = 0
     create = 0
@@ -45,6 +45,7 @@ def main():
         #Raise everybody's quota
         ident = os_driver.create_account(user)
         im.quota = higher_quota
+        im.allocation = Allocation.default_allocation()
         im.save()
         print 'Found non-staff user:%s -- Update quota' % user
     print "Total users added to atmosphere:%s" % len(usernames)
