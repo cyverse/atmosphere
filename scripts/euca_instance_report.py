@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from atmosphere import settings
+from atmosphere.settings import secrets
 from core.models import Instance
 from boto.ec2.instance import Instance as BotoInstance
 from boto.ec2.regioninfo import RegionInfo
@@ -20,15 +20,15 @@ def _get_admin_driver():
 
     from core.models import Credential
     from api import get_esh_driver
-    identity = Credential.objects.get(value=settings.EUCA_ADMIN_SECRET).identity
+    identity = Credential.objects.get(value=secrets.EUCA_ADMIN_SECRET).identity
     driver = get_esh_driver(identity, identity.created_by)
     return driver
 
 def _get_config_driver():
 
-    key = settings.EUCA_ADMIN_KEY
-    secret = settings.EUCA_ADMIN_SECRET
-    ec2_url = settings.EUCA_EC2_URL
+    key = secrets.EUCA_ADMIN_KEY
+    secret = secrets.EUCA_ADMIN_SECRET
+    ec2_url = secrets.EUCA_EC2_URL
 
     parsed_url = urlparse(ec2_url)
     region = RegionInfo(None, 'eucalyptus', parsed_url.hostname)

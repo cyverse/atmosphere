@@ -14,6 +14,7 @@ from django.http import HttpResponseRedirect
 from threepio import logger
 
 from atmosphere import settings
+from atmosphere.settings import secrets
 from authentication import createAuthToken, userCanEmulate, cas_loginRedirect
 from authentication.models import Token as AuthToken
 from authentication.protocol.ldap import ldap_validate
@@ -49,7 +50,7 @@ def token_auth(request):
     if username and password:
         if ldap_validate(username, password):
             token = createAuthToken(username)
-            expireTime = token.issuedTime + settings.TOKEN_EXPIRY_TIME
+            expireTime = token.issuedTime + secrets.TOKEN_EXPIRY_TIME
             auth_json = {
                 'token': token.key,
                 'username': token.user.username,
@@ -71,7 +72,7 @@ def token_auth(request):
     #CAS Authenticate by Proxy (Password not necessary):
     if cas_validateUser(username):
         token = createAuthToken(username)
-        expireTime = token.issuedTime + settings.TOKEN_EXPIRY_TIME
+        expireTime = token.issuedTime + secrets.TOKEN_EXPIRY_TIME
         auth_json = {
             'token': token.key,
             'username': token.user.username,

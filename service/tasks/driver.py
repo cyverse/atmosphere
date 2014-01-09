@@ -46,6 +46,23 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
 
 
 # Deploy and Destroy tasks
+@task(name="deploy_failed",
+      max_retries=2,
+      default_retry_delay=128,
+      ignore_result=True)
+def deploy_failed(driverCls, provider, identity, instance_id, task_uuid):
+    try:
+        logger.debug("deploy_failed task started at %s." % datetime.now())
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_id)
+        update_instance_metadata(driver, instance,
+                                 data={'tmp_status': 'deploy_error'},
+                                 replace=False)
+        logger.debug("deploy_failed task finished at %s." % datetime.now())
+    except Exception as exc:
+        logger.warn(exc)
+        deploy_failed.retry(exc=exc)
+
 @task(name="deploy_to",
       max_retries=2,
       default_retry_delay=128,
@@ -72,7 +89,8 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         logger.debug("deploy_init_to task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
-
+        if not instance:
+            return
         image_metadata = driver._connection\
                                .ex_get_image_metadata(instance.machine)
         image_already_deployed = image_metadata.get("deployed")
@@ -90,7 +108,8 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
                                                   provider,
                                                   identity,
                                                   instance_id))
-            cflow()
+            cflow(link_error=deploy_failed.s((driverCls, provider, identity,
+                                              instance_id,))),
         elif not image_already_deployed:
             logger.debug("Chain -- deploy_init + email")
             cflow = chain(_deploy_init_to.si(driverCls,
@@ -101,7 +120,8 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
                                                   provider,
                                                   identity,
                                                   instance_id))
-            cflow()
+            cflow(link_error=deploy_failed.s((driverCls, provider, identity,
+                                              instance_id,))),
         elif not instance.ip:
             logger.debug("Chain -- Floating_ip + email")
             cflow = chain(add_floating_ip.si(driverCls,
@@ -169,7 +189,7 @@ def destroy_instance(core_identity_id, instance_alias):
 @task(name="_deploy_init_to",
       default_retry_delay=32,
       ignore_result=True,
-      max_retries=8)
+      max_retries=10)
 def _deploy_init_to(driverCls, provider, identity, instance_id):
     try:
         logger.debug("_deploy_init_to task started at %s." % datetime.now())
@@ -178,7 +198,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         if not instance:
-            logger.debug("Instance already deleted: %s." % instance_id)
+            logger.debug("Instance has been teminated: %s." % instance_id)
             return
 
         update_instance_metadata(driver, instance,
@@ -306,6 +326,7 @@ def remove_empty_network(
             logger.info("No active instances. Removing project network"
                         "from %s" % core_identity)
             os_acct_driver.delete_network(core_identity)
+            os_acct_driver.delete_security_group(core_identity)
             return True
         logger.debug("remove_empty_network task finished at %s." %
                      datetime.now())

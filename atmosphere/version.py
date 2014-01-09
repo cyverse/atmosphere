@@ -6,7 +6,7 @@ from os.path import abspath, dirname
 from subprocess import Popen, PIPE
 
 
-VERSION = (0, 14, 2, 'dev', 0)
+VERSION = (0, 14, 3, 'dev', 0)
 
 
 def git_info():

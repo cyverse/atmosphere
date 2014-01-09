@@ -22,8 +22,28 @@ def verify_expected_output(test_client, api_out, expected_out):
         if expected_out.get(key):
             test_client.assertEqual(api_out[key], expected_out[key])
 
-def standup_instance(test_client, full_instance_url, machine_alias, size_alias,
-        name, delete_before=False, delete_after=False):
+def reuse_instance(test_client, full_instance_url, machine_alias, instance_name):
+    # Launch a new one
+    instance_list_resp = test_client.api_client.get(full_instance_url)
+    # Ensure it worked
+    test_client.assertEqual(instance_list_resp.status_code,
+                            status.HTTP_200_OK)
+    test_client.assertIsNotNone(instance_list_resp.data)
+    instance_id = None
+    instance_ip = None
+    for instance in instance_list_resp.data:
+        if instance.get("status") in ['active','running'] and \
+           instance.get("machine_alias") == machine_alias:
+            instance_id = instance.get("alias")
+            instance_ip = instance.get("ip_address")
+            break
+    return (instance_id, instance_ip)
+
+
+def standup_instance(test_client, full_instance_url,
+                     machine_alias, size_alias, name, 
+                     delete_before=False, delete_after=False,
+                     first_launch=False):
     """
     * Select a machine (Base/Random?)
     * Select a size (Smallest)
@@ -31,6 +51,11 @@ def standup_instance(test_client, full_instance_url, machine_alias, size_alias,
     * Wait until the instance is 'READY'
     * Verify the instance is 'READY'
     """
+    instance_id, ip_addr = reuse_instance(test_client, full_instance_url,
+            machine_alias, name)
+    if instance_id and ip_addr:
+        print "reusing instance %s" % instance_id
+        return instance_id, ip_addr
     launch_data = {
             "machine_alias":machine_alias,
             "size_alias":size_alias,
@@ -39,6 +64,8 @@ def standup_instance(test_client, full_instance_url, machine_alias, size_alias,
     #Delete them all
     if delete_before:
         remove_all_instances(test_client, full_instance_url)
+    if first_launch:
+        launch_data['delay'] = 20*60
     # Launch a new one
     instance_launch_resp = test_client.api_client.post(full_instance_url, launch_data, format='json')
     # Ensure it worked
@@ -57,16 +84,16 @@ def standup_instance(test_client, full_instance_url, machine_alias, size_alias,
         instance_get_resp = test_client.api_client.get(new_instance_url)
         test_client.assertIsNotNone(instance_get_resp.data)
         ip_addr = instance_get_resp.data['ip_address']
-        updated_status = instance_get_resp.data['status']
-        if updated_status != 'active':
+        updated_status = instance_get_resp.data['status'].lower()
+        if updated_status not in ['active','running']:
             #1m, 2m, 4m, 5m, 5m, ...
             attempts += 1
             minutes = min(5, 2**minutes)
             test_client.assertNotEqual(attempts, 10,
-                "Made 10 attempts to wait for an active instance. Giving up..")
+                "Made 10 attempts to wait for an active/running instance. Giving up..")
 
-            logger.info("Waiting for instance %s to be in an active state."
-                        "Current status:%s. Waiting:%s minutes"
+            logger.info("Waiting for instance %s to be in active/running state"
+                        ". Current status:%s. Waiting:%s minutes"
                         % (instance_id, updated_status, minutes))
             sleep(minutes * 60)
             continue

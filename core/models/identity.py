@@ -29,9 +29,12 @@ class Identity(models.Model):
         provider = Provider.objects.get(location__iexact=provider_location)
         user = AtmosphereUser.objects.get(username=username)
         group = Group.objects.get(name=username)
-        identities = Identity.objects.filter(
+        my_ids = Identity.objects.filter(
             created_by=user, provider=provider)
-        identities.delete()
+        for ident in my_ids:
+            membership_set = ident.identitymembership_set.all()
+            membership_set.delete()
+            ident.delete()
         group.delete()
         user.delete()
         return

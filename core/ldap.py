@@ -7,7 +7,7 @@ import ldap as ldap_driver
 
 from threepio import logger
 
-from atmosphere import settings
+from atmosphere.settings import secrets
 
 
 def get_uid_number(userid):
@@ -15,8 +15,8 @@ def get_uid_number(userid):
     Get uidNumber
     """
     try:
-        conn = ldap_driver.initialize(settings.LDAP_SERVER)
-        attr = conn.search_s(settings.LDAP_SERVER_DN,
+        conn = ldap_driver.initialize(secrets.LDAP_SERVER)
+        attr = conn.search_s(secrets.LDAP_SERVER_DN,
                              ldap_driver.SCOPE_SUBTREE,
                              "(uid=%s)" % userid)
         return int(attr[0][1]["uidNumber"][0]) - 10000

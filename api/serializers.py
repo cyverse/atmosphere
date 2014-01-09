@@ -182,8 +182,8 @@ class MachineRequestSerializer(serializers.ModelSerializer):
     description = serializers.CharField(source='new_machine_description',
                                         required=False)
     tags = serializers.CharField(source='new_machine_tags', required=False)
-
-    new_machine = serializers.RelatedField(read_only=True, source='new_machine_id')
+    new_machine = serializers.SlugRelatedField(slug_field='identifier',
+            required=False)
 
     class Meta:
         model = MachineRequest
@@ -295,8 +295,8 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='machine.name')
     tags = serializers.CharField(source='machine.tags.all')
     description = serializers.CharField(source='machine.description')
-    start_date = serializers.CharField(source='machine.start_date')
-    end_date = serializers.CharField(source='machine.end_date',
+    start_date = serializers.CharField(source='start_date')
+    end_date = serializers.CharField(source='end_date',
                                      required=False, read_only=True)
     featured = serializers.BooleanField(source='machine.featured')
 

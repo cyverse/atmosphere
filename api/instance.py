@@ -3,7 +3,6 @@ Atmosphere service instance rest api.
 """
 from datetime import datetime
 import time
-
 from core.models import AtmosphereUser as User
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
@@ -444,7 +443,7 @@ class Instance(APIView):
             response['Cache-Control'] = 'no-cache'
             return response
         else:
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400)
 
     @api_auth_token_required
     def delete(self, request, provider_id, identity_id, instance_id):
@@ -456,19 +455,20 @@ class Instance(APIView):
             if not esh_instance:
                 return instance_not_found(instance_id)
             task.destroy_instance_task(esh_instance, identity_id)
-            esh_instance = esh_driver.get_instance(instance_id)
-            if esh_instance.extra\
-               and 'task' not in esh_instance.extra:
-                esh_instance.extra['task'] = 'queueing delete'
-            core_instance = convert_esh_instance(esh_driver,
-                                               esh_instance,
-                                               provider_id,
-                                               identity_id,
-                                               user)
+            existing_instance = esh_driver.get_instance(instance_id)
+            if existing_instance:
+                #Instance will be deleted soon...
+                esh_instance = existing_instance
+                if esh_instance.extra\
+                   and 'task' not in esh_instance.extra:
+                    esh_instance.extra['task'] = 'queueing delete'
+            core_instance = convert_esh_instance(esh_driver, esh_instance,
+                                                 provider_id, identity_id,
+                                                 user)
             if core_instance:
                 core_instance.end_date_all()
             serialized_data = InstanceSerializer(core_instance).data
-            response = Response(serialized_data, status=200)
+            response = Response(serialized_data, status=status.HTTP_200_OK)
             response['Cache-Control'] = 'no-cache'
             return response
         except InvalidCredsError:

@@ -6,8 +6,6 @@ from core.models import Provider
 
 from threepio import logger
 
-from atmosphere import settings
-
 from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 

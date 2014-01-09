@@ -5,18 +5,19 @@ from django.utils import unittest
 import os
 
 from datetime import datetime
-from rest_framework import status
-from threepio import logger
 from urlparse import urljoin
 
+from chromogenic.migrate import migrate_image
+from rest_framework import status
+from threepio import logger
+
 from atmosphere import settings
-from core.models import AtmosphereUser
-from core.tests import create_euca_provider, create_os_provider
 from api.tests import verify_expected_output, standup_instance
 from api.tests.test_auth import TokenAPIClient
+from core.models import AtmosphereUser, Provider
+from core.tests import create_euca_provider, create_os_provider
 from service.accounts.openstack import AccountDriver as OSAccounts
 from service.accounts.eucalyptus import AccountDriver as EucaAccounts
-from django.test.utils import override_settings
 
 class MachineRequestTests(TestCase):
     api_client = None
@@ -76,41 +77,90 @@ class MachineRequestTests(TestCase):
                                     self.euca_id.id])
         self.euca_request_url = urljoin(settings.SERVER_URL, reverse_link)
         
+    def openstack_mach_and_size(self):
+        reverse_link = reverse('machine-list',
+                               args=[self.os_id.provider.id,
+                                     self.os_id.id])
+        self.os_machine_url = urljoin(settings.SERVER_URL, reverse_link)
+        self.api_client.get(self.os_machine_url)
+        reverse_link = reverse('size-list',
+                               args=[self.os_id.provider.id,
+                                     self.os_id.id])
+        self.os_size_url = urljoin(settings.SERVER_URL, reverse_link)
+        self.api_client.get(self.os_size_url)
+
+    def euca_mach_and_size(self):
+        reverse_link = reverse('machine-list',
+                              args=[self.euca_id.provider.id,
+                                    self.euca_id.id])
+        self.euca_machine_url = urljoin(settings.SERVER_URL, reverse_link)
+        self.api_client.get(self.euca_machine_url)
+
+        reverse_link = reverse('size-list',
+                              args=[self.euca_id.provider.id,
+                                    self.euca_id.id])
+        self.euca_size_url = urljoin(settings.SERVER_URL, reverse_link)
+
+        self.api_client.get(self.euca_size_url)
 
     def tearDown(self):
         self.api_client.logout()
 
-    #TEST CASES:
-    def test_euca_machine_request(self):
-        """
-        Testing machine requests require specific order:
-          * "Stand-up" an instance
-          * Create a machine request
-          * Approve a machine request
-          * Verify machine request has gone to 'completed'
-          * "Stand-up" the new machine
-          * Delete an existing machine request
-        """
-        machine_alias = "emi-E7F8300F"
-        size_alias = "m1.small"
-        instance_id, instance_ip = standup_instance(
-                self, self.euca_instance_url,
-                machine_alias, size_alias, "test imaging")
-        request_id = self.create_machine_request(
-                self.euca_request_url,
-                instance_id, instance_ip, self.euca_id.provider.id)
-        approval_link = reverse('direct-machine-request-action',
-                              args=[request_id, 'approve'])
-        euca_approval_url = urljoin(settings.SERVER_URL, approval_link)
-        self.approve_machine_request(euca_approval_url)
-        machine_request_url = reverse('direct-machine-request-detail',
-                args=[request_id,])
-        new_machine_id = self.wait_for_machine_request(machine_request_url)
-        machine_alias = new_machine_id
-        instance_id, instance_ip = standup_instance(
-                self, self.euca_instance_url,
-                machine_alias, size_alias, "test imaging was successful",
-                delete_after=True)
+    ##TEST CASES:
+    #NOTE: Eucalyptus machine requests will not complete fully until node controller info added..
+    # This is on a TODO at a later date..
+
+    #def test_euca_machine_request(self):
+    #    """
+    #    Testing machine requests require specific order:
+    #      * "Stand-up" an instance
+    #      * Create a machine request
+    #      * Approve a machine request
+    #      * Verify machine request has gone to 'completed'
+    #      * "Stand-up" the new machine
+    #      * Delete an existing machine request
+    #    """
+    #    machine_alias = "emi-E7F8300F"
+    #    size_alias = "m1.small"
+    #    self.euca_mach_and_size()
+    #    instance_id, instance_ip = standup_instance(
+    #            self, self.euca_instance_url,
+    #            machine_alias, size_alias, "test imaging")
+    #    request_id = self.create_machine_request(
+    #            self.euca_request_url,
+    #            instance_id, instance_ip, self.euca_id.provider.id)
+    #    approval_link = reverse('direct-machine-request-action',
+    #                          args=[request_id, 'approve'])
+    #    euca_approval_url = urljoin(settings.SERVER_URL, approval_link)
+    #    self.approve_machine_request(euca_approval_url)
+    #    machine_request_url = reverse('direct-machine-request-detail',
+    #            args=[request_id,])
+    #    new_machine_id = self.wait_for_machine_request(machine_request_url)
+    #    machine_alias = new_machine_id
+    #    instance_id, instance_ip = standup_instance(
+    #            self, self.euca_instance_url,
+    #            machine_alias, size_alias, "test imaging was successful",
+    #            delete_after=True)
+
+    #def test_euca_os_migration(self):
+    #    euca_accounts = EucaAccounts(
+    #            Provider.objects.get(location='EUCALYPTUS'))
+    #    euca_img_class = euca_accounts.image_manager.__class__
+    #    euca_img_creds = euca_accounts.image_creds
+    #    os_accounts = OSAccounts(
+    #            Provider.objects.get(location='OPENSTACK'))
+    #    os_img_class = os_accounts.image_manager.__class__
+    #    os_img_creds = os_accounts.image_creds
+    #    migrate_args = {
+    #            'download_dir':"/Storage/test",
+    #            'image_id':"emi-E7F8300F",
+    #            'image_name': "ATMO Migration Test %s"\
+    #                    % datetime.now().strftime('%m%d_%H%M'),
+    #            'xen_to_kvm':True,
+    #            }
+    #    migrate_image(euca_img_class, euca_img_creds,
+    #                  os_img_class, os_img_creds,
+    #                  **migrate_args)
 
     def test_openstack_machine_request(self):
         """
@@ -124,6 +174,7 @@ class MachineRequestTests(TestCase):
         """
         machine_alias = "75fdfca4-d49d-4b2d-b919-a3297bc6d7ae"
         size_alias = "2"
+        self.openstack_mach_and_size()
         instance_id, instance_ip = standup_instance(
                 self, self.os_instance_url,
                 machine_alias, size_alias, "test imaging")
@@ -143,10 +194,12 @@ class MachineRequestTests(TestCase):
         machine_alias = new_machine_id
         instance_id, instance_ip = standup_instance(
                 self, self.os_instance_url,
-                machine_alias, size_alias, "test imaging was successful",
-                delete_after=True)
+                machine_alias, size_alias, "test imaging successful",
+                delete_after=True, first_launch=True)
+
 
     #TEST STEPS: Called indirectly by TEST CASES...
+
 
     def create_machine_request(self, machine_request_url,
                                instance_id, instance_ip, new_provider_id):

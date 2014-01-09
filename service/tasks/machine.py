@@ -12,6 +12,7 @@ from atmosphere import settings
 
 from core.email import send_image_request_email
 from core.models.machine_request import MachineRequest, process_machine_request
+from core.models.identity import Identity
 
 from service.deploy import freeze_instance, sync_instance
 from service.tasks.driver import deploy_to
@@ -29,7 +30,6 @@ def start_machine_imaging(machine_request, delay=False):
     Builds up a machine imaging task using the core.models.machine_request object
     delay - If true, wait until task is completed before returning
     """
-    #NOTE: Do not move up -- Circular dependency
     machine_request.status = 'processing'
     machine_request.save()
     instance_id = machine_request.instance.provider_alias
@@ -40,8 +40,8 @@ def start_machine_imaging(machine_request, delay=False):
 
     #Step 1 - On OpenStack, sync/freeze BEFORE starting migration/imaging
     init_task = None
-    if orig_managerCls == OSImageManager:
-        freeze_task = freeze_instance_task.si(machine_request.id, instance_id)
+    if orig_managerCls == OSImageManager:  # TODO:AND if instance still running
+        freeze_task = freeze_instance_task.si(machine_request.instance.created_by_identity_id, instance_id)
         init_task = freeze_task
     if dest_managerCls and dest_creds != orig_creds:
         #Will run machine imaging task..
@@ -114,8 +114,8 @@ def machine_request_error(machine_request_id, task_uuid):
 
 @task(name='process_request', ignore_result=False)
 def process_request(new_image_id, machine_request_id):
-    if ipdb:
-        ipdb.set_trace()
+    #if ipdb:
+    #    ipdb.set_trace()
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     set_machine_request_metadata(machine_request, new_image_id)
     process_machine_request(machine_request, new_image_id)
@@ -124,10 +124,9 @@ def process_request(new_image_id, machine_request_id):
                              machine_request.new_machine_name)
 
 @task(name='freeze_instance_task', ignore_result=False)
-def freeze_instance_task(machine_request_id, instance_id):
+def freeze_instance_task(identity_id, instance_id):
     from api import get_esh_driver
-    machine_request = MachineRequest.objects.get(id=machine_request_id)
-    identity = machine_request.instance.created_by_identity
+    identity = Identity.objects.get(id=identity_id)
     driver = get_esh_driver(identity)
     kwargs = {}
     private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
@@ -145,6 +144,4 @@ def freeze_instance_task(machine_request_id, instance_id):
     deploy_to.delay(
         driver.__class__, driver.provider, driver.identity,
         instance.id, **kwargs)
-    #Give it a head-start..
-    time.sleep(1)
     return

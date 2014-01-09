@@ -27,8 +27,13 @@ class Occupancy(APIView):
         #Get meta for provider to call occupancy
         provider = Provider.objects.get(id=provider_id)
         ident = provider.identity_set.all()[0]
+        account_providers = provider.accountprovider_set.all()
         driver = get_esh_driver(ident)
-        meta_driver = driver.meta()
+        if account_providers:
+            admin_driver = get_esh_driver(account_providers[0].identity)
+            meta_driver = driver.meta(admin_driver=admin_driver)
+        else:
+             meta_driver = driver.meta()
         esh_size_list  = meta_driver.occupancy()
         #Formatting..
         core_size_list = [convert_esh_size(size, provider_id)

@@ -10,7 +10,23 @@ import ldap as ldap_driver
 
 from threepio import logger
 
-from atmosphere import settings
+from atmosphere.settings import secrets
+
+
+def _search_ldap(userid, conn=None):
+    try:
+        if not conn:
+            conn = ldap_driver.initialize(secrets.LDAP_SERVER)
+        result = conn.search_s(
+            secrets.LDAP_SERVER_DN,
+            ldap_driver.SCOPE_SUBTREE,
+            '(uid='+userid+')'
+        )
+        return result
+    except Exception as e:
+        logger.warn("Error occurred on ldap search for: %s" % userid)
+        logger.exception(e)
+        return None
 
 
 def getAllUsers():
@@ -18,14 +34,10 @@ def getAllUsers():
     Grabs all users in LDAP
     """
     try:
-        conn = ldap_driver.initialize(settings.LDAP_SERVER)
+        conn = ldap_driver.initialize(secrets.LDAP_SERVER)
         user_list = []
         for letter in string.lowercase:
-            attr = conn.search_s(
-                settings.LDAP_SERVER_DN,
-                ldap_driver.SCOPE_SUBTREE,
-                '(uid=%s*)' % letter
-            )
+            attr = _search_ldap("%s*" % letter, conn)
             for i in xrange(0,len(attr)):
                user_attrs = attr[i][1]
                user_list.append(user_attrs)
@@ -41,12 +53,7 @@ def lookupUser(userid):
     Grabs email for the user based on LDAP attrs
     """
     try:
-        conn = ldap_driver.initialize(settings.LDAP_SERVER)
-        attr = conn.search_s(
-            settings.LDAP_SERVER_DN,
-            ldap_driver.SCOPE_SUBTREE,
-            '(uid='+userid+')'
-        )
+        attr = _search_ldap(userid)
         user_attrs = attr[0][1]
         return user_attrs
     except Exception as e:
@@ -63,12 +70,7 @@ def lookupEmail(userid):
         logger.debug(type(userid))
         if isinstance(userid, WSGIRequest):
             raise Exception("WSGIRequest invalid.")
-        conn = ldap_driver.initialize(settings.LDAP_SERVER)
-        attr = conn.search_s(
-            settings.LDAP_SERVER_DN,
-            ldap_driver.SCOPE_SUBTREE,
-            '(uid='+userid+')'
-        )
+        attr = _search_ldap("%s*" % letter, conn)
         emailaddr = attr[0][1]['mail'][0]
         return emailaddr
     except Exception as e:
@@ -93,8 +95,8 @@ def ldap_validate(username, password):
     If the connection succeeds, the credentials are authentic.
     """
     try:
-        ldap_server = settings.LDAP_SERVER
-        ldap_server_dn = settings.LDAP_SERVER_DN
+        ldap_server = secrets.LDAP_SERVER
+        ldap_server_dn = secrets.LDAP_SERVER_DN
         logger.warn("[LDAP] Validation Test - %s" % username)
         ldap_conn = ldap_driver.initialize(ldap_server)
         dn = "uid="+username+","+ldap_server_dn
@@ -127,8 +129,8 @@ def is_atmo_user(username):
     otherwise False.
     """
     try:
-        ldap_server = settings.LDAP_SERVER
-        ldap_group_dn = settings.LDAP_SERVER_DN.replace("ou=people",
+        ldap_server = secrets.LDAP_SERVER
+        ldap_group_dn = secrets.LDAP_SERVER_DN.replace("ou=people",
                                                          "ou=Groups")
         ldap_conn = ldap_driver.initialize(ldap_server)
         atmo_users = ldap_conn.search_s(ldap_group_dn,

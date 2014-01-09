@@ -4,7 +4,7 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import models
 
-from atmosphere import settings
+from atmosphere.settings import secrets
 from threepio import logger
 
 class Migration(DataMigration):
@@ -36,12 +36,12 @@ class Migration(DataMigration):
         return (user, group)
 
     def build_atmo_admin(self, orm):
-        if not hasattr(settings, 'ATMOSPHERE_SUPERUSER'):
+        if not hasattr(secrets, 'ATMOSPHERE_SUPERUSER'):
             print """Atmosphere Administrator could not be created from settings.
 To create an Administrator account for Atmosphere via the REPL:
 >>> Identity.make_account_admin(ATMOSPHERE_SUPERUSER_NAME)"""
             return
-        user, group = self.create_usergroup(orm,username=settings.ATMOSPHERE_SUPERUSER)
+        user, group = self.create_usergroup(orm,username=secrets.ATMOSPHERE_SUPERUSER)
         quota = orm.Quota.objects.get_or_create(
                 cpu = orm.Quota._meta.get_field('cpu').default,
                 memory = orm.Quota._meta.get_field('memory').default,
@@ -142,8 +142,8 @@ To create an Administrator account for Atmosphere via the REPL:
         return id_membership.identity
 
     def build_os_admin(self, orm):
-        if not hasattr(settings, 'OPENSTACK_ARGS'):
-            print """AccountProvider could not be created from settings.
+        if not hasattr(secrets, 'OPENSTACK_ARGS'):
+            print """AccountProvider could not be created from secrets.
 To create an AccountProvider for the 'OPENSTACK' location: via the REPL:
 >>> Identity.create_identity(ADMIN_USERNAME, 'OPENSTACK', account_admin=True,
                              cred_key=username, cred_secret=password,
@@ -152,16 +152,16 @@ To create an AccountProvider for the 'OPENSTACK' location: via the REPL:
             return
 
         identity = self.create_identity(orm, 
-            settings.OPENSTACK_ARGS['username'],
+            secrets.OPENSTACK_ARGS['username'],
             'OPENSTACK', account_admin=True,
-            cred_key=settings.OPENSTACK_ADMIN_KEY,
-            cred_secret=settings.OPENSTACK_ADMIN_SECRET,
-            cred_ex_tenant_name=settings.OPENSTACK_ADMIN_TENANT,
-            cred_ex_project_name=settings.OPENSTACK_ADMIN_TENANT)
+            cred_key=secrets.OPENSTACK_ADMIN_KEY,
+            cred_secret=secrets.OPENSTACK_ADMIN_SECRET,
+            cred_ex_tenant_name=secrets.OPENSTACK_ADMIN_TENANT,
+            cred_ex_project_name=secrets.OPENSTACK_ADMIN_TENANT)
 
     def build_euca_admin(self, orm):
-        if not hasattr(settings, 'EUCALYPTUS_ARGS'):
-            print """AccountProvider could not be created from settings.
+        if not hasattr(secrets, 'EUCALYPTUS_ARGS'):
+            print """AccountProvider could not be created from secrets.
 To create a Eucalyptus AccountProvider via the REPL:
 >>> Identity.create_identity(admin_username, 'EUCALYPTUS', account_admin=True,
                              cred_key=_key, cred_secret=secret)"""
@@ -169,8 +169,8 @@ To create a Eucalyptus AccountProvider via the REPL:
         identity = self.create_identity(orm,
             'admin', 'EUCALYPTUS',
             account_admin=True,
-            cred_key=settings.EUCA_ADMIN_KEY,
-            cred_secret=settings.EUCA_ADMIN_SECRET)
+            cred_key=secrets.EUCA_ADMIN_KEY,
+            cred_secret=secrets.EUCA_ADMIN_SECRET)
 
     models = {
         u'auth.group': {

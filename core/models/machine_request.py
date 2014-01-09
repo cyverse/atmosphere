@@ -2,6 +2,7 @@
   Machine models for atmosphere.
 """
 import re
+import os
 
 from django.db import models
 from django.utils import timezone
@@ -12,7 +13,7 @@ from core.models.provider import Provider
 from core.models.machine import create_provider_machine
 from core.models.node import NodeController
 
-from atmosphere import settings
+from atmosphere.settings import secrets
 from threepio import logger
 
 class MachineRequest(models.Model):
@@ -61,7 +62,7 @@ class MachineRequest(models.Model):
         return meta_name
 
     def new_machine_id(self):
-        return self.new_machine.id if self.new_machine else None
+        return 'zzz%s' % self.new_machine.identifier if self.new_machine else None
 
     def is_public(self):
         return "public" in self.new_machine_visibility.lower()
@@ -134,13 +135,29 @@ class MachineRequest(models.Model):
         (orig_managerCls, orig_creds,
          dest_managerCls, dest_creds) = self.prepare_manager()
     
-        download_dir = settings.LOCAL_STORAGE
+        download_dir = secrets.LOCAL_STORAGE
     
         imaging_args = {
             "instance_id": self.instance.provider_alias,
             "image_name": self.new_machine_name,
             "download_dir" : download_dir}
-        if issubclass(orig_managerCls, EucaImageManager):
+        if issubclass(orig_managerCls, OSImageManager):
+            id_owner = self.instance.created_by_identity
+            tenant_cred = id_owner.credential_set.filter(
+                    key='ex_tenant_name')
+            if not tenant_cred:
+                tenant_cred = id_owner.credential_set.filter(
+                        key='ex_project_name')
+            if not tenant_cred:
+                raise Exception("You should not be here! Update the key "
+                        "used for openstack tenant names!")
+            tenant_cred = tenant_cred[0]
+            download_location = os.path.join(
+                    download_dir, tenant_cred.value)
+            download_location = os.path.join(
+                    download_location, '%s.qcow2' % self.new_machine_name)
+            imaging_args['download_location'] = download_location 
+        elif issubclass(orig_managerCls, EucaImageManager):
             meta_name = self._get_meta_name()
             public_image = self.is_public()
             #Splits the string by ", " OR " " OR "\n" to create the list
@@ -167,23 +184,25 @@ class MachineRequest(models.Model):
         return imaging_args
 
     def get_euca_node_info(self, euca_managerCls, euca_creds):
+        node_dict = {
+                'hostname':'',
+                'port':'',
+                'private_key':''
+        }
         instance_id = self.instance.provider_alias
         #Prepare and use the manager
         euca_manager = euca_managerCls(**euca_creds)
         node_ip = euca_manager.get_instance_node(instance_id)
+
         #Find the matching node
         try:
             core_node = NodeController.objects.get(alias=node_ip)
+            node_dict['hostname'] = core_node.hostname
+            node_dict['port'] = core_node.port
+            node_dict['private_key'] = core_node.private_ssh_key
         except NodeController.DoesNotExist:
             logger.error("Must create a nodecontroller for IP: %s" % node_ip)
-            return None
-    
         #Return a dict containing information on how to SCP to the node
-        node_dict = {
-                'hostname':core_node.hostname,
-                'port':core_node.port,
-                'private_key':core_node.private_ssh_key
-        }
         return node_dict
 
     def new_machine_is_public(self):
@@ -202,6 +221,7 @@ class MachineRequest(models.Model):
         app_label = "core"
 
 def process_machine_request(machine_request, new_image_id):
+    from core.models.machine import add_to_cache
     from core.models.tag import Tag
     from core.models import Identity, ProviderMachine
     #Build the new provider-machine object and associate
@@ -212,6 +232,7 @@ def process_machine_request(machine_request, new_image_id):
             machine_request.new_machine_name, new_image_id,
             machine_request.new_machine_provider_id)
 
+    add_to_cache(new_machine)
     new_identity = Identity.objects.get(created_by=machine_request.new_machine_owner, provider=machine_request.new_machine_provider)
     generic_mach = new_machine.machine
     tags = [Tag.objects.get(name__iexact=tag) for tag in
@@ -230,3 +251,31 @@ def process_machine_request(machine_request, new_image_id):
     machine_request.status = 'completed'
     machine_request.save()
     return machine_request
+
+def share_with_admins(private_userlist, provider_id):
+    """
+    NOTE: This will always work, but the userlist could get long some day.
+    Another option would be to create an 'admin' tenant that all of core
+    services and the admin are members of, and add only that tenant to the
+    list.
+    """
+    if type(private_userlist) != list:
+        raise Exception("Expected private_userlist to be list, got %s: %s"
+                        % (type(private_userlist), private_userlist))
+
+    from authentication.protocol.oauth import get_core_services
+    core_services = get_core_services()
+    admin_users = [ap.identity.created_by.username for ap in
+            AccountProvider.objects.filter(provider__id=provider_id)]
+    private_userlist.extend(core_services)
+    private_userlist.extend(admin_users)
+    return private_userlist
+
+def share_with_self(private_userlist, username):
+    if type(private_userlist) != list:
+        raise Exception("Expected type(private_userlist) to be list, got %s: %s"
+                        % (type(private_userlist), private_userlist))
+
+    #TODO: Optionally, Lookup username and get the Projectname
+    private_userlist.extend(username)
+    return private_userlist
