@@ -29,8 +29,8 @@ def main():
     usernames = os_driver.list_usergroup_names()
     staff = members_query_groupy("staff")
 
-    staff_users = list(set(staff) & set(usernames))
-    non_staff = list(set(usernames) - set(staff))
+    staff_users = sorted(list(set(staff) & set(usernames)))
+    non_staff = sorted(list(set(usernames) - set(staff)))
 
     for user in staff_users:
         # Openstack account exists, but we need the identity.
