@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-from core.models import Provider, PlatformType, ProviderType, Identity, Group
+from core.models import Provider, PlatformType, ProviderType, Identity, Group,\
+    ProviderMembership, IdentityMembership, AccountProvider, Quota
 
 KVM = PlatformType.objects.get_or_create(name='KVM')[0]
 XEN = PlatformType.objects.get_or_create(name='Xen')[0]
@@ -42,11 +43,12 @@ def create_admin(provider):
     provider.providercredential_set.get_or_create(key='region_name', value=region_name_select)
 
     prov_membership = ProviderMembership.objects.get_or_create(
-            identity=provider, member=group)[0]
+            provider=provider, member=group)[0]
+    quota = Quota.objects.all()[0]
     id_membership = IdentityMembership.objects.get_or_create(
-            identity=new_identity, member=group)[0]
+        identity=new_identity, member=group, quota=quota)[0]
     admin = AccountProvider.objects.get_or_create(
-            provider=provider, identity=new_identity)[0]
+        provider=provider, identity=new_identity)[0]
     user.save()
     return new_identity
 
@@ -89,7 +91,8 @@ def create_provider():
             type=provider,
             public=False)
     #4.  Create a new provider
-    print "Created a new provider: %s"
+    print "Created a new provider: %s" % (new_provider.name)
+    return new_provider
 
 if __name__ == "__main__":
     main()
