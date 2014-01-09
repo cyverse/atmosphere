@@ -69,32 +69,32 @@ class InstanceTests(TestCase):
     def tearDown(self):
         self.api_client.logout()
 
-    def test_euca_instance(self):
-        """
-        Testing instances must be done in order
-        * Create the instance
-        * Detail the instance
-        * Delete the instance
-        # Wait for instance to deploy and
-        # Ensure: SSH, VNC, Shellinabox, Deploy access
-        """
-        euca_launch_data = {
-            "machine_alias":"emi-E7F8300F",
-            "size_alias":"m1.small",
-            "name":"Ubuntu 12.04 - Euca Test",
-            "tags":['test_tag1','test_tag2','test_tag3']}
-        self.expected_output['name'] = euca_launch_data['name']
-        self.expected_output['machine_alias'] = euca_launch_data['machine_alias']
-        self.expected_output['size_alias'] = euca_launch_data['size_alias']
-        self.expected_output['tags'] = euca_launch_data['tags']
-        deleted = self.predelete_step_euca()
-        #if deleted:
-        #    # Give it some time to clear, so we dont go over-quota..
-        #    time.sleep(60*4) # Sorry, its euca.
+    #def test_euca_instance(self):
+    #    """
+    #    Testing instances must be done in order
+    #    * Create the instance
+    #    * Detail the instance
+    #    * Delete the instance
+    #    # Wait for instance to deploy and
+    #    # Ensure: SSH, VNC, Shellinabox, Deploy access
+    #    """
+    #    euca_launch_data = {
+    #        "machine_alias":"emi-E7F8300F",
+    #        "size_alias":"m1.small",
+    #        "name":"Ubuntu 12.04 - Euca Test",
+    #        "tags":['test_tag1','test_tag2','test_tag3']}
+    #    self.expected_output['name'] = euca_launch_data['name']
+    #    self.expected_output['machine_alias'] = euca_launch_data['machine_alias']
+    #    self.expected_output['size_alias'] = euca_launch_data['size_alias']
+    #    self.expected_output['tags'] = euca_launch_data['tags']
+    #    deleted = self.predelete_step_euca()
+    #    #if deleted:
+    #    #    # Give it some time to clear, so we dont go over-quota..
+    #    #    time.sleep(60*4) # Sorry, its euca.
 
-        instance_id = self.launch_step_euca(euca_launch_data)
-        self.detail_step_euca(instance_id)
-        #self.delete_step_euca(instance_id)
+    #    instance_id = self.launch_step_euca(euca_launch_data)
+    #    self.detail_step_euca(instance_id)
+    #    #self.delete_step_euca(instance_id)
 
     def launch_step_euca(self, euca_launch_data):
         #Create the instance
