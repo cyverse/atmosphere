@@ -15,7 +15,7 @@ def set_provider_quota(identity_id):
         return
     if identity.provider.get_type_name().lower() == 'openstack':
         driver = get_esh_driver(identity)
-        user_id = driver._connection.connection.auth_user_info['id']
+        user_id = driver._connection._get_user_id()
         tenant_id = driver._connection._get_tenant_id()
         admin_driver = ad.admin_driver
         membership = IdentityMembership.objects.get(identity__id=identity_id,
