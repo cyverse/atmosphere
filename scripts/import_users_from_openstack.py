@@ -13,7 +13,7 @@ def main():
     """
     TODO: Add argparse, --delete : Deletes existing users in openstack (Never use in PROD)
     """
-    openstack = Provider.objects.get(location='Openstack-Tucson (BETA)')
+    openstack = Provider.objects.get(location='OpenStack-Tucson (BETA)')
     os_driver = OSAccountDriver(openstack)
     found = 0
     create = 0

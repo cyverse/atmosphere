@@ -30,20 +30,21 @@ def main():
     staff = members_query_groupy("staff")
 
     staff_users = list(set(staff) & set(usernames))
-    non_staff = usernames - staff
+    non_staff = list(set(usernames) - set(staff))
 
-    for user in staff_users:
-        # Openstack account exists, but we need the identity.
-        ident = os_driver.create_account(user)
-        print 'Found staff user:%s -- Remove allocation and Update quota' % user
-        im = ident.identity_membership.all()[0]
-        #Disable time allocation
-        im.allocation = None
-        im.quota = higher_quota
-        im.save()
+    #for user in staff_users:
+    #    # Openstack account exists, but we need the identity.
+    #    ident = os_driver.create_account(user)
+    #    print 'Found staff user:%s -- Remove allocation and Update quota' % user
+    #    im = ident.identitymembership_set.all()[0]
+    #    #Disable time allocation
+    #    im.allocation = None
+    #    im.quota = higher_quota
+    #    im.save()
     for user in non_staff:
         #Raise everybody's quota
         ident = os_driver.create_account(user)
+        im = ident.identitymembership_set.all()[0]
         im.quota = higher_quota
         im.allocation = Allocation.default_allocation()
         im.save()
