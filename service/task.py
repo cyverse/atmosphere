@@ -6,12 +6,15 @@ from celery import chain
 
 from threepio import logger
 
+import service
+
+from service.exceptions import DeviceBusyException
+
 from service.tasks.driver import deploy_to,\
     deploy_init_to, add_floating_ip, destroy_instance
 from service.tasks.volume import detach_task, umount_task,\
     attach_task, mount_task, check_volume_task
-from service.exceptions import DeviceBusyException
-import service
+
 
 def deploy_init_task(driver, instance, *args, **kwargs):
     deploy_init_to.apply_async((driver.__class__,
@@ -60,7 +63,7 @@ def detach_volume_task(driver, instance_id, volume_id, *args, **kwargs):
 
 
 def attach_volume_task(driver, instance_id, volume_id, device=None,
-        mount_location=None, *args, **kwargs):
+                       mount_location=None, *args, **kwargs):
     logger.info("P_device - %s" % device)
     logger.info("P_mount_location - %s" % mount_location)
     attach_task.delay(

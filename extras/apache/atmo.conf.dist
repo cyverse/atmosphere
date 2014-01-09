@@ -21,6 +21,33 @@ WSGIPythonHome /opt/env/atmo
 SSLCryptoDevice builtin
 
 ##
+## Celery-Flower proxy redirection
+##
+ProxyRequests Off
+ProxyPreserveHost On
+SSLProxyEngine On
+
+ProxyPass         /flower  https://new_server_001.iplantcollaborative.org:8443
+ProxyPassReverse  /flower  https://new_server_001.iplantcollaborative.org:8443
+ProxyPassReverse  /flower  https://new_server_001.iplantcollaborative.org/flower
+
+<Proxy https://new_server_001.iplantcollaborative.org:8443/flower*>
+  Order deny,allow
+  Allow from all
+</Proxy>
+
+##
+## Jenkins proxy redirection
+##
+ProxyPass         /jenkins  http://new_server_001.iplantcollaborative.org:8080/jenkins
+ProxyPassReverse  /jenkins  http://new_server_001.iplantcollaborative.org:8080/jenkins
+ProxyPassReverse  /jenkins  http://new_server_001.iplantcollaborative.org/jenkins
+
+<Proxy http://new_server_001.iplantcollaborative.org:8080/jenkins*>
+  Order deny,allow
+  Allow from all
+</Proxy>
+##
 ## SSL Virtual Host Context
 ##
 
@@ -61,7 +88,7 @@ SetEnvIf User-Agent ".*MSIE.*" \
 
 #This is for atmosphere
 Alias /favicon.ico /opt/dev/atmosphere/static/images/favicon.ico
-
+Alias /robots.txt /opt/dev/atmosphere/templates/robots.txt
 #init_files && resources will auto-direct to the file
 Alias /init_files /opt/dev/atmosphere/init_files
 Alias /resources /opt/dev/atmosphere/resources

@@ -2,7 +2,7 @@
 Atmosphere service volume
 """
 
-from datetime import datetime
+from django.utils.timezone import datetime
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -87,7 +87,7 @@ class VolumeList(APIView):
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         core_volume = convert_esh_volume(esh_volume, provider_id, identity_id, user)
         serialized_data = VolumeSerializer(core_volume).data
-        response = Response(serialized_data)
+        response = Response(serialized_data, status=status.HTTP_201_CREATED)
         return response
 
 

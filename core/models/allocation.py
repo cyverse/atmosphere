@@ -11,19 +11,26 @@ class Allocation(models.Model):
     a User/Group. Allocations are set at the Identity Level
     in IdentityMembership.
     """
+    # One week
     threshold = models.IntegerField(null=True,
                                     blank=True,
-                                    default=10080)  # In Minutes
+                                    default=7*24*60)# In Minutes
+    # Over One year
     delta = models.IntegerField(null=True,
                                 blank=True,
-                                default=20160)  # In Minutes
+                                default=365*24*60)  # In Minutes
 
     def __unicode__(self):
         return "Threshold: %s minutes over Delta: %s minutes" %\
             (self.threshold, self.delta)
 
     @classmethod
-    def defaults(self):
+    def default_allocation(self):
+        return Allocation.objects.get_or_create(
+                **Allocation.default_dict())[0]
+
+    @classmethod
+    def default_dict(self):
         return {
             'threshold': self._meta.get_field('threshold').default,
             'delta': self._meta.get_field('delta').default

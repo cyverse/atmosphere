@@ -3,7 +3,6 @@ Atmosphere service instance rest api.
 """
 from datetime import datetime
 import time
-
 from core.models import AtmosphereUser as User
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
@@ -26,8 +25,9 @@ from core.models.size import convert_esh_size
 from core.models.volume import convert_esh_volume
 
 from api import failureJSON, prepare_driver
-from api.serializers import InstanceSerializer, VolumeSerializer,\
-    PaginatedInstanceSerializer
+from api.serializers import InstanceSerializer, PaginatedInstanceSerializer
+from api.serializers import InstanceHistorySerializer, PaginatedInstanceHistorySerializer
+from api.serializers import VolumeSerializer
 
 from service import task
 from service.deploy import build_script
@@ -134,7 +134,6 @@ class InstanceHistory(APIView):
     def get(self, request, provider_id=None, identity_id=None):
         data = request.DATA
         params = request.QUERY_PARAMS.copy()
-        logger.info(params.items())
 
         user = User.objects.filter(username=request.user)
         if user and len(user) > 0:
@@ -191,10 +190,10 @@ class InstanceHistory(APIView):
                 # deliver last page of results.
                 history_instance_page = paginator.page(paginator.num_pages)
             serialized_data = \
-                PaginatedInstanceSerializer(
+                PaginatedInstanceHistorySerializer(
                     history_instance_page).data
         else:
-            serialized_data = InstanceSerializer(history_instance_list,
+            serialized_data = InstanceHistorySerializer(history_instance_list,
                                                  many=True).data
 
         response = Response(serialized_data)
@@ -280,9 +279,10 @@ class InstanceAction(APIView):
                                                identity_id,
                                                user)
                 result_obj = VolumeSerializer(core_volume).data
-                logger.debug(result_obj)
             elif 'resize' == action:
-                size_alias = action_params.get('size_alias', '')
+                size_alias = action_params.get('size', '')
+                if type(size_alias) == int:
+                    size_alias = str(size_alias)
                 size = esh_driver.get_size(size_alias)
                 esh_driver.resize_instance(esh_instance, size)
             elif 'confirm_resize' == action:
@@ -443,7 +443,7 @@ class Instance(APIView):
             response['Cache-Control'] = 'no-cache'
             return response
         else:
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400)
 
     @api_auth_token_required
     def delete(self, request, provider_id, identity_id, instance_id):
@@ -455,19 +455,20 @@ class Instance(APIView):
             if not esh_instance:
                 return instance_not_found(instance_id)
             task.destroy_instance_task(esh_instance, identity_id)
-            esh_instance = esh_driver.get_instance(instance_id)
-            if esh_instance.extra\
-               and 'task' not in esh_instance.extra:
-                esh_instance.extra['task'] = 'queueing delete'
-            core_instance = convert_esh_instance(esh_driver,
-                                               esh_instance,
-                                               provider_id,
-                                               identity_id,
-                                               user)
+            existing_instance = esh_driver.get_instance(instance_id)
+            if existing_instance:
+                #Instance will be deleted soon...
+                esh_instance = existing_instance
+                if esh_instance.extra\
+                   and 'task' not in esh_instance.extra:
+                    esh_instance.extra['task'] = 'queueing delete'
+            core_instance = convert_esh_instance(esh_driver, esh_instance,
+                                                 provider_id, identity_id,
+                                                 user)
             if core_instance:
                 core_instance.end_date_all()
             serialized_data = InstanceSerializer(core_instance).data
-            response = Response(serialized_data, status=200)
+            response = Response(serialized_data, status=status.HTTP_200_OK)
             response['Cache-Control'] = 'no-cache'
             return response
         except InvalidCredsError:

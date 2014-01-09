@@ -40,6 +40,8 @@ class CASLoginBackend(ModelBackend):
         Return None otherwise.
         """
         (success, cas_response) = cas_validateUser(username)
+        logger.info("Authenticate by CAS: %s - %s %s"
+                    % (username, success, cas_response))
         if not success:
             logger.debug("CAS Authentication failed - "+username)
             return None

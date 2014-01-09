@@ -53,7 +53,7 @@ urlpatterns = patterns(
     url(r'^api/v1/email_support', 'web.emails.email_support'),
 
     #v2 api url scheme
-    url(r'^auth/$', 'authentication.views.token_auth'),
+    url(r'^auth/$', 'authentication.views.token_auth', name='token-auth'),
 
     #This is a TEMPORARY url..
     #In v2 this is /api/provider/<id>/identity/<id>/instance/action
@@ -184,7 +184,7 @@ urlpatterns += format_suffix_patterns(patterns(
         + '/identity/(?P<identity_id>\d+)/step/$',
         StepList.as_view(), name='step-list'),
     url(r'^api/v1/provider/(?P<provider_id>\d+)'
-        + '/identity/(?P<identity_id>\d+)/step/(?P<step_id>\d+)/$',
+        + '/identity/(?P<identity_id>\d+)/step/(?P<step_id>[a-zA-Z0-9-]+)/$',
         Step.as_view(), name='step-detail'),
 
 

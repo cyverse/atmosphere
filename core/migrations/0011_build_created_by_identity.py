@@ -128,9 +128,9 @@ class Migration(DataMigration):
 
     def get_admin_identity(self, orm, provider):
         try:
-            from atmosphere import settings
+            from atmosphere.settings import secrets
             if provider.location.lower() == 'openstack':
-                admin_name = settings.OPENSTACK_ADMIN_KEY
+                admin_name = secrets.OPENSTACK_ADMIN_KEY
             elif provider.location.lower() == 'eucalyptus':
                 admin_name = 'admin'
             admin = orm.UserProfile.objects.get(user__username=admin_name).user

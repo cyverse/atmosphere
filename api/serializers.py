@@ -11,6 +11,7 @@ from core.models.provider import ProviderType, Provider
 from core.models.size import Size
 from core.models.step import Step
 from core.models.tag import Tag, find_or_create_tag
+from core.models.user import AtmosphereUser
 from core.models.volume import Volume
 from core.models.group import Group
 
@@ -95,6 +96,41 @@ class InstanceSerializer(serializers.ModelSerializer):
                    'shell', 'vnc', 'created_by_identity')
 
 
+class InstanceHistorySerializer(serializers.ModelSerializer):
+    #R/O Fields first!
+    alias = serializers.CharField(read_only=True, source='provider_alias')
+    alias_hash = serializers.CharField(read_only=True, source='hash_alias')
+    created_by = serializers.SlugRelatedField(slug_field='username',
+                                              source='created_by',
+                                              read_only=True)
+    size_alias = serializers.CharField(read_only=True, source='esh_size')
+    machine_alias = serializers.CharField(read_only=True, source='esh_machine')
+    machine_name = serializers.CharField(read_only=True,
+                                         source='esh_machine_name')
+    machine_alias_hash = serializers.CharField(read_only=True,
+                                               source='hash_machine_alias')
+    ip_address = serializers.CharField(read_only=True)
+    start_date = serializers.DateTimeField(read_only=True)
+    end_date = serializers.DateTimeField(read_only=True)
+    active_time = serializers.DateTimeField(read_only=True, source='get_active_time')
+    #provider = serializers.Field(source='provider_machine__provider')
+    #Writeable fields
+    name = serializers.CharField()
+    tags = TagRelatedField(slug_field='name', source='tags', many=True)
+
+    class Meta:
+        model = Instance
+        exclude = ('id', 'provider_machine', 'provider_alias',
+                   'shell', 'vnc', 'created_by_identity')
+
+
+class PaginatedInstanceHistorySerializer(pagination.PaginationSerializer):
+    """
+    Serializes page objects of Instance querysets.
+    """
+    class Meta:
+        object_serializer_class = InstanceHistorySerializer
+
 class PaginatedInstanceSerializer(pagination.PaginationSerializer):
     """
     Serializes page objects of Instance querysets.
@@ -146,8 +182,8 @@ class MachineRequestSerializer(serializers.ModelSerializer):
     description = serializers.CharField(source='new_machine_description',
                                         required=False)
     tags = serializers.CharField(source='new_machine_tags', required=False)
-
-    new_machine = serializers.RelatedField(read_only=True)
+    new_machine = serializers.SlugRelatedField(slug_field='identifier',
+            required=False)
 
     class Meta:
         model = MachineRequest
@@ -193,17 +229,8 @@ class IdentityRelatedField(serializers.RelatedField):
         except Identity.DoesNotExist:
             into[field_name] = None
 
-
-class ProfileSerializer(serializers.ModelSerializer):
-    """
-    """
-    #TODO:Need to validate provider/identity membership on id change
-    username = serializers.CharField(read_only=True, source='user.username')
-    email = serializers.CharField(read_only=True, source='email_hash')
-    groups = serializers.CharField(read_only=True, source='user.groups.all')
-    is_staff = serializers.BooleanField(source='user.is_staff')
-    is_superuser = serializers.BooleanField(source='user.is_superuser')
-    selected_identity = IdentityRelatedField(source='user.select_identity')
+class AtmoUserSerializer(serializers.ModelSerializer):
+    selected_identity = IdentityRelatedField(source='select_identity')
 
     def validate_selected_identity(self, attrs, source):
         """
@@ -215,10 +242,10 @@ class ProfileSerializer(serializers.ModelSerializer):
         logger.debug(source)
         if 'selected_identity' not in attrs:
             return attrs
-        selected_identity = attrs['selected_identity']
-        logger.debug(selected_identity)
         user = self.object.user
         logger.info("Validating identity for %s" % user)
+        selected_identity = attrs['selected_identity']
+        logger.debug(selected_identity)
         groups = user.group_set.all()
         for g in groups:
             for id_member in g.identitymembership_set.all():
@@ -228,8 +255,24 @@ class ProfileSerializer(serializers.ModelSerializer):
                     user.save()
                     return attrs
         raise serializers.ValidationError("User is not a member of"
-                                          "selected_identity = %s"
+                                          "selected_identity: %s"
                                           % selected_identity)
+
+
+    class Meta:
+        model = AtmosphereUser
+        exclude = ('id','password')
+
+class ProfileSerializer(serializers.ModelSerializer):
+    """
+    """
+    #TODO:Need to validate provider/identity membership on id change
+    username = serializers.CharField(read_only=True, source='user.username')
+    email = serializers.CharField(read_only=True, source='email_hash')
+    groups = serializers.CharField(read_only=True, source='user.groups.all')
+    is_staff = serializers.BooleanField(source='user.is_staff')
+    is_superuser = serializers.BooleanField(source='user.is_superuser')
+    selected_identity = IdentityRelatedField(source='user.select_identity')
 
     class Meta:
         model = UserProfile
@@ -252,8 +295,8 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='machine.name')
     tags = serializers.CharField(source='machine.tags.all')
     description = serializers.CharField(source='machine.description')
-    start_date = serializers.CharField(source='machine.start_date')
-    end_date = serializers.CharField(source='machine.end_date',
+    start_date = serializers.CharField(source='start_date')
+    end_date = serializers.CharField(source='end_date',
                                      required=False, read_only=True)
     featured = serializers.BooleanField(source='machine.featured')
 
@@ -273,7 +316,7 @@ class PaginatedProviderMachineSerializer(pagination.PaginationSerializer):
 class ProviderSerializer(serializers.ModelSerializer):
     type = serializers.SlugRelatedField(slug_field='name')
     location = serializers.CharField(source='get_location')
-    membership = serializers.Field(source='get_membership')
+    #membership = serializers.Field(source='get_membership')
 
     class Meta:
         model = Provider
@@ -314,19 +357,38 @@ class ProviderSizeSerializer(serializers.ModelSerializer):
         exclude = ('id', 'start_date', 'end_date')
 
 
+class InstanceRelatedField(serializers.RelatedField):
+    def to_native(self, instance_alias):
+        instance = Instance.objects.get(provider_alias=instance_alias)
+        return instance.provider_alias
+
+    def field_from_native(self, data, files, field_name, into):
+        value = data.get(field_name)
+        if value is None:
+            return
+        try:
+            into["instance"] = Instance.objects.get(provider_alias=value)
+            into[field_name] = Instance.objects.get(provider_alias=value).provider_alias
+        except Instance.DoesNotExist:
+            into[field_name] = None
+
+
 class StepSerializer(serializers.ModelSerializer):
     alias = serializers.CharField(read_only=True, source='alias')
     name = serializers.CharField()
     script = serializers.CharField()
-    created_by = serializers.CharField(source='created_by')
-    quota = serializers.Field(source='get_quota_dict')
-    provider_id = serializers.Field(source='provider.id')
+    exit_code = serializers.IntegerField(read_only=True,
+                                         source='exit_code')
+    instance_alias = InstanceRelatedField(source='instance.provider_alias')
+    created_by = serializers.SlugRelatedField(slug_field='username',
+                                              source='created_by',
+                                              read_only=True)
     start_date = serializers.DateTimeField(read_only=True)
-    end_date = serializers.DateTimeField(read_only=True, required=False)
+    end_date = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = Step
-        exclude = ('id', 'created_by_identity')
+        exclude = ('id', 'instance', 'created_by_identity')
 
 
 class ProviderTypeSerializer(serializers.ModelSerializer):
