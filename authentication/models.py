@@ -2,14 +2,14 @@
 Atmosphere authentication models..
 """
 
-#Python libraries
 import uuid
 import hashlib
-from datetime import datetime, timedelta
+from datetime import timedelta
+
 from django.utils import timezone
-#Django libraries
 from django.db import models
-from django.contrib.auth.models import User
+
+from core.models import AtmosphereUser as User
 
 
 class Token(models.Model):
@@ -36,7 +36,7 @@ class Token(models.Model):
         """
         Updates expiration by pre-determined amount.. Does not call save.
         """
-        self.expireTime = datetime.now() + timedelta(hours=2)
+        self.expireTime = timezone.now() + timedelta(hours=2)
 
     def save(self, *args, **kwargs):
         if not self.key:

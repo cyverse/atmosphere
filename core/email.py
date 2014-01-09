@@ -4,9 +4,15 @@ Atmosphere core email.
 """
 from datetime import datetime
 
+from core.models import AtmosphereUser as User
+from django.utils import timezone as django_timezone
 from django.core.mail import EmailMessage
-from atmosphere import settings
+
+from pytz import timezone as pytz_timezone
+
 from threepio import logger, email_logger
+
+from atmosphere import settings
 
 from authentication.protocol.ldap import lookupEmail
 
@@ -56,7 +62,8 @@ def request_info(request):
     return (user_agent, remote_ip, location, resolution)
 
 
-def send_email(subject, body, from_email, to, cc=None, fail_silently=False):
+def send_email(subject, body, from_email, to, cc=None,
+               fail_silently=False, html=False):
     """ Use django.core.mail.EmailMessage to send and log an Atmosphere email.
     """
     try:
@@ -64,6 +71,8 @@ def send_email(subject, body, from_email, to, cc=None, fail_silently=False):
                            from_email=from_email,
                            to=to,
                            cc=cc)
+        if html:
+            msg.content_subtype = 'html'
         msg.send(fail_silently=fail_silently)
         email_logger.info("Email Sent."
                           + "From:%s\nTo:%sCc:%s\nSubject:%s\nBody:\n%s" %
@@ -93,7 +102,9 @@ def email_admin(request, subject, message, cc_user=True):
              user_agent, resolution)
     return email_to_admin(subject, body, user, user_email, cc_user=cc_user)
 
-def email_to_admin(subject, body, username=None, user_email=None, cc_user=True):
+
+def email_to_admin(subject, body, username=None,
+                   user_email=None, cc_user=True):
     """
     Send a basic email to the admins. Nothing more than subject and message
     are required.
@@ -118,7 +129,7 @@ def email_to_admin(subject, body, username=None, user_email=None, cc_user=True):
                       cc=[email_address_str(username, user_email)])
 
 
-def email_from_admin(username, subject, message):
+def email_from_admin(username, subject, message, html=False):
     """ Use user, subject and message to build and send a standard
         Atmosphere admin email from admins to a user.
         Returns True on success and False on failure.
@@ -128,15 +139,18 @@ def email_from_admin(username, subject, message):
     return send_email(subject, message,
                       from_email=email_address_str(from_name, from_email),
                       to=[email_address_str(username, user_email)],
-                      cc=[email_address_str(from_name, from_email)])
+                      cc=[email_address_str(from_name, from_email)],
+                      html=html)
 
 
-def send_instance_email(user, instance_id, instance_name, ip, launched_at, linuxusername):
+def send_instance_email(user, instance_id, instance_name,
+                        ip, launched_at, linuxusername):
     """
     Sends an email to the user providing information about the new instance.
 
     Returns a boolean.
     """
+    launched_at = launched_at.replace(tzinfo=None)
     body = """
 The atmosphere instance <%s> is running and ready for use.
 
@@ -144,7 +158,7 @@ Your Instance Information:
 * Name: %s
 * IP Address: %s
 * SSH Username: %s
-* Launched at: %s UTC
+* Launched at: %s UTC (%s Arizona time)
 
 Please terminate instances when they are no longer needed.
 This e-mail notification was auto-generated after instance launch.
@@ -156,7 +170,12 @@ Helpful links:
 """ % (instance_id,
        instance_name,
        ip, linuxusername,
-       launched_at.strftime('%b, %d %Y %H:%M:%S'))
+       launched_at.strftime('%b, %d %Y %H:%M:%S'),
+       django_timezone.localtime(
+           django_timezone.make_aware(
+               launched_at,
+               timezone=pytz_timezone('UTC')))
+       .strftime('%b, %d %Y %H:%M:%S'))
     subject = 'Your Atmosphere Instance is Available'
     return email_from_admin(user, subject, body)
 
@@ -168,7 +187,7 @@ def send_image_request_email(user, new_machine, name):
     which will provide useful information about the new image.
     """
     user_email = lookupEmail(user.username)
-    body = """ADMINS: A new image has been completed. 
+    body = """ADMINS: A new image has been completed.
 Please ensure the image launches correctly.
 After verifying the image, forward the contents of this e-mail to: %s
 ------------------------------------------------------------------
@@ -181,4 +200,29 @@ If you have any questions please contact: support@iplantcollaborative.org""" %\
         (user_email, user.username, new_machine.identifier, name)
     subject = 'Your Atmosphere Image is Complete'
     return email_to_admin(subject, body, user.username, user_email,
-            cc_user=False)
+                          cc_user=False)
+
+
+def send_new_provider_email(username, provider_name):
+    subject = "Your iPlant Atmosphere account has been granted access "\
+              "to the %s provider" % provider_name
+    django_user = User.objects.get(username=username)
+    first_name = django_user.first_name
+    help_link = "https://pods.iplantcollaborative.org/wiki/"\
+                "display/atmman/Changing+Providers"
+    ask_link = "http://ask.iplantcollaborative.org/"
+    email_body = """Welcome %s,<br/><br/>
+You have been granted access to the %s provider on Atmosphere.
+Instructions to change to a new provider can be found on <a href="%s">this page</a>.
+<br/>
+<br/>
+If you have questions or encounter technical issues while using %s, you can
+browse and post questions to <a href="%s">iPlant Ask</a> or contact support@iplantcollaborative.org.
+<br/>
+Thank you,<br/>
+iPlant Atmosphere Team""" % (first_name,
+                             provider_name,
+                             help_link,
+                             provider_name,
+                             ask_link)
+    return email_from_admin(username, subject, email_body, html=True)

@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 
-from atmosphere import settings
+from atmosphere.settings import secrets
 from service.accounts.openstack import AccountDriver
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 from keystoneclient.exceptions import NotFound
 
 def main():
     """
     Generate openstack users then add them to the DB
     """
-    driver = AccountDriver(settings.OPENSTACK_ARGS)
+    driver = AccountDriver(secrets.OPENSTACK_ARGS)
     #Build the admin driver for openstack first.
-    driver.create_identity(settings.OPENSTACK_ADMIN_KEY,
-            settings.OPENSTACK_ADMIN_SECRET, settings.OPENSTACK_ADMIN_TENANT,
+    driver.create_identity(secrets.OPENSTACK_ADMIN_KEY,
+            secrets.OPENSTACK_ADMIN_SECRET, secrets.OPENSTACK_ADMIN_TENANT,
             True)
     success = 1
     #Add the others

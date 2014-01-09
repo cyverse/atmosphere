@@ -39,6 +39,7 @@
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/identity.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/instance.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/machine.js"></script>
+        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/maintenance.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/notification.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/profile.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/provider.js"></script>
@@ -48,6 +49,7 @@
 	<script type="text/javascript" src="{{ site_root }}/resources/js/cf2/collections/base.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/collections/instances.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/collections/machines.js"></script>
+        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/collections/maintenance.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/collections/notifications.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/collections/providers.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/collections/sizes.js"></script>
@@ -71,6 +73,7 @@
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/instance_screen/instance_screen.js"></script>
 
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/new_instance_screen/image_list_item.js"></script>
+        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/new_instance_screen/instance_size_dropdown.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/new_instance_screen/new_instance_screen.js"></script>
 
         <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/settings_screen/identity_summary.js"></script>
@@ -137,7 +140,7 @@
 						<li><a href="https://pods.iplantcollaborative.org/wiki/x/UKxm" target="_blank">Get VNC Viewer</a></li>
 						<li><a href="#" id="contact_support">Support</a></li>
 						<li class="divider"></li>
-						<li><a href="{{ site_root }}/logout">Logout</a></li>
+						<li><a id="logout_button" href="#">Logout</a></li>
 					</ul>
 				</div>
 

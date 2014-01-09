@@ -2,11 +2,14 @@
 Atmosphere utilizes the DjangoGroup model
 to manage users via the membership relationship
 """
-# vim: tabstop=2 expandtab shiftwidth=2 softtabstop=2
+from datetime import timedelta
 
 from django.db import models
 from django.contrib.auth.models import Group as DjangoGroup
-from django.contrib.auth.models import User as DjangoUser
+
+from threepio import logger
+
+from core.models.user import AtmosphereUser
 from core.models.identity import Identity
 from core.models.provider import Provider
 from core.models.machine import Machine
@@ -19,15 +22,25 @@ class Group(DjangoGroup):
     """
     Extend the Django Group model to support 'membership'
     """
-    leaders = models.ManyToManyField(DjangoUser)
+    leaders = models.ManyToManyField('AtmosphereUser', through='Leadership')
     providers = models.ManyToManyField(Provider, through='ProviderMembership',
-        blank=True)
+                                       blank=True)
     identities = models.ManyToManyField(Identity, through='IdentityMembership',
-        blank=True)
+                                        blank=True)
     instances = models.ManyToManyField(Instance, through='InstanceMembership',
-        blank=True)
+                                       blank=True)
     machines = models.ManyToManyField(Machine, through='MachineMembership',
-        blank=True)
+                                      blank=True)
+
+    @classmethod
+    def create_usergroup(cls, username):
+        user = AtmosphereUser.objects.get_or_create(username=username)[0]
+        group = Group.objects.get_or_create(name=username)[0]
+        if group not in user.groups.all():
+            user.groups.add(group)
+            user.save()
+        l = Leadership.objects.get_or_create(user=user, group=group)[0]
+        return (user, group)
 
     def json(self):
         return {
@@ -37,6 +50,15 @@ class Group(DjangoGroup):
 
     class Meta:
         db_table = 'group'
+        app_label = 'core'
+
+
+class Leadership(models.Model):
+    user = models.ForeignKey('AtmosphereUser')
+    group = models.ForeignKey(Group)
+
+    class Meta:
+        db_table = 'group_leaders'
         app_label = 'core'
 
 
@@ -74,6 +96,77 @@ class IdentityMembership(models.Model):
     member = models.ForeignKey(Group)
     quota = models.ForeignKey(Quota)
     allocation = models.ForeignKey(Allocation, null=True, blank=True)
+
+    @classmethod
+    def get_membership_for(cls, groupname):
+
+        from core.models import ProviderMembership, Group
+        try:
+            group = Group.objects.get(name=groupname)
+        except Group.DoesNotExist:
+            logger.warn("Group %s does not exist" % groupname)
+            return None
+        provider_members = ProviderMembership.objects.filter(
+            member__name=groupname)
+        if not provider_members:
+            logger.warn("%s is not a member of any provider" % groupname)
+        for pm in provider_members:
+            identities = IdentityMembership.objects.filter(
+                member=group,
+                identity__provider=pm.provider)
+            if identities:
+                return identities[0]
+        logger.warn("%s is not a member of any identities" % groupname)
+        return None
+
+    def get_allocation_dict(self):
+        if not self.allocation:
+            return {}
+        #Don't move it up. Circular reference.
+        from service.allocation import get_time, get_burn_time,\
+            delta_to_minutes
+        time_used = get_time(self.identity.created_by,
+                             self.identity.id,
+                             timedelta(
+                                 minutes=self.allocation.delta))
+        burn_time = get_burn_time(self.identity.created_by, self.identity.id,
+                                  timedelta(minutes=self.allocation.delta),
+                                  timedelta(minutes=self.allocation.threshold))
+        mins_consumed = delta_to_minutes(time_used)
+        if burn_time:
+            burn_time = delta_to_minutes(burn_time)
+
+        allocation_dict = {
+            "threshold": self.allocation.threshold,
+            "current": mins_consumed,
+            "delta": self.allocation.delta,
+            "burn": burn_time,
+            "ttz": self.allocation.threshold - mins_consumed}
+        return allocation_dict
+
+    def get_quota_dict(self):
+        quota = self.quota
+        quota_dict = {
+            "mem": quota.memory,
+            "cpu": quota.cpu,
+            "storage": quota.storage,
+            "storage_count": quota.storage_count,
+            "suspended_count": quota.suspended_count,
+        }
+        return quota_dict
+
+    def save(self, *args, **kwargs):
+        """
+        Whenever an IdentityMembership changes, update the provider
+        specific quota too.
+        """
+        super(IdentityMembership, self).save(*args, **kwargs)
+        try:
+            from service.quota import set_provider_quota
+            set_provider_quota(self.identity.id)
+        except Exception as ex:
+            logger.warn("Unable to improve service.quota.set_provider_quota.")
+            raise
 
     def __unicode__(self):
         return "%s can use identity %s" % (self.member, self.identity)
@@ -119,3 +212,5 @@ class MachineMembership(models.Model):
     class Meta:
         db_table = 'machine_membership'
         app_label = 'core'
+
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4

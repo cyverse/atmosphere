@@ -6,8 +6,6 @@ from hashlib import md5
 
 from django.db import models
 from django.utils import timezone
-from django.contrib.auth.models import User
-
 from threepio import logger
 
 from core.models.identity import Identity
@@ -36,10 +34,11 @@ class Machine(models.Model):
     providers = models.ManyToManyField(Provider, through="ProviderMachine",
             blank=True)
     featured = models.BooleanField(default=False)
-    created_by = models.ForeignKey(User)  # The user that requested imaging
+    created_by = models.ForeignKey('AtmosphereUser')  # The user that requested imaging
     created_by_identity = models.ForeignKey(Identity, null=True)
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
+    application = models.ForeignKey('Application', null=True)
 
     def update(self, *args, **kwargs):
         """
@@ -93,7 +92,7 @@ class ProviderMachine(models.Model):
     provider = models.ForeignKey(Provider)
     machine = models.ForeignKey(Machine)
     identifier = models.CharField(max_length=256, unique=True)  # EMI-12341234
-    created_by = models.ForeignKey(User, null=True)
+    created_by = models.ForeignKey('AtmosphereUser', null=True)
     created_by_identity = models.ForeignKey(Identity, null=True)
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
@@ -149,12 +148,12 @@ class ProviderMachine(models.Model):
 
 def build_cached_machines():
     #logger.debug("building cached machines")
-    ProviderMachine.cached_machines = {}
+    machine_dict = {}
     cms = ProviderMachine.objects.all()
     for cm in cms:
-        ProviderMachine.cached_machines[(cm.provider.id, cm.identifier)] = cm
-    #logger.debug("built core machines dictionary with %s machines." %
-    #             len(ProviderMachine.cached_machines))
+        machine_dict[(cm.provider.id, cm.identifier)] = cm
+    ProviderMachine.cached_machines = machine_dict
+    return machine_dict
 
 
 """
@@ -162,60 +161,73 @@ Useful utility methods for the Core Model..
 """
 
 
-def find_provider_machine(provider_alias, provider_id):
+def get_cached_machine(provider_alias, provider_id):
     if not ProviderMachine.cached_machines:
         build_cached_machines()
-    return ProviderMachine.cached_machines.get(
+    cached_mach = ProviderMachine.cached_machines.get(
         (int(provider_id), provider_alias))
+    if not cached_mach:
+        logger.warn("Cache does not have machine %s on provider %s"
+                    % (provider_alias, provider_id))
+    return cached_mach
 
 
-def load_machine(machine_name, provider_alias, provider_id):
+def load_machine(provider_alias, machine_name, provider_id):
     """
-    Returns List<ProviderMachine>
-    Each object contains reference to a new machine-alias combination
-    Will create a new machine if one does not exist
+    Returns ProviderMachine
     """
-    machine = find_provider_machine(provider_alias, provider_id)
-    if machine:
-        if not machine.created_by_identity:
-            provider = Provider.objects.get(id=provider_id)
-            admin_id = provider.get_admin_identity()
-            machine.created_by=admin_id.created_by
-            machine.created_by_identity=admin_id
-            machine.save()
-        return machine
-    else:
-        return create_provider_machine(machine_name, provider_alias, provider_id)
+    return create_provider_machine(machine_name, provider_alias, provider_id)
+
+def update_machine_owner(machine, identity):
+    machine.created_by_identity=identity
+    machine.created_by=identity.created_by
+    machine.save()
 
 
 def create_provider_machine(machine_name, provider_alias,
                           provider_id, description=None):
-    #No Provider Machine.. Time to build one
+    #Attempt to match machine by provider alias
+    provider_machine = get_provider_machine(identifier=provider_alias)
+    if provider_machine:
+        return provider_machine
+
+    #Admin identity used until the real owner can be identified.
     provider = Provider.objects.get(id=provider_id)
-    admin_id = provider.get_admin_identity()
-    logger.debug("Provider %s" % provider)
+    machine_owner = provider.get_admin_identity()
+    #Machines with an exact name match are treated as 'identical'
     machine = get_generic_machine(machine_name)
     if not machine:
-        #Build a machine to match
+        #Build a machine
         if not description:
-            description = "Describe Machine %s" % provider_alias
-        #NOTE: Admin id must be used here until we KNOW who the owner is..
-        machine = create_generic_machine(machine_name, description, admin_id)
+            description = "%s" % machine_name
+        machine = create_generic_machine(machine_name, description, machine_owner)
+    logger.debug("Provider %s" % provider)
     logger.debug("Machine %s" % machine)
-    #NOTE: Admin id must be used here until we KNOW who the owner is..
     provider_machine = ProviderMachine.objects.create(
         machine=machine,
         provider=provider,
-        created_by=admin_id.created_by,
-        created_by_identity=admin_id,
+        created_by=machine_owner.created_by,
+        created_by_identity=machine_owner,
         identifier=provider_alias)
     logger.info("New ProviderMachine created: %s" % provider_machine)
-    if ProviderMachine.cached_machines:
-        ProviderMachine.cached_machines[(
-            provider_machine.provider.id,
-            provider_machine.identifier)] = provider_machine
+    add_to_cache(provider_machine)
     return provider_machine
 
+def add_to_cache(provider_machine):
+    #if not ProviderMachine.cached_machines:
+    #    logger.warn("ProviderMachine cache does not exist.. Building.")
+    #    build_cached_machines()
+    #ProviderMachine.cached_machines[(
+    #    provider_machine.provider.id,
+    #    provider_machine.identifier)] = provider_machine
+    return provider_machine
+
+def get_provider_machine(identifier):
+    try:
+        machine = ProviderMachine.objects.get(identifier=identifier)
+        return machine
+    except ProviderMachine.DoesNotExist:
+        return None
 
 def get_generic_machine(name):
     try:
@@ -231,10 +243,11 @@ def get_generic_machine(name):
 
 
 def create_generic_machine(name, description, creator_id=None):
+    from core.models import AtmosphereUser
     if not description:
         description = ""
     if not creator_id:
-        creator_id = User.objects.get_or_create(username='admin')[0]
+        creator_id = AtmosphereUser.objects.get_or_create(username='admin')[0]
     new_mach = Machine.objects.create(name=name,
                                       description=description,
                                       created_by=creator_id.created_by,
@@ -246,13 +259,13 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
     """
     """
     if image_id and not esh_machine:
-        provider_machine = load_machine('Unknown Image', image_id, provider_id)
+        provider_machine = load_machine(image_id, 'Unknown Image', provider_id)
         return provider_machine
     elif not esh_machine:
         return None
     name = esh_machine.name
     alias = esh_machine.alias
-    provider_machine = load_machine(name, alias, provider_id)
+    provider_machine = load_machine(alias, name, provider_id)
     provider_machine.esh = esh_machine
     provider_machine = set_machine_from_metadata(esh_driver, provider_machine)
     return provider_machine

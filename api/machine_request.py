@@ -10,15 +10,14 @@ from rest_framework import status
 
 from threepio import logger
 
-from atmosphere import settings
-
 from authentication.decorators import api_auth_token_required#, api_auth_options
 
 from api.serializers import MachineRequestSerializer
+from core.models.machine_request import share_with_admins, share_with_self
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 
 from web.emails import requestImaging
-from service.tasks.machine import machine_imaging_task
+from service.tasks.machine import start_machine_imaging
 
 import copy
 
@@ -50,6 +49,11 @@ class MachineRequestList(APIView):
         #Copy allows for editing
         data = copy.deepcopy(request.DATA)
         data.update({'owner': data.get('created_for', request.user.username)})
+        if data.get('vis','public') != 'public':
+            user_list  = re.split(', | |\n', data.get('shared_with'))
+            share_with_admins(user_list, data.get('provider'))
+            share_with_self(user_list, request.user.username)
+            data['shared_with'] = user_list
         logger.info(data)
         serializer = MachineRequestSerializer(data=data)
         if serializer.is_valid():
@@ -116,15 +120,13 @@ class MachineRequestStaff(APIView):
         #Don't update the request unless its pending
         if machine_request.status in ['error','pending']:
             machine_request.status = action
-            serializer.save()
+            machine_request.save()
 
         #Only run task if status is 'approve'
         if machine_request.status == 'approve':
-            machine_request.status = 'enqueued'
-            machine_imaging_task.si(machine_request,
-                                    settings.EUCA_IMAGING_ARGS,
-                                    settings.OPENSTACK_ARGS).apply_async()
-            serializer.save()
+            start_machine_imaging(machine_request)
+
+        serializer = MachineRequestSerializer(machine_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @api_auth_token_required
@@ -153,11 +155,10 @@ class MachineRequestStaff(APIView):
         if serializer.is_valid():
             #Only run task if status is 'approve'
             if machine_request.status == 'approve':
-                machine_request.status = 'enqueued'
-                machine_imaging_task.si(machine_request,
-                                        settings.EUCA_IMAGING_ARGS.copy(),
-                                        settings.OPENSTACK_ARGS.copy()).apply_async()
-            serializer.save()
+                start_machine_imaging(machine_request)
+            machine_request.save()
+        #Object may have changed
+        serializer = MachineRequestSerializer(machine_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -205,6 +206,9 @@ class MachineRequest(APIView):
         serializer = MachineRequestSerializer(machine_request,
                                               data=data, partial=True)
         if serializer.is_valid():
+            machine_request = serializer.object
+            if machine_request.status == 'approve':
+                start_machine_imaging(machine_request)
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -228,6 +232,10 @@ class MachineRequest(APIView):
         serializer = MachineRequestSerializer(machine_request,
                                               data=data, partial=True)
         if serializer.is_valid():
+            #Only run task if status is 'approve'
+            machine_request = serializer.object
+            if machine_request.status == 'approve':
+                start_machine_imaging(machine_request)
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

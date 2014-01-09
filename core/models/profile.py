@@ -1,12 +1,10 @@
-from django.contrib.auth.models import User as DjangoUser
-
 from django.db.models.signals import post_save
 from django.db import models
 
 from threepio import logger
-from atmosphere import settings
 
 from core.ldap import get_uid_number
+from core.models.user import AtmosphereUser
 from core.models.group import getUsergroup
 from core.models.identity import Identity
 
@@ -14,7 +12,7 @@ from hashlib import md5
 
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(DjangoUser, primary_key=True)
+    user = models.OneToOneField(AtmosphereUser, primary_key=True)
     #Backend Profile attributes
     send_emails = models.BooleanField(default=True)
     quick_launch = models.BooleanField(default=True)
@@ -23,7 +21,6 @@ class UserProfile(models.Model):
     default_size = models.CharField(max_length=255, default='m1.small')
     background = models.CharField(max_length=255, default='default')
     icon_set = models.CharField(max_length=255, default='default')
-    selected_identity = models.ForeignKey(Identity, blank=True, null=True)
 
     def user_quota(self):
         identity = getDefaultIdentity(self.user.username)
@@ -42,16 +39,11 @@ class UserProfile(models.Model):
 
 #Connects a user profile to created accounts
 def get_or_create_user_profile(sender, instance, created, **kwargs):
-    #logger.debug("Get or Creating Profile for %s" % instance)
-    prof = UserProfile.objects.get_or_create(user=instance)[0]
-    if not prof.selected_identity:
-        available_identities = instance.identity_set.all()
-        logger.info("No selected identity. Has:%s" % available_identities)
-        if available_identities:
-                prof.selected_identity = available_identities[0]
-                prof.save()
+    prof = UserProfile.objects.get_or_create(user=instance)
+    if prof[1] == True:
+        logger.debug("Creating User Profile for %s" % instance)
 
-post_save.connect(get_or_create_user_profile, sender=DjangoUser)
+post_save.connect(get_or_create_user_profile, sender=AtmosphereUser)
 
 
 def getDefaultProvider(username):

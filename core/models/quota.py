@@ -4,7 +4,6 @@ Service Quota model for atmosphere.
 
 from django.db import models
 
-
 class Quota(models.Model):
     """
     Quota limits the amount of resources that can be used for a User/Group
@@ -23,12 +22,45 @@ class Quota(models.Model):
             (self.cpu, self.memory, self.storage, self.storage_count)
 
     @classmethod
-    def defaults(self):
+    def max_quota(self, by_type='cpu'):
+        """
+        Select max quota (Default - Highest CPU count
+        """
+        from django.db.models import Max
+        if not Quota.objects.all():
+            return self.unreachable_quota()
+        max_quota_by_type = Quota.objects.all().aggregate(
+                                        Max(by_type))['%s__max' % by_type]
+        quota = Quota.objects.filter(cpu=max_quota_by_type)[0]
+        if quota.cpu <= self._meta.get_field('cpu').default:
+            return self.unreachable_quota()
+        return quota
+
+    @classmethod
+    def default_quota(self):
+        return Quota.objects.get_or_create(
+                **Quota.default_dict())[0]
+
+    @classmethod
+    def unreachable_quota(self):
+        return Quota.objects.get_or_create(
+                **Quota.unreachable_dict())[0]
+
+    @classmethod
+    def unreachable_dict(cls):
         return {
-            'cpu': self._meta.get_field('cpu').default,
-            'memory': self._meta.get_field('memory').default,
-            'storage': self._meta.get_field('storage').default,
-            'storage_count': self._meta.get_field('storage_count').default
+            'cpu': 1000,
+            'memory': 1000,
+            'storage': 1000,
+            'storage_count': 1000
+        }
+    @classmethod
+    def default_dict(cls):
+        return {
+            'cpu': cls._meta.get_field('cpu').default,
+            'memory': cls._meta.get_field('memory').default,
+            'storage': cls._meta.get_field('storage').default,
+            'storage_count': cls._meta.get_field('storage_count').default
         }
 
     class Meta:

@@ -1,172 +1,92 @@
-import re
-
-from datetime import datetime
+import time
 
 from celery.decorators import task
+from celery.result import AsyncResult
+
+from chromogenic.tasks import machine_imaging_task, migrate_instance_task
+from chromogenic.drivers.openstack import ImageManager as OSImageManager
+from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
 
 from threepio import logger
-
-from core.email import send_image_request_email
-from core.models.machine_request import process_machine_request
-
-from service.accounts.openstack import AccountDriver as OSAccountDriver
-
-from service.imaging.drivers.eucalyptus import ImageManager as EucaImageManager
-from service.imaging.drivers.openstack import ImageManager as OSImageManager
-from service.imaging.drivers.migration import EucaOSMigrater
-from service.imaging.drivers.virtualbox import ExportManager
-
 from atmosphere import settings
 
-@task()
-def machine_export_task(machine_export):
-    logger.debug("machine_export_task task started at %s." % datetime.now())
-    machine_export.status = 'processing'
-    machine_export.save()
+from core.email import send_image_request_email
+from core.models.machine_request import MachineRequest, process_machine_request
+from core.models.identity import Identity
 
-    local_download_dir = settings.LOCAL_STORAGE
-    exp_provider = machine_export.instance.provider_machine\
-        .provider.type.name.lower()
+from service.deploy import freeze_instance, sync_instance
+from service.tasks.driver import deploy_to
 
-    manager = ExportManager(settings.EUCA_IMAGING_ARGS,
-                            settings.OPENSTACK_ARGS)
-    #ExportManager().eucalyptus/openstack()
-    if 'euca' in exp_provider:
-        export_fn = manager.eucalyptus
-    elif 'openstack' in exp_provider:
-        export_fn = manager.openstack
-    else:
-        raise Exception("Unknown Provider %s, expected eucalyptus/openstack"
-                        % (exp_provider, ))
-
-    meta_name = manager.euca_img_manager._format_meta_name(
-        machine_export.export_name,
-        machine_export.export_owner.username,
-        timestamp_str = machine_export.start_date.strftime('%m%d%Y_%H%M%S'))
-
-    md5_sum, url = export_fn(machine_export.instance.provider_alias,
-                             machine_export.export_name,
-                             machine_export.export_owner.username,
-                             download_dir=local_download_dir,
-                             meta_name=meta_name)
-    #TODO: Pass in kwargs (Like md5sum, url, etc. that are useful)
-    process_machine_export(machine_export, md5_sum=md5_sum, url=url)
-    #TODO: Option to copy this file into iRODS
-    #TODO: Option to upload this file into S3 
-    #TODO: send an email with instructions on how/where to go from here
-
-    logger.debug("machine_export_task task finished at %s." % datetime.now())
+# For development
+try:
+    import ipdb
+except ImportError:
+    ipdb = False
     pass
 
-@task(name='machine_migration_task', ignore_result=True)
-def machine_migration_task(new_machine_name, old_machine_id,
-                           local_download_dir='/tmp',
-                           migrate_from='eucalyptus',
-                           migrate_to='openstack'):
-    logger.debug("machine_migration_task task started at %s." % datetime.now())
-    if migrate_from == 'eucalyptus' and migrate_to == 'openstack':
-        manager = EucaOSMigrater(settings.EUCA_IMAGING_ARGS.copy(),
-                                 settings.OPENSTACK_ARGS.copy())
-        manager.migrate_image(old_machine_id, new_machine_name,
-                              local_download_dir)
+
+def start_machine_imaging(machine_request, delay=False):
+    """
+    Builds up a machine imaging task using the core.models.machine_request object
+    delay - If true, wait until task is completed before returning
+    """
+    machine_request.status = 'processing'
+    machine_request.save()
+    instance_id = machine_request.instance.provider_alias
+
+    (orig_managerCls, orig_creds,
+     dest_managerCls, dest_creds) = machine_request.prepare_manager()
+    imaging_args = machine_request.get_imaging_args()
+
+    #Step 1 - On OpenStack, sync/freeze BEFORE starting migration/imaging
+    init_task = None
+    if orig_managerCls == OSImageManager:  # TODO:AND if instance still running
+        freeze_task = freeze_instance_task.si(machine_request.instance.created_by_identity_id, instance_id)
+        init_task = freeze_task
+    if dest_managerCls and dest_creds != orig_creds:
+        #Will run machine imaging task..
+        migrate_task = migrate_instance_task.si(
+                orig_managerCls, orig_creds, dest_managerCls, dest_creds,
+                **imaging_args)
+        if not init_task:
+            init_task = migrate_task
+        else:
+            init_task.link(migrate_task)
     else:
-        raise Exception("Cannot migrate from %s to %s" % (migrate_from,
-                                                          migrate_to))
-    logger.debug("machine_migration_task task finished at %s." % datetime.now())
+        image_task = machine_imaging_task.si(orig_managerCls, orig_creds, imaging_args)
+        if not init_task:
+            init_task = image_task
+        else:
+            init_task.link(image_task)
+    #The new image ID will be the first argument in process_request
+    process_task = process_request.s(machine_request.id)
+    if dest_managerCls and dest_creds != orig_creds:
+        migrate_task.link(process_task)
+    else:
+        image_task.link(process_task)
 
-@task(name='machine_imaging_task', ignore_result=True)
-def machine_imaging_task(machine_request, euca_imaging_creds, openstack_creds):
-    try:
-        machine_request.status = 'processing'
-        machine_request.save()
-        logger.debug('%s' % machine_request)
-        local_download_dir = settings.LOCAL_STORAGE
-        new_image_id = select_and_build_image(machine_request,
-                euca_imaging_creds, openstack_creds, local_download_dir)
-        if new_image_id is None:
-            raise Exception('The image cannot be built as requested. '
-                            + 'The provider combination is probably bad.')
-        logger.info('New image created - %s' % new_image_id)
-        process_machine_request(machine_request, new_image_id)
-        send_image_request_email(machine_request.new_machine_owner,
-                                 machine_request.new_machine,
-                                 machine_request.new_machine_name)
-        return new_image_id
-    except Exception as e:
-        logger.exception(e)
-        machine_request.status = 'error - %s' % (e,)
-        machine_request.save()
-        return None
+    async = init_task.apply_async(link_error=machine_request_error.s((machine_request.id,)))
+    if delay:
+        async.get()
+    return async
 
-def select_and_build_image(machine_request, euca_imaging_creds,
-                           openstack_creds, local_download_dir='/tmp'):
-    """
-    Directing traffic between providers
-    Fill out all available fields using machine request data
-    """
 
-    old_provider = machine_request.instance.provider_machine\
-        .provider.type.name.lower()
-    new_provider = machine_request.new_machine_provider.type.name.lower()
-    new_image_id = None
-    logger.info('Processing machine request to create a %s image from a %s'
-                'instance' % (new_provider, old_provider))
-    
-    if old_provider == 'eucalyptus':
-        if new_provider == 'eucalyptus':
-            logger.info('Create euca image from euca image')
-            manager = EucaImageManager(**euca_imaging_creds)
-            #Build the meta_name so we can re-start if necessary
-            meta_name = '%s_%s_%s_%s' % ('admin',
-                machine_request.new_machine_owner.username,
-                machine_request.new_machine_name.replace(
-                    ' ','_').replace('/','-'),
-                machine_request.start_date.strftime('%m%d%Y_%H%M%S'))
-            new_image_id = manager.create_image(
-                machine_request.instance.provider_alias,
-                image_name=machine_request.new_machine_name,
-                public=True if
-                "public" in machine_request.new_machine_visibility.lower()
-                else False,
-                #Split the string by ", " OR " " OR "\n" to create the list
-                private_user_list=re.split(', | |\n',
-                                           machine_request.access_list),
-                exclude=re.split(", | |\n",
-                                 machine_request.exclude_files),
-                meta_name=meta_name,
-                local_download_dir=local_download_dir,
-            )
-        elif new_provider == 'openstack':
-            logger.info('Create openstack image from euca image')
-            manager = EucaOSMigrater(
-                    euca_imaging_creds,
-                    openstack_creds)
-            new_image_id = manager.migrate_instance(
-                machine_request.instance.provider_alias,
-                machine_request.new_machine_name,
-                local_download_dir=local_download_dir) 
-    elif old_provider == 'openstack':
-        if new_provider == 'eucalyptus':
-            logger.info('Create euca image from openstack image')
-            #TODO: Replace with OSEucaMigrater when this feature is complete
-            new_image_id = None
-        elif new_provider == 'openstack':
-            logger.info('Create openstack image from openstack image')
-            manager = OSImageManager(**openstack_creds)
-            new_image_id = manager.create_image(
-                machine_request.instance.provider_alias,
-                machine_request.new_machine_name,
-                local_download_dir=local_download_dir)
-            #TODO: Grab the machine, then add image metadata here
-            machine = [img for img in manager.list_images()
-                       if img.id == new_image_id]
-            if not machine:
-                return
-            set_machine_request_metadata(manager, machine_request, machine)
-    return new_image_id
+def set_machine_request_metadata(machine_request, image_id):
+    (orig_managerCls, orig_creds,
+        new_managerCls, new_creds) = machine_request.prepare_manager()
+    if new_managerCls:
+        manager = new_managerCls(**new_creds)
+    else:
+        manager = orig_managerCls(**orig_creds)
+    if not hasattr(manager, 'admin_driver'):
+        return
+    #Update metadata on rtwo/libcloud machine -- NOT a glance machine
+    machine = manager.admin_driver.get_machine(image_id)
+    lc_driver = manager.admin_driver._connection
+    if not hasattr(lc_driver, 'ex_set_image_metadata'):
+        return
+    metadata = lc_driver.ex_get_image_metadata(machine)
 
-def set_machine_request_metadata(manager, machine_request, machine):
-    manager.driver.ex_set_image_metadata(machine, {'deployed':'True'})
     if machine_request.new_machine_description:
         metadata['description'] = machine_request.new_machine_description
     if machine_request.new_machine_tags:
@@ -177,3 +97,51 @@ def set_machine_request_metadata(manager, machine_request, machine):
     return machine
 
 
+
+@task
+def machine_request_error(machine_request_id, task_uuid):
+    logger.info("machine_request_id=%s"% machine_request_id)
+    logger.info("task_uuid=%s"% task_uuid)
+
+    result = AsyncResult(task_uuid)
+    exc = result.get(propagate=False)
+    err_str = "Task %s raised exception: %r\n%r" % (task_uuid, exc, result.traceback)
+    logger.error(err_str)
+    machine_request = MachineRequest.objects.get(id=machine_request_id)
+    machine_request.status = err_str
+    machine_request.save()
+
+
+@task(name='process_request', ignore_result=False)
+def process_request(new_image_id, machine_request_id):
+    #if ipdb:
+    #    ipdb.set_trace()
+    machine_request = MachineRequest.objects.get(id=machine_request_id)
+    set_machine_request_metadata(machine_request, new_image_id)
+    process_machine_request(machine_request, new_image_id)
+    send_image_request_email(machine_request.new_machine_owner,
+                             machine_request.new_machine,
+                             machine_request.new_machine_name)
+
+@task(name='freeze_instance_task', ignore_result=False)
+def freeze_instance_task(identity_id, instance_id):
+    from api import get_esh_driver
+    identity = Identity.objects.get(id=identity_id)
+    driver = get_esh_driver(identity)
+    kwargs = {}
+    private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
+    kwargs.update({'ssh_key': private_key})
+    kwargs.update({'timeout': 120})
+
+    si_script = sync_instance()
+    kwargs.update({'deploy': si_script})
+
+    instance = driver.get_instance(instance_id)
+    driver.deploy_to(instance, **kwargs)
+
+    fi_script = freeze_instance()
+    kwargs.update({'deploy': fi_script})
+    deploy_to.delay(
+        driver.__class__, driver.provider, driver.identity,
+        instance.id, **kwargs)
+    return

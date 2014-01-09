@@ -233,21 +233,6 @@ select {
 	color: #FFF;
 }
 
-/**
- * The amazing media element by Nisole Sullivan
- * http://www.stubbornella.org/content/2010/06/25/the-media-object-saves-hundreds-of-lines-of-code/
- */
-.media {}
-.media, .bd {zoom:1;}
-.media .img {float:left; margin-top: 10px; margin-left: 10px;}
-.media .img img{display:block;}
-.media .img-ext{float:right; margin-left: 10px;}
-
-/* Overwrite the Bootstrap media element*/
-.media, .media .media {
-    margin-top: 0px;
-}
-
 /* Media Queries for Responsive Design */ 
 @media (max-width: 767px) {
     #wrap {
@@ -510,6 +495,7 @@ a.accordion-toggle .caret {
     top: 5px;
     float: right;
     display: block;
+    pointer-events: none;
 }
 .accordion-group {
 	background-color: #FFF;
@@ -788,7 +774,9 @@ textarea.error:focus {
 	text-decoration: none;
 }
 .link_list .rect-delete {
-    margin: 10px;
+    position: absolute;
+    top: 10px;
+    right: 10px;
 }
 .link_list_title {
 	text-align: left;
@@ -799,27 +787,21 @@ textarea.error:focus {
 	text-align: left;
 }
 /* Sidebar list for Volumes */
-#volume_link_list > li {
-	background-image: url(../images/mini_vol.png);
-	background-repeat: no-repeat;
-	background-attachment: scroll;
-	background-position: 12px 10px;
+#menu_wrapper .media {
+    margin-top: 0;
+}
+#menu_wrapper .media .pull-left {
+    width: 30px;
 }
 #menu_wrapper #volume_link_list li > div, #menu_wrapper #instance_link_list li > div {
     border-top: 1px solid transparent;
     border-bottom: 1px solid transparent;
+    padding: 10px;
+    position: relative;
 }
 #menu_wrapper li.active li.active > div {
     border-top: 1px solid #eee !important;
     border-bottom: 1px solid #eee !important;
-}
-#menu_wrapper #volume_link_list li > div > div, #menu_wrapper #instance_link_list li > div > div {
-    margin-left: 30px;
-    padding: 10px;
-}
-#menu_wrapper li.active #volume_link_list > li.active {
-	background: url(../images/mini_vol.png) 12px 10px, url(../images/maindiv_bg.png) left top;
-	background-repeat: no-repeat, repeat;
 }
 #volume_link_list > li .volume_title {
 	font-weight: bold;
@@ -955,9 +937,6 @@ ul.instance_state_indicators li {
     border-bottom-width: 0;
 }
 
-.rect-delete {
-	float: right;
-}
 .rect-text {
 	color: #666;
 	margin-left: 80px;
@@ -1790,4 +1769,9 @@ table.image-table {
 .image-table td.actions a > i {
 	margin-right: 8px;
 }
-
+#providers_menu i.maint-icon {
+    margin-left: 0px;
+}
+#main a i.maint-icon {
+    margin-left: 14px;
+}

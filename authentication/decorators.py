@@ -23,9 +23,21 @@ def atmo_login_required(func):
         by the available server session data
         @redirect - location to redirect user after logging in
         """
-        if not request or not request.session or not request.session.get('username'):
-            logger.debug("User is being logged out because request/session"
-                         "info could not be found")
+        if not request:
+            logger.debug("[NOREQUEST] User is being logged out because request"
+                         " is empty")
+            logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
+            return HttpResponseRedirect(settings.SERVER_URL+"/logout/")
+
+        if not request.session:
+            logger.debug("[NOSESSION] User is being logged out because session"
+                         " object does not exist in request")
+            logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
+            return HttpResponseRedirect(settings.SERVER_URL+"/logout/")
+
+        if not request.session.get('username'):
+            logger.debug("[NOUSER] User is being logged out because session"
+                         " did not include a username")
             logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
             return HttpResponseRedirect(settings.SERVER_URL+"/logout/")
 
@@ -91,7 +103,8 @@ def api_auth_token_required(func):
         if user and user.is_authenticated():
             return func(request, *args, **kwargs)
         else:
-            logger.debug('Unauthorized access by %s - Invalid Token' % user)
+            logger.debug('Unauthorized access by %s - %s - Invalid Token' %
+                    (user, request.META.get('REMOTE_ADDR')))
             return Response(
                 "Expected header parameter: Authorization Token <TokenID>",
                 status=status.HTTP_401_UNAUTHORIZED)

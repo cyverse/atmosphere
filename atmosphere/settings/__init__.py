@@ -15,6 +15,10 @@ import caslib
 
 import atmosphere
 
+#Debug Mode
+DEBUG = True
+TEMPLATE_DEBUG = DEBUG
+
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 SERVER_URL = 'https://yourserver.iplantc.org'
 # IF on the root directory, this should be BLANK, else: /path/to/web (NO
@@ -59,7 +63,7 @@ USE_TZ = True
 
 # Absolute path to the directory that holds media.
 # Example: '/home/media/media.lawrence.com/'
-MEDIA_ROOT = PROJECT_ROOT + '/resources/'
+MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'resources/')
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
@@ -69,7 +73,7 @@ MEDIA_URL = '/resources/'
 # URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
 # trailing slash.
 # Examples: 'http://foo.com/media/', '/media/'.
-STATIC_ROOT = PROJECT_ROOT + '/static/'
+STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static/')
 
 STATIC_URL = '/static/'
 
@@ -103,6 +107,8 @@ TEMPLATE_DIRS = (
     os.path.join(PROJECT_ROOT, 'templates'),
 )
 
+AUTH_USER_MODEL = 'core.AtmosphereUser'
+AUTH_USER_MODULE = 'core.AtmosphereUser'
 AUTH_PROFILE_MODULE = 'core.UserProfile'
 
 AUTHENTICATION_BACKENDS = (
@@ -123,6 +129,7 @@ INSTALLED_APPS = (
     'rest_framework',
     'south',
     'djcelery',
+    'django_jenkins',
 
     #iPlant apps
     'rtwo',
@@ -134,6 +141,11 @@ INSTALLED_APPS = (
     'core',
 )
 
+JENKINS_TASKS = (
+    'django_jenkins.tasks.with_coverage',
+    'django_jenkins.tasks.run_pep8',
+    'django_jenkins.tasks.run_pyflakes',
+)
 # The age of session cookies, in seconds.
 # http://docs.djangoproject.com/en/dev/ref/settings/
 # http://docs.djangoproject.com/en/dev/topics/http/sessions/
@@ -151,10 +163,8 @@ INIT_SCRIPT_PREFIX = '/init_files/'
 
 
 ## logging
-DEBUG = False
-TEMPLATE_DEBUG = DEBUG
 LOGGING_LEVEL = logging.DEBUG
-DEP_LOGGING_LEVEL = logging.INFO  # Logging level for dependencies.
+DEP_LOGGING_LEVEL = logging.WARN  # Logging level for dependencies.
 LOG_FILENAME = os.path.abspath(os.path.join(
     os.path.dirname(atmosphere.__file__),
     '..',
@@ -195,6 +205,7 @@ REST_FRAMEWORK = {
         'authentication.token.TokenAuthentication',
     )
 }
+
 ##CASLIB
 SERVER_URL = SERVER_URL + REDIRECT_URL
 CAS_SERVER = 'https://auth.iplantcollaborative.org'
@@ -204,128 +215,40 @@ PROXY_URL = SERVER_URL + '/CAS_proxyUrl'
 PROXY_CALLBACK_URL = SERVER_URL + '/CAS_proxyCallback'
 caslib.cas_init(CAS_SERVER, SERVICE_URL, PROXY_URL, PROXY_CALLBACK_URL)
 
-##CACHE SETTINGS
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-        'LOCATION': 'atmosphere_cache_requests',
-        'TIMEOUT': 18000,
-    }
-}
-
-###############
-#   SECRETS   #
-###############
-
-# CLEAR ALL VALUES BELOW THIS LINE BEFORE PUSHING TO DIST
-
-##ATMO SETTINGS
-ATMOSPHERE_VNC_LICENSE = ""
-
-##AUTH SETTINGS
-TOKEN_EXPIRY_TIME = timedelta(days=1)
-LDAP_SERVER = "ldap://ldap.iplantcollaborative.org"
-LDAP_SERVER_DN = "ou=people,dc=iplantcollaborative,dc=org"
-
-##SERVICE SETTINGS
-#Eucalyptus provider secrets
-EUCA_S3_URL = ""
-EUCA_EC2_URL = ""
-EUCA_ADMIN_KEY = ""
-EUCA_ADMIN_SECRET = ""
-
-#
-# IMAGING SETTINGS
-#
-
-# LOCAL STORAGE
-# Local storage is necessary for imaging Eucalyptus
-# There should be a minimum of 10GB of space remaining
-# before attempting imaging.
-# Ideally, this location should point to a storage volume
-LOCAL_STORAGE = '/tmp'
-
-#Eucalyptus Imaging secrets
-EUCA_PRIVATE_KEY = ""
-EC2_CERT_PATH = ""
-EUCALYPTUS_CERT_PATH = ""
-
-#Eucalyptus Dicts
-EUCA_IMAGING_ARGS = {
-    'key': EUCA_ADMIN_KEY,
-    'secret': EUCA_ADMIN_SECRET,
-    'ec2_url': EUCA_EC2_URL,
-    's3_url': EUCA_S3_URL,
-    'ec2_cert_path': EC2_CERT_PATH,
-    'pk_path': EUCA_PRIVATE_KEY,
-    'euca_cert_path': EUCALYPTUS_CERT_PATH,
-    'config_path': '/services/Configuration',
-    'extras_root': PROJECT_ROOT
-}
-EUCALYPTUS_ARGS = {
-    'key': EUCA_ADMIN_KEY,
-    'secret': EUCA_ADMIN_SECRET,
-    'url': EUCA_EC2_URL,
-    'account_path': '/services/Accounts'
-}
-
-#Openstack provider secrets
-OPENSTACK_ADMIN_KEY = ""
-OPENSTACK_ADMIN_SECRET = ""
-OPENSTACK_AUTH_URL = ''
-OPENSTACK_ADMIN_URL = OPENSTACK_AUTH_URL.replace("5000", "35357")
-OPENSTACK_ADMIN_TENANT = ""
-OPENSTACK_DEFAULT_REGION = ""
-OPENSTACK_DEFAULT_ROUTER = ""
-
-OPENSTACK_ARGS = {
-    'username': OPENSTACK_ADMIN_KEY,
-    'password': OPENSTACK_ADMIN_SECRET,
-    'tenant_name': OPENSTACK_ADMIN_TENANT,
-    'auth_url': OPENSTACK_ADMIN_URL,
-    'region_name': OPENSTACK_DEFAULT_REGION
-}
-OPENSTACK_NETWORK_ARGS = {
-    'auth_url': OPENSTACK_ADMIN_URL,
-    'region_name': OPENSTACK_DEFAULT_REGION,
-    'router_name': OPENSTACK_DEFAULT_ROUTER
-}
-
-#AWS Provider secrets
-AWS_KEY = ""
-AWS_SECRET = ""
-AWS_S3_URL = ""
-AWS_S3_KEY = ""
-AWS_S3_SECRET = ""
 
 #pyes secrets
 ELASTICSEARCH_HOST = SERVER_URL
 ELASTICSEARCH_PORT = 9200
 
 #Django-Celery secrets
-BROKER_URL = ""
+BROKER_URL = 'redis://localhost:6379/0'
 BROKER_BACKEND = "redis"
 REDIS_PORT = 6379
-REDIS_HOST = ""
+REDIS_HOST = "localhost"
 BROKER_USER = ""
 BROKER_PASSWORD = ""
 REDIS_DB = 0
 REDIS_CONNECT_RETRY = True
+CELERY_ENABLE_UTC = False
+CELERY_TIMEZONE = "America/Phoenix"
 CELERY_SEND_EVENTS = True
-CELERY_RESULT_BACKEND = 'redis'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_TASK_RESULT_EXPIRES = 10
 CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
+CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s @ %(pathname)s on %(lineno)d] %(message)s"
+CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
+
 #Django-Celery Development settings
 #CELERY_ALWAYS_EAGER = True
 
 import djcelery
 djcelery.setup_loader()
 
+
 """
 Import local settings specific to the server, and secrets not checked into Git.
 """
 from atmosphere.settings.local import *
-from atmosphere.settings.secrets import *
 
 """
 Mostly good for TEST settings, especially DB conf.

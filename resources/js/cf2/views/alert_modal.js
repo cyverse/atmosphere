@@ -60,6 +60,11 @@ Atmo.Views.AlertModal = Backbone.View.extend({
             }
         });
 
+        if (options != undefined && options.cancel_button != undefined)
+            $('#alert_modal .modal-footer a').eq(0).html(options.cancel_button);
+        else
+            $('#alert_modal .modal-footer a').eq(0).html("Cancel");
+
         if (options != undefined && options.ok_button != undefined)
             $('#alert_modal .modal-footer a').eq(1).html(options.ok_button);
         else

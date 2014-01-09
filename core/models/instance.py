@@ -2,11 +2,13 @@
   Instance model for atmosphere.
 """
 import pytz
+import time
 from hashlib import md5
 from datetime import datetime, timedelta
 
 from django.db import models
-from django.contrib.auth.models import User
+#from django.contrib.auth.models import User
+#from core.models import AtmosphereUser as User
 from django.utils import timezone
 
 from threepio import logger
@@ -36,10 +38,10 @@ class Instance(models.Model):
     provider_machine = models.ForeignKey(ProviderMachine)
     provider_alias = models.CharField(max_length=256, unique=True)
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
-    created_by = models.ForeignKey(User)
+    created_by = models.ForeignKey('AtmosphereUser')
     created_by_identity = models.ForeignKey(Identity, null=True)
-    shell = models.BooleanField()
-    vnc = models.BooleanField()
+    shell = models.BooleanField(default=False)
+    vnc = models.BooleanField(default=False)
     start_date = models.DateTimeField() # Problems when setting a default.
     end_date = models.DateTimeField(null=True)
 
@@ -69,10 +71,11 @@ class Instance(models.Model):
     def update_history(self, status_name, task=None, first_update=False):
         if task:
             task_to_status = {
-                    'suspending':'suspended',
                     'resuming':'active',
-                    'stopping':'suspended',
-                    'starting':'active',
+                    'suspending':'suspended',
+                    'powering-on':'active',
+                    'powering-off':'suspended',
+                    #Tasks that occur during the normal build process
                     'initializing':'build',
                     'scheduling':'build',
                     'spawning':'build',
@@ -115,8 +118,18 @@ class Instance(models.Model):
         new_hist = self.new_history(status_name, now_time)
         new_hist.save()
 
+    def get_active_hours(self):
+        #Don't move it up. Circular reference.
+        from service.allocation import delta_to_hours
+        total_time = self._calculate_active_time()
+        return delta_to_hours(total_time)
 
     def get_active_time(self):
+        total_time = self._calculate_active_time()
+        return total_time
+
+    def _calculate_active_time(self):
+        #from service.allocation import delta_to_hours
         status_history = self.instancestatushistory_set.all()
         if not status_history:
             # No status history, use entire length of instance
@@ -125,21 +138,23 @@ class Instance(models.Model):
                         (self.provider_alias, now))
             end_date = self.end_date if self.end_date else now
             return end_date - self.start_date
-        active_time = timedelta(0)
-        for inst_state in status_history:
-            if not inst_state.status.name == 'active':
+        #Start counting..
+        total_time = timedelta()
+        for state in status_history:
+            if not state.is_active():
                 continue
-            if inst_state.end_date:
-                time_diff = inst_state.end_date - inst_state.start_date
-                active_time += time_diff
-            else:
-                logger.info("Status %s has no end-date." %
-                        inst_state.status.name)
-                time_diff = timezone.now() - inst_state.start_date
-                active_time += time_diff
-            logger.info("Include %s time: %s | New total time: %s" %
-                        (inst_state.status.name, time_diff, active_time))
-        return active_time
+            if not state.end_date:
+                logger.debug("Status %s has no end-date." %
+                        state.status.name)
+                state.end_date = timezone.now()
+            active_time = state.end_date - state.start_date
+            new_total = active_time + total_time
+            #logger.info("%s + %s = %s" % 
+            #        (delta_to_hours(active_time), 
+            #         delta_to_hours(total_time),
+            #         delta_to_hours(new_total)))
+            total_time = new_total
+        return total_time
 
         
 
@@ -185,10 +200,15 @@ class Instance(models.Model):
         return "Unknown"
 
     def esh_size(self):
-        if self.esh:
-            return self.esh._node.extra['instancetype']
-        
-        return "Unknown"
+        if not self.esh or not hasattr(self.esh._node, 'extra'):
+            return "Unknown"
+        extras = self.esh._node.extra
+        if extras.has_key('flavorId'):
+            return extras['flavorId']
+        elif extras.has_key('instancetype'):
+            return extras['instancetype']
+        else:
+            return "Unknown"
 
     def esh_machine_name(self):
         if self.esh and self.esh.machine:
@@ -261,6 +281,16 @@ class InstanceStatusHistory(models.Model):
         return "%s (FROM:%s TO:%s)" % (self.status, 
                                self.start_date,
                                self.end_date if self.end_date else '')
+    
+    def is_active(self):
+        """
+        Use this function to determine whether or not a specific instance
+        status history should be considered 'active'
+        """
+        if self.status.name == 'active':
+            return True
+        else:
+            return False
 
     class Meta:
         db_table = "instance_status_history"
@@ -350,8 +380,16 @@ def set_instance_from_metadata(esh_driver, core_instance):
         #logger.debug("EshDriver %s does not have function 'ex_get_metadata'"
         #            % esh_driver._connection.__class__)
         return core_instance
-    esh_instance = core_instance.esh
+    esh_instance = esh_driver.get_instance(core_instance.provider_alias)
+    if not esh_instance:
+        return core_instance
     metadata =  esh_driver._connection.ex_get_metadata(esh_instance)
+
+    #TODO: Match with actual instance launch metadata in service/instance.py
+    #TODO: Probably better to redefine serializer as InstanceMetadataSerializer
+    #TODO: Define a creator and their identity by the METADATA instead of
+    # assuming its the person who 'found' the instance
+
     serializer = InstanceSerializer(core_instance, data=metadata, partial=True)
     if not serializer.is_valid():
         logger.warn("Encountered errors serializing metadata:%s"
@@ -367,11 +405,26 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
     NOTE: This will NOT WORK for TAGS until openstack
     allows JSONArrays as values for metadata!
     """
+    wait_time = 1
+    instance_id = esh_instance.id
+
     if not hasattr(esh_driver._connection, 'ex_set_metadata'):
         logger.info("EshDriver %s does not have function 'ex_set_metadata'"
                     % esh_driver._connection.__class__)
         return {}
+    while True:
+        if esh_instance.extra['status'] != 'build':
+            break
+        # Wait at most 1 minutes
+        wait_time = min(wait_time + 1, 1)
+        logger.info("Metadata cannot be applied while EshInstance %s is in"
+                    " the build state. Will try again in %s minute(s)"
+                    % (esh_instance, wait_time))
+        time.sleep(wait_time*60)
+        # Check if the instance status has been updated
+        esh_instance = esh_driver.get_instance(instance_id)
 
+    # ASSERT: We are ready to update the metadata
     if data.get('name'):
         esh_driver._connection.ex_set_server_name(esh_instance, data['name'])
     try:
@@ -385,6 +438,8 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
 
 def create_instance(provider_id, identity_id, provider_alias, provider_machine,
                    ip_address, name, creator, create_stamp, token=None):
+    #TODO: Define a creator and their identity by the METADATA instead of
+    # assuming its the person who 'found' the instance
     identity = Identity.objects.get(id=identity_id)
     new_inst = Instance.objects.create(name=name,
                                        provider_alias=provider_alias,
@@ -393,9 +448,10 @@ def create_instance(provider_id, identity_id, provider_alias, provider_machine,
                                        created_by=creator,
                                        created_by_identity=identity,
                                        token=token,
+                                       shell=False,
                                        start_date=create_stamp)
     new_inst.save()
-    logger.debug("New instance created - %s (Token = %s)" %
-                 (provider_alias, token))
+    logger.debug("New instance created - %s<%s> (Token = %s)" %
+                 (name, provider_alias, token))
     #NOTE: No instance_status_history here, because status is not passed
     return new_inst

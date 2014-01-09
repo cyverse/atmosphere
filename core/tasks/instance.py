@@ -3,8 +3,9 @@ from celery.task.schedules import crontab
 
 from threepio import logger
 from datetime import datetime
+from django.conf import settings
 
-@periodic_task(run_every=crontab(hour='*', minute='*/5', day_of_week='*'),
+@periodic_task(run_every=crontab(hour='*', minute='*/15', day_of_week='*'),
                time_limit=120, retry=1) # 2min timeout
 def test_all_instance_links():
     try:
@@ -13,7 +14,7 @@ def test_all_instance_links():
         update_links(instances)
         logger.debug("test_all_instance_links task finished at %s." % datetime.now())
     except Exception as exc:
-        logger.exception(exc)
+        logger.exception('Error during test_all_instance_links task')
         test_all_instance_links.retry(exc=exc)
 
 def get_all_instances():
@@ -24,18 +25,37 @@ def get_all_instances():
         identity_list = None
         try:
             identity_list = Identity.objects.filter(provider=provider)
-            if identity_list and provider.type.name != "":
+            if identity_list\
+               and provider.type.name != ""\
+               and provider.type.name != "Amazon EC2":
                 identity = identity_list[0]
                 driver = get_esh_driver(identity)
                 meta_driver = driver.provider.metaCls(driver)
                 all_instances.extend(meta_driver.all_instances())
         except:
-            logger.info("Problem accessing all instances for provider: %s" % provider)
+            logger.exception("Problem accessing all instances for provider: %s" % provider)
     return all_instances
+
+def active_instances(instances):
+    tested_instances = {}
+    for instance in instances:
+	results = test_instance_links(instance.alias, instance.ip)
+        tested_instances.update(results)
+    return tested_instances
+
+def test_instance_links(alias, uri):
+    from rtwo.linktest import test_link
+    if uri is None:
+	return {alias: {'vnc':False, 'shell':False}}
+    shell_address = '%s/shell/%s/' % (settings.SERVER_URL, uri)
+    shell_success = test_link(shell_address)
+    vnc_address = 'http://%s:5904' % uri
+    vnc_success = test_link(vnc_address)
+    return {alias: {'vnc': vnc_success, 'shell': shell_success}}
+
 
 def update_links(instances):
     from core.models import Instance
-    from rtwo.linktest import active_instances
     updated = []
     linktest_results = active_instances(instances)
     for (instance_id, link_results) in linktest_results.items():

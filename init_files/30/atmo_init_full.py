@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """
-Debugging atmo-init-full locally:
+Debugging atmo_init_full locally:
     cd /usr/sbin
     touch __init__.py
     python
-    >>> import atmo-init-full
+    >>> import atmo_init_full
     >>>
 """
 import getopt
@@ -104,6 +104,23 @@ def download_file(url, fileLoc, retry=False, match_hash=None):
     return contents
 
 
+def get_public_ip(instance_metadata):
+    """
+    Checks multiple locations in metadata for the IP address
+    """
+    ip_addr = instance_metadata.get('public-ipv4')
+    if not ip_addr:
+        ip_addr = instance_metadata.get('local-hostname')
+    if not ip_addr:
+        ip_addr = instance_metadata.get('hostname')
+    if not ip_addr:
+        ip_addr = instance_metadata.get('public-hostname')
+    if not ip_addr:
+        ip_addr = instance_metadata.get('local-ipv4')
+    if not ip_addr:
+        ip_addr = 'localhost'
+    return ip_addr
+
 def get_distro():
     if os.path.isfile('/etc/redhat-release'):
         return 'rhel'
@@ -187,6 +204,23 @@ def append_to_file(filename, text):
         logging.exception("Failed to append text: %s" % text)
 
 
+def in_sudoers(user):
+    out, err = run_command(['sudo -l -U %s' % user], shell=True)
+    if 'not allowed to run sudo' in out:
+        return False
+    if 'unknown user' in err:
+        return False
+    lines = out.split('\n')
+    line_match = '%s may run the following' % user
+    for idx, line in enumerate(lines):
+        if line_match in line:
+            allowed_idx = idx
+    root_allowed = lines[allowed_idx+1:]
+    for line in root_allowed:
+        if line:
+            return True
+    return False
+
 def add_sudoers(user):
     atmo_sudo_file = "/etc/sudoers"
     append_to_file(
@@ -209,33 +243,41 @@ def ssh_config(distro):
     restart_ssh(distro)
 
 
-def collect_metadata():
-    METADATA_SERVER = 'http://128.196.172.136:8773/latest/meta-data/'
+def get_metadata():
+    eucalyptus_meta_server = 'http://128.196.172.136:8773/latest/meta-data/'
+    openstack_meta_server = 'http://169.254.169.254/latest/meta-data/'
+    metadata = collect_metadata(eucalyptus_meta_server)
+    if not metadata:
+        metadata = collect_metadata(openstack_meta_server)
+    return metadata
+
+
+def collect_metadata(meta_server):
     metadata = {}
     meta_list = []
     try:
-        resp = urllib2.urlopen(METADATA_SERVER)
+        resp = urllib2.urlopen(meta_server)
         content = resp.read()
         meta_list = content.split('\n')
     except Exception, e:
         logging.exception("Could not retrieve meta-data for instance")
         return {}
 
-    for meta in meta_list:
-        print meta
+    for meta_key in meta_list:
+        if not meta_key:
+            continue
         try:
-            resp = urllib2.urlopen(
-                'http://128.196.172.136:8773/latest/meta-data/' + meta)
-            content = resp.read()
-            if meta.endswith('/'):
-                content_list = content.split('\n')
-                for content in content_list:
-                    print "new meta: %s%s" % (meta, content)
-                    meta_list.append("%s%s" % (meta, content))
+            meta_item_resp = urllib2.urlopen('%s%s' % (meta_server,meta_key))
+            meta_value = meta_item_resp.read()
+            if meta_key.endswith('/'):
+                meta_values = meta_value.split('\n')
+                for value in meta_values:
+                    print "new meta: %s%s" % (meta_key, value)
+                    meta_list.append("%s%s" % (meta_key, value))
             else:
-                metadata[meta] = content
+                metadata[meta_key] = meta_value
         except Exception:
-            metadata[meta] = None
+            metadata[meta_key] = None
     return metadata
 
 
@@ -275,11 +317,11 @@ def mount_storage():
                 dev_1_size = match.group(1)
             elif dev_2 in line:
                 dev_2_size = match.group(1)
-        if dev_2_size > dev_1_size:
+        if int(dev_2_size) > int(dev_1_size):
             logging.warn(
-                "%s is larger than %s, Mounting %s to mnt"
+                "%s is larger than %s, Mounting %s to home"
                 % (dev_2, dev_1, dev_2))
-            run_command(["/bin/mount", "-text3", "/dev/%s" % dev_2, "/mnt"])
+            run_command(["/bin/mount", "-text3", "/dev/%s" % dev_2, "/home"])
     except Exception, e:
         logging.exception("Could not mount storage. Error below:")
 
@@ -321,7 +363,6 @@ def vnc(user, distro, license=None):
             new_file = open('/etc/vnc/config.d/common.custom', 'w')
             new_file.write("PamApplicationName=vncserver.custom")
             new_file.close()
-        run_command(['/bin/hostname', 'localhost']) #Testfix
         time.sleep(1)
         run_command(['/usr/bin/vnclicense', '-add', license])
         download_file(
@@ -427,7 +468,7 @@ def line_in_file(needle, filename):
     return found
 
 
-def modify_rclocal(username, distro):
+def modify_rclocal(username, distro, public_ip='localhost'):
     try:
         if is_rhel(distro):
             distro_rc_local = '/etc/rc.d/rc.local'
@@ -447,21 +488,21 @@ def modify_rclocal(username, distro):
         #If there was an exit line, it must be removed
         if line_in_file('exit', distro_rc_local):
             run_command(['/bin/sed', '-i',
-                         "'s/exit.*//'", '/etc/rc.local'])
+                         "s/exit.*//", '/etc/rc.local'])
         # Intentionally REPLACE the entire contents of file on each run
         atmo_rclocal = open(atmo_rclocal_path,'w')
-        atmo_rclocal.write('#!/bin/sh -e'
+        atmo_rclocal.write('#!/bin/sh -e\n'
                           'depmod -a\n'
                           'modprobe acpiphp\n'
-                          'hostname localhost\n'
-                          '/bin/su %s -c /usr/bin/vncserver\n'
+                          'hostname %s\n'  # public_ip
+                          '/bin/su %s -c /usr/bin/vncserver\n'  # username
                           '/usr/bin/nohup /usr/local/bin/shellinaboxd -b -t '
                           '-f beep.wav:/dev/null '
                           '> /var/log/atmo/shellinaboxd.log 2>&1 &\n'
                           #Add new rc.local commands here
                           #And they will be excecuted on startup
                           #Don't forget the newline char
-                          % username)
+                          % (public_ip, username))
         atmo_rclocal.close()
         os.chmod(atmo_rclocal_path, 0755)
     except Exception, e:
@@ -512,33 +553,21 @@ def nagios():
                  os.path.join(os.environ['HOME'], 'nrpe-snmp-install.sh')])
 
 
-def deploy_atmo_boot():
-    download_file('%s/init_files/%s/atmo_boot.py'
-                  % (ATMOSERVER, SCRIPT_VERSION),
-                  '/usr/sbin/atmo_boot',
-                  match_hash='e6bef1f831f81939a325084123a3d064c4845b5f')
-    run_command(['/bin/chmod', 'a+x', '/usr/sbin/atmo_boot'])
-    run_command(['/bin/sed', '-i',
-                 "'s/\/usr\/bin\/ruby \/usr\/sbin\/atmo_boot/"
-                 + "\/usr\/sbin\/atmo_boot/'", '/etc/rc.local'])
-
-
-def notify_launched_instance(atmoObj, metadata):
+def notify_launched_instance(instance_data, metadata):
     try:
         import json
     except ImportError:
         #Support for python 2.4
         import simplejson as json
     from httplib2 import Http
-    service_url = atmoObj['atmosphere']['instance_service_url']
-    userid = atmoObj['atmosphere']['userid']
-    instance_token = atmoObj['atmosphere']['instance_token']
-    instance_name = atmoObj['atmosphere']['name']
+    service_url = instance_data['atmosphere']['instance_service_url']
+    userid = instance_data['atmosphere']['userid']
+    instance_token = instance_data['atmosphere']['instance_token']
+    instance_name = instance_data['atmosphere']['name']
     data = {
         'action': 'instance_launched',
         'userid': userid,
         'vminfo': metadata,
-        'arg': atmoObj,
         'token': instance_token,
         'name': instance_name,
     }
@@ -550,7 +579,7 @@ def notify_launched_instance(atmoObj, metadata):
     logging.debug(content)
 
 
-def distro_files(distro, metadata):
+def distro_files(distro):
     install_irods(distro)
     install_icommands(distro)
 
@@ -589,8 +618,6 @@ def install_irods(distro):
         run_command(['/usr/bin/apt-get', 'update'])
         run_command(['/usr/bin/apt-get', '-qy',
                      'install', 'vim', 'mosh', 'patch'])
-        #hostname = metadata['public-ipv4'] #kludge
-        #run_command(['/bin/hostname', '%s' % hostname]) #kludge
     run_command(['/bin/chmod', 'a+x', '/usr/local/bin/irodsFs.x86_64'])
 
 
@@ -683,8 +710,9 @@ def insert_modprobe():
 
 def main(argv):
     init_logs('/var/log/atmo/atmo_init_full.log')
-    atmoObj = {'atmosphere': {}}
+    instance_data = {"atmosphere" : {}}
     service_type = None
+    instance_service_url = None
     instance_service_url = None
     server = None
     user_id = None
@@ -700,27 +728,27 @@ def main(argv):
         sys.exit(2)
     for opt, arg in opts:
         if opt in ("-t", "--service_type"):
-            atmoObj["atmosphere"]["service_type"] = arg
+            instance_data["atmosphere"]["service_type"] = arg
             service_type = arg
         elif opt in ("-T", "--token"):
-            atmoObj["atmosphere"]["instance_token"] = arg
+            instance_data["atmosphere"]["instance_token"] = arg
             instance_token = arg
         elif opt in ("-N", "--name"):
-            atmoObj["atmosphere"]["name"] = arg
+            instance_data["atmosphere"]["name"] = arg
             instance_token = arg
         elif opt in ("-u", "--service_url"):
-            atmoObj["atmosphere"]["instance_service_url"] = arg
+            instance_data["atmosphere"]["instance_service_url"] = arg
             instance_service_url = arg
         elif opt in ("-s", "--server"):
-            atmoObj["atmosphere"]["server"] = arg
+            instance_data["atmosphere"]["server"] = arg
             global ATMOSERVER
             ATMOSERVER = arg
             server = arg
         elif opt in ("-i", "--user_id"):
-            atmoObj["atmosphere"]["userid"] = arg
+            instance_data["atmosphere"]["userid"] = arg
             user_id = arg
         elif opt in ("-v", "--vnc_license"):
-            #atmoObj["atmosphere"]["vnc_license"] = arg
+            #instance_data["atmosphere"]["vnc_license"] = arg
             vnclicense = arg
         elif opt == '-d':
             global _debug
@@ -729,8 +757,18 @@ def main(argv):
 
     source = "".join(args)
 
-    linuxuser = atmoObj['atmosphere']['userid']
+    logging.debug("Atmosphere request object - %s" % instance_data)
+    instance_metadata = get_metadata()
+    logging.debug("Instance metadata - %s" % instance_metadata)
+
+    linuxuser = instance_data['atmosphere']['userid']
     linuxpass = ""
+    public_ip = get_public_ip(instance_metadata)
+    run_command(['/bin/hostname', public_ip])  # 'localhost'//ip.addr
+    instance_metadata['linuxusername'] = linuxuser
+    instance_metadata["linuxuserpassword"] = linuxpass
+    instance_metadata["linuxuservncpassword"] = linuxpass
+
     logging.debug("Atmoserver - %s" % ATMOSERVER)
     distro = get_distro()
     logging.debug("Distro - %s" % distro)
@@ -740,7 +778,7 @@ def main(argv):
     update_sshkeys()
     update_sudoers()
 
-    if not file_contains('/etc/sudoers', linuxuser):
+    if not in_sudoers(linuxuser):
         add_sudoers(linuxuser)
     if not in_etc_group('/etc/group', linuxuser):
         add_etc_group(linuxuser)
@@ -749,10 +787,6 @@ def main(argv):
 
     if not is_rhel(distro):
         run_command(['/usr/bin/apt-get', 'update'])
-    instance_metadata = collect_metadata()
-    instance_metadata['linuxusername'] = linuxuser
-    instance_metadata["linuxuserpassword"] = linuxpass
-    instance_metadata["linuxuservncpassword"] = linuxpass
     mount_storage()
     ldap_install()
     etc_skel_bashrc(linuxuser)
@@ -766,11 +800,12 @@ def main(argv):
     iplant_files(distro)
     atmo_cl()
     nagios()
-    distro_files(distro, instance_metadata)
+    distro_files(distro)
     update_timezone()
     shellinaboxd(distro)
     insert_modprobe()
-    modify_rclocal(linuxuser, distro)
+    modify_rclocal(linuxuser, distro, public_ip)
+    notify_launched_instance(instance_data, instance_metadata)
     logging.info("Complete.")
 
 

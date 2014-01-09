@@ -31,7 +31,10 @@ class Migration(SchemaMigration):
             ('end_date', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
         ))
         db.send_create_signal('core', ['Flow'])
-
+        db.add_column('quota', 'suspended_count',
+                      self.gf('django.db.models.fields.IntegerField')(default=2,
+                          null=True, blank=True),
+                      keep_default=False)
         # Adding field 'Step.flow'
         db.add_column('step', 'flow',
                       self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Flow'], null=True, blank=True),

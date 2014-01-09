@@ -3,7 +3,7 @@ Authentication Backends and validation methods
 
 """
 from django.contrib.auth.backends import ModelBackend
-from django.contrib.auth.models import User as DjangoUser
+from core.models import AtmosphereUser as DjangoUser
 
 from threepio import logger
 
@@ -40,6 +40,8 @@ class CASLoginBackend(ModelBackend):
         Return None otherwise.
         """
         (success, cas_response) = cas_validateUser(username)
+        logger.info("Authenticate by CAS: %s - %s %s"
+                    % (username, success, cas_response))
         if not success:
             logger.debug("CAS Authentication failed - "+username)
             return None

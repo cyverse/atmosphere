@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 import time, requests
 
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
+from core.models import Provider
 
 from threepio import logger
-
-from atmosphere import settings
 
 from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
 from service.accounts.openstack import AccountDriver as OSAccountDriver
@@ -15,15 +14,15 @@ def main():
     """
     TODO: Add argparse, --delete : Deletes existing users in openstack (Never use in PROD)
     """
-    euca_driver = EucaAccountDriver()
-    os_driver = OSAccountDriver()
+    euca_driver = EucaAccountDriver(Provider.objects.get(location='EUCALYPTUS'))
+    os_driver = OSAccountDriver(Provider.objects.get(location='OPENSTACK'))
     found = 0
     create = 0
-    core_services = ['estevetest02', 'estevetest03']#get_core_services()
+    core_services = ['estevetest03', 'estevetest02']#get_core_services()
     for user in core_services:
         euca_driver.create_account(user, max_quota=True)
         # Then add the Openstack Identity
-        os_driver.create_account(user, admin_role=True, max_quota=True)
+        os_driver.create_account(user, max_quota=True)
         make_admin(user)
     print "Total core-service/admins added:%s" % len(core_services)
 
@@ -45,18 +44,6 @@ def members_query_groupy(groupname):
     for user in json_obj['data']:
 	    usernames.append(user['name'].replace('esteve','sgregory'))
     return usernames
-
-def fix_openstack_network(os_driver):
-    usergroups = [usergroup for usergroup in os_driver.list_usergroups()]
-    users_with_networks = os_driver.network_manager.list_tenant_network()
-    users_without_networks = []
-    for (user,group) in usergroups:
-        if user.name not in users_with_networks:
-            # This user needs to have a tenant network created
-            password = os_driver.hashpass(user.name)
-            os_driver.network_manager.create_tenant_network(user.name, password,
-                group.name)
-            logger.info("Tenant network built for %s" % user.name)
 
 def make_admin(user):
     u = User.objects.get(username=user)

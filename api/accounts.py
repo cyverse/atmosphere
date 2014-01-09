@@ -22,7 +22,7 @@ from service.accounts.aws import AccountDriver as AWSAccountDriver
 import copy
 
 from django.utils import timezone
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 
 def get_account_driver(provider_id):
     try:
@@ -35,11 +35,11 @@ def get_account_driver(provider_id):
     provider_name = provider.location.lower()
     #TODO: How we select args will change..
     if 'openstack' in provider_name:
-        driver = OSAccountDriver(settings.OPENSTACK_ARGS)
+        driver = OSAccountDriver(provider)
     elif 'eucalyptus' in provider_name:
-        driver = EucaAccountDriver(settings.EUCALYPTUS_ARGS)
+        driver = EucaAccountDriver(provider)
     #elif 'aws' in provider_name:
-    #    driver = AWSAccountDriver(settings.AWS_ARGS)
+    #    driver = AWSAccountDriver(provider)
     else:
         raise Exception ("Could not find a driver for provider %s" %
                          provider_name)

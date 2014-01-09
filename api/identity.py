@@ -33,11 +33,12 @@ class IdentityDetailList(APIView):
         username = request.user.username
         group = Group.objects.get(name=username)
         identities = group.identities.order_by('id')
-	#profile = request.user.get_profile()
-	#for identity in identities:
-	#	if profile.selected_identity and profile.selected_identity.id == identity.id:
-	#		identity.selected = True
-	#TODO: IdentityDetailSerializer should expect new 
+	    #user = request.user
+        #selected_identity = user.select_identity()
+	    #for identity in identities:
+	    #	if  selected_identity and selected_identity.id == identity.id:
+	    #		identity.selected = True
+	    #TODO: IdentityDetailSerializer should expect new 
         serialized_data = IdentityDetailSerializer(identities, many=True).data
         return Response(serialized_data)
 

@@ -12,6 +12,7 @@ from threepio import logger
 from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
 from core.models.instance import update_instance_metadata
+from core.models.identity import Identity
 
 from service.driver import get_driver
 
@@ -45,14 +46,32 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
 
 
 # Deploy and Destroy tasks
+@task(name="deploy_failed",
+      max_retries=2,
+      default_retry_delay=128,
+      ignore_result=True)
+def deploy_failed(driverCls, provider, identity, instance_id, task_uuid):
+    try:
+        logger.debug("deploy_failed task started at %s." % datetime.now())
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_id)
+        update_instance_metadata(driver, instance,
+                                 data={'tmp_status': 'deploy_error'},
+                                 replace=False)
+        logger.debug("deploy_failed task finished at %s." % datetime.now())
+    except Exception as exc:
+        logger.warn(exc)
+        deploy_failed.retry(exc=exc)
+
 @task(name="deploy_to",
       max_retries=2,
       default_retry_delay=128,
       ignore_result=True)
-def deploy_to(driverCls, provider, identity, instance, *args, **kwargs):
+def deploy_to(driverCls, provider, identity, instance_id, *args, **kwargs):
     try:
         logger.debug("deploy_to task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_id)
         driver.deploy_to(instance, *args, **kwargs)
         logger.debug("deploy_to task finished at %s." % datetime.now())
     except Exception as exc:
@@ -70,43 +89,50 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         logger.debug("deploy_init_to task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
+        if not instance:
+            return
         image_metadata = driver._connection\
                                .ex_get_image_metadata(instance.machine)
         image_already_deployed = image_metadata.get("deployed")
         if not instance.ip and not image_already_deployed:
             logger.debug("Chain -- Floating_ip + deploy_init + email")
-            chain(add_floating_ip.si(driverCls,
-                                     provider,
-                                     identity,
-                                     instance_id, delete_status=False),
-                  _deploy_init_to.si(driverCls,
-                                     provider,
-                                     identity,
-                                     instance_id),
-                  _send_instance_email.si(driverCls,
-                                          provider,
-                                          identity,
-                                          instance_id)).apply_async()
+            cflow = chain(add_floating_ip.si(driverCls,
+                                             provider,
+                                             identity,
+                                             instance_id, delete_status=False),
+                          _deploy_init_to.si(driverCls,
+                                             provider,
+                                             identity,
+                                             instance_id),
+                          _send_instance_email.si(driverCls,
+                                                  provider,
+                                                  identity,
+                                                  instance_id))
+            cflow(link_error=deploy_failed.s((driverCls, provider, identity,
+                                              instance_id,))),
         elif not image_already_deployed:
             logger.debug("Chain -- deploy_init + email")
-            chain(_deploy_init_to.si(driverCls,
-                                     provider,
-                                     identity,
-                                     instance_id),
-                  _send_instance_email.si(driverCls,
-                                          provider,
-                                          identity,
-                                          instance_id)).apply_async()
+            cflow = chain(_deploy_init_to.si(driverCls,
+                                             provider,
+                                             identity,
+                                             instance_id),
+                          _send_instance_email.si(driverCls,
+                                                  provider,
+                                                  identity,
+                                                  instance_id))
+            cflow(link_error=deploy_failed.s((driverCls, provider, identity,
+                                              instance_id,))),
         elif not instance.ip:
             logger.debug("Chain -- Floating_ip + email")
-            chain(add_floating_ip.si(driverCls,
-                                     provider,
-                                     identity,
-                                     instance_id, delete_status=True),
-                  _send_instance_email.si(driverCls,
-                                          provider,
-                                          identity,
-                                          instance_id)).apply_async()
+            cflow = chain(add_floating_ip.si(driverCls,
+                                             provider,
+                                             identity,
+                                             instance_id, delete_status=True),
+                          _send_instance_email.si(driverCls,
+                                                  provider,
+                                                  identity,
+                                                  instance_id))
+            cflow()
         else:
             logger.debug("delay -- email")
             _send_instance_email.delay(driverCls,
@@ -122,49 +148,48 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
 @task(name="destroy_instance",
       default_retry_delay=15,
       ignore_result=True,
-      max_retries=6)
-def destroy_instance(driverCls, provider, identity, instance_alias):
+      max_retries=3)
+def destroy_instance(core_identity_id, instance_alias):
+    from service import instance as instance_service
+    from rtwo.driver import OSDriver
+    from api import get_esh_driver
     try:
         logger.debug("destroy_instance task started at %s." % datetime.now())
-        driver = get_driver(driverCls, provider, identity)
-        instance = driver.get_instance(instance_alias)
-        from rtwo.driver import OSDriver
-        if instance:
-            #First disassociate
-            if isinstance(driver, OSDriver):
-                driver._connection.ex_disassociate_floating_ip(instance)
-            #Then destroy
-            node_destroyed = driver._connection.destroy_node(instance)
-        else:
-            logger.debug("Instance already deleted: %s." % instance.id)
+        node_destroyed = instance_service.destroy_instance(core_identity_id, instance_alias)
+        core_identity = Identity.objects.get(id=core_identity_id)
+        driver = get_esh_driver(core_identity)
         if isinstance(driver, OSDriver):
             #Spawn off the last two tasks
             logger.debug("OSDriver Logic -- Remove floating ips and check"
                          " for empty project")
-            chain(_remove_floating_ip
-                  .subtask((driverCls,
-                            provider,
-                            identity),
-                           immutable=True,
-                           countdown=5),
-                  _check_empty_project_network
-                  .subtask((driverCls,
-                            provider,
-                            identity),
-                           immutable=True,
-                           countdown=60)).apply_async()
-
+            driverCls = driver.__class__
+            provider = driver.provider
+            identity = driver.identity
+            cflow = chain(clean_empty_ips
+                          .subtask((driverCls,
+                                    provider,
+                                    identity),
+                                   immutable=True,
+                                   countdown=5),
+                          remove_empty_network
+                          .subtask((driverCls,
+                                    provider,
+                                    identity,
+                                    core_identity_id),
+                                   immutable=True,
+                                   countdown=60))
+            cflow()
         logger.debug("destroy_instance task finished at %s." % datetime.now())
         return node_destroyed
     except Exception as exc:
-        logger.warn(exc)
+        logger.exception(exc)
         destroy_instance.retry(exc=exc)
 
 
 @task(name="_deploy_init_to",
       default_retry_delay=32,
       ignore_result=True,
-      max_retries=8)
+      max_retries=10)
 def _deploy_init_to(driverCls, provider, identity, instance_id):
     try:
         logger.debug("_deploy_init_to task started at %s." % datetime.now())
@@ -173,7 +198,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         if not instance:
-            logger.debug("Instance already deleted: %s." % instance_id)
+            logger.debug("Instance has been teminated: %s." % instance_id)
             return
 
         update_instance_metadata(driver, instance,
@@ -218,10 +243,7 @@ def add_floating_ip(driverCls, provider, identity,
                                  data={'tmp_status': 'networking'},
                                  replace=False)
 
-        if not instance.ip:
-            driver._add_floating_ip(instance, *args, **kwargs)
-        else:
-            logger.debug("public ip already found! %s" % instance.ip)
+        driver._connection.neutron_associate_ip(instance, *args, **kwargs)
 
         #Useful for chaining floating-ip + Deployment without returning
         #a 'fully active' state
@@ -240,12 +262,11 @@ def add_floating_ip(driverCls, provider, identity,
         add_floating_ip.retry(exc=exc,
                               countdown=countdown)
 
-
-@task(name="_remove_floating_ip",
+@task(name="clean_empty_ips",
       default_retry_delay=15,
       ignore_result=True,
       max_retries=6)
-def _remove_floating_ip(driverCls, provider, identity, *args, **kwargs):
+def clean_empty_ips(driverCls, provider, identity, *args, **kwargs):
     try:
         logger.debug("remove_floating_ip task started at %s." %
                      datetime.now())
@@ -255,7 +276,7 @@ def _remove_floating_ip(driverCls, provider, identity, *args, **kwargs):
                      datetime.now())
     except Exception as exc:
         logger.warn(exc)
-        _remove_floating_ip.retry(exc=exc)
+        clean_empty_ips.retry(exc=exc)
 
 
 # project Network Tasks
@@ -263,35 +284,33 @@ def _remove_floating_ip(driverCls, provider, identity, *args, **kwargs):
       default_retry_delay=15,
       ignore_result=True,
       max_retries=6)
-def add_os_project_network(username, *args, **kwargs):
+def add_os_project_network(core_identity, *args, **kwargs):
     try:
         logger.debug("add_os_project_network task started at %s." %
                      datetime.now())
         from rtwo.accounts.openstack import AccountDriver as OSAccountDriver
-        account_driver = OSAccountDriver()
-        password = account_driver.hashpass(username)
-        project_name = account_driver.get_project_name_for(username)
-        account_driver.network_manager.create_project_network(
-            username,
-            password,
-            project_name,
-            get_unique_number=get_unique_number,
-            **settings.OPENSTACK_NETWORK_ARGS)
+        account_driver = OSAccountDriver(core_identity.provider)
+        account_driver.create_network(core_identity)
         logger.debug("add_os_project_network task finished at %s." %
                      datetime.now())
     except Exception as exc:
         add_os_project_network.retry(exc=exc)
 
 
-@task(name="_check_empty_project_network",
+@task(name="remove_empty_network",
       default_retry_delay=60,
       ignore_result=True,
       max_retries=1)
-def _check_empty_project_network(driverCls, provider, identity,
-                                 *args, **kwargs):
+def remove_empty_network(
+        driverCls, provider, identity,
+        core_identity_id,
+        *args, **kwargs):
     try:
-        logger.debug("_check_empty_project_network task started at %s." %
+        logger.debug("remove_empty_network task started at %s." %
                      datetime.now())
+
+        logger.debug("Params - %s" % core_identity_id)
+        core_identity = Identity.objects.get(id=core_identity_id)
         driver = get_driver(driverCls, provider, identity)
         instances = driver.list_instances()
         active_instances = False
@@ -303,15 +322,14 @@ def _check_empty_project_network(driverCls, provider, identity,
             #Check for project network
             from service.accounts.openstack import AccountDriver as\
                 OSAccountDriver
-            os_acct_driver = OSAccountDriver()
-            username = identity.user.username
-            project_name = username
+            os_acct_driver = OSAccountDriver(core_identity.provider)
             logger.info("No active instances. Removing project network"
-                        "from %s" % username)
-            os_acct_driver.network_manager.delete_project_network(username,
-                                                                  project_name)
-        logger.debug("_check_empty_project_network task finished at %s." %
+                        "from %s" % core_identity)
+            os_acct_driver.delete_network(core_identity)
+            return True
+        logger.debug("remove_empty_network task finished at %s." %
                      datetime.now())
+        return False
     except Exception as exc:
-        logger.warn(exc)
-        _check_empty_project_network.retry(exc=exc)
+        logger.exception("Failed to check if project network is empty")
+        remove_empty_network.retry(exc=exc)

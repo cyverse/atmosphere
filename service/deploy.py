@@ -98,4 +98,7 @@ def lsof_location(mount_location):
                             name="./deploy_lsof_location.sh")
 
 def step_script(step):
-    return ScriptDeployment(step.script, name="./" + step.get_script_name())
+    script = str(step.script)
+    if not script.startswith("#!"):
+        script =  "#! /usr/bin/env bash\n" + script
+    return ScriptDeployment(script, name="./" + step.get_script_name())

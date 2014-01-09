@@ -7,6 +7,29 @@ Note:
 
 from django.db import models
 from core.models.identity import Identity
+from core.models.provider import Provider
+
+
+class ProviderCredential(models.Model):
+    """
+    A ProviderCredential is a single piece of information used by all
+    identities on the provider.
+    Credentials are stored in a key/value map
+    """
+    # Euca Examples: "EC2 Url", "S3 Url", 
+    # OStack Examples: "Auth URL", "Admin URL", "Admin Tenant",
+    #                  "Default Region", "Default Router"
+    key = models.CharField(max_length=256)
+    # 2ae8p0au, aw908e75iti, 120984723qwe
+    value = models.CharField(max_length=256)
+    provider = models.ForeignKey(Provider)
+
+    def __unicode__(self):
+        return "%s:%s" % (self.key, self.value)
+
+    class Meta:
+        db_table = 'provider_credential'
+        app_label = 'core'
 
 
 class Credential(models.Model):

@@ -1,18 +1,19 @@
 """
 Atmosphere version.
 """
+from dateutil import parser
 from os.path import abspath, dirname
 from subprocess import Popen, PIPE
 
 
-VERSION = (0, 12, 1, 'prod', 0)
+VERSION = (0, 14, 2, 'prod', 0)
 
 
-def git_sha():
+def git_info():
     loc = abspath(dirname(__file__))
     try:
         p = Popen(
-            "cd \"%s\" && git log -1 --format=format:%%h" % loc,
+            "cd \"%s\" && git log -1 --format=format:%%H%%ci" % loc,
             shell=True,
             stdout=PIPE,
             stderr=PIPE
@@ -33,7 +34,7 @@ def get_version(form='short'):
     * ``normal`` Returns human readable version string with the format of 
     B.b.t _type type_num.
     * ``verbose`` Returns a verbose version string with the format of
-    B.b.t _type type_num@git_sha
+    B.b.t _type type_num@git_sha_abbrev
     * ``all`` Returns a dict of all versions.
     """
     versions = {}
@@ -54,8 +55,11 @@ def get_version(form='short'):
     versions["normal"] = v
     if form is "normal":
         return v
-    versions["git_sha"] = "@" + git_sha()
-    v += " " + versions["git_sha"]
+    info = git_info()
+    versions["git_sha"] = info[0:39]
+    versions["git_sha_abbrev"] = "@" + info[0:6]
+    versions["date"] = parser.parse(info[40:])
+    v += " " + versions["git_sha_abbrev"]
     versions["verbose"] = v
     if form is "verbose":
         return v

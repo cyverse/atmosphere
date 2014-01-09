@@ -10,9 +10,8 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		'click .image_list > li': 'img_clicked',
 		'click #launchInstance': 'launch_instance',
 		'keyup #newinst_name' : 'validate_name',
-		'change #newinst_size': 'change_type_selection',
 		//'dblclick .image_list > li' : 'quick_launch',
-		'click #help_request_more_resources2' : 'show_request_resources_modal'
+		'click #help_request_more_resources2' : 'show_request_resources_modal',
 	},
 	template: _.template(Atmo.Templates.new_instance_screen),
 	initialize: function(options) {
@@ -21,7 +20,6 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
         Atmo.instances.bind('add', this.render_resource_charts, this);
         Atmo.instances.bind('remove', this.render_resource_charts, this);
 		Atmo.instances.bind('change:state', this.render_resource_charts, this);
-		Atmo.instance_types.bind('reset', this.render_instance_type_list, this);
 		Atmo.instance_types.bind('change:selected', this.update_resource_charts, this);
         this.launch_lock = false;
 		this.under_quota = true;
@@ -45,8 +43,12 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		    	quota_type: 'allocation'
 		    }).render();
         } else {
-            allocation_holder = this.$el.find('#allocation_holder');
-            allocation_holder.html('');
+            graph_holders = this.$el.find('#resource_usage_holder');
+            alloc_graph = this.$el.find("#allocationHolder").parent();
+            alloc_graph.remove();
+            graph_holders.children().each( function() {
+                $(this).removeClass('span4').addClass('span6');
+            });
         }
 
 		// Make the dropdown functional
@@ -64,6 +66,23 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		this.render_instance_type_list();
 
         // Assign content to the popovers
+        this.$el.find('#allocationHolder').popover({
+            placement: 'bottom',
+            trigger: 'hover',
+            title: 'Time Allocation <a class="close" data-dismiss="popover" href="#new_instance" data-parent="help_image">&times</a>',
+            html: true,
+            content: function() {
+                allocation = Atmo.profile.attributes.selected_identity.attributes.quota.allocation;
+                hours_remaining = Math.floor(allocation.ttz / 60);
+                burn_time = Math.floor(allocation.burn / 60);
+                var content = 'The graph above represents the <b>time you have currently used</b> for this provider.<br /><br />';
+                content += 'As of now, you have <b>' + hours_remaining + ' hours remaining.</b><br /><br />';
+                if (burn_time != 0) {
+                    content += "Given your current instance configuration, you will <b>run out of ALL your time in " + burn_time + ' hours</b>';
+                }
+                return content;
+            }
+        }).click(this.x_close);
         this.$el.find('#help_image').popover({
             placement: 'bottom',
             title: 'Select an Image <a class="close" data-dismiss="popover" href="#new_instance" data-parent="help_image">&times</a>',
@@ -169,78 +188,9 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		this.filter_image_list();
     },
 	render_instance_type_list: function() {
-		if (Atmo.instance_types.models.length > 0) {
-			// this.$el.find('#newinst_size').val(Atmo.instance_types.models[0].get('id'));
-			var set_default = false;
-			this.under_quota = false;
-			var self = this;
-			$.each(Atmo.instance_types.models, function(idx, instance_type) {
-				var opt = $('<option>', {
-					value: instance_type.get('id'),
-					html: function() {
-						// Determine how many digits we want to display
-						var digits = (instance_type.get('mem') % 1024 == 0) ? 0 : 1;
-
-						// Make a human readable number
-						var mem = (instance_type.get('mem') > 1024) ? '' + (instance_type.get('mem') / 1024).toFixed(digits) + ' GB' : (instance_type.get('mem') + ' MB') ;
-						return instance_type.get('name') + ' (' + instance_type.get('cpus') + ' CPUs, ' + mem + ' memory, ' + instance_type.get('disk') + ' GB disk)';
-					},
-					'data' : {'instance_type' : instance_type}
-				});
-
-				if (instance_type.get('remaining') > 0) {
-					opt.data('available', true);
-					if (!set_default) {
-						var enough_cpus = self.cpu_resource_chart.add_usage(instance_type.attributes.cpus, "cpuHolder");
-						var enough_mem = self.mem_resource_chart.add_usage(instance_type.attributes.mem, "memHolder");
-						if (self.time_resource_chart) {
-                            var enough_time = self.time_resource_chart.add_usage(0, "allocationHolder");
-                        } else {
-                            var enough_time = true;
-                        }
-						if (enough_cpus && enough_mem && enough_time) {
-							self.under_quota = true;
-						}
-						else {
-							self.$el.find('#launchInstance').attr('disabled', 'disabled');
-							self.under_quota = false;
-						}
-						set_default = true;
-					}
-				}
-				else {
-					opt.data('available', false);
-					opt.attr('disabled', 'disabled');
-					opt.html(opt.html() + ' (At Capacity)');
-				}
-				self.$el.find('#newinst_size').append(opt);
-			});
-			window.instance_types = Atmo.instance_types.models;	
-
-            // Sets initial selected_instance_type to m1.small
-            default_instance = Atmo.profile.attributes['settings'].default_size;
-            this.$el.find('#newinst_size').val(default_instance);
-            this.$el.find('#newinst_size').trigger('change');
-		}
-		else {
-			// Error getting instance types for this provider, inform user.
-			this.$el.find('#newinst_size').append($('<option>', {
-				html: 'Instance Sizes Unavailable', 
-				disabled: 'disabled'
-			}));
-			this.launch_lock = true;
-			var select_obj = this.$el.find('#newinst_size');
-			select_obj.parent().find('.help-block').remove();
-
-			select_obj.parent().append($('<div/>', {
-				'class': 'help-block',
-				html: 'If this problem persists, please contact Support.'
-			}));
-			select_obj.closest('.control-group').addClass('error');
-		}
-	},
-	change_type_selection: function(e) {
-		$(e.currentTarget).find(':selected').data('instance_type').select();
+        new Atmo.Views.InstanceSizeDropdown({
+            el: this.$el.find('#newinst_size')[0]
+        }).render();
 	},
 	update_resource_charts: function() {
 		var selected_instance_type = Atmo.instance_types.selected_instance_type;
@@ -249,13 +199,13 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		var under_cpu = this.cpu_resource_chart.add_usage(
 			selected_instance_type.attributes.cpus, 
 			{ 
-				is_initial: (Atmo.instances.models.length == 0) ? true : false
+				is_initial: Atmo.instances.models.length == 0
 			}
 		); 
 		var under_mem = this.mem_resource_chart.add_usage(
 			selected_instance_type.attributes.mem,
 			{ 
-				is_initial: (Atmo.instances.models.length == 0) ? true : false
+				is_initial: Atmo.instances.models.length == 0
 			}
 		);
 		if (self.time_resource_chart) {
@@ -543,5 +493,11 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 	},
 	show_request_resources_modal: function() {
 		Atmo.request_resources_modal.do_alert();
-	}
+	},
+    hide_burn_time: function() {
+        console.log(Atmo.profile);
+    },
+    show_burn_time: function() {
+        console.log(Atmo.profile);
+    }
 });

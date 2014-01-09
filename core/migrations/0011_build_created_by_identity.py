@@ -128,9 +128,9 @@ class Migration(DataMigration):
 
     def get_admin_identity(self, orm, provider):
         try:
-            from atmosphere import settings
+            from atmosphere.settings import secrets
             if provider.location.lower() == 'openstack':
-                admin_name = settings.OPENSTACK_ADMIN_KEY
+                admin_name = secrets.OPENSTACK_ADMIN_KEY
             elif provider.location.lower() == 'eucalyptus':
                 admin_name = 'admin'
             admin = orm.UserProfile.objects.get(user__username=admin_name).user
@@ -155,10 +155,11 @@ class Migration(DataMigration):
         for cred in credentials:
             cred_dict[cred.key] = cred.value
         user = core_identity.created_by
-        eshMap = get_esh_map(core_identity.provider)
-        provider = eshMap['provider']()
-        identity = eshMap['identity'](provider, user=user, **cred_dict)
-        driver = eshMap['driver'](provider, identity)
+        esh_map = get_esh_map(core_identity.provider)
+        provider = esh_map['provider']()
+        identity = esh_map['identity'](provider, user=user, **cred_dict)
+        driver = esh_map['driver'](provider, identity)
+	driver._connection.connection.service_region = 'ValhallaRegion'
         return driver
 
     def update_volume(self, orm):

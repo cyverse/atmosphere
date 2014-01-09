@@ -7,7 +7,7 @@ from django.contrib.auth.models import Group as DjangoGroup
 from django.utils import timezone
 
 
-from core.models.credential import Credential
+from core.models.credential import Credential, ProviderCredential
 from core.models.group import Group, IdentityMembership, ProviderMembership
 from core.models.identity import Identity
 from core.models.instance import Instance, InstanceStatusHistory
@@ -22,6 +22,7 @@ from core.models.allocation import Allocation
 from core.models.size import Size
 from core.models.step import Step
 from core.models.tag import Tag
+from core.models.user import AtmosphereUser
 from core.models.volume import Volume
 
 
@@ -39,7 +40,7 @@ class NodeControllerAdmin(admin.ModelAdmin):
 
 class MaintenanceAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
-    list_display = ("title", "start_date",
+    list_display = ("title", "provider", "start_date",
                     "end_date", "disable_login")
 
 
@@ -75,11 +76,24 @@ class ProviderMachineAdmin(admin.ModelAdmin):
     ]
 
 
+class ProviderCredentialInline(admin.TabularInline):
+    model = ProviderCredential
+    extra = 1
+
+
 class ProviderAdmin(admin.ModelAdmin):
+    inlines = [ProviderCredentialInline, ]
     actions = [end_date_object, ]
     list_display = ["location", "id", "provider_type", "active",
-                    "public", "start_date", "end_date"]
+                    "public", "start_date", "end_date", "_credential_info"]
     list_filter = ["active", "public", "type__name"]
+    def _credential_info(self, obj):
+        return_text = ""
+        for cred in obj.providercredential_set.order_by('key'):
+            return_text += "<strong>%s</strong>:%s<br/>" % (cred.key, cred.value)
+        return return_text
+    _credential_info.allow_tags = True
+    _credential_info.short_description = 'Provider Credentials'
 
     def provider_type(self, provider):
         if provider.type:
@@ -118,6 +132,7 @@ class MachineAdmin(admin.ModelAdmin):
     search_fields = ["name", "id"]
     list_display = [
         "name", "start_date", "end_date", "private", "featured"]
+    filter_vertical = ["tags",]
 
 
 class CredentialInline(admin.TabularInline):
@@ -134,7 +149,7 @@ class IdentityAdmin(admin.ModelAdmin):
     def _credential_info(self, obj):
         return_text = ""
         for cred in obj.credential_set.order_by('key'):
-            return_text += "<strong>%s</strong>:%s " % (cred.key, cred.value)
+            return_text += "<strong>%s</strong>:%s<br/>" % (cred.key, cred.value)
         return return_text
     _credential_info.allow_tags = True
     _credential_info.short_description = 'Credentials'
@@ -151,8 +166,8 @@ class UserProfileInline(admin.StackedInline):
 class UserAdmin(AuthUserAdmin):
     inlines = [UserProfileInline]
 
-admin.site.unregister(DjangoUser)
-admin.site.register(DjangoUser, UserAdmin)
+#admin.site.unregister(DjangoUser)
+admin.site.register(AtmosphereUser, UserAdmin)
 
 
 class ProviderMembershipAdmin(admin.ModelAdmin):
@@ -176,13 +191,14 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
 
 
 class MachineRequestAdmin(admin.ModelAdmin):
-    search_fields = ["created_by", "instance__provider_alias"]
+    search_fields = ["new_machine_owner__username", "new_machine_name", "instance__provider_alias"]
     list_display = ["new_machine_name", "new_machine_owner",
                     "new_machine_provider",  "start_date",
                     "end_date", "opt_parent_machine",
                     "opt_new_machine"]
     list_filter = ["instance__provider_machine__provider__location",
-                   "new_machine_provider__location"]
+                   "new_machine_provider__location",
+                   "status"]
 
     def opt_parent_machine(self, machine_request):
         if machine_request.parent_machine:

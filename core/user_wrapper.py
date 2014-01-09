@@ -1,5 +1,5 @@
 from atmosphere.core.models.group import Group as CoreGroup
-from django.contrib.auth.models import User
+from core.models import AtmosphereUser as User
 
 
 def convert_group(dgroup):
