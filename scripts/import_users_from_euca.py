@@ -16,7 +16,7 @@ def main():
     """
     euca = Provider.objects.get(location='EUCALYPTUS')
     euca_driver = EucaAccountDriver(euca)
-    openstack = Provider.objects.get(location='HavanaStack')
+    openstack = Provider.objects.get(location='Openstack-Tucson (BETA)')
     os_driver = OSAccountDriver(openstack)
     all_users = euca_driver.list_users()
     #Sort by users

@@ -37,7 +37,7 @@ def get_core_services():
 
 def members_query_groupy(groupname):
     r = requests.get(
-        'http://gables.iplantcollaborative.org:8080/groups/%s/members'
+        'http://gables.iplantcollaborative.org/groups/%s/members'
         % groupname)
     json_obj = r.json()
     usernames = []
