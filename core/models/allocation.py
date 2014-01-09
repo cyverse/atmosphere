@@ -25,7 +25,12 @@ class Allocation(models.Model):
             (self.threshold, self.delta)
 
     @classmethod
-    def defaults(self):
+    def default_allocation(self):
+        return Allocation.objects.get_or_create(
+                **Allocation.default_dict())[0]
+
+    @classmethod
+    def default_dict(self):
         return {
             'threshold': self._meta.get_field('threshold').default,
             'delta': self._meta.get_field('delta').default
