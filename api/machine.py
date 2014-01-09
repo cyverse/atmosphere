@@ -41,7 +41,7 @@ def provider_filtered_machines(request, provider_id, identity_id):
         esh_machine_list,
         black_list=['eki-', 'eri-'])
     core_machine_list = [convert_esh_machine(esh_driver, mach, provider_id)
-                         for mach in esh_machine_list]
+                           for mach in esh_machine_list]
     filtered_machine_list = filter(filter_core_machine, core_machine_list)
     sorted_machine_list = sorted(filtered_machine_list,
                                  cmp=compare_core_machines)
