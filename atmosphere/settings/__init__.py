@@ -5,6 +5,7 @@ Settings for atmosphere project.
 
 from __future__ import absolute_import
 from datetime import timedelta
+from uuid import UUID
 import logging
 import os
 import os.path
@@ -79,6 +80,9 @@ STATIC_URL = '/static/'
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '785nc+)g%w!g01#$#lc+weg2b!yc^z#17rvjln0c5r39*vg8%t'
+
+# This key however should stay the same, and be shared with all Atmosphere
+ATMOSPHERE_NAMESPACE_UUID=UUID("40227dff-dedf-469c-a9f8-1953a7372ac1")
 
 # List of callables that know how to import templates from various sources.
 STATICFILES_FINDERS = (

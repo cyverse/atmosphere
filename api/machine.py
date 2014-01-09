@@ -109,7 +109,7 @@ class MachineHistory(APIView):
         if all_machines_list:
             history_machine_list =\
                 [m for m in all_machines_list if
-                 m.machine.created_by.username == user.username]
+                 m.application.created_by.username == user.username]
             logger.warn(len(history_machine_list))
         else:
             history_machine_list = []
@@ -242,7 +242,7 @@ class Machine(APIView):
         esh_machine = esh_driver.get_machine(machine_id)
         coreMachine = convert_esh_machine(esh_driver, esh_machine, provider_id)
 
-        if not user.is_staff and user is not coreMachine.machine.created_by:
+        if not user.is_staff and user is not coreMachine.application.created_by:
             logger.warn('%s is Non-staff/non-owner trying to update a machine'
                         % (user.username))
             errorObj = failureJSON([{
@@ -252,7 +252,7 @@ class Machine(APIView):
                 + 'are allowed to change machine info.'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
-        coreMachine.machine.update(request.DATA)
+        coreMachine.application.update(request.DATA)
         serializer = ProviderMachineSerializer(coreMachine,
                                                data=data, partial=True)
         if serializer.is_valid():
@@ -275,7 +275,7 @@ class Machine(APIView):
         esh_machine = esh_driver.get_machine(machine_id)
         coreMachine = convert_esh_machine(esh_driver, esh_machine, provider_id)
 
-        if not user.is_staff and user is not coreMachine.machine.created_by:
+        if not user.is_staff and user is not coreMachine.application.created_by:
             logger.warn('Non-staff/non-owner trying to update a machine')
             errorObj = failureJSON([{
                 'code': 401,
@@ -283,7 +283,7 @@ class Machine(APIView):
                 'Only Staff and the machine Owner '
                 + 'are allowed to change machine info.'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
-        coreMachine.machine.update(data)
+        coreMachine.application.update(data)
         serializer = ProviderMachineSerializer(coreMachine,
                                                data=data, partial=True)
         if serializer.is_valid():

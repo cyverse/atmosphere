@@ -1,6 +1,9 @@
 from django.db import models
 from django.utils import timezone
 
+from core.models.identity import Identity
+from core.models.tag import Tag
+
 class Application(models.Model):
   """
   An application is a collection of machines, where each machine represents a
@@ -8,13 +11,42 @@ class Application(models.Model):
   created_by field here is used for logging purposes only; do not rely on it 
   for permissions; use ApplicationMembership instead.
   """
+  uuid = models.CharField(max_length=36, unique=True)
   name = models.CharField(max_length=256)
+  description = models.TextField(null=True, blank=True)
+  tags = models.ManyToManyField(Tag, blank=True)
+  icon = models.ImageField(upload_to="machine_images", null=True, blank=True)
   private = models.BooleanField(default=False)
   featured = models.BooleanField(default=False)
-  icon = models.ImageField(upload_to="machine_images", null=True, blank=True)
-  created_by = models.ForeignKey('AtmosphereUser')
   start_date = models.DateTimeField(default=timezone.now)
   end_date = models.DateTimeField(null=True, blank=True)
+  # User/Identity that created the application object
+  created_by = models.ForeignKey('AtmosphereUser')
+  created_by_identity = models.ForeignKey(Identity, null=True)
+  
+  def update(self, *args, **kwargs):
+      """
+      Allows for partial updating of the model
+      """
+      #Upload args into kwargs
+      for arg in args:
+          for (key, value) in arg.items():
+              kwargs[key] = value
+      #Update the values
+      for key in kwargs.keys():
+          if key == 'tags':
+              if type(kwargs[key]) != list:
+                  tags_list = kwargs[key].split(",")
+              else:
+                  tags_list = kwargs[key]
+              updateTags(self, tags_list)
+              continue
+          setattr(self, key, kwargs[key])
+      self.save()
+      return self
+
+  def __unicode__(self):
+      return "%s" % (self.name,)
 
   class Meta:
       db_table = 'application'

@@ -11,6 +11,7 @@ class Migration(SchemaMigration):
         # Adding model 'Application'
         db.create_table('application', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('uuid', self.gf('django.db.models.fields.CharField')(max_length=36)),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=256)),
             ('private', self.gf('django.db.models.fields.BooleanField')(default=False)),
             ('icon', self.gf('django.db.models.fields.files.ImageField')(max_length=100, null=True, blank=True)),
@@ -83,6 +84,7 @@ class Migration(SchemaMigration):
             'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'icon': ('django.db.models.fields.files.ImageField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'uuid': ('django.db.models.fields.CharField', [], {'max_length': '36'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'private': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 11, 21, 0, 0)'})

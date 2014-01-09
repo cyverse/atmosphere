@@ -5,6 +5,9 @@ from south.v2 import DataMigration
 from django.db import models
 from django.utils import timezone
 
+from uuid import uuid5, UUID
+from atmosphere import settings
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
@@ -20,7 +23,8 @@ class Migration(DataMigration):
                 return None
             return groups[0]
 
-        for m in orm.Machine.objects.all():
+        for pm in orm.ProviderMachine.objects.all():
+            m = pm.machine
             app = orm.Application()
             app.name = m.name
             app.featured = m.featured
@@ -29,7 +33,10 @@ class Migration(DataMigration):
             app.created_by = m.created_by
             if m.end_date:
                 app.end_date = timezone.now()
+            app_uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(pm.identifier))
+            app.uuid = str(app_uuid)
             app.save()
+            print 'UUID:%s Application:%s ImageID:%s' % (app.uuid, app.name, pm.identifier)
 
             if m.private:
                 app_membership = orm.ApplicationMembership()    
@@ -95,6 +102,7 @@ class Migration(DataMigration):
             'featured': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'icon': ('django.db.models.fields.files.ImageField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'uuid': ('django.db.models.fields.CharField', [], {'max_length': '36'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'private': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 11, 21, 0, 0)'})
