@@ -10,14 +10,17 @@ from celery.decorators import task
 #from celery import chain
 
 from threepio import logger
-from rtwo.driver import EucaDriver, OSDriver
+#from rtwo.driver import EucaDriver, OSDriver
 
 #from service.deploy import mount_volume, check_volume, mkfs_volume,\
 #                           check_mount, umount_volume, lsof_location
 
 from core.models.step import Step
 
-from service.drivers.common import get_driver
+from service.driver import get_driver
+
+from service.deploy import step_script
+
 #from service.exceptions import DeviceBusyException
 
 

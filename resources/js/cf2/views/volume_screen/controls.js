@@ -1,7 +1,8 @@
 /**
  *
- * Creates, attaches, and detaches volumes. Handles validation (based on quota) for volume creation and toggles 
- * between attach/detach based on whether the selected volume is available or attached to a machine.
+ * Creates, attaches, and detaches volumes. Handles validation (based on quota)
+ * for volume creation and toggles between attach/detach based on whether the
+ * selected volume is available or attached to a machine.
  *
  */
 Atmo.Views.VolumeScreenControls = Backbone.View.extend({
@@ -109,17 +110,19 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
 			placement: 'bottom',
 			trigger: 'manual',
 			html: true,
-			content: '<div id="disk_countHolder"></div><div id="disk_countHolder_info"></div><div id="diskHolder"></div><div id="diskHolder_info"></div>'
+			content: '<div id="storage_countHolder"></div><div id="storage_countHolder_info"></div><div id="storageHolder"></div><div id="storageHolder_info"></div>'
 		});
 		this.$el.find('input[name="new_volume_size"]').popover('show');
 
 		this.disk_resource_chart = new Atmo.Views.ResourceCharts({
-			el: this.$el.find('#diskHolder'), 
-			quota_type: 'disk'
+			el: this.$el.find('#storageHolder'),
+			quota_type: 'storage'
+			//quota_type: 'disk'
 		}).render();
 		this.disk_count_resource_chart = new Atmo.Views.ResourceCharts({
-			el: this.$el.find('#disk_countHolder'), 
-			quota_type: 'disk_count'
+			el: this.$el.find('#storage_countHolder'),
+			quota_type: 'storage_count'
+			//quota_type: 'disk_count'
 		}).render();
 
 		this.$el.find('input[name="new_volume_size"]').trigger('change');

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 export ATMOSPHERE_HOME=/opt/dev/atmosphere
+export ATMOSPHERE_ENV=/opt/env/atmo
 
 chmod -R g+w ${ATMOSPHERE_HOME}
 
@@ -16,4 +17,7 @@ chown -R root:root ${ATMOSPHERE_HOME}/extras/apache
 
 chown -R root:root ${ATMOSPHERE_HOME}/extras/ssh
 
+chmod -R g+w ${ATMOSPHERE_ENV}
+
+chown -R www-data:core-services ${ATMOSPHERE_ENV}
 

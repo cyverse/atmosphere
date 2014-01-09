@@ -10,10 +10,6 @@ class AtmosphereUser(AbstractUser):
         identity_member = identity.identitymembership_set.all()[0]
         return identity_member.quota
 
-    #Save hook
-    #if not self.selected_identity
-    #    self.select_identity()
-
     def select_identity(self):
         #Return previously selected identity
         if self.selected_identity:

@@ -3,8 +3,6 @@ import argparse
 
 from keystoneclient.exceptions import NotFound
 
-from atmosphere import settings
-
 #try:
 #    from authentication.protocol.oauth import is_atmo_user
 #except ImportError:

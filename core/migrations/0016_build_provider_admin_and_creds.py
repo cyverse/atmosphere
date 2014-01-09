@@ -4,7 +4,7 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import models
 
-from atmosphere import settings
+from atmosphere.settings import secrets 
 from threepio import logger
 
 class Migration(DataMigration):
@@ -27,28 +27,28 @@ class Migration(DataMigration):
         self.openstack_provider_creds(orm)
 
     def euca_provider_creds(self, orm):
-        from atmosphere import settings
-        if not hasattr(settings, 'EUCALYPTUS_ARGS'):
-            print 'WARN:settings.EUCA_* missing, provider credentials will'\
+        from atmosphere.settings import secrets 
+        if not hasattr(secrets, 'EUCALYPTUS_ARGS'):
+            print 'WARN:secrets.EUCA_* missing, provider credentials will'\
             ' NOT be created automatically. Instead, be sure to run these'\
             ' commands on the REPL:\n'\
-            "from atmosphere import settings\n"\
+            "from atmosphere.settings import secrets\n"\
             "from core.models import ProviderCredential, Provider\n"\
             "euca = Provider.objects.get(location='EUCALYPTUS')\n"\
             "ProviderCredential.objects.create("\
-            "key='ec2_url', value=settings.EUCA_EC2_URL, "\
+            "key='ec2_url', value=secrets.EUCA_EC2_URL, "\
             "provider=euca)\n"\
             "ProviderCredential.objects.create("\
-            "key='s3_url', value=settings.EUCA_S3_URL, "\
+            "key='s3_url', value=secrets.EUCA_S3_URL, "\
             "provider=euca)\n"\
             "ProviderCredential.objects.create("\
-            "key='euca_cert_path', value=settings.EUCALYPTUS_CERT_PATH, "\
+            "key='euca_cert_path', value=secrets.EUCALYPTUS_CERT_PATH, "\
             "provider=euca)\n"\
             "ProviderCredential.objects.create("\
-            "key='pk_path', value=settings.EUCA_PRIVATE_KEY, "\
+            "key='pk_path', value=secrets.EUCA_PRIVATE_KEY, "\
             "provider=euca)\n"\
             "ProviderCredential.objects.create("\
-            "key='ec2_cert_path', value=settings.EC2_CERT_PATH, "\
+            "key='ec2_cert_path', value=secrets.EC2_CERT_PATH, "\
             "provider=euca)\n"\
             "ProviderCredential.objects.create("\
             "key='account_path', value='/services/Accounts', "\
@@ -61,42 +61,42 @@ class Migration(DataMigration):
         euca = orm.Provider.objects.get_or_create(location='EUCALYPTUS',
                                               type=provider_type)
         euca = euca[0]
-        # Create provider credentials from settings
+        # Create provider credentials from secrets
         orm.ProviderCredential.objects.get_or_create(
-            key='ec2_url', value=settings.EUCA_EC2_URL, provider=euca)
+            key='ec2_url', value=secrets.EUCA_EC2_URL, provider=euca)
         orm.ProviderCredential.objects.get_or_create(
-            key='s3_url', value=settings.EUCA_S3_URL, provider=euca)
+            key='s3_url', value=secrets.EUCA_S3_URL, provider=euca)
         orm.ProviderCredential.objects.get_or_create(
-            key='euca_cert_path', value=settings.EUCALYPTUS_CERT_PATH,
+            key='euca_cert_path', value=secrets.EUCALYPTUS_CERT_PATH,
             provider=euca)
         orm.ProviderCredential.objects.get_or_create(
             key='account_path', value='/services/Accounts', provider=euca)
         orm.ProviderCredential.objects.get_or_create(
             key='config_path', value='/services/Configuration', provider=euca)
         orm.ProviderCredential.objects.get_or_create(
-            key='pk_path', value=settings.EUCA_PRIVATE_KEY, provider=euca)
+            key='pk_path', value=secrets.EUCA_PRIVATE_KEY, provider=euca)
         orm.ProviderCredential.objects.get_or_create(
-            key='ec2_cert_path', value=settings.EC2_CERT_PATH, provider=euca)
+            key='ec2_cert_path', value=secrets.EC2_CERT_PATH, provider=euca)
 
     def openstack_provider_creds(self, orm):
-        if not hasattr(settings, 'OPENSTACK_ARGS'):
-            print 'WARN:settings.OPENSTACK_* missing, provider credentials will'\
+        if not hasattr(secrets, 'OPENSTACK_ARGS'):
+            print 'WARN:secrets.OPENSTACK_* missing, provider credentials will'\
             ' NOT be created automatically. Instead, be sure to run these'\
             ' commands on the REPL:\n'\
-            "from atmosphere import settings\n"\
+            "from atmosphere.settings import secrets\n"\
             "from core.models import ProviderCredential, Provider\n"\
             "openstack = Provider.objects.get(location='OPENSTACK')\n"\
             "ProviderCredential.objects.create("\
-            "key='auth_url', value=settings.OPENSTACK_AUTH_URL, "\
+            "key='auth_url', value=secrets.OPENSTACK_AUTH_URL, "\
             "provider=openstack)\n"\
             "ProviderCredential.objects.create("\
-            "key='admin_url', value=settings.OPENSTACK_ADMIN_URL, "\
+            "key='admin_url', value=secrets.OPENSTACK_ADMIN_URL, "\
             "provider=openstack)\n"\
             "ProviderCredential.objects.create("\
-            "key='router_name', value=settings.OPENSTACK_DEFAULT_ROUTER, "\
+            "key='router_name', value=secrets.OPENSTACK_DEFAULT_ROUTER, "\
             "provider=openstack)\n"\
             "ProviderCredential.objects.create("\
-            "key='region_name', value=settings.OPENSTACK_DEFAULT_REGION, "\
+            "key='region_name', value=secrets.OPENSTACK_DEFAULT_REGION, "\
             "provider=openstack)\n"
             return
 
@@ -108,19 +108,19 @@ class Migration(DataMigration):
 
         orm.ProviderCredential.objects.get_or_create(
                 key='auth_url',
-                value=settings.OPENSTACK_AUTH_URL,
+                value=secrets.OPENSTACK_AUTH_URL,
                 provider=openstack)
         orm.ProviderCredential.objects.get_or_create(
                 key='admin_url',
-                value=settings.OPENSTACK_ADMIN_URL,
+                value=secrets.OPENSTACK_ADMIN_URL,
                 provider=openstack)
         orm.ProviderCredential.objects.get_or_create(
                 key='router_name',
-                value=settings.OPENSTACK_DEFAULT_ROUTER,
+                value=secrets.OPENSTACK_DEFAULT_ROUTER,
                 provider=openstack)
         orm.ProviderCredential.objects.get_or_create(
                 key='region_name',
-                value=settings.OPENSTACK_DEFAULT_REGION,
+                value=secrets.OPENSTACK_DEFAULT_REGION,
                 provider=openstack)
         return
 

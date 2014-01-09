@@ -72,7 +72,7 @@ def get_esh_map(core_provider):
 def get_esh_provider(core_provider):
     try:
         esh_map = get_esh_map(core_provider)
-        provider = esh_map['provider']()
+        provider = esh_map['provider'](identifier=core_provider.location)
         return provider
     except Exception, e:
         logger.exception(e)

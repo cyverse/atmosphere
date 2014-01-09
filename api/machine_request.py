@@ -13,6 +13,7 @@ from threepio import logger
 from authentication.decorators import api_auth_token_required#, api_auth_options
 
 from api.serializers import MachineRequestSerializer
+from core.models.machine_request import share_with_admins, share_with_self
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 
 from web.emails import requestImaging
@@ -48,6 +49,11 @@ class MachineRequestList(APIView):
         #Copy allows for editing
         data = copy.deepcopy(request.DATA)
         data.update({'owner': data.get('created_for', request.user.username)})
+        if data.get('vis','public') != 'public':
+            user_list  = re.split(', | |\n', data.get('shared_with'))
+            share_with_admins(user_list, data.get('provider'))
+            share_with_self(user_list, request.user.username)
+            data['shared_with'] = user_list
         logger.info(data)
         serializer = MachineRequestSerializer(data=data)
         if serializer.is_valid():

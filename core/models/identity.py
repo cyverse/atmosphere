@@ -10,7 +10,6 @@ from django.db import models
 
 from threepio import logger
 
-
 class Identity(models.Model):
     """
     An Identity is the minimal set of credentials necessary
@@ -30,9 +29,12 @@ class Identity(models.Model):
         provider = Provider.objects.get(location__iexact=provider_location)
         user = AtmosphereUser.objects.get(username=username)
         group = Group.objects.get(name=username)
-        identities = Identity.objects.filter(
+        my_ids = Identity.objects.filter(
             created_by=user, provider=provider)
-        identities.delete()
+        for ident in my_ids:
+            membership_set = ident.identitymembership_set.all()
+            membership_set.delete()
+            ident.delete()
         group.delete()
         user.delete()
         return
@@ -147,14 +149,12 @@ class Identity(models.Model):
 
         provider = Provider.objects.get(location__iexact=provider_location)
 
-        print kwarg_creds
         credentials = {}
         for (c_key, c_value) in kwarg_creds.items():
             if 'cred_' not in c_key.lower():
                 continue
             c_key = c_key.replace('cred_', '')
             credentials[c_key] = c_value
-        print credentials
 
         (user, group) = Group.create_usergroup(username)
 
@@ -193,7 +193,7 @@ class Identity(models.Model):
                 identity=id_membership.identity,
                 key=c_key)
             if test_key_exists:
-                logger.info("Conflicting Key Errror: Key:%s Value:%s "
+                logger.info("Conflicting Key Error: Key:%s Value:%s "
                             "Replacement:%s" %
                             (c_key, c_value, test_key_exists[0].value))
                 #No Dupes... But should we really throw an Exception here?

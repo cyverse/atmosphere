@@ -165,12 +165,13 @@ class Provider(models.Model):
         provider_admins = self.list_admins()
         if provider_admins:
           return provider_admins[0]
+        #TODO: Rely on the account provider instead
         #NOTE: Marked for removal
         from core.models import Identity
         from core.models import AtmosphereUser as User
-        from atmosphere import settings
+        from atmosphere.settings import secrets
         if self.location.lower() == 'openstack':
-            admin = User.objects.get(username=settings.OPENSTACK_ADMIN_KEY)
+            admin = User.objects.get(username=secrets.OPENSTACK_ADMIN_KEY)
         elif self.location.lower() == 'eucalyptus':
             admin = User.objects.get(username='admin')
         else:

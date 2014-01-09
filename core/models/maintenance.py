@@ -1,11 +1,10 @@
 import collections
 
-from datetime import datetime
-
-from core.models.user import AtmosphereUser as User
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 
+from core.models.user import AtmosphereUser as User
 from core.models.provider import Provider
 
 
@@ -22,7 +21,7 @@ class MaintenanceRecord(models.Model):
 
     @classmethod
     def active(cls, provider=None):
-        now = datetime.now()
+        now = timezone.now()
         records = MaintenanceRecord.objects.filter(
             Q(start_date__lt=now),
             Q(end_date__gt=now) | Q(end_date__isnull=True))
@@ -40,6 +39,9 @@ class MaintenanceRecord(models.Model):
         disable_login = False
         if request and 'username' in request.session:
             username = request.session['username']
+        else:
+            #Username not in session - disable
+            return True
         user = User.objects.get(username=username)
         if user.is_staff or user.is_superuser:
             return False

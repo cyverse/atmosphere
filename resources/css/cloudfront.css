@@ -493,6 +493,7 @@ a.accordion-toggle .caret {
     top: 5px;
     float: right;
     display: block;
+    pointer-events: none;
 }
 .accordion-group {
 	background-color: #FFF;

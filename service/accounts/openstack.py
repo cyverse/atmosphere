@@ -3,7 +3,6 @@ UserManager:
   Remote Openstack  Admin controls..
 """
 import time
-
 from hashlib import sha1
 from urlparse import urlparse
 
@@ -12,9 +11,10 @@ from django.db.models import Max
 
 from novaclient.v1_1 import client as nova_client
 from novaclient.exceptions import OverLimit
+from neutronclient.common.exceptions import NeutronClientException
 
 from threepio import logger
-
+from requests.exceptions import ConnectionError
 from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.drivers.openstack_user import UserManager
 
@@ -23,6 +23,7 @@ from core.models.identity import Identity
 
 from chromogenic.drivers.openstack import ImageManager
 from atmosphere import settings
+
 class AccountDriver():
     user_manager = None
     image_manager = None
@@ -75,12 +76,15 @@ class AccountDriver():
     ]
 
     def _init_by_provider(self, provider, *args, **kwargs):
+        from api import get_esh_driver
+
         self.core_provider = provider
 
         provider_creds = provider.get_credentials()
         self.provider_creds = provider_creds
-
-        admin_creds = provider.get_admin_identity().get_credentials()
+        admin_identity = provider.get_admin_identity()
+        admin_creds = admin_identity.get_credentials()
+        self.admin_driver = get_esh_driver(admin_identity)
         admin_creds = self._libcloud_to_openstack(admin_creds)
         all_creds = {}
         all_creds.update(admin_creds)
@@ -136,46 +140,75 @@ class AccountDriver():
                     password = self.hashpass(username)
                 if not project_name:
                     project_name = username
-
-                #1. Project should exist before creating user
+                #1. Create Project: should exist before creating user
                 project = self.user_manager.get_project(project_name)
                 if not project:
                     project = self.user_manager.create_project(project_name)
 
-                # 2. Get user (And check they are in project)
+                # 2. Create User (And add them to the project)
                 user = self.get_user(username)
                 if not user:
-                    print 'Creating account: %s - %s - %s' % (username,\
-                            password, project)
+                    logger.info('Creating account: %s - %s - %s'
+                                % (username, password, project))
                     user = self.user_manager.create_user(username, password,
                                                       project)
-                # 3. Check the user has an appropriate role (if given)
-                if role_name:
-                    roles = user.list_roles(project)
-                    if not roles:
-                        self.user_manager.add_role(username, project_name,
-                                                   role_name)
+                # 3.1 Include the admin in the project
+                #TODO: providercredential initialization of
+                #  'default_admin_role'
+                self.user_manager.include_admin(project_name)
 
-                # 4. get protocol list and build security group
-                rules_list = self.MASTER_RULES_LIST
-                # 5. Update the security group
-                self.user_manager.build_security_group(user.name,
-                        password, project.name, rules_list)
-                # 6. Create a keypair to use when launching with atmosphere
-                keyname = settings.ATMOSPHERE_KEYPAIR_NAME
-                with open(settings.ATMOSPHERE_KEYPAIR_FILE, 'r') as pub_key_file:
-                    public_key = pub_key_file.read()
-                self.get_or_create_keypair(user.name, password, project.name,
-                                           keyname, public_key)
+                # 3.2 Check the user has been given an appropriate role (if given)
+                if not role_name:
+                    role_name = '_member_'
+                self.user_manager.add_project_membership(
+                        project_name, username, role_name)
+
+                # 4. Create a security group -- SUSPENDED.. Will occur on
+                # instance launch instead.
+                #self.init_security_group(user, password, project, project.name,
+                #                         self.MASTER_RULES_LIST)
+
+                # 5. Create a keypair to use when launching with atmosphere
+                self.init_keypair(user.name, password, project.name)
                 finished = True
 
+            except ConnectionError:
+                logger.exception('Connection reset by peer. Waiting for one minute.')
+                time.sleep(60)  # Wait one minute
             except OverLimit:
-                print 'Requests are rate limited. Pausing for one minute.'
+                logger.exception('OverLimit on POST requests. Waiting for one minute.')
                 time.sleep(60)  # Wait one minute
         return (username, password, project)
 
-    def add_rules_to_security_groups(self, core_identity_list, rules_list, 
-                                   security_group_name='default'):
+    def init_keypair(self, username, password, project_name):
+        keyname = settings.ATMOSPHERE_KEYPAIR_NAME
+        with open(settings.ATMOSPHERE_KEYPAIR_FILE, 'r') as pub_key_file:
+            public_key = pub_key_file.read()
+        return self.get_or_create_keypair(username, password, project_name,
+                                   keyname, public_key)
+
+    def init_security_group(self, username, password, project_name, security_group_name, rules_list):
+        # 4.1. Update the account quota to hold a larger number of
+        # roles than what is necessary
+        user = self.user_manager.keystone.users.find(name=username)
+        project = self.user_manager.keystone.tenants.find(name=project_name)
+        nc = self.user_manager.nova
+        rule_max = max(len(rules_list),100)
+        nc.quotas.update(project.id, security_group_rules=rule_max)
+        #Change the description of the security group to match the project name
+        try:
+            self.network_manager.rename_security_group(project)
+        except NeutronClientException, nce:
+            if nce.status_code != 404:
+                logger.exception("Encountered unknown exception while renaming"
+                        " the security group")
+
+        #Start creating security group
+        return self.user_manager.build_security_group(user.name,
+                password, project.name, security_group_name, rules_list)
+
+    def add_rules_to_security_groups(self, core_identity_list,
+                                     security_group_name, rules_list):
         for identity in core_identity_list:
             creds = self.parse_identity(identity)
             sec_group = self.user_manager.find_security_group(
@@ -187,8 +220,6 @@ class AccountDriver():
             self.user_manager.add_security_group_rules(
                 creds['username'], creds['password'], creds['tenant_name'],
                 security_group_name, rules_list)
-
-
 
 
     def get_or_create_keypair(self, username, password, project_name,
@@ -230,7 +261,7 @@ class AccountDriver():
             rules_list = self.MASTER_RULES_LIST
         return self.user_manager.build_security_group(
                 creds['username'], creds['password'], creds['tenant_name'],
-                rules_list, rebuild=True)
+                creds['tenant_name'], rules_list, rebuild=True)
 
     def parse_identity(self, core_identity):
         identity_creds = self._libcloud_to_openstack(
@@ -286,6 +317,17 @@ class AccountDriver():
             project_name,
             **net_args)
         return True
+
+    def delete_security_group(self, identity):
+        identity_creds = self.parse_identity(identity)
+        project_name = identity_creds['tenant_name']
+        project = self.user_manager.keystone.tenants.find(name=project_name)
+        sec_group_r = self.network_manager.neutron.list_security_groups(tenant_id=project.id)
+        sec_groups = sec_group_r['security_groups']
+        for sec_group in sec_groups:
+            self.network_manager.neutron.delete_security_group(sec_group['id'])
+        return True
+
 
     def delete_network(self, identity):
         #Core credentials need to be converted to openstack names
@@ -345,16 +387,16 @@ class AccountDriver():
         #1. Network cleanup
         if project:
             self.network_manager.delete_project_network(username, projectname)
-
-        #2. Role cleanup (Admin too)
-        self.user_manager.delete_all_roles(username, projectname)
-        adminuser = self.user_manager.keystone.username
-        self.user_manager.delete_all_roles(adminuser, projectname)
-        #TODO: May need to switch this
-        #3. User cleanup
-        self.user_manager.delete_user(username)
-        #4. Project cleanup
-        self.user_manager.delete_project(projectname)
+            #2. Role cleanup (Admin too)
+            self.user_manager.delete_all_roles(username, projectname)
+            adminuser = self.user_manager.keystone.username
+            self.user_manager.delete_all_roles(adminuser, projectname)
+            #3. Project cleanup
+            self.user_manager.delete_project(projectname)
+        #4. User cleanup
+        user = self.user_manager.get_user(username)
+        if user:
+            self.user_manager.delete_user(username)
         return True
 
     def hashpass(self, username):
@@ -447,7 +489,7 @@ class AccountDriver():
         combination will be used
         """
         net_args = self.provider_creds.copy()
-        net_args['auth_url'] = net_args.pop('admin_url',None)
+        net_args['auth_url'] = net_args.pop('admin_url').replace('/tokens','')
         return net_args
 
     def _build_network_creds(self, credentials):
@@ -465,7 +507,7 @@ class AccountDriver():
         net_args.get('router_name')
         net_args.get('region_name')
         #Ignored:
-        net_args['auth_url'] = net_args.pop('admin_url')
+        net_args['auth_url'] = net_args.pop('admin_url').replace('/tokens','')
 
         return net_args
 
@@ -481,7 +523,7 @@ class AccountDriver():
         img_args.get('password')
         img_args.get('tenant_name')
 
-        img_args.get('auth_url')
+        img_args['auth_url'] = img_args.get('auth_url').replace('/tokens','')
         img_args.get('region_name')
         #Ignored:
         img_args.pop('admin_url', None)
@@ -502,7 +544,7 @@ class AccountDriver():
         user_args.get('password')
         user_args.get('tenant_name')
 
-        user_args.get('auth_url')
+        user_args['auth_url'] = user_args.get('auth_url').replace('/tokens','')
         user_args.get('region_name')
         #Removable args:
         user_args.pop('admin_url', None)

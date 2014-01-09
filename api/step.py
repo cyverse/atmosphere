@@ -1,16 +1,26 @@
 """
 Atmosphere api step.
 """
+from uuid import uuid1
+
+from django.utils import timezone
+
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from threepio import logger
+
 from authentication.decorators import api_auth_token_required
 
-from core.models.size import convert_esh_size
+from core.models.flow import Flow as CoreFlow
+from core.models.identity import Identity as CoreIdentity
+from core.models.instance import Instance as CoreInstance
+from core.models.step import Step as CoreStep
 
-from api.serializers import ProviderSizeSerializer
+from api.serializers import StepSerializer
 
-from api import prepare_driver
+from api import failureJSON, prepare_driver
 
 
 class StepList(APIView):
@@ -23,50 +33,157 @@ class StepList(APIView):
         Using provider and identity, getlist of machines
         TODO: Cache this request
         """
-        user = request.user
-        esh_driver = prepare_driver(request, identity_id)
-        serialized_data = []
-#        esh_size_list = esh_driver.list_sizes()
-#        core_size_list = [convert_esh_size(size, provider_id, user)
-#                          for size in esh_size_list]
-#        serialized_data = ProviderSizeSerializer(core_size_list, many=True).data
-        response = Response(serialized_data)
-        return response
+        step_list = [s for s in CoreStep.objects.filter(
+            created_by_identity__id=identity_id)]
+        serialized_data = StepSerializer(step_list, many=True).data
+        return Response(serialized_data)
+
+    @api_auth_token_required
+    def post(self, request, provider_id, identity_id):
+        """
+        Create a new step.
+        """
+        data = request.DATA.copy()
+        valid, messages = validate_post(data)
+        if not valid:
+            return Response(messages,
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if data.get("instance_alias"):
+            instance = CoreInstance.objects.get(provider_alias=data["instance_alias"])
+        else:
+            instance = None
+        if data.get("flow_alias"):
+            flow = CoreFlow.objects.get(alias=data["flow_alias"])
+        else:
+            flow = None
+        identity = CoreIdentity.objects.get(id=identity_id)
+        step = CoreStep(alias=uuid1(),
+                        name=data["name"],
+                        script=data["script"],
+                        instance=instance,
+                        flow=flow,
+                        created_by=request.user,
+                        created_by_identity=identity)
+
+        serializer = StepSerializer(step, data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class Step(APIView):
     """
-    View a details on a step.
+    View a details of a step.
     """
     @api_auth_token_required
     def get(self, request, provider_id, identity_id, step_id):
         """
-        Lookup the size information (Lookup using the given provider/identity)
-        Update on server DB (If applicable)
+        Get details of a specific step.
+        """
+        serialized_data = []
+        try:
+            step = fetch_step(identity_id, step_id)
+        except CoreStep.DoesNotExist:
+            return step_not_found(step_id)
+        if not step:
+            return step_not_found(step_id)
+        serialized_data = StepSerializer(step).data
+        return Response(serialized_data)
+
+    @api_auth_token_required
+    def put(self, request, provider_id, identity_id, step_id):
+        """
+        Update a specific step.
+
+        NOTE: This may not affect an active step.
         """
         user = request.user
-        esh_driver = prepare_driver(request, identity_id)
-        esh_size = []
         serialized_data = []
-#        esh_size = esh_driver.get_size(size_id)
-#        core_size = convert_esh_size(esh_size, provider_id, user)
-#        serialized_data = ProviderSizeSerializer(core_size).data
-        response = Response(serialized_data)
-        return response
+        data = request.DATA.copy()
+        try:
+            step = fetch_step(identity_id, step_id)
+        except CoreStep.DoesNotExist:
+            return step_not_found(step_id)
+        if not step:
+            return step_not_found(step_id)
+        if not user.is_staff and user != step.created_by:
+            return Response(["Only the step creator can update %s step." % step_id],
+                            status=status.HTTP_400_BAD_REQUEST)
+        required_fields(data, step)
+        serializer = StepSerializer(step, data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @api_auth_token_required
+    def delete(self, request, provider_id, identity_id, step_id):
+        """
+        Delete a specific step.
+
+        NOTE: This may not affect an active step.
+        """
+        user = request.user
+        serialized_data = []
+        data = request.DATA.copy()
+        try:
+            step = fetch_step(identity_id, step_id)
+        except CoreStep.DoesNotExist:
+            return step_not_found(step_id)
+        if not step:
+            return step_not_found(step_id)
+        if not user.is_staff and user != step.created_by:
+            return Response(["Only the step creator can delete %s step." % step_id],
+                            status=status.HTTP_400_BAD_REQUEST)
+        required_fields(data, step)
+        step.end_date = timezone.now()
+        serializer = StepSerializer(step, data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+def required_fields(data, step):
+    """
+    Required fields so DRF will allow put and deletes.
+    """
+    if not data.get("name"):
+        data["name"] = step.name
+    if not data.get("instance_alias"):
+        data["instance_alias"] = step.instance.provider_alias
+    if not data.get("script"):
+        data["script"] = step.script
 
-            # elif 'step' == action:
-            #     #TODO: Get script input (deploy)
-            #     deploy_script = build_script(str(action_params.get('script')),
-            #                                  action_params.get('script_name'))
-            #     deploy_params = {'deploy':deploy_script,
-            #                      'timeout':120,
-            #                      'ssh_key':
-            #                      '/opt/dev/atmosphere/extras/ssh/id_rsa'}
-            #     success = esh_driver.deploy_to(esh_instance, **deploy_params)
-            #     result_obj = {'success':success,
-            #                   'stdout': deploy_script.stdout,
-            #                   'stderr': deploy_script.stderr,
-            #                   'exit_code': deploy_script.exit_status}
-            #     #TODO: Return script output, error, & RetCode
+
+def fetch_step(identity_id, step_id):
+    """
+    Get a specific step core model object from the database.
+
+    NOTE: We use alias not the actual step id. Database IDs are an
+    implementation detail.
+    """
+    return CoreStep.objects.get(alias=step_id,
+                                created_by_identity__id=identity_id)
+
+
+def step_not_found(step_id):
+    return Response(['Step %s was not found.' % step_id],
+                    status=status.HTTP_404_NOT_FOUND)
+
+
+def validate_post(data):
+    """
+    Returns a 2-tuple. The first value is a boolean on whether
+    the data is valid. The second value is a list of validation
+    error messages.
+    """
+    valid = True
+    messages = []
+    for field in ("alias", "end_date"):
+        if data.get(field):
+            valid = False
+            messages.append("Step POST may not contain %s." % field)
+    return (valid, messages)
