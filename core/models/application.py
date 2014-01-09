@@ -13,7 +13,7 @@ class Application(models.Model):
   featured = models.BooleanField(default=False)
   icon = models.ImageField(upload_to="machine_images", null=True, blank=True)
   created_by = models.ForeignKey('AtmosphereUser')
-  start_date = models.DateTimeField(default=lambda: timezone.now())
+  start_date = models.DateTimeField(default=timezone.now)
   end_date = models.DateTimeField(null=True, blank=True)
 
   class Meta:

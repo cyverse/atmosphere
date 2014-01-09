@@ -326,6 +326,7 @@ def remove_empty_network(
             logger.info("No active instances. Removing project network"
                         "from %s" % core_identity)
             os_acct_driver.delete_network(core_identity)
+            os_acct_driver.delete_security_group(core_identity)
             return True
         logger.debug("remove_empty_network task finished at %s." %
                      datetime.now())
