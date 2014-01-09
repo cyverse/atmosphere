@@ -1,7 +1,7 @@
 Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
   template: _.template(Atmo.Templates['identity_summary']),
   tagName: 'div',
-  className: 'accordion-group',
+  className: "accordion-group panel panel-default",
   attributes: {'data-populated' : 'false'},
   initialize: function() {
     
@@ -61,6 +61,8 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
     }
 
     // Point controls to this provider
+    console.log(this.$el.find("#identity_num"));
+    console.log(this.$el.find('a[href="#identity_num"]'));
     this.$el.find('#identity_num').attr('id', 'identity_'+self.identity_id);
     this.$el.find('a[href="#identity_num"]').attr('href', 'identity_'+self.identity_id);
     
@@ -92,6 +94,9 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
         this.$el.find('.accordion-group').attr('data-populated', 'false');
     },
   render_provider_data: function(e) {
+    console.log("RENDER PROVIDER DATA");
+    console.log(this.$el.find('.accordion-group').data('populated'));
+    console.log("POPULATED?: " + this.$el.find('.accordion-group').attr('data-populated'));
     // Do some mapping, based on whether the info we want to see already exists in backbone models
     // This should be majorly refactored when we have time
     if (!this.maintenance) {
@@ -104,6 +109,7 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
   },
   render_remote_summary: function(e) {
     var self = this;
+    console.log("POPULATED RENDER REMOTE:" + $(e.target).closest('.accordion-group').attr('data-populated'));
     if ($(e.target).closest('.accordion-group').attr('data-populated') == "false") {
       // Help the user -- hide everything that's being appended until we get to the end. Meantime, show a spinny loader!
       // Keep track of any errors
