@@ -4,19 +4,18 @@ from api import get_esh_driver
 
 from core.models import IdentityMembership, Identity, Provider
 
-from service.accounts.openstack import AccountDriver
-
 
 def set_provider_quota(identity_id):
+    """
+    
+    """
     identity = Identity.objects.get(id=identity_id)
     if not identity.credential_set.all():
         #Can't update quota if credentials arent set
         return
     if identity.provider.get_type_name().lower() == 'openstack':
         driver = get_esh_driver(identity)
-        ad = AccountDriver(identity.provider)
-        username = identity.creator_name()
-        user_id = ad.user_manager.get_user(username).id
+        user_id = driver._connection.connection.auth_user_info['id']
         tenant_id = driver._connection._get_tenant_id()
         admin_driver = driver.meta().admin_driver
         membership = IdentityMembership.objects.get(identity__id=identity_id,
@@ -29,6 +28,7 @@ def set_provider_quota(identity_id):
                                                               user_id,
                                                               values)
     return True
+
 
 def get_current_quota(identity_id):
     driver = get_esh_driver(Identity.objects.get(id=identity_id))
@@ -43,6 +43,7 @@ def get_current_quota(identity_id):
         ram += size.ram
         disk += size._size.disk
     return {'cpu':cpu, 'ram':ram, 'disk':disk, 'suspended_count':suspended}
+
 
 def check_over_quota(username, identity_id, esh_size=None, resuming=False):
     """
