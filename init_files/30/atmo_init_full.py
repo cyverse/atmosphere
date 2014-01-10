@@ -104,20 +104,9 @@ def download_file(url, fileLoc, retry=False, match_hash=None):
     f.close()
     return contents
 
+
 def get_hostname(instance_metadata):
-    #As set by atmosphere in the instance metadata
-    hostname = instance_metadata.get('meta',{}).get('public-hostname')
-    #As returned by metadata service
-    if not hostname:
-        hostname = instance_metadata.get('public-hostname')
-    if not hostname:
-        hostname = instance_metadata.get('local-hostname')
-    if not hostname:
-        hostname = instance_metadata.get('hostname')
-    #No hostname, look for public ip instead
-    if not hostname:
-        return get_public_ip(instance_metadata)
-    return hostname
+    return instance_metadata.get("hostname", get_public_ip(instance_metadata))
 
 
 def get_public_ip(instance_metadata):
@@ -130,6 +119,7 @@ def get_public_ip(instance_metadata):
     if not ip_addr:
         ip_addr = 'localhost'
     return ip_addr
+
 
 def get_distro():
     if os.path.isfile('/etc/redhat-release'):
@@ -190,6 +180,7 @@ export IDS_HOME="/irods/data.iplantc.org/iplant/home/%s"
 alias ids_home="cd $IDS_HOME"
 """ % user)
 
+
 def text_in_file(filename, text):
     f = open(filename, 'r')
     whole_file = f.read()
@@ -198,6 +189,7 @@ def text_in_file(filename, text):
         return True
     f.close()
     return False
+
 
 def append_to_file(filename, text):
     try:
@@ -230,6 +222,7 @@ def in_sudoers(user):
         if line:
             return True
     return False
+
 
 def add_sudoers(user):
     atmo_sudo_file = "/etc/sudoers"
