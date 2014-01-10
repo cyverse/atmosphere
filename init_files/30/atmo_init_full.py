@@ -117,6 +117,7 @@ def get_hostname(instance_metadata):
     #No hostname, look for public ip instead
     if not hostname:
         return get_public_ip(instance_metadata)
+    return hostname
 
 
 def get_public_ip(instance_metadata):
@@ -275,6 +276,7 @@ def collect_json_metadata(metadata_url):
 
 def _make_request(request_url):
     try:
+        logging.info("Making request to %s" % request_url)
         resp = urllib2.urlopen(request_url)
         content = resp.read()
         return content
