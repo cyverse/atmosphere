@@ -121,41 +121,41 @@ class VolumeTests(TestCase):
             time.sleep(30) # Sorry, its euca.
 
 
-    def test_euca_volume(self):
-        """
-        Testing volumes must be done in order
-        * Create the volume
-        * wait a second
-        * Attach the volume
-        * Verify success
-        * If failed, Try again(?)
-        * Detach the volume
-        * Verify success
-        * wait a second
-        * Delete the volume
-        # Wait for volume to deploy and
-        # Ensure: SSH, VNC, Shellinabox, Deploy access
-        """
+    #def test_euca_volume(self):
+    #    """
+    #    Testing volumes must be done in order
+    #    * Create the volume
+    #    * wait a second
+    #    * Attach the volume
+    #    * Verify success
+    #    * If failed, Try again(?)
+    #    * Detach the volume
+    #    * Verify success
+    #    * wait a second
+    #    * Delete the volume
+    #    # Wait for volume to deploy and
+    #    # Ensure: SSH, VNC, Shellinabox, Deploy access
+    #    """
 
-        volume_post_data = {
-            "name":"euca_vol_test1",
-            "size":1,
-        }
-        self.expected_output['name'] = volume_post_data['name']
-        self.expected_output['size'] = volume_post_data['size']
+    #    volume_post_data = {
+    #        "name":"euca_vol_test1",
+    #        "size":1,
+    #    }
+    #    self.expected_output['name'] = volume_post_data['name']
+    #    self.expected_output['size'] = volume_post_data['size']
 
-        volume_id = self.create_volume(self.euca_volume_url, volume_post_data)
-        self.detail_volume(self.euca_volume_url, volume_id)
-        # Wait time associated between 'create' and 'attachment'
-        time.sleep(30)
-        self.attach_volume(self.euca_instance_url, self.euca_instance_id, volume_id)
-        time.sleep(30)
-        self.detach_volume(self.euca_instance_url, self.euca_instance_id, volume_id)
-        #Delete all volumes
-        deleted = self.delete_all_volumes(self.euca_volume_url)
-        if deleted:
-            # Wait time associated between 'detach' and 'delete'
-            time.sleep(30) # Sorry, its euca.
+    #    volume_id = self.create_volume(self.euca_volume_url, volume_post_data)
+    #    self.detail_volume(self.euca_volume_url, volume_id)
+    #    # Wait time associated between 'create' and 'attachment'
+    #    time.sleep(30)
+    #    self.attach_volume(self.euca_instance_url, self.euca_instance_id, volume_id)
+    #    time.sleep(30)
+    #    self.detach_volume(self.euca_instance_url, self.euca_instance_id, volume_id)
+    #    #Delete all volumes
+    #    deleted = self.delete_all_volumes(self.euca_volume_url)
+    #    if deleted:
+    #        # Wait time associated between 'detach' and 'delete'
+    #        time.sleep(30) # Sorry, its euca.
 
     def attach_volume(self, instance_base_url, instance_id, volume_id):
         #Make action url
