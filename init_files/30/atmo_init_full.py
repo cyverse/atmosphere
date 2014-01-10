@@ -104,6 +104,17 @@ def download_file(url, fileLoc, retry=False, match_hash=None):
     return contents
 
 
+def get_hostname():
+    try:
+        url = "http://169.254.169.254/latest/meta-data/public-hostname"
+        resp = urllib2.urlopen(url)
+    except Exception, e:
+        logging.exception("Failed to get hostname from %s" % url)
+        resp = None
+    if resp is not None and resp.code == 200:
+        return resp.read()
+
+
 def get_public_ip(instance_metadata):
     """
     Checks multiple locations in metadata for the IP address
@@ -120,6 +131,7 @@ def get_public_ip(instance_metadata):
     if not ip_addr:
         ip_addr = 'localhost'
     return ip_addr
+
 
 def get_distro():
     if os.path.isfile('/etc/redhat-release'):
@@ -180,6 +192,7 @@ export IDS_HOME="/irods/data.iplantc.org/iplant/home/%s"
 alias ids_home="cd $IDS_HOME"
 """ % user)
 
+
 def text_in_file(filename, text):
     f = open(filename, 'r')
     whole_file = f.read()
@@ -188,6 +201,7 @@ def text_in_file(filename, text):
         return True
     f.close()
     return False
+
 
 def append_to_file(filename, text):
     try:
@@ -220,6 +234,7 @@ def in_sudoers(user):
         if line:
             return True
     return False
+
 
 def add_sudoers(user):
     atmo_sudo_file = "/etc/sudoers"
@@ -764,7 +779,10 @@ def main(argv):
     linuxuser = instance_data['atmosphere']['userid']
     linuxpass = ""
     public_ip = get_public_ip(instance_metadata)
-    run_command(['/bin/hostname', public_ip])  # 'localhost'//ip.addr
+    hostname = get_hostname()
+    if not hostname:
+        hostname = public_ip
+    run_command(['/bin/hostname', hostname])  # use instance name
     instance_metadata['linuxusername'] = linuxuser
     instance_metadata["linuxuserpassword"] = linuxpass
     instance_metadata["linuxuservncpassword"] = linuxpass
