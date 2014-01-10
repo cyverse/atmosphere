@@ -106,7 +106,19 @@ def download_file(url, fileLoc, retry=False, match_hash=None):
 
 
 def get_hostname(instance_metadata):
-    return instance_metadata.get("hostname", get_public_ip(instance_metadata))
+    #As set by atmosphere in the instance metadata
+    hostname = instance_metadata.get('meta',{}).get('public-hostname')
+    #As returned by metadata service
+    if not hostname:
+        hostname = instance_metadata.get('public-hostname')
+    if not hostname:
+        hostname = instance_metadata.get('local-hostname')
+    if not hostname:
+        hostname = instance_metadata.get('hostname')
+    #No hostname, look for public ip instead
+    if not hostname:
+        return get_public_ip(instance_metadata)
+    return hostname
 
 
 def get_public_ip(instance_metadata):
