@@ -1,6 +1,8 @@
 """
 Tasks for driver operations.
 """
+import re
+
 from datetime import datetime
 
 from celery.decorators import task
@@ -243,7 +245,17 @@ def add_floating_ip(driverCls, provider, identity,
                                  data={'tmp_status': 'networking'},
                                  replace=False)
 
-        driver._connection.neutron_associate_ip(instance, *args, **kwargs)
+        floating_ip = driver._connection.neutron_associate_ip(instance, *args, **kwargs)
+        if floating_ip.startswith('128.196'):
+            regex = re.compile(
+                    "(?P<one>[0-9]+)\.(?P<two>[0-9]+)\."\
+                    "(?P<three>[0-9]+)\.(?P<four>[0-9]+)")
+            r = regex.search(floating_ip)
+            (one,two,three,four) = r.groups()
+            hostname = "vm%s-%s.iplantcollaborative.org" % (three,four)
+            update_instance_metadata(driver, instance,
+                                     data={'public-hostname': hostname},
+                                     replace=False)
 
         #Useful for chaining floating-ip + Deployment without returning
         #a 'fully active' state
