@@ -105,7 +105,7 @@ def download_file(url, fileLoc, retry=False, match_hash=None):
 
 
 def get_hostname(instance_metadata):
-    return instance_metadata["public-hostname"]
+    return instance_metadata.get("hostname", get_public_ip(instance_metadata))
 
 
 def get_public_ip(instance_metadata):
