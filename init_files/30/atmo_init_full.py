@@ -10,6 +10,7 @@ Debugging atmo_init_full locally:
 import getopt
 import logging
 import os
+import json
 import errno
 import re
 import time
@@ -113,12 +114,6 @@ def get_public_ip(instance_metadata):
     Checks multiple locations in metadata for the IP address
     """
     ip_addr = instance_metadata.get('public-ipv4')
-    if not ip_addr:
-        ip_addr = instance_metadata.get('local-hostname')
-    if not ip_addr:
-        ip_addr = instance_metadata.get('hostname')
-    if not ip_addr:
-        ip_addr = instance_metadata.get('public-hostname')
     if not ip_addr:
         ip_addr = instance_metadata.get('local-ipv4')
     if not ip_addr:
@@ -251,32 +246,48 @@ def ssh_config(distro):
     restart_ssh(distro)
 
 
+
 def get_metadata():
-    eucalyptus_meta_server = 'http://128.196.172.136:8773/latest/meta-data/'
-    openstack_meta_server = 'http://169.254.169.254/latest/meta-data/'
+    eucalyptus_meta_server = 'http://128.196.172.136:8773/'\
+                             'latest/meta-data/'
+    openstack_meta_server = 'http://169.254.169.254/'\
+                            'latest/meta-data/'
+    openstack_json_metadata = 'http://169.254.169.254/openstack/'\
+                            'latest/meta_data.json'
     metadata = collect_metadata(eucalyptus_meta_server)
     if not metadata:
         metadata = collect_metadata(openstack_meta_server)
+        metadata.update(
+                collect_json_metadata(openstack_json_metadata))
     return metadata
 
+def collect_json_metadata(metadata_url):
+    content = _make_request(metadata_url)
+    meta_obj = json.loads(content)
+    return meta_obj
 
-def collect_metadata(meta_server):
-    metadata = {}
-    meta_list = []
+
+def _make_request(request_url):
     try:
-        resp = urllib2.urlopen(meta_server)
+        logging.info("Making request to %s" % request_url)
+        resp = urllib2.urlopen(request_url)
         content = resp.read()
-        meta_list = content.split('\n')
+        return content
     except Exception, e:
         logging.exception("Could not retrieve meta-data for instance")
-        return {}
+        return ""
+
+def collect_metadata(meta_endpoint):
+    metadata = {}
+    meta_list = []
+    content = _make_request(meta_endpoint)
+    meta_list = content.split('\n')
 
     for meta_key in meta_list:
         if not meta_key:
             continue
         try:
-            meta_item_resp = urllib2.urlopen('%s%s' % (meta_server,meta_key))
-            meta_value = meta_item_resp.read()
+            meta_value = _make_request('%s%s' % (meta_endpoint,meta_key))
             if meta_key.endswith('/'):
                 meta_values = meta_value.split('\n')
                 for value in meta_values:
@@ -284,7 +295,8 @@ def collect_metadata(meta_server):
                     meta_list.append("%s%s" % (meta_key, value))
             else:
                 metadata[meta_key] = meta_value
-        except Exception:
+        except Exception, e:
+            logging.exception("Metadata retrieval error")
             metadata[meta_key] = None
     return metadata
 
@@ -317,6 +329,10 @@ def mount_storage():
             #Openstack format for Root/Ephem. Disk
             dev_1 = 'vda'
             dev_2 = 'vdb'
+        else:
+            #Format unknown to eucalyptus
+            logging.warn("Could not determine disks from fdisk output:%s"
+                         % out)
         outLines = out.split('\n')
         for line in outLines:
             r = re.compile(', (.*?) bytes')
@@ -476,7 +492,7 @@ def line_in_file(needle, filename):
     return found
 
 
-def modify_rclocal(username, distro, public_ip='localhost'):
+def modify_rclocal(username, distro, hostname='localhost'):
     try:
         if is_rhel(distro):
             distro_rc_local = '/etc/rc.d/rc.local'
@@ -510,7 +526,7 @@ def modify_rclocal(username, distro, public_ip='localhost'):
                           #Add new rc.local commands here
                           #And they will be excecuted on startup
                           #Don't forget the newline char
-                          % (public_ip, username))
+                          % (hostname, username))
         atmo_rclocal.close()
         os.chmod(atmo_rclocal_path, 0755)
     except Exception, e:
@@ -773,8 +789,6 @@ def main(argv):
     linuxpass = ""
     public_ip = get_public_ip(instance_metadata)
     hostname = get_hostname(instance_metadata)
-    if not hostname:
-        hostname = public_ip
     run_command(['/bin/hostname', hostname])  # use instance name
     instance_metadata['linuxusername'] = linuxuser
     instance_metadata["linuxuserpassword"] = linuxpass
@@ -815,7 +829,7 @@ def main(argv):
     update_timezone()
     shellinaboxd(distro)
     insert_modprobe()
-    modify_rclocal(linuxuser, distro, public_ip)
+    modify_rclocal(linuxuser, distro, hostname)
     notify_launched_instance(instance_data, instance_metadata)
     logging.info("Complete.")
 
