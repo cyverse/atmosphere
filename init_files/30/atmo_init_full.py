@@ -104,15 +104,8 @@ def download_file(url, fileLoc, retry=False, match_hash=None):
     return contents
 
 
-def get_hostname():
-    try:
-        url = "http://169.254.169.254/latest/meta-data/public-hostname"
-        resp = urllib2.urlopen(url)
-    except Exception, e:
-        logging.exception("Failed to get hostname from %s" % url)
-        resp = None
-    if resp is not None and resp.code == 200:
-        return resp.read()
+def get_hostname(instance_metadata):
+    return instance_metadata["public-hostname"]
 
 
 def get_public_ip(instance_metadata):
