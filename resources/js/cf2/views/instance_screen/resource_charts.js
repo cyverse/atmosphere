@@ -61,10 +61,11 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
                 if (Atmo.instance_types.models.length > 0) {
                     $.each(Atmo.instances.get_active_instances(), function(i, instance) {
                         var instance_type = instance.get('type');
-                        var to_add = _.filter(Atmo.instance_types.models, function(model) {
+                        var to_add = _.find(Atmo.instance_types.models, function(model) {
                             return model.attributes.alias == instance_type;
                         });
-                        used += to_add[0].attributes[self.quota_type];
+                        if (to_add)
+                          used += to_add.get(self.quota_type);
                     });
                 }
                 else {
@@ -334,9 +335,9 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
         var info = '';
 
         if (this.quota_type == 'cpu') {
-            quota_title = "CPU Unit";
+            quota_title = "Atmosphere Unit";
             quota_desc = "aproximation of CPU hours";
-            quota_unit = "CPU";
+            quota_unit = "AU";
             this.$el.data('unit', 'CPUs');
         }
         else if (this.quota_type == 'mem') {
