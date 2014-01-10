@@ -772,7 +772,7 @@ def main(argv):
     linuxuser = instance_data['atmosphere']['userid']
     linuxpass = ""
     public_ip = get_public_ip(instance_metadata)
-    hostname = get_hostname()
+    hostname = get_hostname(instance_metadata)
     if not hostname:
         hostname = public_ip
     run_command(['/bin/hostname', hostname])  # use instance name
