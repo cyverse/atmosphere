@@ -197,6 +197,10 @@ class AccountDriver():
         nc.quotas.update(project.id, security_group_rules=rule_max)
         #Change the description of the security group to match the project name
         try:
+            #Create the default security group
+            nova = self.user_manager.build_nova(
+                    username, password, project_name)
+            nova.security_groups.list()
             self.network_manager.rename_security_group(project)
         except NeutronClientException, nce:
             if nce.status_code != 404:
