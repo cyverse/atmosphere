@@ -27,7 +27,8 @@ class ServiceTests(TestCase):
 
     #def test_openstack_account_creation(self):
     #    os_accounts = OSAccounts(self.os_provider)
-    #    new_identity = os_accounts.create_account('test_user', 'test_pass', 'test_project')
+    #    new_identity = os_accounts.create_account(
+    #            'test_user', 'test_pass', 'test_project')
     #    credentials = new_identity.credential_set.all()
     #    self.assertEqual(
     #            credentials.get(key='key').value, 'test_user',
@@ -58,11 +59,12 @@ class ServiceTests(TestCase):
         #accounts = EucaAccounts(self.euca_provider)
         #user = accounts.get_user(username)
         #self.assertIsNotNone(
-        #        user, 'Expected user %s exists in eucalyptus, got None' % username)
+        #        user,
+        #        'Expected user %s exists in eucalyptus, got None' % username)
         #identity = accounts.delete_user(username)
         #self.assertIsNotNone(
-        #        identity, 'Expected new identity for %s, got None' % identity)
+        #        identity,
+        #        'Expected new identity for %s, got None' % identity)
         #identity = accounts.create_identity(user)
         #accounts.delete_identity(username)
         #self.assertEqual(1,1,"Account deleted succesfully")
-
