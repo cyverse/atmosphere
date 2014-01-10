@@ -200,7 +200,9 @@ class AccountDriver():
             #Create the default security group
             nova = self.user_manager.build_nova(
                     username, password, project_name)
-            nova.security_groups.list()
+            sec_groups = nova.security_groups.list()
+            if not sec_groups:
+                nova.security_group.create('default',project_name)
             self.network_manager.rename_security_group(project)
         except NeutronClientException, nce:
             if nce.status_code != 404:
