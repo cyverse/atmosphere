@@ -244,8 +244,13 @@ def add_floating_ip(driverCls, provider, identity,
         update_instance_metadata(driver, instance,
                                  data={'tmp_status': 'networking'},
                                  replace=False)
+        floating_ips = driver._connection.neutron_list_ips(instance)
+        if floating_ips:
+            floating_ip = floating_ips[0]["floating_ip_address"]
+        else:
+            floating_ip = driver._connection.neutron_associate_ip(instance, *args, **kwargs)["floating_ip_address"]
+        logger.warn("FloatingIP=%s" % floating_ip)
 
-        floating_ip = driver._connection.neutron_associate_ip(instance, *args, **kwargs)
         if floating_ip.startswith('128.196'):
             regex = re.compile(
                     "(?P<one>[0-9]+)\.(?P<two>[0-9]+)\."\
