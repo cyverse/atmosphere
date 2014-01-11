@@ -10,7 +10,10 @@ Debugging atmo_init_full locally:
 import getopt
 import logging
 import os
-import json
+try:
+    import json
+except ImportError:
+    import simplejson as json
 import errno
 import re
 import time
