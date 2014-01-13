@@ -55,7 +55,8 @@ class AccountDriver():
             id_member = IdentityMembership.objects.filter(
                 identity__provider=self.aws_prov,
                 member__name=username,
-                identity__credential__value__in=[access_key, secret_key]).distinct()[0]
+                identity__credential__value__in=[
+                    access_key, secret_key]).distinct()[0]
             return id_member.identity
         except (IndexError, ProviderMembership.DoesNotExist):
             #Add provider membership
