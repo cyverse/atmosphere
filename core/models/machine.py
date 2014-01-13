@@ -257,20 +257,49 @@ def create_application(name, description, creator_identity):
 
 def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
     """
+    Takes as input an rtwo driver and machine, and a core provider id
+    Returns as output a core machine
     """
-    import ipdb;ipdb.set_trace()
     if image_id and not esh_machine:
-        provider_machine = load_provider_machine(image_id, 'Unknown Image', provider_id)
-        return provider_machine
+        return _convert_from_instance(esh_driver, provider_id, image_id)
     elif not esh_machine:
         return None
+    metadata = _get_machine_metadata(esh_driver, esh_machine)
+    import ipdb;ipdb.set_trace()
     name = esh_machine.name
     alias = esh_machine.alias
     provider_machine = load_provider_machine(alias, name, provider_id)
+    #Metadata to parse/use:
+    # APP: application_name
+    # APP: application_uuid
+    # PM : version_id
+    # APP: tags
+    # Did things change? save it.
+    if 'tags' in metadata and type(metadata['tags']) != list:
+        tags_as_list = metadata['tags'].split(', ')
+        metadata['tags'] = tags_as_list
+    # PM : description
     provider_machine.esh = esh_machine
-    provider_machine = set_machine_from_metadata(esh_driver, provider_machine)
     return provider_machine
 
+
+def _convert_from_instance(esh_driver, provider_id, image_id):
+    provider_machine = load_provider_machine(image_id, 'Unknown Image', provider_id)
+    return provider_machine
+
+def _get_machine_metadata(esh_driver, esh_machine):
+    if not hasattr(esh_driver._connection, 'ex_get_image_metadata'):
+        #NOTE: This can get chatty, only uncomment for debugging
+        #Breakout for drivers (Eucalyptus) that don't support metadata
+        #logger.debug("EshDriver %s does not have function 'ex_get_image_metadata'"
+        #            % esh_driver._connection.__class__)
+        return {}
+    try:
+        metadata =  esh_driver._connection.ex_get_image_metadata(esh_machine)
+        return metadata
+    except Exception:
+        logger.exception('Warning: Metadata could not be retrieved for: %s' % esh_machine)
+        return {}
 
 def compare_core_machines(mach_1, mach_2):
     """
@@ -304,41 +333,6 @@ def filter_core_machine(provider_machine):
     return True
 
 
-def set_machine_from_metadata(esh_driver, core_machine):
-    #Fixes Dep. loop - Do not remove
-    from api.serializers import ProviderMachineSerializer
-    if not hasattr(esh_driver._connection, 'ex_get_image_metadata'):
-        #NOTE: This can get chatty, only uncomment for debugging
-        #Breakout for drivers (Eucalyptus) that don't support metadata
-        #logger.debug("EshDriver %s does not have function 'ex_get_image_metadata'"
-        #            % esh_driver._connection.__class__)
-        return core_machine
-
-    esh_machine = core_machine.esh
-    try:
-        metadata =  esh_driver._connection.ex_get_image_metadata(esh_machine)
-    except Exception:
-        logger.warn('Warning: Metadata could not be retrieved for: %s' % esh_machine)
-        return core_machine
-    #TODO: Read the metadata to figure out what application the image is from
-    #TAGS must be converted from String --> List
-    if 'tags' in metadata and type(metadata['tags']) != list:
-        tags_as_list = metadata['tags'].split(', ')
-        metadata['tags'] = tags_as_list
-    serializer = ProviderMachineSerializer(core_machine, data=metadata, partial=True)
-    if not serializer.is_valid():
-        logger.info("New metadata failed: %s" % metadata)
-        logger.warn("Encountered errors serializing metadata:%s"
-                    % serializer.errors)
-        return core_machine
-    serializer.save()
-    # Retrieve and prepare the new obj
-    core_machine = serializer.object
-    if 'tags' in metadata:
-        updateTags(core_machine.application, metadata['tags'])
-        core_machine.application.save()
-    core_machine.esh = esh_machine
-    return core_machine
 
 def update_machine_metadata(esh_driver, esh_machine, data={}):
     """
@@ -350,7 +344,7 @@ def update_machine_metadata(esh_driver, esh_machine, data={}):
                     % esh_driver._connection.__class__)
         return {}
     try:
-        #TODO: add to metadata:
+        # Possible metadata that could be in 'data'
         #  * application uuid
         #  * application name
         #  * specific machine version
@@ -360,8 +354,32 @@ def update_machine_metadata(esh_driver, esh_machine, data={}):
         logger.info("New metadata:%s" % data)
         return esh_driver._connection.ex_set_image_metadata(esh_machine, data)
     except Exception, e:
+        logger.exception("Error updating machine metadata")
         if 'incapable of performing the request' in e.message:
             return {}
         else:
             raise
 
+
+def update_core_machine_metadata(esh_driver, provider_machine):
+    """
+    """
+    #NOTES: 
+    # Dep loop if raised any higher..
+    # This function is temporary..
+    from api import get_esh_driver
+    account_providers = provider_machine.provider.accountprovider_set.all()
+    if not account_providers:
+        raise Exception("The driver of the account provider is required to"
+                        " update image metadata")
+    account_provider = account_providers[0].identity
+    esh_driver = get_esh_driver(account_provider)
+    esh_machine = esh_driver.get_machine(provider_machine.identifier)
+    mach_data = {
+        "application_uuid":provider_machine.application.uuid,
+        "application_name":provider_machine.application.name,
+        "application_version":"1.0.0", # REPLACEWITH: provider_machine.version,
+        #"tags":[tag for tag in provider_machine.application.tags.all()],
+        "description":provider_machine.application.description,
+    }
+    return update_machine_metadata(esh_driver, esh_machine, mach_data)
