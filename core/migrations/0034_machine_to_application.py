@@ -32,9 +32,12 @@ class Migration(DataMigration):
             app.created_by_identity=m.created_by_identity
             app_uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(pm.identifier))
             app.uuid = str(app_uuid)
+            if orm.Application.objects.filter(uuid=app_uuid):
+                print 'Skipping Duplicate ProviderMachine:%s' % pm.identifier
+                return
             print '> UUID:%s Application:%s ImageID:%s' % (app.uuid, app.name, pm.identifier)
             app.save()
-            if m.end_date:
+            if pm.end_date:
                 app.end_date = timezone.now()
 
             if m.private:
@@ -44,8 +47,8 @@ class Migration(DataMigration):
                 app_membership.can_edit = True
                 app_membership.save()
 
-            m.application = app
-            m.save()
+            pm.application = app
+            pm.save()
 
         for pm in orm.ProviderMachine.objects.all():
             gen_mach = pm.machine
@@ -54,6 +57,12 @@ class Migration(DataMigration):
                 create_app(pm)
                 continue
             app = app[0]
+            #Calculate hash from the provider machine
+            app_uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(pm.identifier))
+            app.uuid = str(app_uuid)
+            if orm.Application.objects.filter(uuid=app_uuid):
+                print 'Skipping Duplicate ProviderMachine:%s' % pm.identifier
+                continue
             app.description=gen_mach.description
             app.icon=gen_mach.icon
             app.private=gen_mach.private
@@ -61,12 +70,10 @@ class Migration(DataMigration):
             app.start_date=gen_mach.start_date
             app.created_by=gen_mach.created_by
             app.created_by_identity=gen_mach.created_by_identity
-            #Calculate hash from the provider machine
-            pm = gen_mach.providermachine_set.all()[0]
-            app_uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(pm.identifier))
-            app.uuid = str(app_uuid)
             print '> UUID:%s Application:%s ImageID:%s' % (app.uuid, app.name, pm.identifier)
             app.save()
+            pm.application = app
+            pm.save()
             if gen_mach.tags.all():
                 print 'Porting tags from machine to application %s' % app.name
                 for tag in gen_mach.tags.all():
@@ -77,6 +84,23 @@ class Migration(DataMigration):
             app.delete()
     def backwards(self, orm):
         "Write your backwards methods here."
+        for pm in orm.ProviderMachine.objects.all():
+            app = pm.application
+            gen_mach = orm.Machine()
+            gen_mach.description=app.description
+            gen_mach.icon=app.icon
+            gen_mach.private=app.private
+            gen_mach.featured=app.featured
+            gen_mach.start_date=app.start_date
+            gen_mach.created_by=app.created_by
+            gen_mach.created_by_identity=app.created_by_identity
+            gen_mach.save()
+            pm.machine = gen_mach
+            pm.save()
+            if gen_mach.tags.all():
+                print 'Porting tags from machine to application %s' % app.name
+                for tag in gen_mach.tags.all():
+                    tag.application_set.add(app)
 
     models = {
         u'auth.group': {
