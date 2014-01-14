@@ -10,6 +10,11 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Deleting model 'MachineMembership'
         db.delete_table('machine_membership')
+        
+        # Adding field 'Application.uuid'
+        db.add_column('application', 'uuid', 
+                      self.gf('django.db.models.fields.CharField')(max_length=36, default=''),
+                      keep_default=False)
 
         # Adding field 'Application.description'
         db.add_column('application', 'description',
@@ -44,6 +49,9 @@ class Migration(SchemaMigration):
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
         ))
         db.send_create_signal('core', ['MachineMembership'])
+
+        # Deleting field 'Application.uuid'
+        db.delete_column('application', 'uuid')
 
         # Deleting field 'Application.description'
         db.delete_column('application', 'description')
@@ -100,7 +108,7 @@ class Migration(SchemaMigration):
             'featured': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'icon': ('django.db.models.fields.files.ImageField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'uuid': ('django.db.models.fields.CharField', [], {'max_length': '36'}),
+            'uuid': ('django.db.models.fields.CharField', [], {'max_length': '36', 'default': "''"}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'private': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),

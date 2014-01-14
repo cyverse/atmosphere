@@ -79,6 +79,7 @@
         "location": "EC2_US_EAST", 
         "active": true, 
         "type": 3, 
+        "virtualization": 1,
         "start_date": "2013-01-16T16:29:18.941"
     }
 }

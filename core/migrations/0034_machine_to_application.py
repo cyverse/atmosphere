@@ -4,6 +4,9 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import models
 
+from atmosphere import settings
+from uuid import uuid5, UUID
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
@@ -11,12 +14,46 @@ class Migration(DataMigration):
         # Note: Don't use "from appname.models import ModelName". 
         # Use orm.ModelName to refer to models in this application,
         # and orm['appname.ModelName'] for models in other applications.
-        for app in orm.Application.objects.all():
-            existing_mach = orm.Machine.objects.filter(name=app.name)
-            if not existing_mach:
+        def get_usergroup(user):
+            groups = orm.Group.objects.filter(name=user.username)
+            if not groups:
+                return None
+            return groups[0]
+
+        def create_app(pm):
+            m = pm.machine
+            app = orm.Application()
+            app.name = m.name
+            app.description=m.description
+            app.featured = m.featured
+            app.icon = m.icon
+            app.private = m.private
+            app.created_by = m.created_by
+            app.created_by_identity=m.created_by_identity
+            app_uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(pm.identifier))
+            app.uuid = str(app_uuid)
+            print '> UUID:%s Application:%s ImageID:%s' % (app.uuid, app.name, pm.identifier)
+            app.save()
+            if m.end_date:
+                app.end_date = timezone.now()
+
+            if m.private:
+                app_membership = orm.ApplicationMembership()    
+                app_membership.application = app
+                app_membership.group = get_usergroup(app.created_by)
+                app_membership.can_edit = True
+                app_membership.save()
+
+            m.application = app
+            m.save()
+
+        for pm in orm.ProviderMachine.objects.all():
+            gen_mach = pm.machine
+            app = orm.Application.objects.filter(name=gen_mach.name)
+            if not app:
+                create_app(pm)
                 continue
-            gen_mach = existing_mach[0]
-            app.name=gen_mach.name
+            app = app[0]
             app.description=gen_mach.description
             app.icon=gen_mach.icon
             app.private=gen_mach.private
@@ -24,16 +61,20 @@ class Migration(DataMigration):
             app.start_date=gen_mach.start_date
             app.created_by=gen_mach.created_by
             app.created_by_identity=gen_mach.created_by_identity
-            #Calculate hash for the object
+            #Calculate hash from the provider machine
+            pm = gen_mach.providermachine_set.all()[0]
+            app_uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(pm.identifier))
+            app.uuid = str(app_uuid)
+            print '> UUID:%s Application:%s ImageID:%s' % (app.uuid, app.name, pm.identifier)
             app.save()
             if gen_mach.tags.all():
                 print 'Porting tags from machine to application %s' % app.name
                 for tag in gen_mach.tags.all():
                     tag.application_set.add(app)
-            for pm in gen_mach.providermachine_set.all():
-                pm.application = app
-                pm.save()
-
+        # There should be 0 that have a blank uuid, but they must be deleted to
+        # ensure uniqueness
+        for app in orm.Application.objects.filter(uuid=""):
+            app.delete()
     def backwards(self, orm):
         "Write your backwards methods here."
 
@@ -79,7 +120,7 @@ class Migration(DataMigration):
             'featured': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'icon': ('django.db.models.fields.files.ImageField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'uuid': ('django.db.models.fields.CharField', [], {'max_length': '36'}),
+            'uuid': ('django.db.models.fields.CharField', [], {'max_length': '36', 'default': "''"}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'private': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
