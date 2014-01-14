@@ -1,7 +1,7 @@
 Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
   template: _.template(Atmo.Templates['identity_summary']),
   tagName: 'div',
-  className: 'accordion-group',
+  className: "panel panel-default",
   attributes: {'data-populated' : 'false'},
   initialize: function() {
     
@@ -32,6 +32,16 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
     'click a.accordion-toggle' : 'render_provider_data',
     //'click #help_edit_login_key' : 'edit_login_key',
   },
+  is_populated: function() {
+    return this.$el.attr('data-populated') == "true";
+  },
+  set_populated: function(populated) {
+    this.$el.attr('data-populated', populated);
+  },
+  toggle_collapse: function() {
+    //this.$el.find('.panel-body').collapse('toggle');
+    this.$el.find('.panel-collapse').collapse('toggle');
+  },
   render: function() {
     if (Atmo.profile.isNew() || this.rendered)
       return this;
@@ -48,7 +58,7 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
     this.$el.html(this.template(identity));
     if (Atmo.profile.get('selected_identity').id == self.identity_id) {
       if(in_maintenance) {
-        this.$el.find('a.accordion-toggle').html(identity.provider_name + ' <span class="label" style="background-color: #0098aa">CURRENT</span><i class="maint-icon icon-warning-sign"></i>maintenance<span class="caret"></span>');
+        this.$el.find('a.accordion-toggle').html(identity.provider_name + ' <span class="label" style="background-color: #0098aa">CURRENT</span><i class="maint-icon glphicon glphicon-warning-sign"></i>maintenance<span class="caret"></span>');
       this.$el.find('.control_radio').attr('checked', 'checked');
       } else {
         this.$el.find('a.accordion-toggle').html(identity.provider_name + ' <span class="label" style="background-color: #0098aa">CURRENT</span><span class="caret"></span>');
@@ -56,11 +66,13 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
       }
     } else {
       if(in_maintenance) {
-        this.$el.find('a.accordion-toggle').html(identity.provider_name + ' <i class="maint-icon icon-warning-sign"></i>maintenance<span class="caret"></span>');
+        this.$el.find('a.accordion-toggle').html(identity.provider_name + ' <i class="maint-icon glphicon glphicon-warning-sign"></i>maintenance<span class="caret"></span>');
       }
     }
 
     // Point controls to this provider
+    console.log(this.$el.find("#identity_num"));
+    console.log(this.$el.find('a[href="#identity_num"]'));
     this.$el.find('#identity_num').attr('id', 'identity_'+self.identity_id);
     this.$el.find('a[href="#identity_num"]').attr('href', 'identity_'+self.identity_id);
     
@@ -89,9 +101,11 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
 
     },*/
     rerender_provider_data: function() {
-        this.$el.find('.accordion-group').attr('data-populated', 'false');
+        this.set_populated(false);
     },
   render_provider_data: function(e) {
+    console.log("RENDER PROVIDER DATA");
+    console.log("POPULATD?: " + this.is_populated());
     // Do some mapping, based on whether the info we want to see already exists in backbone models
     // This should be majorly refactored when we have time
     if (!this.maintenance) {
@@ -104,7 +118,8 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
   },
   render_remote_summary: function(e) {
     var self = this;
-    if ($(e.target).closest('.accordion-group').attr('data-populated') == "false") {
+    console.log("POPULATED RENDER REMOTE:" + this.is_populated());
+    if (!this.is_populated()) {
       // Help the user -- hide everything that's being appended until we get to the end. Meantime, show a spinny loader!
       // Keep track of any errors
       var errors = Array();
@@ -248,7 +263,7 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
           self.$el.find('#volumes_'+self.identity_id).html(vol_table);
         }
         // FINALLY: Data-populated is true, show accordion body
-        $(e.target).closest('.accordion-group').attr('data-populated', 'true');
+        self.set_populated(true);
             
         setTimeout(function() { 
           loader.remove();
@@ -262,7 +277,7 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
         errors.push("Could not load volumes for this cloud identity.");
         self.fail_volumes();
             
-        $(e.target).closest('.accordion-group').attr('data-populated', 'true');
+        self.set_populated(true);
             
         setTimeout(function() { 
           loader.remove();
@@ -274,7 +289,7 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
       },
       dataType: 'json'
                 });
-    $(e.target).closest('.accordion-group').attr('data-populated', 'true');
+    self.set_populated(true);
       });
     }
     else {
@@ -283,128 +298,119 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
   },
   render_local_summary: function(e) {
     var self = this;
-    
-    if ($(e.target).closest('.accordion-group').attr('data-populated') == "false") {
-      self.$el.find('.accordion-inner').children().hide();
-      
+
+    if (!self.is_populated()) {
       var loader = $('<div>', {
         html: '<img src="'+site_root+'/resources/images/loader_large.gif" />',
         style: 'display: none; text-align: center;'
-      });
-      self.$el.find('.accordion-inner').prepend(loader);
-      
-      $(e.target).parent().parent().find('.accordion-body').collapse('toggle');
-      loader.slideDown(400, function() {
-        
-        // Display the provider's resource charts
-        self.cpu_resource_chart = new Atmo.Views.ResourceCharts({
-          el: self.$el.find('#cpuHolder'),
-          quota_type: 'cpu',
-        }).render();
-        self.mem_resource_chart = new Atmo.Views.ResourceCharts({
-          el: self.$el.find('#memHolder'),
-          quota_type: 'mem',
-        }).render();
-        self.disk_count_resource_chart = new Atmo.Views.ResourceCharts({
-          el: self.$el.find('#disk_countHolder'),
-          quota_type: 'disk_count',
-        }).render();
-        self.disk_resource_chart = new Atmo.Views.ResourceCharts({
-          el: self.$el.find('#diskHolder'),
-          quota_type: 'disk',
-        }).render();
-        
-        var identity = Atmo.identities.get(self.identity_id);
-        if (identity.has_allocation()) {
-          self.time_resource_chart = new Atmo.Views.ResourceCharts({
-            el: self.$el.find('#allocationHolder'),
-            quota_type: 'allocation',
+      })
+        .prependTo(this.$el.find('.panel-body'))
+        .slideDown(400, function() {
+          
+          // Display the provider's resource charts
+          self.cpu_resource_chart = new Atmo.Views.ResourceCharts({
+            el: self.$el.find('#cpuHolder'),
+            quota_type: 'cpu',
           }).render();
-        } 
-        
-        // Show all instances associated with this identity
-        if (Atmo.instances.length > 0) {
+          self.mem_resource_chart = new Atmo.Views.ResourceCharts({
+            el: self.$el.find('#memHolder'),
+            quota_type: 'mem',
+          }).render();
+          self.disk_count_resource_chart = new Atmo.Views.ResourceCharts({
+            el: self.$el.find('#disk_countHolder'),
+            quota_type: 'disk_count',
+          }).render();
+          self.disk_resource_chart = new Atmo.Views.ResourceCharts({
+            el: self.$el.find('#diskHolder'),
+            quota_type: 'disk',
+          }).render();
           
-          var table = $('<table>', {
-            class: 'table table-bordered'
-          });
+          var identity = Atmo.identities.get(self.identity_id);
+          if (identity.has_allocation()) {
+            self.time_resource_chart = new Atmo.Views.ResourceCharts({
+              el: self.$el.find('#allocationHolder'),
+              quota_type: 'allocation',
+            }).render();
+          } 
           
-          table.append($('<thead>', {
-            html: function() {
-              var content = '<tr><td width="60%"><strong>Instance Name</strong></td>';
-              content += '<td width="15%"><strong>Size</strong></td>';
-              content += '<td width="25%"><strong>IP Address</strong></td></tr>';
-              return content;
-            }
-          }));
-          var tbody = $('<tbody>');
-          for (var i = 0; i < Atmo.instances.length; i++) {
-            tbody.append($('<tr>', {
+          // Show all instances associated with this identity
+          if (Atmo.instances.length > 0) {
+            
+            var table = $('<table>', {
+              class: 'table table-bordered'
+            });
+            
+            table.append($('<thead>', {
               html: function() {
-                var inst_name = Atmo.instances.models[i].get('name');
-                var content = '<td>'+ inst_name + '</td>';
-                content += '<td>' + Atmo.instances.models[i].get('size_alias') + '</td>';
-                content += '<td>' + Atmo.instances.models[i].get('ip_address') + '</td>';
-                
+                var content = '<tr><td width="60%"><strong>Instance Name</strong></td>';
+                content += '<td width="15%"><strong>Size</strong></td>';
+                content += '<td width="25%"><strong>IP Address</strong></td></tr>';
                 return content;
               }
             }));
-          }
-          table.append(tbody);
-          self.$el.find('#instances_'+self.identity_id).html(table);
-          
-        }
-        
-        if (Atmo.volumes.length > 0) {
-          var vol_table = $('<table>', {
-            class: 'table table-bordered'
-          });
-          
-          vol_table.append($('<thead>', {
-            html: function() {
-              var content = '<tr><td width="60%"><strong>Volume Name</strong></td>';
-              content += '<td width="15%"><strong>Capacity</strong></td>';
-              content += '<td width="25%"><strong>Status</strong></td></tr>';
-              return content;
+            var tbody = $('<tbody>');
+            for (var i = 0; i < Atmo.instances.length; i++) {
+              tbody.append($('<tr>', {
+                html: function() {
+                  var inst_name = Atmo.instances.models[i].get('name');
+                  var content = '<td>'+ inst_name + '</td>';
+                  content += '<td>' + Atmo.instances.models[i].get('size_alias') + '</td>';
+                  content += '<td>' + Atmo.instances.models[i].get('ip_address') + '</td>';
+                  
+                  return content;
+                }
+              }));
             }
-          }));
-          var vol_tbody = $('<tbody>');
-          for (var i = 0; i < Atmo.volumes.length; i++) {
-            vol_tbody.append($('<tr>', {
+            table.append(tbody);
+            self.$el.find('#instances_'+self.identity_id).html(table);
+            
+          }
+          
+          if (Atmo.volumes.length > 0) {
+            var vol_table = $('<table>', {
+              class: 'table table-bordered'
+            });
+            
+            vol_table.append($('<thead>', {
               html: function() {
-                var img = '<img src="' + site_root + '/resources/images/mini_vol.png"> ';
-                var name = (Atmo.volumes.models[i].get('name') || Atmo.volumes.models[i].get('id'));
-                var content = '<td>' + img + name + '</td>';
-                content += '<td>' + Atmo.volumes.models[i].get('size') + ' GB</td>';
-                content += '<td>';
-                if (Atmo.volumes.models[i].get('status') == 'in-use') {
-                  content += 'Attached';
-                }
-                else {
-                  content += 'Available';
-                }
-                content += '</td>';
+                var content = '<tr><td width="60%"><strong>Volume Name</strong></td>';
+                content += '<td width="15%"><strong>Capacity</strong></td>';
+                content += '<td width="25%"><strong>Status</strong></td></tr>';
                 return content;
               }
             }));
+
+            var vol_tbody = $('<tbody>');
+            for (var i = 0; i < Atmo.volumes.length; i++) {
+              vol_tbody.append($('<tr>', {
+                html: function() {
+                  var img = '<img src="' + site_root + '/resources/images/mini_vol.png"> ';
+                  var name = (Atmo.volumes.models[i].get('name') || Atmo.volumes.models[i].get('id'));
+                  var content = '<td>' + img + name + '</td>';
+                  content += '<td>' + Atmo.volumes.models[i].get('size') + ' GB</td>';
+                  content += '<td>';
+                  if (Atmo.volumes.models[i].get('status') == 'in-use') {
+                    content += 'Attached';
+                  }
+                  else {
+                    content += 'Available';
+                  }
+                  content += '</td>';
+                  return content;
+                }
+              }));
+            }
+            vol_table.append(vol_tbody);
+            self.$el.find('#volumes_'+self.identity_id).html(vol_table);
           }
-          vol_table.append(vol_tbody);
-          self.$el.find('#volumes_'+self.identity_id).html(vol_table);
-          }
+
           // End loader slidedown function
-          setTimeout(function() { 
-            loader.remove();
-            var children = self.$el.find('.accordion-inner .row-fluid');
-            children.slideDown();
-          }, 3000);
-          $(e.target).closest('.accordion-group').attr('data-populated', 'true');
-      
-      });
-      $(e.target).find('.accordion-body').collapse('toggle');
+          $(this).remove();
+          self.set_populated(true);
+        });
+
     }
-    else {
-      $(e.target).parent().parent().find('.accordion-body').collapse('toggle');
-    }
+    this.toggle_collapse();
   },
   fail_profile: function() {
     //console.log("profile fail");

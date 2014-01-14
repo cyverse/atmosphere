@@ -47,7 +47,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
             alloc_graph = this.$el.find("#allocationHolder").parent();
             alloc_graph.remove();
             graph_holders.children().each( function() {
-                $(this).removeClass('span4').addClass('span6');
+                $(this).removeClass('col-md-4').addClass('col-md-6');
             });
         }
 
@@ -355,7 +355,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 			this.$el.find('#launchInstance').attr('disabled', 'disabled');
 
 
-		this.$el.find('#selected_image_icon_container').html('<img src="'+img.get('image_url')+'" width="75" height="75" />');
+		this.$el.find('#selected_image_icon_container').html('<img src="'+img.get('image_url')+'" width="50" height="50"/>');
 		this.$el.find('#selected_image_description')
 			.html(img.get('description'));
 		this.$el.find('#newinst_name_title').html('of ' + img.get('name_or_id'));

@@ -5,7 +5,7 @@
  */
 Atmo.Views.RestoreVolumeModal = Backbone.View.extend({
     id: 'restore_modal',
-    className: 'modal hide fade',
+    className: 'modal fade',
     template: _.template(Atmo.Templates.restore_volume_modal),
     initialize: function() {
 		Atmo.volumes.bind("reset", this.render, this);

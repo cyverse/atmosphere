@@ -58,8 +58,8 @@ CELERY_FLOWER_OPTS="--certfile=$SSH_CERT_FILE --keyfile=$SSH_KEY_FILE --port=844
 ###
 
 # Where to chdir at start.
-CELERYBEAT="$CELERYD_CHDIR/manage.py celery beat"
 
+CELERYBEAT_CHDIR="/opt/dev/atmosphere"
 # Extra arguments to celerybeat
 CELERYBEAT_OPTS="--schedule=/var/run/celerybeat-schedule"
 

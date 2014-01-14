@@ -64,8 +64,7 @@ select {
 
 /* Main area styles */
 #header, #content {
-	margin: 0 auto;
-	max-width: 1400px;
+    margin: 0 auto;
 }
 #main {
 	background-image: url(../images/maindiv_bg.png);
@@ -76,21 +75,46 @@ select {
 	margin-left: 0;
 	/*width: 76.595744683%;*/
 }
-#wrap {
-    position: absolute;
-    top: 48px;
-    bottom: 50px;
-    width: 100%;
+
+#sidebar {
+    padding-bottom: 50px;
 }
-#content {
-    height: 100%;
-    overflow: hidden;
+
+/* Medium devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+    #wrap {
+        position: absolute;
+        top: 48px;
+        bottom: 50px;
+        width: 100%;
+    }
+    #content {
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+    }
+    #content > div {
+        height: 100%;
+        position: absolute;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    #sidebar {
+        width: 350px;
+    }
+    #main {
+        left: 350px;
+        right: 0;
+    }
 }
-#content > div {
-    height: 100%;
-    overflow-y: auto;
-	overflow-x: hidden;
+
+/* Large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+    #header, #content {
+        max-width: 1400px;
+    }
 }
+
 .screen {
 	padding: 10px;
 }
@@ -117,12 +141,24 @@ select {
 
 /* Footer Styles */
 #footer {
-    position: absolute;
-    bottom: 0;
 	padding: 5px 0;
 	text-align: center;
     background-color: #DAF5F8;
+
+    /* Bootstrap 3 upgrade fix */
+    width: 100%;
+    margin-right: 0;
+    margin-left: 0;
 }
+
+/* Medium devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+    #footer {
+        position: absolute;
+        bottom: 0;
+    }
+}
+
 #footer #version {
 	color: #a4dfe5;
 }
@@ -157,16 +193,9 @@ select {
 }
 #logo_container {
     margin-left: 0px;
-}
-#logo_container div {
-    border-radius: 3px;
     padding: 5px;
-    height: 28px;
-    overflow: hidden;
 }
 #logo_container img {
-    max-width: 100%;
-    max-height: 100%;
     height: 28px;
 }
 #logo_container a, #logo_container a:hover {
@@ -220,6 +249,9 @@ select {
     border-bottom: 1px dotted #CCC;
     font-size: 0.8em;
 }
+#header_nav {
+    padding-top:5px;
+}
 
 /* Styles for the quick provider switcher in top right menu */
 #providers_menu .current-provider a {
@@ -235,20 +267,6 @@ select {
 
 /* Media Queries for Responsive Design */ 
 @media (max-width: 767px) {
-    #wrap {
-        position: inherit;
-        width: auto;
-    }
-    #content {
-        height: auto;
-    }
-    #content > div {
-        height: auto;
-    }
-    #footer {
-        position: inherit;
-    }
-
 	#mobile_menu a {
 		display: block !important;
 		color: #0098aa !important;
@@ -730,6 +748,7 @@ textarea.error:focus {
 #menu_wrapper {			/* Wraps the entire menu, within #sidebar*/
 	list-style: none;
     margin: 0;
+    padding: 0;
 }
 #menu_wrapper > li > a {
 	display: block;
@@ -818,8 +837,9 @@ textarea.error:focus {
 	cursor: pointer;
 }
 ul.instance_state_indicators {		/* Instance status indicators, in sidebar */
-    margin: 0;
-    list-style: none;
+   padding: 0;
+   margin: 0;
+   list-style: none;
 }
 ul.instance_state_indicators li {
     padding: 0 0 0 21px;
@@ -893,7 +913,6 @@ ul.instance_state_indicators li {
 	-webkit-box-sizing: border-box;
 	padding: 10px; 
 	position: relative; 
-	top: -18px;
 }
 .instance_tabs a {
     text-decoration: none !important;
@@ -1200,6 +1219,11 @@ img.terminate_shell, img.terminate_vnc {
 #newinst_name_title {			/* Available images */
 	display: inline;
 }
+#help_image_search {
+   position: absolute;
+   right: 0;
+   top: 5px;
+}
 #image_search {
 	box-sizing: border-box;
 	-moz-box-sizing: border-box;
@@ -1218,7 +1242,6 @@ img.terminate_shell, img.terminate_vnc {
 #image_search_holder input {
 	width: 100%;
 	box-sizing: border-box;
-	height: 28px;
 }
 #instance_search_holder {
 	text-align: right;
@@ -1230,6 +1253,7 @@ img.terminate_shell, img.terminate_vnc {
 .image_list {
 	list-style: none;
 	margin: 0 10px 0 0;
+   padding: 0;
 }
 .image_list > li {
 	padding: 5px 0;
@@ -1446,7 +1470,6 @@ ul.tag_list > li.tag_controls {
 	float: left;
 	height: 50px; 
 	width: 50px; 
-	border: 1px solid #999; 
 	margin-right: 10px; 
 	text-align: center; 
 	color: #999; 
@@ -1713,9 +1736,10 @@ a.selected.thumbnail {
 }
 .provider_controls {
     float: left;
-    padding-left: 10px;
-    padding-top: 5px;
     margin-right: 10px;
+}
+#control_radio_button{
+   margin: 0px;
 }
 img.gravatar {
 	float: left;
@@ -1775,3 +1799,16 @@ table.image-table {
 #main a i.maint-icon {
     margin-left: 14px;
 }
+.bottom-half-settings{
+   margin-top: 30px;
+}
+
+
+/* DROPDOWN SUBMENU ADDED BECAUSE IT WAS DEPRICATED IN BOOTSTRAP 3.0*/
+
+.dropdown-submenu{position:relative;}
+.dropdown-submenu>.dropdown-menu{top:0;left:100%;margin-top:-6px;margin-left:-1px;-webkit-border-radius:0 6px 6px 6px;-moz-border-radius:0 6px 6px 6px;border-radius:0 6px 6px 6px;}
+.dropdown-submenu:hover>.dropdown-menu{display:block;}
+.dropdown-submenu>a:after{display:block;content:" ";float:right;width:0;height:0;border-color:transparent;border-style:solid;border-width:5px 0 5px 5px;border-left-color:#cccccc;margin-top:5px;margin-right:-10px;}
+.dropdown-submenu:hover>a:after{border-left-color:#ffffff;}
+.dropdown-submenu.pull-left{float:none;}.dropdown-submenu.pull-left>.dropdown-menu{left:-100%;margin-left:10px;-webkit-border-radius:6px 0 6px 6px;-moz-border-radius:6px 0 6px 6px;border-radius:6px 0 6px 6px;}

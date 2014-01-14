@@ -162,40 +162,40 @@ class MachineRequestTests(TestCase):
     #                  os_img_class, os_img_creds,
     #                  **migrate_args)
 
-    def test_openstack_machine_request(self):
-        """
-        Testing machines must be done in order
-          * Create a machine request
-          * Approve a machine request
-          * Verify a completed machine request
-          * Delete a machine request
-        # to verify a completed image:
-        # Launch and Ensure: SSH, VNC, Shellinabox, Deploy access
-        """
-        machine_alias = "75fdfca4-d49d-4b2d-b919-a3297bc6d7ae"
-        size_alias = "2"
-        self.openstack_mach_and_size()
-        instance_id, instance_ip = standup_instance(
-                self, self.os_instance_url,
-                machine_alias, size_alias, "test imaging")
-        request_id = self.create_machine_request(
-                self.os_request_url,
-                instance_id, instance_ip, self.os_id.provider.id)
-        #E-mail for approval sent to ADMINS here..
-        #Image ready for approval after this line returns
-        approval_link = reverse('direct-machine-request-action',
-                              args=[request_id, 'approve'])
-        os_approval_url = urljoin(settings.SERVER_URL, approval_link)
-        self.approve_machine_request(os_approval_url)
-        #Machine will be imaged HERE.. Image EXISTS after this line returns!
-        machine_request_url = reverse('direct-machine-request-detail',
-                args=[request_id,])
-        new_machine_id = self.wait_for_machine_request(machine_request_url)
-        machine_alias = new_machine_id
-        instance_id, instance_ip = standup_instance(
-                self, self.os_instance_url,
-                machine_alias, size_alias, "test imaging successful",
-                delete_after=True, first_launch=True)
+    #def test_openstack_machine_request(self):
+    #    """
+    #    Testing machines must be done in order
+    #      * Create a machine request
+    #      * Approve a machine request
+    #      * Verify a completed machine request
+    #      * Delete a machine request
+    #    # to verify a completed image:
+    #    # Launch and Ensure: SSH, VNC, Shellinabox, Deploy access
+    #    """
+    #    machine_alias = "75fdfca4-d49d-4b2d-b919-a3297bc6d7ae"
+    #    size_alias = "2"
+    #    self.openstack_mach_and_size()
+    #    instance_id, instance_ip = standup_instance(
+    #            self, self.os_instance_url,
+    #            machine_alias, size_alias, "test imaging")
+    #    request_id = self.create_machine_request(
+    #            self.os_request_url,
+    #            instance_id, instance_ip, self.os_id.provider.id)
+    #    #E-mail for approval sent to ADMINS here..
+    #    #Image ready for approval after this line returns
+    #    approval_link = reverse('direct-machine-request-action',
+    #                          args=[request_id, 'approve'])
+    #    os_approval_url = urljoin(settings.SERVER_URL, approval_link)
+    #    self.approve_machine_request(os_approval_url)
+    #    #Machine will be imaged HERE.. Image EXISTS after this line returns!
+    #    machine_request_url = reverse('direct-machine-request-detail',
+    #            args=[request_id,])
+    #    new_machine_id = self.wait_for_machine_request(machine_request_url)
+    #    machine_alias = new_machine_id
+    #    instance_id, instance_ip = standup_instance(
+    #            self, self.os_instance_url,
+    #            machine_alias, size_alias, "test imaging successful",
+    #            delete_after=True, first_launch=True)
 
 
     #TEST STEPS: Called indirectly by TEST CASES...

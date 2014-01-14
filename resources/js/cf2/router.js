@@ -80,12 +80,12 @@ Atmo.Router = Backbone.Router.extend({
 	$('#providers_menu').append($('<li>', {
 	  html: function() {
 	    if (identity.get('selected')){
-	      result = '<a href="#" class="current-provider"><i class="icon-ok"></i> ' + name;
+	      result = '<a href="#" class="current-provider"><i class="glyphicon glyphicon-ok"></i> ' + name;
             } else {
               result = '<a href="#">' + name;
             }
             if (in_maintenance) {
-              result += ' <i class="icon-warning-sign maint-icon"></i>';
+              result += ' <i class="glyphicon glyphicon-warning-sign maint-icon"></i>';
             }
             result += '</a>';
             return result;
