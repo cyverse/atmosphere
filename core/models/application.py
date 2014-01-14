@@ -6,10 +6,10 @@ from core.models.tag import Tag
 
 class Application(models.Model):
   """
-  An application is a collection of machines, where each machine represents a
-  single revision, together forming a linear sequence of versions. The 
-  created_by field here is used for logging purposes only; do not rely on it 
-  for permissions; use ApplicationMembership instead.
+  An application is a collection of providermachines, where each
+  providermachine represents a single revision, together forming a linear
+  sequence of versions. The created_by field here is used for logging only;
+  do not rely on it for permissions; use ApplicationMembership instead.
   """
   uuid = models.CharField(max_length=36, unique=True)
   name = models.CharField(max_length=256)
