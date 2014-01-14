@@ -6,10 +6,19 @@ add_introspection_rules([], ["^core\.fields\.VersionNumberField"])
 class VersionNumber(object):
     def __init__(self, major, minor=0, patch=0, build=0):
         self.number = (int(major), int(minor), int(patch), int(build))
+        if any([i < 0 or i > 255 for i in self.number]):
+            raise ValueError("Version number components must between 0 and 255,"
+                             " inclusive")
 
     def __int__(self):
+        """
+        Maps a version number to a two's complement signed 32-bit integer by
+        first calculating a signed 32-bit integer, then casts to signed by
+        subtracting 2**31
+        """
         major, minor, patch, build = self.number
-        return major << 24 | minor << 16 | patch << 8 | build
+        num =  major << 24 | minor << 16 | patch << 8 | build
+        return num - 2**31
 
     def __str__(self):
         """
@@ -46,7 +55,7 @@ class VersionNumberField(models.Field):
         if isinstance(value, tuple):
             return VersionNumber(*value)
 
-        part_bytes = struct.pack(">I", value)
+        part_bytes = struct.pack(">I", value + 2**31)
         part_ints = [ord(i) for i in part_bytes]
         return VersionNumber(*part_ints)
 
@@ -62,5 +71,5 @@ class VersionNumberField(models.Field):
         return int(value)
 
     def value_to_string(self, obj):
-        value = self._get_value_from_obj(obj)
+        value = self._get_val_from_obj(obj)
         return self.get_db_prep_value(value)

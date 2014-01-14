@@ -10,7 +10,7 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'ProviderMachine.version'
         db.add_column('provider_machine', 'version',
-                      self.gf('core.fields.VersionNumberField')(default=16777216),
+                      self.gf('core.fields.VersionNumberField')(default=-2130706432),
                       keep_default=False)
 
 
