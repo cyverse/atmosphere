@@ -22,6 +22,9 @@ class VersionNumber(object):
 
         return ".".join([str(i) for i in self.number[:end_index+1]])
 
+    def __repr__(self):
+        return "<VersionNumber(%d, %d, %d, %d)>" % self.number
+
 class VersionNumberField(models.Field):
     """
     A version number. Stored as a integer. Retrieved as a VersionNumber. Like 
