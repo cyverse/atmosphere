@@ -104,7 +104,8 @@ def get_cached_machine(provider_alias, provider_id):
     return cached_mach
 
 
-def load_provider_machine(provider_alias, machine_name, provider_id):
+def load_provider_machine(provider_alias, machine_name,
+                          provider_id):
     """
     Returns ProviderMachine
     """
@@ -112,7 +113,8 @@ def load_provider_machine(provider_alias, machine_name, provider_id):
     if provider_machine:
         return provider_machine
 
-    return create_provider_machine(machine_name, provider_alias, provider_id)
+    return create_provider_machine(machine_name, provider_alias,
+                                   provider_id)
 
 def update_machine_owner(machine, identity):
     machine.created_by_identity=identity
@@ -127,9 +129,8 @@ def create_provider_machine(machine_name, provider_alias,
     provider = Provider.objects.get(id=provider_id)
     machine_owner = provider.get_admin_identity()
 
-    #TODO: Use metadata to retrieve application details
-    #TODO: Create application from meta-details if it does not exist
-    app = get_application(machine_name)
+    app = get_application(provider_alias)
+    #TODO: Use metadata to replace application details
     if not app:
         #Build a app
         if not description:
@@ -163,9 +164,11 @@ def get_provider_machine(identifier):
     except ProviderMachine.DoesNotExist:
         return None
 
-def get_application(name):
+def get_application(identifier):
+    app_uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(identifier))
+    app_uuid = str(app_uuid)
     try:
-        app = Application.objects.get(name=name)
+        app = Application.objects.get(uuid=app_uuid)
         return app
     except Application.DoesNotExist:
         return None
@@ -180,11 +183,12 @@ def create_application(name, description, creator_identity, identifier):
         description = ""
     app_uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(identifier))
     app_uuid = str(app_uuid)
-    new_mach = Application.objects.create(name=name,
-                                      description=description,
-                                      created_by=creator_identity.created_by,
-                                      created_by_identity=creator_identity,
-                                      uuid=app_uuid)
+    new_mach = Application.objects.create(
+            name=name,
+            description=description,
+            created_by=creator_identity.created_by,
+            created_by_identity=creator_identity,
+            uuid=app_uuid)
     return new_mach
 
 
