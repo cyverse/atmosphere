@@ -64,8 +64,7 @@ select {
 
 /* Main area styles */
 #header, #content {
-	margin: 0 auto;
-	max-width: 1400px;
+    margin: 0 auto;
 }
 #main {
 	background-image: url(../images/maindiv_bg.png);
@@ -76,21 +75,46 @@ select {
 	margin-left: 0;
 	/*width: 76.595744683%;*/
 }
-#wrap {
-    position: absolute;
-    top: 48px;
-    bottom: 50px;
-    width: 100%;
+
+#sidebar {
+    padding-bottom: 50px;
 }
-#content {
-    height: 100%;
-    overflow: hidden;
+
+/* Medium devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+    #wrap {
+        position: absolute;
+        top: 48px;
+        bottom: 50px;
+        width: 100%;
+    }
+    #content {
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+    }
+    #content > div {
+        height: 100%;
+        position: absolute;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    #sidebar {
+        width: 350px;
+    }
+    #main {
+        left: 350px;
+        right: 0;
+    }
 }
-#content > div {
-    height: 100%;
-    overflow-y: auto;
-	overflow-x: hidden;
+
+/* Large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+    #header, #content {
+        max-width: 1400px;
+    }
 }
+
 .screen {
 	padding: 10px 0;
 }
@@ -117,10 +141,8 @@ select {
 
 /* Footer Styles */
 #footer {
-    position: absolute;
-    bottom: 0;
-	 padding: 5px 0;
-	 text-align: center;
+	padding: 5px 0;
+	text-align: center;
     background-color: #DAF5F8;
 
     /* Bootstrap 3 upgrade fix */
@@ -128,6 +150,15 @@ select {
     margin-right: 0;
     margin-left: 0;
 }
+
+/* Medium devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+    #footer {
+        position: absolute;
+        bottom: 0;
+    }
+}
+
 #footer #version {
 	color: #a4dfe5;
 }
@@ -236,20 +267,6 @@ select {
 
 /* Media Queries for Responsive Design */ 
 @media (max-width: 767px) {
-    #wrap {
-        position: inherit;
-        width: auto;
-    }
-    #content {
-        height: auto;
-    }
-    #content > div {
-        height: auto;
-    }
-    #footer {
-        position: inherit;
-    }
-
 	#mobile_menu a {
 		display: block !important;
 		color: #0098aa !important;
