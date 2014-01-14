@@ -38,9 +38,9 @@ def getAllUsers():
         user_list = []
         for letter in string.lowercase:
             attr = _search_ldap("%s*" % letter, conn)
-            for i in xrange(0,len(attr)):
-               user_attrs = attr[i][1]
-               user_list.append(user_attrs)
+            for i in xrange(0, len(attr)):
+                user_attrs = attr[i][1]
+                user_list.append(user_attrs)
         return user_list
     except Exception as e:
         logger.warn("Error occurred looking up user: %s" % userid)
@@ -122,6 +122,7 @@ def ldap_formatAttrs(ldap_attrs):
         logger.exception(nokey)
         return None
 
+
 def is_atmo_user(username):
     """
     ldap_validate
@@ -130,8 +131,8 @@ def is_atmo_user(username):
     """
     try:
         ldap_server = secrets.LDAP_SERVER
-        ldap_group_dn = secrets.LDAP_SERVER_DN.replace("ou=people",
-                                                         "ou=Groups")
+        ldap_group_dn = secrets.LDAP_SERVER_DN.replace(
+            "ou=people", "ou=Groups")
         ldap_conn = ldap_driver.initialize(ldap_server)
         atmo_users = ldap_conn.search_s(ldap_group_dn,
                                         ldap_driver.SCOPE_SUBTREE,

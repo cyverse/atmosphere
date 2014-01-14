@@ -37,7 +37,7 @@ class UserWrapper():
         for group in groups:
             machine_list.extend(
                 [mach for mach
-                 in group.machines.all()
+                 in group.applications.all()
                  if mach not in machine_list
                  and len(mach.providers.filter(id=self.provider.id)) == 1])
         return machine_list

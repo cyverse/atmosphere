@@ -27,14 +27,14 @@ class Tag(models.Model):
 
 def updateTags(coreObject, tagNameList, user=None):
     from core.models.instance import Instance
-    from core.models.machine import Machine
+    from core.models.application import Application
     from core.models.machine_request import MachineRequest
     #Remove all tags from core*
     for tag in coreObject.tags.all():
         if type(coreObject) == Instance:
             tag.instance_set.remove(coreObject)
-        elif type(coreObject) == Machine:
-            tag.machine_set.remove(coreObject)
+        elif type(coreObject) == Application:
+            tag.application_set.remove(coreObject)
         elif type(coreObject) == MachineRequest:
             tag.machinerequest_set.remove(coreObject)
     #Add all tags in tagNameList to core*

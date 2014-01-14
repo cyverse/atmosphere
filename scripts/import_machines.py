@@ -62,21 +62,21 @@ def format_date(date_str):
     return new_date
 
 def update_provider_machine(provider_machine, machine_obj, machine_tags):
-    machine = provider_machine.machine
-    machine.name = machine_obj['name']
-    machine.description = machine_obj['description']
-    machine.start_date = format_date(machine_obj['start_date'])
-    machine.end_date = format_date(machine_obj['end_date'])
-    machine.featured = machine_obj['featured']
-    machine.private = machine_obj['private']
+    application = provider_machine.application
+    application.name = machine_obj['name']
+    application.description = machine_obj['description']
+    application.start_date = format_date(machine_obj['start_date'])
+    application.end_date = format_date(machine_obj['end_date'])
+    application.featured = machine_obj['featured']
+    application.private = machine_obj['private']
     if machine_obj.get('icon'):
         print "Found icon: %s" % machine_obj['icon']
-        machine.icon = machine_obj['icon']
+        application.icon = machine_obj['icon']
     for tag in machine_tags:
-        machine.tags.add(tag)
+        application.tags.add(tag)
     if machine_obj.has_key('tags'):
-        machine.tags = machine_obj['tags']
-    machine.save()
+        application.tags = machine_obj['tags']
+    application.save()
 
 
 def get_file_contents(filename):
@@ -105,11 +105,11 @@ def main(filename):
         if provider_machine:
             update_provider_machine(provider_machine[0], machine_dict, machine_tags)
         else:
-            machine = Machine(**machine_dict)
-            machine.save()
+            application = Application(**machine_dict)
+            application.save()
             for tag in machine_tags:
-                machine.tags.add(tag)
-            machine.save()
+                application.tags.add(tag)
+            application.save()
             provider_machine_dict['provider'] = euca
             provider_machine_dict['machine'] = machine
             provider_machine = ProviderMachine(**provider_machine_dict)

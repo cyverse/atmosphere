@@ -87,8 +87,7 @@ def get_esh_driver(core_identity, username=None):
             user = core_identity.created_by
         else:
             user = DjangoUser.objects.get(username=username)
-        location = core_provider.location
-        provider = esh_map['provider'](identifier=location)
+        provider = get_esh_provider(core_provider)
         provider_creds = core_identity.provider.get_esh_credentials(provider)
         identity_creds = core_identity.get_credentials()
         identity = esh_map['identity'](provider, user=user, **identity_creds)

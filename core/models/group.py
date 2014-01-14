@@ -9,13 +9,13 @@ from django.contrib.auth.models import Group as DjangoGroup
 
 from threepio import logger
 
-from core.models.user import AtmosphereUser
-from core.models.identity import Identity
-from core.models.provider import Provider
-from core.models.machine import Machine
-from core.models.instance import Instance
-from core.models.quota import Quota
 from core.models.allocation import Allocation
+from core.models.application import Application
+from core.models.identity import Identity
+from core.models.instance import Instance
+from core.models.provider import Provider
+from core.models.quota import Quota
+from core.models.user import AtmosphereUser
 
 
 class Group(DjangoGroup):
@@ -29,8 +29,8 @@ class Group(DjangoGroup):
                                         blank=True)
     instances = models.ManyToManyField(Instance, through='InstanceMembership',
                                        blank=True)
-    machines = models.ManyToManyField(Machine, through='MachineMembership',
-                                      blank=True)
+    applications = models.ManyToManyField(Application, through='ApplicationMembership',
+                                       blank=True)
 
     @classmethod
     def create_usergroup(cls, username):
@@ -195,22 +195,5 @@ class InstanceMembership(models.Model):
         db_table = 'instance_membership'
         app_label = 'core'
 
-
-class MachineMembership(models.Model):
-    """
-    MachineMembership allows group to see Mamchine in the frontend/API calls
-    MachineMembership is necessary when a machine has been listed as private
-    and allows another Group/User to see and launch the machine.
-    (This can also be dictated by permissions)
-    """
-    machine = models.ForeignKey(Machine)
-    owner = models.ForeignKey(Group)
-
-    def __unicode__(self):
-        return "%s is a member-of %s" % (self.owner, self.machine)
-
-    class Meta:
-        db_table = 'machine_membership'
-        app_label = 'core'
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
