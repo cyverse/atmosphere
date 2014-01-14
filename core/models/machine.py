@@ -3,11 +3,13 @@
 """
 import json
 from hashlib import md5
+from uuid import uuid5, UUID
 
 from django.db import models
 from django.utils import timezone
 from threepio import logger
 
+from atmosphere import settings
 from core.models.application import Application
 from core.models.identity import Identity
 from core.models.provider import Provider
@@ -132,7 +134,7 @@ def create_provider_machine(machine_name, provider_alias,
         #Build a app
         if not description:
             description = "%s" % machine_name
-        app = create_application(machine_name, description, machine_owner)
+        app = create_application(machine_name, description, machine_owner, provider_alias)
     logger.debug("Provider %s" % provider)
     logger.debug("App %s" % app)
     provider_machine = ProviderMachine.objects.create(
@@ -172,14 +174,17 @@ def get_application(name):
         logger.error(type(e))
 
 
-def create_application(name, description, creator_identity):
+def create_application(name, description, creator_identity, identifier):
     from core.models import AtmosphereUser
     if not description:
         description = ""
+    app_uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(identifier))
+    app_uuid = str(app_uuid)
     new_mach = Application.objects.create(name=name,
                                       description=description,
                                       created_by=creator_identity.created_by,
-                                      created_by_identity=creator_identity)
+                                      created_by_identity=creator_identity,
+                                      uuid=app_uuid)
     return new_mach
 
 
