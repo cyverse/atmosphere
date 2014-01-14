@@ -66,14 +66,6 @@ class ProviderMachine(models.Model):
            and self.esh._image.extra:
             return self.esh._image.extra['state']
 
-    def json(self):
-        return {
-            'alias': self.identifier,
-            'alias_hash': self.hash_alias(),
-            'machine': self.application,
-            'provider': self.provider,
-        }
-
     def __unicode__(self):
         return "%s (Provider:%s - App:%s) " %\
             (self.identifier, self.provider, self.application)
@@ -192,15 +184,14 @@ def create_application(name, description, creator_identity):
 
 def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
     """
-    Takes as input an rtwo driver and machine, and a core provider id
-    Returns as output a core machine
+    Takes as input an (rtwo) driver and machine, and a core provider id
+    Returns as output a core ProviderMachine
     """
     if image_id and not esh_machine:
         return _convert_from_instance(esh_driver, provider_id, image_id)
     elif not esh_machine:
         return None
     metadata = _get_machine_metadata(esh_driver, esh_machine)
-    import ipdb;ipdb.set_trace()
     name = esh_machine.name
     alias = esh_machine.alias
     provider_machine = load_provider_machine(alias, name, provider_id)
@@ -255,16 +246,16 @@ def compare_core_machines(mach_1, mach_2):
 def filter_core_machine(provider_machine):
     """
     Filter conditions:
-    * Machine does not have an end_date
+    * Application does not have an end_date
     * end_date < now
     """
     now = timezone.now()
     if provider_machine.end_date or\
-       provider_machine.machine.end_date:
+       provider_machine.application.end_date:
         if provider_machine.end_date:
             return not(provider_machine.end_date < now)
-        if provider_machine.machine.end_date:
-            return not(provider_machine.machine.end_date < now)
+        if provider_machine.application.end_date:
+            return not(provider_machine.application.end_date < now)
     return True
 
 
