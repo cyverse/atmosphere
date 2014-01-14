@@ -249,8 +249,8 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(seconds=60*15),
     },
 }
-CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s @ %(pathname)s on %(lineno)d] %(message)s"
-CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
+CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [PID:%(process)d] @ %(pathname)s on %(lineno)d] %(message)s"
+CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [PID:%(process)d] [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
 
 #Django-Celery Development settings
 #CELERY_ALWAYS_EAGER = True

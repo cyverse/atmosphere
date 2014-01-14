@@ -127,16 +127,16 @@ def create_provider_machine(machine_name, provider_alias,
 
     #TODO: Use metadata to retrieve application details
     #TODO: Create application from meta-details if it does not exist
-    machine = get_application(machine_name)
-    if not machine:
-        #Build a machine
+    app = get_application(machine_name)
+    if not app:
+        #Build a app
         if not description:
             description = "%s" % machine_name
-        machine = create_application(machine_name, description, machine_owner)
+        app = create_application(machine_name, description, machine_owner)
     logger.debug("Provider %s" % provider)
-    logger.debug("Machine %s" % machine)
+    logger.debug("App %s" % app)
     provider_machine = ProviderMachine.objects.create(
-        application=application,
+        application=app,
         provider=provider,
         created_by=machine_owner.created_by,
         created_by_identity=machine_owner,
