@@ -299,6 +299,7 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     end_date = serializers.CharField(source='end_date',
                                      required=False, read_only=True)
     featured = serializers.BooleanField(source='application.featured')
+    version = serializers.CharField(source='version')
 
     class Meta:
         model = ProviderMachine
