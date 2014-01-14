@@ -218,6 +218,9 @@ select {
     border-bottom: 1px dotted #CCC;
     font-size: 0.8em;
 }
+#header_nav {
+    padding-top:5px;
+}
 
 /* Styles for the quick provider switcher in top right menu */
 #providers_menu .current-provider a {
@@ -728,6 +731,7 @@ textarea.error:focus {
 #menu_wrapper {			/* Wraps the entire menu, within #sidebar*/
 	list-style: none;
     margin: 0;
+    padding: 0;
 }
 #menu_wrapper > li > a {
 	display: block;

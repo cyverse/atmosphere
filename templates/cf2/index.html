@@ -106,7 +106,7 @@
 <!--Header-->
 <header class="row" id="header_container">
     <div id="header">
-        <div class="col-md-4" id="logo_container">
+        <div class="col-sm-4" id="logo_container">
             <a href="#">
               <img src="{{ site_root }}/resources/images/mini_logo.png" alt="iPlant Cloud Services" />
               <em>Atmosphere: iPlant Cloud Services</em>
@@ -114,57 +114,47 @@
         </div>
 
 
-        <div class="col-md-8">
+        <div class="col-sm-8" id="header_nav">
 			
 
-            <div class="row" style="text-align: right; position: relative; top: 5px;">
-                
-               <div class="col-md-8">
+                <div class="btn-toolbar navbar-right">
+                    <div class="btn-group btn-group-sm">
+                        <a class="btn btn-default" href="#settings"><i class="glyphicon glyphicon-user"></i> <div id="username"></div></a>
+                    </div>
 
-               </div>
-               
-               <div class="col-md-4">
-                  <div class="btn-toolbar pull-right">
-                     <div class="btn-group btn-group-sm">
-				            <a class="btn btn-default" href="#settings"><i class="glyphicon glyphicon-user"></i> <div id="username"></div></a>
-                     </div>
-
-				         <div class= "btn-group btn-group-sm">
+				    <div class= "btn-group btn-group-sm hidden-xs">
                         <div class="dropdown">
-					            <a class="btn menu-dropdown dropdown-toggle" style="padding-left: 5px; padding-right: 5px" data-toggle="dropdown" href="#" title="Settings and Help">
-						            <i class="glyphicon glyphicon-cog"></i>
-						            <span class="caret"></span>
-      			            </a>
-					            <ul class="dropdown-menu drop-left">
+                            <a class="btn menu-dropdown dropdown-toggle" style="padding-left: 5px; padding-right: 5px" data-toggle="dropdown" href="#" title="Settings and Help">
+                                <i class="glyphicon glyphicon-cog"></i>
+                                <span class="caret"></span>
+                            </a>
+                            <ul class="dropdown-menu drop-left">
                               <li class="dropdown-submenu pull-left">
                                  <a href="#">Providers</a>
-								         <ul class="dropdown-menu drop-left" id="providers_menu">
-                                 </ul>
+                                   <ul class="dropdown-menu drop-left" id="providers_menu"></ul>
                               </li>
-						            <li><a href="#settings">Settings</a></li>
-						            <li class="divider"></li>
-						            <li><a href="https://pods.iplantcollaborative.org/wiki/x/Iaxm" target="_blank">User Manual</a></li>
-						            <li><a href="http://ask.iplantcollaborative.org" target="_blank">User Forums</a></li>
-						            <li><a href="https://pods.iplantcollaborative.org/wiki/x/p55y" target="_blank">FAQs</a></li>
-						            <li><a href="https://pods.iplantcollaborative.org/wiki/x/UKxm" target="_blank">Get VNC Viewer</a></li>
-						            <li><a href="#" id="contact_support">Support</a></li>
-						            <li class="divider"></li>
-						            <li><a id="logout_button" href="#">Logout</a></li>
-					            </ul><!--End dropdown-menu-->
+                              <li><a href="#settings">Settings</a></li>
+                              <li class="divider"></li>
+                              <li><a href="https://pods.iplantcollaborative.org/wiki/x/Iaxm" target="_blank">User Manual</a></li>
+                              <li><a href="http://ask.iplantcollaborative.org" target="_blank">User Forums</a></li>
+                              <li><a href="https://pods.iplantcollaborative.org/wiki/x/p55y" target="_blank">FAQs</a></li>
+                              <li><a href="https://pods.iplantcollaborative.org/wiki/x/UKxm" target="_blank">Get VNC Viewer</a></li>
+                              <li><a href="#" id="contact_support">Support</a></li>
+                              <li class="divider"></li>
+                              <li><a id="logout_button" href="#">Logout</a></li>
+                            </ul><!--End dropdown-menu-->
                         </div><!--End dropdown-->
-				         </div>
+				    </div><!--End btn-group-->
 
-				         <div class="visible-sm" id="mobile_menu">
-					         <a href="#settings">Settings</a>
-					         <a target="_blank" href="https://pods.iplantcollaborative.org/wiki/x/Iaxm">User Manual</a>
-					         <a target="_blank" href="http://ask.iplantcollaborative.org">User Help Forums</a>
-					         <a target="_blank" href="https://pods.iplantcollaborative.org/wiki/x/UKxm">Get VNC Viewer</a>
-					         <a target="_blank" href="#" id="contact_support">Support</a>
-					         <a href="{{ site_root }}/logout">Logout <div id="username"></div></a>
-				         </div>
-                  </div><!--End btn-toolbar-->
-               </div> <!--End col-md-4-->
-            </div>
+                 </div><!--End btn-toolbar-->
+                 <div class="visible-xs" id="mobile_menu">
+                     <a href="#settings">Settings</a>
+                     <a target="_blank" href="https://pods.iplantcollaborative.org/wiki/x/Iaxm">User Manual</a>
+                     <a target="_blank" href="http://ask.iplantcollaborative.org">User Help Forums</a>
+                     <a target="_blank" href="https://pods.iplantcollaborative.org/wiki/x/UKxm">Get VNC Viewer</a>
+                     <a target="_blank" href="#" id="contact_support">Support</a>
+                     <a href="{{ site_root }}/logout">Logout <div id="username"></div></a>
+                 </div>
         </div>
     </div>
 </header> <!-- End nested-->
