@@ -238,7 +238,21 @@ CELERY_TIMEZONE = "America/Phoenix"
 CELERY_SEND_EVENTS = True
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_TASK_RESULT_EXPIRES = 10
-CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
+#CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
+CELERYBEAT_SCHEDULE = {
+    'monitor-instances': {
+        'task': 'service.tasks.allocation.monitor_instances', 
+        'schedule': timedelta(seconds=60*15),
+    },
+    'check-all-instances': {
+        'task': 'core.tasks.instance.test_all_instance_links', 
+        'schedule': timedelta(seconds=60*15),
+    },
+    'check-all-instances': {
+        'task': 'core.tasks.instance.test_all_instance_links', 
+        'schedule': timedelta(seconds=60*15),
+    },
+}
 CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s @ %(pathname)s on %(lineno)d] %(message)s"
 CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
 

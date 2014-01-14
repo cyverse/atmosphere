@@ -108,11 +108,9 @@ def check_over_allocation(username, identity_id):
     Grab all instances created between now and 'delta'
     Check that cumulative time of instances do not exceed threshold
 
-    False if there is no allocation OR okay to launch.
-    True if time allocation is exceeded
+    False if identity has no allocation OR allocation is not exceeded.
+    True if time allocation has beene exceeded
     """
-    #NOTE: Allocations are NON-ENFORCING while this line is in effect:
-    return (False, timedelta(0))
     allocation = get_allocation(username, identity_id)
     if not allocation:
         #No allocation, so you fail.

@@ -65,7 +65,7 @@ class Instance(models.Model):
                                       .get_or_create(name=status_name)
         if start_date:
             new_hist.start_date=start_date
-        logger.debug("Created new history object: %s " % (new_hist))
+#        logger.debug("Created new history object: %s " % (new_hist))
         return new_hist
 
     def update_history(self, status_name, task=None, first_update=False):
@@ -85,8 +85,8 @@ class Instance(models.Model):
                     #There are more.. Must find table..
             }
             status_2 = task_to_status.get(task,'')
-            logger.debug("Task provided:%s, Status should be %s"
-                         % (task, status_2))
+            # logger.debug("Task provided:%s, Status should be %s"
+            #              % (task, status_2))
             #Update to the more relevant task
             if status_2:
                 status_name = status_2
@@ -104,7 +104,7 @@ class Instance(models.Model):
                 first_status = 'active'
             first_hist = self.new_history(first_status, self.start_date)
             first_hist.save()
-            logger.debug("Created the first history %s" % first_hist)
+#            logger.debug("Created the first history %s" % first_hist)
             last_hist = first_hist
         #2. If we wanted to assign active status, thats done now.
         if last_hist.status.name == status_name:
@@ -134,8 +134,8 @@ class Instance(models.Model):
         if not status_history:
             # No status history, use entire length of instance
             now = timezone.now()
-            logger.info("First history update: %s starting %s" %
-                        (self.provider_alias, now))
+            # logger.info("First history update: %s starting %s" %
+            #             (self.provider_alias, now))
             end_date = self.end_date if self.end_date else now
             return end_date - self.start_date
         #Start counting..
@@ -144,8 +144,8 @@ class Instance(models.Model):
             if not state.is_active():
                 continue
             if not state.end_date:
-                logger.debug("Status %s has no end-date." %
-                        state.status.name)
+                # logger.debug("Status %s has no end-date." %
+                #         state.status.name)
                 state.end_date = timezone.now()
             active_time = state.end_date - state.start_date
             new_total = active_time + total_time
@@ -167,11 +167,11 @@ class Instance(models.Model):
         ish_list = InstanceStatusHistory.objects.filter(instance=self)
         for ish in ish_list:
             if not ish.end_date:
-                logger.info('Saving history:%s' % ish)
+#                logger.info('Saving history:%s' % ish)
                 ish.end_date = now_time
                 ish.save()
         if not self.end_date:
-            logger.info("Saving Instance:%s" % self)
+#            logger.info("Saving Instance:%s" % self)
             self.end_date = now_time
             self.save()
 
@@ -409,7 +409,7 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
     instance_id = esh_instance.id
 
     if not hasattr(esh_driver._connection, 'ex_set_metadata'):
-        logger.info("EshDriver %s does not have function 'ex_set_metadata'"
+        logger.warn("EshDriver %s does not have function 'ex_set_metadata'"
                     % esh_driver._connection.__class__)
         return {}
     while True:

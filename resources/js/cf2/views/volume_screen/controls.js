@@ -7,7 +7,7 @@
  */
 Atmo.Views.VolumeScreenControls = Backbone.View.extend({
 	'tagName': 'div',
-	'className' : 'row-fluid',
+	'className' : 'row',
 	template: _.template(Atmo.Templates.volume_screen_controls),
 	events: {
         'change select[name="all_volumes"]' : 'volume_form_completer',
@@ -195,6 +195,7 @@ Atmo.Views.VolumeScreenControls = Backbone.View.extend({
             var mount_input = $('<input>', {
                 name: 'mount_location',
                 type: 'text',
+                class: 'form-control',
                 placeholder: '(Optional) Mount location: (default:/vol[1,2,3,..])',
                 width: instance_select.width() + volume_select.width() - 10
             })

@@ -1,36 +1,40 @@
-	<div class="modal-header">
-		<button type="button" class="close" data-dismiss="modal">&times;</button>
-		<h2>Request More Resources</h2>
-	</div>
-	<div class="modal-body">
-		<p>
-			<p class="alert alert-info" style="padding-left: 30px"><i class="icon-info-sign" style="margin-left: -17px"></i> 
-				Large instances sizes, which consume more resources, are available on a first-come-first-served basis. Depending on Atmosphere's capacity, you may be unable to launch an instance even though you have a sufficient allocation.
-			</p>
-			
-			<form name="request_resources_form" style="margin-bottom: 0">
-				<input type="hidden" name="username" value="<%= id %>" />
+<div class="modal-dialog">
+   <div class="modal-content">
+     <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h2>Request More Resources</h2>
+     </div>
+     <div class="modal-body">
+        <p>
+           <p class="alert alert-info" style="padding-left: 30px"><i class="glyphicon glyphicon-info-sign" style="margin-left: -17px"></i> 
+              Large instances sizes, which consume more resources, are available on a first-come-first-served basis. Depending on Atmosphere's capacity, you may be unable to launch an instance even though you have a sufficient allocation.
+           </p>
+           
+           <form name="request_resources_form" style="margin-bottom: 0" role="form">
+              <input type="hidden" name="username" value="<%= id %>" />
 
-				<div class="control-group">
-					<label class="control-label">What resources would you like to request?</label>
-					<div class="row-fluid">
-						<div class="span11 offset1">
-							<textarea name="quota" style="width: 80%" rows="3" placeholder="E.g. 4 CPUs and 8GB memory, enough for a c1.medium, etc."></textarea>
-						</div>
-					</div>
-				</div>
-				<div class="control-group">
-					<label class="control-label">How will you use the additional resources?</label>
-					<div class="row-fluid">
-						<div class="span11 offset1">
-							<textarea name="reason" style="width: 80%" rows="3" placeholder="E.g. To run a program or analysis, store larger output, etc."></textarea>
-						</div>
-					</div>
-				</div>
-			</form>
-		</p>
-	</div>
-	<div class="modal-footer">
-		<a href="#" class="btn" data-dismiss="modal">Cancel</a>
-		<a href="#" class="btn btn-primary" id="request_resources_btn">Request Resources</a>
-	</div>
+              <div class="form-group">
+                 <label class="control-label">What resources would you like to request?</label>
+                 <div class="row">
+                    <div class="col-md-11 col-md-offset-1">
+                       <textarea class="form-control" name="quota" style="width: 80%" rows="3" placeholder="E.g. 4 CPUs and 8GB memory, enough for a c1.medium, etc."></textarea>
+                    </div>
+                 </div>
+              </div>
+              <div class="form-group">
+                 <label class="control-label">How will you use the additional resources?</label>
+                 <div class="row">
+                    <div class="col-md-11 col-md-offset-1">
+                       <textarea class="form-control" name="reason" style="width: 80%" rows="3" placeholder="E.g. To run a program or analysis, store larger output, etc."></textarea>
+                    </div>
+                 </div>
+              </div>
+           </form>
+        </p>
+     </div>
+     <div class="modal-footer">
+        <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+        <a href="#" class="btn btn-primary" id="request_resources_btn">Request Resources</a>
+     </div>
+   </div>
+</div>

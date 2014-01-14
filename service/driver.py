@@ -1,5 +1,6 @@
 from threepio import logger
 
+
 def get_driver(driverCls, provider, identity, **provider_credentials):
     """
     Create a driver object from a class, provider and identity.
@@ -12,6 +13,7 @@ def get_driver(driverCls, provider, identity, **provider_credentials):
     if driver:
         return driver
 
+
 class DriverManager(object):
 
     _instance = None
@@ -21,7 +23,8 @@ class DriverManager(object):
         Create a new instance if it doesnt exist already
         """
         if not cls._instance:
-            cls._instance = super(DriverManager, cls).__new__(cls, *args, **kwargs)
+            cls._instance = super(DriverManager, cls).__new__(
+                    cls, *args, **kwargs)
             cls._instance.driver_map = {}
         return cls._instance
 
