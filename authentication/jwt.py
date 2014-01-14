@@ -1,6 +1,6 @@
-""" 
+"""
 JSON Web Token implementation
- 
+
 Minimum implementation based on this spec:
 http://self-issued.info/docs/draft-jones-json-web-token-01.html
 """
@@ -8,26 +8,30 @@ import base64
 from OpenSSL import crypto
 from M2Crypto import BIO, RSA, m2
 import time
- 
+
 try:
     import json
 except ImportError:
     import simplejson as json
- 
+
 __all__ = ['encode', 'decode', 'DecodeError']
- 
-class DecodeError(Exception): pass
- 
- 
+
+
+class DecodeError(Exception):
+    pass
+
+
 def base64url_decode(input):
     rem = len(input) % 4
     if rem > 0:
         input += '=' * (4 - rem)
     return base64.urlsafe_b64decode(input)
- 
+
+
 def base64url_encode(input):
     return base64.urlsafe_b64encode(input).replace('=', '')
- 
+
+
 def encode(payload, key, algorithm='sha256', password='notasecret'):
     segments = []
     header = {"typ": "JWT", "alg": algorithm}
@@ -47,7 +51,8 @@ def encode(payload, key, algorithm='sha256', password='notasecret'):
         raise
     segments.append(base64url_encode(signature))
     return '.'.join(segments)
- 
+
+
 def decode(jwt):
     try:
         signing_input, crypto_segment = str(jwt).rsplit('.', 1)
@@ -61,8 +66,8 @@ def decode(jwt):
     except (ValueError, TypeError):
         raise DecodeError("Invalid segment encoding")
     return payload
- 
- 
+
+
 def generate_keypair():
     pk = RSA.gen_key(2048, m2.RSA_F4, lambda x: None)
     private = pk.as_pem(None)
@@ -70,7 +75,8 @@ def generate_keypair():
     pk.save_pub_key_bio(pu)
     public = pu.read()
     return private, public
- 
+
+
 def verify(jwt, *keys):
     try:
         signing_input, crypto_segment = str(jwt).rsplit('.', 1)
@@ -83,7 +89,7 @@ def verify(jwt, *keys):
         signature = base64url_decode(crypto_segment)
     except (ValueError, TypeError):
         raise DecodeError("Invalid segment encoding")
-    
+
     try:
         for key in keys:
             if isinstance(key, unicode):
@@ -92,40 +98,40 @@ def verify(jwt, *keys):
                 bio = BIO.MemoryBuffer(key)
                 k = RSA.load_pub_key_bio(bio)
                 k.verify(signing_input, signature, header['alg'])
-                break #this causes the else block not to run. ie we have successfully verified
+                break  # Successful verification. Do not run 'else' block.
             except Exception as e:
                 pass
         else:
             raise DecodeError("Signature verification failed")
     except KeyError:
         raise DecodeError("Algorithm not supported")
- 
- 
+
+
 def create(iss, scope='', aud=None, exp=None, iat=None, prn=None, **kwargs):
     t = exp or long(time.time())
     payload = {
-        'iss'   : iss,
-        'scope' : scope,
-        'aud'   : aud or '',
-        'iat'   : t,
-        'exp'   : t + 3600 # Token valid for 1 hour
+        'iss': iss,
+        'scope': scope,
+        'aud': aud or '',
+        'iat': t,
+        'exp': t + 3600  # Token valid for 1 hour
         }
-    if prn :
+    if prn:
         payload['prn'] = prn
- 
+
     payload.update(kwargs)
     return payload
- 
- 
+
+
 import sys
- 
- 
-if __name__ == '__main__' :
- 
+
+
+if __name__ == '__main__':
+
     import itertools
     import operator
     args = itertools.groupby(sys.argv, lambda x: '=' in x)
- 
+
     pkey = None
     command = None
     jwt = None
@@ -136,9 +142,8 @@ if __name__ == '__main__' :
         else:
             if jwt:
                 pkey = next(g, None)
- 
+
     print json.dumps(jwt)
     if pkey:
         with open(pkey, 'rb') as f:
             print encode(jwt, f.read())
- 

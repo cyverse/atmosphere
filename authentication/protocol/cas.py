@@ -71,15 +71,18 @@ def updateUserProxy(user, pgtIou, max_try=3):
             userProxy = UserProxy.objects.get(proxyIOU=pgtIou)
             userProxy.username = user
             userProxy.expiresOn = timezone.now() + PROXY_TICKET_EXPIRY
-            logger.debug("Found a matching proxy IOU for %s" % userProxy.username)
+            logger.debug("Found a matching proxy IOU for %s"
+                         % userProxy.username)
             userProxy.save()
             return True
         except UserProxy.DoesNotExist:
             logger.error("Could not find UserProxy object!"
-                         + "ProxyIOU & ID was not saved at proxy url endpoint.")
-            time.sleep(min(2**attempts,8))
+                         "ProxyIOU & ID was not saved "
+                         "at proxy url endpoint.")
+            time.sleep(min(2**attempts, 8))
             attempts += 1
     return False
+
 
 def createSessionToken(request, auth_token):
     request.session['username'] = auth_token.user.username
@@ -137,7 +140,7 @@ def cas_validateTicket(request):
 
     if not user:
         logger.debug("User attribute missing from cas response!"
-                    + "This may require a fix to caslib.py")
+                     "This may require a fix to caslib.py")
         return HttpResponseRedirect(redirect_logout_url)
     if not pgtIou or pgtIou == "":
         logger.error("""Proxy Granting Ticket missing!
