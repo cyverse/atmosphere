@@ -215,8 +215,8 @@ class Instance(models.Model):
             return self.esh.machine.name
         else:
             try:
-                if self.provider_machine and self.provider_machine.machine:
-                    return self.provider_machine.machine.name
+                if self.provider_machine and self.provider_machine.application:
+                    return self.provider_machine.application.name
             except ProviderMachine.DoesNotExist as dne:
                 logger.exception("Unable to find provider_machine for %s." % self.provider_alias)
         return "Unknown"

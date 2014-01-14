@@ -51,7 +51,7 @@ def provider_filtered_machines(request, provider_id, identity_id):
 def all_filtered_machines():
     return ProviderMachine.objects.exclude(
         Q(identifier__startswith="eki-")
-        | Q(identifier__startswith="eri")).order_by("-machine__start_date")
+        | Q(identifier__startswith="eri")).order_by("-application__start_date")
 
 
 class MachineList(APIView):

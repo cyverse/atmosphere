@@ -249,8 +249,7 @@ def add_floating_ip(driverCls, provider, identity,
             floating_ip = floating_ips[0]["floating_ip_address"]
         else:
             floating_ip = driver._connection.neutron_associate_ip(instance, *args, **kwargs)["floating_ip_address"]
-        logger.warn("FloatingIP=%s" % floating_ip)
-
+        hostname = ""
         if floating_ip.startswith('128.196'):
             regex = re.compile(
                     "(?P<one>[0-9]+)\.(?P<two>[0-9]+)\."\
@@ -262,6 +261,7 @@ def add_floating_ip(driverCls, provider, identity,
                                      data={'public-hostname': hostname},
                                      replace=False)
 
+        logger.info("Assigned IP:%s - Hostname:%s" % (floating_ip, hostname))
         #Useful for chaining floating-ip + Deployment without returning
         #a 'fully active' state
         if delete_status:
