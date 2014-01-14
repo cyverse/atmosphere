@@ -13,7 +13,7 @@ from core.models.identity import Identity
 from core.models.provider import Provider
 
 from core.models.tag import Tag, updateTags
-
+from core.fields import VersionNumberField, VersionNumber
 
 class ProviderMachine(models.Model):
     """
@@ -33,6 +33,7 @@ class ProviderMachine(models.Model):
     created_by_identity = models.ForeignKey(Identity, null=True)
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
+    version = VersionNumberField(default=int(VersionNumber(1,)))
 
     def icon_url(self):
         return self.application.icon.url if self.application.icon else None
