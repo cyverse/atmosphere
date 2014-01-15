@@ -1,229 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Atmosphere</title>
-	<!--CSS-->
-	<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.3/css/bootstrap.min.css"/>
-	<link rel="stylesheet" href="{{ site_root }}/resources/css/cloudfront.css" />
-	<!--JS-->
-	<!--[if IE]>
-	  <script src="https://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-	<![endif]-->
-        <script type="text/javascript">
-            var site_root = '{{ site_root }}';
-            sessionStorage.clear(); // clear previous sessionStorage values
-        </script>
-        <!-- 3rd party dependencies -->
-	<script src="https://www.google.com/jsapi"></script>
-	<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.js"></script>
-	<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jqueryui/1.8.17/jquery-ui.js"></script>
-  <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.3/js/bootstrap.min.js"></script>
-	<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/datejs/1.0/date.min.js"></script>
-	<!--script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/require.js/1.0.8/require.min.js"></script-->
-	<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.3/underscore-min.js"></script>
-	<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/0.9.9/backbone-min.js"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atmosphere</title>
+    <!--CSS-->
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.3/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="{{ site_root }}/resources/css/cloudfront3.css" />
+    <!--JS-->
+    <!--[if IE]>
+    <script src="https://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <script type="text/javascript">
+    var site_root = '{{ site_root }}';
+    sessionStorage.clear(); // clear previous sessionStorage values
+    </script>
+    <!-- 3rd party dependencies -->
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.js"></script>
+    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jqueryui/1.8.17/jquery-ui.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.3/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/datejs/1.0/date.min.js"></script>
+    <!--script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/require.js/1.0.8/require.min.js"></script-->
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.3/underscore-min.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/0.9.9/backbone-min.js"></script>
 
-        <!-- Application dependencies -->
-        <!--script type="text/javascript" src="{{ site_root }}/partials/init_data.js"></script-->
-	<script type="text/javascript" src="{{ site_root }}/resources/js/cloudfront2.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/base.js"></script> 
-	<script type="text/javascript" src="{{ site_root }}/partials/templates.js"></script>
-
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/router.js"></script> 
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/utils.js"></script> 
-
-	<script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/base.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/identity.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/instance.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/machine.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/maintenance.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/notification.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/profile.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/provider.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/size.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/models/volume.js"></script>
-
-	<script type="text/javascript" src="{{ site_root }}/resources/js/cf2/collections/base.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/collections/instances.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/collections/machines.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/collections/maintenance.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/collections/notifications.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/collections/providers.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/collections/sizes.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/collections/volumes.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/collections/identities.js"></script>
-
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/main.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/alert_modal.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/feedback_link.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/notification_holder.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/tagger.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/request_resources.js"></script>
-
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/instance_screen/instance_graph.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/instance_screen/instance_graph_container.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/instance_screen/instance_tabs_holder.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/instance_screen/report_instance_form.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/instance_screen/resize_instance_form.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/instance_screen/request_imaging_form.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/instance_screen/resource_charts.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/instance_screen/instance_screen.js"></script>
-
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/new_instance_screen/image_list_item.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/new_instance_screen/instance_size_dropdown.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/new_instance_screen/new_instance_screen.js"></script>
-
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/settings_screen/identity_summary.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/settings_screen/settings_screen.js"></script>
-
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/sidebar/instance_list_item.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/sidebar/instance_list.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/sidebar/volume_list_item.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/sidebar/volume_list.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/sidebar/sidebar.js"></script>
-
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/volume_screen/report_volume_modal.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/volume_screen/restore_volume_modal.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/volume_screen/backup_volume_modal.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/volume_screen/controls.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/volume_screen/instance.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/volume_screen/instance_list.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/volume_screen/volume.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/volume_screen/volume_list.js"></script>
-        <script type="text/javascript" src="{{ site_root }}/resources/js/cf2/views/volume_screen/volume_screen.js"></script>
-
-	<link rel="stylesheet" href="{{ site_root }}/resources/css/jqueryui_custom.css" />
-        <link rel="shortcut icon" href="{{ site_root }}/resources/images/favicon.ico" />
-        {% csrf_token %}
-        <!-- Google Analtics -->
-        <script src="{{ site_root }}/resources/js/analytics.js"></script>
+    <!-- Application dependencies -->
+    <link rel="shortcut icon" href="{{ site_root }}/resources/images/favicon.ico" />
+    {% csrf_token %}
+    <!-- Google Analtics -->
+    <script src="{{ site_root }}/resources/js/analytics.js"></script>
 </head>
 <body>
 
-
 <!--Header-->
-<header class="row" id="header_container">
-    <div id="header">
-        <div class="col-sm-4" id="logo_container">
-            <a href="#">
-              <img src="{{ site_root }}/resources/images/mini_logo.png" alt="iPlant Cloud Services" />
-              <em>Atmosphere: iPlant Cloud Services</em>
-            </a>
-        </div>
-
-
-        <div class="col-sm-8" id="header_nav">
-			
-
-                <div class="btn-toolbar navbar-right">
-                    <div class="btn-group btn-group-sm">
-                        <a class="btn btn-default" href="#settings"><i class="glyphicon glyphicon-user"></i> <div id="username"></div></a>
-                    </div>
-
-				    <div class= "btn-group btn-group-sm hidden-xs">
-                        <div class="dropdown">
-                            <a class="btn menu-dropdown dropdown-toggle" style="padding-left: 5px; padding-right: 5px" data-toggle="dropdown" href="#" title="Settings and Help">
-                                <i class="glyphicon glyphicon-cog"></i>
-                                <span class="caret"></span>
-                            </a>
-                            <ul class="dropdown-menu drop-left">
-                              <li class="dropdown-submenu pull-left">
-                                 <a href="#">Providers</a>
-                                   <ul class="dropdown-menu drop-left" id="providers_menu"></ul>
-                              </li>
-                              <li><a href="#settings">Settings</a></li>
-                              <li class="divider"></li>
-                              <li><a href="https://pods.iplantcollaborative.org/wiki/x/Iaxm" target="_blank">User Manual</a></li>
-                              <li><a href="http://ask.iplantcollaborative.org" target="_blank">User Forums</a></li>
-                              <li><a href="https://pods.iplantcollaborative.org/wiki/x/p55y" target="_blank">FAQs</a></li>
-                              <li><a href="https://pods.iplantcollaborative.org/wiki/x/UKxm" target="_blank">Get VNC Viewer</a></li>
-                              <li><a href="#" id="contact_support">Support</a></li>
-                              <li class="divider"></li>
-                              <li><a id="logout_button" href="#">Logout</a></li>
-                            </ul><!--End dropdown-menu-->
-                        </div><!--End dropdown-->
-				    </div><!--End btn-group-->
-
-                 </div><!--End btn-toolbar-->
-                 <div class="visible-xs" id="mobile_menu">
-                     <a href="#settings">Settings</a>
-                     <a target="_blank" href="https://pods.iplantcollaborative.org/wiki/x/Iaxm">User Manual</a>
-                     <a target="_blank" href="http://ask.iplantcollaborative.org">User Help Forums</a>
-                     <a target="_blank" href="https://pods.iplantcollaborative.org/wiki/x/UKxm">Get VNC Viewer</a>
-                     <a target="_blank" href="#" id="contact_support">Support</a>
-                     <a href="{{ site_root }}/logout">Logout <div id="username"></div></a>
-                 </div>
-        </div>
-    </div>
-</header> <!-- End nested-->
-
-<div id="wrap">
-    <div id="content">
-        
-
-        <!--<div class="col-md-10" id="new_body">-->
-            <!-- Left Menu -->
-            <div id="sidebar">
-                <a id="new_instance_link"  class="btn btn-primary createInstanceButton" href="#new_instance"><i class="glyphicon glyphicon-cloud"></i> Launch New Instance</a>
-
-                <ul id="menu_wrapper">
-                    <li id="instance_link"><a class="link_list_title" href="#instances">My Instances</a>
-                        <a title="Refresh Instance List" id="refresh_instances_button"><img src="{{ site_root }}/resources/images/icon_mini_refresh.png" /></a>
-                    </li>
-                    <li id="volume_link"><a class="link_list_title" href="#volumes">My Volumes</a></li>
-                </ul>
-				
-				<div id="total_cpu_time">
-					You've used <strong>0</strong> CPU hours on Atmosphere! <a href="#" data-toggle="modal">Learn More</a>
-				</div>
-
-            </div>
-            <!-- /Left Menu -->
-
-            <!-- Main -->
-            <div id="main">
-                <div class="row" id="alert_holder_container">
-                    <div id="alert_holder"></div>
-                </div>
-            </div>
-        <!-- /Main -->
-        <!--</div>-->
-    </div>
-    <!-- /content -->
-</div>
-<!-- /wrap -->
-
-<footer class="row" id="footer">
-	<div class="col-md-3">
-			<div id="weather_report"></div>
-	</div>
-
-	<div class="col-md-6" style="padding-top: 7px"><a href="http://user.iplantcollaborative.org" target="_blank">&copy;{{ year }} iPlant Collaborative</a> <span id="version"></span></div>
-
-	<div class="col-md-3"><a id="feedback_link" class="btn btn-primary" rel="popover"><i class="icon-comment icon-white"></i> Feedback &amp; Support</a></div>
-
-</footer>
-
-<div id="cpu_modal" class="modal fade">
-   <div class="modal-dialog">
-      <div class="modal-content">
-	      <div class="modal-header" style="text-align: left;">
-		      <h3 class="modal-title">CPU Hours on Atmosphere</h3>
-	      </div>
-	      <div class="modal-body" style="text-align: left;">
-		      <p>A CPU hour is a CPU core used for one hour. For example, an instance that uses four CPU cores will consume four CPU hours for every hour that it is running.</p>
-
-		      <p>When your instance is stopped or paused, it will not contribute to the number of CPU hours your instances have used.</p>
-	      </div>
-	      <div class="modal-footer">
-		      <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
-	      </div>
-      </div>
-   </div>
-</div>
-
+<a href="#">
+<img src="{{ site_root }}/resources/images/mini_logo.png" alt="iPlant Cloud Services" />
+Atmosphere: iPlant Cloud Services
+</a>
 
 </body>
 </html>
