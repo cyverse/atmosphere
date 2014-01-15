@@ -1,0 +1,95 @@
+/*
+ * To contributors: This CSS file is designed to be *mobile-first*:
+ * Everything outside of an explicit media query is meant to style for the
+ * smallest supported resolution. Each larger media query builds on top of all
+ * smaller ones.
+ */
+
+header {
+    background-color: #0098aa;
+    color: #fff;
+    padding: 5px;
+}
+
+header img {
+    margin-right: 7px;
+}
+
+header a {
+    color: #fff;
+}
+
+#sidebar {
+    background-color: #e6e6e6;
+}
+
+#sidebar ul {
+    margin: 0;
+    padding: 0; 
+}
+
+#sidebar li {
+    font-size: 1.2em; 
+}
+
+#sidebar li a {
+    color: #222;
+    display: block;
+    text-decoration: none;
+    padding: 10px;
+    position: relative;
+}
+
+#sidebar li a:hover {
+    background-color: #f0f0f0;
+}
+
+footer {
+    text-align: center;
+    margin: 3em 0;
+}
+
+/* Small devices (tablets, 768px and up) */
+@media (min-width: 768px) {
+    header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+    }
+    #sidebar {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        width: 250px;
+        height: 100%;
+    }
+
+#sidebar li a:hover:before {
+    content: "";
+    background-color: #fff;
+    width: 44px;
+    height: 44px;
+    display: block;
+    position: absolute;
+    right: 0;
+    top: 0;
+    border-width: 22px;
+    border-style: solid;
+    border-color: #f0f0f0 #ffffff #f0f0f0 #f0f0f0;
+}
+
+    #main {
+        margin: 70px 90px 0 340px;
+    }
+}
+
+/* Medium devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+
+}
+
+/* Large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+
+}
