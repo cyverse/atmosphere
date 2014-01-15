@@ -40,6 +40,10 @@ header a {
     position: relative;
 }
 
+#sidebar li a i {
+    margin-right: 10px;
+}
+
 #sidebar li a:hover {
     background-color: #f0f0f0;
 }
