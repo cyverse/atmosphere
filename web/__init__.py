@@ -3,11 +3,9 @@ Atmosphere web helper methods..
 
 """
 
-from core.models import AtmosphereUser as DjangoUser
 
 from threepio import logger
 
-from core.models import Provider, Identity
 
 
 def prepare_driver(request, provider_id, identity_id):
@@ -16,6 +14,7 @@ def prepare_driver(request, provider_id, identity_id):
     return esh_driver
     """
     from api import get_esh_driver
+    from core.models import Provider, Identity
     username = extractUser(request).username
     core_provider = Provider.objects.get(id=provider_id)
     core_identity = Identity.objects.get(id=identity_id)
@@ -24,6 +23,7 @@ def prepare_driver(request, provider_id, identity_id):
 
 
 def extractUser(request):
+    from core.models import AtmosphereUser as DjangoUser
     if request and request.session:
         username = request.session.get('username', None)
     if not username and request and request.META:

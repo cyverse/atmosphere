@@ -52,6 +52,7 @@ class Application(models.Model):
       db_table = 'application'
       app_label = 'core'
 
+
 class ApplicationMembership(models.Model):
   """
   Members of a private image can view & launch its respective machines. If the
@@ -66,3 +67,44 @@ class ApplicationMembership(models.Model):
       db_table = 'application_membership'
       app_label = 'core'
       unique_together = ('application', 'group')
+
+
+def get_application(identifier, app_uuid=None):
+    if not app_uuid:
+        app_uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(identifier))
+        app_uuid = str(app_uuid)
+    try:
+        app = Application.objects.get(uuid=app_uuid)
+        return app
+    except Application.DoesNotExist:
+        return None
+    except Exception, e:
+        logger.error(e)
+        logger.error(type(e))
+
+
+def create_application(identifier, provider_id, name=None,
+        creator_identity=None, version=None, description=None, tags=None,
+        uuid=None):
+    from core.models import AtmosphereUser
+    if not uuid:
+        uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(identifier))
+        uuid = str(uuid)
+    if not name:
+        name = "UnknownApp %s" % identifier
+    if not description:
+        description = "New application - %s" % name
+    if not creator_identity:
+        creator_identity = _get_admin_owner(provider_id)
+    if not tags:
+        tags = []
+    new_mach = Application.objects.create(
+            name=name,
+            description=description,
+            tags=tags,
+            created_by=creator_identity.created_by,
+            created_by_identity=creator_identity,
+            uuid=uuid)
+    return new_mach
+
+
