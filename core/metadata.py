@@ -1,6 +1,6 @@
 from core.models.provider import AccountProvider
 from core.models.identity import Identity
-
+from threepio import logger
 
 def _get_machine_metadata(esh_driver, esh_machine):
     if not hasattr(esh_driver._connection, 'ex_get_image_metadata'):

@@ -3,7 +3,6 @@
 """
 import json
 from hashlib import md5
-from uuid import uuid5, UUID
 
 from django.db import models
 from django.utils import timezone
@@ -18,8 +17,8 @@ from core.models.provider import Provider
 from core.models.tag import Tag, updateTags
 from core.fields import VersionNumberField, VersionNumber
 
-from service.metadata import _get_machine_metadata, update_machine_metadata, _get_owner_identity
-from service.application import write_app_data, has_app_data, get_app_data
+from core.metadata import _get_machine_metadata, update_machine_metadata, _get_owner_identity
+from core.application import write_app_data, has_app_data, get_app_data
 
 class ProviderMachine(models.Model):
     """
@@ -178,7 +177,7 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
     elif not esh_machine:
         return None
     push_metadata = False
-    metadata = esh_machine.extra.get('metadata',{})
+    metadata = esh_machine._image.extra.get('metadata',{})
     name = esh_machine.name
     alias = esh_machine.alias
     if metadata and has_app_data(metadata):

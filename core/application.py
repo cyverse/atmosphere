@@ -1,4 +1,5 @@
-from service.metadata import update_machine_metadata, _get_owner_identity
+import json
+from core.metadata import update_machine_metadata, _get_owner_identity
 
 def write_app_data(esh_driver, provider_machine):
     """
@@ -22,7 +23,7 @@ def write_app_data(esh_driver, provider_machine):
         "application_name":provider_machine.application.name,
         "application_owner":provider_machine.application.created_by.username,
         "application_tags":json.dumps(
-            [tag for tag in provider_machine.application.tags.all()]),
+            [tag.name for tag in provider_machine.application.tags.all()]),
         "application_description":provider_machine.application.description,
     }
     return update_machine_metadata(esh_driver, esh_machine, mach_data)

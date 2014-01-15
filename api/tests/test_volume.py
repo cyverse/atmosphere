@@ -160,13 +160,14 @@ class VolumeTests(TestCase):
     def attach_volume(self, instance_base_url, instance_id, volume_id):
         #Make action url
         instance_action_url = urljoin(
-                urljoin(instance_base_url, '%s/' % instance_id), 'action/')
+            urljoin(instance_base_url, '%s/' % instance_id),
+            'action/')
         #Attach volume parameters
         action_params = {
-                'action':'attach_volume',
-                'volume_id':volume_id,
-                #'device':'/dev/xvdb',
-            }
+            'action':'attach_volume',
+            'volume_id':volume_id,
+            #'device':'/dev/xvdb',
+        }
         volume_attach_resp = self.api_client.post(instance_action_url,
                                                   action_params, format='json')
         #Wait and see..
@@ -174,26 +175,28 @@ class VolumeTests(TestCase):
     def detach_volume(self, instance_base_url, instance_id, volume_id):
         #Make action url
         instance_action_url = urljoin(
-                urljoin(instance_base_url, '%s/' % instance_id), 'action/')
+            urljoin(instance_base_url, '%s/' % instance_id), 'action/')
         #Attach volume parameters
         action_params = {
-                'action':'detach_volume',
-                'volume_id':volume_id,
-                #'device':'/dev/xvdb',
-            }
+            'action': 'detach_volume',
+            'volume_id': volume_id,
+            #'device': '/dev/xvdb',
+        }
         volume_detach_resp = self.api_client.post(instance_action_url,
                                                   action_params, format='json')
         #Wait and see..
 
     def create_volume(self, volume_base_url, post_data):
         #Create the volume
-        volume_launch_resp = self.api_client.post(volume_base_url, post_data, format='json')
+        volume_launch_resp = self.api_client.post(volume_base_url, post_data,
+                                                  format='json')
         #Validate the output
         if volume_launch_resp.status_code != status.HTTP_201_CREATED:
             logger.info(volume_launch_resp)
         self.assertEqual(volume_launch_resp.status_code, status.HTTP_201_CREATED)
         self.assertIsNotNone(volume_launch_resp.data)
-        verify_expected_output(self, volume_launch_resp.data, self.expected_output)
+        verify_expected_output(self, volume_launch_resp.data,
+                               self.expected_output)
         volume_id = volume_launch_resp.data['alias']
         return volume_id
 
@@ -208,8 +211,8 @@ class VolumeTests(TestCase):
 
     def delete_volume(self, volume_base_url, volume_alias):
         specific_volume_url = urljoin(
-                volume_base_url,
-                '%s/' % volume_alias)
+            volume_base_url,
+            '%s/' % volume_alias)
         #Delete the volume
         delete_resp = self.api_client.delete(specific_volume_url)
         #Validate the output
@@ -219,13 +222,14 @@ class VolumeTests(TestCase):
     def detail_volume(self, volume_base_url, volume_id):
         #Detail the volume
         specific_volume_url = urljoin(
-                volume_base_url,
-                '%s/' % volume_id)
+            volume_base_url,
+            '%s/' % volume_id)
         volume_get_resp = self.api_client.get(specific_volume_url)
         #Validate the output
         self.assertEqual(volume_get_resp.status_code, status.HTTP_200_OK)
-        verify_expected_output(self, volume_get_resp.data, self.expected_output)
+        verify_expected_output(self, volume_get_resp.data,
+                               self.expected_output)
 
 
 if __name__ == "__main__":
-   unittest.main()
+    unittest.main()

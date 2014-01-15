@@ -12,7 +12,6 @@ from threepio import logger
 from core.models.allocation import Allocation
 from core.models.application import Application
 from core.models.identity import Identity
-from core.models.instance import Instance
 from core.models.provider import Provider
 from core.models.quota import Quota
 from core.models.user import AtmosphereUser
@@ -27,7 +26,7 @@ class Group(DjangoGroup):
                                        blank=True)
     identities = models.ManyToManyField(Identity, through='IdentityMembership',
                                         blank=True)
-    instances = models.ManyToManyField(Instance, through='InstanceMembership',
+    instances = models.ManyToManyField('Instance', through='InstanceMembership',
                                        blank=True)
     applications = models.ManyToManyField(Application, through='ApplicationMembership',
                                        blank=True)
@@ -185,7 +184,7 @@ class InstanceMembership(models.Model):
     calls to terminate/request imaging/attach/detach *should* fail.
     (This can also be dictated by permission)
     """
-    instance = models.ForeignKey(Instance)
+    instance = models.ForeignKey('Instance')
     owner = models.ForeignKey(Group)
 
     def __unicode__(self):

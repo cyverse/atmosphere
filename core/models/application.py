@@ -1,8 +1,13 @@
 from django.db import models
 from django.utils import timezone
+from uuid import uuid5, UUID
+from threepio import logger
+
+from atmosphere import settings
 
 from core.models.identity import Identity
-from core.models.tag import Tag
+from core.models.tag import Tag, updateTags
+from core.metadata import _get_admin_owner
 
 class Application(models.Model):
   """
@@ -98,13 +103,14 @@ def create_application(identifier, provider_id, name=None,
         creator_identity = _get_admin_owner(provider_id)
     if not tags:
         tags = []
-    new_mach = Application.objects.create(
+    new_app = Application.objects.create(
             name=name,
             description=description,
-            tags=tags,
             created_by=creator_identity.created_by,
             created_by_identity=creator_identity,
             uuid=uuid)
-    return new_mach
+    if tags:
+        updateTags(new_app, tags, creator_identity.created_by)
+    return new_app
 
 
