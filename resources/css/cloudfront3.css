@@ -20,7 +20,7 @@ header a {
 }
 
 #sidebar {
-    background-color: #e6e6e6;
+    background-color: #f5f5f5;
 }
 
 #sidebar ul {
@@ -45,7 +45,7 @@ header a {
 }
 
 #sidebar li a:hover {
-    background-color: #f0f0f0;
+    background-color: #e6e6e6;
 }
 
 footer {
@@ -69,19 +69,22 @@ footer {
         height: 100%;
     }
 
-#sidebar li a:hover:before {
-    content: "";
-    background-color: #fff;
-    width: 44px;
-    height: 44px;
-    display: block;
-    position: absolute;
-    right: 0;
-    top: 0;
-    border-width: 22px;
-    border-style: solid;
-    border-color: #f0f0f0 #ffffff #f0f0f0 #f0f0f0;
-}
+    #sidebar li a.active:before {
+        content: "";
+        background-color: #fff;
+        width: 44px;
+        height: 44px;
+        display: block;
+        position: absolute;
+        right: 0;
+        top: 0;
+        border-width: 22px;
+        border-style: solid;
+        border-color: #f5f5f5 #ffffff #f5f5f5 #f5f5f5;
+    }
+    #sidebar li a.active:hover:before {
+        border-color: #e6e6e6 #ffffff #e6e6e6 #e6e6e6;
+    }
 
     #main {
         margin: 70px 90px 0 340px;
