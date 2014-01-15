@@ -130,6 +130,26 @@ def app(request):
         logger.exception(e)
         return cas_loginRedirect(request, settings.REDIRECT_URL+'/application')
 
+@atmo_login_required
+def app_beta(request):
+    try:
+        if MaintenanceRecord.disable_login_access(request):
+            return HttpResponseRedirect('/login/')
+        template = get_template("cf3/index.html")
+        context = RequestContext(request, {
+            'site_root': settings.REDIRECT_URL,
+            'debug': settings.DEBUG,
+            'year': datetime.now().year
+        })
+        output = template.render(context)
+        return HttpResponse(output)
+    except KeyError, e:
+        logger.debug("User not logged in.. Redirecting to CAS login")
+        return cas_loginRedirect(request, settings.REDIRECT_URL+'/beta')
+    except Exception, e:
+        logger.exception(e)
+        return cas_loginRedirect(request, settings.REDIRECT_URL+'/beta')
+
 
 @atmo_valid_token_required
 def partial(request, path, return_string=False):
@@ -192,7 +212,6 @@ def application(request):
     variables = RequestContext(request, {})
     output = template.render(variables)
     return HttpResponse(output)
-
 
 @atmo_login_required
 def emulate_request(request, username=None):

@@ -87,6 +87,7 @@ urlpatterns = patterns(
     url(r'^logout/$', 'web.views.logout'),
     url(r'^CASlogin/(?P<redirect>.*)$', 'authentication.cas_loginRedirect'),
     url(r'^application/$', 'web.views.app'),
+    url(r'^beta/$', 'web.views.app_beta'),
 
     url(r'^partials/(?P<path>.*)$', 'web.views.partial'),
     url(r'^no_user/$', 'web.views.no_user_redirect'),
