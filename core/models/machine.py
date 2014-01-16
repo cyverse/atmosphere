@@ -17,7 +17,7 @@ from core.models.provider import Provider
 from core.models.tag import Tag, updateTags
 from core.fields import VersionNumberField, VersionNumber
 
-from core.metadata import _get_machine_metadata, update_machine_metadata, _get_owner_identity
+from core.metadata import _get_owner_identity
 from core.application import write_app_data, has_app_data, get_app_data
 
 class ProviderMachine(models.Model):
@@ -33,7 +33,7 @@ class ProviderMachine(models.Model):
     provider = models.ForeignKey(Provider)
     application = models.ForeignKey(Application)
 
-    identifier = models.CharField(max_length=256, unique=True)  # EMI-12341234
+    identifier = models.CharField(max_length=256)  # EMI-12341234
     created_by = models.ForeignKey('AtmosphereUser', null=True)
     created_by_identity = models.ForeignKey(Identity, null=True)
     start_date = models.DateTimeField(default=timezone.now())
@@ -112,7 +112,7 @@ def load_provider_machine(provider_alias, machine_name, provider_id,
     """
     Returns ProviderMachine
     """
-    provider_machine = get_provider_machine(identifier=provider_alias)
+    provider_machine = get_provider_machine(provider_alias, provider_id)
     if provider_machine:
         return provider_machine
     if not app:
@@ -159,9 +159,9 @@ def add_to_cache(provider_machine):
     return provider_machine
 
 
-def get_provider_machine(identifier):
+def get_provider_machine(identifier, provider_id):
     try:
-        machine = ProviderMachine.objects.get(identifier=identifier)
+        machine = ProviderMachine.objects.get(provider__id=provider_id, identifier=identifier)
         return machine
     except ProviderMachine.DoesNotExist:
         return None
@@ -181,6 +181,7 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
     name = esh_machine.name
     alias = esh_machine.alias
     if metadata and has_app_data(metadata):
+        logger.debug("Metadata found for %s" % alias)
         #USE CASE: Application data exists on the image
         # and may exist on this DB
         app = get_application(alias, metadata.get('application_uuid'))
@@ -190,12 +191,14 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
             app = create_application(alias, provider_id, **app_kwargs)
     else:
         #USE CASE: Application data does NOT exist,
-        # Check if there is an application matching the machines alias
-        # Or create a new application
+        # This machine is assumed to be its own application, so run the
+        # machine alias to retrieve any existing application.
+        # otherwise create a new application with the same name as the machine
+        # App assumes all default values
+        push_metadata = True
         app = get_application(alias)
         if not app:
             app = create_application(alias, provider_id, name)
-            push_metadata = True
     provider_machine = load_provider_machine(alias, name, provider_id,
                                              app=app, metadata=metadata)
     if push_metadata:

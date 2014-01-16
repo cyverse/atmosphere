@@ -35,7 +35,9 @@ def update_machine_metadata(esh_driver, esh_machine, data={}):
         if 'tags' in data and type(data['tags']) == list:
             data['tags'] = json.dumps(data['tags'])
         logger.info("New metadata:%s" % data)
-        return esh_driver._connection.ex_set_image_metadata(esh_machine, data)
+        meta_response = esh_driver._connection.ex_set_image_metadata(esh_machine, data)
+        esh_machine.invalidate_machine_cache(esh_driver.provider, esh_machine)
+        return meta_response
     except Exception, e:
         logger.exception("Error updating machine metadata")
         if 'incapable of performing the request' in e.message:
