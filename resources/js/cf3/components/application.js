@@ -1,8 +1,9 @@
-define(['react', 'components/header', 'components/sidebar', 'components/footer', 'components/dashboard'], function (React, Header, Sidebar, Footer, Dashboard) {
+define(['react', 'components/header', 'components/sidebar', 'components/footer', 'components/dashboard', 'components/instances'], function (React, Header, Sidebar, Footer, Dashboard, Instances) {
     var sidebar_items = {
         dashboard: {
             text: 'Dashboard',
-            icon: 'home'
+            icon: 'home',
+            view: Dashboard
         },
         app_store: {
             text: 'App Store',
@@ -10,7 +11,8 @@ define(['react', 'components/header', 'components/sidebar', 'components/footer',
         },
         instances: {
             text: 'Instances',
-            icon: 'cloud-download'
+            icon: 'cloud-download',
+            view: Instances
         },
         volumes: {
             text: 'Volumes',
@@ -36,17 +38,6 @@ define(['react', 'components/header', 'components/sidebar', 'components/footer',
             text: 'Help',
             icon: 'question-sign'
         }
-        /*
-        ['Dashboard', 'home'],
-        ['App Store', 'shopping-cart'],
-        ['Instances', 'cloud-download'],
-        ['Volumes', 'hdd'],
-        ['Images', 'camera'],
-        ['Cloud Providers', 'cloud'],
-        ['Quotas', 'tasks'],
-        ['Settings', 'cog'],
-        ['Help', 'question-sign']
-        */
     };
 
     var Application = React.createClass({
@@ -54,9 +45,10 @@ define(['react', 'components/header', 'components/sidebar', 'components/footer',
             return {active: 'dashboard'};
         },
         handleSelect: function(item) {
-            //console.log(item);
+            this.setState({active: item});
         },
         render: function() {
+            var view = sidebar_items[this.state.active].view || Dashboard;
             return React.DOM.div({},
                 Header(),
                 Sidebar({
@@ -64,7 +56,7 @@ define(['react', 'components/header', 'components/sidebar', 'components/footer',
                     active: this.state.active,
                     onSelect: this.handleSelect
                 }),
-                React.DOM.div({'id': 'main'}, Dashboard()),
+                React.DOM.div({'id': 'main'}, view()),
                 Footer()
             );
         }
