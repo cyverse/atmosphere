@@ -12,6 +12,10 @@ header a {
     color: #fff;
 }
 
+#main {
+    padding: 20px;
+}
+
 footer {
     text-align: center;
     margin: 3em 0;
@@ -34,7 +38,7 @@ footer {
     }
 
     #main {
-        margin: 70px 90px 0 340px;
+        margin: 50px 90px 0 340px;
     }
 
     footer {
