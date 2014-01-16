@@ -1,0 +1,56 @@
+header {
+    background-color: #0098aa;
+    color: #fff;
+    padding: 5px;
+}
+
+header img {
+    margin-right: 7px;
+}
+
+header a {
+    color: #fff;
+}
+
+footer {
+    text-align: center;
+    margin: 3em 0;
+}
+
+/* Small devices (tablets, 768px and up) */
+@media (min-width: 768px) {
+    header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+    }
+    #sidebar {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        width: 250px;
+        height: 100%;
+    }
+
+    #main {
+        margin: 70px 90px 0 340px;
+    }
+
+    footer {
+        width: 250px;
+        position: fixed;
+        left: 0;
+        bottom: 0;
+    }
+}
+
+/* Medium devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+
+}
+
+/* Large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+
+}

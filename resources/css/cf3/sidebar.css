@@ -1,0 +1,57 @@
+#sidebar {
+    background-color: #f5f5f5;
+}
+
+#sidebar ul {
+    margin: 0;
+    padding: 0; 
+}
+
+#sidebar li {
+    font-size: 1.2em; 
+}
+
+#sidebar li a {
+    color: #222;
+    display: block;
+    text-decoration: none;
+    padding: 10px;
+    position: relative;
+}
+
+#sidebar li a i {
+    margin-right: 10px;
+}
+
+#sidebar li a:hover {
+    background-color: #e6e6e6;
+}
+
+#sidebar li.active a {
+    background-color: #333;
+    color: #fff;
+}
+
+#sidebar li.active a:hover {
+    background-color: #444;  
+}
+
+/* Small devices (tablets, 768px and up) */
+@media (min-width: 768px) {
+    #sidebar li.active a:before {
+        content: "";
+        background-color: #fff;
+        width: 34px;
+        height: 34px;
+        display: block;
+        position: absolute;
+        right: 0;
+        top: 5px;
+        border-width: 17px;
+        border-style: solid;
+        border-color: #333333 #ffffff #333333 #333333;
+    }
+    #sidebar li.active a:hover:before {
+        border-color: #444444 #ffffff #444444 #444444;
+    }
+}
