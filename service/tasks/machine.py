@@ -117,11 +117,28 @@ def process_request(new_image_id, machine_request_id):
     #if ipdb:
     #    ipdb.set_trace()
     machine_request = MachineRequest.objects.get(id=machine_request_id)
+    invalidate_machine_cache(machine_request)
     set_machine_request_metadata(machine_request, new_image_id)
     process_machine_request(machine_request, new_image_id)
     send_image_request_email(machine_request.new_machine_owner,
                              machine_request.new_machine,
                              machine_request.new_machine_name)
+
+
+def invalidate_machine_cache(machine_request):
+    """
+    The new image won't populate in the machine list unless the list is cleared
+    """
+    from api import get_esh_driver
+    admins = machine_request.instance.\
+            provider_machine.provider.\
+            accountprovider_set.all()
+    if not admins:
+        return
+    admin_id = admins[0].identity
+    driver = get_esh_driver(admin_id)
+    driver.provider.machineCls.invalidate_provider_cache(driver.provider)
+    return
 
 @task(name='freeze_instance_task', ignore_result=False)
 def freeze_instance_task(identity_id, instance_id):
