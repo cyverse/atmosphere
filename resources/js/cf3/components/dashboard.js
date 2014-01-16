@@ -2,9 +2,11 @@ define(['react', 'underscore'], function(React, _) {
     var DashboardIcon = React.createClass({
         render: function() {
             return React.DOM.li({}, 
-                React.DOM.img({src: this.props.image}),
-                React.DOM.strong({}, this.props.title),
-                React.DOM.p({}, this.props.description)
+                React.DOM.a({href: '#'}, 
+                    React.DOM.img({src: this.props.image}),
+                    React.DOM.strong({}, this.props.title),
+                    React.DOM.p({}, this.props.description)
+                )
             );
         }
     });
@@ -35,7 +37,7 @@ define(['react', 'underscore'], function(React, _) {
             return React.DOM.div({},
                 React.DOM.h1({}, "Dashboard"),
                 React.DOM.p({}, "Welcome to Atmosphere!"),
-                React.DOM.ul({}, _.map(items, DashboardIcon))
+                React.DOM.ul({'id': 'dashboard-link-list'}, _.map(items, DashboardIcon))
             );
         }
     });
