@@ -4,6 +4,12 @@ from south.modelsinspector import add_introspection_rules
 add_introspection_rules([], ["^core\.fields\.VersionNumberField"])
 
 class VersionNumber(object):
+
+    @classmethod
+    def string_to_version(cls, version_str):
+
+          return VersionNumber(*version_str.split('.'))
+
     def __init__(self, major, minor=0, patch=0, build=0):
         self.number = (int(major), int(minor), int(patch), int(build))
         if any([i < 0 or i > 255 for i in self.number]):

@@ -143,7 +143,8 @@ def create_provider_machine(machine_name, provider_alias, provider_id, app, meta
         created_by = machine_owner.created_by,
         created_by_identity = machine_owner,
         identifier = provider_alias,
-        version = metadata.get('version',1))
+        version = VersionNumber.string_to_version(
+            metadata.get('version','1.0')))
     logger.info("New ProviderMachine created: %s" % provider_machine)
     add_to_cache(provider_machine)
     return provider_machine

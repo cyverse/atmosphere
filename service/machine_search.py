@@ -10,8 +10,7 @@ import operator
 from django.db.models import Q
 
 from core.models.machine import compare_core_machines, filter_core_machine,\
-    convert_esh_machine, update_machine_metadata,\
-    ProviderMachine
+    convert_esh_machine, ProviderMachine
 
 
 def search(providers, identity, query):
