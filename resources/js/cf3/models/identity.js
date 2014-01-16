@@ -1,4 +1,4 @@
-define(['underscore', 'models/base'], function(_, Base) {
+define(['underscore', 'models/base', 'collections/instances'], function(_, Base, Instances) {
     var Identity = Base.extend({
         defaults: { 'model_name': 'identity' },
         initialize: function(attributes, options) {
@@ -16,15 +16,6 @@ define(['underscore', 'models/base'], function(_, Base) {
             attributes.quota.disk = response.quota.disk;
             attributes.quota.disk_count = response.quota.disk_count;
 
-            // Determine whether this identity is the user's selected identity
-            attributes.selected = (Atmo.profile.get('selected_identity').get('id') == attributes.id) ? true : false;
-
-            // Handy reference to corresponding provider model
-            attributes.provider = _.filter(Atmo.providers.models, function(provider) {
-                return provider.get('id') == attributes.provider_id;
-            });
-            attributes.provider = attributes.provider[0];
-            
             return attributes;
         },
         has_allocation: function() {
@@ -35,6 +26,9 @@ define(['underscore', 'models/base'], function(_, Base) {
             return url = this.urlRoot
                 + '/provider/' + creds.provider_id 
                 + '/' + this.defaults.model_name + '/';
+        },
+        get_instances: function() {
+            return new Instances(null, {provider_id: this.get('provider_id'), identity_id: this.id});
         }
     });
 

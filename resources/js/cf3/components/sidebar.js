@@ -21,18 +21,14 @@ define(['react', 'underscore'], function (React, _) {
     });
 
     var Sidebar = React.createClass({
-        getInitialState: function() {
-            return {active: this.props.active};
-        },
         onClick: function(clicked) {
             this.props.onSelect(clicked);
-            this.setState({active: clicked});
         },
         render: function() {
             var items = _.map(this.props.items, function(item, id) {
                 return SidebarListItem({
                     icon: item.icon, 
-                    active: id == this.state.active,
+                    active: id == this.props.active,
                     onClick: this.onClick,
                     text: item.text,
                     id: id

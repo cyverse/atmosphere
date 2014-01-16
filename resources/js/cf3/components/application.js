@@ -5,7 +5,7 @@ function (React, _, Header, Sidebar, Footer, Dashboard, Instances) {
         dashboard: {
             text: 'Dashboard',
             icon: 'home',
-            view: Dashboard,
+            view: function() {return Dashboard();},
             login_required: true
         },
         app_store: {
@@ -16,7 +16,9 @@ function (React, _, Header, Sidebar, Footer, Dashboard, Instances) {
         instances: {
             text: 'Instances',
             icon: 'cloud-download',
-            view: Instances,
+            view: function() {
+                return Instances({"profile": this.props.profile});
+            },
             login_required: true
         },
         volumes: {
@@ -53,14 +55,30 @@ function (React, _, Header, Sidebar, Footer, Dashboard, Instances) {
 
     var Application = React.createClass({
         getInitialState: function() {
-            return {active: 'dashboard'};
+            return {
+                active: this.props.profile == null ? 'app_store' : 'dashboard'
+            };
         },
         handleSelect: function(item) {
             this.setState({active: item});
         },
         render: function() {
-            var view = sidebar_items[this.state.active].view || Dashboard;
-            var items = this.props.profile != null ? sidebar_items : _.filter(sidebar_items, function(i) {return !i.login_required });
+            var view;
+            if (sidebar_items[this.state.active].view)
+                view = sidebar_items[this.state.active].view.bind(this);
+            else
+                view = function() {return Dashboard();}
+
+            var items = sidebar_items;
+            if (this.props.profile == null)
+                items = _.chain(sidebar_items)
+                    .pairs()
+                    .filter(function(i) {
+                        return !i[1].login_required;
+                    })
+                    .object()
+                    .value();
+
             return React.DOM.div({},
                 Header(),
                 Sidebar({
