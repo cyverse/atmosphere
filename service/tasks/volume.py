@@ -18,14 +18,16 @@ from core.models.instance import update_instance_metadata
 
 from service.driver import get_driver
 from service.deploy import mount_volume, check_volume, mkfs_volume,\
-                           check_mount, umount_volume, lsof_location
+    check_mount, umount_volume, lsof_location
 from service.exceptions import DeviceBusyException
+
 
 @task(name="check_volume_task",
       max_retries=0,
       default_retry_delay=20,
       ignore_result=False)
-def check_volume_task(driverCls, provider, identity, instance_id, volume_id, *args, **kwargs):
+def check_volume_task(driverCls, provider, identity,
+                      instance_id, volume_id, *args, **kwargs):
     try:
         logger.debug("check_volume task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
@@ -37,7 +39,8 @@ def check_volume_task(driverCls, provider, identity, instance_id, volume_id, *ar
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'timeout': 120})
 
-        #One script to make two checks: 1. Voume exists 2. Volume has a filesystem
+        #One script to make two checks:
+        #1. Voume exists 2. Volume has a filesystem
         cv_script = check_volume(device)
         kwargs.update({'deploy': cv_script})
         driver.deploy_to(instance, **kwargs)
@@ -45,8 +48,9 @@ def check_volume_task(driverCls, provider, identity, instance_id, volume_id, *ar
 
         if cv_script.exit_status != 0:
             if 'No such file' in cv_script.stdout:
-                raise Exception('Volume check failed: Device %s does not exist on instance %s' %
-                        (device,instance))
+                raise Exception('Volume check failed: '
+                                'Device %s does not exist on instance %s'
+                                % (device, instance))
             elif 'Bad magic number' in cv_script.stdout:
                 #Filesystem needs to be created for this device
                 logger.info("Mkfs needed")
@@ -70,7 +74,7 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
                mount_location=None, *args, **kwargs):
     try:
         logger.debug("mount task started at %s." % datetime.now())
-        logger.debug("mount_location: %s" % (mount_location,))
+        logger.debug("mount_location: %s" % (mount_location, ))
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         volume = driver.get_volume(volume_id)
@@ -95,7 +99,7 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         if device in cm_script.stdout:
             #Device has already been mounted. Move along..
             return
-        
+
         #Step 3. Find a suitable location to mount the volume
         logger.info("Original mount location - %s" % mount_location)
         if not mount_location:
@@ -125,7 +129,8 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
       max_retries=3,
       default_retry_delay=32,
       ignore_result=False)
-def umount_task(driverCls, provider, identity, instance_id, volume_id, *args, **kwargs):
+def umount_task(driverCls, provider, identity, instance_id,
+                volume_id, *args, **kwargs):
     try:
         logger.debug("umount_task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
@@ -175,7 +180,7 @@ def umount_task(driverCls, provider, identity, instance_id, volume_id, *args, **
                     continue
                 search_dict = res.groupdict()
                 offending_processes.append(
-                    (search_dict['name'],search_dict['pid']))
+                    (search_dict['name'], search_dict['pid']))
 
             raise DeviceBusyException(mount_location, offending_processes)
         #Return here if no errors occurred..
@@ -214,11 +219,12 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
             if attempts > 6:  # After 6 attempts (~1min)
                 break
             #Openstack Check
-            if isinstance(driver, OSDriver) and 'attaching' not in volume.extra['status']:
+            if isinstance(driver, OSDriver) and\
+                    'attaching' not in volume.extra['status']:
                 break
             attach_set = volume.extra['attachmentSet'][0]
             if isinstance(driver, EucaDriver) and\
-                    'attaching' not in attach_set.get('status',''):
+                    'attaching' not in attach_set.get('status', ''):
                 break
             # Exponential backoff..
             attempts += 1
@@ -248,7 +254,8 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
       max_retries=1,
       default_retry_delay=20,
       ignore_result=False)
-def detach_task(driverCls, provider, identity, instance_id, volume_id, *args, **kwargs):
+def detach_task(driverCls, provider, identity,
+                instance_id, volume_id, *args, **kwargs):
     try:
         logger.debug("detach_task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
@@ -264,11 +271,13 @@ def detach_task(driverCls, provider, identity, instance_id, volume_id, *args, **
             if attempts > 6:  # After 6 attempts (~1min)
                 break
             #The Openstack way
-            if isinstance(driver, OSDriver) and 'detaching' not in volume.extra['status']:
+            if isinstance(driver, OSDriver)\
+                    and 'detaching' not in volume.extra['status']:
                 break
             #The Eucalyptus way
             attach_set = volume.extra['attachmentSet']
-            if isinstance(driver, EucaDriver) and attach_set and 'detaching' not in attach_set[0].get('status'):
+            if isinstance(driver, EucaDriver) and attach_set\
+                    and 'detaching' not in attach_set[0].get('status'):
                 break
             # Exponential backoff..
             attempts += 1

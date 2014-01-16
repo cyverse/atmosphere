@@ -18,8 +18,9 @@ from authentication.decorators import api_auth_token_required
 from core.models.identity import Identity
 
 from core.models.machine import compare_core_machines, filter_core_machine,\
-    convert_esh_machine, update_machine_metadata,\
-    ProviderMachine
+    convert_esh_machine, ProviderMachine
+    
+from core.metadata import update_machine_metadata
 
 from service.machine_search import search, CoreSearchProvider
 

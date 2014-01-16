@@ -79,7 +79,7 @@ class AccountDriver():
         user_args.get('secret')
         user_args.get('account_path')
         #ec2_url//url required for user_manager
-        if not user_args.get('url',None):
+        if not user_args.get('url', None):
             user_args['url'] = user_args.pop('ec2_url', None)
         #Remove if exists:
         user_args.pop('config_path', None)
@@ -88,8 +88,6 @@ class AccountDriver():
         user_args.pop('pk_path', None)
         user_args.pop('s3_url', None)
         return user_args
-
-
 
     def create_account(self, euca_user, max_quota=False, account_admin=False):
         """
@@ -126,11 +124,11 @@ class AccountDriver():
         """
         """
         identity = Identity.create_identity(
-                username, self.core_provider.location,
-                max_quota=max_quota, account_admin=account_admin,
-                cred_key=access_key, cred_secret=secret_key)
+            username, self.core_provider.location,
+            max_quota=max_quota, account_admin=account_admin,
+            cred_key=access_key, cred_secret=secret_key)
 
-        return identity 
+        return identity
 
     def clean_credentials(self, credential_dict):
         creds = ["username", "access_key", "secret_key"]
@@ -154,7 +152,7 @@ class AccountDriver():
 
     def delete_identity(self, username):
         ident = Identity.objects.get(
-                created_by__username=username, provider=core_provider)
+            created_by__username=username, provider=core_provider)
         return ident.delete()
 
     def delete_user(self, username):
