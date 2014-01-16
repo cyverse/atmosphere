@@ -18,6 +18,7 @@ from core.models.identity import Identity
 
 from service.driver import get_driver
 
+
 @task(name="_send_instance_email",
       default_retry_delay=10,
       ignore_result=True,
@@ -65,6 +66,7 @@ def deploy_failed(driverCls, provider, identity, instance_id, task_uuid):
         logger.warn(exc)
         deploy_failed.retry(exc=exc)
 
+
 @task(name="deploy_to",
       max_retries=2,
       default_retry_delay=128,
@@ -111,7 +113,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
                                                   identity,
                                                   instance_id))
             cflow(link_error=deploy_failed.s((driverCls, provider, identity,
-                                              instance_id,))),
+                                              instance_id, ))),
         elif not image_already_deployed:
             logger.debug("Chain -- deploy_init + email")
             cflow = chain(_deploy_init_to.si(driverCls,
@@ -122,8 +124,8 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
                                                   provider,
                                                   identity,
                                                   instance_id))
-            cflow(link_error=deploy_failed.s((driverCls, provider, identity,
-                                              instance_id,))),
+            cflow(link_error=deploy_failed.s(
+                (driverCls, provider, identity, instance_id, ))),
         elif not instance.ip:
             logger.debug("Chain -- Floating_ip + email")
             cflow = chain(add_floating_ip.si(driverCls,
@@ -157,7 +159,8 @@ def destroy_instance(core_identity_id, instance_alias):
     from api import get_esh_driver
     try:
         logger.debug("destroy_instance task started at %s." % datetime.now())
-        node_destroyed = instance_service.destroy_instance(core_identity_id, instance_alias)
+        node_destroyed = instance_service.destroy_instance(
+            core_identity_id, instance_alias)
         core_identity = Identity.objects.get(id=core_identity_id)
         driver = get_esh_driver(core_identity)
         if isinstance(driver, OSDriver):
@@ -224,8 +227,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
 # Floating IP Tasks
 @task(name="add_floating_ip",
       #Defaults will not be used, see countdown call below
-      default_retry_delay=15,
-      ignore_result=True,
+      default_retry_delay=15, ignore_result=True,
       max_retries=30)
 def add_floating_ip(driverCls, provider, identity,
                     instance_alias, delete_status=True,
@@ -248,20 +250,21 @@ def add_floating_ip(driverCls, provider, identity,
         if floating_ips:
             floating_ip = floating_ips[0]["floating_ip_address"]
         else:
-            floating_ip = driver._connection.neutron_associate_ip(instance, *args, **kwargs)["floating_ip_address"]
-        logger.warn("FloatingIP=%s" % floating_ip)
-
+            floating_ip = driver._connection.neutron_associate_ip(
+                instance, *args, **kwargs)["floating_ip_address"]
+        hostname = ""
         if floating_ip.startswith('128.196'):
             regex = re.compile(
-                    "(?P<one>[0-9]+)\.(?P<two>[0-9]+)\."\
-                    "(?P<three>[0-9]+)\.(?P<four>[0-9]+)")
+                "(?P<one>[0-9]+)\.(?P<two>[0-9]+)\."
+                "(?P<three>[0-9]+)\.(?P<four>[0-9]+)")
             r = regex.search(floating_ip)
-            (one,two,three,four) = r.groups()
-            hostname = "vm%s-%s.iplantcollaborative.org" % (three,four)
+            (one, two, three, four) = r.groups()
+            hostname = "vm%s-%s.iplantcollaborative.org" % (three, four)
             update_instance_metadata(driver, instance,
                                      data={'public-hostname': hostname},
                                      replace=False)
 
+        logger.info("Assigned IP:%s - Hostname:%s" % (floating_ip, hostname))
         #Useful for chaining floating-ip + Deployment without returning
         #a 'fully active' state
         if delete_status:
@@ -279,10 +282,9 @@ def add_floating_ip(driverCls, provider, identity,
         add_floating_ip.retry(exc=exc,
                               countdown=countdown)
 
-@task(name="clean_empty_ips",
-      default_retry_delay=15,
-      ignore_result=True,
-      max_retries=6)
+
+@task(name="clean_empty_ips", default_retry_delay=15,
+      ignore_result=True, max_retries=6)
 def clean_empty_ips(driverCls, provider, identity, *args, **kwargs):
     try:
         logger.debug("remove_floating_ip task started at %s." %

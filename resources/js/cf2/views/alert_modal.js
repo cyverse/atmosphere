@@ -7,7 +7,7 @@
 
 Atmo.Views.AlertModal = Backbone.View.extend({
     id: 'alert_modal',
-    className: 'modal hide fade',
+    className: 'modal fade',
     template: _.template(Atmo.Templates.alert_modal),
     initialize: function() {
         
@@ -70,7 +70,7 @@ Atmo.Views.AlertModal = Backbone.View.extend({
         else
             $('#alert_modal .modal-footer a').eq(1).html("Ok");
         
-        $('#alert_modal .modal-footer a').show();
+        $('#alert_modal .modal-footer a').show.bs.modal();
         $('#alert_modal .modal-footer a').eq(0).click(button_listener(options.on_cancel));
         $('#alert_modal .modal-footer a').eq(1).click(button_listener(options.on_confirm));
     }

@@ -9,6 +9,7 @@ from django.utils import timezone
 from core.models.user import AtmosphereUser as User
 
 
+from core.fields import VersionNumberField, VersionNumber
 from core.models.provider import Provider
 from core.models.machine import create_provider_machine
 from core.models.node import NodeController
@@ -41,6 +42,8 @@ class MachineRequest(models.Model):
     new_machine_visibility = models.CharField(max_length=256)
     new_machine_description = models.TextField(default='', blank=True)
     new_machine_tags = models.TextField(default='', blank=True)
+    new_machine_version = VersionNumberField(default=int(VersionNumber(1,)))
+    new_machine_forked = models.BooleanField(default=False)
     #Date time stamps
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
@@ -230,22 +233,40 @@ def process_machine_request(machine_request, new_image_id):
     except ProviderMachine.DoesNotExist:
         new_machine = create_provider_machine(
             machine_request.new_machine_name, new_image_id,
-            machine_request.new_machine_provider_id)
+            machine_request.new_machine_provider_id, application)
 
-    add_to_cache(new_machine)
-    new_identity = Identity.objects.get(created_by=machine_request.new_machine_owner, provider=machine_request.new_machine_provider)
-    generic_mach = new_machine.machine
+    owner_ident = Identity.objects.get(created_by=machine_request.new_machine_owner, provider=machine_request.new_machine_provider)
+    parent_mach = machine_request.instance.provider_machine
+    parent_app = machine_request.instance.provider_machine.application
+    app = new_machine.application
     tags = [Tag.objects.get(name__iexact=tag) for tag in
             machine_request.new_machine_tags.split(',')] \
         if machine_request.new_machine_tags else []
-    generic_mach.created_by = machine_request.new_machine_owner
-    generic_mach.created_by_identity = new_identity
-    generic_mach.tags = tags
-    generic_mach.description = machine_request.new_machine_description
-    generic_mach.save()
+
+    if machine_request.new_machine_forked:
+        new_app = create_application(
+                new_machine.identifier,
+                new_machine.provider.id,
+                machine_request.new_machine_name, 
+                owner_ident,
+                machine_request.new_machine_version,
+                machine_request.new_machine_description,
+                tags)
+        new_machine.application = new_app
+    else:
+        if parent_app != app:
+            new_machine.application = parent_app
+        tags.extend(parent_mach.tags.all())
+        app.created_by = machine_request.new_machine_owner
+        app.created_by_identity = owner_ident
+        app.tags = tags
+        app.description = machine_request.new_machine_description
+        app.save()
+    new_machine.version = machine_request.new_machine_version
     new_machine.created_by = machine_request.new_machine_owner
-    new_machine.created_by_identity = new_identity
+    new_machine.created_by_identity = owner_ident
     new_machine.save()
+    add_to_cache(new_machine)
     machine_request.new_machine = new_machine
     machine_request.end_date = timezone.now()
     machine_request.status = 'completed'

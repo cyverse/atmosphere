@@ -41,8 +41,11 @@ def atmo_login_required(func):
             logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
             return HttpResponseRedirect(settings.SERVER_URL+"/logout/")
 
-        #logger.info('atmo_login_required session info: %s' % request.session.__dict__)
-        logger.info('atmo_login_required authentication: %s' % request.session.get('username','<Username not in session>'))
+        #logger.info('atmo_login_required session info: %s'
+        #            % request.session.__dict__)
+        logger.info('atmo_login_required authentication: %s'
+                    % request.session.get('username',
+                                          '<Username not in session>'))
         username = request.session.get('username', None)
         redirect = kwargs.get('redirect', request.get_full_path())
         emulator = request.session.get('emulated_by', None)
@@ -87,6 +90,7 @@ def atmo_valid_token_required(func):
             return HttpResponseForbidden("403 Forbidden")
     return atmo_validate_token
 
+
 def api_auth_token_required(func):
     """
     Use this decorator to authenticate rest_framework.request.Request objects
@@ -104,7 +108,7 @@ def api_auth_token_required(func):
             return func(request, *args, **kwargs)
         else:
             logger.debug('Unauthorized access by %s - %s - Invalid Token' %
-                    (user, request.META.get('REMOTE_ADDR')))
+                         (user, request.META.get('REMOTE_ADDR')))
             return Response(
                 "Expected header parameter: Authorization Token <TokenID>",
                 status=status.HTTP_401_UNAUTHORIZED)

@@ -11,6 +11,7 @@ from service.accounts.eucalyptus import AccountDriver as EucaAccounts
 from core.models import ProviderCredential, ProviderType, Provider, Identity
 from core.tests import create_euca_provider, create_os_provider
 
+
 class ServiceTests(TestCase):
     '''
     Test service.*

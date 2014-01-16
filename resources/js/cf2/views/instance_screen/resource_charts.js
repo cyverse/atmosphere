@@ -335,9 +335,9 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
         var info = '';
 
         if (this.quota_type == 'cpu') {
-            quota_title = "Atmosphere Unit";
+            quota_title = "Processor Unit";
             quota_desc = "aproximation of CPU hours";
-            quota_unit = "AU";
+            quota_unit = "CPU";
             this.$el.data('unit', 'CPUs');
         }
         else if (this.quota_type == 'mem') {

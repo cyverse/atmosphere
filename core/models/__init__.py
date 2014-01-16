@@ -1,10 +1,9 @@
-from core.tasks import allocation, synchronize
 from core.models.credential import Credential, ProviderCredential
 from core.models.identity import Identity
 from core.models.profile import UserProfile
 from core.models.provider import AccountProvider, ProviderType, PlatformType,\
     ProviderSize, Provider
-from core.models.machine import Machine, ProviderMachine
+from core.models.machine import ProviderMachine
 from core.models.machine_request import MachineRequest
 from core.models.machine_export import MachineExport
 from core.models.maintenance import MaintenanceRecord
@@ -17,7 +16,7 @@ from core.models.tag import Tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
 from core.models.group import Group, ProviderMembership, IdentityMembership,\
-    InstanceMembership, MachineMembership
+    InstanceMembership
 from core.models.allocation import Allocation
 from core.models.step import Step
 from core.models.application import Application, ApplicationMembership

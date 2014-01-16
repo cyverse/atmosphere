@@ -1,13 +1,15 @@
 import time
 from threepio import logger
 from api import get_esh_driver, launch_esh_instance
-from core.models import Identity, ProviderMembership, IdentityMembership,\
-                        Provider, Group, UserProfile, Instance, Machine,\
-                        ProviderMachine, Credential, Quota, Tag
+from core.models import \
+    Identity, ProviderMembership, IdentityMembership,\
+    Provider, Group, UserProfile, Instance, Machine,\
+    ProviderMachine, Credential, Quota, Tag
 
-RUNNER_USERNAME='esteve'
+RUNNER_USERNAME = 'esteve'
 #NOTE: Probably best to run this only on dev regions late at night..
-PROVIDERS=['OPENSTACK',]
+PROVIDERS = ['OPENSTACK', ]
+
 
 def run():
     for provider_name in PROVIDERS:
@@ -24,9 +26,10 @@ def run():
                 (token, esh_instance) = launch_esh_instance(driver, {
                     'machine_alias': m.alias,
                     'size_alias': '2',
-                    'name': 'Testing Deploy and Networking %s' % ((idx + 1), )})
-                logger.info("Launched Image %s - %s.. Sleep 30sec" % (m.name,
-                    m.alias))
+                    'name': 'Testing Deploy and Networking %s'
+                            % ((idx + 1), )})
+                logger.info("Launched Image %s - %s.. Sleep 30sec"
+                            % (m.name, m.alias))
                 time.sleep(30)
                 #Test the SSH port
                 #Test that your key works

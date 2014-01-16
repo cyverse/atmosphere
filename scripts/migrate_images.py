@@ -41,7 +41,7 @@ def start(images):
     for mach_to_migrate in images:
         migrate_args['image_id'] = mach_to_migrate
         pm = ProviderMachine.objects.get(identifier=mach_to_migrate)
-        migrate_args['image_name'] = pm.machine.name
+        migrate_args['image_name'] = pm.application.name
         print 'Migrating %s..' % mach_to_migrate
         # Lookup machine, set nme
         migrate_image(euca_img_class, euca_img_creds, os_img_class, os_img_creds,

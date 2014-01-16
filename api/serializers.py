@@ -1,3 +1,4 @@
+from core.models.application import Application
 from core.models.credential import Credential
 from core.models.group import IdentityMembership
 from core.models.identity import Identity
@@ -27,6 +28,28 @@ class AccountSerializer(serializers.Serializer):
     #Define fields here
     #TODO: Define a spec that we expect from list_users across all providers
 
+
+class ApplicationSerializer(serializers.Serializer):
+    #Read-Only Fields
+    uuid = serializers.CharField(read_only=True)
+    icon = serializers.CharField(read_only=True, source='icon_url')
+    created_by = serializers.SlugRelatedField(slug_field='username',
+                                              source='created_by',
+                                              read_only=True)
+    #Writeable Fields
+    name = serializers.CharField(source='name')
+    tags = serializers.CharField(source='tags.all')
+    description = serializers.CharField(source='description')
+    start_date = serializers.CharField(source='start_date')
+    end_date = serializers.CharField(source='end_date',
+                                     required=False, read_only=True)
+    private = serializers.BooleanField(source='private')
+    featured = serializers.BooleanField(source='featured')
+    machines = serializers.RelatedField(source='get_provider_machines',
+                                              read_only=True)
+    class Meta:
+        model = Application
+    
 
 class CredentialSerializer(serializers.ModelSerializer):
     class Meta:
@@ -284,25 +307,26 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     alias = serializers.CharField(read_only=True, source='identifier')
     alias_hash = serializers.CharField(read_only=True, source='hash_alias')
     created_by = serializers.CharField(read_only=True,
-                                       source='machine.created_by.username')
+                                       source='application.created_by.username')
     icon = serializers.CharField(read_only=True, source='icon_url')
-    private = serializers.CharField(read_only=True, source='machine.private')
+    private = serializers.CharField(read_only=True, source='application.private')
     architecture = serializers.CharField(read_only=True,
                                          source='esh_architecture')
     ownerid = serializers.CharField(read_only=True, source='esh_ownerid')
     state = serializers.CharField(read_only=True, source='esh_state')
     #Writeable fields
-    name = serializers.CharField(source='machine.name')
-    tags = serializers.CharField(source='machine.tags.all')
-    description = serializers.CharField(source='machine.description')
+    name = serializers.CharField(source='application.name')
+    tags = serializers.CharField(source='application.tags.all')
+    description = serializers.CharField(source='application.description')
     start_date = serializers.CharField(source='start_date')
     end_date = serializers.CharField(source='end_date',
                                      required=False, read_only=True)
-    featured = serializers.BooleanField(source='machine.featured')
+    featured = serializers.BooleanField(source='application.featured')
+    version = serializers.CharField(source='version')
 
     class Meta:
         model = ProviderMachine
-        exclude = ('id', 'provider', 'machine', 'identity')
+        exclude = ('id', 'provider', 'application', 'identity')
 
 
 class PaginatedProviderMachineSerializer(pagination.PaginationSerializer):

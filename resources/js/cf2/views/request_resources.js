@@ -7,7 +7,7 @@
 
 Atmo.Views.RequestResourcesModal = Backbone.View.extend({
     id: 'request_resources_modal',
-    className: 'modal hide fade',
+    className: 'modal fade',
     template: _.template(Atmo.Templates.request_resources),
 	events: {
 		'click #request_resources_btn' : 'request_resources'
