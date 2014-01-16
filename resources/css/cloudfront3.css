@@ -98,6 +98,13 @@ footer {
     #main {
         margin: 70px 90px 0 340px;
     }
+
+    footer {
+        width: 250px;
+        position: fixed;
+        left: 0;
+        bottom: 0;
+    }
 }
 
 /* Medium devices (desktops, 992px and up) */
