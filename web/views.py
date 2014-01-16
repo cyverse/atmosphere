@@ -130,11 +130,10 @@ def app(request):
         logger.exception(e)
         return cas_loginRedirect(request, settings.REDIRECT_URL+'/application')
 
-@atmo_login_required
 def app_beta(request):
+    logger.debug("APP BETA")
     try:
-        if MaintenanceRecord.disable_login_access(request):
-            return HttpResponseRedirect('/login/')
+        #TODO Reimplment maintenance record check
         template = get_template("cf3/index.html")
         context = RequestContext(request, {
             'site_root': settings.REDIRECT_URL,
