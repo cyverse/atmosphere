@@ -6,7 +6,9 @@ define(['react'], function(React) {
                     {href: '/'}, 
                     React.DOM.img({
                         src: '/resources/images/mini_logo.png', 
-                        alt: 'iPlant Cloud Services'
+                        alt: 'iPlant Cloud Services',
+                        height: '30',
+                        width: '30'
                     }, "Atmosphere: iPlant Cloud Services")
                 )
             );
