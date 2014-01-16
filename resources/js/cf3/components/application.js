@@ -5,7 +5,7 @@ function (React, _, Header, Sidebar, Footer, Dashboard, Instances) {
         dashboard: {
             text: 'Dashboard',
             icon: 'home',
-            view: Dashboard,
+            view: function() {return Dashboard();},
             login_required: true
         },
         app_store: {
@@ -16,7 +16,9 @@ function (React, _, Header, Sidebar, Footer, Dashboard, Instances) {
         instances: {
             text: 'Instances',
             icon: 'cloud-download',
-            view: Instances,
+            view: function() {
+                return Instances({"profile": this.props.profile});
+            },
             login_required: true
         },
         volumes: {
@@ -61,7 +63,12 @@ function (React, _, Header, Sidebar, Footer, Dashboard, Instances) {
             this.setState({active: item});
         },
         render: function() {
-            var view = sidebar_items[this.state.active].view || Dashboard;
+            var view;
+            if (sidebar_items[this.state.active].view)
+                view = sidebar_items[this.state.active].view.bind(this);
+            else
+                view = function() {return Dashboard();}
+
             var items = sidebar_items;
             if (this.props.profile == null)
                 items = _.chain(sidebar_items)
