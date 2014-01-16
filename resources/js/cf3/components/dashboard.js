@@ -2,7 +2,8 @@ define(['react'], function(React) {
     var Dashboard = React.createClass({
         render: function() {
             return React.DOM.div({},
-                "DASHBOARD HERE PLZ"
+                React.DOM.h1({}, "Dashboard"),
+                React.DOM.p({}, "Welcome to Atmosphere!")
             );
         }
     });
