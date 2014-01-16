@@ -182,13 +182,14 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
     name = esh_machine.name
     alias = esh_machine.alias
     if metadata and has_app_data(metadata):
-        logger.debug("Metadata found for %s" % alias)
         #USE CASE: Application data exists on the image
         # and may exist on this DB
         app = get_application(alias, metadata.get('application_uuid'))
         if not app:
-            #USE CASE: New application necessary
             app_kwargs = get_app_data(metadata, provider_id)
+            logger.debug("Creating Application for Image %s "
+                         "(Based on Application data: %s)"
+                         % (alias, app_kwargs))
             app = create_application(alias, provider_id, **app_kwargs)
     else:
         #USE CASE: Application data does NOT exist,
@@ -196,13 +197,16 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
         # machine alias to retrieve any existing application.
         # otherwise create a new application with the same name as the machine
         # App assumes all default values
+        logger.info("Image %s missing Application data" % (alias, ))
         push_metadata = True
         app = get_application(alias)
         if not app:
+            logger.debug("Creating Application for Image %s" % (alias, ))
             app = create_application(alias, provider_id, name)
     provider_machine = load_provider_machine(alias, name, provider_id,
                                              app=app, metadata=metadata)
     if push_metadata:
+        logger.debug("Creating Application data for Image %s" % (alias, ))
         write_app_data(esh_driver, provider_machine)
     provider_machine.esh = esh_machine
     return provider_machine

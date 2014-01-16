@@ -211,26 +211,10 @@ class Instance(models.Model):
             return "Unknown"
 
     def esh_machine_name(self):
-        if self.esh and self.esh.machine:
-            return self.esh.machine.name
-        else:
-            try:
-                if self.provider_machine and self.provider_machine.application:
-                    return self.provider_machine.application.name
-            except ProviderMachine.DoesNotExist as dne:
-                logger.exception("Unable to find provider_machine for %s." % self.provider_alias)
-        return "Unknown"
+        return self.provider_machine.application.name
 
     def esh_machine(self):
-        if self.esh:
-            return self.esh._node.extra['imageId']
-        else:
-            try:
-                if self.provider_machine:
-                    return self.provider_machine.identifier
-            except ProviderMachine.DoesNotExist as dne:
-                logger.exception("Unable to find provider_machine for %s." % self.provider_alias)
-        return "Unknown"
+        return self.provider_machine.identifier
 
     def json(self):
         return {
@@ -359,7 +343,6 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id, use
         logger.debug("Instance %s" % alias)
         logger.debug("CREATED: %s" % create_stamp)
         logger.debug("START: %s" % start_date)
-
         coreMachine = convert_esh_machine(esh_driver, eshMachine, provider_id,
                                         image_id=esh_instance.image_id)
         core_instance = create_instance(provider_id, identity_id, alias,
