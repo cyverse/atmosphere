@@ -23,23 +23,9 @@ require.config({
     }
 });
 
-require(['jquery', 'backbone', 'react', 'components/sidebar', 'components/header'], function($, Backbone, React, Sidebar, Header) {
+require(['jquery', 'backbone', 'react', 'components/application'], function($, Backbone, React, Application) {
     $(document).ready(function() {
 
-        var sidebar_items = [
-            ['Dashboard', 'home'],
-            ['App Store', 'shopping-cart'],
-            ['Instances', 'cloud-download'],
-            ['Volumes', 'hdd'],
-            ['Images', 'camera'],
-            ['Cloud Providers', 'cloud'],
-            ['Quotas', 'tasks'],
-            ['Settings', 'cog'],
-            ['Help', 'question-sign']
-        ];
-
-        React.renderComponent(Sidebar({items: sidebar_items, active: 'Dashboard'}), document.getElementById('sidebar'));
-
-        React.renderComponent(Header(), document.getElementsByTagName('header')[0]);
+        React.renderComponent(Application(), document.getElementById('application'));
     });
 });

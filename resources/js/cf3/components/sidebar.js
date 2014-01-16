@@ -37,7 +37,7 @@ define(['react'], function (React) {
                     text: item[0]
                 });
             });
-            return React.DOM.ul({}, items);
+            return React.DOM.div({id: 'sidebar'}, React.DOM.ul({}, items));
         }
     });
 
