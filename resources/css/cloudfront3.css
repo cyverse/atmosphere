@@ -48,12 +48,12 @@ header a {
     background-color: #e6e6e6;
 }
 
-#sidebar li a.active {
+#sidebar li.active a {
     background-color: #333;
     color: #fff;
 }
 
-#sidebar li a.active:hover {
+#sidebar li.active a:hover {
     background-color: #444;  
 }
 
@@ -78,7 +78,7 @@ footer {
         height: 100%;
     }
 
-    #sidebar li a.active:before {
+    #sidebar li.active a:before {
         content: "";
         background-color: #fff;
         width: 34px;
@@ -91,7 +91,7 @@ footer {
         border-style: solid;
         border-color: #333333 #ffffff #333333 #333333;
     }
-    #sidebar li a.active:hover:before {
+    #sidebar li.active a:hover:before {
         border-color: #444444 #ffffff #444444 #444444;
     }
 
