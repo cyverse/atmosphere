@@ -48,6 +48,15 @@ header a {
     background-color: #e6e6e6;
 }
 
+#sidebar li a.active {
+    background-color: #333;
+    color: #fff;
+}
+
+#sidebar li a.active:hover {
+    background-color: #444;  
+}
+
 footer {
     text-align: center;
     margin: 3em 0;
@@ -72,18 +81,18 @@ footer {
     #sidebar li a.active:before {
         content: "";
         background-color: #fff;
-        width: 44px;
-        height: 44px;
+        width: 34px;
+        height: 34px;
         display: block;
         position: absolute;
         right: 0;
-        top: 0;
-        border-width: 22px;
+        top: 5px;
+        border-width: 17px;
         border-style: solid;
-        border-color: #f5f5f5 #ffffff #f5f5f5 #f5f5f5;
+        border-color: #333333 #ffffff #333333 #333333;
     }
     #sidebar li a.active:hover:before {
-        border-color: #e6e6e6 #ffffff #e6e6e6 #e6e6e6;
+        border-color: #444444 #ffffff #444444 #444444;
     }
 
     #main {
