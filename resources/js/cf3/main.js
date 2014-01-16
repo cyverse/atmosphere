@@ -70,7 +70,7 @@ require(['jquery', 'backbone', 'react'], function($, Backbone, React) {
         var sidebar_items = [
             ['Dashboard', 'home'],
             ['App Store', 'shopping-cart'],
-            ['Instance', 'cloud-download'],
+            ['Instances', 'cloud-download'],
             ['Volumes', 'hdd'],
             ['Images', 'camera'],
             ['Cloud Providers', 'cloud'],
