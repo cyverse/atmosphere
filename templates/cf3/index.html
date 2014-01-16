@@ -13,20 +13,10 @@
     <![endif]-->
     <script type="text/javascript">
     var site_root = '{{ site_root }}';
-    sessionStorage.clear(); // clear previous sessionStorage values
     </script>
-    <!-- 3rd party dependencies -->
-    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
-    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.js"></script>
-    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jqueryui/1.8.17/jquery-ui.js"></script>
-    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.3/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/datejs/1.0/date.min.js"></script>
-    <!--script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/require.js/1.0.8/require.min.js"></script-->
-    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.3/underscore-min.js"></script>
-    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/0.9.9/backbone-min.js"></script>
-
     <!-- Application dependencies -->
     <link rel="shortcut icon" href="{{ site_root }}/resources/images/favicon.ico" />
+    <script data-main="{{ site_root }}/resources/js/cf3/main.js" src="//cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
     {% csrf_token %}
     <!-- Google Analtics -->
     <script src="{{ site_root }}/resources/js/analytics.js"></script>
