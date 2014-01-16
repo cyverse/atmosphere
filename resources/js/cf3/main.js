@@ -23,10 +23,19 @@ require.config({
     }
 });
 
-require(['jquery', 'backbone', 'react', 'components/application', 'models/profile'], function($, Backbone, React, Application, Profile) {
+require(['jquery', 'backbone', 'react', 'components/application', 'models/profile', 'collections/identities'], function($, Backbone, React, Application, Profile, Identities) {
+    /* Get Profile and identities beofre we do anything else  */
     var profile = new Profile();
     profile.fetch({
         async: false,
+        success: function(model) {
+            var identities = new Identities();
+            identities.fetch({
+                async: false
+            });
+
+            model.set('identities', identities);
+        },
         error: function(model, response, options) {
             if (response.status == 401) {
                 console.log("Not logged in");
@@ -35,6 +44,7 @@ require(['jquery', 'backbone', 'react', 'components/application', 'models/profil
             }
         }
     });
+
     var logged_in = !profile.isNew();
 
     $(document).ready(function() {
