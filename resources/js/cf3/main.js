@@ -23,9 +23,24 @@ require.config({
     }
 });
 
-require(['jquery', 'backbone', 'react', 'components/application'], function($, Backbone, React, Application) {
-    $(document).ready(function() {
+require(['jquery', 'backbone', 'react', 'components/application', 'models/profile'], function($, Backbone, React, Application, Profile) {
+    var profile = new Profile();
+    profile.fetch({
+        async: false,
+        error: function(model, response, options) {
+            if (response.status == 401) {
+                console.log("Not logged in");
+            } else {
+                console.error("Error fetching profile");
+            }
+        }
+    });
+    var logged_in = !profile.isNew();
 
-        React.renderComponent(Application(), document.getElementById('application'));
+    $(document).ready(function() {
+        React.renderComponent(
+            Application({profile: logged_in ? profile : null}), 
+            document.getElementById('application')
+        );
     });
 });
