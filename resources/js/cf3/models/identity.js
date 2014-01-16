@@ -1,4 +1,4 @@
-define(['underscore', 'models/base'], function(_, Base) {
+define(['underscore', 'models/base', 'collections/instances'], function(_, Base, Instances) {
     var Identity = Base.extend({
         defaults: { 'model_name': 'identity' },
         initialize: function(attributes, options) {
@@ -26,6 +26,9 @@ define(['underscore', 'models/base'], function(_, Base) {
             return url = this.urlRoot
                 + '/provider/' + creds.provider_id 
                 + '/' + this.defaults.model_name + '/';
+        },
+        get_instances: function() {
+            return new Instances(null, {provider_id: this.get('provider_id'), identity_id: this.id});
         }
     });
 

@@ -6,7 +6,7 @@ define(['backbone', 'underscore'], function(Backbone, _) {
 var Base = Backbone.Collection.extend({
 	urlRoot: '/api/v1',
 	url: function() {
-		var creds = Atmo.get_credentials();
+		var creds = this.creds;
 		return url = this.urlRoot
 			+ '/provider/' + creds.provider_id 
 			+ '/identity/' + creds.identity_id
