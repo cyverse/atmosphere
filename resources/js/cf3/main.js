@@ -23,7 +23,7 @@ require.config({
     }
 });
 
-require(['jquery', 'backbone', 'react', 'sidebar'], function($, Backbone, React, Sidebar) {
+require(['jquery', 'backbone', 'react', 'components/sidebar', 'components/header'], function($, Backbone, React, Sidebar, Header) {
     $(document).ready(function() {
 
         var sidebar_items = [
@@ -39,5 +39,7 @@ require(['jquery', 'backbone', 'react', 'sidebar'], function($, Backbone, React,
         ];
 
         React.renderComponent(Sidebar({items: sidebar_items, active: 'Dashboard'}), document.getElementById('sidebar'));
+
+        React.renderComponent(Header(), document.getElementsByTagName('header')[0]);
     });
 });
