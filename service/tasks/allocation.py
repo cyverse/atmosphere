@@ -7,8 +7,9 @@ from service.allocation import check_over_allocation
 
 from threepio import logger
 
+
 @periodic_task(run_every=crontab(hour='*', minute='*/15', day_of_week='*'),
-               time_limit=120, retry=0) # 2min timeout
+               time_limit=120, retry=0)  # 2min timeout
 def monitor_instances():
     """
     This task should be run every 5m-15m
@@ -37,17 +38,19 @@ def monitor_instances():
 def over_allocation_test(identity, esh_instances):
     from api import get_esh_driver
     from core.models.instance import convert_esh_instance
-    over_allocated, time_diff = check_over_allocation(identity.created_by.username, identity.id)
+    over_allocated, time_diff = check_over_allocation(
+        identity.created_by.username, identity.id)
     if not over_allocated:
         # Nothing changed, bail.
         return False
 
-    #NOTE: For this roll out, allocations will NOT auto-suspend when the user has expired
+    #NOTE: For this roll out, allocations will NOT
+    # auto-suspend when the user has expired
     return True
 
     #ASSERT:Over the allocation, suspend all instances for the identity
 
-    #TODO: It may be beneficial to only suspend if: 
+    #TODO: It may be beneficial to only suspend if:
     # instance.created_by == im.member.name
     # (At this point, it doesnt matter)
 
@@ -67,13 +70,13 @@ def over_allocation_test(identity, esh_instances):
         updated_core.update_history(updated_esh.extra['status'],
                                     updated_esh.extra.get('task'))
     #All instances are dealt with, move along.
-    return True # User was over_allocation
+    return True  # User was over_allocation
 
 
 def update_instances(identity, esh_list, core_list):
     """
     End-date core instances that don't show up in esh_list
-    && Update the values of instances that do 
+    && Update the values of instances that do
     """
     esh_ids = [instance.id for instance in esh_list]
     logger.info(esh_ids)
@@ -88,6 +91,6 @@ def update_instances(identity, esh_list, core_list):
         esh_instance = esh_list[index]
         core_instance.update_history(
             esh_instance.extra['status'],
-            esh_instance.extra.get('task') or\
-            esh_instance.extra.get('metadata',{}).get('tmp_status'))
+            esh_instance.extra.get('task') or
+            esh_instance.extra.get('metadata', {}).get('tmp_status'))
     return

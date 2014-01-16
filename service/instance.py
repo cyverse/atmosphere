@@ -142,7 +142,7 @@ def destroy_instance(identity_id, instance_alias):
     return node_destroyed
 
 
-def launch_instance(user, provider_id, identity_id, 
+def launch_instance(user, provider_id, identity_id,
                     size_alias, machine_alias, **kwargs):
     """
     Required arguments will launch the instance, extras will do
@@ -208,9 +208,9 @@ def security_group_init(core_identity):
     os_driver = OSAccountDriver(core_identity.provider)
     creds = core_identity.get_credentials()
     security_group = os_driver.init_security_group(
-            creds['key'], creds['secret'],
-            creds['ex_tenant_name'], creds['ex_tenant_name'],
-            os_driver.MASTER_RULES_LIST)
+        creds['key'], creds['secret'],
+        creds['ex_tenant_name'], creds['ex_tenant_name'],
+        os_driver.MASTER_RULES_LIST)
     return security_group
 
 
@@ -220,8 +220,8 @@ def keypair_init(core_identity):
     with open(settings.ATMOSPHERE_KEYPAIR_FILE, 'r') as pub_key_file:
         public_key = pub_key_file.read()
     keypair, created = os_driver.get_or_create_keypair(
-            creds['key'], creds['secret'], creds['ex_tenant_name'],
-            settings.ATMOSPHERE_KEYPAIR_NAME, public_key)
+        creds['key'], creds['secret'], creds['ex_tenant_name'],
+        settings.ATMOSPHERE_KEYPAIR_NAME, public_key)
     if created:
         logger.info("Created keypair for %s" % creds['key'])
     return keypair

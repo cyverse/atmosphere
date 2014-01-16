@@ -24,7 +24,7 @@ class DriverManager(object):
         """
         if not cls._instance:
             cls._instance = super(DriverManager, cls).__new__(
-                    cls, *args, **kwargs)
+                cls, *args, **kwargs)
             cls._instance.driver_map = {}
         return cls._instance
 

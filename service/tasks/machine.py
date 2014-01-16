@@ -27,7 +27,7 @@ except ImportError:
 
 def start_machine_imaging(machine_request, delay=False):
     """
-    Builds up a machine imaging task using the core.models.machine_request object
+    Builds up a machine imaging task using core.models.machine_request
     delay - If true, wait until task is completed before returning
     """
     machine_request.status = 'processing'
@@ -41,19 +41,21 @@ def start_machine_imaging(machine_request, delay=False):
     #Step 1 - On OpenStack, sync/freeze BEFORE starting migration/imaging
     init_task = None
     if orig_managerCls == OSImageManager:  # TODO:AND if instance still running
-        freeze_task = freeze_instance_task.si(machine_request.instance.created_by_identity_id, instance_id)
+        freeze_task = freeze_instance_task.si(
+            machine_request.instance.created_by_identity_id, instance_id)
         init_task = freeze_task
     if dest_managerCls and dest_creds != orig_creds:
         #Will run machine imaging task..
         migrate_task = migrate_instance_task.si(
-                orig_managerCls, orig_creds, dest_managerCls, dest_creds,
-                **imaging_args)
+            orig_managerCls, orig_creds, dest_managerCls, dest_creds,
+            **imaging_args)
         if not init_task:
             init_task = migrate_task
         else:
             init_task.link(migrate_task)
     else:
-        image_task = machine_imaging_task.si(orig_managerCls, orig_creds, imaging_args)
+        image_task = machine_imaging_task.si(
+            orig_managerCls, orig_creds, imaging_args)
         if not init_task:
             init_task = image_task
         else:
@@ -65,7 +67,8 @@ def start_machine_imaging(machine_request, delay=False):
     else:
         image_task.link(process_task)
 
-    async = init_task.apply_async(link_error=machine_request_error.s((machine_request.id,)))
+    async = init_task.apply_async(
+        link_error=machine_request_error.s((machine_request.id,)))
     if delay:
         async.get()
     return async
@@ -91,21 +94,21 @@ def set_machine_request_metadata(machine_request, image_id):
         metadata['description'] = machine_request.new_machine_description
     if machine_request.new_machine_tags:
         metadata['tags'] = machine_request.new_machine_tags
-    logger.info("LC Driver:%s - Machine:%s - Metadata:%s" % (lc_driver,
-            machine.id, metadata))
+    logger.info("LC Driver:%s - Machine:%s - Metadata:%s"
+                % (lc_driver, machine.id, metadata))
     lc_driver.ex_set_image_metadata(machine, metadata)
     return machine
 
 
-
 @task
 def machine_request_error(machine_request_id, task_uuid):
-    logger.info("machine_request_id=%s"% machine_request_id)
-    logger.info("task_uuid=%s"% task_uuid)
+    logger.info("machine_request_id=%s" % machine_request_id)
+    logger.info("task_uuid=%s" % task_uuid)
 
     result = AsyncResult(task_uuid)
     exc = result.get(propagate=False)
-    err_str = "Task %s raised exception: %r\n%r" % (task_uuid, exc, result.traceback)
+    err_str = "Task %s raised exception: %r\n%r"\
+              % (task_uuid, exc, result.traceback)
     logger.error(err_str)
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.status = err_str
@@ -131,14 +134,15 @@ def invalidate_machine_cache(machine_request):
     """
     from api import get_esh_driver
     admins = machine_request.instance.\
-            provider_machine.provider.\
-            accountprovider_set.all()
+        provider_machine.provider.\
+        accountprovider_set.all()
     if not admins:
         return
     admin_id = admins[0].identity
     driver = get_esh_driver(admin_id)
     driver.provider.machineCls.invalidate_provider_cache(driver.provider)
     return
+
 
 @task(name='freeze_instance_task', ignore_result=False)
 def freeze_instance_task(identity_id, instance_id):
