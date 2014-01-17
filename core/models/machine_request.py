@@ -9,7 +9,7 @@ from django.utils import timezone
 from core.models.user import AtmosphereUser as User
 
 
-from core.models.provider import Provider
+from core.models.provider import Provider, AccountProvider
 from core.models.machine import create_provider_machine
 from core.models.node import NodeController
 
