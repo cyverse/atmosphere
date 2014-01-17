@@ -32,8 +32,6 @@ def update_machine_metadata(esh_driver, esh_machine, data={}):
         #  * application name
         #  * specific machine version
         #TAGS must be converted from list --> String
-        if 'tags' in data and type(data['tags']) == list:
-            data['tags'] = json.dumps(data['tags'])
         logger.info("New metadata:%s" % data)
         meta_response = esh_driver._connection.ex_set_image_metadata(esh_machine, data)
         esh_machine.invalidate_machine_cache(esh_driver.provider, esh_machine)

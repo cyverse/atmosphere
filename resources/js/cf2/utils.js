@@ -1,7 +1,32 @@
 /** 
  * Global utilities file.  You can call these from anythwere!
  */
+//Why is this not already in date... 
+Date.prototype.format = function(format) {
+  var o = {
+    "M+" : this.getMonth()+1, //month
+    "d+" : this.getDate(),    //day
+    "h+" : this.getHours(),   //24-hour
+    "H+" : this.getHours(),   //24-hour
+    "I+" : (this.getHours() > 12) ? this.getHours()-12 : this.getHours() ,   //12-hour
+    "m+" : this.getMinutes(), //minute
+    "p" : (this.getHours() > 12) ? 'PM' : 'AM', //AM/PM
+    "s+" : this.getSeconds(), //second
+    "q+" : Math.floor((this.getMonth()+3)/3),  //quarter
+    "S" : this.getMilliseconds() //millisecond
+  }
 
+  if(/(y+)/.test(format)) format=format.replace(RegExp.$1,
+    (this.getFullYear()+"").substr(4 - RegExp.$1.length));
+  for(var k in o)if(new RegExp("("+ k +")").test(format))
+    format = format.replace(RegExp.$1,
+      RegExp.$1.length==1 ? o[k] :
+        ("00"+ o[k]).substr((""+ o[k]).length));
+  return format;
+}
+Atmo.Utils.minutes_to_pretty_time = function(minutes, precision) {
+    return Atmo.Utils.seconds_to_pretty_time(minutes*60, precision)
+};
 Atmo.Utils.seconds_to_pretty_time = function(seconds, precision) {
     // Precision refers to how many subdivisions of time to return
     var pretty_time = "";

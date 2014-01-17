@@ -109,6 +109,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     token = serializers.CharField(read_only=True)
     has_shell = serializers.BooleanField(read_only=True, source='shell')
     has_vnc = serializers.BooleanField(read_only=True, source='vnc')
+    provider = serializers.CharField(read_only=True, source='provider_name')
     #Writeable fields
     name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', source='tags', many=True)
@@ -136,7 +137,7 @@ class InstanceHistorySerializer(serializers.ModelSerializer):
     start_date = serializers.DateTimeField(read_only=True)
     end_date = serializers.DateTimeField(read_only=True)
     active_time = serializers.DateTimeField(read_only=True, source='get_active_time')
-    #provider = serializers.Field(source='provider_machine__provider')
+    provider = serializers.CharField(read_only=True, source='provider_name')
     #Writeable fields
     name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', source='tags', many=True)

@@ -73,6 +73,7 @@ def generate_access_token(pem_id_key, iss='atmosphere',
                   'grant_type': 'urn:ietf:params:oauth:grant-type:jwt-bearer'
                   })
     if response.status_code != 200:
+        import ipdb;ipdb.set_trace()
         raise Exception("Failed to generate auth token. Response:%s"
                         % response)
     json_obj = response.json()
