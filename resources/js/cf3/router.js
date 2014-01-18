@@ -1,9 +1,11 @@
 define(['backbone'], function(Backbone) {
     var Router = Backbone.Router.extend({
         routes: {
+            "": "handleDefaultRoute"
         },
         initialize: function(options) {
             this.app = options.app;
+            this.defaultRoute = options.defaultRoute;
             var base_routes = [
                 'dashboard',
                 'app_store',
@@ -20,6 +22,9 @@ define(['backbone'], function(Backbone) {
         },
         toggleAppView: function(query) {
             this.app.handleSelect(query);
+        },
+        handleDefaultRoute: function() {
+            this.toggleAppView(this.defaultRoute);
         }
     });
 

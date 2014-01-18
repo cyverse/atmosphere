@@ -53,13 +53,11 @@ require(['jquery', 'backbone', 'react', 'components/application', 'models/profil
         var app = Application({profile: logged_in ? profile : null});
         React.renderComponent(app, document.getElementById('application'));
 
-        new Router({app: app});
+        var route = logged_in ? 'dashboard' : 'app_store';
+        new Router({app: app, defaultRoute: route});
         Backbone.history.start({
             pushState: true,
             root: url_root
         });
-
-        var route = logged_in ? 'dashboard' : 'app_store';
-        Backbone.history.navigate(route, {trigger: true})
     });
 });

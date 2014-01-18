@@ -75,7 +75,9 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
              * http://www.bennadel.com/blog/2402-Lazy-Loading-RequireJS-Modules-When-They-Are-First-Requested.htm
              */
             Backbone.history.navigate(item);
-            this.setState({loading: true});
+            if (!sidebar_items[item])
+                throw 'invalid route ' + item;
+            this.setState({loading: true, active: item});
             var view = sidebar_items[item].view;
             if (view === 'loading')
                 return;
@@ -86,14 +88,14 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
                 require(sidebar_items[item].modules, function() {
                     sidebar_items[item].view = sidebar_items[item].getView.apply(this, arguments);
                     window.setTimeout(function() {
-                        this.setState({active: item});
+                        this.setState({active: item, loading: false});
                     }.bind(this), 2000);
                 }.bind(this));
             }
         },
         render: function() {
             var view;
-            if (this.state.active)
+            if (this.state.active && !this.state.loading)
                 view = sidebar_items[this.state.active].view;
             else
                 view = React.DOM.div({}, "loading");
