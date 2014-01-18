@@ -137,6 +137,7 @@ def app_beta(request):
         template = get_template("cf3/index.html")
         context = RequestContext(request, {
             'site_root': settings.REDIRECT_URL,
+            'url_root': '/beta/',
             'debug': settings.DEBUG,
             'year': datetime.now().year
         })
