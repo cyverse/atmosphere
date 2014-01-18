@@ -1,6 +1,7 @@
 define(['react', 'underscore', 'components/header', 'components/sidebar', 
-        'components/footer', 'components/dashboard', 'components/instances'],
-function (React, _, Header, Sidebar, Footer, Dashboard, Instances) {
+        'components/footer', 'components/dashboard', 'components/instances',
+        'components/volumes'],
+function (React, _, Header, Sidebar, Footer, Dashboard, Instances, Volumes) {
     var sidebar_items = {
         dashboard: {
             text: 'Dashboard',
@@ -24,7 +25,10 @@ function (React, _, Header, Sidebar, Footer, Dashboard, Instances) {
         volumes: {
             text: 'Volumes',
             icon: 'hdd',
-            login_required: true
+            login_required: true,
+            view: function() {
+                return Volumes({"profile": this.props.profile});
+            }
         },
         images: {
             text: 'Images',

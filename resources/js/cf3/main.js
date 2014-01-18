@@ -2,12 +2,14 @@ require.config({
     baseUrl: '/resources/js/cf3',
     paths: {
         'jquery': '//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery',
+        'jquery-ui': '//ajax.googleapis.com/ajax/libs/jqueryui/1.8.17/jquery-ui',
         'backbone': '//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.0/backbone-min',
         'underscore': '//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.3/underscore-min',
         'google': 'https://www.google.com/jsapi',
         'bootstrap': '//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.3/js/bootstrap.min',
         'date': '//cdnjs.cloudflare.com/ajax/libs/datejs/1.0/date.min',
-        'react': '//cdnjs.cloudflare.com/ajax/libs/react/0.8.0/react.min'
+        'react': '//cdnjs.cloudflare.com/ajax/libs/react/0.8.0/react.min',
+        'templates': '/partials/templates_require'
     },
     shim: {
         backbone: {

@@ -1,0 +1,64 @@
+   <div class="modal-dialog">
+   <div class="modal-content">
+	<div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal">&times;</button>
+		<h2>Report Broken Volume</h2>
+	</div>
+	<div class="modal-body">
+		<p>
+			<p class="alert alert-info"><i class="icon-info-sign"></i> First, it may help to read about <a href="https://pods.iplantcollaborative.org/wiki/x/OKxm" target="_blank">using volumes</a> and <a href="https://pods.iplantcollaborative.org/wiki/x/p55y" target="_blank">troubleshooting volumes</a>.</p>
+			
+			<form name="report_volume_form" style="margin-bottom: 0">
+				<h3>Select the volume to report.</h3>
+				<div class="row-fluid">
+					<div class="span11 offset1">
+						<select name="broken_volume">
+						</select>
+					</div>
+				</div>
+
+				<div class="control-group">
+					<label class="control-label">What problem(s) are you having with this volume?</label>
+					<div class="row-fluid">
+						<div class="span11 offset1">
+							<label class="checkbox">
+								<input type="checkbox" value="Cannot attach/detach"> 
+								Volume does not successfully attach or detach.
+							</label>
+							<label class="checkbox">
+								<input type="checkbox" value="Cannot mount/unmount"> 
+								Volume does not successfully mount or unmount.
+							</label>
+							<label class="checkbox">
+							<input type="checkbox" value="Missing Data"> 
+								Data is missing from my volume.
+							</label>
+							<label class="checkbox">
+								<input type="checkbox" value="Cannot transfer data on/off volume"> 
+								Cannot transfer data on/off my volume.
+							</label>
+							<label class="checkbox">
+								<input type="checkbox" value="Something else"> 
+								Something Else
+							</label>
+						</div>
+					</div>
+				</div>
+
+				<div class="control-group">
+					<label class="control-label">Please provide as many details about the problem as possible.</label>
+					<div class="row-fluid">
+						<div class="span11 offset1">
+							<textarea name="problem_details" style="width: 80%" rows="3"></textarea>
+						</div>
+					</div>
+				</div>
+			</form>
+		</p>
+	</div>
+	<div class="modal-footer">
+		<a href="#" class="btn" data-dismiss="modal">Cancel</a>
+		<a href="#" class="btn btn-primary" id="report_volume_confirm">Report Volume</a>
+	</div>
+   </div>
+   </div>

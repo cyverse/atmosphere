@@ -1,0 +1,37 @@
+   <div class="modal-dialog">
+   <div class="modal-content">
+	<div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal">&times;</button>
+		<h2>Backup a Volume</h2>
+	</div>
+	<div class="modal-body">
+		<p>
+			<p>The contents of the selected volume will be backed up to your iPlant Data Store home directory in a folder of the same name.</p>
+			<form name="backup_volume_form">
+
+				<div class="control-group">
+					<label for="volume_to_backup">Volume to Backup</label>
+					<select name="volume_to_backup">
+						<option disabled="disabled">No Volumes</option>
+					</select>
+				</div>
+
+				<div class="control-group">
+					<label for="backup_name">Backup Name</label>
+					<input type="text" name="backup_name" type="text" />
+					<div id="backup_name_errors"></div>
+				</div>
+
+				<div class="control-group">
+					<label for="backup_location">Backup Location</label>
+					<input name="backup_location" type="text" disabled="disabled" style="width: 80%" />
+				</div>
+			</form>
+		</p>
+	</div>
+	<div class="modal-footer">
+		<a href="#" class="btn" data-dismiss="modal">Cancel</a>
+		<a href="#" class="btn btn-primary" id="confirm_backup">Backup Volume</a>
+	</div>
+   </div>
+   </div>
