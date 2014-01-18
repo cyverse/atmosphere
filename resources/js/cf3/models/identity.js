@@ -1,4 +1,4 @@
-define(['underscore', 'models/base', 'collections/instances'], function(_, Base, Instances) {
+define(['underscore', 'models/base', 'collections/instances', 'collections/volumes'], function(_, Base, Instances, Volumes) {
     var Identity = Base.extend({
         defaults: { 'model_name': 'identity' },
         initialize: function(attributes, options) {
@@ -35,16 +35,22 @@ define(['underscore', 'models/base', 'collections/instances'], function(_, Base,
                 return this[attr]();
             return Backbone.Model.prototype.get.call(this, attr);
         },
-        instances: function() {
-            var instances = this.get('_instances');
-            if (!instances) {
-                instances = new Instances(null, {
+        get_collection: function(cls, key) {
+            var collection = this.get(key);
+            if (!collection) {
+                collection = new cls(null, {
                     provider_id: this.get('provider_id'),
                     identity_id: this.id
                 });
-                this.set('_instances', instances);
+                this.set(key, collection);
             }
-            return instances;
+            return collection;
+        },
+        instances: function() {
+            return this.get_collection(Instances, '_instances');
+        },
+        volumes: function() {
+            return this.get_collection(Volumes, '_volumes');
         }
     });
 
