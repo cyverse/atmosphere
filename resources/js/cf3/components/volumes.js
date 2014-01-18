@@ -15,11 +15,21 @@ define(['react', 'components/identity_select', 'backbone', 'views/volume_screen/
                 React.DOM.h1({}, "Volumes"),
                 IdentitySelect({identities: this.props.profile.get('identities'), onSelect: this.onSelect}),
                 React.DOM.h2({}, "Provider " + this.state.identity.get('provider_id') + ", Identity " + this.state.identity.get('id')),
-                Utils.viewToComponent(new VolumeScreen({
-                    volumes: this.state.identity.get('volumes'),
-                    instances: this.state.identity.get('instances')
-                }))
+                React.DOM.div({id: 'volume-screen'})
             );
+        },
+        drawVolumeScreen: function() {
+            new VolumeScreen({
+                el: document.getElementById('volume-screen'),
+                volumes: this.state.identity.get('volumes'),
+                instances: this.state.identity.get('instances')
+            }).render();
+        },
+        componentDidMount: function(node) {
+            this.drawVolumeScreen();
+        },
+        componentDidUpdate: function(prevProps, prevState, root) {
+            this.drawVolumeScreen();
         }
     });
 

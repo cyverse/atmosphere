@@ -51,16 +51,6 @@ Utils.relative_time = function(date_obj) {
     return time + ' ago';
 };
 
-Utils.viewToComponent = function(view) {
-    var props = {};
-    props.dangerouslySetInnerHTML = {'__html': view.render().el.innerHTML};
-    if (view.id)
-        props.id = view.id;
-    if (view.className)
-        props.className = view.className;
-    return React.DOM[view.tagName](props);
-};
-
 return Utils;
 
 });
