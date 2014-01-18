@@ -240,6 +240,7 @@ class IdentityRelatedField(serializers.RelatedField):
         quota_dict = identity.get_quota_dict()
         return {
             "id": identity.id,
+            "provider": identity.provider.location,
             "provider_id": identity.provider.id,
             "quota": quota_dict,
         }
