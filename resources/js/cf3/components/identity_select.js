@@ -1,4 +1,4 @@
-define(['react'], function(React) {
+define(['react', 'providers'], function(React, providers) {
 
     var IdentitySelect = React.createClass({
         getInitialState: function() {
@@ -13,9 +13,12 @@ define(['react'], function(React) {
                     onChange: this.onSelect
                 },
                 this.props.identities.map(function(identity) {
-                    return React.DOM.option({
-                        'value': identity.id
-                    }, "Provider " + identity.get('provider_id') + ", Identity " + identity.id);
+                    var provider = providers.get(identity.get('provider_id'));
+                    if (!provider)
+                        console.error("Unknown provider in identity", identity);
+                    return React.DOM.option({'value': identity.id}, 
+                        provider.get('location') 
+                    )
                 })
             );
         }
