@@ -1,13 +1,15 @@
 define(['react', 'underscore', 'components/header', 'components/sidebar', 
-        'components/footer', 'components/dashboard', 'components/instances',
-        'components/volumes', 'components/notifications'],
-function (React, _, Header, Sidebar, Footer, Dashboard, Instances, Volumes, 
-    Notifications) {
+        'components/footer', 'components/notifications'],
+function (React, _, Header, Sidebar, Footer, Notifications) {
+
     var sidebar_items = {
         dashboard: {
             text: 'Dashboard',
             icon: 'home',
-            view: function() {return Dashboard();},
+            modules: ['components/dashboard'],
+            getView: function(Dashboard) {
+                return Dashboard();
+            },
             login_required: true
         },
         app_store: {
@@ -18,7 +20,8 @@ function (React, _, Header, Sidebar, Footer, Dashboard, Instances, Volumes,
         instances: {
             text: 'Instances',
             icon: 'cloud-download',
-            view: function() {
+            modules: ['components/instances'],
+            getView: function(Instances) {
                 return Instances({"profile": this.props.profile});
             },
             login_required: true
@@ -27,7 +30,8 @@ function (React, _, Header, Sidebar, Footer, Dashboard, Instances, Volumes,
             text: 'Volumes',
             icon: 'hdd',
             login_required: true,
-            view: function() {
+            modules: ['components/volumes'],
+            getView: function(Volumes) {
                 return Volumes({"profile": this.props.profile});
             }
         },
@@ -61,19 +65,38 @@ function (React, _, Header, Sidebar, Footer, Dashboard, Instances, Volumes,
     var Application = React.createClass({
         getInitialState: function() {
             return {
-                active: this.props.profile == null ? 'app_store' : 'dashboard'
+                active: null,
+                laoding: true
             };
         },
         handleSelect: function(item) {
+            /*
+             * Lazy load views
+             * http://www.bennadel.com/blog/2402-Lazy-Loading-RequireJS-Modules-When-They-Are-First-Requested.htm
+             */
             Backbone.history.navigate(item);
-            this.setState({active: item});
+            this.setState({loading: true});
+            var view = sidebar_items[item].view;
+            if (view === 'loading')
+                return;
+            if (view !== undefined)
+                this.setState({active: item});
+            else {
+                sidebar_items[item].view = 'loading';
+                require(sidebar_items[item].modules, function() {
+                    sidebar_items[item].view = sidebar_items[item].getView.apply(this, arguments);
+                    window.setTimeout(function() {
+                        this.setState({active: item});
+                    }.bind(this), 2000);
+                }.bind(this));
+            }
         },
         render: function() {
             var view;
-            if (sidebar_items[this.state.active].view)
-                view = sidebar_items[this.state.active].view.bind(this);
+            if (this.state.active)
+                view = sidebar_items[this.state.active].view;
             else
-                view = function() {return Dashboard();}
+                view = React.DOM.div({}, "loading");
 
             var items = sidebar_items;
             if (this.props.profile == null)
@@ -84,7 +107,7 @@ function (React, _, Header, Sidebar, Footer, Dashboard, Instances, Volumes,
                     })
                     .object()
                     .value();
-
+            
             return React.DOM.div({},
                 Header(),
                 Sidebar({
@@ -93,7 +116,7 @@ function (React, _, Header, Sidebar, Footer, Dashboard, Instances, Volumes,
                     onSelect: this.handleSelect
                 }),
                 Notifications(),
-                React.DOM.div({'id': 'main'}, view()),
+                React.DOM.div({'id': 'main'}, view),
                 Footer()
             );
         }
