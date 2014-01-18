@@ -21,6 +21,7 @@
 
 #sidebar li a i {
     margin-right: 10px;
+    top: 3px;
 }
 
 #sidebar li a:hover {
