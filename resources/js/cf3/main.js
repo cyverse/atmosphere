@@ -23,7 +23,7 @@ require.config({
     }
 });
 
-require(['jquery', 'backbone', 'react', 'components/application', 'models/profile', 'collections/identities'], function($, Backbone, React, Application, Profile, Identities) {
+require(['jquery', 'backbone', 'react', 'components/application', 'models/profile', 'collections/identities', 'router'], function($, Backbone, React, Application, Profile, Identities, Router) {
     /* Get Profile and identities beofre we do anything else  */
     var profile = new Profile();
     profile.fetch({
@@ -48,9 +48,13 @@ require(['jquery', 'backbone', 'react', 'components/application', 'models/profil
     var logged_in = !profile.isNew();
 
     $(document).ready(function() {
-        React.renderComponent(
-            Application({profile: logged_in ? profile : null}), 
-            document.getElementById('application')
-        );
+        var app = Application({profile: logged_in ? profile : null});
+        React.renderComponent(app, document.getElementById('application'));
+
+        new Router({app: app});
+        Backbone.history.start({
+            pushState: true,
+            root: url_root
+        });
     });
 });

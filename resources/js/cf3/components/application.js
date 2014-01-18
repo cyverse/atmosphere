@@ -36,7 +36,7 @@ function (React, _, Header, Sidebar, Footer, Dashboard, Instances) {
             icon: 'cloud',
             login_required: true
         },
-        quota: {
+        quotas: {
             text: 'Quotas',
             icon: 'tasks',
             login_required: true
@@ -60,6 +60,7 @@ function (React, _, Header, Sidebar, Footer, Dashboard, Instances) {
             };
         },
         handleSelect: function(item) {
+            Backbone.history.navigate(item);
             this.setState({active: item});
         },
         render: function() {
