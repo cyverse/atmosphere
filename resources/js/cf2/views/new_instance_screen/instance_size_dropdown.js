@@ -52,10 +52,21 @@ Atmo.Views.InstanceSizeDropdown = Backbone.View.extend({
             html: function() {
                 // Determine how many digits we want to display
                 var digits = (instance_type.get('mem') % 1024 == 0) ? 0 : 1;
-
+                if (instance_type.get('disk') != 0) {
+                    var disk_str = ', ' + instance_type.get('disk') + ' GB disk';
+                }  else {
+                    var disk_str = '';
+                }
+                if (instance_type.get('root') != 0) {
+                    var root_str = ', ' + instance_type.get('root') + ' GB root';
+                }  else {
+                    var root_str = '';
+                }
+                var cpu_str = instance_type.get('cpus') + ' CPUs';
                 // Make a human readable number
                 var mem = (instance_type.get('mem') > 1024) ? '' + (instance_type.get('mem') / 1024).toFixed(digits) + ' GB' : (instance_type.get('mem') + ' MB') ;
-                return instance_type.get('name') + ' (' + instance_type.get('cpus') + ' CPUs, ' + mem + ' memory, ' + instance_type.get('disk') + ' GB disk)';
+                var mem_str = mem + ' memory';
+                return instance_type.get('name') + ' (' + cpu_str + ', ' + mem_str + disk_str + root_str + ')';
             },
             'data' : {'instance_type' : instance_type}
         });

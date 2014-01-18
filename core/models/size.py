@@ -13,6 +13,7 @@ class Size(models.Model):
     provider = models.ForeignKey(Provider)
     cpu = models.IntegerField()
     disk = models.IntegerField()
+    root = models.IntegerField()
     mem = models.IntegerField()
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
@@ -87,7 +88,8 @@ def convert_esh_size(esh_size, provider_id):
         new_esh_data = {
             'name':esh_size._size.name,
             'ram':esh_size._size.ram,
-            'disk':esh_size._size.disk,
+            'root':esh_size._size.disk,
+            'disk':esh_size.ephemeral,
             'cpu':esh_size.cpu,
         }
         #Update changed values..
@@ -97,13 +99,14 @@ def convert_esh_size(esh_size, provider_id):
         name = esh_size._size.name
         ram = esh_size._size.ram
         disk = esh_size._size.disk
+        root = esh_size.ephemeral
         cpu = esh_size.cpu
-        core_size = create_size(name, alias, cpu, ram, disk, provider_id)
+        core_size = create_size(name, alias, cpu, ram, disk, root, provider_id)
     core_size.esh = esh_size
     return core_size
 
 
-def create_size(name, alias, cpu, mem, disk, provider_id):
+def create_size(name, alias, cpu, mem, disk, root, provider_id):
     provider = Provider.objects.get(id=provider_id)
     size = Size.objects.create(
         name=name,
@@ -111,5 +114,6 @@ def create_size(name, alias, cpu, mem, disk, provider_id):
         cpu=cpu,
         mem=mem,
         disk=disk,
+        root=root,
         provider=provider)
     return size

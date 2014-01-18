@@ -26,15 +26,15 @@ class SizeList(APIView):
         Using provider and identity, getlist of machines
         TODO: Cache this request
         """
-	#TODO: Decide how we should pass this in (I.E. GET query string?)
-	active = False
+        #TODO: Decide how we should pass this in (I.E. GET query string?)
+        active = False
         user = request.user
         esh_driver = prepare_driver(request, identity_id)
         esh_size_list = esh_driver.list_sizes()
         all_size_list = [convert_esh_size(size, provider_id)
                          for size in esh_size_list]
         if active:
-	    all_size_list = [s for s in all_size_list if s.active()]
+            all_size_list = [s for s in all_size_list if s.active()]
         serialized_data = ProviderSizeSerializer(all_size_list, many=True).data
         response = Response(serialized_data)
         return response

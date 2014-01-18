@@ -101,7 +101,7 @@ def get_application(identifier, app_uuid=None):
 
 
 def create_application(identifier, provider_id, name=None,
-        creator_identity=None, version=None, description=None, tags=None,
+        owner=None, version=None, description=None, tags=None,
         uuid=None):
     from core.models import AtmosphereUser
     if not uuid:
@@ -111,18 +111,18 @@ def create_application(identifier, provider_id, name=None,
         name = "UnknownApp %s" % identifier
     if not description:
         description = "New application - %s" % name
-    if not creator_identity:
-        creator_identity = _get_admin_owner(provider_id)
+    if not owner:
+        owner = _get_admin_owner(provider_id)
     if not tags:
         tags = []
     new_app = Application.objects.create(
             name=name,
             description=description,
-            created_by=creator_identity.created_by,
-            created_by_identity=creator_identity,
+            created_by=owner.created_by,
+            created_by_identity=owner,
             uuid=uuid)
     if tags:
-        updateTags(new_app, tags, creator_identity.created_by)
+        updateTags(new_app, tags, owner.created_by)
     return new_app
 
 

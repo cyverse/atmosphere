@@ -205,14 +205,30 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		var self = this;
 
 		// Display OpenStack-specific options
-		if (Atmo.profile.get('selected_identity').get('provider_id') == 2) {
+		if (Atmo.profile.get('selected_identity').get('provider').match(/openstack/i)) {
 
 			// Display descriptive instance size
 			var types = _.filter(Atmo.instance_types.models, function(type) {
 				return type.get('alias') == self.model.get('size_alias');
 			});
 			var instance_type = types[0];
-			self.$el.find('.instance_size').html(instance_type.get('name'));
+            var digits = (instance_type.get('mem') % 1024 == 0) ? 0 : 1;
+            if (instance_type.get('disk') != 0) {
+                var disk_str = ', ' + instance_type.get('disk') + ' GB disk';
+            }  else {
+                var disk_str = '';
+            }
+            if (instance_type.get('root') != 0) {
+                var root_str = ', ' + instance_type.get('root') + ' GB root';
+            }  else {
+                var root_str = '';
+            }
+            var cpu_str = instance_type.get('cpus') + ' CPUs';
+            // Make a human readable number
+            var mem = (instance_type.get('mem') > 1024) ? '' + (instance_type.get('mem') / 1024).toFixed(digits) + ' GB' : (instance_type.get('mem') + ' MB') ;
+            var mem_str = mem + ' memory';
+            var instance_str = instance_type.get('name') + ' (' + cpu_str + ', ' + mem_str + disk_str + root_str + ')';
+			self.$el.find('.instance_size').html(instance_str);
 
 			this.$el.find('#euca_controls').remove();
 

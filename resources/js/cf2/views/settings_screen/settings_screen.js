@@ -83,6 +83,7 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
 					container.empty();
 
 				for (var i = 0; i < machines.length; i++) {
+                    console.log(machines[i])
 					container.append(_.template(Atmo.Templates['machine_history_row'], machines[i]));
 				}
 			},
@@ -106,7 +107,24 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
 					container.empty();
 
 				for (var i = 0; i < instances.length; i++) {
-					container.append(_.template(Atmo.Templates['instance_history_row'], instances[i]));
+                    instance = instances[i]
+                    if (instance.start_date.length == 24) {
+                        instance.start_date = instance.start_date.split('.')[0] + 'Z'
+                    }
+                    instance.start_date_p = Date.parse(instance.start_date)
+                    if (instance.start_date_p != null)
+                        instance.start_date =instance.start_date_p.format("MM/dd/yyyy II:mm p")
+                    if (instance.end_date != null) {
+                        if (instance.end_date.length == 24) {
+                            instance.end_date = instance.end_date.split('.')[0] + 'Z'
+                        }
+                        instance.end_date_p = Date.parse(instance.end_date)
+                    }
+                    if (instance.end_date_p != null)
+                        instance.end_date = instance.end_date_p.format("MM/dd/yyyy II:mm p")
+                    instance.active_time = Atmo.Utils.seconds_to_pretty_time(parseFloat(instance.active_time), 1)
+                    console.log(instance)
+					container.append(_.template(Atmo.Templates['instance_history_row'], instance));
 				}
 			},
 			error: function() {
