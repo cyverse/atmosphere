@@ -1,4 +1,4 @@
-define([], function() {
+define(['react'], function(React) {
 
 var Utils = {};
 
@@ -49,6 +49,16 @@ Utils.relative_time = function(date_obj) {
     var time = Utils.seconds_to_pretty_time(seconds, 1);
 
     return time + ' ago';
+};
+
+Utils.viewToComponent = function(view) {
+    var props = {};
+    props.dangerouslySetInnerHTML = {'__html': view.render().el.innerHTML};
+    if (view.id)
+        props.id = view.id;
+    if (view.className)
+        props.className = view.className;
+    return React.DOM[view.tagName](props);
 };
 
 return Utils;
