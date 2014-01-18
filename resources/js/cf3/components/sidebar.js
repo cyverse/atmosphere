@@ -6,13 +6,18 @@ define(['react', 'underscore'], function (React, _) {
     });
 
     var SidebarListItem = React.createClass({
-        handleClick: function() {
+        handleClick: function(e) {
+            e.preventDefault();
             this.props.onClick(this.props.id);
         },
         render: function() {
             return React.DOM.li(
                 {className: this.props.active ? 'active' : ''}, 
-                React.DOM.a({href: '#', onClick: this.handleClick}, 
+                React.DOM.a(
+                    {
+                        href: url_root + this.props.id,
+                        onClick: this.handleClick
+                    },
                     Glyphicon({name: this.props.icon}), 
                     this.props.text
                 )
