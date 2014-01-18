@@ -5,8 +5,8 @@ define(['underscore', 'collections/base', 'models/instance'], function(_, Base, 
 
 var Instances = Base.extend({
 	model: Instance,
-	initialize: function(models, creds) {
-        this.creds = creds;
+	initialize: function(models, options) {
+        this.creds = _.pick(options, 'provider_id', 'identity_id');
 		this.selected_instance = null;
 	},
 	select_instance: function(model) {

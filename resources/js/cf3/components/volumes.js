@@ -24,6 +24,9 @@ define(['react', 'components/identity_select', 'backbone', 'views/volume_screen/
                 volumes: this.state.identity.get('volumes'),
                 instances: this.state.identity.get('instances')
             }).render();
+
+            this.state.identity.get('volumes').fetch();
+            this.state.identity.get('instances').fetch();
         },
         componentDidMount: function(node) {
             this.drawVolumeScreen();

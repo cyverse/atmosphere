@@ -5,7 +5,8 @@ define(['underscore', 'collections/base', 'models/volume'], function(_, Base, Vo
 
 var Volumes = Base.extend({
 	model: Volume,
-	initialize: function() {
+	initialize: function(models, options) {
+        this.creds = _.pick(options, 'provider_id', 'identity_id');
 		this.selected_volume = null;
 	},
 	// Return the list of available volumes
