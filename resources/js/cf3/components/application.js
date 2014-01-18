@@ -1,7 +1,8 @@
 define(['react', 'underscore', 'components/header', 'components/sidebar', 
         'components/footer', 'components/dashboard', 'components/instances',
-        'components/volumes'],
-function (React, _, Header, Sidebar, Footer, Dashboard, Instances, Volumes) {
+        'components/volumes', 'components/notifications'],
+function (React, _, Header, Sidebar, Footer, Dashboard, Instances, Volumes, 
+    Notifications) {
     var sidebar_items = {
         dashboard: {
             text: 'Dashboard',
@@ -91,6 +92,7 @@ function (React, _, Header, Sidebar, Footer, Dashboard, Instances, Volumes) {
                     active: this.state.active,
                     onSelect: this.handleSelect
                 }),
+                Notifications(),
                 React.DOM.div({'id': 'main'}, view()),
                 Footer()
             );

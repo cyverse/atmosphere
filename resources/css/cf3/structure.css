@@ -37,6 +37,14 @@ footer {
         height: 100%;
     }
 
+    #notifications {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 16px;
+        margin: 0 90px 0 340px;
+    }
+
     #main {
         margin: 50px 90px 0 340px;
     }
