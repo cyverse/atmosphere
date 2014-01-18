@@ -5,7 +5,7 @@
  * selected volume is available or attached to a machine.
  *
  */
-define(['backbone', 'templates'], function(Backbone, Templates) {
+define(['backbone', 'templates', 'utils', 'models/volume'], function(Backbone, Templates, Utils, Volume) {
 
 var VolumeScreenControls = Backbone.View.extend({
     'tagName': 'div',
@@ -22,6 +22,7 @@ var VolumeScreenControls = Backbone.View.extend({
         'change input[name="new_volume_size"]' : 'add_usage'
     },
     initialize: function(options) {
+        this.identity = options.identity;
         this.instances = options.instances;
         this.volumes = options.volumes;
 
@@ -96,7 +97,7 @@ var VolumeScreenControls = Backbone.View.extend({
                         }
                     }
                     return content;
-                }
+                }.bind(this)
             }));
         }
         else {
@@ -160,13 +161,13 @@ var VolumeScreenControls = Backbone.View.extend({
             var disk_under_quota = this.disk_resource_chart.add_usage(
                 to_add, 
                 {
-                    is_initial: (Atmo.volumes.models.length == 0) ? true : false
+                    is_initial: (this.volumes.models.length == 0) ? true : false
                 }
             );
             var disk_count_under_quota = this.disk_count_resource_chart.add_usage(
                 count_add, 
                 {
-                    is_initial: (Atmo.volumes.models.length == 0) ? true : false    
+                    is_initial: (this.volumes.models.length == 0) ? true : false    
                 }
             );
 
@@ -247,16 +248,16 @@ var VolumeScreenControls = Backbone.View.extend({
                 name: 'running_instances'
             });
             //Give directions first
-            var directions = ( Atmo.instances.models.length == 0 ) ? 'You have no running instances' : 'Select a running instance';
+            var directions = ( this.instances.models.length == 0 ) ? 'You have no running instances' : 'Select a running instance';
             available_instances.append($('<option>', {
                 value: 0,
                 html: directions
             }));
-            for (var i = 0; i < Atmo.instances.models.length; i++) {
-                if (Atmo.instances.models[i].get('state_is_active')) {
+            for (var i = 0; i < this.instances.models.length; i++) {
+                if (this.instances.models[i].get('state_is_active')) {
                     available_instances.append($('<option>', {
-                        value: Atmo.instances.models[i].get('id'),
-                        html: Atmo.instances.models[i].get('name_or_id')
+                        value: this.instances.models[i].get('id'),
+                        html: this.instances.models[i].get('name_or_id')
                     }));
                 }
             }
@@ -284,26 +285,26 @@ var VolumeScreenControls = Backbone.View.extend({
     },
     attach_volume: function(volume_id, instance_id, mount_location) {
         var self = this;
-        var selected_volume = Atmo.volumes.get(volume_id);
-        var selected_instance = Atmo.instances.get(instance_id);
-        Atmo.Utils.attach_volume(selected_volume, selected_instance, 
+        var selected_volume = this.volumes.get(volume_id);
+        var selected_instance = this.instances.get(instance_id);
+        Utils.attach_volume(selected_volume, selected_instance, 
                                  mount_location, {
             success: function() {
                 self.render;
             },
             error: function() {
-                Atmo.Utils.notify("Could not attach volume", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
+                Utils.notify("Could not attach volume", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
             },
         });
     },
     detach_volume: function(volume_id) {
-        var selected_volume = Atmo.volumes.get(volume_id);
-        var selected_instance = Atmo.instances.get(selected_volume.get("attach_data_instance_id"));
+        var selected_volume = this.volumes.get(volume_id);
+        var selected_instance = this.instances.get(selected_volume.get("attach_data_instance_id"));
 
-        Atmo.Utils.confirm_detach_volume(selected_volume, selected_instance, {
+        Utils.confirm_detach_volume(selected_volume, selected_instance, {
            success: function() {
-                Atmo.volumes.fetch();
-           }
+                this.volumes.fetch();
+           }.bind(this)
         });
     },
     create_volume: function(e) {
@@ -340,24 +341,23 @@ var VolumeScreenControls = Backbone.View.extend({
         }
 
         if (errors.length == 0) {
-            var volume = new Atmo.Models.Volume();
-            var self = this;
+            var volume = new Volume({}, {identity: this.identity});
             volume.save(params, {
                 wait: true,
                 success: function(model) {
-                    Atmo.volumes.add(model);
-                    Atmo.Utils.notify("New volume created!", "Your volume will be ready to attach to an instance momentarily.");
-                    Backbone.history.navigate('#volumes', {trigger: true, replace: true});
-                    self.$el.find('input[name="new_volume_name"]').val("").focus().trigger('keyup');
-                    self.$el.find('input[name="new_volume_size"]').val("0");
-                },
+                    this.volumes.add(model);
+                    Utils.notify("New volume created!", "Your volume will be ready to attach to an instance momentarily.");
+                    //Backbone.history.navigate('volumes', {trigger: true, replace: true});
+                    this.$el.find('input[name="new_volume_name"]').val("").focus().trigger('keyup');
+                    this.$el.find('input[name="new_volume_size"]').val("0");
+                }.bind(this),
                 error: function() {
-                    Atmo.Utils.notify("Could not create volume", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
+                    Utils.notify("Could not create volume", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
                 },
             });
         }
         else {
-            Atmo.Utils.notify("Errors with Volume Creation", errors.join(' '));
+            Utils.notify("Errors with Volume Creation", errors.join(' '));
             this.$el.find('button[name="create_volume"]').removeAttr('disabled');
         }
 
@@ -403,7 +403,7 @@ var VolumeScreenControls = Backbone.View.extend({
             volume_size_field.parent().addClass('error');
             this.$el.find('button[name="create_volume"]').attr('disabled', 'disabled');
         }
-        else if (Atmo.volumes.length + 1 > Atmo.profile.get('selected_identity').get('quota').disk_count) {
+        else if (this.volumes.length + 1 > this.identity.disk_count) {
             if (volume_name.length > 0 && volume_name.indexOf(' ') == -1) {
                 errors = true;
                 this.$el.find('#volume_creation_errors ul').append('<li>You have already created all of your allocated volumes.</li>');

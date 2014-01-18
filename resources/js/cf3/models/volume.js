@@ -2,6 +2,10 @@ define(['underscore', 'models/base', 'utils'], function(_, Base, Utils) {
 
 var Volume = Base.extend({
     defaults: { 'model_name': 'volume' },
+    initialize: function(attributes, options) {
+        if (options)
+            this.identity = options.identity;
+    },
     parse: function(response) {
         
         var attributes = response;

@@ -16,8 +16,11 @@ var VolumeScreen = Backbone.View.extend({
         'click #restore_volume_btn':'restore_volume_modal'
     },
     initialize: function(options) {
-        this.volumes = options.volumes;
-        this.instances = options.instances;
+        this.profile = options.profile;
+        this.identity = options.identity;
+        this.volumes = this.identity.get('volumes');
+        this.instances = this.identity.get('instances');
+
         this.volumes.bind("reset", this.render, this);
         this.instances.bind("reset", this.render, this);
     },
@@ -71,6 +74,7 @@ var VolumeScreen = Backbone.View.extend({
 
         new Controls({
             el: this.$el.find('#volume_controls'),
+            identity: this.identity,
             instances: this.instances,
             volumes: this.volumes
         }).render();
@@ -87,6 +91,7 @@ var VolumeScreen = Backbone.View.extend({
 
         this.backup_volume_modal = new BackupVolumeModal({
             el: this.$el.find('#backup_modal'),
+            profile: this.profile,
             instances: this.instances,
             volumes: this.volumes
         });
@@ -99,6 +104,8 @@ var VolumeScreen = Backbone.View.extend({
         this.restore_volume_modal.render();
         this.report_volume_modal = new ReportVolumeModal({
             el: this.$el.find('#report_modal'),
+            profile: this.profile,
+            identity: this.identity,
             instances: this.instances,
             volumes: this.volumes
         });

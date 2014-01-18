@@ -3,7 +3,7 @@
  * Reports a broken volume to Atmosphere's support team. 
  *
  */
-define(['backbone', 'templates'], function(Backbone, Templates) {
+define(['backbone', 'templates', 'utils'], function(Backbone, Templates, Utils) {
 
 var ReportVolumeModal = Backbone.View.extend({
     id: 'report_modal',
@@ -39,7 +39,7 @@ var ReportVolumeModal = Backbone.View.extend({
                             content += ' (' + this.volumes.models[i].get('id') + ')';
 
                         return content;
-                    },
+                    }.bind(this),
                     value: this.volumes.models[i].get('id')
                 }));
             }
@@ -133,7 +133,7 @@ var ReportVolumeModal = Backbone.View.extend({
         else {    
             // Add all inputs to outgoing message
             data["message"] = '';
-            data["username"] = Atmo.profile.get('id');
+            data["username"] = this.profile.get('id');
             data["subject"] = 'Atmosphere Volume Report from ' + data["username"];
             for (var i = 0; i < inputs.length; i++) {
 
@@ -146,19 +146,19 @@ var ReportVolumeModal = Backbone.View.extend({
             }
 
             data["message"] += '\n---\n\n';
-            data["message"] += 'Provider ID: ' + Atmo.profile.get('selected_identity').get('provider_id') + '\n\n';
+            data["message"] += 'Provider ID: ' + this.identity.get('provider_id') + '\n\n';
 
             // Create a list of user's instances and volumes to make support easier
-            data["message"] += '\n\n' + Atmo.profile.get('id') + "'s Instances:";
+            data["message"] += '\n\n' + this.profile.get('id') + "'s Instances:";
             data["message"] += '\n---\n';
-            for (var i = 0; i < Atmo.instances.length; i++) {
-                var instance = Atmo.instances.models[i];
+            for (var i = 0; i < this.instances.length; i++) {
+                var instance = this.instances.models[i];
                 data["message"] += '\nInstance id:\n\t' + instance.get('id') + '\nEMI Number:\n\t' + instance.get('image_id') + '\nIP Address:\n\t' + instance.get('public_dns_name') + '\n';
             }
-            data["message"] += '\n\n' + Atmo.profile.get('id') + "'s Volumes:";
+            data["message"] += '\n\n' + this.profile.get('id') + "'s Volumes:";
             data["message"] += '\n---\n';
-            for (var i = 0; i < Atmo.volumes.length; i++) {
-                var volume = Atmo.volumes.models[i];
+            for (var i = 0; i < this.volumes.length; i++) {
+                var volume = this.volumes.models[i];
                 data["message"] += '\nVolume id:\n\t' + volume.get('id') + '\nVolume Name:\n\t' + volume.get('name');
             }
             data["message"] += '\n\n';
@@ -186,7 +186,7 @@ var ReportVolumeModal = Backbone.View.extend({
                     self.render();
 
                     // Close the window
-                    self.button_listener(Atmo.Utils.notify("Volume Reported", "Support will contact you shortly"));
+                    self.button_listener(Utils.notify("Volume Reported", "Support will contact you shortly"));
                 },
                 error: function() {
                     self.$el.find('.alert').removeClass('alert-info').addClass('alert-error').html(function() {

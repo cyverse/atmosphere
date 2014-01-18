@@ -2,7 +2,9 @@
  * Represents a single volume on the volume screen, regardless of whether it is
  * available or attached
  */
-Atmo.Views.VolumeScreenVolume = Backbone.View.extend({
+define(['backbone', 'templates', 'jquery-ui'], function(Backbone, Templates, gqui) {
+
+var VolumeScreenVolume = Backbone.View.extend({
     tagName: 'li',
     className: 'draggable_volume',
     events: {
@@ -92,4 +94,8 @@ Atmo.Views.VolumeScreenVolume = Backbone.View.extend({
         }
 
     }
+});
+
+return VolumeScreenVolume;
+
 });

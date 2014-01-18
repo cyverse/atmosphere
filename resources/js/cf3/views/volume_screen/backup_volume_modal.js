@@ -14,6 +14,7 @@ var BackupVolumeModal = Backbone.View.extend({
         'input input[name="backup_name"]' : 'validate_backup_name'
     },
     initialize: function(options) {
+        this.profile = options.profile;
         this.volumes = options.volumes;
         this.instances = options.instances;
         this.volumes.bind("reset", this.render, this);
@@ -38,7 +39,7 @@ var BackupVolumeModal = Backbone.View.extend({
                             content += ' (' + this.volumes.models[i].get('id') + ')';
 
                         return content;
-                    },
+                    }.bind(this),
                     value: this.volumes.models[i].get('id')
                 }));
             }
@@ -119,10 +120,10 @@ var BackupVolumeModal = Backbone.View.extend({
 
             // Update the backup location with backup name if applicable 
             if (volume_name.length > 0)
-                this.$el.find('input[name="backup_location"]').val('/home/iplant/' + Atmo.profile.get('id') + '/atmo/' + volume_name);
+                this.$el.find('input[name="backup_location"]').val('/home/iplant/' + this.profile.get('id') + '/atmo/' + volume_name);
             else {
                 selected_vol = this.$el.find('select[name="volume_to_backup"] option:selected').val();
-                this.$el.find('input[name="backup_location"]').val('/home/iplant/' + Atmo.profile.get('id') + '/atmo/' + selected_vol);
+                this.$el.find('input[name="backup_location"]').val('/home/iplant/' + this.profile.get('id') + '/atmo/' + selected_vol);
             }
 
             this.$el.find('#confirm_backup').removeAttr('disabled', 'disabled');
@@ -135,7 +136,7 @@ var BackupVolumeModal = Backbone.View.extend({
         selected_vol = this.$el.find('select[name="volume_to_backup"] option:selected').val();
 
         if (this.$el.find('input[name="backup_name"]').val().length == 0)
-            this.$el.find('input[name="backup_location"]').val('/home/iplant/' + Atmo.profile.get('id') + '/atmo/' + selected_vol);
+            this.$el.find('input[name="backup_location"]').val('/home/iplant/' + this.profile.get('id') + '/atmo/' + selected_vol);
     },
     begin_backup: function() {
 

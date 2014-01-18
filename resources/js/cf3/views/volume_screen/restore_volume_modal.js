@@ -34,7 +34,7 @@ var RestoreVolumeModal = Backbone.View.extend({
                             content += ' (' + this.volumes.models[i].get('id') + ')';
 
                         return content;
-                    },
+                    }.bind(this),
                     value: this.volumes.models[i].get('id')
                 }));
             }

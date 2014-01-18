@@ -2,7 +2,7 @@
  * Represents the list of volumes under "available volumes" on the
  * volume screen
  */
-define(['backbone', 'templates', 'jquery-ui'], function(Backbone, Templates) {
+define(['backbone', 'templates', 'jquery-ui', 'views/volume_screen/volume'], function(Backbone, Templates, jqui, VolumeScreenVolume) {
 
 var DraggableVolumes = Backbone.View.extend({
     template: _.template(Templates.volume_screen_volumes),
@@ -19,7 +19,7 @@ var DraggableVolumes = Backbone.View.extend({
 
         // Make sure this volume isn't a duplicate
         if (!this.volume_map[volume.get('id')]) {
-            var new_view = new Atmo.Views.VolumeScreenVolume({model: volume});
+            var new_view = new VolumeScreenVolume({model: volume});
             if (_.keys(this.volume_map).length == 0)
                 this.$el.find('#draggable_volume_list span').remove();
             this.volume_map[volume.get('id')] = new_view;
