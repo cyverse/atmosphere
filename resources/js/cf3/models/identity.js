@@ -27,8 +27,24 @@ define(['underscore', 'models/base', 'collections/instances'], function(_, Base,
                 + '/provider/' + creds.provider_id 
                 + '/' + this.defaults.model_name + '/';
         },
-        get_instances: function() {
-            return new Instances(null, {provider_id: this.get('provider_id'), identity_id: this.id});
+        /*
+         * Overriding get for caching collections
+         */
+        get: function(attr) {
+            if (typeof this[attr] == 'function')
+                return this[attr]();
+            return Backbone.Model.prototype.get.call(this, attr);
+        },
+        instances: function() {
+            var instances = this.get('_instances');
+            if (!instances) {
+                instances = new Instances(null, {
+                    provider_id: this.get('provider_id'),
+                    identity_id: this.id
+                });
+                this.set('_instances', instances);
+            }
+            return instances;
         }
     });
 
