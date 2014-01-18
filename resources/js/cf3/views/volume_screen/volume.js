@@ -76,9 +76,9 @@ Atmo.Views.VolumeScreenVolume = Backbone.View.extend({
 
                     Atmo.Utils.notify("Your volume has been destroyed.", "");
                 },
-				error: function() {
-					Atmo.Utils.notify("Volume could not be destroyed", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
-				},
+                error: function() {
+                    Atmo.Utils.notify("Volume could not be destroyed", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
+                },
             });
 
         } else if (this.model.get('status') == 'in-use') {

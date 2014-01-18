@@ -17,14 +17,14 @@ var DraggableVolumes = Backbone.View.extend({
     },
     append_volume: function(volume) {
 
-		// Make sure this volume isn't a duplicate
-		if (!this.volume_map[volume.get('id')]) {
-			var new_view = new Atmo.Views.VolumeScreenVolume({model: volume});
-			if (_.keys(this.volume_map).length == 0)
-				this.$el.find('#draggable_volume_list span').remove();
-			this.volume_map[volume.get('id')] = new_view;
-			this.$container.append(new_view.render().el);
-		}
+        // Make sure this volume isn't a duplicate
+        if (!this.volume_map[volume.get('id')]) {
+            var new_view = new Atmo.Views.VolumeScreenVolume({model: volume});
+            if (_.keys(this.volume_map).length == 0)
+                this.$el.find('#draggable_volume_list span').remove();
+            this.volume_map[volume.get('id')] = new_view;
+            this.$container.append(new_view.render().el);
+        }
     },
     status_changed: function(volume) {
         if (volume.get('status') == 'available') {

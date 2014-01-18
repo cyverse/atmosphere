@@ -43,17 +43,17 @@ var DraggableInstances = Backbone.View.extend({
         return new_view.render().el;
     },
     instance_state_changed: function(instance) {
-		if (instance.get('state_is_active')) {
-		
-			// If this is the first instance a user has, must remove "No Running Instances" text before appending new instance list item.
-			if (this.$el.find('#draggable_instance_list').children().length == 0) {
-				this.$el.find('#draggable_instance_list').html("");
-			}
+        if (instance.get('state_is_active')) {
+        
+            // If this is the first instance a user has, must remove "No Running Instances" text before appending new instance list item.
+            if (this.$el.find('#draggable_instance_list').children().length == 0) {
+                this.$el.find('#draggable_instance_list').html("");
+            }
 
-			this.$el.find('#draggable_instance_list').append(this.new_instance_item(instance));
-		}
-		else 
-			this.remove_instance(instance);
+            this.$el.find('#draggable_instance_list').append(this.new_instance_item(instance));
+        }
+        else 
+            this.remove_instance(instance);
     },
     remove_instance: function(instance) {
         this.instance_map[instance.get('id')] && this.instance_map[instance.get('id')].remove();
