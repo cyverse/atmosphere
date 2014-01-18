@@ -1,7 +1,7 @@
 /** 
  * Global utilities file.  You can call these from anythwere!
  */
-define([], function() {
+define(['notifications'], function(notifications) {
 
 var Utils = {};
 
@@ -146,7 +146,7 @@ Utils.confirm = function(header, body, options) {
 Utils.notify = function(header, body, options) {
     var defaults = {no_timeout: false};
     var options = options ? _.defaults(options, defaults) : defaults;
-    Atmo.notifications.add({'header': header, 'body': body, 'timestamp': new Date(), 'sticky': options.no_timeout });
+    notifications.add({'header': header, 'body': body, 'timestamp': new Date(), 'sticky': options.no_timeout });
 };
 
 // case-insensitive Levenshtein Distance as defined by http://en.wikipedia.org/wiki/Levenshtein_distance
