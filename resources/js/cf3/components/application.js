@@ -2,6 +2,16 @@ define(['react', 'underscore', 'components/header', 'components/sidebar',
         'components/footer', 'components/notifications'],
 function (React, _, Header, Sidebar, Footer, Notifications) {
 
+    var defaultView = function() {
+        return (React.createClass({
+            render: function() {
+                return React.DOM.div({
+                    style: {display: this.props.visible ? 'block' : 'none'}
+                }, "Coming soon");
+            }
+        }))();
+    };
+
     var Application = React.createClass({
         getDefaultProps: function() {
             return {pages: {
@@ -112,7 +122,10 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
                 .map(function(rendered, k) {
                     var modules = this.props.pages[k]._modules;
                     if (rendered && modules && modules != 'loading') {
-                        var v = this.props.pages[k].getView.apply(this, modules);
+                        var view_fn = this.props.pages[k].getView;
+                        if (!view_fn)
+                            view_fn = defaultView;
+                        var v = view_fn.apply(this, modules);
                         v.props.key = k;
                         v.props.id = k + '-page';
                         v.props.visible = k == this.state.active;
