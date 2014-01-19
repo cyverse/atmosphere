@@ -6,7 +6,7 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
         dashboard: {
             text: 'Dashboard',
             icon: 'home',
-            modules: ['components/dashboard'],
+            requires: ['components/dashboard'],
             getView: function(Dashboard) {
                 return Dashboard();
             },
@@ -20,7 +20,7 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
         instances: {
             text: 'Instances',
             icon: 'cloud-download',
-            modules: ['components/instances'],
+            requires: ['components/instances'],
             getView: function(Instances) {
                 return Instances({"profile": this.props.profile});
             },
@@ -30,7 +30,7 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
             text: 'Volumes',
             icon: 'hdd',
             login_required: true,
-            modules: ['components/volumes'],
+            requires: ['components/volumes'],
             getView: function(Volumes) {
                 return Volumes({"profile": this.props.profile});
             }
@@ -78,15 +78,15 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
             if (!sidebar_items[item])
                 throw 'invalid route ' + item;
             this.setState({loading: true, active: item});
-            var view = sidebar_items[item].view;
-            if (view === 'loading')
+            var modules = sidebar_items[item]._modules;
+            if (modules === 'loading')
                 return;
-            if (view !== undefined)
+            if (modules !== undefined)
                 this.setState({active: item, loading: false});
             else {
-                sidebar_items[item].view = 'loading';
-                require(sidebar_items[item].modules, function() {
-                    sidebar_items[item].view = sidebar_items[item].getView.apply(this, arguments);
+                sidebar_items[item]._modules = 'loading';
+                require(sidebar_items[item].requires, function() {
+                    sidebar_items[item]._modules = arguments;
                     this.setState({active: item, loading: false});
                 }.bind(this));
             }
@@ -94,7 +94,7 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
         render: function() {
             var view;
             if (this.state.active && !this.state.loading)
-                view = sidebar_items[this.state.active].view;
+                view = sidebar_items[this.state.active].getView.apply(this, sidebar_items[this.state.active]._modules);
             else
                 view = React.DOM.div({className: 'loading'});
 
