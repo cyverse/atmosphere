@@ -15,20 +15,24 @@ define(['react', 'components/identity_select'], function(React, IdentitySelect) 
                 identity: this.props.profile.get('identities').at(0)
             };
         },
+        updateIdentity: function(model, coll) {
+            this.setState({identity: identity});
+        },
         startListening: function(identity) {
             var instances = identity.get('instances');
 
-            instances.once('sync', function(model, coll) {
-                this.setState({identity: identity}); 
-            }.bind(this));
+            instances.on('sync', this.updateIdentity);
             instances.fetch();
         },
         onSelect: function(identity) {
             this.startListening(identity);
             this.setState({identity: identity});
         },
-        componentWillMount: function() {
+        componentDidMount: function() {
             this.startListening(this.state.identity);
+        },
+        componentWillUnmount: function() {
+            this.state.identity.get('instances').off('sync', this.updateIdentity);
         },
         render: function() {
             var instances = this.state.identity.get('instances');
