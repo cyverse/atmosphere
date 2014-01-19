@@ -2,71 +2,86 @@ define(['react', 'underscore', 'components/header', 'components/sidebar',
         'components/footer', 'components/notifications'],
 function (React, _, Header, Sidebar, Footer, Notifications) {
 
-    var sidebar_items = {
-        dashboard: {
-            text: 'Dashboard',
-            icon: 'home',
-            requires: ['components/dashboard'],
-            getView: function(Dashboard) {
-                return Dashboard();
-            },
-            login_required: true
-        },
-        app_store: {
-            text: 'App Store',
-            icon: 'shopping-cart',
-            login_required: false
-        },
-        instances: {
-            text: 'Instances',
-            icon: 'cloud-download',
-            requires: ['components/instances'],
-            getView: function(Instances) {
-                return Instances({"profile": this.props.profile});
-            },
-            login_required: true
-        },
-        volumes: {
-            text: 'Volumes',
-            icon: 'hdd',
-            login_required: true,
-            requires: ['components/volumes'],
-            getView: function(Volumes) {
-                return Volumes({"profile": this.props.profile});
-            }
-        },
-        images: {
-            text: 'Images',
-            icon: 'camera',
-            login_required: true
-        },
-        providers: {
-            text: 'Cloud Providers',
-            icon: 'cloud',
-            login_required: true
-        },
-        quotas: {
-            text: 'Quotas',
-            icon: 'tasks',
-            login_required: true
-        },
-        settings: {
-            text: 'Settings',
-            icon: 'cog',
-            login_required: true
-        },
-        help: {
-            text: 'Help',
-            icon: 'question-sign',
-            login_required: false
-        }
-    };
-
     var Application = React.createClass({
+        getDefaultProps: function() {
+            return {pages: {
+                dashboard: {
+                    text: 'Dashboard',
+                    icon: 'home',
+                    requires: ['components/dashboard'],
+                    getView: function(Dashboard) {
+                        return function(props) {
+                            return Dashboard(props);
+                        }.bind(this);
+                    },
+                    login_required: true
+                },
+                app_store: {
+                    text: 'App Store',
+                    icon: 'shopping-cart',
+                    login_required: false
+                },
+                instances: {
+                    text: 'Instances',
+                    icon: 'cloud-download',
+                    requires: ['components/instances'],
+                    getView: function(Instances) {
+                        return function(props) {
+                            var newProps = _.extend({}, props, {profile: this.props.profile});
+                            return Instances(newProps);
+                        }.bind(this);
+                    },
+                    login_required: true
+                },
+                volumes: {
+                    text: 'Volumes',
+                    icon: 'hdd',
+                    login_required: true,
+                    requires: ['components/volumes'],
+                    getView: function(Volumes) {
+                        return function(props) {
+                            var newProps = _.extend({}, props, {profile: this.props.profile});
+                            return Volumes(newProps);
+                        }.bind(this);
+                    }
+                },
+                images: {
+                    text: 'Images',
+                    icon: 'camera',
+                    login_required: true
+                },
+                providers: {
+                    text: 'Cloud Providers',
+                    icon: 'cloud',
+                    login_required: true
+                },
+                quotas: {
+                    text: 'Quotas',
+                    icon: 'tasks',
+                    login_required: true
+                },
+                settings: {
+                    text: 'Settings',
+                    icon: 'cog',
+                    login_required: true
+                },
+                help: {
+                    text: 'Help',
+                    icon: 'question-sign',
+                    login_required: false
+                }
+            }};
+        },
         getInitialState: function() {
+            var rendered = _.chain(this.props.pages)
+                .map(function(v, k) {
+                    return [k, false];
+                }).object().value();
+
             return {
                 active: null,
-                laoding: true
+                laoding: true,
+                rendered: rendered
             };
         },
         handleSelect: function(item) {
@@ -75,32 +90,52 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
              * http://www.bennadel.com/blog/2402-Lazy-Loading-RequireJS-Modules-When-They-Are-First-Requested.htm
              */
             Backbone.history.navigate(item);
-            if (!sidebar_items[item])
+            if (!this.props.pages[item])
                 throw 'invalid route ' + item;
-            this.setState({loading: true, active: item});
-            var modules = sidebar_items[item]._modules;
+
+            var modules = this.props.pages[item]._modules;
             if (modules === 'loading')
                 return;
             if (modules !== undefined)
                 this.setState({active: item, loading: false});
             else {
-                sidebar_items[item]._modules = 'loading';
-                require(sidebar_items[item].requires, function() {
-                    sidebar_items[item]._modules = arguments;
-                    this.setState({active: item, loading: false});
+                this.props.pages[item]._modules = 'loading';
+                this.setState({loading: true, active: item}, function() {
+                    require(this.props.pages[item].requires, function() {
+                        this.props.pages[item]._modules = arguments;
+                        var rendered = this.state.rendered;
+                        rendered[item] = true;
+                        this.setState({rendered: rendered, active: item, loading: false});
+                    }.bind(this));
                 }.bind(this));
             }
         },
         render: function() {
-            var view;
-            if (this.state.active && !this.state.loading)
-                view = sidebar_items[this.state.active].getView.apply(this, sidebar_items[this.state.active]._modules);
-            else
-                view = React.DOM.div({className: 'loading'});
 
-            var items = sidebar_items;
+            var view;
+
+            view = [React.DOM.div({className: 'loading', style: {display: this.state.loading ? 'block' : 'none'}, key: 'loading'})];
+            var screens = _.chain(this.state.rendered)
+                .map(function(rendered, k) {
+                    var modules = this.props.pages[k]._modules;
+                    if (rendered && modules && modules != 'loading') {
+                        var view_fn = this.props.pages[k].getView.apply(this, modules);
+                        var v = view_fn({
+                            key: k, 
+                            id: k,
+                            visible: k == this.state.active
+                        });
+                        return v;
+                    } else {
+                        return React.DOM.div({key: k});
+                    }
+                }.bind(this))
+                .value();
+            view = view.concat(screens);
+
+            var items = this.props.pages;
             if (this.props.profile == null)
-                items = _.chain(sidebar_items)
+                items = _.chain(this.props.pages)
                     .pairs()
                     .filter(function(i) {
                         return !i[1].login_required;

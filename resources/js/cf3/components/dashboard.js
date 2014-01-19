@@ -34,7 +34,7 @@ define(['react', 'underscore'], function(React, _) {
 
     var Dashboard = React.createClass({
         render: function() {
-            return React.DOM.div({},
+            return React.DOM.div({style: {display: this.props.visible ? 'block' : 'none'}},
                 React.DOM.h1({}, "Dashboard"),
                 React.DOM.p({}, "Welcome to Atmosphere!"),
                 React.DOM.ul({'id': 'dashboard-link-list'}, _.map(items, DashboardIcon))

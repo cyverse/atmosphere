@@ -11,7 +11,7 @@ define(['react', 'components/identity_select', 'backbone', 'views/volume_screen/
         },
         render: function() {
 
-            return React.DOM.div({},
+            return React.DOM.div({style: {display: this.props.visible ? 'block' : 'none'}},
                 React.DOM.h1({}, "Volumes"),
                 IdentitySelect({identities: this.props.profile.get('identities'), onSelect: this.onSelect}),
                 React.DOM.h2({}, "Provider " + this.state.identity.get('provider_id') + ", Identity " + this.state.identity.get('id')),
@@ -29,10 +29,10 @@ define(['react', 'components/identity_select', 'backbone', 'views/volume_screen/
             this.state.identity.get('instances').fetch();
         },
         componentDidMount: function(node) {
-            this.drawVolumeScreen();
+            //this.drawVolumeScreen();
         },
         componentDidUpdate: function(prevProps, prevState, root) {
-            this.drawVolumeScreen();
+            //this.drawVolumeScreen();
         }
     });
 

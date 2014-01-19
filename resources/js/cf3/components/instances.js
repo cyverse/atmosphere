@@ -16,7 +16,7 @@ define(['react', 'components/identity_select'], function(React, IdentitySelect) 
             };
         },
         updateIdentity: function(model, coll) {
-            this.setState({identity: identity});
+            this.setState({identity: this.state.identity});
         },
         startListening: function(identity) {
             var instances = identity.get('instances');
@@ -37,7 +37,7 @@ define(['react', 'components/identity_select'], function(React, IdentitySelect) 
         render: function() {
             var instances = this.state.identity.get('instances');
 
-            return React.DOM.div({},
+            return React.DOM.div({style: {display: this.props.visible ? 'block' : 'none'}},
                 React.DOM.h1({}, "Instances"),
                 IdentitySelect({identities: this.props.profile.get('identities'), onSelect: this.onSelect}),
                 React.DOM.h2({}, "Provider " + this.state.identity.get('provider_id') + ", Identity " + this.state.identity.get('id')),
