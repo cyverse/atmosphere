@@ -2,6 +2,8 @@ header {
     background-color: #0098aa;
     color: #fff;
     padding: 5px;
+
+    border-bottom: 1px solid #158793;
 }
 
 header img {
@@ -40,7 +42,7 @@ footer {
     }
     #sidebar {
         position: fixed;
-        top: 40px;
+        top: 41px;
         left: 0;
         width: 250px;
         height: 100%;

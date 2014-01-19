@@ -1,5 +1,6 @@
 #sidebar {
     background-color: #f5f5f5;
+    box-shadow: inset -10px 0px 10px -10px #999;
 }
 
 #sidebar ul {
@@ -26,6 +27,7 @@
 
 #sidebar li a:hover {
     background-color: #e6e6e6;
+    box-shadow: inset -10px 0px 10px -10px #999;
 }
 
 #sidebar li.active a {
@@ -39,20 +41,27 @@
 
 /* Small devices (tablets, 768px and up) */
 @media (min-width: 768px) {
-    #sidebar li.active a:before {
+    #sidebar {
+        overflow-x: hidden;
+    }
+
+    #sidebar li.active a::before {
         content: "";
         background-color: #fff;
         width: 34px;
         height: 34px;
         display: block;
         position: absolute;
-        right: 0;
+        right: -18px;
         top: 5px;
-        border-width: 17px;
-        border-style: solid;
-        border-color: #333333 #ffffff #333333 #333333;
+
+        box-shadow: 0px 0px 10px 0px #666;
+        -webkit-transform: rotate(45deg);
+        -moz-transform: rotate(45deg);
+        -o-transform: rotate(45deg);
+        transform: rotate(45deg);
     }
-    #sidebar li.active a:hover:before {
+    #sidebar li.active a:hover::before {
         border-color: #444444 #ffffff #444444 #444444;
     }
 }
