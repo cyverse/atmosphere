@@ -112,34 +112,50 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
                 }.bind(this));
             }
         },
-        getPages: function() {
-            /*
-             * We keep every page's view alive at all times. We just hide all 
-             * but the active one
-             */
-            var view = [React.DOM.div({className: 'loading', style: {display: this.state.loading ? 'block' : 'none'}, key: 'loading'})];
-            var screens = _.chain(this.state.rendered)
-                .map(function(rendered, k) {
-                    var modules = this.props.pages[k]._modules;
-                    if (rendered && modules && modules != 'loading') {
-                        var view_fn = this.props.pages[k].getView;
-                        if (!view_fn)
-                            view_fn = defaultView;
-                        var v = view_fn.apply(this, modules);
-                        v.props.key = k;
-                        v.props.id = k + '-page';
-                        v.props.visible = k == this.state.active;
-                        return v;
-                    } else {
-                        return React.DOM.div({key: k});
-                    }
-                }.bind(this))
-                .value();
-            view = view.concat(screens);
-            return view;
+        //getContent: function() {
+        //    /*
+        //     * We keep every page's view alive at all times. We just hide all 
+        //     * but the active one
+        //     */
+        //    var view = [React.DOM.div({className: 'loading', style: {display: this.state.loading ? 'block' : 'none'}, key: 'loading'})];
+        //    var screens = _.chain(this.state.rendered)
+        //        .map(function(rendered, k) {
+        //            var modules = this.props.pages[k]._modules;
+        //            if (rendered && modules && modules != 'loading') {
+        //                var view_fn = this.props.pages[k].getView;
+        //                if (!view_fn)
+        //                    view_fn = defaultView;
+        //                var v = view_fn.apply(this, modules);
+        //                v.props.key = k;
+        //                v.props.id = k + '-page';
+        //                v.props.visible = k == this.state.active;
+        //                return v;
+        //            } else {
+        //                return React.DOM.div({key: k});
+        //            }
+        //        }.bind(this))
+        //        .value();
+        //    view = view.concat(screens);
+        //    return view;
+        //},
+        getContent: function() {
+            var view;
+            if (!this.state.active || this.state.loading)
+                return React.DOM.div({className: 'loading', style: {display: this.state.loading ? 'block' : 'none'}, key: 'loading'});
+            else {
+                var k = this.state.active;
+                var modules = this.props.pages[k]._modules;
+                var view_fn = this.props.pages[k].getView;
+                if (!view_fn)
+                    view_fn = defaultView;
+                var v = view_fn.apply(this, modules);
+                v.props.id = k + '-page';
+                v.props.visible = true;
+                return v;
+            }
         },
         render: function() {
-            var pages = this.getPages();
+            var content = this.getContent();
             var items = this.props.pages;
             if (this.props.profile == null)
                 items = _.chain(this.props.pages)
@@ -158,7 +174,7 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
                     onSelect: this.handleSelect
                 }),
                 Notifications(),
-                React.DOM.div({'id': 'main'}, pages),
+                React.DOM.div({'id': 'main'}, content),
                 Footer()
             );
         }
