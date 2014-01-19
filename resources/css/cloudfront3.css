@@ -8,6 +8,14 @@
 @import url('cf3/sidebar.css');
 @import url('cf3/dashboard.css');
 
+.main-page-header h1 {
+    color: #db6619;
+}
+.main-page-header {
+    border-bottom: 1px solid #eee;
+    margin-bottom: 20px;
+}
+
 /* http://www.designcouch.com/home/why/2013/05/23/dead-simple-pure-css-loading-spinner/ */
 .loading {
     height:60px;
