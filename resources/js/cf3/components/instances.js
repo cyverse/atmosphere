@@ -31,6 +31,10 @@ define(['react', 'components/identity_select', 'components/page_header'], functi
         componentDidMount: function() {
             this.startListening(this.state.identity);
         },
+        componentWillUnmount: function() {
+            var instances = this.state.identity.get('instances');
+            instances.off('sync', this.updateIdentity);
+        },
         render: function() {
             var instances = this.state.identity.get('instances');
 
