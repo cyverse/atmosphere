@@ -82,14 +82,12 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
             if (view === 'loading')
                 return;
             if (view !== undefined)
-                this.setState({active: item});
+                this.setState({active: item, loading: false});
             else {
                 sidebar_items[item].view = 'loading';
                 require(sidebar_items[item].modules, function() {
                     sidebar_items[item].view = sidebar_items[item].getView.apply(this, arguments);
-                    window.setTimeout(function() {
-                        this.setState({active: item, loading: false});
-                    }.bind(this), 2000);
+                    this.setState({active: item, loading: false});
                 }.bind(this));
             }
         },
@@ -98,7 +96,7 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
             if (this.state.active && !this.state.loading)
                 view = sidebar_items[this.state.active].view;
             else
-                view = React.DOM.div({}, "loading");
+                view = React.DOM.div({className: 'loading'});
 
             var items = sidebar_items;
             if (this.props.profile == null)
