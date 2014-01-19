@@ -15,6 +15,15 @@ header a {
     font-size: 1.2em;
 }
 
+header a::after {
+    content: "BETA";
+    background-color: hsl(20, 80%, 50%);
+    padding: 5px;
+    border-radius: 5px;
+    font-size: 80%;
+    margin-left: 5px
+}
+
 header a:hover{
     color: #e6e6e6;
     text-decoration: none;
@@ -26,6 +35,7 @@ header a:hover img {
 
 #tagline {
     font-size: 80%;
+    color: #ddd;
 }
 
 #main {
