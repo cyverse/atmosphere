@@ -1,4 +1,4 @@
-define(['react', 'components/identity_select', 'backbone', 'views/volume_screen/volume_screen', 'utils'], function(React, IdentitySelect, Backbone, VolumeScreen, Utils) {
+define(['react', 'components/identity_select', 'backbone', 'views/volume_screen/volume_screen', 'utils', 'components/page_header'], function(React, IdentitySelect, Backbone, VolumeScreen, Utils, PageHeader) {
 
     var Volumes = React.createClass({
         getInitialState: function() {
@@ -12,7 +12,7 @@ define(['react', 'components/identity_select', 'backbone', 'views/volume_screen/
         render: function() {
 
             return React.DOM.div({style: {display: this.props.visible ? 'block' : 'none'}},
-                React.DOM.h1({}, "Volumes"),
+                PageHeader({title: "Volumes"}),
                 IdentitySelect({identities: this.props.profile.get('identities'), onSelect: this.onSelect}),
                 React.DOM.h2({}, "Provider " + this.state.identity.get('provider_id') + ", Identity " + this.state.identity.get('id')),
                 React.DOM.div({id: 'volume-screen'})

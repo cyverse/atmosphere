@@ -1,4 +1,4 @@
-define(['react', 'components/identity_select'], function(React, IdentitySelect) {
+define(['react', 'components/identity_select', 'components/page_header'], function(React, IdentitySelect, PageHeader) {
     var InstanceList = React.createClass({
         render: function() {
             var instances = this.props.instances.map(function(model) {
@@ -35,7 +35,7 @@ define(['react', 'components/identity_select'], function(React, IdentitySelect) 
             var instances = this.state.identity.get('instances');
 
             return React.DOM.div({style: {display: this.props.visible ? 'block' : 'none'}},
-                React.DOM.h1({}, "Instances"),
+                PageHeader({title: "Instances"}),
                 IdentitySelect({identities: this.props.profile.get('identities'), onSelect: this.onSelect}),
                 React.DOM.h2({}, "Provider " + this.state.identity.get('provider_id') + ", Identity " + this.state.identity.get('id')),
                 InstanceList({instances: instances})
