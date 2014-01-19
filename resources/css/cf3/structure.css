@@ -48,6 +48,10 @@ footer {
     font-size: .8em;
 }
 
+footer a {
+    color: #999;
+}
+
 /* Small devices (tablets, 768px and up) */
 @media (min-width: 768px) {
     header {
