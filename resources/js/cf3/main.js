@@ -8,7 +8,7 @@ require.config({
         'google': 'https://www.google.com/jsapi',
         'bootstrap': '//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.3/js/bootstrap.min',
         'date': '//cdnjs.cloudflare.com/ajax/libs/datejs/1.0/date.min',
-        'react': '//cdnjs.cloudflare.com/ajax/libs/react/0.8.0/react.min',
+        'react': '//cdnjs.cloudflare.com/ajax/libs/react/0.8.0/react',
         'templates': '/partials/templates_require'
     },
     shim: {
