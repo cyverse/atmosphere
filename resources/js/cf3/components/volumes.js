@@ -29,10 +29,10 @@ define(['react', 'components/identity_select', 'backbone', 'views/volume_screen/
             this.state.identity.get('instances').fetch();
         },
         componentDidMount: function(node) {
-            //this.drawVolumeScreen();
+            this.drawVolumeScreen();
         },
         componentDidUpdate: function(prevProps, prevState, root) {
-            //this.drawVolumeScreen();
+            this.drawVolumeScreen();
         }
     });
 

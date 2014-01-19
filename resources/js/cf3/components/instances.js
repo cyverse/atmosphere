@@ -31,9 +31,6 @@ define(['react', 'components/identity_select'], function(React, IdentitySelect) 
         componentDidMount: function() {
             this.startListening(this.state.identity);
         },
-        componentWillUnmount: function() {
-            this.state.identity.get('instances').off('sync', this.updateIdentity);
-        },
         render: function() {
             var instances = this.state.identity.get('instances');
 
