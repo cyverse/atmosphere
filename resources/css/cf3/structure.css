@@ -12,6 +12,15 @@ header a {
     color: #fff;
 }
 
+header a:hover{
+    color: #e6e6e6;
+    text-decoration: none;
+}
+
+header a:hover img {
+    opacity: .7;
+}
+
 #main {
     padding: 20px;
 }
