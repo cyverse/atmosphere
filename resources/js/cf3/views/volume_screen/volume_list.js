@@ -2,7 +2,7 @@
  * Represents the list of volumes under "available volumes" on the
  * volume screen
  */
-define(['backbone', 'templates', 'jquery-ui', 'views/volume_screen/volume'], function(Backbone, Templates, jqui, VolumeScreenVolume) {
+define(['backbone', 'templates', 'jquery-ui', 'views/volume_screen/volume', 'utils'], function(Backbone, Templates, jqui, VolumeScreenVolume, Utils) {
 
 var DraggableVolumes = Backbone.View.extend({
     template: _.template(Templates.volume_screen_volumes),
@@ -63,9 +63,9 @@ var DraggableVolumes = Backbone.View.extend({
                 var volume = $(ui.draggable).data('volume');
                 var instance_id = volume.attributes.attach_data_instance_id;
                 var instance = this.instances.get(instance_id)
-                Atmo.Utils.confirm_detach_volume(volume, instance, {
+                Utils.confirm_detach_volume(volume, instance, {
                     success: function() {
-                        Atmo.volumes.fetch();
+                        self.volumes.fetch();
                         console.log('success - volume_list')
                     }
                 });

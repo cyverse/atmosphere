@@ -21,8 +21,8 @@ var VolumeScreen = Backbone.View.extend({
         this.volumes = this.identity.get('volumes');
         this.instances = this.identity.get('instances');
 
-        this.volumes.bind("reset", this.render, this);
-        this.instances.bind("reset", this.render, this);
+        this.volumes.bind("sync", this.render, this);
+        this.instances.bind("sync", this.render, this);
     },
     render: function(e) {
         this.$el.html(this.template());

@@ -17,7 +17,7 @@ var BackupVolumeModal = Backbone.View.extend({
         this.profile = options.profile;
         this.volumes = options.volumes;
         this.instances = options.instances;
-        this.volumes.bind("reset", this.render, this);
+        this.volumes.bind("sync", this.render, this);
         this.volumes.bind("add", this.render, this);
         this.volumes.bind("remove", this.render, this);
     },

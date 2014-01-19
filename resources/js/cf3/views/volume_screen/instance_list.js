@@ -1,14 +1,14 @@
 /**
  * Represents the list of instances under "running instances" on the volume screen
  */
-define(['backbone', 'templates'], function(Backbone, Templates) {
+define(['backbone', 'templates', 'views/volume_screen/instance', 'views/volume_screen/volume'], function(Backbone, Templates, VolumeScreenInstance, VolumeScreenVolume) {
 
 var DraggableInstances = Backbone.View.extend({
     'tagName': 'div',
     template: _.template(Templates.volume_screen_instances),
     initialize: function(options) {
-        this.instance_map = {}; // maps instance_id (string) to Atmo.Views.VolumeScreenInstance
-        this.volume_map = {};   // maps volume_id (string) to Atmo.Views.VolumeScreenVolume
+        this.instance_map = {}; // maps instance_id (string) to VolumeScreenInstance
+        this.volume_map = {};   // maps volume_id (string) to VolumeScreenVolume
 
         this.instances = options.instances;
         this.volumes = options.volumes;
@@ -29,7 +29,7 @@ var DraggableInstances = Backbone.View.extend({
         console.log('volume status changed');
         if (volume.get('status') == 'attaching' || volume.get('status') == 'detaching' || volume.get('status') == 'in-use') {
             if (!this.volume_map[volume.get('id')]) {
-                new_view = new Atmo.Views.VolumeScreenVolume({model: volume});
+                new_view = new VolumeScreenVolume({model: volume});
                 this.volume_map[volume.get('id')] = new_view;
                 this.instance_map[volume.get('attach_data_instance_id')].append_volume(new_view);
             }
@@ -38,7 +38,7 @@ var DraggableInstances = Backbone.View.extend({
         }
     },
     new_instance_item: function(instance) {
-        var new_view = new Atmo.Views.VolumeScreenInstance({model: instance});
+        var new_view = new VolumeScreenInstance({model: instance});
         this.instance_map[instance.get('id')] = new_view;
         return new_view.render().el;
     },
@@ -59,7 +59,7 @@ var DraggableInstances = Backbone.View.extend({
         this.instance_map[instance.get('id')] && this.instance_map[instance.get('id')].remove();
         delete this.instance_map[instance.get('id')];
         // call update in case volumes need to be freed
-        Atmo.volumes.update();
+        this.volumes.update();
     },
     render: function() {
         this.$el.html(this.template());
@@ -88,7 +88,7 @@ var DraggableInstances = Backbone.View.extend({
         $.each(this.volumes.models, function(i, volume) {
             if (volume.get('status') == 'in-use' || volume.get('status') == 'detaching') {
                 //TODO: If we are in the detaching state we should poll until we change states..
-                var new_view = new Atmo.Views.VolumeScreenVolume({model: volume});
+                var new_view = new VolumeScreenVolume({model: volume});
                 self.volume_map[volume.get('id')] = new_view;
                 instance_id = volume.get('attach_data').instanceId;
                 if (self.instance_map[instance_id] !== undefined) {

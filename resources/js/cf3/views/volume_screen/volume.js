@@ -2,7 +2,7 @@
  * Represents a single volume on the volume screen, regardless of whether it is
  * available or attached
  */
-define(['backbone', 'templates', 'jquery-ui'], function(Backbone, Templates, gqui) {
+define(['backbone', 'templates', 'jquery-ui', 'utils'], function(Backbone, Templates, jqui, Utils) {
 
 var VolumeScreenVolume = Backbone.View.extend({
     tagName: 'li',
@@ -71,25 +71,25 @@ var VolumeScreenVolume = Backbone.View.extend({
                 success: function() {
                     window.app.navigate('volumes', {trigger: true, replace:true});
 
-                    if (Atmo.volumes.length > 0) 
-                        Atmo.volumes.select_volume(Atmo.volumes.models[0]);
+                    if (self.volumes.length > 0) 
+                        self.volumes.select_volume(self.volumes.models[0]);
                     else
-                        Atmo.volumes.select_volume(null);
+                        self.volumes.select_volume(null);
 
-                    Atmo.Utils.notify("Your volume has been destroyed.", "");
+                    Utils.notify("Your volume has been destroyed.", "");
                 },
                 error: function() {
-                    Atmo.Utils.notify("Volume could not be destroyed", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
+                    Utils.notify("Volume could not be destroyed", 'If the problem persists, please email <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
                 },
             });
 
         } else if (this.model.get('status') == 'in-use') {
-            var instance = Atmo.instances.get(this.model.get("attach_data").instanceId);
-            Atmo.Utils.confirm_detach_volume(this.model, instance, {
+            var instance = this.instances.get(this.model.get("attach_data").instanceId);
+            Utils.confirm_detach_volume(this.model, instance, {
                 success: function() {
-                    Atmo.volumes.fetch();
+                    this.volumes.fetch();
                     console.log('success - volume')
-                }
+                }.bind(this)
             });
         }
 

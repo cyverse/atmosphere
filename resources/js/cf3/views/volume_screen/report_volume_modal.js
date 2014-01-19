@@ -15,7 +15,7 @@ var ReportVolumeModal = Backbone.View.extend({
     initialize: function(options) {
         this.instances = options.instances;
         this.volumes = options.volumes;
-        this.volumes.bind("reset", this.render, this);
+        this.volumes.bind("sync", this.render, this);
         this.volumes.bind("add", this.render, this);
         this.volumes.bind("remove", this.render, this);
     },
