@@ -44,7 +44,8 @@ header a:hover img {
 
 footer {
     text-align: center;
-    margin: 3em 0;
+    margin: 1.5em 0;
+    font-size: .8em;
 }
 
 /* Small devices (tablets, 768px and up) */
@@ -59,7 +60,7 @@ footer {
         position: fixed;
         top: 41px;
         left: 0;
-        width: 250px;
+        width: 200px;
         height: 100%;
     }
 
@@ -72,11 +73,11 @@ footer {
     }
 
     #main {
-        margin: 50px 50px 0 300px;
+        margin: 50px 50px 0 250px;
     }
 
     footer {
-        width: 250px;
+        width: 200px;
         position: fixed;
         left: 0;
         bottom: 0;
