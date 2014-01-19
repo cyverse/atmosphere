@@ -41,10 +41,6 @@
 
 /* Small devices (tablets, 768px and up) */
 @media (min-width: 768px) {
-    #sidebar {
-        overflow-x: hidden;
-    }
-
     #sidebar li.active a::before {
         content: "";
         background-color: #fff;
