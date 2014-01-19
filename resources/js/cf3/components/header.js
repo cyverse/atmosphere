@@ -9,7 +9,9 @@ define(['react'], function(React) {
                         alt: 'iPlant Cloud Services',
                         height: '30',
                         width: '30'
-                    }, "Atmosphere: iPlant Cloud Services")
+                    }), 
+                    "Atmosphere ",
+                    React.DOM.span({id: 'tagline'}, "iPlant Cloud Services")
                 )
             );
         }

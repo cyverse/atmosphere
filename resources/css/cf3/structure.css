@@ -12,6 +12,7 @@ header img {
 
 header a {
     color: #fff;
+    font-size: 1.2em;
 }
 
 header a:hover{
@@ -21,6 +22,10 @@ header a:hover{
 
 header a:hover img {
     opacity: .7;
+}
+
+#tagline {
+    font-size: 80%;
 }
 
 #main {
