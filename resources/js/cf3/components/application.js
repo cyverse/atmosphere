@@ -10,9 +10,7 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
                     icon: 'home',
                     requires: ['components/dashboard'],
                     getView: function(Dashboard) {
-                        return function(props) {
-                            return Dashboard(props);
-                        }.bind(this);
+                        return Dashboard();
                     },
                     login_required: true
                 },
@@ -26,10 +24,7 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
                     icon: 'cloud-download',
                     requires: ['components/instances'],
                     getView: function(Instances) {
-                        return function(props) {
-                            var newProps = _.extend({}, props, {profile: this.props.profile});
-                            return Instances(newProps);
-                        }.bind(this);
+                        return Instances({profile: this.props.profile});
                     },
                     login_required: true
                 },
@@ -39,10 +34,7 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
                     login_required: true,
                     requires: ['components/volumes'],
                     getView: function(Volumes) {
-                        return function(props) {
-                            var newProps = _.extend({}, props, {profile: this.props.profile});
-                            return Volumes(newProps);
-                        }.bind(this);
+                        return Volumes({profile: this.props.profile});
                     }
                 },
                 images: {
@@ -110,21 +102,20 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
                 }.bind(this));
             }
         },
-        render: function() {
-
-            var view;
-
-            view = [React.DOM.div({className: 'loading', style: {display: this.state.loading ? 'block' : 'none'}, key: 'loading'})];
+        getPages: function() {
+            /*
+             * We keep every page's view alive at all times. We just hide all 
+             * but the active one
+             */
+            var view = [React.DOM.div({className: 'loading', style: {display: this.state.loading ? 'block' : 'none'}, key: 'loading'})];
             var screens = _.chain(this.state.rendered)
                 .map(function(rendered, k) {
                     var modules = this.props.pages[k]._modules;
                     if (rendered && modules && modules != 'loading') {
-                        var view_fn = this.props.pages[k].getView.apply(this, modules);
-                        var v = view_fn({
-                            key: k, 
-                            id: k,
-                            visible: k == this.state.active
-                        });
+                        var v = this.props.pages[k].getView.apply(this, modules);
+                        v.props.key = k;
+                        v.props.id = k + '-page';
+                        v.props.visible = k == this.state.active;
                         return v;
                     } else {
                         return React.DOM.div({key: k});
@@ -132,7 +123,10 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
                 }.bind(this))
                 .value();
             view = view.concat(screens);
-
+            return view;
+        },
+        render: function() {
+            var pages = this.getPages();
             var items = this.props.pages;
             if (this.props.profile == null)
                 items = _.chain(this.props.pages)
@@ -151,7 +145,7 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
                     onSelect: this.handleSelect
                 }),
                 Notifications(),
-                React.DOM.div({'id': 'main'}, view),
+                React.DOM.div({'id': 'main'}, pages),
                 Footer()
             );
         }
