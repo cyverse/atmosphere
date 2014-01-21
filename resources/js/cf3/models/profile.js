@@ -25,7 +25,6 @@ define(['underscore', 'models/base', 'models/identity'], function(_, Base, Ident
             attributes.settings.icon_set = response.icon_set;
             attributes.settings.quick_launch = response.quick_launch;
             attributes.settings.send_emails = response.send_emails;
-            attributes.selected_identity = new Identity(response.selected_identity);
             
             return attributes;
         },

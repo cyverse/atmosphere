@@ -1,4 +1,4 @@
-define(['react', 'underscore'], function(React, _) {
+define(['react', 'underscore', 'components/page_header'], function(React, _, PageHeader) {
     var DashboardIcon = React.createClass({
         render: function() {
             return React.DOM.li({}, 
@@ -34,8 +34,8 @@ define(['react', 'underscore'], function(React, _) {
 
     var Dashboard = React.createClass({
         render: function() {
-            return React.DOM.div({},
-                React.DOM.h1({}, "Dashboard"),
+            return React.DOM.div({style: {display: this.props.visible ? 'block' : 'none'}},
+                PageHeader({title: "Dashboard"}),
                 React.DOM.p({}, "Welcome to Atmosphere!"),
                 React.DOM.ul({'id': 'dashboard-link-list'}, _.map(items, DashboardIcon))
             );

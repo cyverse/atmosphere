@@ -70,7 +70,6 @@ Atmo.Views.AlertModal = Backbone.View.extend({
         else
             $('#alert_modal .modal-footer a').eq(1).html("Ok");
         
-        $('#alert_modal .modal-footer a').show.bs.modal();
         $('#alert_modal .modal-footer a').eq(0).click(button_listener(options.on_cancel));
         $('#alert_modal .modal-footer a').eq(1).click(button_listener(options.on_confirm));
     }

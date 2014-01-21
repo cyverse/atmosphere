@@ -213,6 +213,9 @@ class Instance(models.Model):
     def esh_machine_name(self):
         return self.provider_machine.application.name
 
+    def provider_name(self):
+        return self.provider_machine.provider.location
+
     def esh_machine(self):
         return self.provider_machine.identifier
 

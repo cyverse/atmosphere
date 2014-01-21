@@ -137,6 +137,7 @@ def app_beta(request):
         template = get_template("cf3/index.html")
         context = RequestContext(request, {
             'site_root': settings.REDIRECT_URL,
+            'url_root': '/beta/',
             'debug': settings.DEBUG,
             'year': datetime.now().year
         })
@@ -156,7 +157,11 @@ def partial(request, path, return_string=False):
         logger.info(
             "init_data.js has yet to be implemented with the new service")
     elif path == 'templates.js':
-        output = compile_templates()
+        template_path = os.path.join(settings.root_dir, 'resources', 'js', 'cf2', 'templates')
+        output = compile_templates('cf2/partials/cloudfront2.js', template_path)
+    elif path == 'templates_require.js':
+        template_path = os.path.join(settings.root_dir, 'resources', 'js', 'cf3', 'templates')
+        output = compile_templates('cf3/templates.js', template_path)
 
     response = HttpResponse(output, 'text/javascript')
     response['Cache-Control'] = 'no-cache'
@@ -164,20 +169,18 @@ def partial(request, path, return_string=False):
     return response
 
 
-def compile_templates():
+def compile_templates(template_path, js_files_path):
     """
     Compiles backbonejs app into a single js file. Returns string.
     Pulled out into its own function so it can be called externally to
     compile production-ready js
     """
-    template = get_template("cf2/partials/cloudfront2.js")
+    template = get_template(template_path)
     context_dict = {
         'site_root': settings.SERVER_URL,
         'templates': {},
         'files': {}
     }
-    js_files_path = os.path.join(settings.root_dir, 'resources',
-                                 'js', 'cf2', 'templates')
 
     for root, dirs, files in os.walk(js_files_path):
         if files:
