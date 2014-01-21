@@ -167,7 +167,7 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
                     .value();
             
             return React.DOM.div({},
-                Header(),
+                Header({profile: this.props.profile}),
                 Sidebar({
                     items: items, 
                     active: this.state.active,

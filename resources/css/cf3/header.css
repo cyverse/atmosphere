@@ -1,21 +1,36 @@
 header {
     background-color: #0098aa;
     color: #fff;
-    padding: 5px;
 
     border-bottom: 1px solid #158793;
 }
 
-header img {
+header a {
+    color: #fff;
+}
+
+header a:hover{
+    color: #e6e6e6;
+    text-decoration: none;
+}
+
+
+#logo {
+    font-size: 1.2em;
+    padding: 5px;
+    display: block;
+    float: left;
+}
+
+#logo img {
     margin-right: 7px;
 }
 
-header a {
-    color: #fff;
-    font-size: 1.2em;
+#logo a:hover img {
+    opacity: .7;
 }
 
-header a::after {
+#logo::after {
     content: "BETA";
     background-color: hsl(20, 80%, 50%);
     padding: 5px;
@@ -24,17 +39,21 @@ header a::after {
     margin-left: 5px
 }
 
-header a:hover{
-    color: #e6e6e6;
-    text-decoration: none;
-}
-
-header a:hover img {
-    opacity: .7;
-}
-
 #tagline {
     font-size: 80%;
     color: #ddd;
 }
 
+
+#header-nav {
+    float: right;
+}
+
+#header-nav a {
+    display: inline-block;
+    padding: 10px 5px;
+}
+
+#header-nav a:hover {
+    background-color: hsl(186, 100%, 37%);
+}
