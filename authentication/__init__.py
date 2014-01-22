@@ -40,6 +40,18 @@ def createAuthToken(username):
     return auth_user_token
 
 
+def validateToken(username, token_key):
+    """
+    Verify the token belongs to username, and renew it
+    """
+    auth_user_token = AuthToken.objects.filter(user__username=username, key=token_key)
+    if not auth_user_token:
+        return None
+    auth_user_token = auth_user_token[0]
+    auth_user_token.update_expiration()
+    auth_user_token.save()
+    return auth_user_token
+
 def userCanEmulate(username):
     """
     Django users marked as 'staff' have emulate permission
