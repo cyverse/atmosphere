@@ -21,7 +21,8 @@ from api import get_esh_driver
 from service import task
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation
-from service.exceptions import OverAllocationError, OverQuotaError
+from service.exceptions import OverAllocationError, OverQuotaError,\
+    SizeNotAvailable
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 from service.tasks.driver import add_floating_ip, remove_empty_network
 
@@ -249,6 +250,7 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
         #create a reference to this attempted instance launch.
         instance_token = str(uuid.uuid4())
 
+        #TODO: Mock these for faster launch performance
         #Gather the machine object
         machine = driver.get_machine(machine_alias)
         if not machine:
@@ -285,14 +287,12 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
                                  **kwargs)
         elif isinstance(driver.provider, OSProvider):
             deploy = True
-            ex_metadata = {'tmp_status': 'initializing',
-                           'creator': '%s' % username}
-            ex_keyname = settings.ATMOSPHERE_KEYPAIR_NAME
-            #Check for project network.. TODO: Fix how password/project are
-            # retrieved
             security_group_init(core_identity)
             network_init(core_identity)
             keypair_init(core_identity)
+            ex_metadata = {'tmp_status': 'initializing',
+                           'creator': '%s' % username}
+            ex_keyname = settings.ATMOSPHERE_KEYPAIR_NAME
             logger.debug("OS driver.create_instance kwargs: %s" % kwargs)
             esh_instance = driver.create_instance(name=name, image=machine,
                                                   size=size,

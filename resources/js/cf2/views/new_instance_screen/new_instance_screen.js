@@ -495,9 +495,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		Atmo.request_resources_modal.do_alert();
 	},
     hide_burn_time: function() {
-        console.log(Atmo.profile);
     },
     show_burn_time: function() {
-        console.log(Atmo.profile);
     }
 });

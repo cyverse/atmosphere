@@ -83,12 +83,10 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
 					container.empty();
 
 				for (var i = 0; i < machines.length; i++) {
-                    console.log(machines[i])
 					container.append(_.template(Atmo.Templates['machine_history_row'], machines[i]));
 				}
 			},
 			error: function() {
-				console.log("ERROR!!!!");
 			}
 		});
 		// Grab first page of instance history
@@ -123,12 +121,10 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
                     if (instance.end_date_p != null)
                         instance.end_date = instance.end_date_p.format("MM/dd/yyyy II:mm p")
                     instance.active_time = Atmo.Utils.seconds_to_pretty_time(parseFloat(instance.active_time), 1)
-                    console.log(instance)
 					container.append(_.template(Atmo.Templates['instance_history_row'], instance));
 				}
 			},
 			error: function() {
-				console.log("ERROR!!!!");
 			}
 		});
 

@@ -10,10 +10,10 @@ import service
 
 from service.exceptions import DeviceBusyException
 
-from service.tasks.driver import deploy_to,\
-    deploy_init_to, add_floating_ip, destroy_instance
-from service.tasks.volume import detach_task, umount_task,\
-    attach_task, mount_task, check_volume_task
+from service.tasks.driver import deploy_to, deploy_init_to, add_floating_ip
+from service.tasks.driver import destroy_instance
+from service.tasks.volume import attach_task, mount_task, check_volume_task
+from service.tasks.volume import detach_task, umount_task
 
 
 def deploy_init_task(driver, instance, *args, **kwargs):
@@ -21,7 +21,7 @@ def deploy_init_task(driver, instance, *args, **kwargs):
                                 driver.provider,
                                 driver.identity,
                                 instance.alias),
-                               immutable=True, countdown=20)
+                               immutable=True, countdown=60)
 
 
 def deploy_to_task(driver, instance, *args, **kwargs):

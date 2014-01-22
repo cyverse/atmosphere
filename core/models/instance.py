@@ -398,18 +398,9 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
         logger.warn("EshDriver %s does not have function 'ex_set_metadata'"
                     % esh_driver._connection.__class__)
         return {}
-    while True:
-        if esh_instance.extra['status'] != 'build':
-            break
-        # Wait at most 1 minutes
-        wait_time = min(wait_time + 1, 1)
-        logger.info("Metadata cannot be applied while EshInstance %s is in"
-                    " the build state. Will try again in %s minute(s)"
-                    % (esh_instance, wait_time))
-        time.sleep(wait_time*60)
-        # Check if the instance status has been updated
-        esh_instance = esh_driver.get_instance(instance_id)
-
+    if esh_instance.extra['status'] == 'build':
+        raise Exception("Metadata cannot be applied while EshInstance %s is in"
+                        " the build state." % (esh_instance,))
     # ASSERT: We are ready to update the metadata
     if data.get('name'):
         esh_driver._connection.ex_set_server_name(esh_instance, data['name'])
@@ -417,6 +408,7 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
         return esh_driver._connection.ex_set_metadata(esh_instance, data,
                 replace_metadata=replace)
     except Exception, e:
+        logger.exception("Error updating the metadata")
         if 'incapable of performing the request' in e.message:
             return {}
         else:
