@@ -18,7 +18,7 @@ define(['react'], function(React) {
             var rightChild = this.props.profile ? 
                 LogoutLink({profile: this.props.profile}) : LoginLink();
 
-            return React.DOM.header({},
+            return React.DOM.header({'className': 'clearfix'},
                 React.DOM.a(
                     {href: '/', id: 'logo'}, 
                     React.DOM.img({

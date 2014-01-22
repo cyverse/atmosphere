@@ -114,7 +114,9 @@ Atmo.Utils.update_weather = function() {
 
                 // Hardcoded for now, replace when we have identities in backbone models
                 $('#weather_report').html(function() {
-                    var content = (Atmo.profile.get('selected_identity').get('provider_id') == 2) ? 'OpenStack' : 'Eucalyptus';
+                    var provider_id = Atmo.profile.get('selected_identity').get('provider_id');
+                    var provider = Atmo.providers.get(provider_id);
+                    var content = provider.get('location');
                     content += ' is at ' + occupancy + '% capacity.<br /> The forecast is '+weather+'.';
                     return content;
                 });
