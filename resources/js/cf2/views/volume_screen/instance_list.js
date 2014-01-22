@@ -21,7 +21,6 @@ Atmo.Views.VolumeScreenDraggableInstances = Backbone.View.extend({
     volume_status_changed: function(volume) {
         // if the volume is now in use, append it to the appropriate instance list.
         // if the volume is now available, get rid of it's representation here
-        console.log('volume status changed');
         if (volume.get('status') == 'attaching' || volume.get('status') == 'detaching' || volume.get('status') == 'in-use') {
             if (!this.volume_map[volume.get('id')]) {
                 new_view = new Atmo.Views.VolumeScreenVolume({model: volume});

@@ -86,7 +86,6 @@ Atmo.Views.VolumeScreenVolume = Backbone.View.extend({
             Atmo.Utils.confirm_detach_volume(this.model, instance, {
                 success: function() {
                     Atmo.volumes.fetch();
-                    console.log('success - volume')
                 }
             });
         }

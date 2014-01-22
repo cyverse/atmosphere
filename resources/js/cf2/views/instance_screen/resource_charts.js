@@ -101,7 +101,6 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
             async: false,
             url: site_root + '/api/v1/provider/' + provider + '/identity/' + identity,
             success: function(response_text) {
-                console.log("total", total);
                 total = response_text[0]["quota"][quota_type];
             },
             error: function() {
