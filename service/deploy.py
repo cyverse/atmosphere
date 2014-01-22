@@ -54,11 +54,12 @@ def build_script(script_input, name=None):
     return ScriptDeployment(script_input, name=name)
 
 
-def install_util_linux(distro='ubuntu'):
-    return ScriptDeployment(
-        "%s install -qy utils-linux"
-        % 'apt-get' if 'ubuntu' in distro.to_lower() else 'yum',
-        name="./deploy_freeze_instance.sh")
+def install_base_requirements(distro='ubuntu'):
+    script_txt = "%s install -qy utils-linux %s"\
+        % ('apt-get' if 'ubuntu' in distro.to_lower() else 'yum',
+           '' if 'ubuntu' in distro.to_lower() else 'python-simplejson')
+    return ScriptDeployment(script_txt,
+        name="./deploy_base_requirements.sh")
 
 
 def freeze_instance(sleep_time=45):

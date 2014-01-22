@@ -31,6 +31,7 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
         instance = driver.get_instance(instance_id)
         #Breakout if instance has been deleted at this point
         if not instance:
+            logger.debug("Instance has been teminated: %s." % instance_id)
             return
         username = identity.user.username
         created = datetime.strptime(instance.extra['created'],
@@ -94,49 +95,61 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         if not instance:
+            logger.debug("Instance has been teminated: %s." % instance_id)
             return
         image_metadata = driver._connection\
                                .ex_get_image_metadata(instance.machine)
         image_already_deployed = image_metadata.get("deployed")
         if not instance.ip and not image_already_deployed:
             logger.debug("Chain -- Floating_ip + deploy_init + email")
-            cflow = chain(add_floating_ip.si(driverCls,
-                                             provider,
-                                             identity,
-                                             instance_id, delete_status=False),
-                          _deploy_init_to.si(driverCls,
-                                             provider,
-                                             identity,
-                                             instance_id),
-                          _send_instance_email.si(driverCls,
-                                                  provider,
-                                                  identity,
-                                                  instance_id))
-            cflow(link_error=deploy_failed.s((driverCls, provider, identity,
-                                              instance_id, ))),
+            deploy_chain = chain(
+                update_metadata.si(
+                    driverCls, provider, identity, instance_id,
+                    {'tmp_status': 'networking'}),
+                add_floating_ip.si(
+                    driverCls, provider, identity, instance_id),
+                update_metadata.si(
+                    driverCls, provider, identity, instance_id,
+                    {'tmp_status': 'deploying'}),
+                _deploy_init_to.si(
+                    driverCls, provider, identity, instance_id),
+                update_metadata.si(
+                    driverCls, provider, identity, instance_id,
+                    {'tmp_status': ''}),
+                _send_instance_email.si(
+                    driverCls, provider, identity, instance_id))
+            #Actual chain call here
+            deploy_chain(link_error=deploy_failed.s(
+                (driverCls, provider, identity, instance_id, ))),
         elif not image_already_deployed:
             logger.debug("Chain -- deploy_init + email")
-            cflow = chain(_deploy_init_to.si(driverCls,
-                                             provider,
-                                             identity,
-                                             instance_id),
-                          _send_instance_email.si(driverCls,
-                                                  provider,
-                                                  identity,
-                                                  instance_id))
-            cflow(link_error=deploy_failed.s(
+            deploy_chain = chain(
+                update_metadata.si(
+                    driverCls, provider, identity, instance_id,
+                    {'tmp_status': 'deploying'}),
+                _deploy_init_to.si(
+                    driverCls, provider, identity, instance_id),
+                update_metadata.si(
+                    driverCls, provider, identity, instance_id,
+                    {'tmp_status': ''}),
+                _send_instance_email.si(
+                    driverCls, provider, identity, instance_id))
+            #Actual chain call here
+            deploy_chain(link_error=deploy_failed.s(
                 (driverCls, provider, identity, instance_id, ))),
         elif not instance.ip:
             logger.debug("Chain -- Floating_ip + email")
-            cflow = chain(add_floating_ip.si(driverCls,
-                                             provider,
-                                             identity,
-                                             instance_id, delete_status=True),
-                          _send_instance_email.si(driverCls,
-                                                  provider,
-                                                  identity,
-                                                  instance_id))
-            cflow()
+            deploy_chain = chain(
+                update_metadata.si(
+                    driverCls, provider, identity, instance_id,
+                    {'tmp_status': 'networking'}),
+                add_floating_ip.si(
+                    driverCls, provider, identity, instance_id,
+                    delete_status=True),
+                _send_instance_email.si(
+                    driverCls, provider, identity, instance_id))
+            #Actual chain call here
+            deploy_chain()
         else:
             logger.debug("delay -- email")
             _send_instance_email.delay(driverCls,
@@ -170,20 +183,14 @@ def destroy_instance(core_identity_id, instance_alias):
             driverCls = driver.__class__
             provider = driver.provider
             identity = driver.identity
-            cflow = chain(clean_empty_ips
-                          .subtask((driverCls,
-                                    provider,
-                                    identity),
-                                   immutable=True,
-                                   countdown=5),
-                          remove_empty_network
-                          .subtask((driverCls,
-                                    provider,
-                                    identity,
-                                    core_identity_id),
-                                   immutable=True,
-                                   countdown=60))
-            cflow()
+            destroy_chain = chain(
+                clean_empty_ips.subtask(
+                    (driverCls, provider, identity),
+                    immutable=True, countdown=5),
+                remove_empty_network.subtask(
+                    (driverCls, provider, identity, core_identity_id),
+                    immutable=True, countdown=60))
+            destroy_chain()
         logger.debug("destroy_instance task finished at %s." % datetime.now())
         return node_destroyed
     except Exception as exc:
@@ -206,23 +213,28 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
             logger.debug("Instance has been teminated: %s." % instance_id)
             return
 
-        update_instance_metadata(driver, instance,
-                                 data={'tmp_status': 'deploying'},
-                                 replace=False)
-
         #Deploy with no password to use ssh keys
         logger.info(instance.extra)
         instance._node.extra['password'] = None
         driver.deploy_init_to(instance)
 
-        update_instance_metadata(driver, instance,
-                                 data={'tmp_status': ''},
-                                 replace=False)
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
     except Exception as exc:
         logger.exception(exc)
         _deploy_init_to.retry(exc=exc)
 
+@task(name="update_metadata", max_retries=250, default_retry_delay=15)
+def update_metadata(driverCls, provider, identity, instance_alias, metadata):
+    """
+    #NOTE: While this looks like a large number (250 ?!) of retries
+    # we expect this task to fail often when the image is building
+    # and large, uncached images can have a build time 
+    """
+    driver = get_driver(driverCls, provider, identity)
+    instance = driver.get_instance(instance_alias)
+    return update_instance_metadata(
+        driver, instance, data=metadata, replace=False)
+    
 
 # Floating IP Tasks
 @task(name="add_floating_ip",
@@ -241,17 +253,16 @@ def add_floating_ip(driverCls, provider, identity,
         #assign if instance doesn't already have an IP addr
         instance = driver.get_instance(instance_alias)
         if not instance:
-            return
-        #TODO: Don't even attempt this until we are out of build
-        update_instance_metadata(driver, instance,
-                                 data={'tmp_status': 'networking'},
-                                 replace=False)
+            logger.debug("Instance has been teminated: %s." % instance_id)
+            return None
         floating_ips = driver._connection.neutron_list_ips(instance)
         if floating_ips:
             floating_ip = floating_ips[0]["floating_ip_address"]
         else:
             floating_ip = driver._connection.neutron_associate_ip(
                 instance, *args, **kwargs)["floating_ip_address"]
+        #TODO: Implement this as its own task, with the result from
+        #'floating_ip' and update the instance metadata before deploy_to
         hostname = ""
         if floating_ip.startswith('128.196'):
             regex = re.compile(
@@ -265,13 +276,8 @@ def add_floating_ip(driverCls, provider, identity,
                                      replace=False)
 
         logger.info("Assigned IP:%s - Hostname:%s" % (floating_ip, hostname))
-        #Useful for chaining floating-ip + Deployment without returning
-        #a 'fully active' state
-        if delete_status:
-            update_instance_metadata(driver, instance,
-                                     data={'tmp_status': ''},
-                                     replace=False)
         logger.debug("add_floating_ip task finished at %s." % datetime.now())
+        return {"floating_ip":floating_ip, "hostname":hostname}
     except Exception as exc:
         logger.exception("Error occurred while assigning a floating IP")
         #Networking can take a LONG time when an instance first launches,

@@ -22,16 +22,14 @@ def get_all_instances():
     from api import get_esh_driver
     all_instances = []
     for provider in Provider.objects.all():
-        identity_list = None
         try:
-            identity_list = Identity.objects.filter(provider=provider)
-            if identity_list\
-               and provider.type.name != ""\
-               and provider.type.name != "Amazon EC2":
-                identity = identity_list[0]
-                driver = get_esh_driver(identity)
-                meta_driver = driver.provider.metaCls(driver)
-                all_instances.extend(meta_driver.all_instances())
+            admins = provider.accountprovider_set.all()
+            if not admins:
+                raise Exception("No account admins for provider %s"
+                                % provider)
+            driver = get_esh_driver(admins[0].identity)
+            meta_driver = driver.meta(admin_driver=driver)
+            all_instances.extend(meta_driver.all_instances())
         except:
             logger.exception("Problem accessing all instances for provider: %s" % provider)
     return all_instances
