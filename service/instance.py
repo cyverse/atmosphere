@@ -21,7 +21,8 @@ from api import get_esh_driver
 from service import task
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation
-from service.exceptions import OverAllocationError, OverQuotaError
+from service.exceptions import OverAllocationError, OverQuotaError,\
+    SizeNotAvailable
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 from service.tasks.driver import add_floating_ip, remove_empty_network
 

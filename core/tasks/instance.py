@@ -62,13 +62,13 @@ def update_links(instances):
             instance = Instance.objects.get(provider_alias=instance_id)
             if link_results['shell'] != instance.shell:
                 logger.debug('Change Instance %s shell %s-->%s' %
-                        (instance.provider_alias, instance.shell,
+                        (instance, instance.shell,
                             link_results['shell']))
                 instance.shell = link_results['shell']
                 update = True
             if link_results['vnc'] != instance.vnc:
                 logger.debug('Change Instance %s VNC %s-->%s' %
-                        (instance.provider_alias, instance.vnc,
+                        (instance, instance.vnc,
                             link_results['vnc']))
                 instance.vnc = link_results['vnc']
                 update = True
