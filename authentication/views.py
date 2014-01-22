@@ -67,9 +67,9 @@ def token_auth(request):
             logger.debug("[LDAP] Failed to validate %s" % username)
             return HttpResponse("LDAP login failed", status=401)
 
-    if request.session and request.session.get('token'):
-        logger.info("User %s already authenticated, renewing token" % username)
-        token = validateToken(username, request.session.get('token'))
+    #if request.session and request.session.get('token'):
+    #    logger.info("User %s already authenticated, renewing token" % username)
+    #    token = validateToken(username, request.session.get('token'))
 
     #ASSERT: Token exists here
     if token:
