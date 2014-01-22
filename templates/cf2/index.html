@@ -1,3 +1,4 @@
+{% load compressed %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,6 +8,7 @@
 	<!--CSS-->
 	<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.3/css/bootstrap.min.css"/>
 	<link rel="stylesheet" href="{{ site_root }}/resources/css/cloudfront.css" />
+        {% compressed_css 'app' %}
 	<!--JS-->
 	<!--[if IE]>
 	  <script src="https://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -27,6 +29,7 @@
 
         <!-- Application dependencies -->
         <!--script type="text/javascript" src="{{ site_root }}/partials/init_data.js"></script-->
+        {% compressed_js 'app' %}
 	<script type="text/javascript" src="{{ site_root }}/resources/js/cloudfront2.js"></script>
         <script type="text/javascript" src="{{ site_root }}/resources/js/base.js"></script> 
 	<script type="text/javascript" src="{{ site_root }}/partials/templates.js"></script>
