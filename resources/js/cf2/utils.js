@@ -210,11 +210,8 @@ Atmo.Utils.get_profile = function() {
   profile = new Atmo.Models.Profile();
   var model_name = profile.get('model_name');
   var params = {};
-  console.log(params);
-  console.log(model_name);
   var url = profile.get('api_url')
     + "/" + model_name;
-  console.log(url);
   $.ajax({
     type: "GET",
     contentType:"application/json; charset=utf-8",
@@ -222,20 +219,12 @@ Atmo.Utils.get_profile = function() {
     url: url,
     data: params,
     success: function(data, textStatus, jqXHR) {
-      console.log(data);
-      console.log(textStatus);
-      console.log(jqXHR);
       $.each(data, function(key, value) {
         profile.set(key, value);
       });
-      console.log("processing in Atmo.Utils.get_profile.success");
       //options.success(profile);
     },
     error: function(data, textStatus, jqXHR) {
-      console.log(data);
-      console.log(textStatus);
-      console.log(jqXHR);
-      console.log("processing in Atmo.Utils.get_profile.success");
       //options.error('failed to ' + method
       //              + model_name
       //              + "="
@@ -254,7 +243,6 @@ Atmo.Utils.current_credentials = function() {
 }
 Atmo.Utils.attach_volume = function(volume, instance, mount_location, options) {
     var options = options || {};
-    console.log("instance to attach to", instance);
 
     volume.attach_to(instance, mount_location, {
         success: function(response_text) {
@@ -262,7 +250,6 @@ Atmo.Utils.attach_volume = function(volume, instance, mount_location, options) {
             var body = 'You must <a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step6%3AMountthefilesystemonthepartition." target="_blank">mount the volume</a> you before you can use it.<br />';
             body += 'If the volume is new, you will need to <a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step5%3ACreatethefilesystem%28onetimeonly%29." target="_blank">create the file system</a> first.';
 
-            console.log("success response text", response_text);
 
             Atmo.Utils.notify(header, body, { no_timeout: true });
             if (options.success)
@@ -314,7 +301,6 @@ Atmo.Utils.confirm_detach_volume = function(volume, instance, options) {
             }); 
         },
         on_cancel: function() {
-            console.log("cancelled volume detach.");
             Atmo.volumes.fetch();
         },
         ok_button: 'Yes, detach this volume'

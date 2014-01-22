@@ -140,14 +140,12 @@ Atmo.Views.BackupVolumeModal = Backbone.View.extend({
 			this.$el.find('.modal-footer a').eq(1).click(this.button_listener(this.complete_backup));
 
 
-			console.log("begin backup");
 		}
 		
 		return false;
 	},
 	complete_backup: function(e) {
 		
-		console.log("complete backup");
 
 	}
 });

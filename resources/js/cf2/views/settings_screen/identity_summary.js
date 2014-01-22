@@ -71,8 +71,6 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
     }
 
     // Point controls to this provider
-    console.log(this.$el.find("#identity_num"));
-    console.log(this.$el.find('a[href="#identity_num"]'));
     this.$el.find('#identity_num').attr('id', 'identity_'+self.identity_id);
     this.$el.find('a[href="#identity_num"]').attr('href', 'identity_'+self.identity_id);
     
@@ -104,8 +102,6 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
         this.set_populated(false);
     },
   render_provider_data: function(e) {
-    console.log("RENDER PROVIDER DATA");
-    console.log("POPULATD?: " + this.is_populated());
     // Do some mapping, based on whether the info we want to see already exists in backbone models
     // This should be majorly refactored when we have time
     if (!this.maintenance) {
@@ -118,7 +114,6 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
   },
   render_remote_summary: function(e) {
     var self = this;
-    console.log("POPULATED RENDER REMOTE:" + this.is_populated());
     if (!this.is_populated()) {
       // Help the user -- hide everything that's being appended until we get to the end. Meantime, show a spinny loader!
       // Keep track of any errors

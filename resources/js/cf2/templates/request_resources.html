@@ -7,7 +7,7 @@
      <div class="modal-body">
         <p>
            <p class="alert alert-info" style="padding-left: 30px"><i class="glyphicon glyphicon-info-sign" style="margin-left: -17px"></i> 
-              Large instances sizes, which consume more resources, are available on a first-come-first-served basis. Depending on Atmosphere's capacity, you may be unable to launch an instance even though you have a sufficient allocation.
+           Depending on the cloud provider, allocations may be expressed as CPUs, RAM, Atmosphere Units (AUs), or a combination of these. One Atmosphere Unit is roughly equivalent to a CPU-hour, or using one CPU core for one hour. A 16 core instance running for one hour will use 16 AUs. Instances are available on a first-come-first-served basis. Depending on Atmosphere's capacity, you may be unable to launch an instance even though you have a sufficient allocation.
            </p>
            
            <form name="request_resources_form" style="margin-bottom: 0" role="form">
@@ -17,7 +17,7 @@
                  <label class="control-label">What resources would you like to request?</label>
                  <div class="row">
                     <div class="col-md-11 col-md-offset-1">
-                       <textarea class="form-control" name="quota" style="width: 80%" rows="3" placeholder="E.g. 4 CPUs and 8GB memory, enough for a c1.medium, etc."></textarea>
+                       <textarea class="form-control" name="quota" style="width: 80%" rows="3" placeholder="E.g 4 CPUs and 8GB memory, running 4 cores for 1 week, an additional 5400 cpu hours, etc."></textarea>
                     </div>
                  </div>
               </div>
