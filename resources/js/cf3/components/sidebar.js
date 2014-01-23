@@ -1,9 +1,4 @@
-define(['react', 'underscore'], function (React, _) {
-    var Glyphicon = React.createClass({
-        render: function() {
-            return React.DOM.i({className: 'glyphicon glyphicon-' + this.props.name});
-        }
-    });
+define(['react', 'underscore', 'components/glyphicon'], function (React, _, Glyphicon) {
 
     var SidebarListItem = React.createClass({
         handleClick: function(e) {
