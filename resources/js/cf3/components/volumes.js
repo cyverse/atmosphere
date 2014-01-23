@@ -14,7 +14,7 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
             else if (this.props.volume.get('status') == 'in-use')
                 attach_info = [
                     "Device location: ",
-                    this.props.volume.get('attach_data').device,
+                    React.DOM.code({}, this.props.volume.get('attach_data').device),
                     React.DOM.br(),
                     "Attached: ",
                     RelativeTime({date: this.props.volume.get('attach_data').attachTime})
