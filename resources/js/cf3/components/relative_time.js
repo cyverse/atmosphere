@@ -3,10 +3,10 @@
  */
 define(['react', 'utils', 'moment'], function(React, Utils, Moment) {
 
-    /*
-     * Props: (Date) date
-     */
     var RelativeTime = React.createClass({
+        propTypes: {
+            date: React.PropTypes.instanceOf(Date)
+        },
         render: function() {
             return React.DOM.time({
                 title: Moment(this.props.date).format(),
