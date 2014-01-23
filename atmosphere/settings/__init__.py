@@ -20,7 +20,8 @@ import atmosphere
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                            '../..'))
 SERVER_URL = 'https://yourserver.iplantc.org'
 # IF on the root directory, this should be BLANK, else: /path/to/web (NO
 # TRAILING /)
