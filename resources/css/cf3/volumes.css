@@ -1,0 +1,14 @@
+#volume-list {
+    list-style-type: none;
+    padding: 0;
+}
+#volume-list li {
+    position: relative; 
+    padding-left: 20px;
+}
+
+#volume-list li i.glyphicon {
+    position: absolute;
+    top: 3px;
+    left: 0px;
+}

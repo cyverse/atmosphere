@@ -8,6 +8,7 @@
 @import url('cf3/header.css');
 @import url('cf3/sidebar.css');
 @import url('cf3/dashboard.css');
+@import url('cf3/volumes.css');
 
 .main-page-header h1 {
     color: #db6619;
