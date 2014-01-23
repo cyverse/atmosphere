@@ -2,6 +2,7 @@
 # and installable via pip
 Django==1.6
 pip>=1.4,<1.5
+Pillow==2.3.0
 South==0.8.4
 apache-libcloud==0.14.0-beta3
 celery==3.1.8
