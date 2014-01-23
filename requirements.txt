@@ -27,7 +27,7 @@ pep8==1.4.6
 # These repos will install the master/latest branch each time pip install
 # --upgrade is executed
 git+git://github.com/iPlantCollaborativeOpenSource/caslib.py.git#egg=caslib
---allow-external git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.5
+git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.5
 git+git://github.com/iPlantCollaborativeOpenSource/jwt.py.git#egg=jwt
 git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive
 git+git://github.com/iPlantCollaborativeOpenSource/rtwo.git#egg=rtwo
