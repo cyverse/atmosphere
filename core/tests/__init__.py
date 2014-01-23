@@ -1,6 +1,7 @@
 from core.tests.instance import *
 from atmosphere.settings import secrets
-from core.models import ProviderCredential, ProviderType, Provider, Identity
+from core.models import PlatformType, ProviderType, ProviderCredential,\
+                        Provider, Identity
 
 def create_euca_provider():
     provider_type = ProviderType.objects.get_or_create(name='Eucalyptus')[0]
