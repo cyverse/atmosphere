@@ -32,8 +32,6 @@ class DriverManager(object):
         from api import get_esh_driver
         #No Cache model
         driver = get_esh_driver(core_identity)
-        logger.info("Driver created for identity %s : %s"
-                    % (core_identity, driver))
         return driver
         #Cached model
         if not self.driver_map.get(core_identity):

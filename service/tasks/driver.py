@@ -234,6 +234,7 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata):
         logger.debug("update_metadata task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_alias)
+        #TODO: while-true with hard-coded sleep ONLY IF CELERY_ALWAYS_EAGER
         return update_instance_metadata(
             driver, instance, data=metadata, replace=False)
         logger.debug("update_metadata task finished at %s." % datetime.now())

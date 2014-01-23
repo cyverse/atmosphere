@@ -328,6 +328,8 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id, use
     else:
         if 'launchdatetime' in esh_instance.extra:
             create_stamp = esh_instance.extra.get('launchdatetime')
+        elif 'launch_time' in esh_instance.extra:
+            create_stamp = esh_instance.extra.get('launch_time')
         elif 'created' in esh_instance.extra:
             create_stamp = esh_instance.extra.get('created')
         else:
