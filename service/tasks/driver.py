@@ -230,10 +230,16 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata):
     # we expect this task to fail often when the image is building
     # and large, uncached images can have a build time 
     """
-    driver = get_driver(driverCls, provider, identity)
-    instance = driver.get_instance(instance_alias)
-    return update_instance_metadata(
-        driver, instance, data=metadata, replace=False)
+    try:
+        logger.debug("update_metadata task started at %s." % datetime.now())
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_alias)
+        return update_instance_metadata(
+            driver, instance, data=metadata, replace=False)
+        logger.debug("update_metadata task finished at %s." % datetime.now())
+    except Exception as exc:
+        logger.warn(exc)
+        update_metadata.retry(exc=exc)
     
 
 # Floating IP Tasks

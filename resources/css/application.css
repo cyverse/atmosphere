@@ -11,6 +11,14 @@ p {
       margin:5px;
     }
 
+.settings {
+      background-image:url(../shared/icons/fam/folder_wrench.png);
+    }
+
+.nav {
+      background-image:url(../shared/icons/fam/folder_go.png);
+    }
+	
 #header {
 	height: 8px;
 	border-bottom: #0098aa 0px solid;
