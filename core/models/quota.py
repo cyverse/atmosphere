@@ -50,7 +50,7 @@ class Quota(models.Model):
     def unreachable_dict(cls):
         return {
             'cpu': 128,
-            'memory': 512,
+            'memory': 256,
             'storage': 1000,
             'storage_count': 10
         }
