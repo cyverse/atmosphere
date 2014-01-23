@@ -67,6 +67,11 @@ ErrorLog /var/log/apache2/ssl_error.log
 TransferLog /var/log/apache2/ssl_access.log
 LogLevel warn
 
+
+#The line below is necessary for install script to insert important ssl text
+#SSLMATCHTEXT
+
+#EXAMPLE SSL SETUP
 #SSL
 #SSLEngine on
 #SSLProtocol all -SSLv2
@@ -85,6 +90,7 @@ LogLevel warn
 #SetEnvIf User-Agent ".*MSIE.*" \
 #         nokeepalive ssl-unclean-shutdown \
 #         downgrade-1.0 force-response-1.0
+
 
 #This is for atmosphere
 Alias /favicon.ico LOCATIONOFATMOSPHEREHERE/static/images/favicon.ico
