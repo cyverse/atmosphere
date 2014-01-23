@@ -88,7 +88,9 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
                     identities: this.props.profile.get('identities'), 
                     onSelect: this.onSelect,
                     selected: this.state.identity}),
-                Button({onClick: this.showCreateVolumeModal, type: 'primary'}, "Create Volume"),
+                React.DOM.div({id: 'volume-controls'},
+                    Button({onClick: this.showCreateVolumeModal, type: 'primary'}, "Create Volume")
+                ),
                 //React.DOM.h2({}, "Provider " + this.state.identity.get('provider_id') + ", Identity " + this.state.identity.get('id')),
                 VolumeList({volumes: this.state.identity.get('volumes')})
             );

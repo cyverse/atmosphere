@@ -15,14 +15,17 @@
 }
 
 #volume-list .volume-header {
-    height: 40px;
 }
 
-#volume-list .volume-header > span {
+#volume-list .volume-header > span, #volume-list .volume-header > strong {
     line-height: 40px;
+    font-size: 21px;
 }
 
 #volume-list > li .btn-group {
     float: right;
 }
 
+#volume-controls {
+    margin-bottom: 20px;
+}
