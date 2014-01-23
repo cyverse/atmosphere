@@ -13,16 +13,11 @@ var Volume = Base.extend({
         attributes.id = response.alias;
         attributes.name_or_id = response.name.length == 0 ? response.alias : response.name;
         attributes.create_time = new Date(response.start_date);
-        attributes.create_relative = Utils.relative_time(attributes.create_time);
         
-        var attach_data = response.attach_data;
+        attributes.attach_data = response.attach_data;
         
-        if (!jQuery.isEmptyObject(attach_data)) {
-            attributes.attach_data_attach_time = new Date(attach_data.attachTime);
-            attributes.attach_data_attach_relative = Utils.relative_time(attributes.attach_data_attach_time);
-            attach_data.attachRelative = attributes.attach_data_attach_relative;
-            attributes.attach_data_device = attach_data.device;
-            attributes.attach_data_instance_id = attach_data.instanceId;
+        if (!jQuery.isEmptyObject(attributes.attach_data)) {
+            attributes.attach_data.attachTime = new Date(attributes.attach_data.attachTime);
         } 
         else {
             attributes.attach_data_attach_time = null;
