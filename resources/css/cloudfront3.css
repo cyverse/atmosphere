@@ -10,11 +10,19 @@
 @import url('cf3/dashboard.css');
 @import url('cf3/volumes.css');
 
+.main-page-header {
+    margin-bottom: 20px;
+    position: relative;
+}
 .main-page-header h1 {
     color: #db6619;
 }
-.main-page-header {
-    border-bottom: 1px solid #eee;
+.main-page-header .identity-select {
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+.identity-select {
     margin-bottom: 20px;
 }
 

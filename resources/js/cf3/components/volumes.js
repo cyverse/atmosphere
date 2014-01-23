@@ -1,6 +1,8 @@
 define(['react', 'components/identity_select', 'backbone', 'utils', 
-    'components/page_header', 'components/relative_time', 'components/glyphicon'],
-    function(React, IdentitySelect, Backbone, Utils, PageHeader, RelativeTime, Glyphicon) {
+    'components/page_header', 'components/relative_time', 'components/glyphicon',
+    'components/button_group'],
+    function(React, IdentitySelect, Backbone, Utils, PageHeader, RelativeTime, 
+        Glyphicon, ButtonGroup) {
 
     var Volume = React.createClass({
         render: function() {
@@ -14,18 +16,24 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
                     "Device location: ",
                     this.props.volume.get('attach_data').device,
                     React.DOM.br(),
-                    "Attached : ",
+                    "Attached: ",
                     RelativeTime({date: this.props.volume.get('attach_data').attachTime})
                 ];
 
 
             return React.DOM.li({},
                 Glyphicon({name: 'hdd'}),
-                React.DOM.strong({}, 
-                    this.props.volume.get('name_or_id')
+                React.DOM.div({className: 'volume-header clearfix'}, 
+                    React.DOM.strong({}, 
+                        this.props.volume.get('name_or_id')
+                    ),
+                    " (" + this.props.volume.get('size') + " GB)",
+                    ButtonGroup({text: 'Actions', actions: {
+                        'Detach': null,
+                        'Attach': null,
+                        'Report as Broken': null,
+                    }})
                 ),
-                " (" + this.props.volume.get('size') + " GB)",
-                React.DOM.br(),
                 "Created: ",
                 RelativeTime({date: this.props.volume.get('create_time')}),
                 React.DOM.br(),
@@ -76,7 +84,10 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
         render: function() {
             return React.DOM.div({style: {display: this.props.visible ? 'block' : 'none'}},
                 PageHeader({title: "Volumes"}),
-                IdentitySelect({identities: this.props.profile.get('identities'), onSelect: this.onSelect}),
+                IdentitySelect({
+                    identities: this.props.profile.get('identities'), 
+                    onSelect: this.onSelect,
+                    selected: this.state.identity}),
                 Button({onClick: this.showCreateVolumeModal, type: 'primary'}, "Create Volume"),
                 //React.DOM.h2({}, "Provider " + this.state.identity.get('provider_id') + ", Identity " + this.state.identity.get('id')),
                 VolumeList({volumes: this.state.identity.get('volumes')})
