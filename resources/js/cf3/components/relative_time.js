@@ -8,8 +8,6 @@ define(['react', 'utils', 'moment'], function(React, Utils, Moment) {
      */
     var RelativeTime = React.createClass({
         render: function() {
-            console.log(this.props);
-            console.log(this.props.date);
             return React.DOM.time({
                 title: Moment(this.props.date).format(),
                 dateTime: Moment(this.props.date).utc().format()
