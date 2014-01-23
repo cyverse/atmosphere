@@ -49,10 +49,10 @@ class Quota(models.Model):
     @classmethod
     def unreachable_dict(cls):
         return {
-            'cpu': 1000,
-            'memory': 1000,
+            'cpu': 128,
+            'memory': 512,
             'storage': 1000,
-            'storage_count': 1000
+            'storage_count': 10
         }
     @classmethod
     def default_dict(cls):

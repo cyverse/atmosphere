@@ -24,6 +24,7 @@ def set_provider_quota(identity_id):
         if user_quota:
             values = {'cores': user_quota.cpu,
                       'ram': user_quota.memory * 1024}
+            logger.info("Updating quota for %s to %s" % (username, values))
             ad = AccountDriver(identity.provider)
             admin_driver = ad.admin_driver
             admin_driver._connection.ex_update_quota_for_user(tenant_id,
