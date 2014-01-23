@@ -1,8 +1,8 @@
 define(['react', 'components/identity_select', 'backbone', 'utils', 
     'components/page_header', 'components/relative_time', 'components/glyphicon',
-    'components/button_group'],
+    'components/button_group', 'components/modal'],
     function(React, IdentitySelect, Backbone, Utils, PageHeader, RelativeTime, 
-        Glyphicon, ButtonGroup) {
+        Glyphicon, ButtonGroup, Modal) {
 
     var Volume = React.createClass({
         render: function() {
@@ -56,12 +56,17 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
         }
     });
 
-    var Button = React.createClass({
-        getDefaultProps: function() {
-            return {type: 'default'};
-        },
+    var VolumeControls = React.createClass({
         render: function() {
-            return React.DOM.a({className: 'btn btn-' + this.props.type}, this.props.children);
+            return React.DOM.div({id: 'volume-controls'},
+                React.DOM.button({
+                    className: 'btn btn-primary',
+                    'data-target': '#volume-create-modal',
+                    'data-toggle': 'modal'
+                    }, "Create Volume"),
+                Modal({id: 'volume-create-modal', title: "New Volume"},
+                    React.DOM.div({className: 'modal-body'}, 'make a new volume and stuff'),
+                    React.DOM.div({className: 'modal-footer'}, 'yeah')))
         }
     });
 
@@ -88,10 +93,7 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
                     identities: this.props.profile.get('identities'), 
                     onSelect: this.onSelect,
                     selected: this.state.identity}),
-                React.DOM.div({id: 'volume-controls'},
-                    Button({onClick: this.showCreateVolumeModal, type: 'primary'}, "Create Volume")
-                ),
-                //React.DOM.h2({}, "Provider " + this.state.identity.get('provider_id') + ", Identity " + this.state.identity.get('id')),
+                VolumeControls({identity: this.state.identity}),
                 VolumeList({volumes: this.state.identity.get('volumes')})
             );
         },
