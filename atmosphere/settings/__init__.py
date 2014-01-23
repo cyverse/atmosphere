@@ -94,7 +94,7 @@ PIPELINE = True
 
 PIPELINE_ENABLED = False
 
-STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
+STATICFILES_STORAGE = 'pipeline.storage.PipelineStorage'
 
 PIPELINE_CSS = {
     'app': {
