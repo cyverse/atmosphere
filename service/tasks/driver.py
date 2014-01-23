@@ -17,7 +17,7 @@ from core.models.instance import update_instance_metadata
 from core.models.identity import Identity
 
 from service.driver import get_driver
-
+from djcelery.app import app
 
 @task(name="_send_instance_email",
       default_retry_delay=10,
@@ -235,13 +235,32 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata):
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_alias)
         #TODO: while-true with hard-coded sleep ONLY IF CELERY_ALWAYS_EAGER
+        if app.conf.CELERY_ALWAYS_EAGER:
+            eager_update_metadata(driver, instance)
         return update_instance_metadata(
             driver, instance, data=metadata, replace=False)
         logger.debug("update_metadata task finished at %s." % datetime.now())
     except Exception as exc:
         logger.warn(exc)
         update_metadata.retry(exc=exc)
-    
+
+def eager_update_metadata(driver, instance):
+    """
+    Used for TESTING ONLY. NEVER called in normal celery operation.
+    """
+    while 1:
+        #Check if instance is terminated or no longer building.
+        if not instance or instance.extra['status'] != 'build':
+            break
+        #Wait 1min try again
+        wait_time = 1*60
+        logger.info("Always Eager Detected and instance is not active"
+                    ". Will wait 1 minute and check again to avoid"
+                    " stack overflow from immediately retrying.."
+                    % (esh_instance, wait_time))
+        time.sleep(wait_time*60)
+        # Update reference for the instance to see if its 'done'
+        instance = esh_driver.get_instance(instance_id)
 
 # Floating IP Tasks
 @task(name="add_floating_ip",
