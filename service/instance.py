@@ -27,64 +27,110 @@ from service.accounts.openstack import AccountDriver as OSAccountDriver
 from service.tasks.driver import add_floating_ip, remove_empty_network
 
 
-def stop_instance(esh_driver, esh_instance, provider_id, identity_id, user):
+# Networking specific
+def remove_ips(esh_driver, esh_instance):
+    network_manager = esh_driver._connection.get_network_manager()
+    network_manager.disassociate_floating_ip(esh_instance.id)
+    fixed_ip_port = network_manager.list_ports(device_id=esh_instance.id)
+    if fixed_ip_port:
+        fixed_ip = fixed_ip_port[0]['fixed_ips'][0]['ip_address']
+        esh_driver._connection.ex_remove_fixed_ip(esh_instance, fixed_ip)
+
+def remove_network(esh_driver, identity_id):
+    remove_empty_network.s(esh_driver.__class__, esh_driver.provider,
+                           esh_driver.identity,
+                           identity_id).apply_async(countdown=20)
+
+
+def restore_network(esh_driver, esh_instance, identity_id):
+    (network, subnet) = network_init(core_identity)
+    return network, subnet
+
+def restore_ips(esh_driver, esh_instance):
+    node_network = server.extra.get('addresses')
+    if not node_network:
+        raise Exception("Could not determine the network for node %s"
+                        % node)
+    try:
+        network_name = node_network.keys()[0]
+    except Exception, e:
+        raise Exception("Could not determine network name for node %s"
+                        % node)
+
+    try:
+        network_manager = self.get_network_manager()
+        network = network_manager.find_network(network_name)
+        if not network:
+            raise Exception("NetworkManager Could not determine the network"
+                        "for node %s" % node)
+        network_id = network[0]['id']
+    except Exception, e:
+        raise
+
+    esh_driver._connection.ex_add_fixed_ip(esh_instance, network_id)
+    add_floating_ip.s(esh_driver.__class__, esh_driver.provider,
+                      esh_driver.identity,
+                      esh_instance.id).apply_async(countdown=10)
+
+
+#Instance specific
+def stop_instance(esh_driver, esh_instance, provider_id, identity_id, user,
+                  reclaim_ip=True):
     """
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
-    esh_driver.stop_instance(esh_instance)
+    if reclaim_ip:
+        remove_ips(esh_driver, esh_instance)
+    stopped = esh_driver.stop_instance(esh_instance)
+    if reclaim_ip:
+        remove_network(esh_driver, identity_id)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
 
-def start_instance(esh_driver, esh_instance, provider_id, identity_id, user):
+def start_instance(esh_driver, esh_instance, provider_id, identity_id, user,
+                   restore_ip=True):
     """
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
+    if restore_ip:
+        restore_network(esh_driver, esh_instance, identity_id)
     esh_driver.start_instance(esh_instance)
+    if restore_ip:
+        restore_ips(esh_driver, esh_instance)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
 
 def suspend_instance(esh_driver, esh_instance,
                      provider_id, identity_id,
-                     user, reclaim_ip=False):
+                     user, reclaim_ip=True):
     """
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
     if reclaim_ip:
-        network_manager = esh_driver._connection.get_network_manager()
-        network_manager.disassociate_floating_ip(esh_instance.id)
-        fixed_ip_port = network_manager.list_ports(device_id=esh_instance.id)
-        if fixed_ip_port:
-            network_manager.delete_port(fixed_ip_port[0])
+        remove_ips(esh_driver, esh_instance)
     suspended = esh_driver.suspend_instance(esh_instance)
     if reclaim_ip:
-        remove_empty_network.s(esh_driver.__class__, esh_driver.provider,
-                               esh_driver.identity,
-                               identity_id).apply_async(countdown=20)
+        remove_network(esh_driver, identity_id)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
     return suspended
 
 
 def resume_instance(esh_driver, esh_instance,
                     provider_id, identity_id,
-                    user, restore_ip=False):
+                    user, restore_ip=True):
     """
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
     check_quota(user.username, identity_id, esh_instance.size, resuming=True)
-    core_identity = CoreIdentity.objects.get(id=identity_id)
     if restore_ip:
-        (network, subnet) = network_init(core_identity)
-        network_manager = esh_driver._connection.get_network_manager()
-        network_manager.create_port(esh_instance.id, network.id)
+        restore_network(esh_driver, esh_instance, identity_id)
     esh_driver.resume_instance(esh_instance)
     if restore_ip:
-        add_floating_ip.s(esh_driver.__class__, esh_driver.provider,
-                          esh_driver.identity,
-                          esh_instance.id).apply_async(countdown=10)
+        restore_ips(esh_driver, esh_instance)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
 
