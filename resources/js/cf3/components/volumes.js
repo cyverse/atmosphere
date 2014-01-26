@@ -1,10 +1,10 @@
 define(['react', 'components/identity_select', 'backbone', 'utils', 
     'components/page_header', 'components/relative_time', 'components/glyphicon',
-    'components/button_group', 'components/modal'],
+    'components/button_group', 'components/modal', 'models/volume'],
     function(React, IdentitySelect, Backbone, Utils, PageHeader, RelativeTime, 
-        Glyphicon, ButtonGroup, Modal) {
+        Glyphicon, ButtonGroup, Modal, Volume) {
 
-    var Volume = React.createClass({
+    var VolumeListItem = React.createClass({
         render: function() {
             var attach_info = [];
             if (this.props.volume.get('status') == 'attaching')
@@ -46,7 +46,7 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
         render: function() {
             console.log(this.props.volumes);
             var list_items = this.props.volumes.map(function(volume) {
-                return Volume({volume: volume})
+                return VolumeListItem({volume: volume})
             });
 
             if (list_items.length)
@@ -82,8 +82,25 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
             console.log(this.state);
             if (!this.state.validSize)
                 return;
-        
-            console.log('validated');
+
+            /*
+             * TODO: Make name not a required field on the API
+             */
+            var volume = new Volume({}, {identity: this.props.identity});
+            console.log(volume);
+            var params = {
+                name: this.state.volumeName,
+                size: this.state.volumeSize
+            };
+            volume.save(params, {
+                wait: true,
+                success: function(model) {
+                    console.log(model);
+                },
+                error: function() {
+                    console.error('error');
+                }
+            });
         },
         render: function() {
             return Modal({id: 'volume-create-modal', title: "New Volume"},
@@ -128,7 +145,7 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
                     'data-target': '#volume-create-modal',
                     'data-toggle': 'modal'
                     }, "New Volume"),
-                NewVolumeModal({identities: this.props.identities}))
+                NewVolumeModal({identity: this.props.selected}))
         }
     });
 
