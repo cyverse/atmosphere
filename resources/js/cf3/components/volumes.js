@@ -203,6 +203,9 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
         componentDidMount: function() {
             this.state.identity.get('volumes').on('sync', this.setIdentity);
             this.state.identity.get('volumes').fetch();
+        },
+        componentWillUnmount: function() {
+            this.state.identity.get('volumes').off('sync', this.setIdentity);
         }
     });
 
