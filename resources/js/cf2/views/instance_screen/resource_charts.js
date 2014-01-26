@@ -366,8 +366,8 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
             d = new Date();
             d.setTime(d.getTime() - (time_obj.delta_time * 60 * 1000)) // ms to minutes
             quota_desc = "total number of Atmosphere Units used since "+d.toString('MMMM dS, yyyy');
-            quota_unit = "minute";
-            this.$el.data('unit', 'minute');
+            quota_unit = "AU";
+            this.$el.data('unit', 'AU');
         }
         info = used + ' of ' + total + ' allotted ' + quota_unit + 's.';
 

@@ -68,28 +68,24 @@ TransferLog /var/log/apache2/ssl_access.log
 LogLevel warn
 
 
-#The line below is necessary for install script to insert important ssl text
-#SSLMATCHTEXT
-
-#EXAMPLE SSL SETUP
 #SSL
-#SSLEngine on
-#SSLProtocol all -SSLv2
-#SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
-#SSLCertificateFile /etc/ssl/certs/iplantc.org.crt
-#SSLCertificateKeyFile /etc/ssl/private/iplantc.key
-#SSLCertificateChainFile /etc/ssl/certs/gd_bundle.crt
-#
-#<Files ~ "\.(cgi|shtml|phtml|php3?)$">
-#    SSLOptions +StdEnvVars
-#</Files>
-#<Directory "/var/www/cgi-bin">
-#    SSLOptions +StdEnvVars
-#</Directory>
-#
-#SetEnvIf User-Agent ".*MSIE.*" \
-#         nokeepalive ssl-unclean-shutdown \
-#         downgrade-1.0 force-response-1.0
+SSLEngine on
+SSLProtocol all -SSLv2
+SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
+SSLCertificateFile /etc/ssl/certs/BASECERTHERE
+SSLCertificateKeyFile /etc/ssl/private/KEYHERE
+SSLCertificateChainFile /etc/ssl/certs/BUNDLECERTHERE
+
+<Files ~ "\.(cgi|shtml|phtml|php3?)$">
+    SSLOptions +StdEnvVars
+</Files>
+<Directory "/var/www/cgi-bin">
+    SSLOptions +StdEnvVars
+</Directory>
+
+SetEnvIf User-Agent ".*MSIE.*" \
+         nokeepalive ssl-unclean-shutdown \
+         downgrade-1.0 force-response-1.0
 
 
 #This is for atmosphere
