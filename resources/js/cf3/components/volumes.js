@@ -1,7 +1,7 @@
 define(['react', 'components/identity_select', 'backbone', 'utils', 
-    'components/page_header', 'components/relative_time', 'components/glyphicon',
+    'components/page_header', 'components/time', 'components/glyphicon',
     'components/button_group', 'components/modal', 'models/volume'],
-    function(React, IdentitySelect, Backbone, Utils, PageHeader, RelativeTime, 
+    function(React, IdentitySelect, Backbone, Utils, PageHeader, Time, 
         Glyphicon, ButtonGroup, Modal, Volume) {
 
     var VolumeListItem = React.createClass({
@@ -17,7 +17,7 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
                     React.DOM.code({}, this.props.volume.get('attach_data').device),
                     React.DOM.br(),
                     "Attached: ",
-                    RelativeTime({date: this.props.volume.get('attach_data').attachTime})
+                    Time({date: this.props.volume.get('attach_data').attachTime})
                 ];
 
 
@@ -35,7 +35,7 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
                     }})
                 ),
                 "Created: ",
-                RelativeTime({date: this.props.volume.get('create_time')}),
+                Time({date: this.props.volume.get('create_time')}),
                 React.DOM.br(),
                 attach_info
             );
