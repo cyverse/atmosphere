@@ -1,6 +1,6 @@
 define(['react', 'underscore', 'components/header', 'components/sidebar', 
-        'components/footer', 'components/notifications'],
-function (React, _, Header, Sidebar, Footer, Notifications) {
+        'components/footer', 'components/notifications', 'profile'],
+function (React, _, Header, Sidebar, Footer, Notifications, profile) {
 
     var defaultView = function() {
         return (React.createClass({
@@ -34,7 +34,7 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
                     icon: 'cloud-download',
                     requires: ['components/instances'],
                     getView: function(Instances) {
-                        return Instances({profile: this.props.profile});
+                        return Instances();
                     },
                     login_required: true
                 },
@@ -44,7 +44,7 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
                     login_required: true,
                     requires: ['components/volumes'],
                     getView: function(Volumes) {
-                        return Volumes({profile: this.props.profile});
+                        return Volumes();
                     }
                 },
                 images: {
@@ -157,7 +157,7 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
         render: function() {
             var content = this.getContent();
             var items = this.props.pages;
-            if (this.props.profile == null)
+            if (profile == null)
                 items = _.chain(this.props.pages)
                     .pairs()
                     .filter(function(i) {
@@ -167,7 +167,7 @@ function (React, _, Header, Sidebar, Footer, Notifications) {
                     .value();
             
             return React.DOM.div({},
-                Header({profile: this.props.profile}),
+                Header(),
                 Sidebar({
                     items: items, 
                     active: this.state.active,

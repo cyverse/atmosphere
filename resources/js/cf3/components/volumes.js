@@ -1,9 +1,9 @@
 define(['react', 'components/identity_select', 'backbone', 'utils', 
     'components/page_header', 'components/time', 'components/glyphicon',
     'components/button_group', 'components/modal', 'models/volume',
-    'underscore'],
+    'underscore', 'profile'],
     function(React, IdentitySelect, Backbone, Utils, PageHeader, Time, 
-        Glyphicon, ButtonGroup, Modal, Volume, _) {
+        Glyphicon, ButtonGroup, Modal, Volume, _, profile) {
 
     var VolumeListItem = React.createClass({
         render: function() {
@@ -153,7 +153,7 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
     var Volumes = React.createClass({
         getInitialState: function() {
             return {
-                identity: this.props.profile.get('identities').at(0)
+                identity: profile.get('identities').at(0)
             };
         },
         setIdentity: function() {
@@ -191,12 +191,12 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
             return React.DOM.div({style: {display: this.props.visible ? 'block' : 'none'}},
                 PageHeader({title: "Volumes", helpText: this.helpText}),
                 IdentitySelect({
-                    identities: this.props.profile.get('identities'), 
+                    identities: profile.get('identities'), 
                     onSelect: this.onSelect,
                     selected: this.state.identity}),
                 VolumeControls({
                     selected: this.state.identity, 
-                    identities: this.props.profile.get('identities')}),
+                    identities: profile.get('identities')}),
                 VolumeList({volumes: this.state.identity.get('volumes')})
             );
         },

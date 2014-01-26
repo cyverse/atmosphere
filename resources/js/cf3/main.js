@@ -24,40 +24,18 @@ require.config({
     }
 });
 
-require(['jquery', 'backbone', 'react', 'components/application', 'models/profile', 'collections/identities', 'router'], function($, Backbone, React, Application, Profile, Identities, Router) {
-    /* Get Profile and identities beofre we do anything else  */
-    /* TODO: To this server side */
-    var profile = new Profile();
-    profile.fetch({
-        async: false,
-        success: function(model) {
-            var identities = new Identities();
-            identities.fetch({
-                async: false
-            });
-
-            model.set('identities', identities);
-        },
-        error: function(model, response, options) {
-            if (response.status == 401) {
-                console.log("Not logged in");
-            } else {
-                console.error("Error fetching profile");
-            }
-        }
-    });
-
-    var logged_in = !profile.isNew();
+require(['jquery', 'backbone', 'react', 'components/application', 'profile', 'router'], function($, Backbone, React, Application, profile, Router) {
 
     $(document).ready(function() {
-        var app = Application({profile: logged_in ? profile : null});
+        var app = Application();
         React.renderComponent(app, document.getElementById('application'));
 
-        var route = logged_in ? 'dashboard' : 'app_store';
+        var route = profile != null ? 'dashboard' : 'app_store';
         new Router({app: app, defaultRoute: route});
         Backbone.history.start({
             pushState: true,
             root: url_root
         });
     });
+
 });
