@@ -1,7 +1,8 @@
 require.config({
     baseUrl: '/resources/js/cf3',
     paths: {
-        'jquery': '//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery',
+        /* TODO: use minified versions in production */
+        'jquery': '//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.0/jquery',
         'backbone': '//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.0/backbone-min',
         'underscore': '//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.3/underscore-min',
         'google': 'https://www.google.com/jsapi',
