@@ -32,23 +32,6 @@ define(['underscore', 'models/base', 'models/identity'], function(_, Base, Ident
             return url = this.urlRoot
                 + '/' + this.defaults.model_name + '/';
         },
-        // Given a md5 hash, return the URL to a icon
-        get_icon: function(hash) {
-            var icon_set = this.get('settings')['icon_set'];
-            if (icon_set == 'default')
-                return "//www.gravatar.com/avatar/" + hash + "?d=identicon&s=50"; 
-            if (icon_set == 'unicorn')
-                return "//unicornify.appspot.com/avatar/" + hash + "?s=50";
-            if (icon_set == 'wavatar')
-                return "//www.gravatar.com/avatar/" + hash + "?d=wavatar&s=50";
-            if (icon_set == 'monster')
-                return "//www.gravatar.com/avatar/" + hash + "?d=monsterid&s=50";
-            if (icon_set == 'retro')
-                return "//www.gravatar.com/avatar/" + hash + "?d=retro&s=50";
-            if (icon_set == 'robot')
-                return "//robohash.org/" + hash + "?size=50x50";
-            return null;
-        },
         get_credentials: function() {
             return {
                 provider_id: this.get('provider_id'),

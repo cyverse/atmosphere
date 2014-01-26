@@ -1,10 +1,12 @@
 define(['react', 'components/identity_select', 'components/page_header',
-    'profile'], 
-    function(React, IdentitySelect, PageHeader, profile) {
+    'profile', 'components/icon'], 
+    function(React, IdentitySelect, PageHeader, profile, Icon) {
     var InstanceList = React.createClass({
         render: function() {
             var instances = this.props.instances.map(function(model) {
-                return React.DOM.li({}, model.get('name'));
+                return React.DOM.li({}, 
+                    Icon({hash: model.get('image_hash')}),
+                    model.get('name'));
             });
 
             return React.DOM.ul({}, instances);
