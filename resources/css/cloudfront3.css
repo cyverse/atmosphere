@@ -17,10 +17,10 @@
 .main-page-header h1 {
     color: #db6619;
 }
-.main-page-header .identity-select {
+#help-text-toggle-button {
     position: absolute;
+    top: 0; 
     right: 0;
-    top: 0;
 }
 .identity-select {
     margin-bottom: 20px;
