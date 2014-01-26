@@ -56,6 +56,70 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
         }
     });
 
+    var NewVolumeModal = React.createClass({
+        getInitialState: function() {
+            return {
+                volumeName: '',
+                volumeSize: '1',
+                validSize: true
+            }
+        },
+        handleVolumeNameChange: function(e) {
+            this.setState({volumeName: e.target.value});
+        },
+        handleVolumeSizeChange: function(e) {
+            var size = Utils.filterInt(this.state.volumeSize);
+            var valid = size && size > 0;
+
+            this.setState({
+                volumeSize: e.target.value,
+                validSize: valid
+            });
+        },
+        handleSubmit: function(e) {
+            e.preventDefault();
+            console.log(e);
+            console.log(this.state);
+            if (!this.state.validSize)
+                return;
+        
+            console.log('validated');
+        },
+        render: function() {
+            return Modal({id: 'volume-create-modal', title: "New Volume"},
+                React.DOM.form({role: 'form', onSubmit: this.handleSubmit},
+                    React.DOM.div({className: 'modal-body'}, 
+                        React.DOM.div({className: 'form-group'},
+                            React.DOM.label({htmlFor: 'volume-name'}, "Name"),
+                            React.DOM.input({type: 'text', 
+                                id: 'volume-name',
+                                placeholder: 'My Volume',
+                                value: this.state.volumeName,
+                                onChange: this.handleVolumeNameChange,
+                                className: 'form-control'})),
+                        React.DOM.div({
+                            className: 'form-group ' + (this.state.validSize ? '' : 'has-error')},
+                            React.DOM.label({
+                                className: 'control-label', 
+                                htmlFor: 'volume-size'},
+                                "Capacity (GBs)"),
+                            React.DOM.input({type: 'number', 
+                                id: 'volume-size',
+                                value: this.state.volumeSize,
+                                onChange: this.handleVolumeSizeChange,
+                                className: 'form-control'}),
+                            React.DOM.span({
+                                className: 'help-block', 
+                                style: {display: this.state.validSize ? 'none': 'block'}}, 
+                                "Volume size must be a positive integer"))),
+                    React.DOM.div({className: 'modal-footer'}, 
+                        React.DOM.button({
+                            type: 'submit',
+                            className: 'btn btn-primary'}, 
+                            "Create"))));
+        }
+    });
+
     var VolumeControls = React.createClass({
         render: function() {
             return React.DOM.div({id: 'volume-controls'},
@@ -63,10 +127,8 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
                     className: 'btn btn-primary',
                     'data-target': '#volume-create-modal',
                     'data-toggle': 'modal'
-                    }, "Create Volume"),
-                Modal({id: 'volume-create-modal', title: "New Volume"},
-                    React.DOM.div({className: 'modal-body'}, 'make a new volume and stuff'),
-                    React.DOM.div({className: 'modal-footer'}, 'yeah')))
+                    }, "New Volume"),
+                NewVolumeModal({identities: this.props.identities}))
         }
     });
 
@@ -93,7 +155,9 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
                     identities: this.props.profile.get('identities'), 
                     onSelect: this.onSelect,
                     selected: this.state.identity}),
-                VolumeControls({identity: this.state.identity}),
+                VolumeControls({
+                    selected: this.state.identity, 
+                    identities: this.props.profile.get('identities')}),
                 VolumeList({volumes: this.state.identity.get('volumes')})
             );
         },
