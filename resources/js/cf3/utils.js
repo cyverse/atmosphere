@@ -329,6 +329,13 @@ Number.prototype.toCurrencyString = function() {
     return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/, '$1,');    
 };
 
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/parseInt
+Utils.filterInt = function (value) {
+    if(/^(\-|\+)?([0-9]+|Infinity)$/.test(value))
+        return Number(value);
+    return NaN;
+}
+
 return Utils;
 
 });
