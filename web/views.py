@@ -159,9 +159,6 @@ def partial(request, path, return_string=False):
     elif path == 'templates.js':
         template_path = os.path.join(settings.root_dir, 'resources', 'js', 'cf2', 'templates')
         output = compile_templates('cf2/partials/cloudfront2.js', template_path)
-    elif path == 'templates_require.js':
-        template_path = os.path.join(settings.root_dir, 'resources', 'js', 'cf3', 'templates')
-        output = compile_templates('cf3/templates.js', template_path)
 
     response = HttpResponse(output, 'text/javascript')
     response['Cache-Control'] = 'no-cache'

@@ -7,8 +7,7 @@ require.config({
         'google': 'https://www.google.com/jsapi',
         'bootstrap': '//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.3/js/bootstrap.min',
         'moment': '//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.0/moment.min',
-        'react': '//cdnjs.cloudflare.com/ajax/libs/react/0.8.0/react',
-        'templates': '/partials/templates_require'
+        'react': '//cdnjs.cloudflare.com/ajax/libs/react/0.8.0/react'
     },
     shim: {
         backbone: {
@@ -26,6 +25,7 @@ require.config({
 
 require(['jquery', 'backbone', 'react', 'components/application', 'models/profile', 'collections/identities', 'router'], function($, Backbone, React, Application, Profile, Identities, Router) {
     /* Get Profile and identities beofre we do anything else  */
+    /* TODO: To this server side */
     var profile = new Profile();
     profile.fetch({
         async: false,
