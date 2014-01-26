@@ -1,8 +1,9 @@
 define(['react', 'components/identity_select', 'backbone', 'utils', 
     'components/page_header', 'components/time', 'components/glyphicon',
-    'components/button_group', 'components/modal', 'models/volume'],
+    'components/button_group', 'components/modal', 'models/volume',
+    'underscore'],
     function(React, IdentitySelect, Backbone, Utils, PageHeader, Time, 
-        Glyphicon, ButtonGroup, Modal, Volume) {
+        Glyphicon, ButtonGroup, Modal, Volume, _) {
 
     var VolumeListItem = React.createClass({
         render: function() {
@@ -165,9 +166,30 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
                 identity.get('volumes').fetch();
             });
         },
+        helpText: function() {
+            var links = [
+                {href: "https://pods.iplantcollaborative.org/wiki/x/OKxm", text: "Creating a Volume"},
+                {href: "https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step3%3AAttachthevolumetotherunninginstance.", text: "Attaching a Volume to an Instance"},
+                {href: "https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step5%3ACreatethefilesystem%28onetimeonly%29.", text: "Formatting a Volume"},
+                {href: "https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step6%3AMountthefilesystemonthepartition.", text: "Mounting a Volume"},
+                {href: "https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step7%3AUnmountanddetachthevolume.", text: "Unmounting and Detaching Volume"},
+            ];
+
+            var list_items = _(links).map(function(link) {
+                return React.DOM.li({},
+                    React.DOM.a({href: link.href, target: '_blank'}, link.text));
+            });
+
+            return [
+                React.DOM.p({}, 'A volume is like a virtual USB drive that makes it easy to transfer relatively small data between instances.'),
+                React.DOM.p({}, 'You can create a volume with a capacity up to 100 GB by clicking the "New Volume" button and completing the form. To store and transfer more data at once, store it in the iPlant Data Store instead. You can mount the Data Store similarly to a volume. (', React.DOM.a({href: 'https://pods.iplantcollaborative.org/wiki/x/S6xm', target: '_blank'}, 'Learn How'), ")"),
+                React.DOM.p({}, 'More information about volumes:', React.DOM.ul({}, list_items))
+            ];
+                
+        },
         render: function() {
             return React.DOM.div({style: {display: this.props.visible ? 'block' : 'none'}},
-                PageHeader({title: "Volumes"}),
+                PageHeader({title: "Volumes", helpText: this.helpText}),
                 IdentitySelect({
                     identities: this.props.profile.get('identities'), 
                     onSelect: this.onSelect,
