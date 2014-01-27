@@ -365,8 +365,9 @@ def mount_storage():
 
 def vnc(user, distro, license=None):
     try:
-        if not os.path.isfile('/usr/bin/vnclicense'):
-            logging.debug("VNC not installed, license not found on machine")
+        if not os.path.isfile('/usr/bin/xterm'):
+            logging.debug("Could not find a GUI on this machine, "
+                          "Skipping VNC Install.")
             return
         #ASSERT: VNC server installed on this machine
         if is_rhel(distro):
