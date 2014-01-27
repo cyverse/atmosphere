@@ -337,7 +337,7 @@ class AccountDriver():
             self.network_manager.neutron.delete_security_group(sec_group["id"])
         return True
 
-    def delete_network(self, identity):
+    def delete_network(self, identity, remove_network=True):
         #Core credentials need to be converted to openstack names
         identity_creds = self.parse_identity(identity)
         username = identity_creds["username"]
@@ -346,7 +346,7 @@ class AccountDriver():
         # Convert from libcloud names to openstack client names
         #net_args = self._base_network_creds()
         return self.network_manager.delete_project_network(
-            username, project_name)
+            username, project_name, remove_network=remove_network)
 
     def create_network(self, identity):
         #Core credentials need to be converted to openstack names

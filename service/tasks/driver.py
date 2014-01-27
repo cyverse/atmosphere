@@ -370,14 +370,25 @@ def remove_empty_network(
                 active_instances = True
                 break
         if not active_instances:
+            suspended_instances = False
+            for instance in instances:
+                if driver._is_suspended_instance(instance):
+                    suspended_instances = True
+                    break
+            #Suspended instances, True: Remove network, False
+            remove_network = ! suspended_instances
             #Check for project network
             from service.accounts.openstack import AccountDriver as\
                 OSAccountDriver
             os_acct_driver = OSAccountDriver(core_identity.provider)
             logger.info("No active instances. Removing project network"
                         "from %s" % core_identity)
-            os_acct_driver.delete_network(core_identity)
-            os_acct_driver.delete_security_group(core_identity)
+            os_acct_driver.delete_network(core_identity,
+                    remove_network=remove_network)
+            if remove_network:
+                #Sec. group can't be deleted if instances are suspended
+                # when instances are suspended we pass remove_network=False
+                os_acct_driver.delete_security_group(core_identity)
             return True
         logger.debug("remove_empty_network task finished at %s." %
                      datetime.now())

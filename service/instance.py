@@ -31,23 +31,26 @@ from service.tasks.driver import add_floating_ip, remove_empty_network
 def remove_ips(esh_driver, esh_instance):
     network_manager = esh_driver._connection.get_network_manager()
     network_manager.disassociate_floating_ip(esh_instance.id)
-    fixed_ip_port = network_manager.list_ports(device_id=esh_instance.id)
-    if fixed_ip_port:
-        fixed_ip = fixed_ip_port[0]['fixed_ips'][0]['ip_address']
-        esh_driver._connection.ex_remove_fixed_ip(esh_instance, fixed_ip)
+    instance_ports = network_manager.list_ports(device_id=esh_instance.id)
+    if instance_ports:
+        fixed_ips = instance_ports[0].get('fixed_ips',[])
+        if fixed_ips:
+            fixed_ip = fixed_ips[0]['ip_address']
+            esh_driver._connection.ex_remove_fixed_ip(esh_instance, fixed_ip)
 
 def remove_network(esh_driver, identity_id):
     remove_empty_network.s(esh_driver.__class__, esh_driver.provider,
-                           esh_driver.identity,
-                           identity_id).apply_async(countdown=20)
+                           esh_driver.identity, identity_id,
+                           remove_network=False).apply_async(countdown=20)
 
 
 def restore_network(esh_driver, esh_instance, identity_id):
+    core_identity = CoreIdentity.objects.get(id=identity_id)
     (network, subnet) = network_init(core_identity)
     return network, subnet
 
 def restore_ips(esh_driver, esh_instance):
-    node_network = server.extra.get('addresses')
+    node_network = esh_instance.extra.get('addresses')
     if not node_network:
         raise Exception("Could not determine the network for node %s"
                         % node)
@@ -58,7 +61,7 @@ def restore_ips(esh_driver, esh_instance):
                         % node)
 
     try:
-        network_manager = self.get_network_manager()
+        network_manager = esh_driver._connection.get_network_manager()
         network = network_manager.find_network(network_name)
         if not network:
             raise Exception("NetworkManager Could not determine the network"
