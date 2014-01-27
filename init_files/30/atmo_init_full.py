@@ -323,9 +323,7 @@ def mount_storage():
     This is TEMPORARY space you can use while working on your instance
     It is deleted when the instance is terminated.
 
-    For Eucalyptus only.
-
-    #TODO: Refactor.
+    #TODO: Refactor. make this user-selectable with default as /home
     """
     try:
         logging.debug("Mount test")
@@ -345,7 +343,7 @@ def mount_storage():
             dev_1 = 'vda'
             dev_2 = 'vdb'
         else:
-            #Format unknown to eucalyptus
+            #Harddrive format cannot be determined..
             logging.warn("Could not determine disks from fdisk output:%s"
                          % out)
         outLines = out.split('\n')
@@ -413,6 +411,8 @@ def vnc(user, distro, license=None):
         run_command([os.path.join(os.environ['HOME'], 'vnc-config.sh')])
         run_command(['/bin/rm',
                      os.path.join(os.environ['HOME'], 'vnc-config.sh')])
+        if os.path.exists('/tmp/.X1-lock'):
+            run_command(['/bin/rm', '/tmp/.X1-lock'])
         run_command(['/bin/su', '%s' % user, '-c', '/usr/bin/vncserver'])
     except Exception, e:
         logging.exception("Failed to install VNC")
@@ -830,13 +830,16 @@ def main(argv):
     mount_storage()
     ldap_install()
     etc_skel_bashrc(linuxuser)
-    run_command(['/bin/cp', '-rp', '/etc/skel/.', '/home/%s' % linuxuser])
+    run_command(['/bin/cp', '-rp',
+                 '/etc/skel/.',
+                 '/home/%s' % linuxuser])
     run_command(['/bin/chown', '-R',
-                 '%s:iplant-everyone' % (linuxuser,), '/home/%s' % linuxuser])
+                 '%s:iplant-everyone' % (linuxuser,),
+                 '/home/%s' % linuxuser])
+    run_command(['/bin/chmod', 'a+rwxt', '/tmp'])
     run_command(['/bin/chmod', 'a+rx', '/bin/fusermount'])
     run_command(['/bin/chmod', 'u+s', '/bin/fusermount'])
     vnc(linuxuser, distro, vnclicense)
-    run_command(['/bin/chmod', 'a+rwxt', '/tmp'])
     iplant_files(distro)
     atmo_cl()
     nagios()
