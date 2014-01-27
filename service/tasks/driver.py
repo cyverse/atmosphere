@@ -376,7 +376,7 @@ def remove_empty_network(
                     suspended_instances = True
                     break
             #Suspended instances, True: Remove network, False
-            remove_network = ! suspended_instances
+            remove_network = not suspended_instances
             #Check for project network
             from service.accounts.openstack import AccountDriver as\
                 OSAccountDriver
