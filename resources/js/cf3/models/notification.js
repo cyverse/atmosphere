@@ -4,7 +4,8 @@ define(['models/base'], function(Base) {
             'header': null,
             'body': null,
             'timestamp': null,
-            'sticky': false
+            'sticky': false,
+            'type': 'info' // one of success, info, warning, danger
         }
     });
 });
