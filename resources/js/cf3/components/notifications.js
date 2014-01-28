@@ -15,7 +15,7 @@ define(['react', 'notifications', 'jquery'], function(React, notifications, $) {
         render: function() {
             var content = [];
             if (this.state.model)
-                content = React.DOM.div({className: 'alert alert-info fade in'},
+                content = React.DOM.div({className: 'alert alert-'+this.state.model.get('type')+' fade in'},
                     React.DOM.button({className: 'close', 'data-dismiss': 'alert'},
                         '\u00d7'
                     ),
