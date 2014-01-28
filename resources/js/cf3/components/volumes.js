@@ -1,9 +1,9 @@
 define(['react', 'components/identity_select', 'backbone', 'utils', 
     'components/page_header', 'components/time', 'components/glyphicon',
     'components/button_group', 'components/modal', 'models/volume',
-    'underscore', 'profile'],
+    'underscore', 'profile', 'notifications'],
     function(React, IdentitySelect, Backbone, Utils, PageHeader, Time, 
-        Glyphicon, ButtonGroup, Modal, Volume, _, profile) {
+        Glyphicon, ButtonGroup, Modal, Volume, _, profile, notifications) {
 
     var VolumeListItem = React.createClass({
         render: function() {
@@ -62,7 +62,8 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
             return {
                 volumeName: '',
                 volumeSize: 1,
-                validSize: true
+                validSize: true,
+                complete: false
             }
         },
         handleVolumeNameChange: function(e) {
@@ -93,11 +94,13 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
             volume.save(params, {
                 wait: true,
                 success: function(model) {
-                    console.log(model);
-                },
+                    this.setState({complete: true});
+                    Utils.notify("New volume created!", "Your volume will be ready to attach to an instance momentarily", {type: 'success'});
+                }.bind(this),
                 error: function() {
-                    console.error('error');
-                }
+                    this.setState({complete: true});
+                    Utils.notify("Uh oh!", 'An unexpected error occured. If the problem persists, please contacts us at <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', {type: 'danger', no_timeout: true});
+                }.bind(this)
             });
         },
         render: function() {
@@ -133,6 +136,10 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
                             className: 'btn btn-primary',
                             disabled: !this.state.validSize},
                             "Create"))));
+        },
+        componentDidUpdate: function() {
+            if (this.state.complete)
+                $('#volume-create-modal').modal('hide');
         }
     });
 
