@@ -133,7 +133,8 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
                     React.DOM.div({className: 'modal-footer'}, 
                         React.DOM.button({
                             type: 'submit',
-                            className: 'btn btn-primary'}, 
+                            className: 'btn btn-primary',
+                            disabled: !this.state.validSize},
                             "Create"))));
         }
     });
