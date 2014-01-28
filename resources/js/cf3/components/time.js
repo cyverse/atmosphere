@@ -17,7 +17,7 @@ define(['react', 'utils', 'moment'], function(React, Utils, Moment) {
         },
         render: function() {
             var text = "";
-            var absoluteText = Moment(this.props.date).format("MMM Do YYYY");
+            var absoluteText = Moment(this.props.date).format("MMM D, YYYY");
             var relativeText = Utils.relative_time(this.props.date);
 
             if (this.props.showAbsolute) {
