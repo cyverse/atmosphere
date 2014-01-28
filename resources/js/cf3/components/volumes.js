@@ -61,7 +61,7 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
         getInitialState: function() {
             return {
                 volumeName: '',
-                volumeSize: '1',
+                volumeSize: 1,
                 validSize: true
             }
         },
@@ -69,18 +69,16 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
             this.setState({volumeName: e.target.value});
         },
         handleVolumeSizeChange: function(e) {
-            var size = Utils.filterInt(this.state.volumeSize);
+            var size = Utils.filterInt(e.target.value);
             var valid = size && size > 0;
 
             this.setState({
-                volumeSize: e.target.value,
+                volumeSize: size,
                 validSize: valid
             });
         },
         handleSubmit: function(e) {
             e.preventDefault();
-            console.log(e);
-            console.log(this.state);
             if (!this.state.validSize)
                 return;
 
@@ -88,7 +86,6 @@ define(['react', 'components/identity_select', 'backbone', 'utils',
              * TODO: Make name not a required field on the API
              */
             var volume = new Volume({}, {identity: this.props.identity});
-            console.log(volume);
             var params = {
                 name: this.state.volumeName,
                 size: this.state.volumeSize
