@@ -142,27 +142,38 @@ def get_distro():
     else:
         return 'ubuntu'
 
-
-def run_command(commandList, shell=False, bash_wrap=False):
-    out = None
-    err = None
+def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                stdin=None, dry_run=False, shell=False, bash_wrap=False):
     if bash_wrap:
         #Wrap the entire command in '/bin/bash -c',
         #This can sometimes help pesky commands
         commandList = ['/bin/bash','-c', ' '.join(commandList)]
-    logging.debug("RunCommand:%s" % ' '.join(commandList))
+    """
+    NOTE: Use this to run ANY system command, because its wrapped around a loggger
+    Using Popen, run any command at the system level and record the output and error streams
+    """
+    out = None
+    err = None
+    cmd_str = ' '.join(commandList)
+    if dry_run:
+        #Bail before making the call
+        logging.debug("Mock Command: %s" % cmd_str)
+        return ('','')
     try:
-        proc = subprocess.Popen(commandList, stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE, shell=shell)
-        out, err = proc.communicate()
+        if stdin:
+            proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr,
+                    stdin=subprocess.PIPE, shell=shell)
+        else:
+            proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr,
+                    shell=shell)
+        out,err = proc.communicate(input=stdin)
     except Exception, e:
-        logging.exception("Failed to run command")
-    if out:
-        logging.debug(out)
-    if err:
-        logging.debug(err)
-    return (out, err)
-
+        logging.exception(e)
+    if stdin:
+        logging.debug("%s STDIN: %s" % (cmd_str, stdin))
+    logging.debug("%s STDOUT: %s" % (cmd_str, out))
+    logging.debug("%s STDERR: %s" % (cmd_str, err))
+    return (out,err)
 
 def in_etc_group(filename, val):
     for line in open(filename, 'r').read().split('\n'):
@@ -252,6 +263,26 @@ def restart_ssh(distro):
         run_command(["/etc/init.d/sshd", "restart"])
     else:
         run_command(["/etc/init.d/ssh", "restart"])
+
+
+def set_root_password(root_password, distro):
+    if is_rhel(distro):
+        run_command(["passwd", "--stdin", "root"], stdin=root_password)
+    else:
+        run_command(["chpasswd"], stdin = "root:%s" % root_password)
+
+    if text_in_file('/etc/ssh/sshd_config', 'PermitRootLogin'):
+        run_command([
+            '/bin/sed', '-i',
+            "s/PermitRootLogin\s*no$/PermitRootLogin yes/",
+            '/etc/ssh/sshd_config'])
+        run_command([
+            '/bin/sed', '-i',
+            "s/PermitRootLogin\s*without-password$/PermitRootLogin yes/",
+            '/etc/ssh/sshd_config'])
+    else:
+        append_to_file("/etc/ssh/sshd_config", "PermitRootLogin yes")
+    restart_ssh(distro)
 
 
 def ssh_config(distro):
@@ -755,6 +786,7 @@ def main(argv):
     instance_service_url = None
     instance_service_url = None
     server = None
+    root_password = None
     user_id = None
     vnclicense = None
     try:
@@ -762,7 +794,7 @@ def main(argv):
             argv,
             "t:u:s:i:T:N:v:",
             ["service_type=", "service_url=", "server=", "user_id=", "token=",
-             "name=", "vnc_license="])
+             "name=", "vnc_license=", "root_password="])
     except getopt.GetoptError:
         logging.error("Invalid arguments provided.")
         sys.exit(2)
@@ -790,12 +822,17 @@ def main(argv):
         elif opt in ("-v", "--vnc_license"):
             #instance_data["atmosphere"]["vnc_license"] = arg
             vnclicense = arg
+        elif opt in ("--root_password"):
+            root_password = arg
         elif opt == '-d':
             global _debug
             _debug = 1
             logging.setLevel(logging.DEBUG)
 
+    #TODO: What is this line for?
     source = "".join(args)
+    
+    update_sudoers()
 
     logging.debug("Atmosphere request object - %s" % instance_data)
     instance_metadata = get_metadata()
@@ -825,9 +862,14 @@ def main(argv):
         add_etc_group(linuxuser)
     if not is_updated_test("/etc/ssh/sshd_config"):
         ssh_config(distro)
+    if root_password:
+        set_root_password(root_password, distro)
 
     if not is_rhel(distro):
         run_command(['/usr/bin/apt-get', 'update'])
+    #else:
+    #   run_command(['/usr/bin/yum', 'check-update'])
+
     mount_storage()
     ldap_install()
     etc_skel_bashrc(linuxuser)
