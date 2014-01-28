@@ -9,6 +9,8 @@ from celery.decorators import task
 from celery.task import current
 from celery import chain
 
+from djcelery.app import app
+
 from threepio import logger
 
 from core.email import send_instance_email
@@ -17,7 +19,7 @@ from core.models.instance import update_instance_metadata
 from core.models.identity import Identity
 
 from service.driver import get_driver
-from djcelery.app import app
+from service.deploy import init
 
 @task(name="_send_instance_email",
       default_retry_delay=10,
@@ -205,19 +207,22 @@ def destroy_instance(core_identity_id, instance_alias):
 def _deploy_init_to(driverCls, provider, identity, instance_id):
     try:
         logger.debug("_deploy_init_to task started at %s." % datetime.now())
-
         #Check if instance still exists
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         if not instance:
             logger.debug("Instance has been teminated: %s." % instance_id)
             return
-
         #Deploy with no password to use ssh keys
         logger.info(instance.extra)
         instance._node.extra['password'] = None
-        driver.deploy_init_to(instance)
-
+        kwargs = {}
+        private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
+        kwargs.update({'ssh_key': private_key})
+        kwargs.update({'timeout': 120})
+        msd = init(instance, identity.user.username)
+        kwargs.update({'deploy': msd})
+        driver.deploy_to(instance, **kwargs)
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
     except Exception as exc:
         logger.exception(exc)

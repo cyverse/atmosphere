@@ -1,11 +1,15 @@
 """
 Deploy methods for Atmosphere
 """
-from libcloud.compute.deployment import ScriptDeployment
-#from libcloud.compute.deployment import MultiStepDeployment
-#from libcloud.compute.types import DeploymentError
+from os.path import basename
 
-#from threepio import logger
+from libcloud.compute.deployment import ScriptDeployment
+from libcloud.compute.deployment import MultiStepDeployment
+
+from threepio import logger
+
+from atmosphere import settings
+from atmosphere.settings import secrets
 
 
 #
@@ -104,3 +108,124 @@ def step_script(step):
     if not script.startswith("#!"):
         script = "#! /usr/bin/env bash\n" + script
     return ScriptDeployment(script, name="./" + step.get_script_name())
+
+
+def wget_file(filename, url, logfile=None):
+    name = './deploy_wget_%s.sh' % (basename(filename))
+    return LoggedScriptDeployment(
+        "wget -O %s %s" % (filename, url),
+        name=name,
+        logfile=logfile)
+
+
+def chmod_ax_file(filename, logfile=None):
+    return LoggedScriptDeployment(
+        "chmod a+x %s" % filename,
+        name='./deploy_chmod_ax.sh',
+        logfile=logfile)
+
+
+def package_deps(logfile=None):
+    #These requirements are for Editors, Shell-in-a-box, etc.
+    do_ubuntu = "apt-get update;apt-get install -y emacs vim wget "\
+                + "language-pack-en make gcc g++ gettext texinfo "\
+                + "autoconf automake"
+    do_centos = "yum install -y emacs vim-enhanced wget make "\
+                + "gcc gettext texinfo autoconf automake python-simplejson"
+    return LoggedScriptDeployment(
+        "distro_cat=`cat /etc/*-release`\n"
+        + "if [[ $distro_cat == *Ubuntu* ]]; then\n"
+        + do_ubuntu
+        + "\nelse if [[ $distro_cat == *CentOS* ]];then\n"
+        + do_centos
+        + "\nfi\nfi",
+        name="./deploy_package_deps.sh",
+        logfile=logfile)
+
+
+def init_script(filename, username, token, instance, logfile=None):
+        awesome_atmo_call = "%s --service_type=%s --service_url=%s"
+        awesome_atmo_call += " --server=%s --user_id=%s"
+        awesome_atmo_call += " --token=%s --name=\"%s\""
+        awesome_atmo_call += " --vnc_license=%s"
+        awesome_atmo_call %= (
+            filename,
+            "instance_service_v1",
+            settings.INSTANCE_SERVICE_URL,
+            settings.SERVER_URL,
+            username,
+            token,
+            instance.name,
+            secrets.ATMOSPHERE_VNC_LICENSE)
+        #kludge: weirdness without the str cast...
+        str_awesome_atmo_call = str(awesome_atmo_call)
+        #logger.debug(isinstance(str_awesome_atmo_call, basestring))
+        return LoggedScriptDeployment(
+            str_awesome_atmo_call,
+            name='./deploy_call_atmoinit.sh',
+            logfile=logfile)
+
+
+def rm_scripts(logfile=None):
+    return LoggedScriptDeployment(
+        "rm -rf ~/deploy_*",
+        name='./deploy_remove_scripts.sh',
+        logfile=logfile)
+
+
+def init_log():
+    return ScriptDeployment(
+        'if [ ! -d "/var/log/atmo" ];then\n'
+        'mkdir -p /var/log/atmo\n'
+        'fi\n'
+        'if [ ! -f "/var/log/atmo/deploy.log" ]; then\n'
+        'touch /var/log/atmo/deploy.log\n'
+        'fi',
+        name="./deploy_init_log.sh")
+
+
+def init(instance, username, *args, **kwargs):
+        """
+        Creates a multi script deployment to prepare and call
+        the latest init script
+        """
+        if not instance:
+            raise MissingArgsException("Missing instance argument.")
+        if not username:
+            raise MissingArgsException("Missing instance argument.")
+        token = kwargs.get('token', '')
+        if not token:
+            token = instance.id
+
+        atmo_init = "/usr/sbin/atmo_init_full.py"
+        server_atmo_init = "/init_files/v2/atmo_init_full.py"
+        logfile = "/var/log/atmo/deploy.log"
+        url = "%s%s" % (settings.SERVER_URL, server_atmo_init)
+
+        script_init = init_log()
+
+        script_deps = package_deps()
+
+        script_wget = wget_file(atmo_init, url, logfile)
+
+        script_chmod = chmod_ax_file(atmo_init, logfile)
+
+        script_atmo_init = init_script(atmo_init, username, token,
+                                       instance, logfile)
+
+        #script_rm_scripts = rm_scripts(logfile=logfile)
+
+        return MultiStepDeployment([script_init,
+                                    script_deps,
+                                    script_wget,
+                                    script_chmod,
+                                    script_atmo_init])
+
+        # kwargs.update({'deploy': msd})
+
+        # private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
+        # kwargs.update({'ssh_key': private_key})
+
+        # kwargs.update({'timeout': 120})
+
+        # return self.deploy_to(instance, *args, **kwargs)

@@ -321,7 +321,7 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
         if isinstance(driver.provider, EucaProvider):
             #Create and set userdata
             instance_service_url = "%s" % (settings.INSTANCE_SERVICE_URL,)
-            init_file_version = kwargs.get('init_file', 30)
+            init_file_version = kwargs.get('init_file', "v1")
             # Remove quotes -- Single && Double
             name = name.replace('"', '').replace("'", "")
             userdata_contents = _get_init_script(instance_service_url,
@@ -370,7 +370,7 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
 
 
 def _get_init_script(instance_service_url, instance_token,
-                     instance_name, username, init_file_version):
+                     instance_name, username, init_file_version="v1"):
     instance_config = """\
 arg = '{
  "atmosphere":{
