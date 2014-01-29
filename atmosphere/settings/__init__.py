@@ -292,7 +292,7 @@ CELERYBEAT_SCHEDULE = {
     },
     'check-all-instances': {
         'task': 'core.tasks.instance.test_all_instance_links', 
-        'schedule': timedelta(seconds=60*15),
+        'schedule': timedelta(seconds=60*5),
     },
 }
 CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [PID:%(process)d] @ %(pathname)s on %(lineno)d] %(message)s"
