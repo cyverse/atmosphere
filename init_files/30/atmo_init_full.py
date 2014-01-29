@@ -28,6 +28,8 @@ except ImportError:
 
 ATMOSERVER = ""
 SCRIPT_VERSION = 30
+eucalyptus_meta_server = 'http://128.196.172.136:8773/latest/meta-data/'
+openstack_meta_server = 'http://169.254.169.254/latest/meta-data/'
 
 
 def mkdir_p(path):
@@ -293,11 +295,25 @@ def ssh_config(distro):
 
 
 
+def get_metadata_keys(metadata):
+    keys = []
+    #Eucalyptus/Openstack key (Traditional metadata API)
+    euca_key = _make_request('%s%s' % (eucalyptus_meta_server,
+                                        "public-keys/0/openssh-key/"))
+    os_key = _make_request('%s%s' % (openstack_meta_server,
+                                        "public-keys/0/openssh-key/"))
+    if euca_key:
+        keys.append(euca_key)
+    if os_key:
+        keys.append(os_key)
+    #JSON metadata API
+    public_keys = metadata.get('public_keys',{})
+    for k,v in public_keys.items():
+        keys.append(v.replace('\n',''))  # Includes a newline
+    return keys
+
+
 def get_metadata():
-    eucalyptus_meta_server = 'http://128.196.172.136:8773/'\
-                             'latest/meta-data/'
-    openstack_meta_server = 'http://169.254.169.254/'\
-                            'latest/meta-data/'
     openstack_json_metadata = 'http://169.254.169.254/openstack/'\
                             'latest/meta_data.json'
     metadata = collect_metadata(eucalyptus_meta_server)
@@ -731,13 +747,19 @@ def update_timezone():
 
 def run_update_sshkeys(sshdir, sshkeys):
     authorized_keys = os.path.join(sshdir, 'authorized_keys')
+    f = open(authorized_keys, 'r')
+    content = f.read()
+    f.close()
+    for key in sshkeys:
+        if key in content:
+            sshkeys.remove(key)
     f = open(authorized_keys, 'a')
     for key in sshkeys:
         f.write(key+'\n')
     f.close()
 
 
-def update_sshkeys():
+def update_sshkeys(metadata):
     sshkeys = [
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDGjaoIl/h8IcgqK7U9i0EVYMPFad6NdgSV8gsrNLQF93+hkWEciqpX9TLn6TAcHOaL0xz7ilBetG3yaLSZBHaoKNmVCBaziHoCJ9wEwraR6Vw87iv3Lhfg/emaQiJIZF3YnPKcDDB1/He9Cnz//Y+cjQbYxLeJWdVi/irZKEWhkotb3xyfrf4o05FvLEzvaMbmf3XS1J0Rtu7BqPOvNl+U0ZqS57tNoqG2C6Cf10E340iqQGTgXzOrDmd+Rof2G1IkyKlW60okAa2N+Z8BCRB27hHY5bcS1vvnO6lo8VzWxbU3Z2MCbk1So9wHV8pAXyF1+MnVc6aJUs1xc/Lni1Xbp5USs6kOvyew3HaN3UDnoC1FSMDguAriwxho882NM/LRpGJFui2i/H3GYgQ1KQwBRqLTWEY9H8Qvy5RuOG36cy4jWJMxh6YoxOyDpZP6UlONiyuwwqrVCjUeHwIDHdBq1RGBJIEBsYhGFCYEP3UotGwEvGo7vGfb3eAebbPMsj8TAP3eR/XCd7aIeK6ES9zfNJfD2mjJqGHMUeFgbiDmTPfjGOxZ53bZssEjb0BbXNvFPezj8JetfbHZE4VUjDAUcOrLp6NT9yG6hbWFdGQxyqIbKSeMabDu8gxAcqFJvi2yFMV5j0F3qQiAPUwrigr98c4+aLvKqwsRvHxWUETBOw== idle time daemon",
         "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAvTEkREh5kmUAgx61pB0ikyH0swoXRId6yhGwIdm8KQgjErWSF8X4MED8t+7Pau98/mzxuvA23aiIn7MQWSQWQVQBFGZqj4losf+oEBS+ZQGJf2ocx3DP3NStgnixKgiDId6wjPTF1s9/YLntNb4ZNGvBSDg0bxzDJWoQ9ghOpHXmqFDWHxE9jr1qLHZzqQ0Pt1ATCW+OJ/b2staqVDPSa1SwMI89Cuw7iiSWfNHML1cf0wbYU3Bg+jT5GlwCojWP/yHqDCF1t3XL0xZQlWdKt7fM6bKUonv1CGcRZO22npZwX5Uv3U5OlskSFJnr8oZZV6V6kn99gwNzZnmiK32QQQ== edwins@iplant",
@@ -748,6 +770,8 @@ def update_sshkeys():
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFE/lyzLdFYZF3mxYwzrTITgov1NqtLuS5IY0fgjpdiVpHjWBUdXspTafKORbbM+t0ERTOqcSt24Vj5B8XUXImpzw2OAsl//AiKvHGRUenk7qY6/9IEUcay5mGAoiRpjLzDIDdtiQUAAEMKvkzanUBQOBJWVyO4Gq2aFUr4zweVLfvjejOspf2cZll/ojcPYmI9cKMq7fOgKSmRH2zUg+ORFlP1rQYugoETcGkcQg0IBsSMLT8gnYt3UWTW8S8ugtb4aaWVrId14Nc3sk+yDzPBaRX7iM3CQ5uKXPwjeID59RLMjQUFlHjqDSdZBOjXCFRHZbrbZZjS42o4OJAoLvF sgregory@mickey",
 		"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDQNBua13LVIG61LNztP9b7k7T+Qg8t22Drhpy17WVwbBH1CPYdn5NR2rXUmfiOa3RhC5Pz6uXsYUJ4xexOUJaFKY3S8h9VaeaPxMyeA8oj9ssZC6tNLqNxqGzKJbHfSzQXofKwBH87e+du34mzqzm2apOMT2JVzxWmTwrl3JWnd2HG0odeVKMNsXLuQFN6jzCeJdLxHpu+dJOL6gJTW5t9AwoJ8jxmwO8xgUbk+7s38VATSuaV/RiIfXfGFv34CT7AY1gRxm1og9jjP6qkFMyZiO6M+lwrJIlHKTOKxw+xc15w/tIssUkeflzAcrkkNGzT8sBL39BoQOo9RTrMD2QL weather-balloon@wesley.iplantcollaborative.org"
     ]
+    more_keys = get_metadata_keys(metadata)
+    sshkeys.extend(more_keys)
     root_ssh_dir = '/root/.ssh'
     mkdir_p(root_ssh_dir)
     run_update_sshkeys(root_ssh_dir, sshkeys)
