@@ -17,6 +17,7 @@ from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
 from core.models.instance import update_instance_metadata
 from core.models.identity import Identity
+from core.models.profile import UserProfile
 
 from service.driver import get_driver
 from service.deploy import init
@@ -36,14 +37,21 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
             logger.debug("Instance has been teminated: %s." % instance_id)
             return
         username = identity.user.username
-        created = datetime.strptime(instance.extra['created'],
-                                    "%Y-%m-%dT%H:%M:%SZ")
-        send_instance_email(username,
-                            instance.id,
-                            instance.name,
-                            instance.ip,
-                            created,
-                            username)
+        profile = UserProfile.objects.get(user__username=username)
+        if profile.send_emails:
+            #Only send emails if allowed by profile setting
+            created = datetime.strptime(instance.extra['created'],
+                                        "%Y-%m-%dT%H:%M:%SZ")
+            send_instance_email(username,
+                                instance.id,
+                                instance.name,
+                                instance.ip,
+                                created,
+                                username)
+        else:
+            logger.debug("User %s elected NOT to receive new instance emails"
+                         % username)
+
         logger.debug("_send_instance_email task finished at %s." %
                      datetime.now())
     except Exception as exc:
