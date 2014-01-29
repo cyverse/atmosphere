@@ -117,7 +117,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Instance
         exclude = ('id', 'end_date', 'provider_machine', 'provider_alias',
-                   'shell', 'vnc', 'created_by_identity')
+                   'shell', 'vnc', 'created_by_identity', 'password')
 
 
 class InstanceHistorySerializer(serializers.ModelSerializer):
