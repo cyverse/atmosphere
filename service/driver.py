@@ -14,6 +14,19 @@ def get_driver(driverCls, provider, identity, **provider_credentials):
         return driver
 
 
+def get_admin_driver(provider):
+    """
+    Create an admin driver for a given provider.
+    """
+    try:
+        from api import get_esh_driver
+        return get_esh_driver(provider.accountprovider_set.all()[0].identity)
+    except:
+        logger.info("Admin driver for provider %s not found." %
+                    (provider.location))
+        return None
+
+
 class DriverManager(object):
 
     _instance = None
