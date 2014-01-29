@@ -110,8 +110,8 @@ def machine_request_error(machine_request_id, task_uuid):
 
     result = app.AsyncResult(task_uuid)
     exc = result.get(propagate=False)
-    err_str = "Task %s raised exception: %r\n%r"\
-              % (task_uuid, exc, result.traceback)
+    err_str = "Task %s raised exception: %r"\
+              % (task_uuid, exc)
     logger.error(err_str)
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.status = err_str
