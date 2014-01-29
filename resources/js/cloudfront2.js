@@ -33,7 +33,6 @@ function resizeApp() {
 		$('#image_holder').height($('#content').height() - $('#image_header').outerHeight() - $('#image_search_holder').outerHeight() - $('#selected_image_info_container h1').outerHeight() - 45);
 
 		$('.shell_iframe').height($('#content').height() - $('#resource_usage_title').outerHeight() - $('#resource_usage_holder').outerHeight() - $('.instance_tabs:visible').outerHeight() - 110);
-		$('.vnc_iframe').height($('#content').height() - $('#resource_usage_title').outerHeight() - $('#resource_usage_holder').outerHeight() - $('.instance_tabs:visible').outerHeight() - 110);
 		$('#selected_image').height($('#content').height() - $('#logged_in_data').height() - $('#image_header').height());
 
 		$('#draggable_container').height(

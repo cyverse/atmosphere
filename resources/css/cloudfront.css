@@ -454,6 +454,18 @@ a.context-holder:hover, .context-helper:hover {
 	text-decoration: none !important;
 	border: 0 !important;
 }
+
+a.vnc_iframe {
+    display: block;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: hsl(208, 100%, 97%);
+    border-bottom: 0 none;
+    text-align: center;
+    font-size: 28px;
+    line-height: 48px;
+}
+
 /* Overwrite Bootstrap Styles */
 .popover-title a {
 	position: relative;
