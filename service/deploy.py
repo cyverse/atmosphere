@@ -148,7 +148,6 @@ def init_script(filename, username, token, instance, password, logfile=None):
         awesome_atmo_call += " --server=%s --user_id=%s"
         awesome_atmo_call += " --token=%s --name=\"%s\""
         awesome_atmo_call += " --vnc_license=%s"
-        awesome_atmo_call += " --root_password=%s"
         awesome_atmo_call %= (
             filename,
             "instance_service_v1",
@@ -157,8 +156,9 @@ def init_script(filename, username, token, instance, password, logfile=None):
             username,
             token,
             instance.name,
-            secrets.ATMOSPHERE_VNC_LICENSE,
-            password)
+            secrets.ATMOSPHERE_VNC_LICENSE)
+        if password:
+            awesome_atmo_call += " --root_password=%s" % (password)
         #kludge: weirdness without the str cast...
         str_awesome_atmo_call = str(awesome_atmo_call)
         #logger.debug(isinstance(str_awesome_atmo_call, basestring))
@@ -186,7 +186,7 @@ def init_log():
         name="./deploy_init_log.sh")
 
 
-def init(instance, username, *args, **kwargs):
+def init(instance, username, password=None, *args, **kwargs):
         """
         Creates a multi script deployment to prepare and call
         the latest init script
@@ -202,14 +202,7 @@ def init(instance, username, *args, **kwargs):
         atmo_init = "/usr/sbin/atmo_init_full.py"
         server_atmo_init = "/init_files/v2/atmo_init_full.py"
         logfile = "/var/log/atmo/deploy.log"
-        password = kwargs.get('root_password','')
-        if password:
-            #Set the password for future ref.
-            instance.password = password
-            instance.save()
-        else:
-            #Use the password found in instance DB
-            password = instance.password
+
         url = "%s%s" % (settings.SERVER_URL, server_atmo_init)
 
         script_init = init_log()

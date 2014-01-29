@@ -16,11 +16,12 @@ from service.tasks.volume import attach_task, mount_task, check_volume_task
 from service.tasks.volume import detach_task, umount_task
 
 
-def deploy_init_task(driver, instance, *args, **kwargs):
+def deploy_init_task(driver, instance, password=None, *args, **kwargs):
     deploy_init_to.apply_async((driver.__class__,
                                 driver.provider,
                                 driver.identity,
-                                instance.alias),
+                                instance.alias,
+                                password),
                                immutable=True, countdown=60)
 
 

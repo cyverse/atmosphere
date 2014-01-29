@@ -90,7 +90,7 @@ def deploy_to(driverCls, provider, identity, instance_id, *args, **kwargs):
       default_retry_delay=20,
       ignore_result=True,
       max_retries=3)
-def deploy_init_to(driverCls, provider, identity, instance_id,
+def deploy_init_to(driverCls, provider, identity, instance_id, password=None,
                    *args, **kwargs):
     try:
         logger.debug("deploy_init_to task started at %s." % datetime.now())
@@ -114,7 +114,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
                     driverCls, provider, identity, instance_id,
                     {'tmp_status': 'deploying'}),
                 _deploy_init_to.si(
-                    driverCls, provider, identity, instance_id),
+                    driverCls, provider, identity, instance_id, password),
                 update_metadata.si(
                     driverCls, provider, identity, instance_id,
                     {'tmp_status': ''}),
@@ -130,7 +130,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
                     driverCls, provider, identity, instance_id,
                     {'tmp_status': 'deploying'}),
                 _deploy_init_to.si(
-                    driverCls, provider, identity, instance_id),
+                    driverCls, provider, identity, instance_id, password),
                 update_metadata.si(
                     driverCls, provider, identity, instance_id,
                     {'tmp_status': ''}),
@@ -204,7 +204,7 @@ def destroy_instance(core_identity_id, instance_alias):
       default_retry_delay=32,
       ignore_result=True,
       max_retries=10)
-def _deploy_init_to(driverCls, provider, identity, instance_id):
+def _deploy_init_to(driverCls, provider, identity, instance_id, password=None):
     try:
         logger.debug("_deploy_init_to task started at %s." % datetime.now())
         #Check if instance still exists
@@ -213,6 +213,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
         if not instance:
             logger.debug("Instance has been teminated: %s." % instance_id)
             return
+        #NOTE: This is NOT the password passed by argument
         #Deploy with no password to use ssh keys
         logger.info(instance.extra)
         instance._node.extra['password'] = None
@@ -220,7 +221,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id):
         private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'timeout': 120})
-        msd = init(instance, identity.user.username)
+        msd = init(instance, identity.user.username, password)
         kwargs.update({'deploy': msd})
         driver.deploy_to(instance, **kwargs)
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
@@ -365,7 +366,7 @@ def remove_empty_network(
         logger.debug("remove_empty_network task started at %s." %
                      datetime.now())
 
-        logger.debug("Params - %s" % core_identity_id)
+        logger.debug("CoreIdentity(id=%s)" % core_identity_id)
         core_identity = Identity.objects.get(id=core_identity_id)
         driver = get_driver(driverCls, provider, identity)
         instances = driver.list_instances()
