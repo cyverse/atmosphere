@@ -27,6 +27,8 @@ except ImportError:
     from sha import sha as sha1
 
 ATMOSERVER = ""
+eucalyptus_meta_server = 'http://128.196.172.136:8773/latest/meta-data/'
+openstack_meta_server = 'http://169.254.169.254/latest/meta-data/'
 SCRIPT_VERSION = "v2"
 
 
@@ -254,19 +256,51 @@ def restart_ssh(distro):
         run_command(["/etc/init.d/ssh", "restart"])
 
 
+def set_root_password(root_password, distro):
+    if is_rhel(distro):
+        run_command(["passwd", "--stdin", "root"], stdin=root_password)
+    else:
+        run_command(["chpasswd"], stdin = "root:%s" % root_password)
+
+    if text_in_file('/etc/ssh/sshd_config', 'PermitRootLogin'):
+        run_command([
+            '/bin/sed', '-i',
+            "s/PermitRootLogin\s*no$/PermitRootLogin yes/",
+            '/etc/ssh/sshd_config'])
+        run_command([
+            '/bin/sed', '-i',
+            "s/PermitRootLogin\s*without-password$/PermitRootLogin yes/",
+            '/etc/ssh/sshd_config'])
+    else:
+        append_to_file("/etc/ssh/sshd_config", "PermitRootLogin yes")
+    restart_ssh(distro)
+
+
 def ssh_config(distro):
     append_to_file(
         "/etc/ssh/sshd_config",
         "AllowGroups users core-services root")
     restart_ssh(distro)
 
+def get_metadata_keys(metadata):
+    keys = []
+    #Eucalyptus/Openstack key (Traditional metadata API)
+    euca_key = _make_request('%s%s' % (eucalyptus_meta_server,
+                                        "public-keys/0/openssh-key/"))
+    os_key = _make_request('%s%s' % (openstack_meta_server,
+                                        "public-keys/0/openssh-key/"))
+    if euca_key:
+        keys.append(euca_key)
+    if os_key:
+        keys.append(os_key)
+    #JSON metadata API
+    public_keys = metadata.get('public_keys',{})
+    for k,v in public_keys.items():
+        keys.append(v.replace('\n',''))  # Includes a newline
+    return keys
 
 
 def get_metadata():
-    eucalyptus_meta_server = 'http://128.196.172.136:8773/'\
-                             'latest/meta-data/'
-    openstack_meta_server = 'http://169.254.169.254/'\
-                            'latest/meta-data/'
     openstack_json_metadata = 'http://169.254.169.254/openstack/'\
                             'latest/meta_data.json'
     metadata = collect_metadata(eucalyptus_meta_server)
@@ -761,7 +795,7 @@ def main(argv):
             argv,
             "t:u:s:i:T:N:v:",
             ["service_type=", "service_url=", "server=", "user_id=", "token=",
-             "name=", "vnc_license="])
+             "name=", "vnc_license=", "root_password="])
     except getopt.GetoptError:
         logging.error("Invalid arguments provided.")
         sys.exit(2)
@@ -789,6 +823,8 @@ def main(argv):
         elif opt in ("-v", "--vnc_license"):
             #instance_data["atmosphere"]["vnc_license"] = arg
             vnclicense = arg
+        elif opt in ("--root_password"):
+            root_password = arg
         elif opt == '-d':
             global _debug
             _debug = 1
@@ -813,21 +849,26 @@ def main(argv):
     distro = get_distro()
     logging.debug("Distro - %s" % distro)
     #TODO: Test this is multi-call safe
-    #Add linux user to etc-group
-    #is_updated_test determines if this sensitive file needs
     update_sshkeys()
     update_sudoers()
 
+    #Add linux user to sudoers && etc/group
     if not in_sudoers(linuxuser):
         add_sudoers(linuxuser)
     if not in_etc_group('/etc/group', linuxuser):
         add_etc_group(linuxuser)
+    #is_updated_test determines if this sensitive file needs
     if not is_updated_test("/etc/ssh/sshd_config"):
         ssh_config(distro)
+    if root_password:
+        set_root_password(root_password, distro)
 
     if not is_rhel(distro):
         run_command(['/usr/bin/apt-get', 'update'])
-    #mount_storage()
+    #else:
+    #   run_command(['/usr/bin/yum', 'check-update'])
+
+    mount_storage()
     ldap_install()
     etc_skel_bashrc(linuxuser)
     run_command(['/bin/cp', '-rp', '/etc/skel/.', '/home/%s' % linuxuser])

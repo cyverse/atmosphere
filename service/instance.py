@@ -216,7 +216,7 @@ def launch_instance(user, provider_id, identity_id,
     check_quota(user.username, identity_id, size)
 
     #May raise InvalidCredsError
-    (esh_instance, token) = launch_esh_instance(esh_driver, machine_alias,
+    (esh_instance, token, password) = launch_esh_instance(esh_driver, machine_alias,
                                                 size_alias, core_identity,
                                                 **kwargs)
     #Convert esh --> core
@@ -298,6 +298,8 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
     try:
         #create a reference to this attempted instance launch.
         instance_token = str(uuid.uuid4())
+        #create a unique one-time password for instance root user
+        instance_password = str(uuid.uuid4())
 
         #TODO: Mock these for faster launch performance
         #Gather the machine object
@@ -326,6 +328,7 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
             name = name.replace('"', '').replace("'", "")
             userdata_contents = _get_init_script(instance_service_url,
                                                  instance_token,
+                                                 instance_password,
                                                  name,
                                                  username, init_file_version)
             #Create/deploy the instance -- NOTE: Name is passed in extras
@@ -363,13 +366,13 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
                                                   **kwargs)
         else:
             raise Exception("Unable to launch with this provider.")
-        return (esh_instance, instance_token)
+        return (esh_instance, instance_token, instance_password)
     except Exception as e:
         logger.exception(e)
         raise
 
 
-def _get_init_script(instance_service_url, instance_token,
+def _get_init_script(instance_service_url, instance_token, instance_password,
                      instance_name, username, init_file_version="v1"):
     instance_config = """\
 arg = '{
@@ -380,11 +383,12 @@ arg = '{
   "token":"%s",
   "name":"%s",
   "userid":"%s",
-  "vnc_license":"%s"
+  "vnc_license":"%s",
+  "root_password":"%s"
  }
 }'""" % (instance_service_url, settings.SERVER_URL,
          instance_token, instance_name, username,
-         secrets.ATMOSPHERE_VNC_LICENSE)
+         secrets.ATMOSPHERE_VNC_LICENSE, instance_password)
 
     init_script_file = os.path.join(
         settings.PROJECT_ROOT,

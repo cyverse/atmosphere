@@ -143,13 +143,12 @@ def package_deps(logfile=None):
         logfile=logfile)
 
 
-def init_script(filename, username, token, instance, unique_password=None, logfile=None):
+def init_script(filename, username, token, instance, password, logfile=None):
         awesome_atmo_call = "%s --service_type=%s --service_url=%s"
         awesome_atmo_call += " --server=%s --user_id=%s"
         awesome_atmo_call += " --token=%s --name=\"%s\""
         awesome_atmo_call += " --vnc_license=%s"
-        if unique_password:
-            awesome_atmo_call += " --root_password=%s"
+        awesome_atmo_call += " --root_password=%s"
         awesome_atmo_call %= (
             filename,
             "instance_service_v1",
@@ -158,9 +157,8 @@ def init_script(filename, username, token, instance, unique_password=None, logfi
             username,
             token,
             instance.name,
-            secrets.ATMOSPHERE_VNC_LICENSE)
-        if unique_password:
-            awesome_atmo_call %= (unique_password,)
+            secrets.ATMOSPHERE_VNC_LICENSE,
+            password)
         #kludge: weirdness without the str cast...
         str_awesome_atmo_call = str(awesome_atmo_call)
         #logger.debug(isinstance(str_awesome_atmo_call, basestring))
@@ -205,7 +203,12 @@ def init(instance, username, *args, **kwargs):
         server_atmo_init = "/init_files/v2/atmo_init_full.py"
         logfile = "/var/log/atmo/deploy.log"
         password = kwargs.get('root_password','')
-        if not password:
+        if password:
+            #Set the password for future ref.
+            instance.password = password
+            instance.save()
+        else:
+            #Use the password found in instance DB
             password = instance.password
         url = "%s%s" % (settings.SERVER_URL, server_atmo_init)
 
@@ -220,6 +223,7 @@ def init(instance, username, *args, **kwargs):
         script_atmo_init = init_script(atmo_init, username, token,
                                        instance, password, logfile)
 
+        #TODO: REMOVE THIS LINE BEFORE 2/4/14
         #script_rm_scripts = rm_scripts(logfile=logfile)
 
         return MultiStepDeployment([script_init,

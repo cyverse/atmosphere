@@ -908,7 +908,7 @@ def main(argv):
     run_command(['/bin/chmod', 'u+s', '/bin/fusermount'])
     vnc(linuxuser, distro, vnclicense)
     iplant_files(distro)
-    atmo_cl()
+    #atmo_cl()
     nagios()
     distro_files(distro)
     update_timezone()
