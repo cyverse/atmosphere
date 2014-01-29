@@ -1,7 +1,7 @@
 import time
 
+from atmosphere.celery import app
 from celery.decorators import task
-from celery.result import AsyncResult
 
 from chromogenic.tasks import machine_imaging_task, migrate_instance_task
 from chromogenic.drivers.openstack import ImageManager as OSImageManager
@@ -99,13 +99,13 @@ def set_machine_request_metadata(machine_request, image_id):
     lc_driver.ex_set_image_metadata(machine, metadata)
     return machine
 
-
-@task
+#NOTE: Is this different than the 'task' found in celery.decorators?
+@app.task
 def machine_request_error(machine_request_id, task_uuid):
     logger.info("machine_request_id=%s" % machine_request_id)
     logger.info("task_uuid=%s" % task_uuid)
 
-    result = AsyncResult(task_uuid)
+    result = app.AsyncResult(task_uuid)
     exc = result.get(propagate=False)
     err_str = "Task %s raised exception: %r\n%r"\
               % (task_uuid, exc, result.traceback)

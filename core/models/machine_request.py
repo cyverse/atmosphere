@@ -8,8 +8,8 @@ from django.db import models
 from django.utils import timezone
 from core.models.user import AtmosphereUser as User
 
-
 from core.fields import VersionNumberField, VersionNumber
+from core.models.application import get_application, create_application
 from core.models.provider import Provider, AccountProvider
 from core.models.machine import create_provider_machine
 from core.models.node import NodeController
@@ -227,41 +227,54 @@ def process_machine_request(machine_request, new_image_id):
     from core.models.machine import add_to_cache
     from core.models.tag import Tag
     from core.models import Identity, ProviderMachine
-    #Build the new provider-machine object and associate
-    try:
-        new_machine = ProviderMachine.objects.get(identifier=new_image_id)
-    except ProviderMachine.DoesNotExist:
-        new_machine = create_provider_machine(
-            machine_request.new_machine_name, new_image_id,
-            machine_request.new_machine_provider_id, application)
-
+    #Get all the data you can from the machine request
     owner_ident = Identity.objects.get(created_by=machine_request.new_machine_owner, provider=machine_request.new_machine_provider)
     parent_mach = machine_request.instance.provider_machine
     parent_app = machine_request.instance.provider_machine.application
-    app = new_machine.application
-    tags = [Tag.objects.get(name__iexact=tag) for tag in
-            machine_request.new_machine_tags.split(',')] \
-        if machine_request.new_machine_tags else []
+    if machine_request.new_machine_tags:
+        tags = [Tag.objects.get(name__iexact=tag) for tag in
+                machine_request.new_machine_tags.split(',')]
+    else:
+        tags = []
 
     if machine_request.new_machine_forked:
+        # This is a brand new app and a brand new providermachine
         new_app = create_application(
-                new_machine.identifier,
-                new_machine.provider.id,
+                new_image_id,
+                new_machine_provider.id,
                 machine_request.new_machine_name, 
                 owner_ident,
                 machine_request.new_machine_version,
                 machine_request.new_machine_description,
                 tags)
-        new_machine.application = new_app
+        app_to_use = new_app
     else:
-        if parent_app != app:
-            new_machine.application = parent_app
-        tags.extend(parent_mach.tags.all())
-        app.created_by = machine_request.new_machine_owner
-        app.created_by_identity = owner_ident
-        app.tags = tags
-        app.description = machine_request.new_machine_description
-        app.save()
+        #This is NOT a fork, the application to be used is that of your
+        # ancestor
+        app_to_use = parent_app
+        #Include your ancestors tags, description if necessary
+        tags.extend(parent_app.tags.all())
+        if not machine_request.new_machine_description:
+            description = parent_app.description
+        else:
+            description = machine_request.new_machine_description
+    try:
+        #Set application data to an existing/new providermachine
+        new_machine = ProviderMachine.objects.get(identifier=new_image_id)
+        new_machine.application = app_to_use
+        new_machine.save()
+    except ProviderMachine.DoesNotExist:
+        new_machine = create_provider_machine(
+            machine_request.new_machine_name, new_image_id,
+            machine_request.new_machine_provider_id, app_to_use)
+
+    app = new_machine.application
+    #app.created_by = machine_request.new_machine_owner
+    #app.created_by_identity = owner_ident
+    app.tags = tags
+    app.description = description
+    app.save()
+
     new_machine.version = machine_request.new_machine_version
     new_machine.created_by = machine_request.new_machine_owner
     new_machine.created_by_identity = owner_ident
