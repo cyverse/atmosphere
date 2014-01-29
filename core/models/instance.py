@@ -308,7 +308,8 @@ def find_instance(alias):
     return None
 
 
-def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id, user, token=None):
+def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
+                         user, token=None, password=None):
     """
     """
     #logger.debug(esh_instance.__dict__)
@@ -325,6 +326,8 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id, use
     core_instance = find_instance(alias)
     if core_instance:
         core_instance.ip_address = ip_address
+        if password:
+            core_instance.password = password
         core_instance.save()
     else:
         if 'launchdatetime' in esh_instance.extra:
@@ -354,7 +357,7 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id, use
         core_instance = create_instance(provider_id, identity_id, alias,
                                       coreMachine, ip_address,
                                       esh_instance.name, user,
-                                      start_date, token)
+                                      start_date, token, password)
 
     core_instance.esh = esh_instance
 
@@ -418,7 +421,8 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
             raise
 
 def create_instance(provider_id, identity_id, provider_alias, provider_machine,
-                   ip_address, name, creator, create_stamp, token=None):
+                   ip_address, name, creator, create_stamp,
+                   token=None, password=None):
     #TODO: Define a creator and their identity by the METADATA instead of
     # assuming its the person who 'found' the instance
     identity = Identity.objects.get(id=identity_id)
@@ -429,6 +433,7 @@ def create_instance(provider_id, identity_id, provider_alias, provider_machine,
                                        created_by=creator,
                                        created_by_identity=identity,
                                        token=token,
+                                       password=password,
                                        shell=False,
                                        start_date=create_stamp)
     new_inst.save()

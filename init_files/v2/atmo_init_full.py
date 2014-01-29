@@ -145,26 +145,38 @@ def get_distro():
         return 'ubuntu'
 
 
-def run_command(commandList, shell=False, bash_wrap=False):
-    out = None
-    err = None
+def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                stdin=None, dry_run=False, shell=False, bash_wrap=False):
     if bash_wrap:
         #Wrap the entire command in '/bin/bash -c',
         #This can sometimes help pesky commands
         commandList = ['/bin/bash','-c', ' '.join(commandList)]
-    logging.debug("RunCommand:%s" % ' '.join(commandList))
+    """
+    NOTE: Use this to run ANY system command, because its wrapped around a loggger
+    Using Popen, run any command at the system level and record the output and error streams
+    """
+    out = None
+    err = None
+    cmd_str = ' '.join(commandList)
+    if dry_run:
+        #Bail before making the call
+        logging.debug("Mock Command: %s" % cmd_str)
+        return ('','')
     try:
-        proc = subprocess.Popen(commandList, stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE, shell=shell)
-        out, err = proc.communicate()
+        if stdin:
+            proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr,
+                    stdin=subprocess.PIPE, shell=shell)
+        else:
+            proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr,
+                    shell=shell)
+        out,err = proc.communicate(input=stdin)
     except Exception, e:
-        logging.exception("Failed to run command")
-    if out:
-        logging.debug(out)
-    if err:
-        logging.debug(err)
-    return (out, err)
-
+        logging.exception(e)
+    if stdin:
+        logging.debug("%s STDIN: %s" % (cmd_str, stdin))
+    logging.debug("%s STDOUT: %s" % (cmd_str, out))
+    logging.debug("%s STDERR: %s" % (cmd_str, err))
+    return (out,err)
 
 def in_etc_group(filename, val):
     for line in open(filename, 'r').read().split('\n'):

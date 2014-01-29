@@ -221,7 +221,8 @@ def launch_instance(user, provider_id, identity_id,
                                                 **kwargs)
     #Convert esh --> core
     core_instance = convert_esh_instance(
-        esh_driver, esh_instance, provider_id, identity_id, user, token)
+        esh_driver, esh_instance, provider_id, identity_id,
+        user, token, password)
     core_instance.update_history(
         core_instance.esh.extra['status'],
         #2nd arg is task OR tmp_status
@@ -357,7 +358,7 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
             if kwargs.get('delay'):
                 time.sleep(kwargs['delay'])
             # call async task to deploy to instance.
-            task.deploy_init_task(driver, esh_instance)
+            task.deploy_init_task(driver, esh_instance, instance_password)
         elif isinstance(driver.provider, AWSProvider):
             #TODO:Extra stuff needed for AWS provider here
             esh_instance = driver.deploy_instance(name=name, image=machine,
