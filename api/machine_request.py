@@ -20,6 +20,7 @@ from web.emails import requestImaging
 from service.tasks.machine import start_machine_imaging
 
 import copy
+import re
 
 
 class MachineRequestList(APIView):
