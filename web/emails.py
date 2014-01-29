@@ -13,7 +13,7 @@ from threepio import logger
 
 from atmosphere import settings
 from core.email import email_admin, user_address
-from core.models import IdentityMembership
+from core.models import IdentityMembership, MachineRequest
 
 
 def requestImaging(request, machine_request_id):
@@ -27,7 +27,7 @@ def requestImaging(request, machine_request_id):
         % (settings.SERVER_URL, machine_request_id)
     deny_link = '%s/api/v1/request_image/%s/deny' \
         % (settings.SERVER_URL, machine_request_id)
-
+    machine_request = MachineRequest.objects.get(id=machine_request_id)
     name = request.POST.get('name', '')
     instance_id = request.POST.get('instance', '')
     description = request.POST.get('description', '')
@@ -54,8 +54,19 @@ def requestImaging(request, machine_request_id):
     New Image name:%s
     New Image description:%s
     New Image tags:%s
-    """ % (view_link, approve_link, deny_link, username, instance_id, software,
-           sys_files, public, shared_with, name, description, tags)
+    """ % (view_link, approve_link, deny_link,
+           #TODO: This could also be:
+           #machine_request.instance.created_by.username
+           #And we could add another field 'new_image_owner'..
+           machine_request.new_machine_owner.username, 
+           machine_request.instance.provider_alias,
+           machine_request.installed_software,
+           machine_request.iplant_sys_files,
+           machine_request.new_machine_visibility,
+           machine_request.access_list,
+           machine_request.new_machine_name,
+           machine_request.new_machine_description,
+           machine_request.new_machine_tags)
     subject = 'Atmosphere Imaging Request - %s' % username
     email_success = email_admin(request, subject, message, cc_user=False)
     return email_success

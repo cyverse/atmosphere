@@ -221,7 +221,7 @@ class InstanceStatusAdmin(admin.ModelAdmin):
 
 class InstanceAdmin(admin.ModelAdmin):
     search_fields = ["created_by__username", "provider_alias", "ip_address"]
-    list_display = ["provider_alias", "created_by", "ip_address"]
+    list_display = ["provider_alias", "name", "created_by", "ip_address"]
     list_filter = ["provider_machine__provider__location"]
 
 

@@ -10,7 +10,7 @@ from core.models.user import AtmosphereUser as User
 
 
 from core.fields import VersionNumberField, VersionNumber
-from core.models.provider import Provider
+from core.models.provider import Provider, AccountProvider
 from core.models.machine import create_provider_machine
 from core.models.node import NodeController
 
@@ -284,7 +284,7 @@ def share_with_admins(private_userlist, provider_id):
         raise Exception("Expected private_userlist to be list, got %s: %s"
                         % (type(private_userlist), private_userlist))
 
-    from authentication.protocol.oauth import get_core_services
+    from authentication.protocol.ldap import get_core_services
     core_services = get_core_services()
     admin_users = [ap.identity.created_by.username for ap in
             AccountProvider.objects.filter(provider__id=provider_id)]
@@ -298,5 +298,5 @@ def share_with_self(private_userlist, username):
                         % (type(private_userlist), private_userlist))
 
     #TODO: Optionally, Lookup username and get the Projectname
-    private_userlist.extend(username)
+    private_userlist.append(username)
     return private_userlist
