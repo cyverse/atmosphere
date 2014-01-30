@@ -47,7 +47,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
             alloc_graph = this.$el.find("#allocationHolder").parent();
             alloc_graph.remove();
             graph_holders.children().each( function() {
-                $(this).removeClass('col-md-4').addClass('col-md-6');
+                $(this).removeClass('col-sm-4').addClass('col-sm-6');
             });
         }
 

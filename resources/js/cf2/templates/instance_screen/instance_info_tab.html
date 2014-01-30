@@ -1,12 +1,12 @@
 <div class="row">
-	<div class="col-md-6">
+	<div class="col-sm-6">
 		<img class="image_icon" id="main_icon" src="<%= image_url %>" />
 
 		<h2 class="editable" data-type="instance_name"><%= name_or_id %> </h2>
         <%= public_dns_name %>
 	</div>
 
-	<div class="col-md-6 instance_controls_container" id="euca_controls" style="display: none">
+	<div class="col-sm-6 instance_controls_container" id="euca_controls" style="display: none">
 		<div class="btn-group" style="display: inline-block; margin-bottom: 5px;">		
 			<button class="btn request_imaging_btn" title="Request Imaging"><i class="glyphicon glyphicon-camera"></i> Image</button>
 			<button class="btn report_instance_btn" title="Report Broken Instance"><i class="glyphicon glyphicon-inbox"></i> Report</button>
@@ -15,7 +15,7 @@
 		</div>
     </div>
 
-	<div class="col-md-6 instance_controls_container" id="openstack_controls" style="display: none">
+	<div class="col-sm-6 instance_controls_container" id="openstack_controls" style="display: none">
 		<div class="btn-group" style="display: inline-block; margin-bottom: 5px;">		
 			<button class="btn start_stop_instance_btn" title="Stop Instance"><i class="glyphicon glyphicon-stop"></i> Stop</button>
 			<button class="btn suspend_resume_instance_btn" title="Suspend Instance"><i class="glyphicon glyphicon-pause"></i> Suspend</button>
@@ -31,7 +31,7 @@
 </div>
 
 <div class="row">
-	<div class="col-md-3">
+	<div class="col-sm-3">
         <Br />
 		<dl id="instance_details">
           <dt>ID:</dt> <dd><%= id %></dd>
@@ -45,7 +45,7 @@
         </dl>
 	</div>
 
-	<div class="col-md-9">
+	<div class="col-sm-9">
         <h3>Instance Metrics</h3>
 		<div class="instance_graph" data-instance_id="<%= id %>"></div>
 	</div>
