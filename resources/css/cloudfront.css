@@ -80,8 +80,8 @@ select {
     padding-bottom: 50px;
 }
 
-/* Medium devices (desktops, 992px and up) */
-@media (min-width: 992px) {
+/* Medium devices (desktops, 720px and up) */
+@media (min-width: 720px) {
     #wrap {
         position: absolute;
         top: 48px;
@@ -151,8 +151,8 @@ select {
     margin-left: 0;
 }
 
-/* Medium devices (desktops, 992px and up) */
-@media (min-width: 992px) {
+/* Medium devices (desktops, 720px and up) */
+@media (min-width: 720px) {
     #footer {
         position: absolute;
         bottom: 0;
