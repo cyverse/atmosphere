@@ -35,7 +35,7 @@ def get_all_instances():
             if not admin_driver:
                 raise Exception("No account admins for provider %s"
                                 % provider)
-            meta_driver = driver.meta(admin_driver=driver)
+            meta_driver = admin_driver.meta(admin_driver=driver)
             all_instances.extend(meta_driver.all_instances())
         except:
             logger.exception("Problem accessing all "

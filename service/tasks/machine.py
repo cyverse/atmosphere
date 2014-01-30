@@ -103,15 +103,15 @@ def set_machine_request_metadata(machine_request, image_id):
 
 
 #NOTE: Is this different than the 'task' found in celery.decorators?
-@app.task
-def machine_request_error(machine_request_id, task_uuid):
+@task
+def machine_request_error(task_uuid, machine_request_id):
     logger.info("machine_request_id=%s" % machine_request_id)
     logger.info("task_uuid=%s" % task_uuid)
 
     result = app.AsyncResult(task_uuid)
     exc = result.get(propagate=False)
     err_str = "Task %s raised exception: %r"\
-              % (task_uuid, exc)
+              % (task_uuid, result.traceback)
     logger.error(err_str)
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.status = err_str
