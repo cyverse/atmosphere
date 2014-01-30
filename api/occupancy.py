@@ -14,6 +14,8 @@ from core.models.size import convert_esh_size
 from api import get_esh_driver
 from api.serializers import ProviderSizeSerializer
 
+from service.driver import get_admin_driver
+
 
 class Occupancy(APIView):
     """
@@ -26,18 +28,13 @@ class Occupancy(APIView):
         """
         #Get meta for provider to call occupancy
         provider = Provider.objects.get(id=provider_id)
-        ident = provider.identity_set.all()[0]
-        account_providers = provider.accountprovider_set.all()
-        driver = get_esh_driver(ident)
-        if account_providers:
-            admin_driver = get_esh_driver(account_providers[0].identity)
-            meta_driver = driver.meta(admin_driver=admin_driver)
-        else:
-             meta_driver = driver.meta()
-        esh_size_list  = meta_driver.occupancy()
+        admin_driver = get_admin_driver(provider)
+        meta_driver = driver.meta(admin_driver=admin_driver)
+        esh_size_list = meta_driver.occupancy()
         #Formatting..
         core_size_list = [convert_esh_size(size, provider_id)
                           for size in esh_size_list]
         #return it
-        serialized_data = ProviderSizeSerializer(core_size_list, many=True).data
+        serialized_data = ProviderSizeSerializer(core_size_list,
+                                                 many=True).data
         return Response(serialized_data)

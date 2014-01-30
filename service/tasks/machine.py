@@ -1,19 +1,21 @@
 import time
 
-from atmosphere.celery import app
+from threepio import logger
+
 from celery.decorators import task
 
 from chromogenic.tasks import machine_imaging_task, migrate_instance_task
 from chromogenic.drivers.openstack import ImageManager as OSImageManager
 from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
 
-from threepio import logger
 from atmosphere import settings
+from atmosphere.celery import app
 
 from core.email import send_image_request_email
 from core.models.machine_request import MachineRequest, process_machine_request
 from core.models.identity import Identity
 
+from service.driver import get_admin_driver
 from service.deploy import freeze_instance, sync_instance
 from service.tasks.driver import deploy_to
 
@@ -99,6 +101,7 @@ def set_machine_request_metadata(machine_request, image_id):
     lc_driver.ex_set_image_metadata(machine, metadata)
     return machine
 
+
 #NOTE: Is this different than the 'task' found in celery.decorators?
 @app.task
 def machine_request_error(machine_request_id, task_uuid):
@@ -130,18 +133,16 @@ def process_request(new_image_id, machine_request_id):
 
 def invalidate_machine_cache(machine_request):
     """
-    The new image won't populate in the machine list unless the list is cleared
+    The new image won't populate in the machine list unless
+    the list is cleared.
     """
     from api import get_esh_driver
-    admins = machine_request.instance.\
-        provider_machine.provider.\
-        accountprovider_set.all()
-    if not admins:
+    provider = machine_request.instance.\
+        provider_machine.provider
+    driver = get_admin_driver(provider)
+    if not driver:
         return
-    admin_id = admins[0].identity
-    driver = get_esh_driver(admin_id)
     driver.provider.machineCls.invalidate_provider_cache(driver.provider)
-    return
 
 
 @task(name='freeze_instance_task', ignore_result=False)
@@ -165,4 +166,3 @@ def freeze_instance_task(identity_id, instance_id):
     deploy_to.delay(
         driver.__class__, driver.provider, driver.identity,
         instance.id, **kwargs)
-    return
