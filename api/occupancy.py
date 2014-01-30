@@ -29,7 +29,7 @@ class Occupancy(APIView):
         #Get meta for provider to call occupancy
         provider = Provider.objects.get(id=provider_id)
         admin_driver = get_admin_driver(provider)
-        meta_driver = driver.meta(admin_driver=admin_driver)
+        meta_driver = admin_driver.meta(admin_driver=admin_driver)
         esh_size_list = meta_driver.occupancy()
         #Formatting..
         core_size_list = [convert_esh_size(size, provider_id)
