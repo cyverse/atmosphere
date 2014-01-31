@@ -23,7 +23,7 @@ from api.machine_export import MachineExportList, MachineExport
 from api.maintenance import MaintenanceRecordList, MaintenanceRecord
 from api.meta import Meta, MetaAction
 from api.notification import NotificationList
-from api.occupancy import Occupancy
+from api.occupancy import Occupancy, Hypervisor
 from api.profile import Profile
 from api.provider import ProviderList, Provider
 from api.size import SizeList, Size
@@ -118,6 +118,8 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/v1/profile/$', Profile.as_view(), name='profile'),
     url(r'^api/v1/provider/(?P<provider_id>\d+)/occupancy/$',
         Occupancy.as_view()),
+    url(r'^api/v1/provider/(?P<provider_id>\d+)/hypervisor/$',
+        Hypervisor.as_view()),
 
     url(r'^api/v1/group/$', GroupList.as_view()),
     url(r'^api/v1/group/(?P<groupname>.*)/$', Group.as_view()),
