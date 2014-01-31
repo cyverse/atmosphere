@@ -1,7 +1,7 @@
-/** 
+/**
  * Global utilities file.  You can call these from anythwere!
  */
-//Why is this not already in date... 
+//Why is this not already in date...
 Date.prototype.format = function(format) {
   var o = {
     "M+" : this.getMonth()+1, //month
@@ -34,7 +34,7 @@ Atmo.Utils.seconds_to_pretty_time = function(seconds, precision) {
     var ip_units = 0;
     var interval = 0;
     var p_i;
-    var periods = [ 
+    var periods = [
         {'sec' : 31536000,     'unit' : ' year'},
         {'sec' : 2592000,     'unit' : ' month'},
         {'sec' : 86400,     'unit' : ' day'},
@@ -44,7 +44,7 @@ Atmo.Utils.seconds_to_pretty_time = function(seconds, precision) {
 
     if (precision == undefined)
         precision = 1;
-        
+
     if (seconds < 1)
         return '0 seconds';
 
@@ -64,7 +64,7 @@ Atmo.Utils.seconds_to_pretty_time = function(seconds, precision) {
             }
         }
     }
-    
+
 };
 
 Atmo.Utils.relative_time = function(date_obj) {
@@ -79,61 +79,80 @@ Atmo.Utils.relative_time = function(date_obj) {
 Atmo.Utils.evil_chris_time_parse = function(str_date) {
   if(str_date && (typeof str_date == 'object') && str_date.length > 19) {
     return Date.parse(str_date.substring(0,19)).setTimezoneOffset(0);
-  }  
+  }
 };
 
 Atmo.Utils.hide_all_help = function() {
     $('[id^=help_]').popover('hide');
 };
 
+/*
+ * Given vcpu and
+ */
+Atmo.Utils.calculate_occupancy = function(vcpus_used, vcpus, memory_mb_used, memory_mb) {
+  return Math.max(vcpus_used / vcpus, memory_mb_used / memory_mb);
+};
+
 Atmo.Utils.update_weather = function() {
 
     $.ajax({
-        url: '/api/v1/provider/' + Atmo.profile.get('selected_identity').get('provider_id') + '/occupancy/', 
+        url: '/api/v1/provider/' + Atmo.profile.get('selected_identity').get('provider_id') + '/hypervisor/',
         type: 'GET',
         success: function(response_text) {
 
-            var occupancy = Math.round(((response_text[0]["total"] - response_text[0]["remaining"]) / response_text[0]["total"]) * 100);
-            var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
-            var weather = '';
+          var occupancy = Atmo.Utils.calculate_occupancy(response_text["vcpus_used"],
+                                                         response_text["vcpus"],
+                                                         response_text["memory_mb_used"],
+                                                         response_text["memory_mb"]);
+          // Apply minimal formatting to occupancy.
+          occupancy = occupancy.toFixed(3) * 100;
+          var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
+          var weather = '';
 
-            if(occupancy > 85)
-                weather = weather_classes[3]
-            else if(occupancy > 60)
-                weather = weather_classes[2]
-            else if(occupancy > 35)
-                weather = weather_classes[1]
-            else if(occupancy >= 0)
-                weather = weather_classes[0]
+          switch(occupancy) {
+            case(occupancy > 85):
+              weather = weather_classes[3];
+              break;
+            case(occupancy > 60):
+              weather = weather_classes[2];
+              break;
+            case(occupancy > 35):
+              weather = weather_classes[1];
+              break;
+            case(occupancy >= 0):
+              weather = weather_classes[0];
+              break;
+            default:
+              weather = weather_classes[0];
+          };
 
-            if (!$('#weather_report').hasClass(weather)) {
-                $.each(weather_classes, function(k, v) {
-                    $('body').removeClass(v);
-                });
-                $('#weather_report').addClass(weather);
+          if (!$('#weather_report').hasClass(weather)) {
+            $.each(weather_classes, function(k, v) {
+              $('body').removeClass(v);
+            });
+            $('#weather_report').addClass(weather);
 
-                // Hardcoded for now, replace when we have identities in backbone models
-                $('#weather_report').html(function() {
-                    var provider_id = Atmo.profile.get('selected_identity').get('provider_id');
-                    var provider = Atmo.providers.get(provider_id);
-                    var content = provider.get('location');
-                    content += ' is at ' + occupancy + '% capacity.<br /> The forecast is '+weather+'.';
-                    return content;
-                });
-            }
-
-        }, 
-        error: function() {
-            var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
-            weather = 'rainy';
-            if (!$('#weather_report').hasClass(weather)) {
-                $.each(weather_classes, function(k, v) {
-                    $('body').removeClass(v);
-                });
-                $('#weather_report').addClass(weather);
-            }
-            $('#weather_report').html('Atmosphere could not determine the capacity and forecast for this cloud.');
+            // Hardcoded for now, replace when we have identities in backbone models
+            $('#weather_report').html(function() {
+              var provider_id = Atmo.profile.get('selected_identity').get('provider_id');
+              var provider = Atmo.providers.get(provider_id);
+              var content = provider.get('location');
+              content += ' is at ' + occupancy + '% capacity.<br /> The forecast is '+weather+'.';
+              return content;
+            });
+          }
+        },
+      error: function() {
+        var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
+        weather = 'rainy';
+        if (!$('#weather_report').hasClass(weather)) {
+          $.each(weather_classes, function(k, v) {
+            $('body').removeClass(v);
+          });
+          $('#weather_report').addClass(weather);
         }
+        $('#weather_report').html('Atmosphere could not determine the capacity and forecast for this cloud.');
+      }
     });
 };
 
@@ -162,8 +181,8 @@ Atmo.Utils.levenshtein_distance= function(s, t) {
         return len_s;
     else
         return Math.min(
-            Atmo.Utils.levenshtein_distance(s.substr(1), t) + 1, 
-            Atmo.Utils.levenshtein_distance(s, t.substr(1)) + 1, 
+            Atmo.Utils.levenshtein_distance(s.substr(1), t) + 1,
+            Atmo.Utils.levenshtein_distance(s, t.substr(1)) + 1,
             Atmo.Utils.levenshtein_distance(s.substr(1), t.substr(1)) + cost
         );
 };
@@ -271,14 +290,14 @@ Atmo.Utils.confirm_detach_volume = function(volume, instance, options) {
     var provider_name = identity.get('provider').get('type');
     var body;
     if (provider_name.toLowerCase() === 'openstack') {
-        body = '<p class="alert alert-error"><i class="glyphicon glyphicon-warning-sign"></i> <strong>WARNING</strong> If this volume is mounted, you <u>must</u> stop any running processes that are writing to the mount location before you can detach.</p>'; 
+        body = '<p class="alert alert-error"><i class="glyphicon glyphicon-warning-sign"></i> <strong>WARNING</strong> If this volume is mounted, you <u>must</u> stop any running processes that are writing to the mount location before you can detach.</p>';
         body += '<p>(<a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step7%3AUnmountanddetachthevolume." target="_blank">Learn more about unmounting and detaching a volume</a>)</p>';
     } else {
-        body = '<p class="alert alert-error"><i class="glyphicon glyphicon-warning-sign"></i> <strong>WARNING</strong> If this volume is mounted, you <u>must</u> unmount it before detaching it.</p>'; 
+        body = '<p class="alert alert-error"><i class="glyphicon glyphicon-warning-sign"></i> <strong>WARNING</strong> If this volume is mounted, you <u>must</u> unmount it before detaching it.</p>';
         body += '<p>If you detach a mounted volume, you run the risk of corrupting your data and the volume itself. (<a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step7%3AUnmountanddetachthevolume." target="_blank">Learn more about unmounting and detaching a volume</a>)</p>';
     }
 
-    Atmo.Utils.confirm(header, body, { 
+    Atmo.Utils.confirm(header, body, {
         on_confirm: function() {
             volume.detach(instance, {
                 success: function() {
@@ -298,7 +317,7 @@ Atmo.Utils.confirm_detach_volume = function(volume, instance, options) {
                         Atmo.Utils.notify("Volume failed to detach", "If the problem persists, please email <a href=\"mailto:support@iplantcollaborative.org\">support@iplantcollaborative.org</a>.", {no_timeout: true});
                     }
                 }
-            }); 
+            });
         },
         on_cancel: function() {
             Atmo.volumes.fetch();
@@ -310,5 +329,5 @@ Atmo.Utils.confirm_detach_volume = function(volume, instance, options) {
 // To show people how much money they've saved by using Atmosphere!
 
 Number.prototype.toCurrencyString = function() {
-    return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/, '$1,');    
+    return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/, '$1,');
 };
