@@ -19,9 +19,13 @@ Atmo.Views.InstanceGraph = Backbone.View.extend({
 		this.available_memory = 0;
 		$.each(Atmo.instances.models, function(i, instance) {
 			var instance_type = instance.get('type');
-			var to_add = _.filter(Atmo.instance_types.models, function(model) {
+			var to_add = _.find(Atmo.instance_types.models, function(model) {
 				return model.attributes.alias == instance_type;
 			});
+            if (!to_add) {
+                console.error("Unknown type " + instance_type);
+                throw "unknown type";
+            }
 			self.available_memory = to_add[0].attributes['mem'];
 		});
     },

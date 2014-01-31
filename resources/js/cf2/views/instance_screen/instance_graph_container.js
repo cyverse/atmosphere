@@ -15,14 +15,19 @@ Atmo.Views.InstanceGraphContainer = Backbone.View.extend({
         if (typeof google === 'undefined')
             return this;
 
-        this.memory_graph = new Atmo.Views.InstanceMemoryGraph({
-            model: this.model, 
-            on_failure: _.bind(this.on_failure, this)
-        });
-        this.cpu_graph = new Atmo.Views.InstanceCPUGraph({
-            model: this.model, 
-            on_failure: _.bind(this.on_failure, this)
-        });
+        try {
+            this.memory_graph = new Atmo.Views.InstanceMemoryGraph({
+                model: this.model, 
+                on_failure: _.bind(this.on_failure, this)
+            });
+            this.cpu_graph = new Atmo.Views.InstanceCPUGraph({
+                model: this.model, 
+                on_failure: _.bind(this.on_failure, this)
+            });
+        } catch(err) {
+            this.on_failure();
+            return this;
+        }
 
         this.$el
             .html(this.template())
@@ -46,12 +51,16 @@ Atmo.Views.InstanceGraphContainer = Backbone.View.extend({
         return this;
     },
     draw_charts: function() {
-        this.memory_graph.draw_chart();
-        this.cpu_graph.draw_chart();
+        if (this.memory_graph && this.cpu_graph) {
+            this.memory_graph.draw_chart();
+            this.cpu_graph.draw_chart();
+        }
     },
     draw: function() {
-        this.memory_graph.draw();
-        this.cpu_graph.draw();
+        if (this.memory_graph && this.cpu_graph) {
+            this.memory_graph.draw();
+            this.cpu_graph.draw();
+        }
     },
     select_tab: function(e) {
         var graph = $(e.target).data('graph');
