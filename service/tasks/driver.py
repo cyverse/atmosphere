@@ -15,7 +15,7 @@ from threepio import logger
 
 from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
-from core.models.instance import update_instance_metadata
+from service.instance import update_instance_metadata
 from core.models.identity import Identity
 from core.models.profile import UserProfile
 
@@ -250,7 +250,7 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata):
         instance = driver.get_instance(instance_alias)
         #TODO: while-true with hard-coded sleep ONLY IF CELERY_ALWAYS_EAGER
         if app.conf.CELERY_ALWAYS_EAGER:
-            eager_update_metadata(driver, instance)
+            eager_update_metadata(driver, instance, metadata)
         return update_instance_metadata(
             driver, instance, data=metadata, replace=False)
         logger.debug("update_metadata task finished at %s." % datetime.now())
@@ -258,7 +258,7 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata):
         logger.warn(exc)
         update_metadata.retry(exc=exc)
 
-def eager_update_metadata(driver, instance):
+def eager_update_metadata(driver, instance, metadata):
     """
     Used for TESTING ONLY. NEVER called in normal celery operation.
     """
@@ -275,6 +275,8 @@ def eager_update_metadata(driver, instance):
         time.sleep(wait_time*60)
         # Update reference for the instance to see if its 'done'
         instance = esh_driver.get_instance(instance_id)
+    return update_instance_metadata(
+        esh_driver, instance, data=metadata, replace=False)
 
 # Floating IP Tasks
 @task(name="add_floating_ip",
@@ -302,7 +304,7 @@ def add_floating_ip(driverCls, provider, identity,
             floating_ip = driver._connection.neutron_associate_ip(
                 instance, *args, **kwargs)["floating_ip_address"]
         #TODO: Implement this as its own task, with the result from
-        #'floating_ip' and update the instance metadata before deploy_to
+        #'floating_ip' passed in. Add it to the deploy_chain before deploy_to
         hostname = ""
         if floating_ip.startswith('128.196'):
             regex = re.compile(
@@ -316,6 +318,7 @@ def add_floating_ip(driverCls, provider, identity,
                                      replace=False)
 
         logger.info("Assigned IP:%s - Hostname:%s" % (floating_ip, hostname))
+        #End
         logger.debug("add_floating_ip task finished at %s." % datetime.now())
         return {"floating_ip":floating_ip, "hostname":hostname}
     except Exception as exc:

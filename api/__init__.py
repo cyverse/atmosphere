@@ -18,7 +18,6 @@ from atmosphere import settings
 from core.ldap import get_uid_number
 
 from core.models.identity import Identity as CoreIdentity
-from core.models.instance import update_instance_metadata
 
 from rtwo.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
@@ -26,9 +25,6 @@ from rtwo.provider import AWSProvider, AWSUSEastProvider,\
 from rtwo.identity import AWSIdentity, EucaIdentity,\
     OSIdentity
 from rtwo.driver import AWSDriver, EucaDriver, OSDriver
-
-from service.accounts.openstack import AccountDriver as OSAccountDriver
-from service import task
 
 #These functions return ESH related information based on the core repr
 ESH_MAP = {

@@ -2,10 +2,10 @@ import json
 
 from core.metadata import update_machine_metadata, _get_owner_identity
 
-from service.driver import get_admin_driver
 
 
 def get_app_driver(provider_machine):
+    from service.driver import get_admin_driver
     account_provider = provider_machine.provider
     esh_driver = get_admin_driver(provider_machine.provider)
     if not esh_driver:

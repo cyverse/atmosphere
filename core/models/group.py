@@ -165,7 +165,7 @@ class IdentityMembership(models.Model):
             set_provider_quota(self.identity.id)
         except Exception as ex:
             logger.warn("Unable to update service.quota.set_provider_quota.")
-            raise
+            #raise
 
     def __unicode__(self):
         return "%s can use identity %s" % (self.member, self.identity)
