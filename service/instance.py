@@ -92,7 +92,7 @@ def stop_instance(esh_driver, esh_instance, provider_id, identity_id, user,
 
 
 def start_instance(esh_driver, esh_instance, provider_id, identity_id, user,
-                   restore_ip=True):
+                   restore_ip=True, update_meta=True):
     """
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
