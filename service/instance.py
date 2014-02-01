@@ -101,7 +101,7 @@ def start_instance(esh_driver, esh_instance, provider_id, identity_id, user,
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
     if update_meta:
-        update_instance_metadata(driver, instance,
+        update_instance_metadata(esh_driver, esh_instance,
                                  data={'tmp_status': 'networking'},
                                  replace=False)
     esh_driver.start_instance(esh_instance)
@@ -111,8 +111,7 @@ def start_instance(esh_driver, esh_instance, provider_id, identity_id, user,
         #Run this task only when instance moves from suspended --> active
         update_metadata.s(
             esh_driver.__class__, esh_driver.provider, esh_driver.identity,
-            esh_instance.id, {'tmp_status': ''},
-            'active').apply_async(countdown=30)
+            esh_instance.id, {'tmp_status': ''}).apply_async(countdown=30)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
 
