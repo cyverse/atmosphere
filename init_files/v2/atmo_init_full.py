@@ -462,6 +462,10 @@ def vnc(user, distro, license=None):
                      os.path.join(os.environ['HOME'], 'vnc-config.sh')])
         if os.path.exists('/tmp/.X1-lock'):
             run_command(['/bin/rm', '/tmp/.X1-lock'])
+        if os.path.exists('/tmp/.X11-unix'):
+            run_command(['/bin/rm', '-rf', '/tmp/.X11-unix'])
+        run_command(['/bin/mkdir', '/tmp/.X11-unix'])
+        run_command(['/bin/chmod', 'a+rwxt','/tmp/.X11-unix'])
         run_command(['/bin/su', '%s' % user, '-c', '/usr/bin/vncserver'])
     except Exception, e:
         logging.exception("Failed to install VNC")
