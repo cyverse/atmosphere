@@ -413,8 +413,9 @@ def mount_storage():
 
 def vnc(user, distro, license=None):
     try:
-        if not os.path.isfile('/usr/bin/vnclicense'):
-            logging.debug("VNC not installed, license not found on machine")
+        if not os.path.isfile('/usr/bin/xterm'):
+            logging.debug("Could not find a GUI on this machine, "
+                          "Skipping VNC Install.")
             return
         #ASSERT: VNC server installed on this machine
         if is_rhel(distro):
@@ -459,6 +460,8 @@ def vnc(user, distro, license=None):
         run_command([os.path.join(os.environ['HOME'], 'vnc-config.sh')])
         run_command(['/bin/rm',
                      os.path.join(os.environ['HOME'], 'vnc-config.sh')])
+        if os.path.exists('/tmp/.X1-lock'):
+            run_command(['/bin/rm', '/tmp/.X1-lock'])
         run_command(['/bin/su', '%s' % user, '-c', '/usr/bin/vncserver'])
     except Exception, e:
         logging.exception("Failed to install VNC")
@@ -886,10 +889,10 @@ def main(argv):
     run_command(['/bin/cp', '-rp', '/etc/skel/.', '/home/%s' % linuxuser])
     run_command(['/bin/chown', '-R',
                  '%s:iplant-everyone' % (linuxuser,), '/home/%s' % linuxuser])
+    run_command(['/bin/chmod', 'a+rwxt', '/tmp'])
     run_command(['/bin/chmod', 'a+rx', '/bin/fusermount'])
     run_command(['/bin/chmod', 'u+s', '/bin/fusermount'])
     vnc(linuxuser, distro, vnclicense)
-    run_command(['/bin/chmod', 'a+rwxt', '/tmp'])
     iplant_files(distro)
     #atmo_cl()
     nagios()
