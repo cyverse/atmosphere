@@ -70,7 +70,7 @@ def start_machine_imaging(machine_request, delay=False):
         image_task.link(process_task)
 
     async = init_task.apply_async(
-        link_error=machine_request_error.s((machine_request.id,)))
+        link_error=machine_request_error.s(machine_request.id))
     if delay:
         async.get()
     return async
@@ -103,16 +103,18 @@ def set_machine_request_metadata(machine_request, image_id):
 
 
 #NOTE: Is this different than the 'task' found in celery.decorators?
-@app.task
-def machine_request_error(machine_request_id, task_uuid):
+@task
+def machine_request_error(task_uuid, machine_request_id):
     logger.info("machine_request_id=%s" % machine_request_id)
     logger.info("task_uuid=%s" % task_uuid)
 
     result = app.AsyncResult(task_uuid)
     exc = result.get(propagate=False)
-    err_str = "Task %s raised exception: %r"\
-              % (task_uuid, exc)
+    err_str = "ERROR - Exception:%r" % (result.traceback,)
     logger.error(err_str)
+    max_len = MachineRequest._meta.get_field('status').max_length
+    if len(err_str) > max_len:
+        err_str = err_str[:max_len-3]+'...'
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.status = err_str
     machine_request.save()

@@ -158,3 +158,20 @@ def get_core_services():
     except Exception as e:
         logger.exception(e)
         return False
+
+def get_staff_users():
+    """
+    """
+    try:
+        ldap_server = secrets.LDAP_SERVER
+        ldap_group_dn = secrets.LDAP_SERVER_DN.replace(
+            "ou=people", "ou=Groups")
+        ldap_conn = ldap_driver.initialize(ldap_server)
+        atmo_users = ldap_conn.search_s(ldap_group_dn,
+                                        ldap_driver.SCOPE_SUBTREE,
+                                        '(cn=staff)')
+        return atmo_users[0][1]['memberUid']
+    except Exception as e:
+        logger.exception(e)
+        return False
+

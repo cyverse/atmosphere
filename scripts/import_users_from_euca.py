@@ -9,7 +9,7 @@ from service.accounts.openstack import AccountDriver as OSAccountDriver
 from core.models import Provider, Identity
 from core.models import AtmosphereUser as User
 
-include_openstack = False
+include_openstack = True
 
 def main():
     """

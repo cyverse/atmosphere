@@ -18,13 +18,11 @@ from atmosphere.settings import secrets
 
 from api import get_esh_driver
 
-from service import task
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable
 from service.accounts.openstack import AccountDriver as OSAccountDriver
-from service.tasks.driver import add_floating_ip, remove_empty_network
 
 
 # Networking specific
@@ -39,6 +37,7 @@ def remove_ips(esh_driver, esh_instance):
             esh_driver._connection.ex_remove_fixed_ip(esh_instance, fixed_ip)
 
 def remove_network(esh_driver, identity_id):
+    from service.tasks.driver import remove_empty_network
     remove_empty_network.s(esh_driver.__class__, esh_driver.provider,
                            esh_driver.identity, identity_id,
                            remove_network=False).apply_async(countdown=20)
@@ -50,6 +49,7 @@ def restore_network(esh_driver, esh_instance, identity_id):
     return network, subnet
 
 def restore_ips(esh_driver, esh_instance):
+    from service.tasks.driver import add_floating_ip
     node_network = esh_instance.extra.get('addresses')
     if not node_network:
         raise Exception("Could not determine the network for node %s"
@@ -92,16 +92,26 @@ def stop_instance(esh_driver, esh_instance, provider_id, identity_id, user,
 
 
 def start_instance(esh_driver, esh_instance, provider_id, identity_id, user,
-                   restore_ip=True):
+                   restore_ip=True, update_meta=True):
     """
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
+    from service.tasks.driver import update_metadata
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
+    if update_meta:
+        update_instance_metadata(esh_driver, esh_instance,
+                                 data={'tmp_status': 'networking'},
+                                 replace=False)
     esh_driver.start_instance(esh_instance)
     if restore_ip:
         restore_ips(esh_driver, esh_instance)
+    if update_meta:
+        #Run this task only when instance moves from suspended --> active
+        update_metadata.s(
+            esh_driver.__class__, esh_driver.provider, esh_driver.identity,
+            esh_instance.id, {'tmp_status': ''}).apply_async(countdown=30)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
 
@@ -123,17 +133,28 @@ def suspend_instance(esh_driver, esh_instance,
 
 def resume_instance(esh_driver, esh_instance,
                     provider_id, identity_id,
-                    user, restore_ip=True):
+                    user, restore_ip=True,
+                    update_meta=True):
     """
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
+    from service.tasks.driver import update_metadata
     check_quota(user.username, identity_id, esh_instance.size, resuming=True)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
+    if update_meta:
+        update_instance_metadata(esh_driver, esh_instance,
+                                 data={'tmp_status': 'networking'},
+                                 replace=False)
     esh_driver.resume_instance(esh_instance)
     if restore_ip:
         restore_ips(esh_driver, esh_instance)
+    if update_meta:
+        #Run this task only when instance moves from suspended --> active
+        update_metadata.s(
+            esh_driver.__class__, esh_driver.provider, esh_driver.identity,
+            esh_instance.id, {'tmp_status': ''}).apply_async(countdown=30)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
 
@@ -296,6 +317,7 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
 
     return the esh_instance & instance token
     """
+    from service import task
     try:
         #create a reference to this attempted instance launch.
         instance_token = str(uuid.uuid4())
@@ -398,3 +420,32 @@ arg = '{
         init_script_contents = the_file.read()
     init_script_contents += instance_config + "\nmain(arg)"
     return init_script_contents
+
+def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
+    """
+    NOTE: This will NOT WORK for TAGS until openstack
+    allows JSONArrays as values for metadata!
+    """
+    wait_time = 1
+    instance_id = esh_instance.id
+
+    if not hasattr(esh_driver._connection, 'ex_set_metadata'):
+        logger.warn("EshDriver %s does not have function 'ex_set_metadata'"
+                    % esh_driver._connection.__class__)
+        return {}
+    if esh_instance.extra['status'] == 'build':
+        raise Exception("Metadata cannot be applied while EshInstance %s is in"
+                        " the build state." % (esh_instance,))
+    # ASSERT: We are ready to update the metadata
+    if data.get('name'):
+        esh_driver._connection.ex_set_server_name(esh_instance, data['name'])
+    try:
+        return esh_driver._connection.ex_set_metadata(esh_instance, data,
+                replace_metadata=replace)
+    except Exception, e:
+        logger.exception("Error updating the metadata")
+        if 'incapable of performing the request' in e.message:
+            return {}
+        else:
+            raise
+

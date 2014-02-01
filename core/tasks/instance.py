@@ -7,7 +7,6 @@ from celery.task.schedules import crontab
 
 from threepio import logger
 
-from service.driver import get_admin_driver
 
 
 @periodic_task(run_every=crontab(hour='*', minute='*/15', day_of_week='*'),
@@ -28,6 +27,7 @@ def test_all_instance_links():
 def get_all_instances():
     from core.models import Identity, Provider
     from api import get_esh_driver
+    from service.driver import get_admin_driver
     all_instances = []
     for provider in Provider.objects.all():
         try:
@@ -35,7 +35,7 @@ def get_all_instances():
             if not admin_driver:
                 raise Exception("No account admins for provider %s"
                                 % provider)
-            meta_driver = driver.meta(admin_driver=driver)
+            meta_driver = admin_driver.meta(admin_driver=admin_driver)
             all_instances.extend(meta_driver.all_instances())
         except:
             logger.exception("Problem accessing all "
