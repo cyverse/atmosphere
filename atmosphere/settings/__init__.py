@@ -89,7 +89,7 @@ SECRET_KEY = '785nc+)g%w!g01#$#lc+weg2b!yc^z#17rvjln0c5r39*vg8%t'
 # This key however should stay the same, and be shared with all Atmosphere
 ATMOSPHERE_NAMESPACE_UUID=UUID("40227dff-dedf-469c-a9f8-1953a7372ac1")
 
- django-pipeline configuration
+#django-pipeline configuration
 PIPELINE = False
 
 PIPELINE_ENABLED = False
