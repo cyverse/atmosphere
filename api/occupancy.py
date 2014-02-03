@@ -63,5 +63,11 @@ class Hypervisor(APIView):
                 'The provider does not exist.'}])
             return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
         admin_driver = get_admin_driver(provider)
-        hs = admin_driver._connection.ex_hypervisor_statistics()
-        return Response(hs)
+        if hasattr(admin_driver._connection, "ex_hypervisor_statistics"):
+            return Response(admin_driver._connection.ex_hypervisor_statistics())
+        else:
+            errorObj = failureJSON([{
+                'code': 404,
+                'message':
+                'The provider does not exist.'}])
+            return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
