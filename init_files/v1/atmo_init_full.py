@@ -917,7 +917,7 @@ def main(argv):
     distro = get_distro()
     logging.debug("Distro - %s" % distro)
     #TODO: Test this is multi-call safe
-    update_sshkeys()
+    update_sshkeys(instance_metadata)
     update_sudoers()
 
     if not in_sudoers(linuxuser):
