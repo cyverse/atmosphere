@@ -86,21 +86,25 @@ class InstanceTests(TestCase):
     def tearDown(self):
         self.api_client.logout()
 
-    def test_openstack_stop_start(self):
-        print "Testing stop/start ETA:10min"
+    def test_openstack_launch(self):
+        print "Testing launch. ETA:10min"
         self.os_instance_id, self.os_instance_ip = self.launch_openstack_instance()
-        self.instance_action_step(self.os_instance_id, 'stop')
-        time.sleep(5*60)
-        self.instance_action_step(self.os_instance_id, 'start')
-        time.sleep(5*60)
 
-    def test_openstack_suspend_resume(self):
-        print "Testing suspend/resume ETA:10min"
-        self.os_instance_id, self.os_instance_ip = self.launch_openstack_instance()
-        self.instance_action_step(self.os_instance_id, 'suspend')
-        time.sleep(5*60)
-        self.instance_action_step(self.os_instance_id, 'resume')
-        time.sleep(5*60)
+    #def test_openstack_stop_start(self):
+    #    print "Testing stop/start ETA:10min"
+    #    self.os_instance_id, self.os_instance_ip = self.launch_openstack_instance()
+    #    self.instance_action_step(self.os_instance_id, 'stop')
+    #    time.sleep(5*60)
+    #    self.instance_action_step(self.os_instance_id, 'start')
+    #    time.sleep(5*60)
+
+    #def test_openstack_suspend_resume(self):
+    #    print "Testing suspend/resume ETA:10min"
+    #    self.os_instance_id, self.os_instance_ip = self.launch_openstack_instance()
+    #    self.instance_action_step(self.os_instance_id, 'suspend')
+    #    time.sleep(5*60)
+    #    self.instance_action_step(self.os_instance_id, 'resume')
+    #    time.sleep(5*60)
 
     #def test_openstack_resize_and_revert(self):
     #    print "Testing resize/revert. ETA:20min"
