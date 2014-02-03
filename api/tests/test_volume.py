@@ -67,7 +67,7 @@ class VolumeTests(TestCase):
                 "size_alias":"2",
                 "machine_alias":"75fdfca4-d49d-4b2d-b919-a3297bc6d7ae",
                 "name":"test volume attachment",
-                "delete_before":True
+                "delete_before":False
             }
         (self.os_instance_id, self.os_instance_ip) = standup_instance(
                 self, self.os_instance_url, **instance_data)
@@ -85,7 +85,7 @@ class VolumeTests(TestCase):
                 "size_alias":"m1.small",
                 "machine_alias":"emi-E7F8300F",
                 "name":"test volume attachment",
-                "delete_before":True
+                "delete_before":False
             }
         (self.euca_instance_id, self.euca_instance_ip) = standup_instance(
                 self, self.euca_instance_url, **instance_data)
