@@ -145,7 +145,8 @@ def get_distro():
         return 'ubuntu'
 
 def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                stdin=None, dry_run=False, shell=False, bash_wrap=False):
+                stdin=None, dry_run=False, shell=False, bash_wrap=False,
+                block_log=False):
     if bash_wrap:
         #Wrap the entire command in '/bin/bash -c',
         #This can sometimes help pesky commands
@@ -171,6 +172,9 @@ def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         out,err = proc.communicate(input=stdin)
     except Exception, e:
         logging.exception(e)
+    if block_log:
+        #Leave before we log!
+        return (out, err)
     if stdin:
         logging.debug("%s STDIN: %s" % (cmd_str, stdin))
     logging.debug("%s STDOUT: %s" % (cmd_str, out))
@@ -217,6 +221,16 @@ def text_in_file(filename, text):
         return True
     f.close()
     return False
+
+
+def write_to_file(filename, text):
+    try:
+        logging.debug("Text to input: %s" % text)
+        f = open(filename, "w")
+        f.write(text)
+        f.close()
+    except Exception, e:
+        logging.exception("Failed to write to %s" % filename)
 
 
 def append_to_file(filename, text):
@@ -269,9 +283,11 @@ def restart_ssh(distro):
 
 def set_root_password(root_password, distro):
     if is_rhel(distro):
-        run_command(["passwd", "--stdin", "root"], stdin=root_password)
+        run_command(["passwd", "--stdin", "root"], stdin=root_password,
+                    block_log=True)
     else:
-        run_command(["chpasswd"], stdin = "root:%s" % root_password)
+        run_command(["chpasswd"], stdin = "root:%s" % root_password,
+                    block_log=True)
 
     if text_in_file('/etc/ssh/sshd_config', 'PermitRootLogin'):
         run_command([
@@ -370,7 +386,7 @@ def mount_storage():
     This is TEMPORARY space you can use while working on your instance
     It is deleted when the instance is terminated.
 
-    #TODO: Refactor. make this user-selectable with default as /home
+    #TODO: Refactor.
     """
     try:
         logging.debug("Mount test")
@@ -449,7 +465,7 @@ def vnc(user, distro, license=None):
             new_file.write("PamApplicationName=vncserver.custom")
             new_file.close()
         time.sleep(1)
-        run_command(['/usr/bin/vnclicense', '-add', license])
+        run_command(['/usr/bin/vnclicense', '-add', license], block_log=True)
         download_file(
             '%s/init_files/%s/vnc-config.sh' % (ATMOSERVER, SCRIPT_VERSION),
             os.path.join(os.environ['HOME'], 'vnc-config.sh'),
@@ -547,6 +563,11 @@ def iplant_files(distro):
         match_hash="0e9cec8ce1d38476dda1646631a54f6b2ddceff5")
     run_command(['/bin/chmod', 'a+x', '/opt/irodsidrop/idroprun.sh'])
 
+    download_file('%s/init_files/%s/iplant_backup.sh'
+                  % (ATMOSERVER, SCRIPT_VERSION),
+                  "/usr/local/bin/iplant_backup",
+                  match_hash='72925d4da5ed30698c81cc95b0a610c8754500e7')
+    run_command(['/bin/chmod', 'a+x', "/usr/local/bin/iplant_backup"])
 
 def line_in_file(needle, filename):
     found = False
@@ -786,6 +807,25 @@ def update_sshkeys(metadata):
         mkdir_p(home_ssh_dir)
         run_update_sshkeys(home_ssh_dir, sshkeys)
 
+def denyhost_whitelist():
+    allow_list = [
+        "127.0.0.1"
+        "128.196.38.[1-127]"
+        "128.196.64.[1-512]"
+        "128.196.142.*"
+        "128.196.172.[128-255]"
+        "150.135.78.*"
+        "150.135.93.[128-255]"
+        "10.130.5.[128-155]"
+        "10.140.65.*"
+    ]
+    filename = "/var/lib/denyhosts/allowed-hosts"
+    if os.path.exists(filename):
+        logging.error("Removing existing file: %s" % filename)
+        os.remove(filename)
+    allowed_hosts_content = "\n".join(allow_list)
+    write_to_file(filename, allowed_hosts_content)
+    return
 
 def update_sudoers():
     run_command(['/bin/sed', '-i',
@@ -860,8 +900,6 @@ def main(argv):
     #TODO: What is this line for?
     source = "".join(args)
     
-    update_sudoers()
-
     logging.debug("Atmosphere request object - %s" % instance_data)
     instance_metadata = get_metadata()
     logging.debug("Instance metadata - %s" % instance_metadata)
@@ -879,8 +917,6 @@ def main(argv):
     distro = get_distro()
     logging.debug("Distro - %s" % distro)
     #TODO: Test this is multi-call safe
-    #Add linux user to etc-group
-    #is_updated_test determines if this sensitive file needs
     update_sshkeys()
     update_sudoers()
 
@@ -888,6 +924,7 @@ def main(argv):
         add_sudoers(linuxuser)
     if not in_etc_group('/etc/group', linuxuser):
         add_etc_group(linuxuser)
+    #is_updated_test determines if this sensitive file needs
     if not is_updated_test("/etc/ssh/sshd_config"):
         ssh_config(distro)
     if root_password:
@@ -918,6 +955,7 @@ def main(argv):
     update_timezone()
     shellinaboxd(distro)
     insert_modprobe()
+    denyhost_whitelist()
     modify_rclocal(linuxuser, distro, hostname)
     notify_launched_instance(instance_data, instance_metadata)
     logging.info("Complete.")

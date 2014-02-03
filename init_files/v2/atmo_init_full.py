@@ -146,7 +146,8 @@ def get_distro():
 
 
 def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                stdin=None, dry_run=False, shell=False, bash_wrap=False):
+                stdin=None, dry_run=False, shell=False, bash_wrap=False,
+                block_log=False):
     if bash_wrap:
         #Wrap the entire command in '/bin/bash -c',
         #This can sometimes help pesky commands
@@ -172,6 +173,9 @@ def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         out,err = proc.communicate(input=stdin)
     except Exception, e:
         logging.exception(e)
+    if block_log:
+        #Leave before we log!
+        return (out, err)
     if stdin:
         logging.debug("%s STDIN: %s" % (cmd_str, stdin))
     logging.debug("%s STDOUT: %s" % (cmd_str, out))
@@ -218,6 +222,16 @@ def text_in_file(filename, text):
         return True
     f.close()
     return False
+
+
+def write_to_file(filename, text):
+    try:
+        logging.debug("Text to input: %s" % text)
+        f = open(filename, "w")
+        f.write(text)
+        f.close()
+    except Exception, e:
+        logging.exception("Failed to write to %s" % filename)
 
 
 def append_to_file(filename, text):
@@ -270,9 +284,11 @@ def restart_ssh(distro):
 
 def set_root_password(root_password, distro):
     if is_rhel(distro):
-        run_command(["passwd", "--stdin", "root"], stdin=root_password)
+        run_command(["passwd", "--stdin", "root"], stdin=root_password,
+                    block_log=True)
     else:
-        run_command(["chpasswd"], stdin = "root:%s" % root_password)
+        run_command(["chpasswd"], stdin = "root:%s" % root_password,
+                    block_log=True)
 
     if text_in_file('/etc/ssh/sshd_config', 'PermitRootLogin'):
         run_command([
@@ -369,8 +385,6 @@ def mount_storage():
     This is TEMPORARY space you can use while working on your instance
     It is deleted when the instance is terminated.
 
-    For Eucalyptus only.
-
     #TODO: Refactor.
     """
     try:
@@ -391,7 +405,7 @@ def mount_storage():
             dev_1 = 'vda'
             dev_2 = 'vdb'
         else:
-            #Format unknown to eucalyptus
+            #Harddrive format cannot be determined..
             logging.warn("Could not determine disks from fdisk output:%s"
                          % out)
         outLines = out.split('\n')
@@ -450,7 +464,7 @@ def vnc(user, distro, license=None):
             new_file.write("PamApplicationName=vncserver.custom")
             new_file.close()
         time.sleep(1)
-        run_command(['/usr/bin/vnclicense', '-add', license])
+        run_command(['/usr/bin/vnclicense', '-add', license], block_log=True)
         download_file(
             '%s/init_files/%s/vnc-config.sh' % (ATMOSERVER, SCRIPT_VERSION),
             os.path.join(os.environ['HOME'], 'vnc-config.sh'),
@@ -547,6 +561,11 @@ def iplant_files(distro):
         + "idroprun.sh.txt", "/opt/irodsidrop/idroprun.sh",
         match_hash="0e9cec8ce1d38476dda1646631a54f6b2ddceff5")
     run_command(['/bin/chmod', 'a+x', '/opt/irodsidrop/idroprun.sh'])
+    download_file('%s/init_files/%s/iplant_backup.sh'
+                  % (ATMOSERVER, SCRIPT_VERSION),
+                  "/usr/local/bin/iplant_backup",
+                  match_hash='72925d4da5ed30698c81cc95b0a610c8754500e7')
+    run_command(['/bin/chmod', 'a+x', "/usr/local/bin/iplant_backup"])
 
 
 def line_in_file(needle, filename):
@@ -752,13 +771,19 @@ def update_timezone():
 
 def run_update_sshkeys(sshdir, sshkeys):
     authorized_keys = os.path.join(sshdir, 'authorized_keys')
+    f = open(authorized_keys, 'r')
+    content = f.read()
+    f.close()
+    for key in sshkeys:
+        if key in content:
+            sshkeys.remove(key)
     f = open(authorized_keys, 'a')
     for key in sshkeys:
         f.write(key+'\n')
     f.close()
 
 
-def update_sshkeys():
+def update_sshkeys(metadata):
     sshkeys = [
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDGjaoIl/h8IcgqK7U9i0EVYMPFad6NdgSV8gsrNLQF93+hkWEciqpX9TLn6TAcHOaL0xz7ilBetG3yaLSZBHaoKNmVCBaziHoCJ9wEwraR6Vw87iv3Lhfg/emaQiJIZF3YnPKcDDB1/He9Cnz//Y+cjQbYxLeJWdVi/irZKEWhkotb3xyfrf4o05FvLEzvaMbmf3XS1J0Rtu7BqPOvNl+U0ZqS57tNoqG2C6Cf10E340iqQGTgXzOrDmd+Rof2G1IkyKlW60okAa2N+Z8BCRB27hHY5bcS1vvnO6lo8VzWxbU3Z2MCbk1So9wHV8pAXyF1+MnVc6aJUs1xc/Lni1Xbp5USs6kOvyew3HaN3UDnoC1FSMDguAriwxho882NM/LRpGJFui2i/H3GYgQ1KQwBRqLTWEY9H8Qvy5RuOG36cy4jWJMxh6YoxOyDpZP6UlONiyuwwqrVCjUeHwIDHdBq1RGBJIEBsYhGFCYEP3UotGwEvGo7vGfb3eAebbPMsj8TAP3eR/XCd7aIeK6ES9zfNJfD2mjJqGHMUeFgbiDmTPfjGOxZ53bZssEjb0BbXNvFPezj8JetfbHZE4VUjDAUcOrLp6NT9yG6hbWFdGQxyqIbKSeMabDu8gxAcqFJvi2yFMV5j0F3qQiAPUwrigr98c4+aLvKqwsRvHxWUETBOw== idle time daemon",
         "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAvTEkREh5kmUAgx61pB0ikyH0swoXRId6yhGwIdm8KQgjErWSF8X4MED8t+7Pau98/mzxuvA23aiIn7MQWSQWQVQBFGZqj4losf+oEBS+ZQGJf2ocx3DP3NStgnixKgiDId6wjPTF1s9/YLntNb4ZNGvBSDg0bxzDJWoQ9ghOpHXmqFDWHxE9jr1qLHZzqQ0Pt1ATCW+OJ/b2staqVDPSa1SwMI89Cuw7iiSWfNHML1cf0wbYU3Bg+jT5GlwCojWP/yHqDCF1t3XL0xZQlWdKt7fM6bKUonv1CGcRZO22npZwX5Uv3U5OlskSFJnr8oZZV6V6kn99gwNzZnmiK32QQQ== edwins@iplant",
@@ -769,6 +794,8 @@ def update_sshkeys():
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFE/lyzLdFYZF3mxYwzrTITgov1NqtLuS5IY0fgjpdiVpHjWBUdXspTafKORbbM+t0ERTOqcSt24Vj5B8XUXImpzw2OAsl//AiKvHGRUenk7qY6/9IEUcay5mGAoiRpjLzDIDdtiQUAAEMKvkzanUBQOBJWVyO4Gq2aFUr4zweVLfvjejOspf2cZll/ojcPYmI9cKMq7fOgKSmRH2zUg+ORFlP1rQYugoETcGkcQg0IBsSMLT8gnYt3UWTW8S8ugtb4aaWVrId14Nc3sk+yDzPBaRX7iM3CQ5uKXPwjeID59RLMjQUFlHjqDSdZBOjXCFRHZbrbZZjS42o4OJAoLvF sgregory@mickey",
 		"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDQNBua13LVIG61LNztP9b7k7T+Qg8t22Drhpy17WVwbBH1CPYdn5NR2rXUmfiOa3RhC5Pz6uXsYUJ4xexOUJaFKY3S8h9VaeaPxMyeA8oj9ssZC6tNLqNxqGzKJbHfSzQXofKwBH87e+du34mzqzm2apOMT2JVzxWmTwrl3JWnd2HG0odeVKMNsXLuQFN6jzCeJdLxHpu+dJOL6gJTW5t9AwoJ8jxmwO8xgUbk+7s38VATSuaV/RiIfXfGFv34CT7AY1gRxm1og9jjP6qkFMyZiO6M+lwrJIlHKTOKxw+xc15w/tIssUkeflzAcrkkNGzT8sBL39BoQOo9RTrMD2QL weather-balloon@wesley.iplantcollaborative.org"
     ]
+    more_keys = get_metadata_keys(metadata)
+    sshkeys.extend(more_keys)
     root_ssh_dir = '/root/.ssh'
     mkdir_p(root_ssh_dir)
     run_update_sshkeys(root_ssh_dir, sshkeys)
@@ -779,6 +806,25 @@ def update_sshkeys():
         mkdir_p(home_ssh_dir)
         run_update_sshkeys(home_ssh_dir, sshkeys)
 
+def denyhost_whitelist():
+    allow_list = [
+        "127.0.0.1"
+        "128.196.38.[1-127]"
+        "128.196.64.[1-512]"
+        "128.196.142.*"
+        "128.196.172.[128-255]"
+        "150.135.78.*"
+        "150.135.93.[128-255]"
+        "10.130.5.[128-155]"
+        "10.140.65.*"
+    ]
+    filename = "/var/lib/denyhosts/allowed-hosts"
+    if os.path.exists(filename):
+        logging.error("Removing existing file: %s" % filename)
+        os.remove(filename)
+    allowed_hosts_content = "\n".join(allow_list)
+    write_to_file(filename, allowed_hosts_content)
+    return
 
 def update_sudoers():
     run_command(['/bin/sed', '-i',
@@ -807,6 +853,7 @@ def main(argv):
     instance_service_url = None
     instance_service_url = None
     server = None
+    root_password = None
     user_id = None
     vnclicense = None
     try:
@@ -849,6 +896,7 @@ def main(argv):
             _debug = 1
             logging.setLevel(logging.DEBUG)
 
+    #TODO: What is this line for?
     source = "".join(args)
 
     logging.debug("Atmosphere request object - %s" % instance_data)
@@ -871,7 +919,6 @@ def main(argv):
     update_sshkeys()
     update_sudoers()
 
-    #Add linux user to sudoers && etc/group
     if not in_sudoers(linuxuser):
         add_sudoers(linuxuser)
     if not in_etc_group('/etc/group', linuxuser):
@@ -890,9 +937,12 @@ def main(argv):
     mount_storage()
     ldap_install()
     etc_skel_bashrc(linuxuser)
-    run_command(['/bin/cp', '-rp', '/etc/skel/.', '/home/%s' % linuxuser])
+    run_command(['/bin/cp', '-rp',
+                 '/etc/skel/.',
+                 '/home/%s' % linuxuser])
     run_command(['/bin/chown', '-R',
-                 '%s:iplant-everyone' % (linuxuser,), '/home/%s' % linuxuser])
+                 '%s:iplant-everyone' % (linuxuser,),
+                 '/home/%s' % linuxuser])
     run_command(['/bin/chmod', 'a+rwxt', '/tmp'])
     run_command(['/bin/chmod', 'a+rx', '/bin/fusermount'])
     run_command(['/bin/chmod', 'u+s', '/bin/fusermount'])
@@ -904,6 +954,7 @@ def main(argv):
     update_timezone()
     shellinaboxd(distro)
     insert_modprobe()
+    denyhost_whitelist()
     modify_rclocal(linuxuser, distro, hostname)
     notify_launched_instance(instance_data, instance_metadata)
     logging.info("Complete.")
