@@ -301,6 +301,8 @@ class InstanceAction(APIView):
             elif 'stop' == action:
                 stop_instance(esh_driver, esh_instance,
                               provider_id, identity_id, user)
+            elif 'reset_network' == action:
+                esh_driver.reset_network(esh_instance)
             elif 'reboot' == action:
                 esh_driver.reboot_instance(esh_instance)
             elif 'rebuild' == action:

@@ -1,6 +1,7 @@
 import uuid
 import time
 import os.path
+from djcelery.app import app
 
 from rtwo.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
@@ -375,10 +376,9 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
                                                   ex_metadata=ex_metadata,
                                                   ex_keyname=ex_keyname,
                                                   deploy=True, **kwargs)
-            #NOTE: Should be used for testing ONLY, to get around lack of
-            # celery delay/retry
-            if kwargs.get('delay'):
-                time.sleep(kwargs['delay'])
+            #Used for testing.. Eager ignores countdown
+            if app.conf.CELERY_ALWAYS_EAGER:
+                time.sleep(4*60)
             # call async task to deploy to instance.
             task.deploy_init_task(driver, esh_instance, instance_password)
         elif isinstance(driver.provider, AWSProvider):

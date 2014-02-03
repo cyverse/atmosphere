@@ -409,7 +409,11 @@ def create_instance(provider_id, identity_id, provider_alias, provider_machine,
                                        shell=False,
                                        start_date=create_stamp)
     new_inst.save()
-    logger.debug("New instance created - %s<%s> (Token = %s)" %
-                 (name, provider_alias, token))
+    if token:
+        logger.debug("New instance created - %s<%s> (Token = %s)" %
+                     (name, provider_alias, token))
+    else:
+        logger.debug("New instance object - %s<%s>" %
+                     (name, provider_alias,))
     #NOTE: No instance_status_history here, because status is not passed
     return new_inst

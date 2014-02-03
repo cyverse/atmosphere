@@ -133,6 +133,8 @@ def create_provider_machine(machine_name, provider_alias, provider_id, app, meta
     #Attempt to match machine by provider alias
     #Admin identity used until the real owner can be identified.
     provider = Provider.objects.get(id=provider_id)
+
+    #TODO: Read admin owner from location IFF eucalyptus
     machine_owner = _get_owner_identity(metadata.get('owner',''), provider_id)
 
     logger.debug("Provider %s" % provider)
@@ -197,16 +199,18 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
         # machine alias to retrieve any existing application.
         # otherwise create a new application with the same name as the machine
         # App assumes all default values
-        logger.info("Image %s missing Application data" % (alias, ))
+        #logger.info("Image %s missing Application data" % (alias, ))
         push_metadata = True
+        #TODO: Get application 'name' instead?
         app = get_application(alias)
         if not app:
             logger.debug("Creating Application for Image %s" % (alias, ))
             app = create_application(alias, provider_id, name)
     provider_machine = load_provider_machine(alias, name, provider_id,
                                              app=app, metadata=metadata)
-    if push_metadata:
-        logger.debug("Creating Application data for Image %s" % (alias, ))
+    if push_metadata and hasattr(esh_driver._connection,
+                                 'ex_set_image_metadata'):
+        logger.debug("Creating App data for Image %s:%s" % (alias, app.name))
         write_app_data(esh_driver, provider_machine)
     provider_machine.esh = esh_machine
     return provider_machine

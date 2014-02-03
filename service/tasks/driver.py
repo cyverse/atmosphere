@@ -4,6 +4,7 @@ Tasks for driver operations.
 import re
 
 from datetime import datetime
+import time
 
 from celery.decorators import task
 from celery.task import current
@@ -193,14 +194,28 @@ def destroy_instance(core_identity_id, instance_alias):
             driverCls = driver.__class__
             provider = driver.provider
             identity = driver.identity
-            destroy_chain = chain(
-                clean_empty_ips.subtask(
-                    (driverCls, provider, identity),
-                    immutable=True, countdown=5),
-                remove_empty_network.subtask(
-                    (driverCls, provider, identity, core_identity_id),
-                    immutable=True, countdown=60))
-            destroy_chain()
+            instances = driver.list_instances()
+            active = [driver._is_active_instance(inst) for inst in instances]
+            if not active:
+                #For testing ONLY.. Test cases ignore countdown..
+                if app.conf.CELERY_ALWAYS_EAGER:
+                    time.sleep(60)
+                destroy_chain = chain(
+                    clean_empty_ips.subtask(
+                        (driverCls, provider, identity),
+                        immutable=True, countdown=5),
+                    remove_empty_network.subtask(
+                        (driverCls, provider, identity, core_identity_id),
+                        immutable=True, countdown=60))
+                destroy_chain()
+            else:
+                #For testing ONLY.. Test cases ignore countdown..
+                if app.conf.CELERY_ALWAYS_EAGER:
+                    time.sleep(15)
+                destroy_chain = \
+                    clean_empty_ips.subtask(
+                        (driverCls, provider, identity),
+                        immutable=True, countdown=5).apply_async()
         logger.debug("destroy_instance task finished at %s." % datetime.now())
         return node_destroyed
     except Exception as exc:
@@ -248,7 +263,7 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata):
         logger.debug("update_metadata task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_alias)
-        #TODO: while-true with hard-coded sleep ONLY IF CELERY_ALWAYS_EAGER
+        #NOTE: This task will only be executed in TEST mode
         if app.conf.CELERY_ALWAYS_EAGER:
             eager_update_metadata(driver, instance, metadata)
         return update_instance_metadata(
@@ -271,12 +286,12 @@ def eager_update_metadata(driver, instance, metadata):
         logger.info("Always Eager Detected and instance is not active"
                     ". Will wait 1 minute and check again to avoid"
                     " stack overflow from immediately retrying.."
-                    % (esh_instance, wait_time))
+                    )
         time.sleep(wait_time*60)
         # Update reference for the instance to see if its 'done'
-        instance = esh_driver.get_instance(instance_id)
+        instance = driver.get_instance(instance_id)
     return update_instance_metadata(
-        esh_driver, instance, data=metadata, replace=False)
+        driver, instance, data=metadata, replace=False)
 
 # Floating IP Tasks
 @task(name="add_floating_ip",
@@ -286,6 +301,9 @@ def eager_update_metadata(driver, instance, metadata):
 def add_floating_ip(driverCls, provider, identity,
                     instance_alias, delete_status=True,
                     *args, **kwargs):
+    #For testing ONLY.. Test cases ignore countdown..
+    if app.conf.CELERY_ALWAYS_EAGER:
+        time.sleep(15)
     try:
         logger.debug("add_floating_ip task started at %s." % datetime.now())
         #Remove unused floating IPs first, so they can be re-used
@@ -374,6 +392,9 @@ def remove_empty_network(
         core_identity_id,
         *args, **kwargs):
     try:
+        #For testing ONLY.. Test cases ignore countdown..
+        if app.conf.CELERY_ALWAYS_EAGER:
+            time.sleep(60)
         logger.debug("remove_empty_network task started at %s." %
                      datetime.now())
 
@@ -387,13 +408,13 @@ def remove_empty_network(
                 active_instances = True
                 break
         if not active_instances:
-            suspended_instances = False
+            inactive_instances = False
             for instance in instances:
-                if driver._is_suspended_instance(instance):
-                    suspended_instances = True
+                if driver._is_inactive_instance(instance):
+                    inactive_instances = True
                     break
-            #Suspended instances, True: Remove network, False
-            remove_network = not suspended_instances
+            #Inactive instances, True: Remove network, False
+            remove_network = not inactive_instances
             #Check for project network
             from service.accounts.openstack import AccountDriver as\
                 OSAccountDriver
