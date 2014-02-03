@@ -86,6 +86,10 @@ class InstanceTests(TestCase):
     def tearDown(self):
         self.api_client.logout()
 
+    def test_openstack_launch(self):
+        print "Testing launch. ETA:10min"
+        self.os_instance_id, self.os_instance_ip = self.launch_openstack_instance()
+
     #def test_openstack_stop_start(self):
     #    print "Testing stop/start ETA:10min"
     #    self.os_instance_id, self.os_instance_ip = self.launch_openstack_instance()
