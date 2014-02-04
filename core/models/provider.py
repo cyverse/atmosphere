@@ -147,7 +147,7 @@ class Provider(models.Model):
         return self.type.name
 
     def get_location(self):
-        return self.location.title()
+        return self.location
 
     def get_credentials(self):
         cred_map = {}
