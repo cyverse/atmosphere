@@ -5,7 +5,7 @@
  */
 Atmo.Views.ReportVolumeModal = Backbone.View.extend({
     id: 'report_modal',
-    className: 'modal hide fade',
+    className: 'modal fade',
     template: _.template(Atmo.Templates.report_volume_modal),
 	events: {
 		'click #report_volume_confirm' : 'report_volume'
@@ -41,7 +41,7 @@ Atmo.Views.ReportVolumeModal = Backbone.View.extend({
 			}
 		}
 		else {
-            var body = '<p class="alert alert-info"><i class="icon-info-sign"></i> You don\'t have any volumes.</p>'
+            var body = '<p class="alert alert-info"><i class="glyphicon glyphicon-info-sign"></i> You don\'t have any volumes.</p>'
             body += 'If you need help with something else, please contact the Atmosphere support team. You can: ';
             body += '<ul><li>Email <a href="mailto:atmo@iplantcollaborative.org">atmo@iplantcollaborative.org</a></li>';
             body += '<li>Use the feedback form by clicking the "Feedback &amp; Support" button in the footer</li></ul>';
@@ -108,7 +108,7 @@ Atmo.Views.ReportVolumeModal = Backbone.View.extend({
 
 		if (num_inputs == 0 || $('form[name="report_volume_form"] textarea').val().length == 0) {
 			this.$el.find('.alert').removeClass('alert-info').addClass('alert-error').html(function() {
-				var content = '<i class="icon-warning-sign"></i> ';
+				var content = '<i class="glyphicon glyphicon-warning-sign"></i> ';
 				content += 'Volume report cannot be blank. Please include more information about the problem.';
 				return content;
 			});
@@ -186,7 +186,7 @@ Atmo.Views.ReportVolumeModal = Backbone.View.extend({
 				},
 				error: function() {
 					self.$el.find('.alert').removeClass('alert-info').addClass('alert-error').html(function() {
-						var content = '<i class="icon-warning-sign"> ';
+						var content = '<i class="glyphicon glyphicon-warning-sign"> ';
 						content += 'Unable to report volume. Please email your report to <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>.';
 					});
 

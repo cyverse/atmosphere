@@ -1,65 +1,49 @@
-<div class="accordion-heading" data-provider="iplant_<%= id %>">
-	<div class="provider_controls">
-		<input type="radio" name="selected_identity" class="control_radio" value="<%= id %>" /> 
-	</div>
-	<a class="accordion-toggle" data-toggle="collapse" data-parent="#providers" href="#identity_num">
-		<%= provider_name %>
-		<span class="caret"></span>
-	</a>
-</div>
-<div id="identity_num" class="accordion-body collapse">
-	<div class="accordion-inner">
+  <div class="panel-heading" data-provider="iplant_<%= id %>">
+     <h4 class="panel-title">
+       <div class="provider_controls">
+        <input id="control_radio_button" type="radio" name="selected_identity" class="control_radio" value="<%= id %>" /> 
+       </div>
+       <a class="accordion-toggle" data-toggle="collapse" data-parent="#providers" href="#identity_<%= id %>">
+          <%= provider_name %>
+          <span class="caret"></span>
+       </a>
+     </h4>
+  </div>
 
-		<div class="row-fluid">
-			<!--<div class="span6">
+  <div id="identity_<%= id %>" class="panel-collapse collapse">
+     <div class="panel-body">
 
-				<h2>Identity for iPlant <%= provider_name %> 
-					<a id="help_edit_login_key" class="context-helper" href="#" style="float: right">Edit Identity</a> 
-				</h2>
-				<table class="table table-bordered">
-					<tbody>
-						<tr>
-							<td width="50%"><strong>Username/Password</strong></td>
-							<td><%= id %></td>
-						</tr>
-						<tr>
-							<td><strong>Alias</strong></td>
-							<td><%= id %></td>
-						</tr>
-					</tbody>
-				</table>
-				<h3>Resource Usage on iPlant <%= provider_name %></h3>
-               
-			</div>-->
+        <div class="row">
+           
+           <div class="col-sm-6">
 
-			<div class="span6">
-
-				<h3>Instances on <%= provider_name %></h3>
-				<div id="instances_<%= id %>">
-					You have no instances running in the <%= provider_name %> cloud.
-				</div>
-				<h3>Instance Resource Usage on <%= provider_name %></h3>
-				<div id="resource_usage_holder_iplant_<%= id %>">
-					<div id="cpuHolder"></div>
-					<div id="cpuHolder_info"></div>
-					<div id="memHolder"></div>
-					<div id="memHolder_info"></div>
-					<div id="allocationHolder"></div>
-					<div id="allocationHolder_info"></div>
-				</div>
-            </div>
-            <div class="span6">
-				<h3>Volumes on <%= provider_name %></h3>
-				<div id="volumes_<%= id %>">
-					You have no volumes in the <%= provider_name %> cloud.
-				</div>
-				<h3>Volume Storage Usage on <%= provider_name %></h3>
-				<div id="resource_usage_holder">
-					<div id="disk_countHolder"></div>
-					<div id="disk_countHolder_info"></div>
-					<div id="diskHolder"></div>
-					<div id="diskHolder_info"></div>
-				</div>
-            </div>
-		</div>
-	</div>
+              <h3>Instances on <%= provider_name %></h3>
+              <div id="instances_<%= id %>">
+                 You have no instances running in the <%= provider_name %> cloud.
+              </div>
+              <h3>Instance Resource Usage on <%= provider_name %></h3>
+              <div id="resource_usage_holder_iplant_<%= id %>">
+                 <div id="cpuHolder"></div>
+                 <div id="cpuHolder_info"></div>
+                 <div id="memHolder"></div>
+                 <div id="memHolder_info"></div>
+                 <div id="allocationHolder"></div>
+                 <div id="allocationHolder_info"></div>
+              </div>
+              </div>
+              <div class="col-sm-6">
+              <h3>Volumes on <%= provider_name %></h3>
+              <div id="volumes_<%= id %>">
+                 You have no volumes in the <%= provider_name %> cloud.
+              </div>
+              <h3>Volume Storage Usage on <%= provider_name %></h3>
+              <div id="resource_usage_holder">
+                 <div id="disk_countHolder"></div>
+                 <div id="disk_countHolder_info"></div>
+                 <div id="diskHolder"></div>
+                 <div id="diskHolder_info"></div>
+              </div>
+              </div>
+        </div>
+     </div>
+  </div>

@@ -28,7 +28,8 @@ from service.deploy import step_script
       max_retries=2,
       default_retry_delay=20,
       ignore_result=False)
-def step_task(driverCls, provider, identity, instance_id, step_id, *args, **kwargs):
+def step_task(driverCls, provider, identity,
+              instance_id, step_id, *args, **kwargs):
     try:
         logger.debug("step task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)

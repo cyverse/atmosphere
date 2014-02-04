@@ -15,7 +15,8 @@ from threepio import logger
 
 from atmosphere import settings
 from atmosphere.settings import secrets
-from authentication import createAuthToken, userCanEmulate, cas_loginRedirect
+from authentication import createAuthToken, validateToken,\
+    userCanEmulate, cas_loginRedirect
 from authentication.models import Token as AuthToken
 from authentication.protocol.ldap import ldap_validate
 from authentication.protocol.cas import cas_validateUser
@@ -35,6 +36,8 @@ def token_auth(request):
     django model authentication
     Use this to give out tokens to access the API
     """
+    logger.info('Request to auth')
+    logger.info(request)
 
     token = None
 
@@ -45,10 +48,10 @@ def token_auth(request):
         username = request.session.get('username', None)
 
     password = request.POST.get('password', None)
-    logger.info(request)
     #LDAP Authenticate if password provided.
     if username and password:
         if ldap_validate(username, password):
+            logger.info("LDAP User %s validated. Creating auth token" % username)
             token = createAuthToken(username)
             expireTime = token.issuedTime + secrets.TOKEN_EXPIRY_TIME
             auth_json = {
@@ -64,6 +67,22 @@ def token_auth(request):
             logger.debug("[LDAP] Failed to validate %s" % username)
             return HttpResponse("LDAP login failed", status=401)
 
+    #if request.session and request.session.get('token'):
+    #    logger.info("User %s already authenticated, renewing token" % username)
+    #    token = validateToken(username, request.session.get('token'))
+
+    #ASSERT: Token exists here
+    if token:
+        expireTime = token.issuedTime + secrets.TOKEN_EXPIRY_TIME
+        auth_json = {
+            'token': token.key,
+            'username': token.user.username,
+            'expires': expireTime.strftime("%b %d, %Y %H:%M:%S")
+        }
+        return HttpResponse(
+            content=json.dumps(auth_json),
+            content_type='application/json')
+
     if not username and not password:
         #The user and password were not found
         #force user to login via CAS
@@ -71,6 +90,7 @@ def token_auth(request):
 
     #CAS Authenticate by Proxy (Password not necessary):
     if cas_validateUser(username):
+        logger.info("CAS User %s validated. Creating auth token" % username)
         token = createAuthToken(username)
         expireTime = token.issuedTime + secrets.TOKEN_EXPIRY_TIME
         auth_json = {
@@ -118,7 +138,8 @@ def auth1_0(request):
             logger.debug("LDAP login failed - %s" % username)
             return HttpResponse("401 UNAUTHORIZED", status=401)
     else:
-        logger.debug("Request did not have User/Key or User/CAS in the headers")
+        logger.debug("Request did not have User/Key"
+                     " or User/CAS in the headers")
         return HttpResponse("401 UNAUTHORIZED", status=401)
 
 
@@ -150,8 +171,10 @@ def auth_response(request):
     if 'HTTP_X_EMULATE_USER' in request.META:
     # AND user has permission to emulate
         if userCanEmulate(username):
-            logger.debug("EMULATION REQUEST:Generating AuthToken for %s -- %s" %
-                        (request.META['HTTP_X_EMULATE_USER'], username))
+            logger.debug("EMULATION REQUEST:"
+                         "Generating AuthToken for %s -- %s" %
+                         (request.META['HTTP_X_EMULATE_USER'],
+                          username))
             response['X-Auth-User'] = request.META['HTTP_X_EMULATE_USER']
             response['X-Emulated-By'] = username
             #then this token is for the emulated user

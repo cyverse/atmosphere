@@ -5,6 +5,9 @@ from south.v2 import DataMigration
 from django.db import models
 from django.utils import timezone
 
+from uuid import uuid5, UUID
+from atmosphere import settings
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
@@ -20,7 +23,8 @@ class Migration(DataMigration):
                 return None
             return groups[0]
 
-        for m in orm.Machine.objects.all():
+        for pm in orm.ProviderMachine.objects.all():
+            m = pm.machine
             app = orm.Application()
             app.name = m.name
             app.featured = m.featured
@@ -29,7 +33,6 @@ class Migration(DataMigration):
             app.created_by = m.created_by
             if m.end_date:
                 app.end_date = timezone.now()
-            app.save()
 
             if m.private:
                 app_membership = orm.ApplicationMembership()    

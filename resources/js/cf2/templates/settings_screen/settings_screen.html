@@ -39,12 +39,13 @@
 <h2>Cloud Identities</h2>
 
 <!-- Accordion Container for Provider Summaries -->
-<div class="accordion" id="providers"></div>
+<div class="panel-group" id="providers"></div>
 
+<div class="bottom-half-settings">
 <h2>Instance Launch</h2>
-<div class="row-fluid">
-    <div class="span1"></div>
-    <div class="span11">
+<div class="row">
+    <div class="col-sm-1"></div>
+    <div class="col-sm-11">
         <form name="settings">
             <label class="checkbox" for="send_emails">
                 <input type="checkbox" value="true" name="send_emails"> Receive email notification when instance finishes launching
@@ -53,47 +54,48 @@
     </div>
 </div>
 <h2>Appearance</h2>
-<div class="row-fluid">
-    <div class="span1"></div>
-    <div class="span11">
+<div class="row">
+    <div class="col-sm-1"></div>
+    <div class="col-sm-11">
 		<label for="icon_set">Image and Instance Icon Set</label>
-		<ul class="thumbnails" id="icon_set_icons" style="text-align: center">
+		<ul class="list-inline" id="icon_set_icons" style="text-align: center">
 			<li>
 				<a href="#settings" class="thumbnail" data-iconset="default">
 					<img src="https://www.gravatar.com/avatar/4dada4e6ac8298336c7063ae603ea86d?d=identicon&s=50" alt="Identicons" />
-					Identicons
+					<div class="caption"><h4>Identicons</h4></div>
 				</a>
 			</li>
 			<li>
 				<a href="#settings" class="thumbnail" data-iconset="retro">
 					<img src="https://www.gravatar.com/avatar/45181758ca2dd4278b8246a170d3f4e5?d=retro&s=50" alt="Retro" />
-					Retro
+					<div class="caption"><h4>Retro</h4></div>
 				</a>
 			</li>
 			<li>
 				<a href="#settings" class="thumbnail" data-iconset="robot">
 					<img src="https://robohash.org/45181758ca2dd4278b8246a170d3f4e5?size=50x50" alt="Robot" />
-					Robots
+					<div class="caption"><h4>Robots</h4></div>
 				</a>
 			</li>
 			<li>
 				<a href="#settings" class="thumbnail" data-iconset="unicorn">
 					<img src="https://unicornify.appspot.com/avatar/45181758ca2dd4278b8246a170d3f4e5?&s=50" alt="Unicorn" />
-					Unicorns
+					<div class="caption"><h4>Unicorns</h4></div>
 				</a>
 			</li>
 			<li>
 				<a href="#settings" class="thumbnail" data-iconset="monster">
 					<img src="https://www.gravatar.com/avatar/45181758ca2dd4278b8246a170d3f4e5?d=monsterid&s=50" alt="Monster" />
-					Monsters
+					<div class="caption"><h4>Monsters</h4></div>
 				</a>
 			</li>
 			<li>
 				<a href="#settings" class="thumbnail" data-iconset="wavatar">
 					<img src="https://www.gravatar.com/avatar/45181758ca2dd4278b8246a170d3f4e5?d=wavatar&s=50" alt="Wavatar" />
-					Wavatars
+					<div class="caption"><h4>Wavatars</h4></div>
 				</a>
 			</li>
 		</ul>
     </div>
+</div>
 </div>

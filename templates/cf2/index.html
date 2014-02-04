@@ -5,8 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Atmosphere</title>
 	<!--CSS-->
-	<link rel="stylesheet" href="{{ site_root }}/resources/bootstrap/css/bootstrap.css"/>
-	<link href="{{ site_root }}/resources/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet"/>
+	<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.3/css/bootstrap.min.css"/>
 	<link rel="stylesheet" href="{{ site_root }}/resources/css/cloudfront.css" />
 	<!--JS-->
 	<!--[if IE]>
@@ -20,7 +19,7 @@
 	<script src="https://www.google.com/jsapi"></script>
 	<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.js"></script>
 	<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jqueryui/1.8.17/jquery-ui.js"></script>
-	<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.2.2/bootstrap.min.js"></script>
+  <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.3/js/bootstrap.min.js"></script>
 	<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/datejs/1.0/date.min.js"></script>
 	<!--script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/require.js/1.0.8/require.min.js"></script-->
 	<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.3/underscore-min.js"></script>
@@ -102,69 +101,72 @@
         <script src="{{ site_root }}/resources/js/analytics.js"></script>
 </head>
 <body>
+
+
 <!--Header-->
-<header class="row-fluid" id="header_container">
-    <div id="header">
-        <div class="span4" id="logo_container">
-            <div>
-                <a href="#"><img src="{{ site_root }}/resources/images/mini_logo.png" alt="iPlant Cloud Services" /></a>
-                <em>Atmosphere: iPlant Cloud Services</em>
-            </div>
+<header id="header_container">
+    <div id="header" class="row">
+        <div class="col-sm-4" id="logo_container">
+            <a href="#">
+              <img src="{{ site_root }}/resources/images/mini_logo.png" alt="iPlant Cloud Services" />
+              <em>Atmosphere: iPlant Cloud Services</em>
+            </a>
         </div>
 
 
-        <div class="span8">
+        <div class="col-sm-8" id="header_nav">
 			
 
-            <div class="row-fluid" style="text-align: right; position: relative; top: 5px;">
-                
-				<a class="btn btn-mini" href="#settings"><i class="icon-user"></i> <div id="username"></div></a>
+                <div class="btn-toolbar navbar-right">
+                    <div class="btn-group btn-group-sm">
+                        <a class="btn btn-default" href="#settings"><i class="glyphicon glyphicon-user"></i> <div id="username"></div></a>
+                    </div>
 
-				<div class="btn-group hidden-phone">
-					<a class="btn btn-mini menu-dropdown dropdown-toggle" style="padding: 5px; padding-bottom: 0px;" data-toggle="dropdown" href="#" title="Settings and Help">
-						<i class="icon-cog"></i>
-						<span class="caret"></span>
-					</a>
-					<ul class="dropdown-menu drop-left">
-						<li class="dropdown-submenu pull-left">
-							<a href="#">Providers</a>
-								<ul class="dropdown-menu" id="providers_menu">
-								</ul>
-							</a>
-						</li>
-						<li><a href="#settings">Settings</a></li>
-						<li class="divider"></li>
-						<li><a href="https://pods.iplantcollaborative.org/wiki/x/Iaxm" target="_blank">User Manual</a></li>
-						<li><a href="http://ask.iplantcollaborative.org" target="_blank">User Forums</a></li>
-						<li><a href="https://pods.iplantcollaborative.org/wiki/x/p55y" target="_blank">FAQs</a></li>
-						<li><a href="https://pods.iplantcollaborative.org/wiki/x/UKxm" target="_blank">Get VNC Viewer</a></li>
-						<li><a href="#" id="contact_support">Support</a></li>
-						<li class="divider"></li>
-						<li><a id="logout_button" href="#">Logout</a></li>
-					</ul>
-				</div>
+				    <div class= "btn-group btn-group-sm hidden-xs">
+                        <div class="dropdown">
+                            <a class="btn menu-dropdown dropdown-toggle" style="padding-left: 5px; padding-right: 5px" data-toggle="dropdown" href="#" title="Settings and Help">
+                                <i class="glyphicon glyphicon-cog"></i>
+                                <span class="caret"></span>
+                            </a>
+                            <ul class="dropdown-menu drop-left">
+                              <li class="dropdown-submenu pull-left">
+                                 <a href="#">Providers</a>
+                                   <ul class="dropdown-menu drop-left" id="providers_menu"></ul>
+                              </li>
+                              <li><a href="#settings">Settings</a></li>
+                              <li class="divider"></li>
+                              <li><a href="https://pods.iplantcollaborative.org/wiki/x/Iaxm" target="_blank">User Manual</a></li>
+                              <li><a href="http://ask.iplantcollaborative.org" target="_blank">User Forums</a></li>
+                              <li><a href="https://pods.iplantcollaborative.org/wiki/x/p55y" target="_blank">FAQs</a></li>
+                              <li><a href="https://pods.iplantcollaborative.org/wiki/x/UKxm" target="_blank">Get VNC Viewer</a></li>
+                              <li><a href="#" id="contact_support">Support</a></li>
+                              <li class="divider"></li>
+                              <li><a id="logout_button" href="#">Logout</a></li>
+                            </ul><!--End dropdown-menu-->
+                        </div><!--End dropdown-->
+				    </div><!--End btn-group-->
 
-				<div class="visible-phone" id="mobile_menu">
-					<a href="#settings">Settings</a>
-					<a target="_blank" href="https://pods.iplantcollaborative.org/wiki/x/Iaxm">User Manual</a>
-					<a target="_blank" href="http://ask.iplantcollaborative.org">User Help Forums</a>
-					<a target="_blank" href="https://pods.iplantcollaborative.org/wiki/x/UKxm">Get VNC Viewer</a>
-					<a target="_blank" href="#" id="contact_support">Support</a>
-					<a href="{{ site_root }}/logout">Logout <div id="username"></div></a>
-				</div>
-            </div>
+                 </div><!--End btn-toolbar-->
+                 <div class="visible-xs" id="mobile_menu">
+                     <a href="#settings">Settings</a>
+                     <a target="_blank" href="https://pods.iplantcollaborative.org/wiki/x/Iaxm">User Manual</a>
+                     <a target="_blank" href="http://ask.iplantcollaborative.org">User Help Forums</a>
+                     <a target="_blank" href="https://pods.iplantcollaborative.org/wiki/x/UKxm">Get VNC Viewer</a>
+                     <a target="_blank" href="#" id="contact_support">Support</a>
+                     <a href="{{ site_root }}/logout">Logout <div id="username"></div></a>
+                 </div>
         </div>
     </div>
 </header> <!-- End nested-->
 
 <div id="wrap">
-    <div id="content" class="row-fluid">
+    <div id="content">
         
 
-        <!--<div class="span10" id="new_body">-->
+        <!--<div class="col-md-10" id="new_body">-->
             <!-- Left Menu -->
-            <div id="sidebar" class="span3">
-                <a id="new_instance_link"  class="btn btn-primary createInstanceButton" href="#new_instance"><i class="icon-newinstance"></i> Launch New Instance</a>
+            <div id="sidebar">
+                <a id="new_instance_link"  class="btn btn-primary createInstanceButton" href="#new_instance"><i class="glyphicon glyphicon-cloud"></i> Launch New Instance</a>
 
                 <ul id="menu_wrapper">
                     <li id="instance_link"><a class="link_list_title" href="#instances">My Instances</a>
@@ -181,8 +183,8 @@
             <!-- /Left Menu -->
 
             <!-- Main -->
-            <div id="main" class="span9">
-                <div class="row-fluid" id="alert_holder_container">
+            <div id="main">
+                <div class="row" id="alert_holder_container">
                     <div id="alert_holder"></div>
                 </div>
             </div>
@@ -193,30 +195,33 @@
 </div>
 <!-- /wrap -->
 
-<footer class="row-fluid" id="footer">
-	<div class="span3">
+<footer class="row" id="footer">
+	<div class="col-md-3">
 			<div id="weather_report"></div>
 	</div>
 
-	<div class="span6" style="padding-top: 7px"><a href="http://user.iplantcollaborative.org" target="_blank">&copy;{{ year }} iPlant Collaborative</a> <span id="version"></span></div>
+	<div class="col-md-6" style="padding-top: 7px"><a href="http://user.iplantcollaborative.org" target="_blank">&copy;{{ year }} iPlant Collaborative</a> <span id="version"></span></div>
 
-	<div class="span3"><a id="feedback_link" class="btn btn-primary" rel="popover"><i class="icon-comment icon-white"></i> Feedback &amp; Support</a></div>
+	<div class="col-md-3"><a id="feedback_link" class="btn btn-primary" rel="popover"><i class="icon-comment icon-white"></i> Feedback &amp; Support</a></div>
 
 </footer>
 
-<div id="cpu_modal" class="modal hide fade">
-	<div class="modal-header" style="text-align: left">
-		<h3>CPU Hours on Atmosphere</h3>
-	</div>
-	<div class="modal-body" style="text-align: left">
-		<p>A CPU hour is a CPU core used for one hour. For example, an instance that uses four CPU cores will consume four CPU hours for every hour that it is running.</p>
+<div id="cpu_modal" class="modal fade">
+   <div class="modal-dialog">
+      <div class="modal-content">
+	      <div class="modal-header" style="text-align: left;">
+		      <h3 class="modal-title">CPU Hours on Atmosphere</h3>
+	      </div>
+	      <div class="modal-body" style="text-align: left;">
+		      <p>A CPU hour is a CPU core used for one hour. For example, an instance that uses four CPU cores will consume four CPU hours for every hour that it is running.</p>
 
-		<p>When your instance is stopped or paused, it will not contribute to the number of CPU hours your instances have used.</p>
-
-	</div>
-	<div class="modal-footer">
-		<button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-	</div>
+		      <p>When your instance is stopped or paused, it will not contribute to the number of CPU hours your instances have used.</p>
+	      </div>
+	      <div class="modal-footer">
+		      <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+	      </div>
+      </div>
+   </div>
 </div>
 
 

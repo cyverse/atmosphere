@@ -51,9 +51,10 @@ class MachineRequestList(APIView):
         data = copy.deepcopy(request.DATA)
         data.update({'owner': data.get('created_for', request.user.username)})
         if data.get('vis','public') != 'public':
-            user_list  = re.split(', | |\n', data.get('shared_with'))
+            user_list  = re.split(', | |\n', data.get('shared_with',""))
             share_with_admins(user_list, data.get('provider'))
             share_with_self(user_list, request.user.username)
+            user_list = [user for user in user_list if user] # Skips blanks
             data['shared_with'] = user_list
         logger.info(data)
         serializer = MachineRequestSerializer(data=data)

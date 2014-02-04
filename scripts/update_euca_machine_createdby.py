@@ -22,10 +22,12 @@ def retrieve_euca_owners(self, orm):
                 pm.created_by = owner_id.created_by
                 pm.created_by_identity = owner_id
                 pm.save()
-                mach = pm.machine
-                mach.created_by = owner_id.created_by
-                mach.created_by_identity = owner_id
-                mach.save()
+                app = pm.application
+                #TODO: Not necessarily true, look this over before you run it
+                # again..
+                app.created_by = owner_id.created_by
+                app.created_by_identity = owner_id
+                app.save()
             except Identity.DoesNotExist:
                 print 'Cannot rename machine %s, owner %s does not exist' %\
                 (machine, owner)

@@ -61,7 +61,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			var vnc_help = $('<a/>', {
 				class: 'context-helper',
 				id: 'help_no_vnc_'+self.model.get('id'),
-				html: '<i class="icon-question-sign"></i>'
+				html: '<i class="glyphicon glyphicon-question-sign"></i>'
 			}).popover({
 				title: 'VNC Unavailable <a class="close" data-dismiss="popover" href="#instances" data-parent="help_no_vnc_'+self.model.get('id')+'">&times</a>',
 				html: true,
@@ -106,7 +106,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			var shell_help = $('<a/>', {
 				class: 'context-helper',
 				id: 'help_no_shell_'+self.model.get('id'),
-				html: '<i class="icon-question-sign"></i>'
+				html: '<i class="glyphicon glyphicon-question-sign"></i>'
 			}).popover({
 				title: 'Shell Unavailable <a class="close" data-dismiss="popover" href="#instances" data-parent="help_no_shell_'+self.model.get('id')+'">&times</a>',
 				html: true,
@@ -205,14 +205,30 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		var self = this;
 
 		// Display OpenStack-specific options
-		if (Atmo.profile.get('selected_identity').get('provider_id') == 2) {
+		if (Atmo.profile.get('selected_identity').get('provider').match(/openstack/i)) {
 
 			// Display descriptive instance size
 			var types = _.filter(Atmo.instance_types.models, function(type) {
 				return type.get('alias') == self.model.get('size_alias');
 			});
 			var instance_type = types[0];
-			self.$el.find('.instance_size').html(instance_type.get('name'));
+            var digits = (instance_type.get('mem') % 1024 == 0) ? 0 : 1;
+            if (instance_type.get('disk') != 0) {
+                var disk_str = ', ' + instance_type.get('disk') + ' GB disk';
+            }  else {
+                var disk_str = '';
+            }
+            if (instance_type.get('root') != 0) {
+                var root_str = ', ' + instance_type.get('root') + ' GB root';
+            }  else {
+                var root_str = '';
+            }
+            var cpu_str = instance_type.get('cpus') + ' CPUs';
+            // Make a human readable number
+            var mem = (instance_type.get('mem') > 1024) ? '' + (instance_type.get('mem') / 1024).toFixed(digits) + ' GB' : (instance_type.get('mem') + ' MB') ;
+            var mem_str = mem + ' memory';
+            var instance_str = instance_type.get('name') + ' (' + cpu_str + ', ' + mem_str + disk_str + root_str + ')';
+			self.$el.find('.instance_size').html(instance_str);
 
 			this.$el.find('#euca_controls').remove();
 
@@ -236,19 +252,19 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			}
 
 			// Don't permit terminate if instance is suspended
-			if (this.model.get('state_is_inactive'))
-				this.$el.find('.terminate_instance').addClass('disabled').attr('disabled', 'disabled');
+			//if (this.model.get('state_is_inactive'))
+			//	this.$el.find('.terminate_instance').addClass('disabled').attr('disabled', 'disabled');
 
 			// Show appropriate controls
 			this.$el.find('#openstack_controls').fadeIn('fast');
 
 			if (this.model.get('state') == 'suspended')
-				this.$el.find('.btn.suspend_resume_instance_btn').html('<i class="icon-play"></i> Resume').removeClass('disabled').removeAttr('disabled');
+				this.$el.find('.btn.suspend_resume_instance_btn').html('<i class="glyphicon glyphicon-play"></i> Resume').removeClass('disabled').removeAttr('disabled');
 			else 
 				this.$el.find('.btn.suspend_resume_instance_btn').fadeIn('fast');
 
 			if (this.model.get('state') == 'shutoff')
-				this.$el.find('.btn.start_stop_instance_btn').html('<i class="icon-share-alt"></i> Start').removeClass('disabled').removeAttr('disabled');
+				this.$el.find('.btn.start_stop_instance_btn').html('<i class="glyphicon glyphicon-share-alt"></i> Start').removeClass('disabled').removeAttr('disabled');
 			else
 				this.$el.find('.btn.start_stop_instance_btn').fadeIn('fast');
 		}
@@ -409,10 +425,11 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			var currentVNC = this.$el.find('.vnc_iframe[data-ip="'+ipaddr+'"]');
 
 			if (currentVNC.length == 0) {
-				var iframe = $('<iframe>', {
-					src: 'http://' + ipaddr + ':5904',
-					'class': 'vnc_iframe'
-				}).css({height: '100%', width:  '100%'}).attr('data-ip', ipaddr);
+                var iframe = $('<a>', {href: 'http://' + ipaddr + ':5904'})
+                    .addClass('vnc_iframe')
+                    .attr('target', '_blank')
+                    .append("Launch VNC")
+                    .attr('data-ip', ipaddr);
 				this.$el.find('.instance_vnc').append(iframe);
 			} else {
 				this.$el.find('.vnc_iframe').hide();
@@ -588,7 +605,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 		// Reboot is hard or soft depending on whether you're on OpenStack or Eucalyptus, respectively
 		if (Atmo.profile.get('selected_identity').get('provider_id') == 2) {
-			body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> '
+			body = '<p class="alert alert-error"><i class="glyphicon glyphicon-question-sign"></i> <strong>WARNING</strong> '
 				+ 'Rebooting an instance will cause it to temporarily shut down and become inaccessible during that time.';
 		}
 		else {
@@ -681,14 +698,14 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				};
 			}
 			else {
-				body = '<p class="alert alert-error"><i class="icon-ban-circle"></i> <strong>Cannot resume instance</strong> '
+				body = '<p class="alert alert-error"><i class="glyphicon glyphicon-ban-circle"></i> <strong>Cannot resume instance</strong> '
 					+ 'You do not have enough resources to resume this instance. You must terminate, suspend, or stop another running instance, or request more resources.';
 				ok_button = 'Ok';
 			}
 		}
 		else {
 			header = 'Suspend Instance';
-			body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> '
+			body = '<p class="alert alert-error"><i class="glyphicon glyphicon-warning-sign"></i> <strong>WARNING</strong> '
 				+ 'Suspending an instance will freeze its state, and the IP address may change when you resume the instance.</p>'
 				+ 'Suspending an instance frees up resources for other users and allows you to safely preserve the state of your instance without imaging.'
 				+ '<br><br>'
@@ -744,7 +761,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			// Make sure user has enough quota to resume this instance
 			if (this.check_quota()) {
 				header = 'Start Instance';
-				body = '<p class="alert alert-error"><i class="icon-warning-sign"></i> <strong>WARNING</strong> '
+				body = '<p class="alert alert-error"><i class="glyphicon glyphicon-warning-sign"></i> <strong>WARNING</strong> '
 					+ 'In order to start a stopped instance, you must have sufficient quota and the cloud must have enough room to support your instance\'s size.';
 				ok_button = 'Start Instance';
 				data = { "action" : "start" };
@@ -778,7 +795,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				};
 			}
 			else {
-				body = '<p class="alert alert-error"><i class="icon-ban-circle"></i> <strong>Cannot start instance</strong> '
+				body = '<p class="alert alert-error"><i class="glyphicon glyphicon-ban-circle"></i> <strong>Cannot start instance</strong> '
 					+ 'You do not have enough resources to start this instance. You must terminate, suspend, or stop another running instance, or request more resources.';
 				ok_button = 'Ok';
 			}

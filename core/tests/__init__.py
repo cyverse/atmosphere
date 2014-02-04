@@ -1,10 +1,13 @@
 from core.tests.instance import *
 from atmosphere.settings import secrets
-from core.models import ProviderCredential, ProviderType, Provider, Identity
+from core.models import PlatformType, ProviderType, ProviderCredential,\
+                        Provider, Identity
 
 def create_euca_provider():
     provider_type = ProviderType.objects.get_or_create(name='Eucalyptus')[0]
+    platform_type = PlatformType.objects.get_or_create(name='Xen')[0]
     euca = Provider.objects.get_or_create(location='EUCALYPTUS',
+                                          virtualization=platform_type,
                                           type=provider_type)[0]
     ProviderCredential.objects.get_or_create(
         key='ec2_url', value=secrets.EUCA_EC2_URL, provider=euca)
@@ -33,22 +36,27 @@ def create_euca_provider():
 
 def create_os_provider():
     provider_type = ProviderType.objects.get_or_create(name='OpenStack')[0]
-    openstack = Provider.objects.get_or_create(
-            location='OPENSTACK',
-            type=provider_type)[0]
-    ProviderCredential.objects.get_or_create(key='auth_url',
-            value=secrets.OPENSTACK_AUTH_URL, provider=openstack)
-    ProviderCredential.objects.get_or_create(key='admin_url',
-            value=secrets.OPENSTACK_ADMIN_URL, provider=openstack)
-    ProviderCredential.objects.get_or_create(key='router_name',
-            value=secrets.OPENSTACK_DEFAULT_ROUTER, provider=openstack)
-    ProviderCredential.objects.get_or_create(key='region_name',
-            value=secrets.OPENSTACK_DEFAULT_REGION, provider=openstack)
-    identity = Identity.create_identity(
-        secrets.OPENSTACK_ARGS['username'],
-        openstack.location, account_admin=True,
-        cred_key=secrets.OPENSTACK_ADMIN_KEY,
-        cred_secret=secrets.OPENSTACK_ADMIN_SECRET,
-        cred_ex_tenant_name=secrets.OPENSTACK_ADMIN_TENANT,
-        cred_ex_project_name=secrets.OPENSTACK_ADMIN_TENANT)
-    return identity
+    platform_type = PlatformType.objects.get_or_create(name='KVM')[0]
+    identities = []
+    #TODO: Make platform_type a variable when we encounter a NON-KVM OStack..
+    for provider in secrets.TEST_PROVIDERS['openstack']:
+        os_provider = Provider.objects.get_or_create(
+            virtualization=platform_type,
+            type=provider_type,
+            location=provider['label'])[0]
+        ProviderCredential.objects.get_or_create(key='auth_url',
+                value=provider['auth_url'], provider=os_provider)
+        ProviderCredential.objects.get_or_create(key='admin_url',
+                value=provider['admin_url'], provider=os_provider)
+        ProviderCredential.objects.get_or_create(key='router_name',
+                value=provider['default_router'], provider=os_provider)
+        ProviderCredential.objects.get_or_create(key='region_name',
+                value=provider['default_region'], provider=os_provider)
+        identity = Identity.create_identity(
+            provider['key'], provider['label'],
+            account_admin=True,
+            cred_key=provider['key'], cred_secret=provider['secret'],
+            cred_ex_tenant_name=provider['tenant_name'],
+            cred_ex_project_name=provider['tenant_name'])
+        identities.append(identity)
+    return identities[0]

@@ -8,29 +8,30 @@ from django.conf.urls import patterns, url, include
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from api.accounts import Account
+from api.application import ApplicationListNoAuth
 from api.flow import Flow
+from api.group import GroupList, Group
 from api.identity_membership import IdentityMembershipList, IdentityMembership
 from api.identity import IdentityList, Identity, IdentityDetailList
 from api.instance import InstanceList, Instance,\
     InstanceAction, InstanceHistory
-from api.notification import NotificationList
 from api.machine import MachineList, Machine, MachineHistory,\
     MachineSearch
 from api.machine_request import MachineRequestList, MachineRequest,\
     MachineRequestStaffList, MachineRequestStaff
 from api.machine_export import MachineExportList, MachineExport
 from api.maintenance import MaintenanceRecordList, MaintenanceRecord
+from api.meta import Meta, MetaAction
+from api.notification import NotificationList
+from api.occupancy import Occupancy, Hypervisor
+from api.profile import Profile
+from api.provider import ProviderList, Provider
 from api.size import SizeList, Size
 from api.step import StepList, Step
-from api.volume import VolumeList, Volume
-from api.profile import Profile
-from api.occupancy import Occupancy
-from api.provider import ProviderList, Provider
-from api.user import UserManagement, User
-from api.group import GroupList, Group
 from api.tag import TagList, Tag
-from api.meta import Meta, MetaAction
+from api.user import UserManagement, User
 from api.version import Version
+from api.volume import VolumeList, Volume
 
 from authentication.decorators import atmo_valid_token_required
 
@@ -88,6 +89,10 @@ urlpatterns = patterns(
     url(r'^CASlogin/(?P<redirect>.*)$', 'authentication.cas_loginRedirect'),
     url(r'^application/$', 'web.views.app'),
 
+    # Experimental UI
+    # TODO: Rename to application when it launches
+    url(r'^beta/', 'web.views.app_beta'),
+
     url(r'^partials/(?P<path>.*)$', 'web.views.partial'),
     url(r'^no_user/$', 'web.views.no_user_redirect'),
 
@@ -113,6 +118,8 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/v1/profile/$', Profile.as_view(), name='profile'),
     url(r'^api/v1/provider/(?P<provider_id>\d+)/occupancy/$',
         Occupancy.as_view()),
+    url(r'^api/v1/provider/(?P<provider_id>\d+)/hypervisor/$',
+        Hypervisor.as_view()),
 
     url(r'^api/v1/group/$', GroupList.as_view()),
     url(r'^api/v1/group/(?P<groupname>.*)/$', Group.as_view()),
@@ -120,6 +127,9 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/v1/tag/$', TagList.as_view()),
     url(r'^api/v1/tag/(?P<tag_slug>.*)/$', Tag.as_view()),
 
+    url(r'^api/v1/application/$',
+        ApplicationListNoAuth.as_view(),
+        name='application-list-no-auth'),
 
     url(r'^api/v1/instance/$', InstanceHistory.as_view(),
         name='instance-history'),

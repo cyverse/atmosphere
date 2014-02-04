@@ -9,14 +9,14 @@
 
         RewriteEngine On
         RewriteCond %{HTTPS} !=on
-        RewriteRule ^/?(.*) https://dalloway.iplantc.org/$1 [R,L]
+        RewriteRule ^/?(.*) https://MYHOSTNAMEHERE/$1 [R,L]
 </VirtualHost>
 
 ###
 ### WSGI Configuration
 ###
 
-WSGIPythonHome /opt/env/atmo
+WSGIPythonHome VIRTUALENVHERE
 
 SSLCryptoDevice builtin
 
@@ -27,11 +27,11 @@ ProxyRequests Off
 ProxyPreserveHost On
 SSLProxyEngine On
 
-ProxyPass         /flower  https://new_server_001.iplantcollaborative.org:8443
-ProxyPassReverse  /flower  https://new_server_001.iplantcollaborative.org:8443
-ProxyPassReverse  /flower  https://new_server_001.iplantcollaborative.org/flower
+ProxyPass         /flower  https://MYHOSTNAMEHERE:8443
+ProxyPassReverse  /flower  https://MYHOSTNAMEHERE:8443
+ProxyPassReverse  /flower  https://MYHOSTNAMEHERE/flower
 
-<Proxy https://new_server_001.iplantcollaborative.org:8443/flower*>
+<Proxy https://MYHOSTNAMEHERE:8443/flower*>
   Order deny,allow
   Allow from all
 </Proxy>
@@ -39,11 +39,11 @@ ProxyPassReverse  /flower  https://new_server_001.iplantcollaborative.org/flower
 ##
 ## Jenkins proxy redirection
 ##
-ProxyPass         /jenkins  http://new_server_001.iplantcollaborative.org:8080/jenkins
-ProxyPassReverse  /jenkins  http://new_server_001.iplantcollaborative.org:8080/jenkins
-ProxyPassReverse  /jenkins  http://new_server_001.iplantcollaborative.org/jenkins
+ProxyPass         /jenkins  http://MYHOSTNAMEHERE:8080/jenkins
+ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE:8080/jenkins
+ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE/jenkins
 
-<Proxy http://new_server_001.iplantcollaborative.org:8080/jenkins*>
+<Proxy http://MYHOSTNAMEHERE:8080/jenkins*>
   Order deny,allow
   Allow from all
 </Proxy>
@@ -59,21 +59,22 @@ RewriteCond %{HTTP:Authorization} ^(.*)
 RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
 
 #for the old domain
-RewriteCond %{HTTP_HOST} ^new_server_001.iplantcollaborative.org$
-RewriteRule ^/(.*)$       https://new_server_001.iplantc.org/$1 [R,L]
+RewriteCond %{HTTP_HOST} ^MYHOSTNAMEHERE$
+RewriteRule ^/(.*)$       https://MYHOSTNAMEHERE/$1 [R,L]
 
 #Logging
 ErrorLog /var/log/apache2/ssl_error.log
 TransferLog /var/log/apache2/ssl_access.log
 LogLevel warn
 
+
 #SSL
 SSLEngine on
 SSLProtocol all -SSLv2
 SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
-SSLCertificateFile /etc/ssl/certs/iplantc.org.crt
-SSLCertificateKeyFile /etc/ssl/private/iplantc.key
-SSLCertificateChainFile /etc/ssl/certs/gd_bundle.crt
+SSLCertificateFile /etc/ssl/certs/BASECERTHERE
+SSLCertificateKeyFile /etc/ssl/private/KEYHERE
+SSLCertificateChainFile /etc/ssl/certs/BUNDLECERTHERE
 
 <Files ~ "\.(cgi|shtml|phtml|php3?)$">
     SSLOptions +StdEnvVars
@@ -86,16 +87,17 @@ SetEnvIf User-Agent ".*MSIE.*" \
          nokeepalive ssl-unclean-shutdown \
          downgrade-1.0 force-response-1.0
 
+
 #This is for atmosphere
-Alias /favicon.ico /opt/dev/atmosphere/static/images/favicon.ico
-Alias /robots.txt /opt/dev/atmosphere/templates/robots.txt
+Alias /favicon.ico LOCATIONOFATMOSPHEREHERE/static/images/favicon.ico
+Alias /robots.txt LOCATIONOFATMOSPHEREHERE/templates/robots.txt
 #init_files && resources will auto-direct to the file
-Alias /init_files /opt/dev/atmosphere/init_files
-Alias /resources /opt/dev/atmosphere/resources
-Alias /static /opt/dev/atmosphere/static
+Alias /init_files LOCATIONOFATMOSPHEREHERE/init_files
+Alias /resources LOCATIONOFATMOSPHEREHERE/resources
+Alias /static LOCATIONOFATMOSPHEREHERE/static
 
 #Assing WSGI to any other folder
-WSGIScriptAlias / /opt/dev/atmosphere/atmosphere/wsgi.py
+WSGIScriptAlias / LOCATIONOFATMOSPHEREHERE/atmosphere/wsgi.py
 
 #Notifications
 <Location /n/>

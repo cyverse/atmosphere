@@ -1,0 +1,58 @@
+header {
+    background-color: #0098aa;
+    color: #fff;
+    border-bottom: 2px solid hsl(186, 33%, 75%);
+}
+
+header a {
+    color: #fff;
+}
+
+header a:hover{
+    color: #e6e6e6;
+    text-decoration: none;
+}
+
+
+#logo {
+    font-size: 1.2em;
+    padding: 5px;
+    display: block;
+    float: left;
+}
+
+#logo img {
+    margin-right: 7px;
+}
+
+#logo a:hover img {
+    opacity: .7;
+}
+
+#logo::after {
+    content: "BETA";
+    background-color: hsl(20, 80%, 50%);
+    padding: 5px;
+    border-radius: 5px;
+    font-size: 80%;
+    margin-left: 5px
+}
+
+#tagline {
+    font-size: 80%;
+    color: #ddd;
+}
+
+
+#header-nav {
+    float: right;
+}
+
+#header-nav a {
+    display: inline-block;
+    padding: 10px;
+}
+
+#header-nav a:hover {
+    background-color: hsl(186, 100%, 37%);
+}

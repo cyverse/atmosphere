@@ -9,16 +9,18 @@ from atmosphere import settings
 from authentication.models import Token as AuthToken
 from core.models import AtmosphereUser as User
 
+
 def cas_logoutRedirect():
-    return HttpResponseRedirect(settings.CAS_SERVER
-                                + "/cas/logout?service="+settings.SERVER_URL)
+    return HttpResponseRedirect(settings.CAS_SERVER +
+                                "/cas/logout?service="+settings.SERVER_URL)
+
 
 def cas_loginRedirect(request, redirect=None, gateway=False):
     if not redirect:
         redirect = request.get_full_path()
     login_url = settings.CAS_SERVER +\
-                "/cas/login?service="+settings.SERVER_URL +\
-                "/CAS_serviceValidater?sendback="+redirect
+        "/cas/login?service="+settings.SERVER_URL +\
+        "/CAS_serviceValidater?sendback="+redirect
     if gateway:
         login_url += '&gateway=true'
     return HttpResponseRedirect(login_url)
@@ -37,6 +39,18 @@ def createAuthToken(username):
     auth_user_token.save()
     return auth_user_token
 
+
+def validateToken(username, token_key):
+    """
+    Verify the token belongs to username, and renew it
+    """
+    auth_user_token = AuthToken.objects.filter(user__username=username, key=token_key)
+    if not auth_user_token:
+        return None
+    auth_user_token = auth_user_token[0]
+    auth_user_token.update_expiration()
+    auth_user_token.save()
+    return auth_user_token
 
 def userCanEmulate(username):
     """

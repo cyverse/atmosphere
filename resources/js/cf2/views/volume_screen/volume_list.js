@@ -62,7 +62,6 @@ Atmo.Views.VolumeScreenDraggableVolumes = Backbone.View.extend({
                 Atmo.Utils.confirm_detach_volume(volume, instance, {
                     success: function() {
                         Atmo.volumes.fetch();
-                        console.log('success - volume_list')
                     }
                 });
                 //$(ui.draggable).remove();

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atmosphere</title>
+    <!--CSS-->
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.3/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="{{ site_root }}/resources/css/cloudfront3.css" />
+    <!--JS-->
+    <!--[if IE]>
+    <script src="https://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <script type="text/javascript">
+    var site_root = '{{ site_root }}';
+    var url_root = '{{ url_root }}';
+    </script>
+    <!-- Application dependencies -->
+    <link rel="shortcut icon" href="{{ site_root }}/resources/images/favicon.ico" />
+    <script data-main="{{ site_root }}/resources/js/cf3/main.js" src="//cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    {% csrf_token %}
+    <!-- Google Analtics -->
+    <script src="{{ site_root }}/resources/js/analytics.js"></script>
+</head>
+<body>
+
+<div id="application"></div>
+
+</body>
+</html>

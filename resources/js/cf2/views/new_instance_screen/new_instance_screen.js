@@ -30,16 +30,16 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		this.$el.html(this.template());
 
 		this.mem_resource_chart = new Atmo.Views.ResourceCharts({
-			el: this.$el.find('#memHolder'), 
+			el: this.$el.find('#memHolder'),
 			quota_type: 'mem',
 		}).render();
 		this.cpu_resource_chart = new Atmo.Views.ResourceCharts({
-			el: this.$el.find('#cpuHolder'), 
+			el: this.$el.find('#cpuHolder'),
 			quota_type: 'cpu'
 		}).render();
         if (Atmo.profile.attributes.selected_identity.has_allocation()) {
 		    this.time_resource_chart = new Atmo.Views.ResourceCharts({
-		    	el: this.$el.find('#allocationHolder'), 
+		    	el: this.$el.find('#allocationHolder'),
 		    	quota_type: 'allocation'
 		    }).render();
         } else {
@@ -47,7 +47,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
             alloc_graph = this.$el.find("#allocationHolder").parent();
             alloc_graph.remove();
             graph_holders.children().each( function() {
-                $(this).removeClass('span4').addClass('span6');
+                $(this).removeClass('col-sm-4').addClass('col-sm-6');
             });
         }
 
@@ -125,7 +125,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
                 var popover_parent = $(this).data('parent');
                 if (popover_parent != undefined) {
                     $('#'+popover_parent).popover('hide');
-                }            
+                }
             });
 	},
     render_resource_charts: function() {
@@ -142,7 +142,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 			// Called when images haven't yet loaded
 			self.$el.find('#featured_image_list').append('<div style="text-align: center"><img src="'+site_root+'/resources/images/loader_large.gif" /></div>');
 			self.$el.find('#misc_image_list').append('<div style="text-align: center"><img src="'+site_root+'/resources/images/loader_large.gif" /></div>');
-		} 
+		}
 		else {
 
 			// Called when 'reset' is triggered because images have been fetched
@@ -197,19 +197,19 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 
 		//if (Atmo.instances.models.length == 0)
 		var under_cpu = this.cpu_resource_chart.add_usage(
-			selected_instance_type.attributes.cpus, 
-			{ 
+			selected_instance_type.attributes.cpus,
+			{
 				is_initial: Atmo.instances.models.length == 0
 			}
-		); 
+		);
 		var under_mem = this.mem_resource_chart.add_usage(
 			selected_instance_type.attributes.mem,
-			{ 
+			{
 				is_initial: Atmo.instances.models.length == 0
 			}
 		);
 		if (self.time_resource_chart) {
-		    var under_time = this.time_resource_chart.add_usage(0,{}); 
+		    var under_time = this.time_resource_chart.add_usage(0,{});
         } else {
 		    var under_time = true;
         }
@@ -236,7 +236,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 			select_obj.closest('.control-group').addClass('error');
 		}
 		else {
-			
+
 			if (select_obj.parent().find('.help-block').length > 1) {
 				select_obj.parent().find('.help-block').remove();
 			}
@@ -249,7 +249,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		this.$el.find('#image_search').val('').trigger('keyup');
 	},
 	filter_by_tag: function(tag) {
-		
+
 		this.$el.find(".image_list > li").hide();
 		//this.$el.find(".image_list li:icontains("+text+")").show();
 
@@ -264,7 +264,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 					return;
 				}
 			});
-				
+
 			if (found) $(e).show();
 		});
 	},
@@ -276,7 +276,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		}
 		text = this.$el.find('#image_search').val();
 		if (text.length !== 0) {
-			
+
 			/**Filter out those who don't contain text*/
 			this.$el.find(".image_list > li").hide();
 			arr = text.split(/\s+/g);
@@ -301,7 +301,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
                 // To make the search case-insensitive
                 for (var i = 0; i < test_tags.length; i++) {
                     test_tags[i] = test_tags[i].toLowerCase();
-                } 
+                }
 
 				var test_id   = testImage.id;
 				var test_name = testImage.get('name');
@@ -319,7 +319,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
                         if (test_tags[i].indexOf(tag.toLowerCase()) == -1) {
 
                             // If already found one tag, keep found_one true.
-                           found_one = (found_one == true) ? true : false; 
+                           found_one = (found_one == true) ? true : false;
                         }
                         else {
                             found_one = true;
@@ -328,7 +328,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
                     if (!found_one) {
                         found = false;
                         return;
-                    } 
+                    }
 				});
 				$.each(words, function(idx,word) {
                     word = word.toLowerCase();
@@ -349,13 +349,10 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		$('.image_list > li').removeClass('active');
 		$(e.currentTarget).addClass('active');
 
-		if (this.under_quota && !this.launch_lock) 
-			this.$el.find('#launchInstance').removeAttr('disabled');
-		else
-			this.$el.find('#launchInstance').attr('disabled', 'disabled');
+                this.$el.find('#launchInstance').attr('disabled', this.under_quota && !this.launch_lock ? 'enabled' : 'disabled');
+                
 
-
-		this.$el.find('#selected_image_icon_container').html('<img src="'+img.get('image_url')+'" width="75" height="75" />');
+		this.$el.find('#selected_image_icon_container').html('<img src="'+img.get('image_url')+'" width="50" height="50"/>');
 		this.$el.find('#selected_image_description')
 			.html(img.get('description'));
 		this.$el.find('#newinst_name_title').html('of ' + img.get('name_or_id'));
@@ -410,7 +407,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		  'name': $(form.name).val(),
 		  'tags': this.tagger.get_tags()
 		};
-		
+
 		var error_elements = [];
 		var errors = [];
 
@@ -495,9 +492,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		Atmo.request_resources_modal.do_alert();
 	},
     hide_burn_time: function() {
-        console.log(Atmo.profile);
     },
     show_burn_time: function() {
-        console.log(Atmo.profile);
     }
 });

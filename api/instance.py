@@ -19,7 +19,7 @@ from threepio import logger
 from authentication.decorators import api_auth_token_required
 
 from core.models.provider import AccountProvider
-from core.models.instance import convert_esh_instance, update_instance_metadata
+from core.models.instance import convert_esh_instance
 from core.models.instance import Instance as CoreInstance
 from core.models.size import convert_esh_size
 from core.models.volume import convert_esh_volume
@@ -32,7 +32,7 @@ from api.serializers import VolumeSerializer
 from service import task
 from service.deploy import build_script
 from service.instance import launch_instance, start_instance, stop_instance,\
-    suspend_instance, resume_instance
+    suspend_instance, resume_instance, update_instance_metadata
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
@@ -293,16 +293,16 @@ class InstanceAction(APIView):
                 resume_instance(esh_driver, esh_instance,
                                 provider_id, identity_id, user)
             elif 'suspend' == action:
-                reclaim_ip = True
-                #TODO: Provider dependent
                 suspend_instance(esh_driver, esh_instance,
-                                provider_id, identity_id, user, reclaim_ip)
+                                provider_id, identity_id, user)
             elif 'start' == action:
                 start_instance(esh_driver, esh_instance,
                                provider_id, identity_id, user)
             elif 'stop' == action:
                 stop_instance(esh_driver, esh_instance,
                               provider_id, identity_id, user)
+            elif 'reset_network' == action:
+                esh_driver.reset_network(esh_instance)
             elif 'reboot' == action:
                 esh_driver.reboot_instance(esh_instance)
             elif 'rebuild' == action:

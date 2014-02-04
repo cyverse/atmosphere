@@ -42,6 +42,7 @@ class Instance(models.Model):
     created_by_identity = models.ForeignKey(Identity, null=True)
     shell = models.BooleanField(default=False)
     vnc = models.BooleanField(default=False)
+    password = models.CharField(max_length=64, blank=True, null=True)
     start_date = models.DateTimeField() # Problems when setting a default.
     end_date = models.DateTimeField(null=True)
 
@@ -65,7 +66,7 @@ class Instance(models.Model):
                                       .get_or_create(name=status_name)
         if start_date:
             new_hist.start_date=start_date
-        logger.debug("Created new history object: %s " % (new_hist))
+#        logger.debug("Created new history object: %s " % (new_hist))
         return new_hist
 
     def update_history(self, status_name, task=None, first_update=False):
@@ -85,8 +86,8 @@ class Instance(models.Model):
                     #There are more.. Must find table..
             }
             status_2 = task_to_status.get(task,'')
-            logger.debug("Task provided:%s, Status should be %s"
-                         % (task, status_2))
+            # logger.debug("Task provided:%s, Status should be %s"
+            #              % (task, status_2))
             #Update to the more relevant task
             if status_2:
                 status_name = status_2
@@ -104,7 +105,7 @@ class Instance(models.Model):
                 first_status = 'active'
             first_hist = self.new_history(first_status, self.start_date)
             first_hist.save()
-            logger.debug("Created the first history %s" % first_hist)
+#            logger.debug("Created the first history %s" % first_hist)
             last_hist = first_hist
         #2. If we wanted to assign active status, thats done now.
         if last_hist.status.name == status_name:
@@ -134,8 +135,8 @@ class Instance(models.Model):
         if not status_history:
             # No status history, use entire length of instance
             now = timezone.now()
-            logger.info("First history update: %s starting %s" %
-                        (self.provider_alias, now))
+            # logger.info("First history update: %s starting %s" %
+            #             (self.provider_alias, now))
             end_date = self.end_date if self.end_date else now
             return end_date - self.start_date
         #Start counting..
@@ -144,8 +145,8 @@ class Instance(models.Model):
             if not state.is_active():
                 continue
             if not state.end_date:
-                logger.debug("Status %s has no end-date." %
-                        state.status.name)
+                # logger.debug("Status %s has no end-date." %
+                #         state.status.name)
                 state.end_date = timezone.now()
             active_time = state.end_date - state.start_date
             new_total = active_time + total_time
@@ -167,11 +168,11 @@ class Instance(models.Model):
         ish_list = InstanceStatusHistory.objects.filter(instance=self)
         for ish in ish_list:
             if not ish.end_date:
-                logger.info('Saving history:%s' % ish)
+#                logger.info('Saving history:%s' % ish)
                 ish.end_date = now_time
                 ish.save()
         if not self.end_date:
-            logger.info("Saving Instance:%s" % self)
+#            logger.info("Saving Instance:%s" % self)
             self.end_date = now_time
             self.save()
 
@@ -211,26 +212,13 @@ class Instance(models.Model):
             return "Unknown"
 
     def esh_machine_name(self):
-        if self.esh and self.esh.machine:
-            return self.esh.machine.name
-        else:
-            try:
-                if self.provider_machine and self.provider_machine.machine:
-                    return self.provider_machine.machine.name
-            except ProviderMachine.DoesNotExist as dne:
-                logger.exception("Unable to find provider_machine for %s." % self.provider_alias)
-        return "Unknown"
+        return self.provider_machine.application.name
+
+    def provider_name(self):
+        return self.provider_machine.provider.location
 
     def esh_machine(self):
-        if self.esh:
-            return self.esh._node.extra['imageId']
-        else:
-            try:
-                if self.provider_machine:
-                    return self.provider_machine.identifier
-            except ProviderMachine.DoesNotExist as dne:
-                logger.exception("Unable to find provider_machine for %s." % self.provider_alias)
-        return "Unknown"
+        return self.provider_machine.identifier
 
     def json(self):
         return {
@@ -320,7 +308,8 @@ def find_instance(alias):
     return None
 
 
-def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id, user, token=None):
+def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
+                         user, token=None, password=None):
     """
     """
     #logger.debug(esh_instance.__dict__)
@@ -337,10 +326,14 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id, use
     core_instance = find_instance(alias)
     if core_instance:
         core_instance.ip_address = ip_address
+        if password:
+            core_instance.password = password
         core_instance.save()
     else:
         if 'launchdatetime' in esh_instance.extra:
             create_stamp = esh_instance.extra.get('launchdatetime')
+        elif 'launch_time' in esh_instance.extra:
+            create_stamp = esh_instance.extra.get('launch_time')
         elif 'created' in esh_instance.extra:
             create_stamp = esh_instance.extra.get('created')
         else:
@@ -359,13 +352,12 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id, use
         logger.debug("Instance %s" % alias)
         logger.debug("CREATED: %s" % create_stamp)
         logger.debug("START: %s" % start_date)
-
         coreMachine = convert_esh_machine(esh_driver, eshMachine, provider_id,
                                         image_id=esh_instance.image_id)
         core_instance = create_instance(provider_id, identity_id, alias,
                                       coreMachine, ip_address,
                                       esh_instance.name, user,
-                                      start_date, token)
+                                      start_date, token, password)
 
     core_instance.esh = esh_instance
 
@@ -400,44 +392,9 @@ def set_instance_from_metadata(esh_driver, core_instance):
     core_instance.esh = esh_instance
     return core_instance
 
-def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
-    """
-    NOTE: This will NOT WORK for TAGS until openstack
-    allows JSONArrays as values for metadata!
-    """
-    wait_time = 1
-    instance_id = esh_instance.id
-
-    if not hasattr(esh_driver._connection, 'ex_set_metadata'):
-        logger.info("EshDriver %s does not have function 'ex_set_metadata'"
-                    % esh_driver._connection.__class__)
-        return {}
-    while True:
-        if esh_instance.extra['status'] != 'build':
-            break
-        # Wait at most 1 minutes
-        wait_time = min(wait_time + 1, 1)
-        logger.info("Metadata cannot be applied while EshInstance %s is in"
-                    " the build state. Will try again in %s minute(s)"
-                    % (esh_instance, wait_time))
-        time.sleep(wait_time*60)
-        # Check if the instance status has been updated
-        esh_instance = esh_driver.get_instance(instance_id)
-
-    # ASSERT: We are ready to update the metadata
-    if data.get('name'):
-        esh_driver._connection.ex_set_server_name(esh_instance, data['name'])
-    try:
-        return esh_driver._connection.ex_set_metadata(esh_instance, data,
-                replace_metadata=replace)
-    except Exception, e:
-        if 'incapable of performing the request' in e.message:
-            return {}
-        else:
-            raise
-
 def create_instance(provider_id, identity_id, provider_alias, provider_machine,
-                   ip_address, name, creator, create_stamp, token=None):
+                   ip_address, name, creator, create_stamp,
+                   token=None, password=None):
     #TODO: Define a creator and their identity by the METADATA instead of
     # assuming its the person who 'found' the instance
     identity = Identity.objects.get(id=identity_id)
@@ -448,10 +405,15 @@ def create_instance(provider_id, identity_id, provider_alias, provider_machine,
                                        created_by=creator,
                                        created_by_identity=identity,
                                        token=token,
+                                       password=password,
                                        shell=False,
                                        start_date=create_stamp)
     new_inst.save()
-    logger.debug("New instance created - %s<%s> (Token = %s)" %
-                 (name, provider_alias, token))
+    if token:
+        logger.debug("New instance created - %s<%s> (Token = %s)" %
+                     (name, provider_alias, token))
+    else:
+        logger.debug("New instance object - %s<%s>" %
+                     (name, provider_alias,))
     #NOTE: No instance_status_history here, because status is not passed
     return new_inst

@@ -19,6 +19,7 @@ from chromogenic.drivers.eucalyptus import ImageManager
 
 from atmosphere import settings
 
+
 class AccountDriver():
     user_manager = None
     image_manager = None
@@ -78,17 +79,15 @@ class AccountDriver():
         user_args.get('secret')
         user_args.get('account_path')
         #ec2_url//url required for user_manager
-        if not user_args.get('url',None):
-            user_args['url'] = user_args.pop('ec2_url',None)
+        if not user_args.get('url', None):
+            user_args['url'] = user_args.pop('ec2_url', None)
         #Remove if exists:
-        user_args.pop('config_path',None)
-        user_args.pop('ec2_cert_path',None)
-        user_args.pop('euca_cert_path',None)
-        user_args.pop('pk_path',None)
-        user_args.pop('s3_url',None)
+        user_args.pop('config_path', None)
+        user_args.pop('ec2_cert_path', None)
+        user_args.pop('euca_cert_path', None)
+        user_args.pop('pk_path', None)
+        user_args.pop('s3_url', None)
         return user_args
-
-
 
     def create_account(self, euca_user, max_quota=False, account_admin=False):
         """
@@ -97,7 +96,7 @@ class AccountDriver():
         """
 
         if type(euca_user) == str:
-    	    euca_user = self.get_user(euca_user)
+            euca_user = self.get_user(euca_user)
 
         identity = self.create_identity(
             euca_user['username'],
@@ -107,12 +106,13 @@ class AccountDriver():
 
     def create_identity(self, euca_user, max_quota=False, account_admin=False):
         """
-        euca_user - A dictionary containing 'access_key', 'secret_key', and 'username'
+        euca_user - A dictionary containing 'access_key',
+                    'secret_key', and 'username'
         max_quota - Set this user to have the maximum quota,
                     instead of the default quota
         """
         if type(euca_user) == str:
-    	    euca_user = self.get_user(euca_user)
+            euca_user = self.get_user(euca_user)
         return self.create_identity(euca_user['username'],
                                     euca_user['access_key'],
                                     euca_user['secret_key'],
@@ -120,16 +120,15 @@ class AccountDriver():
                                     account_admin=account_admin)
 
     def create_identity(self, username, access_key, secret_key,
-            max_quota=False, account_admin=False):
+                        max_quota=False, account_admin=False):
         """
         """
         identity = Identity.create_identity(
-                username, self.core_provider.location,
-                max_quota=max_quota, account_admin=account_admin,
-                cred_key=access_key, cred_secret=secret_key)
+            username, self.core_provider.location,
+            max_quota=max_quota, account_admin=account_admin,
+            cred_key=access_key, cred_secret=secret_key)
 
-        return identity 
-
+        return identity
 
     def clean_credentials(self, credential_dict):
         creds = ["username", "access_key", "secret_key"]
@@ -152,7 +151,8 @@ class AccountDriver():
         return user
 
     def delete_identity(self, username):
-        ident = Identity.objects.get(created_by__username=username, provider=core_provider)
+        ident = Identity.objects.get(
+            created_by__username=username, provider=core_provider)
         return ident.delete()
 
     def delete_user(self, username):

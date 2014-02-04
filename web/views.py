@@ -130,6 +130,26 @@ def app(request):
         logger.exception(e)
         return cas_loginRedirect(request, settings.REDIRECT_URL+'/application')
 
+def app_beta(request):
+    logger.debug("APP BETA")
+    try:
+        #TODO Reimplment maintenance record check
+        template = get_template("cf3/index.html")
+        context = RequestContext(request, {
+            'site_root': settings.REDIRECT_URL,
+            'url_root': '/beta/',
+            'debug': settings.DEBUG,
+            'year': datetime.now().year
+        })
+        output = template.render(context)
+        return HttpResponse(output)
+    except KeyError, e:
+        logger.debug("User not logged in.. Redirecting to CAS login")
+        return cas_loginRedirect(request, settings.REDIRECT_URL+'/beta')
+    except Exception, e:
+        logger.exception(e)
+        return cas_loginRedirect(request, settings.REDIRECT_URL+'/beta')
+
 
 @atmo_valid_token_required
 def partial(request, path, return_string=False):
@@ -137,7 +157,8 @@ def partial(request, path, return_string=False):
         logger.info(
             "init_data.js has yet to be implemented with the new service")
     elif path == 'templates.js':
-        output = compile_templates()
+        template_path = os.path.join(settings.root_dir, 'resources', 'js', 'cf2', 'templates')
+        output = compile_templates('cf2/partials/cloudfront2.js', template_path)
 
     response = HttpResponse(output, 'text/javascript')
     response['Cache-Control'] = 'no-cache'
@@ -145,20 +166,18 @@ def partial(request, path, return_string=False):
     return response
 
 
-def compile_templates():
+def compile_templates(template_path, js_files_path):
     """
     Compiles backbonejs app into a single js file. Returns string.
     Pulled out into its own function so it can be called externally to
     compile production-ready js
     """
-    template = get_template("cf2/partials/cloudfront2.js")
+    template = get_template(template_path)
     context_dict = {
         'site_root': settings.SERVER_URL,
         'templates': {},
         'files': {}
     }
-    js_files_path = os.path.join(settings.root_dir, 'resources',
-                                 'js', 'cf2', 'templates')
 
     for root, dirs, files in os.walk(js_files_path):
         if files:
@@ -192,7 +211,6 @@ def application(request):
     variables = RequestContext(request, {})
     output = template.render(variables)
     return HttpResponse(output)
-
 
 @atmo_login_required
 def emulate_request(request, username=None):

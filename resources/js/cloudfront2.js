@@ -33,7 +33,6 @@ function resizeApp() {
 		$('#image_holder').height($('#content').height() - $('#image_header').outerHeight() - $('#image_search_holder').outerHeight() - $('#selected_image_info_container h1').outerHeight() - 45);
 
 		$('.shell_iframe').height($('#content').height() - $('#resource_usage_title').outerHeight() - $('#resource_usage_holder').outerHeight() - $('.instance_tabs:visible').outerHeight() - 110);
-		$('.vnc_iframe').height($('#content').height() - $('#resource_usage_title').outerHeight() - $('#resource_usage_holder').outerHeight() - $('.instance_tabs:visible').outerHeight() - 110);
 		$('#selected_image').height($('#content').height() - $('#logged_in_data').height() - $('#image_header').height());
 
 		$('#draggable_container').height(
@@ -130,6 +129,15 @@ $(function() {
       var header = "Logging Out of Atmosphere";
       var body = "You will be logged out of Atmosphere in <span id='countdown_time'></span> seconds.<br\><br\>Would you like to log out of all iPlant applications?";
 
+      var count = 10;
+      var timeout = window.setInterval(function() {
+        $("#countdown_time").html(count);
+        count--;
+        if (count == 0)
+            window.location.replace(site_root + "/logout/");	
+      }, 1000);
+
+
       new Atmo.Views.AlertModal().render().do_alert(header,body,{
             ok_button: "Log out of all iPlant services",
             on_confirm: function(){
@@ -143,15 +151,11 @@ $(function() {
             }
       });
 
-      var count = 10;
-      var timeout;
-      (timeout = function() {
-        $("#countdown_time").html(count);
-        count--;
-        if (count > 0)
-            window.setTimeout(timeout, 1000);
-        else 
-            window.location.replace(site_root + "/logout/");	
-      })();
+      $("#alert_modal").on('hide.bs.modal', function(_) {
+          $("#alert_modal").off('hide.bs.modal');
+          clearInterval(timeout);
+      });
+
+
   });
 });

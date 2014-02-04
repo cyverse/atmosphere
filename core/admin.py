@@ -7,11 +7,12 @@ from django.contrib.auth.models import Group as DjangoGroup
 from django.utils import timezone
 
 
+from core.models.application import Application
 from core.models.credential import Credential, ProviderCredential
 from core.models.group import Group, IdentityMembership, ProviderMembership
 from core.models.identity import Identity
 from core.models.instance import Instance, InstanceStatusHistory
-from core.models.machine import Machine, ProviderMachine
+from core.models.machine import ProviderMachine
 from core.models.machine_request import MachineRequest
 from core.models.maintenance import MaintenanceRecord
 from core.models.node import NodeController
@@ -69,8 +70,8 @@ class AllocationAdmin(admin.ModelAdmin):
 
 class ProviderMachineAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
-    search_fields = ["machine__name", "provider__location", "identifier"]
-    list_display = ["identifier", "provider", "machine"]
+    search_fields = ["application__name", "provider__location", "identifier"]
+    list_display = ["identifier", "provider", "application"]
     list_filter = [
         "provider__location",
     ]
@@ -127,11 +128,11 @@ class VolumeAdmin(admin.ModelAdmin):
     list_filter = ["provider__location"]
 
 
-class MachineAdmin(admin.ModelAdmin):
+class ApplicationAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     search_fields = ["name", "id"]
     list_display = [
-        "name", "start_date", "end_date", "private", "featured"]
+        "name", "start_date", "end_date", "private", "featured", "created_by"]
     filter_vertical = ["tags",]
 
 
@@ -220,27 +221,27 @@ class InstanceStatusAdmin(admin.ModelAdmin):
 
 class InstanceAdmin(admin.ModelAdmin):
     search_fields = ["created_by__username", "provider_alias", "ip_address"]
-    list_display = ["provider_alias", "created_by", "ip_address"]
+    list_display = ["provider_alias", "name", "created_by", "ip_address"]
     list_filter = ["provider_machine__provider__location"]
 
 
 admin.site.register(Credential)
 admin.site.unregister(DjangoGroup)
 admin.site.register(Group)
+admin.site.register(Application, ApplicationAdmin)
+admin.site.register(Allocation, AllocationAdmin)
 admin.site.register(Identity, IdentityAdmin)
 admin.site.register(IdentityMembership, IdentityMembershipAdmin)
-admin.site.register(ProviderMembership, ProviderMembershipAdmin)
-admin.site.register(InstanceStatusHistory, InstanceStatusAdmin)
 admin.site.register(Instance, InstanceAdmin)
-admin.site.register(Machine, MachineAdmin)
+admin.site.register(InstanceStatusHistory, InstanceStatusAdmin)
 admin.site.register(MachineRequest, MachineRequestAdmin)
 admin.site.register(MaintenanceRecord, MaintenanceAdmin)
 admin.site.register(NodeController, NodeControllerAdmin)
-admin.site.register(ProviderMachine, ProviderMachineAdmin)
 admin.site.register(Provider, ProviderAdmin)
+admin.site.register(ProviderMachine, ProviderMachineAdmin)
+admin.site.register(ProviderMembership, ProviderMembershipAdmin)
 admin.site.register(ProviderType)
 admin.site.register(Quota, QuotaAdmin)
-admin.site.register(Allocation, AllocationAdmin)
 admin.site.register(Size, SizeAdmin)
 admin.site.register(Step, StepAdmin)
 admin.site.register(Tag, TagAdmin)

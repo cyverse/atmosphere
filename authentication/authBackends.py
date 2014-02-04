@@ -7,7 +7,8 @@ from core.models import AtmosphereUser as DjangoUser
 
 from threepio import logger
 
-from authentication.protocol.ldap import ldap_validate, ldap_formatAttrs, lookupUser
+from authentication.protocol.ldap import \
+    ldap_validate, ldap_formatAttrs, lookupUser
 from authentication.protocol.cas import cas_validateUser, cas_formatAttrs
 
 

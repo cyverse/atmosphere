@@ -4,7 +4,6 @@ Common functions used by all API test cases
 from urlparse import urljoin
 from datetime import datetime
 from rest_framework import status
-from threepio import logger
 from time import sleep
 
 def verify_expected_output(test_client, api_out, expected_out):
@@ -32,11 +31,14 @@ def reuse_instance(test_client, full_instance_url, machine_alias, instance_name)
     instance_id = None
     instance_ip = None
     for instance in instance_list_resp.data:
-        if instance.get("status") in ['active','running'] and \
-           instance.get("machine_alias") == machine_alias:
-            instance_id = instance.get("alias")
-            instance_ip = instance.get("ip_address")
-            break
+        if instance.get("machine_alias") == machine_alias:
+            print 'Found potential instance, verifying it can be reused..'
+            if instance.get("status") in ['active','running']:
+                instance_id = instance.get("alias")
+                instance_ip = instance.get("ip_address")
+                break
+            print "Cannot reuse non active instance:%s (%s)"\
+                  % (instance.get("alias"), instance.get("status"))
     return (instance_id, instance_ip)
 
 
@@ -51,57 +53,31 @@ def standup_instance(test_client, full_instance_url,
     * Wait until the instance is 'READY'
     * Verify the instance is 'READY'
     """
+    #Delete them all first
+    if delete_before:
+        remove_all_instances(test_client, full_instance_url)
+    #Reuse if possible
     instance_id, ip_addr = reuse_instance(test_client, full_instance_url,
             machine_alias, name)
     if instance_id and ip_addr:
-        print "reusing instance %s" % instance_id
+        print "Using Instance %s instead of launching" % instance_id
         return instance_id, ip_addr
+    print "Launching a new instance"
     launch_data = {
             "machine_alias":machine_alias,
             "size_alias":size_alias,
             "name":name,
             "tags":['test_instance','test','testing']}
-    #Delete them all
-    if delete_before:
-        remove_all_instances(test_client, full_instance_url)
     if first_launch:
         launch_data['delay'] = 20*60
     # Launch a new one
     instance_launch_resp = test_client.api_client.post(full_instance_url, launch_data, format='json')
-    # Ensure it worked
+    print "Instance deployment complete."
+    # Launch is complete. 
     test_client.assertEqual(instance_launch_resp.status_code, status.HTTP_201_CREATED)
     test_client.assertIsNotNone(instance_launch_resp.data)
     test_client.assertIsNotNone(instance_launch_resp.data.get('alias'))
     instance_id = instance_launch_resp.data['alias']
-    launch_time = datetime.now()
-    #Instance is launched, wait until active
-    finished = False
-    minutes = 1
-    attempts = 0
-    while not finished:
-        #Attempt communication
-        new_instance_url = urljoin(full_instance_url, '%s/' % instance_id)
-        instance_get_resp = test_client.api_client.get(new_instance_url)
-        test_client.assertIsNotNone(instance_get_resp.data)
-        ip_addr = instance_get_resp.data['ip_address']
-        updated_status = instance_get_resp.data['status'].lower()
-        if updated_status not in ['active','running']:
-            #1m, 2m, 4m, 5m, 5m, ...
-            attempts += 1
-            minutes = min(5, 2**minutes)
-            test_client.assertNotEqual(attempts, 10,
-                "Made 10 attempts to wait for an active/running instance. Giving up..")
-
-            logger.info("Waiting for instance %s to be in active/running state"
-                        ". Current status:%s. Waiting:%s minutes"
-                        % (instance_id, updated_status, minutes))
-            sleep(minutes * 60)
-            continue
-        finished = True
-        #Sleep if it failed
-    deploy_duration = datetime.now() - launch_time
-    logger.info("Instance %s has finished deployment. Deployment time:%s"
-                % (instance_id, deploy_duration))
     if delete_after:
         remove_all_instances(test_client, full_instance_url)
     return instance_id, ip_addr

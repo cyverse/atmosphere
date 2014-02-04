@@ -8,76 +8,17 @@ from django.db import models
 from django.utils import timezone
 from threepio import logger
 
+from atmosphere import settings
+from core.models.application import Application
+from core.models.application import create_application, get_application
 from core.models.identity import Identity
 from core.models.provider import Provider
+
 from core.models.tag import Tag, updateTags
+from core.fields import VersionNumberField, VersionNumber
 
-
-class Machine(models.Model):
-    """
-    Machines are described with their name, tags, and a lengthy description
-    of what is included in the machine.
-    A machine has an icon/logo for use in frontend applications
-    On launch, new instances will request an init_package
-    to run additional runtime configuration scripts.
-    Private machines can be 'shared' with other groups
-    using MachineMembership (see group.py)
-    Machines creation and deletion date,
-    as well as the user who created the machine,
-    are recorded for logging purposes.
-    """
-    name = models.CharField(max_length=256)
-    description = models.TextField(null=True, blank=True)
-    tags = models.ManyToManyField(Tag, blank=True)
-    icon = models.ImageField(upload_to="machine_images", null=True, blank=True)
-    private = models.BooleanField(default=False)
-    providers = models.ManyToManyField(Provider, through="ProviderMachine",
-            blank=True)
-    featured = models.BooleanField(default=False)
-    created_by = models.ForeignKey('AtmosphereUser')  # The user that requested imaging
-    created_by_identity = models.ForeignKey(Identity, null=True)
-    start_date = models.DateTimeField(default=timezone.now())
-    end_date = models.DateTimeField(null=True, blank=True)
-    application = models.ForeignKey('Application', null=True)
-
-    def update(self, *args, **kwargs):
-        """
-        Allows for partial updating of the model
-        """
-        #Upload args into kwargs
-        for arg in args:
-            for (key, value) in arg.items():
-                kwargs[key] = value
-        #Update the values
-        for key in kwargs.keys():
-            if key == 'tags':
-                if type(kwargs[key]) != list:
-                    tags_list = kwargs[key].split(",")
-                else:
-                    tags_list = kwargs[key]
-                updateTags(self, tags_list)
-                continue
-            setattr(self, key, kwargs[key])
-        self.save()
-        return self
-
-    def json(self):
-        return {
-            'name': self.name,
-            'description': self.description,
-            'tags': [tag.json() for tag in self.tags.all()],
-            'icon': self.icon.url if self.icon else '',
-            'private': self.private,
-            'owner': self.created_by.username if self.created_by else "",
-        }
-
-    def __unicode__(self):
-        return "%s" % (self.name,)
-
-    class Meta:
-        db_table = "machine"
-        app_label = "core"
-
+from core.metadata import _get_owner_identity
+from core.application import write_app_data, has_app_data, get_app_data
 
 class ProviderMachine(models.Model):
     """
@@ -90,19 +31,21 @@ class ProviderMachine(models.Model):
     esh = None
     cached_machines = None
     provider = models.ForeignKey(Provider)
-    machine = models.ForeignKey(Machine)
-    identifier = models.CharField(max_length=256, unique=True)  # EMI-12341234
+    application = models.ForeignKey(Application)
+
+    identifier = models.CharField(max_length=256)  # EMI-12341234
     created_by = models.ForeignKey('AtmosphereUser', null=True)
     created_by_identity = models.ForeignKey(Identity, null=True)
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
+    version = VersionNumberField(default=int(VersionNumber(1,)))
 
     def icon_url(self):
-        return self.machine.icon.url if self.machine.icon else None
+        return self.application.icon.url if self.application.icon else None
 
     def creator_name(self):
-        if self.machine:
-            return self.machine.created_by.username
+        if self.application:
+            return self.application.created_by.username
         else:
             return "Unknown"
 
@@ -129,17 +72,9 @@ class ProviderMachine(models.Model):
            and self.esh._image.extra:
             return self.esh._image.extra['state']
 
-    def json(self):
-        return {
-            'alias': self.identifier,
-            'alias_hash': self.hash_alias(),
-            'machine': self.machine,
-            'provider': self.provider,
-        }
-
     def __unicode__(self):
-        return "%s (Provider:%s - Machine:%s) " %\
-            (self.identifier, self.provider, self.machine)
+        return "%s (Provider:%s - App:%s) " %\
+            (self.identifier, self.provider, self.application)
 
     class Meta:
         db_table = "provider_machine"
@@ -172,46 +107,50 @@ def get_cached_machine(provider_alias, provider_id):
     return cached_mach
 
 
-def load_machine(provider_alias, machine_name, provider_id):
+def load_provider_machine(provider_alias, machine_name, provider_id,
+                          app=None, metadata={}):
     """
     Returns ProviderMachine
     """
-    return create_provider_machine(machine_name, provider_alias, provider_id)
-
-def update_machine_owner(machine, identity):
-    machine.created_by_identity=identity
-    machine.created_by=identity.created_by
-    machine.save()
-
-
-def create_provider_machine(machine_name, provider_alias,
-                          provider_id, description=None):
-    #Attempt to match machine by provider alias
-    provider_machine = get_provider_machine(identifier=provider_alias)
+    provider_machine = get_provider_machine(provider_alias, provider_id)
     if provider_machine:
         return provider_machine
+    if not app:
+        app = get_application(provider_alias, app_uuid=metadata.get('uuid'))
+    if not app:
+        app = create_application(provider_alias, provider_id, machine_name)
+    return create_provider_machine(machine_name, provider_alias, provider_id, app=app, metadata=metadata)
 
+def update_application_owner(application, identity):
+    application.created_by_identity=identity
+    application.created_by=identity.created_by
+    #PUSH METADATA
+    application.save()
+
+
+
+def create_provider_machine(machine_name, provider_alias, provider_id, app, metadata={}):
+    #Attempt to match machine by provider alias
     #Admin identity used until the real owner can be identified.
     provider = Provider.objects.get(id=provider_id)
-    machine_owner = provider.get_admin_identity()
-    #Machines with an exact name match are treated as 'identical'
-    machine = get_generic_machine(machine_name)
-    if not machine:
-        #Build a machine
-        if not description:
-            description = "%s" % machine_name
-        machine = create_generic_machine(machine_name, description, machine_owner)
+
+    #TODO: Read admin owner from location IFF eucalyptus
+    machine_owner = _get_owner_identity(metadata.get('owner',''), provider_id)
+
     logger.debug("Provider %s" % provider)
-    logger.debug("Machine %s" % machine)
+    logger.debug("App %s" % app)
     provider_machine = ProviderMachine.objects.create(
-        machine=machine,
-        provider=provider,
-        created_by=machine_owner.created_by,
-        created_by_identity=machine_owner,
-        identifier=provider_alias)
+        application = app,
+        provider = provider,
+        created_by = machine_owner.created_by,
+        created_by_identity = machine_owner,
+        identifier = provider_alias,
+        version = VersionNumber.string_to_version(
+            metadata.get('version','1.0')))
     logger.info("New ProviderMachine created: %s" % provider_machine)
     add_to_cache(provider_machine)
     return provider_machine
+
 
 def add_to_cache(provider_machine):
     #if not ProviderMachine.cached_machines:
@@ -222,67 +161,77 @@ def add_to_cache(provider_machine):
     #    provider_machine.identifier)] = provider_machine
     return provider_machine
 
-def get_provider_machine(identifier):
+
+def get_provider_machine(identifier, provider_id):
     try:
-        machine = ProviderMachine.objects.get(identifier=identifier)
+        machine = ProviderMachine.objects.get(provider__id=provider_id, identifier=identifier)
         return machine
     except ProviderMachine.DoesNotExist:
         return None
 
-def get_generic_machine(name):
-    try:
-        machine = Machine.objects.get(name=name)
-        return machine
-    except Machine.DoesNotExist:
-        return None
-    except Machine.MultipleObjectsReturned:
-        return Machine.objects.filter(name=name)[0]
-    except Exception, e:
-        logger.error(e)
-        logger.error(type(e))
-
-
-def create_generic_machine(name, description, creator_id=None):
-    from core.models import AtmosphereUser
-    if not description:
-        description = ""
-    if not creator_id:
-        creator_id = AtmosphereUser.objects.get_or_create(username='admin')[0]
-    new_mach = Machine.objects.create(name=name,
-                                      description=description,
-                                      created_by=creator_id.created_by,
-                                      created_by_identity=creator_id)
-    return new_mach
-
 
 def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
     """
+    Takes as input an (rtwo) driver and machine, and a core provider id
+    Returns as output a core ProviderMachine
     """
     if image_id and not esh_machine:
-        provider_machine = load_machine(image_id, 'Unknown Image', provider_id)
-        return provider_machine
+        return _convert_from_instance(esh_driver, provider_id, image_id)
     elif not esh_machine:
         return None
+    push_metadata = False
+    metadata = esh_machine._image.extra.get('metadata',{})
     name = esh_machine.name
     alias = esh_machine.alias
-    provider_machine = load_machine(alias, name, provider_id)
+    if metadata and has_app_data(metadata):
+        #USE CASE: Application data exists on the image
+        # and may exist on this DB
+        app = get_application(alias, metadata.get('application_uuid'))
+        if not app:
+            app_kwargs = get_app_data(metadata, provider_id)
+            logger.debug("Creating Application for Image %s "
+                         "(Based on Application data: %s)"
+                         % (alias, app_kwargs))
+            app = create_application(alias, provider_id, **app_kwargs)
+    else:
+        #USE CASE: Application data does NOT exist,
+        # This machine is assumed to be its own application, so run the
+        # machine alias to retrieve any existing application.
+        # otherwise create a new application with the same name as the machine
+        # App assumes all default values
+        #logger.info("Image %s missing Application data" % (alias, ))
+        push_metadata = True
+        #TODO: Get application 'name' instead?
+        app = get_application(alias)
+        if not app:
+            logger.debug("Creating Application for Image %s" % (alias, ))
+            app = create_application(alias, provider_id, name)
+    provider_machine = load_provider_machine(alias, name, provider_id,
+                                             app=app, metadata=metadata)
+    if push_metadata and hasattr(esh_driver._connection,
+                                 'ex_set_image_metadata'):
+        logger.debug("Creating App data for Image %s:%s" % (alias, app.name))
+        write_app_data(esh_driver, provider_machine)
     provider_machine.esh = esh_machine
-    provider_machine = set_machine_from_metadata(esh_driver, provider_machine)
     return provider_machine
 
+
+def _convert_from_instance(esh_driver, provider_id, image_id):
+    provider_machine = load_provider_machine(image_id, 'Unknown Image', provider_id)
+    return provider_machine
 
 def compare_core_machines(mach_1, mach_2):
     """
     Comparison puts machines in LATEST start_date, then Lexographical ordering
     """
-    if mach_1.machine.featured and not mach_2.machine.featured:
+    if mach_1.application.featured and not mach_2.application.featured:
         return -1
-    elif not mach_1.machine.featured and mach_2.machine.featured:
+    elif not mach_1.application.featured and mach_2.application.featured:
         return 1
     #Neither/Both images are featured.. Check start_date
-    if mach_1.machine.start_date > mach_2.machine.start_date:
+    if mach_1.application.start_date > mach_2.application.start_date:
         return -1
-    elif mach_1.machine.start_date < mach_2.machine.start_date:
+    elif mach_1.application.start_date < mach_2.application.start_date:
         return 1
     else:
         return cmp(mach_1.identifier, mach_2.identifier)
@@ -290,72 +239,14 @@ def compare_core_machines(mach_1, mach_2):
 def filter_core_machine(provider_machine):
     """
     Filter conditions:
-    * Machine does not have an end_date
+    * Application does not have an end_date
     * end_date < now
     """
     now = timezone.now()
     if provider_machine.end_date or\
-       provider_machine.machine.end_date:
+       provider_machine.application.end_date:
         if provider_machine.end_date:
             return not(provider_machine.end_date < now)
-        if provider_machine.machine.end_date:
-            return not(provider_machine.machine.end_date < now)
+        if provider_machine.application.end_date:
+            return not(provider_machine.application.end_date < now)
     return True
-
-
-def set_machine_from_metadata(esh_driver, core_machine):
-    #Fixes Dep. loop - Do not remove
-    from api.serializers import ProviderMachineSerializer
-    if not hasattr(esh_driver._connection, 'ex_get_image_metadata'):
-        #NOTE: This can get chatty, only uncomment for debugging
-        #Breakout for drivers (Eucalyptus) that don't support metadata
-        #logger.debug("EshDriver %s does not have function 'ex_get_image_metadata'"
-        #            % esh_driver._connection.__class__)
-        return core_machine
-    esh_machine = core_machine.esh
-    try:
-        metadata =  esh_driver._connection.ex_get_image_metadata(esh_machine)
-    except Exception:
-        logger.warn('Warning: Metadata could not be retrieved for: %s' % esh_machine)
-        return core_machine
-
-    #TAGS must be converted from String --> List
-    if 'tags' in metadata and type(metadata['tags']) != list:
-        tags_as_list = metadata['tags'].split(', ')
-        metadata['tags'] = tags_as_list
-    serializer = ProviderMachineSerializer(core_machine, data=metadata, partial=True)
-    if not serializer.is_valid():
-        logger.info("New metadata failed: %s" % metadata)
-        logger.warn("Encountered errors serializing metadata:%s"
-                    % serializer.errors)
-        return core_machine
-    serializer.save()
-    # Retrieve and prepare the new obj
-    core_machine = serializer.object
-    if 'tags' in metadata:
-        updateTags(core_machine.machine, metadata['tags'])
-        core_machine.machine.save()
-    core_machine.esh = esh_machine
-    return core_machine
-
-def update_machine_metadata(esh_driver, esh_machine, data={}):
-    """
-    NOTE: This will NOT WORK for TAGS until openstack
-    allows JSONArrays as values for metadata!
-    """
-    if not hasattr(esh_driver._connection, 'ex_set_image_metadata'):
-        logger.info("EshDriver %s does not have function 'ex_set_image_metadata'"
-                    % esh_driver._connection.__class__)
-        return {}
-    try:
-        #TAGS must be converted from list --> String
-        if 'tags' in data and type(data['tags']) == list:
-            data['tags'] = json.dumps(data['tags'])
-        logger.info("New metadata:%s" % data)
-        return esh_driver._connection.ex_set_image_metadata(esh_machine, data)
-    except Exception, e:
-        if 'incapable of performing the request' in e.message:
-            return {}
-        else:
-            raise
-

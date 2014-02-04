@@ -18,8 +18,9 @@ from authentication.decorators import api_auth_token_required
 from core.models.identity import Identity
 
 from core.models.machine import compare_core_machines, filter_core_machine,\
-    convert_esh_machine, update_machine_metadata,\
-    ProviderMachine
+    convert_esh_machine, ProviderMachine
+    
+from core.metadata import update_machine_metadata
 
 from service.machine_search import search, CoreSearchProvider
 
@@ -41,7 +42,7 @@ def provider_filtered_machines(request, provider_id, identity_id):
         esh_machine_list,
         black_list=['eki-', 'eri-'])
     core_machine_list = [convert_esh_machine(esh_driver, mach, provider_id)
-                         for mach in esh_machine_list]
+                           for mach in esh_machine_list]
     filtered_machine_list = filter(filter_core_machine, core_machine_list)
     sorted_machine_list = sorted(filtered_machine_list,
                                  cmp=compare_core_machines)
@@ -51,7 +52,7 @@ def provider_filtered_machines(request, provider_id, identity_id):
 def all_filtered_machines():
     return ProviderMachine.objects.exclude(
         Q(identifier__startswith="eki-")
-        | Q(identifier__startswith="eri")).order_by("-machine__start_date")
+        | Q(identifier__startswith="eri")).order_by("-application__start_date")
 
 
 class MachineList(APIView):
@@ -109,7 +110,7 @@ class MachineHistory(APIView):
         if all_machines_list:
             history_machine_list =\
                 [m for m in all_machines_list if
-                 m.machine.created_by.username == user.username]
+                 m.application.created_by.username == user.username]
             logger.warn(len(history_machine_list))
         else:
             history_machine_list = []
@@ -242,7 +243,7 @@ class Machine(APIView):
         esh_machine = esh_driver.get_machine(machine_id)
         coreMachine = convert_esh_machine(esh_driver, esh_machine, provider_id)
 
-        if not user.is_staff and user is not coreMachine.machine.created_by:
+        if not user.is_staff and user is not coreMachine.application.created_by:
             logger.warn('%s is Non-staff/non-owner trying to update a machine'
                         % (user.username))
             errorObj = failureJSON([{
@@ -252,7 +253,7 @@ class Machine(APIView):
                 + 'are allowed to change machine info.'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
-        coreMachine.machine.update(request.DATA)
+        coreMachine.application.update(request.DATA)
         serializer = ProviderMachineSerializer(coreMachine,
                                                data=data, partial=True)
         if serializer.is_valid():
@@ -275,7 +276,7 @@ class Machine(APIView):
         esh_machine = esh_driver.get_machine(machine_id)
         coreMachine = convert_esh_machine(esh_driver, esh_machine, provider_id)
 
-        if not user.is_staff and user is not coreMachine.machine.created_by:
+        if not user.is_staff and user is not coreMachine.application.created_by:
             logger.warn('Non-staff/non-owner trying to update a machine')
             errorObj = failureJSON([{
                 'code': 401,
@@ -283,7 +284,7 @@ class Machine(APIView):
                 'Only Staff and the machine Owner '
                 + 'are allowed to change machine info.'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
-        coreMachine.machine.update(data)
+        coreMachine.application.update(data)
         serializer = ProviderMachineSerializer(coreMachine,
                                                data=data, partial=True)
         if serializer.is_valid():

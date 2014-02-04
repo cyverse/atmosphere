@@ -5,6 +5,7 @@ Settings for atmosphere project.
 
 from __future__ import absolute_import
 from datetime import timedelta
+from uuid import UUID
 import logging
 import os
 import os.path
@@ -19,7 +20,8 @@ import atmosphere
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                            '../..'))
 SERVER_URL = 'https://yourserver.iplantc.org'
 # IF on the root directory, this should be BLANK, else: /path/to/web (NO
 # TRAILING /)
@@ -77,13 +79,56 @@ STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static/')
 
 STATIC_URL = '/static/'
 
+STATICFILES_DIRS = (
+    os.path.join(PROJECT_ROOT, "resources"),
+)
+
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '785nc+)g%w!g01#$#lc+weg2b!yc^z#17rvjln0c5r39*vg8%t'
 
+# This key however should stay the same, and be shared with all Atmosphere
+ATMOSPHERE_NAMESPACE_UUID=UUID("40227dff-dedf-469c-a9f8-1953a7372ac1")
+
+#django-pipeline configuration
+PIPELINE = False
+
+PIPELINE_ENABLED = False
+
+STATICFILES_STORAGE = 'pipeline.storage.PipelineStorage'
+
+PIPELINE_CSS = {
+    'app': {
+        'source_filenames': (
+            'css/cloudfront.css',
+        ),
+        'output_filename': 'css/app.css',
+        'extra_context': {
+            'media': 'screen,projection',
+        },
+    },
+}
+
+PIPELINE_JS = {
+    'app': {
+        'source_filenames': (
+            'js/cloudfront2.js',
+            'js/base.js',
+            'partials/templates.js',
+        ),
+        'output_filename': 'js/app.js',
+    }
+}
+
 # List of callables that know how to import templates from various sources.
 STATICFILES_FINDERS = (
-    'django.contrib.staticfiles.finders.FileSystemFinder',
-    'django.contrib.staticfiles.finders.AppDirectoriesFinder'
+    'pipeline.finders.FileSystemFinder',
+    'pipeline.finders.AppDirectoriesFinder',
+    'pipeline.finders.PipelineFinder',
+    'pipeline.finders.CachedFileFinder',
+#    'django.contrib.staticfiles.finders.FileSystemFinder',
+#    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+#    'pipeline.finders.AppDirectoriesFinder',
+#    'pipeline.finders.CachedFileFinder',
 )
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.Loader',
@@ -93,6 +138,10 @@ TEMPLATE_LOADERS = (
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+
+    'django.middleware.gzip.GZipMiddleware',
+    'pipeline.middleware.MinifyHTMLMiddleware',
+
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -130,6 +179,7 @@ INSTALLED_APPS = (
     'south',
     'djcelery',
     'django_jenkins',
+    'pipeline',
 
     #iPlant apps
     'rtwo',
@@ -234,9 +284,19 @@ CELERY_TIMEZONE = "America/Phoenix"
 CELERY_SEND_EVENTS = True
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_TASK_RESULT_EXPIRES = 10
-CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
-CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s @ %(pathname)s on %(lineno)d] %(message)s"
-CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
+#CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
+CELERYBEAT_SCHEDULE = {
+    'monitor-instances': {
+        'task': 'service.tasks.allocation.monitor_instances', 
+        'schedule': timedelta(seconds=60*15),
+    },
+    'check-all-instances': {
+        'task': 'core.tasks.instance.test_all_instance_links', 
+        'schedule': timedelta(seconds=60*5),
+    },
+}
+CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [PID:%(process)d] @ %(pathname)s on %(lineno)d] %(message)s"
+CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [PID:%(process)d] [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
 
 #Django-Celery Development settings
 #CELERY_ALWAYS_EAGER = True

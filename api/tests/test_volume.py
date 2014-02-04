@@ -67,7 +67,7 @@ class VolumeTests(TestCase):
                 "size_alias":"2",
                 "machine_alias":"75fdfca4-d49d-4b2d-b919-a3297bc6d7ae",
                 "name":"test volume attachment",
-                "delete_before":True
+                "delete_before":False
             }
         (self.os_instance_id, self.os_instance_ip) = standup_instance(
                 self, self.os_instance_url, **instance_data)
@@ -85,7 +85,7 @@ class VolumeTests(TestCase):
                 "size_alias":"m1.small",
                 "machine_alias":"emi-E7F8300F",
                 "name":"test volume attachment",
-                "delete_before":True
+                "delete_before":False
             }
         (self.euca_instance_id, self.euca_instance_ip) = standup_instance(
                 self, self.euca_instance_url, **instance_data)
@@ -121,52 +121,53 @@ class VolumeTests(TestCase):
             time.sleep(30) # Sorry, its euca.
 
 
-    def test_euca_volume(self):
-        """
-        Testing volumes must be done in order
-        * Create the volume
-        * wait a second
-        * Attach the volume
-        * Verify success
-        * If failed, Try again(?)
-        * Detach the volume
-        * Verify success
-        * wait a second
-        * Delete the volume
-        # Wait for volume to deploy and
-        # Ensure: SSH, VNC, Shellinabox, Deploy access
-        """
+    #def test_euca_volume(self):
+    #    """
+    #    Testing volumes must be done in order
+    #    * Create the volume
+    #    * wait a second
+    #    * Attach the volume
+    #    * Verify success
+    #    * If failed, Try again(?)
+    #    * Detach the volume
+    #    * Verify success
+    #    * wait a second
+    #    * Delete the volume
+    #    # Wait for volume to deploy and
+    #    # Ensure: SSH, VNC, Shellinabox, Deploy access
+    #    """
 
-        volume_post_data = {
-            "name":"euca_vol_test1",
-            "size":1,
-        }
-        self.expected_output['name'] = volume_post_data['name']
-        self.expected_output['size'] = volume_post_data['size']
+    #    volume_post_data = {
+    #        "name":"euca_vol_test1",
+    #        "size":1,
+    #    }
+    #    self.expected_output['name'] = volume_post_data['name']
+    #    self.expected_output['size'] = volume_post_data['size']
 
-        volume_id = self.create_volume(self.euca_volume_url, volume_post_data)
-        self.detail_volume(self.euca_volume_url, volume_id)
-        # Wait time associated between 'create' and 'attachment'
-        time.sleep(30)
-        self.attach_volume(self.euca_instance_url, self.euca_instance_id, volume_id)
-        time.sleep(30)
-        self.detach_volume(self.euca_instance_url, self.euca_instance_id, volume_id)
-        #Delete all volumes
-        deleted = self.delete_all_volumes(self.euca_volume_url)
-        if deleted:
-            # Wait time associated between 'detach' and 'delete'
-            time.sleep(30) # Sorry, its euca.
+    #    volume_id = self.create_volume(self.euca_volume_url, volume_post_data)
+    #    self.detail_volume(self.euca_volume_url, volume_id)
+    #    # Wait time associated between 'create' and 'attachment'
+    #    time.sleep(30)
+    #    self.attach_volume(self.euca_instance_url, self.euca_instance_id, volume_id)
+    #    time.sleep(30)
+    #    self.detach_volume(self.euca_instance_url, self.euca_instance_id, volume_id)
+    #    #Delete all volumes
+    #    deleted = self.delete_all_volumes(self.euca_volume_url)
+    #    if deleted:
+    #        # Wait time associated between 'detach' and 'delete'
+    #        time.sleep(30) # Sorry, its euca.
 
     def attach_volume(self, instance_base_url, instance_id, volume_id):
         #Make action url
         instance_action_url = urljoin(
-                urljoin(instance_base_url, '%s/' % instance_id), 'action/')
+            urljoin(instance_base_url, '%s/' % instance_id),
+            'action/')
         #Attach volume parameters
         action_params = {
-                'action':'attach_volume',
-                'volume_id':volume_id,
-                #'device':'/dev/xvdb',
-            }
+            'action':'attach_volume',
+            'volume_id':volume_id,
+            #'device':'/dev/xvdb',
+        }
         volume_attach_resp = self.api_client.post(instance_action_url,
                                                   action_params, format='json')
         #Wait and see..
@@ -174,26 +175,28 @@ class VolumeTests(TestCase):
     def detach_volume(self, instance_base_url, instance_id, volume_id):
         #Make action url
         instance_action_url = urljoin(
-                urljoin(instance_base_url, '%s/' % instance_id), 'action/')
+            urljoin(instance_base_url, '%s/' % instance_id), 'action/')
         #Attach volume parameters
         action_params = {
-                'action':'detach_volume',
-                'volume_id':volume_id,
-                #'device':'/dev/xvdb',
-            }
+            'action': 'detach_volume',
+            'volume_id': volume_id,
+            #'device': '/dev/xvdb',
+        }
         volume_detach_resp = self.api_client.post(instance_action_url,
                                                   action_params, format='json')
         #Wait and see..
 
     def create_volume(self, volume_base_url, post_data):
         #Create the volume
-        volume_launch_resp = self.api_client.post(volume_base_url, post_data, format='json')
+        volume_launch_resp = self.api_client.post(volume_base_url, post_data,
+                                                  format='json')
         #Validate the output
         if volume_launch_resp.status_code != status.HTTP_201_CREATED:
             logger.info(volume_launch_resp)
         self.assertEqual(volume_launch_resp.status_code, status.HTTP_201_CREATED)
         self.assertIsNotNone(volume_launch_resp.data)
-        verify_expected_output(self, volume_launch_resp.data, self.expected_output)
+        verify_expected_output(self, volume_launch_resp.data,
+                               self.expected_output)
         volume_id = volume_launch_resp.data['alias']
         return volume_id
 
@@ -208,8 +211,8 @@ class VolumeTests(TestCase):
 
     def delete_volume(self, volume_base_url, volume_alias):
         specific_volume_url = urljoin(
-                volume_base_url,
-                '%s/' % volume_alias)
+            volume_base_url,
+            '%s/' % volume_alias)
         #Delete the volume
         delete_resp = self.api_client.delete(specific_volume_url)
         #Validate the output
@@ -219,13 +222,14 @@ class VolumeTests(TestCase):
     def detail_volume(self, volume_base_url, volume_id):
         #Detail the volume
         specific_volume_url = urljoin(
-                volume_base_url,
-                '%s/' % volume_id)
+            volume_base_url,
+            '%s/' % volume_id)
         volume_get_resp = self.api_client.get(specific_volume_url)
         #Validate the output
         self.assertEqual(volume_get_resp.status_code, status.HTTP_200_OK)
-        verify_expected_output(self, volume_get_resp.data, self.expected_output)
+        verify_expected_output(self, volume_get_resp.data,
+                               self.expected_output)
 
 
 if __name__ == "__main__":
-   unittest.main()
+    unittest.main()
