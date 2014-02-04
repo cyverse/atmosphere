@@ -39,10 +39,8 @@ class Occupancy(APIView):
         admin_driver = get_admin_driver(provider)
         meta_driver = admin_driver.meta(admin_driver=admin_driver)
         esh_size_list = meta_driver.occupancy()
-        #Formatting..
         core_size_list = [convert_esh_size(size, provider_id)
                           for size in esh_size_list]
-        #return it
         serialized_data = ProviderSizeSerializer(core_size_list,
                                                  many=True).data
         return Response(serialized_data)

@@ -105,7 +105,9 @@ Atmo.Utils.update_weather = function() {
                                                          response_text["memory_mb_used"],
                                                          response_text["memory_mb"]);
           // Apply minimal formatting to occupancy.
-          occupancy = occupancy.toFixed(3) * 100;
+          occupancy *= 100;
+          occupancy = occupancy.toFixed(2);
+
           var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
           var weather = '';
 
