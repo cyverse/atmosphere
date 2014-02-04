@@ -32,13 +32,10 @@ class IdentityDetailList(APIView):
         """
         username = request.user.username
         group = Group.objects.get(name=username)
-        identities = group.identities.order_by('id')
-	    #user = request.user
-        #selected_identity = user.select_identity()
-	    #for identity in identities:
-	    #	if  selected_identity and selected_identity.id == identity.id:
-	    #		identity.selected = True
-	    #TODO: IdentityDetailSerializer should expect new 
+        providers = group.providers.filter(active=True, end_date=None)
+        identities = []
+        for p in providers:
+            [identities.append(i) for i in group.identities.filter(provider=p).order_by('id')]
         serialized_data = IdentityDetailSerializer(identities, many=True).data
         return Response(serialized_data)
 
