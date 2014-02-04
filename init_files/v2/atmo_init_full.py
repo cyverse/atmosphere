@@ -115,7 +115,7 @@ def set_hostname(hostname):
     #And set a dhcp exithook to keep things running on suspend/stop
     download_file(
         '%s/init_files/%s/hostname-exit-hook.sh' % (ATMOSERVER, SCRIPT_VERSION),
-        "/etc/dhcp/dhclient-exit-hooks.d/hostname"
+        "/etc/dhcp/dhclient-exit-hooks.d/hostname",
         match_hash='c0d27fcadc2bc6f3515a5a1ec7f5293e25d773d0')
     run_command(['/bin/chmod', 'a+x', "/etc/dhcp/dhclient-exit-hooks.d/hostname"])
 
