@@ -22,10 +22,12 @@ Atmo.Views.InstanceSizeDropdown = Backbone.View.extend({
         } else {
             instance_types.each(function (model) {
                 type_option = self.type_option(model);
-                if (type_option.has_remainder) {
-                    can_launch_instance = true;
+                if (type_option != undefined) {
+                    if (type_option.has_remainder) {
+                        can_launch_instance = true;
+                    }
+                    self.$el.append(type_option);
                 }
-                self.$el.append(type_option);
             });
 
             $('#launchInstance').attr('disabled', can_launch_instance ? 'enabled' : 'disabled');
