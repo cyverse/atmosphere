@@ -30,7 +30,9 @@ Atmo.Views.InstanceSizeDropdown = Backbone.View.extend({
                 }
             });
 
-            $('#launchInstance').attr('disabled', can_launch_instance ? 'enabled' : 'disabled');
+            if (can_launch_instance) {
+                $('#launchInstance').removeAttr('disabled');
+            }
             Atmo.Views.NewInstanceScreen.launch_lock = !can_launch_instance;
 
             // Sets initial selected_instance_type to m1.small
@@ -85,14 +87,13 @@ Atmo.Views.InstanceSizeDropdown = Backbone.View.extend({
             'has_remainder' : false
         });
         if (instance_type.get('remaining') > 0) {
-          opt.data('available', true);
-          opt.has_remainder = true;
-          console.log(opt);
+            opt.data('available', true);
+            opt.has_remainder = true;
         } else {
-          opt.data('available', false);
-          opt.attr('disabled', 'disabled');
-          opt.html(opt.html() + ' (At Capacity)');
-          opt.css("background-color", "#ccc");
+            opt.data('available', false);
+            opt.attr('disabled', 'disabled');
+            opt.html(opt.html() + ' (At Capacity)');
+            opt.css("background-color", "#ccc");
         }
         return opt;
     }

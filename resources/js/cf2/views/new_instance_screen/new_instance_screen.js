@@ -348,10 +348,11 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		//Backbone.history.navigate('#images/' + img.get('id'));
 		$('.image_list > li').removeClass('active');
 		$(e.currentTarget).addClass('active');
-
-                this.$el.find('#launchInstance').attr('disabled', this.under_quota && !this.launch_lock ? 'enabled' : 'disabled');
-                
-
+                if (this.under_quota && !this.launch_lock) {
+                    this.$el.find('#launchInstance').removeAttr('disabled');
+                } else {
+                    this.$el.find('#launchInstance').attr('disabled', true);
+                }
 		this.$el.find('#selected_image_icon_container').html('<img src="'+img.get('image_url')+'" width="50" height="50"/>');
 		this.$el.find('#selected_image_description')
 			.html(img.get('description'));
