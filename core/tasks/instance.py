@@ -56,9 +56,17 @@ def test_instance_links(alias, uri):
     if uri is None:
         return {alias: {'vnc': False, 'shell': False}}
     shell_address = '%s/shell/%s/' % (settings.SERVER_URL, uri)
-    shell_success = test_link(shell_address)
+    try:
+        shell_success = test_link(shell_address)
+    except Exception, e:
+        logger.exception("Bad shell address: %s" % shell_address)
+        shell_success = False
     vnc_address = 'http://%s:5904' % uri
-    vnc_success = test_link(vnc_address)
+    try:
+        vnc_success = test_link(vnc_address)
+    except Exception, e:
+        logger.exception("Bad vnc address: %s" % vnc_address)
+        vnc_success = False
     return {alias: {'vnc': vnc_success, 'shell': shell_success}}
 
 
