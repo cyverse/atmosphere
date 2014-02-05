@@ -114,6 +114,9 @@ def set_hostname(hostname):
     #Set the hostname once
     run_command(['/bin/hostname', hostname])
     #And set a dhcp exithook to keep things running on suspend/stop
+    if not os.path.exists('/etc/dhcp/dhclient-exit-hooks.d/'):
+        logging.debug("Skipping exit hook for hostname")
+        pass
     download_file(
         '%s/init_files/%s/hostname-exit-hook.sh' % (ATMOSERVER, SCRIPT_VERSION),
         "/etc/dhcp/dhclient-exit-hooks.d/hostname",
