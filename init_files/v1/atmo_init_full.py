@@ -113,12 +113,6 @@ def download_file(url, fileLoc, retry=False, match_hash=None):
 def set_hostname(hostname):
     #Set the hostname once
     run_command(['/bin/hostname', hostname])
-    #And set a dhcp exithook to keep things running on suspend/stop
-    download_file(
-        '%s/init_files/%s/hostname-exit-hook.sh' % (ATMOSERVER, SCRIPT_VERSION),
-        "/etc/dhcp/dhclient-exit-hooks.d/hostname",
-        match_hash='c0d27fcadc2bc6f3515a5a1ec7f5293e25d773d0')
-    run_command(['/bin/chmod', 'a+x', "/etc/dhcp/dhclient-exit-hooks.d/hostname"])
 
 def get_hostname(instance_metadata):
     #As set by atmosphere in the instance metadata
