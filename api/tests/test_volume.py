@@ -65,7 +65,7 @@ class VolumeTests(TestCase):
         self.os_volume_url = urljoin(settings.SERVER_URL, reverse_link)
         instance_data = {
                 "size_alias":"2",
-                "machine_alias":"75fdfca4-d49d-4b2d-b919-a3297bc6d7ae",
+                "machine_alias":"0f539197-3718-40bc-8a29-c22e0841684f",
                 "name":"test volume attachment",
                 "delete_before":False
             }
