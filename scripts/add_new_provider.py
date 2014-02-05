@@ -103,7 +103,7 @@ def create_provider():
                                            type=provider,
                                            public=False)
     #4.  Create a new provider
-    print "Created a new provider: %s" % (new_provider.name)
+    print "Created a new provider: %s" % (new_provider.location)
     return new_provider
 
 if __name__ == "__main__":

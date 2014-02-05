@@ -59,4 +59,5 @@ def get_app_data(metadata, provider_id):
             create_app_kwargs[key.replace('application_', '')] = val
     owner_name = create_app_kwargs["owner"]
     create_app_kwargs["owner"] = _get_owner_identity(owner_name, provider_id)
+    create_app_kwargs["tags"] = json.loads(create_app_kwargs["tags"])
     return create_app_kwargs

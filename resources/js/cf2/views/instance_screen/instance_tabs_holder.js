@@ -205,7 +205,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		var self = this;
 
 		// Display OpenStack-specific options
-		if (Atmo.profile.get('selected_identity').get('provider').match(/openstack/i)) {
+		if (Atmo.profile.get('selected_identity').get('provider').match(/openstack/i) || Atmo.profile.get('selected_identity').get('provider').match(/iplant/i) ) {
 
 			// Display descriptive instance size
 			var types = _.filter(Atmo.instance_types.models, function(type) {
