@@ -114,11 +114,10 @@ class VolumeTests(TestCase):
         self.attach_volume(self.os_instance_url, self.os_instance_id, volume_id)
         time.sleep(30)
         self.detach_volume(self.os_instance_url, self.os_instance_id, volume_id)
+        # Wait time associated between 'detach' and 'delete'
+        time.sleep(30) # Sorry, its euca.
         #Delete all volumes
         deleted = self.delete_all_volumes(self.os_volume_url)
-        if deleted:
-            # Wait time associated between 'detach' and 'delete'
-            time.sleep(30) # Sorry, its euca.
 
 
     #def test_euca_volume(self):

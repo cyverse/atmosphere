@@ -29,7 +29,7 @@ def start(images):
     euca_accounts = EucaAccountDriver(Provider.objects.get(id=1))
     euca_img_class = euca_accounts.image_manager.__class__
     euca_img_creds = euca_accounts.image_creds
-    os_accounts = OSAccountDriver(Provider.objects.get(id=2))
+    os_accounts = OSAccountDriver(Provider.objects.get(id=4))
     os_img_class = os_accounts.image_manager.__class__
     os_img_creds = os_accounts.image_creds
     migrate_args = {

@@ -3,6 +3,7 @@ Tasks for driver operations.
 """
 import re
 
+from operator import attrgetter
 from datetime import datetime
 import time
 
@@ -22,6 +23,66 @@ from core.models.profile import UserProfile
 
 from service.driver import get_driver
 from service.deploy import init
+
+
+@task(name="clear_empty_ips",
+      default_retry_delay=15,
+      ignore_result=True)
+def clear_empty_ips():
+    from service import instance as instance_service
+    from rtwo.driver import OSDriver
+    from api import get_esh_driver
+    from service.accounts.openstack import AccountDriver as\
+        OSAccountDriver
+    identities = Identity.objects.filter(
+        provider__type__name__iexact='openstack')
+    identities = sorted(
+       identities, key=lambda ident: attrgetter(ident.provider.type.name,
+                                                ident.created_by.username))
+    os_acct_driver = None
+    for core_identity in identities:
+        try:
+            #Initialize the drivers
+            driver = get_esh_driver(core_identity)
+            if not isinstance(driver, OSDriver):
+                continue
+            if not os_acct_driver or\
+                    os_acct_driver.core_provider != core_identity.provider:
+                os_acct_driver = OSAccountDriver(core_identity.provider)
+                logger.info("Initialized account driver")
+            # Get useful info
+            creds = core_identity.get_credentials()
+            tenant_name = creds['ex_tenant_name']
+            # Attempt to clean floating IPs
+            num_ips_removed = driver._clean_floating_ip()
+            if num_ips_removed:
+                logger.debug("Removed %s ips from OpenStack Tenant %s"
+                             % (num_ips_removed, tenant_name))
+            #Test for active/inactive instances
+            instances = driver.list_instances()
+            active = any(driver._is_active_instance(inst) for inst in instances)
+            inactive = all(driver._is_inactive_instance(inst) for inst in instances)
+            if active and not inactive:
+                #User has >1 active instances AND not all instances inactive
+                pass
+            elif os_acct_driver.network_manager.get_network_id(
+                    os_acct_driver.network_manager.neutron, '%s-net' % tenant_name):
+                #User has 0 active instances OR all instances are inactive
+                #Network exists, attempt to dismantle as much as possible
+                remove_network = not inactive
+                logger.info("Removing project network %s for %s"
+                            % (remove_network, tenant_name))
+                if remove_network:
+                    #Sec. group can't be deleted if instances are suspended
+                    # when instances are suspended we pass remove_network=False
+                    os_acct_driver.delete_security_group(core_identity)
+                    os_acct_driver.delete_network(core_identity,
+                            remove_network=remove_network)
+            else:
+                logger.info("No Network found. Skipping %s" % tenant_name)
+        except Exception as exc:
+            logger.exception(exc)
+
 
 @task(name="_send_instance_email",
       default_retry_delay=10,
@@ -408,11 +469,8 @@ def remove_empty_network(
                 active_instances = True
                 break
         if not active_instances:
-            inactive_instances = False
-            for instance in instances:
-                if driver._is_inactive_instance(instance):
-                    inactive_instances = True
-                    break
+            inactive_instances = all(driver._is_inactive_instance(
+                instance for instance in instances))
             #Inactive instances, True: Remove network, False
             remove_network = not inactive_instances
             #Check for project network

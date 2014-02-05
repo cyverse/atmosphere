@@ -1,5 +1,5 @@
 import requests
-from authentication import jwt
+import jwt
 
 from atmosphere.settings import secrets
 
@@ -16,6 +16,19 @@ class BearerTokenAuth(requests.auth.AuthBase):
     def __call__(self, r):
         r.headers['Authorization'] = "Bearer %s" % self.access_token
         return r
+
+
+def get_atmo_users():
+    access_token = generate_access_token(
+        open(secrets.OAUTH_PRIVATE_KEY).read(),
+        iss=secrets.OAUTH_ISSUE_USER,
+        scope=secrets.OAUTH_SCOPE)
+    response = requests.get('%s/api/groups/atmo-user/members'
+            % secrets.GROUPY_SERVER,
+            headers={'Authorization': 'Bearer %s' % access_token})
+    return response
+    #atmo_users = [user['name'] for user in response.json()]
+    #return atmo_users
 
 
 def get_staff_users():
@@ -52,7 +65,7 @@ def is_atmo_user(username):
 
 
 def generate_access_token(pem_id_key, iss='atmosphere',
-                          scope='groups', sub=None):
+                          scope='groups search', sub=None):
     if not pem_id_key:
         raise Exception("Private key missing. "
                         "Key is required for JWT signature")
@@ -74,7 +87,7 @@ def generate_access_token(pem_id_key, iss='atmosphere',
                   })
     if response.status_code != 200:
         raise Exception("Failed to generate auth token. Response:%s"
-                        % response)
+                        % response.__dict__)
     json_obj = response.json()
     access_token = json_obj['access_token']
     return access_token
