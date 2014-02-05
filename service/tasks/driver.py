@@ -418,9 +418,10 @@ def clean_empty_ips(driverCls, provider, identity, *args, **kwargs):
         logger.debug("remove_floating_ip task started at %s." %
                      datetime.now())
         driver = get_driver(driverCls, provider, identity)
-        driver._clean_floating_ip()
+        ips_cleaned = driver._clean_floating_ip()
         logger.debug("remove_floating_ip task finished at %s." %
                      datetime.now())
+        return ips_cleaned
     except Exception as exc:
         logger.warn(exc)
         clean_empty_ips.retry(exc=exc)
