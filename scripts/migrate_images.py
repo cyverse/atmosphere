@@ -23,6 +23,7 @@ image_these = [
 #"emi-07092D61", "emi-F3A42505", "emi-821E2745", "emi-F1BC24FE", "emi-D0812935",
 #"emi-484D219F", "emi-D3B22F44", "emi-746826E5", "emi-BCEA2112", "emi-47BB2669",
 #"emi-CB8B2921", "emi-EA68274A", "emi-2F0222B1", "emi-77B821E5", "emi-0BEB20AD",
+"emi-009234EA", 
 ]
 def start(images):
     print 'Initializing account drivers'

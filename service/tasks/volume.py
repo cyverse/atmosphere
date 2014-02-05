@@ -235,7 +235,7 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
 
         if 'available' in volume.extra['status']:
             raise Exception("Volume %s failed to attach to instance %s"
-                            % (volume, instance))
+                            % (volume.id, instance.id))
 
         #Device path for euca == openstack
         try:
