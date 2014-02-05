@@ -26,13 +26,13 @@ def monitor_instances():
         driver = get_esh_driver(im.identity)
         esh_instances = driver.list_instances()
 
-        #We may need to update instance status history
-        update_instances(im.identity, esh_instances, core_instances)
-
         #Test allocation && Suspend instances if we are over allocated time
         over_allocation = over_allocation_test(im.identity, esh_instances)
         if over_allocation:
             continue
+        #We may need to update instance status history
+        update_instances(im.identity, esh_instances, core_instances)
+
 
 
 def over_allocation_test(identity, esh_instances):
@@ -43,7 +43,23 @@ def over_allocation_test(identity, esh_instances):
     if not over_allocated:
         # Nothing changed, bail.
         return False
-
+    driver = get_esh_driver(identity)
+    for instance in esh_instances:
+        #Suspend, get updated status/task, and update the DB
+        try:
+            driver.suspend_instance(instance)
+        except Exception, e:
+            if 'in vm_state suspended' not in e.message:
+                raise
+        updated_esh = driver.get_instance(instance.id)
+        updated_core = convert_esh_instance(driver, updated_esh,
+                                            identity.provider.id,
+                                            identity.id,
+                                            identity.created_by)
+        updated_core.update_history(updated_esh.extra['status'],
+                                    updated_esh.extra.get('task'))
+    #All instances are dealt with, move along.
+    return True # User was over_allocation
     #NOTE: For this roll out, allocations will NOT
     # auto-suspend when the user has expired
     return True
@@ -79,7 +95,7 @@ def update_instances(identity, esh_list, core_list):
     && Update the values of instances that do
     """
     esh_ids = [instance.id for instance in esh_list]
-    logger.info(esh_ids)
+    logger.info('Instances for Identity %s: %s' % (identity, esh_ids))
     for core_instance in core_list:
         try:
             index = esh_ids.index(core_instance.provider_alias)

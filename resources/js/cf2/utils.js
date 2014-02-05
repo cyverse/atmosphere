@@ -291,7 +291,7 @@ Atmo.Utils.confirm_detach_volume = function(volume, instance, options) {
     var identity = Atmo.identities.get(identity_id);
     var provider_name = identity.get('provider').get('type');
     var body;
-    if (provider_name.toLowerCase() === 'openstack') {
+    if (provider_name.toLowerCase() === 'openstack' || provider_name.toLowerCase() === 'iplant' ) {
         body = '<p class="alert alert-error"><i class="glyphicon glyphicon-warning-sign"></i> <strong>WARNING</strong> If this volume is mounted, you <u>must</u> stop any running processes that are writing to the mount location before you can detach.</p>';
         body += '<p>(<a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step7%3AUnmountanddetachthevolume." target="_blank">Learn more about unmounting and detaching a volume</a>)</p>';
     } else {
@@ -308,7 +308,7 @@ Atmo.Utils.confirm_detach_volume = function(volume, instance, options) {
                         options.success();
                 },
                 error: function(message, response) {
-                    if (provider_name.toLowerCase() === 'openstack') {
+                    if (provider_name.toLowerCase() === 'openstack' || provider_name.toLowerCase() === 'iplant' ) {
                         errors = $.parseJSON(response.responseText).errors
                         var body = '<p class="alert alert-error">' + errors[0].message.replace(/\n/g, '<br />') + '</p>'
                         body += "<p>Please correct the problem and try again. If the problem persists, or you are unsure how to fix the problem, please email <a href=\"mailto:support@iplantcollaborative.org\">support@iplantcollaborative.org</a>.</p>"

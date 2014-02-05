@@ -29,7 +29,7 @@ REDIRECT_URL = ''
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = [SERVER_URL.replace('https://', '')]
+ALLOWED_HOSTS = [unicode(SERVER_URL.replace('https://', ''))]
 
 #NOTE: first admin will be sender of atmo emails.
 ADMINS = (

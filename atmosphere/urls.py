@@ -91,7 +91,7 @@ urlpatterns = patterns(
 
     # Experimental UI
     # TODO: Rename to application when it launches
-    url(r'^beta/', 'web.views.app_beta'),
+    # url(r'^beta/', 'web.views.app_beta'), # remove for production.
 
     url(r'^partials/(?P<path>.*)$', 'web.views.partial'),
     url(r'^no_user/$', 'web.views.no_user_redirect'),

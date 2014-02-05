@@ -23,10 +23,10 @@ def main():
     """
     euca_driver = EucaAccountDriver(
         Provider.objects.get(location='EUCALYPTUS'))
-    os_driver = OSAccountDriver(Provider.objects.get(location='iPlant Cloud - Tucson'))
+    os_driver = OSAccountDriver(Provider.objects.get(location='OpenStack-Tucson (BETA)'))
     found = 0
     create = 0
-    core_services = ['estevetest03', 'estevetest02']  # get_core_services()
+    core_services = ['estevetest03', ]  # get_core_services()
     for user in core_services:
         euca_driver.create_account(user, max_quota=True)
         # Then add the Openstack Identity

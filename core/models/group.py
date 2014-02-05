@@ -3,7 +3,7 @@ Atmosphere utilizes the DjangoGroup model
 to manage users via the membership relationship
 """
 from datetime import timedelta
-
+from math import floor
 from django.db import models
 from django.contrib.auth.models import Group as DjangoGroup
 
@@ -123,7 +123,7 @@ class IdentityMembership(models.Model):
             return {}
         #Don't move it up. Circular reference.
         from service.allocation import get_time, get_burn_time,\
-            delta_to_minutes
+            delta_to_minutes, delta_to_hours
         time_used = get_time(self.identity.created_by,
                              self.identity.id,
                              timedelta(
@@ -133,14 +133,14 @@ class IdentityMembership(models.Model):
                                   timedelta(minutes=self.allocation.threshold))
         mins_consumed = delta_to_minutes(time_used)
         if burn_time:
-            burn_time = delta_to_minutes(burn_time)
+            burn_time = delta_to_hours(burn_time)
 
         allocation_dict = {
-            "threshold": self.allocation.threshold,
-            "current": mins_consumed,
+            "threshold": floor(self.allocation.threshold/60),
+            "current": floor(mins_consumed/60),
             "delta": self.allocation.delta,
             "burn": burn_time,
-            "ttz": self.allocation.threshold - mins_consumed}
+            "ttz": (self.allocation.threshold - mins_consumed)/60}
         return allocation_dict
 
     def get_quota_dict(self):

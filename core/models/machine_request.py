@@ -8,6 +8,7 @@ from django.db import models
 from django.utils import timezone
 from core.models.user import AtmosphereUser as User
 
+
 from core.fields import VersionNumberField, VersionNumber
 from core.models.application import get_application, create_application
 from core.models.provider import Provider, AccountProvider

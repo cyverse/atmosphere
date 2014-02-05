@@ -208,10 +208,10 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
             app = create_application(alias, provider_id, name)
     provider_machine = load_provider_machine(alias, name, provider_id,
                                              app=app, metadata=metadata)
-    if push_metadata and hasattr(esh_driver._connection,
-                                 'ex_set_image_metadata'):
-        logger.debug("Creating App data for Image %s:%s" % (alias, app.name))
-        write_app_data(esh_driver, provider_machine)
+    #if push_metadata and hasattr(esh_driver._connection,
+    #                             'ex_set_image_metadata'):
+    #    logger.debug("Creating App data for Image %s:%s" % (alias, app.name))
+    #    write_app_data(esh_driver, provider_machine)
     provider_machine.esh = esh_machine
     return provider_machine
 
