@@ -109,15 +109,23 @@ def download_file(url, fileLoc, retry=False, match_hash=None):
     f.close()
     return contents
 
-def set_hostname(hostname):
+def set_hostname(hostname, distro):
     #Set the hostname once
     run_command(['/bin/hostname', hostname])
     #And set a dhcp exithook to keep things running on suspend/stop
-    download_file(
-        '%s/init_files/%s/hostname-exit-hook.sh' % (ATMOSERVER, SCRIPT_VERSION),
-        "/etc/dhcp/dhclient-exit-hooks.d/hostname",
-        match_hash='c0d27fcadc2bc6f3515a5a1ec7f5293e25d773d0')
-    run_command(['/bin/chmod', 'a+x', "/etc/dhcp/dhclient-exit-hooks.d/hostname"])
+    if is_rhel(distro):
+        run_command(['/usr/bin/yum', '-qy', 'install', 'dhcp'])
+        download_file(
+            '%s/init_files/%s/centos_hostname-exit-hook.sh' % (ATMOSERVER, SCRIPT_VERSION),
+            "/etc/dhclient-exit-hooks",
+            match_hash='')
+        run_command(['/bin/chmod', 'a+x', "/etc/dhclient-exit-hooks"])
+    else:
+        download_file(
+            '%s/init_files/%s/ubuntu_hostname-exit-hook.sh' % (ATMOSERVER, SCRIPT_VERSION),
+            "/etc/dhcp/dhclient-exit-hooks.d/hostname",
+            match_hash='')
+        run_command(['/bin/chmod', 'a+x', "/etc/dhcp/dhclient-exit-hooks.d/hostname"])
 
 def get_hostname(instance_metadata):
     #As set by atmosphere in the instance metadata
@@ -908,22 +916,22 @@ def main(argv):
     #TODO: What is this line for?
     source = "".join(args)
 
+    logging.debug("Atmoserver - %s" % ATMOSERVER)
     logging.debug("Atmosphere request object - %s" % instance_data)
     instance_metadata = get_metadata()
     logging.debug("Instance metadata - %s" % instance_metadata)
+    distro = get_distro()
+    logging.debug("Distro - %s" % distro)
 
     linuxuser = instance_data['atmosphere']['userid']
     linuxpass = ""
     public_ip = get_public_ip(instance_metadata)
     hostname = get_hostname(instance_metadata)
-    set_hostname(hostname)
+    set_hostname(hostname, distro)
     instance_metadata['linuxusername'] = linuxuser
     instance_metadata["linuxuserpassword"] = linuxpass
     instance_metadata["linuxuservncpassword"] = linuxpass
 
-    logging.debug("Atmoserver - %s" % ATMOSERVER)
-    distro = get_distro()
-    logging.debug("Distro - %s" % distro)
     #TODO: Test this is multi-call safe
     update_sshkeys(instance_metadata)
     update_sudoers()
