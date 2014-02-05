@@ -216,11 +216,14 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
         attempts = 0
         while True:
             volume = driver.get_volume(volume_id)
+            # Give up if you can't find the volume
+            if not volume:
+                return None
             if attempts > 6:  # After 6 attempts (~1min)
                 break
             #Openstack Check
             if isinstance(driver, OSDriver) and\
-                    'attaching' not in volume.extra['status']:
+                    'attaching' not in volume.extra.get('status',''):
                 break
             attach_set = volume.extra['attachmentSet'][0]
             if isinstance(driver, EucaDriver) and\
@@ -230,10 +233,11 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
             attempts += 1
             sleep_time = 2**attempts
             logger.debug("Volume %s is not ready (%s). Sleep for %s"
-                         % (volume.id, volume.extra['status'], sleep_time))
+                         % (volume.id, volume.extra.get('status', 'no-status'),
+                            sleep_time))
             time.sleep(sleep_time)
 
-        if 'available' in volume.extra['status']:
+        if 'available' in volume.extra.get('status',''):
             raise Exception("Volume %s failed to attach to instance %s"
                             % (volume.id, instance.id))
 

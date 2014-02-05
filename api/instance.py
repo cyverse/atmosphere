@@ -475,7 +475,7 @@ class Instance(APIView):
             return invalid_creds(provider_id, identity_id)
 
 
-# Commonnly used error responses
+# Commonly used error responses
 def valid_post_data(data):
     expected_data = ['machine_alias','size_alias']
     missing_keys = []

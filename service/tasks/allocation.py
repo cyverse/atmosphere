@@ -17,6 +17,9 @@ def monitor_instances():
     from api import get_esh_driver
     from core.models import IdentityMembership
     for im in IdentityMembership.objects.all():
+        #Only check if allocation has been set
+        if not im.allocation:
+            continue
         #Start by checking for running/missing instances
         core_instances = im.identity.instance_set.filter(end_date=None)
         if not core_instances:
@@ -38,16 +41,21 @@ def monitor_instances():
 def over_allocation_test(identity, esh_instances):
     from api import get_esh_driver
     from core.models.instance import convert_esh_instance
+    from atmosphere import settings
     over_allocated, time_diff = check_over_allocation(
         identity.created_by.username, identity.id)
     if not over_allocated:
         # Nothing changed, bail.
         return False
+    if settings.DEBUG:
+        logger.info('Do not enforce allocations in DEBUG mode')
+        return False
     driver = get_esh_driver(identity)
     for instance in esh_instances:
-        #Suspend, get updated status/task, and update the DB
+        #Suspend active instances, update the task in the DB
         try:
-            driver.suspend_instance(instance)
+            if driver._is_active_instance(instance):
+                driver.suspend_instance(instance)
         except Exception, e:
             if 'in vm_state suspended' not in e.message:
                 raise
@@ -60,33 +68,6 @@ def over_allocation_test(identity, esh_instances):
                                     updated_esh.extra.get('task'))
     #All instances are dealt with, move along.
     return True # User was over_allocation
-    #NOTE: For this roll out, allocations will NOT
-    # auto-suspend when the user has expired
-    return True
-
-    #ASSERT:Over the allocation, suspend all instances for the identity
-
-    #TODO: It may be beneficial to only suspend if:
-    # instance.created_by == im.member.name
-    # (At this point, it doesnt matter)
-
-    driver = get_esh_driver(identity)
-    for instance in esh_instances:
-        #Suspend, get updated status/task, and update the DB
-        try:
-            driver.suspend_instance(instance)
-        except Exception, e:
-            if 'in vm_state suspended' not in e.message:
-                raise
-        updated_esh = driver.get_instance(instance.id)
-        updated_core = convert_esh_instance(driver, updated_esh,
-                                            identity.provider.id,
-                                            identity.id,
-                                            identity.created_by)
-        updated_core.update_history(updated_esh.extra['status'],
-                                    updated_esh.extra.get('task'))
-    #All instances are dealt with, move along.
-    return True  # User was over_allocation
 
 
 def update_instances(identity, esh_list, core_list):
