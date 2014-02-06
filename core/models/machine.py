@@ -183,7 +183,8 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
     metadata = esh_machine._image.extra.get('metadata',{})
     name = esh_machine.name
     alias = esh_machine.alias
-    if metadata and has_app_data(metadata):
+
+    if metadata and False and has_app_data(metadata):
         #USE CASE: Application data exists on the image
         # and may exist on this DB
         app = get_application(alias, metadata.get('application_uuid'))
