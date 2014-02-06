@@ -903,7 +903,9 @@ def main(argv):
 
     #TODO: What is this line for?
     source = "".join(args)
-    
+    #NOTE: Sometimes we forget.. that home is where the ROOT is..
+    if not os.environ.get('HOME'):
+        os.environ['HOME'] = '/root'
     logging.debug("Atmosphere request object - %s" % instance_data)
     instance_metadata = get_metadata()
     logging.debug("Instance metadata - %s" % instance_metadata)
