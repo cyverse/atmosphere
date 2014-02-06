@@ -9,6 +9,7 @@ from django.utils import timezone
 from core.models.user import AtmosphereUser as User
 
 
+from core.application import save_app_data
 from core.fields import VersionNumberField, VersionNumber
 from core.models.application import get_application, create_application
 from core.models.provider import Provider, AccountProvider
@@ -229,7 +230,8 @@ def process_machine_request(machine_request, new_image_id):
     from core.models.tag import Tag
     from core.models import Identity, ProviderMachine
     #Get all the data you can from the machine request
-    owner_ident = Identity.objects.get(created_by=machine_request.new_machine_owner, provider=machine_request.new_machine_provider)
+    new_provider = machine_request.new_machine_provider
+    owner_ident = Identity.objects.get(created_by=machine_request.new_machine_owner, provider=new_provider)
     parent_mach = machine_request.instance.provider_machine
     parent_app = machine_request.instance.provider_machine.application
     if machine_request.new_machine_tags:
@@ -244,7 +246,7 @@ def process_machine_request(machine_request, new_image_id):
         # This is a brand new app and a brand new providermachine
         new_app = create_application(
                 new_image_id,
-                new_machine_provider.id,
+                new_provider.id,
                 machine_request.new_machine_name, 
                 owner_ident,
                 machine_request.new_machine_version,
@@ -271,6 +273,7 @@ def process_machine_request(machine_request, new_image_id):
             machine_request.new_machine_name, new_image_id,
             machine_request.new_machine_provider_id, app_to_use)
 
+    #Final modifications to the app
     app = new_machine.application
     #app.created_by = machine_request.new_machine_owner
     #app.created_by_identity = owner_ident
@@ -278,10 +281,16 @@ def process_machine_request(machine_request, new_image_id):
     app.description = description
     app.save()
 
+    #DB modifications to the providermachine
     new_machine.version = machine_request.new_machine_version
     new_machine.created_by = machine_request.new_machine_owner
     new_machine.created_by_identity = owner_ident
     new_machine.save()
+
+    #Be sure to write all this data to openstack metadata
+    #So that it can continue to be the 'authoritative source'
+    save_app_data(app)
+
     add_to_cache(new_machine)
     machine_request.new_machine = new_machine
     machine_request.end_date = timezone.now()
