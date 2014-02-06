@@ -238,7 +238,9 @@ def process_machine_request(machine_request, new_image_id):
     else:
         tags = []
 
-    if machine_request.new_machine_forked:
+    #if machine_request.new_machine_forked:
+    # Replace this line when applications are supported in the UI
+    if True:
         # This is a brand new app and a brand new providermachine
         new_app = create_application(
                 new_image_id,
