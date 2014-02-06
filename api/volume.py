@@ -8,14 +8,16 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
+from libcloud.common.types import InvalidCredsError
+
 from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
 from core.models.provider import AccountProvider
 from core.models.volume import convert_esh_volume
-from core.models.quota import\
-    Quota as CoreQuota, get_quota, has_storage_quota, has_storage_count_quota
+from service.volume import create_volume
+from service.exceptions import OverQuotaError
 
 from api.serializers import VolumeSerializer
 
@@ -55,36 +57,27 @@ class VolumeList(APIView):
         user = request.user
         esh_driver = prepare_driver(request, identity_id)
         data = request.DATA
-        if not data.get('name') or not data.get('size'):
-            errorObj = failureJSON([{
-                'code': 400,
-                'message':
-                'Missing params: name and size required to create a volume'}])
-            return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+        missing_keys = valid_post_data(data)
+        if missing_keys:
+            return keys_not_found(missing_keys)
+        #Pass arguments
         name = data.get('name')
         size = data.get('size')
-        quota = get_quota(identity_id)
-        CoreQuota.objects.get(identitymembership__identity__id=identity_id)
-
-        if not has_storage_quota(esh_driver, quota, size) \
-                or not has_storage_count_quota(esh_driver, quota, 1):
-            errorObj = failureJSON([{
-                'code': 403,
-                'message':
-                'Over quota: '
-                + 'You have used all of your allocated volume quota'}])
-            return Response(errorObj, status=status.HTTP_403_FORBIDDEN)
-
-        logger.debug((name, size))
-        success, esh_volume = esh_driver.create_volume(
-            name=name,
-            size=size,
-            description=data.get('description', ''))
+        description = data.get('description')
+        try:
+            success, esh_volume = create_volume(esh_driver, identity_id,
+                                                name, size, description)
+        except OverQuotaError, oqe:
+            return over_quota(oqe)
+        except InvalidCredsError:
+            return invalid_creds(provider_id, identity_id)
         if not success:
-            errorObj = failureJSON({'code': 500,
-                                    'message': 'Volume creation failed'})
+            errorObj = failureJSON(
+                    {'code': 500,
+                     'message': 'Volume creation failed. Contact support'})
             return Response(errorObj,
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # Volume creation succeeded
         core_volume = convert_esh_volume(esh_volume, provider_id, identity_id, user)
         serialized_data = VolumeSerializer(core_volume).data
         response = Response(serialized_data, status=status.HTTP_201_CREATED)
@@ -103,9 +96,7 @@ class Volume(APIView):
         esh_driver = prepare_driver(request, identity_id)
         esh_volume = esh_driver.get_volume(volume_id)
         if not esh_volume:
-            errorObj = failureJSON([{'code': 404,
-                                    'message': 'Volume does not exist'}])
-            return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+            return volume_not_found(volume_id)
         core_volume = convert_esh_volume(esh_volume, provider_id, identity_id, user)
         serialized_data = VolumeSerializer(core_volume).data
         response = Response(serialized_data)
@@ -122,9 +113,7 @@ class Volume(APIView):
         esh_driver = prepare_driver(request, identity_id)
         esh_volume = esh_driver.get_volume(volume_id)
         if not esh_volume:
-            errorObj = failureJSON([{'code': 404,
-                                     'message': 'Volume does not exist'}])
-            return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+            return volume_not_found(volume_id)
         core_volume = convert_esh_volume(esh_volume, provider_id, identity_id, user)
         serializer = VolumeSerializer(core_volume, data=data, partial=True)
         if serializer.is_valid():
@@ -145,9 +134,7 @@ class Volume(APIView):
         esh_driver = prepare_driver(request, identity_id)
         esh_volume = esh_driver.get_volume(volume_id)
         if not esh_volume:
-            errorObj = failureJSON([{'code': 404,
-                                     'message': 'Volume does not exist'}])
-            return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+            return volume_not_found(volume_id)
         core_volume = convert_esh_volume(esh_volume, provider_id, identity_id, user)
         serializer = VolumeSerializer(core_volume, data=data)
         if serializer.is_valid():
@@ -167,9 +154,7 @@ class Volume(APIView):
         esh_driver = prepare_driver(request, identity_id)
         esh_volume = esh_driver.get_volume(volume_id)
         if not esh_volume:
-            errorObj = failureJSON([{'code': 404,
-                                     'message': 'Volume does not exist'}])
-            return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+            return volume_not_found(volume_id)
         core_volume = convert_esh_volume(esh_volume, provider_id, identity_id, user)
         #Delete the object, update the DB
         esh_driver.destroy_volume(esh_volume)
@@ -179,3 +164,41 @@ class Volume(APIView):
         serialized_data = VolumeSerializer(core_volume).data
         response = Response(serialized_data)
         return response
+
+# Commonly used error responses
+def valid_post_data(data):
+    expected_data = ['name','size']
+    missing_keys = []
+    for key in expected_data:
+        if not data.has_key(key):
+            missing_keys.append(key)
+    return missing_keys
+
+
+def keys_not_found(missing_keys):
+    errorObj = failureJSON([{
+        'code': 400,
+        'message': 'Missing required POST datavariables : %s' % missing_keys}])
+    return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+
+
+def invalid_creds(provider_id, identity_id):
+    logger.warn('Authentication Failed. Provider-id:%s Identity-id:%s'
+                % (provider_id, identity_id))
+    errorObj = failureJSON([{'code': 401,
+        'message': 'Identity/Provider Authentication Failed'}])
+    return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+
+
+def volume_not_found(volume_id):
+    errorObj = failureJSON([{
+        'code': 404,
+        'message': 'Volume %s does not exist' % volume_id}])
+    return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+
+
+def over_quota(quota_exception):
+    errorObj = failureJSON([{
+        'code': 413,
+        'message': quota_exception.message}])
+    return Response(errorObj, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)

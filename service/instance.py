@@ -366,7 +366,10 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
             security_group_init(core_identity)
             network_init(core_identity)
             keypair_init(core_identity)
+            credentials = core_identity.get_credentials()
+            tenant_name = credentials.get('ex_tenant_name')
             ex_metadata = {'tmp_status': 'initializing',
+                           'tenant_name': tenant_name,
                            'creator': '%s' % username}
             ex_keyname = settings.ATMOSPHERE_KEYPAIR_NAME
             logger.debug("OS driver.create_instance kwargs: %s" % kwargs)
