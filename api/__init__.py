@@ -99,12 +99,13 @@ def prepare_driver(request, identity_id):
     TODO: Cache driver based on specific provider
     return esh_driver
     """
-    from service.driver import DriverManager
-    username = request.user
+    #    from service.driver import DriverManager
+    #    username = request.user
     core_identity = CoreIdentity.objects.get(id=identity_id)
-    manager = DriverManager()
-    esh_driver = manager.get_driver(core_identity)
-    return esh_driver
+    return get_esh_driver(core_identity)
+    #    manager = DriverManager()
+    #    esh_driver = manager.get_driver(core_identity)
+    #    return esh_driver
 
 
 def failureJSON(errors, *args, **kwargs):
