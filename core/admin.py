@@ -224,7 +224,8 @@ class InstanceStatusAdmin(admin.ModelAdmin):
     search_fields = ["instance__created_by__username",
             "instance__provider_alias", "status__name"]
     list_display = ["instance", "status", "start_date", "end_date"]
-    list_filter = ["instance__created_by__username", "instance__provider_machine__provider__location"]
+    list_filter = ["instance__provider_machine__provider__location",
+                   "instance__created_by__username"]
 
 
 class InstanceAdmin(admin.ModelAdmin):

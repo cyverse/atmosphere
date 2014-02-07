@@ -206,6 +206,8 @@ class Instance(models.Model):
         extras = self.esh._node.extra
         if extras.has_key('flavorId'):
             return extras['flavorId']
+        elif extras.has_key('instance_type'):
+            return extras['instance_type']
         elif extras.has_key('instancetype'):
             return extras['instancetype']
         else:
@@ -299,10 +301,10 @@ def map_to_identity(core_instances):
         instance_id_map[identity_id] = instance_list
     return instance_id_map
 
-def find_instance(alias):
-    core_instance = Instance.objects.filter(provider_alias=alias)
+def find_instance(instance_id):
+    core_instance = Instance.objects.filter(provider_alias=instance_id)
     if len(core_instance) > 1:
-        logger.warn("Multiple instances returned for alias - %s" % alias)
+        logger.warn("Multiple instances returned for instance_id - %s" % instance_id)
     if core_instance:
         return core_instance[0]
     return None
@@ -314,7 +316,6 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
     """
     #logger.debug(esh_instance.__dict__)
     #logger.debug(esh_instance.extra)
-    alias = esh_instance.alias
     try:
         ip_address = esh_instance._node.public_ips[0]
     except IndexError:  # no public ip
@@ -323,7 +324,8 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
         except IndexError:  # no private ip
             ip_address = '0.0.0.0'
     eshMachine = esh_instance.machine
-    core_instance = find_instance(alias)
+    instance_id = esh_instance.id
+    core_instance = find_instance(instance_id)
     if core_instance:
         core_instance.ip_address = ip_address
         if password:
@@ -349,12 +351,12 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
             start_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%SZ')
         start_date = start_date.replace(tzinfo=pytz.utc)
 
-        logger.debug("Instance %s" % alias)
+        logger.debug("Instance %s" % instance_id)
         logger.debug("CREATED: %s" % create_stamp)
         logger.debug("START: %s" % start_date)
         coreMachine = convert_esh_machine(esh_driver, eshMachine, provider_id,
                                         image_id=esh_instance.image_id)
-        core_instance = create_instance(provider_id, identity_id, alias,
+        core_instance = create_instance(provider_id, identity_id, instance_id,
                                       coreMachine, ip_address,
                                       esh_instance.name, user,
                                       start_date, token, password)
