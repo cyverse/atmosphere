@@ -324,6 +324,8 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata):
         logger.debug("update_metadata task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_alias)
+        if not instance:
+            return
         #NOTE: This task will only be executed in TEST mode
         if app.conf.CELERY_ALWAYS_EAGER:
             eager_update_metadata(driver, instance, metadata)
