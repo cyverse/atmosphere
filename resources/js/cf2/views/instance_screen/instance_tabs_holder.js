@@ -43,7 +43,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		if (this.model.get('state_is_active') && this.model.get('has_vnc') == true) {
 			this.$el.find('.instance_tabs a.instance_vnc_tab')
 				.show()
-				.removeClass("tab_disabled")
+				.removeClass("disabled")
 				.attr("title", "");
 
 			// Get rid of tooltip and 'VNC Unavailable' text
@@ -52,7 +52,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		} 
 		else if (this.model.get('has_vnc') == false || this.model.get('has_vnc') == undefined) { 
 			this.$el.find('.instance_tabs a.instance_vnc_tab')
-				.addClass("tab_disabled")
+				.addClass("disabled")
 				.attr("title", "This instance does not support VNC");
 			
 			// Give you user reasons it might be disabled
@@ -88,7 +88,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		if (this.model.get('state_is_active') && this.model.get('has_shell') == true) {
 			this.$el.find('.instance_tabs a.instance_shell_tab')
 				.show()
-				.removeClass("tab_disabled")
+				.removeClass("disabled")
 				.attr("title", "");
 			
 			// Get rid of tooltip and 'Shell Unavailable' text
@@ -97,7 +97,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		} 
 		else if (this.model.get('has_shell') == false || this.model.get('has_shell') == undefined) {
 			this.$el.find('.instance_tabs a.instance_shell_tab')
-				.addClass("tab_disabled")
+				.addClass("disabled")
 				.attr("title", "This instance does not support shell.");
 
 			// Give you user reasons it might be disabled
@@ -133,7 +133,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		this.$el.data('instance', this.model);
 		this.$el.attr('data-instanceid', this.model.get('id'));
 		var self = this;
-		this.$el.find('.instance_tabs a.instance_shell_tab, .instance_tabs a.instance_vnc_tab').addClass("tab_disabled");
+		this.$el.find('.instance_tabs a.instance_shell_tab, .instance_tabs a.instance_vnc_tab').addClass("disabled");
 
 		// Enable Shell/VNC if instance has those available
         this.update_shell_tab();
@@ -276,8 +276,8 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				this.$el.find('.request_imaging_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.report_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
-				this.$el.find('#instance_tabs a[href="#instance_shell"]').addClass("tab_disabled");
-				this.$el.find('#instance_tabs a[href="#instance_vnc"]').addClass("tab_disabled");
+				this.$el.find('#instance_tabs a[href="#instance_shell"]').addClass("disabled");
+				this.$el.find('#instance_tabs a[href="#instance_vnc"]').addClass("disabled");
 			}
 
 			// Don't permit terminate if instance is suspended
@@ -381,7 +381,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 		var ipaddr = this.model.get("public_dns_name");
 		
-		if (this.$el.find('.instance_tabs a[href="#instance_shell"]').hasClass("tab_disabled")) {
+		if (this.$el.find('.instance_tabs a[href="#instance_shell"]').hasClass("disabled")) {
 			return false;
 		} else {
 			var currentShell = this.$el.find('.shell_iframe[data-ip="'+ipaddr+'"]');
@@ -419,7 +419,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 	instance_vnc: function() {
 		var ipaddr = this.model.get("public_dns_name");
 
-		if (this.$el.find('.instance_tabs a.instance_vnc_tab').hasClass("tab_disabled")) {
+		if (this.$el.find('.instance_tabs a.instance_vnc_tab').hasClass("disabled")) {
 			return false;
 		} else {
 			var currentVNC = this.$el.find('.vnc_iframe[data-ip="'+ipaddr+'"]');

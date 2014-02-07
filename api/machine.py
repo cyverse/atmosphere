@@ -36,14 +36,20 @@ def provider_filtered_machines(request, provider_id, identity_id):
     default filtering method.
     """
     esh_driver = prepare_driver(request, identity_id)
+    return list_filtered_machines(esh_driver, provider_id)
+
+def list_filtered_machines(esh_driver, provider_id):
     esh_machine_list = esh_driver.list_machines()
-    logger.info("Total machines from esh:%s" % len(esh_machine_list))
+    #logger.info("Total machines from esh:%s" % len(esh_machine_list))
     esh_machine_list = esh_driver.filter_machines(
         esh_machine_list,
         black_list=['eki-', 'eri-'])
+    #logger.info("Filtered machines from esh:%s" % len(esh_machine_list))
     core_machine_list = [convert_esh_machine(esh_driver, mach, provider_id)
                            for mach in esh_machine_list]
+    #logger.info("Core machines :%s" % len(core_machine_list))
     filtered_machine_list = filter(filter_core_machine, core_machine_list)
+    #logger.info("Filtered Core machines :%s" % len(filtered_machine_list))
     sorted_machine_list = sorted(filtered_machine_list,
                                  cmp=compare_core_machines)
     return sorted_machine_list

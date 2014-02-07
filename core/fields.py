@@ -60,6 +60,9 @@ class VersionNumberField(models.Field):
             return value
         if isinstance(value, tuple):
             return VersionNumber(*value)
+        if isinstance(value, str)\
+                or isinstance(value, unicode):
+            return VersionNumber.string_to_version(value)
 
         part_bytes = struct.pack(">I", value + 2**31)
         part_ints = [ord(i) for i in part_bytes]

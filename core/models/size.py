@@ -87,7 +87,7 @@ def convert_esh_size(esh_size, provider_id):
         core_size = Size.objects.get(alias=alias, provider__id=provider_id)
         new_esh_data = {
             'name': esh_size._size.name,
-            'ram': esh_size._size.ram,
+            'mem': esh_size._size.ram,
             'root': esh_size._size.disk,
             'disk': esh_size.ephemeral,
             'cpu': esh_size.cpu,

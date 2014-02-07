@@ -107,6 +107,9 @@ def create_application(identifier, provider_id, name=None,
     if not uuid:
         uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(identifier))
         uuid = str(uuid)
+    exists = Application.objects.filter(uuid=uuid)
+    if exists:
+        return exists[0]
     if not name:
         name = "UnknownApp %s" % identifier
     if not description:

@@ -2,17 +2,26 @@ import json
 
 from core.metadata import update_machine_metadata, _get_owner_identity
 
+from threepio import logger
+
 
 
 def get_app_driver(provider_machine):
     from service.driver import get_admin_driver
-    account_provider = provider_machine.provider
-    esh_driver = get_admin_driver(provider_machine.provider)
+    provider = provider_machine.provider
+    esh_driver = get_admin_driver(provider)
     if not esh_driver:
         raise Exception("The driver of the account provider is required to"
                         " update image metadata")
     return esh_driver
 
+def save_app_data(application):
+    all_pms = application.providermachine_set.all()
+    if not all_pms:
+        return
+    for provider_machine in all_pms:
+        esh_driver = get_app_driver(provider_machine)
+        write_app_data(esh_driver, provider_machine)
 
 def write_app_data(esh_driver, provider_machine):
     esh_driver = get_app_driver(provider_machine)
@@ -28,6 +37,8 @@ def write_app_data(esh_driver, provider_machine):
             [tag.name for tag in provider_machine.application.tags.all()]),
         "application_description": provider_machine.application.description,
     }
+    logger.info("Machine<%s> new app data: %s"
+                % (provider_machine.identifier, mach_data))
     return update_machine_metadata(esh_driver, esh_machine, mach_data)
 
 

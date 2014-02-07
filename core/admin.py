@@ -6,7 +6,6 @@ from django.contrib.auth.models import User as DjangoUser
 from django.contrib.auth.models import Group as DjangoGroup
 from django.utils import timezone
 
-
 from core.models.application import Application
 from core.models.credential import Credential, ProviderCredential
 from core.models.group import Group, IdentityMembership, ProviderMembership
@@ -26,6 +25,7 @@ from core.models.tag import Tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
 
+from core.application import save_app_data
 
 def end_date_object(modeladmin, request, queryset):
         queryset.update(end_date=timezone.now())
@@ -134,6 +134,14 @@ class ApplicationAdmin(admin.ModelAdmin):
     list_display = [
         "name", "start_date", "end_date", "private", "featured", "created_by"]
     filter_vertical = ["tags",]
+    def save_model(self, request, obj, form, change):
+        user = request.user
+        application = form.save(commit=False)
+        application.save()
+        form.save_m2m()
+        if change:
+            save_app_data(application)
+        return application
 
 
 class CredentialInline(admin.TabularInline):
@@ -216,7 +224,8 @@ class InstanceStatusAdmin(admin.ModelAdmin):
     search_fields = ["instance__created_by__username",
             "instance__provider_alias", "status__name"]
     list_display = ["instance", "status", "start_date", "end_date"]
-    list_filter = ["instance__created_by__username", "instance__provider_machine__provider__location"]
+    list_filter = ["instance__provider_machine__provider__location",
+                   "instance__created_by__username"]
 
 
 class InstanceAdmin(admin.ModelAdmin):
