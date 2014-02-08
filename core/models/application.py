@@ -2,10 +2,11 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 from uuid import uuid5, UUID
+from hashlib import md5
+
 from threepio import logger
 
 from atmosphere import settings
-
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
 from core.metadata import _get_admin_owner
@@ -38,6 +39,12 @@ class Application(models.Model):
 
     def icon_url(self):
         return self.icon.url if self.icon else None
+
+    def hash_uuid(self):
+        """
+        MD5 hash for icons
+        """
+        return md5(self.uuid).hexdigest()
 
     def get_provider_machines(self):
         pms = self.providermachine_set.all()

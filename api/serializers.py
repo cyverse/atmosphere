@@ -37,6 +37,7 @@ class ApplicationSerializer(serializers.Serializer):
                                               source='created_by',
                                               read_only=True)
     scores = serializers.Field(source='get_scores')
+    uuid_hash = serializers.CharField(read_only=True, source='hash_uuid')
     #Writeable Fields
     name = serializers.CharField(source='name')
     tags = serializers.CharField(source='tags.all')
