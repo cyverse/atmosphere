@@ -27,6 +27,7 @@ except ImportError:
     from sha import sha as sha1
 
 ATMOSERVER = ""
+USER_HOME_DIR = os.path.expanduser("~")
 eucalyptus_meta_server = 'http://128.196.172.136:8773/latest/meta-data/'
 openstack_meta_server = 'http://169.254.169.254/latest/meta-data/'
 SCRIPT_VERSION = "v2"
@@ -484,13 +485,13 @@ def vnc(user, distro, license=None):
         run_command(['/usr/bin/vnclicense', '-add', license], block_log=True)
         download_file(
             '%s/init_files/%s/vnc-config.sh' % (ATMOSERVER, SCRIPT_VERSION),
-            os.path.join(os.environ['HOME'], 'vnc-config.sh'),
+            os.path.join(USER_HOME_DIR, 'vnc-config.sh'),
             match_hash='37b64977dbf3650f307ca0d863fee18938038dce')
         run_command(['/bin/chmod', 'a+x',
-                     os.path.join(os.environ['HOME'], 'vnc-config.sh')])
-        run_command([os.path.join(os.environ['HOME'], 'vnc-config.sh')])
+                     os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
+        run_command([os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
         run_command(['/bin/rm',
-                     os.path.join(os.environ['HOME'], 'vnc-config.sh')])
+                     os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
         if os.path.exists('/tmp/.X1-lock'):
             run_command(['/bin/rm', '/tmp/.X1-lock'])
         if os.path.exists('/tmp/.X11-unix'):
@@ -644,7 +645,7 @@ def shellinaboxd(distro):
         run_command(['/usr/bin/apt-get', 'update'])
         run_command(['/usr/bin/apt-get', '-qy', 'install',
                      'gcc', 'make', 'patch'])
-    shellinaboxd_file = os.path.join(os.environ['HOME'],
+    shellinaboxd_file = os.path.join(USER_HOME_DIR,
                                      'shellinaboxd-install.sh')
     download_file('%s/init_files/%s/shellinaboxd-install.sh'
                   % (ATMOSERVER, SCRIPT_VERSION),
@@ -653,7 +654,7 @@ def shellinaboxd(distro):
     run_command(['/bin/chmod', 'a+x', shellinaboxd_file])
     run_command([shellinaboxd_file], shell=True)
     run_command(['rm -rf '
-                 + os.path.join(os.environ['HOME'], 'shellinabox')
+                 + os.path.join(USER_HOME_DIR, 'shellinabox')
                  + '*'], shell=True)
 
 
@@ -672,13 +673,13 @@ def atmo_cl():
 def nagios():
     download_file('%s/init_files/%s/nrpe-snmp-install.sh'
                   % (ATMOSERVER, SCRIPT_VERSION),
-                  os.path.join(os.environ['HOME'], 'nrpe-snmp-install.sh'),
+                  os.path.join(USER_HOME_DIR, 'nrpe-snmp-install.sh'),
                   match_hash='12da9f6f57c79320ebebf99b5a8516cc83c894f9')
     run_command(['/bin/chmod', 'a+x',
-                 os.path.join(os.environ['HOME'], 'nrpe-snmp-install.sh')])
-    run_command([os.path.join(os.environ['HOME'], 'nrpe-snmp-install.sh')])
+                 os.path.join(USER_HOME_DIR, 'nrpe-snmp-install.sh')])
+    run_command([os.path.join(USER_HOME_DIR, 'nrpe-snmp-install.sh')])
     run_command(['/bin/rm',
-                 os.path.join(os.environ['HOME'], 'nrpe-snmp-install.sh')])
+                 os.path.join(USER_HOME_DIR, 'nrpe-snmp-install.sh')])
 
 
 def notify_launched_instance(instance_data, metadata):
@@ -809,17 +810,19 @@ def update_sshkeys(metadata):
         "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA2TtX9DohsBaOEoLlm8MN+W+gVp40jyv752NbMP/PV/LAz5MnScJcvbResAJx2AusL1F6sRNvo9poNZiab6wpfErQPZLfKGanPZGYSdonsNAhTu/XI+4ERPQXUA/maQ2qZtL1b+bmZxg9n/5MsZFpA1HrXP3M2LzYafF2IzZYWfsPuuZPsO3m/cUi0G8n7n0IKXZ4XghjGP5y/kmh5Udy9I5qreaTvvFlNJtBE9OL39EfWtjOxNGllwlGIAdsljfRxkeOzlahgtCJcaoW7X2A7GcV52itUwMKfTIboAXnZriwh5n0o1aLHCCdUAGDGHBYmP7fO7/2gIQKgpLfRkDEiQ== sangeeta@iplant",
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+SYMny6H2B5IjXe6gxofHRNza5LE3NqTCe6YgYnnzYjyXWtopSeb8mK2q1ODzlaQyqYoTvPqtn6rSyN+5oHGV4o6yU+Fl664t5rOdAwz/jGJK3WwG60Pc0eGQco0ldgjD7K6LWYVPIJZs+rGpZ70jF5JsTuHeplXOn5MX9oUvNxxgXRuySxvBNOGMn0RxydK8tBTbZMlJ5MkAi/bIOrEDHEfejCxKGWITpXGkdTS2s4THiY8WqFdHUPtQkEfQkXCsRpZ6HPw1gN+JYD5NI38dVVmrA+3MgFVJkwtLUbbAM0yxgKwaUaipNN1+DeYOxBuVRlRwrrAp3+fq+4QCJrXd root@dalloway",
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFE/lyzLdFYZF3mxYwzrTITgov1NqtLuS5IY0fgjpdiVpHjWBUdXspTafKORbbM+t0ERTOqcSt24Vj5B8XUXImpzw2OAsl//AiKvHGRUenk7qY6/9IEUcay5mGAoiRpjLzDIDdtiQUAAEMKvkzanUBQOBJWVyO4Gq2aFUr4zweVLfvjejOspf2cZll/ojcPYmI9cKMq7fOgKSmRH2zUg+ORFlP1rQYugoETcGkcQg0IBsSMLT8gnYt3UWTW8S8ugtb4aaWVrId14Nc3sk+yDzPBaRX7iM3CQ5uKXPwjeID59RLMjQUFlHjqDSdZBOjXCFRHZbrbZZjS42o4OJAoLvF sgregory@mickey",
-		"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDQNBua13LVIG61LNztP9b7k7T+Qg8t22Drhpy17WVwbBH1CPYdn5NR2rXUmfiOa3RhC5Pz6uXsYUJ4xexOUJaFKY3S8h9VaeaPxMyeA8oj9ssZC6tNLqNxqGzKJbHfSzQXofKwBH87e+du34mzqzm2apOMT2JVzxWmTwrl3JWnd2HG0odeVKMNsXLuQFN6jzCeJdLxHpu+dJOL6gJTW5t9AwoJ8jxmwO8xgUbk+7s38VATSuaV/RiIfXfGFv34CT7AY1gRxm1og9jjP6qkFMyZiO6M+lwrJIlHKTOKxw+xc15w/tIssUkeflzAcrkkNGzT8sBL39BoQOo9RTrMD2QL weather-balloon@wesley.iplantcollaborative.org"
+        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDQNBua13LVIG61LNztP9b7k7T+Qg8t22Drhpy17WVwbBH1CPYdn5NR2rXUmfiOa3RhC5Pz6uXsYUJ4xexOUJaFKY3S8h9VaeaPxMyeA8oj9ssZC6tNLqNxqGzKJbHfSzQXofKwBH87e+du34mzqzm2apOMT2JVzxWmTwrl3JWnd2HG0odeVKMNsXLuQFN6jzCeJdLxHpu+dJOL6gJTW5t9AwoJ8jxmwO8xgUbk+7s38VATSuaV/RiIfXfGFv34CT7AY1gRxm1og9jjP6qkFMyZiO6M+lwrJIlHKTOKxw+xc15w/tIssUkeflzAcrkkNGzT8sBL39BoQOo9RTrMD2QL weather-balloon@wesley.iplantcollaborative.org",
+        "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAo/O1gw1hn7I8sDgKGsIY/704O4/89JFO2AG2Quy9LCS5dO5HL40igFOUBmVkqy9ANPEMslaA5VwzPuP+ojKmDhTzoWc4wmvnCGjnZqaTW/+M+QfPSOKoyAaevKC4/Y2dxevS7eRdbeY5Pvweu5rf/eoCXF4DnGMWJ4C6IPVHy7gYpfZrdeiaYzxus53DvFNr4Dee9Y2jvY8wuS3EvL37DU1AGsv1UAN2IoOKZ9Itxwmhf/ZfnFyqMdebggceWRmpK/U2FuXewKMjoJ+HMWgzESR2Rit+9jGniiIVV3K5JeNmHqfWxu2BLpXDYEalX6l28opaiEbDevirwWmvoaAbDw== dboss"
     ]
     more_keys = get_metadata_keys(metadata)
     sshkeys.extend(more_keys)
     root_ssh_dir = '/root/.ssh'
     mkdir_p(root_ssh_dir)
     run_update_sshkeys(root_ssh_dir, sshkeys)
-    if not os.environ.get('HOME'):
-        os.environ['HOME'] = '/root'
-    if os.environ['HOME'] != '/root':
-        home_ssh_dir = os.path.join(os.environ['HOME'], '.ssh')
+    global USER_HOME_DIR
+    if not USER_HOME_DIR:
+        USER_HOME_DIR = '/root'
+    if USER_HOME_DIR != '/root':
+        home_ssh_dir = os.path.join(USER_HOME_DIR, '.ssh')
         mkdir_p(home_ssh_dir)
         run_update_sshkeys(home_ssh_dir, sshkeys)
 
@@ -915,11 +918,8 @@ def main(argv):
 
     #TODO: What is this line for?
     source = "".join(args)
-    #NOTE: Sometimes we forget.. that home is where the ROOT is..
-    if not os.environ.get('HOME'):
-        os.environ['HOME'] = '/root'
     logging.debug("Atmoserver - %s" % ATMOSERVER)
-    logging.debug("Atmosphere request object - %s" % instance_data)
+    logging.debug("Atmosphere init parameters- %s" % instance_data)
     instance_metadata = get_metadata()
     logging.debug("Instance metadata - %s" % instance_metadata)
     distro = get_distro()
