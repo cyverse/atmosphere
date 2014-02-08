@@ -20,6 +20,9 @@ def monitor_instances():
         #Only check if allocation has been set
         if not im.allocation:
             continue
+        #Skip inactive providers, end-dated providers
+        if not im.identity.provider.is_active():
+            continue
         #Start by checking for running/missing instances
         core_instances = im.identity.instance_set.filter(end_date=None)
         if not core_instances:

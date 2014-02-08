@@ -129,6 +129,10 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
 def deploy_failed(driverCls, provider, identity, instance_id, task_uuid):
     try:
         logger.debug("deploy_failed task started at %s." % datetime.now())
+        result = app.AsyncResult(task_uuid)
+        exc = result.get(propagate=False)
+        err_str = "ERROR - Exception:%r" % (result.traceback,)
+        logger.error(err_str)
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         update_instance_metadata(driver, instance,

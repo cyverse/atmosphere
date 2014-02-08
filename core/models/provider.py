@@ -146,6 +146,14 @@ class Provider(models.Model):
     def get_type_name(self):
         return self.type.name
 
+    def is_active(self):
+        if not self.active:
+            return False
+        if self.end_date:
+            now = timezone.now()
+            return not(self.end_date < now)
+        return True
+
     def get_location(self):
         return self.location
 
