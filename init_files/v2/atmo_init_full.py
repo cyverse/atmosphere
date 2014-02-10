@@ -818,8 +818,7 @@ def update_sshkeys(metadata):
     root_ssh_dir = '/root/.ssh'
     mkdir_p(root_ssh_dir)
     run_update_sshkeys(root_ssh_dir, sshkeys)
-    if not USER_HOME_DIR:
-        USER_HOME_DIR = '/root'
+    global USER_HOME_DIR
     if USER_HOME_DIR != '/root':
         home_ssh_dir = os.path.join(USER_HOME_DIR, '.ssh')
         mkdir_p(home_ssh_dir)
@@ -842,7 +841,8 @@ def denyhost_whitelist():
         logging.error("Removing existing file: %s" % filename)
         os.remove(filename)
     allowed_hosts_content = "\n".join(allow_list)
-    write_to_file(filename, allowed_hosts_content)
+    if os.path.exists("/var/lib/denyhosts"):
+        write_to_file(filename, allowed_hosts_content)
     return
 
 def update_sudoers():
@@ -918,7 +918,7 @@ def main(argv):
     #TODO: What is this line for?
     source = "".join(args)
     logging.debug("Atmoserver - %s" % ATMOSERVER)
-    logging.debug("Atmosphere request object - %s" % instance_data)
+    logging.debug("Atmosphere init parameters- %s" % instance_data)
     instance_metadata = get_metadata()
     logging.debug("Instance metadata - %s" % instance_metadata)
     distro = get_distro()

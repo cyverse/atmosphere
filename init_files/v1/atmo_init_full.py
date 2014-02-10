@@ -323,6 +323,7 @@ def get_metadata_keys(metadata):
                                         "public-keys/0/openssh-key/"))
     os_key = _make_request('%s%s' % (openstack_meta_server,
                                         "public-keys/0/openssh-key/"))
+
     if euca_key:
         keys.append(euca_key)
     if os_key:
@@ -358,7 +359,7 @@ def _make_request(request_url):
         return content
     except Exception, e:
         logging.exception("Could not retrieve meta-data for instance")
-        return ""
+        return None
 
 def collect_metadata(meta_endpoint):
     metadata = {}
@@ -805,8 +806,7 @@ def update_sshkeys(metadata):
     root_ssh_dir = '/root/.ssh'
     mkdir_p(root_ssh_dir)
     run_update_sshkeys(root_ssh_dir, sshkeys)
-    if not USER_HOME_DIR:
-        USER_HOME_DIR = '/root'
+    global USER_HOME_DIR
     if USER_HOME_DIR != '/root':
         home_ssh_dir = os.path.join(USER_HOME_DIR, '.ssh')
         mkdir_p(home_ssh_dir)
@@ -829,7 +829,8 @@ def denyhost_whitelist():
         logging.error("Removing existing file: %s" % filename)
         os.remove(filename)
     allowed_hosts_content = "\n".join(allow_list)
-    write_to_file(filename, allowed_hosts_content)
+    if os.path.exists("/var/lib/denyhosts"):
+        write_to_file(filename, allowed_hosts_content)
     return
 
 def update_sudoers():
@@ -904,10 +905,7 @@ def main(argv):
 
     #TODO: What is this line for?
     source = "".join(args)
-    #NOTE: Sometimes we forget.. that home is where the ROOT is..
-    if not USER_HOME_DIR:
-        USER_HOME_DIR = '/root'
-    logging.debug("Atmosphere request object - %s" % instance_data)
+    logging.debug("Atmosphere init parameters- %s" % instance_data)
     instance_metadata = get_metadata()
     logging.debug("Instance metadata - %s" % instance_metadata)
 
