@@ -203,7 +203,7 @@ class MachineRequestAdmin(admin.ModelAdmin):
     search_fields = ["new_machine_owner__username", "new_machine_name", "instance__provider_alias"]
     list_display = ["new_machine_name", "new_machine_owner",
                     "new_machine_provider",  "start_date",
-                    "end_date", "opt_parent_machine",
+                    "end_date", "status", "opt_parent_machine",
                     "opt_new_machine"]
     list_filter = ["instance__provider_machine__provider__location",
                    "new_machine_provider__location",
