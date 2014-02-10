@@ -20,8 +20,13 @@ def save_app_data(application):
     if not all_pms:
         return
     for provider_machine in all_pms:
-        esh_driver = get_app_driver(provider_machine)
-        write_app_data(esh_driver, provider_machine)
+        try:
+            esh_driver = get_app_driver(provider_machine)
+            write_app_data(esh_driver, provider_machine)
+        except AttributeError:
+            logging.exception("Error writing app data to %s."
+                              "HINT: Does it still exist?"
+                              % provider_machine)
 
 def write_app_data(esh_driver, provider_machine):
     esh_driver = get_app_driver(provider_machine)
