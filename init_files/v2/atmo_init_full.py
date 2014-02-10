@@ -204,7 +204,8 @@ def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
 
 
 def in_etc_group(filename, val):
-    for line in open(filename, 'r').read().split('\n'):
+    etc_group_contents = read_file(filename)
+    for line in etc_group_contents.split('\n'):
         if 'users' in line and val in line:
             return True
     return False
@@ -221,10 +222,6 @@ def is_updated_test(filename):
     return False
 
 
-def file_contains(filename, val):
-    return val in open(filename, 'r').read()
-
-
 def etc_skel_bashrc(user):
     filename = "/etc/skel/.bashrc"
     if not is_updated_test(filename):
@@ -233,43 +230,6 @@ def etc_skel_bashrc(user):
 export IDS_HOME="/irods/data.iplantc.org/iplant/home/%s"
 alias ids_home="cd $IDS_HOME"
 """ % user)
-
-
-def text_in_file(filename, text):
-    f = open(filename, 'r')
-    whole_file = f.read()
-    if text in whole_file:
-        f.close()
-        return True
-    f.close()
-    return False
-
-
-def write_to_file(filename, text):
-    try:
-        logging.debug("Text to input: %s" % text)
-        f = open(filename, "w")
-        f.write(text)
-        f.close()
-    except Exception, e:
-        logging.exception("Failed to write to %s" % filename)
-
-
-def append_to_file(filename, text):
-    try:
-        if text_in_file(filename, text):
-            return
-        f = open(filename, "a")
-        f.write("## Atmosphere System\n")
-        f.write(text)
-        f.write("\n")
-        f.write("## End Atmosphere System\n")
-        f.close()
-    except Exception, e:
-        logging.exception("Failed to append to %s" % filename)
-        logging.exception("Failed to append text: %s" % text)
-
-
 def in_sudoers(user):
     out, err = run_command(['sudo -l -U %s' % user], shell=True)
     if 'not allowed to run sudo' in out:
@@ -592,17 +552,6 @@ def iplant_files(distro):
     run_command(['/bin/chmod', 'a+x', "/usr/local/bin/iplant_backup"])
 
 
-def line_in_file(needle, filename):
-    found = False
-    f = open(filename, 'r')
-    for line in f:
-        if needle in line:
-            found = True
-            break
-    f.close()
-    return found
-
-
 def modify_rclocal(username, distro, hostname='localhost'):
     try:
         if is_rhel(distro):
@@ -716,6 +665,7 @@ def notify_launched_instance(instance_data, metadata):
 
 
 def distro_files(distro):
+    install_motd(distro)
     install_irods(distro)
     install_icommands(distro)
 
@@ -725,6 +675,33 @@ def is_rhel(distro):
         return True
     else:
         return False
+
+
+def install_motd(distro):
+    if is_rhel(distro):
+        #Rhel path
+        download_file('http://www.iplantcollaborative.org/sites/default/files/'
+                      + 'atmosphere/motd',
+                      '/etc/motd',
+                      match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
+    else:
+        #Ubuntu path
+        download_file('http://www.iplantcollaborative.org/sites/default/files/'
+                      + 'atmosphere/motd',
+                      '/etc/motd.tail',
+                      match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
+    include_motd_more(distro):
+
+
+def include_motd_more(distro):
+    if not os.path.exists("/etc/motd.more"):
+        return
+    motd_message = read_file("/etc/motd.more")
+    if is_rhel(distro):
+        filename = "/etc/motd"
+    else:
+        filename = "/etc/motd.tail"
+    append_to_file(filename, "\n---\n%s" % motd_message)
 
 
 def install_irods(distro):
@@ -796,11 +773,9 @@ def update_timezone():
 
 def run_update_sshkeys(sshdir, sshkeys):
     authorized_keys = os.path.join(sshdir, 'authorized_keys')
-    f = open(authorized_keys, 'r')
-    content = f.read()
-    f.close()
+    included_ssh_keys = read_file(authorized_keys)
     for key in sshkeys:
-        if key in content:
+        if key in included_ssh_keys:
             sshkeys.remove(key)
     f = open(authorized_keys, 'a')
     for key in sshkeys:
@@ -886,7 +861,60 @@ def insert_modprobe():
     run_command(['depmod', '-a'])
     run_command(['modprobe', 'acpiphp'])
 
+#File Operations
+def line_in_file(needle, filename):
+    found = False
+    f = open(filename, 'r')
+    for line in f:
+        if needle in line:
+            found = True
+            break
+    f.close()
+    return found
 
+def text_in_file(filename, text):
+    file_contents = read_file(filename)
+    if text in file_contents:
+        return True
+    return False
+
+
+def read_file(filename):
+    try:
+        f = open(filename, 'r')
+        content = f.read()
+        f.close()
+        return content
+    except Exception, e:
+        logging.exception("Error reading file %s" % filename)
+        return ""
+
+
+def write_to_file(filename, text):
+    try:
+        logging.debug("Text to input: %s" % text)
+        f = open(filename, "w")
+        f.write(text)
+        f.close()
+    except Exception, e:
+        logging.exception("Failed to write to %s" % filename)
+
+
+def append_to_file(filename, text):
+    try:
+        if text_in_file(filename, text):
+            return
+        f = open(filename, "a")
+        f.write("## Atmosphere System\n")
+        f.write(text)
+        f.write("\n")
+        f.write("## End Atmosphere System\n")
+        f.close()
+    except Exception, e:
+        logging.exception("Failed to append to %s" % filename)
+        logging.exception("Failed to append text: %s" % text)
+
+##MAIN##
 def main(argv):
     init_logs('/var/log/atmo/atmo_init_full.log')
     instance_data = {"atmosphere": {}}
