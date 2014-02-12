@@ -103,7 +103,6 @@ urlpatterns = patterns(
 
 urlpatterns += format_suffix_patterns(patterns(
     '',
-    url(r'api/v1/$', Meta.as_view()),
     url(r'api/v1/version/$', Version.as_view()),
     url(r'^api/v1/maintenance/$',
         MaintenanceRecordList.as_view(),
