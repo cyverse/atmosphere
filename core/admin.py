@@ -74,6 +74,7 @@ class ProviderMachineAdmin(admin.ModelAdmin):
     list_display = ["identifier", "provider", "application"]
     list_filter = [
         "provider__location",
+        "application__featured",
     ]
 
 
