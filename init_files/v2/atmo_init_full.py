@@ -644,7 +644,6 @@ def notify_launched_instance(instance_data, metadata):
     except ImportError:
         #Support for python 2.4
         import simplejson as json
-    from httplib2 import Http
     service_url = instance_data['atmosphere']['instance_service_url']
     userid = instance_data['atmosphere']['userid']
     instance_token = instance_data['atmosphere']['instance_token']
@@ -656,12 +655,13 @@ def notify_launched_instance(instance_data, metadata):
         'token': instance_token,
         'name': instance_name,
     }
-    h = Http(disable_ssl_certificate_validation=True)
-    headers = {'Content-type': 'application/json'}
-    resp, content = h.request(service_url, "POST",
-                              headers=headers, body=json.dumps(data))
-    logging.debug(resp)
-    logging.debug(content)
+    data = json.dumps(data)
+    request = urllib2.Request(service_url, data, {'Content-Type':
+        'application/json'})
+    link = urllib2.urlopen(request)
+    response = link.read()
+    link.close()
+    logging.debug(response)
 
 
 def distro_files(distro):
@@ -690,6 +690,7 @@ def install_motd(distro):
                       + 'atmosphere/motd',
                       '/etc/motd.tail',
                       match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
+    include_motd_more(distro)
 
 
 def include_motd_more(distro):
