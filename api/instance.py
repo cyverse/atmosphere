@@ -66,13 +66,12 @@ class InstanceList(APIView):
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
 
-        core_instance_list =
-        [convert_esh_instance(esh_driver,
-                              inst,
-                              provider_id,
-                              identity_id,
-                              user)
-         for inst in esh_instance_list]
+        core_instance_list = [convert_esh_instance(esh_driver,
+                                                   inst,
+                                                   provider_id,
+                                                   identity_id,
+                                                   user)
+                              for inst in esh_instance_list]
 
         #TODO: Core/Auth checks for shared instances
 

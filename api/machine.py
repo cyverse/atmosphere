@@ -243,8 +243,8 @@ class Machine(APIView):
         esh_machine = esh_driver.get_machine(machine_id)
         coreMachine = convert_esh_machine(esh_driver, esh_machine, provider_id)
 
-        if not user.is_staff
-        and user is not coreMachine.application.created_by:
+        if not user.is_staff\
+           and user is not coreMachine.application.created_by:
             logger.warn('%s is Non-staff/non-owner trying to update a machine'
                         % (user.username))
             errorObj = failureJSON([{
@@ -277,8 +277,8 @@ class Machine(APIView):
         esh_machine = esh_driver.get_machine(machine_id)
         coreMachine = convert_esh_machine(esh_driver, esh_machine, provider_id)
 
-        if not user.is_staff
-        and user is not coreMachine.application.created_by:
+        if not user.is_staff\
+           and user is not coreMachine.application.created_by:
             logger.warn('Non-staff/non-owner trying to update a machine')
             errorObj = failureJSON([{
                 'code': 401,
