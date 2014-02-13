@@ -690,7 +690,7 @@ def install_motd(distro):
                       + 'atmosphere/motd',
                       '/etc/motd.tail',
                       match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
-    include_motd_more(distro):
+    include_motd_more(distro)
 
 
 def include_motd_more(distro):
