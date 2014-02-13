@@ -35,7 +35,7 @@ def provider_filtered_machines(request, provider_id, identity_id):
     Return all filtered machines. Uses the most common,
     default filtering method.
     """
-    esh_driver = prepare_driver(request, identity_id, provider_id)
+    esh_driver = prepare_driver(request, provider_id, identity_id)
     return list_filtered_machines(esh_driver, provider_id)
 
 
@@ -109,7 +109,7 @@ class MachineHistory(APIView):
                 'message': 'User not found'}])
             return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
 
-        esh_driver = prepare_driver(request, identity_id, provider_id)
+        esh_driver = prepare_driver(request, provider_id, identity_id)
 
         # Historic Machines
         all_machines_list = all_filtered_machines()
@@ -224,7 +224,7 @@ class Machine(APIView):
         (Lookup using the given provider/identity)
         Update on server (If applicable)
         """
-        esh_driver = prepare_driver(request, identity_id, provider_id)
+        esh_driver = prepare_driver(request, provider_id, identity_id)
         eshMachine = esh_driver.get_machine(machine_id)
         coreMachine = convert_esh_machine(esh_driver, eshMachine, provider_id)
         serialized_data = ProviderMachineSerializer(coreMachine).data
@@ -239,7 +239,7 @@ class Machine(APIView):
         """
         user = request.user
         data = request.DATA
-        esh_driver = prepare_driver(request, identity_id, provider_id)
+        esh_driver = prepare_driver(request, provider_id, identity_id)
         esh_machine = esh_driver.get_machine(machine_id)
         coreMachine = convert_esh_machine(esh_driver, esh_machine, provider_id)
 
@@ -273,7 +273,7 @@ class Machine(APIView):
         """
         user = request.user
         data = request.DATA
-        esh_driver = prepare_driver(request, identity_id, provider_id)
+        esh_driver = prepare_driver(request, provider_id, identity_id)
         esh_machine = esh_driver.get_machine(machine_id)
         coreMachine = convert_esh_machine(esh_driver, esh_machine, provider_id)
 

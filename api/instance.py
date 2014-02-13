@@ -53,7 +53,7 @@ class InstanceList(APIView):
         Returns a list of all instances
         """
         user = request.user
-        esh_driver = prepare_driver(request, identity_id, provider_id)
+        esh_driver = prepare_driver(request, provider_id, identity_id)
 
         instance_list_method = esh_driver.list_instances
 
@@ -225,7 +225,7 @@ class InstanceAction(APIView):
 
         result_obj = None
         user = request.user
-        esh_driver = prepare_driver(request, identity_id, provider_id)
+        esh_driver = prepare_driver(request, provider_id, identity_id)
 
         instance_list_method = esh_driver.list_instances
 
@@ -357,7 +357,7 @@ class Instance(APIView):
         TODO: Filter out instances you shouldnt see (permissions..)
         """
         user = request.user
-        esh_driver = prepare_driver(request, identity_id, provider_id)
+        esh_driver = prepare_driver(request, provider_id, identity_id)
 
         try:
             esh_instance = esh_driver.get_instance(instance_id)
@@ -381,7 +381,7 @@ class Instance(APIView):
         """
         user = request.user
         data = request.DATA
-        esh_driver = prepare_driver(request, identity_id, provider_id)
+        esh_driver = prepare_driver(request, provider_id, identity_id)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
         except InvalidCredsError:
@@ -418,7 +418,7 @@ class Instance(APIView):
         user = request.user
         data = request.DATA
         #Ensure item exists on the server first
-        esh_driver = prepare_driver(request, identity_id, provider_id)
+        esh_driver = prepare_driver(request, provider_id, identity_id)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
         except InvalidCredsError:
@@ -445,7 +445,7 @@ class Instance(APIView):
     @api_auth_token_required
     def delete(self, request, provider_id, identity_id, instance_id):
         user = request.user
-        esh_driver = prepare_driver(request, identity_id, provider_id)
+        esh_driver = prepare_driver(request, provider_id, identity_id)
 
         try:
             esh_instance = esh_driver.get_instance(instance_id)

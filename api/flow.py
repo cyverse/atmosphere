@@ -22,7 +22,7 @@ class FlowList(APIView):
         """
         """
         user = request.user
-        esh_driver = prepare_driver(request, identity_id, provider_id)
+        esh_driver = prepare_driver(request, provider_id, identity_id)
         serialized_data = []
         response = Response(serialized_data)
         return response
@@ -37,7 +37,7 @@ class Flow(APIView):
         """
         """
         user = request.user
-        esh_driver = prepare_driver(request, identity_id, provider_id)
+        esh_driver = prepare_driver(request, provider_id, identity_id)
         esh_size = []
         serialized_data = []
         response = Response(serialized_data)
