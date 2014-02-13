@@ -24,32 +24,34 @@ class Meta(APIView):
     Atmosphere service meta rest api.
     """
     @api_auth_token_required
-    def get(self, request, provider_id=None, identity_id=None):
+    def get(self, request, provider_id, identity_id):
         """
         Returns all available URLs based on the user profile.
         """
-        user = request.user
-        profile = user.get_profile() 
-        identity = user.select_identity()
-        identity_id = identity.id
-        provider_id = identity.provider.id
+        esh_driver = prepare_driver(request, provider_id, identity_id)
         data = {
-                'provider':reverse('provider-list',
-                    request=request),
-                'identity':reverse('identity-list',
-                    args=(provider_id,), request=request),
-                'volume':reverse('volume-list',
-                    args=(provider_id, identity_id), request=request),
-                'meta':reverse('meta-detail',
-                    args=(provider_id, identity_id), request=request),
-                'instance':reverse('instance-list',
-                    args=(provider_id, identity_id), request=request),
-                'machine':reverse('machine-list',
-                    args=(provider_id, identity_id), request=request),
-                'size':reverse('size-list',
-                    args=(provider_id, identity_id), request=request),
-                'profile':reverse('profile', request=request)
-               }
+            'provider': reverse('provider-list',
+                                request=request),
+            'identity': reverse('identity-list',
+                                args=(provider_id,),
+                                request=request),
+            'volume': reverse('volume-list',
+                              args=(provider_id, identity_id),
+                              request=request),
+            'meta': reverse('meta-detail',
+                            args=(provider_id, identity_id),
+                            request=request),
+            'instance': reverse('instance-list',
+                                args=(provider_id, identity_id),
+                                request=request),
+            'machine': reverse('machine-list',
+                               args=(provider_id, identity_id),
+                               request=request),
+            'size': reverse('size-list',
+                            args=(provider_id, identity_id),
+                            request=request),
+            'profile': reverse('profile', request=request)
+        }
         return Response(data)
 
 
@@ -58,7 +60,7 @@ class MetaAction(APIView):
     Atmosphere service meta rest api.
     """
     @api_auth_token_required
-    def get(self, request, provider_id=None, identity_id=None, action=None):
+    def get(self, request, provider_id, identity_id, action=None):
         """
         """
         if not action:
@@ -66,7 +68,7 @@ class MetaAction(APIView):
                 'code': 400,
                 'message': 'Action is not supported.'}])
             return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
-        esh_driver = prepare_driver(request, identity_id)
+        esh_driver = prepare_driver(request, provider_id, identity_id)
         esh_meta = esh_driver.meta()
         try:
             if 'test_links' in action:

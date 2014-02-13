@@ -20,7 +20,7 @@ from core.models.step import Step as CoreStep
 
 from api.serializers import StepSerializer
 
-from api import failureJSON, prepare_driver
+from api import failureJSON
 
 
 class StepList(APIView):
@@ -50,7 +50,8 @@ class StepList(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
 
         if data.get("instance_alias"):
-            instance = CoreInstance.objects.get(provider_alias=data["instance_alias"])
+            instance = CoreInstance.objects.get(
+                provider_alias=data["instance_alias"])
         else:
             instance = None
         if data.get("flow_alias"):
@@ -109,8 +110,9 @@ class Step(APIView):
         if not step:
             return step_not_found(step_id)
         if not user.is_staff and user != step.created_by:
-            return Response(["Only the step creator can update %s step." % step_id],
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                ["Only the step creator can update %s step." % step_id],
+                status=status.HTTP_400_BAD_REQUEST)
         required_fields(data, step)
         serializer = StepSerializer(step, data=data)
         if serializer.is_valid():
@@ -135,7 +137,8 @@ class Step(APIView):
         if not step:
             return step_not_found(step_id)
         if not user.is_staff and user != step.created_by:
-            return Response(["Only the step creator can delete %s step." % step_id],
+            return Response(["Only the step creator can delete %s step." %
+                             step_id],
                             status=status.HTTP_400_BAD_REQUEST)
         required_fields(data, step)
         step.end_date = timezone.now()

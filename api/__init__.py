@@ -94,18 +94,19 @@ def get_esh_driver(core_identity, username=None):
         raise
 
 
-def prepare_driver(request, identity_id):
+def prepare_driver(request, provider_id, identity_id):
     """
-    TODO: Cache driver based on specific provider
-    return esh_driver
+    Return an rtwo.EshDriver for the given provider_id
+    and identity_id.
+
+
+    Throws core.model.Identity.DoesNotExist exceptions if the
+    identity, provider or combination of identity and provider
+    are invalid.
     """
-    #    from service.driver import DriverManager
-    #    username = request.user
-    core_identity = CoreIdentity.objects.get(id=identity_id)
+    core_identity = CoreIdentity.objects.get(provider__id=provider_id,
+                                             id=identity_id)
     return get_esh_driver(core_identity)
-    #    manager = DriverManager()
-    #    esh_driver = manager.get_driver(core_identity)
-    #    return esh_driver
 
 
 def failureJSON(errors, *args, **kwargs):

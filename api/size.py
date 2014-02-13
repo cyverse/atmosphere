@@ -29,7 +29,7 @@ class SizeList(APIView):
         #TODO: Decide how we should pass this in (I.E. GET query string?)
         active = False
         user = request.user
-        esh_driver = prepare_driver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id, provider_id)
         esh_size_list = esh_driver.list_sizes()
         all_size_list = [convert_esh_size(size, provider_id)
                          for size in esh_size_list]
@@ -51,7 +51,7 @@ class Size(APIView):
         Update on server DB (If applicable)
         """
         user = request.user
-        esh_driver = prepare_driver(request, identity_id)
+        esh_driver = prepare_driver(request, identity_id, provider_id)
         eshSize = esh_driver.get_size(size_id)
         coreSize = convert_esh_size(eshSize, provider_id)
         serialized_data = ProviderSizeSerializer(coreSize).data
