@@ -16,7 +16,7 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
-from api import failureJSON, prepare_driver
+from api import failure_response, prepare_driver
 
 
 class Meta(APIView):
@@ -64,10 +64,10 @@ class MetaAction(APIView):
         """
         """
         if not action:
-            errorObj = failureJSON([{
-                'code': 400,
-                'message': 'Action is not supported.'}])
-            return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                'Action is not supported.'
+            )
         esh_driver = prepare_driver(request, provider_id, identity_id)
         esh_meta = esh_driver.meta()
         try:
@@ -77,15 +77,12 @@ class MetaAction(APIView):
         except InvalidCredsError:
             logger.warn('Authentication Failed. Provider-id:%s Identity-id:%s'
                         % (provider_id, identity_id))
-            errorObj = failureJSON([{
-                'code': 401,
-                'message': 'Identity/Provider Authentication Failed'}])
-            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
+            return failure_response(
+                status.HTTP_401_UNAUTHORIZED,
+                'Identity/Provider Authentication Failed')
         except NotImplemented, ne:
             logger.exception(ne)
-            errorObj = failureJSON([{
-                'code': 404,
-                'message':
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
                 'The requested resource %s is not available on this provider'
-                % action}])
-            return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+                % action)
