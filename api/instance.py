@@ -3,14 +3,14 @@ Atmosphere service instance rest api.
 """
 from datetime import datetime
 import time
-from core.models import AtmosphereUser as User
+
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 from django.db.models import Q
 
 from rest_framework import status
-from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from libcloud.common.types import InvalidCredsError
 
@@ -18,17 +18,12 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
+from core.models import AtmosphereUser as User
 from core.models.provider import AccountProvider
 from core.models.instance import convert_esh_instance
 from core.models.instance import Instance as CoreInstance
 from core.models.size import convert_esh_size
 from core.models.volume import convert_esh_volume
-
-from api import failureJSON, prepare_driver
-from api.serializers import InstanceSerializer, PaginatedInstanceSerializer
-from api.serializers import InstanceHistorySerializer,\
-    PaginatedInstanceHistorySerializer
-from api.serializers import VolumeSerializer
 
 from service import task
 from service.deploy import build_script
@@ -39,6 +34,12 @@ from service.quota import check_over_quota
 from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable
+
+from api import failure_response, prepare_driver
+from api.serializers import InstanceSerializer, PaginatedInstanceSerializer
+from api.serializers import InstanceHistorySerializer,\
+    PaginatedInstanceHistorySerializer
+from api.serializers import VolumeSerializer
 
 
 class InstanceList(APIView):
@@ -141,10 +142,8 @@ class InstanceHistory(APIView):
         if user and len(user) > 0:
             user = user[0]
         else:
-            errorObj = failureJSON([{
-                'code': 401,
-                'message': 'User not found'}])
-            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
+            return failure_response(status.HTTP_401_UNAUTHORIZED,
+                                    'User not found')
         page = params.pop('page', None)
         emulate_name = params.pop('username', None)
         try:
@@ -171,12 +170,10 @@ class InstanceHistory(APIView):
                     history_instance_list = history_instance_list.filter(
                         provider_alias__contains=value)
         except Exception as e:
-            errorObj = failureJSON([{
-                'code': 400,
-                'message':
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
                 'Bad query string caused filter validation errors : %s'
-                % (e,)}])
-            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
+                % (e,))
         if page:
             paginator = Paginator(history_instance_list, 5)
             try:
@@ -217,22 +214,16 @@ class InstanceAction(APIView):
         #Service-specific call to action
         action_params = request.DATA
         if not action_params.get('action', None):
-            errorObj = failureJSON([{
-                'code': 400,
-                'message':
-                'POST request to /action require a BODY with \'action\':'}])
-            return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
-
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                'POST request to /action require a BODY with \'action\'.')
         result_obj = None
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
-
         instance_list_method = esh_driver.list_instances
-
         if AccountProvider.objects.filter(identity__id=identity_id):
             # Instance list method changes when using the OPENSTACK provider
             instance_list_method = esh_driver.list_all_instances
-
         try:
             esh_instance_list = instance_list_method()
         except InvalidCredsError:
@@ -240,11 +231,9 @@ class InstanceAction(APIView):
 
         esh_instance = esh_driver.get_instance(instance_id)
         if not esh_instance:
-            errorObj = failureJSON([{
-                'code': 400,
-                'message': 'Instance %s no longer exists' % (instance_id,)}])
-            return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
-
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                'Instance %s no longer exists' % (instance_id,))
         action = action_params['action']
         try:
             if 'volume' in action:
@@ -265,11 +254,9 @@ class InstanceAction(APIView):
                         volume_id)
                     if not result and error_msg:
                         #Return reason for failed detachment
-                        errorObj = failureJSON([{'code': 400,
-                                                 'message': error_msg}])
-                        return Response(errorObj,
-                                        status=status.HTTP_400_BAD_REQUEST)
-
+                        return failure_response(
+                            status.HTTP_400_BAD_REQUEST,
+                            error_msg)
                 #Task complete, convert the volume and return the object
                 esh_volume = esh_driver.get_volume(volume_id)
                 core_volume = convert_esh_volume(esh_volume,
@@ -308,13 +295,9 @@ class InstanceAction(APIView):
                 machine = esh_driver.get_machine(machine_alias)
                 esh_driver.rebuild_instance(esh_instance, machine)
             else:
-                errorObj = failureJSON([{
-                    'code': 400,
-                    'message': 'Unable to to perform action %s.' % (action)}])
-                return Response(
-                    errorObj,
-                    status=status.HTTP_400_BAD_REQUEST)
-
+                return failure_response(
+                    status.HTTP_400_BAD_REQUEST,
+                    'Unable to to perform action %s.' % (action))
             #ASSERT: The action was executed successfully
             api_response = {
                 'result': 'success',
@@ -334,13 +317,10 @@ class InstanceAction(APIView):
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
         except NotImplemented, ne:
-            logger.exception(ne)
-            errorObj = failureJSON([{
-                'code': 404,
-                'message':
-                'The requested action %s is not available on this provider'
-                % action_params['action']}])
-            return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                "The requested action %s is not available on this provider"
+                % action_params['action'])
 
 
 class Instance(APIView):
@@ -481,44 +461,38 @@ def valid_post_data(data):
 
 
 def keys_not_found(missing_keys):
-    errorObj = failureJSON([{
-        'code': 400,
-        'message': 'Missing required POST datavariables : %s' % missing_keys}])
-    return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+    return failure_response(
+        status.HTTP_400_BAD_REQUEST,
+        'Missing required POST datavariables : %s' % missing_keys)
 
 
 def instance_not_found(instance_id):
-    errorObj = failureJSON([{
-        'code': 404,
-        'message': 'Instance %s does not exist' % instance_id}])
-    return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+    return failure_response(
+        status.HTTP_404_NOT_FOUND,
+        'Instance %s does not exist' % instance_id)
 
 
 def invalid_creds(provider_id, identity_id):
     logger.warn('Authentication Failed. Provider-id:%s Identity-id:%s'
                 % (provider_id, identity_id))
-    errorObj = failureJSON([{'code': 401,
-                             'message':
-                             'Identity/Provider Authentication Failed'}])
-    return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+    return failure_response(
+        status.HTTP_401_UNAUTHORIZED,
+        'Identity/Provider Authentication Failed')
 
 
 def size_not_availabe(sna_exception):
-    errorObj = failureJSON([{
-        'code': 413,
-        'message': sna_exception.message}])
-    return Response(errorObj, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+    return failure_response(
+        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+        sna_exception.message)
 
 
 def over_quota(quota_exception):
-    errorObj = failureJSON([{
-        'code': 413,
-        'message': quota_exception.message}])
-    return Response(errorObj, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+    return failure_response(
+        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+        quota_exception.message)
 
 
 def over_allocation(allocation_exception):
-    errorObj = failureJSON([{
-        'code': 413,
-        'message': allocation_exception.message}])
-    return Response(errorObj, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+    return failure_response(
+        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+        allocation_exception.message)

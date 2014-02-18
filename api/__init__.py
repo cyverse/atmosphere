@@ -2,22 +2,16 @@
 Atmosphere service utils for rest api.
 
 """
-
 import uuid
 import os.path
 
-#Necessary to initialize Meta classes
-import rtwo.compute
-
-from core.models import AtmosphereUser as DjangoUser
-
 from threepio import logger
 
-from atmosphere import settings
+from rest_framework import status
+from rest_framework.response import Response
 
-from core.ldap import get_uid_number
-
-from core.models.identity import Identity as CoreIdentity
+#Necessary to initialize Meta classes
+import rtwo.compute
 
 from rtwo.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
@@ -25,6 +19,14 @@ from rtwo.provider import AWSProvider, AWSUSEastProvider,\
 from rtwo.identity import AWSIdentity, EucaIdentity,\
     OSIdentity
 from rtwo.driver import AWSDriver, EucaDriver, OSDriver
+
+from atmosphere import settings
+
+from core.ldap import get_uid_number
+
+from core.models import AtmosphereUser as DjangoUser
+from core.models.identity import Identity as CoreIdentity
+
 
 #These functions return ESH related information based on the core repr
 ESH_MAP = {
@@ -109,10 +111,12 @@ def prepare_driver(request, provider_id, identity_id):
     return get_esh_driver(core_identity)
 
 
-def failureJSON(errors, *args, **kwargs):
+def failure_response(status, message):
     """
-    Input : List of errors (human readable)
-    Output: Structured JSON object to contain the errors
-    TODO: Determine if this is useful or a wash..
+    Return a djangorestframework Response object given an error
+    status and message.
     """
-    return {'errors': errors}
+    return Response({"errors":
+                     {[{'code': status,
+                        'message': message}]}},
+                    status=status)
