@@ -12,7 +12,7 @@ from threepio import logger
 from core.email import send_instance_email
 from core.models.instance import Instance as CoreInstance
 
-from api import failureJSON
+from api import failure_response
 
 
 class NotificationList(APIView):
@@ -35,23 +35,20 @@ class NotificationList(APIView):
         vm_info = params.get('vminfo')
         instance_name = params.get('name')
         instance = CoreInstance.objects.filter(provider_alias=vm_info['instance-id'])
+        error_list = []
         if not instance:
-            error_list = [
-                {'code': 404,
-                 'message': 'The token %s did not match a core instance'
-                 % instance_token}
-            ]
+            error_list.append(
+                "The token %s did not match a core instance."
+                 % instance_token)
             instance = CoreInstance.objects.filter(
                 ip_address=request.META['REMOTE_ADDR'])
         if not instance:
             error_list.append(
-                {'code': 404,
-                 'message':
-                 'The IP Address %s did not match a core instance'
-                 % request.META['REMOTE_ADDR']}
-            )
-            errorObj = failureJSON(error_list)
-            return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+                "The IP Address %s did not match a core instance."
+                % request.META['REMOTE_ADDR'])
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                str(error_list))
         instance = instance[0]
         ip_address = vm_info.get('public-ipv4',
                                  request.META.get('REMOTE_ADDR'))
