@@ -214,7 +214,7 @@ INIT_SCRIPT_PREFIX = '/init_files/'
 
 ## logging
 LOGGING_LEVEL = logging.DEBUG
-DEP_LOGGING_LEVEL = logging.WARN  # Logging level for dependencies.
+DEP_LOGGING_LEVEL = logging.INFO  # Logging level for dependencies.
 LOG_FILENAME = os.path.abspath(os.path.join(
     os.path.dirname(atmosphere.__file__),
     '..',
@@ -285,27 +285,45 @@ BROKER_USER = ""
 BROKER_PASSWORD = ""
 REDIS_DB = 0
 REDIS_CONNECT_RETRY = True
-CELERY_ENABLE_UTC = False
+CELERY_ENABLE_UTC = True
 CELERY_TIMEZONE = "America/Phoenix"
 CELERY_SEND_EVENTS = True
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-CELERY_TASK_RESULT_EXPIRES = 10
-#CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
-CELERYBEAT_SCHEDULE = {
-    'monitor-instances': {
-        'task': 'service.tasks.allocation.monitor_instances', 
-        'schedule': timedelta(seconds=60*15),
-    },
-    'check-all-instances': {
-        'task': 'core.tasks.instance.test_all_instance_links', 
-        'schedule': timedelta(seconds=60*5),
-    },
-}
+CELERY_TASK_RESULT_EXPIRES = 3*60*60 #Store results for 3 hours
+CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
+CELERYBEAT_CHDIR=PROJECT_ROOT
+CELERYD_MAX_TASKS_PER_CHILD=50
 CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [PID:%(process)d] @ %(pathname)s on %(lineno)d] %(message)s"
 CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [PID:%(process)d] [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
+# Django-Celery Local Settings
+# Django-Celery Local Settings
+#CELERY_QUEUES = (
+#        Queue('imaging'), Exchange('imaging'), routing_key='imaging'),
+#    )
+CELERY_DEFAULT_QUEUE='default'
 
-#Django-Celery Development settings
-#CELERY_ALWAYS_EAGER = True
+#NOTE: Leave this block out until the 'bug' regarding CELERY_ROUTES is fixed
+#      See steve gregory for more details..
+
+#     #NOTE: This is a Tuple of dicts!
+#     from kombu import Queue
+#     CELERY_QUEUES = (
+#             Queue('default'),
+#             Queue('imaging', routing_key='imaging.#')
+#         )
+#     CELERY_ROUTES = (
+#             {"chromogenic.tasks.migrate_instance_task" : {"queue": "imaging",
+#                 "routing_key": "imaging.execute"}},
+#             {"chromogenic.tasks.machine_imaging_task" : {"queue": "imaging",
+#                 "routing_key": "imaging.execute"}},
+#             {"service.tasks.machine.freeze_instance_task" : {"queue": "imaging",
+#                 "routing_key": "imaging.prepare"}},
+#             {"service.tasks.machine.process_request" : {"queue": "imaging",
+#                 "routing_key": "imaging.complete"}},
+#         )
+#     # Django-Celery Development settings
+#     CELERY_ALWAYS_EAGER = True
+#     CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
 import djcelery
 djcelery.setup_loader()
