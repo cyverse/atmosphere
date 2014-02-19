@@ -116,14 +116,14 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/v1/user/(?P<username>.*)/$', User.as_view()),
     url(r'^api/v1/profile/$', Profile.as_view(), name='profile'),
     url(r'^api/v1/provider/(?P<provider_id>\d+)/occupancy/$',
-        Occupancy.as_view()),
+        Occupancy.as_view(), name='occupancy'),
     url(r'^api/v1/provider/(?P<provider_id>\d+)/hypervisor/$',
-        Hypervisor.as_view()),
+        Hypervisor.as_view(), name='hypervisor'),
 
-    url(r'^api/v1/group/$', GroupList.as_view()),
+    url(r'^api/v1/group/$', GroupList.as_view(), name='group-list'),
     url(r'^api/v1/group/(?P<groupname>.*)/$', Group.as_view()),
 
-    url(r'^api/v1/tag/$', TagList.as_view()),
+    url(r'^api/v1/tag/$', TagList.as_view(), name='tag-list'),
     url(r'^api/v1/tag/(?P<tag_slug>.*)/$', Tag.as_view()),
 
     url(r'^api/v1/application/$',
