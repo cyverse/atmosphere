@@ -3,17 +3,23 @@ from django.utils import timezone
 from celery.task import periodic_task
 from celery.task.schedules import crontab
 
+from atmosphere import settings
 from service.allocation import check_over_allocation
 
 from threepio import logger
 
 
 @periodic_task(run_every=crontab(hour='*', minute='*/15', day_of_week='*'),
-               time_limit=120, retry=0)  # 2min timeout
+               time_limit=120, retry=0,
+               expires=10*60) # Task expires 10min after scheduling
 def monitor_instances():
     """
-    This task should be run every 5m-15m
+    This task should be run ONCE every 5m-15m
     """
+    #Only check if allocations are being enforced
+    if settings.DEBUG:
+        logger.info('Do not enforce allocations in DEBUG mode')
+        return False
     from api import get_esh_driver
     from core.models import IdentityMembership
     for im in IdentityMembership.objects.all():

@@ -7,13 +7,16 @@ from operator import attrgetter
 from datetime import datetime
 import time
 
+from celery import chain
 from celery.decorators import task
 from celery.task import current
-from celery import chain
+from celery.result import allow_join_result
+from libcloud.compute.types import Provider, NodeState, DeploymentError
 
 from atmosphere.celery import app
 
 from threepio import logger
+from rtwo.exceptions import NonZeroDeploymentException
 
 from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
@@ -122,12 +125,14 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
 
 # Deploy and Destroy tasks
 @task(name="deploy_failed")
-def deploy_failed(task_uuid, driverCls, provider, identity, instance_id):
+def deploy_failed(task_uuid, driverCls, provider, identity, instance_id,
+                  **celery_task_args):
     try:
         logger.debug("deploy_failed task started at %s." % datetime.now())
         logger.info("task_uuid=%s" % task_uuid)
         result = app.AsyncResult(task_uuid)
-        exc = result.get(propagate=False)
+        with allow_join_result():
+            exc = result.get(propagate=False)
         err_str = "DEPLOYERROR::%s" % (result.traceback,)
         logger.error(err_str)
         driver = get_driver(driverCls, provider, identity)
@@ -180,6 +185,8 @@ def deploy_init_to(driverCls, provider, identity, instance_id, password=None,
         #if kwargs.get('delay'):
         #    async.get()
         logger.debug("deploy_init_to task finished at %s." % datetime.now())
+    except NonZeroDeploymentException:
+        raise
     except Exception as exc:
         logger.warn(exc)
         deploy_init_to.retry(exc=exc)
@@ -274,6 +281,7 @@ def destroy_instance(core_identity_id, instance_alias):
                              % (len(instances),))
                 #For testing ONLY.. Test cases ignore countdown..
                 if app.conf.CELERY_ALWAYS_EAGER:
+                    logger.debug("Eager task waiting 1 minute")
                     time.sleep(60)
                 destroy_chain = chain(
                     clean_empty_ips.subtask(
@@ -288,6 +296,7 @@ def destroy_instance(core_identity_id, instance_alias):
                              % (len(active), len(instances)))
                 #For testing ONLY.. Test cases ignore countdown..
                 if app.conf.CELERY_ALWAYS_EAGER:
+                    logger.debug("Eager task waiting 15 seconds")
                     time.sleep(15)
                 destroy_chain = \
                     clean_empty_ips.subtask(
@@ -303,7 +312,8 @@ def destroy_instance(core_identity_id, instance_alias):
 @task(name="_deploy_init_to",
       default_retry_delay=32,
       max_retries=10)
-def _deploy_init_to(driverCls, provider, identity, instance_id, password=None):
+def _deploy_init_to(driverCls, provider, identity, instance_id, password=None,
+                    **celery_task_args):
     try:
         logger.debug("_deploy_init_to task started at %s." % datetime.now())
         #Check if instance still exists
@@ -324,6 +334,16 @@ def _deploy_init_to(driverCls, provider, identity, instance_id, password=None):
         kwargs.update({'deploy': msd})
         driver.deploy_to(instance, **kwargs)
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
+    except DeploymentError as exc:
+        logger.exception(exc)
+        if isinstance(exc.value, NonZeroDeploymentException):
+            #The deployment was successful, but the return code on one or more
+            # steps is bad. Log the exception and do NOT try again!
+            raise exc.value
+        #TODO: Check if all exceptions thrown at this time
+        #fall in this category, and possibly don't retry if
+        #you hit the Exception block below this.
+        _deploy_init_to.retry(exc=exc)
     except Exception as exc:
         logger.exception(exc)
         _deploy_init_to.retry(exc=exc)
@@ -381,6 +401,7 @@ def add_floating_ip(driverCls, provider, identity,
                     *args, **kwargs):
     #For testing ONLY.. Test cases ignore countdown..
     if app.conf.CELERY_ALWAYS_EAGER:
+        logger.debug("Eager task waiting 15 seconds")
         time.sleep(15)
     try:
         logger.debug("add_floating_ip task started at %s." % datetime.now())
@@ -473,6 +494,7 @@ def remove_empty_network(
     try:
         #For testing ONLY.. Test cases ignore countdown..
         if app.conf.CELERY_ALWAYS_EAGER:
+            logger.debug("Eager task waiting 1 minute")
             time.sleep(60)
         logger.debug("remove_empty_network task started at %s." %
                      datetime.now())

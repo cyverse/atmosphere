@@ -3,6 +3,7 @@ import time
 from threepio import logger
 
 from celery.decorators import task
+from celery.result import allow_join_result
 
 from chromogenic.tasks import machine_imaging_task, migrate_instance_task
 from chromogenic.drivers.openstack import ImageManager as OSImageManager
@@ -70,7 +71,8 @@ def start_machine_imaging(machine_request, delay=False):
         image_task.link(process_task)
 
     async = init_task.apply_async(
-        link_error=machine_request_error.s(machine_request.id))
+        link_error=machine_request_error.s(machine_request.id),
+        )
     if delay:
         async.get()
     return async
@@ -103,14 +105,15 @@ def set_machine_request_metadata(machine_request, image_id):
 
 
 #NOTE: Is this different than the 'task' found in celery.decorators?
-@task
+@task(name='machine_request_error')
 def machine_request_error(task_uuid, machine_request_id):
     logger.info("machine_request_id=%s" % machine_request_id)
     logger.info("task_uuid=%s" % task_uuid)
 
     result = app.AsyncResult(task_uuid)
-    exc = result.get(propagate=False)
-    err_str = "ERROR - Exception:%r" % (result.traceback,)
+    with allow_join_result():
+        exc = result.get(propagate=False)
+    err_str = "ERROR - %r Exception:%r" % (result.result, result.traceback,)
     logger.error(err_str)
     max_len = MachineRequest._meta.get_field('status').max_length
     if len(err_str) > max_len:
@@ -120,7 +123,7 @@ def machine_request_error(task_uuid, machine_request_id):
     machine_request.save()
 
 
-@task(name='process_request', ignore_result=False)
+@task(name='process_request', queue="imaging", ignore_result=False)
 def process_request(new_image_id, machine_request_id):
     #if ipdb:
     #    ipdb.set_trace()
@@ -147,8 +150,8 @@ def invalidate_machine_cache(machine_request):
     driver.provider.machineCls.invalidate_provider_cache(driver.provider)
 
 
-@task(name='freeze_instance_task', ignore_result=False)
-def freeze_instance_task(identity_id, instance_id):
+@task(name='freeze_instance_task', ignore_result=False, queue="imaging")
+def freeze_instance_task(identity_id, instance_id, **celery_task_args):
     from api import get_esh_driver
     identity = Identity.objects.get(id=identity_id)
     driver = get_esh_driver(identity)
@@ -165,6 +168,4 @@ def freeze_instance_task(identity_id, instance_id):
 
     fi_script = freeze_instance()
     kwargs.update({'deploy': fi_script})
-    deploy_to.delay(
-        driver.__class__, driver.provider, driver.identity,
-        instance.id, **kwargs)
+    driver.deploy_to(instance, **kwargs)
