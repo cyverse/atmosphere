@@ -16,7 +16,7 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
-from api import failure_response, prepare_driver
+from api import failure_response, prepare_driver, invalid_creds
 
 
 class Meta(APIView):
@@ -29,6 +29,8 @@ class Meta(APIView):
         Returns all available URLs based on the user profile.
         """
         esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         data = {
             'provider': reverse('provider-list',
                                 request=request),
@@ -69,6 +71,8 @@ class MetaAction(APIView):
                 'Action is not supported.'
             )
         esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         esh_meta = esh_driver.meta()
         try:
             if 'test_links' in action:

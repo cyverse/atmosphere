@@ -1,7 +1,6 @@
 """
 Atmosphere service volume
 """
-
 from django.utils.timezone import datetime
 
 from rest_framework.views import APIView
@@ -21,7 +20,7 @@ from service.volume import create_volume
 from service.exceptions import OverQuotaError
 
 from api.serializers import VolumeSerializer
-from api import prepare_driver, failure_response
+from api import prepare_driver, failure_response, invalid_creds
 
 
 class VolumeList(APIView):
@@ -35,6 +34,8 @@ class VolumeList(APIView):
         """
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         volume_list_method = esh_driver.list_volumes
 
         if AccountProvider.objects.filter(identity__id=identity_id):
@@ -57,6 +58,8 @@ class VolumeList(APIView):
         """
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         data = request.DATA
         missing_keys = valid_post_data(data)
         if missing_keys:
@@ -93,6 +96,8 @@ class Volume(APIView):
         """
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         esh_volume = esh_driver.get_volume(volume_id)
         if not esh_volume:
             return volume_not_found(volume_id)
@@ -111,6 +116,8 @@ class Volume(APIView):
         data = request.DATA
         #Ensure volume exists
         esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         esh_volume = esh_driver.get_volume(volume_id)
         if not esh_volume:
             return volume_not_found(volume_id)
@@ -135,6 +142,8 @@ class Volume(APIView):
         data = request.DATA
         #Ensure volume exists
         esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         esh_volume = esh_driver.get_volume(volume_id)
         if not esh_volume:
             return volume_not_found(volume_id)
@@ -158,6 +167,8 @@ class Volume(APIView):
         user = request.user
         #Ensure volume exists
         esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         esh_volume = esh_driver.get_volume(volume_id)
         if not esh_volume:
             return volume_not_found(volume_id)
@@ -185,14 +196,6 @@ def keys_not_found(missing_keys):
     return failure_response(
         status.HTTP_400_BAD_REQUEST,
         'Missing required POST datavariables : %s' % missing_keys)
-
-
-def invalid_creds(provider_id, identity_id):
-    logger.warn('Authentication Failed. Provider-id:%s Identity-id:%s'
-                % (provider_id, identity_id))
-    return failure_response(
-        status.HTTP_401_UNAUTHORIZED,
-        'Identity/Provider Authentication Failed')
 
 
 def volume_not_found(volume_id):
