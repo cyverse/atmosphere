@@ -5,13 +5,14 @@ Atmosphere service utils for rest api.
 import uuid
 import os.path
 
-from threepio import logger
+from django.core.exceptions import ObjectDoesNotExist
 
 from rest_framework import status
 from rest_framework.response import Response
 
-#Necessary to initialize Meta classes
-import rtwo.compute
+from threepio import logger, api_logger
+
+import rtwo.compute  # Necessary to initialize Meta classes
 
 from rtwo.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
@@ -101,14 +102,16 @@ def prepare_driver(request, provider_id, identity_id):
     Return an rtwo.EshDriver for the given provider_id
     and identity_id.
 
-
-    Throws core.model.Identity.DoesNotExist exceptions if the
-    identity, provider or combination of identity and provider
-    are invalid.
+    If invalid credentials, provider_id or identity_id is
+    used return None.
     """
-    core_identity = CoreIdentity.objects.get(provider__id=provider_id,
-                                             id=identity_id)
-    return get_esh_driver(core_identity)
+    try:
+        identity = CoreIdentity.objects.get(provider__id=provider_id,
+                                            id=identity_id)
+        if identity in request.user.identity_set.all():
+            return get_esh_driver(identity)
+    except ObjectDoesNotExist:
+        pass
 
 
 def failure_response(status, message):
@@ -116,7 +119,16 @@ def failure_response(status, message):
     Return a djangorestframework Response object given an error
     status and message.
     """
+    api_logger.info("status: %s message: %s" % (status, message))
     return Response({"errors":
-                     {[{'code': status,
-                        'message': message}]}},
+                     [{'code': status,
+                       'message': message}]},
                     status=status)
+
+
+def invalid_creds(provider_id, identity_id):
+    logger.warn('Authentication Failed. Provider-id:%s Identity-id:%s'
+                % (provider_id, identity_id))
+    return failure_response(
+        status.HTTP_401_UNAUTHORIZED,
+        'Identity/Provider Authentication Failed')

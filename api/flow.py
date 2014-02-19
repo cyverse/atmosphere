@@ -10,7 +10,7 @@ from core.models.size import convert_esh_size
 
 from api.serializers import ProviderSizeSerializer
 
-from api import prepare_driver
+from api import prepare_driver, invalid_creds
 
 
 class FlowList(APIView):
@@ -23,6 +23,8 @@ class FlowList(APIView):
         """
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         serialized_data = []
         response = Response(serialized_data)
         return response
@@ -38,6 +40,8 @@ class Flow(APIView):
         """
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         esh_size = []
         serialized_data = []
         response = Response(serialized_data)

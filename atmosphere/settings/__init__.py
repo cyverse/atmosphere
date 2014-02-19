@@ -125,8 +125,8 @@ STATICFILES_FINDERS = (
     'pipeline.finders.AppDirectoriesFinder',
     'pipeline.finders.PipelineFinder',
     'pipeline.finders.CachedFileFinder',
-#    'django.contrib.staticfiles.finders.FileSystemFinder',
-#    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 #    'pipeline.finders.AppDirectoriesFinder',
 #    'pipeline.finders.CachedFileFinder',
 )
@@ -225,6 +225,12 @@ threepio.initialize("atmosphere",
                     dep_logging_level=DEP_LOGGING_LEVEL)
 threepio.email_logger = threepio\
         .initialize("atmosphere_email",
+                    log_filename=LOG_FILENAME,
+                    app_logging_level=LOGGING_LEVEL,
+                    dep_logging_level=DEP_LOGGING_LEVEL,
+                    global_logger=False)
+threepio.api_logger = threepio\
+        .initialize("atmosphere_api",
                     log_filename=LOG_FILENAME,
                     app_logging_level=LOGGING_LEVEL,
                     dep_logging_level=DEP_LOGGING_LEVEL,
