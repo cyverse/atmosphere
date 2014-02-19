@@ -31,31 +31,58 @@ class Meta(APIView):
         esh_driver = prepare_driver(request, provider_id, identity_id)
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
-        data = {
-            'provider': reverse('provider-list',
-                                request=request),
-            'identity': reverse('identity-list',
-                                args=(provider_id,),
-                                request=request),
-            'volume': reverse('volume-list',
-                              args=(provider_id, identity_id),
-                              request=request),
-            'meta': reverse('meta-detail',
-                            args=(provider_id, identity_id),
-                            request=request),
-            'instance': reverse('instance-list',
-                                args=(provider_id, identity_id),
-                                request=request),
-            'machine': reverse('machine-list',
-                               args=(provider_id, identity_id),
-                               request=request),
-            'size': reverse('size-list',
-                            args=(provider_id, identity_id),
-                            request=request),
-            'profile': reverse('profile', request=request)
-        }
+        data = add_user_urls(request, provider_id, identity_id)
+        if request.user.is_staff:
+            add_staff_urls(request, provider_id, identity_id)
         return Response(data)
 
+
+def add_staff_urls(request, provider_id, identity_id):
+    data = {
+        'request-image-list': reverse('direct-machine-request-list',
+                            request=request),
+        }
+def add_user_urls(request, provider_id, identity_id):
+    data = {
+        'group-list': reverse('group-list',
+                            request=request),
+        'tag-list': reverse('tag-list',
+                            request=request),
+        'provider-list': reverse('provider-list',
+                            request=request),
+        'occupancy': reverse('occupancy',
+                            args=(provider_id,),
+                            request=request),
+        'hypervisor': reverse('hypervisor',
+                            args=(provider_id,),
+                            request=request),
+        'identity-list': reverse('identity-list',
+                            args=(provider_id,),
+                            request=request),
+        'volume-list': reverse('volume-list',
+                          args=(provider_id, identity_id),
+                          request=request),
+        'meta': reverse('meta-detail',
+                        args=(provider_id, identity_id),
+                        request=request),
+        'machine-history-list': reverse('machine-history',
+                            args=(provider_id, identity_id),
+                            request=request),
+        'instance-history-list': reverse('instance-history',
+                            args=(provider_id, identity_id),
+                            request=request),
+        'instance-list': reverse('instance-list',
+                            args=(provider_id, identity_id),
+                            request=request),
+        'machine-list': reverse('machine-list',
+                           args=(provider_id, identity_id),
+                           request=request),
+        'size-list': reverse('size-list',
+                        args=(provider_id, identity_id),
+                        request=request),
+        'profile': reverse('profile', request=request)
+    }
+    return data
 
 class MetaAction(APIView):
     """
