@@ -8,7 +8,7 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from api import prepare_driver
+from api import prepare_driver, invalid_creds
 from api.serializers import ProviderSizeSerializer
 
 from authentication.decorators import api_auth_token_required
@@ -30,6 +30,8 @@ class SizeList(APIView):
         active = False
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         esh_size_list = esh_driver.list_sizes()
         all_size_list = [convert_esh_size(size, provider_id)
                          for size in esh_size_list]
@@ -52,8 +54,9 @@ class Size(APIView):
         """
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
-        eshSize = esh_driver.get_size(size_id)
-        coreSize = convert_esh_size(eshSize, provider_id)
-        serialized_data = ProviderSizeSerializer(coreSize).data
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
+        core_size = convert_esh_size(esh_driver.get_size(size_id), provider_id)
+        serialized_data = ProviderSizeSerializer(core_size).data
         response = Response(serialized_data)
         return response

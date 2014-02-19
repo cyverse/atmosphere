@@ -35,7 +35,7 @@ from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable
 
-from api import failure_response, prepare_driver
+from api import failure_response, prepare_driver, invalid_creds
 from api.serializers import InstanceSerializer, PaginatedInstanceSerializer
 from api.serializers import InstanceHistorySerializer,\
     PaginatedInstanceHistorySerializer
@@ -55,13 +55,14 @@ class InstanceList(APIView):
         """
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
 
         instance_list_method = esh_driver.list_instances
 
         if AccountProvider.objects.filter(identity__id=identity_id):
             # Instance list method changes when using the OPENSTACK provider
             instance_list_method = esh_driver.list_all_instances
-
         try:
             esh_instance_list = instance_list_method()
         except InvalidCredsError:
@@ -220,6 +221,8 @@ class InstanceAction(APIView):
         result_obj = None
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         instance_list_method = esh_driver.list_instances
         if AccountProvider.objects.filter(identity__id=identity_id):
             # Instance list method changes when using the OPENSTACK provider
@@ -338,18 +341,13 @@ class Instance(APIView):
         """
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
-
-        try:
-            esh_instance = esh_driver.get_instance(instance_id)
-        except InvalidCredsError:
+        if not esh_driver:
             return invalid_creds(provider_id, identity_id)
-
+        esh_instance = esh_driver.get_instance(instance_id)
         if not esh_instance:
             return instance_not_found(instance_id)
-
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                              provider_id, identity_id, user)
-
         serialized_data = InstanceSerializer(core_instance).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
@@ -362,14 +360,11 @@ class Instance(APIView):
         user = request.user
         data = request.DATA
         esh_driver = prepare_driver(request, provider_id, identity_id)
-        try:
-            esh_instance = esh_driver.get_instance(instance_id)
-        except InvalidCredsError:
+        if not esh_driver:
             return invalid_creds(provider_id, identity_id)
-
+        esh_instance = esh_driver.get_instance(instance_id)
         if not esh_instance:
             return instance_not_found(instance_id)
-
         #Gather the DB related item and update
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                              provider_id, identity_id, user)
@@ -399,14 +394,11 @@ class Instance(APIView):
         data = request.DATA
         #Ensure item exists on the server first
         esh_driver = prepare_driver(request, provider_id, identity_id)
-        try:
-            esh_instance = esh_driver.get_instance(instance_id)
-        except InvalidCredsError:
+        if not esh_driver:
             return invalid_creds(provider_id, identity_id)
-
+        esh_instance = esh_driver.get_instance(instance_id)
         if not esh_instance:
             return instance_not_found(instance_id)
-
         #Gather the DB related item and update
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                              provider_id, identity_id, user)
@@ -426,7 +418,8 @@ class Instance(APIView):
     def delete(self, request, provider_id, identity_id, instance_id):
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
-
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
             if not esh_instance:
@@ -470,14 +463,6 @@ def instance_not_found(instance_id):
     return failure_response(
         status.HTTP_404_NOT_FOUND,
         'Instance %s does not exist' % instance_id)
-
-
-def invalid_creds(provider_id, identity_id):
-    logger.warn('Authentication Failed. Provider-id:%s Identity-id:%s'
-                % (provider_id, identity_id))
-    return failure_response(
-        status.HTTP_401_UNAUTHORIZED,
-        'Identity/Provider Authentication Failed')
 
 
 def size_not_availabe(sna_exception):
