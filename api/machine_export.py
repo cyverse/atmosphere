@@ -2,6 +2,7 @@
 Atmosphere service machine rest api.
 
 """
+import copy
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -9,12 +10,13 @@ from rest_framework import status
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
 from chromogenic.tasks import machine_export_task
-from api.serializers import MachineExportSerializer
+
+from authentication.decorators import api_auth_token_required
+
 from core.models.machine_export import MachineExport as CoreMachineExport
 
-import copy
+from api.serializers import MachineExportSerializer
 
 
 class MachineExportList(APIView):

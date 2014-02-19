@@ -11,7 +11,7 @@ from authentication.decorators import api_auth_token_required
 from core.models.group import Group
 from core.models.provider import Provider as CoreProvider
 
-from api import failureJSON
+from api import failure_response
 from api.serializers import ProviderSerializer
 
 
@@ -30,11 +30,9 @@ class ProviderList(APIView):
             providers = group.providers.filter(active=True,
                                                end_date=None).order_by('id')
         except CoreProvider.DoesNotExist:
-            errorObj = failureJSON([{
-                'code': 404,
-                'message':
-                'The provider does not exist.'}])
-            return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                "The provider does not exist.")
         serialized_data = ProviderSerializer(providers, many=True).data
         return Response(serialized_data)
 
@@ -54,10 +52,8 @@ class Provider(APIView):
             provider = group.providers.get(id=provider_id,
                                            active=True, end_date=None)
         except CoreProvider.DoesNotExist:
-            errorObj = failureJSON([{
-                'code': 404,
-                'message':
-                'The provider does not exist.'}])
-            return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                "The provider does not exist.")
         serialized_data = ProviderSerializer(provider).data
         return Response(serialized_data)

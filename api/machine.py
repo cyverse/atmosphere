@@ -2,7 +2,6 @@
 Atmosphere service machine rest api.
 
 """
-from core.models import AtmosphereUser as User
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 from django.db.models import Q
@@ -15,16 +14,15 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
+from core.models import AtmosphereUser as User
 from core.models.identity import Identity
-
 from core.models.machine import compare_core_machines, filter_core_machine,\
     convert_esh_machine, ProviderMachine
-
 from core.metadata import update_machine_metadata
 
 from service.machine_search import search, CoreSearchProvider
 
-from api import prepare_driver, failureJSON
+from api import prepare_driver, failure_response, invalid_creds
 from api.permissions import InMaintenance
 from api.serializers import ProviderMachineSerializer,\
     PaginatedProviderMachineSerializer
@@ -36,6 +34,8 @@ def provider_filtered_machines(request, provider_id, identity_id):
     default filtering method.
     """
     esh_driver = prepare_driver(request, provider_id, identity_id)
+    if not esh_driver:
+        return invalid_creds(provider_id, identity_id)
     return list_filtered_machines(esh_driver, provider_id)
 
 
@@ -78,9 +78,12 @@ class MachineList(APIView):
         Using provider and identity, getlist of machines
         TODO: Cache this request
         """
-        filtered_machine_list = provider_filtered_machines(request,
-                                                           provider_id,
-                                                           identity_id)
+        try:
+            filtered_machine_list = provider_filtered_machines(request,
+                                                               provider_id,
+                                                               identity_id)
+        except:
+            return invalid_creds(provider_id, identity_id)
         serialized_data = ProviderMachineSerializer(filtered_machine_list,
                                                     many=True).data
         response = Response(serialized_data)
@@ -104,16 +107,14 @@ class MachineHistory(APIView):
         if user and len(user) > 0:
             user = user[0]
         else:
-            errorObj = failureJSON([{
-                'code': 401,
-                'message': 'User not found'}])
-            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
-
+            return failure_response(
+                status.HTTP_401_UNAUTHORIZED,
+                "User not found.")
         esh_driver = prepare_driver(request, provider_id, identity_id)
-
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         # Historic Machines
         all_machines_list = all_filtered_machines()
-
         if all_machines_list:
             history_machine_list =\
                 [m for m in all_machines_list if
@@ -170,22 +171,19 @@ class MachineSearch(APIView):
         data = request.DATA
         user = get_first(User.objects.filter(username=request.user))
         if not user:
-            errorObj = failureJSON([{
-                'code': 401,
-                'message': 'User not found'}])
-            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
+            return failure_response(
+                status.HTTP_401_UNAUTHORIZED,
+                "User not found.")
         query = request.QUERY_PARAMS.get('query')
         if not query:
-            errorObj = failureJSON([{
-                'code': 400,
-                'message': 'Query not provided'}])
-            return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Query not provided.")
         identity = get_first(Identity.objects.filter(id=identity_id))
         if not identity:
-            errorObj = failureJSON([{
-                'code': 400,
-                'message': 'Identity not provided'}])
-            return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                'Identity not provided,')
         search_result = search([CoreSearchProvider], identity, query)
         page = request.QUERY_PARAMS.get('page')
         if page:
@@ -225,9 +223,11 @@ class Machine(APIView):
         Update on server (If applicable)
         """
         esh_driver = prepare_driver(request, provider_id, identity_id)
-        eshMachine = esh_driver.get_machine(machine_id)
-        coreMachine = convert_esh_machine(esh_driver, eshMachine, provider_id)
-        serialized_data = ProviderMachineSerializer(coreMachine).data
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
+        esh_machine = esh_driver.get_machine(machine_id)
+        core_machine = convert_esh_machine(esh_driver, esh_machine, provider_id)
+        serialized_data = ProviderMachineSerializer(core_machine).data
         response = Response(serialized_data)
         return response
 
@@ -235,27 +235,25 @@ class Machine(APIView):
     def patch(self, request, provider_id, identity_id, machine_id):
         """
         TODO: Determine who is allowed to edit machines besides
-            coreMachine.owner
+        core_machine.owner
         """
         user = request.user
         data = request.DATA
         esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         esh_machine = esh_driver.get_machine(machine_id)
-        coreMachine = convert_esh_machine(esh_driver, esh_machine, provider_id)
-
+        core_machine = convert_esh_machine(esh_driver, esh_machine, provider_id)
         if not user.is_staff\
-           and user is not coreMachine.application.created_by:
+           and user is not core_machine.application.created_by:
             logger.warn('%s is Non-staff/non-owner trying to update a machine'
                         % (user.username))
-            errorObj = failureJSON([{
-                'code': 401,
-                'message':
-                'Only Staff and the machine Owner '
-                + 'are allowed to change machine info.'}])
-            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
-
-        coreMachine.application.update(request.DATA)
-        serializer = ProviderMachineSerializer(coreMachine,
+            return failure_response(
+                status.HTTP_401_UNAUTHORIZED,
+                "Only Staff and the machine Owner "
+                + "are allowed to change machine info.")
+        core_machine.application.update(request.DATA)
+        serializer = ProviderMachineSerializer(core_machine,
                                                data=data, partial=True)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
@@ -263,31 +261,33 @@ class Machine(APIView):
             serializer.save()
             logger.info(serializer.data)
             return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return failure_response(
+            status.HTTP_400_BAD_REQUEST,
+            serializer.errors)
 
     @api_auth_token_required
     def put(self, request, provider_id, identity_id, machine_id):
         """
         TODO: Determine who is allowed to edit machines besides
-            coreMachine.owner
+            core_machine.owner
         """
         user = request.user
         data = request.DATA
         esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         esh_machine = esh_driver.get_machine(machine_id)
-        coreMachine = convert_esh_machine(esh_driver, esh_machine, provider_id)
+        core_machine = convert_esh_machine(esh_driver, esh_machine, provider_id)
 
         if not user.is_staff\
-           and user is not coreMachine.application.created_by:
-            logger.warn('Non-staff/non-owner trying to update a machine')
-            errorObj = failureJSON([{
-                'code': 401,
-                'message':
+           and user is not core_machine.application.created_by:
+            logger.error('Non-staff/non-owner trying to update a machine')
+            return failure_response(
+                status.HTTP_401_UNAUTHORIZED,
                 'Only Staff and the machine Owner '
-                + 'are allowed to change machine info.'}])
-            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
-        coreMachine.application.update(data)
-        serializer = ProviderMachineSerializer(coreMachine,
+                + 'are allowed to change machine info.')
+        core_machine.application.update(data)
+        serializer = ProviderMachineSerializer(core_machine,
                                                data=data, partial=True)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
@@ -295,4 +295,6 @@ class Machine(APIView):
             serializer.save()
             logger.info(serializer.data)
             return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return failure_response(
+            status.HTTP_400_BAD_REQUEST,
+            serializer.errors)
