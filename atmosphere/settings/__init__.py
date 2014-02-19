@@ -315,7 +315,7 @@ CELERY_DEFAULT_QUEUE='default'
 #             {"service.tasks.machine.process_request" : {"queue": "imaging",
 #                 "routing_key": "imaging.complete"}},
 #         )
-#      Django-Celery Development settings
+#     # Django-Celery Development settings
 #     CELERY_ALWAYS_EAGER = True
 #     CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
