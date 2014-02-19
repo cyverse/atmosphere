@@ -94,30 +94,30 @@ class VolumeTests(TestCase):
     def tearDown(self):
         self.api_client.logout()
 
-    def test_openstack_volume(self):
-        """
-        Testing volumes must be done in order
-        * Create the volume
-        * Detail the volume
-        * Delete the volume
-        """
-        volume_post_data = {
-            "name":"openstack_vol_test1",
-            "size":1,
-        }
-        self.expected_output['name'] = volume_post_data['name']
-        self.expected_output['size'] = volume_post_data['size']
-        volume_id = self.create_volume(self.os_volume_url, volume_post_data)
-        self.detail_volume(self.os_volume_url, volume_id)
-        # Wait time associated between 'create' and 'attachment'
-        time.sleep(30)
-        self.attach_volume(self.os_instance_url, self.os_instance_id, volume_id)
-        time.sleep(30)
-        self.detach_volume(self.os_instance_url, self.os_instance_id, volume_id)
-        # Wait time associated between 'detach' and 'delete'
-        time.sleep(30) # Sorry, its euca.
-        #Delete all volumes
-        deleted = self.delete_all_volumes(self.os_volume_url)
+    #def test_openstack_volume(self):
+    #    """
+    #    Testing volumes must be done in order
+    #    * Create the volume
+    #    * Detail the volume
+    #    * Delete the volume
+    #    """
+    #    volume_post_data = {
+    #        "name":"openstack_vol_test1",
+    #        "size":1,
+    #    }
+    #    self.expected_output['name'] = volume_post_data['name']
+    #    self.expected_output['size'] = volume_post_data['size']
+    #    volume_id = self.create_volume(self.os_volume_url, volume_post_data)
+    #    self.detail_volume(self.os_volume_url, volume_id)
+    #    # Wait time associated between 'create' and 'attachment'
+    #    time.sleep(30)
+    #    self.attach_volume(self.os_instance_url, self.os_instance_id, volume_id)
+    #    time.sleep(30)
+    #    self.detach_volume(self.os_instance_url, self.os_instance_id, volume_id)
+    #    # Wait time associated between 'detach' and 'delete'
+    #    time.sleep(30) # Sorry, its euca.
+    #    #Delete all volumes
+    #    deleted = self.delete_all_volumes(self.os_volume_url)
 
 
     #def test_euca_volume(self):
