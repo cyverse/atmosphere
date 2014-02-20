@@ -381,7 +381,8 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
                                                   deploy=True, **kwargs)
             #Used for testing.. Eager ignores countdown
             if app.conf.CELERY_ALWAYS_EAGER:
-                time.sleep(4*60)
+                logger.debug("Eager Task, wait 1 minute")
+                time.sleep(1*60)
             # call async task to deploy to instance.
             task.deploy_init_task(driver, esh_instance, instance_password)
         elif isinstance(driver.provider, AWSProvider):
@@ -430,6 +431,9 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
     allows JSONArrays as values for metadata!
     """
     wait_time = 1
+    if not esh_instance:
+        logger.info("Missing Esh Instance. Has this instance been deleted?")
+        return {}
     instance_id = esh_instance.id
 
     if not hasattr(esh_driver._connection, 'ex_set_metadata'):

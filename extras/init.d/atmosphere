@@ -54,6 +54,8 @@ full-start)
     fi
     printf "Starting $WEB_SERVICE\n"
     service $WEB_SERVICE start
+    printf "Starting redis server..\n"
+    service redis-server start
     printf "Starting Celery..\n"
     service celeryd start
     printf "Starting Celerybeat..\n"
@@ -82,11 +84,11 @@ full-stop)
     fi
     printf "Stopping $WEB_SERVICE\n"
     service $WEB_SERVICE stop
-    printf "Stopping redis server..\n"
-    service redis-server stop
     printf "Stopping Celery..\n"
     service celeryd stop
     service celerybeat stop
+    printf "Stopping redis server..\n"
+    service redis-server stop
 ;;
 stop)
     printf "Stopping $NAME...\n"

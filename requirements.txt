@@ -5,8 +5,8 @@ pip>=1.4,<1.5
 Pillow==2.3.0
 South==0.8.4
 apache-libcloud==0.14.0
-celery==3.1.8
-django-celery==3.1.1
+celery==3.1.9
+django-celery==3.1.9
 django-pipeline==1.3.20
 djangorestframework==2.3.12
 redis==2.9.0
@@ -33,7 +33,7 @@ git+git://github.com/iPlantCollaborativeOpenSource/jwt.py.git#egg=jwt
 git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive
 git+git://github.com/iPlantCollaborativeOpenSource/rtwo.git#egg=rtwo
 git+git://github.com/jmatt/threepio.git#egg=threepio
-git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.5
+git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.6
 git+git://github.com/kmmbvnr/django-jenkins
 git+git://github.com/mher/flower
 git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient

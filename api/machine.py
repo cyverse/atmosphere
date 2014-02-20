@@ -119,7 +119,7 @@ class MachineHistory(APIView):
             history_machine_list =\
                 [m for m in all_machines_list if
                  m.application.created_by.username == user.username]
-            logger.warn(len(history_machine_list))
+            #logger.warn(len(history_machine_list))
         else:
             history_machine_list = []
 
