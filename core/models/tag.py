@@ -25,7 +25,7 @@ class Tag(models.Model):
         app_label = 'core'
 
 
-def updateTags(coreObject, tagNameList, user=None):
+def updateTags(coreObject, tags, user=None):
     from core.models.instance import Instance
     from core.models.application import Application
     from core.models.machine_request import MachineRequest
@@ -37,9 +37,13 @@ def updateTags(coreObject, tagNameList, user=None):
             tag.application_set.remove(coreObject)
         elif type(coreObject) == MachineRequest:
             tag.machinerequest_set.remove(coreObject)
-    #Add all tags in tagNameList to core*
-    for tagName in tagNameList:
-        tag = find_or_create_tag(tagName, user)
+    #Add all tags in tags to core*
+    for tag in tags:
+        if type(tag) == str:
+            tag = find_or_create_tag(tag, user)
+        elif type(tag) != Tag:
+            raise TypeError("Expected list of str or Tag, found %s"
+                            % type(tag))
         coreObject.tags.add(tag)
     return coreObject
 

@@ -68,7 +68,7 @@ def install_base_requirements(distro='ubuntu'):
 
 def freeze_instance(sleep_time=45):
     return ScriptDeployment(
-        "fsfreeze -f / && sleep %s && fsfreeze -u / &" % sleep_time,
+        "nohup fsfreeze -f / && sleep %s && fsfreeze -u /" % sleep_time,
         name="./deploy_freeze_instance.sh")
 
 
@@ -217,14 +217,16 @@ def init(instance, username, password=None, *args, **kwargs):
         script_atmo_init = init_script(atmo_init, username, token,
                                        instance, password, logfile)
 
-        #TODO: REMOVE THIS LINE BEFORE 2/4/14
-        #script_rm_scripts = rm_scripts(logfile=logfile)
+        script_list = [script_init,
+                            script_deps,
+                            script_wget,
+                            script_chmod,
+                            script_atmo_init]
+        if not settings.DEBUG:
+            script_rm_scripts = rm_scripts(logfile=logfile)
+            script_list.append(script_rm_scripts)
 
-        return MultiStepDeployment([script_init,
-                                    script_deps,
-                                    script_wget,
-                                    script_chmod,
-                                    script_atmo_init])
+        return MultiStepDeployment(script_list)
 
         # kwargs.update({'deploy': msd})
 

@@ -86,8 +86,8 @@ class InstanceTests(TestCase):
     def tearDown(self):
         self.api_client.logout()
 
-    def test_openstack_launch(self):
-        self.os_instance_id, self.os_instance_ip = self.launch_openstack_instance()
+    #def test_openstack_launch(self):
+    #    self.os_instance_id, self.os_instance_ip = self.launch_openstack_instance()
 
     #def test_openstack_stop_start(self):
     #    self.os_instance_id, self.os_instance_ip = self.launch_openstack_instance()
