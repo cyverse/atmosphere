@@ -70,14 +70,15 @@ def restore_ips(esh_driver, esh_instance):
         network_id = network[0]['id']
     except Exception, e:
         raise
+    if not esh_instance._node.private_ips:
+        logger.info("Adding fixed IP")
+        esh_driver._connection.ex_add_fixed_ip(esh_instance, network_id)
+    if not esh_instance._node.public_ips:
+        logger.info("Adding floating IP")
+        add_floating_ip.s(esh_driver.__class__, esh_driver.provider,
+                          esh_driver.identity,
+                          esh_instance.id).apply_async(countdown=10)
 
-    esh_driver._connection.ex_add_fixed_ip(esh_instance, network_id)
-    add_floating_ip.s(esh_driver.__class__, esh_driver.provider,
-                      esh_driver.identity,
-                      esh_instance.id).apply_async(countdown=10)
-
-
-#Instance specific
 def stop_instance(esh_driver, esh_instance, provider_id, identity_id, user,
                   reclaim_ip=True):
     """
@@ -273,7 +274,7 @@ def check_quota(username, identity_id, esh_size, resuming=False):
 
     (over_allocation, time_diff) = check_over_allocation(username,
                                                          identity_id)
-    if over_allocation:
+    if over_allocation and not settings.DEBUG:
         raise OverAllocationError(time_diff)
 
 
