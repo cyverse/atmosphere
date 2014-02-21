@@ -311,16 +311,17 @@ CELERY_DEFAULT_QUEUE='default'
 #             Queue('default'),
 #             Queue('imaging', routing_key='imaging.#')
 #         )
-#     CELERY_ROUTES = (
-#             {"chromogenic.tasks.migrate_instance_task" : {"queue": "imaging",
-#                 "routing_key": "imaging.execute"}},
-#             {"chromogenic.tasks.machine_imaging_task" : {"queue": "imaging",
-#                 "routing_key": "imaging.execute"}},
-#             {"service.tasks.machine.freeze_instance_task" : {"queue": "imaging",
-#                 "routing_key": "imaging.prepare"}},
-#             {"service.tasks.machine.process_request" : {"queue": "imaging",
-#                 "routing_key": "imaging.complete"}},
-#         )
+CELERY_ROUTES= ('atmosphere.route_logger.RouteLogger', )
+CELERY_ROUTES += ({
+    "chromogenic.tasks.migrate_instance_task" : \
+        {"queue": "imaging", "routing_key": "imaging.execute"},
+    "chromogenic.tasks.machine_imaging_task" : \
+        {"queue": "imaging", "routing_key": "imaging.execute"},
+    "service.tasks.machine.freeze_instance_task" : \
+        {"queue": "imaging", "routing_key": "imaging.prepare"},
+    "service.tasks.machine.process_request" : \
+        {"queue": "imaging", "routing_key": "imaging.complete"},
+        },)
 #     # Django-Celery Development settings
 #     CELERY_ALWAYS_EAGER = True
 #     CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
