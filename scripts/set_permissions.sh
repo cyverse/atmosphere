@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+if [[ $EUID -ne 0 ]]; then
+    echo "You must be a root user to set these permissions"
+    exit 1
+fi
 
 export ATMOSPHERE_HOME=/opt/dev/atmosphere
 
