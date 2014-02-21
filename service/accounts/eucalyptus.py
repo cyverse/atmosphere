@@ -171,5 +171,8 @@ class AccountDriver():
     def get_users(self, userList):
         return self.user_manager.get_users(userList)
 
+    def list_all_images(self):
+        return self.image_manager.list_images()
+
     def list_users(self):
         return self.user_manager.get_all_users()
