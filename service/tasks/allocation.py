@@ -6,6 +6,7 @@ from celery.task import periodic_task
 from celery.task.schedules import crontab
 
 from core.models.group import Group
+from core.models.user import AtmosphereUser
 from core.models.provider import Provider
 
 from service.allocation import check_over_allocation
@@ -28,25 +29,60 @@ def monitor_instances_for(provider):
     """
     Update instances for provider.
     """
+    #For now, lets just ignore everything that isn't openstack.
+    if 'openstack' not in provider.type.name.lower():
+        return
+
     admin_driver = get_admin_driver(provider)
     meta = admin_driver.meta(admin_driver=admin_driver)
-    instances = meta.all_instances()
-    for i in instances:
+    logger.info("Retrieving all tenants..")
+    all_tenants = admin_driver._connection._keystone_list_tenants()
+    logger.info("Retrieved %s tenants. Retrieving all instances.."
+                % len(all_tenants))
+    all_instances = meta.all_instances()
+    logger.info("Retrieved %s instances." % len(all_instances))
+    #Convert tenant-id to tenant-name all at once
+    all_instances = _convert_tenant_id_to_names(all_instances, all_tenants)
+    logger.info("Owner information added.")
+    #Make a mapping of owner-to-instance
+    instance_map = _make_instance_owner_map(all_instances)
+    logger.info("Instance owner map created")
+
+    for username in instance_map.keys():
         try:
-            user = User.objects.get(username=i.extra["metadata"]["creator"])
+            user = AtmosphereUser.objects.get(username=username)
             group = Group.objects.get(name=user.username)
-            id = user.identity_set.get(provider=p)
+            id = user.identity_set.get(provider=provider)
             im = id.identitymembership_set.get(member=group)
             if not im.allocation:
                 continue
-            over_allocation = over_allocation_test(im.identity, i)
+            instances = instance_map[username]
+            over_allocation = over_allocation_test(im.identity, instances)
             if over_allocation:
                 continue
             core_instances = im.identity.instance_set.filter(end_date=None)
-            update_instances(im.identity, i, core_instances)
+            update_instances(im.identity, instances, core_instances)
         except:
-            logger.info("Unable to monitor instance: %s" % i)
+            logger.exception("Unable to monitor instance: %s" % i)
+            raise
+    logger.info("Monitoring completed")
 
+def _make_instance_owner_map(instances):
+    owner_map = {}
+    for i in instances:
+        key = i.owner
+        instance_list = owner_map.get(key, [])
+        instance_list.append(i)
+        owner_map[key] = instance_list
+    return owner_map
+
+
+def _convert_tenant_id_to_names(instances, tenants):
+    for i in instances:
+        for tenant in tenants:
+            if tenant['id'] == i.owner:
+                i.owner = tenant['name']
+    return instances
 
 def over_allocation_test(identity, esh_instances):
     from api import get_esh_driver
@@ -86,7 +122,7 @@ def update_instances(identity, esh_list, core_list):
     && Update the values of instances that do
     """
     esh_ids = [instance.id for instance in esh_list]
-    logger.info('Instances for Identity %s: %s' % (identity, esh_ids))
+    #logger.info('%s Instances for Identity %s: %s' % (len(esh_ids), identity, esh_ids))
     for core_instance in core_list:
         try:
             index = esh_ids.index(core_instance.provider_alias)

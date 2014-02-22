@@ -33,7 +33,7 @@ from service.instance import launch_instance, start_instance,\
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
-    SizeNotAvailable
+    SizeNotAvailable, HypervisorCapacityError
 
 from api import failure_response, prepare_driver, invalid_creds
 from api.serializers import InstanceSerializer, PaginatedInstanceSerializer
@@ -311,6 +311,8 @@ class InstanceAction(APIView):
             response = Response(api_response, status=status.HTTP_200_OK)
             return response
         ### Exception handling below..
+        except HypervisorCapacityError, hce:
+            return over_capacity(oqe)
         except OverQuotaError, oqe:
             return over_quota(oqe)
         except OverAllocationError, oae:
@@ -469,6 +471,12 @@ def size_not_availabe(sna_exception):
     return failure_response(
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
         sna_exception.message)
+
+
+def over_capacity(capacity_exception):
+    return failure_response(
+        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+        capacity_exception.message)
 
 
 def over_quota(quota_exception):

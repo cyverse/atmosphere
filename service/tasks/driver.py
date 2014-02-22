@@ -412,7 +412,7 @@ def add_floating_ip(driverCls, provider, identity,
         #assign if instance doesn't already have an IP addr
         instance = driver.get_instance(instance_alias)
         if not instance:
-            logger.debug("Instance has been teminated: %s." % instance_id)
+            logger.debug("Instance has been teminated: %s." % instance_alias)
             return None
         floating_ips = driver._connection.neutron_list_ips(instance)
         if floating_ips:

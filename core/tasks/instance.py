@@ -32,7 +32,10 @@ def get_all_instances():
     all_instances = []
     for provider in Provider.objects.all():
         if not provider.is_active():
-            return []
+            #TODO: Optionally we could ensure that anyone using this provider
+            #      Has their times end-dated...
+            #Nothing to add...
+            continue
         try:
             admin_driver = get_admin_driver(provider)
             if not admin_driver:

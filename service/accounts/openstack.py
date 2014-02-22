@@ -415,6 +415,9 @@ class AccountDriver():
         """
         return username
 
+    def list_all_images(self):
+        return self.image_manager.list_images()
+
     def get_project(self, project):
         return self.user_manager.get_project(project)
 

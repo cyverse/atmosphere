@@ -3,13 +3,20 @@ Atmosphere service exceptions.
 """
 
 
+class HypervisorCapacityError(Exception):
+
+    def __init__(self, hypervisor, message):
+        self.hypervisor = hypervisor
+        self.message = message
+        super(HypervisorCapacityError, self).__init__(self.message)
+
 class OverAllocationError(Exception):
 
     def __init__(self, wait_timedelta):
         self.wait_timedelta = wait_timedelta
         self.message = "Time allocation exceeded. "\
             "Wait %s before requesting new resources"\
-            % (time_diff)
+            % (self.wait_timedelta)
         super(OverAllocationError, self).__init__(self.message)
 
     def __str__(self):

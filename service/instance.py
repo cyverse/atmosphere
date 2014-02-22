@@ -22,7 +22,7 @@ from api import get_esh_driver
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
-    SizeNotAvailable
+    SizeNotAvailable, HypervisorCapacityError
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 
 
@@ -70,14 +70,15 @@ def restore_ips(esh_driver, esh_instance):
         network_id = network[0]['id']
     except Exception, e:
         raise
+    if not esh_instance._node.private_ips:
+        logger.info("Adding fixed IP")
+        esh_driver._connection.ex_add_fixed_ip(esh_instance, network_id)
+    if not esh_instance._node.public_ips:
+        logger.info("Adding floating IP")
+        add_floating_ip.s(esh_driver.__class__, esh_driver.provider,
+                          esh_driver.identity,
+                          esh_instance.id).apply_async(countdown=10)
 
-    esh_driver._connection.ex_add_fixed_ip(esh_instance, network_id)
-    add_floating_ip.s(esh_driver.__class__, esh_driver.provider,
-                      esh_driver.identity,
-                      esh_instance.id).apply_async(countdown=10)
-
-
-#Instance specific
 def stop_instance(esh_driver, esh_instance, provider_id, identity_id, user,
                   reclaim_ip=True):
     """
@@ -99,6 +100,7 @@ def start_instance(esh_driver, esh_instance, provider_id, identity_id, user,
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
     from service.tasks.driver import update_metadata
+    admin_capacity_check(provider_id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
     if update_meta:
@@ -131,6 +133,55 @@ def suspend_instance(esh_driver, esh_instance,
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
     return suspended
 
+def admin_capacity_check(provider_id, instance_id):
+    from service.driver import get_admin_driver
+    from core.models import Provider
+    p = Provider.objects.get(id=provider_id)
+    admin_driver = get_admin_driver(p)
+    instance = admin_driver.get_instance(instance_id)
+    hypervisor_hostname = instance.extra['object']\
+            .get('OS-EXT-SRV-ATTR:hypervisor_hostname')
+    if not hypervisor_hostname:
+        logger.warn("ERROR - Server Attribute hypervisor_hostname missing!"
+                    "Assumed to be under capacity")
+        return
+    hypervisor_stats = admin_driver._connection.ex_detail_hypervisor_node(
+            hypervisor_hostname)
+    return test_capacity(hypervisor_hostname, instance, hypervisor_stats)
+
+def test_capacity(hypervisor_hostname, instance, hypervisor_stats):
+    """
+    Test that the hypervisor has the capacity to bring an inactive instance
+    back online on the compute node
+    """
+    #CPU tests first (Most likely bottleneck)
+    cpu_total = hypervisor_stats['vcpus']
+    cpu_used = hypervisor_stats['vcpus_used']
+    cpu_needed = instance.size.cpu
+    log_str = "Resource:%s Used:%s Additional:%s Total:%s"\
+            % ("cpu", cpu_used, cpu_needed, cpu_total)
+    logger.debug(log_str)
+    if cpu_used + cpu_needed > cpu_total:
+        raise HypervisorCapacityError(hypervisor_hostname, "Hypervisor is over-capacity. %s" % log_str)
+
+    # ALL MEMORY VALUES IN MB
+    mem_total = hypervisor_stats['memory_mb']
+    mem_used = hypervisor_stats['memory_mb_used']
+    mem_needed = instance.size.ram
+    log_str = "Resource:%s Used:%s Additional:%s Total:%s"\
+            % ("mem", mem_used, mem_needed, mem_total)
+    logger.debug(log_str)
+    if mem_used + mem_needed > mem_total:
+        raise HypervisorCapacityError(hypervisor_hostname, "Hypervisor is over-capacity. %s" % log_str)
+
+    # ALL DISK VALUES IN GB
+    disk_total = hypervisor_stats['local_gb']
+    disk_used = hypervisor_stats['local_gb_used']
+    disk_needed = instance.size.disk + instance.size.ephemeral
+    log_str = "Resource:%s Used:%s Additional:%s Total:%s"\
+            % ("disk", disk_used, disk_needed, disk_total)
+    if disk_used + disk_needed > disk_total:
+        raise HypervisorCapacityError(hypervisor_hostname, "Hypervisor is over-capacity. %s" % log_str)
 
 def resume_instance(esh_driver, esh_instance,
                     provider_id, identity_id,
@@ -142,6 +193,7 @@ def resume_instance(esh_driver, esh_instance,
     """
     from service.tasks.driver import update_metadata
     check_quota(user.username, identity_id, esh_instance.size, resuming=True)
+    admin_capacity_check(provider_id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
     if update_meta:
@@ -273,7 +325,7 @@ def check_quota(username, identity_id, esh_size, resuming=False):
 
     (over_allocation, time_diff) = check_over_allocation(username,
                                                          identity_id)
-    if over_allocation:
+    if over_allocation and not settings.DEBUG:
         raise OverAllocationError(time_diff)
 
 
