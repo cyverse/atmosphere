@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Remove a bad metadata value that can prevent active
+instances from being usable.
+"""
 import argparse
 
 import libcloud
@@ -34,7 +38,7 @@ def main():
     for i in bad_instances:
         print "Removing networking metadata for %s" % (i)
         admin_driver._connection.ex_set_metadata(i,
-                                                 {u"tmp_status", u""},
+                                                 {"tmp_status": ""},
                                                  replace_metadata=False)
 
 
