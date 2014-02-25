@@ -102,7 +102,7 @@ def get_allocation(username, identity_id):
     return membership.allocation
 
 
-def check_over_allocation(username, identity_id):
+def check_over_allocation(username, identity_id, time_period=None):
     """
     Get identity-specific allocation
     Grab all instances created between now and 'delta'
@@ -113,9 +113,13 @@ def check_over_allocation(username, identity_id):
     """
     allocation = get_allocation(username, identity_id)
     if not allocation:
-        #No allocation, so you fail.
         return (False, timedelta(0))
-    delta_time = timedelta(minutes=allocation.delta)
+    if time_period == timedelta(month=1):
+        now = timezone.now()
+        delta_time = timezone.now()\
+            - timezone.datetime(month=now.month, day=1)
+    else:
+        delta_time = timedelta(minutes=allocation.delta)
     max_time_allowed = timedelta(minutes=allocation.threshold)
     total_time_used = get_time(username, identity_id, delta_time)
     time_diff = max_time_allowed - total_time_used
