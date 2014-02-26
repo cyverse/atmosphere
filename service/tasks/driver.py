@@ -509,8 +509,9 @@ def remove_empty_network(
                 active_instances = True
                 break
         if not active_instances:
-            inactive_instances = all(driver._is_inactive_instance(
-                instance for instance in instances))
+            inactive_instances = all(
+                driver._is_inactive_instance(instance)
+                for instance in instances)
             #Inactive instances, True: Remove network, False
             remove_network = not inactive_instances
             #Check for project network
