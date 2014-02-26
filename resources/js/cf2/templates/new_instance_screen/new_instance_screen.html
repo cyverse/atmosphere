@@ -120,8 +120,8 @@
                         </div>
                      </div>
                  </div>
-                 <!-- Make this show on staff only -->
-                 <% if (is_staff != "undefined") { %>
+                 <% if (is_staff == "true" ) { %>
+                 <!-- show this dropdown only when is_staff == true -->
                 <div class="form-group">
                     <label class="col-sm-2 control-label"> Instance Compute Node (Staff Only) </label>
                     <div class="col-sm-5">

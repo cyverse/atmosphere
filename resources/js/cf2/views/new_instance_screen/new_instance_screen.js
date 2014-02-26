@@ -13,7 +13,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		//'dblclick .image_list > li' : 'quick_launch',
 		'click #help_request_more_resources2' : 'show_request_resources_modal',
 	},
-template: _.template(Atmo.Templates.new_instance_screen, {"is_staff": Atmo.profile.get('is_staff')}),
+    template: _.template(Atmo.Templates.new_instance_screen),
 	initialize: function(options) {
 		Atmo.images.bind('reset', this.render_image_list, this);
 		Atmo.images.bind('fail', this.report_error_image_list, this);
@@ -27,7 +27,7 @@ template: _.template(Atmo.Templates.new_instance_screen, {"is_staff": Atmo.profi
         this.tagger = null;
 	},
 	render: function() {
-		this.$el.html(this.template());
+		this.$el.html(this.template({"is_staff": Atmo.profile.get('is_staff')}));
 
 		this.mem_resource_chart = new Atmo.Views.ResourceCharts({
 			el: this.$el.find('#memHolder'),
@@ -188,9 +188,11 @@ template: _.template(Atmo.Templates.new_instance_screen, {"is_staff": Atmo.profi
 		this.filter_image_list();
     },
 	render_instance_type_list: function() {
-        new Atmo.Views.HypervisorDropdown({
-            el: this.$el.find('#newinst_hypervisor')[0]
-        }).render();
+        if (Atmo.profile.get("is_staff") === true) {
+            new Atmo.Views.HypervisorDropdown({
+                el: this.$el.find('#newinst_hypervisor')[0]
+            }).render();
+        }
         new Atmo.Views.InstanceSizeDropdown({
             el: this.$el.find('#newinst_size')[0]
         }).render();
