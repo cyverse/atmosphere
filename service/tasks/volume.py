@@ -117,7 +117,8 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         mv_script = mount_volume(device, mount_location)
         kwargs.update({'deploy': mv_script})
         driver.deploy_to(instance, **kwargs)
-
+        #TODO: Update metadata to include volume mount
+        # so this data can persist on the UI?
         logger.debug("mount task finished at %s." % datetime.now())
         return mount_location
     except Exception as exc:
