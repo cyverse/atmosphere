@@ -106,9 +106,12 @@ class InstanceList(APIView):
         #Pass these as args
         size_alias = data.pop('size_alias')
         machine_alias = data.pop('machine_alias')
+        hypervisor_name = data.pop('hypervisor',None)
         try:
             core_instance = launch_instance(user, provider_id, identity_id,
-                                            size_alias, machine_alias, **data)
+                                            size_alias, machine_alias, 
+                                            ex_availability_zone=hypervisor_name,
+                                            **data)
         except OverQuotaError, oqe:
             return over_quota(oqe)
         except OverAllocationError, oae:
@@ -117,6 +120,11 @@ class InstanceList(APIView):
             return size_not_availabe(snae)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
+        except Exception as exc:
+            logger.exception("Encountered a generic exception. "
+                             "Returning 409-CONFLICT")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    exc.message)
 
         serializer = InstanceSerializer(core_instance, data=data)
         #NEVER WRONG

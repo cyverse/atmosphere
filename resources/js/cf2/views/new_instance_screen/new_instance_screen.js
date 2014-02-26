@@ -13,7 +13,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		//'dblclick .image_list > li' : 'quick_launch',
 		'click #help_request_more_resources2' : 'show_request_resources_modal',
 	},
-	template: _.template(Atmo.Templates.new_instance_screen),
+template: _.template(Atmo.Templates.new_instance_screen, {"is_staff": Atmo.profile.get('is_staff')}),
 	initialize: function(options) {
 		Atmo.images.bind('reset', this.render_image_list, this);
 		Atmo.images.bind('fail', this.report_error_image_list, this);
@@ -188,6 +188,9 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		this.filter_image_list();
     },
 	render_instance_type_list: function() {
+        new Atmo.Views.HypervisorDropdown({
+            el: this.$el.find('#newinst_hypervisor')[0]
+        }).render();
         new Atmo.Views.InstanceSizeDropdown({
             el: this.$el.find('#newinst_size')[0]
         }).render();
@@ -409,6 +412,10 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		  'tags': this.tagger.get_tags()
 		};
 
+        if ( Atmo.profile.get('is_staff') === true 
+                && $(form.newinst_hypervisor).val() !== "") {
+          params.hypervisor = $(form.newinst_hypervisor).val()
+        }
 		var error_elements = [];
 		var errors = [];
 
