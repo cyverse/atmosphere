@@ -11,9 +11,9 @@ Atmo.Views.SettingsScreen = Backbone.View.extend({
     events: {
         'change form[name="settings"]' : 'update_settings',
         'click #icon_set_icons a' : 'update_icons',
-		'submit form[name="add_new_identity"]':'add_new_identity',
-		'change input[name="selected_identity"]' : 'switch_identity',
-		'click .image-overview' : 'expand_details'
+	'submit form[name="add_new_identity"]':'add_new_identity',
+	'change input[name="selected_identity"]' : 'switch_identity',
+	'click .image-overview' : 'expand_details'
     },
     render: function() {
         if (Atmo.profile.isNew() || this.rendered)
