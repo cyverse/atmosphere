@@ -5,7 +5,7 @@ Atmo.Views.HypervisorDropdown = Backbone.View.extend({
 		'change': 'change_hypervisor_selection',
     },
     initialize: function(options) {
-		Atmo.instance_hypervisors.bind('reset', this.render, this);
+	    Atmo.instance_hypervisors.bind('reset', this.render, this);
     },
 	change_hypervisor_selection: function(e) {
 		$(e.currentTarget).find(':selected').data('instance_hypervisor').select();
