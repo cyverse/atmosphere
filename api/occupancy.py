@@ -2,7 +2,6 @@
 atmosphere service provider occupancy rest api.
 
 """
-from django.db.models import Q
 from django.utils import timezone
 
 from rest_framework import status
@@ -31,10 +30,7 @@ class Occupancy(APIView):
         """
         #Get meta for provider to call occupancy
         try:
-            provider = Provider.objects.get(
-                Q(end_date=None) | Q(end_date__gt=timezone.now()),
-                id=provider_id,
-                active=True)
+            provider = Provider.get_active(provider_id)
         except Provider.DoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
@@ -56,10 +52,7 @@ class Hypervisor(APIView):
     @api_auth_token_required
     def get(self, request, provider_id):
         try:
-            provider = Provider.objects.get(
-                Q(end_date=None) | Q(end_date__gt=timezone.now()),
-                id=provider_id,
-                active=True)
+            provider = Provider.get_active(provider_id)
         except Provider.DoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,

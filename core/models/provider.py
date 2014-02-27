@@ -3,6 +3,7 @@ Service Provider model for atmosphere.
 """
 
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 from rtwo.provider import AWSProvider, EucaProvider, OSProvider
@@ -95,6 +96,17 @@ class Provider(models.Model):
     public = models.BooleanField(default=False)
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
+
+    @classmethod
+    def get_active(cls, provider_id):
+        """
+        Get the provider if it's active, otherwise raise
+        Provider.DoesNotExist.
+        """
+        return cls.objects.get(
+            Q(end_date=None) | Q(end_date__gt=timezone.now()),
+            id=provider_id,
+            active=True)
 
     def share(self, core_group):
         """
@@ -224,4 +236,3 @@ class AccountProvider(models.Model):
     class Meta:
         db_table = 'provider_admin'
         app_label = 'core'
-
