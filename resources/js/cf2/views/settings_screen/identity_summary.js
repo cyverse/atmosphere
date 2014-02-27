@@ -58,74 +58,74 @@ Atmo.Views.SettingsScreenIdentitySummary = Backbone.View.extend({
     this.$el.html(this.template(identity));
     if (Atmo.profile.get('selected_identity').id == self.identity_id) {
       if(in_maintenance) {
-        this.$el.find('a.accordion-toggle').html(identity.provider_name + ' <span class="label" style="background-color: #0098aa">CURRENT</span><i class="maint-icon glphicon glphicon-warning-sign"></i>maintenance<span class="caret"></span>');
-      this.$el.find('.control_radio').attr('checked', 'checked');
-      } else {
-        this.$el.find('a.accordion-toggle').html(identity.provider_name + ' <span class="label" style="background-color: #0098aa">CURRENT</span><span class="caret"></span>');
-        this.$el.find('.control_radio').attr('checked', 'checked');                        
-      }
-    } else {
-      if(in_maintenance) {
-        this.$el.find('a.accordion-toggle').html(identity.provider_name + ' <i class="maint-icon glphicon glphicon-warning-sign"></i>maintenance<span class="caret"></span>');
-      }
-    }
+this.$el.find('a.accordion-toggle').html(identity.provider_name + ' <span class="label" style="background-color: #0098aa">CURRENT</span><i class="maint-icon glphicon glphicon-warning-sign"></i>maintenance');
+this.$el.find('.control_radio').attr('checked', 'checked');
+} else {
+this.$el.find('a.accordion-toggle').html(identity.provider_name + ' <span class="label" style="background-color: #0098aa">CURRENT</span>');
+this.$el.find('.control_radio').attr('checked', 'checked');                        
+}
+} else {
+if(in_maintenance) {
+this.$el.find('a.accordion-toggle').html(identity.provider_name + ' <i class="maint-icon glphicon glphicon-warning-sign"></i>maintenance');
+}
+}
 
-    // Point controls to this provider
-    this.$el.find('#identity_num').attr('id', 'identity_'+self.identity_id);
-    this.$el.find('a[href="#identity_num"]').attr('href', 'identity_'+self.identity_id);
-    
-    this.rendered = true;
+// Point controls to this provider
+this.$el.find('#identity_num').attr('id', 'identity_'+self.identity_id);
+this.$el.find('a[href="#identity_num"]').attr('href', 'identity_'+self.identity_id);
 
-    return this;
-  },
-    /*edit_login_key: function(e) {
-            e.preventDefault();
+this.rendered = true;
 
-            var header = 'Edit Cloud Identity';
-            var content = '<form name="update_identity">';
-            content += '<label for="login">Username</label>';
-            content += '<input type="text" name="login" disabled="disabled" placeholder="'+Atmo.profile.get('id')+'"><br />';
-            content += '<label for="key">Password</label>';
-            content += '<span class="help-block"><a href="https://user.iplantcollaborative.org/reset/request">Reset Your Password</a></span>';
-            content += '<label for="alias">New Alias</label>';
-            content += '<input type="text" name="alias" value="' + Atmo.profile.get('id') + '" />';
-            content += '</form>';
+return this;
+},
+/*edit_login_key: function(e) {
+    e.preventDefault();
 
-            Atmo.Utils.confirm(header, content, { on_confirm: function() {
-                // Update stuff
-            }, 
-                ok_button: 'Update Identity'
-            });
+    var header = 'Edit Cloud Identity';
+    var content = '<form name="update_identity">';
+    content += '<label for="login">Username</label>';
+    content += '<input type="text" name="login" disabled="disabled" placeholder="'+Atmo.profile.get('id')+'"><br />';
+    content += '<label for="key">Password</label>';
+    content += '<span class="help-block"><a href="https://user.iplantcollaborative.org/reset/request">Reset Your Password</a></span>';
+    content += '<label for="alias">New Alias</label>';
+    content += '<input type="text" name="alias" value="' + Atmo.profile.get('id') + '" />';
+    content += '</form>';
 
-    },*/
-    rerender_provider_data: function() {
-        this.set_populated(false);
-    },
-  render_provider_data: function(e) {
-    // Do some mapping, based on whether the info we want to see already exists in backbone models
-    // This should be majorly refactored when we have time
-    if (!this.maintenance) {
-      if (Atmo.profile.get('selected_identity').id == this.identity_id) {
-        this.render_local_summary(e);
-      } else {
-        this.render_remote_summary(e);
-      }
-    }
-  },
-  render_remote_summary: function(e) {
-    var self = this;
-    if (!this.is_populated()) {
-      // Help the user -- hide everything that's being appended until we get to the end. Meantime, show a spinny loader!
-      // Keep track of any errors
-      var errors = Array();
-      self.$el.find('.accordion-inner').children().hide();
-      
-      var loader = $('<div>', {
-    html: '<img src="'+site_root+'/resources/images/loader_large.gif" />',
-    style: 'display: none; text-align: center;'
-      });
-      self.$el.find('.accordion-inner').prepend(loader);
-      
+    Atmo.Utils.confirm(header, content, { on_confirm: function() {
+	// Update stuff
+    }, 
+	ok_button: 'Update Identity'
+    });
+
+},*/
+rerender_provider_data: function() {
+this.set_populated(false);
+},
+render_provider_data: function(e) {
+// Do some mapping, based on whether the info we want to see already exists in backbone models
+// This should be majorly refactored when we have time
+if (!this.maintenance) {
+if (Atmo.profile.get('selected_identity').id == this.identity_id) {
+this.render_local_summary(e);
+} else {
+this.render_remote_summary(e);
+}
+}
+},
+render_remote_summary: function(e) {
+var self = this;
+if (!this.is_populated()) {
+// Help the user -- hide everything that's being appended until we get to the end. Meantime, show a spinny loader!
+// Keep track of any errors
+var errors = Array();
+self.$el.find('.accordion-inner').children().hide();
+
+var loader = $('<div>', {
+html: '<img src="'+site_root+'/resources/images/loader_large.gif" />',
+style: 'display: none; text-align: center;'
+});
+self.$el.find('.accordion-inner').prepend(loader);
+
       $(e.target).parent().parent().find('.accordion-body').collapse('toggle');
       loader.slideDown(400, function() {
         

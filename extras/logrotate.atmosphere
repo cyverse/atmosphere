@@ -1,0 +1,10 @@
+/var/log/apache2/*.log /opt/dev/atmosphere/logs/atmosphere.log /var/log/celery/atmosphere-node_1.log /opt/dev/atmosphere/logs/libcloud.log {
+        daily
+        missingok
+        rotate 3
+        compress
+        delaycompress
+        notifempty
+        create 666 root adm
+        sharedscripts
+}

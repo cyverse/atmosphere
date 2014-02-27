@@ -100,7 +100,7 @@ def start_instance(esh_driver, esh_instance, provider_id, identity_id, user,
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
     from service.tasks.driver import update_metadata
-    admin_capacity_check(provider_id)
+    admin_capacity_check(provider_id, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
     if update_meta:
@@ -139,6 +139,10 @@ def admin_capacity_check(provider_id, instance_id):
     p = Provider.objects.get(id=provider_id)
     admin_driver = get_admin_driver(p)
     instance = admin_driver.get_instance(instance_id)
+    if not instance:
+        logger.warn("ERROR - Could not find instance id=%s"
+                    % (instance_id,))
+        return
     hypervisor_hostname = instance.extra['object']\
             .get('OS-EXT-SRV-ATTR:hypervisor_hostname')
     if not hypervisor_hostname:
@@ -193,7 +197,7 @@ def resume_instance(esh_driver, esh_instance,
     """
     from service.tasks.driver import update_metadata
     check_quota(user.username, identity_id, esh_instance.size, resuming=True)
-    admin_capacity_check(provider_id)
+    admin_capacity_check(provider_id, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
     if update_meta:
