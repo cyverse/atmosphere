@@ -76,6 +76,10 @@ class MachineRequest(models.Model):
         user_list=re.split(', | |\n', self.access_list)
         return user_list
 
+    def parse_access_list(self):
+        user_list=re.split(', | |\n', self.access_list)
+        return user_list
+
     def get_exclude_files(self):
         exclude=re.split(", | |\n", self.exclude_files)
         return exclude
@@ -166,7 +170,7 @@ class MachineRequest(models.Model):
             meta_name = self._get_meta_name()
             public_image = self.is_public()
             #Splits the string by ", " OR " " OR "\n" to create the list
-            private_users = self.get_access_list()
+            private_users = self.parse_access_list()
             exclude = self.get_exclude_files()
             #Create image on image manager
             node_scp_info = self.get_euca_node_info(orig_managerCls, orig_creds)
@@ -324,5 +328,5 @@ def share_with_self(private_userlist, username):
                         % (type(private_userlist), private_userlist))
 
     #TODO: Optionally, Lookup username and get the Projectname
-    private_userlist.append(username)
+    private_userlist.append(str(username))
     return private_userlist

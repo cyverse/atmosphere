@@ -28,7 +28,8 @@ from api.serializers import ProviderMachineSerializer,\
     PaginatedProviderMachineSerializer
 
 
-def provider_filtered_machines(request, provider_id, identity_id):
+def provider_filtered_machines(request, provider_id,
+                               identity_id, request_user=None):
     """
     Return all filtered machines. Uses the most common,
     default filtering method.
@@ -36,10 +37,10 @@ def provider_filtered_machines(request, provider_id, identity_id):
     esh_driver = prepare_driver(request, provider_id, identity_id)
     if not esh_driver:
         return invalid_creds(provider_id, identity_id)
-    return list_filtered_machines(esh_driver, provider_id)
+    return list_filtered_machines(esh_driver, provider_id, request_user)
 
 
-def list_filtered_machines(esh_driver, provider_id):
+def list_filtered_machines(esh_driver, provider_id, request_user=None):
     esh_machine_list = esh_driver.list_machines()
     #logger.info("Total machines from esh:%s" % len(esh_machine_list))
     esh_machine_list = esh_driver.filter_machines(
@@ -49,7 +50,8 @@ def list_filtered_machines(esh_driver, provider_id):
     core_machine_list = [convert_esh_machine(esh_driver, mach, provider_id)
                          for mach in esh_machine_list]
     #logger.info("Core machines :%s" % len(core_machine_list))
-    filtered_machine_list = filter(filter_core_machine, core_machine_list)
+    filtered_machine_list = [core_mach for core_mach in core_machine_list
+                             if filter_core_machine(core_mach, request_user)]
     #logger.info("Filtered Core machines :%s" % len(filtered_machine_list))
     sorted_machine_list = sorted(filtered_machine_list,
                                  cmp=compare_core_machines)
@@ -79,9 +81,11 @@ class MachineList(APIView):
         TODO: Cache this request
         """
         try:
+            request_user = request.user.username
             filtered_machine_list = provider_filtered_machines(request,
                                                                provider_id,
-                                                               identity_id)
+                                                               identity_id,
+                                                               request_user)
         except:
             return invalid_creds(provider_id, identity_id)
         serialized_data = ProviderMachineSerializer(filtered_machine_list,
@@ -225,6 +229,8 @@ class Machine(APIView):
         esh_driver = prepare_driver(request, provider_id, identity_id)
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
+        #TODO: Need to determine that identity_id is ALLOWED to see machine_id.
+        #     if not covered by calling as the users driver..
         esh_machine = esh_driver.get_machine(machine_id)
         core_machine = convert_esh_machine(esh_driver, esh_machine, provider_id)
         serialized_data = ProviderMachineSerializer(core_machine).data

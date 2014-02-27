@@ -79,6 +79,25 @@ class ProviderMachine(models.Model):
     class Meta:
         db_table = "provider_machine"
         app_label = "core"
+class ProviderMachineMembership(models.Model):
+    """
+    Members of a specific image and provider combination.
+    Members can view & launch respective machines.
+    If the can_share flag is set, then members also have ownership--they can give
+    membership to other users.
+    The unique_together field ensures just one of those states is true.
+    """
+    provider_machine = models.ForeignKey(ProviderMachine)
+    group = models.ForeignKey('Group')
+    can_share = models.BooleanField(default=False)
+
+    def __unicode__(self):
+        return "(ProviderMachine:%s - Member:%s) " %\
+            (self.provider_machine, self.group)
+    class Meta:
+        db_table = 'provider_machine_membership'
+        app_label = 'core'
+        unique_together = ('provider_machine', 'group')
 
 
 def build_cached_machines():
@@ -237,17 +256,33 @@ def compare_core_machines(mach_1, mach_2):
     else:
         return cmp(mach_1.identifier, mach_2.identifier)
 
-def filter_core_machine(provider_machine):
+def filter_core_machine(provider_machine, request_user=None):
     """
     Filter conditions:
     * Application does not have an end_date
     * end_date < now
     """
     now = timezone.now()
+    #Ignore end dated providers
     if provider_machine.end_date or\
        provider_machine.application.end_date:
         if provider_machine.end_date:
             return not(provider_machine.end_date < now)
         if provider_machine.application.end_date:
             return not(provider_machine.application.end_date < now)
+    #Ignore public users accessing private images..
+    if provider_machine.application.private:
+        if request_user:
+            allowed_groups = [m.group for m in
+                              provider_machine.providermachinemembership_set.all()]
+            print "%s can be launched by:%s" \
+                         % (provider_machine, allowed_groups)
+            for group in allowed_groups:
+                allowed_users = [u.username for u in group.user_set.all()]
+                if request_user in allowed_users:
+                    print "%s is allowed to use %s" % (request_user, provider_machine.identifier)
+                    return True
+        print "%s is not allowed to use %s" % (request_user, provider_machine.identifier)
+        return False
+    print "%s is not a private image" % (provider_machine.identifier)
     return True
