@@ -312,7 +312,7 @@ class InstanceAction(APIView):
             return response
         ### Exception handling below..
         except HypervisorCapacityError, hce:
-            return over_capacity(oqe)
+            return over_capacity(hce)
         except OverQuotaError, oqe:
             return over_quota(oqe)
         except OverAllocationError, oae:
