@@ -38,8 +38,8 @@ class Occupancy(APIView):
         admin_driver = get_admin_driver(provider)
         if not admin_driver:
             return failure_response(
-               status.HTTP_404_NOT_FOUND,
-               "The occupancy cannot be retrieved for this provider.")
+                status.HTTP_404_NOT_FOUND,
+                "The driver cannot be retrieved for this provider.")
         meta_driver = admin_driver.meta(admin_driver=admin_driver)
         esh_size_list = meta_driver.occupancy()
         core_size_list = [convert_esh_size(size, provider_id)
@@ -62,6 +62,10 @@ class Hypervisor(APIView):
                 status.HTTP_404_NOT_FOUND,
                 "The provider does not exist.")
         admin_driver = get_admin_driver(provider)
+        if not admin_driver:
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                "The driver cannot be retrieved for this provider.")
         if hasattr(admin_driver._connection, "ex_hypervisor_statistics"):
             return Response(
                 admin_driver._connection.ex_hypervisor_statistics())
