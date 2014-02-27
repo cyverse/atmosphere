@@ -33,7 +33,7 @@ def start_machine_imaging(machine_request, delay=False):
     Builds up a machine imaging task using core.models.machine_request
     delay - If true, wait until task is completed before returning
     """
-    machine_request.status = 'processing'
+    machine_request.status = 'imaging'
     machine_request.save()
     instance_id = machine_request.instance.provider_alias
 
@@ -128,6 +128,8 @@ def process_request(new_image_id, machine_request_id):
     #if ipdb:
     #    ipdb.set_trace()
     machine_request = MachineRequest.objects.get(id=machine_request_id)
+    machine_request.status = 'processing'
+    machine_request.save()
     invalidate_machine_cache(machine_request)
     set_machine_request_metadata(machine_request, new_image_id)
     process_machine_request(machine_request, new_image_id)
