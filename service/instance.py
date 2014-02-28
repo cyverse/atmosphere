@@ -1,23 +1,26 @@
-import uuid
-import time
+from dateutil.relativedelta import relativedelta
 import os.path
+import time
+import uuid
+
 from djcelery.app import app
+
+from threepio import logger
 
 from rtwo.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
     OSProvider, OSValhallaProvider
 from rtwo.driver import OSDriver
-from threepio import logger
 
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import convert_esh_instance
 from core.models.size import convert_esh_size
 from core.models.provider import AccountProvider
 
+from api import get_esh_driver
+
 from atmosphere import settings
 from atmosphere.settings import secrets
-
-from api import get_esh_driver
 
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation
@@ -323,8 +326,10 @@ def check_quota(username, identity_id, esh_size, resuming=False):
     if over_quota:
         raise OverQuotaError(resource, requested, used, allowed)
 
-    (over_allocation, time_diff) = check_over_allocation(username,
-                                                         identity_id)
+    (over_allocation, time_diff) =\
+        check_over_allocation(username,
+                              identity_id,
+                              relativedelta(day=1, months=1))
     if over_allocation and not settings.DEBUG:
         raise OverAllocationError(time_diff)
 
