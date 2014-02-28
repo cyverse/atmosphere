@@ -271,18 +271,18 @@ def filter_core_machine(provider_machine, request_user=None):
         if provider_machine.application.end_date:
             return not(provider_machine.application.end_date < now)
     #Ignore public users accessing private images..
-    if provider_machine.application.private:
-        if request_user:
-            allowed_groups = [m.group for m in
-                              provider_machine.providermachinemembership_set.all()]
-            print "%s can be launched by:%s" \
-                         % (provider_machine, allowed_groups)
-            for group in allowed_groups:
-                allowed_users = [u.username for u in group.user_set.all()]
-                if request_user in allowed_users:
-                    print "%s is allowed to use %s" % (request_user, provider_machine.identifier)
-                    return True
-        print "%s is not allowed to use %s" % (request_user, provider_machine.identifier)
-        return False
-    print "%s is not a private image" % (provider_machine.identifier)
+    #if provider_machine.application.private:
+    #    if request_user:
+    #        allowed_groups = [m.group for m in
+    #                          provider_machine.providermachinemembership_set.all()]
+    #        print "%s can be launched by:%s" \
+    #                     % (provider_machine, allowed_groups)
+    #        for group in allowed_groups:
+    #            allowed_users = [u.username for u in group.user_set.all()]
+    #            if request_user in allowed_users:
+    #                print "%s is allowed to use %s" % (request_user, provider_machine.identifier)
+    #                return True
+    #    print "%s is not allowed to use %s" % (request_user, provider_machine.identifier)
+    #    return False
+    #print "%s is not a private image" % (provider_machine.identifier)
     return True
