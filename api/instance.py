@@ -31,7 +31,6 @@ from service.instance import launch_instance, start_instance,\
     stop_instance, suspend_instance, resume_instance,\
     update_instance_metadata
 from service.quota import check_over_quota
-from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError
 
