@@ -128,7 +128,7 @@ def process_request(new_image_id, machine_request_id):
     #if ipdb:
     #    ipdb.set_trace()
     machine_request = MachineRequest.objects.get(id=machine_request_id)
-    machine_request.status = 'processing'
+    machine_request.status = 'processing - %s' % new_image_id
     machine_request.save()
     invalidate_machine_cache(machine_request)
     set_machine_request_metadata(machine_request, new_image_id)
