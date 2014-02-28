@@ -112,8 +112,8 @@ urlpatterns += format_suffix_patterns(patterns(
         name='maintenance-record'),
     url(r'^api/v1/notification/$', NotificationList.as_view()),
 
-    url(r'^api/v1/user/$', atmo_valid_token_required(UserManagement.as_view())),
-    url(r'^api/v1/user/(?P<username>.*)/$', User.as_view()),
+    #url(r'^api/v1/user/$', atmo_valid_token_required(UserManagement.as_view())),
+    #url(r'^api/v1/user/(?P<username>.*)/$', User.as_view()),
     url(r'^api/v1/profile/$', Profile.as_view(), name='profile'),
     url(r'^api/v1/provider/(?P<provider_id>\d+)/occupancy/$',
         Occupancy.as_view(), name='occupancy'),
