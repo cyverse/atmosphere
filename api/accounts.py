@@ -15,14 +15,15 @@ from atmosphere import settings
 
 from authentication.decorators import api_auth_token_required
 
-from core.models.provider import Provider as CoreProvider
 from core.models import AtmosphereUser as User
+from core.models.provider import Provider as CoreProvider
+from core.models.identity import Identity as CoreIdentity
 
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
 from service.accounts.aws import AccountDriver as AWSAccountDriver
 
-from api.serializers import AccountSerializer
+from api.serializers import AccountSerializer, IdentitySerializer
 
 
 def get_account_driver(provider_id):
@@ -76,8 +77,8 @@ class Account(APIView):
         Return information on all identities given to this username on
         the specific provider
         """
-        identities = Identity.objects.filter(provider__id=provider_id,
-                                             created_by__username=username)
+        identities = CoreIdentity.objects.filter(provider__id=provider_id,
+                                                 created_by__username=username)
         serialized_data = IdentitySerializer(identities, many=True).data
         return Response(serialized_data)
 
