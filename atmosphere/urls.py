@@ -141,7 +141,7 @@ urlpatterns += format_suffix_patterns(patterns(
         MachineRequestStaff.as_view(), name='direct-machine-request-action'),
 
 
-    url(r'^api/v1/provider/(?P<provider_id>\d+)/account/(?P<username>\w+)/$',
+    url(r'^api/v1/provider/(?P<provider_id>\d+)/account/(?P<username>([A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*))/$',
         Account.as_view(), name='account-management'),
 
 
