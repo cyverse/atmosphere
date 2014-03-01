@@ -45,7 +45,7 @@ urlpatterns = patterns(
     #Uncomment the next line to enable the admin control panel
     #admin logging, and admin user emulation
     url(r'^admin/emulate/$', 'web.views.emulate_request'),
-    url(r'^admin/emulate/(?P<username>\w+)/$', 'web.views.emulate_request'),
+    url(r'^admin/emulate/(?P<username>([A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*))/$', 'web.views.emulate_request'),
     #url(r'^admin/logs/', 'web.views.logs'),
     url(r'^admin/', include(admin.site.urls)),
 
