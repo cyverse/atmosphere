@@ -45,7 +45,7 @@ urlpatterns = patterns(
     #Uncomment the next line to enable the admin control panel
     #admin logging, and admin user emulation
     url(r'^admin/emulate/$', 'web.views.emulate_request'),
-    url(r'^admin/emulate/(?P<username>\w+)/$', 'web.views.emulate_request'),
+    url(r'^admin/emulate/(?P<username>([A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*))/$', 'web.views.emulate_request'),
     #url(r'^admin/logs/', 'web.views.logs'),
     url(r'^admin/', include(admin.site.urls)),
 
@@ -112,8 +112,8 @@ urlpatterns += format_suffix_patterns(patterns(
         name='maintenance-record'),
     url(r'^api/v1/notification/$', NotificationList.as_view()),
 
-    url(r'^api/v1/user/$', atmo_valid_token_required(UserManagement.as_view())),
-    url(r'^api/v1/user/(?P<username>.*)/$', User.as_view()),
+    #url(r'^api/v1/user/$', atmo_valid_token_required(UserManagement.as_view())),
+    #url(r'^api/v1/user/(?P<username>.*)/$', User.as_view()),
     url(r'^api/v1/profile/$', Profile.as_view(), name='profile'),
     url(r'^api/v1/provider/(?P<provider_id>\d+)/occupancy/$',
         Occupancy.as_view(), name='occupancy'),
