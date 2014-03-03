@@ -27,6 +27,10 @@ from core.models.volume import Volume
 
 from core.application import save_app_data
 
+def private_object(modeladmin, request, queryset):
+        queryset.update(private=True)
+private_object.short_description = 'Make objects private True'
+
 def end_date_object(modeladmin, request, queryset):
         queryset.update(end_date=timezone.now())
 end_date_object.short_description = 'Add end-date to objects'
@@ -149,7 +153,7 @@ class VolumeAdmin(admin.ModelAdmin):
 
 
 class ApplicationAdmin(admin.ModelAdmin):
-    actions = [end_date_object, ]
+    actions = [end_date_object, private_object]
     search_fields = ["name", "id"]
     list_display = [
         "name", "start_date", "end_date", "private", "featured", "created_by"]
