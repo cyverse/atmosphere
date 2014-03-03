@@ -115,9 +115,6 @@ def machine_request_error(task_uuid, machine_request_id):
         exc = result.get(propagate=False)
     err_str = "ERROR - %r Exception:%r" % (result.result, result.traceback,)
     logger.error(err_str)
-    max_len = MachineRequest._meta.get_field('status').max_length
-    if len(err_str) > max_len:
-        err_str = err_str[:max_len-3]+'...'
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.status = err_str
     machine_request.save()

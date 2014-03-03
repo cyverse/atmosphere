@@ -93,7 +93,7 @@ class ProviderMachineMembership(models.Model):
 
     def __unicode__(self):
         return "(ProviderMachine:%s - Member:%s) " %\
-            (self.provider_machine, self.group)
+            (self.provider_machine.identifier, self.group.name)
     class Meta:
         db_table = 'provider_machine_membership'
         app_label = 'core'

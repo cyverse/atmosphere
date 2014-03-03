@@ -68,7 +68,7 @@ def install_base_requirements(distro='ubuntu'):
 
 def freeze_instance(sleep_time=45):
     return ScriptDeployment(
-        "nohup fsfreeze -f / && sleep %s && fsfreeze -u /" % sleep_time,
+        "nohup fsfreeze -f / && sleep %s && fsfreeze -u / &" % sleep_time,
         name="./deploy_freeze_instance.sh")
 
 

@@ -1,6 +1,7 @@
 """
   Machine models for atmosphere.
 """
+import json
 import re
 import os
 
@@ -28,7 +29,7 @@ class MachineRequest(models.Model):
     instance = models.ForeignKey("Instance")
 
     # Machine imaging Metadata
-    status = models.CharField(max_length=256)
+    status = models.TextField(default='', blank=True)
     parent_machine = models.ForeignKey("ProviderMachine",
                                        related_name="ancestor_machine")
     # Specifics for machine imaging.
@@ -73,7 +74,15 @@ class MachineRequest(models.Model):
         return "public" in self.new_machine_visibility.lower()
 
     def get_access_list(self):
-        user_list=re.split(', | |\n', self.access_list)
+        if '[' not in raw_access_list:
+            #Format = "test1, test2, test3"
+            json_loads_list = str(raw_access_list.split(", "))
+            #New Format = "[u'test1', u'test2', u'test3']"
+        else:
+            #Format = "[u'test1', u'test2', u'test3']"
+            json_loads_list = raw_access_list
+        json_loads_list = json_loads_list.replace("'",'"').replace('u"', '"')
+        user_list = json.loads(json_loads_list)
         return user_list
 
     def parse_access_list(self):
@@ -277,11 +286,14 @@ def process_machine_request(machine_request, new_image_id):
         new_machine = create_provider_machine(
             machine_request.new_machine_name, new_image_id,
             machine_request.new_machine_provider_id, app_to_use)
-
     #Final modifications to the app
     app = new_machine.application
     #app.created_by = machine_request.new_machine_owner
     #app.created_by_identity = owner_ident
+
+    #Private == False when is_public ==True
+    app.private = not self.is_public()
+
     app.tags = tags
     app.description = description
     app.save()
@@ -294,6 +306,8 @@ def process_machine_request(machine_request, new_image_id):
 
     #Be sure to write all this data to openstack metadata
     #So that it can continue to be the 'authoritative source'
+    if not self.is_public():
+        upload_privacy_data(machine_request, new_machine)
     save_app_data(app)
 
     add_to_cache(new_machine)
@@ -302,6 +316,27 @@ def process_machine_request(machine_request, new_image_id):
     machine_request.status = 'completed'
     machine_request.save()
     return machine_request
+
+def upload_privacy_data(machine_request, new_machine):
+    accounts = OSAccounts(prov)
+    if not accounts:
+        print "Aborting import: Could not retrieve OSAccounts driver "\
+                "for Provider %s" % prov
+        return
+    admin_driver = get_admin_driver(prov)
+    if not admin_driver:
+        print "Aborting import: Could not retrieve admin_driver "\
+                "for Provider %s" % prov
+        return
+    img = accounts.image_manager.get_image(new_machine.identifier)
+    tenant_list = machine_request.get_access_list()
+    #All in the list will be added as 'sharing' the OStack img
+    #All tenants already sharing the OStack img will be added to this list
+    tenant_list = fix_image_access_list(accounts, img, names=tenant_list)
+    #Make private on the DB level
+    make_private(accounts.image_manager, img, new_machine, tenant_list)
+
+
 
 def share_with_admins(private_userlist, provider_id):
     """
@@ -330,3 +365,48 @@ def share_with_self(private_userlist, username):
     #TODO: Optionally, Lookup username and get the Projectname
     private_userlist.append(str(username))
     return private_userlist
+
+def fix_image_access_list(accounts, img, names=None):
+    projects = []
+    shared_with = accounts.image_manager.shared_images_for(
+            image_id=img.id)
+    #if not shared_with:
+    #    return tenant_names
+    #Find tenants who are marked as 'sharing' on openstack but not on DB
+    #Or just in One-line..
+    projects = [accounts.get_project_by_id(member.member_id) for member in shared_with]
+    #Any names who aren't already on the image should be added
+    #Find names who are marekd as 'sharing' on DB but not on OpenStack
+    for name in names:
+        project = accounts.get_project(name)
+        if project and project not in projects:
+            print "Sharing image %s with project named %s" \
+                    % (img.id, name)
+            accounts.image_manager.share_image(img, name)
+            projects.append(project)
+    return projects
+
+def make_private(image_manager, image, provider_machine, tenant_list=[]):
+    #Circ.Dep. DO NOT MOVE UP!!
+    from core.models import Group, ProviderMachineMembership
+
+    if image.is_public == True:
+        print "Marking image %s private" % image.id
+        image_manager.update_image(image, is_public=False)
+    if provider_machine.application.private == False:
+        print "Marking application %s private" % provider_machine.application
+        provider_machine.application.private = True
+        provider_machine.application.save()
+    #Add all these people by default..
+    owner = provider_machine.application.created_by
+    group_list = owner.group_set.all()
+    if tenant_list:
+        for tenant in tenant_list:
+            name = tenant.name
+            group = Group.objects.get(name=name)
+            obj, created = ProviderMachineMembership.objects.get_or_create(
+                    group=group, 
+                    provider_machine=provider_machine)
+            if created:
+                print "Created new ProviderMachineMembership: %s" \
+                    % (obj,)

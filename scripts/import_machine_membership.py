@@ -2,7 +2,8 @@
 from core.models import MachineRequest, Provider, ProviderMachine,\
         ProviderMachineMembership, Group
 from core.models.credential import get_groups_using_credential
-from core.models.machine_request import process_machine_request
+from core.models.machine_request import process_machine_request,\
+        fix_image_access_list
 from service.accounts.openstack import AccountDriver as OSAccounts
 from service.driver import get_admin_driver
 from api.machine import list_filtered_machines
@@ -83,26 +84,6 @@ def parse_list(raw_access_list, provider_id):
     user_list = json.loads(json_loads_list)
     return user_list
 
-def get_image_access_list(accounts, img, names=None):
-    projects = []
-    shared_with = accounts.image_manager.shared_images_for(
-            image_id=img.id)
-    #if not shared_with:
-    #    return tenant_names
-    #Find tenants who are marked as 'sharing' on openstack but not on DB
-    #Or just in One-line..
-    projects = [accounts.get_project_by_id(member.member_id) for member in shared_with]
-    #Any names who aren't already on the image should be added
-    #Find names who are marekd as 'sharing' on DB but not on OpenStack
-    for name in names:
-        project = accounts.get_project(name)
-        if project and project not in projects:
-            print "Sharing image %s with project named %s" \
-                    % (img.id, name)
-            accounts.image_manager.share_image(img, name)
-            projects.append(project)
-    return projects
-
 def fix_private_images_without_repr(private_images, prov, accounts):
     """
     See if image has a machine request
@@ -125,7 +106,7 @@ def fix_private_images_without_repr(private_images, prov, accounts):
             #Private or selected access..
             access_list  = parse_list(mr.access_list, prov.id)
             #Fix on the image
-            tenant_list = get_image_access_list(
+            tenant_list = fix_image_access_list(
                     accounts, img, names=access_list)
             #Fix on the database
             make_private(accounts.image_manager, img, pm, tenant_list)
@@ -158,7 +139,7 @@ def fix_private_images(private_images, prov, accounts):
             #Private or selected access..
             access_list  = parse_list(mr.access_list, prov.id)
             #Fix on the image
-            tenant_list = get_image_access_list(
+            tenant_list = fix_image_access_list(
                     accounts, img, names=access_list)
             #Fix on the database
             make_private(accounts.image_manager, img, pm, tenant_list)
@@ -197,7 +178,7 @@ def fix_public_images(public_images, prov, accounts):
             access_list  = parse_list(mr.access_list, prov.id)
             #Fix on the image
             print "Fixing image access list for %s<%s>" % (img.name, img.id)
-            tenant_list = get_image_access_list(
+            tenant_list = fix_image_access_list(
                     accounts, img, names=access_list)
             #Fix on the database
             print "Fixing database models for %s<%s>" % (img.name, img.id)
