@@ -30,8 +30,8 @@ from service.driver import get_driver
 from service.deploy import init
 
 
-@periodic_task(run_every=crontab(hour="*", minute="*/30", day_of_week="*"),
-        expires=5*60, time_limit=5*60, retry=0)
+@periodic_task(run_every=crontab(hour="0", minute="*", day_of_week="*"),
+        expires=1*60*60, retry=0)
 def clear_empty_ips():
     logger.debug("clear_empty_ips task started at %s." % datetime.now())
     from service import instance as instance_service
@@ -50,8 +50,6 @@ def clear_empty_ips():
     for idx, core_identity in enumerate(identities):
         try:
             #Initialize the drivers
-            logger.info("Checking Identity %s/%s - %s"
-                        % (idx+1, total, tenant_name))
             driver = get_esh_driver(core_identity)
             if not isinstance(driver, OSDriver):
                 continue
@@ -62,6 +60,8 @@ def clear_empty_ips():
             # Get useful info
             creds = core_identity.get_credentials()
             tenant_name = creds['ex_tenant_name']
+            logger.info("Checking Identity %s/%s - %s"
+                        % (idx+1, total, tenant_name))
             # Attempt to clean floating IPs
             num_ips_removed = driver._clean_floating_ip()
             if num_ips_removed:
