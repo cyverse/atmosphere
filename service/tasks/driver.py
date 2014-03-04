@@ -44,9 +44,12 @@ def clear_empty_ips():
        identities, key=lambda ident: attrgetter(ident.provider.type.name,
                                                 ident.created_by.username))
     os_acct_driver = None
-    for core_identity in identities:
+    total = len(identities)
+    for idx, core_identity in enumerate(identities):
         try:
             #Initialize the drivers
+            logger.info("Checking Identity %s/%s - %s"
+                        % (idx+1, total, tenant_name))
             driver = get_esh_driver(core_identity)
             if not isinstance(driver, OSDriver):
                 continue
@@ -83,7 +86,8 @@ def clear_empty_ips():
                     os_acct_driver.delete_network(core_identity,
                             remove_network=remove_network)
             else:
-                logger.info("No Network found. Skipping %s" % tenant_name)
+                #logger.info("No Network found. Skipping %s" % tenant_name)
+                pass
         except Exception as exc:
             logger.exception(exc)
     logger.debug("clear_empty_ips task finished at %s." % datetime.now())
