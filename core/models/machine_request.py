@@ -74,13 +74,13 @@ class MachineRequest(models.Model):
         return "public" in self.new_machine_visibility.lower()
 
     def get_access_list(self):
-        if '[' not in raw_access_list:
+        if '[' not in self.access_list:
             #Format = "test1, test2, test3"
             json_loads_list = str(raw_access_list.split(", "))
             #New Format = "[u'test1', u'test2', u'test3']"
         else:
             #Format = "[u'test1', u'test2', u'test3']"
-            json_loads_list = raw_access_list
+            json_loads_list = self.access_list
         json_loads_list = json_loads_list.replace("'",'"').replace('u"', '"')
         user_list = json.loads(json_loads_list)
         return user_list
@@ -223,12 +223,6 @@ class MachineRequest(models.Model):
         #Return a dict containing information on how to SCP to the node
         return node_dict
 
-    def new_machine_is_public(self):
-        """
-        Return True if public, False if private
-        """
-        return self.new_machine_visibility == 'public'
-
     def __unicode__(self):
         return '%s Instance: %s Name: %s Status: %s'\
                 % (self.new_machine_owner, self.instance.provider_alias,
@@ -254,7 +248,7 @@ def process_machine_request(machine_request, new_image_id):
         tags = []
 
     #if machine_request.new_machine_forked:
-    # Replace this line when applications are supported in the UI
+    #NOTE: Swap these lines when application forking/versioning is supported in the UI
     if True:
         # This is a brand new app and a brand new providermachine
         new_app = create_application(
@@ -262,6 +256,8 @@ def process_machine_request(machine_request, new_image_id):
                 new_provider.id,
                 machine_request.new_machine_name, 
                 owner_ident,
+                #new_app.Private = False when machine_request.is_public = True
+                not machine_request.is_public(),
                 machine_request.new_machine_version,
                 machine_request.new_machine_description,
                 tags)
@@ -269,7 +265,7 @@ def process_machine_request(machine_request, new_image_id):
         description = machine_request.new_machine_description
     else:
         #This is NOT a fork, the application to be used is that of your
-        # ancestor
+        # ancestor, and the app owner should not be changed.
         app_to_use = parent_app
         #Include your ancestors tags, description if necessary
         tags.extend(parent_app.tags.all())
@@ -277,39 +273,30 @@ def process_machine_request(machine_request, new_image_id):
             description = parent_app.description
         else:
             description = machine_request.new_machine_description
+        app.private = not machine_request.is_public()
+
+        app.tags = tags
+        app.description = description
+        app.save()
+    #Set application data to an existing/new providermachine
     try:
-        #Set application data to an existing/new providermachine
         new_machine = ProviderMachine.objects.get(identifier=new_image_id)
         new_machine.application = app_to_use
+        new_machine.version = machine_request.new_machine_version
+        new_machine.created_by = machine_request.new_machine_owner
+        new_machine.created_by_identity = owner_ident
         new_machine.save()
     except ProviderMachine.DoesNotExist:
         new_machine = create_provider_machine(
             machine_request.new_machine_name, new_image_id,
-            machine_request.new_machine_provider_id, app_to_use)
-    #Final modifications to the app
-    app = new_machine.application
-    #app.created_by = machine_request.new_machine_owner
-    #app.created_by_identity = owner_ident
-
-    #Private == False when is_public ==True
-    app.private = not self.is_public()
-
-    app.tags = tags
-    app.description = description
-    app.save()
-
-    #DB modifications to the providermachine
-    new_machine.version = machine_request.new_machine_version
-    new_machine.created_by = machine_request.new_machine_owner
-    new_machine.created_by_identity = owner_ident
-    new_machine.save()
+            machine_request.new_machine_provider_id, app_to_use,
+            {'version' : machine_request.new_machine_version})
 
     #Be sure to write all this data to openstack metadata
     #So that it can continue to be the 'authoritative source'
-    if not self.is_public():
+    if not machine_request.is_public():
         upload_privacy_data(machine_request, new_machine)
-    save_app_data(app)
-
+    save_app_data(new_machine.application)
     add_to_cache(new_machine)
     machine_request.new_machine = new_machine
     machine_request.end_date = timezone.now()
@@ -318,6 +305,9 @@ def process_machine_request(machine_request, new_image_id):
     return machine_request
 
 def upload_privacy_data(machine_request, new_machine):
+    from service.accounts.openstack import AccountDriver as OSAccounts
+    from service.driver import get_admin_driver
+    prov = new_machine.provider
     accounts = OSAccounts(prov)
     if not accounts:
         print "Aborting import: Could not retrieve OSAccounts driver "\
@@ -332,7 +322,7 @@ def upload_privacy_data(machine_request, new_machine):
     tenant_list = machine_request.get_access_list()
     #All in the list will be added as 'sharing' the OStack img
     #All tenants already sharing the OStack img will be added to this list
-    tenant_list = fix_image_access_list(accounts, img, names=tenant_list)
+    tenant_list = sync_image_access_list(accounts, img, names=tenant_list)
     #Make private on the DB level
     make_private(accounts.image_manager, img, new_machine, tenant_list)
 
@@ -366,7 +356,7 @@ def share_with_self(private_userlist, username):
     private_userlist.append(str(username))
     return private_userlist
 
-def fix_image_access_list(accounts, img, names=None):
+def sync_image_access_list(accounts, img, names=None):
     projects = []
     shared_with = accounts.image_manager.shared_images_for(
             image_id=img.id)

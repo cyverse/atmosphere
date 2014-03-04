@@ -131,7 +131,7 @@ def get_application(identifier, app_uuid=None):
 
 
 def create_application(identifier, provider_id, name=None,
-        owner=None, version=None, description=None, tags=None,
+        owner=None, private=False, version=None, description=None, tags=None,
         uuid=None):
     from core.models import AtmosphereUser
     if not uuid:

@@ -3,7 +3,7 @@ from core.models import MachineRequest, Provider, ProviderMachine,\
         ProviderMachineMembership, Group
 from core.models.credential import get_groups_using_credential
 from core.models.machine_request import process_machine_request,\
-        fix_image_access_list
+        sync_image_access_list
 from service.accounts.openstack import AccountDriver as OSAccounts
 from service.driver import get_admin_driver
 from api.machine import list_filtered_machines
@@ -106,7 +106,7 @@ def fix_private_images_without_repr(private_images, prov, accounts):
             #Private or selected access..
             access_list  = parse_list(mr.access_list, prov.id)
             #Fix on the image
-            tenant_list = fix_image_access_list(
+            tenant_list = sync_image_access_list(
                     accounts, img, names=access_list)
             #Fix on the database
             make_private(accounts.image_manager, img, pm, tenant_list)
@@ -139,7 +139,7 @@ def fix_private_images(private_images, prov, accounts):
             #Private or selected access..
             access_list  = parse_list(mr.access_list, prov.id)
             #Fix on the image
-            tenant_list = fix_image_access_list(
+            tenant_list = sync_image_access_list(
                     accounts, img, names=access_list)
             #Fix on the database
             make_private(accounts.image_manager, img, pm, tenant_list)
@@ -177,11 +177,11 @@ def fix_public_images(public_images, prov, accounts):
         for mr in machine_requests:
             access_list  = parse_list(mr.access_list, prov.id)
             #Fix on the image
-            print "Fixing image access list for %s<%s>" % (img.name, img.id)
-            tenant_list = fix_image_access_list(
+            print "Syncing image access list for %s<%s>" % (img.name, img.id)
+            tenant_list = sync_image_access_list(
                     accounts, img, names=access_list)
             #Fix on the database
-            print "Fixing database models for %s<%s>" % (img.name, img.id)
+            print "Syncing database models for %s<%s>" % (img.name, img.id)
             make_private(accounts.image_manager, img, pm, tenant_list)
         if (idx % 5 == 0):
             print "Processed %s of %s machines" % (idx + 1, image_total)
