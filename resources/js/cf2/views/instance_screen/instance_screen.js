@@ -28,8 +28,9 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
         if (Atmo.maintenances.in_maintenance(identity_provider_id)) {
             this.$el.html(this.maint_template());
         } else if (this.loading) {
-            this.$el.empty().append($('<div>')
-                .addClass('loading').css('marginTop', '100px')); 
+            this.$el.empty()
+                .append($('<div>').addClass('loading').css('marginTop', '100px'))
+                .append($('<p>').append("Your instances are loading").css({'textAlign': 'center', 'marginTop': '10px'}));
         } else {
             if (Atmo.instances.models.length > 0) {
                 if (this.$el.find('#resource_usage_holder').length == 0) {
