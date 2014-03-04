@@ -116,8 +116,9 @@ def check_over_allocation(username, identity_id,
     allocation = get_allocation(username, identity_id)
     if not allocation:
         return (False, timedelta(0))
+    
     # Monthly Time Allocation
-    if time_period.months == 1:
+    if time_period and time_period.months == 1:
         now = timezone.now()
         if time_period.day <= now.day:
             allocation_time = timezone.datetime(year=now.year,
