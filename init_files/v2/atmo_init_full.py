@@ -398,6 +398,8 @@ def mount_storage():
         for line in outLines:
             r = re.compile(', (.*?) bytes')
             match = r.search(line)
+            if not match:
+                continue
             if dev_1 in line:
                 dev_1_size = match.group(1)
             elif dev_2 in line:

@@ -39,6 +39,7 @@ def clear_empty_ips():
     from api import get_esh_driver
     from service.accounts.openstack import AccountDriver as\
         OSAccountDriver
+
     identities = Identity.objects.filter(
         provider__type__name__iexact='openstack',
         provider__active=True)
