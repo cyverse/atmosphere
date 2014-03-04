@@ -199,7 +199,10 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
     elif not esh_machine:
         return None
     push_metadata = False
-    metadata = esh_machine._image.extra.get('metadata',{})
+    if not esh_machine._image:
+        metadata = {}
+    else:
+        metadata = esh_machine._image.extra.get('metadata',{})
     name = esh_machine.name
     alias = esh_machine.alias
 
