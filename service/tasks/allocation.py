@@ -9,7 +9,7 @@ from threepio import logger
 
 
 @periodic_task(run_every=crontab(hour='*', minute='*/15', day_of_week='*'),
-               time_limit=120, retry=0)  # 2min timeout
+               expires=5*60, retry=0)  # 2min timeout
 def monitor_instances():
     """
     This task should be run every 5m-15m
@@ -17,7 +17,9 @@ def monitor_instances():
     from api import get_esh_driver
     from core.models import IdentityMembership
     for im in IdentityMembership.objects.all():
-        #Only check if allocation has been set
+        #Only check if allocation has been set, provider is active
+        if not im.identity.provider.is_active():
+            continue
         if not im.allocation:
             continue
         #Start by checking for running/missing instances
@@ -27,8 +29,11 @@ def monitor_instances():
 
         #Running/missing instances found. We may have to do something!
         driver = get_esh_driver(im.identity)
-        esh_instances = driver.list_instances()
-
+        try:
+            esh_instances = driver.list_instances()
+        except Exception, exc:
+            logger.exception("Could not retrieve instances for identity: %s" % im.identity)
+            continue
         #Test allocation && Suspend instances if we are over allocated time
         over_allocation = over_allocation_test(im.identity, esh_instances)
         if over_allocation:

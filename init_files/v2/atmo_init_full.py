@@ -27,7 +27,7 @@ except ImportError:
     from sha import sha as sha1
 
 ATMOSERVER = ""
-USER_HOME_DIR = os.path.expanduser("~")
+USER_HOME_DIR = ""
 eucalyptus_meta_server = 'http://128.196.172.136:8773/latest/meta-data/'
 openstack_meta_server = 'http://169.254.169.254/latest/meta-data/'
 SCRIPT_VERSION = "v2"
@@ -110,6 +110,7 @@ def download_file(url, fileLoc, retry=False, match_hash=None):
     f.close()
     return contents
 
+
 def set_hostname(hostname, distro):
     #Set the hostname once
     run_command(['/bin/hostname', hostname])
@@ -128,9 +129,10 @@ def set_hostname(hostname, distro):
             match_hash='')
         run_command(['/bin/chmod', 'a+x', "/etc/dhcp/dhclient-exit-hooks.d/hostname"])
 
+
 def get_hostname(instance_metadata):
     #As set by atmosphere in the instance metadata
-    hostname = instance_metadata.get('meta',{}).get('public-hostname')
+    hostname = instance_metadata.get('meta', {}).get('public-hostname')
     #As returned by metadata service
     if not hostname:
         hostname = instance_metadata.get('public-hostname')
@@ -169,7 +171,7 @@ def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     if bash_wrap:
         #Wrap the entire command in '/bin/bash -c',
         #This can sometimes help pesky commands
-        commandList = ['/bin/bash','-c', ' '.join(commandList)]
+        commandList = ['/bin/bash', '-c', ' '.join(commandList)]
     """
     NOTE: Use this to run ANY system command, because its wrapped around a loggger
     Using Popen, run any command at the system level and record the output and error streams
@@ -180,15 +182,15 @@ def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     if dry_run:
         #Bail before making the call
         logging.debug("Mock Command: %s" % cmd_str)
-        return ('','')
+        return ('', '')
     try:
         if stdin:
             proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr,
-                    stdin=subprocess.PIPE, shell=shell)
+                                    stdin=subprocess.PIPE, shell=shell)
         else:
             proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr,
-                    shell=shell)
-        out,err = proc.communicate(input=stdin)
+                                    shell=shell)
+        out, err = proc.communicate(input=stdin)
     except Exception, e:
         logging.exception(e)
     if block_log:
@@ -198,10 +200,12 @@ def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         logging.debug("%s STDIN: %s" % (cmd_str, stdin))
     logging.debug("%s STDOUT: %s" % (cmd_str, out))
     logging.debug("%s STDERR: %s" % (cmd_str, err))
-    return (out,err)
+    return (out, err)
+
 
 def in_etc_group(filename, val):
-    for line in open(filename, 'r').read().split('\n'):
+    etc_group_contents = read_file(filename)
+    for line in etc_group_contents.split('\n'):
         if 'users' in line and val in line:
             return True
     return False
@@ -218,10 +222,6 @@ def is_updated_test(filename):
     return False
 
 
-def file_contains(filename, val):
-    return val in open(filename, 'r').read()
-    
-
 def etc_skel_bashrc(user):
     filename = "/etc/skel/.bashrc"
     if not is_updated_test(filename):
@@ -230,41 +230,6 @@ def etc_skel_bashrc(user):
 export IDS_HOME="/irods/data.iplantc.org/iplant/home/%s"
 alias ids_home="cd $IDS_HOME"
 """ % user)
-
-
-def text_in_file(filename, text):
-    f = open(filename, 'r')
-    whole_file = f.read()
-    if text in whole_file:
-        f.close()
-        return True
-    f.close()
-    return False
-
-
-def write_to_file(filename, text):
-    try:
-        logging.debug("Text to input: %s" % text)
-        f = open(filename, "w")
-        f.write(text)
-        f.close()
-    except Exception, e:
-        logging.exception("Failed to write to %s" % filename)
-
-
-def append_to_file(filename, text):
-    try:
-        if text_in_file(filename, text):
-            return
-        f = open(filename, "a")
-        f.write("## Atmosphere System\n")
-        f.write(text)
-        f.write("\n")
-        f.write("## End Atmosphere System\n")
-        f.close()
-    except Exception, e:
-        logging.exception("Failed to append to %s" % filename)
-        logging.exception("Failed to append text: %s" % text)
 
 
 def in_sudoers(user):
@@ -305,7 +270,7 @@ def set_root_password(root_password, distro):
         run_command(["passwd", "--stdin", "root"], stdin=root_password,
                     block_log=True)
     else:
-        run_command(["chpasswd"], stdin = "root:%s" % root_password,
+        run_command(["chpasswd"], stdin="root:%s" % root_password,
                     block_log=True)
 
     if text_in_file('/etc/ssh/sshd_config', 'PermitRootLogin'):
@@ -328,33 +293,35 @@ def ssh_config(distro):
         "AllowGroups users core-services root")
     restart_ssh(distro)
 
+
 def get_metadata_keys(metadata):
     keys = []
     #Eucalyptus/Openstack key (Traditional metadata API)
     euca_key = _make_request('%s%s' % (eucalyptus_meta_server,
-                                        "public-keys/0/openssh-key/"))
+                                       "public-keys/0/openssh-key/"))
     os_key = _make_request('%s%s' % (openstack_meta_server,
-                                        "public-keys/0/openssh-key/"))
+                                     "public-keys/0/openssh-key/"))
     if euca_key:
         keys.append(euca_key)
     if os_key:
         keys.append(os_key)
     #JSON metadata API
-    public_keys = metadata.get('public_keys',{})
-    for k,v in public_keys.items():
-        keys.append(v.replace('\n',''))  # Includes a newline
+    public_keys = metadata.get('public_keys', {})
+    for k, v in public_keys.items():
+        keys.append(v.replace('\n', ''))  # Includes a newline
     return keys
 
 
 def get_metadata():
     openstack_json_metadata = 'http://169.254.169.254/openstack/'\
-                            'latest/meta_data.json'
+                              'latest/meta_data.json'
     metadata = collect_metadata(eucalyptus_meta_server)
     if not metadata:
         metadata = collect_metadata(openstack_meta_server)
         metadata.update(
-                collect_json_metadata(openstack_json_metadata))
+            collect_json_metadata(openstack_json_metadata))
     return metadata
+
 
 def collect_json_metadata(metadata_url):
     content = _make_request(metadata_url)
@@ -372,6 +339,7 @@ def _make_request(request_url):
         logging.exception("Could not retrieve meta-data for instance")
         return ""
 
+
 def collect_metadata(meta_endpoint):
     metadata = {}
     meta_list = []
@@ -382,7 +350,7 @@ def collect_metadata(meta_endpoint):
         if not meta_key:
             continue
         try:
-            meta_value = _make_request('%s%s' % (meta_endpoint,meta_key))
+            meta_value = _make_request('%s%s' % (meta_endpoint, meta_key))
             if meta_key.endswith('/'):
                 meta_values = meta_value.split('\n')
                 for value in meta_values:
@@ -466,7 +434,6 @@ def vnc(user, distro, license=None):
             run_command(['/bin/sed', '-i',
                          "'$a password   include      system-auth'",
                          '/etc/pam.d/vncserver.custom'], bash_wrap=True)
-
         else:
             download_file(
                 '%s/init_files/%s/VNC-Server-5.0.4-Linux-x64.deb'
@@ -497,24 +464,24 @@ def vnc(user, distro, license=None):
         if os.path.exists('/tmp/.X11-unix'):
             run_command(['/bin/rm', '-rf', '/tmp/.X11-unix'])
         run_command(['/bin/mkdir', '/tmp/.X11-unix'])
-        run_command(['/bin/chmod', 'a+rwxt','/tmp/.X11-unix'])
+        run_command(['/bin/chmod', 'a+rwxt', '/tmp/.X11-unix'])
         run_command(['/bin/su', '%s' % user, '-c', '/usr/bin/vncserver'])
     except Exception, e:
-        logging.exception("Failed to install VNC")
+        logging.exception('Failed to install VNC')
 
 
 def parrot_install(distro):
     try:
-        cctools_file = "cctools-3.7.2-x86_64-redhat5.tar.gz"
+        cctools_file = 'cctools-3.7.2-x86_64-redhat5.tar.gz'
         download_file(
-        'http://www.iplantcollaborative.org/sites/default/files/atmosphere/'
-        + 'cctools/%s' % (cctools_file),
-        '/opt/%s' % (cctools_file),
-        match_hash='04e0ef9e11e8ef7ac28ef694fd57e75b09455084')
+            'http://www.iplantcollaborative.org/sites/default/files'
+            + '/atmosphere/cctools/%s' % (cctools_file),
+            '/opt/%s' % (cctools_file),
+            match_hash='04e0ef9e11e8ef7ac28ef694fd57e75b09455084')
         run_command(
             ['/bin/tar', 'zxf',
              '/opt/%s' % (cctools_file),
-             '-C' , '/opt/'])
+             '-C', '/opt/'])
         if not is_rhel(distro):
             run_command(['/usr/bin/apt-get', '-qy', 'install',
                          'libssl-dev'])
@@ -528,7 +495,7 @@ def parrot_install(distro):
                  '/lib/x86_64-linux-gnu/libcrypto.so.1.0.0',
                  '/lib/x86_64-linux-gnu/libcrypto.so.6'])
         #link all files
-        
+
         for f in os.listdir("/opt/cctools/bin"):
             try:
                 link_f = os.path.join("/usr/local/bin", f)
@@ -586,17 +553,6 @@ def iplant_files(distro):
     run_command(['/bin/chmod', 'a+x', "/usr/local/bin/iplant_backup"])
 
 
-def line_in_file(needle, filename):
-    found = False
-    f = open(filename,'r')
-    for line in f:
-        if needle in line:
-            found = True
-            break
-    f.close()
-    return found
-
-
 def modify_rclocal(username, distro, hostname='localhost'):
     try:
         if is_rhel(distro):
@@ -608,8 +564,8 @@ def modify_rclocal(username, distro, hostname='localhost'):
         atmo_rclocal_path = '/etc/rc.local.atmo'
 
         #First we must make sure its included in our original RC local
-        if not line_in_file(atmo_rclocal_path,distro_rc_local):
-            open_file = open(distro_rc_local,'a')
+        if not line_in_file(atmo_rclocal_path, distro_rc_local):
+            open_file = open(distro_rc_local, 'a')
             open_file.write('if [ -x %s ]; then\n'
                             '\t%s\n'
                             'fi\n' % (atmo_rclocal_path, atmo_rclocal_path))
@@ -619,23 +575,24 @@ def modify_rclocal(username, distro, hostname='localhost'):
             run_command(['/bin/sed', '-i',
                          "s/exit.*//", '/etc/rc.local'])
         # Intentionally REPLACE the entire contents of file on each run
-        atmo_rclocal = open(atmo_rclocal_path,'w')
+        atmo_rclocal = open(atmo_rclocal_path, 'w')
         atmo_rclocal.write('#!/bin/sh -e\n'
-                          'depmod -a\n'
-                          'modprobe acpiphp\n'
-                          'hostname %s\n'  # public_ip
-                          '/bin/su %s -c /usr/bin/vncserver\n'  # username
-                          '/usr/bin/nohup /usr/local/bin/shellinaboxd -b -t '
-                          '-f beep.wav:/dev/null '
-                          '> /var/log/atmo/shellinaboxd.log 2>&1 &\n'
-                          #Add new rc.local commands here
-                          #And they will be excecuted on startup
-                          #Don't forget the newline char
-                          % (hostname, username))
+                           'depmod -a\n'
+                           'modprobe acpiphp\n'
+                           'hostname %s\n'  # public_ip
+                           '/bin/su %s -c /usr/bin/vncserver\n'  # username
+                           '/usr/bin/nohup /usr/local/bin/shellinaboxd -b -t '
+                           '-f beep.wav:/dev/null '
+                           '> /var/log/atmo/shellinaboxd.log 2>&1 &\n'
+                           #Add new rc.local commands here
+                           #And they will be excecuted on startup
+                           #Don't forget the newline char
+                           % (hostname, username))
         atmo_rclocal.close()
         os.chmod(atmo_rclocal_path, 0755)
     except Exception, e:
         logging.exception("Failed to write to rc.local")
+
 
 def shellinaboxd(distro):
     if is_rhel(distro):
@@ -688,7 +645,6 @@ def notify_launched_instance(instance_data, metadata):
     except ImportError:
         #Support for python 2.4
         import simplejson as json
-    from httplib2 import Http
     service_url = instance_data['atmosphere']['instance_service_url']
     userid = instance_data['atmosphere']['userid']
     instance_token = instance_data['atmosphere']['instance_token']
@@ -700,15 +656,17 @@ def notify_launched_instance(instance_data, metadata):
         'token': instance_token,
         'name': instance_name,
     }
-    h = Http(disable_ssl_certificate_validation=True)
-    headers = {'Content-type': 'application/json'}
-    resp, content = h.request(service_url, "POST",
-                              headers=headers, body=json.dumps(data))
-    logging.debug(resp)
-    logging.debug(content)
+    data = json.dumps(data)
+    request = urllib2.Request(service_url, data, {'Content-Type':
+                                                  'application/json'})
+    link = urllib2.urlopen(request)
+    response = link.read()
+    link.close()
+    logging.debug(response)
 
 
 def distro_files(distro):
+    install_motd(distro)
     install_irods(distro)
     install_icommands(distro)
 
@@ -718,6 +676,33 @@ def is_rhel(distro):
         return True
     else:
         return False
+
+
+def install_motd(distro):
+    if is_rhel(distro):
+        #Rhel path
+        download_file('http://www.iplantcollaborative.org/sites/default/files/'
+                      + 'atmosphere/motd',
+                      '/etc/motd',
+                      match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
+    else:
+        #Ubuntu path
+        download_file('http://www.iplantcollaborative.org/sites/default/files/'
+                      + 'atmosphere/motd',
+                      '/etc/motd.tail',
+                      match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
+    include_motd_more(distro)
+
+
+def include_motd_more(distro):
+    if not os.path.exists("/etc/motd.more"):
+        return
+    motd_message = read_file("/etc/motd.more")
+    if is_rhel(distro):
+        filename = "/etc/motd"
+    else:
+        filename = "/etc/motd.tail"
+    append_to_file(filename, "\n---\n%s" % motd_message)
 
 
 def install_irods(distro):
@@ -789,11 +774,9 @@ def update_timezone():
 
 def run_update_sshkeys(sshdir, sshkeys):
     authorized_keys = os.path.join(sshdir, 'authorized_keys')
-    f = open(authorized_keys, 'r')
-    content = f.read()
-    f.close()
+    included_ssh_keys = read_file(authorized_keys)
     for key in sshkeys:
-        if key in content:
+        if key in included_ssh_keys:
             sshkeys.remove(key)
     f = open(authorized_keys, 'a')
     for key in sshkeys:
@@ -824,6 +807,15 @@ def update_sshkeys(metadata):
         mkdir_p(home_ssh_dir)
         run_update_sshkeys(home_ssh_dir, sshkeys)
 
+
+def set_user_home_dir():
+    global USER_HOME_DIR
+    USER_HOME_DIR = os.path.expanduser("~")
+    if not USER_HOME_DIR:
+        USER_HOME_DIR = '/root'
+    logging.debug("User home directory - %s" % USER_HOME_DIR)
+
+
 def denyhost_whitelist():
     allow_list = [
         "127.0.0.1"
@@ -837,13 +829,18 @@ def denyhost_whitelist():
         "10.140.65.*"
     ]
     filename = "/var/lib/denyhosts/allowed-hosts"
+    dirname = os.path.dirname(filename)
+    if not os.path.exists(dirname):
+        mkdir_p(dirname)
     if os.path.exists(filename):
         logging.error("Removing existing file: %s" % filename)
         os.remove(filename)
     allowed_hosts_content = "\n".join(allow_list)
+    #Don't write if the folder doesn't exist
     if os.path.exists("/var/lib/denyhosts"):
         write_to_file(filename, allowed_hosts_content)
     return
+
 
 def update_sudoers():
     run_command(['/bin/sed', '-i',
@@ -856,18 +853,74 @@ def ldap_replace():
                  "s/128.196.124.23/ldap.iplantcollaborative.org/",
                  '/etc/ldap.conf'])
 
+
 def ldap_install():
     # package install
     ldap_replace()
 
+
 def insert_modprobe():
-    run_command(['depmod','-a'])
-    run_command(['modprobe','acpiphp'])
+    run_command(['depmod', '-a'])
+    run_command(['modprobe', 'acpiphp'])
+
+
+def line_in_file(needle, filename):
+    found = False
+    f = open(filename, 'r')
+    for line in f:
+        if needle in line:
+            found = True
+            break
+    f.close()
+    return found
+
+
+def text_in_file(filename, text):
+    file_contents = read_file(filename)
+    if text in file_contents:
+        return True
+    return False
+
+
+def read_file(filename):
+    try:
+        f = open(filename, 'r')
+        content = f.read()
+        f.close()
+        return content
+    except Exception, e:
+        logging.exception("Error reading file %s" % filename)
+        return ""
+
+
+def write_to_file(filename, text):
+    try:
+        logging.debug("Text to input: %s" % text)
+        f = open(filename, "w")
+        f.write(text)
+        f.close()
+    except Exception, e:
+        logging.exception("Failed to write to %s" % filename)
+
+
+def append_to_file(filename, text):
+    try:
+        if text_in_file(filename, text):
+            return
+        f = open(filename, "a")
+        f.write("## Atmosphere System\n")
+        f.write(text)
+        f.write("\n")
+        f.write("## End Atmosphere System\n")
+        f.close()
+    except Exception, e:
+        logging.exception("Failed to append to %s" % filename)
+        logging.exception("Failed to append text: %s" % text)
 
 
 def main(argv):
     init_logs('/var/log/atmo/atmo_init_full.log')
-    instance_data = {"atmosphere" : {}}
+    instance_data = {"atmosphere": {}}
     service_type = None
     instance_service_url = None
     instance_service_url = None
@@ -906,7 +959,6 @@ def main(argv):
             instance_data["atmosphere"]["userid"] = arg
             user_id = arg
         elif opt in ("-v", "--vnc_license"):
-            #instance_data["atmosphere"]["vnc_license"] = arg
             vnclicense = arg
         elif opt in ("--root_password"):
             root_password = arg
@@ -919,6 +971,7 @@ def main(argv):
     source = "".join(args)
     logging.debug("Atmoserver - %s" % ATMOSERVER)
     logging.debug("Atmosphere init parameters- %s" % instance_data)
+    set_user_home_dir()
     instance_metadata = get_metadata()
     logging.debug("Instance metadata - %s" % instance_metadata)
     distro = get_distro()

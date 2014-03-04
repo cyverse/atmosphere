@@ -253,6 +253,7 @@ def process_machine_request(machine_request, new_image_id):
                 machine_request.new_machine_description,
                 tags)
         app_to_use = new_app
+        description = machine_request.new_machine_description
     else:
         #This is NOT a fork, the application to be used is that of your
         # ancestor

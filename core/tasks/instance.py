@@ -10,7 +10,7 @@ from threepio import logger
 
 
 @periodic_task(run_every=crontab(hour='*', minute='*/15', day_of_week='*'),
-               time_limit=120, retry=1)  # 2min timeout
+               expires=5*60, time_limit=120, retry=0)  # 2min timeout
 def test_all_instance_links():
     try:
         logger.debug("test_all_instance_links task started at %s." %

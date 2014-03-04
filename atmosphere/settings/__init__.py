@@ -279,22 +279,23 @@ BROKER_USER = ""
 BROKER_PASSWORD = ""
 REDIS_DB = 0
 REDIS_CONNECT_RETRY = True
-CELERY_ENABLE_UTC = False
+CELERY_ENABLE_UTC = True
 CELERY_TIMEZONE = "America/Phoenix"
 CELERY_SEND_EVENTS = True
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_TASK_RESULT_EXPIRES = 10
-#CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
-CELERYBEAT_SCHEDULE = {
-    'monitor-instances': {
-        'task': 'service.tasks.allocation.monitor_instances', 
-        'schedule': timedelta(seconds=60*15),
-    },
-    'check-all-instances': {
-        'task': 'core.tasks.instance.test_all_instance_links', 
-        'schedule': timedelta(seconds=60*5),
-    },
-}
+CELERYD_MAX_TASKS_PER_CHILD=50
+CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
+#CELERYBEAT_SCHEDULE = {
+#    'monitor-instances': {
+#        'task': 'service.tasks.allocation.monitor_instances', 
+#        'schedule': timedelta(seconds=60*15),
+#    },
+#    'check-all-instances': {
+#        'task': 'core.tasks.instance.test_all_instance_links', 
+#        'schedule': timedelta(seconds=60*5),
+#    },
+#}
 CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [PID:%(process)d] @ %(pathname)s on %(lineno)d] %(message)s"
 CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [PID:%(process)d] [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
 

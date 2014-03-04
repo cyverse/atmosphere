@@ -42,10 +42,10 @@ def start_machine_imaging(machine_request, delay=False):
 
     #Step 1 - On OpenStack, sync/freeze BEFORE starting migration/imaging
     init_task = None
-    if orig_managerCls == OSImageManager:  # TODO:AND if instance still running
-        freeze_task = freeze_instance_task.si(
-            machine_request.instance.created_by_identity_id, instance_id)
-        init_task = freeze_task
+    #if orig_managerCls == OSImageManager:  # TODO:AND if instance still running
+    #    freeze_task = freeze_instance_task.si(
+    #        machine_request.instance.created_by_identity_id, instance_id)
+    #    init_task = freeze_task
     if dest_managerCls and dest_creds != orig_creds:
         #Will run machine imaging task..
         migrate_task = migrate_instance_task.si(

@@ -70,11 +70,14 @@ def restore_ips(esh_driver, esh_instance):
         network_id = network[0]['id']
     except Exception, e:
         raise
-
-    esh_driver._connection.ex_add_fixed_ip(esh_instance, network_id)
-    add_floating_ip.s(esh_driver.__class__, esh_driver.provider,
-                      esh_driver.identity,
-                      esh_instance.id).apply_async(countdown=10)
+    if not esh_instance._node.private_ips:
+        logger.info("Adding fixed IP")
+        esh_driver._connection.ex_add_fixed_ip(esh_instance, network_id)
+    if not esh_instance._node.public_ips:
+        logger.info("Adding floating IP")
+        add_floating_ip.s(esh_driver.__class__, esh_driver.provider,
+                          esh_driver.identity,
+                          esh_instance.id).apply_async(countdown=10)
 
 
 #Instance specific
@@ -430,6 +433,8 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
     allows JSONArrays as values for metadata!
     """
     wait_time = 1
+    if not esh_instance:
+        return {}
     instance_id = esh_instance.id
 
     if not hasattr(esh_driver._connection, 'ex_set_metadata'):

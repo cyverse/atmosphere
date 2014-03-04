@@ -96,6 +96,14 @@ class Provider(models.Model):
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
 
+    def is_active(self):
+        if not self.active:
+            return False
+        if self.end_date:
+            now = timezone.now()
+            return not(self.end_date < now)
+        return True
+
     def share(self, core_group):
         """
         """

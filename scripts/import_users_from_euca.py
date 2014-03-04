@@ -15,9 +15,9 @@ def main():
     """
     TODO: Add argparse, --delete : Deletes existing users in eucalyptus (Never use in PROD)
     """
-    euca = Provider.objects.get(location='EUCALYPTUS')
+    euca = Provider.objects.get(location='Eucalyptus (retiring March 4)')
     euca_driver = EucaAccountDriver(euca)
-    openstack = Provider.objects.get(location='iPlant Cloud - Tucson')
+    openstack = Provider.objects.get(location='iPlant Cloud - Tucson (Beta)')
     os_driver = OSAccountDriver(openstack)
     all_users = euca_driver.list_users()
     #Sort by users

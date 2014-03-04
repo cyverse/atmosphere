@@ -331,7 +331,7 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata):
             driver, instance, data=metadata, replace=False)
         logger.debug("update_metadata task finished at %s." % datetime.now())
     except Exception as exc:
-        logger.warn(exc)
+        logger.exception(exc)
         update_metadata.retry(exc=exc)
 
 def eager_update_metadata(driver, instance, metadata):
@@ -471,7 +471,7 @@ def remove_empty_network(
                 break
         if not active_instances:
             inactive_instances = all(driver._is_inactive_instance(
-                instance for instance in instances))
+                instance) for instance in instances)
             #Inactive instances, True: Remove network, False
             remove_network = not inactive_instances
             #Check for project network
