@@ -40,11 +40,17 @@ Atmo.Router = Backbone.Router.extend({
         Atmo.maintenances.fetch({
             async: false,
         });
+
+        Atmo.instances = new Atmo.Collections.Instances();
+        Atmo.volumes = new Atmo.Collections.Volumes();
+        Atmo.images = new Atmo.Collections.Machines();
+        Atmo.instance_types = new Atmo.Collections.Sizes();
+
+        this.main = new Atmo.Views.Main({
+            el: $('#main')[0]
+        }).render();
+
         if (!Atmo.maintenances.in_maintenance(identity_provider_id)) {
-            Atmo.instances = new Atmo.Collections.Instances();
-            Atmo.volumes = new Atmo.Collections.Volumes();
-            Atmo.images = new Atmo.Collections.Machines();
-            Atmo.instance_types = new Atmo.Collections.Sizes();
             Atmo.instance_types.fetch({
                 async: false
             });
@@ -62,10 +68,6 @@ Atmo.Router = Backbone.Router.extend({
         }
 
         Atmo.notifications = new Atmo.Collections.Notifications();
-
-        this.main = new Atmo.Views.Main({
-            el: $('#main')[0]
-        }).render();
 
         setInterval(function () {
             $('#refresh_instances_button').click();
