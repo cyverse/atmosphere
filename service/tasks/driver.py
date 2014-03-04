@@ -28,17 +28,18 @@ from service.driver import get_driver
 from service.deploy import init
 
 
-@task(name="clear_empty_ips",
-      default_retry_delay=15,
-      ignore_result=True)
+@periodic_task(run_every=crontab(hour="*" minute="*/30", day_of_week="*"),
+        expires=5*60, time_limit=5*60, retry=0)
 def clear_empty_ips():
+    logger.debug("clear_empty_ips task started at %s." % datetime.now())
     from service import instance as instance_service
     from rtwo.driver import OSDriver
     from api import get_esh_driver
     from service.accounts.openstack import AccountDriver as\
         OSAccountDriver
     identities = Identity.objects.filter(
-        provider__type__name__iexact='openstack')
+        provider__type__name__iexact='openstack',
+        provider__active=True)
     identities = sorted(
        identities, key=lambda ident: attrgetter(ident.provider.type.name,
                                                 ident.created_by.username))
@@ -85,7 +86,7 @@ def clear_empty_ips():
                 logger.info("No Network found. Skipping %s" % tenant_name)
         except Exception as exc:
             logger.exception(exc)
-
+    logger.debug("clear_empty_ips task finished at %s." % datetime.now())
 
 @task(name="_send_instance_email",
       default_retry_delay=10,
