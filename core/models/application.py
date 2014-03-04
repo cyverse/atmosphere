@@ -41,6 +41,36 @@ class Application(models.Model):
             "version":pm.version,
             "provider":pm.provider.id} for pm in pms]
 
+    def save(self, *args, **kwargs):
+        """
+        When an application changes from public to private,
+        or makes a change to the access_list,
+        update the applicable images/provider_machines
+        """
+        super(Application, self).save(*args, **kwargs)
+        #TODO: if changes were made..
+        #self.update_images()
+
+    def update_images():
+        from service.accounts.openstack import AccountDriver as OSAccounts
+        for pm in self.providermachine_set.all():
+            if pm.provider.get_type_name().lower() != 'openstack':
+                continue
+            image_id = pm.identifier
+            provider = pm.provider
+            try:
+                accounts = OSAccounts(pm.provider)
+                image = accounts.image_manager.get_image(image_id)
+                self.diff_updates(pm, image)
+                accounts.image_manager.update_image(image, **updates)
+            except Exception as ex:
+                logger.warn("Image Update Failed for %s on Provider %s"
+                            % (image_id, provider))
+
+    def diff_updates(self, provider_machine, image):
+        pass
+
+
     def update(self, *args, **kwargs):
         """
         Allows for partial updating of the model
@@ -101,7 +131,7 @@ def get_application(identifier, app_uuid=None):
 
 
 def create_application(identifier, provider_id, name=None,
-        owner=None, version=None, description=None, tags=None,
+        owner=None, private=False, version=None, description=None, tags=None,
         uuid=None):
     from core.models import AtmosphereUser
     if not uuid:

@@ -707,7 +707,8 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			header = 'Suspend Instance';
 			body = '<p class="alert alert-error"><i class="glyphicon glyphicon-warning-sign"></i> <strong>WARNING</strong> '
 				+ 'Suspending an instance will freeze its state, and the IP address may change when you resume the instance.</p>'
-				+ 'Suspending an instance frees up resources for other users and allows you to safely preserve the state of your instance without imaging.'
+				+ 'Suspending an instance frees up resources for other users and allows you to safely preserve the state of your instance without imaging. '
+				+ 'Your time allocation no longer counts against you in the suspended mode.'
 				+ '<br><br>'
 				+ 'Your resource usage charts will only reflect the freed resources once the instance\'s state is "suspended."';
 			ok_button = 'Suspend Instance';
@@ -802,7 +803,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		}
 		else {
 			header = 'Stop Instance';
-			body = 'Your instance will be stopped.';
+			body = 'Your instance will be stopped.<br /><br/><strong>NOTE:</strong> This will NOT affect your resources. To preserve resources and time allocation you must Suspend your instance.';
 			ok_button = 'Stop Instance';
 			data = { "action" : "stop" };
 			on_confirm = function() {
