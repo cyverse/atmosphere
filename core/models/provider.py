@@ -98,15 +98,19 @@ class Provider(models.Model):
     end_date = models.DateTimeField(blank=True, null=True)
 
     @classmethod
-    def get_active(cls, provider_id):
+    def get_active(cls, provider_id=None, type_name=None):
         """
         Get the provider if it's active, otherwise raise
         Provider.DoesNotExist.
         """
-        return cls.objects.get(
+        active_providers =  cls.objects.filter(
             Q(end_date=None) | Q(end_date__gt=timezone.now()),
-            id=provider_id,
             active=True)
+        if provider_id:
+            active_providers = active_providers.filter(id=provider_id)
+        if type_name:
+            active_providers = active_providers.filter(type__name__iexact=type_name)
+        return active_providers
 
     def share(self, core_group):
         """
