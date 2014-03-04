@@ -52,7 +52,10 @@ Atmo.Router = Backbone.Router.extend({
                 el: $('#menu_wrapper')
             }).render();
             Atmo.instances.fetch({
-                async: false
+                success: function(collection) {
+                    if (!collection.isEmpty())
+                        collection.select_instance(collection.at(0));
+                }
             });
             Atmo.volumes.fetch();
             Atmo.images.fetch();
@@ -148,11 +151,6 @@ Atmo.Router = Backbone.Router.extend({
         var identity_provider_id = identity.get("provider_id");
         if (!Atmo.maintenances.in_maintenance(identity_provider_id)) {
             this.main.show_instance_screen();
-            if (Atmo.instances.models.length > 0 && !Atmo.instances.selected_instance) {
-                Atmo.instances.select_instance(Atmo.instances.models[0]);
-            } else {
-                Backbone.history.navigate('instances');
-            }
             // Hide all help tips so none remain after navigating away from it
             Atmo.Utils.hide_all_help();
         }
