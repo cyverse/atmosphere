@@ -17,7 +17,7 @@ Atmo.Router = Backbone.Router.extend({
         async: false,
         success: function(profile, foo, bar) {
           $("#username").html(profile.get('id'));
-        }, 
+        },
         error: function() {
           window.location.replace(site_root+"/CASlogin/"+site_root+"/login/");
         }
@@ -56,7 +56,7 @@ Atmo.Router = Backbone.Router.extend({
       }
 
       Atmo.notifications = new Atmo.Collections.Notifications();
-      
+
       this.main = new Atmo.Views.Main({el: $('#main')[0]}).render();
 
       setInterval(function() {
@@ -70,7 +70,7 @@ Atmo.Router = Backbone.Router.extend({
       Atmo.alert_modal = new Atmo.Views.AlertModal();
       $('body').append(Atmo.alert_modal.render().el);
 
-      // Populate the top menu with a provider switcher 
+      // Populate the top menu with a provider switcher
       for (var i = 0; i < Atmo.identities.length; i++) {
 	var identity = Atmo.identities.models[i];
         var identity_provider_id = identity.get('provider_id');
@@ -110,23 +110,25 @@ Atmo.Router = Backbone.Router.extend({
           }
         }).data(identity));
       }
-      
+
       $('#contact_support').click(function(e) {
         e.preventDefault();
         $('#feedback_link').trigger('click');
       });
-      
+
       // Populate version number
       $.ajax({
 	type: 'GET',
-	url: site_root + '/api/v1/version/', 
+	url: site_root + '/api/v1/version/',
 	statusCode: {
 	  200:  function(response) {
-	    $('#version').html('(v. ' + response['normal'] + ')');
+	    $('#version').html('<a href="https://github.com/iPlantCollaborativeOpenSource/atmosphere/tree/' + response['git_sha'] + '">'
+                              + new Date(response['date']).toString("F") + ' '
+                              + '(' + response['git_sha_abbrev'] + ')</a>');
 	  }
 	},
       });
-      
+
       $('#total_cpu_time a').click(function() {
 	$('#cpu_modal').modal('show');
       });
