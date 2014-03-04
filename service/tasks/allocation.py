@@ -1,4 +1,5 @@
 from datetime import timedelta
+from dateutil.relativedelta import relativedelta
 
 from django.utils import timezone
 
@@ -89,7 +90,8 @@ def over_allocation_test(identity, esh_instances):
     from core.models.instance import convert_esh_instance
     from atmosphere import settings
     over_allocated, time_diff = check_over_allocation(
-        identity.created_by.username, identity.id)
+        identity.created_by.username, identity.id,
+        time_period=relativedelta(day=1, months=1))
     if not over_allocated:
         # Nothing changed, bail.
         return False
