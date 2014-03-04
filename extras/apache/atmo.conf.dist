@@ -31,6 +31,15 @@ ProxyPass         /flower  https://MYHOSTNAMEHERE:8443
 ProxyPassReverse  /flower  https://MYHOSTNAMEHERE:8443
 ProxyPassReverse  /flower  https://MYHOSTNAMEHERE/flower
 
+<Location /flower>
+    AuthType CAS
+    AuthName "CAS"
+    require group core-services
+    CASScope /
+    Order allow,deny
+    Allow from all
+</Location>
+
 <Proxy https://MYHOSTNAMEHERE:8443/flower*>
   Order deny,allow
   Allow from all
