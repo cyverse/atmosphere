@@ -40,32 +40,21 @@ Atmo.Router = Backbone.Router.extend({
         Atmo.maintenances.fetch({
             async: false,
         });
-        if (!Atmo.maintenances.in_maintenance(identity_provider_id)) {
-            Atmo.instances = new Atmo.Collections.Instances();
-            Atmo.volumes = new Atmo.Collections.Volumes();
-            Atmo.images = new Atmo.Collections.Machines();
-            Atmo.instance_types = new Atmo.Collections.Sizes();
-            Atmo.instance_types.fetch({
-                async: false
-            });
-            new Atmo.Views.Sidebar({
-                el: $('#menu_wrapper')
-            }).render();
-            Atmo.instances.fetch({
-                success: function(collection) {
-                    if (!collection.isEmpty())
-                        collection.select_instance(collection.at(0));
-                }
-            });
-            Atmo.volumes.fetch();
-            Atmo.images.fetch();
-        }
 
-        Atmo.notifications = new Atmo.Collections.Notifications();
+        Atmo.instances = new Atmo.Collections.Instances();
+        Atmo.volumes = new Atmo.Collections.Volumes();
+        Atmo.images = new Atmo.Collections.Machines();
+        Atmo.instance_types = new Atmo.Collections.Sizes();
 
         this.main = new Atmo.Views.Main({
             el: $('#main')[0]
         }).render();
+
+        new Atmo.Views.Sidebar({
+            el: $('#menu_wrapper')
+        }).render();
+
+        Atmo.notifications = new Atmo.Collections.Notifications();
 
         setInterval(function () {
             $('#refresh_instances_button').click();
@@ -154,6 +143,11 @@ Atmo.Router = Backbone.Router.extend({
             // Hide all help tips so none remain after navigating away from it
             Atmo.Utils.hide_all_help();
         }
+
+        Atmo.instances.on('reset', function(collection) {
+            if (!collection.isEmpty() && !collection.selected_instance)
+                collection.select_instance(collection.at(0));
+        });
     },
     volumes: function () {
         var identity = Atmo.profile.get('selected_identity');
@@ -197,4 +191,14 @@ Atmo.Router = Backbone.Router.extend({
 $(document).ready(function () {
     window.app = new Atmo.Router();
     Backbone.history.start();
+    var identity = Atmo.profile.get('selected_identity');
+    var identity_provider_id = identity.get("provider_id");
+    if (!Atmo.maintenances.in_maintenance(identity_provider_id)) {
+        Atmo.instance_types.fetch({
+            async: false
+        });
+        Atmo.instances.fetch();
+        Atmo.volumes.fetch();
+        Atmo.images.fetch();
+    }
 });

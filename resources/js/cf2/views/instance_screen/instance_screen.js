@@ -14,18 +14,23 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
         var identity = Atmo.profile.get('selected_identity');
         var identity_provider_id = identity.get("provider_id");
         if (!Atmo.maintenances.in_maintenance(identity_provider_id)) {
-            Atmo.instances.bind('reset', this.render, this);
+            Atmo.instances.bind('reset', function() {this.loading = false; this.render();}, this);
             Atmo.instances.bind('add', this.append_instance, this);
             Atmo.instances.bind('remove', this.remove_instance, this);
             Atmo.instances.bind('select', this.select_instance, this);
             Atmo.instances.bind('change', this.update_resource_charts, this);
         }
+        this.loading = true;
     },
     render: function () {
         var identity = Atmo.profile.get('selected_identity');
         var identity_provider_id = identity.get("provider_id");
         if (Atmo.maintenances.in_maintenance(identity_provider_id)) {
             this.$el.html(this.maint_template());
+        } else if (this.loading) {
+            this.$el.empty()
+                .append($('<div>').addClass('loading').css('marginTop', '100px'))
+                .append($('<p>').append("Your instances are loading").css({'textAlign': 'center', 'marginTop': '10px'}));
         } else {
             if (Atmo.instances.models.length > 0) {
                 if (this.$el.find('#resource_usage_holder').length == 0) {
@@ -34,7 +39,7 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
                 this.render_resource_charts();
                 if (Atmo.instances.models.length > 0) {
                     var self = this;
-                    /* performation optimization */
+                    /* performance optimization */
                     var frag = document.createDocumentFragment();
                     $.each(Atmo.instances.models, function (k, v) {
                         frag.appendChild(self.new_instance_tabs_holder(v).el);
