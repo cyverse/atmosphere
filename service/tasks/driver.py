@@ -30,7 +30,7 @@ from service.driver import get_driver
 from service.deploy import init
 
 
-@periodic_task(run_every=crontab(hour="*", minute="*/30", day_of_week="*"),
+@periodic_task(run_every=crontab(hour="*/4", minute="*", day_of_week="*"),
         expires=5*60, time_limit=5*60, retry=0)
 def clear_empty_ips():
     logger.debug("clear_empty_ips task started at %s." % datetime.now())
