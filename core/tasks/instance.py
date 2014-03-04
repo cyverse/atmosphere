@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from django.conf import settings
-
+from django.utils.timezone import datetime, timedelta
 from celery.decorators import periodic_task
 from celery.task.schedules import crontab
 
@@ -10,7 +10,8 @@ from threepio import logger
 
 
 @periodic_task(run_every=crontab(hour='*', minute='*/15', day_of_week='*'),
-               expires=5*60, time_limit=120, retry=0)  # 2min timeout
+               time_limit=120, retry=0, # Don't retry, hard set limit of 120sec
+               expires=10*60) # Expire 10min after scheduling
 def test_all_instance_links():
     try:
         logger.debug("test_all_instance_links task started at %s." %
@@ -30,6 +31,11 @@ def get_all_instances():
     from service.driver import get_admin_driver
     all_instances = []
     for provider in Provider.objects.all():
+        if not provider.is_active():
+            #TODO: Optionally we could ensure that anyone using this provider
+            #      Has their times end-dated...
+            #Nothing to add...
+            continue
         try:
             admin_driver = get_admin_driver(provider)
             if not admin_driver:

@@ -7,13 +7,16 @@ from operator import attrgetter
 from datetime import datetime
 import time
 
+from celery import chain
 from celery.decorators import task
 from celery.task import current
-from celery import chain
+from celery.result import allow_join_result
+from libcloud.compute.types import Provider, NodeState, DeploymentError
 
-from djcelery.app import app
+from atmosphere.celery import app
 
 from threepio import logger
+from rtwo.exceptions import NonZeroDeploymentException
 
 from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
@@ -86,7 +89,6 @@ def clear_empty_ips():
 
 @task(name="_send_instance_email",
       default_retry_delay=10,
-      ignore_result=True,
       max_retries=2)
 def _send_instance_email(driverCls, provider, identity, instance_id):
     try:
@@ -122,13 +124,17 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
 
 
 # Deploy and Destroy tasks
-@task(name="deploy_failed",
-      max_retries=2,
-      default_retry_delay=128,
-      ignore_result=True)
-def deploy_failed(driverCls, provider, identity, instance_id, task_uuid):
+@task(name="deploy_failed")
+def deploy_failed(task_uuid, driverCls, provider, identity, instance_id,
+                  **celery_task_args):
     try:
         logger.debug("deploy_failed task started at %s." % datetime.now())
+        logger.info("task_uuid=%s" % task_uuid)
+        result = app.AsyncResult(task_uuid)
+        with allow_join_result():
+            exc = result.get(propagate=False)
+        err_str = "DEPLOYERROR::%s" % (result.traceback,)
+        logger.error(err_str)
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         update_instance_metadata(driver, instance,
@@ -172,66 +178,79 @@ def deploy_init_to(driverCls, provider, identity, instance_id, password=None,
         image_metadata = driver._connection\
                                .ex_get_image_metadata(instance.machine)
         image_already_deployed = image_metadata.get("deployed")
-        if not instance.ip and not image_already_deployed:
-            logger.debug("Chain -- Floating_ip + deploy_init + email")
-            deploy_chain = chain(
-                update_metadata.si(
-                    driverCls, provider, identity, instance_id,
-                    {'tmp_status': 'networking'}),
-                add_floating_ip.si(
-                    driverCls, provider, identity, instance_id),
-                update_metadata.si(
-                    driverCls, provider, identity, instance_id,
-                    {'tmp_status': 'deploying'}),
-                _deploy_init_to.si(
-                    driverCls, provider, identity, instance_id, password),
-                update_metadata.si(
-                    driverCls, provider, identity, instance_id,
-                    {'tmp_status': ''}),
-                _send_instance_email.si(
-                    driverCls, provider, identity, instance_id))
-            #Actual chain call here
-            deploy_chain(link_error=deploy_failed.s(
-                (driverCls, provider, identity, instance_id, ))),
-        elif not image_already_deployed:
-            logger.debug("Chain -- deploy_init + email")
-            deploy_chain = chain(
-                update_metadata.si(
-                    driverCls, provider, identity, instance_id,
-                    {'tmp_status': 'deploying'}),
-                _deploy_init_to.si(
-                    driverCls, provider, identity, instance_id, password),
-                update_metadata.si(
-                    driverCls, provider, identity, instance_id,
-                    {'tmp_status': ''}),
-                _send_instance_email.si(
-                    driverCls, provider, identity, instance_id))
-            #Actual chain call here
-            deploy_chain(link_error=deploy_failed.s(
-                (driverCls, provider, identity, instance_id, ))),
-        elif not instance.ip:
-            logger.debug("Chain -- Floating_ip + email")
-            deploy_chain = chain(
-                update_metadata.si(
-                    driverCls, provider, identity, instance_id,
-                    {'tmp_status': 'networking'}),
-                add_floating_ip.si(
-                    driverCls, provider, identity, instance_id,
-                    delete_status=True),
-                _send_instance_email.si(
-                    driverCls, provider, identity, instance_id))
-            #Actual chain call here
-            deploy_chain()
-        else:
-            logger.debug("delay -- email")
-            _send_instance_email.delay(driverCls,
-                                       provider,
-                                       identity,
-                                       instance_id)
+        deploy_chain = get_deploy_chain(driverCls, provider, identity,
+                                        instance, password, image_already_deployed)
+        deploy_chain.apply_async()
+        #Can be really useful when testing.
+        #if kwargs.get('delay'):
+        #    async.get()
         logger.debug("deploy_init_to task finished at %s." % datetime.now())
+    except NonZeroDeploymentException:
+        raise
     except Exception as exc:
         logger.warn(exc)
         deploy_init_to.retry(exc=exc)
+
+def get_deploy_chain(driverCls, provider, identity, instance, password, deployed=False):
+    instance_id = instance.id
+    if not instance.ip:
+        logger.debug("IP address missing")
+        init_task = update_metadata.si(
+                driverCls, provider, identity, instance_id,
+                {'tmp_status': 'networking'})
+        floating_task = add_floating_ip.si(
+            driverCls, provider, identity, instance_id, delete_status=True)
+        init_task.link(floating_task)
+        if not deployed:
+            logger.debug("Instance NOT deployed, include deployment and email")
+            deploy_meta_task = update_metadata.si(
+                driverCls, provider, identity, instance_id,
+                {'tmp_status': 'deploying'})
+
+            deploy_task = _deploy_init_to.si(
+                driverCls, provider, identity, instance_id, password)
+            deploy_task.link_error(
+                deploy_failed.s(driverCls, provider, identity, instance_id))
+
+            remove_status_task = update_metadata.si(
+                    driverCls, provider, identity, instance_id,
+                    {'tmp_status': ''})
+
+            email_task = _send_instance_email.si(
+                    driverCls, provider, identity, instance_id)
+
+            floating_task.link(deploy_meta_task)
+            deploy_meta_task.link(deploy_task)
+            deploy_task.link(remove_status_task)
+            remove_status_task.link(email_task)
+        else:
+            logger.debug("Instance deployed, include email task")
+            email_task = _send_instance_email.si(
+                    driverCls, provider, identity, instance_id)
+            floating_task.link(email_task)
+    else:
+        if not deployed:
+            logger.debug("IP address available, deploy and email")
+            init_task = update_metadata.si(
+                    driverCls, provider, identity, instance_id,
+                    {'tmp_status': 'deploying'})
+
+            deploy_task = _deploy_init_to.si(
+                driverCls, provider, identity, instance_id, password,
+                link_error=deploy_failed.s(
+                    (driverCls, provider, identity, instance_id,)))
+
+            remove_status_task = update_metadata.si(
+                    driverCls, provider, identity, instance_id,
+                    {'tmp_status': ''})
+
+            init_task.link(deploy_task)
+            deploy_task.link(remove_status_task)
+        else:
+            logger.debug("IP address available, init deployed, just send email")
+            init_task = _send_instance_email.si(
+                    driverCls, provider, identity, instance_id)
+    return init_task
 
 
 @task(name="destroy_instance",
@@ -258,8 +277,11 @@ def destroy_instance(core_identity_id, instance_alias):
             instances = driver.list_instances()
             active = [driver._is_active_instance(inst) for inst in instances]
             if not active:
+                logger.debug("Driver shows 0 of %s instances are active"
+                             % (len(instances),))
                 #For testing ONLY.. Test cases ignore countdown..
                 if app.conf.CELERY_ALWAYS_EAGER:
+                    logger.debug("Eager task waiting 1 minute")
                     time.sleep(60)
                 destroy_chain = chain(
                     clean_empty_ips.subtask(
@@ -270,8 +292,11 @@ def destroy_instance(core_identity_id, instance_alias):
                         immutable=True, countdown=60))
                 destroy_chain()
             else:
+                logger.debug("Driver shows %s of %s instances are active"
+                             % (len(active), len(instances)))
                 #For testing ONLY.. Test cases ignore countdown..
                 if app.conf.CELERY_ALWAYS_EAGER:
+                    logger.debug("Eager task waiting 15 seconds")
                     time.sleep(15)
                 destroy_chain = \
                     clean_empty_ips.subtask(
@@ -286,9 +311,9 @@ def destroy_instance(core_identity_id, instance_alias):
 
 @task(name="_deploy_init_to",
       default_retry_delay=32,
-      ignore_result=True,
       max_retries=10)
-def _deploy_init_to(driverCls, provider, identity, instance_id, password=None):
+def _deploy_init_to(driverCls, provider, identity, instance_id, password=None,
+                    **celery_task_args):
     try:
         logger.debug("_deploy_init_to task started at %s." % datetime.now())
         #Check if instance still exists
@@ -309,6 +334,16 @@ def _deploy_init_to(driverCls, provider, identity, instance_id, password=None):
         kwargs.update({'deploy': msd})
         driver.deploy_to(instance, **kwargs)
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
+    except DeploymentError as exc:
+        logger.exception(exc)
+        if isinstance(exc.value, NonZeroDeploymentException):
+            #The deployment was successful, but the return code on one or more
+            # steps is bad. Log the exception and do NOT try again!
+            raise exc.value
+        #TODO: Check if all exceptions thrown at this time
+        #fall in this category, and possibly don't retry if
+        #you hit the Exception block below this.
+        _deploy_init_to.retry(exc=exc)
     except Exception as exc:
         logger.exception(exc)
         _deploy_init_to.retry(exc=exc)
@@ -324,6 +359,8 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata):
         logger.debug("update_metadata task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_alias)
+        if not instance:
+            return
         #NOTE: This task will only be executed in TEST mode
         if app.conf.CELERY_ALWAYS_EAGER:
             eager_update_metadata(driver, instance, metadata)
@@ -357,13 +394,14 @@ def eager_update_metadata(driver, instance, metadata):
 # Floating IP Tasks
 @task(name="add_floating_ip",
       #Defaults will not be used, see countdown call below
-      default_retry_delay=15, ignore_result=True,
+      default_retry_delay=15,
       max_retries=30)
 def add_floating_ip(driverCls, provider, identity,
                     instance_alias, delete_status=True,
                     *args, **kwargs):
     #For testing ONLY.. Test cases ignore countdown..
     if app.conf.CELERY_ALWAYS_EAGER:
+        logger.debug("Eager task waiting 15 seconds")
         time.sleep(15)
     try:
         logger.debug("add_floating_ip task started at %s." % datetime.now())
@@ -374,7 +412,7 @@ def add_floating_ip(driverCls, provider, identity,
         #assign if instance doesn't already have an IP addr
         instance = driver.get_instance(instance_alias)
         if not instance:
-            logger.debug("Instance has been teminated: %s." % instance_id)
+            logger.debug("Instance has been teminated: %s." % instance_alias)
             return None
         floating_ips = driver._connection.neutron_list_ips(instance)
         if floating_ips:
@@ -456,6 +494,7 @@ def remove_empty_network(
     try:
         #For testing ONLY.. Test cases ignore countdown..
         if app.conf.CELERY_ALWAYS_EAGER:
+            logger.debug("Eager task waiting 1 minute")
             time.sleep(60)
         logger.debug("remove_empty_network task started at %s." %
                      datetime.now())

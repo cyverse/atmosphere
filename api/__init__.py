@@ -2,22 +2,17 @@
 Atmosphere service utils for rest api.
 
 """
-
 import uuid
 import os.path
 
-#Necessary to initialize Meta classes
-import rtwo.compute
+from django.core.exceptions import ObjectDoesNotExist
 
-from core.models import AtmosphereUser as DjangoUser
+from rest_framework import status
+from rest_framework.response import Response
 
-from threepio import logger
+from threepio import logger, api_logger
 
-from atmosphere import settings
-
-from core.ldap import get_uid_number
-
-from core.models.identity import Identity as CoreIdentity
+import rtwo.compute  # Necessary to initialize Meta classes
 
 from rtwo.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
@@ -25,6 +20,14 @@ from rtwo.provider import AWSProvider, AWSUSEastProvider,\
 from rtwo.identity import AWSIdentity, EucaIdentity,\
     OSIdentity
 from rtwo.driver import AWSDriver, EucaDriver, OSDriver
+
+from atmosphere import settings
+
+from core.ldap import get_uid_number
+
+from core.models import AtmosphereUser as DjangoUser
+from core.models.identity import Identity as CoreIdentity
+
 
 #These functions return ESH related information based on the core repr
 ESH_MAP = {
@@ -94,24 +97,38 @@ def get_esh_driver(core_identity, username=None):
         raise
 
 
-def prepare_driver(request, identity_id):
+def prepare_driver(request, provider_id, identity_id):
     """
-    TODO: Cache driver based on specific provider
-    return esh_driver
+    Return an rtwo.EshDriver for the given provider_id
+    and identity_id.
+
+    If invalid credentials, provider_id or identity_id is
+    used return None.
     """
-    #    from service.driver import DriverManager
-    #    username = request.user
-    core_identity = CoreIdentity.objects.get(id=identity_id)
-    return get_esh_driver(core_identity)
-    #    manager = DriverManager()
-    #    esh_driver = manager.get_driver(core_identity)
-    #    return esh_driver
+    try:
+        identity = CoreIdentity.objects.get(provider__id=provider_id,
+                                            id=identity_id)
+        if identity in request.user.identity_set.all():
+            return get_esh_driver(identity)
+    except ObjectDoesNotExist:
+        pass
 
 
-def failureJSON(errors, *args, **kwargs):
+def failure_response(status, message):
     """
-    Input : List of errors (human readable)
-    Output: Structured JSON object to contain the errors
-    TODO: Determine if this is useful or a wash..
+    Return a djangorestframework Response object given an error
+    status and message.
     """
-    return {'errors': errors}
+    api_logger.info("status: %s message: %s" % (status, message))
+    return Response({"errors":
+                     [{'code': status,
+                       'message': message}]},
+                    status=status)
+
+
+def invalid_creds(provider_id, identity_id):
+    logger.warn('Authentication Failed. Provider-id:%s Identity-id:%s'
+                % (provider_id, identity_id))
+    return failure_response(
+        status.HTTP_401_UNAUTHORIZED,
+        'Identity/Provider Authentication Failed')

@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
+if [[ $EUID -ne 0 ]]; then
+    echo "You must be a root user to set these permissions"
+    exit 1
+fi
 
 export ATMOSPHERE_HOME=/opt/dev/atmosphere
-export ATMOSPHERE_ENV=/opt/env/atmo
 
 chmod -R g+w ${ATMOSPHERE_HOME}
 
@@ -16,8 +19,4 @@ chown -R www-data:core-services ${ATMOSPHERE_HOME}
 chown -R root:root ${ATMOSPHERE_HOME}/extras/apache
 
 chown -R root:root ${ATMOSPHERE_HOME}/extras/ssh
-
-chmod -R g+w ${ATMOSPHERE_ENV}
-
-chown -R www-data:core-services ${ATMOSPHERE_ENV}
 

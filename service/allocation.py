@@ -1,7 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.utils import timezone
-#from django.contrib.auth.models import User
 from core.models import AtmosphereUser as User
 
 from core.models import IdentityMembership, Identity
@@ -102,20 +101,38 @@ def get_allocation(username, identity_id):
     return membership.allocation
 
 
-def check_over_allocation(username, identity_id):
+def check_over_allocation(username, identity_id,
+                          time_period=None):
     """
-    Get identity-specific allocation
-    Grab all instances created between now and 'delta'
-    Check that cumulative time of instances do not exceed threshold
+    Check if an identity is over allocation.
 
-    False if identity has no allocation OR allocation is not exceeded.
-    True if time allocation has beene exceeded
+    If time_period is timedelta(month=1) then delta_time is from the
+    beginning of the month to now otherwise delta_time is allocation.delta.
+    Get all instance histories created between now and delta_time. Check
+    that cumulative time of instances do not exceed threshold.
+
+    True if allocation has been exceeded, otherwise False.
     """
     allocation = get_allocation(username, identity_id)
     if not allocation:
-        #No allocation, so you fail.
         return (False, timedelta(0))
-    delta_time = timedelta(minutes=allocation.delta)
+    # Monthly Time Allocation
+    if time_period.months == 1:
+        now = timezone.now()
+        if time_period.day <= now.day:
+            allocation_time = timezone.datetime(year=now.year,
+                                                month=now.month,
+                                                day=time_period.day,
+                                                tzinfo=timezone.utc)
+        else:
+            prev = now - time_period
+            allocation_time = timezone.datetime(year=prev.year,
+                                                month=prev.month,
+                                                day=time_period.day,
+                                                tzinfo=timezone.utc)
+        delta_time = now - allocation_time
+    else:
+        delta_time = timedelta(minutes=allocation.delta)
     max_time_allowed = timedelta(minutes=allocation.threshold)
     total_time_used = get_time(username, identity_id, delta_time)
     time_diff = max_time_allowed - total_time_used

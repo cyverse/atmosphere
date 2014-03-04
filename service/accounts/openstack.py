@@ -415,8 +415,14 @@ class AccountDriver():
         """
         return username
 
-    def get_project(self, project):
-        return self.user_manager.get_project(project)
+    def list_all_images(self, **kwargs):
+        return self.image_manager.list_images(**kwargs)
+
+    def get_project_by_id(self, project_id):
+        return self.user_manager.get_project_by_id(project_id)
+
+    def get_project(self, project_name):
+        return self.user_manager.get_project(project_name)
 
     def list_projects(self):
         return self.user_manager.list_projects()

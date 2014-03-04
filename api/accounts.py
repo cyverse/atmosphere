@@ -1,6 +1,9 @@
 """
 Atmosphere service accounts rest api.
 """
+import copy
+
+from django.utils import timezone
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -9,20 +12,19 @@ from rest_framework import status
 from threepio import logger
 
 from atmosphere import settings
+
 from authentication.decorators import api_auth_token_required
 
-from api.serializers import AccountSerializer
-
+from core.models import AtmosphereUser as User
 from core.models.provider import Provider as CoreProvider
+from core.models.identity import Identity as CoreIdentity
 
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
 from service.accounts.aws import AccountDriver as AWSAccountDriver
 
-import copy
+from api.serializers import AccountSerializer, IdentitySerializer
 
-from django.utils import timezone
-from core.models import AtmosphereUser as User
 
 def get_account_driver(provider_id):
     try:
@@ -41,9 +43,10 @@ def get_account_driver(provider_id):
     #elif 'aws' in provider_name:
     #    driver = AWSAccountDriver(provider)
     else:
-        raise Exception ("Could not find a driver for provider %s" %
-                         provider_name)
+        raise Exception("Could not find a driver for provider %s" %
+                        provider_name)
     return driver
+
 
 class AccountManagement(APIView):
     """
@@ -63,6 +66,7 @@ class AccountManagement(APIView):
         #response = Response(serialized_data)
         #return response
 
+
 class Account(APIView):
     """
     """
@@ -73,8 +77,8 @@ class Account(APIView):
         Return information on all identities given to this username on
         the specific provider
         """
-        identities = Identity.objects.filter(provider__id=provider_id,
-                                             created_by__username=username)
+        identities = CoreIdentity.objects.filter(provider__id=provider_id,
+                                                 created_by__username=username)
         serialized_data = IdentitySerializer(identities, many=True).data
         return Response(serialized_data)
 

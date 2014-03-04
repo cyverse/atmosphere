@@ -1,19 +1,27 @@
 # App instance to use
 CELERY_APP="atmosphere"
 
-# Name of nodes to start, here we have a single node
-CELERYD_NODES="atmosphere-node_1"
-# or we could have three nodes:
-#CELERYD_NODES="atmosphere-node_1 atmosphere-node_2 atmosphere-node_3"
+# BASIC setup for atmosphere, without imaging.. Uncomment these lines.
+#CELERYD_NODES="atmosphere-node_1"
+## Extra arguments to pass to celeryd
+# CELERYD_OPTS="--concurrency=8"
+
+
+# Atmosphere setup with an exclusive queue for imaging.. Uncomment these lines.
+# 2 Celery Queues, First is 'default', concurrency 8 and the second is 'imaging', concurrency 1
+CELERYD_NODES="atmosphere-node_1 imaging"
+# Extra arguments to pass to celeryd
+CELERYD_OPTS="-c:atmosphere-node_1 8 -Q:imaging imaging -c:imaging 1"
+
+#Our celery requires root access for sudo/chroot/mount
+C_FORCE_ROOT="True"
+export C_FORCE_ROOT
 
 # Where to chdir at start.
 # the module that defines your Celery app instance also
 # set a default value for DJANGO_SETTINGS_MODULE 
 CELERYD_CHDIR="/opt/dev/atmosphere"
 
-#Imaging requires this -- Sorry I.T!
-C_FORCE_ROOT="True"
-export C_FORCE_ROOT
 # SSH Key files
 SSH_CERT_FILE="/etc/ssl/certs/iplantc.org.crt"
 SSH_KEY_FILE="/etc/ssl/private/iplantc.key"
@@ -29,9 +37,6 @@ CELERY_BIN="$VIRTUALENV/bin/celery"
 #Set the env properly
 export PATH="$CELERYD_CHDIR:$VIRTUALENV/bin:$VIRTUALENV/lib/python2.7/site-packages:$PATH"
 export DJANGO_SETTINGS_MODULE="atmosphere.settings"
-
-# Extra arguments to pass to celeryd
-CELERYD_OPTS="--concurrency=8"
 
 # %n will be replaced with the nodename.
 CELERYD_LOG_FILE="/var/log/celery/%n.log"
@@ -61,10 +66,10 @@ CELERY_FLOWER_OPTS="--certfile=$SSH_CERT_FILE --keyfile=$SSH_KEY_FILE --port=844
 
 CELERYBEAT_CHDIR="/opt/dev/atmosphere"
 # Extra arguments to celerybeat
-CELERYBEAT_OPTS="--schedule=/var/run/celerybeat-schedule"
+CELERYBEAT_OPTS="--schedule=djcelery.schedulers.DatabaseScheduler"
 
 #Where to log and store process id
-CELERYBEAT_LOG_FILE="/var/log/celerybeat.log"
+CELERYBEAT_LOG_FILE="/var/log/celery/celerybeat.log"
 CELERYBEAT_PID_FILE="/var/run/celerybeat.pid"
 
 #Default is INFO

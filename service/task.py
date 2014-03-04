@@ -80,3 +80,4 @@ def attach_volume_task(driver, instance_id, volume_id, device=None,
     mount_task.delay(
         driver.__class__, driver.provider, driver.identity,
         instance_id, volume_id, mount_location).get()
+    return mount_location

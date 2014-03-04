@@ -15,5 +15,3 @@ httpPort=5904
 " > /etc/vnc/config.custom
 
 echo Configured vnc.
-
-
