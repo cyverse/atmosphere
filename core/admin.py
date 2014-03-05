@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.models import User as DjangoUser
 from django.contrib.auth.models import Group as DjangoGroup
+from django.contrib.sessions.models import Session as DjangoSession
 from django.utils import timezone
 
 from core.models.application import Application
@@ -265,7 +266,13 @@ class InstanceAdmin(admin.ModelAdmin):
     list_display = ["provider_alias", "name", "created_by", "ip_address"]
     list_filter = ["provider_machine__provider__location"]
 
+class SessionAdmin(admin.ModelAdmin):
+    def _session_data(self, obj):
+        return obj.get_decoded()
+    list_display = ['session_key', '_session_data', 'expire_date']
+    search_fields = ["session_key", ]
 
+admin.site.register(DjangoSession, SessionAdmin)
 admin.site.register(Credential)
 admin.site.unregister(DjangoGroup)
 admin.site.register(Group)
