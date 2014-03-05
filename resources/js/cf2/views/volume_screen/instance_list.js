@@ -25,7 +25,9 @@ Atmo.Views.VolumeScreenDraggableInstances = Backbone.View.extend({
             if (!this.volume_map[volume.get('id')]) {
                 new_view = new Atmo.Views.VolumeScreenVolume({model: volume});
                 this.volume_map[volume.get('id')] = new_view;
-                this.instance_map[volume.get('attach_data_instance_id')].append_volume(new_view);
+                if (this.instance_map[volume.get('attach_data_instance_id')] !== undefined) {
+                    this.instance_map[volume.get('attach_data_instance_id')].append_volume(new_view);
+                }
             }
         } else if (volume.get('status') == 'available') {
             this.remove_volume(volume);

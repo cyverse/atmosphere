@@ -42,8 +42,11 @@ def check_volume_task(driverCls, provider, identity,
         #One script to make two checks:
         #1. Voume exists 2. Volume has a filesystem
         cv_script = check_volume(device)
-        kwargs.update({'deploy': cv_script})
+        #NOTE: non_zero_deploy needed to stop DeploymentError from being raised
+        kwargs.update({'deploy': cv_script,
+                       'non_zero_deploy': True})
         driver.deploy_to(instance, **kwargs)
+        kwargs.pop('non_zero_deploy',None)
         #Script execute
 
         if cv_script.exit_status != 0:
@@ -61,6 +64,8 @@ def check_volume_task(driverCls, provider, identity,
                 raise Exception('Volume check failed: Something weird')
 
         logger.debug("check_volume task finished at %s." % datetime.now())
+    except DeploymentError as exc:
+        logger.exception(exc)
     except Exception as exc:
         logger.warn(exc)
         check_volume_task.retry(exc=exc)
