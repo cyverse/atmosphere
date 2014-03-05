@@ -17,7 +17,7 @@ def main():
     """
     euca = Provider.objects.get(location='Eucalyptus (retiring March 4)')
     euca_driver = EucaAccountDriver(euca)
-    openstack = Provider.objects.get(location='iPlant Cloud - Tucson (Beta)')
+    openstack = Provider.objects.get(location='iPlant Cloud - Tucson')
     os_driver = OSAccountDriver(openstack)
     all_users = euca_driver.list_users()
     #Sort by users

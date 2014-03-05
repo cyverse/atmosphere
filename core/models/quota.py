@@ -9,9 +9,9 @@ class Quota(models.Model):
     Quota limits the amount of resources that can be used for a User/Group
     Quotas are set at the Identity Level in IdentityMembership
     """
-    cpu = models.IntegerField(null=True, blank=True, default=2)  # In CPU Units
-    memory = models.IntegerField(null=True, blank=True, default=4)  # In GB
-    storage = models.IntegerField(null=True, blank=True, default=50)  # In GB
+    cpu = models.IntegerField(null=True, blank=True, default=16)  # In CPU Units
+    memory = models.IntegerField(null=True, blank=True, default=128)  # In GB
+    storage = models.IntegerField(null=True, blank=True, default=10)  # In GB
     # In #Volumes allowed
     storage_count = models.IntegerField(null=True, blank=True, default=1)
     # In #Suspended instances allowed

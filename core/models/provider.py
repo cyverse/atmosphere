@@ -106,10 +106,11 @@ class Provider(models.Model):
         active_providers =  cls.objects.filter(
             Q(end_date=None) | Q(end_date__gt=timezone.now()),
             active=True)
-        if provider_id:
-            active_providers = active_providers.filter(id=provider_id)
         if type_name:
             active_providers = active_providers.filter(type__name__iexact=type_name)
+        if provider_id:
+            # no longer a list
+            active_providers = active_providers.get(id=provider_id)
         return active_providers
 
     def share(self, core_group):

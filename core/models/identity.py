@@ -96,9 +96,9 @@ class Identity(models.Model):
         #Ready to create new membership for this group
         if not quota:
             quota = Quota.default_quota()
-
+        allocation = Allocation.default_allocation()
         new_membership = IdentityMembership.objects.get_or_create(
-            member=core_group, identity=self, quota=quota)[0]
+            member=core_group, identity=self, quota=quota, allocation=allocation)[0]
         return new_membership
 
     def unshare(self, core_group):
