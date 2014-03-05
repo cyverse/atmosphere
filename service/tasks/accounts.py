@@ -14,7 +14,8 @@ from service.accounts.openstack import AccountDriver as OSAccountDriver
 
 
 @periodic_task(run_every=crontab(hour="*/2", minute="*", day_of_week="*"),
-        expires=5*60, time_limit=5*60, retry=0)
+               options={"expires":5*60, "time_limit":5*60,
+                        "queue": "celery_periodic"})
 def _remove_empty_networks():
     try:
         logger.debug("_remove_empty_networks task started at %s." %

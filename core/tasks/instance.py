@@ -10,8 +10,8 @@ from threepio import logger
 
 
 @periodic_task(run_every=crontab(hour='*', minute='*/15', day_of_week='*'),
-               time_limit=120, retry=0, # Don't retry, hard set limit of 120sec
-               expires=10*60) # Expire 10min after scheduling
+               options={"time_limit":120, "expires":10*60,
+                        "queue":"celery_periodic"})
 def test_all_instance_links():
     try:
         logger.debug("test_all_instance_links task started at %s." %

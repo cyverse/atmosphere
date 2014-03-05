@@ -18,7 +18,7 @@ from threepio import logger
 
 @periodic_task(run_every=crontab(hour='*', minute='*/15', day_of_week='*'),
                # 5min before task expires, 5min to run task
-               options={"expires":5*60, "time_limit":5*60}, retry=0)
+               options={"expires":5*60, "time_limit":5*60, "queue":"celery_periodic"})
 def monitor_instances():
     """
     Update instances for each active provider.

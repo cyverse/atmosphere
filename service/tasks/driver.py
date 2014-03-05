@@ -31,7 +31,7 @@ from service.deploy import init
 
 
 @periodic_task(run_every=crontab(hour="0", minute="0", day_of_week="*"),
-        options={"expires": 3600}, retry=0)
+        options={"expires": 3600, "queue":"celery_periodic"})
 def clear_empty_ips():
     logger.debug("clear_empty_ips task started at %s." % datetime.now())
     from service import instance as instance_service
