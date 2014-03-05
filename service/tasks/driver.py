@@ -10,7 +10,9 @@ import time
 from celery import chain
 from celery.decorators import task
 from celery.task import current
+from celery.task import periodic_task
 from celery.result import allow_join_result
+from celery.task.schedules import crontab
 from libcloud.compute.types import Provider, NodeState, DeploymentError
 
 from atmosphere.celery import app
@@ -28,22 +30,25 @@ from service.driver import get_driver
 from service.deploy import init
 
 
-@task(name="clear_empty_ips",
-      default_retry_delay=15,
-      ignore_result=True)
+@periodic_task(run_every=crontab(hour="0", minute="*", day_of_week="*"),
+        expires=1*60*60, retry=0)
 def clear_empty_ips():
+    logger.debug("clear_empty_ips task started at %s." % datetime.now())
     from service import instance as instance_service
     from rtwo.driver import OSDriver
     from api import get_esh_driver
     from service.accounts.openstack import AccountDriver as\
         OSAccountDriver
+
     identities = Identity.objects.filter(
-        provider__type__name__iexact='openstack')
+        provider__type__name__iexact='openstack',
+        provider__active=True)
     identities = sorted(
        identities, key=lambda ident: attrgetter(ident.provider.type.name,
                                                 ident.created_by.username))
     os_acct_driver = None
-    for core_identity in identities:
+    total = len(identities)
+    for idx, core_identity in enumerate(identities):
         try:
             #Initialize the drivers
             driver = get_esh_driver(core_identity)
@@ -56,6 +61,8 @@ def clear_empty_ips():
             # Get useful info
             creds = core_identity.get_credentials()
             tenant_name = creds['ex_tenant_name']
+            logger.info("Checking Identity %s/%s - %s"
+                        % (idx+1, total, tenant_name))
             # Attempt to clean floating IPs
             num_ips_removed = driver._clean_floating_ip()
             if num_ips_removed:
@@ -82,10 +89,11 @@ def clear_empty_ips():
                     os_acct_driver.delete_network(core_identity,
                             remove_network=remove_network)
             else:
-                logger.info("No Network found. Skipping %s" % tenant_name)
+                #logger.info("No Network found. Skipping %s" % tenant_name)
+                pass
         except Exception as exc:
             logger.exception(exc)
-
+    logger.debug("clear_empty_ips task finished at %s." % datetime.now())
 
 @task(name="_send_instance_email",
       default_retry_delay=10,
@@ -368,7 +376,7 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata):
             driver, instance, data=metadata, replace=False)
         logger.debug("update_metadata task finished at %s." % datetime.now())
     except Exception as exc:
-        logger.warn(exc)
+        logger.exception(exc)
         update_metadata.retry(exc=exc)
 
 def eager_update_metadata(driver, instance, metadata):
@@ -509,9 +517,8 @@ def remove_empty_network(
                 active_instances = True
                 break
         if not active_instances:
-            inactive_instances = all(
-                driver._is_inactive_instance(instance)
-                for instance in instances)
+            inactive_instances = all(driver._is_inactive_instance(
+                instance) for instance in instances)
             #Inactive instances, True: Remove network, False
             remove_network = not inactive_instances
             #Check for project network

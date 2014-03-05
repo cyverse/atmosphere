@@ -144,12 +144,9 @@ def fix_private_images(private_images, prov, accounts):
             #Fix on the database
             make_private(accounts.image_manager, img, pm, tenant_list)
         if not machine_requests:
-            if pm.application.private == False:
-                print "Application says %s<%s> should be public" % (img.name, img.id)
-                #make_public(accounts.image_manager, img, pm)
-            else:
+            if pm.application.private == True:
                 print "Application says %s<%s> should be private" % (img.name, img.id)
-                #make_private(accounts.image_manager, img, pm)
+                make_private(accounts.image_manager, img, pm)
         if (idx % 5 == 0):
             print "Processed %s of %s machines" % (idx + 1, image_total)
 

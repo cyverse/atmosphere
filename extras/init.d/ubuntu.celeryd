@@ -366,6 +366,25 @@ check_status () {
 
 
 case "$1" in
+    flower-start)
+        check_dev_null
+        check_paths
+        start_flower
+    ;;
+
+    flower-stop)
+        check_dev_null
+        check_paths
+        kill_flower
+    ;;
+
+    flower-restart)
+        check_dev_null
+        check_paths
+        kill_flower
+        start_flower
+    ;;
+
     start)
         check_dev_null
         check_paths

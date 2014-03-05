@@ -230,6 +230,8 @@ def etc_skel_bashrc(user):
 export IDS_HOME="/irods/data.iplantc.org/iplant/home/%s"
 alias ids_home="cd $IDS_HOME"
 """ % user)
+
+
 def in_sudoers(user):
     out, err = run_command(['sudo -l -U %s' % user], shell=True)
     if 'not allowed to run sudo' in out:
@@ -396,6 +398,8 @@ def mount_storage():
         for line in outLines:
             r = re.compile(', (.*?) bytes')
             match = r.search(line)
+            if not match:
+                continue
             if dev_1 in line:
                 dev_1_size = match.group(1)
             elif dev_2 in line:
@@ -420,27 +424,26 @@ def vnc(user, distro, license=None):
             run_command(['/usr/bin/yum', '-qy', 'remove', 'vnc-E',
                          'realvnc-vnc-server'])
             download_file(
-                '%s/init_files/%s/VNC-Server-5.1.0-Linux-x64.rpm'
+                '%s/init_files/%s/VNC-Server-5.0.4-Linux-x64.rpm'
                 % (ATMOSERVER, SCRIPT_VERSION),
-                "/opt/VNC-Server-5.1.0-Linux-x64.rpm",
-                match_hash='5e62e4d456ceb2b473509bbd0064694d9820a738')
+                "/opt/VNC-Server-5.0.4-Linux-x64.rpm",
+                match_hash='0c59f2d84880a6848398870e5f0aa39f09e413bc')
             run_command(['/bin/rpm', '-Uvh',
-                         '/opt/VNC-Server-5.1.0-Linux-x64.rpm'])
+                         '/opt/VNC-Server-5.0.4-Linux-x64.rpm'])
             run_command(['/bin/sed', '-i',
                          "'$a account    include      system-auth'",
                          '/etc/pam.d/vncserver.custom'], bash_wrap=True)
             run_command(['/bin/sed', '-i',
                          "'$a password   include      system-auth'",
                          '/etc/pam.d/vncserver.custom'], bash_wrap=True)
-
         else:
             download_file(
-                '%s/init_files/%s/VNC-Server-5.1.0-Linux-x64.deb'
+                '%s/init_files/%s/VNC-Server-5.0.4-Linux-x64.deb'
                 % (ATMOSERVER, SCRIPT_VERSION),
-                "/opt/VNC-Server-5.1.0-Linux-x64.deb",
-                match_hash='96050939b98a0d91c6f293401230dbd22922ec2e')
+                "/opt/VNC-Server-5.0.4-Linux-x64.deb",
+                match_hash='c2b390157c82fd556e60fe392b6c5bc5c5efcb29')
             run_command(['/usr/bin/dpkg', '-i',
-                         '/opt/VNC-Server-5.1.0-Linux-x64.deb'])
+                         '/opt/VNC-Server-5.0.4-Linux-x64.deb'])
             new_file = open('/etc/pam.d/vncserver.custom', 'w')
             new_file.write("auth include  common-auth")
             new_file.close()
@@ -452,7 +455,7 @@ def vnc(user, distro, license=None):
         download_file(
             '%s/init_files/%s/vnc-config.sh' % (ATMOSERVER, SCRIPT_VERSION),
             os.path.join(USER_HOME_DIR, 'vnc-config.sh'),
-            match_hash='9bbb495ad67bb3117349a637e5716ba08a213713')
+            match_hash='37b64977dbf3650f307ca0d863fee18938038dce')
         run_command(['/bin/chmod', 'a+x',
                      os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
         run_command([os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
@@ -657,7 +660,7 @@ def notify_launched_instance(instance_data, metadata):
     }
     data = json.dumps(data)
     request = urllib2.Request(service_url, data, {'Content-Type':
-        'application/json'})
+                                                  'application/json'})
     link = urllib2.urlopen(request)
     response = link.read()
     link.close()
@@ -840,6 +843,7 @@ def denyhost_whitelist():
         write_to_file(filename, allowed_hosts_content)
     return
 
+
 def update_sudoers():
     run_command(['/bin/sed', '-i',
                  "s/^Defaults    requiretty/#Defaults    requiretty/",
@@ -861,6 +865,7 @@ def insert_modprobe():
     run_command(['depmod', '-a'])
     run_command(['modprobe', 'acpiphp'])
 
+
 #File Operations
 def line_in_file(needle, filename):
     found = False
@@ -871,6 +876,7 @@ def line_in_file(needle, filename):
             break
     f.close()
     return found
+
 
 def text_in_file(filename, text):
     file_contents = read_file(filename)
@@ -956,7 +962,6 @@ def main(argv):
             instance_data["atmosphere"]["userid"] = arg
             user_id = arg
         elif opt in ("-v", "--vnc_license"):
-            #instance_data["atmosphere"]["vnc_license"] = arg
             vnclicense = arg
         elif opt in ("--root_password"):
             root_password = arg

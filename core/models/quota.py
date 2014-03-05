@@ -18,8 +18,9 @@ class Quota(models.Model):
     suspended_count = models.IntegerField(null=True, blank=True, default=2)
 
     def __unicode__(self):
-        return "CPU:%s, MEM:%s, DISK:%s DISK #:%s" %\
-            (self.cpu, self.memory, self.storage, self.storage_count)
+        return "CPU:%s, MEM:%s, DISK:%s DISK #:%s SUSPEND #:%s" %\
+            (self.cpu, self.memory, self.storage,
+             self.storage_count, self.suspended_count)
 
     @classmethod
     def max_quota(self, by_type='cpu'):

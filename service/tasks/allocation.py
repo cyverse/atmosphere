@@ -1,4 +1,5 @@
 from datetime import timedelta
+from dateutil.relativedelta import relativedelta
 
 from django.utils import timezone
 
@@ -16,7 +17,8 @@ from threepio import logger
 
 
 @periodic_task(run_every=crontab(hour='*', minute='*/15', day_of_week='*'),
-               time_limit=120, retry=0)
+               # 5min before task expires, 5min to run task
+               expires=5*60, time_limit=5*60, retry=0)
 def monitor_instances():
     """
     Update instances for each active provider.
@@ -25,14 +27,7 @@ def monitor_instances():
         monitor_instances_for(p)
 
 
-def monitor_instances_for(provider):
-    """
-    Update instances for provider.
-    """
-    #For now, lets just ignore everything that isn't openstack.
-    if 'openstack' not in provider.type.name.lower():
-        return
-
+def get_instance_owner_map(provider):
     admin_driver = get_admin_driver(provider)
     meta = admin_driver.meta(admin_driver=admin_driver)
     logger.info("Retrieving all tenants..")
@@ -47,7 +42,16 @@ def monitor_instances_for(provider):
     #Make a mapping of owner-to-instance
     instance_map = _make_instance_owner_map(all_instances)
     logger.info("Instance owner map created")
+    return instance_map
 
+def monitor_instances_for(provider):
+    """
+    Update instances for provider.
+    """
+    #For now, lets just ignore everything that isn't openstack.
+    if 'openstack' not in provider.type.name.lower():
+        return
+    instance_map = get_instance_owner_map(provider)
     for username in instance_map.keys():
         try:
             user = AtmosphereUser.objects.get(username=username)
@@ -63,7 +67,7 @@ def monitor_instances_for(provider):
             core_instances = im.identity.instance_set.filter(end_date=None)
             update_instances(im.identity, instances, core_instances)
         except:
-            logger.exception("Unable to monitor instance: %s" % i)
+            logger.exception("Unable to monitor User:%s" % username)
             raise
     logger.info("Monitoring completed")
 
@@ -89,7 +93,8 @@ def over_allocation_test(identity, esh_instances):
     from core.models.instance import convert_esh_instance
     from atmosphere import settings
     over_allocated, time_diff = check_over_allocation(
-        identity.created_by.username, identity.id)
+        identity.created_by.username, identity.id,
+        time_period=relativedelta(day=1, months=1))
     if not over_allocated:
         # Nothing changed, bail.
         return False

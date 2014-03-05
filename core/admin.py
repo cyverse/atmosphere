@@ -50,7 +50,7 @@ class MaintenanceAdmin(admin.ModelAdmin):
 
 
 class QuotaAdmin(admin.ModelAdmin):
-    list_display = ("__unicode__", "cpu", "memory", "storage", "storage_count")
+    list_display = ("__unicode__", "cpu", "memory", "storage", "storage_count", "suspended_count")
 
 
 class AllocationAdmin(admin.ModelAdmin):
@@ -227,11 +227,19 @@ class MachineRequestAdmin(admin.ModelAdmin):
     search_fields = ["new_machine_owner__username", "new_machine_name", "instance__provider_alias"]
     list_display = ["new_machine_name", "new_machine_owner",
                     "new_machine_provider",  "start_date",
-                    "end_date", "status", "opt_parent_machine",
+                    "end_date", "status", "opt_parent_machine", "opt_machine_visibility", 
                     "opt_new_machine"]
     list_filter = ["instance__provider_machine__provider__location",
                    "new_machine_provider__location",
+                   "new_machine_visibility",
                    "status"]
+
+    def opt_machine_visibility(self, machine_request):
+        if machine_request.new_machine_visibility.lower() != 'public':
+            return "%s\nUsers:%s" % (machine_request.new_machine_visibility,
+                                        machine_request.access_list)
+        return machine_request.new_machine_visibility
+    opt_machine_visibility.allow_tags = True
 
     def opt_parent_machine(self, machine_request):
         if machine_request.parent_machine:
