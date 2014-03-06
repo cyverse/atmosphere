@@ -66,10 +66,11 @@ else
     exit -1
 fi
 
-cd ../..
-
-/usr/bin/nohup /usr/local/bin/shellinaboxd -b -t -f beep.wav:/dev/null > /var/log/atmo/shellinaboxd.log 2>&1 &
-
-echo shellinaboxd running.
+#cd ../..
+#
+#/usr/bin/nohup /usr/local/bin/shellinaboxd -b -t -f beep.wav:/dev/null > /var/log/atmo/shellinaboxd.log 2>&1 &
+#
+echo shellinaboxd installed. To run as daemon:
+echo /usr/bin/nohup /usr/local/bin/shellinaboxd -b -t -f beep.wav:/dev/null > /var/log/atmo/shellinaboxd.log 2>&1 &
 
 exit 0

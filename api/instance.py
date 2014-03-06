@@ -27,9 +27,12 @@ from core.models.volume import convert_esh_volume
 
 from service import task
 from service.deploy import build_script
-from service.instance import launch_instance, start_instance,\
-    stop_instance, suspend_instance, resume_instance,\
+from service.instance import redeploy_init,\
+    launch_instance, resize_instance, confirm_resize,\
+    start_instance, resume_instance,\
+    stop_instance, suspend_instance,\
     update_instance_metadata
+
 from service.quota import check_over_quota
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError
@@ -270,12 +273,15 @@ class InstanceAction(APIView):
                 size_alias = action_params.get('size', '')
                 if type(size_alias) == int:
                     size_alias = str(size_alias)
-                size = esh_driver.get_size(size_alias)
-                esh_driver.resize_instance(esh_instance, size)
+                resize_instance(esh_driver, esh_instance, size_alias,
+                               provider_id, identity_id, user)
             elif 'confirm_resize' == action:
-                esh_driver.confirm_resize_instance(esh_instance)
+                confirm_resize(esh_driver, esh_instance,
+                               provider_id, identity_id, user)
             elif 'revert_resize' == action:
                 esh_driver.revert_resize_instance(esh_instance)
+            elif 'redeploy' == action:
+                redeploy_init(esh_driver, esh_instance, countdown=None)
             elif 'resume' == action:
                 resume_instance(esh_driver, esh_instance,
                                 provider_id, identity_id, user)
@@ -372,7 +378,8 @@ class Instance(APIView):
         serializer = InstanceSerializer(core_instance, data=data, partial=True)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
-            update_instance_metadata(esh_driver, esh_instance, data)
+            update_instance_metadata(esh_driver, esh_instance, data,
+                    replace=False)
             serializer.save()
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)

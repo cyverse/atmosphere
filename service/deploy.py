@@ -144,10 +144,30 @@ def package_deps(logfile=None):
         logfile=logfile)
 
 
-def init_script(filename, username, token, instance, password, logfile=None):
+def redeploy_script(filename, username, instance, logfile=None):
+        awesome_atmo_call = "%s --service_type=%s --service_url=%s"
+        awesome_atmo_call += " --server=%s --user_id=%s"
+        awesome_atmo_call += " --redeploy"
+        awesome_atmo_call %= (
+            filename,
+            "instance_service_v1",
+            settings.INSTANCE_SERVICE_URL,
+            settings.SERVER_URL,
+            username)
+        #kludge: weirdness without the str cast...
+        str_awesome_atmo_call = str(awesome_atmo_call)
+        #logger.debug(isinstance(str_awesome_atmo_call, basestring))
+        return LoggedScriptDeployment(
+            str_awesome_atmo_call,
+            name='./deploy_call_atmoinit.sh',
+            logfile=logfile)
+
+
+def init_script(filename, username, token, instance, password, redeploy, logfile=None):
         awesome_atmo_call = "%s --service_type=%s --service_url=%s"
         awesome_atmo_call += " --server=%s --user_id=%s"
         awesome_atmo_call += " --token=%s --name=\"%s\""
+        awesome_atmo_call += "%s"
         awesome_atmo_call += " --vnc_license=%s"
         awesome_atmo_call %= (
             filename,
@@ -157,6 +177,7 @@ def init_script(filename, username, token, instance, password, logfile=None):
             username,
             token,
             instance.name,
+            " --redeploy" if redeploy else "",
             secrets.ATMOSPHERE_VNC_LICENSE)
         if password:
             awesome_atmo_call += " --root_password=%s" % (password)
@@ -187,7 +208,7 @@ def init_log():
         name="./deploy_init_log.sh")
 
 
-def init(instance, username, password=None, *args, **kwargs):
+def init(instance, username, password=None, redeploy=False, *args, **kwargs):
         """
         Creates a multi script deployment to prepare and call
         the latest init script
@@ -215,13 +236,24 @@ def init(instance, username, password=None, *args, **kwargs):
         script_chmod = chmod_ax_file(atmo_init, logfile)
 
         script_atmo_init = init_script(atmo_init, username, token,
-                                       instance, password, logfile)
+                                       instance, password, redeploy, logfile)
 
-        script_list = [script_init,
+        if redeploy:
+            #Redeploy the instance
+            script_atmo_init = redeploy_script(atmo_init, username,
+                                               instance, logfile)
+            script_list = [script_init,
+                           script_wget,
+                           script_chmod,
+                           script_atmo_init]
+        else:
+            #Standard install
+            script_list = [script_init,
                             script_deps,
                             script_wget,
                             script_chmod,
                             script_atmo_init]
+
         if not settings.DEBUG:
             script_rm_scripts = rm_scripts(logfile=logfile)
             script_list.append(script_rm_scripts)

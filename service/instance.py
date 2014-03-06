@@ -28,17 +28,45 @@ from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 
+def resize_instance(esh_driver, esh_instance, size_alias,
+                    provider_id, identity_id, user):
+    size = esh_driver.get_size(size_alias)
+    esh_driver.resize_instance(esh_instance, size)
+    #Write build state for new size
+    update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
+
+def confirm_resize(esh_driver, esh_instance, provider_id, identity_id, user):
+    esh_driver.confirm_resize_instance(esh_instance)
+    #Don't wait, it's already active, redeploy immediately
+    redeploy_init(esh_driver, esh_instance, countdown=None)
+    #Double-Check we are counting on new size
+    update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
 # Networking specific
-def remove_ips(esh_driver, esh_instance):
+def remove_ips(esh_driver, esh_instance, update_meta=True):
+    """
+    Returns: (floating_removed, fixed_removed)
+    """
     network_manager = esh_driver._connection.get_network_manager()
-    network_manager.disassociate_floating_ip(esh_instance.id)
+    #Floating
+    result = network_manager.disassociate_floating_ip(esh_instance.id)
+    logger.info("Removed Floating IP for Instance %s - Result:%s"
+                % (esh_instance.id, result))
+    if update_meta:
+        update_instance_metadata(esh_driver, esh_instance,
+                                 data={'public-ip': '',
+                                       'public-hostname':''},
+                                 replace=False)
+    #Fixed
     instance_ports = network_manager.list_ports(device_id=esh_instance.id)
     if instance_ports:
         fixed_ips = instance_ports[0].get('fixed_ips',[])
         if fixed_ips:
             fixed_ip = fixed_ips[0]['ip_address']
-            esh_driver._connection.ex_remove_fixed_ip(esh_instance, fixed_ip)
+            result = esh_driver._connection.ex_remove_fixed_ip(esh_instance, fixed_ip)
+            logger.info("Removed Fixed IP %s - Result:%s" % (fixed_ip, result))
+            return (True, True)
+    return (True, False)
 
 def remove_network(esh_driver, identity_id):
     from service.tasks.driver import remove_empty_network
@@ -52,8 +80,20 @@ def restore_network(esh_driver, esh_instance, identity_id):
     (network, subnet) = network_init(core_identity)
     return network, subnet
 
-def restore_ips(esh_driver, esh_instance):
-    from service.tasks.driver import add_floating_ip
+def add_fixed_ip(esh_driver, esh_instance):
+    #Do nothing if fixed IP exists
+    if esh_instance._node.private_ips:
+        return
+    logger.info("Adding fixed IP")
+    network_id = _convert_network_name(esh_driver, esh_instance)
+    esh_driver._connection.ex_add_fixed_ip(esh_instance, network_id)
+
+def _convert_network_name(esh_driver, esh_instance):
+    """
+    For a given instance, retrieve the network-name and 
+    convert it to a network-id
+    """
+    #Get network name and convert to network ID
     node_network = esh_instance.extra.get('addresses')
     if not node_network:
         raise Exception("Could not determine the network for node %s"
@@ -61,7 +101,7 @@ def restore_ips(esh_driver, esh_instance):
     try:
         network_name = node_network.keys()[0]
     except Exception, e:
-        raise Exception("Could not determine network name for node %s"
+        raise Exception("Could not determine name of the network for node %s"
                         % node)
 
     try:
@@ -73,14 +113,29 @@ def restore_ips(esh_driver, esh_instance):
         network_id = network[0]['id']
     except Exception, e:
         raise
-    if not esh_instance._node.private_ips:
-        logger.info("Adding fixed IP")
-        esh_driver._connection.ex_add_fixed_ip(esh_instance, network_id)
-    if not esh_instance._node.public_ips:
-        logger.info("Adding floating IP")
+
+    return network_id
+
+def redeploy_init(esh_driver, esh_instance, countdown=None):
+    from service.tasks.driver import deploy_init_to
+    logger.info("Add floating IP and Deploy")
+    deploy_init_to.s(esh_driver.__class__, esh_driver.provider,
+                     esh_driver.identity, esh_instance.id,
+                     redeploy=True).apply_async(countdown=countdown)
+
+
+def restore_ips(esh_driver, esh_instance, redeploy=False, countdown=10):
+    from service.tasks.driver import add_floating_ip
+    add_fixed_ip(esh_driver, esh_instance)
+    # Will add floating IP (If necessary) and deploy script.
+    if redeploy:
+        redeploy_init(esh_driver, esh_instance, countdown=countdown)
+    else:
+        logger.info("Skip deployment, Add floating IP only")
         add_floating_ip.s(esh_driver.__class__, esh_driver.provider,
                           esh_driver.identity,
-                          esh_instance.id).apply_async(countdown=10)
+                          esh_instance.id).apply_async(countdown=countdown)
+
 
 def stop_instance(esh_driver, esh_instance, provider_id, identity_id, user,
                   reclaim_ip=True):
@@ -103,21 +158,13 @@ def start_instance(esh_driver, esh_instance, provider_id, identity_id, user,
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
     from service.tasks.driver import update_metadata
-    admin_capacity_check(provider_id, esh_instance.id)
+    #Don't check capacity because.. I think.. its already being counted.
+    #admin_capacity_check(provider_id, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
-    if update_meta:
-        update_instance_metadata(esh_driver, esh_instance,
-                                 data={'tmp_status': 'networking'},
-                                 replace=False)
     esh_driver.start_instance(esh_instance)
     if restore_ip:
-        restore_ips(esh_driver, esh_instance)
-    if update_meta:
-        #Run this task only when instance moves from suspended --> active
-        update_metadata.s(
-            esh_driver.__class__, esh_driver.provider, esh_driver.identity,
-            esh_instance.id, {'tmp_status': ''}).apply_async(countdown=30)
+        restore_ips(esh_driver, esh_instance, redeploy=True)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
 

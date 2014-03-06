@@ -174,8 +174,8 @@ def deploy_to(driverCls, provider, identity, instance_id, *args, **kwargs):
       default_retry_delay=20,
       ignore_result=True,
       max_retries=3)
-def deploy_init_to(driverCls, provider, identity, instance_id, password=None,
-                   *args, **kwargs):
+def deploy_init_to(driverCls, provider, identity, instance_id,
+                   password=None, redeploy=False, *args, **kwargs):
     try:
         logger.debug("deploy_init_to task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
@@ -185,9 +185,8 @@ def deploy_init_to(driverCls, provider, identity, instance_id, password=None,
             return
         image_metadata = driver._connection\
                                .ex_get_image_metadata(instance.machine)
-        image_already_deployed = image_metadata.get("deployed")
         deploy_chain = get_deploy_chain(driverCls, provider, identity,
-                                        instance, password, image_already_deployed)
+                                        instance, password, redeploy)
         deploy_chain.apply_async()
         #Can be really useful when testing.
         #if kwargs.get('delay'):
@@ -199,66 +198,49 @@ def deploy_init_to(driverCls, provider, identity, instance_id, password=None,
         logger.warn(exc)
         deploy_init_to.retry(exc=exc)
 
-def get_deploy_chain(driverCls, provider, identity, instance, password, deployed=False):
+def get_deploy_chain(driverCls, provider, identity,
+                     instance, password, redeploy=False):
     instance_id = instance.id
     if not instance.ip:
+        #Init the networking
         logger.debug("IP address missing")
-        init_task = update_metadata.si(
+        network_meta_task = update_metadata.si(
                 driverCls, provider, identity, instance_id,
                 {'tmp_status': 'networking'})
         floating_task = add_floating_ip.si(
             driverCls, provider, identity, instance_id, delete_status=True)
-        init_task.link(floating_task)
-        if not deployed:
-            logger.debug("Instance NOT deployed, include deployment and email")
-            deploy_meta_task = update_metadata.si(
-                driverCls, provider, identity, instance_id,
-                {'tmp_status': 'deploying'})
 
-            deploy_task = _deploy_init_to.si(
-                driverCls, provider, identity, instance_id, password)
-            deploy_task.link_error(
-                deploy_failed.s(driverCls, provider, identity, instance_id))
+    #Always deploy to the instance, but change what atmo-init does..
+    deploy_meta_task = update_metadata.si(
+        driverCls, provider, identity, instance_id,
+        {'tmp_status': 'deploying'})
+    deploy_task = _deploy_init_to.si(
+        driverCls, provider, identity, instance_id, password, redeploy)
+    deploy_task.link_error(
+        deploy_failed.s(driverCls, provider, identity, instance_id))
+    remove_status_task = update_metadata.si(
+            driverCls, provider, identity, instance_id,
+            {'tmp_status': ''})
 
-            remove_status_task = update_metadata.si(
-                    driverCls, provider, identity, instance_id,
-                    {'tmp_status': ''})
-
-            email_task = _send_instance_email.si(
-                    driverCls, provider, identity, instance_id)
-
-            floating_task.link(deploy_meta_task)
-            deploy_meta_task.link(deploy_task)
-            deploy_task.link(remove_status_task)
-            remove_status_task.link(email_task)
-        else:
-            logger.debug("Instance deployed, include email task")
-            email_task = _send_instance_email.si(
-                    driverCls, provider, identity, instance_id)
-            floating_task.link(email_task)
+    ## Link the chain below this line.
+    ##
+    if not instance.ip:
+        # Task will start with networking
+        # link networking to deploy..
+        start_chain = network_meta_task
+        network_meta_task.link(floating_task)
+        floating_task.link(deploy_meta_task)
     else:
-        if not deployed:
-            logger.debug("IP address available, deploy and email")
-            init_task = update_metadata.si(
-                    driverCls, provider, identity, instance_id,
-                    {'tmp_status': 'deploying'})
+        #Networking is ready, just deploy.
+        start_chain = deploy_meta_task
 
-            deploy_task = _deploy_init_to.si(
-                driverCls, provider, identity, instance_id, password,
-                link_error=deploy_failed.s(
-                    (driverCls, provider, identity, instance_id,)))
-
-            remove_status_task = update_metadata.si(
-                    driverCls, provider, identity, instance_id,
-                    {'tmp_status': ''})
-
-            init_task.link(deploy_task)
-            deploy_task.link(remove_status_task)
-        else:
-            logger.debug("IP address available, init deployed, just send email")
-            init_task = _send_instance_email.si(
-                    driverCls, provider, identity, instance_id)
-    return init_task
+    deploy_meta_task.link(deploy_task)
+    deploy_task.link(remove_status_task)
+    if not redeploy:
+        email_task = _send_instance_email.si(
+                driverCls, provider, identity, instance_id)
+        remove_status_task.link(email_task)
+    return start_chain
 
 
 @task(name="destroy_instance",
@@ -320,8 +302,8 @@ def destroy_instance(core_identity_id, instance_alias):
 @task(name="_deploy_init_to",
       default_retry_delay=32,
       max_retries=10)
-def _deploy_init_to(driverCls, provider, identity, instance_id, password=None,
-                    **celery_task_args):
+def _deploy_init_to(driverCls, provider, identity, instance_id,
+                    password=None, redeploy=False, **celery_task_args):
     try:
         logger.debug("_deploy_init_to task started at %s." % datetime.now())
         #Check if instance still exists
@@ -338,7 +320,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id, password=None,
         private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'timeout': 120})
-        msd = init(instance, identity.user.username, password)
+        msd = init(instance, identity.user.username, password, redeploy)
         kwargs.update({'deploy': msd})
         driver.deploy_to(instance, **kwargs)
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
@@ -438,9 +420,12 @@ def add_floating_ip(driverCls, provider, identity,
             r = regex.search(floating_ip)
             (one, two, three, four) = r.groups()
             hostname = "vm%s-%s.iplantcollaborative.org" % (three, four)
-            update_instance_metadata(driver, instance,
-                                     data={'public-hostname': hostname},
-                                     replace=False)
+        else:
+            # Find a way to convert new floating IPs to hostnames..
+            hostname = floating_ip
+        update_instance_metadata(driver, instance, data={
+            'public-hostname': hostname,
+            'public-ip':floating_ip}, replace=False)
 
         logger.info("Assigned IP:%s - Hostname:%s" % (floating_ip, hostname))
         #End
