@@ -61,7 +61,7 @@ class Leadership(models.Model):
         app_label = 'core'
 
 
-def getUsergroup(username):
+def get_user_group(username):
     groups = Group.objects.filter(name=username)
     if not groups:
         return None

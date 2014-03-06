@@ -10,6 +10,7 @@ from django.db import models
 
 from threepio import logger
 
+
 class Identity(models.Model):
     """
     An Identity is the minimal set of credentials necessary
@@ -216,6 +217,9 @@ class Identity(models.Model):
         user.save()
         #Return the identity
         return id_membership.identity
+
+    def is_active(self):
+        return self.provider.is_active()
 
     def creator_name(self):
         return self.created_by.username
