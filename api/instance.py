@@ -27,7 +27,7 @@ from core.models.volume import convert_esh_volume
 
 from service import task
 from service.deploy import build_script
-from service.instance import redeploy_init,\
+from service.instance import redeploy_init, reboot_instance,\
     launch_instance, resize_instance, confirm_resize,\
     start_instance, resume_instance,\
     stop_instance, suspend_instance,\
@@ -297,7 +297,7 @@ class InstanceAction(APIView):
             elif 'reset_network' == action:
                 esh_driver.reset_network(esh_instance)
             elif 'reboot' == action:
-                esh_driver.reboot_instance(esh_instance)
+                reboot_instance(esh_driver, esh_instance)
             elif 'rebuild' == action:
                 machine_alias = action_params.get('machine_alias', '')
                 machine = esh_driver.get_machine(machine_alias)
