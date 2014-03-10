@@ -29,21 +29,27 @@ def monitor_instances():
 
 
 def get_instance_owner_map(provider):
+    """
+    All keys == All identities
+    """
     admin_driver = get_admin_driver(provider)
     meta = admin_driver.meta(admin_driver=admin_driver)
+    all_identities = provider.identity_set.all()
     logger.info("Retrieving all tenants..")
     all_tenants = admin_driver._connection._keystone_list_tenants()
     logger.info("Retrieved %s tenants. Retrieving all instances.."
                 % len(all_tenants))
     all_instances = meta.all_instances()
     logger.info("Retrieved %s instances." % len(all_instances))
-    #Convert tenant-id to tenant-name all at once
+    #Convert instance.owner from tenant-id to tenant-name all at once
     all_instances = _convert_tenant_id_to_names(all_instances, all_tenants)
     logger.info("Owner information added.")
     #Make a mapping of owner-to-instance
     instance_map = _make_instance_owner_map(all_instances)
     logger.info("Instance owner map created")
-    return instance_map
+    identity_map = _include_all_idents(all_identities, instance_map)
+    logger.info("Identity map created")
+    return identity_map
 
 def monitor_instances_for(provider):
     """
@@ -71,6 +77,17 @@ def monitor_instances_for(provider):
             logger.exception("Unable to monitor User:%s" % username)
             raise
     logger.info("Monitoring completed")
+
+    
+def _include_all_idents(identities, owner_map):
+    #Include all identities with 0 instances to the monitoring
+    identity_owners = [ident.get_credential('ex_tenant_name')
+                       for ident in identities]
+    owners_w_instances = owner_map.keys()
+    for user in identity_owners:
+        if user not in owners_w_instances:
+            owner_map[user] = []
+    return owner_map
 
 def _make_instance_owner_map(instances):
     owner_map = {}

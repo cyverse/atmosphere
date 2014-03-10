@@ -224,6 +224,10 @@ class Identity(models.Model):
     def creator_name(self):
         return self.created_by.username
 
+    def get_credential(self, key):
+        cred = self.credential_set.filter(key=key)
+        return cred[0].value if cred else None
+
     def get_credentials(self):
         cred_dict = {}
         for cred in self.credential_set.all():
