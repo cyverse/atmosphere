@@ -142,7 +142,7 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
                 Atmo.Utils.notify(header, body);
 
             },
-            error: function (model, message) {
+            error: function (model, message, options) {
                 //console.log('error');
                 //console.log(model, message);
             }

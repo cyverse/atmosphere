@@ -626,10 +626,14 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 					if (Atmo.profile.get('selected_identity').get('provider_id') == 1)
 						Atmo.Utils.notify("Reboot Successful", "Your instance has successfully performed a soft reboot.");
 				}, 
-				error: function() {
-					Atmo.Utils.notify(
-						'Could not reboot instance', 
-						'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
+				error: function(request,model,error) {
+					var responseText = jQuery.parseJSON(request.responseText);
+					var errorString = "";
+					for(error in responseText.errors){ 
+					  errorString = errorString + "\n" + responseText.errors[error].message;
+					}
+					Atmo.Utils.notify('Could not reboot instance', 
+					  '' + errorString  +  ' If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
 						{ no_timeout: true }
 					);
 				}
@@ -782,13 +786,18 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 							// Merges models to those that are accurate based on server response
 							Atmo.instances.update();
 						}, 
-						error: function() {
+						error: function(request, status, error) {
 							self.model.set({state: 'shutoff',
 											state_is_build: false,
 											state_is_inactive: true});
+							var responseText = jQuery.parseJSON(request.responseText);
+							var errorString = "";
+							for(error in responseText.errors){ 
+							   errorString = errorString + "\n" + responseText.errors[error].message;
+							}
 							Atmo.Utils.notify(
-								'Could not start instance', 
-								'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
+								'Could not start instance for the following error(s): ', 
+								'' + errorString  + ' If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
 								{ no_timeout: true }
 							);
 						}
@@ -817,10 +826,15 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 						// Merges models to those that are accurate based on server response
 						Atmo.instances.update();
 					},
-					error: function() {
+					error: function(request, status, error) {
+						var responseText = jQuery.parseJSON(request.responseText);
+						var errorString = "";
+						for (error in responseText.errors){ 
+						    errorString = errorString + "\n" + responseText.errors[error].message;
+						}
 						Atmo.Utils.notify(
-							'Could not stop instance', 
-							'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
+							'Could not stop instance for the following error(s):', 
+							'' + errorString  + ' If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
 							{ no_timeout: true }
 						);
 					}
