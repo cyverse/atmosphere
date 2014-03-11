@@ -29,6 +29,12 @@ from service.driver import get_driver
 from service.deploy import init
 
 
+@task(name="print_debug")
+def print_debug():
+    log_str = "print_debug task finished at %s." % datetime.now()
+    print log_str
+    logger.debug(log_str)
+
 @task(name="add_fixed_ip",
         ignore_result=True,
         default_retry_delay=15,

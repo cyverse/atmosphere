@@ -314,31 +314,31 @@ CELERY_DEFAULT_QUEUE='default'
 #         )
 CELERYBEAT_SCHEDULE = {
     "monitor_instances": {
-        "task": "service.tasks.allocation.monitor_instances",
+        "task": "monitor_instances",
         "schedule" : timedelta(minutes=15),
         "options": {"expires":5*60, "time_limit":5*60,
                     "queue":"celery_periodic"}
     },
     "clear_empty_ips": {
-        "task": "service.tasks.driver.clear_empty_ips",
+        "task": "clear_empty_ips",
         "schedule": crontab(hour="0", minute="0", day_of_week="*"),
         "options":{"expires": 60*60,
                    "queue":"celery_periodic"}
     },
     "test_all_instance_links": {
-        "task": "core.tasks.instance.test_all_instance_links",
+        "task": "test_all_instance_links",
         "schedule": timedelta(minutes=15),
         "options": {"expires":10*60, "time_limit":2*60,
                     "queue":"celery_periodic"}
     },
     "remove_empty_networks": {
-        "task": "service.tasks.accounts.remove_empty_networks",
+        "task": "remove_empty_networks",
         "schedule": crontab(hour="*/2", minute="0", day_of_week="*"),
         "options": {"expires":5*60, "time_limit":5*60,
                     "queue": "celery_periodic"}
     },
     "check_image_membership": {
-        "task": "core.tasks.machine.check_image_membership",
+        "task": "check_image_membership",
         "schedule": timedelta(minutes=15),
         "options": {"expires": 10*60, "time_limit":2*60,
                     "queue": "celery_periodic"}
