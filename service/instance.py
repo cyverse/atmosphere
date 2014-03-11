@@ -386,7 +386,6 @@ def check_quota(username, identity_id, esh_size, resuming=False):
                                                   esh_size, resuming=resuming)
     if over_quota:
         raise OverQuotaError(resource, requested, used, allowed)
-
     (over_allocation, time_diff) =\
         check_over_allocation(username,
                               identity_id,
