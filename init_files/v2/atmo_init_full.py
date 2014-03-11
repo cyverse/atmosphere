@@ -1074,8 +1074,8 @@ def main(argv):
     if redeploy:
         redeploy_atmo_init(user_id)
     else:
-        logging.debug("Instance metadata - %s" % instance_metadata)
         instance_metadata = get_metadata()
+        logging.debug("Instance metadata - %s" % instance_metadata)
         deploy_atmo_init(user_id, instance_data, instance_metadata, root_password, vnclicense)
 
 

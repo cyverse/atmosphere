@@ -1,5 +1,4 @@
 from celery.decorators import task
-from celery.task import periodic_task
 from celery.task.schedules import crontab
 
 from django.utils.timezone import datetime
@@ -13,12 +12,10 @@ from core.models import Provider
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 
 
-@periodic_task(run_every=crontab(hour="*/2", minute="*", day_of_week="*"),
-               options={"expires":5*60, "time_limit":5*60,
-                        "queue": "celery_periodic"})
-def _remove_empty_networks():
+@task(name="remove_empty_networks")
+def remove_empty_networks():
     try:
-        logger.debug("_remove_empty_networks task started at %s." %
+        logger.debug("remove_empty_networks task started at %s." %
                      datetime.now())
         for provider in Provider.get_active(type_name='openstack'):
             os_driver = OSAccountDriver(provider)
@@ -43,7 +40,7 @@ def _remove_empty_networks():
                     logger.exception("Neutron unable to remove project"
                                      "network for %s-%s" % (user,project))
     except Exception as exc:
-        logger.exception("Failed to run _remove_empty_networks")
+        logger.exception("Failed to run remove_empty_networks")
 
 
 def running_instances(network_name, all_instances):

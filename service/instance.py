@@ -85,14 +85,6 @@ def restore_network(esh_driver, esh_instance, identity_id):
     (network, subnet) = network_init(core_identity)
     return network, subnet
 
-def add_fixed_ip(esh_driver, esh_instance):
-    #Do nothing if fixed IP exists
-    if esh_instance._node.private_ips:
-        return
-    logger.info("Adding fixed IP")
-    network_id = _convert_network_name(esh_driver, esh_instance)
-    esh_driver._connection.ex_add_fixed_ip(esh_instance, network_id)
-
 def _convert_network_name(esh_driver, esh_instance):
     """
     For a given instance, retrieve the network-name and 
@@ -122,6 +114,10 @@ def _convert_network_name(esh_driver, esh_instance):
     return network_id
 
 def redeploy_init(esh_driver, esh_instance, countdown=None):
+    """
+    Use this function to kick off the async task when you ONLY want to deploy
+    (No add fixed, No add floating)
+    """
     from service.tasks.driver import deploy_init_to
     logger.info("Add floating IP and Deploy")
     deploy_init_to.s(esh_driver.__class__, esh_driver.provider,
@@ -129,17 +125,31 @@ def redeploy_init(esh_driver, esh_instance, countdown=None):
                      redeploy=True).apply_async(countdown=countdown)
 
 
-def restore_ips(esh_driver, esh_instance, redeploy=False, countdown=10):
-    from service.tasks.driver import add_floating_ip
-    add_fixed_ip(esh_driver, esh_instance)
-    # Will add floating IP (If necessary) and deploy script.
+def restore_ip_chain(esh_driver, esh_instance, redeploy=False):
+    """
+    Returns: a task, chained together
+    Fixed --> Floating --> Deploy (if redeploy) 
+    start with: task.apply_async()
+    """
+    from service.tasks.driver import \
+            add_fixed_ip, add_floating_ip, deploy_init_to
+    #Step 1: Add fixed
+    init_task = add_fixed_ip.s(
+            esh_driver.__class__, esh_driver.provider,
+            esh_driver.identity, esh_instance.id)
+    #Add float and re-deploy OR just add floating IP...
     if redeploy:
-        redeploy_init(esh_driver, esh_instance, countdown=countdown)
+        next_task = deploy_init_to.si(esh_driver.__class__, esh_driver.provider,
+                     esh_driver.identity, esh_instance.id,
+                     redeploy=True)
+        init_task.link(next_task)
     else:
         logger.info("Skip deployment, Add floating IP only")
-        add_floating_ip.s(esh_driver.__class__, esh_driver.provider,
+        next_task = add_floating_ip.si(esh_driver.__class__, esh_driver.provider,
                           esh_driver.identity,
-                          esh_instance.id).apply_async(countdown=countdown)
+                          esh_instance.id)
+        init_task.link(next_task)
+    return init_task
 
 
 def stop_instance(esh_driver, esh_instance, provider_id, identity_id, user,
@@ -167,9 +177,10 @@ def start_instance(esh_driver, esh_instance, provider_id, identity_id, user,
     #admin_capacity_check(provider_id, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
+        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True)
     esh_driver.start_instance(esh_instance)
     if restore_ip:
-        restore_ips(esh_driver, esh_instance, redeploy=True)
+        deploy_task.apply_async(countdown=10)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
 
@@ -251,23 +262,17 @@ def resume_instance(esh_driver, esh_instance,
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
     from service.tasks.driver import update_metadata
+    from service.task import network_after_resume_task
     check_quota(user.username, identity_id, esh_instance.size, resuming=True)
     admin_capacity_check(provider_id, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
-    if update_meta:
-        update_instance_metadata(esh_driver, esh_instance,
-                                 data={'tmp_status': 'networking'},
-                                 replace=False)
     esh_driver.resume_instance(esh_instance)
-    if restore_ip:
-        restore_ips(esh_driver, esh_instance)
-    if update_meta:
-        #Run this task only when instance moves from suspended --> active
-        update_metadata.s(
-            esh_driver.__class__, esh_driver.provider, esh_driver.identity,
-            esh_instance.id, {'tmp_status': ''}).apply_async(countdown=30)
-    update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
+    network_after_resume_task(esh_driver, esh_instance)
+
+    #NOTE: It may be best to remove 'update_status' at this point
+    #Because even an active instance is not ready until networking is ready.
+    #update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
 
 def update_status(esh_driver, instance_id, provider_id, identity_id, user):

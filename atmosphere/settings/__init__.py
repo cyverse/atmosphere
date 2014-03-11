@@ -5,6 +5,7 @@ Settings for atmosphere project.
 
 from __future__ import absolute_import
 from datetime import timedelta
+from celery.schedules import crontab
 from uuid import UUID
 import logging
 import os
@@ -290,7 +291,7 @@ CELERY_TIMEZONE = "America/Phoenix"
 CELERY_SEND_EVENTS = True
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_TASK_RESULT_EXPIRES = 3*60*60 #Store results for 3 hours
-CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
+#CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
 CELERYBEAT_CHDIR=PROJECT_ROOT
 CELERYD_MAX_TASKS_PER_CHILD=50
 CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [PID:%(process)d] @ %(pathname)s on %(lineno)d] %(message)s"
@@ -311,6 +312,38 @@ CELERY_DEFAULT_QUEUE='default'
 #             Queue('default'),
 #             Queue('imaging', routing_key='imaging.#')
 #         )
+CELERYBEAT_SCHEDULE = {
+    "monitor_instances": {
+        "task": "service.tasks.allocation.monitor_instances",
+        "schedule" : timedelta(minutes=15),
+        "options": {"expires":5*60, "time_limit":5*60,
+                    "queue":"celery_periodic"}
+    },
+    "clear_empty_ips": {
+        "task": "service.tasks.driver.clear_empty_ips",
+        "schedule": crontab(hour="0", minute="0", day_of_week="*"),
+        "options":{"expires": 60*60,
+                   "queue":"celery_periodic"}
+    },
+    "test_all_instance_links": {
+        "task": "core.tasks.instance.test_all_instance_links",
+        "schedule": timedelta(minutes=15),
+        "options": {"expires":10*60, "time_limit":2*60,
+                    "queue":"celery_periodic"}
+    },
+    "remove_empty_networks": {
+        "task": "service.tasks.accounts.remove_empty_networks",
+        "schedule": crontab(hour="*/2", minute="0", day_of_week="*"),
+        "options": {"expires":5*60, "time_limit":5*60,
+                    "queue": "celery_periodic"}
+    },
+    "check_image_membership": {
+        "task": "core.tasks.machine.check_image_membership",
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 10*60, "time_limit":2*60,
+                    "queue": "celery_periodic"}
+    },
+}
 CELERY_ROUTES= ('atmosphere.route_logger.RouteLogger', )
 CELERY_ROUTES += ({
     "chromogenic.tasks.migrate_instance_task" : \

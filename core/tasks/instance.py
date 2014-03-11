@@ -2,16 +2,14 @@ from datetime import datetime
 
 from django.conf import settings
 from django.utils.timezone import datetime, timedelta
-from celery.decorators import periodic_task
+from celery.decorators import task
 from celery.task.schedules import crontab
 
 from threepio import logger
 
 
 
-@periodic_task(run_every=crontab(hour='*', minute='*/15', day_of_week='*'),
-               options={"time_limit":120, "expires":10*60,
-                        "queue":"celery_periodic"})
+@task(name="test_all_instance_links")
 def test_all_instance_links():
     try:
         logger.debug("test_all_instance_links task started at %s." %
