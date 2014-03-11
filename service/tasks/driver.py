@@ -10,7 +10,6 @@ import time
 from celery import chain
 from celery.decorators import task
 from celery.task import current
-from celery.task import periodic_task
 from celery.result import allow_join_result
 from celery.task.schedules import crontab
 from libcloud.compute.types import Provider, NodeState, DeploymentError
@@ -30,8 +29,38 @@ from service.driver import get_driver
 from service.deploy import init
 
 
-@periodic_task(run_every=crontab(hour="0", minute="0", day_of_week="*"),
-        options={"expires": 3600, "queue":"celery_periodic"})
+@task(name="add_fixed_ip",
+        ignore_result=True,
+        default_retry_delay=15,
+        max_retries=15)
+def add_fixed_ip(driverCls, provider, identity, instance_id):
+    from service import instance as instance_service
+    try:
+        logger.debug("add_fixed_ip task started at %s." % datetime.now())
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_id)
+        if not instance:
+            logger.debug("Instance has been teminated: %s." % instance_id)
+            return None
+        i_status = instance._node.extra['status']
+        i_task = instance._node.extra['task']
+        if i_status not in ['active', 'suspended'] or i_task:
+                    raise Exception("Instance %s Status %s Task %s - Not Ready"
+                                    % instance.id, i_status, i_task)
+        if instance._node.private_ips:
+            return instance
+        network_id = instance_service._convert_network_name(
+                driver, instance)
+        fixed_ip = driver._connection.ex_add_fixed_ip(instance, network_id)
+        logger.debug("add_fixed_ip task finished at %s." % datetime.now())
+        return fixed_ip
+    except Exception as exc:
+        if "Not Ready" in str(exc):
+            add_fixed_ip.retry(exc=exc)
+        else:
+            logger.exception(exc)
+
+@task(name="clear_empty_ips")
 def clear_empty_ips():
     logger.debug("clear_empty_ips task started at %s." % datetime.now())
     from service import instance as instance_service
@@ -478,7 +507,6 @@ def add_os_project_network(core_identity, *args, **kwargs):
 
 @task(name="remove_empty_network",
       default_retry_delay=60,
-      ignore_result=True,
       max_retries=1)
 def remove_empty_network(
         driverCls, provider, identity,
