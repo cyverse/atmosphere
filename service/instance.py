@@ -261,15 +261,16 @@ def resume_instance(esh_driver, esh_instance,
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
-    from service.tasks.driver import update_metadata
-    from service.task import network_after_resume_task
-    check_quota(user.username, identity_id, esh_instance.size, resuming=True)
+    from service.tasks.driver import update_metadata, add_fixed_ip
+    size = esh_driver.get_size(esh_instance.size.alias)
+    check_quota(user.username, identity_id, size, resuming=True)
     admin_capacity_check(provider_id, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
+        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=False)
     esh_driver.resume_instance(esh_instance)
-    network_after_resume_task(esh_driver, esh_instance)
-
+    if restore_ip:
+        deploy_task.apply_async(countdown=10)
     #NOTE: It may be best to remove 'update_status' at this point
     #Because even an active instance is not ready until networking is ready.
     #update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)

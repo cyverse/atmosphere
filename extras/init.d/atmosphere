@@ -109,8 +109,8 @@ restart)
         exit 1
     fi
     service apache2 restart
-    service celeryd restart
-    service celerybeat restart
+    #service celeryd restart
+    #service celerybeat restart
 ;;
 
 *)
