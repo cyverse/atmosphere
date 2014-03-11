@@ -101,6 +101,26 @@ def get_allocation(username, identity_id):
     return membership.allocation
 
 
+def get_delta(allocation, time_period):
+    # Monthly Time Allocation
+    if time_period and time_period.months == 1:
+        now = timezone.now()
+        if time_period.day <= now.day:
+            allocation_time = timezone.datetime(year=now.year,
+                                                month=now.month,
+                                                day=time_period.day,
+                                                tzinfo=timezone.utc)
+        else:
+            prev = now - time_period
+            allocation_time = timezone.datetime(year=prev.year,
+                                                month=prev.month,
+                                                day=time_period.day,
+                                                tzinfo=timezone.utc)
+        return now - allocation_time
+    else:
+        return timedelta(minutes=allocation.delta)
+
+
 def check_over_allocation(username, identity_id,
                           time_period=None):
     """
@@ -116,24 +136,7 @@ def check_over_allocation(username, identity_id,
     allocation = get_allocation(username, identity_id)
     if not allocation:
         return (False, timedelta(0))
-    
-    # Monthly Time Allocation
-    if time_period and time_period.months == 1:
-        now = timezone.now()
-        if time_period.day <= now.day:
-            allocation_time = timezone.datetime(year=now.year,
-                                                month=now.month,
-                                                day=time_period.day,
-                                                tzinfo=timezone.utc)
-        else:
-            prev = now - time_period
-            allocation_time = timezone.datetime(year=prev.year,
-                                                month=prev.month,
-                                                day=time_period.day,
-                                                tzinfo=timezone.utc)
-        delta_time = now - allocation_time
-    else:
-        delta_time = timedelta(minutes=allocation.delta)
+    delta_time = get_delta(allocation, time_period)
     max_time_allowed = timedelta(minutes=allocation.threshold)
     total_time_used = get_time(username, identity_id, delta_time)
     time_diff = max_time_allowed - total_time_used
