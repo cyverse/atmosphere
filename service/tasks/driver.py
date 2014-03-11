@@ -4,7 +4,8 @@ Tasks for driver operations.
 import re
 
 from operator import attrgetter
-from datetime import datetime
+from django.conf import settings
+from django.utils.timezone import datetime
 import time
 
 from celery import chain
@@ -559,3 +560,112 @@ def remove_empty_network(
     except Exception as exc:
         logger.exception("Failed to check if project network is empty")
         remove_empty_network.retry(exc=exc)
+
+
+@task(name="check_image_membership")
+def check_image_membership():
+    try:
+        logger.debug("check_image_membership task started at %s." %
+                     datetime.now())
+        update_membership()
+        logger.debug("check_image_membership task finished at %s." %
+                     datetime.now())
+    except Exception as exc:
+        logger.exception('Error during check_image_membership task')
+        check_image_membership.retry(exc=exc)
+
+
+def update_membership():
+    from core.models import ApplicationMembership, Provider, ProviderMachine
+    from service.accounts.openstack import AccountDriver as OSAcctDriver
+    from service.accounts.eucalyptus import AccountDriver as EucaAcctDriver
+    for provider in Provider.objects.all():
+        if not provider.is_active():
+            return []
+        if provider.type.name.lower() == 'openstack':
+            driver = OSAcctDriver(provider)
+        else:
+            logger.warn("Encountered unknown ProviderType:%s, expected"
+                        " [Openstack]")
+            continue
+        images = driver.list_all_images()
+        changes = 0
+        for img in images:
+            pm = ProviderMachine.objects.filter(identifier=img.id,
+                                                provider=provider)
+            if not pm:
+                continue
+            app_manager = pm.application.applicationmembership_set
+            if img.is_public == False:
+                #Lookup members
+                image_members = accts.image_manager.shared_images_for(
+                        image_id=img.id)
+                #add machine to each member (Who owns the cred:ex_project_name) in MachineMembership
+                #for member in image_members:
+            else:
+                members = app_manager.all()
+                if members:
+                    logger.info("Application for PM:%s used to be private."
+                                " %s Users membership has been revoked. "
+                                % (img.id, len(members)))
+                    changes += len(members)
+                    members.delete()
+                #if MachineMembership exists, remove it (No longer private)
+    logger.info("Total Updates to machine membership:%s" % changes)
+    return changes
+
+
+def active_instances(instances):
+    tested_instances = {}
+    for instance in instances:
+        results = test_instance_links(instance.alias, instance.ip)
+        tested_instances.update(results)
+    return tested_instances
+
+
+def test_instance_links(alias, uri):
+    from rtwo.linktest import test_link
+    if uri is None:
+        return {alias: {'vnc': False, 'shell': False}}
+    shell_address = '%s/shell/%s/' % (settings.SERVER_URL, uri)
+    try:
+        shell_success = test_link(shell_address)
+    except Exception, e:
+        logger.exception("Bad shell address: %s" % shell_address)
+        shell_success = False
+    vnc_address = 'http://%s:5904' % uri
+    try:
+        vnc_success = test_link(vnc_address)
+    except Exception, e:
+        logger.exception("Bad vnc address: %s" % vnc_address)
+        vnc_success = False
+    return {alias: {'vnc': vnc_success, 'shell': shell_success}}
+
+
+def update_links(instances):
+    from core.models import Instance
+    updated = []
+    linktest_results = active_instances(instances)
+    for (instance_id, link_results) in linktest_results.items():
+        try:
+            update = False
+            instance = Instance.objects.get(provider_alias=instance_id)
+            if link_results['shell'] != instance.shell:
+                logger.debug('Change Instance %s shell %s-->%s' %
+                             (instance, instance.shell,
+                              link_results['shell']))
+                instance.shell = link_results['shell']
+                update = True
+            if link_results['vnc'] != instance.vnc:
+                logger.debug('Change Instance %s VNC %s-->%s' %
+                             (instance, instance.vnc,
+                              link_results['vnc']))
+                instance.vnc = link_results['vnc']
+                update = True
+            if update:
+                instance.save()
+                updated.append(instance)
+        except Instance.DoesNotExist:
+            continue
+    logger.debug("Instances updated: %d" % len(updated))
+    return updated

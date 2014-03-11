@@ -76,4 +76,4 @@ CELERYBEAT_LOG_FILE="/var/log/celery/celerybeat.log"
 CELERYBEAT_PID_FILE="/var/run/celerybeat.pid"
 
 #Default is INFO
-#CELERYBEAT_LOG_LEVEL="INFO"
+CELERYBEAT_LOG_LEVEL="DEBUG"
