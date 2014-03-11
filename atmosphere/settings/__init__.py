@@ -313,6 +313,12 @@ CELERY_DEFAULT_QUEUE='default'
 #             Queue('imaging', routing_key='imaging.#')
 #         )
 CELERYBEAT_SCHEDULE = {
+    "check_image_membership": {
+        "task": "check_image_membership",
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 10*60, "time_limit":2*60,
+                    "queue": "celery_periodic"}
+    },
     "monitor_instances": {
         "task": "monitor_instances",
         "schedule" : timedelta(minutes=15),
@@ -335,12 +341,6 @@ CELERYBEAT_SCHEDULE = {
         "task": "remove_empty_networks",
         "schedule": crontab(hour="*/2", minute="0", day_of_week="*"),
         "options": {"expires":5*60, "time_limit":5*60,
-                    "queue": "celery_periodic"}
-    },
-    "check_image_membership": {
-        "task": "check_image_membership",
-        "schedule": timedelta(minutes=15),
-        "options": {"expires": 10*60, "time_limit":2*60,
                     "queue": "celery_periodic"}
     },
 }
