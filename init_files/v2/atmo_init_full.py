@@ -640,9 +640,9 @@ def shellinaboxd(distro):
 def start_shellinaboxd():
     if not running_process("shellinaboxd"):
         run_command([
-            "/usr/bin/nohup", "/usr/local/bin/shellinaboxd", "-b", "-t",
-            "-f", "beep.wav:/dev/null", ">", "/var/log/atmo/shellinaboxd.log",
-            "2>&1","&"])
+            "/usr/bin/nohup /usr/local/bin/shellinaboxd -b -t "
+            "-f beep.wav:/dev/null > /var/log/atmo/shellinaboxd.log 2>&1 &"
+            ], shell=True)
 
 
 def atmo_cl():

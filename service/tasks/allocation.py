@@ -21,8 +21,7 @@ def monitor_instances():
     """
     Update instances for each active provider.
     """
-    return
-    for p in Provider.objects.filter(active=True, end_date=None):
+    for p in Provider.get_active():
         monitor_instances_for(p)
 
 
@@ -111,6 +110,8 @@ def over_allocation_test(identity, esh_instances):
     over_allocated, time_diff = check_over_allocation(
         identity.created_by.username, identity.id,
         time_period=relativedelta(day=1, months=1))
+    logger.info("Overallocation Test: %s - %s - %s\tInstances:%s"
+                % (identity.created_by.username, over_allocated, time_diff, esh_instances))
     if not over_allocated:
         # Nothing changed, bail.
         return False
