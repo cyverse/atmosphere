@@ -72,17 +72,12 @@ def requestImaging(request, machine_request_id):
     return email_success
 
 
-def requestQuota(request):
+def quota_request_email(request, username, new_quota, reason):
     """
     Processes Increase Quota request. Sends email to atmo@iplantc.org
 
     Returns a response.
     """
-    if request.method != 'POST':
-        return HttpResponse('')
-    username = request.POST['username']
-    new_quota = request.POST['quota']
-    reason = request.POST['reason']
     user = User.objects.get(username=username)
     membership = IdentityMembership.objects.get(identity=user.select_identity(),
             member__in=user.group_set.all())
@@ -98,42 +93,33 @@ def requestQuota(request):
     subject = "Atmosphere Quota Request - %s" % username
     logger.info(message)
     email_success = email_admin(request, subject, message, cc_user=False)
-    resp = json.dumps({})
-    if email_success:
-        return HttpResponse(resp, content_type='application/json')
-    else:
-        return HttpResponseServerError(resp, content_type='application/json')
+    return {"email_sent": email_success}
 
 
-def feedback(request):
+def feedback_email(request, username, user_email, message):
     """
     Sends an email Bto support based on feedback from a client machine
 
     Returns a response.
     """
-    user, user_email = user_address(request)
-    message = request.POST.get('message')
-    subject = 'Subject: Atmosphere Client Feedback from %s' % user
+    subject = 'Subject: Atmosphere Client Feedback from %s' % username
     message = '---\nFeedback: %s\n---' % message
     email_success = email_admin(request, subject, message)
     if email_success:
-        resp = json.dumps({'result':
-                           {'code': 'success',
-                            'meta': '',
-                            'value': 'Thank you for your feedback! '
-                                     + 'Support has been notified.'}})
-        return HttpResponse(resp,
-                            content_type='application/json')
+        resp = {'result':
+                   {'code': 'success',
+                    'meta': '',
+                    'value': 'Thank you for your feedback! '
+                             + 'Support has been notified.'}}
     else:
-        resp = json.dumps({'result':
-                           {'code': 'failed',
-                            'meta': '',
-                            'value': 'Failed to send feedback!'}})
-        return HttpResponse(resp,
-                            content_type='application/json')
+        resp = {'result':
+                {'code': 'failed',
+                 'meta': '',
+                 'value': 'Failed to send feedback!'}}
+    return resp
 
 
-def email_support(request):
+def support_email(request, subject, message):
     """
     Sends an email to support.
 
@@ -144,25 +130,5 @@ def email_support(request):
 
     Returns a response.
     """
-    if request.META['REQUEST_METHOD'] != 'POST':
-        return HttpResponse("Expecting POST with message and subject"
-                            "parameters.")
-    message = request.POST.get('message')
-    if not message:
-        return HttpResponseServerError({'email_sent': False,
-                                        'reason': 'Message contents missing'},
-                                       content_type='application/json')
-    subject = request.POST.get('subject')
-    if not subject:
-        return HttpResponseServerError({'email_sent': False,
-                                        'reason': 'E-Mail Subject missing'},
-                                       content_type='application/json')
-
     email_success = email_admin(request, subject, message)
-    resp = json.dumps({'email_sent': email_success})
-    if email_success:
-        return HttpResponse(resp,
-                            content_type='application/json')
-    else:
-        return HttpResponseServerError(resp,
-                                       content_type='application/json')
+    return {"email_sent": email_success}

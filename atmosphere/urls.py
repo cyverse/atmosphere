@@ -9,6 +9,7 @@ from rest_framework.urlpatterns import format_suffix_patterns
 
 from api.accounts import Account
 from api.application import ApplicationListNoAuth
+from api.email import Feedback, QuotaEmail, SupportEmail
 from api.flow import Flow
 from api.group import GroupList, Group
 from api.identity_membership import IdentityMembershipList, IdentityMembership
@@ -49,21 +50,12 @@ urlpatterns = patterns(
     #url(r'^admin/logs/', 'web.views.logs'),
     url(r'^admin/', include(admin.site.urls)),
 
-    # feedback
-    url(r'^feedback', 'web.emails.feedback'),
-    url(r'^api/v1/email_support', 'web.emails.email_support'),
-
     #v2 api url scheme
     url(r'^auth/$', 'authentication.views.token_auth', name='token-auth'),
 
-    #This is a TEMPORARY url..
-    #In v2 this is /api/provider/<id>/identity/<id>/instance/action
-    #&& POST['action'] = request_image
-    url(r'^api/v1/request_quota/$', 'web.emails.requestQuota'),
-
+    #File Retrieval:
     # static files
     url(r'^init_files/(?P<file_location>.*)$', 'web.views.get_resource'),
-
     # Systemwide
     url(r'^resources/(?P<path>.*)$', 'django.views.static.serve',
         {'document_root': resources_path}),
@@ -71,29 +63,33 @@ urlpatterns = patterns(
     # instance service
     url(r'^instancequery/', 'web.views.ip_request'),
 
-    # default
+    # "The Front Door"
     url(r'^$', 'web.views.redirectApp'),
 
-    #This URL validates the ticket returned after CAS login
+    #CAS Validation:Service URL validates the ticket returned after CAS login
     url(r'^CAS_serviceValidater',
         'authentication.protocol.cas.cas_validateTicket'),
-    #This URL is a dummy callback
+    #A valid callback URL for maintaining proxy requests
+    # This URL retrieves Proxy IOU combination
     url(r'^CAS_proxyCallback',
         'authentication.protocol.cas.cas_proxyCallback'),
-    #This URL records Proxy IOU & ID
+    #This URL retrieves maps Proxy IOU & ID
     url(r'^CAS_proxyUrl',
         'authentication.protocol.cas.cas_storeProxyIOU_ID'),
+    url(r'^CASlogin/(?P<redirect>.*)$', 'authentication.cas_loginRedirect'),
 
+    # Login, Logout, and hit the app
     url(r'^login/$', 'web.views.login'),
     url(r'^logout/$', 'web.views.logout'),
-    url(r'^CASlogin/(?P<redirect>.*)$', 'authentication.cas_loginRedirect'),
     url(r'^application/$', 'web.views.app'),
 
     # Experimental UI
     # TODO: Rename to application when it launches
     # url(r'^beta/', 'web.views.app_beta'), # remove for production.
-
+    #Partials
     url(r'^partials/(?P<path>.*)$', 'web.views.partial'),
+
+    #Redirects
     url(r'^no_user/$', 'web.views.no_user_redirect'),
 
     ### DJANGORESTFRAMEWORK ###
@@ -103,6 +99,12 @@ urlpatterns = patterns(
 
 urlpatterns += format_suffix_patterns(patterns(
     '',
+
+    # E-mail API
+    url(r'^feedback', Feedback.as_view()),
+    url(r'^api/v1/email_support', SupportEmail.as_view()),
+    url(r'^api/v1/request_quota/$', QuotaEmail.as_view()),
+
     url(r'api/v1/version/$', Version.as_view()),
     url(r'^api/v1/maintenance/$',
         MaintenanceRecordList.as_view(),
