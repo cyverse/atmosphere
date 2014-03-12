@@ -275,7 +275,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
         var percent = 0, cssPercent = 0;
 
         if (used > 0) {
-            percent = Math.floor((used / total) * 100);
+            percent = Math.min(100,Math.floor((used / total) * 100));
             cssPercent = (percent > 100) ? 100 : percent;
         }
         else {
@@ -395,7 +395,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
         // Place info into sibling div element
         var info_holder = this.$el.parent().find('#' + this.quota_type + 'Holder_info');
         info_holder.html(info);
-        var remaining = total - used;
+        var remaining = Math.max(0,total - used);
         var remaining_str = remaining + ' ' + quota_unit + 's';
 
         popover_content = 'The graph above represents the <b>' + quota_desc + ' you have currently used</b> for this provider.<br /><br />';
