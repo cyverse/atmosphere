@@ -337,6 +337,7 @@ def destroy_instance(core_identity_id, instance_alias):
 
 @task(name="_deploy_init_to",
       default_retry_delay=32,
+      time_limit=30*60, #30minute hard-set time limit.
       max_retries=10)
 def _deploy_init_to(driverCls, provider, identity, instance_id,
                     password=None, redeploy=False, **celery_task_args):

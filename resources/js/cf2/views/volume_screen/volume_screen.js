@@ -51,7 +51,7 @@ Atmo.Views.VolumeScreen = Backbone.View.extend({
             html: true,
             content: function() {
                 var content = 'A <strong>volume</strong> is like a virtual USB drive, and makes it easy to transfer relatively small data between instances.<br /><br />'
-                	+ 'You can create a volume with a capacity up to 100 GB using the "Create a Volume" form. To store and transfer more data at once, store it in the iPlant Data Store instead. You can mount the Data Store similarly to a volume. (<a href="https://pods.iplantcollaborative.org/wiki/x/S6xm" target="_blank">Learn How</a>)<br /><br />'
+                	+ 'You can create a volume up to the capacity allowed by your Storage Quota using the "Create a Volume" form. If you need more data then is allowed by your Storage Quota, store it in the iPlant Data Store instead. You can mount the Data Store similarly to a volume. (<a href="https://pods.iplantcollaborative.org/wiki/x/S6xm" target="_blank">Learn How</a>)<br /><br />'
                 	+ 'More information about volumes: <ul>'
                 	+ '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm" target="_blank">Creating a Volume</a></li>'
                 	+ '<li><a href="https://pods.iplantcollaborative.org/wiki/x/OKxm#AttachinganEBSVolumetoanInstance-Step3%3AAttachthevolumetotherunninginstance." target="_blank">Attaching a Volume to an Instance</a></li>'
