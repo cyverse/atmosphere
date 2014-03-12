@@ -443,9 +443,6 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 					}});
 					window.app.navigate('instances', {trigger: true, replace: true});
 					self.render();
-					//ANDRE ADDED CODE FOR TESTING
-					console.log("TESTING FOR PARAMS\n\n\n");
-					console.log(params);
                     			Atmo.Utils.notify("Instance Launched", "Your instance will be ready soon.");
 				},
 				error: function(model,xhr,options) {
