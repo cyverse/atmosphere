@@ -17,7 +17,7 @@ from api.identity import IdentityList, Identity, IdentityDetailList
 from api.instance import InstanceList, Instance,\
     InstanceAction, InstanceHistory
 from api.machine import MachineList, Machine, MachineHistory,\
-    MachineSearch
+    MachineSearch, MachineVote
 from api.machine_request import MachineRequestList, MachineRequest,\
     MachineRequestStaffList, MachineRequestStaff
 from api.machine_export import MachineExportList, MachineExport
@@ -226,6 +226,11 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/v1/provider/(?P<provider_id>\d+)'
         + '/identity/(?P<identity_id>\d+)/machine/(?P<machine_id>[a-zA-Z0-9-]+)/$',
         Machine.as_view(), name='machine-detail'),
+    url(r'^api/v1/provider/(?P<provider_id>\d+)'
+        + '/identity/(?P<identity_id>\d+)'
+        + '/machine/(?P<machine_id>[a-zA-Z0-9-]+)'
+        + '/vote/$',
+        MachineVote.as_view(), name='machine-vote'),
 
 
     url(r'^api/v1/provider/(?P<provider_id>\d+)'

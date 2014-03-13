@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from uuid import uuid5, UUID
 from threepio import logger
@@ -28,6 +29,12 @@ class Application(models.Model):
     # User/Identity that created the application object
     created_by = models.ForeignKey('AtmosphereUser')
     created_by_identity = models.ForeignKey(Identity, null=True)
+
+    def get_scores(self):
+        (ups, downs, total) = ApplicationScore.get_scores(self)
+        return {"up": ups,
+                "down": downs, 
+                "total": total}
 
     def icon_url(self):
         return self.icon.url if self.icon else None
@@ -158,4 +165,82 @@ def create_application(identifier, provider_id, name=None,
         updateTags(new_app, tags, owner.created_by)
     return new_app
 
+class ApplicationScore(models.Model):
+    """
+    Users can Cast their "Score" -1/0/+1 on a specific Application.
+    -1 = Vote Down
+     0 = Vote Removed
+    +1 = Vote Up
+    """
+    application = models.ForeignKey(Application, related_name="scores")
+    score = models.IntegerField(default=0)
+    user = models.ForeignKey('AtmosphereUser')
+    start_date = models.DateTimeField(default=timezone.now)
+    end_date = models.DateTimeField(null=True, blank=True)
+
+    def get_vote_name(self):
+        if self.score > 0:
+            return "Up"
+        elif self.score < 0:
+            return "Down"
+        else:
+            return ""
+
+    class Meta:
+        db_table = 'application_score'
+        app_label = 'core'
+
+    @classmethod
+    def last_vote(cls, application, user):
+        votes_cast = ApplicationScore.objects.filter(
+                Q(end_date=None) | Q(end_date__gt=timezone.now()),
+                application=application, user=user)
+        return votes_cast[0] if votes_cast else None
+
+    @classmethod
+    def get_scores(cls, application):
+        scores = ApplicationScore.objects.filter(
+                Q(end_date=None) | Q(end_date__gt=timezone.now()),
+                application=application)
+        ups = downs = 0
+        for app_score in scores:
+            if app_score.score > 0:
+                ups += 1
+            elif app_score.score < 0:
+                downs += 1
+        total = len(scores)
+        return (ups, downs, total)
+
+    @classmethod
+    def downvote(cls, application, user):
+        prev_vote = cls.last_vote(application, user)
+        if prev_vote:
+            prev_vote.end_date = timezone.now()
+            prev_vote.save()
+        return ApplicationScore.objects.create(
+                application=application,
+                user=user,
+                score=-1)
+
+    @classmethod
+    def novote(cls, application, user):
+        prev_vote = cls.last_vote(application, user)
+        if prev_vote:
+            prev_vote.end_date = timezone.now()
+            prev_vote.save()
+        return ApplicationScore.objects.create(
+                application=application,
+                user=user,
+                score=0)
+
+    @classmethod
+    def upvote(cls, application, user):
+        prev_vote = cls.last_vote(application, user)
+        if prev_vote:
+            prev_vote.end_date = timezone.now()
+            prev_vote.save()
+        return ApplicationScore.objects.create(
+                application=application,
+                user=user,
+                score=1)
 

@@ -40,6 +40,7 @@ class ProviderMachine(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
     version = VersionNumberField(default=int(VersionNumber(1,)))
 
+    
     def icon_url(self):
         return self.application.icon.url if self.application.icon else None
 
