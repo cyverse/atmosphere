@@ -65,7 +65,7 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 
 		this.rendered = true;
 		//if (this.model.get('state').indexOf('-') != -1 && Atmo.profile.get('selected_identity').get('provider_id') == 2)
-		if (this.model.get('state').indexOf('-') != -1)
+		if (this.model.get('state').indexOf('-') != -1 && Atmo.providers.get(Atmo.profile.get('selected_identity').get('provider_id')).get('type').toLowerCase() == "openstack")
 			this.trigger_transition();
 
 		return this;
@@ -158,7 +158,7 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 
 		// Now, deal with task states -- initialize task format: 'state - task' 
 		//if (this.model.get('state').indexOf('-') != -1 && Atmo.profile.get('selected_identity').get('provider_id') == 2) {
-		if (this.model.get('state').indexOf('-') != -1) {
+		if (this.model.get('state').indexOf('-') != -1 && Atmo.providers.get(Atmo.profile.get('selected_identity').get('provider_id')).get('type').toLowerCase() == "openstack") {
 			this.add_instance_task();
 
 			setTimeout(function() {
