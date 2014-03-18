@@ -286,7 +286,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 			this.$el.find('#euca_controls').fadeIn('fast');
 		}
-
+	this.$el.find('.reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
         this.display_graph();
 
 		// Shutting-down/terminted instances should have terminate button disabled

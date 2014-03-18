@@ -53,7 +53,7 @@ def add_fixed_ip(driverCls, provider, identity, instance_id):
         i_task = instance._node.extra['task']
         if i_status not in ['active', 'suspended'] or i_task:
                     raise Exception("Instance %s Status %s Task %s - Not Ready"
-                                    % instance.id, i_status, i_task)
+                                    % (instance.id, i_status, i_task))
         if instance._node.private_ips:
             return instance
         network_id = instance_service._convert_network_name(
@@ -62,10 +62,10 @@ def add_fixed_ip(driverCls, provider, identity, instance_id):
         logger.debug("add_fixed_ip task finished at %s." % datetime.now())
         return fixed_ip
     except Exception as exc:
-        if "Not Ready" in str(exc):
-            add_fixed_ip.retry(exc=exc)
-        else:
+        if "Not Ready" not in str(exc):
+            # Ignore 'normal' errors.
             logger.exception(exc)
+        add_fixed_ip.retry(exc=exc)
 
 @task(name="clear_empty_ips")
 def clear_empty_ips():
