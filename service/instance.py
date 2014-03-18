@@ -36,14 +36,14 @@ def reboot_instance(esh_driver, esh_instance):
 def resize_instance(esh_driver, esh_instance, size_alias,
                     provider_id, identity_id, user):
     size = esh_driver.get_size(size_alias)
+    redeploy_task = resize_and_redeploy(esh_driver, esh_instance)
     esh_driver.resize_instance(esh_instance, size)
+    redeploy_task.apply_async()
     #Write build state for new size
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
 def confirm_resize(esh_driver, esh_instance, provider_id, identity_id, user):
     esh_driver.confirm_resize_instance(esh_instance)
-    #Don't wait, it's already active, redeploy immediately
-    redeploy_init(esh_driver, esh_instance, countdown=None)
     #Double-Check we are counting on new size
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
@@ -113,6 +113,22 @@ def _convert_network_name(esh_driver, esh_instance):
 
     return network_id
 
+def resize_and_redeploy(esh_driver, esh_instance):
+    """
+    Use this function to kick off the async task when you ONLY want to deploy
+    (No add fixed, No add floating)
+    """
+    from service.tasks.driver import deploy_init_to, wait_for
+    logger.info("Add floating IP and Deploy")
+    task_one = wait_for.s(esh_driver.__class__, esh_driver.provider,
+                     esh_driver.identity, esh_instance.id, "verify_resize")
+    task_two = deploy_init_to.si(esh_driver.__class__, esh_driver.provider,
+                     esh_driver.identity, esh_instance.id,
+                     redeploy=True)
+    task_one.link(task_two)
+    return task_one
+
+
 def redeploy_init(esh_driver, esh_instance, countdown=None):
     """
     Use this function to kick off the async task when you ONLY want to deploy
@@ -128,27 +144,32 @@ def redeploy_init(esh_driver, esh_instance, countdown=None):
 def restore_ip_chain(esh_driver, esh_instance, redeploy=False):
     """
     Returns: a task, chained together
-    Fixed --> Floating --> Deploy (if redeploy) 
+    Wait_for (Active,Suspended) --> Fixed --> Floating --> Deploy (if redeploy) 
     start with: task.apply_async()
     """
     from service.tasks.driver import \
-            add_fixed_ip, add_floating_ip, deploy_init_to
+            wait_for, add_fixed_ip, add_floating_ip, deploy_init_to
     #Step 1: Add fixed
-    init_task = add_fixed_ip.s(
+    init_task = wait_for.s(
+            esh_driver.__class__, esh_driver.provider,
+            esh_driver.identity, esh_instance.id, ["active","suspended"],
+            no_tasks=True)
+    fixed_ip_task = add_fixed_ip.si(
             esh_driver.__class__, esh_driver.provider,
             esh_driver.identity, esh_instance.id)
+    init_task.link(fixed_ip_task)
     #Add float and re-deploy OR just add floating IP...
     if redeploy:
-        next_task = deploy_init_to.si(esh_driver.__class__, esh_driver.provider,
+        deploy_task = deploy_init_to.si(esh_driver.__class__, esh_driver.provider,
                      esh_driver.identity, esh_instance.id,
                      redeploy=True)
-        init_task.link(next_task)
+        fixed_ip_task.link(deploy_task)
     else:
         logger.info("Skip deployment, Add floating IP only")
-        next_task = add_floating_ip.si(esh_driver.__class__, esh_driver.provider,
+        floating_ip_task = add_floating_ip.si(esh_driver.__class__, esh_driver.provider,
                           esh_driver.identity,
                           esh_instance.id)
-        init_task.link(next_task)
+        fixed_ip_task.link(floating_ip_task)
     return init_task
 
 
@@ -261,7 +282,7 @@ def resume_instance(esh_driver, esh_instance,
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
-    from service.tasks.driver import update_metadata, add_fixed_ip
+    from service.tasks.driver import update_metadata
     size = esh_driver.get_size(esh_instance.size.id)
     check_quota(user.username, identity_id, size, resuming=True)
     #admin_capacity_check(provider_id, esh_instance.id)

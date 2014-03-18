@@ -36,6 +36,39 @@ def print_debug():
     print log_str
     logger.debug(log_str)
 
+@task(name="wait_for", max_retries=250, default_retry_delay=15)
+def wait_for(driverCls, provider, identity, instance_alias, status_qualifier,
+        no_tasks=False):
+    """
+    #Task makes 250 attempts to 'look at' the instance, waiting 15sec each try
+    Cumulative time == 1 hour 2 minutes 30 seconds before FAILURE
+
+    status_qualifier = "active" Match only one value, active
+    status_qualifier = ["active","suspended"] or match multiple values.
+    """
+    from service import instance as instance_service
+    try:
+        logger.debug("wait_for task started at %s." % datetime.now())
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_alias)
+        if not instance:
+            logger.debug("Instance has been teminated: %s." % instance_id)
+            return False
+        i_status = instance._node.extra['status'].lower()
+        i_task = instance._node.extra['task']
+        if i_status not in status_qualifier or (i_task and no_tasks):
+            raise Exception(
+                    "Instance: %s Status: %s Task: %s - Not Ready"
+                    % (instance.id, i_status, i_task))
+        logger.debug("Instance %s Status: %s Task:%s - Ready"
+                     % (instance.id, i_status, i_task))
+        return True
+    except Exception as exc:
+        if "Not Ready" not in str(exc):
+            # Ignore 'normal' errors.
+            logger.exception(exc)
+        wait_for.retry(exc=exc)
+
 @task(name="add_fixed_ip",
         ignore_result=True,
         default_retry_delay=15,
@@ -49,11 +82,6 @@ def add_fixed_ip(driverCls, provider, identity, instance_id):
         if not instance:
             logger.debug("Instance has been teminated: %s." % instance_id)
             return None
-        i_status = instance._node.extra['status']
-        i_task = instance._node.extra['task']
-        if i_status not in ['active', 'suspended'] or i_task:
-                    raise Exception("Instance %s Status %s Task %s - Not Ready"
-                                    % (instance.id, i_status, i_task))
         if instance._node.private_ips:
             return instance
         network_id = instance_service._convert_network_name(
@@ -398,25 +426,6 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata):
         logger.exception(exc)
         update_metadata.retry(exc=exc)
 
-def eager_update_metadata(driver, instance, metadata):
-    """
-    Used for TESTING ONLY. NEVER called in normal celery operation.
-    """
-    while 1:
-        #Check if instance is terminated or no longer building.
-        if not instance or instance.extra['status'] != 'build':
-            break
-        #Wait 1min try again
-        wait_time = 1*60
-        logger.info("Always Eager Detected and instance is not active"
-                    ". Will wait 1 minute and check again to avoid"
-                    " stack overflow from immediately retrying.."
-                    )
-        time.sleep(wait_time*60)
-        # Update reference for the instance to see if its 'done'
-        instance = driver.get_instance(instance_id)
-    return update_instance_metadata(
-        driver, instance, data=metadata, replace=False)
 
 # Floating IP Tasks
 @task(name="add_floating_ip",

@@ -1010,7 +1010,6 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vncl
     denyhost_whitelist()
     modify_rclocal(linuxuser, distro, hostname)
     notify_launched_instance(instance_data, instance_metadata)
-    logging.info("Complete.")
 
 
 ##MAIN##
@@ -1077,6 +1076,7 @@ def main(argv):
         instance_metadata = get_metadata()
         logging.debug("Instance metadata - %s" % instance_metadata)
         deploy_atmo_init(user_id, instance_data, instance_metadata, root_password, vnclicense)
+    logging.info("Complete.")
 
 
 if __name__ == "__main__":
