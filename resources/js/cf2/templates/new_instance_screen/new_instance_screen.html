@@ -90,6 +90,7 @@
                 </div>
             </div>
 
+
             <hr />
 
             <div class="form-group">
@@ -118,7 +119,16 @@
                         <div style="padding-top:5px" id="newinst_tags">
                         </div>
                      </div>
+                 </div>
+                 <% if (is_staff == true ) { %>
+                 <!-- show this dropdown only when is_staff == true -->
+                <div class="form-group">
+                    <label class="col-sm-2 control-label"> Instance Compute Node (Staff Only) </label>
+                    <div class="col-sm-5">
+                        <select class="form-control" id="newinst_hypervisor" name="newinst_hypervisor"></select>
+                    </div>
                 </div>
+                <% } %>
 
             </div>		
 

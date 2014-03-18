@@ -17,7 +17,7 @@ from api.identity import IdentityList, Identity, IdentityDetailList
 from api.instance import InstanceList, Instance,\
     InstanceAction, InstanceHistory
 from api.machine import MachineList, Machine, MachineHistory,\
-    MachineSearch
+    MachineSearch, MachineVote
 from api.machine_request import MachineRequestList, MachineRequest,\
     MachineRequestStaffList, MachineRequestStaff
 from api.machine_export import MachineExportList, MachineExport
@@ -28,6 +28,7 @@ from api.occupancy import Occupancy, Hypervisor
 from api.profile import Profile
 from api.provider import ProviderList, Provider
 from api.size import SizeList, Size
+from api.hypervisor import HypervisorList, HypervisorDetail
 from api.step import StepList, Step
 from api.tag import TagList, Tag
 from api.user import UserManagement, User
@@ -182,6 +183,12 @@ urlpatterns += format_suffix_patterns(patterns(
         + '/identity/(?P<identity_id>\d+)/instance/$',
         InstanceList.as_view(), name='instance-list'),
 
+    url(r'^api/v1/provider/(?P<provider_id>\d+)'
+        + '/identity/(?P<identity_id>\d+)/hypervisor/$',
+        HypervisorList.as_view(), name='hypervisor-list'),
+    url(r'^api/v1/provider/(?P<provider_id>\d+)'
+        + '/identity/(?P<identity_id>\d+)/hypervisor/(?P<hypervisor_id>\d+)/$',
+        HypervisorDetail.as_view(), name='hypervisor-detail'),
 
     url(r'^api/v1/provider/(?P<provider_id>\d+)'
         + '/identity/(?P<identity_id>\d+)/size/$',
@@ -219,6 +226,11 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/v1/provider/(?P<provider_id>\d+)'
         + '/identity/(?P<identity_id>\d+)/machine/(?P<machine_id>[a-zA-Z0-9-]+)/$',
         Machine.as_view(), name='machine-detail'),
+    url(r'^api/v1/provider/(?P<provider_id>\d+)'
+        + '/identity/(?P<identity_id>\d+)'
+        + '/machine/(?P<machine_id>[a-zA-Z0-9-]+)'
+        + '/vote/$',
+        MachineVote.as_view(), name='machine-vote'),
 
 
     url(r'^api/v1/provider/(?P<provider_id>\d+)'

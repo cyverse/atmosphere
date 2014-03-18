@@ -40,6 +40,7 @@ class ProviderMachine(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
     version = VersionNumberField(default=int(VersionNumber(1,)))
 
+    
     def icon_url(self):
         return self.application.icon.url if self.application.icon else None
 
@@ -64,8 +65,9 @@ class ProviderMachine(models.Model):
 
     def esh_ownerid(self):
         if self.esh and self.esh._image\
-           and self.esh._image.extra:
-            return self.esh._image.extra.get('ownerid', "admin")
+           and self.esh._image.extra\
+           and self.esh._image.extra.get('metadata'):
+            return self.esh._image.extra['metadata'].get('application_owner', "admin")
 
     def esh_state(self):
         if self.esh and self.esh._image\

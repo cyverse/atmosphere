@@ -1,4 +1,4 @@
-from core.models.application import Application
+from core.models.application import Application, ApplicationScore
 from core.models.credential import Credential
 from core.models.group import IdentityMembership
 from core.models.identity import Identity
@@ -36,6 +36,7 @@ class ApplicationSerializer(serializers.Serializer):
     created_by = serializers.SlugRelatedField(slug_field='username',
                                               source='created_by',
                                               read_only=True)
+    scores = serializers.Field(source='get_scores')
     #Writeable Fields
     name = serializers.CharField(source='name')
     tags = serializers.CharField(source='tags.all')
@@ -50,6 +51,18 @@ class ApplicationSerializer(serializers.Serializer):
     class Meta:
         model = Application
     
+class ApplicationScoreSerializer(serializers.ModelSerializer):
+    """
+    """
+    #TODO:Need to validate provider/identity membership on id change
+    username = serializers.CharField(read_only=True, source='user.username')
+    application = serializers.CharField(read_only=True, source='application.name')
+    vote = serializers.CharField(read_only=True, source='get_vote_name')
+
+    class Meta:
+        model = ApplicationScore
+        fields = ('username',"application", "vote")
+
 
 class CredentialSerializer(serializers.ModelSerializer):
     class Meta:
@@ -316,6 +329,7 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
                                          source='esh_architecture')
     ownerid = serializers.CharField(read_only=True, source='esh_ownerid')
     state = serializers.CharField(read_only=True, source='esh_state')
+    scores = serializers.SerializerMethodField('get_scores')
     #Writeable fields
     name = serializers.CharField(source='application.name')
     tags = serializers.CharField(source='application.tags.all')
@@ -326,6 +340,27 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     featured = serializers.BooleanField(source='application.featured')
     version = serializers.CharField(source='version')
 
+    def __init__(self, *args, **kwargs):
+        self.request_user = kwargs.pop('request_user',None)
+        super(ProviderMachineSerializer, self).__init__(*args, **kwargs)
+
+    def get_scores(self, pm):
+        app = pm.application
+        scores = app.get_scores()
+        update_dict = {
+                "has_voted": False,
+                "vote_cast": None
+                }
+        if not self.request_user:
+            scores.update(update_dict)
+            return scores
+        last_vote = ApplicationScore.last_vote(app, self.request_user)
+        if last_vote:
+            update_dict["has_voted"] = True
+            update_dict["vote_cast"] = last_vote.get_vote_name()
+        scores.update(update_dict)
+        return scores
+    
     class Meta:
         model = ProviderMachine
         exclude = ('id', 'provider', 'application', 'identity')

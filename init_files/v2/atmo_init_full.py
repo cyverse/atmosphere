@@ -1013,6 +1013,11 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vncl
     logging.info("Complete.")
 
 
+def add_zsh():
+    if os.path.exists("/bin/zsh") and not os.path.exists("/usr/bin/zsh"):
+        run_command(['ln', '-s', '/bin/zsh', '/usr/bin/zsh'])
+            
+
 ##MAIN##
 def main(argv):
     init_logs('/var/log/atmo/atmo_init_full.log')
@@ -1071,6 +1076,7 @@ def main(argv):
     logging.debug("Atmoserver - %s" % ATMOSERVER)
     logging.debug("Atmosphere init parameters- %s" % instance_data)
     set_user_home_dir()
+    add_zsh()
     if redeploy:
         redeploy_atmo_init(user_id)
     else:

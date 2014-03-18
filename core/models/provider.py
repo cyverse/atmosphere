@@ -15,7 +15,7 @@ class PlatformType(models.Model):
     Keep track of Virtualization Platform via type
     """
     name = models.CharField(max_length=256)
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     def json(self):
@@ -35,7 +35,7 @@ class ProviderType(models.Model):
     Keep track of Provider via type
     """
     name = models.CharField(max_length=256)
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     def json(self):

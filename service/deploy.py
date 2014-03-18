@@ -10,6 +10,7 @@ from threepio import logger
 
 from atmosphere import settings
 from atmosphere.settings import secrets
+from authentication.protocol import ldap
 
 
 #
@@ -125,14 +126,19 @@ def chmod_ax_file(filename, logfile=None):
         logfile=logfile)
 
 
-def package_deps(logfile=None):
+def package_deps(logfile=None, username=None):
     #These requirements are for Editors, Shell-in-a-box, etc.
     do_ubuntu = "apt-get update;apt-get install -y emacs vim wget "\
                 + "language-pack-en make gcc g++ gettext texinfo "\
-                + "autoconf automake python-httplib2"
+                + "autoconf automake python-httplib2 "
     do_centos = "yum install -y emacs vim-enhanced wget make "\
                 + "gcc gettext texinfo autoconf automake "\
-                + "python-simplejson python-httplib2"
+                + "python-simplejson python-httplib2 "
+
+    if shell_lookup_helper(username):
+        do_ubuntu = do_ubuntu + "zsh "
+        do_centos = do_centos + "zsh "
+
     return LoggedScriptDeployment(
         "distro_cat=`cat /etc/*-release`\n"
         + "if [[ $distro_cat == *Ubuntu* ]]; then\n"
@@ -143,6 +149,15 @@ def package_deps(logfile=None):
         name="./deploy_package_deps.sh",
         logfile=logfile)
 
+def shell_lookup_helper(username):
+    zsh_user = False
+    ldap_info = ldap._search_ldap(username)
+    ldap_info_dict = ldap_info[0][1]
+    for key in ldap_info_dict.iterkeys():
+        if key == "loginShell":
+            if 'zsh' in ldap_info_dict[key][0]:
+                zsh_user = True
+    return zsh_user
 
 def redeploy_script(filename, username, instance, logfile=None):
         awesome_atmo_call = "%s --service_type=%s --service_url=%s"
@@ -229,7 +244,7 @@ def init(instance, username, password=None, redeploy=False, *args, **kwargs):
 
         script_init = init_log()
 
-        script_deps = package_deps()
+        script_deps = package_deps(logfile,username)
 
         script_wget = wget_file(atmo_init, url, logfile)
 

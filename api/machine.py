@@ -15,6 +15,7 @@ from threepio import logger
 from authentication.decorators import api_auth_token_required
 
 from core.models import AtmosphereUser as User
+from core.models.application import ApplicationScore
 from core.models.identity import Identity
 from core.models.machine import compare_core_machines, filter_core_machine,\
     convert_esh_machine, ProviderMachine
@@ -25,7 +26,7 @@ from service.machine_search import search, CoreSearchProvider
 from api import prepare_driver, failure_response, invalid_creds
 from api.permissions import InMaintenance
 from api.serializers import ProviderMachineSerializer,\
-    PaginatedProviderMachineSerializer
+    PaginatedProviderMachineSerializer, ApplicationScoreSerializer
 
 
 def provider_filtered_machines(request, provider_id,
@@ -89,6 +90,7 @@ class MachineList(APIView):
         except:
             return invalid_creds(provider_id, identity_id)
         serialized_data = ProviderMachineSerializer(filtered_machine_list,
+                                                    request_user=request.user,
                                                     many=True).data
         response = Response(serialized_data)
         return response
@@ -144,7 +146,8 @@ class MachineHistory(APIView):
                     history_machine_page).data
         else:
             serialized_data = ProviderMachineSerializer(
-                history_machine_list).data
+                history_machine_list,
+                request_user=request.user).data
 
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
@@ -206,7 +209,8 @@ class MachineSearch(APIView):
                     search_page).data
         else:
             serialized_data = ProviderMachineSerializer(
-                search_result).data
+                search_result,
+                request_user=request.user).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
@@ -233,7 +237,8 @@ class Machine(APIView):
         #     if not covered by calling as the users driver..
         esh_machine = esh_driver.get_machine(machine_id)
         core_machine = convert_esh_machine(esh_driver, esh_machine, provider_id)
-        serialized_data = ProviderMachineSerializer(core_machine).data
+        serialized_data = ProviderMachineSerializer(core_machine,
+                                                    request_user=request.user).data
         response = Response(serialized_data)
         return response
 
@@ -260,6 +265,7 @@ class Machine(APIView):
                 + "are allowed to change machine info.")
         core_machine.application.update(request.DATA)
         serializer = ProviderMachineSerializer(core_machine,
+                                               request_user=request.user,
                                                data=data, partial=True)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
@@ -294,6 +300,7 @@ class Machine(APIView):
                 + 'are allowed to change machine info.')
         core_machine.application.update(data)
         serializer = ProviderMachineSerializer(core_machine,
+                                               request_user=request.user,
                                                data=data, partial=True)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
@@ -304,3 +311,63 @@ class Machine(APIView):
         return failure_response(
             status.HTTP_400_BAD_REQUEST,
             serializer.errors)
+
+
+class MachineVote(APIView):
+    """
+    Represents:
+        Calls to modify the single machine
+    TODO: DELETE when we allow owners to 'end-date' their machine..
+    """
+
+    @api_auth_token_required
+    def get(self, request, provider_id, identity_id, machine_id):
+        """
+        Lookup the machine information
+        (Lookup using the given provider/identity)
+        Update on server (If applicable)
+        """
+        core_machine = ProviderMachine.objects.filter(provider__id=provider_id,
+                identifier=machine_id)
+        if not core_machine:
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Machine id %s does not exist" % machine_id)
+
+        app = core_machine[0].application
+        vote = ApplicationScore.last_vote(app, request.user)
+        serialized_data = ApplicationScoreSerializer(vote).data
+        return Response(serialized_data, status=status.HTTP_201_CREATED)
+
+    @api_auth_token_required
+    def post(self, request, provider_id, identity_id, machine_id):
+        """
+        TODO: Determine who is allowed to edit machines besides
+        core_machine.owner
+        """
+        user = request.user
+        data = request.DATA
+        if 'vote' not in data:
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Vote missing from data")
+        vote = data['vote']
+
+        core_machine = ProviderMachine.objects.filter(provider__id=provider_id,
+                identifier=machine_id)
+        if not core_machine:
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Machine id %s does not exist" % machine_id)
+
+        app = core_machine[0].application
+
+        if 'up' in vote:
+            vote = ApplicationScore.upvote(app, user)
+        elif 'down' in vote:
+            vote = ApplicationScore.downvote(app, user)
+        else:
+            vote = ApplicationScore.novote(app, user)
+
+        serialized_data = ApplicationScoreSerializer(vote).data
+        return Response(serialized_data, status=status.HTTP_201_CREATED)

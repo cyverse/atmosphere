@@ -44,6 +44,10 @@ Atmo.Router = Backbone.Router.extend({
         Atmo.instances = new Atmo.Collections.Instances();
         Atmo.volumes = new Atmo.Collections.Volumes();
         Atmo.images = new Atmo.Collections.Machines();
+        if (Atmo.profile.get('is_staff') === true) {
+            Atmo.instance_hypervisors = new Atmo.Collections.Hypervisors();
+            Atmo.instance_hypervisors.fetch({async: false});
+        }
         Atmo.instance_types = new Atmo.Collections.Sizes();
 
       Atmo.notifications = new Atmo.Collections.Notifications();
