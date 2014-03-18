@@ -351,9 +351,9 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
             start_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%SZ')
         start_date = start_date.replace(tzinfo=pytz.utc)
 
-        logger.debug("Instance %s" % instance_id)
-        logger.debug("CREATED: %s" % create_stamp)
-        logger.debug("START: %s" % start_date)
+        logger.debug("Instance: %s" % instance_id)
+        logger.debug("Launched At: %s" % create_stamp)
+        logger.debug("Started At: %s" % start_date)
         coreMachine = convert_esh_machine(esh_driver, eshMachine, provider_id,
                                         image_id=esh_instance.image_id)
         core_instance = create_instance(provider_id, identity_id, instance_id,
