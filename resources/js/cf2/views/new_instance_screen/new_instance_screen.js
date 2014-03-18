@@ -13,7 +13,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		//'dblclick .image_list > li' : 'quick_launch',
 		'click #help_request_more_resources2' : 'show_request_resources_modal',
 	},
-    template: _.template(Atmo.Templates.new_instance_screen),
+	template: _.template(Atmo.Templates.new_instance_screen),
 	initialize: function(options) {
 		Atmo.images.bind('reset', this.render_image_list, this);
 		Atmo.images.bind('fail', this.report_error_image_list, this);
@@ -27,7 +27,7 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
         this.tagger = null;
 	},
 	render: function() {
-		this.$el.html(this.template({"is_staff": Atmo.profile.get('is_staff')}));
+		this.$el.html(this.template());
 
 		this.mem_resource_chart = new Atmo.Views.ResourceCharts({
 			el: this.$el.find('#memHolder'),
@@ -188,11 +188,6 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		this.filter_image_list();
     },
 	render_instance_type_list: function() {
-        if (Atmo.profile.get("is_staff") === true) {
-            new Atmo.Views.HypervisorDropdown({
-                el: this.$el.find('#newinst_hypervisor')[0]
-            }).render();
-        }
         new Atmo.Views.InstanceSizeDropdown({
             el: this.$el.find('#newinst_size')[0]
         }).render();
@@ -414,10 +409,6 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 		  'tags': this.tagger.get_tags()
 		};
 
-        if ( Atmo.profile.get('is_staff') === true 
-                && $(form.newinst_hypervisor).val() !== "") {
-          params.hypervisor = $(form.newinst_hypervisor).val()
-        }
 		var error_elements = [];
 		var errors = [];
 
@@ -452,9 +443,6 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
 					}});
 					window.app.navigate('instances', {trigger: true, replace: true});
 					self.render();
-					//ANDRE ADDED CODE FOR TESTING
-					console.log("TESTING FOR PARAMS\n\n\n");
-					console.log(params);
                     			Atmo.Utils.notify("Instance Launched", "Your instance will be ready soon.");
 				},
 				error: function(model,xhr,options) {
