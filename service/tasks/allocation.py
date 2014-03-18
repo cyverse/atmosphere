@@ -60,8 +60,8 @@ def monitor_instances_for(provider):
         try:
             user = AtmosphereUser.objects.get(username=username)
             group = Group.objects.get(name=user.username)
-            id = user.identity_set.get(provider=provider)
-            im = id.identitymembership_set.get(member=group)
+            ident = user.identity_set.get(provider=provider)
+            im = ident.identitymembership_set.get(member=group)
             if not im.allocation:
                 continue
             instances = instance_map[username]
@@ -72,7 +72,6 @@ def monitor_instances_for(provider):
             update_instances(im.identity, instances, core_instances)
         except:
             logger.exception("Unable to monitor User:%s" % username)
-            raise
     logger.info("Monitoring completed")
 
     

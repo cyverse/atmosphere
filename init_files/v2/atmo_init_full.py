@@ -629,7 +629,7 @@ def shellinaboxd(distro):
     download_file('%s/init_files/%s/shellinaboxd-install.sh'
                   % (ATMOSERVER, SCRIPT_VERSION),
                   shellinaboxd_file,
-                  match_hash='a2930f7cfe32df3d3d2e991e01cb0013d1071f15')
+                  match_hash='1e057ca1ac9986cb829d5c138d4f7d9532dcab12')
     run_command(['/bin/chmod', 'a+x', shellinaboxd_file])
     run_command([shellinaboxd_file], shell=True)
     run_command(['rm -rf '

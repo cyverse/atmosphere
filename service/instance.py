@@ -264,7 +264,7 @@ def resume_instance(esh_driver, esh_instance,
     from service.tasks.driver import update_metadata, add_fixed_ip
     size = esh_driver.get_size(esh_instance.size.id)
     check_quota(user.username, identity_id, size, resuming=True)
-    admin_capacity_check(provider_id, esh_instance.id)
+    #admin_capacity_check(provider_id, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
         deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=False)
