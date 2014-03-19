@@ -83,6 +83,7 @@ class Instance(models.Model):
                     #Atmosphere Task-specific lines
                     'networking':'build',
                     'deploying':'build',
+                    'deploy_error':'build',
                     #There are more.. Must find table..
             }
             status_2 = task_to_status.get(task,'')
