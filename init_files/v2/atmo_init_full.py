@@ -439,7 +439,7 @@ def running_process(proc_name, user=None):
 
 def vnc(user, distro, license=None):
     try:
-        if not os.path.isfile('/usr/bin/xterm'):
+        if not os.path.isfile('/usr/bin/X'):
             logging.debug("Could not find a GUI on this machine, "
                           "Skipping VNC Install.")
             return
