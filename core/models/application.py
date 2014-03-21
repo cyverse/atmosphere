@@ -50,6 +50,7 @@ class Application(models.Model):
 
     def save(self, *args, **kwargs):
         """
+        TODO:
         When an application changes from public to private,
         or makes a change to the access_list,
         update the applicable images/provider_machines
@@ -117,11 +118,60 @@ class ApplicationMembership(models.Model):
     group = models.ForeignKey('Group')
     can_edit = models.BooleanField(default=False)
 
+    def __unicode__(self):
+        return "%s %s %s" %\
+            (self.group.name,
+             "can edit" if self.can_edit else "can view",
+             self.application.name)
+
     class Meta:
         db_table = 'application_membership'
         app_label = 'core'
         unique_together = ('application', 'group')
 
+def public_applications():
+    apps = []
+    for app in Application.objects.filter(
+            Q(end_date=None) | Q(end_date__gt=timezone.now()),
+            private=False):
+        if any(pm.provider.is_active()
+               for pm in 
+               app.providermachine_set.filter(
+                   Q(end_date=None) | Q(end_date__gt=timezone.now()))):
+            _add_app(apps, app)
+    return apps
+
+def visible_applications(user):
+    apps = []
+    if not user:
+        return apps
+    from core.models import Provider, ProviderMachineMembership
+    active_providers = Provider.get_active()
+    now_time = timezone.now()
+    #Look only for 'Active' private applications
+    for app in Application.objects.filter(
+            Q(end_date=None) | Q(end_date__gt=now_time),
+            private=True):
+        #Retrieve the machines associated with this app
+        machine_set = app.providermachine_set.filter(
+                   Q(end_date=None) | Q(end_date__gt=now_time))
+        #Skip app if all their machines are on inactive providers.
+        if all(not pm.provider.is_active() for pm in machine_set):
+            continue
+        #Add the application if 'user' is a member of the application or PM
+        if app.members.filter(user=user):
+            _add_app(apps, app)
+        for pm in machine_set:
+            if pm.members.filter(user=user):
+                _add_app(apps, app)
+                break
+    return apps
+
+def _add_app(app_list, app):
+    if app not in app_list:
+        app_list.append(app)
+
+    
 
 def get_application(identifier, app_uuid=None):
     if not app_uuid:

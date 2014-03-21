@@ -90,10 +90,38 @@ def atmo_valid_token_required(func):
             return HttpResponseForbidden("403 Forbidden")
     return atmo_validate_token
 
+def validate_request_user(request):
+    """
+    Used for requests that require a valid token
+    NOTE: Calling request.user for the first time will call 'authenticate'
+        in the auth.token.TokenAuthentication class
+    """
+    user = request.user
+    return True if user and user.is_authenticated() else False
 
 def api_auth_token_required(func):
     """
     Use this decorator to authenticate rest_framework.request.Request objects
+    """
+    def validate_auth_token(decorated_func, *args, **kwargs):
+        """
+        Redirect requests to this decorator if the request user is invalid
+        """
+        request = args[0]
+        valid_user = validate_request_user(request)
+        if not valid_user:
+            logger.debug('Unauthorized access by %s - %s - Invalid Token' %
+                         (user, request.META.get('REMOTE_ADDR')))
+            return Response(
+                "Expected header parameter: Authorization Token <TokenID>",
+                status=status.HTTP_401_UNAUTHORIZED)
+
+        return func(request, *args, **kwargs)
+    return validate_auth_token
+
+def api_auth_token_optional(func):
+    """
+    Use this decorator to attempt an authentication rest_framework.request.Request objects
     """
     def validate_auth_token(decorated_func, *args, **kwargs):
         """
@@ -103,13 +131,10 @@ def api_auth_token_required(func):
         """
         request = args[0]
         user = request.user
-        #logger.info('api_auth_token authentication: %s' % user)
-        if user and user.is_authenticated():
-            return func(request, *args, **kwargs)
+        valid_user = validate_request_user(request)
+        if valid_user:
+            kwargs['request_user'] = user
         else:
-            logger.debug('Unauthorized access by %s - %s - Invalid Token' %
-                         (user, request.META.get('REMOTE_ADDR')))
-            return Response(
-                "Expected header parameter: Authorization Token <TokenID>",
-                status=status.HTTP_401_UNAUTHORIZED)
+            kwargs['request_user'] = None
+        return func(request, *args, **kwargs)
     return validate_auth_token
