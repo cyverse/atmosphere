@@ -164,6 +164,7 @@ AUTH_PROFILE_MODULE = 'core.UserProfile'
 AUTHENTICATION_BACKENDS = (
     'authentication.authBackends.CASLoginBackend',  # For Web-Access
     'authentication.authBackends.LDAPLoginBackend',  # For Service-Access
+    'authentication.authBackends.OAuthLoginBackend',  # For 3rd-party-web Service-Access
     #'django.contrib.auth.backends.ModelBackend',
 )
 
@@ -259,6 +260,7 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.XMLRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'authentication.token.OAuthTokenAuthentication',
         'authentication.token.TokenAuthentication',
     )
 }
