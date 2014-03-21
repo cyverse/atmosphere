@@ -26,6 +26,23 @@ def cas_loginRedirect(request, redirect=None, gateway=False):
     return HttpResponseRedirect(login_url)
 
 
+def get_or_create_user(username=None, attributes=None):
+    """
+    Retrieve or create a User matching the username (No password)
+    """
+    if not username:
+        return None
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        user = User.objects.create_user(username, "")
+    if attributes:
+        user.first_name = attributes['firstName']
+        user.last_name = attributes['lastName']
+        user.email = attributes['email']
+    user.save()
+    return user
+
 def createAuthToken(username):
     """
     returns a new token for username
@@ -38,7 +55,7 @@ def createAuthToken(username):
     auth_user_token.update_expiration()
     auth_user_token.save()
     return auth_user_token
-
+                   
 
 def validateToken(username, token_key):
     """
