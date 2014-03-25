@@ -31,6 +31,9 @@ class Application(models.Model):
     created_by = models.ForeignKey('AtmosphereUser')
     created_by_identity = models.ForeignKey(Identity, null=True)
 
+    def featured(self):
+        return True if self.tags.filter(name__iexact='featured') else False
+
     def is_bookmarked(self, request_user):
         from core.models import AtmosphereUser
         if type(request_user) == str:
