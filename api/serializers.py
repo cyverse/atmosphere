@@ -36,7 +36,7 @@ class ApplicationSerializer(serializers.Serializer):
     created_by = serializers.SlugRelatedField(slug_field='username',
                                               source='created_by',
                                               read_only=True)
-    scores = serializers.Field(source='get_scores')
+    #scores = serializers.Field(source='get_scores')
     uuid_hash = serializers.CharField(read_only=True, source='hash_uuid')
     #Writeable Fields
     name = serializers.CharField(source='name')

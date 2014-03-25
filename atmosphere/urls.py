@@ -226,11 +226,12 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/v1/provider/(?P<provider_id>\d+)'
         + '/identity/(?P<identity_id>\d+)/machine/(?P<machine_id>[a-zA-Z0-9-]+)/$',
         Machine.as_view(), name='machine-detail'),
-    url(r'^api/v1/provider/(?P<provider_id>\d+)'
-        + '/identity/(?P<identity_id>\d+)'
-        + '/machine/(?P<machine_id>[a-zA-Z0-9-]+)'
-        + '/vote/$',
-        MachineVote.as_view(), name='machine-vote'),
+    #TODO: Uncomment when 'voting' feature is ready.
+    #url(r'^api/v1/provider/(?P<provider_id>\d+)'
+    #    + '/identity/(?P<identity_id>\d+)'
+    #    + '/machine/(?P<machine_id>[a-zA-Z0-9-]+)'
+    #    + '/vote/$',
+    #    MachineVote.as_view(), name='machine-vote'),
 
 
     url(r'^api/v1/provider/(?P<provider_id>\d+)'
