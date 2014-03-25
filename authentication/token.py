@@ -8,7 +8,7 @@ from threepio import logger
 
 from authentication.models import Token as AuthToken
 from core.models.user import AtmosphereUser
-from authentication.protocol.oauth import get_user_for_token
+from authentication.protocol.oauth import get_user_for_token, createOAuthToken
 from authentication.protocol.oauth import lookupUser as oauth_lookupUser
 from authentication.protocol.oauth import create_user as oauth_create_user
 from authentication.protocol.cas import cas_validateUser
@@ -49,7 +49,10 @@ class OAuthTokenAuthentication(TokenAuthentication):
         if len(auth) == 2 and auth[0].lower() == "bearer":
             oauth_token = auth[1]
             if validate_oauth_token(oauth_token):
-                token = self.model.objects.get(key=token_key)
+                try:
+                    token = self.model.objects.get(key=oauth_token)
+                except self.model.DoesNotExist:
+                    return None
                 if token.user.is_active:
                     return (token.user, token)
         return None
