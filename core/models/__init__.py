@@ -20,7 +20,7 @@ from core.models.group import Group, ProviderMembership, IdentityMembership,\
 from core.models.allocation import Allocation
 from core.models.step import Step
 from core.models.application import Application, ApplicationMembership,\
-    ApplicationScore
+    ApplicationScore, ApplicationBookmark
 
 
 def get_or_create(Model, *args, **kwargs):

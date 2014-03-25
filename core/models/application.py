@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models import Q
+from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 from uuid import uuid5, UUID
 from hashlib import md5
@@ -24,12 +25,27 @@ class Application(models.Model):
     tags = models.ManyToManyField(Tag, blank=True)
     icon = models.ImageField(upload_to="machine_images", null=True, blank=True)
     private = models.BooleanField(default=False)
-    featured = models.BooleanField(default=False)
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
     # User/Identity that created the application object
     created_by = models.ForeignKey('AtmosphereUser')
     created_by_identity = models.ForeignKey(Identity, null=True)
+
+    def is_bookmarked(self, request_user):
+        from core.models import AtmosphereUser
+        if type(request_user) == str:
+            request_user = AtmosphereUser.objects.get(username=request_user)
+        if type(request_user) == AnonymousUser:
+            return False
+        user_bookmarks = [bookmark.application for bookmark
+                          in request_user.bookmarks.all()]
+        return self in user_bookmarks
+
+    def get_members(self):
+        members = list(self.applicationmembership_set.all())
+        for provider_machine in self.providermachine_set.all():
+            members.extend(provider_machine.providermachinemembership_set.all())
+        return members
 
     def get_scores(self):
         (ups, downs, total) = ApplicationScore.get_scores(self)
@@ -301,3 +317,12 @@ class ApplicationScore(models.Model):
                 user=user,
                 score=1)
 
+class ApplicationBookmark(models.Model):
+    user = models.ForeignKey('AtmosphereUser', related_name="bookmarks")
+    application = models.ForeignKey(Application, related_name="bookmarks")
+
+    def __unicode__(self):
+        return "%s + %s" % (self.user, self.application)
+    class Meta:
+        db_table = 'application_bookmark'
+        app_label = 'core'
