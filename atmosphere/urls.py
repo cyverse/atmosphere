@@ -8,7 +8,7 @@ from django.conf.urls import patterns, url, include
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from api.accounts import Account
-from api.application import ApplicationList
+from api.application import ApplicationList, Application
 from api.email import Feedback, QuotaEmail, SupportEmail
 from api.flow import Flow
 from api.group import GroupList, Group
@@ -136,6 +136,10 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/v1/application/$',
         ApplicationList.as_view(),
         name='application-list'),
+
+    url(r'^api/v1/application/(?P<app_uuid>[a-zA-Z0-9-]+)/$',
+        Application.as_view(),
+        name='application-detail'),
 
     url(r'^api/v1/instance/$', InstanceHistory.as_view(),
         name='instance-history'),
