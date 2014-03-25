@@ -25,6 +25,7 @@ from api.maintenance import MaintenanceRecordList, MaintenanceRecord
 from api.meta import Meta, MetaAction
 from api.notification import NotificationList
 from api.occupancy import Occupancy, Hypervisor
+from api.project import Project
 from api.profile import Profile
 from api.provider import ProviderList, Provider
 from api.size import SizeList, Size
@@ -106,6 +107,9 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/v1/email_support', SupportEmail.as_view()),
     url(r'^api/v1/request_quota/$', QuotaEmail.as_view()),
 
+
+    # v1 of The atmosphere API 
+    url(r'api/v1/project/$', Project.as_view()),
     url(r'api/v1/version/$', Version.as_view()),
     url(r'^api/v1/maintenance/$',
         MaintenanceRecordList.as_view(),
