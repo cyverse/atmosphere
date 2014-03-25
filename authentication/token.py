@@ -50,7 +50,7 @@ class OAuthTokenAuthentication(TokenAuthentication):
             oauth_token = auth[1]
             if validate_oauth_token(oauth_token):
                 try:
-                    token = self.model.objects.get(key=token_key)
+                    token = self.model.objects.get(key=oauth_token)
                 except self.model.DoesNotExist:
                     return None
                 if token.user.is_active:
