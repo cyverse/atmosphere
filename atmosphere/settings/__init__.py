@@ -21,6 +21,7 @@ import atmosphere
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
+SETTINGS_ROOT = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                             '../..'))
 SERVER_URL = 'https://yourserver.iplantc.org'
@@ -85,7 +86,8 @@ STATICFILES_DIRS = (
 )
 
 # Make this unique, and don't share it with anybody.
-SECRET_KEY = '785nc+)g%w!g01#$#lc+weg2b!yc^z#17rvjln0c5r39*vg8%t'
+# NOTE: This value is not used, check local.py!
+SECRET_KEY = None
 
 # This key however should stay the same, and be shared with all Atmosphere
 ATMOSPHERE_NAMESPACE_UUID=UUID("40227dff-dedf-469c-a9f8-1953a7372ac1")
