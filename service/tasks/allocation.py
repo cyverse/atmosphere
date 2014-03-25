@@ -57,22 +57,29 @@ def monitor_instances_for(provider):
         return
     instance_map = get_instance_owner_map(provider)
     for username in instance_map.keys():
-        try:
-            user = AtmosphereUser.objects.get(username=username)
-            group = Group.objects.get(name=user.username)
-            ident = user.identity_set.get(provider=provider)
-            im = ident.identitymembership_set.get(member=group)
-            if not im.allocation:
-                continue
-            instances = instance_map[username]
-            over_allocation = over_allocation_test(im.identity, instances)
-            if over_allocation:
-                continue
-            core_instances = im.identity.instance_set.filter(end_date=None)
-            update_instances(im.identity, instances, core_instances)
-        except:
-            logger.exception("Unable to monitor User:%s" % username)
+        instances = instance_map[username]
+        monitor_instances_for_user(provider, username, instances)
     logger.info("Monitoring completed")
+
+def monitor_instances_for_user(provider, username, instances):
+    try:
+        import ipdb;ipdb.set_trace()
+        user = AtmosphereUser.objects.get(username=username)
+        #TODO: When user->group is no longer true,
+        # we will need to modify this..
+        group = Group.objects.get(name=user.username)
+        ident = user.identity_set.get(provider=provider)
+        im = ident.identitymembership_set.get(member=group)
+        over_allocation = over_allocation_test(im.identity,
+                                               instances)
+        core_instances = user.instance_set.filter(
+                provider_machine__provider=provider,
+                end_date=None)
+        core_instances_ident = ident.instance_set.filter(end_date=None)
+        update_instances(im.identity, instances, core_instances)
+    except:
+        logger.exception("Unable to monitor User:%s on Provider:%s"
+                         % (username,provider))
 
     
 def _include_all_idents(identities, owner_map):
@@ -118,6 +125,7 @@ def over_allocation_test(identity, esh_instances):
         logger.info('Do not enforce allocations in DEBUG mode')
         return False
     driver = get_esh_driver(identity)
+    running_instances = []
     for instance in esh_instances:
         #Suspend active instances, update the task in the DB
         try:
@@ -133,6 +141,7 @@ def over_allocation_test(identity, esh_instances):
                                             identity.created_by)
         updated_core.update_history(updated_esh.extra['status'],
                                     updated_esh.extra.get('task'))
+        running_instances.append(updated_core)
     #All instances are dealt with, move along.
     return True # User was over_allocation
 

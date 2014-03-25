@@ -64,6 +64,25 @@ class ApplicationScoreSerializer(serializers.ModelSerializer):
         fields = ('username',"application", "vote")
 
 
+class ProjectSerializer(serializers.ModelSerializer):
+    """
+    """
+    default = serializers.SerializerMethodField('get_default_projects')
+    class Meta:
+        model = AtmosphereUser
+        fields = ('default',)
+    def get_default_projects(self, val):
+        request = self.context.get('request', None)
+        user = request.user
+        active_providers = Provider.get_active()
+        return {"instances":user.instance_set.filter(
+                    end_date=None, provider_machine__provider__in=active_providers),
+                "volumes":user.volume_set.filter(
+                    end_date=None, provider__in=active_providers),
+                "machines":user.providermachine_set.filter(
+                    end_date=None, provider__in=active_providers)
+                }
+
 class CredentialSerializer(serializers.ModelSerializer):
     class Meta:
         model = Credential
