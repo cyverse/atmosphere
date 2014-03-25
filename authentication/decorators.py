@@ -111,7 +111,7 @@ def api_auth_token_required(func):
         valid_user = validate_request_user(request)
         if not valid_user:
             logger.debug('Unauthorized access by %s - %s - Invalid Token' %
-                         (user, request.META.get('REMOTE_ADDR')))
+                         (valid_user, request.META.get('REMOTE_ADDR')))
             return Response(
                 "Expected header parameter: Authorization Token <TokenID>",
                 status=status.HTTP_401_UNAUTHORIZED)
