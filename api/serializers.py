@@ -1,4 +1,7 @@
-from core.models.application import Application, ApplicationScore
+from django.contrib.auth.models import AnonymousUser
+
+from core.models.application import Application, ApplicationScore,\
+        ApplicationBookmark
 from core.models.credential import Credential
 from core.models.group import IdentityMembership
 from core.models.identity import Identity
@@ -28,6 +31,34 @@ class AccountSerializer(serializers.Serializer):
     #Define fields here
     #TODO: Define a spec that we expect from list_users across all providers
 
+class AppBookmarkField(serializers.WritableField):
+
+    def to_native(self, bookmark_mgr):
+        request_user = self.root.request_user
+        if type(request_user) == AnonymousUser:
+            return False
+        try:
+            bookmark_mgr.get(user=request_user)
+            return True
+        except ApplicationBookmark.DoesNotExist:
+            return False
+
+    def field_from_native(self, data, files, field_name, into):
+        value = data.get(field_name)
+        if value is None:
+            return
+        app = self.root.object
+        user = self.root.request_user
+        if value:
+            ApplicationBookmark.objects.\
+                    get_or_create(application=app, user=user)
+            result = True
+        else:
+            ApplicationBookmark.objects\
+                    .filter(application=app, user=user).delete()
+            result = False
+        into[field_name] = result
+    
 
 class ApplicationSerializer(serializers.Serializer):
     #Read-Only Fields
@@ -49,9 +80,28 @@ class ApplicationSerializer(serializers.Serializer):
     featured = serializers.BooleanField(source='featured')
     machines = serializers.RelatedField(source='get_provider_machines',
                                               read_only=True)
+    is_bookmarked = AppBookmarkField(source="bookmarks.all")
+    def __init__(self, *args, **kwargs):
+        context = kwargs.get('context',{})
+        user = context.get('user')
+        request = context.get('request')
+        if not user and not request:
+            raise Exception("This Serializer REQUIRES the kwarg "
+                            "context, with key 'request' or 'user'"
+                            " for ex: context={'user':user}")
+        if user:
+            self.request_user = user
+            #NOTE: Makes debugging easier.
+            if type(self.request_user) == str:
+                self.request_user = AtmosphereUser.objects.get(
+                        username=self.request_user)
+        else:
+            self.request_user = request.user
+        super(ApplicationSerializer, self).__init__(*args, **kwargs)
+
     class Meta:
         model = Application
-    
+
 class ApplicationScoreSerializer(serializers.ModelSerializer):
     """
     """
