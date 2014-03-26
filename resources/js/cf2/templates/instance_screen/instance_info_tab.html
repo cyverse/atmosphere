@@ -10,7 +10,7 @@
 		<div class="btn-group" style="display: inline-block; margin-bottom: 5px;">		
 			<button class="btn request_imaging_btn" title="Request Imaging"><i class="glyphicon glyphicon-camera"></i> Image</button>
 			<button class="btn report_instance_btn" title="Report Broken Instance"><i class="glyphicon glyphicon-inbox"></i> Report</button>
-			<button class="btn reboot_instance_btn" title="Reboot Instance"><i class="glyphicon glyphicon-repeat"></i> Reboot</button>
+			<button class="btn reboot_instance_btn" title="Reboot Instance"><i class="glyphicon glyphicon-repeat"></i>Reboot</button>
 			<button class="btn terminate_instance" title="Terminate Instance"><i class="glyphicon glyphicon-remove"></i> Terminate</button>
 		</div>
     </div>
@@ -19,8 +19,21 @@
 		<div class="btn-group" style="display: inline-block; margin-bottom: 5px;">		
 			<button class="btn start_stop_instance_btn" title="Stop Instance"><i class="glyphicon glyphicon-stop"></i> Stop</button>
 			<button class="btn suspend_resume_instance_btn" title="Suspend Instance"><i class="glyphicon glyphicon-pause"></i> Suspend</button>
-			<button class="btn reboot_instance_btn" title="Reboot Instance"><i class="glyphicon glyphicon-repeat"></i> Reboot</button>
-			<button class="btn terminate_instance" title="Terminate Instance"><i class="glyphicon glyphicon-remove"></i> Terminate</button>
+			<!--button class="btn reboot_instance_btn" title="Reboot
+            Instance"><i class="glyphicon glyphicon-repeat"></i>
+            Reboot</button-->
+			<div class="btn-group">
+               <button class="btn reboot_instance_btn" title="Reboot Instance"><i class="glyphicon glyphicon-repeat"></i> Reboot</button>
+               <button type="button" class="btn btn-default dropdown-toggle"  data-toggle="dropdown"> 
+                  <span class="caret"></span> 
+                  <span class="sr-only">Toggle Dropdown</span>
+               </button>
+               <ul class="dropdown-menu pull-left" role="menu">
+                  <li><a class="hard_reboot_instance_btn"
+                  style="text-align:left;" href="#">Hard Reboot</a><li>
+               </ul>
+            </div>
+            <button class="btn terminate_instance" title="Terminate Instance"><i class="glyphicon glyphicon-remove"></i> Terminate</button>
 		</div>
 		<div class="btn-group">
 			<button class="btn resize_instance_btn" title="Resize Instance"><i class="glyphicon glyphicon-resize-full"></i> Resize</button>
