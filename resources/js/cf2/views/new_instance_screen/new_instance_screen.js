@@ -189,9 +189,11 @@ Atmo.Views.NewInstanceScreen = Backbone.View.extend({
         this.filter_image_list();
     },
     render_instance_type_list: function() {
-        new Atmo.Views.HypervisorDropdown({
-            el: this.$el.find('#newinst_hypervisor')[0]
-        }).render();
+        if (Atmo.profile.get('is_staff') === true) {
+            new Atmo.Views.HypervisorDropdown({
+                el: this.$el.find('#newinst_hypervisor')[0]
+            }).render();
+        }
         new Atmo.Views.InstanceSizeDropdown({
             el: this.$el.find('#newinst_size')[0]
         }).render();
