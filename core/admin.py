@@ -76,7 +76,7 @@ class AllocationAdmin(admin.ModelAdmin):
 class ProviderMachineAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     search_fields = ["application__name", "provider__location", "identifier"]
-    list_display = ["identifier", "provider", "application"]
+    list_display = ["identifier", "provider", "application", "end_date"]
     list_filter = [
         "provider__location",
         "application__private",

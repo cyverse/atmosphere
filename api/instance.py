@@ -305,7 +305,8 @@ class InstanceAction(APIView):
             elif 'reset_network' == action:
                 esh_driver.reset_network(esh_instance)
             elif 'reboot' == action:
-                reboot_instance(esh_driver, esh_instance)
+                reboot_type = action_params.get('reboot_type', 'SOFT')
+                reboot_instance(esh_driver, esh_instance, reboot_type)
             elif 'rebuild' == action:
                 machine_alias = action_params.get('machine_alias', '')
                 machine = esh_driver.get_machine(machine_alias)
