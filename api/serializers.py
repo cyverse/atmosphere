@@ -191,7 +191,9 @@ class ProjectSerializer(serializers.ModelSerializer):
             user = self.get_request_user()
         active_providers = Provider.get_active()
         core_applications = user.application_set.filter(end_date=None)
-        applications = ApplicationSerializer(core_applications, many=True).data
+        applications = ApplicationSerializer(core_applications,
+                                             context={"user":user},
+                                             many=True).data
         return applications
 
 class CredentialSerializer(serializers.ModelSerializer):
