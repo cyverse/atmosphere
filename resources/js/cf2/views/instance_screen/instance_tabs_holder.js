@@ -238,6 +238,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				this.$el.find('.request_imaging_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.report_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('.hard_reboot_instance_dropdown').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.hard_reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.suspend_resume_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.start_stop_instance_btn').addClass('disabled').attr('disabled', 'disabled');
@@ -278,6 +279,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				this.$el.find('.request_imaging_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.report_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('.hard_reboot_instance_dropdown').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.hard_reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('#instance_tabs a[href="#instance_shell"]').addClass("disabled");
 				this.$el.find('#instance_tabs a[href="#instance_vnc"]').addClass("disabled");
