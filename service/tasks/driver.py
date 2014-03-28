@@ -38,7 +38,8 @@ def print_debug():
     logger.debug(log_str)
 
 @task(name="complete_resize", max_retries=2, default_retry_delay=15)
-def complete_resize(driverCls, provider, identity, instance_alias):
+def complete_resize(driverCls, provider, identity, instance_alias,
+                    core_provider_id, core_identity_id, user):
     """
     Confirm the resize of 'instance_alias'
     """
@@ -51,8 +52,8 @@ def complete_resize(driverCls, provider, identity, instance_alias):
             logger.debug("Instance has been teminated: %s." % instance_id)
             return False, None
         result = instance_service.confirm_resize(
-                driver, instance, provider.id,
-                identity.id, identity.created_by)
+                driver, instance, 
+                core_provider_id, core_identity_id, user)
         logger.debug("complete_resize task finished at %s." % datetime.now())
         return True, result
     except Exception as exc:
@@ -386,14 +387,14 @@ def destroy_instance(core_identity_id, instance_alias):
         destroy_instance.retry(exc=exc)
 
 
-@task(name="_deploy_script",
+@task(name="deploy_script",
       default_retry_delay=32,
       time_limit=30*60, #30minute hard-set time limit.
       max_retries=10)
-def _deploy_script(driverCls, provider, identity, instance_id,
+def deploy_script(driverCls, provider, identity, instance_id,
                    script, **celery_task_args):
     try:
-        logger.debug("_deploy_script task started at %s." % datetime.now())
+        logger.debug("deploy_script task started at %s." % datetime.now())
         #Check if instance still exists
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
@@ -405,7 +406,7 @@ def _deploy_script(driverCls, provider, identity, instance_id,
         kwargs = _generate_ssh_kwargs()
         kwargs.update({'deploy': script})
         driver.deploy_to(instance, **kwargs)
-        logger.debug("_deploy_script task finished at %s." % datetime.now())
+        logger.debug("deploy_script task finished at %s." % datetime.now())
     except DeploymentError as exc:
         logger.exception(exc)
         if isinstance(exc.value, NonZeroDeploymentException):
@@ -415,10 +416,10 @@ def _deploy_script(driverCls, provider, identity, instance_id,
         #TODO: Check if all exceptions thrown at this time
         #fall in this category, and possibly don't retry if
         #you hit the Exception block below this.
-        _deploy_script.retry(exc=exc)
+        deploy_script.retry(exc=exc)
     except Exception as exc:
         logger.exception(exc)
-        _deploy_script.retry(exc=exc)
+        deploy_script.retry(exc=exc)
 
 @task(name="_deploy_init_to",
       default_retry_delay=32,

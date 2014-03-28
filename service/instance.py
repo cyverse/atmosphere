@@ -21,7 +21,6 @@ from api import get_esh_driver
 
 from atmosphere import settings
 from atmosphere.settings import secrets
-from service.deploy import deploy_test
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
@@ -39,7 +38,7 @@ def reboot_instance(esh_driver, esh_instance, reboot_type="SOFT"):
 def resize_instance(esh_driver, esh_instance, size_alias,
                     provider_id, identity_id, user):
     size = esh_driver.get_size(size_alias)
-    redeploy_task = resize_and_redeploy(esh_driver, esh_instance)
+    redeploy_task = resize_and_redeploy(esh_driver, esh_instance, identity_id)
     esh_driver.resize_instance(esh_instance, size)
     redeploy_task.apply_async()
     #Write build state for new size
@@ -116,26 +115,31 @@ def _convert_network_name(esh_driver, esh_instance):
 
     return network_id
 
-def resize_and_redeploy(esh_driver, esh_instance):
+def resize_and_redeploy(esh_driver, esh_instance, core_identity_id):
     """
     Use this function to kick off the async task when you ONLY want to deploy
     (No add fixed, No add floating)
     """
-    from service.tasks.driver import deploy_init_to, wait_for
-    logger.info("Add floating IP and Deploy")
+    from service.tasks.driver import deploy_init_to, deploy_script
+    from service.tasks.driver import wait_for, complete_resize
+    from service.deploy import deploy_test
     touch_script = deploy_test()
-    task_one = wait_for.s(esh_driver.__class__, esh_driver.provider,
-                     esh_driver.identity, esh_instance.id, "verify_resize")
+    core_identity = CoreIdentity.objects.get(id=core_identity_id)
+
+    task_one = wait_for.s(
+            esh_driver.__class__, esh_driver.provider,
+            esh_driver.identity, esh_instance.id, "verify_resize")
     task_two = deploy_script.si(
             esh_driver.__class__, esh_driver.provider,
             esh_driver.identity, esh_instance.id, touch_script)
     task_three = complete_resize.si(
             esh_driver.__class__, esh_driver.provider,
-            esh_driver.identity, esh_instance.id)
+            esh_driver.identity, esh_instance.id,
+            core_identity.provider.id, core_identity.id, core_identity.created_by)
     task_four = deploy_init_to.si(
             esh_driver.__class__, esh_driver.provider,
-                     esh_driver.identity, esh_instance.id,
-                     redeploy=True)
+            esh_driver.identity, esh_instance.id,
+            redeploy=True)
     #Link em all together!
     task_one.link(task_two)
     task_two.link(task_three)
