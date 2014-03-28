@@ -57,6 +57,9 @@ def get_distro(distro='ubuntu'):
 def build_script(script_input, name=None):
     return ScriptDeployment(script_input, name=name)
 
+def deploy_test():
+    return ScriptDeployment(
+            "\n", name="./deploy_test.sh")
 
 def install_base_requirements(distro='ubuntu'):
     script_txt = "%s install -qy utils-linux %s"\

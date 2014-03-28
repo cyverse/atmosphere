@@ -21,7 +21,7 @@ from api import get_esh_driver
 
 from atmosphere import settings
 from atmosphere.settings import secrets
-
+from service.deploy import deploy_test
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
@@ -120,12 +120,23 @@ def resize_and_redeploy(esh_driver, esh_instance):
     """
     from service.tasks.driver import deploy_init_to, wait_for
     logger.info("Add floating IP and Deploy")
+    touch_script = deploy_test()
     task_one = wait_for.s(esh_driver.__class__, esh_driver.provider,
                      esh_driver.identity, esh_instance.id, "verify_resize")
-    task_two = deploy_init_to.si(esh_driver.__class__, esh_driver.provider,
+    task_two = deploy_script.si(
+            esh_driver.__class__, esh_driver.provider,
+            esh_driver.identity, esh_instance.id, touch_script)
+    task_three = complete_resize.si(
+            esh_driver.__class__, esh_driver.provider,
+            esh_driver.identity, esh_instance.id)
+    task_four = deploy_init_to.si(
+            esh_driver.__class__, esh_driver.provider,
                      esh_driver.identity, esh_instance.id,
                      redeploy=True)
+    #Link em all together!
     task_one.link(task_two)
+    task_two.link(task_three)
+    task_three.link(task_four)
     return task_one
 
 

@@ -27,6 +27,7 @@ from core.models.identity import Identity
 from core.models.profile import UserProfile
 
 from service.driver import get_driver
+from service.networking import _generate_ssh_kwargs
 from service.deploy import init
 
 
@@ -36,15 +37,37 @@ def print_debug():
     print log_str
     logger.debug(log_str)
 
+@task(name="complete_resize", max_retries=2, default_retry_delay=15)
+def complete_resize(driverCls, provider, identity, instance_alias):
+    """
+    Confirm the resize of 'instance_alias'
+    """
+    from service import instance as instance_service
+    try:
+        logger.debug("complete_resize task started at %s." % datetime.now())
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_alias)
+        if not instance:
+            logger.debug("Instance has been teminated: %s." % instance_id)
+            return False, None
+        result = instance_service.confirm_resize(
+                driver, instance, provider.id,
+                identity.id, identity.created_by)
+        logger.debug("complete_resize task finished at %s." % datetime.now())
+        return True, result
+    except Exception as exc:
+        logger.exception(exc)
+        complete_resize.retry(exc=exc)
+
 @task(name="wait_for", max_retries=250, default_retry_delay=15)
-def wait_for(driverCls, provider, identity, instance_alias, status_qualifier,
-        no_tasks=False):
+def wait_for(driverCls, provider, identity, instance_alias, status_query,
+        tasks_allowed=False):
     """
     #Task makes 250 attempts to 'look at' the instance, waiting 15sec each try
     Cumulative time == 1 hour 2 minutes 30 seconds before FAILURE
 
-    status_qualifier = "active" Match only one value, active
-    status_qualifier = ["active","suspended"] or match multiple values.
+    status_query = "active" Match only one value, active
+    status_query = ["active","suspended"] or match multiple values.
     """
     from service import instance as instance_service
     try:
@@ -56,11 +79,11 @@ def wait_for(driverCls, provider, identity, instance_alias, status_qualifier,
             return False
         i_status = instance._node.extra['status'].lower()
         i_task = instance._node.extra['task']
-        if i_status not in status_qualifier or (i_task and no_tasks):
+        if (i_status not in status_query) or (i_task and not tasks_allowed):
             raise Exception(
-                    "Instance: %s Status: %s Task: %s - Not Ready"
+                    "Instance: %s: Status: (%s - %s) - Not Ready"
                     % (instance.id, i_status, i_task))
-        logger.debug("Instance %s Status: %s Task:%s - Ready"
+        logger.debug("Instance %s: Status: (%s - %s) - Ready"
                      % (instance.id, i_status, i_task))
         return True
     except Exception as exc:
@@ -363,6 +386,40 @@ def destroy_instance(core_identity_id, instance_alias):
         destroy_instance.retry(exc=exc)
 
 
+@task(name="_deploy_script",
+      default_retry_delay=32,
+      time_limit=30*60, #30minute hard-set time limit.
+      max_retries=10)
+def _deploy_script(driverCls, provider, identity, instance_id,
+                   script, **celery_task_args):
+    try:
+        logger.debug("_deploy_script task started at %s." % datetime.now())
+        #Check if instance still exists
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_id)
+        if not instance:
+            logger.debug("Instance has been teminated: %s." % instance_id)
+            return
+        instance._node.extra['password'] = None
+
+        kwargs = _generate_ssh_kwargs()
+        kwargs.update({'deploy': script})
+        driver.deploy_to(instance, **kwargs)
+        logger.debug("_deploy_script task finished at %s." % datetime.now())
+    except DeploymentError as exc:
+        logger.exception(exc)
+        if isinstance(exc.value, NonZeroDeploymentException):
+            #The deployment was successful, but the return code on one or more
+            # steps is bad. Log the exception and do NOT try again!
+            raise exc.value
+        #TODO: Check if all exceptions thrown at this time
+        #fall in this category, and possibly don't retry if
+        #you hit the Exception block below this.
+        _deploy_script.retry(exc=exc)
+    except Exception as exc:
+        logger.exception(exc)
+        _deploy_script.retry(exc=exc)
+
 @task(name="_deploy_init_to",
       default_retry_delay=32,
       time_limit=30*60, #30minute hard-set time limit.
@@ -377,15 +434,13 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         if not instance:
             logger.debug("Instance has been teminated: %s." % instance_id)
             return
-        #NOTE: This is NOT the password passed by argument
-        #Deploy with no password to use ssh keys
+
+        #NOTE: This is unrelated to the password argument
         logger.info(instance.extra)
         instance._node.extra['password'] = None
-        kwargs = {}
-        private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
-        kwargs.update({'ssh_key': private_key})
-        kwargs.update({'timeout': 120})
         msd = init(instance, identity.user.username, password, redeploy)
+
+        kwargs = _generate_ssh_kwargs()
         kwargs.update({'deploy': msd})
         driver.deploy_to(instance, **kwargs)
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
