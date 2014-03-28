@@ -331,7 +331,19 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
     show_quota_info: function(used, total, is_projected, under_quota, time_obj) {
         // is_projected: boolean, should quota denote future use or current use
 
-        var info = '';
+        var info = '',
+            selected_identity = Atmo.profile.get('selected_identity'),
+            quota = selected_identity.get('quota'),
+            time_quota_left,
+            end_date;
+        if (quota.allocation != null && quota.allocation != undefined) {
+            time_quota_left = quota.allocation.ttz,
+            end_date = new Date(time_quota_left);
+        } else {
+            time_quota_left = quota.allocation.ttz,
+            end_date = new Date(time_quota_left);
+        
+        }
 
         if (this.quota_type == 'cpu') {
             quota_title = "Processor Unit";
@@ -400,8 +412,9 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 
         popover_content = 'The graph above represents the <b>' + quota_desc + ' you have currently used</b> for this provider.<br /><br />';
         popover_content += 'As of now, you have <b>' +  remaining_str + ' remaining.</b><br /><br />';
-        if (time_obj != null && time_obj.burn_time != null) {
-            popover_content += "Given your current instance configuration, you will <b>run out of ALL your " + quota_title.toLowerCase() + " in " + time_obj.burn_time + ' ' + quota_unit +'s</b>';
+        if (time_obj != null && time_obj.burn_time != null && end_date) {
+            popover_content += "Given your current instance configuration, you will <b>run out of ALL your instance time by  " +
+            end_date._toString() +'</b>';
         }
         this.$el.popover('destroy');
         this.$el.popover({

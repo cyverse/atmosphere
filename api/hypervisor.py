@@ -2,6 +2,7 @@
 Atmosphere api Hypervisor.
 """
 
+import json
 # atmosphere libraries
 from django.utils import timezone
 
@@ -63,6 +64,7 @@ class HypervisorDetail(APIView):
         if hasattr(esh_driver._connection, 'ex_detail_hypervisor_node'):
             hypervisor = esh_driver._connection\
                     .ex_detail_hypervisor_node(hypervisor_id)
+            hypervisor['cpu_info'] = json.loads(hypervisor['cpu_info'])
         response = Response(hypervisor)
         return response
 

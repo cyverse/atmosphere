@@ -1,6 +1,15 @@
 from threepio import logger
 
 
+def get_hypervisor_statistics(admin_driver):
+    if hasattr(admin_driver._connection, "ex_hypervisor_statistics"):
+        return None
+    all_instance_stats = admin_driver._connection.ex_hypervisor_statistics()
+    all_instances = admin_driver.list_all_instances()
+    for instance in all_instances:
+        pass
+
+
 def get_driver(driverCls, provider, identity, **provider_credentials):
     """
     Create a driver object from a class, provider and identity.
