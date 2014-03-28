@@ -32,7 +32,12 @@ class Group(DjangoGroup):
                                        through='InstanceMembership',
                                        blank=True)
     applications = models.ManyToManyField(Application,
+                                          related_name='members',
                                           through='ApplicationMembership',
+                                          blank=True)
+    provider_machines = models.ManyToManyField('ProviderMachine',
+                                          related_name='members',
+                                          through='ProviderMachineMembership',
                                           blank=True)
 
     @classmethod

@@ -40,6 +40,7 @@ class ProviderMachine(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
     version = VersionNumberField(default=int(VersionNumber(1,)))
 
+    
     def icon_url(self):
         return self.application.icon.url if self.application.icon else None
 
@@ -64,8 +65,9 @@ class ProviderMachine(models.Model):
 
     def esh_ownerid(self):
         if self.esh and self.esh._image\
-           and self.esh._image.extra:
-            return self.esh._image.extra.get('ownerid', "admin")
+           and self.esh._image.extra\
+           and self.esh._image.extra.get('metadata'):
+            return self.esh._image.extra['metadata'].get('application_owner', "admin")
 
     def esh_state(self):
         if self.esh and self.esh._image\
@@ -231,6 +233,14 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
             app = create_application(alias, provider_id, name)
     provider_machine = load_provider_machine(alias, name, provider_id,
                                              app=app, metadata=metadata)
+
+    #If names conflict between OpenStack and Database, choose OpenStack.
+    if esh_machine._image and app.name != name:
+        logger.debug("Name Conflict! Machine %s named %s, Application named %s"
+                     % (alias, name, app.name))
+        app.name = name
+        app.save()
+
     #if push_metadata and hasattr(esh_driver._connection,
     #                             'ex_set_image_metadata'):
     #    logger.debug("Creating App data for Image %s:%s" % (alias, app.name))

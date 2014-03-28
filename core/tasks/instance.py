@@ -7,7 +7,6 @@ from celery.decorators import task
 from threepio import logger
 
 
-
 @task(name="test_all_instance_links")
 def test_all_instance_links():
     try:

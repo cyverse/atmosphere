@@ -4,6 +4,8 @@ B.DS_Store
 *.pyc
 **.pyc
 *~
+celerybeat-schedule
+flower.db
 nohup.out
 *.log
 *.out

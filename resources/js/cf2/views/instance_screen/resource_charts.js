@@ -400,7 +400,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 
         popover_content = 'The graph above represents the <b>' + quota_desc + ' you have currently used</b> for this provider.<br /><br />';
         popover_content += 'As of now, you have <b>' +  remaining_str + ' remaining.</b><br /><br />';
-        if (time_obj) {
+        if (time_obj != null && time_obj.burn_time != null) {
             popover_content += "Given your current instance configuration, you will <b>run out of ALL your " + quota_title.toLowerCase() + " in " + time_obj.burn_time + ' ' + quota_unit +'s</b>';
         }
         this.$el.popover('destroy');

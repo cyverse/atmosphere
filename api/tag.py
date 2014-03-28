@@ -10,6 +10,7 @@ from rest_framework import status
 from authentication.decorators import api_auth_token_required
 
 from core.models import Tag as CoreTag
+from api import failure_response
 from api.serializers import TagSerializer
 
 
@@ -54,6 +55,29 @@ class Tag(APIView):
     Represents:
         Calls to modify the single Tag
     """
+    @api_auth_token_required
+    def delete(self, request, tag_slug, *args, **kwargs):
+        """
+        Remove the tag (IFF not in use)
+        """
+        try:
+            tag = CoreTag.objects.get(name__iexact=tag_slug)
+        except CoreTag.DoesNotExist:
+            return failure_response(status.HTTP_404_NOT_FOUND, 
+                                    'Tag %s does not exist' % tag_slug)
+        if tag.in_use():
+            instance_count = tag.instance_set.count()
+            app_count = tag.application_set.count()
+            return failure_response(
+                    status.HTTP_409_CONFLICT,                    
+                    "Tag cannot be deleted while it is in use by"
+                             "%s instances and %s applications. "
+                             "To delete the tag, first remove "
+                             "the tag from ALL objects using it"
+                             % (instance_count, app_count))
+        tag.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     @api_auth_token_required
     def get(self, request, tag_slug, *args, **kwargs):
         """

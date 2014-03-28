@@ -234,11 +234,15 @@ class MachineRequest(models.Model):
 
 def process_machine_request(machine_request, new_image_id):
     from core.models.machine import add_to_cache
+    from core.application import update_owner
     from core.models.tag import Tag
     from core.models import Identity, ProviderMachine
     #Get all the data you can from the machine request
     new_provider = machine_request.new_machine_provider
-    owner_ident = Identity.objects.get(created_by=machine_request.new_machine_owner, provider=new_provider)
+    #TODO: This could select multiple, we should probably have a more
+    #TODO: restrictive query here..
+    user = machine_request.new_machine_owner
+    owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
     parent_mach = machine_request.instance.provider_machine
     parent_app = machine_request.instance.provider_machine.application
     if machine_request.new_machine_tags:
@@ -283,7 +287,7 @@ def process_machine_request(machine_request, new_image_id):
         new_machine = ProviderMachine.objects.get(identifier=new_image_id)
         new_machine.application = app_to_use
         new_machine.version = machine_request.new_machine_version
-        new_machine.created_by = machine_request.new_machine_owner
+        new_machine.created_by = user
         new_machine.created_by_identity = owner_ident
         new_machine.save()
     except ProviderMachine.DoesNotExist:
@@ -296,6 +300,10 @@ def process_machine_request(machine_request, new_image_id):
     #So that it can continue to be the 'authoritative source'
     if not machine_request.is_public():
         upload_privacy_data(machine_request, new_machine)
+    #TODO: Lookup tenant name when we move away from
+    # the usergroup model
+    tenant_name = user.username
+    update_owner(new_machine, tenant_name)
     save_app_data(new_machine.application)
     add_to_cache(new_machine)
     machine_request.new_machine = new_machine

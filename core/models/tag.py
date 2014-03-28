@@ -10,6 +10,13 @@ class Tag(models.Model):
     #Not-Null="User-Specific"
     user = models.ForeignKey('AtmosphereUser', null=True, blank=True)
 
+    def in_use(self):
+        if self.application_set.count() != 0:
+            return True
+        elif self.instance_set.count() != 0:
+            return True
+        return False
+
     def __unicode__(self):
         return "%s" % (self.name,)
 

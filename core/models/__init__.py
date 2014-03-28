@@ -19,7 +19,8 @@ from core.models.group import Group, ProviderMembership, IdentityMembership,\
     InstanceMembership
 from core.models.allocation import Allocation
 from core.models.step import Step
-from core.models.application import Application, ApplicationMembership
+from core.models.application import Application, ApplicationMembership,\
+    ApplicationScore, ApplicationBookmark
 
 
 def get_or_create(Model, *args, **kwargs):

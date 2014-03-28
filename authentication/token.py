@@ -7,6 +7,10 @@ from rest_framework.authentication import BaseAuthentication
 from threepio import logger
 
 from authentication.models import Token as AuthToken
+from core.models.user import AtmosphereUser
+from authentication.protocol.oauth import get_user_for_token, createOAuthToken
+from authentication.protocol.oauth import lookupUser as oauth_lookupUser
+from authentication.protocol.oauth import create_user as oauth_create_user
 from authentication.protocol.cas import cas_validateUser
 
 
@@ -31,6 +35,42 @@ class TokenAuthentication(BaseAuthentication):
             if token.user.is_active:
                 return (token.user, token)
         return None
+
+class OAuthTokenAuthentication(TokenAuthentication):
+    """
+    OAuthTokenAuthentication:
+    To authenticate, pass the token key in the "Authorization" HTTP header,
+    prepend with the string "Bearer ". For example:
+        Authorization: Bearer 098f6bcd4621d373cade4e832627b4f6
+    """
+    def authenticate(self, request):
+        token_key = None
+        auth = request.META.get('HTTP_AUTHORIZATION', '').split()
+        if len(auth) == 2 and auth[0].lower() == "bearer":
+            oauth_token = auth[1]
+            if validate_oauth_token(oauth_token):
+                try:
+                    token = self.model.objects.get(key=oauth_token)
+                except self.model.DoesNotExist:
+                    return None
+                if token.user.is_active:
+                    return (token.user, token)
+        return None
+
+
+def validate_oauth_token(token, request=None):
+    """
+    Validates the token attached to the request (SessionStorage, GET/POST)
+    On every request, ask OAuth to authorize the token
+    """
+    #Authorization test
+    username, expires = get_user_for_token(token)
+    if not username:
+        return False
+    auth_token = createOAuthToken(username, token, expires)
+    if not auth_token:
+        return False
+    return True
 
 
 def validate_token(token, request=None):

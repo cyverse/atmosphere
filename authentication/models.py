@@ -32,11 +32,14 @@ class Token(models.Model):
         return self.expireTime is not None\
             and self.expireTime <= timezone.now()
 
-    def update_expiration(self):
+    def update_expiration(self, token_expiration=None):
         """
         Updates expiration by pre-determined amount.. Does not call save.
         """
-        self.expireTime = timezone.now() + timedelta(hours=2)
+        if not token_expiration:
+            self.expireTime = timezone.now() + timedelta(hours=2)
+        else:
+            self.expireTime = token_expiration
 
     def save(self, *args, **kwargs):
         if not self.key:

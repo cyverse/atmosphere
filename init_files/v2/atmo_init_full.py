@@ -439,7 +439,7 @@ def running_process(proc_name, user=None):
 
 def vnc(user, distro, license=None):
     try:
-        if not os.path.isfile('/usr/bin/xterm'):
+        if not os.path.isfile('/usr/bin/X'):
             logging.debug("Could not find a GUI on this machine, "
                           "Skipping VNC Install.")
             return
@@ -1012,6 +1012,11 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vncl
     notify_launched_instance(instance_data, instance_metadata)
 
 
+def add_zsh():
+    if os.path.exists("/bin/zsh") and not os.path.exists("/usr/bin/zsh"):
+        run_command(['ln', '-s', '/bin/zsh', '/usr/bin/zsh'])
+            
+
 ##MAIN##
 def main(argv):
     init_logs('/var/log/atmo/atmo_init_full.log')
@@ -1070,6 +1075,7 @@ def main(argv):
     logging.debug("Atmoserver - %s" % ATMOSERVER)
     logging.debug("Atmosphere init parameters- %s" % instance_data)
     set_user_home_dir()
+    add_zsh()
     if redeploy:
         redeploy_atmo_init(user_id)
     else:

@@ -28,8 +28,11 @@ from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError
 from service.accounts.openstack import AccountDriver as OSAccountDriver
                 
-def reboot_instance(esh_driver, esh_instance): 
-    esh_driver.reboot_instance(esh_instance)
+def reboot_instance(esh_driver, esh_instance, reboot_type="SOFT"):
+    """
+    Default to a soft reboot, but allow option for hard reboot.
+    """
+    esh_driver.reboot_instance(esh_instance, reboot_type=reboot_type)
     #reboots take very little time..
     redeploy_init(esh_driver, esh_instance, countdown=5)
 

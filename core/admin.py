@@ -76,10 +76,9 @@ class AllocationAdmin(admin.ModelAdmin):
 class ProviderMachineAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     search_fields = ["application__name", "provider__location", "identifier"]
-    list_display = ["identifier", "provider", "application"]
+    list_display = ["identifier", "provider", "application", "end_date"]
     list_filter = [
         "provider__location",
-        "application__featured",
         "application__private",
     ]
 
@@ -157,7 +156,7 @@ class ApplicationAdmin(admin.ModelAdmin):
     actions = [end_date_object, private_object]
     search_fields = ["name", "id"]
     list_display = [
-        "name", "start_date", "end_date", "private", "featured", "created_by"]
+        "name", "start_date", "end_date", "private", "created_by"]
     filter_vertical = ["tags",]
     def save_model(self, request, obj, form, change):
         user = request.user

@@ -8,7 +8,8 @@ from django.conf.urls import patterns, url, include
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from api.accounts import Account
-from api.application import ApplicationListNoAuth
+from api.application import ApplicationList, Application
+from api.email import Feedback, QuotaEmail, SupportEmail
 from api.flow import Flow
 from api.group import GroupList, Group
 from api.identity_membership import IdentityMembershipList, IdentityMembership
@@ -16,7 +17,7 @@ from api.identity import IdentityList, Identity, IdentityDetailList
 from api.instance import InstanceList, Instance,\
     InstanceAction, InstanceHistory
 from api.machine import MachineList, Machine, MachineHistory,\
-    MachineSearch
+    MachineSearch, MachineVote
 from api.machine_request import MachineRequestList, MachineRequest,\
     MachineRequestStaffList, MachineRequestStaff
 from api.machine_export import MachineExportList, MachineExport
@@ -24,9 +25,11 @@ from api.maintenance import MaintenanceRecordList, MaintenanceRecord
 from api.meta import Meta, MetaAction
 from api.notification import NotificationList
 from api.occupancy import Occupancy, Hypervisor
+from api.project import Project
 from api.profile import Profile
 from api.provider import ProviderList, Provider
 from api.size import SizeList, Size
+from api.hypervisor import HypervisorList, HypervisorDetail
 from api.step import StepList, Step
 from api.tag import TagList, Tag
 from api.user import UserManagement, User
@@ -49,21 +52,12 @@ urlpatterns = patterns(
     #url(r'^admin/logs/', 'web.views.logs'),
     url(r'^admin/', include(admin.site.urls)),
 
-    # feedback
-    url(r'^feedback', 'web.emails.feedback'),
-    url(r'^api/v1/email_support', 'web.emails.email_support'),
-
     #v2 api url scheme
     url(r'^auth/$', 'authentication.views.token_auth', name='token-auth'),
 
-    #This is a TEMPORARY url..
-    #In v2 this is /api/provider/<id>/identity/<id>/instance/action
-    #&& POST['action'] = request_image
-    url(r'^api/v1/request_quota/$', 'web.emails.requestQuota'),
-
+    #File Retrieval:
     # static files
     url(r'^init_files/(?P<file_location>.*)$', 'web.views.get_resource'),
-
     # Systemwide
     url(r'^resources/(?P<path>.*)$', 'django.views.static.serve',
         {'document_root': resources_path}),
@@ -71,29 +65,33 @@ urlpatterns = patterns(
     # instance service
     url(r'^instancequery/', 'web.views.ip_request'),
 
-    # default
+    # "The Front Door"
     url(r'^$', 'web.views.redirectApp'),
 
-    #This URL validates the ticket returned after CAS login
+    #CAS Validation:Service URL validates the ticket returned after CAS login
     url(r'^CAS_serviceValidater',
         'authentication.protocol.cas.cas_validateTicket'),
-    #This URL is a dummy callback
+    #A valid callback URL for maintaining proxy requests
+    # This URL retrieves Proxy IOU combination
     url(r'^CAS_proxyCallback',
         'authentication.protocol.cas.cas_proxyCallback'),
-    #This URL records Proxy IOU & ID
+    #This URL retrieves maps Proxy IOU & ID
     url(r'^CAS_proxyUrl',
         'authentication.protocol.cas.cas_storeProxyIOU_ID'),
+    url(r'^CASlogin/(?P<redirect>.*)$', 'authentication.cas_loginRedirect'),
 
+    # Login, Logout, and hit the app
     url(r'^login/$', 'web.views.login'),
     url(r'^logout/$', 'web.views.logout'),
-    url(r'^CASlogin/(?P<redirect>.*)$', 'authentication.cas_loginRedirect'),
     url(r'^application/$', 'web.views.app'),
 
     # Experimental UI
     # TODO: Rename to application when it launches
     # url(r'^beta/', 'web.views.app_beta'), # remove for production.
-
+    #Partials
     url(r'^partials/(?P<path>.*)$', 'web.views.partial'),
+
+    #Redirects
     url(r'^no_user/$', 'web.views.no_user_redirect'),
 
     ### DJANGORESTFRAMEWORK ###
@@ -103,6 +101,15 @@ urlpatterns = patterns(
 
 urlpatterns += format_suffix_patterns(patterns(
     '',
+
+    # E-mail API
+    url(r'^feedback', Feedback.as_view()),
+    url(r'^api/v1/email_support', SupportEmail.as_view()),
+    url(r'^api/v1/request_quota/$', QuotaEmail.as_view()),
+
+
+    # v1 of The atmosphere API 
+    url(r'api/v1/project/$', Project.as_view()),
     url(r'api/v1/version/$', Version.as_view()),
     url(r'^api/v1/maintenance/$',
         MaintenanceRecordList.as_view(),
@@ -127,8 +134,12 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/v1/tag/(?P<tag_slug>.*)/$', Tag.as_view()),
 
     url(r'^api/v1/application/$',
-        ApplicationListNoAuth.as_view(),
-        name='application-list-no-auth'),
+        ApplicationList.as_view(),
+        name='application-list'),
+
+    url(r'^api/v1/application/(?P<app_uuid>[a-zA-Z0-9-]+)/$',
+        Application.as_view(),
+        name='application-detail'),
 
     url(r'^api/v1/instance/$', InstanceHistory.as_view(),
         name='instance-history'),
@@ -180,6 +191,12 @@ urlpatterns += format_suffix_patterns(patterns(
         + '/identity/(?P<identity_id>\d+)/instance/$',
         InstanceList.as_view(), name='instance-list'),
 
+    url(r'^api/v1/provider/(?P<provider_id>\d+)'
+        + '/identity/(?P<identity_id>\d+)/hypervisor/$',
+        HypervisorList.as_view(), name='hypervisor-list'),
+    url(r'^api/v1/provider/(?P<provider_id>\d+)'
+        + '/identity/(?P<identity_id>\d+)/hypervisor/(?P<hypervisor_id>\d+)/$',
+        HypervisorDetail.as_view(), name='hypervisor-detail'),
 
     url(r'^api/v1/provider/(?P<provider_id>\d+)'
         + '/identity/(?P<identity_id>\d+)/size/$',
@@ -217,6 +234,12 @@ urlpatterns += format_suffix_patterns(patterns(
     url(r'^api/v1/provider/(?P<provider_id>\d+)'
         + '/identity/(?P<identity_id>\d+)/machine/(?P<machine_id>[a-zA-Z0-9-]+)/$',
         Machine.as_view(), name='machine-detail'),
+    #TODO: Uncomment when 'voting' feature is ready.
+    #url(r'^api/v1/provider/(?P<provider_id>\d+)'
+    #    + '/identity/(?P<identity_id>\d+)'
+    #    + '/machine/(?P<machine_id>[a-zA-Z0-9-]+)'
+    #    + '/vote/$',
+    #    MachineVote.as_view(), name='machine-vote'),
 
 
     url(r'^api/v1/provider/(?P<provider_id>\d+)'

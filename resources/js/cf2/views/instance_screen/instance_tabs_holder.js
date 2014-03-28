@@ -16,6 +16,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		'click .report_instance_btn': 'report_instance',
 		'click .resize_instance_btn' : 'resize_instance',
 		'click .reboot_instance_btn' : 'reboot_instance',
+        'click .hard_reboot_instance_btn' : 'hard_reboot_instance',
 		'change select[name="vis"]': 'toggle_vis_input',
 		'click .editing': 'edit_instance_info',
 		'click .editable' : 'redir_edit_instance_info',
@@ -237,6 +238,8 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				this.$el.find('.request_imaging_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.report_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('.hard_reboot_instance_dropdown').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('.hard_reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.suspend_resume_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.start_stop_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('a[href^="#request_imaging"]').hide();
@@ -276,6 +279,8 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				this.$el.find('.request_imaging_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.report_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('.hard_reboot_instance_dropdown').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('.hard_reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('#instance_tabs a[href="#instance_shell"]').addClass("disabled");
 				this.$el.find('#instance_tabs a[href="#instance_vnc"]').addClass("disabled");
 			}
@@ -286,7 +291,6 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 			this.$el.find('#euca_controls').fadeIn('fast');
 		}
-	this.$el.find('.reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
         this.display_graph();
 
 		// Shutting-down/terminted instances should have terminate button disabled
@@ -593,18 +597,21 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			this.edit_instance_info(e);
 	},
 	reboot_instance: function(e) {
-		var header = '';		// Title of confirmation modal
-		var body = '';			// Body of confirmation modal
-		var ok_button = '';		// The text of the confirmation button
-		var on_confirm;			// Function to perform if user confirms modal
-		var data = {};			// Post data for the action to perform on the instance
-		var id = Atmo.profile.get('selected_identity');
-		var self = this;
+	    var header = '',
+            body = '',
+            ok_button = '',
+            on_confirm,
+            data = {},
+            identity_id = Atmo.profile.get('selected_identity'),
+            identity = Atmo.identities.get(identity_id),
+            provider_name = identity.get('provider').get('type'),
+            provider_name_lowercase = provider_name.toLowerCase(),
+            self = this;
 
 		header = 'Reboot Instance';
 
 		// Reboot is hard or soft depending on whether you're on OpenStack or Eucalyptus, respectively
-		if (Atmo.profile.get('selected_identity').get('provider_id') == 2) {
+		if (provider_name_lowercase === 'openstack') {
 			body = '<p class="alert alert-error"><i class="glyphicon glyphicon-question-sign"></i> <strong>WARNING</strong> '
 				+ 'Rebooting an instance will cause it to temporarily shut down and become inaccessible during that time.';
 		}
@@ -617,13 +624,16 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		on_confirm = function() {
 			Atmo.Utils.notify('Instance is rebooting...', 'Instance will finish rebooting momentarily.');
 			$.ajax({
-				url: site_root + '/api/v1/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
+				url: site_root + '/api/v1/provider/' +
+                     identity_id.get('provider_id') + '/identity/' + identity_id.get('id') 
+                     + '/instance/' + self.model.get('id') + '/action/',
+
 				type: 'POST',
 				data: data,
 				success: function() {
 					// Merges models to those that are accurate based on server response
 					Atmo.instances.update();
-					if (Atmo.profile.get('selected_identity').get('provider_id') == 1)
+					if (provider_name_lowercase !== 'openstack')
 						Atmo.Utils.notify("Reboot Successful", "Your instance has successfully performed a soft reboot.");
 				}, 
 				error: function(request,model,error) {
@@ -634,6 +644,55 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 		Atmo.Utils.confirm(header, body, { ok_button: ok_button, on_confirm: on_confirm });
 	},
+
+    hard_reboot_instance: function(e){
+        var header = '',
+            body = '',
+            ok_button = '',
+            on_confirm,
+            data = {},
+            identity_id = Atmo.profile.get('selected_identity'),
+            identity = Atmo.identities.get(identity_id),
+            provider_name = identity.get('provider').get('type'),
+            provider_name_lowercase = provider_name.toLowerCase(),
+            self = this;
+
+        header = 'Hard Reboot Instance';
+
+        if(provider_name_lowercase === 'openstack'){
+            body = '<p class="alert alert-error"><i class="glyphicon glyphicon-question-sign"></i> <strong>WARNING</strong> '
+                 + 'Rebooting an instance will cause it to temporarily shut down and become inaccessible during that time.';
+        }
+        else{
+            body = 'Your instance will perform a soft reboot.';
+        }
+
+        ok_button = 'Hard Reboot Instance';
+        data = { action : "reboot" , reboot_type : "HARD" };
+        on_confirm = function(){
+            Atmo.Utils.notify('Instance is hard rebooting...', 'Instance will finish rebooting momentarily.');
+            $.ajax({
+                url: site_root + '/api/v1/provider/' +
+                     identity_id.get('provider_id') + '/identity/' +
+                     identity_id.get('id') + '/instance/' +
+                     self.model.get('id') + '/action/',
+
+                type: 'POST',
+                data: data,
+                success: function(){
+                    Atmo.instances.update();
+                    if(provider_name_lowercase !== 'openstack')
+                        Atmo.Utils.notify("Reboot Successful", "Your instance has successfully performed a soft reboot.");
+                },
+                error: function(request, model, error){
+                    Atmo.Utils.notifyErrors(request,'Could not reboot instance for the following reason(s):');
+                }
+            });
+        };
+
+        Atmo.Utils.confirm(header, body, { ok_button: ok_button, on_confirm: on_confirm });
+    },
+
 	suspend_resume_instance: function(e) {
 		var header = '';		// Title of confirmation modal
 		var body = '';			// Body of confirmation modal

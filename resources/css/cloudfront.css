@@ -536,6 +536,10 @@ a.accordion-toggle .caret {
 	box-shadow: 1px 1px 2px rgb(63, 124, 136) !important;
 	margin-right: 10px;
 }
+
+.dropdown-toggle.disabled{
+    box-shadow: none !important;
+}
 .dropdown-menu.drop-left {
 	left: auto;
 	right: 0;
