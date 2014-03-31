@@ -11,6 +11,8 @@ from django.db.models import Q
 
 from core.models.machine import compare_core_machines, filter_core_machine,\
     convert_esh_machine, ProviderMachine
+from core.models.provider import Provider
+from core.models.application import Application
 
 
 def search(providers, identity, query):
@@ -51,3 +53,36 @@ class CoreSearchProvider(BaseSearchProvider):
             | Q(application__tags__description__icontains=query)
             | Q(application__name__icontains=query)
             | Q(application__description__icontains=query))
+
+
+class CoreApplicationSearch(BaseSearchProvider):
+    """
+    Search core.models.application Application.
+    """
+
+    @classmethod
+    def search(cls, query, identity=None):
+        if identity:
+            base_apps = Application.objects.filter(
+                # Privately owned OR public machines
+                Q(private=True,
+                  providermachine__created_by_identity=identity)
+                | Q(private=False,
+                    providermachine__provider=identity.provider))
+        else:
+            active_providers = Provider.get_active()
+            base_apps = Application.objects.filter(
+                # Public machines
+                private=False,
+                #Providermachine's provider is active
+                providermachine__provider__in=active_providers)
+        # AND query matches on:
+        return base_apps.filter(
+            # app tag name
+            Q(tags__name__icontains=query)
+            # OR app tag desc
+            | Q(tags__description__icontains=query)
+            # OR app name
+            | Q(name__icontains=query)
+            # OR app desc
+            | Q(description__icontains=query))
