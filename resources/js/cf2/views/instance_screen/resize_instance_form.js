@@ -33,19 +33,22 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 
 		// Decide what to display based on instance's state
 		var state = this.model.get('state');
+        if(state == 'verify_resize'){
+            self.model.set({ state_is_active: false, state_is_build: true });
+        }
 
-		if (['resize - resize_prep', 'resize - resize_migrating', 'resize - resize_finish'].indexOf(state) != -1) {
+		if (['resize - resize_prep', 'resize - resize_migrating', 'resize - resize_finish', 'verify_resize'].indexOf(state) != -1) {
 			this.$el.find('.resize_instance').hide();
 			this.$el.find('.verify_resize').hide();
 			this.$el.find('.resizing_instance').fadeIn('fast');
 			this.resizing_instance();
 		}
-		else if (state == 'verify_resize') {
+		/*else if (state == 'verify_resize') {
 			this.$el.find('.resize_instance').hide();
 			this.$el.find('.resizing_instance').hide();
 			this.$el.find('.verify_resize').fadeIn('fast');
 
-		}
+		}*/
 		else {
 			this.mem_resource_chart = new Atmo.Views.ResourceCharts({
 				el: this.$el.find('#memHolder'), 
@@ -174,7 +177,7 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 			type: 'POST',
 			data: data,
 			success: function() {
-				Atmo.Utils.notify('Resizing Instance', 'Instance will finish resizing shortly. You will need to verify on completion.');
+				Atmo.Utils.notify('Resizing Instance', 'Instance will finish resizing shortly.');
 
 				// Merges models to those that are accurate based on server response
 				Atmo.instances.update({
@@ -184,12 +187,8 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 					}
 				});
 			},
-			error: function() {
-				Atmo.Utils.notify(
-					'Could not resize instance', 
-					'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
-					{ no_timeout: true }
-				);
+			error: function(request,model,error) {
+				Atmo.Utils.notifyErrors(request,'Could not resize instance for the following reason(s):');
 				self.$el.find('input[type="submit"]').removeAttr('disabled').val('Resize Instance');
 			}
 		});
@@ -202,14 +201,16 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 		});
 
 		// Show user what stage they're in and which ones they've completed
-		var stages = ['resize - resize_prep', 'resize - resize_migrating', 'resize - resize_migrated', 'resize - resize_finish'];
+		var stages = ['resize - resize_prep', 'resize - resize_migrating', 'resize - resize_migrated', 'resize - resize_finish', 'verify_resize'];
 
 		for (var i = 0; i < stages.length; i++) {
-			if (this.model.get('state') == stages[i])
-				break;
-			else
-				this.$el.find('.resize_statuses ul li').eq(i).prepend('<i class="icon-check"></i>');
-		}
+			if (this.model.get('state') == stages[i]){
+    			break;
+            }
+			else{
+				this.$el.find('.resize_statuses ul li').eq(i).prepend('<i class="glyphicon glyphicon-ok"></i>');
+		    }
+        }
 
 	},
 	confirm_resize: function(e) {

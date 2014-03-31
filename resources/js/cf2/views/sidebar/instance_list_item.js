@@ -179,6 +179,9 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 		else if (task == 'suspending') {
 			return 'suspended';
 		}
+        else if (task ==='deploy_error') {
+            return 'deleted';
+        }
 		else {
 			return 'active';
 			// Applies for: hard_reboot, build, shutoff, suspended, and revert_resize
@@ -276,8 +279,9 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 			'resize' : {
 				'resize_prep' : 10,
 				'resize_migrating' : 20,
-				'resize_migrated' : 80,
-				'resize_finish' : 90,
+				'resize_migrated' : 40,
+				'resize_finish' : 70,
+                'verify_resize' : 90,
 			},
 			'active' : {
 				'powering-off' : 50,
