@@ -2,11 +2,12 @@
 Atmosphere utilizes the DjangoGroup model
 to manage users via the membership relationship
 """
-from datetime import timedelta
+#from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from math import floor, ceil
 
 from django.db import models
+from django.utils.timezone import datetime, timedelta
 from django.contrib.auth.models import Group as DjangoGroup
 
 from threepio import logger
@@ -143,12 +144,15 @@ class IdentityMembership(models.Model):
         mins_consumed = delta_to_minutes(time_used)
         if burn_time:
             burn_time = delta_to_hours(burn_time)
+        zero_time = datetime.now() + timedelta(
+                minutes=(self.allocation.threshold - mins_consumed))
         allocation_dict = {
             "threshold": floor(self.allocation.threshold/60),
             "current": floor(mins_consumed/60),
             "delta": ceil(delta.total_seconds()/60),
             "burn": burn_time,
-            "ttz": (self.allocation.threshold - mins_consumed)/60}
+            "ttz": zero_time,
+        }
         return allocation_dict
 
     def get_quota_dict(self):

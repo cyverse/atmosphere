@@ -57,8 +57,8 @@ Atmo.Views.InstanceScreen = Backbone.View.extend({
             title: 'My Resource Usage <a class="close" data-dismiss="popover" href="#instances" data-parent="help_resource_usage">&times</a>',
             html: true,
             content: function () {
-                var content = 'Your "resource usage" is determined by how many CPUs and GB of memory your instances are using cumulatively. <br /><br />';
-                content += 'You can re-use your resources only after you\'ve terminated an instance and it has disappeared from the "My Instances" list on the left.';
+                var content = 'Your "resource usage" is determined by how many CPUs, GBs of memory, and AUs your instances are using cumulatively. <br /><br />';
+                content += 'You can re-use your resources only after you\'ve terminated an instance and it has disappeared from the "My Instances" list on the left. Note: this only applies to CPUs and GBs.';
                 return content;
             }
         }).click(_.bind(this.x_close, this));

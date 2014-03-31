@@ -68,6 +68,7 @@ def validate_oauth_token(token, request=None):
     if not username:
         return False
     auth_token = createOAuthToken(username, token, expires)
+    logger.info("AuthToken for %s:%s" % (username,auth_token))
     if not auth_token:
         return False
     return True
