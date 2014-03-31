@@ -336,15 +336,11 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
             quota = selected_identity.get('quota'),
             time_quota_left,
             end_date;
-        if (quota.allocation != null && quota.allocation != undefined) {
+        if (quota.allocation !== null && quota.allocation !== undefined) {
             time_quota_left = quota.allocation.ttz,
             end_date = new Date(time_quota_left);
-        } else {
-            time_quota_left = quota.allocation.ttz,
-            end_date = new Date(time_quota_left);
+        } 
         
-        }
-
         if (this.quota_type == 'cpu') {
             quota_title = "Processor Unit";
             quota_desc = "aproximation of CPU hours";
@@ -414,7 +410,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
         popover_content += 'As of now, you have <b>' +  remaining_str + ' remaining.</b><br /><br />';
         if (time_obj != null && time_obj.burn_time != null && end_date) {
             popover_content += "Given your current instance configuration, you will <b>run out of ALL your instance time by  " +
-            end_date._toString() +'</b>';
+            ((end_date != undefined) ? end_date._toString() : remaining_str) +'</b>';
         }
         this.$el.popover('destroy');
         this.$el.popover({
