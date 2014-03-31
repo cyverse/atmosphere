@@ -132,6 +132,30 @@ class ApplicationSerializer(serializers.Serializer):
     class Meta:
         model = Application
 
+class PaginatedApplicationSerializer(pagination.PaginationSerializer):
+    """
+    Serializes page objects of Instance querysets.
+    """
+    def __init__(self, *args, **kwargs):
+        context = kwargs.get('context',{})
+        user = context.get('user')
+        request = context.get('request')
+        if not user and not request:
+            raise Exception("This Serializer REQUIRES the kwarg "
+                            "context, with key 'request' or 'user'"
+                            " for ex: context={'user':user}")
+        if user:
+            self.request_user = user
+            #NOTE: Makes debugging easier.
+            if type(self.request_user) == str:
+                self.request_user = AtmosphereUser.objects.get(
+                        username=self.request_user)
+        elif request:
+            self.request_user = request.user
+        super(PaginatedApplicationSerializer, self).__init__(*args, **kwargs)
+    class Meta:
+        object_serializer_class = ApplicationSerializer
+
 class ApplicationScoreSerializer(serializers.ModelSerializer):
     """
     """
