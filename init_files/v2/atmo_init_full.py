@@ -609,7 +609,7 @@ def modify_rclocal(username, distro, hostname='localhost'):
                            #Add new rc.local commands here
                            #And they will be excecuted on startup
                            #Don't forget the newline char
-                           % (hostname, username))
+                           % (hostname))
         atmo_rclocal.close()
         os.chmod(atmo_rclocal_path, 0755)
     except Exception, e:
