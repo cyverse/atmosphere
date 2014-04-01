@@ -2,9 +2,10 @@
 # Program: NRPE Installation
 # Author: Chris LaRose (cjlarose@iplantcollaborative.org)
 # Description: Installs nrpe and snmp on Atmosphere VMs running CENTOS 5/RHEL or Ubuntu 12.04 on x84_64 architectures
-# Version 2012-08-17
+# Version 2014-03-31
 
-NAGIOS_SERVER=150.135.93.193
+NAGIOS_SERVER=128.196.172.187
+PLUGINS_HOME=https://wesley.iplantc.org/nagios_plugins
 
 get_distro ()
 {
@@ -72,6 +73,7 @@ echo "command[check_procs_zombie]=$PLUGINS_DIR/check_procs -w 5 -c 10 -s Z" >> $
 echo "command[check_users]=$PLUGINS_DIR/check_users -w 5 -c 10" >> $ATMO_COMMANDS_PATH
 echo "command[check_connections]=$PLUGINS_DIR/check_connections.pl -w 50 -c 100" >> $ATMO_COMMANDS_PATH
 echo "command[check_atmo_idle]=sudo $PLUGINS_DIR/check_atmo_idle.py -w 5 -c 15" >> $ATMO_COMMANDS_PATH
+echo "command[check_vmstat]=$PLUGINS_DIR/check_vmstat.py" >> $ATMO_COMMANDS_PATH
 
 # snmp conf
 /bin/rm -f /etc/snmp/snmpd.conf.bak
@@ -90,20 +92,25 @@ fi
 
 # install check_snmp_mem.pl plugin
 /bin/rm -f $PLUGINS_DIR/check_snmp_mem.pl
-/usr/bin/wget -O $PLUGINS_DIR/check_snmp_mem.pl http://dedalus.iplantcollaborative.org/nagios-plugins/check_snmp_mem.pl
+/usr/bin/wget -O $PLUGINS_DIR/check_snmp_mem.pl $PLUGINS_HOME/check_snmp_mem.pl
 /bin/sed -i "21cuse lib \"$PLUGINS_DIR\";" $PLUGINS_DIR/check_snmp_mem.pl
 /bin/chmod +x $PLUGINS_DIR/check_snmp_mem.pl
 
 # install check_connections plugin
 /bin/rm -f $PLUGINS_DIR/check_connections.pl
-/usr/bin/wget -O $PLUGINS_DIR/check_connections.pl 'http://dedalus.iplantcollaborative.org/nagios-plugins/check_connections.pl'
+/usr/bin/wget -O $PLUGINS_DIR/check_connections.pl $PLUGINS_HOME/check_connections.pl
 /bin/sed -i '45cforeach my $entry (split("\\n", `$netstat -wtun | grep -v 127.0.0.1`)) {' $PLUGINS_DIR/check_connections.pl
 /bin/chmod +x $PLUGINS_DIR/check_connections.pl
 
 # install check_atmo_idle.py
 /bin/rm -f $PLUGINS_DIR/check_atmo_idle.py
-/usr/bin/wget -O $PLUGINS_DIR/check_atmo_idle.py 'http://dedalus.iplantcollaborative.org/nagios-plugins/check_atmo_idle.py'
+/usr/bin/wget -O $PLUGINS_DIR/check_atmo_idle.py $PLUGINS_HOME/check_atmo_idle.py
 /bin/chmod +x $PLUGINS_DIR/check_atmo_idle.py
+
+# install check_vmstat.py
+/bin/rm -f $PLUGINS_DIR/check_vmstat.py
+/usr/bin/wget -O $PLUGINS_DIR/check_vmstat.py $PLUGINS_HOME/check_vmstat.py
+/bin/chmod +x $PLUGINS_DIR/check_vmstat.py
 
 # allow the nrpe user to run check_atmo_idle.py as root
 /bin/sed -i '/# Begin Nagios/,/# End Nagios/d' /etc/sudoers

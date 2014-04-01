@@ -661,7 +661,7 @@ def nagios():
     download_file('%s/init_files/%s/nrpe-snmp-install.sh'
                   % (ATMOSERVER, SCRIPT_VERSION),
                   os.path.join(USER_HOME_DIR, 'nrpe-snmp-install.sh'),
-                  match_hash='12da9f6f57c79320ebebf99b5a8516cc83c894f9')
+                  match_hash='9076213c0c53d18dbfcb26dfe95e7650256b54da')
     run_command(['/bin/chmod', 'a+x',
                  os.path.join(USER_HOME_DIR, 'nrpe-snmp-install.sh')])
     run_command([os.path.join(USER_HOME_DIR, 'nrpe-snmp-install.sh')])
