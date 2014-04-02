@@ -121,20 +121,21 @@ def api_auth_token_required(func):
 
 def api_auth_token_optional(func):
     """
-    Use this decorator to attempt an authentication rest_framework.request.Request objects
+    This decorator is used for a specific API endpoint:
+    * Endpoint authentication NOT required
+    * IF authenticated, the result of the function changes.
+
+    If your endpoint does not match the second case, no decorator is necessary.
     """
     def validate_auth_token(decorated_func, *args, **kwargs):
         """
-        Used for requests that require a valid token
         NOTE: Calling request.user for the first time will call 'authenticate'
             in the auth.token.TokenAuthentication class
         """
         request = args[0]
-        user = request.user
-        valid_user = validate_request_user(request)
-        if valid_user:
-            kwargs['request_user'] = user
-        else:
-            kwargs['request_user'] = None
+        #The result is irrelevant, but
+        # the func will be able to 
+        # use the request.user variable
+        request.user.is_authenticated()
         return func(request, *args, **kwargs)
     return validate_auth_token

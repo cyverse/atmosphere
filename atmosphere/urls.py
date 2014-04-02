@@ -25,7 +25,7 @@ from api.maintenance import MaintenanceRecordList, MaintenanceRecord
 from api.meta import Meta, MetaAction
 from api.notification import NotificationList
 from api.occupancy import Occupancy, Hypervisor
-from api.project import Project
+from api.project import ProjectList, ProjectDetail
 from api.profile import Profile
 from api.provider import ProviderList, Provider
 from api.size import SizeList, Size
@@ -109,7 +109,12 @@ urlpatterns += format_suffix_patterns(patterns(
 
 
     # v1 of The atmosphere API 
-    url(r'api/v1/project/$', Project.as_view()),
+    url(r'api/v1/project/$',
+        ProjectList.as_view(),
+        name='project-list'),
+    url(r'api/v1/project/(?P<project_id>\d+)/$',
+        ProjectDetail.as_view(),
+        name='project-detail'),
     url(r'api/v1/version/$', Version.as_view()),
     url(r'^api/v1/maintenance/$',
         MaintenanceRecordList.as_view(),

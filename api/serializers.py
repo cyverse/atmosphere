@@ -11,6 +11,7 @@ from core.models.machine_request import MachineRequest
 from core.models.machine_export import MachineExport
 from core.models.maintenance import MaintenanceRecord
 from core.models.profile import UserProfile
+from core.models.project import Project
 from core.models.provider import ProviderType, Provider
 from core.models.size import Size
 from core.models.step import Step
@@ -89,7 +90,7 @@ class AppBookmarkField(serializers.WritableField):
                     .filter(application=app, user=user).delete()
             result = False
         into[field_name] = result
-    
+
 class ApplicationSerializer(serializers.Serializer):
     #Read-Only Fields
     uuid = serializers.CharField(read_only=True)
@@ -116,16 +117,16 @@ class ApplicationSerializer(serializers.Serializer):
         user = context.get('user')
         request = context.get('request')
         if not user and not request:
-            raise Exception("This Serializer REQUIRES the kwarg "
-                            "context, with key 'request' or 'user'"
-                            " for ex: context={'user':user}")
+            logger.warn("This Serializer REQUIRES the kwarg "
+                        "context, with key 'request' or 'user'"
+                        " for ex: context={'user':user}")
         if user:
             self.request_user = user
             #NOTE: Makes debugging easier.
             if type(self.request_user) == str:
                 self.request_user = AtmosphereUser.objects.get(
                         username=self.request_user)
-        else:
+        elif request:
             self.request_user = request.user
         super(ApplicationSerializer, self).__init__(*args, **kwargs)
 
@@ -168,57 +169,56 @@ class ApplicationScoreSerializer(serializers.ModelSerializer):
         model = ApplicationScore
         fields = ('username',"application", "vote")
 
-
-class ProjectSerializer(serializers.ModelSerializer):
-    """
-    NOTE: To properly use ProjectSerializer you SHOULD be passing the request!
-    """
-    name = serializers.SerializerMethodField('get_project_name')
-    description = serializers.SerializerMethodField('get_project_description')
-    instances = serializers.SerializerMethodField('get_project_instances')
-    volumes = serializers.SerializerMethodField('get_project_volumes')
-    applications = serializers.SerializerMethodField('get_project_applications')
-
-    class Meta:
-        model = AtmosphereUser
-        fields = ('name','description', 'instances', 'volumes', 'applications')
-    def get_request_user(self):
-        request = self.context.get('request', None)
-        if not request:
-            return None
-        user = request.user
-        return user
-    def get_project_name(self, user):
-        return "default"
-    def get_project_description(self, user):
-        return "Blah"
-    def get_project_instances(self, user):
-        if not user:
-            user = self.get_request_user()
-        active_providers = Provider.get_active()
-        core_instances = user.instance_set.filter(
-                    end_date=None,
-                    provider_machine__provider__in=active_providers)
-        instances = InstanceSerializer(core_instances, many=True).data
-        return instances
-    def get_project_volumes(self, user):
-        if not user:
-            user = self.get_request_user()
-        active_providers = Provider.get_active()
-        core_volumes = user.volume_set.filter(end_date=None,
-                    provider__in=active_providers)
-        volumes = VolumeSerializer(core_volumes, many=True).data
-        return volumes
-
-    def get_project_applications(self, user):
-        if not user:
-            user = self.get_request_user()
-        active_providers = Provider.get_active()
-        core_applications = user.application_set.filter(end_date=None)
-        applications = ApplicationSerializer(core_applications,
-                                             context={"user":user},
-                                             many=True).data
-        return applications
+#class ProjectSerializer(serializers.ModelSerializer):
+#    """
+#    NOTE: To properly use ProjectSerializer you SHOULD be passing the request!
+#    """
+#    name = serializers.SerializerMethodField('get_project_name')
+#    description = serializers.SerializerMethodField('get_project_description')
+#    instances = serializers.SerializerMethodField('get_project_instances')
+#    volumes = serializers.SerializerMethodField('get_project_volumes')
+#    applications = serializers.SerializerMethodField('get_project_applications')
+#
+#    class Meta:
+#        model = AtmosphereUser
+#        fields = ('name','description', 'instances', 'volumes', 'applications')
+#    def get_request_user(self):
+#        request = self.context.get('request', None)
+#        if not request:
+#            return None
+#        user = request.user
+#        return user
+#    def get_project_name(self, user):
+#        return "default"
+#    def get_project_description(self, user):
+#        return "Blah"
+#    def get_project_instances(self, user):
+#        if not user:
+#            user = self.get_request_user()
+#        active_providers = Provider.get_active()
+#        core_instances = user.instance_set.filter(
+#                    end_date=None,
+#                    provider_machine__provider__in=active_providers)
+#        instances = InstanceSerializer(core_instances, many=True).data
+#        return instances
+#    def get_project_volumes(self, user):
+#        if not user:
+#            user = self.get_request_user()
+#        active_providers = Provider.get_active()
+#        core_volumes = user.volume_set.filter(end_date=None,
+#                    provider__in=active_providers)
+#        volumes = VolumeSerializer(core_volumes, many=True).data
+#        return volumes
+#
+#    def get_project_applications(self, user):
+#        if not user:
+#            user = self.get_request_user()
+#        active_providers = Provider.get_active()
+#        core_applications = user.application_set.filter(end_date=None)
+#        applications = ApplicationSerializer(core_applications,
+#                                             context={"user":user},
+#                                             many=True).data
+#        return applications
 
 class CredentialSerializer(serializers.ModelSerializer):
     class Meta:
@@ -505,7 +505,7 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
             update_dict["vote_cast"] = last_vote.get_vote_name()
         scores.update(update_dict)
         return scores
-    
+
     class Meta:
         model = ProviderMachine
         exclude = ('id', 'provider', 'application', 'identity')
@@ -542,6 +542,15 @@ class VolumeSerializer(serializers.ModelSerializer):
         model = Volume
         exclude = ('id', 'created_by_identity', 'end_date')
 
+
+class ProjectSerializer(serializers.ModelSerializer):
+    owner = serializers.Field(source="owner.username")
+    instances = InstanceSerializer()
+    volumes = VolumeSerializer()
+    applications = ApplicationSerializer()
+
+    class Meta:
+        model = Project
 
 class ProviderSizeSerializer(serializers.ModelSerializer):
     occupancy = serializers.CharField(read_only=True, source='esh_occupancy')
