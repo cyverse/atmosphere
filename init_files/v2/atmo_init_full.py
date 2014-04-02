@@ -479,7 +479,7 @@ def vnc(user, distro, license=None):
         download_file(
             '%s/init_files/%s/vnc-config.sh' % (ATMOSERVER, SCRIPT_VERSION),
             os.path.join(USER_HOME_DIR, 'vnc-config.sh'),
-            match_hash='37b64977dbf3650f307ca0d863fee18938038dce')
+            match_hash='806b22083c73628914194a74f3ff7d7274a7cf23')
         run_command(['/bin/chmod', 'a+x',
                      os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
         run_command([os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
