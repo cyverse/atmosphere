@@ -267,7 +267,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     has_shell = serializers.BooleanField(read_only=True, source='shell')
     has_vnc = serializers.BooleanField(read_only=True, source='vnc')
     #provider = serializers.CharField(read_only=True, source='provider_name')
-    identity = CleanedIdentitySerializer(source="created_by_identity")
+    identity = CleanedIdentitySerializer(source="created_by_identity", read_only=True)
     #Writeable fields
     name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', source='tags', many=True)

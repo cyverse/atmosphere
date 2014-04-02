@@ -65,6 +65,10 @@ class Application(models.Model):
         """
         return md5(self.uuid).hexdigest()
 
+    def get_provider_machine_set(self):
+        pms = self.providermachine_set.all()
+        return pms
+
     def get_provider_machines(self):
         pms = self.providermachine_set.all()
         return [{

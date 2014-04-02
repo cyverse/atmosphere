@@ -62,7 +62,7 @@ def complete_resize(driverCls, provider, identity, instance_alias,
 
 @task(name="wait_for", max_retries=250, default_retry_delay=15)
 def wait_for(driverCls, provider, identity, instance_alias, status_query,
-        tasks_allowed=False):
+        tasks_allowed=False, **task_kwargs):
     """
     #Task makes 250 attempts to 'look at' the instance, waiting 15sec each try
     Cumulative time == 1 hour 2 minutes 30 seconds before FAILURE

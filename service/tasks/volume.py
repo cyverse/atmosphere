@@ -11,6 +11,7 @@ from celery import chain
 
 from threepio import logger
 from rtwo.driver import EucaDriver, OSDriver
+from libcloud.compute.types import DeploymentError
 
 from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
@@ -86,10 +87,12 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         logger.debug(volume)
         try:
             device = volume.extra['attachmentSet'][0]['device']
-        except:
+        except KeyError, IndexError:
+            logger.warn("Volume %s missing attachmentSet in Extra"
+                        % (volume,))
             device = None
         if not device:
-            #Device was never attached -- Nothing to mount
+            logger.warn("Device never attached. Nothing to mount")
             return
 
         private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
@@ -102,6 +105,7 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         driver.deploy_to(instance, **kwargs)
 
         if device in cm_script.stdout:
+            logger.warn("Device already mounted. Mount output:%s" % cm_script.stdout)
             #Device has already been mounted. Move along..
             return
 

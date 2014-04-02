@@ -167,11 +167,11 @@ def restore_ip_chain(esh_driver, esh_instance, redeploy=False):
     """
     from service.tasks.driver import \
             wait_for, add_fixed_ip, add_floating_ip, deploy_init_to
-    #Step 1: Add fixed
     init_task = wait_for.s(
             esh_driver.__class__, esh_driver.provider,
-            esh_driver.identity, esh_instance.id, ["active","suspended"],
+            esh_driver.identity, esh_instance.id, ["active",],
             no_tasks=True)
+    #Step 1: Add fixed
     fixed_ip_task = add_fixed_ip.si(
             esh_driver.__class__, esh_driver.provider,
             esh_driver.identity, esh_instance.id)
