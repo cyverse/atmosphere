@@ -14,10 +14,12 @@ Atmo.Views.ResizeInstanceForm = Backbone.View.extend({
 		this.model.bind('change:state', this.render, this);
 	},
 	events: {
+        /*
 		'change select[name="new_instance_size"]' : 'select_instance_size',
 		'submit form.resize_instance_form' : 'resize_instance',
 		'click button.verify_resize_btn' : 'confirm_resize',
 		'click button.revert_resize_btn' : 'revert_resize'
+        */
 	},
 	render: function() {
 		this.$el.html(this.template(this.model.toJSON()));
