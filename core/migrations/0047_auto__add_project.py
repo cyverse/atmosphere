@@ -13,6 +13,8 @@ class Migration(SchemaMigration):
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=256)),
             ('description', self.gf('django.db.models.fields.TextField')()),
+            ('start_date', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('end_date', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
             ('owner', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.AtmosphereUser'], null=True, blank=True)),
         ))
         db.send_create_signal('core', ['Project'])
@@ -304,6 +306,8 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'Project', 'db_table': "'project'"},
             'applications': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'projects'", 'null': 'True', 'symmetrical': 'False', 'to': "orm['core.Application']"}),
             'description': ('django.db.models.fields.TextField', [], {}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'instances': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'projects'", 'null': 'True', 'symmetrical': 'False', 'to': "orm['core.Instance']"}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),

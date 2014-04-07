@@ -20,7 +20,6 @@ from core.models.volume import convert_esh_volume
 from service.volume import create_volume
 from service.exceptions import OverQuotaError
 
-from api.serializers import VolumeSerializer
 from api import prepare_driver, failure_response, invalid_creds
 
 from web.emails import feedback_email, quota_request_email, support_email

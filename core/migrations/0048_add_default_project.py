@@ -12,6 +12,8 @@ class Migration(DataMigration):
         count = len(users)
         #Count the # of projects you added
         p_count = 0
+        now = datetime.datetime.now()
+        print '> %s' % now
         print '> Creating Default Project for %s Users' % count
         for idx,user in enumerate(users):
             #Initiate the hooks
@@ -275,6 +277,8 @@ class Migration(DataMigration):
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'instances': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'projects'", 'null': 'True', 'symmetrical': 'False', 'to': "orm['core.Instance']"}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'owner': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.AtmosphereUser']", 'null': 'True', 'blank': 'True'}),
             'volumes': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'projects'", 'null': 'True', 'symmetrical': 'False', 'to': "orm['core.Volume']"})
         },

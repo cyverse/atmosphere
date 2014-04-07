@@ -80,6 +80,7 @@ class InstanceList(APIView):
         #TODO: Core/Auth checks for shared instances
 
         serialized_data = InstanceSerializer(core_instance_list,
+                                             context={'user':request.user},
                                              many=True).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
@@ -128,7 +129,9 @@ class InstanceList(APIView):
             return failure_response(status.HTTP_409_CONFLICT,
                                     exc.message)
 
-        serializer = InstanceSerializer(core_instance, data=data)
+        serializer = InstanceSerializer(core_instance,
+                                        context={'user':request.user},
+                                        data=data)
         #NEVER WRONG
         if serializer.is_valid():
             serializer.save()
@@ -276,7 +279,9 @@ class InstanceAction(APIView):
                                                  provider_id,
                                                  identity_id,
                                                  user)
-                result_obj = VolumeSerializer(core_volume).data
+                result_obj = VolumeSerializer(core_volume,
+                                              context={'user':request.user}
+                                              ).data
             elif 'resize' == action:
                 size_alias = action_params.get('size', '')
                 if type(size_alias) == int:
@@ -364,7 +369,8 @@ class Instance(APIView):
             return instance_not_found(instance_id)
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                              provider_id, identity_id, user)
-        serialized_data = InstanceSerializer(core_instance).data
+        serialized_data = InstanceSerializer(core_instance,
+                                             context={'user':request.user}).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
@@ -384,7 +390,8 @@ class Instance(APIView):
         #Gather the DB related item and update
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                              provider_id, identity_id, user)
-        serializer = InstanceSerializer(core_instance, data=data, partial=True)
+        serializer = InstanceSerializer(core_instance, data=data,
+                                        context={'user':request.user}, partial=True)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
             update_instance_metadata(esh_driver, esh_instance, data,
@@ -419,7 +426,8 @@ class Instance(APIView):
         #Gather the DB related item and update
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                              provider_id, identity_id, user)
-        serializer = InstanceSerializer(core_instance, data=data)
+        serializer = InstanceSerializer(core_instance, data=data,
+                                        context={'user':request.user})
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
             update_instance_metadata(esh_driver, esh_instance, data)
@@ -454,7 +462,8 @@ class Instance(APIView):
                                                  user)
             if core_instance:
                 core_instance.end_date_all()
-            serialized_data = InstanceSerializer(core_instance).data
+            serialized_data = InstanceSerializer(core_instance,
+                                                 context={'user':request.user}).data
             response = Response(serialized_data, status=status.HTTP_200_OK)
             response['Cache-Control'] = 'no-cache'
             return response

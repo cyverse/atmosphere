@@ -48,11 +48,12 @@ def list_filtered_machines(esh_driver, provider_id, request_user=None):
         esh_machine_list,
         black_list=['eki-', 'eri-'])
     #logger.info("Filtered machines from esh:%s" % len(esh_machine_list))
-    core_machine_list = [convert_esh_machine(esh_driver, mach, provider_id)
+    core_machine_list = [convert_esh_machine(esh_driver, mach,
+                                             provider_id, request_user)
                          for mach in esh_machine_list]
     #logger.info("Core machines :%s" % len(core_machine_list))
     filtered_machine_list = [core_mach for core_mach in core_machine_list
-                             if filter_core_machine(core_mach, request_user)]
+                             if filter_core_machine(core_mach)]
     #logger.info("Filtered Core machines :%s" % len(filtered_machine_list))
     sorted_machine_list = sorted(filtered_machine_list,
                                  cmp=compare_core_machines)
@@ -82,12 +83,16 @@ class MachineList(APIView):
         TODO: Cache this request
         """
         try:
-            request_user = request.user.username
+            request_user = request.user
             filtered_machine_list = provider_filtered_machines(request,
                                                                provider_id,
                                                                identity_id,
                                                                request_user)
+        except InvalidCredsError:
+            return invalid_creds(provider_id, identity_id)
         except:
+            logger.exception("Unexpected exception for user:%s"
+                             % request_user)
             return invalid_creds(provider_id, identity_id)
         serialized_data = ProviderMachineSerializer(filtered_machine_list,
                                                     request_user=request.user,
@@ -230,13 +235,15 @@ class Machine(APIView):
         (Lookup using the given provider/identity)
         Update on server (If applicable)
         """
+        user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
         #TODO: Need to determine that identity_id is ALLOWED to see machine_id.
         #     if not covered by calling as the users driver..
         esh_machine = esh_driver.get_machine(machine_id)
-        core_machine = convert_esh_machine(esh_driver, esh_machine, provider_id)
+        core_machine = convert_esh_machine(esh_driver, esh_machine,
+                                           provider_id, user)
         serialized_data = ProviderMachineSerializer(core_machine,
                                                     request_user=request.user).data
         response = Response(serialized_data)
@@ -254,7 +261,8 @@ class Machine(APIView):
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
         esh_machine = esh_driver.get_machine(machine_id)
-        core_machine = convert_esh_machine(esh_driver, esh_machine, provider_id)
+        core_machine = convert_esh_machine(esh_driver, esh_machine,
+                                           provider_id, user)
         if not user.is_staff\
            and user is not core_machine.application.created_by:
             logger.warn('%s is Non-staff/non-owner trying to update a machine'
@@ -289,7 +297,8 @@ class Machine(APIView):
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
         esh_machine = esh_driver.get_machine(machine_id)
-        core_machine = convert_esh_machine(esh_driver, esh_machine, provider_id)
+        core_machine = convert_esh_machine(esh_driver, esh_machine,
+                                           provider_id, user)
 
         if not user.is_staff\
            and user is not core_machine.application.created_by:

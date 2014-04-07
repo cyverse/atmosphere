@@ -10,7 +10,7 @@ import operator
 from django.db.models import Q
 
 from core.models.machine import compare_core_machines, filter_core_machine,\
-    convert_esh_machine, ProviderMachine
+    ProviderMachine
 from core.models.provider import Provider
 from core.models.application import Application
 

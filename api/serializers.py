@@ -1,4 +1,6 @@
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Q
+from django.utils import timezone
 
 from core.models.application import Application, ApplicationScore,\
         ApplicationBookmark
@@ -25,6 +27,43 @@ from rest_framework import serializers
 from rest_framework import pagination
 
 from threepio import logger
+def get_context_user(kwargs, required=False):
+    context = kwargs.get('context',{})
+    user = context.get('user')
+    request = context.get('request')
+    if not user and not request:
+        print_str = "This Serializer was called without appropriate context."\
+                    "For complete results include the 'context' kwarg, "\
+                    "with key 'request' OR 'user'."\
+                    " (e.g. context={'user':user,'request':request})"
+        if required:
+            raise Exception(print_str)
+        else:
+            logger.debug("Incomplete Data Warning:%s" % print_str)
+    if user:
+        #NOTE: Converting str to atmosphere user is easier when debugging
+        if type(user) == str:
+            user = AtmosphereUser.objects.get(
+                    username=user)
+        elif type(user) != AtmosphereUser:
+            raise Exception("This Serializer REQUIRES the 'user' "
+                            "to be of type str or AtmosphereUser")
+    elif request:
+        user = request.user
+    return user
+
+
+def get_projects_for_obj(serializer, related_obj):
+    """
+    Using <>Serializer.request_user, find the projects
+    the related object is a member of
+    """
+    if not serializer.request_user:
+        return None
+    projects = related_obj.get_projects(serializer.request_user)
+    return [p.id for p in projects]
+
+
 
 
 class AccountSerializer(serializers.Serializer):
@@ -112,22 +151,14 @@ class ApplicationSerializer(serializers.Serializer):
     machines = serializers.RelatedField(source='get_provider_machines',
                                               read_only=True)
     is_bookmarked = AppBookmarkField(source="bookmarks.all")
+    projects = serializers.SerializerMethodField('get_user_projects')
+
+    def get_user_projects(self, obj):
+        return get_projects_for_obj(self, obj)
+
     def __init__(self, *args, **kwargs):
-        context = kwargs.get('context',{})
-        user = context.get('user')
-        request = context.get('request')
-        if not user and not request:
-            logger.warn("This Serializer REQUIRES the kwarg "
-                        "context, with key 'request' or 'user'"
-                        " for ex: context={'user':user}")
-        if user:
-            self.request_user = user
-            #NOTE: Makes debugging easier.
-            if type(self.request_user) == str:
-                self.request_user = AtmosphereUser.objects.get(
-                        username=self.request_user)
-        elif request:
-            self.request_user = request.user
+        user = get_context_user(kwargs)
+        self.request_user = user
         super(ApplicationSerializer, self).__init__(*args, **kwargs)
 
     class Meta:
@@ -137,23 +168,12 @@ class PaginatedApplicationSerializer(pagination.PaginationSerializer):
     """
     Serializes page objects of Instance querysets.
     """
+
     def __init__(self, *args, **kwargs):
-        context = kwargs.get('context',{})
-        user = context.get('user')
-        request = context.get('request')
-        if not user and not request:
-            raise Exception("This Serializer REQUIRES the kwarg "
-                            "context, with key 'request' or 'user'"
-                            " for ex: context={'user':user}")
-        if user:
-            self.request_user = user
-            #NOTE: Makes debugging easier.
-            if type(self.request_user) == str:
-                self.request_user = AtmosphereUser.objects.get(
-                        username=self.request_user)
-        elif request:
-            self.request_user = request.user
+        user = get_context_user(kwargs)
+        self.request_user = user
         super(PaginatedApplicationSerializer, self).__init__(*args, **kwargs)
+
     class Meta:
         object_serializer_class = ApplicationSerializer
 
@@ -169,56 +189,6 @@ class ApplicationScoreSerializer(serializers.ModelSerializer):
         model = ApplicationScore
         fields = ('username',"application", "vote")
 
-#class ProjectSerializer(serializers.ModelSerializer):
-#    """
-#    NOTE: To properly use ProjectSerializer you SHOULD be passing the request!
-#    """
-#    name = serializers.SerializerMethodField('get_project_name')
-#    description = serializers.SerializerMethodField('get_project_description')
-#    instances = serializers.SerializerMethodField('get_project_instances')
-#    volumes = serializers.SerializerMethodField('get_project_volumes')
-#    applications = serializers.SerializerMethodField('get_project_applications')
-#
-#    class Meta:
-#        model = AtmosphereUser
-#        fields = ('name','description', 'instances', 'volumes', 'applications')
-#    def get_request_user(self):
-#        request = self.context.get('request', None)
-#        if not request:
-#            return None
-#        user = request.user
-#        return user
-#    def get_project_name(self, user):
-#        return "default"
-#    def get_project_description(self, user):
-#        return "Blah"
-#    def get_project_instances(self, user):
-#        if not user:
-#            user = self.get_request_user()
-#        active_providers = Provider.get_active()
-#        core_instances = user.instance_set.filter(
-#                    end_date=None,
-#                    provider_machine__provider__in=active_providers)
-#        instances = InstanceSerializer(core_instances, many=True).data
-#        return instances
-#    def get_project_volumes(self, user):
-#        if not user:
-#            user = self.get_request_user()
-#        active_providers = Provider.get_active()
-#        core_volumes = user.volume_set.filter(end_date=None,
-#                    provider__in=active_providers)
-#        volumes = VolumeSerializer(core_volumes, many=True).data
-#        return volumes
-#
-#    def get_project_applications(self, user):
-#        if not user:
-#            user = self.get_request_user()
-#        active_providers = Provider.get_active()
-#        core_applications = user.application_set.filter(end_date=None)
-#        applications = ApplicationSerializer(core_applications,
-#                                             context={"user":user},
-#                                             many=True).data
-#        return applications
 
 class CredentialSerializer(serializers.ModelSerializer):
     class Meta:
@@ -271,6 +241,15 @@ class InstanceSerializer(serializers.ModelSerializer):
     #Writeable fields
     name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', source='tags', many=True)
+    projects = serializers.SerializerMethodField('get_user_projects')
+
+    def get_user_projects(self, obj):
+        return get_projects_for_obj(self, obj)
+
+    def __init__(self, *args, **kwargs):
+        user = get_context_user(kwargs)
+        self.request_user = user
+        super(InstanceSerializer, self).__init__(*args, **kwargs)
 
     class Meta:
         model = Instance
@@ -537,6 +516,15 @@ class VolumeSerializer(serializers.ModelSerializer):
     status = serializers.CharField(read_only=True, source='esh_status')
     attach_data = serializers.Field(source='esh_attach_data')
     identity = CleanedIdentitySerializer(source="created_by_identity")
+    projects = serializers.SerializerMethodField('get_user_projects')
+
+    def get_user_projects(self, obj):
+        return get_projects_for_obj(self, obj)
+
+    def __init__(self, *args, **kwargs):
+        user = get_context_user(kwargs)
+        self.request_user = user
+        super(VolumeSerializer, self).__init__(*args, **kwargs)
 
     class Meta:
         model = Volume

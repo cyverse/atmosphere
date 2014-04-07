@@ -8,6 +8,15 @@ from threepio import logger
 class AtmosphereUser(AbstractUser):
     selected_identity = models.ForeignKey('Identity', blank=True, null=True)
 
+    def get_default_project(user):
+        """
+        Return the 'default' project for 'User'
+        """
+        project, created = user.projects.get_or_create(name="Default")
+        if created:
+            logger.info("Created new 'Default' project for user: %s" % user)
+        return project
+
     def user_quota(self):
         identity = self.select_identity()
         identity_member = identity.identitymembership_set.all()[0]
@@ -123,3 +132,5 @@ def get_default_identity(username, provider=None):
     except Exception, e:
         logger.exception(e)
         return None
+
+

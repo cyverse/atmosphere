@@ -7,6 +7,7 @@ from hashlib import md5
 from datetime import datetime, timedelta
 
 from django.db import models
+from django.db.models import Q
 #from django.contrib.auth.models import User
 #from core.models import AtmosphereUser as User
 from django.utils import timezone
@@ -45,6 +46,13 @@ class Instance(models.Model):
     password = models.CharField(max_length=64, blank=True, null=True)
     start_date = models.DateTimeField() # Problems when setting a default.
     end_date = models.DateTimeField(null=True)
+
+    def get_projects(self, user):
+        projects = self.projects.filter(
+                Q(end_date=None) | Q(end_date__gt=timezone.now()),
+                owner=user,
+                )
+        return projects
 
     def last_history(self):
         """
@@ -313,13 +321,7 @@ def find_instance(instance_id):
         return core_instance[0]
     return None
 
-
-def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
-                         user, token=None, password=None):
-    """
-    """
-    #logger.debug(esh_instance.__dict__)
-    #logger.debug(esh_instance.extra)
+def _find_esh_ip(esh_instance):
     try:
         ip_address = esh_instance._node.public_ips[0]
     except IndexError:  # no public ip
@@ -327,48 +329,83 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
             ip_address = esh_instance._node.private_ips[0]
         except IndexError:  # no private ip
             ip_address = '0.0.0.0'
-    eshMachine = esh_instance.machine
+    return ip_address
+
+
+def _update_core_instance(core_instance, ip_address, password):
+    core_instance.ip_address = ip_address
+    if password:
+        core_instance.password = password
+    core_instance.save()
+
+def _find_esh_start_date(esh_instance):
+    if 'launchdatetime' in esh_instance.extra:
+        create_stamp = esh_instance.extra.get('launchdatetime')
+    elif 'launch_time' in esh_instance.extra:
+        create_stamp = esh_instance.extra.get('launch_time')
+    elif 'created' in esh_instance.extra:
+        create_stamp = esh_instance.extra.get('created')
+    else:
+        raise Exception("Instance does not have a created timestamp.  This"
+        "should never happen. Don't cheat and assume it was created just "
+        "now. Get the real launch time, bra.")
+    start_date = _convert_timestamp(create_stamp)
+    return start_date
+
+def _convert_timestamp(create_stamp):
+    # create_stamp is an iso 8601 timestamp string
+    # that may or may not include microseconds.
+    # start_date is a timezone-aware datetime object
+    try:
+        start_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+    except ValueError:
+        start_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%SZ')
+    #All Dates are UTC relative
+    start_date = start_date.replace(tzinfo=pytz.utc)
+    logger.debug("Launched At: %s" % create_stamp)
+    logger.debug("Started At: %s" % start_date)
+    return start_date
+
+
+def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
+                         user, token=None, password=None):
+    """
+    """
     instance_id = esh_instance.id
+    ip_address = _find_esh_ip(esh_instance)
+    eshMachine = esh_instance.machine
     core_instance = find_instance(instance_id)
     if core_instance:
-        core_instance.ip_address = ip_address
-        if password:
-            core_instance.password = password
-        core_instance.save()
+        _update_core_instance(core_instance, ip_address, password)
     else:
-        if 'launchdatetime' in esh_instance.extra:
-            create_stamp = esh_instance.extra.get('launchdatetime')
-        elif 'launch_time' in esh_instance.extra:
-            create_stamp = esh_instance.extra.get('launch_time')
-        elif 'created' in esh_instance.extra:
-            create_stamp = esh_instance.extra.get('created')
-        else:
-            raise Exception("Instance does not have a created timestamp.  This"
-            "should never happen. Don't cheat and assume it was created just "
-            "now. Get the real launch time, bra.")
-
-        # create_stamp is an iso 8601 timestamp string that may or may not
-        # include microseconds start_date is a timezone-aware datetime object
-        try:
-            start_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%S.%fZ')
-        except ValueError:
-            start_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%SZ')
-        start_date = start_date.replace(tzinfo=pytz.utc)
-
+        start_date = _find_esh_start_date(esh_instance)
         logger.debug("Instance: %s" % instance_id)
-        logger.debug("Launched At: %s" % create_stamp)
-        logger.debug("Started At: %s" % start_date)
-        coreMachine = convert_esh_machine(esh_driver, eshMachine, provider_id,
-                                        image_id=esh_instance.image_id)
+        #Ensure that core Machine exists
+        coreMachine = convert_esh_machine(esh_driver, eshMachine,
+                                          provider_id, user,
+                                          image_id=esh_instance.image_id)
+        #Use New/Existing core Machine to create core Instance
         core_instance = create_instance(provider_id, identity_id, instance_id,
                                       coreMachine, ip_address,
                                       esh_instance.name, user,
                                       start_date, token, password)
-
+    _check_project(core_instance, user)
     core_instance.esh = esh_instance
-
     core_instance = set_instance_from_metadata(esh_driver, core_instance)
     return core_instance
+
+def _check_project(core_instance, user):
+    """
+    Select a/multiple projects the instance belongs to.
+    NOTE: User (NOT Identity!!) Specific
+    """
+    core_projects = core_instance.get_projects(user)
+    if not core_projects:
+        default_proj = user.get_default_project()
+        default_proj.instances.add(core_instance)
+        core_projects = [default_proj]
+    return core_projects
+
 
 def set_instance_from_metadata(esh_driver, core_instance):
     #Fixes Dep. loop - Do not remove
@@ -388,7 +425,8 @@ def set_instance_from_metadata(esh_driver, core_instance):
     #TODO: Define a creator and their identity by the METADATA instead of
     # assuming its the person who 'found' the instance
 
-    serializer = InstanceSerializer(core_instance, data=metadata, partial=True)
+    serializer = InstanceSerializer(core_instance, data=metadata,
+                                    partial=True)
     if not serializer.is_valid():
         logger.warn("Encountered errors serializing metadata:%s"
                     % serializer.errors)

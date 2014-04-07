@@ -18,6 +18,8 @@ class Project(models.Model):
     """
     name = models.CharField(max_length=256)
     description = models.TextField()
+    start_date = models.DateTimeField(default=timezone.now)
+    end_date = models.DateTimeField(null=True, blank=True)
     owner = models.ForeignKey(AtmosphereUser, related_name="projects")
     applications = models.ManyToManyField(Application, related_name="projects",
                                           null=True, blank=True)
@@ -31,7 +33,18 @@ class Project(models.Model):
                    self.applications.all(), self.instances.all(),
                    self.volumes.all())
 
+    def add_object(self, related_obj):
+        """
+        Use this function to move A single object
+        to Project X
+        """
+        return related_obj.projects.add(self)
+
     def migrate_objects(self, to_project):
+        """
+        Use this function to move ALL objects
+        from Project X to Project Y
+        """
         for app in self.applications.all():
             to_project.applications.add(app)
         for app in self.instances.all():
@@ -40,6 +53,11 @@ class Project(models.Model):
             to_project.volumes.add(app)
 
     def delete_project(self):
+        """
+        Use this function to remove Project X
+        from all objects using it before removing
+        the entire Project
+        """
         self.applications.all().delete()
         self.instances.all().delete()
         self.volumes.all().delete()
