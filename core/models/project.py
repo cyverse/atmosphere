@@ -38,12 +38,6 @@ class Project(models.Model):
         Use this function to move A single object
         to Project X
         """
-        #TODO:If len(self.<related_obj_cls>.objects.all)
-        # > 2, remove is OKAY
-        # if len() == 1 AND removing from default,
-        # raise exception
-        # if len() == 1 AND removing from 'named',
-        # move project to default.
         return related_obj.projects.remove(self)
 
     def add_object(self, related_obj):
