@@ -2,6 +2,8 @@
 Atmosphere service machine rest api.
 
 """
+import os
+
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 from django.db.models import Q
@@ -24,6 +26,7 @@ from core.metadata import update_machine_metadata
 from service.machine_search import search, CoreSearchProvider
 
 from api import prepare_driver, failure_response, invalid_creds
+from api.renderers import JPEGRenderer, PNGRenderer
 from api.permissions import InMaintenance
 from api.serializers import ProviderMachineSerializer,\
     PaginatedProviderMachineSerializer, ApplicationScoreSerializer
@@ -321,6 +324,34 @@ class Machine(APIView):
             status.HTTP_400_BAD_REQUEST,
             serializer.errors)
 
+class MachineIcon(APIView):
+    """
+    Represents:
+        Calls to modify the single machine
+    TODO: DELETE when we allow owners to 'end-date' their machine..
+    """
+    renderer_classes = (JPEGRenderer,PNGRenderer,)
+
+    @api_auth_token_required
+    def get(self, request, provider_id, identity_id, machine_id):
+        user = request.user
+        esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
+        #TODO: Need to determine that identity_id is ALLOWED to see machine_id.
+        #     if not covered by calling as the users driver..
+        esh_machine = esh_driver.get_machine(machine_id)
+        core_machine = convert_esh_machine(esh_driver, esh_machine,
+                                           provider_id, user)
+        if not core_machine:
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Could not retrieve machine with ID = %s" % machine_id)
+        if not core_machine.application.icon:
+            return None
+        app_icon = core_machine.application.icon
+        image_name, image_ext = os.path.splitext(app_icon.name)
+        return Response(app_icon.file)
 
 class MachineVote(APIView):
     """

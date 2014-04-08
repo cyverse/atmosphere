@@ -81,6 +81,8 @@ class ProviderMachine(models.Model):
     class Meta:
         db_table = "provider_machine"
         app_label = "core"
+        unique_together = ('provider', 'identifier')
+
 class ProviderMachineMembership(models.Model):
     """
     Members of a specific image and provider combination.

@@ -32,14 +32,16 @@ def get_context_user(kwargs, required=False):
     user = context.get('user')
     request = context.get('request')
     if not user and not request:
-        print_str = "This Serializer was called without appropriate context."\
+        print_str = "This Serializer was initialized "\
+                    "without appropriate context."\
                     "For complete results include the 'context' kwarg, "\
                     "with key 'request' OR 'user'."\
                     " (e.g. context={'user':user,'request':request})"
         if required:
             raise Exception(print_str)
         else:
-            logger.debug("Incomplete Data Warning:%s" % print_str)
+            #logger.debug("Incomplete Data Warning:%s" % print_str)
+            pass
     if user:
         #NOTE: Converting str to atmosphere user is easier when debugging
         if type(user) == str:

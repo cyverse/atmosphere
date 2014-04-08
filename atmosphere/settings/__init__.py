@@ -255,11 +255,15 @@ sys.stdout = sys.stderr
 ##REST FRAMEWORK
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (
+        # Included Renderers
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.JSONPRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework.renderers.YAMLRenderer',
         'rest_framework.renderers.XMLRenderer',
+        # Our Renderers
+        'api.renderers.PNGRenderer',
+        'api.renderers.JPEGRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'authentication.token.OAuthTokenAuthentication',
