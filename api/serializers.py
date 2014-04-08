@@ -37,11 +37,12 @@ def get_context_user(serializer, kwargs, required=False):
     user = context.get('user')
     request = context.get('request')
     if not user and not request:
-        print_str = "This Serializer was initialized "\
+        print_str = "%s was initialized "\
                     "without appropriate context."\
                     "For complete results include the 'context' kwarg, "\
                     "with key 'request' OR 'user'."\
-                    " (e.g. context={'user':user,'request':request})"
+                    " (e.g. context={'user':user,'request':request})"\
+                    % (serializer,)
         if required:
             raise Exception(print_str)
         else:
@@ -84,7 +85,7 @@ class ProjectsField(serializers.WritableField):
         try:
             projects = project_mgr.filter(owner=request_user)
             # Modifications to how 'project' should be displayed here:
-            return [p.name for p in projects]
+            return [p.id for p in projects]
         except Project.DoesNotExist:
             return None
 
@@ -106,12 +107,13 @@ class ProjectsField(serializers.WritableField):
             related_obj.projects.remove(old_proj)
 
         # Add Project(s) to related_obj
-        for project_name in new_projects:
+        for project_id in new_projects:
             # Retrieve/Create the New Project
-            new_project, created = Project.objects.get_or_create(
-                    name=project_name, owner=user)
+            #TODO: When projects can be shared,
+            #change the qualifier here.
+            new_project = Project.objects.get(id=project_id, owner=user)
             # Assign related_obj to New Project
-            if not related_obj.projects.filter(name=project_name):
+            if not related_obj.projects.filter(id=project_id):
                 related_obj.projects.add(new_project)
         # Modifications to how 'project' should be displayed here:
         into[field_name] = new_projects
@@ -262,7 +264,7 @@ class ApplicationSerializer(serializers.Serializer):
     featured = serializers.BooleanField(source='featured')
     machines = serializers.RelatedField(source='get_provider_machines',
                                               read_only=True)
-    is_bookmarked = AppBookmarkField(source="bookmarks.all")
+    is_bookmarked = AppBookmarkField(source="bookmarks.all", read_only=True)
     project = ProjectsField(source="projects")
 
     def __init__(self, *args, **kwargs):
@@ -285,6 +287,23 @@ class PaginatedApplicationSerializer(pagination.PaginationSerializer):
 
     class Meta:
         object_serializer_class = ApplicationSerializer
+
+class ApplicationBookmarkSerializer(serializers.ModelSerializer):
+    """
+    """
+    #TODO:Need to validate provider/identity membership on id change
+    type = serializers.SerializerMethodField('get_bookmark_type')
+    alias = serializers.SerializerMethodField('get_bookmark_alias')
+
+    def get_bookmark_type(self, bookmark_obj):
+        return "Application"
+
+    def get_bookmark_alias(self, bookmark_obj):
+        return bookmark_obj.application.uuid
+    class Meta:
+        model = ApplicationBookmark
+        fields = ('type','alias')
+    
 
 class ApplicationScoreSerializer(serializers.ModelSerializer):
     """

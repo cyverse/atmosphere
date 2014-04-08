@@ -9,6 +9,7 @@ from rest_framework.urlpatterns import format_suffix_patterns
 
 from api.accounts import Account
 from api.application import ApplicationSearch, ApplicationList, Application
+from api.bookmark import  ApplicationBookmarkDetail, ApplicationBookmarkList
 from api.email import Feedback, QuotaEmail, SupportEmail
 from api.flow import Flow
 from api.group import GroupList, Group
@@ -93,6 +94,16 @@ urlpatterns = format_suffix_patterns(patterns(
     url(r'^application/$',
         ApplicationList.as_view(),
         name='application-list'),
+
+    url(r'^bookmark/$',
+        ApplicationBookmarkList.as_view(), name='bookmark-list'),
+
+    url(r'^bookmark/application/$',
+        ApplicationBookmarkList.as_view(), name='bookmark-application-list'),
+
+    url(r'^bookmark/application/(?P<app_uuid>[a-zA-Z0-9-]+)/$',
+        ApplicationBookmarkDetail.as_view(), name='bookmark-application'),
+
 
     url(r'^application/search/$',
         ApplicationSearch.as_view(),
