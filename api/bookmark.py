@@ -77,12 +77,22 @@ class ApplicationBookmarkDetail(APIView):
                                     "No Application with uuid %s" % app_uuid)
         app = app[0]
         if 'marked' in data:
-            app_bookmark, _ = ApplicationBookmark.objects.get_or_create(
-                application=app,
-                user=user)
-            serialized_data = ApplicationBookmarkSerializer(app_bookmark).data
-            response = Response(serialized_data)
-            return response
+            if data['marked'] == True:
+                app_bookmark, _ = ApplicationBookmark.objects.get_or_create(
+                    application=app,
+                    user=user)
+                serialized_data = ApplicationBookmarkSerializer(app_bookmark).data
+                response = Response(serialized_data)
+                return response
+            elif data['marked'] == False:
+                app_bookmark = ApplicationBookmark.objects.filter(
+                    application=app, user=user)
+                app_bookmark.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            else:
+                return failure_response(status.HTTP_400_BAD_REQUEST,
+                    "'marked' should be True/False")
+
         return failure_response(status.HTTP_400_BAD_REQUEST,
                 "Missing 'marked' in PUT data")
 
