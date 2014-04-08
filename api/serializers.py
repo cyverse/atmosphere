@@ -27,7 +27,7 @@ from rest_framework import serializers
 from rest_framework import pagination
 
 from threepio import logger
-def get_context_user(kwargs, required=False):
+def get_context_user(serializer, kwargs, required=False):
     context = kwargs.get('context',{})
     user = context.get('user')
     request = context.get('request')
@@ -40,8 +40,7 @@ def get_context_user(kwargs, required=False):
         if required:
             raise Exception(print_str)
         else:
-            #logger.debug("Incomplete Data Warning:%s" % print_str)
-            pass
+            logger.debug("Incomplete Data Warning:%s" % print_str)
     if user:
         #NOTE: Converting str to atmosphere user is easier when debugging
         if type(user) == str:
@@ -52,6 +51,9 @@ def get_context_user(kwargs, required=False):
                             "to be of type str or AtmosphereUser")
     elif request:
         user = request.user
+    if user:
+        logger.debug("%s initialized with user %s"
+                     % (serializer, user))
     return user
 
 
@@ -159,7 +161,7 @@ class ApplicationSerializer(serializers.Serializer):
         return get_projects_for_obj(self, obj)
 
     def __init__(self, *args, **kwargs):
-        user = get_context_user(kwargs)
+        user = get_context_user(self, kwargs)
         self.request_user = user
         super(ApplicationSerializer, self).__init__(*args, **kwargs)
 
@@ -172,7 +174,7 @@ class PaginatedApplicationSerializer(pagination.PaginationSerializer):
     """
 
     def __init__(self, *args, **kwargs):
-        user = get_context_user(kwargs)
+        user = get_context_user(self, kwargs)
         self.request_user = user
         super(PaginatedApplicationSerializer, self).__init__(*args, **kwargs)
 
@@ -249,7 +251,7 @@ class InstanceSerializer(serializers.ModelSerializer):
         return get_projects_for_obj(self, obj)
 
     def __init__(self, *args, **kwargs):
-        user = get_context_user(kwargs)
+        user = get_context_user(self, kwargs)
         self.request_user = user
         super(InstanceSerializer, self).__init__(*args, **kwargs)
 
@@ -524,7 +526,7 @@ class VolumeSerializer(serializers.ModelSerializer):
         return get_projects_for_obj(self, obj)
 
     def __init__(self, *args, **kwargs):
-        user = get_context_user(kwargs)
+        user = get_context_user(self, kwargs)
         self.request_user = user
         super(VolumeSerializer, self).__init__(*args, **kwargs)
 
@@ -535,9 +537,22 @@ class VolumeSerializer(serializers.ModelSerializer):
 
 class ProjectSerializer(serializers.ModelSerializer):
     owner = serializers.Field(source="owner.username")
-    instances = InstanceSerializer()
-    volumes = VolumeSerializer()
-    applications = ApplicationSerializer()
+    applications = serializers.SerializerMethodField('get_user_applications')
+    instances = serializers.SerializerMethodField('get_user_instances')
+    volumes = serializers.SerializerMethodField('get_user_volumes')
+
+    def get_user_applications(self, project):
+        return [item.uuid for item in project.applications.all()]
+    def get_user_instances(self, project):
+        return [item.provider_alias for item in project.instances.all()]
+    def get_user_volumes(self, project):
+        return [item.alias for item in project.volumes.all()]
+
+
+    def __init__(self, *args, **kwargs):
+        user = get_context_user(self, kwargs)
+        super(ProjectSerializer, self).__init__(*args, **kwargs)
+
 
     class Meta:
         model = Project
