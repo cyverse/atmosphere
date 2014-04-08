@@ -600,11 +600,11 @@ class ProjectSerializer(serializers.ModelSerializer):
     volumes = serializers.SerializerMethodField('get_user_volumes')
 
     def get_user_applications(self, project):
-        return [item.uuid for item in project.applications.all()]
+        return [ApplicationSerializer(item,context={'user':self.context.get('user')}).data for item in project.applications.all()]
     def get_user_instances(self, project):
-        return [item.provider_alias for item in project.instances.all()]
+        return [InstanceSerializer(item,context={'user':self.context.get('user')}).data for item in project.instances.all()]
     def get_user_volumes(self, project):
-        return [item.alias for item in project.volumes.all()]
+        return [VolumeSerializer(item, context={'user':self.context.get('user')}).data for item in project.volumes.all()]
 
 
     def __init__(self, *args, **kwargs):
