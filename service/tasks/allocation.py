@@ -62,14 +62,26 @@ def monitor_instances_for(provider):
     logger.info("Monitoring completed")
 
 def monitor_instances_for_user(provider, username, instances):
+    from core.models.instance import convert_esh_instance
+    from api import get_esh_driver
     try:
-        import ipdb;ipdb.set_trace()
         user = AtmosphereUser.objects.get(username=username)
         #TODO: When user->group is no longer true,
         # we will need to modify this..
         group = Group.objects.get(name=user.username)
         ident = user.identity_set.get(provider=provider)
         im = ident.identitymembership_set.get(member=group)
+        #NOTE: Couples with API, probably want this in
+        # service/driver
+        driver = get_esh_driver(ident)
+        core_instances = []
+        #NOTE: We are converting them so they will
+        # be picked up as core models for the 'over_allocation_test'
+        for instance in instances:
+            c_inst = convert_esh_instance(
+                    driver, instance,
+                    ident.provider.id, ident.id, ident.created_by)
+            core_instances.append(c_inst)
         over_allocation = over_allocation_test(im.identity,
                                                instances)
         core_instances = user.instance_set.filter(
