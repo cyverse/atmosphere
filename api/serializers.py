@@ -27,6 +27,11 @@ from rest_framework import serializers
 from rest_framework import pagination
 
 from threepio import logger
+
+"""
+Useful Serializer methods here..
+"""
+
 def get_context_user(serializer, kwargs, required=False):
     context = kwargs.get('context',{})
     user = context.get('user')
@@ -67,8 +72,139 @@ def get_projects_for_obj(serializer, related_obj):
     projects = related_obj.get_projects(serializer.request_user)
     return [p.id for p in projects]
 
+"""
+Custom Fields go here!
+"""
+
+class ProjectsField(serializers.WritableField):
+    def to_native(self, project_mgr):
+        request_user = self.root.request_user
+        if type(request_user) == AnonymousUser:
+            return None
+        try:
+            projects = project_mgr.filter(owner=request_user)
+            # Modifications to how 'project' should be displayed here:
+            return [p.name for p in projects]
+        except Project.DoesNotExist:
+            return None
+
+    def field_from_native(self, data, files, field_name, into):
+        value = data.get(field_name)
+        if value is None:
+            return
+        related_obj = self.root.object
+        user = self.root.request_user
+        # Retrieve the New Project(s)
+        if type(value) == list:
+            new_projects = value
+        else:
+            new_projects = [value,]
+
+        # Remove related_obj from Old Project(s)
+        old_projects = related_obj.get_projects(user)
+        for old_proj in old_projects:
+            related_obj.projects.remove(old_proj)
+
+        # Add Project(s) to related_obj
+        for project_name in new_projects:
+            # Retrieve/Create the New Project
+            new_project, created = Project.objects.get_or_create(
+                    name=project_name, owner=user)
+            # Assign related_obj to New Project
+            if not related_obj.projects.filter(name=project_name):
+                related_obj.projects.add(new_project)
+        # Modifications to how 'project' should be displayed here:
+        into[field_name] = new_projects
 
 
+class AppBookmarkField(serializers.WritableField):
+
+    def to_native(self, bookmark_mgr):
+        request_user = self.root.request_user
+        if type(request_user) == AnonymousUser:
+            return False
+        try:
+            bookmark_mgr.get(user=request_user)
+            return True
+        except ApplicationBookmark.DoesNotExist:
+            return False
+
+    def field_from_native(self, data, files, field_name, into):
+        value = data.get(field_name)
+        if value is None:
+            return
+        app = self.root.object
+        user = self.root.request_user
+        if value:
+            ApplicationBookmark.objects.\
+                    get_or_create(application=app, user=user)
+            result = True
+        else:
+            ApplicationBookmark.objects\
+                    .filter(application=app, user=user).delete()
+            result = False
+        into[field_name] = result
+
+
+class TagRelatedField(serializers.SlugRelatedField):
+
+    def to_native(self, tag):
+        return super(TagRelatedField, self).to_native(tag)
+
+    def field_from_native(self, data, files, field_name, into):
+        value = data.get(field_name)
+        if value is None:
+            return
+        try:
+            tags = []
+            for tagname in value:
+                tag = find_or_create_tag(tagname, None)
+                tags.append(tag)
+            into[field_name] = tags
+        except Identity.DoesNotExist:
+            into[field_name] = None
+        return
+
+
+class IdentityRelatedField(serializers.RelatedField):
+
+    def to_native(self, identity):
+        quota_dict = identity.get_quota_dict()
+        return {
+            "id": identity.id,
+            "provider": identity.provider.location,
+            "provider_id": identity.provider.id,
+            "quota": quota_dict,
+        }
+
+    def field_from_native(self, data, files, field_name, into):
+        value = data.get(field_name)
+        if value is None:
+            return
+        try:
+            into[field_name] = Identity.objects.get(id=value)
+        except Identity.DoesNotExist:
+            into[field_name] = None
+
+
+class InstanceRelatedField(serializers.RelatedField):
+    def to_native(self, instance_alias):
+        instance = Instance.objects.get(provider_alias=instance_alias)
+        return instance.provider_alias
+
+    def field_from_native(self, data, files, field_name, into):
+        value = data.get(field_name)
+        if value is None:
+            return
+        try:
+            into["instance"] = Instance.objects.get(provider_alias=value)
+            into[field_name] = Instance.objects.get(provider_alias=value).provider_alias
+        except Instance.DoesNotExist:
+            into[field_name] = None
+
+"""
+Serializers below this line
+"""
 
 class AccountSerializer(serializers.Serializer):
     pass
@@ -106,34 +242,6 @@ class IdentitySerializer(serializers.ModelSerializer):
         fields = ('id', 'created_by', 'provider', 'credentials', 'quota',
                   'membership')
 
-class AppBookmarkField(serializers.WritableField):
-
-    def to_native(self, bookmark_mgr):
-        request_user = self.root.request_user
-        if type(request_user) == AnonymousUser:
-            return False
-        try:
-            bookmark_mgr.get(user=request_user)
-            return True
-        except ApplicationBookmark.DoesNotExist:
-            return False
-
-    def field_from_native(self, data, files, field_name, into):
-        value = data.get(field_name)
-        if value is None:
-            return
-        app = self.root.object
-        user = self.root.request_user
-        if value:
-            ApplicationBookmark.objects.\
-                    get_or_create(application=app, user=user)
-            result = True
-        else:
-            ApplicationBookmark.objects\
-                    .filter(application=app, user=user).delete()
-            result = False
-        into[field_name] = result
-
 class ApplicationSerializer(serializers.Serializer):
     #Read-Only Fields
     uuid = serializers.CharField(read_only=True)
@@ -155,10 +263,7 @@ class ApplicationSerializer(serializers.Serializer):
     machines = serializers.RelatedField(source='get_provider_machines',
                                               read_only=True)
     is_bookmarked = AppBookmarkField(source="bookmarks.all")
-    projects = serializers.SerializerMethodField('get_user_projects')
-
-    def get_user_projects(self, obj):
-        return get_projects_for_obj(self, obj)
+    project = ProjectsField(source="projects")
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)
@@ -200,26 +305,6 @@ class CredentialSerializer(serializers.ModelSerializer):
         exclude = ('identity',)
 
 
-class TagRelatedField(serializers.SlugRelatedField):
-
-    def to_native(self, tag):
-        return super(TagRelatedField, self).to_native(tag)
-
-    def field_from_native(self, data, files, field_name, into):
-        value = data.get(field_name)
-        if value is None:
-            return
-        try:
-            tags = []
-            for tagname in value:
-                tag = find_or_create_tag(tagname, None)
-                tags.append(tag)
-            into[field_name] = tags
-        except Identity.DoesNotExist:
-            into[field_name] = None
-        return
-
-
 class InstanceSerializer(serializers.ModelSerializer):
     #R/O Fields first!
     alias = serializers.CharField(read_only=True, source='provider_alias')
@@ -245,10 +330,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     #Writeable fields
     name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', source='tags', many=True)
-    projects = serializers.SerializerMethodField('get_user_projects')
-
-    def get_user_projects(self, obj):
-        return get_projects_for_obj(self, obj)
+    project = ProjectsField(source="projects")
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)
@@ -373,27 +455,6 @@ class IdentityDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Identity
         exclude = ('credentials', 'created_by', 'provider')
-
-
-class IdentityRelatedField(serializers.RelatedField):
-
-    def to_native(self, identity):
-        quota_dict = identity.get_quota_dict()
-        return {
-            "id": identity.id,
-            "provider": identity.provider.location,
-            "provider_id": identity.provider.id,
-            "quota": quota_dict,
-        }
-
-    def field_from_native(self, data, files, field_name, into):
-        value = data.get(field_name)
-        if value is None:
-            return
-        try:
-            into[field_name] = Identity.objects.get(id=value)
-        except Identity.DoesNotExist:
-            into[field_name] = None
 
 class AtmoUserSerializer(serializers.ModelSerializer):
     selected_identity = IdentityRelatedField(source='select_identity')
@@ -520,10 +581,7 @@ class VolumeSerializer(serializers.ModelSerializer):
     status = serializers.CharField(read_only=True, source='esh_status')
     attach_data = serializers.Field(source='esh_attach_data')
     identity = CleanedIdentitySerializer(source="created_by_identity")
-    projects = serializers.SerializerMethodField('get_user_projects')
-
-    def get_user_projects(self, obj):
-        return get_projects_for_obj(self, obj)
+    project = ProjectsField(source="projects")
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)
@@ -566,22 +624,6 @@ class ProviderSizeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Size
         exclude = ('id', 'start_date', 'end_date')
-
-
-class InstanceRelatedField(serializers.RelatedField):
-    def to_native(self, instance_alias):
-        instance = Instance.objects.get(provider_alias=instance_alias)
-        return instance.provider_alias
-
-    def field_from_native(self, data, files, field_name, into):
-        value = data.get(field_name)
-        if value is None:
-            return
-        try:
-            into["instance"] = Instance.objects.get(provider_alias=value)
-            into[field_name] = Instance.objects.get(provider_alias=value).provider_alias
-        except Instance.DoesNotExist:
-            into[field_name] = None
 
 
 class StepSerializer(serializers.ModelSerializer):
