@@ -262,7 +262,7 @@ class ApplicationSerializer(serializers.Serializer):
     featured = serializers.BooleanField(source='featured')
     machines = serializers.RelatedField(source='get_provider_machines',
                                               read_only=True)
-    is_bookmarked = AppBookmarkField(source="bookmarks.all")
+    is_bookmarked = AppBookmarkField(source="bookmarks.all", read_only=True)
     project = ProjectsField(source="projects")
 
     def __init__(self, *args, **kwargs):
@@ -285,6 +285,23 @@ class PaginatedApplicationSerializer(pagination.PaginationSerializer):
 
     class Meta:
         object_serializer_class = ApplicationSerializer
+
+class ApplicationBookmarkSerializer(serializers.ModelSerializer):
+    """
+    """
+    #TODO:Need to validate provider/identity membership on id change
+    type = serializers.SerializerMethodField('get_bookmark_type')
+    alias = serializers.SerializerMethodField('get_bookmark_alias')
+
+    def get_bookmark_type(self, bookmark_obj):
+        return "Application"
+
+    def get_bookmark_alias(self, bookmark_obj):
+        return bookmark_obj.application.uuid
+    class Meta:
+        model = ApplicationBookmark
+        fields = ('type','alias')
+    
 
 class ApplicationScoreSerializer(serializers.ModelSerializer):
     """
