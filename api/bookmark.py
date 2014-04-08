@@ -85,3 +85,25 @@ class ApplicationBookmarkDetail(APIView):
             return response
         return failure_response(status.HTTP_400_BAD_REQUEST,
                 "Missing 'marked' in PUT data")
+
+    @api_auth_token_required
+    def delete(self, request, app_uuid, **kwargs):
+        """
+        TODO: Determine who is allowed to edit machines besides
+            core_machine.owner
+        """
+        user = request.user
+        app = Application.objects.filter(uuid=app_uuid)
+        if not app:
+            return failure_response(status.HTTP_404_NOT_FOUND,
+                                    "No Application with uuid %s" % app_uuid)
+        app_bookmark = ApplicationBookmark.objects.filter(application=app,
+                                                          user=user)
+        if not app_bookmark:
+            return failure_response(status.HTTP_404_NOT_FOUND,
+                                    "No Bookmark for Application: uuid %s" % app_uuid)
+        app_bookmark.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
