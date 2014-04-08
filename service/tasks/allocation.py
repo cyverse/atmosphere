@@ -63,7 +63,6 @@ def monitor_instances_for(provider):
 
 def monitor_instances_for_user(provider, username, instances):
     try:
-        import ipdb;ipdb.set_trace()
         user = AtmosphereUser.objects.get(username=username)
         #TODO: When user->group is no longer true,
         # we will need to modify this..
