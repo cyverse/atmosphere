@@ -44,7 +44,10 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 			this.$el.find('.instance_state').attr('class', 'instance_state');
 			this.$el.find('.instance_state').html('Instance status: ' + this.model.get('state'));
 		}
-
+        var ip_addr_span = this.$el.find('.media-body span');
+        if (this.model.get('public_dns_name') == "0.0.0.0") {
+            ip_addr_span.html("");
+        }
 		if (this.model.get('selected'))
 			this.$el.addClass('active');
 		this.update_running_state();
