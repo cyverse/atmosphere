@@ -27,6 +27,9 @@ from api.meta import Meta, MetaAction
 from api.notification import NotificationList
 from api.occupancy import Occupancy, Hypervisor
 from api.project import ProjectList, ProjectDetail
+from api.project import ProjectInstanceList, ProjectInstanceExchange,\
+        ProjectApplicationList, ProjectApplicationExchange,\
+        ProjectVolumeList, ProjectVolumeExchange
 from api.profile import Profile
 from api.provider import ProviderList, Provider
 from api.size import SizeList, Size
@@ -68,6 +71,29 @@ urlpatterns = format_suffix_patterns(patterns(
     url(r'project/(?P<project_id>\d+)/$',
         ProjectDetail.as_view(),
         name='project-detail'),
+    url(r'project/(?P<project_id>\d+)/application/$',
+        ProjectApplicationList.as_view(),
+        name='project-application-list'),
+    url(r'project/(?P<project_id>\d+)/application/(?P<application_uuid>[a-zA-Z0-9-]+)/$',
+        ProjectApplicationExchange.as_view(),
+        name='project-application-exchange'),
+    url(r'project/(?P<project_id>\d+)/instance/$',
+        ProjectInstanceList.as_view(),
+        name='project-instance-list'),
+    url(r'project/(?P<project_id>\d+)/instance/(?P<instance_id>[a-zA-Z0-9-]+)/$',
+        ProjectInstanceExchange.as_view(),
+        name='project-instance-exchange'),
+    url(r'project/(?P<project_id>\d+)/volume/$',
+        ProjectVolumeList.as_view(),
+        name='project-volume-list'),
+    url(r'project/(?P<project_id>\d+)/volume/(?P<volume_id>[a-zA-Z0-9-]+)/$',
+        ProjectVolumeExchange.as_view(),
+        name='project-volume-exchange'),
+
+
+
+
+
     url(r'version/$', Version.as_view()),
     url(r'^maintenance/$',
         MaintenanceRecordList.as_view(),

@@ -33,6 +33,19 @@ class Project(models.Model):
                    self.applications.all(), self.instances.all(),
                    self.volumes.all())
 
+    def remove_object(self, related_obj):
+        """
+        Use this function to move A single object
+        to Project X
+        """
+        #TODO:If len(self.<related_obj_cls>.objects.all)
+        # > 2, remove is OKAY
+        # if len() == 1 AND removing from default,
+        # raise exception
+        # if len() == 1 AND removing from 'named',
+        # move project to default.
+        return related_obj.projects.remove(self)
+
     def add_object(self, related_obj):
         """
         Use this function to move A single object
@@ -40,17 +53,14 @@ class Project(models.Model):
         """
         return related_obj.projects.add(self)
 
-    def migrate_objects(self, to_project):
+    def copy_objects(self, to_project):
         """
         Use this function to move ALL objects
         from Project X to Project Y
         """
-        for app in self.applications.all():
-            to_project.applications.add(app)
-        for app in self.instances.all():
-            to_project.instances.add(app)
-        for app in self.volumes.all():
-            to_project.volumes.add(app)
+        [to_project.add_object(app) for app in self.applications.all()]
+        [to_project.add_object(inst) for inst in self.instances.all()]
+        [to_project.add_object(vol) for vol in self.volumes.all()]
 
     def delete_project(self):
         """
@@ -58,9 +68,9 @@ class Project(models.Model):
         from all objects using it before removing
         the entire Project
         """
-        self.applications.all().delete()
-        self.instances.all().delete()
-        self.volumes.all().delete()
+        [self.remove_object(app) for app in self.applications.all()]
+        [self.remove_object(inst) for inst in self.instances.all()]
+        [self.remove_object(vol) for vol in self.volumes.all()]
         self.end_date = timezone.now()
         self.save()
 

@@ -265,7 +265,7 @@ class ApplicationSerializer(serializers.Serializer):
     machines = serializers.RelatedField(source='get_provider_machines',
                                               read_only=True)
     is_bookmarked = AppBookmarkField(source="bookmarks.all", read_only=True)
-    project = ProjectsField(source="projects")
+    projects = ProjectsField()
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)
@@ -349,7 +349,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     #Writeable fields
     name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', source='tags', many=True)
-    project = ProjectsField(source="projects")
+    projects = ProjectsField()
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)
@@ -600,7 +600,7 @@ class VolumeSerializer(serializers.ModelSerializer):
     status = serializers.CharField(read_only=True, source='esh_status')
     attach_data = serializers.Field(source='esh_attach_data')
     identity = CleanedIdentitySerializer(source="created_by_identity")
-    project = ProjectsField(source="projects")
+    projects = ProjectsField()
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)
@@ -613,6 +613,7 @@ class VolumeSerializer(serializers.ModelSerializer):
 
 
 class ProjectSerializer(serializers.ModelSerializer):
+    # These fields are READ-ONLY!
     owner = serializers.Field(source="owner.username")
     applications = serializers.SerializerMethodField('get_user_applications')
     instances = serializers.SerializerMethodField('get_user_instances')
