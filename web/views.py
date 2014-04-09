@@ -309,7 +309,7 @@ def get_resource(request, file_location):
         remote_ip = request.META.get('REMOTE_ADDR', None)
         if remote_ip is not None:
             #Authenticated if the instance requests resource.
-            instances = Instance.objects.filter(public_dns_name=remote_ip)
+            instances = Instance.objects.filter(ip_address=remote_ip)
             authenticated = len(instances) > 0
         elif username is not None:
             django_authenticate(username=username, password="")
