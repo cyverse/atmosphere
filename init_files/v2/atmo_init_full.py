@@ -1017,6 +1017,28 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vncl
     notify_launched_instance(instance_data, instance_metadata)
 
 
+def is_executable(full_path):
+    return  os.path.isfile(full_path) and os.access(full_path, os.X_OK)
+
+def run_boot_scripts():
+    post_script_dir = "/etc/atmo/post-scripts.d"
+    script_log_dir = "/var/log/atmo/post-scripts"
+    stdout_logfile = os.path.join(post_script_log_dir, "stdout")
+    stderr_logfile = os.path.join(post_script_log_dir, "stderr")
+    for file_name in os.listdir(post_script_dir):
+        full_path = os.path.join(post_script_dir, file_name)
+        try:
+            if is_executable(full_path):
+                output, error = run_command([full_path])
+                with open(stdout_logfile,'a') as output_file:
+                    output_file.write("--\n%s OUTPUT:\n%s\n" % (full_path, output)
+                with open(stderr_logfile,'a') as output_file:
+                    output_file.write("--\n%s ERROR:\n%s\n" % (full_path, error)
+        except Exception, exc:
+            logging.exception("Exception executing/logging the file: %s"
+                              % full_path)
+
+
 def add_zsh():
     if os.path.exists("/bin/zsh") and not os.path.exists("/usr/bin/zsh"):
         run_command(['ln', '-s', '/bin/zsh', '/usr/bin/zsh'])
@@ -1090,7 +1112,8 @@ def main(argv):
         instance_metadata = get_metadata()
         logging.debug("Instance metadata - %s" % instance_metadata)
         deploy_atmo_init(user_id, instance_data, instance_metadata, root_password, vnclicense)
-    logging.info("Complete.")
+    logging.info("Atmo Init Completed.. Checking for boot scripts.")
+    run_boot_scripts()
 
 
 if __name__ == "__main__":
