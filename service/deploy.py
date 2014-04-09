@@ -87,6 +87,16 @@ def check_mount():
                             name="./deploy_check_mount.sh")
 
 
+def check_process(proc_name):
+    return ScriptDeployment(
+        "if ps aux | grep '%s' > /dev/null; "
+        "then echo '1:%s is running'; "
+        "else echo '0:%s is NOT running'; "
+        "fi"
+        % (proc_name, proc_name, proc_name),
+        name="./deploy_check_process_%s.sh"
+        % (proc_name,))
+
 def check_volume(device):
     return ScriptDeployment("tune2fs -l %s" % (device),
                             name="./deploy_check_volume.sh")
