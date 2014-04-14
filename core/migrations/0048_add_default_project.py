@@ -7,19 +7,19 @@ from django.db import models
 class Migration(DataMigration):
 
     def forwards(self, orm):
-        "Default project creation is hooked to AtmosphereUser save method"
-        users = orm.AtmosphereUser.objects.all()
-        count = len(users)
+        "Default project creation is hooked to Group save method"
+        groups = orm.Group.objects.all()
+        count = len(groups)
         #Count the # of projects you added
         p_count = 0
         now = datetime.datetime.now()
         print '> %s' % now
-        print '> Creating Default Project for %s Users' % count
-        for idx,user in enumerate(users):
+        print '> Creating Default Project for %s groups' % count
+        for idx,group in enumerate(groups):
             #Initiate the hooks
             if(idx % 100 == 0):
                 print '> Completed %s/%s (%s Added)' % (idx,count,p_count)
-            project, created = user.project_set.get_or_create(name="Default")
+            project, created = group.project_set.get_or_create(name="Default")
             if created:
                 p_count += 1
         print '> Completed %s/%s (%s Added)' % (count,count,p_count)
@@ -279,7 +279,7 @@ class Migration(DataMigration):
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'owner': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.AtmosphereUser']", 'null': 'True', 'blank': 'True'}),
+            'owner': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Group']"}),
             'volumes': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'projects'", 'null': 'True', 'symmetrical': 'False', 'to': "orm['core.Volume']"})
         },
         'core.provider': {
