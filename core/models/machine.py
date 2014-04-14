@@ -81,6 +81,8 @@ class ProviderMachine(models.Model):
     class Meta:
         db_table = "provider_machine"
         app_label = "core"
+        unique_together = ('provider', 'identifier')
+
 class ProviderMachineMembership(models.Model):
     """
     Members of a specific image and provider combination.
@@ -191,7 +193,7 @@ def get_provider_machine(identifier, provider_id):
         return None
 
 
-def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
+def convert_esh_machine(esh_driver, esh_machine, provider_id, user, image_id=None):
     """
     Takes as input an (rtwo) driver and machine, and a core provider id
     Returns as output a core ProviderMachine
@@ -240,7 +242,7 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
                      % (alias, name, app.name))
         app.name = name
         app.save()
-
+    _check_project(app, user)
     #if push_metadata and hasattr(esh_driver._connection,
     #                             'ex_set_image_metadata'):
     #    logger.debug("Creating App data for Image %s:%s" % (alias, app.name))
@@ -248,6 +250,14 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
     provider_machine.esh = esh_machine
     return provider_machine
 
+def _check_project(core_application, user):
+    """
+    Select a/multiple projects the application belongs to.
+    NOTE: User (NOT Identity!!) Specific
+    """
+    core_projects = core_application.get_projects(user)
+    #NOTE: for Applications, do NOT auto-assign default project
+    return core_projects
 
 def _convert_from_instance(esh_driver, provider_id, image_id):
     provider_machine = load_provider_machine(image_id, 'Unknown Image', provider_id)
@@ -269,7 +279,7 @@ def compare_core_machines(mach_1, mach_2):
     else:
         return cmp(mach_1.identifier, mach_2.identifier)
 
-def filter_core_machine(provider_machine, request_user=None):
+def filter_core_machine(provider_machine):
     """
     Filter conditions:
     * Application does not have an end_date
@@ -283,19 +293,4 @@ def filter_core_machine(provider_machine, request_user=None):
             return not(provider_machine.end_date < now)
         if provider_machine.application.end_date:
             return not(provider_machine.application.end_date < now)
-    #Ignore public users accessing private images..
-    #if provider_machine.application.private:
-    #    if request_user:
-    #        allowed_groups = [m.group for m in
-    #                          provider_machine.providermachinemembership_set.all()]
-    #        print "%s can be launched by:%s" \
-    #                     % (provider_machine, allowed_groups)
-    #        for group in allowed_groups:
-    #            allowed_users = [u.username for u in group.user_set.all()]
-    #            if request_user in allowed_users:
-    #                print "%s is allowed to use %s" % (request_user, provider_machine.identifier)
-    #                return True
-    #    print "%s is not allowed to use %s" % (request_user, provider_machine.identifier)
-    #    return False
-    #print "%s is not a private image" % (provider_machine.identifier)
     return True

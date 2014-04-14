@@ -31,6 +31,13 @@ class Application(models.Model):
     created_by = models.ForeignKey('AtmosphereUser')
     created_by_identity = models.ForeignKey(Identity, null=True)
 
+    def get_projects(self, user):
+        projects = self.projects.filter(
+                Q(end_date=None) | Q(end_date__gt=timezone.now()),
+                owner=user,
+                )
+        return projects
+
     def featured(self):
         return True if self.tags.filter(name__iexact='featured') else False
 
@@ -64,6 +71,10 @@ class Application(models.Model):
         MD5 hash for icons
         """
         return md5(self.uuid).hexdigest()
+
+    def get_provider_machine_set(self):
+        pms = self.providermachine_set.all()
+        return pms
 
     def get_provider_machines(self):
         pms = self.providermachine_set.all()

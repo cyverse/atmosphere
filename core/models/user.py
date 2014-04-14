@@ -1,13 +1,21 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import Q
+from django.db.models.signals import post_save
 from django.utils import timezone
 
 from threepio import logger
-
-
 class AtmosphereUser(AbstractUser):
     selected_identity = models.ForeignKey('Identity', blank=True, null=True)
+
+    def get_default_project(user):
+        """
+        Return the 'default' project for 'User'
+        """
+        project, created = user.projects.get_or_create(name="Default")
+        if created:
+            logger.info("Created new 'Default' project for user: %s" % user)
+        return project
 
     def user_quota(self):
         identity = self.select_identity()
@@ -48,6 +56,26 @@ class AtmosphereUser(AbstractUser):
         db_table = 'atmosphere_user'
         app_label = 'core'
 
+#Save Hooks Here:
+def get_or_create_default_project(sender, instance, created, **kwargs):
+    from core.models.project import Project
+    project = Project.objects.get_or_create(owner=instance,
+                                            name="Default")
+    if project[1] is True:
+        logger.debug("Creating Project:'Default' for %s" % instance)
+
+
+def get_or_create_user_profile(sender, instance, created, **kwargs):
+    from core.models.profile import UserProfile
+    prof = UserProfile.objects.get_or_create(user=instance)
+    if prof[1] is True:
+        logger.debug("Creating User Profile for %s" % instance)
+
+#Instantiate the hooks:
+post_save.connect(get_or_create_default_project, sender=AtmosphereUser)
+post_save.connect(get_or_create_user_profile, sender=AtmosphereUser)
+
+#USER METHODS HERE
 
 def get_default_provider(username):
     """
@@ -104,3 +132,5 @@ def get_default_identity(username, provider=None):
     except Exception, e:
         logger.exception(e)
         return None
+
+

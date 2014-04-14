@@ -255,11 +255,15 @@ sys.stdout = sys.stderr
 ##REST FRAMEWORK
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (
+        # Included Renderers
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.JSONPRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework.renderers.YAMLRenderer',
         'rest_framework.renderers.XMLRenderer',
+        # Our Renderers
+        'api.renderers.PNGRenderer',
+        'api.renderers.JPEGRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'authentication.token.OAuthTokenAuthentication',
@@ -326,7 +330,7 @@ CELERYBEAT_SCHEDULE = {
     "monitor_instances": {
         "task": "monitor_instances",
         "schedule" : timedelta(minutes=15),
-        "options": {"expires":5*60, "time_limit":5*60,
+        "options": {"expires":9*60, "time_limit":5*60,
                     "queue":"celery_periodic"}
     },
     "clear_empty_ips": {
@@ -334,12 +338,6 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(hour="0", minute="0", day_of_week="*"),
         "options":{"expires": 60*60,
                    "queue":"celery_periodic"}
-    },
-    "test_all_instance_links": {
-        "task": "test_all_instance_links",
-        "schedule": timedelta(minutes=15),
-        "options": {"expires":10*60, "time_limit":2*60,
-                    "queue":"celery_periodic"}
     },
     "remove_empty_networks": {
         "task": "remove_empty_networks",

@@ -2,6 +2,8 @@
 Atmosphere service machine rest api.
 
 """
+import os
+
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 from django.db.models import Q
@@ -24,6 +26,7 @@ from core.metadata import update_machine_metadata
 from service.machine_search import search, CoreSearchProvider
 
 from api import prepare_driver, failure_response, invalid_creds
+from api.renderers import JPEGRenderer, PNGRenderer
 from api.permissions import InMaintenance
 from api.serializers import ProviderMachineSerializer,\
     PaginatedProviderMachineSerializer, ApplicationScoreSerializer
@@ -48,11 +51,12 @@ def list_filtered_machines(esh_driver, provider_id, request_user=None):
         esh_machine_list,
         black_list=['eki-', 'eri-'])
     #logger.info("Filtered machines from esh:%s" % len(esh_machine_list))
-    core_machine_list = [convert_esh_machine(esh_driver, mach, provider_id)
+    core_machine_list = [convert_esh_machine(esh_driver, mach,
+                                             provider_id, request_user)
                          for mach in esh_machine_list]
     #logger.info("Core machines :%s" % len(core_machine_list))
     filtered_machine_list = [core_mach for core_mach in core_machine_list
-                             if filter_core_machine(core_mach, request_user)]
+                             if filter_core_machine(core_mach)]
     #logger.info("Filtered Core machines :%s" % len(filtered_machine_list))
     sorted_machine_list = sorted(filtered_machine_list,
                                  cmp=compare_core_machines)
@@ -82,12 +86,16 @@ class MachineList(APIView):
         TODO: Cache this request
         """
         try:
-            request_user = request.user.username
+            request_user = request.user
             filtered_machine_list = provider_filtered_machines(request,
                                                                provider_id,
                                                                identity_id,
                                                                request_user)
+        except InvalidCredsError:
+            return invalid_creds(provider_id, identity_id)
         except:
+            logger.exception("Unexpected exception for user:%s"
+                             % request_user)
             return invalid_creds(provider_id, identity_id)
         serialized_data = ProviderMachineSerializer(filtered_machine_list,
                                                     request_user=request.user,
@@ -230,13 +238,15 @@ class Machine(APIView):
         (Lookup using the given provider/identity)
         Update on server (If applicable)
         """
+        user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
         #TODO: Need to determine that identity_id is ALLOWED to see machine_id.
         #     if not covered by calling as the users driver..
         esh_machine = esh_driver.get_machine(machine_id)
-        core_machine = convert_esh_machine(esh_driver, esh_machine, provider_id)
+        core_machine = convert_esh_machine(esh_driver, esh_machine,
+                                           provider_id, user)
         serialized_data = ProviderMachineSerializer(core_machine,
                                                     request_user=request.user).data
         response = Response(serialized_data)
@@ -254,7 +264,8 @@ class Machine(APIView):
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
         esh_machine = esh_driver.get_machine(machine_id)
-        core_machine = convert_esh_machine(esh_driver, esh_machine, provider_id)
+        core_machine = convert_esh_machine(esh_driver, esh_machine,
+                                           provider_id, user)
         if not user.is_staff\
            and user is not core_machine.application.created_by:
             logger.warn('%s is Non-staff/non-owner trying to update a machine'
@@ -289,7 +300,8 @@ class Machine(APIView):
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
         esh_machine = esh_driver.get_machine(machine_id)
-        core_machine = convert_esh_machine(esh_driver, esh_machine, provider_id)
+        core_machine = convert_esh_machine(esh_driver, esh_machine,
+                                           provider_id, user)
 
         if not user.is_staff\
            and user is not core_machine.application.created_by:
@@ -312,6 +324,34 @@ class Machine(APIView):
             status.HTTP_400_BAD_REQUEST,
             serializer.errors)
 
+class MachineIcon(APIView):
+    """
+    Represents:
+        Calls to modify the single machine
+    TODO: DELETE when we allow owners to 'end-date' their machine..
+    """
+    renderer_classes = (JPEGRenderer,PNGRenderer,)
+
+    @api_auth_token_required
+    def get(self, request, provider_id, identity_id, machine_id):
+        user = request.user
+        esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
+        #TODO: Need to determine that identity_id is ALLOWED to see machine_id.
+        #     if not covered by calling as the users driver..
+        esh_machine = esh_driver.get_machine(machine_id)
+        core_machine = convert_esh_machine(esh_driver, esh_machine,
+                                           provider_id, user)
+        if not core_machine:
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Could not retrieve machine with ID = %s" % machine_id)
+        if not core_machine.application.icon:
+            return None
+        app_icon = core_machine.application.icon
+        image_name, image_ext = os.path.splitext(app_icon.name)
+        return Response(app_icon.file)
 
 class MachineVote(APIView):
     """

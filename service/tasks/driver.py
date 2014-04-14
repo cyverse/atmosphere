@@ -16,6 +16,7 @@ from celery.task.schedules import crontab
 from libcloud.compute.types import Provider, NodeState, DeploymentError
 
 from atmosphere.celery import app
+from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
 
 from threepio import logger
 from rtwo.exceptions import NonZeroDeploymentException
@@ -28,7 +29,7 @@ from core.models.profile import UserProfile
 
 from service.driver import get_driver
 from service.networking import _generate_ssh_kwargs
-from service.deploy import init
+from service.deploy import init, check_process
 
 
 @task(name="print_debug")
@@ -62,7 +63,7 @@ def complete_resize(driverCls, provider, identity, instance_alias,
 
 @task(name="wait_for", max_retries=250, default_retry_delay=15)
 def wait_for(driverCls, provider, identity, instance_alias, status_query,
-        tasks_allowed=False):
+        tasks_allowed=False, **task_kwargs):
     """
     #Task makes 250 attempts to 'look at' the instance, waiting 15sec each try
     Cumulative time == 1 hour 2 minutes 30 seconds before FAILURE
@@ -280,6 +281,9 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         #if kwargs.get('delay'):
         #    async.get()
         logger.debug("deploy_init_to task finished at %s." % datetime.now())
+    except SystemExit:
+        logger.exception("System Exits are BAD! Find this and get rid of it!")
+        raise Exception("System Exit called")
     except NonZeroDeploymentException:
         raise
     except Exception as exc:
@@ -289,6 +293,9 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
 def get_deploy_chain(driverCls, provider, identity,
                      instance, password, redeploy=False):
     instance_id = instance.id
+
+    wait_active_task = wait_for.s(
+            driverCls, provider, identity, instance_id, "active")
     if not instance.ip:
         #Init the networking
         logger.debug("IP address missing")
@@ -306,27 +313,40 @@ def get_deploy_chain(driverCls, provider, identity,
         driverCls, provider, identity, instance_id, password, redeploy)
     deploy_task.link_error(
         deploy_failed.s(driverCls, provider, identity, instance_id))
+
+    #Call additional Deployments
+    check_shell_task = check_process_task.si(
+        driverCls, provider, identity, instance_id, "shellinaboxd")
+    check_vnc_task = check_process_task.si(
+        driverCls, provider, identity, instance_id, "vnc")
+
+    #Then remove the tmp_status
     remove_status_task = update_metadata.si(
             driverCls, provider, identity, instance_id,
             {'tmp_status': ''})
 
+    #Finally email the user
+    if not redeploy:
+        email_task = _send_instance_email.si(
+                driverCls, provider, identity, instance_id)
     ## Link the chain below this line.
     ##
+    start_chain = wait_active_task
     if not instance.ip:
         # Task will start with networking
         # link networking to deploy..
-        start_chain = network_meta_task
+        wait_active_task.link(network_meta_task)
         network_meta_task.link(floating_task)
         floating_task.link(deploy_meta_task)
     else:
         #Networking is ready, just deploy.
-        start_chain = deploy_meta_task
+        wait_active_task.link(deploy_meta_task)
 
     deploy_meta_task.link(deploy_task)
-    deploy_task.link(remove_status_task)
+    deploy_task.link(check_shell_task)
+    check_shell_task.link(check_vnc_task)
+    check_vnc_task.link(remove_status_task)
     if not redeploy:
-        email_task = _send_instance_email.si(
-                driverCls, provider, identity, instance_id)
         remove_status_task.link(email_task)
     return start_chain
 
@@ -458,6 +478,49 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
     except Exception as exc:
         logger.exception(exc)
         _deploy_init_to.retry(exc=exc)
+
+@task(name="check_process_task", max_retries=2, default_retry_delay=15)
+def check_process_task(driverCls, provider, identity, instance_alias, process_name, *args, **kwargs):
+    """
+    #NOTE: While this looks like a large number (250 ?!) of retries
+    # we expect this task to fail often when the image is building
+    # and large, uncached images can have a build time 
+    """
+    from core.models.instance import Instance
+    try:
+        logger.debug("check_process_task started at %s." % datetime.now())
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_alias)
+        if not instance:
+            return
+        cp_script = check_process(process_name)
+        kwargs.update({
+            'ssh_key': ATMOSPHERE_PRIVATE_KEYFILE,
+            'timeout': 120,
+            'deploy': cp_script})
+        #Execute the script
+        driver.deploy_to(instance, **kwargs)
+        #Parse the output and modify the CORE instance
+        script_out = cp_script.stdout
+        result = True if "1:" in script_out else False
+        #NOTE: Throws Instance.DoesNotExist
+        core_instance = Instance.objects.get(provider_alias=instance_alias)
+        if "vnc" in process_name:
+            core_instance.vnc = result
+            core_instance.save()
+        elif "shellinaboxd" in process_name:
+            core_instance.shell = result
+            core_instance.save()
+        else:
+            return result, script_out
+        logger.debug("check_process_task finished at %s." % datetime.now())
+    except Instance.DoesNotExist:
+        logger.warn("check_process_task failed: Instance %s no longer exists"
+                    % instance_id)
+    except Exception as exc:
+        logger.exception(exc)
+        check_process_task.retry(exc=exc)
+
 
 @task(name="update_metadata", max_retries=250, default_retry_delay=15)
 def update_metadata(driverCls, provider, identity, instance_alias, metadata):

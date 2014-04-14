@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from core.models.machine import filter_core_machine, convert_esh_machine, create_application
+from core.models.machine import filter_core_machine, create_application
 from core.models import Identity, Provider
 from api import get_esh_driver
 from core.models import Application

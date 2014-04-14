@@ -27,6 +27,7 @@ from core.models.user import AtmosphereUser
 from core.models.volume import Volume
 
 from core.application import save_app_data
+from threepio import logger
 
 def private_object(modeladmin, request, queryset):
         queryset.update(private=True)
@@ -155,8 +156,7 @@ class VolumeAdmin(admin.ModelAdmin):
 class ApplicationAdmin(admin.ModelAdmin):
     actions = [end_date_object, private_object]
     search_fields = ["name", "id"]
-    list_display = [
-        "name", "start_date", "end_date", "private", "created_by"]
+    list_display = ["uuid", "get_provider_machine_set", "name", "private", "created_by", "start_date", "end_date" ]
     filter_vertical = ["tags",]
     def save_model(self, request, obj, form, change):
         user = request.user
@@ -164,7 +164,11 @@ class ApplicationAdmin(admin.ModelAdmin):
         application.save()
         form.save_m2m()
         if change:
-            save_app_data(application)
+            try:
+                save_app_data(application)
+            except Exception, e:
+                logger.exception("Could not update metadata for application %s"
+                                 % application)
         return application
 
 

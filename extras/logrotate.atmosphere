@@ -1,10 +1,18 @@
-/var/log/apache2/*.log /opt/dev/atmosphere/logs/atmosphere.log /var/log/celery/atmosphere-node_1.log /opt/dev/atmosphere/logs/libcloud.log {
-        daily
-        missingok
-        rotate 3
-        compress
-        delaycompress
-        notifempty
-        create 666 root adm
-        sharedscripts
+/var/log/apache2/*.log /opt/dev/atmosphere/logs/atmosphere.log /var/log/celery/*.log /opt/dev/atmosphere/logs/libcloud.log {
+	daily
+	missingok
+	rotate 9
+	compress
+	delaycompress
+	notifempty
+	create 666 root adm
+	sharedscripts
+	postrotate
+		/etc/init.d/apache2 reload > /dev/null
+	endscript
+	prerotate
+		if [ -d /etc/logrotate.d/httpd-prerotate ]; then \
+			run-parts /etc/logrotate.d/httpd-prerotate; \
+		fi; \
+	endscript
 }

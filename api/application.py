@@ -2,6 +2,7 @@
 """
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
+from django.contrib.auth.models import AnonymousUser
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -38,14 +39,13 @@ class ApplicationList(APIView):
         Using provider and identity, getlist of machines
         TODO: Cache this request
         """
-        request_user = kwargs.get('request_user')
         applications = public_applications()
         #Concatenate 'visible'
-        if request_user:
-            my_apps = visible_applications(request_user)
+        if request.user and type(request.user) != AnonymousUser:
+            my_apps = visible_applications(request.user)
             applications.extend(my_apps)
         serialized_data = ApplicationSerializer(applications,
-                                                context={'request':request},
+                                                context={'user':request.user},
                                                 many=True).data
         response = Response(serialized_data)
         return response
@@ -70,7 +70,7 @@ class Application(APIView):
                                     % app_uuid)
         app = app[0]
         serialized_data = ApplicationSerializer(
-                app, context={'request':request}).data
+                app, context={'user':request.user}).data
         response = Response(serialized_data)
         return response
 
@@ -113,7 +113,7 @@ class Application(APIView):
                                     "This incident will be reported")
         partial_update = kwargs.get('_partial',True)
         serializer = ApplicationSerializer(app, data=data,
-                                           context={'request':request}, 
+                                           context={'user':request.user},
                                            partial=partial_update)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
@@ -167,11 +167,11 @@ class ApplicationSearch(APIView):
             serialized_data = \
                 PaginatedApplicationSerializer(
                     search_page,
-                    context={'request':request}).data
+                    context={'user':request.user}).data
         else:
             serialized_data = ApplicationSerializer(
                 search_result,
-                context={'request':request}).data
+                context={'user':request.user}).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
