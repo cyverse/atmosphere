@@ -3,7 +3,7 @@ from django.utils import timezone
 
 from core.models.application import Application
 from core.models.instance import Instance
-from core.models.user import AtmosphereUser
+from core.models.group import Group
 from core.models.volume import Volume
 
 from threepio import logger
@@ -20,7 +20,7 @@ class Project(models.Model):
     description = models.TextField()
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
-    owner = models.ForeignKey(AtmosphereUser, related_name="projects")
+    owner = models.ForeignKey(Group, related_name="projects")
     applications = models.ManyToManyField(Application, related_name="projects",
                                           null=True, blank=True)
     instances = models.ManyToManyField(Instance, related_name="projects",

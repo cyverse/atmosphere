@@ -88,7 +88,7 @@ def monitor_instances_for_user(provider, username, instances):
                 provider_machine__provider=provider,
                 end_date=None)
         core_instances_ident = ident.instance_set.filter(end_date=None)
-        update_instances(im.identity, instances, core_instances)
+        update_instances(driver, im.identity, instances, core_instances)
     except:
         logger.exception("Unable to monitor User:%s on Provider:%s"
                          % (username,provider))
@@ -151,14 +151,12 @@ def over_allocation_test(identity, esh_instances):
                                             identity.provider.id,
                                             identity.id,
                                             identity.created_by)
-        updated_core.update_history(updated_esh.extra['status'],
-                                    updated_esh.extra.get('task'))
         running_instances.append(updated_core)
     #All instances are dealt with, move along.
     return True # User was over_allocation
 
 
-def update_instances(identity, esh_list, core_list):
+def update_instances(driver, identity, esh_list, core_list):
     """
     End-date core instances that don't show up in esh_list
     && Update the values of instances that do
@@ -174,8 +172,12 @@ def update_instances(identity, esh_list, core_list):
             core_instance.end_date_all()
             continue
         esh_instance = esh_list[index]
+        esh_size = driver.get_size(esh_instance._size.id)
+        core_size = convert_esh_size(esh_size, provider_id)
         core_instance.update_history(
             esh_instance.extra['status'],
+            core_size,
             esh_instance.extra.get('task') or
-            esh_instance.extra.get('metadata', {}).get('tmp_status'))
+            esh_instance.extra.get(
+                'metadata', {}).get('tmp_status'))
     return
