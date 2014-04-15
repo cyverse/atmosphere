@@ -12,6 +12,7 @@ class AtmosphereUser(AbstractUser):
         """
         Return the 'default' project for 'User'
         """
+        from core.models.group import get_user_group
         group = get_user_group(user.username)
         project, created = group.projects.get_or_create(name="Default")
         if created:
