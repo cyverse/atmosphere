@@ -3,7 +3,7 @@
 		<img class="image_icon" id="main_icon" src="<%= image_url %>" />
 
 		<h2 class="editable" data-type="instance_name"><%= name_or_id %> </h2>
-        <%= public_dns_name %>
+        <span id="instance-ip-span"><%= public_dns_name %></span>
 	</div>
 
 	<div class="col-sm-6 instance_controls_container" id="euca_controls" style="display: none">

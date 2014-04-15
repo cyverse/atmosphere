@@ -20,7 +20,10 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 		attributes.state = response.status;
 		attributes.has_shall = response.has_shell;
 		attributes.has_vnc = response.has_vnc;
-		
+		if (response.ip_address == "0.0.0.0" && response.status == "active") {
+            response.status = "active - networking";
+            attributes.state = "active - networking";
+        }
 		attributes.state_is_active = (   response.status == 'active'
 							|| response.status == 'running'
 							|| response.status == 'verify_resize' );

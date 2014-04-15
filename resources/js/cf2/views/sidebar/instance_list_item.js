@@ -44,7 +44,10 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 			this.$el.find('.instance_state').attr('class', 'instance_state');
 			this.$el.find('.instance_state').html('Instance status: ' + this.model.get('state'));
 		}
-
+        var ip_addr_span = this.$el.find('.media-body span');
+        if (this.model.get('public_dns_name') == "0.0.0.0") {
+            ip_addr_span.html("");
+        }
 		if (this.model.get('selected'))
 			this.$el.addClass('active');
 		this.update_running_state();
@@ -180,7 +183,7 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 			return 'suspended';
 		}
         else if (task ==='deploy_error') {
-            return 'deleted';
+            return 'deploy_error';
         }
 		else {
 			return 'active';
@@ -213,13 +216,13 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 			percent = this.get_percent_complete(state, task);
 			this.final_state = this.get_final_state(state, task);
 		}
-
-		// Do initial update
-		this.update_percent_complete(percent);
-
-		// Initialize polling
-		this.poll_instance();
-
+        
+        if(this.final_state !== 'deploy_error'){
+            // Do initial update
+            this.update_percent_complete(percent);
+           // Initialize polling
+            this.poll_instance();
+        }
 	},
 	update_percent_complete: function(percent) {
 

@@ -205,6 +205,11 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 		var self = this;
 
+        var ip_span = this.$el.find('#instance-ip-span');
+        if (this.model.get('public_dns_name') == "0.0.0.0") {
+            //Clear the IP address field
+            ip_span.html("");
+        }
 		// Display OpenStack-specific options
 		if (Atmo.profile.get('selected_identity').get('provider').match(/openstack/i) || Atmo.profile.get('selected_identity').get('provider').match(/iplant/i) ) {
 

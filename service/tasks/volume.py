@@ -13,6 +13,8 @@ from threepio import logger
 from rtwo.driver import EucaDriver, OSDriver
 from libcloud.compute.types import DeploymentError
 
+from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
+
 from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
 from service.instance import update_instance_metadata
@@ -36,7 +38,7 @@ def check_volume_task(driverCls, provider, identity,
         volume = driver.get_volume(volume_id)
         device = volume.extra['attachmentSet'][0]['device']
 
-        private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
+        private_key = ATMOSPHERE_PRIVATE_KEYFILE
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'timeout': 120})
 

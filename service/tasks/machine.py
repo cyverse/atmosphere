@@ -128,7 +128,11 @@ def process_request(new_image_id, machine_request_id):
     machine_request.status = 'processing - %s' % new_image_id
     machine_request.save()
     invalidate_machine_cache(machine_request)
-    set_machine_request_metadata(machine_request, new_image_id)
+
+    #NOTE: This is taken care of indirectly by process_machine_request
+    # and more directly by core/application.py:save_app_data
+    #set_machine_request_metadata(machine_request, new_image_id)
+
     process_machine_request(machine_request, new_image_id)
     send_image_request_email(machine_request.new_machine_owner,
                              machine_request.new_machine,

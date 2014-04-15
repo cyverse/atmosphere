@@ -162,7 +162,7 @@ def redeploy_init(esh_driver, esh_instance, countdown=None):
 def restore_ip_chain(esh_driver, esh_instance, redeploy=False):
     """
     Returns: a task, chained together
-    Wait_for (Active,Suspended) --> Fixed --> Floating --> Deploy (if redeploy) 
+    task chain: wait_for("active") --> AddFixed --> AddFloating --> reDeploy
     start with: task.apply_async()
     """
     from service.tasks.driver import \
