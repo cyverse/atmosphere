@@ -18,7 +18,8 @@ from core.models import IdentityMembership, MachineRequest
 
 def requestImaging(request, machine_request_id):
     """
-    Processes image request, sends an email to atmo@iplantc.org
+    Processes image request, sends an email to the user
+    and a sperate email to atmo@iplantc.org
     Returns a response.
     """
     view_link = '%s/api/v1/request_image/%s' \
@@ -27,22 +28,24 @@ def requestImaging(request, machine_request_id):
         % (settings.SERVER_URL, machine_request_id)
     deny_link = '%s/api/v1/request_image/%s/deny' \
         % (settings.SERVER_URL, machine_request_id)
-    machine_request = MachineRequest.objects.get(id=machine_request_id)
-    name = request.POST.get('name', '')
-    instance_id = request.POST.get('instance', '')
-    description = request.POST.get('description', '')
-    software = request.POST.get('installed_software', '')
-    sys_files = request.POST.get('sys',  '')
-    tags = request.POST.get('tags', '')
-    public = request.POST.get('vis', '')
-    shared_with = request.POST.get('shared_with', '')
-    username = request.POST.get('owner', request.user.username)
-    message = """
+    staff_header = """
     URLs require staff access to view/approve/deny:
     View Request: %s
     Auto-Approve Request: %s
     Auto-Deny Request: %s
     ---
+    """ % (view_link, approve_link, deny_link)
+    machine_request = MachineRequest.objects.get(id=machine_request_id)
+    #TODO: This could also be:
+    #machine_request.instance.created_by.username
+    #And we could add another field 'new_image_owner'..
+    username = machine_request.new_machine_owner.username
+    message = """
+    Your Image Request has been received.
+    Upon staff approval, another e-mail will be sent,
+    followed by a final e-mail when the imaging process is complete.
+
+    Your Image Request:
     Username : %s
     Instance ID:%s
     ---
@@ -54,11 +57,7 @@ def requestImaging(request, machine_request_id):
     New Image name:%s
     New Image description:%s
     New Image tags:%s
-    """ % (view_link, approve_link, deny_link,
-           #TODO: This could also be:
-           #machine_request.instance.created_by.username
-           #And we could add another field 'new_image_owner'..
-           machine_request.new_machine_owner.username, 
+    """ % (username, 
            machine_request.instance.provider_alias,
            machine_request.installed_software,
            machine_request.iplant_sys_files,
@@ -68,6 +67,8 @@ def requestImaging(request, machine_request_id):
            machine_request.new_machine_description,
            machine_request.new_machine_tags)
     subject = 'Atmosphere Imaging Request - %s' % username
+    email_success = email_from_admin(username, subject, message)
+    message = "%s\n%s" % (staff_header, message)
     email_success = email_admin(request, subject, message, cc_user=False)
     return email_success
 
