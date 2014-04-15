@@ -79,15 +79,14 @@ class Instance(models.Model):
             new_hist.start_date=start_date
 #        logger.debug("Created new history object: %s " % (new_hist))
         return new_hist
-    def _build_first_history(status_name, size, start_date,
+    def _build_first_history(self, status_name, size, start_date,
                              first_update=False):
-        import ipdb;ipdb.set_trace()
         first_status = status_name
         if not first_update and status_name not in ['build', 'pending', 'running']:
             #Not the first update, so we must
             #Assume instance was Active from start of instance to now
             first_status = 'active'
-        first_hist = self.new_history(first_status, size, start_date)
+        first_hist = self.new_history(size, first_status, start_date)
         first_hist.save()
         return first_hist
 
@@ -117,7 +116,7 @@ class Instance(models.Model):
         last_hist = self.last_history()
         #1. Build an active status if this is the first time
         if not last_hist:
-            first_hist = _build_first_history(status_name, size,
+            first_hist = self._build_first_history(status_name, size,
                                               self.start_date, first_update=first_update)
             #logger.debug("Created the first history %s" % first_hist)
             last_hist = first_hist
@@ -139,7 +138,7 @@ class Instance(models.Model):
         now_time = timezone.now()
         last_hist.end_date = now_time
         last_hist.save()
-        new_hist = self.new_history(status_name, size, now_time)
+        new_hist = self.new_history(size, status_name, now_time)
         new_hist.save()
         logger.info("Status Update - User:%s Instance:%s Old:%s New:%s Time:%s"
                     % (self.created_by, self.provider_alias,
