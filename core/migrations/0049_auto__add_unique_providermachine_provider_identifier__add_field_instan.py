@@ -1,33 +1,29 @@
 # -*- coding: utf-8 -*-
 from south.utils import datetime_utils as datetime
 from south.db import db
-from south.v2 import DataMigration
+from south.v2 import SchemaMigration
 from django.db import models
 
-class Migration(DataMigration):
+
+class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        "Default project creation is hooked to Group save method"
-        groups = orm.Group.objects.all()
-        count = len(groups)
-        #Count the # of projects you added
-        p_count = 0
-        now = datetime.datetime.now()
-        print '> %s' % now
-        print '> Creating Default Project for %s groups' % count
-        for idx,group in enumerate(groups):
-            #Initiate the hooks
-            if(idx % 100 == 0):
-                print '> Completed %s/%s (%s Added)' % (idx,count,p_count)
-            project, created = group.project_set.get_or_create(name="Default")
-            if created:
-                p_count += 1
-        print '> Completed %s/%s (%s Added)' % (count,count,p_count)
+        # Adding unique constraint on 'ProviderMachine', fields ['provider', 'identifier']
+        db.create_unique('provider_machine', ['provider_id', 'identifier'])
 
+        # Adding field 'InstanceStatusHistory.size'
+        db.add_column('instance_status_history', 'size',
+                      self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.ProviderSize'], null=True, blank=True),
+                      keep_default=False)
 
 
     def backwards(self, orm):
-        "Write your backwards methods here."
+        # Removing unique constraint on 'ProviderMachine', fields ['provider', 'identifier']
+        db.delete_unique('provider_machine', ['provider_id', 'identifier'])
+
+        # Deleting field 'InstanceStatusHistory.size'
+        db.delete_column('instance_status_history', 'size_id')
+
 
     models = {
         u'auth.group': {
@@ -131,7 +127,7 @@ class Migration(DataMigration):
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'instance': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Instance']", 'null': 'True', 'blank': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 2, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 14, 0, 0)'}),
             'status': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
             'type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.FlowType']"})
         },
@@ -140,7 +136,7 @@ class Migration(DataMigration):
             'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256', 'blank': 'True'}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 2, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 14, 0, 0)'})
         },
         'core.group': {
             'Meta': {'object_name': 'Group', 'db_table': "'group'", '_ormbases': [u'auth.Group']},
@@ -199,7 +195,8 @@ class Migration(DataMigration):
             'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'instance': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Instance']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 2, 0, 0)'}),
+            'size': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.ProviderSize']", 'null': 'True', 'blank': 'True'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 14, 0, 0)'}),
             'status': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.InstanceStatus']"})
         },
         'core.leadership': {
@@ -217,7 +214,7 @@ class Migration(DataMigration):
             'export_owner': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.AtmosphereUser']"}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'instance': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Instance']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 2, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 14, 0, 0)'}),
             'status': ('django.db.models.fields.CharField', [], {'max_length': '256'})
         },
         'core.machinerequest': {
@@ -239,7 +236,7 @@ class Migration(DataMigration):
             'new_machine_version': ('core.fields.VersionNumberField', [], {'default': '-2130706432'}),
             'new_machine_visibility': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'parent_machine': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'ancestor_machine'", 'to': "orm['core.ProviderMachine']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 2, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 14, 0, 0)'}),
             'status': ('django.db.models.fields.TextField', [], {'default': "''", 'blank': 'True'})
         },
         'core.maintenancerecord': {
@@ -261,7 +258,7 @@ class Migration(DataMigration):
             'port': ('django.db.models.fields.IntegerField', [], {'default': '22'}),
             'private_ssh_key': ('django.db.models.fields.TextField', [], {}),
             'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 2, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 14, 0, 0)'})
         },
         'core.platformtype': {
             'Meta': {'object_name': 'PlatformType', 'db_table': "'platform_type'"},
@@ -274,12 +271,12 @@ class Migration(DataMigration):
             'Meta': {'object_name': 'Project', 'db_table': "'project'"},
             'applications': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'projects'", 'null': 'True', 'symmetrical': 'False', 'to': "orm['core.Application']"}),
             'description': ('django.db.models.fields.TextField', [], {}),
+            'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'instances': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'projects'", 'null': 'True', 'symmetrical': 'False', 'to': "orm['core.Instance']"}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
+            'owner': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'projects'", 'to': "orm['core.Group']"}),
             'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'end_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'owner': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Group']"}),
             'volumes': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'projects'", 'null': 'True', 'symmetrical': 'False', 'to': "orm['core.Volume']"})
         },
         'core.provider': {
@@ -301,7 +298,7 @@ class Migration(DataMigration):
             'value': ('django.db.models.fields.CharField', [], {'max_length': '256'})
         },
         'core.providermachine': {
-            'Meta': {'object_name': 'ProviderMachine', 'db_table': "'provider_machine'"},
+            'Meta': {'unique_together': "(('provider', 'identifier'),)", 'object_name': 'ProviderMachine', 'db_table': "'provider_machine'"},
             'application': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Application']"}),
             'created_by': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.AtmosphereUser']", 'null': 'True'}),
             'created_by_identity': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Identity']", 'null': 'True'}),
@@ -309,7 +306,7 @@ class Migration(DataMigration):
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'identifier': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 2, 0, 0)'}),
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 14, 0, 0)'}),
             'version': ('core.fields.VersionNumberField', [], {'default': '-2130706432'})
         },
         'core.providermachinemembership': {
@@ -363,7 +360,7 @@ class Migration(DataMigration):
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"}),
             'root': ('django.db.models.fields.IntegerField', [], {}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 2, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 14, 0, 0)'})
         },
         'core.step': {
             'Meta': {'object_name': 'Step', 'db_table': "'step'"},
@@ -377,7 +374,7 @@ class Migration(DataMigration):
             'instance': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Instance']", 'null': 'True', 'blank': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'}),
             'script': ('django.db.models.fields.TextField', [], {}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 2, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 14, 0, 0)'})
         },
         'core.tag': {
             'Meta': {'object_name': 'Tag', 'db_table': "'tag'"},
@@ -407,9 +404,8 @@ class Migration(DataMigration):
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Provider']"}),
             'size': ('django.db.models.fields.IntegerField', [], {}),
-            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 2, 0, 0)'})
+            'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2014, 4, 14, 0, 0)'})
         }
     }
 
     complete_apps = ['core']
-    symmetrical = True

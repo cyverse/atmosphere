@@ -90,6 +90,9 @@ def set_machine_request_metadata(machine_request, image_id):
     #Update metadata on rtwo/libcloud machine -- NOT a glance machine
     machine = manager.admin_driver.get_machine(image_id)
     lc_driver = manager.admin_driver._connection
+    if not machine:
+        logger.warn("Could not find machine with ID=%s" % image_id)
+        return
     if not hasattr(lc_driver, 'ex_set_image_metadata'):
         return
     metadata = lc_driver.ex_get_image_metadata(machine)

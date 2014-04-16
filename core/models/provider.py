@@ -51,35 +51,6 @@ class ProviderType(models.Model):
         return self.name
 
 
-class ProviderSize(models.Model):
-    #TODO: :Fix the providersize model to have a foreign key to Provider..
-    """
-    ProviderSize contains the exact amount of resources
-    in combination with am chine to launch an instance.
-    The alias' are different for each provider and the information necessary
-    in each size depends on the provider.
-    The current model includes CPU Units/RAM (In GB)/HDD Space (In GB)
-    Start date and end date are recorded for logging purposes
-
-    Optional fields include:
-      Bandwidth
-      Price
-    """
-    #Special field that is filled out when converting an eshSize
-    esh = None
-    name = models.CharField(max_length=256)  # Medium Instance
-    alias = models.CharField(max_length=256)  # m1.medium
-    cpu = models.IntegerField(null=True, blank=True)
-    ram = models.IntegerField(null=True, blank=True)
-    disk = models.IntegerField(null=True, blank=True)
-    start_date = models.DateTimeField(auto_now_add=True)
-    end_date = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        db_table = 'provider_size'
-        app_label = 'core'
-
-
 class Provider(models.Model):
     """
     Detailed information about a provider
