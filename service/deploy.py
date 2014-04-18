@@ -165,7 +165,10 @@ def package_deps(logfile=None, username=None):
 def shell_lookup_helper(username):
     zsh_user = False
     ldap_info = ldap._search_ldap(username)
-    ldap_info_dict = ldap_info[0][1]
+    try:
+        ldap_info_dict = ldap_info[0][1]
+    except IndexError:
+        return False
     for key in ldap_info_dict.iterkeys():
         if key == "loginShell":
             if 'zsh' in ldap_info_dict[key][0]:

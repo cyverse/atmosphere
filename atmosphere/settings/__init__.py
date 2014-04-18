@@ -358,8 +358,8 @@ CELERY_ROUTES += ({
         {"queue": "imaging", "routing_key": "imaging.complete"},
         },)
 #     # Django-Celery Development settings
-#     CELERY_ALWAYS_EAGER = True
-#     CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
+# CELERY_ALWAYS_EAGER = True
+# CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
 import djcelery
 djcelery.setup_loader()

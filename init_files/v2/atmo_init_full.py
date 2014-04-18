@@ -1022,7 +1022,10 @@ def is_executable(full_path):
 
 def run_boot_scripts():
     post_script_dir = "/etc/atmo/post-scripts.d"
-    script_log_dir = "/var/log/atmo/post-scripts"
+    if not os.path.isdir(post_script_dir):
+        #Nothing to execute.
+        return
+    post_script_log_dir = "/var/log/atmo/post-scripts"
     stdout_logfile = os.path.join(post_script_log_dir, "stdout")
     stderr_logfile = os.path.join(post_script_log_dir, "stderr")
     for file_name in os.listdir(post_script_dir):
@@ -1031,9 +1034,9 @@ def run_boot_scripts():
             if is_executable(full_path):
                 output, error = run_command([full_path])
                 with open(stdout_logfile,'a') as output_file:
-                    output_file.write("--\n%s OUTPUT:\n%s\n" % (full_path, output)
+                    output_file.write("--\n%s OUTPUT:\n%s\n" % (full_path, output))
                 with open(stderr_logfile,'a') as output_file:
-                    output_file.write("--\n%s ERROR:\n%s\n" % (full_path, error)
+                    output_file.write("--\n%s ERROR:\n%s\n" % (full_path, error))
         except Exception, exc:
             logging.exception("Exception executing/logging the file: %s"
                               % full_path)

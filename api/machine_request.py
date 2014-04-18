@@ -65,7 +65,12 @@ class MachineRequestList(APIView):
             serializer.save()
             #Object now has an ID for links..
             machine_request_id = serializer.object.id
-            requestImaging(request, machine_request_id)
+            #TODO: This should be a configuration option of some sort
+            auto_approve = True
+            requestImaging(request, machine_request_id,
+                           auto_approve=auto_approve)
+            if auto_approve:
+                start_machine_imaging(machine_request)
             return Response(serializer.data,
                             status=status.HTTP_201_CREATED)
         else:

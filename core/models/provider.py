@@ -10,6 +10,26 @@ from rtwo.provider import AWSProvider, EucaProvider, OSProvider
 from rtwo.provider import Provider as EshProvider
 from threepio import logger
 
+class Trait(models.Model):
+    """
+    Trait objects are created by developers,
+    they should not be added to unless they will
+    be used as logic-choices in code.
+    """
+    name = models.CharField(max_length=256)
+
+    def json(self):
+        return {
+            'name': self.name
+        }
+
+    class Meta:
+        db_table = 'trait'
+        app_label = 'core'
+
+    def __unicode__(self):
+        return self.name
+
 class PlatformType(models.Model):
     """
     Keep track of Virtualization Platform via type
@@ -67,6 +87,7 @@ class Provider(models.Model):
     public = models.BooleanField(default=False)
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
+    traits = models.ManyToManyField(Trait, null=True, blank=True)
 
     @classmethod
     def get_active(cls, provider_id=None, type_name=None):
@@ -83,6 +104,28 @@ class Provider(models.Model):
             # no longer a list
             active_providers = active_providers.get(id=provider_id)
         return active_providers
+
+    def add_trait(self, trait_name):
+        """
+        """
+        trait = self.get_trait(trait_name)
+        return self.traits.add(trait)
+
+    def remove_trait(self, trait_name):
+        """
+        """
+        trait = self.get_trait(trait_name)
+        return self.traits.remove(trait)
+
+    def get_trait(self, trait_name):
+        try:
+            trait = trait.objects.get(name=trait_name)
+            return trait
+        except trait.DoesNotExist:
+            raise Exception("trait '%s' does not exist")
+
+    def get_traits(self):
+        return self.traits.all()
 
     def share(self, core_group):
         """
