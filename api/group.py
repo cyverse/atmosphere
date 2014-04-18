@@ -8,15 +8,16 @@ from rest_framework.response import Response
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
 
 from core.models.group import Group as CoreGroup
 
+from api.permissions import InMaintenance, ApiAuthOptional, ApiAuthRequired
 from api.serializers import GroupSerializer
 
 class GroupList(APIView):
     """List groups"""
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def post(self, request):
         """
         """
@@ -31,7 +32,7 @@ class GroupList(APIView):
         response = Response(serialized_data)
         return response
 
-    @api_auth_token_required
+    
     def get(self, request):
         """
         """
@@ -48,7 +49,8 @@ class Group(APIView):
     groupname -- Name of group
     """
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def get(self, request, groupname):
         """
         """

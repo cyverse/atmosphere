@@ -270,6 +270,9 @@ class AppBookmarkField(serializers.WritableField):
         into[field_name] = result
     
 class ApplicationSerializer(serializers.Serializer):
+    """
+    test maybe something
+    """
     #Read-Only Fields
     uuid = serializers.CharField(read_only=True)
     icon = serializers.CharField(read_only=True, source='icon_url')

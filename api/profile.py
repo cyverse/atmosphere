@@ -10,15 +10,16 @@ from rest_framework.reverse import reverse
 from threepio import logger
 ## Atmosphere Libraries
 
-from authentication.decorators import api_auth_token_required
 
+from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProfileSerializer, AtmoUserSerializer
 
 
 class Profile(APIView):
     """Profile for request_user"""
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id=None, identity_id=None):
         """
         """
@@ -36,7 +37,6 @@ class Profile(APIView):
         response = Response(serialized_data)
         return response
 
-    @api_auth_token_required
     def patch(self, request, provider_id=None, identity_id=None):
         """
         Update a users profile
@@ -64,7 +64,6 @@ class Profile(APIView):
         else:
             return Response(serializer.errors)
 
-    @api_auth_token_required
     def put(self, request, provider_id=None, identity_id=None):
         """
         Update a users profile

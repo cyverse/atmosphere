@@ -16,7 +16,7 @@ from service.machine_search import search, CoreApplicationSearch
 from authentication.decorators import api_auth_token_optional,\
                                       api_auth_token_required
 from api import prepare_driver, failure_response, invalid_creds
-from api.permissions import InMaintenance
+from api.permissions import InMaintenance, ApiAuthOptional, ApiAuthRequired
 from api.serializers import ApplicationSerializer, PaginatedApplicationSerializer
 
 
@@ -24,13 +24,13 @@ class ApplicationList(APIView):
     """List of Applications
     """
 
-    permission_classes = (InMaintenance,)
+    serializer_class = ApplicationSerializer
+    model = CoreApplication
+    permission_classes = (InMaintenance,ApiAuthOptional)
 
-    @api_auth_token_optional
     def get(self, request, **kwargs):
         """
         Using provider and identity, get application list
-
         """
         request_user = kwargs.get('request_user')
         applications = public_applications()
@@ -46,16 +46,18 @@ class ApplicationList(APIView):
 
 
 class Application(APIView):
-    """Detailed view of application"""
+    """
+    Detailed view of application
+    """
+    serializer_class = ApplicationSerializer
+    model = CoreApplication
+    permission_classes = (ApiAuthRequired,)
 
-    permission_classes = (InMaintenance,)
-
-    @api_auth_token_optional
     def get(self, request, app_uuid, **kwargs):
         """
-        Get specific application
-
-        app_uuid -- Unique ID of application
+        Details of specific application.
+        
+            app_uuid -- Unique ID for Application
 
         """
         app = CoreApplication.objects.filter(uuid=app_uuid)
@@ -69,7 +71,6 @@ class Application(APIView):
         response = Response(serialized_data)
         return response
 
-    @api_auth_token_required
     def put(self, request, app_uuid, **kwargs):
         """
         Update specific application
@@ -86,7 +87,6 @@ class Application(APIView):
                                     % app_uuid)
         app = app[0]
 
-    @api_auth_token_required
     def patch(self, request, app_uuid, **kwargs):
         """
         Update specific application
@@ -136,6 +136,10 @@ class ApplicationSearch(APIView):
     @api_auth_token_required
     def get(self, request):
         """
+        Search for an application using query.
+        
+        query -- The search request, performed against Image
+                 Name/Description/Tag(s)
         """
         data = request.DATA
         query = request.QUERY_PARAMS.get('query')

@@ -4,16 +4,17 @@ from rest_framework.response import Response
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
 
 from core.models.group import Group
 
 from api.serializers import IdentitySerializer, IdentityDetailSerializer
+from api.permissions import InMaintenance, ApiAuthRequired
 
 class IdentityDetailList(APIView):
     """A Detailed List of Identities for request_user"""
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def get(self, request):
         """
         List of identity that match USER and the provider_id
@@ -34,7 +35,8 @@ class IdentityDetailList(APIView):
 class IdentityList(APIView):
     """A List of Identities for request_user"""
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, format=None):
         """
         List of identity that match USER and the provider_id
@@ -55,7 +57,8 @@ class IdentityList(APIView):
 class Identity(APIView):
     """Details about specific identity."""
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id, format=None):
         """
         Return the credential information for this identity

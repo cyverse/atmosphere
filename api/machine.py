@@ -8,8 +8,6 @@ from rest_framework import status
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
-
 from core.models import AtmosphereUser as User
 from core.models.application import ApplicationScore
 from core.models.identity import Identity
@@ -20,7 +18,7 @@ from core.metadata import update_machine_metadata
 from service.machine_search import search, CoreSearchProvider
 
 from api import prepare_driver, failure_response, invalid_creds
-from api.permissions import InMaintenance
+from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProviderMachineSerializer,\
     PaginatedProviderMachineSerializer, ApplicationScoreSerializer
 
@@ -64,9 +62,8 @@ def all_filtered_machines():
 class MachineList(APIView):
     """List of machines."""
 
-    permission_classes = (InMaintenance,)
+    permission_classes = (InMaintenance,ApiAuthRequired)
 
-    @api_auth_token_required
     def get(self, request, provider_id, identity_id):
         """
         Using provider and identity, getlist of machines
@@ -90,9 +87,8 @@ class MachineList(APIView):
 class MachineHistory(APIView):
     """Details about the machine history for an identity."""
 
-    permission_classes = (InMaintenance,)
+    permission_classes = (InMaintenance,ApiAuthRequired)
 
-    @api_auth_token_required
     def get(self, request, provider_id, identity_id):
         data = request.DATA
         user = User.objects.filter(username=request.user)
@@ -154,9 +150,8 @@ def get_first(coll):
 class MachineSearch(APIView):
     """Provides server-side machine search for an identity."""
 
-    permission_classes = (InMaintenance,)
+    permission_classes = (InMaintenance,ApiAuthRequired)
 
-    @api_auth_token_required
     def get(self, request, provider_id, identity_id):
         """
         """
@@ -204,12 +199,12 @@ class MachineSearch(APIView):
 class Machine(APIView):
     """Details about a specific machine, as seen by that identity."""
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id, machine_id):
         """
         Lookup the machine information
         (Lookup using the given provider/identity)
-        Update on server (If applicable)
         """
         esh_driver = prepare_driver(request, provider_id, identity_id)
         if not esh_driver:
@@ -223,12 +218,11 @@ class Machine(APIView):
         response = Response(serialized_data)
         return response
 
-    @api_auth_token_required
     def patch(self, request, provider_id, identity_id, machine_id):
         """
-        TODO: Determine who is allowed to edit machines besides
-        core_machine.owner
         """
+        #TODO: Determine who is allowed to edit machines besides
+        #core_machine.owner
         user = request.user
         data = request.DATA
         esh_driver = prepare_driver(request, provider_id, identity_id)
@@ -258,7 +252,6 @@ class Machine(APIView):
             status.HTTP_400_BAD_REQUEST,
             serializer.errors)
 
-    @api_auth_token_required
     def put(self, request, provider_id, identity_id, machine_id):
         """
         TODO: Determine who is allowed to edit machines besides
@@ -297,7 +290,8 @@ class Machine(APIView):
 class MachineVote(APIView):
     """Rate the selected image by voting."""
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def get(self, request, provider_id, identity_id, machine_id):
         """
         Lookup the machine information
@@ -316,7 +310,6 @@ class MachineVote(APIView):
         serialized_data = ApplicationScoreSerializer(vote).data
         return Response(serialized_data, status=status.HTTP_201_CREATED)
 
-    @api_auth_token_required
     def post(self, request, provider_id, identity_id, machine_id):
         """
         TODO: Determine who is allowed to edit machines besides

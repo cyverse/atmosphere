@@ -13,7 +13,6 @@ from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
 
 from core.models import AtmosphereUser as User
 from core.models.provider import AccountProvider
@@ -35,6 +34,7 @@ from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError
 
 from api import failure_response, prepare_driver, invalid_creds
+from api.permissions import ApiAuthRequired
 from api.serializers import InstanceSerializer, PaginatedInstanceSerializer
 from api.serializers import InstanceHistorySerializer,\
     PaginatedInstanceHistorySerializer
@@ -44,7 +44,8 @@ from api.serializers import VolumeSerializer
 class InstanceList(APIView):
     """List of instances for specific identity."""
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id):
         """
         Returns a list of all instances
@@ -79,7 +80,6 @@ class InstanceList(APIView):
         response['Cache-Control'] = 'no-cache'
         return response
 
-    @api_auth_token_required
     def post(self, request, provider_id, identity_id, format=None):
         """
         Instance Class:
@@ -135,7 +135,8 @@ class InstanceList(APIView):
 class InstanceHistory(APIView):
     """List of instance history for specific instance."""
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id=None, identity_id=None):
         data = request.DATA
         params = request.QUERY_PARAMS.copy()
@@ -200,7 +201,8 @@ class InstanceHistory(APIView):
 class InstanceAction(APIView):
     """Run specified instance action"""
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def post(self, request, provider_id, identity_id, instance_id):
         """
         """
@@ -328,7 +330,8 @@ class Instance(APIView):
     """Detailed information about a specific instance, as seen on that identity."""
     #renderer_classes = (JSONRenderer, JSONPRenderer)
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id, instance_id):
         """
         Return the object belonging to this instance ID
@@ -348,7 +351,6 @@ class Instance(APIView):
         response['Cache-Control'] = 'no-cache'
         return response
 
-    @api_auth_token_required
     def patch(self, request, provider_id, identity_id, instance_id):
         """
         """
@@ -378,7 +380,6 @@ class Instance(APIView):
                 serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST)
 
-    @api_auth_token_required
     def put(self, request, provider_id, identity_id, instance_id):
         """
         TODO:
@@ -410,7 +411,6 @@ class Instance(APIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400)
 
-    @api_auth_token_required
     def delete(self, request, provider_id, identity_id, instance_id):
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)

@@ -95,7 +95,7 @@ urlpatterns = patterns(
     url(r'^no_user/$', 'web.views.no_user_redirect'),
 
     #
-    url(r'^docs/', include('rest_framework_swagger.urls')), 
+    url(r'^api-docs/', include('rest_framework_swagger.urls')), 
 
     ### DJANGORESTFRAMEWORK ###
     url(r'^api-auth/',
@@ -105,7 +105,7 @@ urlpatterns = patterns(
 exclude_apis = patterns(
         '',
     # E-mail API
-    url(r'^feedback', Feedback.as_view()),
+    url(r'^api/v1/feedback', Feedback.as_view()),
     url(r'^api/v1/email_support', SupportEmail.as_view()),
     url(r'^api/v1/request_quota/$', QuotaEmail.as_view()),
 
@@ -164,7 +164,7 @@ exclude_apis = patterns(
         + '/identity/(?P<identity_id>\d+)/step/(?P<step_id>[a-zA-Z0-9-]+)/$',
         Step.as_view(), name='step-detail'),
     )
-
+urlpatterns += exclude_apis
 urlpatterns += patterns(url(r'^',
     include(exclude_apis,namespace="exclude_apis")))
 urlpatterns += format_suffix_patterns(patterns(

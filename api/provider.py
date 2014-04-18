@@ -6,18 +6,19 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from authentication.decorators import api_auth_token_required
 
 from core.models.group import Group
 from core.models.provider import Provider as CoreProvider
 
 from api import failure_response
 from api.serializers import ProviderSerializer
+from api.permissions import InMaintenance, ApiAuthRequired
 
 
 class ProviderList(APIView):
     """List of active providers"""
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request):
         """
         List all providers accessible by request user
@@ -37,7 +38,8 @@ class ProviderList(APIView):
 
 class Provider(APIView):
     """Details about single provider"""
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id):
         """
         return provider if accessible by request user

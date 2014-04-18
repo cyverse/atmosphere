@@ -80,11 +80,6 @@ def atmo_valid_token_required(func):
     return atmo_validate_token
 
 def validate_request_user(request):
-    """
-    Used for requests that require a valid token
-    NOTE: Calling request.user for the first time will call 'authenticate'
-        in the auth.token.TokenAuthentication class
-    """
     user = request.user
     return True if user and user.is_authenticated() else False
 

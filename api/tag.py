@@ -7,16 +7,17 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from authentication.decorators import api_auth_token_required
 
 from core.models import Tag as CoreTag
 from api import failure_response
 from api.serializers import TagSerializer
+from api.permissions import InMaintenance, ApiAuthRequired
 
 
 class TagList(APIView):
     """A list of tags."""
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, *args, **kwargs):
         """
         List of all tags
@@ -25,7 +26,6 @@ class TagList(APIView):
         serializer = TagSerializer(tags, many=True)
         return Response(serializer.data)
 
-    @api_auth_token_required
     def post(self, request, *args, **kwargs):
         """
         Create a new tag resource
@@ -48,7 +48,8 @@ class TagList(APIView):
 
 class Tag(APIView):
     """Details about a specific tag."""
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def delete(self, request, tag_slug, *args, **kwargs):
         """
         Remove the tag (IFF not in use)
@@ -71,7 +72,6 @@ class Tag(APIView):
         tag.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @api_auth_token_required
     def get(self, request, tag_slug, *args, **kwargs):
         """
         Return the credential information for this tag
@@ -84,7 +84,6 @@ class Tag(APIView):
         serializer = TagSerializer(tag)
         return Response(serializer.data)
 
-    @api_auth_token_required
     def put(self, request, tag_slug, *args, **kwargs):
         """
         Return the credential information for this tag

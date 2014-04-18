@@ -7,19 +7,20 @@ from rest_framework.views import APIView
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
 
 from core.models.group import Group
 from core.models import IdentityMembership as CoreIdentityMembership
 
 from api import failure_response
+from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import IdentitySerializer
 
 
 class IdentityMembershipList(APIView):
     """A List of people who are members of this identity"""
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def post(self, request, provider_id, identity_id, format=None):
         """
         Create a new identity member (ADMINS & OWNERS GROUP LEADERS ONLY)
@@ -48,7 +49,6 @@ class IdentityMembershipList(APIView):
         serialized_data = serializer.data
         return Response(serialized_data)
 
-    @api_auth_token_required
     def get(self, request, provider_id, identity_id, format=None):
         """
         Return the credential information for this identity
@@ -79,7 +79,8 @@ class IdentityMembershipList(APIView):
 
 class IdentityMembership(APIView):
     """IdentityMembership details for a specific group/identity combination."""
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def delete(self, request, provider_id,
                identity_id, group_name, format=None):
         """

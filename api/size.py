@@ -9,16 +9,17 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from api import prepare_driver, invalid_creds
+from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProviderSizeSerializer
 
-from authentication.decorators import api_auth_token_required
 
 from core.models.size import convert_esh_size
 
 
 class SizeList(APIView):
     """List all active sizes."""
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id):
         """
         Using provider and identity, getlist of machines
@@ -42,7 +43,8 @@ class SizeList(APIView):
 
 class Size(APIView):
     """View a single size"""
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id, size_id):
         """
         Lookup the size information (Lookup using the given provider/identity)

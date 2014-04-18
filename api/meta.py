@@ -14,16 +14,17 @@ from rest_framework.reverse import reverse
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
 
 from api import failure_response, prepare_driver, invalid_creds
+from api.permissions import InMaintenance, ApiAuthRequired
 
 
 class Meta(APIView):
     """
     Meta-details about Atmosphere API, including self-describing URLs.
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def get(self, request, provider_id, identity_id):
         """
         Returns all available URLs based on the user profile.
@@ -88,7 +89,8 @@ class MetaAction(APIView):
     """
     Atmosphere service meta rest api.
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id, action=None):
         """
         """
