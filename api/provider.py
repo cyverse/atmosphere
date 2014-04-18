@@ -16,9 +16,7 @@ from api.serializers import ProviderSerializer
 
 
 class ProviderList(APIView):
-    """
-    List of active providers
-    """
+    """List of active providers"""
     @api_auth_token_required
     def get(self, request):
         """
@@ -38,9 +36,7 @@ class ProviderList(APIView):
 
 
 class Provider(APIView):
-    """
-    Show single provider
-    """
+    """Details about single provider"""
     @api_auth_token_required
     def get(self, request, provider_id):
         """

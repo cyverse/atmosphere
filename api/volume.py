@@ -24,9 +24,7 @@ from api import prepare_driver, failure_response, invalid_creds
 
 
 class VolumeList(APIView):
-    """
-    List all volumes
-    """
+    """List all volumes on Identity"""
     @api_auth_token_required
     def get(self, request, provider_id, identity_id):
         """
@@ -87,9 +85,7 @@ class VolumeList(APIView):
 
 
 class Volume(APIView):
-    """
-    List all volumes
-    """
+    """Details of specific volume on Identity."""
     @api_auth_token_required
     def get(self, request, provider_id, identity_id, volume_id):
         """

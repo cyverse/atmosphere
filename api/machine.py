@@ -1,7 +1,3 @@
-"""
-Atmosphere service machine rest api.
-
-"""
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 from django.db.models import Q
@@ -66,12 +62,7 @@ def all_filtered_machines():
 
 
 class MachineList(APIView):
-    """
-    Represents:
-        A Manager of Machine
-        Calls to the Machine Class
-    TODO: POST when we have programmatic image creation/snapshots
-    """
+    """List of machines."""
 
     permission_classes = (InMaintenance,)
 
@@ -97,11 +88,7 @@ class MachineList(APIView):
 
 
 class MachineHistory(APIView):
-    """
-    A MachineHistory provides machine history for an identity.
-
-    GET - A chronologically ordered list of ProviderMachines for the identity.
-    """
+    """Details about the machine history for an identity."""
 
     permission_classes = (InMaintenance,)
 
@@ -165,9 +152,7 @@ def get_first(coll):
 
 
 class MachineSearch(APIView):
-    """
-    Provides server-side machine search for an identity.
-    """
+    """Provides server-side machine search for an identity."""
 
     permission_classes = (InMaintenance,)
 
@@ -217,11 +202,7 @@ class MachineSearch(APIView):
 
 
 class Machine(APIView):
-    """
-    Represents:
-        Calls to modify the single machine
-    TODO: DELETE when we allow owners to 'end-date' their machine..
-    """
+    """Details about a specific machine, as seen by that identity."""
 
     @api_auth_token_required
     def get(self, request, provider_id, identity_id, machine_id):
@@ -314,11 +295,7 @@ class Machine(APIView):
 
 
 class MachineVote(APIView):
-    """
-    Represents:
-        Calls to modify the single machine
-    TODO: DELETE when we allow owners to 'end-date' their machine..
-    """
+    """Rate the selected image by voting."""
 
     @api_auth_token_required
     def get(self, request, provider_id, identity_id, machine_id):

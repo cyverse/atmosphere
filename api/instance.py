@@ -1,6 +1,3 @@
-"""
-Atmosphere service instance rest api.
-"""
 from datetime import datetime
 import time
 
@@ -45,11 +42,8 @@ from api.serializers import VolumeSerializer
 
 
 class InstanceList(APIView):
-    """
-    Represents:
-        A Manager of Instance
-        Calls to the Instance Class
-    """
+    """List of instances for specific identity."""
+
     @api_auth_token_required
     def get(self, request, provider_id, identity_id):
         """
@@ -139,11 +133,7 @@ class InstanceList(APIView):
 
 
 class InstanceHistory(APIView):
-    """
-    An InstanceHistory provides instance history for an identity.
-
-    GET - A chronologically ordered list of Instances.
-    """
+    """List of instance history for specific instance."""
 
     @api_auth_token_required
     def get(self, request, provider_id=None, identity_id=None):
@@ -208,15 +198,7 @@ class InstanceHistory(APIView):
 
 
 class InstanceAction(APIView):
-    """
-    An InstanceAction allows users to:
-
-    TODO:Find a list of available actions for an instance.
-
-    GET - None
-
-    POST - Run specified action
-    """
+    """Run specified instance action"""
 
     @api_auth_token_required
     def post(self, request, provider_id, identity_id, instance_id):
@@ -343,10 +325,7 @@ class InstanceAction(APIView):
 
 
 class Instance(APIView):
-    """
-    An instance is a self-contained copy
-    of a machine built to a specific size and hosted on a specific provider
-    """
+    """Detailed information about a specific instance, as seen on that identity."""
     #renderer_classes = (JSONRenderer, JSONPRenderer)
 
     @api_auth_token_required

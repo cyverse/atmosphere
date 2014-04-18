@@ -1,7 +1,3 @@
-"""
-Atmosphere service identity rest api.
-
-"""
 from django.core.exceptions import ObjectDoesNotExist
 
 from rest_framework import status
@@ -21,10 +17,7 @@ from api.serializers import IdentitySerializer
 
 
 class IdentityMembershipList(APIView):
-    """
-    Represents:
-        A List of people who are members of this identity
-    """
+    """A List of people who are members of this identity"""
 
     @api_auth_token_required
     def post(self, request, provider_id, identity_id, format=None):
@@ -85,10 +78,7 @@ class IdentityMembershipList(APIView):
 
 
 class IdentityMembership(APIView):
-    """
-    Represents:
-        Calls to modify the single Identity
-    """
+    """IdentityMembership details for a specific group/identity combination."""
     @api_auth_token_required
     def delete(self, request, provider_id,
                identity_id, group_name, format=None):

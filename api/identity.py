@@ -1,8 +1,3 @@
-"""
-Atmosphere service identity rest api.
-
-"""
-
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -16,11 +11,7 @@ from core.models.group import Group
 from api.serializers import IdentitySerializer, IdentityDetailSerializer
 
 class IdentityDetailList(APIView):
-    """
-    Represents:
-        A List of Identity
-        Calls to the Identity Class
-    """
+    """A Detailed List of Identities for request_user"""
 
     @api_auth_token_required
     def get(self, request):
@@ -41,11 +32,7 @@ class IdentityDetailList(APIView):
 
 
 class IdentityList(APIView):
-    """
-    Represents:
-        A List of Identity
-        Calls to the Identity Class
-    """
+    """A List of Identities for request_user"""
 
     @api_auth_token_required
     def get(self, request, provider_id, format=None):
@@ -66,10 +53,8 @@ class IdentityList(APIView):
 
 
 class Identity(APIView):
-    """
-    Represents:
-        Calls to modify the single Identity
-    """
+    """Details about specific identity."""
+
     @api_auth_token_required
     def get(self, request, provider_id, identity_id, format=None):
         """

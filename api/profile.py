@@ -16,8 +16,7 @@ from api.serializers import ProfileSerializer, AtmoUserSerializer
 
 
 class Profile(APIView):
-    """
-    """
+    """Profile for request_user"""
 
     @api_auth_token_required
     def get(self, request, provider_id=None, identity_id=None):

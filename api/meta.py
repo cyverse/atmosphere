@@ -21,7 +21,7 @@ from api import failure_response, prepare_driver, invalid_creds
 
 class Meta(APIView):
     """
-    Atmosphere service meta rest api.
+    Meta-details about Atmosphere API, including self-describing URLs.
     """
     @api_auth_token_required
     def get(self, request, provider_id, identity_id):

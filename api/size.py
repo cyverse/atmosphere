@@ -17,9 +17,7 @@ from core.models.size import convert_esh_size
 
 
 class SizeList(APIView):
-    """
-    List all available sizes
-    """
+    """List all active sizes."""
     @api_auth_token_required
     def get(self, request, provider_id, identity_id):
         """
@@ -43,9 +41,7 @@ class SizeList(APIView):
 
 
 class Size(APIView):
-    """
-    View a single size
-    """
+    """View a single size"""
     @api_auth_token_required
     def get(self, request, provider_id, identity_id, size_id):
         """

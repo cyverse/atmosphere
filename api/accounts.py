@@ -50,12 +50,14 @@ def get_account_driver(provider_id):
 
 class AccountManagement(APIView):
     """
+    This API is used to provide account management.
+    provider_id -- The id of the provider whose account you want to manage.
     """
 
     @api_auth_token_required
     def get(self, request, provider_id):
         """
-        Return a list of ALL users found on provider_id (?)
+        Return a list of ALL users found on provider_id
         """
         pass
         #driver = get_account_driver(provider_id)
@@ -69,13 +71,15 @@ class AccountManagement(APIView):
 
 class Account(APIView):
     """
+    This API is used to create/update/list/delete a specific user identity
+    provider_id -- The id of the provider whose account you want to manage.
     """
 
     @api_auth_token_required
     def get(self, request, provider_id, username):
         """
-        Return information on all identities given to this username on
-        the specific provider
+        Detailed view of all identities for provider,user combination.
+        username -- The username to match identities
         """
         identities = CoreIdentity.objects.filter(provider__id=provider_id,
                                                  created_by__username=username)
@@ -87,6 +91,7 @@ class Account(APIView):
         """
         Create a new account on provider for this username
         POST data should have all credentials required for this provider
+        username -- The username who created the identity
         """
         user = request.user
         data = request.DATA

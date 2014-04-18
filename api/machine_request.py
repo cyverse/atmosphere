@@ -168,7 +168,6 @@ class MachineRequest(APIView):
     """
     Represents:
         Calls to modify the single machine
-    TODO: DELETE when we allow owners to 'end-date' their machine..
     """
     @api_auth_token_required
     def get(self, request, provider_id, identity_id, machine_request_id):

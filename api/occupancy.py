@@ -20,9 +20,7 @@ from api.serializers import ProviderSizeSerializer
 
 
 class Occupancy(APIView):
-    """
-    Show single provider
-    """
+    """Returns occupancy data for the specific provider."""
     @api_auth_token_required
     def get(self, request, provider_id):
         """
@@ -50,8 +48,7 @@ class Occupancy(APIView):
 
 
 class Hypervisor(APIView):
-    """
-    Returns hypervisor statistics for the specific provider.
+    """Returns hypervisor statistics for the specific provider.
     """
     @api_auth_token_required
     def get(self, request, provider_id):

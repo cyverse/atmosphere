@@ -1,7 +1,3 @@
-"""
-Atmosphere api Hypervisor.
-"""
-
 import json
 # atmosphere libraries
 from django.utils import timezone

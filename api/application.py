@@ -1,5 +1,3 @@
-"""
-"""
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 
@@ -23,11 +21,7 @@ from api.serializers import ApplicationSerializer, PaginatedApplicationSerialize
 
 
 class ApplicationList(APIView):
-    """
-    Represents:
-        A Manager of Machine
-        Calls to the Machine Class
-    TODO: POST when we have programmatic image creation/snapshots
+    """List of Applications
     """
 
     permission_classes = (InMaintenance,)
@@ -35,8 +29,8 @@ class ApplicationList(APIView):
     @api_auth_token_optional
     def get(self, request, **kwargs):
         """
-        Using provider and identity, getlist of machines
-        TODO: Cache this request
+        Using provider and identity, get application list
+
         """
         request_user = kwargs.get('request_user')
         applications = public_applications()
@@ -52,17 +46,18 @@ class ApplicationList(APIView):
 
 
 class Application(APIView):
-    """
-    Represents:
-        A Manager of Machine
-        Calls to the Machine Class
-    TODO: POST when we have programmatic image creation/snapshots
-    """
+    """Detailed view of application"""
 
     permission_classes = (InMaintenance,)
 
     @api_auth_token_optional
     def get(self, request, app_uuid, **kwargs):
+        """
+        Get specific application
+
+        app_uuid -- Unique ID of application
+
+        """
         app = CoreApplication.objects.filter(uuid=app_uuid)
         if not app:
             return failure_response(status.HTTP_404_NOT_FOUND,
@@ -77,8 +72,10 @@ class Application(APIView):
     @api_auth_token_required
     def put(self, request, app_uuid, **kwargs):
         """
-        TODO: Determine who is allowed to edit machines besides
-            core_machine.owner
+        Update specific application
+
+        app_uuid -- Unique ID of application
+
         """
         user = request.user
         data = request.DATA
@@ -92,8 +89,10 @@ class Application(APIView):
     @api_auth_token_required
     def patch(self, request, app_uuid, **kwargs):
         """
-        TODO: Determine who is allowed to edit machines besides
-        core_machine.owner
+        Update specific application
+
+        app_uuid -- Unique ID of application
+
         """
         user = request.user
         data = request.DATA

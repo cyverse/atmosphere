@@ -15,11 +15,7 @@ from api.serializers import TagSerializer
 
 
 class TagList(APIView):
-    """
-    Represents:
-        A List of Tag
-        Calls to the Tag Class
-    """
+    """A list of tags."""
     @api_auth_token_required
     def get(self, request, *args, **kwargs):
         """
@@ -51,10 +47,7 @@ class TagList(APIView):
 
 
 class Tag(APIView):
-    """
-    Represents:
-        Calls to modify the single Tag
-    """
+    """Details about a specific tag."""
     @api_auth_token_required
     def delete(self, request, tag_slug, *args, **kwargs):
         """

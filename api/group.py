@@ -15,17 +15,10 @@ from core.models.group import Group as CoreGroup
 from api.serializers import GroupSerializer
 
 class GroupList(APIView):
-    """
-    Represents both the collection of groups
-    AND
-    Objects on the Group class
-    """
+    """List groups"""
     @api_auth_token_required
     def post(self, request):
         """
-        Group Class:
-        Create a new group in the database
-        Returns success 200 OK - NO BODY on creation
         """
         params = request.DATA
         groupname = params['name']
@@ -41,8 +34,6 @@ class GroupList(APIView):
     @api_auth_token_required
     def get(self, request):
         """
-        Return all groups that 'user' is a member of
-        including the providers/identities shared with that group
         """
         user = request.user
         all_groups = user.group_set.order_by('name')
@@ -52,12 +43,14 @@ class GroupList(APIView):
 
 
 class Group(APIView):
+    """Detailed view about group
+
+    groupname -- Name of group
+    """
 
     @api_auth_token_required
     def get(self, request, groupname):
         """
-        Return the object belonging to the group
-        including the providers/identities shared with that group
         """
         logger.info(request.__dict__)
         user = request.user

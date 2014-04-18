@@ -71,12 +71,14 @@ class QuotaEmail(APIView):
 
 class SupportEmail(APIView):
     """
-    Post Support Email via RESTful API
     """
     @api_auth_token_required
     def post(self, request):
         """
         Creates a new support email and sends it to admins
+
+
+        Post Support Email via RESTful API
         """
         data = request.DATA
         required = ['message','subject']

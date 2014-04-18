@@ -52,6 +52,32 @@ DATABASES = {
         'PORT': '5432'
     },
 }
+INSTALLED_APPS = (
+    #contrib apps
+    'django.contrib.auth',
+    'django.contrib.admin',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.staticfiles',
+
+    #3rd party apps
+    'rest_framework',
+    'rest_framework_swagger',
+
+    'south',
+    'djcelery',
+    'django_jenkins',
+    'pipeline',
+
+    #iPlant apps
+    'rtwo',
+
+    #atmosphere apps
+    'authentication',
+    'service',
+    'web',
+    'core',
+)
 
 DATABASE_ROUTERS = ['atmosphere.routers.Service']
 
@@ -170,30 +196,6 @@ AUTHENTICATION_BACKENDS = (
     #'django.contrib.auth.backends.ModelBackend',
 )
 
-INSTALLED_APPS = (
-    #contrib apps
-    'django.contrib.auth',
-    'django.contrib.admin',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.staticfiles',
-
-    #3rd party apps
-    'rest_framework',
-    'south',
-    'djcelery',
-    'django_jenkins',
-    'pipeline',
-
-    #iPlant apps
-    'rtwo',
-
-    #atmosphere apps
-    'authentication',
-    'service',
-    'web',
-    'core',
-)
 
 JENKINS_TASKS = (
     'django_jenkins.tasks.with_coverage',
@@ -265,6 +267,22 @@ REST_FRAMEWORK = {
         'authentication.token.OAuthTokenAuthentication',
         'authentication.token.TokenAuthentication',
     )
+}
+SWAGGER_SETTINGS = {
+    "exclude_namespaces": [
+        "exclude_apis",
+    ], # List URL namespaces to ignore
+    "api_version": '0.1',  # Specify your API's version
+    "api_path": "/",  # Specify the path to your API not a root level
+    "enabled_methods": [  # Specify which methods to enable in Swagger UI
+        'get',
+        'post',
+        'patch',
+        'delete'
+    ],
+    "api_key": '', # An API key
+    "is_authenticated": False,  # Set to True to enforce user authentication,
+    "is_superuser": False,  # Set to True to enforce admin only access
 }
 
 ##CASLIB
