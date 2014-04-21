@@ -57,7 +57,7 @@ class Application(APIView):
         """
         Details of specific application.
         
-            app_uuid -- Unique ID for Application
+        app_uuid - Unique ID for the Application
 
         """
         app = CoreApplication.objects.filter(uuid=app_uuid)

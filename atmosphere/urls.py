@@ -164,9 +164,8 @@ exclude_apis = patterns(
         + '/identity/(?P<identity_id>\d+)/step/(?P<step_id>[a-zA-Z0-9-]+)/$',
         Step.as_view(), name='step-detail'),
     )
-urlpatterns += exclude_apis
-urlpatterns += patterns(url(r'^',
-    include(exclude_apis,namespace="exclude_apis")))
+urlpatterns += patterns('',
+        url(r'^', include(exclude_apis,namespace="exclude_apis")))
 urlpatterns += format_suffix_patterns(patterns(
     '',
 
