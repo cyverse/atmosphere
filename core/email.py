@@ -180,6 +180,32 @@ Helpful links:
     return email_from_admin(user, subject, body)
 
 
+def send_deploy_failed_email(core_instance, exception_str):
+    """
+    Sends an email to the admins, who will verify the reason for the error.
+    """
+    user = core_instance.created_by
+    user_email = lookupEmail(user.username)
+    body = """ADMINS: An instance has FAILED to deploy succesfully.
+The exception and relevant details about the image can be found here:
+---
+Failed Instance Details:
+  Alias: %s
+  Owner: %s (%s)
+  IP Address: %s
+  Image ID: %s
+---
+Exception: %s
+""" % (core_instance.provider_alias,
+       user, user_email,
+       core_instance.ip_address,
+       core_instance.provider_machine.identifier, 
+       exception_str)
+    subject = 'An Atmosphere Instance has failed to launch.'
+    return email_to_admin(subject, body, user.username, user_email,
+                          cc_user=False)
+
+
 def send_image_request_failed_email(machine_request, exception_str):
     """
     Sends an email to the admins, who will verify the reason for the error,
