@@ -17,10 +17,12 @@ class Trait(models.Model):
     be used as logic-choices in code.
     """
     name = models.CharField(max_length=256)
+    description = models.TextField(null=True, blank=True)
 
     def json(self):
         return {
-            'name': self.name
+            'name': self.name,
+            'description': self.description
         }
 
     class Meta:
@@ -104,6 +106,11 @@ class Provider(models.Model):
             # no longer a list
             active_providers = active_providers.get(id=provider_id)
         return active_providers
+
+    def has_trait(self, trait_name):
+        """
+        """
+        return self.traits.filter(name=trait_name).count() != 0
 
     def add_trait(self, trait_name):
         """

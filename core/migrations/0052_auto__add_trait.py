@@ -12,6 +12,7 @@ class Migration(SchemaMigration):
         db.create_table('trait', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=256)),
+            ('description', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
         ))
         db.send_create_signal('core', ['Trait'])
 
@@ -384,7 +385,8 @@ class Migration(SchemaMigration):
         'core.trait': {
             'Meta': {'object_name': 'Trait', 'db_table': "'trait'"},
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '256'})
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
+            'description': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'})
         },
         'core.userprofile': {
             'Meta': {'object_name': 'UserProfile', 'db_table': "'user_profile'"},

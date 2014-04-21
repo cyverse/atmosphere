@@ -115,6 +115,13 @@ class MachineRequest(models.Model):
             return None
         return manager.admin_driver
 
+    def active_provider(self):
+        active_provider = self.new_machine_provider
+        if not active_provider:
+            active_provider = self.parent_machine.provider
+        return active_provider
+
+
     def get_credentials(self):
         old_provider = self.parent_machine.provider
         old_creds = old_provider.get_credentials()
