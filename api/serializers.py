@@ -616,8 +616,9 @@ class VolumeSerializer(serializers.ModelSerializer):
 
 
 class ProjectSerializer(serializers.ModelSerializer):
+    #Edits to Writable fields..
+    owner = serializers.SlugRelatedField(slug_field="name")
     # These fields are READ-ONLY!
-    owner = serializers.Field(source="owner")
     applications = serializers.SerializerMethodField('get_user_applications')
     instances = serializers.SerializerMethodField('get_user_instances')
     volumes = serializers.SerializerMethodField('get_user_volumes')
