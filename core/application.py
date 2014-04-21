@@ -1,6 +1,7 @@
 import json
 
 from core.metadata import update_machine_metadata, _get_owner_identity
+from core.models.provider import Provider
 
 from threepio import logger
 

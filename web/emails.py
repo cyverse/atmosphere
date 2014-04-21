@@ -12,37 +12,51 @@ from django.core import urlresolvers
 from threepio import logger
 
 from atmosphere import settings
-from core.email import email_admin, user_address
+from core.email import email_admin, email_from_admin, user_address
 from core.models import IdentityMembership, MachineRequest
 
 
-def requestImaging(request, machine_request_id):
+def requestImaging(request, machine_request_id, auto_approve=False):
     """
-    Processes image request, sends an email to atmo@iplantc.org
+    Processes image request, sends an email to the user
+    and a sperate email to atmo@iplantc.org
     Returns a response.
     """
-    view_link = '%s/api/v1/request_image/%s' \
-        % (settings.SERVER_URL, machine_request_id)
-    approve_link = '%s/api/v1/request_image/%s/approve' \
-        % (settings.SERVER_URL, machine_request_id)
-    deny_link = '%s/api/v1/request_image/%s/deny' \
-        % (settings.SERVER_URL, machine_request_id)
+    #TODO: This could also be:
+    #machine_request.instance.created_by.username
+    #And we could add another field 'new_image_owner'..
     machine_request = MachineRequest.objects.get(id=machine_request_id)
-    name = request.POST.get('name', '')
-    instance_id = request.POST.get('instance', '')
-    description = request.POST.get('description', '')
-    software = request.POST.get('installed_software', '')
-    sys_files = request.POST.get('sys',  '')
-    tags = request.POST.get('tags', '')
-    public = request.POST.get('vis', '')
-    shared_with = request.POST.get('shared_with', '')
-    username = request.POST.get('owner', request.user.username)
-    message = """
-    URLs require staff access to view/approve/deny:
-    View Request: %s
-    Auto-Approve Request: %s
-    Auto-Deny Request: %s
-    ---
+    username = machine_request.new_machine_owner.username
+
+    if auto_approve:
+        message_header = "Your image request has been approved!"\
+                         " The imaging process will begin shortly.\n"
+    else:
+        view_link = '%s/api/v1/request_image/%s' \
+            % (settings.SERVER_URL, machine_request_id)
+        approve_link = '%s/api/v1/request_image/%s/approve' \
+            % (settings.SERVER_URL, machine_request_id)
+        deny_link = '%s/api/v1/request_image/%s/deny' \
+            % (settings.SERVER_URL, machine_request_id)
+        staff_header = """
+        ATTN Staff Users: Authenticate to atmosphere, then select any of these
+        URLs to access the approriate action.
+        Are you unable to click on these links? Let one of the Admins know and
+        we will make sure your account is marked as 'staff'.
+        View Request: %s
+        Auto-Approve Request: %s
+        Auto-Deny Request: %s
+        ---
+        """ % (view_link, approve_link, deny_link)
+        message_header = "Your Image Request has been received."\
+                " Upon staff approval, we will send you an e-mail to let you"\
+                " know that the the imaging process will begin shortly.\n"
+    #Add appropriate header..
+    message = message_header + """
+    When the imaging process has completed, you will receive an email with 
+    details about the new image.
+    
+    Your Image Request:
     Username : %s
     Instance ID:%s
     ---
@@ -54,11 +68,7 @@ def requestImaging(request, machine_request_id):
     New Image name:%s
     New Image description:%s
     New Image tags:%s
-    """ % (view_link, approve_link, deny_link,
-           #TODO: This could also be:
-           #machine_request.instance.created_by.username
-           #And we could add another field 'new_image_owner'..
-           machine_request.new_machine_owner.username, 
+    """ % (username, 
            machine_request.instance.provider_alias,
            machine_request.installed_software,
            machine_request.iplant_sys_files,
@@ -68,7 +78,12 @@ def requestImaging(request, machine_request_id):
            machine_request.new_machine_description,
            machine_request.new_machine_tags)
     subject = 'Atmosphere Imaging Request - %s' % username
-    email_success = email_admin(request, subject, message, cc_user=False)
+    #First e-mail is 'clean'
+    email_success = email_from_admin(username, subject, message)
+    #Second e-mail contains API urls
+    if not auto_approve:
+        message = "%s\n%s" % (staff_header, message)
+        email_success = email_admin(request, subject, message, cc_user=False)
     return email_success
 
 

@@ -62,8 +62,8 @@ def complete_resize(driverCls, provider, identity, instance_alias,
         complete_resize.retry(exc=exc)
 
 @task(name="wait_for", max_retries=250, default_retry_delay=15)
-def wait_for(driverCls, provider, identity, instance_alias, status_query,
-        tasks_allowed=False, **task_kwargs):
+def wait_for(instance_alias, driverCls, provider, identity, status_query,
+        tasks_allowed=False, return_id=False, **task_kwargs):
     """
     #Task makes 250 attempts to 'look at' the instance, waiting 15sec each try
     Cumulative time == 1 hour 2 minutes 30 seconds before FAILURE
@@ -74,25 +74,58 @@ def wait_for(driverCls, provider, identity, instance_alias, status_query,
     from service import instance as instance_service
     try:
         logger.debug("wait_for task started at %s." % datetime.now())
-        driver = get_driver(driverCls, provider, identity)
-        instance = driver.get_instance(instance_alias)
-        if not instance:
-            logger.debug("Instance has been teminated: %s." % instance_id)
-            return False
-        i_status = instance._node.extra['status'].lower()
-        i_task = instance._node.extra['task']
-        if (i_status not in status_query) or (i_task and not tasks_allowed):
-            raise Exception(
-                    "Instance: %s: Status: (%s - %s) - Not Ready"
-                    % (instance.id, i_status, i_task))
-        logger.debug("Instance %s: Status: (%s - %s) - Ready"
-                     % (instance.id, i_status, i_task))
-        return True
+        if app.conf.CELERY_ALWAYS_EAGER:
+            logger.debug("Eager task - DO NOT return until its ready!")
+            return _eager_override(wait_for, _is_instance_ready, 
+                                    (driverCls, provider, identity,
+                                     instance_alias, status_query,
+                                     tasks_allowed, return_id), {})
+
+        result = _is_instance_ready(driverCls, provider, identity,
+                                  instance_alias, status_query,
+                                  tasks_allowed, return_id)
     except Exception as exc:
         if "Not Ready" not in str(exc):
             # Ignore 'normal' errors.
             logger.exception(exc)
         wait_for.retry(exc=exc)
+
+def _eager_override(task_class, run_method, args, kwargs):
+    attempts = 0
+    delay = task_class.default_retry_delay or 30 # Seconds
+    while attempts < task_class.max_retries:
+        try:
+            result = run_method(*args, **kwargs)
+            return result
+        except Exception as exc:
+            logger.exception("Encountered error while running eager")
+        attempts += 1
+        logger.info("Waiting %d seconds" % delay)
+        time.sleep(delay)
+    return None
+
+
+def _is_instance_ready(driverCls, provider, identity,
+                     instance_alias, status_query,
+                     tasks_allowed=False, return_id=False):
+    driver = get_driver(driverCls, provider, identity)
+    instance = driver.get_instance(instance_alias)
+    if not instance:
+        logger.debug("Instance has been teminated: %s." % instance_id)
+        if return_id:
+            return None
+        return False
+    i_status = instance._node.extra['status'].lower()
+    i_task = instance._node.extra['task']
+    if (i_status not in status_query) or (i_task and not tasks_allowed):
+        raise Exception(
+                "Instance: %s: Status: (%s - %s) - Not Ready"
+                % (instance.id, i_status, i_task))
+    logger.debug("Instance %s: Status: (%s - %s) - Ready"
+                 % (instance.id, i_status, i_task))
+    if return_id:
+        return instance.id
+    return True
 
 @task(name="add_fixed_ip",
         ignore_result=True,
@@ -264,7 +297,7 @@ def deploy_to(driverCls, provider, identity, instance_id, *args, **kwargs):
       ignore_result=True,
       max_retries=3)
 def deploy_init_to(driverCls, provider, identity, instance_id,
-                   password=None, redeploy=False, *args, **kwargs):
+                   username=None, password=None, redeploy=False, *args, **kwargs):
     try:
         logger.debug("deploy_init_to task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
@@ -275,7 +308,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         image_metadata = driver._connection\
                                .ex_get_image_metadata(instance.machine)
         deploy_chain = get_deploy_chain(driverCls, provider, identity,
-                                        instance, password, redeploy)
+                                        instance, username, password, redeploy)
         deploy_chain.apply_async()
         #Can be really useful when testing.
         #if kwargs.get('delay'):
@@ -290,12 +323,12 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         logger.warn(exc)
         deploy_init_to.retry(exc=exc)
 
-def get_deploy_chain(driverCls, provider, identity,
-                     instance, password, redeploy=False):
+def get_deploy_chain(driverCls, provider, identity, instance,
+                     username=None, password=None, redeploy=False):
     instance_id = instance.id
 
     wait_active_task = wait_for.s(
-            driverCls, provider, identity, instance_id, "active")
+            instance_id, driverCls, provider, identity, "active")
     if not instance.ip:
         #Init the networking
         logger.debug("IP address missing")
@@ -310,7 +343,7 @@ def get_deploy_chain(driverCls, provider, identity,
         driverCls, provider, identity, instance_id,
         {'tmp_status': 'deploying'})
     deploy_task = _deploy_init_to.si(
-        driverCls, provider, identity, instance_id, password, redeploy)
+        driverCls, provider, identity, instance_id, username, password, redeploy)
     deploy_task.link_error(
         deploy_failed.s(driverCls, provider, identity, instance_id))
 
@@ -355,7 +388,7 @@ def get_deploy_chain(driverCls, provider, identity,
       default_retry_delay=15,
       ignore_result=True,
       max_retries=3)
-def destroy_instance(core_identity_id, instance_alias):
+def destroy_instance(instance_alias, core_identity_id):
     from service import instance as instance_service
     from rtwo.driver import OSDriver
     from api import get_esh_driver
@@ -446,7 +479,7 @@ def deploy_script(driverCls, provider, identity, instance_id,
       time_limit=30*60, #30minute hard-set time limit.
       max_retries=10)
 def _deploy_init_to(driverCls, provider, identity, instance_id,
-                    password=None, redeploy=False, **celery_task_args):
+                    username=None, password=None, redeploy=False, **celery_task_args):
     try:
         logger.debug("_deploy_init_to task started at %s." % datetime.now())
         #Check if instance still exists
@@ -459,7 +492,9 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         #NOTE: This is unrelated to the password argument
         logger.info(instance.extra)
         instance._node.extra['password'] = None
-        msd = init(instance, identity.user.username, password, redeploy)
+        if not username:
+            username = identity.user.username
+        msd = init(instance, username, password, redeploy)
 
         kwargs = _generate_ssh_kwargs()
         kwargs.update({'deploy': msd})
@@ -535,9 +570,6 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata):
         instance = driver.get_instance(instance_alias)
         if not instance:
             return
-        #NOTE: This task will only be executed in TEST mode
-        if app.conf.CELERY_ALWAYS_EAGER:
-            eager_update_metadata(driver, instance, metadata)
         return update_instance_metadata(
             driver, instance, data=metadata, replace=False)
         logger.debug("update_metadata task finished at %s." % datetime.now())

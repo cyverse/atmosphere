@@ -12,7 +12,9 @@ class AtmosphereUser(AbstractUser):
         """
         Return the 'default' project for 'User'
         """
-        project, created = user.projects.get_or_create(name="Default")
+        from core.models.group import get_user_group
+        group = get_user_group(user.username)
+        project, created = group.projects.get_or_create(name="Default")
         if created:
             logger.info("Created new 'Default' project for user: %s" % user)
         return project
@@ -57,14 +59,6 @@ class AtmosphereUser(AbstractUser):
         app_label = 'core'
 
 #Save Hooks Here:
-def get_or_create_default_project(sender, instance, created, **kwargs):
-    from core.models.project import Project
-    project = Project.objects.get_or_create(owner=instance,
-                                            name="Default")
-    if project[1] is True:
-        logger.debug("Creating Project:'Default' for %s" % instance)
-
-
 def get_or_create_user_profile(sender, instance, created, **kwargs):
     from core.models.profile import UserProfile
     prof = UserProfile.objects.get_or_create(user=instance)
@@ -72,7 +66,6 @@ def get_or_create_user_profile(sender, instance, created, **kwargs):
         logger.debug("Creating User Profile for %s" % instance)
 
 #Instantiate the hooks:
-post_save.connect(get_or_create_default_project, sender=AtmosphereUser)
 post_save.connect(get_or_create_user_profile, sender=AtmosphereUser)
 
 #USER METHODS HERE
