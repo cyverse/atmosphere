@@ -475,14 +475,17 @@ def valid_post_data(data):
     """
     Return any missing required post key names.
     """
-    required = ['machine_alias', 'size_alias']
-    return [key for key in required if not key in data]
+    required = ['machine_alias', 'size_alias', 'name']
+    #Return any keys that don't match criteria
+    return [key for key in required
+            #Key must exist and have a non-empty value.
+            if not ( key in data and len(data[key]) > 0)]
 
 
 def keys_not_found(missing_keys):
     return failure_response(
         status.HTTP_400_BAD_REQUEST,
-        'Missing required POST datavariables : %s' % missing_keys)
+        'Missing data for variable(s): %s' % missing_keys)
 
 
 def instance_not_found(instance_id):
