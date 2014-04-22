@@ -401,7 +401,7 @@ def launch_instance(user, provider_id, identity_id,
     core_instance = convert_esh_instance(
         esh_driver, esh_instance, provider_id, identity_id,
         user, token, password)
-    esh_size = esh_driver.get_size(esh_instance._size.id)
+    esh_size = esh_driver.get_size(esh_instance.size.id)
     core_size = convert_esh_size(esh_size, provider_id)
     core_instance.update_history(
         core_instance.esh.extra['status'],

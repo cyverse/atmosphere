@@ -38,11 +38,12 @@ def get_context_user(serializer, kwargs, required=False):
     user = context.get('user')
     request = context.get('request')
     if not user and not request:
-        print_str = "%s was initialized "\
-                    "without appropriate context."\
-                    "For complete results include the 'context' kwarg, "\
-                    "with key 'request' OR 'user'."\
-                    " (e.g. context={'user':user,'request':request})"\
+        print_str = "%s was initialized"\
+                    " without appropriate context."\
+                    " Sometimes, like on imports, this is normal."\
+                    " For complete results include the \"context\" kwarg,"\
+                    " with key \"request\" OR \"user\"."\
+                    " (e.g. context={\"user\":user,\"request\":request})"\
                     % (serializer,)
         if required:
             raise Exception(print_str)
@@ -55,7 +56,7 @@ def get_context_user(serializer, kwargs, required=False):
             user = AtmosphereUser.objects.get(
                     username=user)
         elif type(user) != AtmosphereUser:
-            raise Exception("This Serializer REQUIRES the 'user' "
+            raise Exception("This Serializer REQUIRES the \"user\" "
                             "to be of type str or AtmosphereUser")
     elif request:
         user = request.user
