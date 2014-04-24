@@ -13,9 +13,10 @@ from threepio import logger
 
 from authentication.decorators import api_auth_token_required
 
+from api import failure_response
 from api.serializers import ProjectSerializer, InstanceSerializer,\
         VolumeSerializer, ApplicationSerializer
-from core.models.group import get_user_group
+from core.models.group import Group, get_user_group
 
 class ProjectApplicationExchange(APIView):
     def put(self, request, project_id, application_uuid):
@@ -197,8 +198,16 @@ class ProjectList(APIView):
         if data.get('name') == 'Default':
             return Response("The 'Default' project name is reserved",
                             status=status.HTTP_409_CONFLICT)
+        #Default to creating for the 'user-group'
+        if not data.get('owner'):
+            data['owner'] = user.username
+        elif not Group.check_access(user, data['owner']):
+            return failure_response(
+                    status.HTTP_403_FORBIDDEN,
+                    "Current User: %s - Cannot assign project for group %s"
+                    % (user.username, data['owner']))
         serializer = ProjectSerializer(data=data,
-                                            context={"user":request.user})
+                                       context={"user":request.user})
         if serializer.is_valid():
             serializer.save()
             response = Response(

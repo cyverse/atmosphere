@@ -84,8 +84,8 @@ def remove_network(esh_driver, identity_id):
 
 def restore_network(esh_driver, esh_instance, identity_id):
     core_identity = CoreIdentity.objects.get(id=identity_id)
-    (network, subnet) = network_init(core_identity)
-    return network, subnet
+    network = network_init(core_identity)
+    return network
 
 def _convert_network_name(esh_driver, esh_instance):
     """
@@ -401,7 +401,7 @@ def launch_instance(user, provider_id, identity_id,
     core_instance = convert_esh_instance(
         esh_driver, esh_instance, provider_id, identity_id,
         user, token, password)
-    esh_size = esh_driver.get_size(esh_instance._size.id)
+    esh_size = esh_driver.get_size(esh_instance.size.id)
     core_size = convert_esh_size(esh_size, provider_id)
     core_instance.update_history(
         core_instance.esh.extra['status'],
@@ -468,11 +468,24 @@ def network_init(core_identity):
         return
     os_driver = OSAccountDriver(core_identity.provider)
     (network, subnet) = os_driver.create_network(core_identity)
-    return (network, subnet)
+    lc_network = _to_lc_network(os_driver.admin_driver, network, subnet)
+    return lc_network
+
+
+def _to_lc_network(driver, network, subnet):
+    from libcloud.compute.drivers.openstack import OpenStackNetwork
+    lc_network = OpenStackNetwork(
+            network['id'],
+            network['name'],
+            subnet['cidr'],
+            driver,
+            {"network":network,
+             "subnet": subnet})
+    return lc_network
 
 
 def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
-                        name=None, username=None, *args, **kwargs):
+                        name=None, username=None, using_admin=False, *args, **kwargs):
     """
     TODO: Remove extras, pass as kwarg_dict instead
 
@@ -523,8 +536,9 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
                                  **kwargs)
         elif isinstance(driver.provider, OSProvider):
             deploy = True
-            security_group_init(core_identity)
-            network_init(core_identity)
+            if not using_admin:
+                security_group_init(core_identity)
+            network = network_init(core_identity)
             keypair_init(core_identity)
             credentials = core_identity.get_credentials()
             tenant_name = credentials.get('ex_tenant_name')
@@ -538,13 +552,14 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
                                                   token=instance_token,
                                                   ex_metadata=ex_metadata,
                                                   ex_keyname=ex_keyname,
+                                                  networks=[network],
                                                   deploy=True, **kwargs)
             #Used for testing.. Eager ignores countdown
             if app.conf.CELERY_ALWAYS_EAGER:
                 logger.debug("Eager Task, wait 1 minute")
                 time.sleep(1*60)
             # call async task to deploy to instance.
-            task.deploy_init_task(driver, esh_instance, instance_password)
+            task.deploy_init_task(driver, esh_instance, username, instance_password)
         elif isinstance(driver.provider, AWSProvider):
             #TODO:Extra stuff needed for AWS provider here
             esh_instance = driver.deploy_instance(name=name, image=machine,

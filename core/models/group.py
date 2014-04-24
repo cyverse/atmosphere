@@ -43,6 +43,14 @@ class Group(DjangoGroup):
                                           blank=True)
 
     @classmethod
+    def check_access(cls, user, groupname):
+        try:
+            group = Group.objects.get(name=groupname)
+            return user in group.user_set.all()
+        except Group.DoesNotExist:
+            return False
+
+    @classmethod
     def create_usergroup(cls, username):
         user = AtmosphereUser.objects.get_or_create(username=username)[0]
         group = Group.objects.get_or_create(name=username)[0]
