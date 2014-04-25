@@ -42,7 +42,11 @@ from api.serializers import VolumeSerializer
 
 
 class InstanceList(APIView):
-    """List of instances for specific identity."""
+    """
+    Instances are the objects created when you launch a machine. They are
+    represented by a unique ID, randomly generated on launch, important
+    attributes of an Instance are:
+    Name, Status (building, active, suspended), Size, Machine"""
 
     permission_classes = (ApiAuthRequired,)
     
@@ -138,6 +142,9 @@ class InstanceHistory(APIView):
     permission_classes = (ApiAuthRequired,)
     
     def get(self, request, provider_id=None, identity_id=None):
+        """
+        Authentication required, Retrieve a list of previously launched instances.
+        """
         data = request.DATA
         params = request.QUERY_PARAMS.copy()
         user = User.objects.filter(username=request.user)
@@ -199,12 +206,33 @@ class InstanceHistory(APIView):
 
 
 class InstanceAction(APIView):
-    """Run specified instance action"""
+    """
+    This endpoint will allow you to run a specific action on an instance, via a POST.
+    Returns: 200, data: {'result':'success',...}
+             On Error, a more specfific message applies.
+    Data variables:
+     ___
+    * action - The action you wish to take on your instance
+    * action_params - any parameters required (as detailed on the api) to run the requested action.
+    Instance Actions:
+    ___
+    * attach_volume/detach_volume - action_params: volume_id
+    * resize - action params: size_id
+    * suspend/resume
+    * start/stop
+    * rebuild - action_params: machine_alias
+    * reboot - action_params: reset_type(soft/hard)
+    * redeploy - Helpful for when Shell/VNC stop working.
+
+    Instances are the objects created when you launch a machine. They are
+    represented by a unique ID, randomly generated on launch, important
+    attributes of an Instance are:
+    Name, Status (building, active, suspended), Size, Machine"""
 
     permission_classes = (ApiAuthRequired,)
     
     def post(self, request, provider_id, identity_id, instance_id):
-        """
+        """Authentication Required, Attempt a specific instance action, including necessary parameters.
         """
         #Service-specific call to action
         action_params = request.DATA
@@ -327,15 +355,18 @@ class InstanceAction(APIView):
 
 
 class Instance(APIView):
-    """Detailed information about a specific instance, as seen on that identity."""
+    """
+    Instances are the objects created when you launch a machine. They are
+    represented by a unique ID, randomly generated on launch, important
+    attributes of an Instance are:
+    Name, Status (building, active, suspended), Size, Machine"""
     #renderer_classes = (JSONRenderer, JSONPRenderer)
 
     permission_classes = (ApiAuthRequired,)
     
     def get(self, request, provider_id, identity_id, instance_id):
         """
-        Return the object belonging to this instance ID
-        TODO: Filter out instances you shouldnt see (permissions..)
+        Authentication Required, get instance details.
         """
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
@@ -352,8 +383,7 @@ class Instance(APIView):
         return response
 
     def patch(self, request, provider_id, identity_id, instance_id):
-        """
-        """
+        """Authentication Required, update metadata about the instance"""
         user = request.user
         data = request.DATA
         esh_driver = prepare_driver(request, provider_id, identity_id)
@@ -381,12 +411,7 @@ class Instance(APIView):
                 status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, provider_id, identity_id, instance_id):
-        """
-        TODO:
-            Options for put
-            - Instance status change (suspend,resume,etc.)
-            - DB changes (Name, tags)
-        """
+        """Authentication Required, update metadata about the instance"""
         user = request.user
         data = request.DATA
         #Ensure item exists on the server first
@@ -412,6 +437,10 @@ class Instance(APIView):
             return Response(serializer.errors, status=status.HTTP_400)
 
     def delete(self, request, provider_id, identity_id, instance_id):
+        """Authentication Required, TERMINATE the instance.
+
+        Be careful, there is no going back once you've deleted an instance.
+        """
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
         if not esh_driver:

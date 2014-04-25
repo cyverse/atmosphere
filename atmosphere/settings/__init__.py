@@ -288,9 +288,10 @@ REST_FRAMEWORK = {
         'authentication.token.TokenAuthentication',
     )
 }
+#REST_FRAMEWORK_SWAGGER
 SWAGGER_SETTINGS = {
     "exclude_namespaces": [
-        "exclude_apis",
+        "private_apis",
     ], # List URL namespaces to ignore
     "api_version": '0.1',  # Specify your API's version
     "api_path": "/",  # Specify the path to your API not a root level

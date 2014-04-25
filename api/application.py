@@ -21,7 +21,14 @@ from api.serializers import ApplicationSerializer, PaginatedApplicationSerialize
 
 
 class ApplicationList(APIView):
-    """List of Applications
+    """
+        When this endpoint is called without authentication, a list of 'public' images is returned.
+        When the endpoint is called with authentication, that list will include any private images the
+        user is authorized to see.
+
+        Applications are a set of one or more images that can
+        be uniquely identified by a specific UUID, or more commonly, by Name,
+        Description, or Tag(s). 
     """
 
     serializer_class = ApplicationSerializer
@@ -29,9 +36,7 @@ class ApplicationList(APIView):
     permission_classes = (InMaintenance,ApiAuthOptional)
 
     def get(self, request, **kwargs):
-        """
-        Using provider and identity, get application list
-        """
+        """List of applications, authentication optional."""
         request_user = kwargs.get('request_user')
         applications = public_applications()
         #Concatenate 'visible'
@@ -47,7 +52,9 @@ class ApplicationList(APIView):
 
 class Application(APIView):
     """
-    Detailed view of application
+        Applications are a set of one or more images that can
+        be uniquely identified by a specific UUID, or more commonly, by Name,
+        Description, or Tag(s). 
     """
     serializer_class = ApplicationSerializer
     model = CoreApplication
@@ -56,8 +63,7 @@ class Application(APIView):
     def get(self, request, app_uuid, **kwargs):
         """
         Details of specific application.
-        
-        app_uuid - Unique ID for the Application
+        Params:app_uuid -- Unique ID of Application
 
         """
         app = CoreApplication.objects.filter(uuid=app_uuid)
@@ -75,7 +81,7 @@ class Application(APIView):
         """
         Update specific application
 
-        app_uuid -- Unique ID of application
+        Params:app_uuid -- Unique ID of application
 
         """
         user = request.user
@@ -91,7 +97,7 @@ class Application(APIView):
         """
         Update specific application
 
-        app_uuid -- Unique ID of application
+        Params:app_uuid -- Unique ID of application
 
         """
         user = request.user
@@ -129,18 +135,16 @@ class Application(APIView):
 class ApplicationSearch(APIView):
     """
     Provides server-side Application search for an identity.
+
+    Currently the search expects the Query Param: query
+    and the query will be perfomed for matches on: Name, Description, & Tag(s)
     """
 
     permission_classes = (InMaintenance,)
 
     @api_auth_token_required
     def get(self, request):
-        """
-        Search for an application using query.
-        
-        query -- The search request, performed against Image
-                 Name/Description/Tag(s)
-        """
+        """"""
         data = request.DATA
         query = request.QUERY_PARAMS.get('query')
         if not query:

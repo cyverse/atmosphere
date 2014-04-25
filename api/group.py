@@ -15,11 +15,17 @@ from api.permissions import InMaintenance, ApiAuthOptional, ApiAuthRequired
 from api.serializers import GroupSerializer
 
 class GroupList(APIView):
-    """List groups"""
+    """Every User is assigned to a Group of their own name initially. This
+    'usergroup' is then in charge of all the identities, providers, instances,
+    and applications which can be shared among other, larger groups, but can
+    still be tracked back to the original user who made the API request."""
     permission_classes = (ApiAuthRequired,)
 
     def post(self, request):
-        """
+        """Authentication Required, Create a new group.
+
+        Params:name -- The name of the group
+               user -- One or more users belonging to the group
         """
         params = request.DATA
         groupname = params['name']
@@ -35,6 +41,7 @@ class GroupList(APIView):
     
     def get(self, request):
         """
+        Authentication Required, A list of all the user's groups.
         """
         user = request.user
         all_groups = user.group_set.order_by('name')
@@ -44,16 +51,15 @@ class GroupList(APIView):
 
 
 class Group(APIView):
-    """Detailed view about group
-
-    groupname -- Name of group
-    """
+    """Every User is assigned to a Group of their own name initially. This
+    'usergroup' is then in charge of all the identities, providers, instances,
+    and applications which can be shared among other, larger groups, but can
+    still be tracked back to the original user who made the API request."""
 
     permission_classes = (ApiAuthRequired,)
 
     def get(self, request, groupname):
-        """
-        """
+        """Authentication Required, Retrieve details about a specific group."""
         logger.info(request.__dict__)
         user = request.user
         group = user.group_set.get(name=groupname)

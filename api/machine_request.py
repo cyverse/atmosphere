@@ -167,16 +167,17 @@ class MachineRequestStaff(APIView):
 
 class MachineRequest(APIView):
     """
-    Represents:
-        Calls to modify the single machine
+    MachineRequests are available to allow users
+    to request that their instance be permanantly saved,
+    so that it can be re-launched as a new Application at a later date.
+    Upon request, these applications can be made Public, Private, or available
+    to a specific set of users.
     """
     permission_classes = (ApiAuthRequired,)
     
     def get(self, request, provider_id, identity_id, machine_request_id):
         """
-        Lookup the machine information
-        (Lookup using the given provider/identity)
-        Update on server (If applicable)
+        Authentication Required, get information about a previous request.
         """
         try:
             machine_request = CoreMachineRequest.objects.get(
@@ -191,11 +192,10 @@ class MachineRequest(APIView):
         return response
 
     def patch(self, request, provider_id, identity_id, machine_request_id):
+        """Authentication Required, update information on a pending request.
         """
-        Meta data changes in 'pending' are OK
-        Status change 'pending' --> 'cancel' are OK
-        All other changes should FAIL
-        """
+        #Meta data changes in 'pending' are OK
+        #Status change 'pending' --> 'cancel' are OK
         data = request.DATA
         try:
             machine_request = CoreMachineRequest.objects.get(
@@ -216,11 +216,10 @@ class MachineRequest(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, provider_id, identity_id, machine_request_id):
+        """Authentication Required, update information on a pending request.
         """
-        Meta data changes in 'pending' are OK
-        Status change 'pending' --> 'cancel' are OK
-        All other changes should FAIL
-        """
+        #Meta data changes in 'pending' are OK
+        #Status change 'pending' --> 'cancel' are OK
         data = request.DATA
         try:
             machine_request = CoreMachineRequest.objects.get(

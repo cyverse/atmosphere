@@ -15,20 +15,26 @@ from api.permissions import InMaintenance, ApiAuthRequired
 
 
 class TagList(APIView):
-    """A list of tags."""
+    """
+        Tags are a easy way to allow users to group several images as similar
+        based on a feature/program of the application.
+    """
     permission_classes = (ApiAuthRequired,)
     
     def get(self, request, *args, **kwargs):
         """
-        List of all tags
+        List all public tags.
         """
         tags = CoreTag.objects.all()
         serializer = TagSerializer(tags, many=True)
         return Response(serializer.data)
 
     def post(self, request, *args, **kwargs):
-        """
-        Create a new tag resource
+        """Create a new tag resource
+        Params:name -- Name of the new Tag
+        Returns: 
+        Status Code: 201 Body: A new Tag object
+        Status Code: 400 Body: Errors (Duplicate/Invalid Name)
         """
         user = request.user
         data = request.DATA.copy()
@@ -47,12 +53,17 @@ class TagList(APIView):
 
 
 class Tag(APIView):
-    """Details about a specific tag."""
+    """
+        Tags are a easy way to allow users to group several images as similar
+        based on a feature/program of the application.
+
+        This API resource allows you to Retrieve, Update, or Delete your Tag.
+    """
     permission_classes = (ApiAuthRequired,)
     
     def delete(self, request, tag_slug, *args, **kwargs):
         """
-        Remove the tag (IFF not in use)
+        Remove the tag, if it is no longer in use.
         """
         try:
             tag = CoreTag.objects.get(name__iexact=tag_slug)

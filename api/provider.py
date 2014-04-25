@@ -16,12 +16,14 @@ from api.permissions import InMaintenance, ApiAuthRequired
 
 
 class ProviderList(APIView):
-    """List of active providers"""
+    """Providers represent the different Cloud configurations hosted on Atmosphere.
+    Providers can be of type AWS, Eucalyptus, OpenStack.
+    """
     permission_classes = (ApiAuthRequired,)
     
     def get(self, request):
         """
-        List all providers accessible by request user
+        Authentication Required, list of Providers on your account.
         """
         username = request.user.username
         group = Group.objects.get(name=username)
@@ -37,12 +39,14 @@ class ProviderList(APIView):
 
 
 class Provider(APIView):
-    """Details about single provider"""
+    """Providers represent the different Cloud configurations hosted on Atmosphere.
+    Providers can be of type AWS, Eucalyptus, OpenStack.
+    """
     permission_classes = (ApiAuthRequired,)
     
     def get(self, request, provider_id):
         """
-        return provider if accessible by request user
+        Authentication Required, return specific provider.
         """
         username = request.user.username
         group = Group.objects.get(name=username)
