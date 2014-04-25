@@ -384,7 +384,7 @@ def launch_instance(user, provider_id, identity_id,
     returns a core_instance object after updating core DB.
     """
     now_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    status_logger.debug("|%s,%s,%s,%s,%s,%s"
+    status_logger.debug("%s,%s,%s,%s,%s,%s"
                  % (now_time, user, "No Instance", machine_alias, size_alias,
                     "Request Received"))
     core_identity = CoreIdentity.objects.get(id=identity_id)
