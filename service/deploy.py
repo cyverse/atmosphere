@@ -108,7 +108,9 @@ def mkfs_volume(device):
 
 
 def umount_volume(mount_location):
-    return ScriptDeployment("umount %s" % (mount_location),
+    return ScriptDeployment("mounts=`mount | grep '%s' | cut -d' ' -f3`; "
+                            "for mount in $mounts; do umount %s; done;"
+                            % (mount_location, mount_location),
                             name="./deploy_umount_volume.sh")
 
 

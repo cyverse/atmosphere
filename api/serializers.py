@@ -249,6 +249,9 @@ class IdentitySerializer(serializers.ModelSerializer):
                   'membership')
 
 class ApplicationSerializer(serializers.Serializer):
+    """
+    test maybe something
+    """
     #Read-Only Fields
     uuid = serializers.CharField(read_only=True)
     icon = serializers.CharField(read_only=True, source='icon_url')
@@ -332,6 +335,10 @@ class InstanceSerializer(serializers.ModelSerializer):
     #R/O Fields first!
     alias = serializers.CharField(read_only=True, source='provider_alias')
     alias_hash = serializers.CharField(read_only=True, source='hash_alias')
+    application_name = serializers.CharField(read_only=True,
+            source='provider_machine.application.name')
+    application_uuid = serializers.CharField(read_only=True,
+            source='provider_machine.application.uuid')
     #created_by = serializers.CharField(read_only=True, source='creator_name')
     created_by = serializers.SlugRelatedField(slug_field='username',
                                               source='created_by',

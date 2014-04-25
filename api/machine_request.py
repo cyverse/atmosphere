@@ -10,8 +10,8 @@ from rest_framework import status
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required#, api_auth_options
 
+from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import MachineRequestSerializer
 from core.models.machine_request import share_with_admins, share_with_self
 from core.models.machine_request import MachineRequest as CoreMachineRequest
@@ -30,7 +30,8 @@ class MachineRequestList(APIView):
     as well as e-mail the admins to approve a machine request
     """
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id):
         """
         """
@@ -40,7 +41,6 @@ class MachineRequestList(APIView):
         response = Response(serialized_data)
         return response
 
-    @api_auth_token_required
     def post(self, request, provider_id, identity_id):
         """
         Sends an e-mail to the admins to start
@@ -81,7 +81,8 @@ class MachineRequestStaffList(APIView):
     """
     """
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request):
         """
         """
@@ -101,7 +102,8 @@ class MachineRequestStaff(APIView):
     A staff member can view any machine request by its ID
     """
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, machine_request_id, action=None):
         """
         OPT 1 for approval: via GET with /approve or /deny
@@ -136,7 +138,6 @@ class MachineRequestStaff(APIView):
         serializer = MachineRequestSerializer(machine_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @api_auth_token_required
     def patch(self, request, machine_request_id, action=None):
         """
         OPT2 for approval: sending a PATCH to the machine request with
@@ -171,16 +172,17 @@ class MachineRequestStaff(APIView):
 
 class MachineRequest(APIView):
     """
-    Represents:
-        Calls to modify the single machine
-    TODO: DELETE when we allow owners to 'end-date' their machine..
+    MachineRequests are available to allow users
+    to request that their instance be permanantly saved,
+    so that it can be re-launched as a new Application at a later date.
+    Upon request, these applications can be made Public, Private, or available
+    to a specific set of users.
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id, machine_request_id):
         """
-        Lookup the machine information
-        (Lookup using the given provider/identity)
-        Update on server (If applicable)
+        Authentication Required, get information about a previous request.
         """
         try:
             machine_request = CoreMachineRequest.objects.get(
@@ -194,13 +196,11 @@ class MachineRequest(APIView):
         response = Response(serialized_data)
         return response
 
-    @api_auth_token_required
     def patch(self, request, provider_id, identity_id, machine_request_id):
+        """Authentication Required, update information on a pending request.
         """
-        Meta data changes in 'pending' are OK
-        Status change 'pending' --> 'cancel' are OK
-        All other changes should FAIL
-        """
+        #Meta data changes in 'pending' are OK
+        #Status change 'pending' --> 'cancel' are OK
         data = request.DATA
         try:
             machine_request = CoreMachineRequest.objects.get(
@@ -220,13 +220,11 @@ class MachineRequest(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @api_auth_token_required
     def put(self, request, provider_id, identity_id, machine_request_id):
+        """Authentication Required, update information on a pending request.
         """
-        Meta data changes in 'pending' are OK
-        Status change 'pending' --> 'cancel' are OK
-        All other changes should FAIL
-        """
+        #Meta data changes in 'pending' are OK
+        #Status change 'pending' --> 'cancel' are OK
         data = request.DATA
         try:
             machine_request = CoreMachineRequest.objects.get(
