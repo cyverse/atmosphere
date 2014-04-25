@@ -55,7 +55,7 @@ def get_context_user(serializer, kwargs, required=False):
         if type(user) == str:
             user = AtmosphereUser.objects.get(
                     username=user)
-        elif type(user) != AtmosphereUser:
+        elif type(user) not in [AnonymousUser,AtmosphereUser]:
             raise Exception("This Serializer REQUIRES the \"user\" "
                             "to be of type str or AtmosphereUser")
     elif request:
