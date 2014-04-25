@@ -18,13 +18,15 @@ from service.tasks.volume import detach_task, umount_task
 
 def deploy_init_task(driver, instance,
                      password=None, redeploy=False, *args, **kwargs):
+    from service.tasks.driver import _update_status_log
+    _update_status_log(instance, "Launching Instance")
     deploy_init_to.apply_async((driver.__class__,
                                 driver.provider,
                                 driver.identity,
                                 instance.alias,
                                 password,
                                 redeploy),
-                               immutable=True, countdown=60)
+                               immutable=True, countdown=20)
 
 
 def deploy_to_task(driver, instance, *args, **kwargs):

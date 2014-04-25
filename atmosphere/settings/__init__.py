@@ -225,10 +225,30 @@ LOG_FILENAME = os.path.abspath(os.path.join(
     os.path.dirname(atmosphere.__file__),
     '..',
     'logs/atmosphere.log'))
+
 threepio.initialize("atmosphere",
                     log_filename=LOG_FILENAME,
                     app_logging_level=LOGGING_LEVEL,
                     dep_logging_level=DEP_LOGGING_LEVEL)
+## NOTE: The format for status_logger
+# timestamp, user, instance_alias, machine_alias, size_alias, status_update
+
+STATUS_LOG_FILENAME = os.path.abspath(os.path.join(
+    os.path.dirname(atmosphere.__file__),
+    '..',
+    'logs/atmosphere_status.log'))
+fh = logging.FileHandler(STATUS_LOG_FILENAME)
+# create formatter and add it to the handlers
+base_format = '%(message)s'
+formatter = logging.Formatter(base_format)
+fh.setFormatter(formatter)
+threepio.status_logger = threepio\
+        .initialize("atmosphere_status",
+                    handlers=[fh],
+                    app_logging_level=LOGGING_LEVEL,
+                    dep_logging_level=DEP_LOGGING_LEVEL,
+                    global_logger=False,
+                    format=base_format)
 threepio.email_logger = threepio\
         .initialize("atmosphere_email",
                     log_filename=LOG_FILENAME,
@@ -316,9 +336,9 @@ CELERY_TASK_RESULT_EXPIRES = 3*60*60 #Store results for 3 hours
 #CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
 CELERYBEAT_CHDIR=PROJECT_ROOT
 CELERYD_MAX_TASKS_PER_CHILD=50
-CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [PID:%(process)d] @ %(pathname)s on %(lineno)d] %(message)s"
-CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [PID:%(process)d] [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
-# Django-Celery Local Settings
+CELERYD_LOG_FORMAT="[%(asctime)s: %(name)s-%(levelname)s/%(processName)s [PID:%(process)d] @ %(pathname)s on %(lineno)d] %(message)s"
+CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(name)s-%(levelname)s/%(processName)s [PID:%(process)d] [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
+
 # Django-Celery Local Settings
 #CELERY_QUEUES = (
 #        Queue('imaging'), Exchange('imaging'), routing_key='imaging'),
@@ -344,7 +364,7 @@ CELERYBEAT_SCHEDULE = {
     "monitor_instances": {
         "task": "monitor_instances",
         "schedule" : timedelta(minutes=15),
-        "options": {"expires":9*60, "time_limit":5*60,
+        "options": {"expires":10*60, "time_limit":10*60,
                     "queue":"celery_periodic"}
     },
     "clear_empty_ips": {
