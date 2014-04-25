@@ -3,7 +3,6 @@ Atmosphere service machine rest api.
 
 """
 import os
-
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 from django.db.models import Q
@@ -13,8 +12,6 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from threepio import logger
-
-from authentication.decorators import api_auth_token_required
 
 from core.models import AtmosphereUser as User
 from core.models.application import ApplicationScore
@@ -27,7 +24,7 @@ from service.machine_search import search, CoreSearchProvider
 
 from api import prepare_driver, failure_response, invalid_creds
 from api.renderers import JPEGRenderer, PNGRenderer
-from api.permissions import InMaintenance
+from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProviderMachineSerializer,\
     PaginatedProviderMachineSerializer, ApplicationScoreSerializer
 
@@ -70,16 +67,10 @@ def all_filtered_machines():
 
 
 class MachineList(APIView):
-    """
-    Represents:
-        A Manager of Machine
-        Calls to the Machine Class
-    TODO: POST when we have programmatic image creation/snapshots
-    """
+    """List of machines."""
 
-    permission_classes = (InMaintenance,)
+    permission_classes = (InMaintenance,ApiAuthRequired)
 
-    @api_auth_token_required
     def get(self, request, provider_id, identity_id):
         """
         Using provider and identity, getlist of machines
@@ -105,15 +96,10 @@ class MachineList(APIView):
 
 
 class MachineHistory(APIView):
-    """
-    A MachineHistory provides machine history for an identity.
+    """Details about the machine history for an identity."""
 
-    GET - A chronologically ordered list of ProviderMachines for the identity.
-    """
+    permission_classes = (InMaintenance,ApiAuthRequired)
 
-    permission_classes = (InMaintenance,)
-
-    @api_auth_token_required
     def get(self, request, provider_id, identity_id):
         data = request.DATA
         user = User.objects.filter(username=request.user)
@@ -173,13 +159,10 @@ def get_first(coll):
 
 
 class MachineSearch(APIView):
-    """
-    Provides server-side machine search for an identity.
-    """
+    """Provides server-side machine search for an identity."""
 
-    permission_classes = (InMaintenance,)
+    permission_classes = (InMaintenance,ApiAuthRequired)
 
-    @api_auth_token_required
     def get(self, request, provider_id, identity_id):
         """
         """
@@ -225,18 +208,14 @@ class MachineSearch(APIView):
 
 
 class Machine(APIView):
-    """
-    Represents:
-        Calls to modify the single machine
-    TODO: DELETE when we allow owners to 'end-date' their machine..
-    """
+    """Details about a specific machine, as seen by that identity."""
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id, machine_id):
         """
         Lookup the machine information
         (Lookup using the given provider/identity)
-        Update on server (If applicable)
         """
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
@@ -252,12 +231,11 @@ class Machine(APIView):
         response = Response(serialized_data)
         return response
 
-    @api_auth_token_required
     def patch(self, request, provider_id, identity_id, machine_id):
         """
-        TODO: Determine who is allowed to edit machines besides
-        core_machine.owner
         """
+        #TODO: Determine who is allowed to edit machines besides
+        #core_machine.owner
         user = request.user
         data = request.DATA
         esh_driver = prepare_driver(request, provider_id, identity_id)
@@ -288,7 +266,6 @@ class Machine(APIView):
             status.HTTP_400_BAD_REQUEST,
             serializer.errors)
 
-    @api_auth_token_required
     def put(self, request, provider_id, identity_id, machine_id):
         """
         TODO: Determine who is allowed to edit machines besides
@@ -331,8 +308,8 @@ class MachineIcon(APIView):
     TODO: DELETE when we allow owners to 'end-date' their machine..
     """
     renderer_classes = (JPEGRenderer,PNGRenderer,)
+    permission_classes = (ApiAuthRequired,)
 
-    @api_auth_token_required
     def get(self, request, provider_id, identity_id, machine_id):
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
@@ -354,13 +331,10 @@ class MachineIcon(APIView):
         return Response(app_icon.file)
 
 class MachineVote(APIView):
-    """
-    Represents:
-        Calls to modify the single machine
-    TODO: DELETE when we allow owners to 'end-date' their machine..
-    """
+    """Rate the selected image by voting."""
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def get(self, request, provider_id, identity_id, machine_id):
         """
         Lookup the machine information
@@ -379,7 +353,6 @@ class MachineVote(APIView):
         serialized_data = ApplicationScoreSerializer(vote).data
         return Response(serialized_data, status=status.HTTP_201_CREATED)
 
-    @api_auth_token_required
     def post(self, request, provider_id, identity_id, machine_id):
         """
         TODO: Determine who is allowed to edit machines besides

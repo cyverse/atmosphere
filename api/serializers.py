@@ -38,11 +38,12 @@ def get_context_user(serializer, kwargs, required=False):
     user = context.get('user')
     request = context.get('request')
     if not user and not request:
-        print_str = "%s was initialized "\
-                    "without appropriate context."\
-                    "For complete results include the 'context' kwarg, "\
-                    "with key 'request' OR 'user'."\
-                    " (e.g. context={'user':user,'request':request})"\
+        print_str = "%s was initialized"\
+                    " without appropriate context."\
+                    " Sometimes, like on imports, this is normal."\
+                    " For complete results include the \"context\" kwarg,"\
+                    " with key \"request\" OR \"user\"."\
+                    " (e.g. context={\"user\":user,\"request\":request})"\
                     % (serializer,)
         if required:
             raise Exception(print_str)
@@ -54,8 +55,8 @@ def get_context_user(serializer, kwargs, required=False):
         if type(user) == str:
             user = AtmosphereUser.objects.get(
                     username=user)
-        elif type(user) != AtmosphereUser:
-            raise Exception("This Serializer REQUIRES the 'user' "
+        elif type(user) not in [AnonymousUser,AtmosphereUser]:
+            raise Exception("This Serializer REQUIRES the \"user\" "
                             "to be of type str or AtmosphereUser")
     elif request:
         user = request.user
@@ -248,6 +249,9 @@ class IdentitySerializer(serializers.ModelSerializer):
                   'membership')
 
 class ApplicationSerializer(serializers.Serializer):
+    """
+    test maybe something
+    """
     #Read-Only Fields
     uuid = serializers.CharField(read_only=True)
     icon = serializers.CharField(read_only=True, source='icon_url')
@@ -331,6 +335,10 @@ class InstanceSerializer(serializers.ModelSerializer):
     #R/O Fields first!
     alias = serializers.CharField(read_only=True, source='provider_alias')
     alias_hash = serializers.CharField(read_only=True, source='hash_alias')
+    application_name = serializers.CharField(read_only=True,
+            source='provider_machine.application.name')
+    application_uuid = serializers.CharField(read_only=True,
+            source='provider_machine.application.uuid')
     #created_by = serializers.CharField(read_only=True, source='creator_name')
     created_by = serializers.SlugRelatedField(slug_field='username',
                                               source='created_by',

@@ -10,6 +10,8 @@ from atmosphere.version import get_version
 
 class Version(APIView):
     def get(self, request, format=None):
-        """Atmosphere's version
+        """
+        This request will retrieve Atmosphere's version,
+        including the latest update to the code base and the date the update was written.
         """
         return Response(get_version("all"))

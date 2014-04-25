@@ -172,7 +172,7 @@ def update_instances(driver, identity, esh_list, core_list):
             core_instance.end_date_all()
             continue
         esh_instance = esh_list[index]
-        esh_size = driver.get_size(esh_instance._size.id)
+        esh_size = driver.get_size(esh_instance.size.id)
         core_size = convert_esh_size(esh_size, provider_id)
         core_instance.update_history(
             esh_instance.extra['status'],

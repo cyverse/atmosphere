@@ -11,7 +11,7 @@ from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
+from api.permissions import InMaintenance, ApiAuthRequired
 from authentication.protocol.ldap import lookupEmail
 
 from core.models.provider import AccountProvider
@@ -28,7 +28,7 @@ class Feedback(APIView):
     """
     Post feedback via RESTful API
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
     def post(self, request):
         """
         Creates a new feedback email and sends it to admins
@@ -50,7 +50,7 @@ class QuotaEmail(APIView):
     """
     Post Quota Email via RESTful API
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
     def post(self, request):
         """
         Creates a new Quota Request email and sends it to admins
@@ -70,12 +70,15 @@ class QuotaEmail(APIView):
 
 class SupportEmail(APIView):
     """
-    Post Support Email via RESTful API
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def post(self, request):
         """
         Creates a new support email and sends it to admins
+
+
+        Post Support Email via RESTful API
         """
         data = request.DATA
         required = ['message','subject']
@@ -93,7 +96,9 @@ def valid_post_data(data, required_keys):
     """
     Return any missing required post key names.
     """
-    return [key for key in required_keys if not key in data]
+    return [key for key in required
+            #Key must exist and have a non-empty value.
+            if not ( key in data and len(data[key]) > 0)]
 
 
 def keys_not_found(missing_keys):

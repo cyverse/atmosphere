@@ -11,14 +11,16 @@ from rest_framework.reverse import reverse
 from threepio import logger
 ## Atmosphere Libraries
 
-from authentication.decorators import api_auth_token_required
 
 from api import failure_response
 from api.serializers import ProjectSerializer, InstanceSerializer,\
         VolumeSerializer, ApplicationSerializer
 from core.models.group import Group, get_user_group
+from api.permissions import InMaintenance, ApiAuthRequired
+from api.serializers import ProjectSerializer
 
 class ProjectApplicationExchange(APIView):
+    permission_classes = (ApiAuthRequired,)
     def put(self, request, project_id, application_uuid):
         user = request.user
         group = get_user_group(user.username)
@@ -57,6 +59,7 @@ class ProjectApplicationExchange(APIView):
 
 
 class ProjectInstanceExchange(APIView):
+    permission_classes = (ApiAuthRequired,)
     def put(self, request, project_id, instance_id):
         user = request.user
         group = get_user_group(user.username)
@@ -95,6 +98,7 @@ class ProjectInstanceExchange(APIView):
 
 
 class ProjectVolumeExchange(APIView):
+    permission_classes = (ApiAuthRequired,)
     def put(self, request, project_id, volume_id):
         user = request.user
         group = get_user_group(user.username)
@@ -134,8 +138,8 @@ class ProjectVolumeExchange(APIView):
 class ProjectVolumeList(APIView):
     """
     """
+    permission_classes = (ApiAuthRequired,)
 
-    @api_auth_token_required
     def get(self, request, project_id):
         """
         """
@@ -152,8 +156,8 @@ class ProjectVolumeList(APIView):
 class ProjectApplicationList(APIView):
     """
     """
+    permission_classes = (ApiAuthRequired,)
 
-    @api_auth_token_required
     def get(self, request, project_id):
         """
         """
@@ -171,7 +175,8 @@ class ProjectInstanceList(APIView):
     """
     """
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def get(self, request, project_id):
         """
         """
@@ -189,7 +194,8 @@ class ProjectList(APIView):
     """
     """
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def post(self, request):
         """
         """
@@ -218,7 +224,6 @@ class ProjectList(APIView):
             return Response(serializer.errors,
                     status=status.HTTP_400_BAD_REQUEST)
 
-    @api_auth_token_required
     def get(self, request):
         """
         """
@@ -235,7 +240,8 @@ class ProjectDetail(APIView):
     """
     """
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def patch(self, request, project_id):
         """
         """
@@ -264,7 +270,6 @@ class ProjectDetail(APIView):
             return Response(serializer.errors,
                     status=status.HTTP_400_BAD_REQUEST)
 
-    @api_auth_token_required
     def put(self, request, project_id):
         """
         """
@@ -293,7 +298,6 @@ class ProjectDetail(APIView):
             return Response(serializer.errors,
                     status=status.HTTP_400_BAD_REQUEST)
 
-    @api_auth_token_required
     def get(self, request, project_id):
         """
         """
@@ -309,7 +313,6 @@ class ProjectDetail(APIView):
         return response
 
 
-    @api_auth_token_required
     def delete(self, request, project_id):
         """
         """
