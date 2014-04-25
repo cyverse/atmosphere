@@ -302,7 +302,7 @@ def resume_instance(esh_driver, esh_instance,
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
     from service.tasks.driver import update_metadata, _update_status_log
-    _update_status_log(instance, "Resuming Instance")
+    _update_status_log(esh_instance, "Resuming Instance")
     size = esh_driver.get_size(esh_instance.size.id)
     check_quota(user.username, identity_id, size, resuming=True)
     #admin_capacity_check(provider_id, esh_instance.id)
