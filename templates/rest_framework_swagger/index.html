@@ -56,32 +56,61 @@
   });
 
   </script>
+  <style>
+  .swagger-ui-wrap a {
+      color: #eee;
+  }
+  #header, #django-rest-swagger {
+      background: none;
+  }
+  em {
+      margin-left:10px;
+      color: #EEE;
+      font-size: 13px;
+      text-align: right;
+      font-weight: 500;
+      font-style: normal;
+  }
+  #header form#api_selector .input a#explore {
+      background:none;
+  }
+  .swagger-ui-wrap {
+      max-width: 1080px;
+  }
+  #header-wrap {
+      background: url(../resources/images/header_bg.png) no-repeat, url(../resources/images/header_bg_bg.png) !important;
+  }
+  </style>
 </head>
 
 <body>
-<div id='header'>
-  <div class="swagger-ui-wrap">
-    <a id="atmo_logo"
-        href="https://atmo.iplantcollaborative.org/"><img
-        src="/resources/images/mini_logo.png" alt="iPlant Cloud Services">Atmosphere</a>
-
-    <form id='api_selector'>
-      <div class='input icon-btn'>
-        <img id="show-wordnik-dev-icon" src="{% static 'rest_framework_swagger/images/wordnik_api.png' %}" title="Show Wordnik Developer Apis">
+<div id='header-wrap'>
+    <div id='header'>
+      <div class="swagger-ui-wrap">
+          <a id="atmo_logo" href="/">
+              <img src="../resources/images/mini_logo.png" alt="iPlant Cloud
+              Services"><em>Atmosphere: iPlant Cloud Services</em></a>
+    
+          <form id='api_selector'>
+         <!--
+          <div class='input icon-btn'>
+            <img id="show-wordnik-dev-icon" src="{% static 'rest_framework_swagger/images/wordnik_api.png' %}" title="Show Wordnik Developer Apis">
+        </div>
+        -->
+          <div class='input'><input placeholder="http://example.com/api" id="input_baseUrl" name="baseUrl" type="text"/></div>
+          <div class='input'><input placeholder="api_key" id="input_apiKey" name="apiKey" type="text"/></div>
+          <div class='input'><a id="explore" href="#">Explore</a></div>
+        </form>
       </div>
-      <div class='input'><input placeholder="http://example.com/api" id="input_baseUrl" name="baseUrl" type="text"/></div>
-      <div class='input'><input placeholder="api_key" id="input_apiKey" name="apiKey" type="text"/></div>
-      <div class='input'><a id="explore" href="#">Explore</a></div>
-    </form>
-  </div>
-</div>
-
-<div id="django-rest-swagger">
-  <div class="swagger-ui-wrap">
-    <a
-        href="https://github.com/iPlantCollaborativeOpenSource/atmosphere/">Atmosphere
-    Source</a>
-  </div>
+    </div>
+    
+    <div id="django-rest-swagger">
+      <div class="swagger-ui-wrap">
+        <a
+            href="https://github.com/iPlantCollaborativeOpenSource/atmosphere/">Atmosphere
+        Source</a>
+      </div>
+    </div>
 </div>
 
 <div id="message-bar" class="swagger-ui-wrap">
