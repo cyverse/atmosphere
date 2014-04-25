@@ -1,5 +1,3 @@
-"""
-"""
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 
@@ -18,25 +16,21 @@ from service.machine_search import search, CoreApplicationSearch
 from authentication.decorators import api_auth_token_optional,\
                                       api_auth_token_required
 from api import prepare_driver, failure_response, invalid_creds
-from api.permissions import InMaintenance
+from api.permissions import InMaintenance, ApiAuthOptional, ApiAuthRequired
 from api.serializers import ApplicationSerializer, PaginatedApplicationSerializer
 
 
 class ApplicationList(APIView):
-    """
-    Represents:
-        A Manager of Machine
-        Calls to the Machine Class
-    TODO: POST when we have programmatic image creation/snapshots
+    """List of Applications
     """
 
-    permission_classes = (InMaintenance,)
+    serializer_class = ApplicationSerializer
+    model = CoreApplication
+    permission_classes = (InMaintenance,ApiAuthOptional)
 
-    @api_auth_token_optional
     def get(self, request, **kwargs):
         """
-        Using provider and identity, getlist of machines
-        TODO: Cache this request
+        Using provider and identity, get application list
         """
         request_user = kwargs.get('request_user')
         applications = public_applications()
@@ -53,16 +47,19 @@ class ApplicationList(APIView):
 
 class Application(APIView):
     """
-    Represents:
-        A Manager of Machine
-        Calls to the Machine Class
-    TODO: POST when we have programmatic image creation/snapshots
+    Detailed view of application
     """
+    serializer_class = ApplicationSerializer
+    model = CoreApplication
+    permission_classes = (ApiAuthRequired,)
 
-    permission_classes = (InMaintenance,)
-
-    @api_auth_token_optional
     def get(self, request, app_uuid, **kwargs):
+        """
+        Details of specific application.
+        
+        app_uuid - Unique ID for the Application
+
+        """
         app = CoreApplication.objects.filter(uuid=app_uuid)
         if not app:
             return failure_response(status.HTTP_404_NOT_FOUND,
@@ -74,11 +71,12 @@ class Application(APIView):
         response = Response(serialized_data)
         return response
 
-    @api_auth_token_required
     def put(self, request, app_uuid, **kwargs):
         """
-        TODO: Determine who is allowed to edit machines besides
-            core_machine.owner
+        Update specific application
+
+        app_uuid -- Unique ID of application
+
         """
         user = request.user
         data = request.DATA
@@ -89,11 +87,12 @@ class Application(APIView):
                                     % app_uuid)
         app = app[0]
 
-    @api_auth_token_required
     def patch(self, request, app_uuid, **kwargs):
         """
-        TODO: Determine who is allowed to edit machines besides
-        core_machine.owner
+        Update specific application
+
+        app_uuid -- Unique ID of application
+
         """
         user = request.user
         data = request.DATA
@@ -137,6 +136,10 @@ class ApplicationSearch(APIView):
     @api_auth_token_required
     def get(self, request):
         """
+        Search for an application using query.
+        
+        query -- The search request, performed against Image
+                 Name/Description/Tag(s)
         """
         data = request.DATA
         query = request.QUERY_PARAMS.get('query')

@@ -1,28 +1,20 @@
-"""
-Atmosphere service identity rest api.
-
-"""
-
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
 
 from core.models.group import Group
 
 from api.serializers import IdentitySerializer, IdentityDetailSerializer
+from api.permissions import InMaintenance, ApiAuthRequired
 
 class IdentityDetailList(APIView):
-    """
-    Represents:
-        A List of Identity
-        Calls to the Identity Class
-    """
+    """A Detailed List of Identities for request_user"""
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def get(self, request):
         """
         List of identity that match USER and the provider_id
@@ -41,13 +33,10 @@ class IdentityDetailList(APIView):
 
 
 class IdentityList(APIView):
-    """
-    Represents:
-        A List of Identity
-        Calls to the Identity Class
-    """
+    """A List of Identities for request_user"""
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, format=None):
         """
         List of identity that match USER and the provider_id
@@ -66,11 +55,10 @@ class IdentityList(APIView):
 
 
 class Identity(APIView):
-    """
-    Represents:
-        Calls to modify the single Identity
-    """
-    @api_auth_token_required
+    """Details about specific identity."""
+
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id, format=None):
         """
         Return the credential information for this identity
