@@ -6,19 +6,18 @@ from celery.decorators import task
 from celery.result import allow_join_result
 
 from chromogenic.tasks import machine_imaging_task, migrate_instance_task
-from chromogenic.drivers.openstack import ImageManager as OSImageManager
-from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
 
 from atmosphere import settings
 from atmosphere.celery import app
 
-from core.email import send_image_request_email
+from core.email import \
+        send_image_request_email, send_image_request_failed_email
 from core.models.machine_request import MachineRequest, process_machine_request
 from core.models.identity import Identity
 
 from service.driver import get_admin_driver
 from service.deploy import freeze_instance, sync_instance
-from service.tasks.driver import deploy_to
+from service.tasks.driver import deploy_to, wait_for, destroy_instance
 
 # For development
 try:
@@ -40,15 +39,15 @@ def start_machine_imaging(machine_request, delay=False):
     (orig_managerCls, orig_creds,
      dest_managerCls, dest_creds) = machine_request.prepare_manager()
     imaging_args = machine_request.get_imaging_args()
+    admin_driver = machine_request.new_admin_driver()
+    admin_ident = machine_request.new_admin_identity()
 
-    #Step 1 - On OpenStack, sync/freeze BEFORE starting migration/imaging
+    imaging_error_task = machine_request_error.s(machine_request.id)
+
     init_task = None
-    #if orig_managerCls == OSImageManager:  # TODO:AND if instance still running
-    #    freeze_task = freeze_instance_task.si(
-    #        machine_request.instance.created_by_identity_id, instance_id)
-    #    init_task = freeze_task
+
     if dest_managerCls and dest_creds != orig_creds:
-        #Will run machine imaging task..
+        #Task 1 = Migrate Task
         migrate_task = migrate_instance_task.si(
             orig_managerCls, orig_creds, dest_managerCls, dest_creds,
             **imaging_args)
@@ -57,39 +56,61 @@ def start_machine_imaging(machine_request, delay=False):
         else:
             init_task.link(migrate_task)
     else:
+        #Task 1 = Imaging Task
         image_task = machine_imaging_task.si(
             orig_managerCls, orig_creds, imaging_args)
         if not init_task:
             init_task = image_task
         else:
             init_task.link(image_task)
-    #The new image ID will be the first argument in process_request
+    #Task 2 = Process the machine request
+    # (Save tags, name, description, metadata, etc.)
     process_task = process_request.s(machine_request.id)
+    process_task.link_error(imaging_error_task)
+
     if dest_managerCls and dest_creds != orig_creds:
         migrate_task.link(process_task)
+        migrate_task.link_error(imaging_error_task)
     else:
         image_task.link(process_task)
+        image_task.link_error(imaging_error_task)
+    #Task 3 = Validate the new image by launching an instance
+    validate_task = validate_new_image.s(machine_request.id)
+    process_task.link(validate_task)
+    #Task 4 = Wait for new instance to be 'active'
+    wait_for_task = wait_for.s(
+            admin_driver.__class__, 
+            admin_driver.provider,
+            admin_driver.identity,
+            "active",
+            return_id=True)
+    validate_task.link(wait_for_task)
+    validate_task.link_error(imaging_error_task)
 
-    async = init_task.apply_async(
-        link_error=machine_request_error.s(machine_request.id),
-        )
+    #Task 5 = Terminate the new instance on completion
+    destroy_task = destroy_instance.s(
+            admin_ident.id)
+    wait_for_task.link(destroy_task)
+    wait_for_task.link_error(imaging_error_task)
+    #Task 6 - Finally, email the user that their image is ready!
+    email_task = imaging_complete.s(machine_request.id)
+    destroy_task.link_error(imaging_error_task)
+    destroy_task.link(email_task)
+
+    # Start the task.
+    async = init_task.apply_async()
     if delay:
         async.get()
     return async
 
 
 def set_machine_request_metadata(machine_request, image_id):
-    (orig_managerCls, orig_creds,
-        new_managerCls, new_creds) = machine_request.prepare_manager()
-    if new_managerCls:
-        manager = new_managerCls(**new_creds)
-    else:
-        manager = orig_managerCls(**orig_creds)
-    if not hasattr(manager, 'admin_driver'):
+    admin_driver = machine_request.new_admin_driver()
+    machine = admin_driver.get_machine(image_id)
+    lc_driver = admin_driver._connection
+    if not machine:
+        logger.warn("Could not find machine with ID=%s" % image_id)
         return
-    #Update metadata on rtwo/libcloud machine -- NOT a glance machine
-    machine = manager.admin_driver.get_machine(image_id)
-    lc_driver = manager.admin_driver._connection
     if not hasattr(lc_driver, 'ex_set_image_metadata'):
         return
     metadata = lc_driver.ex_get_image_metadata(machine)
@@ -104,7 +125,6 @@ def set_machine_request_metadata(machine_request, image_id):
     return machine
 
 
-#NOTE: Is this different than the 'task' found in celery.decorators?
 @task(name='machine_request_error')
 def machine_request_error(task_uuid, machine_request_id):
     logger.info("machine_request_id=%s" % machine_request_id)
@@ -115,11 +135,23 @@ def machine_request_error(task_uuid, machine_request_id):
         exc = result.get(propagate=False)
     err_str = "ERROR - %r Exception:%r" % (result.result, result.traceback,)
     logger.error(err_str)
+    send_image_request_failed_email(machine_request, err_str)
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.status = err_str
     machine_request.save()
 
 
+@task(name='imaging_complete', queue="imaging", ignore_result=False)
+def imaging_complete(new_image_id, machine_request_id):
+    #if ipdb:
+    #    ipdb.set_trace()
+    machine_request = MachineRequest.objects.get(id=machine_request_id)
+    machine_request.status = 'completed'
+    machine_request.save()
+    send_image_request_email(machine_request.new_machine_owner,
+                             machine_request.new_machine,
+                             machine_request.new_machine_name)
+    return new_image_id
 @task(name='process_request', queue="imaging", ignore_result=False)
 def process_request(new_image_id, machine_request_id):
     #if ipdb:
@@ -137,6 +169,37 @@ def process_request(new_image_id, machine_request_id):
     send_image_request_email(machine_request.new_machine_owner,
                              machine_request.new_machine,
                              machine_request.new_machine_name)
+    return new_image_id
+
+
+@task(name='validate_new_image', queue="imaging", ignore_result=False)
+def validate_new_image(image_id, machine_request_id):
+    machine_request = MachineRequest.objects.get(id=machine_request_id)
+    machine_request.status = 'validating'
+    machine_request.save()
+    from service.instance import launch_esh_instance
+    admin_driver = machine_request.new_admin_driver()
+    admin_ident = machine_request.new_admin_identity()
+    if not admin_driver:
+        logger.warn("Need admin_driver functionality to auto-validate instance")
+        return False
+    if not admin_ident:
+        logger.warn("Need to know the AccountProvider to auto-validate instance")
+        return False
+    #Update the admin driver's User (Cannot be initialized via. Chromogenic)
+    admin_driver.identity.user = admin_ident.created_by
+    #Update metadata on rtwo/libcloud machine -- NOT a glance machine
+    machine = admin_driver.get_machine(image_id)
+    small_size = admin_driver.list_sizes()[0]
+    (instance_id, token, password) = launch_esh_instance(
+            admin_driver,
+            machine.id,
+            small_size.id,
+            admin_ident,
+            'Automated Image Verification - %s' % image_id,
+            'atmoadmin',
+            using_admin=True)
+    return instance_id
 
 
 def invalidate_machine_cache(machine_request):

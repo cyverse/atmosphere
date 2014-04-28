@@ -108,7 +108,9 @@ def mkfs_volume(device):
 
 
 def umount_volume(mount_location):
-    return ScriptDeployment("umount %s" % (mount_location),
+    return ScriptDeployment("mounts=`mount | grep '%s' | cut -d' ' -f3`; "
+                            "for mount in $mounts; do umount %s; done;"
+                            % (mount_location, mount_location),
                             name="./deploy_umount_volume.sh")
 
 
@@ -165,7 +167,10 @@ def package_deps(logfile=None, username=None):
 def shell_lookup_helper(username):
     zsh_user = False
     ldap_info = ldap._search_ldap(username)
-    ldap_info_dict = ldap_info[0][1]
+    try:
+        ldap_info_dict = ldap_info[0][1]
+    except IndexError:
+        return False
     for key in ldap_info_dict.iterkeys():
         if key == "loginShell":
             if 'zsh' in ldap_info_dict[key][0]:

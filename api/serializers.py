@@ -5,6 +5,7 @@ from django.utils import timezone
 from core.models.application import Application, ApplicationScore,\
         ApplicationBookmark
 from core.models.credential import Credential
+from core.models.group import get_user_group
 from core.models.group import IdentityMembership
 from core.models.identity import Identity
 from core.models.instance import Instance
@@ -37,11 +38,12 @@ def get_context_user(serializer, kwargs, required=False):
     user = context.get('user')
     request = context.get('request')
     if not user and not request:
-        print_str = "%s was initialized "\
-                    "without appropriate context."\
-                    "For complete results include the 'context' kwarg, "\
-                    "with key 'request' OR 'user'."\
-                    " (e.g. context={'user':user,'request':request})"\
+        print_str = "%s was initialized"\
+                    " without appropriate context."\
+                    " Sometimes, like on imports, this is normal."\
+                    " For complete results include the \"context\" kwarg,"\
+                    " with key \"request\" OR \"user\"."\
+                    " (e.g. context={\"user\":user,\"request\":request})"\
                     % (serializer,)
         if required:
             raise Exception(print_str)
@@ -53,8 +55,8 @@ def get_context_user(serializer, kwargs, required=False):
         if type(user) == str:
             user = AtmosphereUser.objects.get(
                     username=user)
-        elif type(user) != AtmosphereUser:
-            raise Exception("This Serializer REQUIRES the 'user' "
+        elif type(user) not in [AnonymousUser,AtmosphereUser]:
+            raise Exception("This Serializer REQUIRES the \"user\" "
                             "to be of type str or AtmosphereUser")
     elif request:
         user = request.user
@@ -84,7 +86,8 @@ class ProjectsField(serializers.WritableField):
         if type(request_user) == AnonymousUser:
             return None
         try:
-            projects = project_mgr.filter(owner=request_user)
+            group = get_user_group(request_user.username)
+            projects = project_mgr.filter(owner=group)
             # Modifications to how 'project' should be displayed here:
             return [p.id for p in projects]
         except Project.DoesNotExist:
@@ -96,6 +99,7 @@ class ProjectsField(serializers.WritableField):
             return
         related_obj = self.root.object
         user = self.root.request_user
+        group = get_user_group(user.username)
         # Retrieve the New Project(s)
         if type(value) == list:
             new_projects = value
@@ -112,7 +116,7 @@ class ProjectsField(serializers.WritableField):
             # Retrieve/Create the New Project
             #TODO: When projects can be shared,
             #change the qualifier here.
-            new_project = Project.objects.get(id=project_id, owner=user)
+            new_project = Project.objects.get(id=project_id, owner=group)
             # Assign related_obj to New Project
             if not related_obj.projects.filter(id=project_id):
                 related_obj.projects.add(new_project)
@@ -245,6 +249,9 @@ class IdentitySerializer(serializers.ModelSerializer):
                   'membership')
 
 class ApplicationSerializer(serializers.Serializer):
+    """
+    test maybe something
+    """
     #Read-Only Fields
     uuid = serializers.CharField(read_only=True)
     icon = serializers.CharField(read_only=True, source='icon_url')
@@ -328,6 +335,10 @@ class InstanceSerializer(serializers.ModelSerializer):
     #R/O Fields first!
     alias = serializers.CharField(read_only=True, source='provider_alias')
     alias_hash = serializers.CharField(read_only=True, source='hash_alias')
+    application_name = serializers.CharField(read_only=True,
+            source='provider_machine.application.name')
+    application_uuid = serializers.CharField(read_only=True,
+            source='provider_machine.application.uuid')
     #created_by = serializers.CharField(read_only=True, source='creator_name')
     created_by = serializers.SlugRelatedField(slug_field='username',
                                               source='created_by',
@@ -613,8 +624,9 @@ class VolumeSerializer(serializers.ModelSerializer):
 
 
 class ProjectSerializer(serializers.ModelSerializer):
+    #Edits to Writable fields..
+    owner = serializers.SlugRelatedField(slug_field="name")
     # These fields are READ-ONLY!
-    owner = serializers.Field(source="owner.username")
     applications = serializers.SerializerMethodField('get_user_applications')
     instances = serializers.SerializerMethodField('get_user_instances')
     volumes = serializers.SerializerMethodField('get_user_volumes')

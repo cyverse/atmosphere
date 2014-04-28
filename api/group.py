@@ -8,24 +8,24 @@ from rest_framework.response import Response
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
 
 from core.models.group import Group as CoreGroup
 
+from api.permissions import InMaintenance, ApiAuthOptional, ApiAuthRequired
 from api.serializers import GroupSerializer
 
 class GroupList(APIView):
-    """
-    Represents both the collection of groups
-    AND
-    Objects on the Group class
-    """
-    @api_auth_token_required
+    """Every User is assigned to a Group of their own name initially. This
+    'usergroup' is then in charge of all the identities, providers, instances,
+    and applications which can be shared among other, larger groups, but can
+    still be tracked back to the original user who made the API request."""
+    permission_classes = (ApiAuthRequired,)
+
     def post(self, request):
-        """
-        Group Class:
-        Create a new group in the database
-        Returns success 200 OK - NO BODY on creation
+        """Authentication Required, Create a new group.
+
+        Params:name -- The name of the group
+               user -- One or more users belonging to the group
         """
         params = request.DATA
         groupname = params['name']
@@ -38,11 +38,10 @@ class GroupList(APIView):
         response = Response(serialized_data)
         return response
 
-    @api_auth_token_required
+    
     def get(self, request):
         """
-        Return all groups that 'user' is a member of
-        including the providers/identities shared with that group
+        Authentication Required, A list of all the user's groups.
         """
         user = request.user
         all_groups = user.group_set.order_by('name')
@@ -52,13 +51,15 @@ class GroupList(APIView):
 
 
 class Group(APIView):
+    """Every User is assigned to a Group of their own name initially. This
+    'usergroup' is then in charge of all the identities, providers, instances,
+    and applications which can be shared among other, larger groups, but can
+    still be tracked back to the original user who made the API request."""
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def get(self, request, groupname):
-        """
-        Return the object belonging to the group
-        including the providers/identities shared with that group
-        """
+        """Authentication Required, Retrieve details about a specific group."""
         logger.info(request.__dict__)
         user = request.user
         group = user.group_set.get(name=groupname)

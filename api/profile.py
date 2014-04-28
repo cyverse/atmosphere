@@ -10,19 +10,22 @@ from rest_framework.reverse import reverse
 from threepio import logger
 ## Atmosphere Libraries
 
-from authentication.decorators import api_auth_token_required
 
+from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProfileSerializer, AtmoUserSerializer
 
 
 class Profile(APIView):
-    """
+    """Profile can be thought of as the 'entry-point' to the Atmosphere APIs.
+    Once authentiated, a user can find their default provider and identity.
+    The IDs for provider and Identity can be used to navigate the rest of the API.
     """
 
-    @api_auth_token_required
+
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id=None, identity_id=None):
-        """
-        """
+        """Authentication Required, retrieve the users profile."""
         #logger.info(request.user)
         user = request.user
         #logger.debug(user.get_profile())
@@ -37,12 +40,11 @@ class Profile(APIView):
         response = Response(serialized_data)
         return response
 
-    @api_auth_token_required
     def patch(self, request, provider_id=None, identity_id=None):
         """
-        Update a users profile
-        If VALID save the profile
-        else raise ValidationError
+        Authentication Required, Update the users profile.
+        Returns: 203 - Success, no body.
+        400 - Bad key/value on update, errors in body.
         """
         user = request.user
         profile = user.get_profile()
@@ -65,12 +67,11 @@ class Profile(APIView):
         else:
             return Response(serializer.errors)
 
-    @api_auth_token_required
     def put(self, request, provider_id=None, identity_id=None):
         """
-        Update a users profile
-        If VALID save the profile
-        else raise ValidationError
+        Authentication Required, Update the users profile.
+        Returns: 203 - Success, no body.
+        400 - Bad key/value on update, errors in body.
         """
         user = request.user
         profile = user.get_profile()

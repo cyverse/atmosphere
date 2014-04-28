@@ -1,7 +1,3 @@
-"""
-Atmosphere api Hypervisor.
-"""
-
 import json
 # atmosphere libraries
 from django.utils import timezone
@@ -10,17 +6,18 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from api import prepare_driver, invalid_creds
+from api.permissions import InMaintenance, ApiAuthOptional, ApiAuthRequired
 from core.models import Provider
 from service.driver import get_admin_driver
 
-from authentication.decorators import api_auth_token_required
 
 
 class HypervisorList(APIView):
     """
     List all available Hypervisors
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def get(self, request, provider_id, identity_id):
         """
         Using provider and identity, getlist of machines
@@ -47,7 +44,8 @@ class HypervisorDetail(APIView):
     """
     View a single Hypervisor
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def get(self, request, provider_id, identity_id, hypervisor_id):
         """
         Lookup the Hypervisor information (Lookup using the given provider/identity)

@@ -15,7 +15,7 @@ class Migration(SchemaMigration):
             ('description', self.gf('django.db.models.fields.TextField')()),
             ('start_date', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('end_date', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-            ('owner', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.AtmosphereUser'], null=True, blank=True)),
+            ('owner', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Group'])),
         ))
         db.send_create_signal('core', ['Project'])
 
@@ -311,7 +311,7 @@ class Migration(SchemaMigration):
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'instances': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'projects'", 'null': 'True', 'symmetrical': 'False', 'to': "orm['core.Instance']"}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
-            'owner': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.AtmosphereUser']", 'null': 'True', 'blank': 'True'}),
+            'owner': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Group']"}),
             'volumes': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'projects'", 'null': 'True', 'symmetrical': 'False', 'to': "orm['core.Volume']"})
         },
         'core.provider': {

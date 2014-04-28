@@ -8,7 +8,6 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from authentication.decorators import api_auth_token_required
 
 from core.models.provider import Provider
 from core.models.size import convert_esh_size
@@ -16,14 +15,14 @@ from core.models.size import convert_esh_size
 from service.driver import get_admin_driver
 
 from api import failure_response, get_esh_driver
+from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProviderSizeSerializer
 
 
 class Occupancy(APIView):
-    """
-    Show single provider
-    """
-    @api_auth_token_required
+    """Returns occupancy data for the specific provider."""
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id):
         """
         Returns occupancy data for the specific provider.
@@ -50,10 +49,10 @@ class Occupancy(APIView):
 
 
 class Hypervisor(APIView):
+    """Returns hypervisor statistics for the specific provider.
     """
-    Returns hypervisor statistics for the specific provider.
-    """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id):
         try:
             provider = Provider.get_active(provider_id)

@@ -21,6 +21,10 @@ class NotificationList(APIView):
         A List of Instance
         Calls to the Instance Class
     """
+    #Nothing required for this API, instances call out to here
+    #TODO: Write a permission "hasInstanceRemoteAddr"
+    #permission_classes = (,)
+
     def _select_action(self, request, action, params):
         if 'instance_launched' in action:
             self._email_instance_owner(request, params)
