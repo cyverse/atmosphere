@@ -97,8 +97,11 @@ urlpatterns = patterns(
     #Error Redirection
     url(r'^no_user/$', 'web.views.no_user_redirect'),
     #API Layer
-    url(r'^api/v1/',
-         include("api.urls")),
+    url(r'^api/v1/', include("api.urls", namespace="api")),
+
+    #API Documentation
+    url(r'^api-docs/', include('rest_framework_swagger.urls')), 
+
     ### DJANGORESTFRAMEWORK ###
     url(r'^api-auth/',
         include('rest_framework.urls', namespace='rest_framework'))

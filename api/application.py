@@ -1,5 +1,3 @@
-"""
-"""
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 from django.contrib.auth.models import AnonymousUser
@@ -19,26 +17,28 @@ from service.machine_search import search, CoreApplicationSearch
 from authentication.decorators import api_auth_token_optional,\
                                       api_auth_token_required
 from api import prepare_driver, failure_response, invalid_creds
-from api.permissions import InMaintenance
+from api.permissions import InMaintenance, ApiAuthOptional, ApiAuthRequired
 from api.serializers import ApplicationSerializer, PaginatedApplicationSerializer
 
 
 class ApplicationList(APIView):
     """
-    Represents:
-        A Manager of Machine
-        Calls to the Machine Class
-    TODO: POST when we have programmatic image creation/snapshots
+        When this endpoint is called without authentication, a list of 'public' images is returned.
+        When the endpoint is called with authentication, that list will include any private images the
+        user is authorized to see.
+
+        Applications are a set of one or more images that can
+        be uniquely identified by a specific UUID, or more commonly, by Name,
+        Description, or Tag(s). 
     """
 
-    permission_classes = (InMaintenance,)
+    serializer_class = ApplicationSerializer
+    model = CoreApplication
+    permission_classes = (InMaintenance,ApiAuthOptional)
 
-    @api_auth_token_optional
     def get(self, request, **kwargs):
-        """
-        Using provider and identity, getlist of machines
-        TODO: Cache this request
-        """
+        """Authentication optional, list of applications."""
+        request_user = kwargs.get('request_user')
         applications = public_applications()
         #Concatenate 'visible'
         if request.user and type(request.user) != AnonymousUser:
@@ -53,16 +53,20 @@ class ApplicationList(APIView):
 
 class Application(APIView):
     """
-    Represents:
-        A Manager of Machine
-        Calls to the Machine Class
-    TODO: POST when we have programmatic image creation/snapshots
+        Applications are a set of one or more images that can
+        be uniquely identified by a specific UUID, or more commonly, by Name,
+        Description, or Tag(s). 
     """
+    serializer_class = ApplicationSerializer
+    model = CoreApplication
+    permission_classes = (ApiAuthRequired,)
 
-    permission_classes = (InMaintenance,)
-
-    @api_auth_token_optional
     def get(self, request, app_uuid, **kwargs):
+        """
+        Details of specific application.
+        Params:app_uuid -- Unique ID of Application
+
+        """
         app = CoreApplication.objects.filter(uuid=app_uuid)
         if not app:
             return failure_response(status.HTTP_404_NOT_FOUND,
@@ -74,11 +78,12 @@ class Application(APIView):
         response = Response(serialized_data)
         return response
 
-    @api_auth_token_required
     def put(self, request, app_uuid, **kwargs):
         """
-        TODO: Determine who is allowed to edit machines besides
-            core_machine.owner
+        Update specific application
+
+        Params:app_uuid -- Unique ID of application
+
         """
         user = request.user
         data = request.DATA
@@ -89,11 +94,12 @@ class Application(APIView):
                                     % app_uuid)
         app = app[0]
 
-    @api_auth_token_required
     def patch(self, request, app_uuid, **kwargs):
         """
-        TODO: Determine who is allowed to edit machines besides
-        core_machine.owner
+        Update specific application
+
+        Params:app_uuid -- Unique ID of application
+
         """
         user = request.user
         data = request.DATA
@@ -130,14 +136,16 @@ class Application(APIView):
 class ApplicationSearch(APIView):
     """
     Provides server-side Application search for an identity.
+
+    Currently the search expects the Query Param: query
+    and the query will be perfomed for matches on: Name, Description, & Tag(s)
     """
 
     permission_classes = (InMaintenance,)
 
     @api_auth_token_required
     def get(self, request):
-        """
-        """
+        """"""
         data = request.DATA
         query = request.QUERY_PARAMS.get('query')
         if not query:

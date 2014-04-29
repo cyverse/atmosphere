@@ -9,6 +9,7 @@ from django.utils import timezone
 from threepio import logger
 
 from atmosphere import settings
+from core.application import get_os_account_driver, write_app_data
 from core.models.application import Application
 from core.models.application import create_application, get_application
 from core.models.identity import Identity
@@ -144,13 +145,43 @@ def load_provider_machine(provider_alias, machine_name, provider_id,
         app = create_application(provider_alias, provider_id, machine_name)
     return create_provider_machine(machine_name, provider_alias, provider_id, app=app, metadata=metadata)
 
+def _extract_tenant_name(identity):
+    tenant_name = identity.get_credential('ex_tenant_name')
+    if not tenant_name:
+        tenant_name = identity.get_credential('ex_project_name')
+    if not tenant_name:
+        raise Exception("Cannot update application owner without knowing the"
+        " tenant ID of the new owner. Please update your identity, or the"
+        " credential key fields above this line.")
+    return tenant_name
+
 def update_application_owner(application, identity):
+    old_identity = application.created_by_identity
+    if identity == old_identity:
+        #Do nothing.
+        return
+    tenant_name = _extract_tenant_name(identity)
+    old_tenant_name = _extract_tenant_name(old_identity)
+    #Prepare the application
     application.created_by_identity=identity
     application.created_by=identity.created_by
-    #PUSH METADATA
     application.save()
-
-
+    #Update all the PMs
+    all_pms = application.providermachine_set.all()
+    print "Updating %s machines.." % len(all_pms)
+    for provider_machine in all_pms:
+        accounts = get_os_account_driver(provider_machine.provider)
+        image_id = provider_machine.identifier
+        image = accounts.image_manager.get_image(image_id)
+        if not image:
+            continue
+        tenant_id = accounts.get_project(tenant_name).id
+        write_app_data(provider_machine, owner=tenant_id)
+        print "App data saved for %s" % image_id
+        accounts.image_manager.share_image(image, tenant_name)
+        print "Shared access to %s with %s" % (image_id, tenant_name)
+        accounts.image_manager.unshare_image(image, old_tenant_name)
+        print "Removed access to %s for %s" % (image_id, old_tenant_name)
 
 def create_provider_machine(machine_name, provider_alias, provider_id, app, metadata={}):
     #Attempt to match machine by provider alias
