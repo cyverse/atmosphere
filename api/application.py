@@ -59,7 +59,7 @@ class Application(APIView):
     """
     serializer_class = ApplicationSerializer
     model = CoreApplication
-    permission_classes = (ApiAuthRequired,)
+    permission_classes = (ApiAuthOptional,)
 
     def get(self, request, app_uuid, **kwargs):
         """
