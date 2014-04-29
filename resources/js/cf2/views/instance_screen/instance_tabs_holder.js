@@ -493,7 +493,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 	},
 	console_instance: function() {
-		Atmo.Utils.notify('Instance Console', 'Will appear in a new window momentarily.<br/>NOTE:If your browser blocks pop-ups by default, check the top right corner to allow the pop-up or whitelist Atmosphere.');
+		Atmo.Utils.notify('Launching Instance Console', 'The new console window will appear in a new tab momentarily.');
         data = {"action":"console"};
 	    var newtab = window.open(url, '_blank');
 		var ident = Atmo.profile.get('selected_identity');
