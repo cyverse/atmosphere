@@ -169,7 +169,6 @@ class Provider(models.Model):
         return group_names
 
     def get_esh_credentials(self, esh_provider):
-
         cred_map = self.get_credentials()
         if isinstance(esh_provider, OSProvider):
             cred_map['ex_force_auth_url'] = cred_map.pop('auth_url')
