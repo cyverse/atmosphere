@@ -322,13 +322,13 @@ class ProjectDetail(APIView):
         if not project:
             return Response("Project with ID=%s does not exist" % project_id,
                             status=status.HTTP_400_BAD_REQUEST)
+        project = project[0]
         if project.name == 'Default':
             return Response(
                     "The 'Default' project is reserved and cannot be deleted.",
                     status=status.HTTP_409_CONFLICT)
-        project = project[0]
         default_project = group.projects.get(name='Default')
-        project.migrate_objects(default_project)
+        project.copy_objects(default_project)
         project.delete_project()
         serialized_data = ProjectSerializer(project,
                                             context={"user":request.user}).data
