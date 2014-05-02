@@ -61,7 +61,8 @@ class Quota(models.Model):
             'cpu': cls._meta.get_field('cpu').default,
             'memory': cls._meta.get_field('memory').default,
             'storage': cls._meta.get_field('storage').default,
-            'storage_count': cls._meta.get_field('storage_count').default
+            'storage_count': cls._meta.get_field('storage_count').default,
+            'suspended_count': cls._meta.get_field('suspended_count').default
         }
 
     class Meta:
