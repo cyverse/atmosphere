@@ -347,7 +347,9 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
     except SystemExit:
         logger.exception("System Exits are BAD! Find this and get rid of it!")
         raise Exception("System Exit called")
-    except NonZeroDeploymentException:
+    except NonZeroDeploymentException as non_zero:
+        logger.error(str(non_zero))
+        logger.error(non_zero.__dict__)
         raise
     except Exception as exc:
         logger.warn(exc)
