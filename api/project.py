@@ -19,6 +19,11 @@ from core.models.group import Group, get_user_group
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProjectSerializer
 
+from django.utils import timezone
+from django.db.models import Q
+
+only_current = Q(end_date=None) | Q(end_date__gt=timezone.now())
+
 class ProjectApplicationExchange(APIView):
     permission_classes = (ApiAuthRequired,)
     def put(self, request, project_id, application_uuid):
@@ -147,7 +152,7 @@ class ProjectVolumeList(APIView):
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
         projects = group.projects.get(id=project_id)
-        volumes = projects.volumes.all()
+        volumes = projects.volumes.filter(only_current)
         serialized_data = VolumeSerializer(volumes, many=True,
                                             context={"user":request.user}).data
         response = Response(serialized_data)
@@ -165,7 +170,7 @@ class ProjectApplicationList(APIView):
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
         projects = group.projects.get(id=project_id)
-        applications = projects.applications.all()
+        applications = projects.applications.filter(only_current)
         serialized_data = ApplicationSerializer(applications, many=True,
                                             context={"user":request.user}).data
         response = Response(serialized_data)
@@ -184,7 +189,7 @@ class ProjectInstanceList(APIView):
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
         projects = group.projects.get(id=project_id)
-        instances = projects.instances.all()
+        instances = projects.instances.filter(only_current)
         serialized_data = InstanceSerializer(instances, many=True,
                                             context={"user":request.user}).data
         response = Response(serialized_data)
