@@ -13,6 +13,7 @@ from core.models.group import Group, IdentityMembership, ProviderMembership
 from core.models.identity import Identity
 from core.models.instance import Instance, InstanceStatusHistory
 from core.models.machine import ProviderMachine, ProviderMachineMembership
+from core.models.machine_export import MachineExport
 from core.models.machine_request import MachineRequest
 from core.models.maintenance import MaintenanceRecord
 from core.models.node import NodeController
@@ -227,6 +228,9 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
     _identity_user.short_description = 'Username'
 
 
+class MachineExportAdmin(admin.ModelAdmin):
+    pass
+
 class MachineRequestAdmin(admin.ModelAdmin):
     search_fields = ["new_machine_owner__username", "new_machine_name", "instance__provider_alias"]
     list_display = ["new_machine_name", "new_machine_owner",
@@ -286,6 +290,7 @@ admin.site.register(IdentityMembership, IdentityMembershipAdmin)
 admin.site.register(Instance, InstanceAdmin)
 admin.site.register(InstanceStatusHistory, InstanceStatusHistoryAdmin)
 admin.site.register(MachineRequest, MachineRequestAdmin)
+admin.site.register(MachineExport, MachineExportAdmin)
 admin.site.register(MaintenanceRecord, MaintenanceAdmin)
 admin.site.register(NodeController, NodeControllerAdmin)
 admin.site.register(Provider, ProviderAdmin)
