@@ -147,9 +147,8 @@ private_apis = patterns('',
 
 
     #TODO: Uncomment when 'voting' feature is ready.
-    #url(identity_specific + r'/machine/(?P<machine_id>[a-zA-Z0-9-]+)'
-    #    + '/vote/$',
-    #    MachineVote.as_view(), name='machine-vote'),
+    url(identity_specific + r'/machine/(?P<machine_id>[a-zA-Z0-9-]+)/vote/$',
+        MachineVote.as_view(), name='machine-vote'),
 
     url(identity_specific + r'/meta/$', Meta.as_view(), name='meta-detail'),
     url(identity_specific + r'/meta/(?P<action>.*)/$',
