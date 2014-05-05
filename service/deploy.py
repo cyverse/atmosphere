@@ -1,6 +1,8 @@
 """
 Deploy methods for Atmosphere
 """
+import time
+
 from os.path import basename
 
 from libcloud.compute.deployment import ScriptDeployment
@@ -10,6 +12,7 @@ from threepio import logger
 
 from atmosphere import settings
 from atmosphere.settings import secrets
+from authentication.protocol import ldap
 
 
 #
@@ -27,11 +30,27 @@ class LoggedScriptDeployment(ScriptDeployment):
             self.script = self.script + " >> %s 2>&1" % logfile
         #logger.info(self.script)
 
-    def run(self, node, client):
+    def run(self, node, client, attempts=1):
         """
         Server-side logging
+
+        Optional Param: attempts - # of times to retry
+        in the event of a Non-Zero exit status(code)
         """
-        node = super(LoggedScriptDeployment, self).run(node, client)
+        attempt = 0
+        retry_time = 0
+        while attempt < attempts:
+            node = super(LoggedScriptDeployment, self).run(node, client)
+            if self.exit_status == 0:
+                break
+            attempt += 1
+            retry_time = 2 * 2**attempt # 4,8,16..
+            logger.debug(
+                "WARN: Script %s on Node %s is non-zero."
+                " Will re-try in %s seconds. Attempt: %s/%s"
+                % (node.id, self.name, retry_time, attempt, attempts))
+            time.sleep(retry_time)
+
         if self.stdout:
             logger.debug('%s (%s)STDOUT: %s' % (node.id, self.name,
                                                 self.stdout))
@@ -57,6 +76,9 @@ def get_distro(distro='ubuntu'):
 def build_script(script_input, name=None):
     return ScriptDeployment(script_input, name=name)
 
+def deploy_test():
+    return ScriptDeployment(
+            "\n", name="./deploy_test.sh")
 
 def install_base_requirements(distro='ubuntu'):
     script_txt = "%s install -qy utils-linux %s"\
@@ -83,6 +105,16 @@ def check_mount():
                             name="./deploy_check_mount.sh")
 
 
+def check_process(proc_name):
+    return ScriptDeployment(
+        "if ps aux | grep '%s' > /dev/null; "
+        "then echo '1:%s is running'; "
+        "else echo '0:%s is NOT running'; "
+        "fi"
+        % (proc_name, proc_name, proc_name),
+        name="./deploy_check_process_%s.sh"
+        % (proc_name,))
+
 def check_volume(device):
     return ScriptDeployment("tune2fs -l %s" % (device),
                             name="./deploy_check_volume.sh")
@@ -94,7 +126,9 @@ def mkfs_volume(device):
 
 
 def umount_volume(mount_location):
-    return ScriptDeployment("umount %s" % (mount_location),
+    return ScriptDeployment("mounts=`mount | grep '%s' | cut -d' ' -f3`; "
+                            "for mount in $mounts; do umount %s; done;"
+                            % (mount_location, mount_location),
                             name="./deploy_umount_volume.sh")
 
 
@@ -110,12 +144,11 @@ def step_script(step):
     return ScriptDeployment(script, name="./" + step.get_script_name())
 
 
-def wget_file(filename, url, logfile=None):
+def wget_file(filename, url, attempts=1, logfile=None):
     name = './deploy_wget_%s.sh' % (basename(filename))
     return LoggedScriptDeployment(
         "wget -O %s %s" % (filename, url),
-        name=name,
-        logfile=logfile)
+        name=name, attempts=attempts, logfile=logfile)
 
 
 def chmod_ax_file(filename, logfile=None):
@@ -125,14 +158,19 @@ def chmod_ax_file(filename, logfile=None):
         logfile=logfile)
 
 
-def package_deps(logfile=None):
+def package_deps(logfile=None, username=None):
     #These requirements are for Editors, Shell-in-a-box, etc.
     do_ubuntu = "apt-get update;apt-get install -y emacs vim wget "\
                 + "language-pack-en make gcc g++ gettext texinfo "\
-                + "autoconf automake python-httplib2"
+                + "autoconf automake python-httplib2 "
     do_centos = "yum install -y emacs vim-enhanced wget make "\
                 + "gcc gettext texinfo autoconf automake "\
-                + "python-simplejson python-httplib2"
+                + "python-simplejson python-httplib2 "
+
+    if shell_lookup_helper(username):
+        do_ubuntu = do_ubuntu + "zsh "
+        do_centos = do_centos + "zsh "
+
     return LoggedScriptDeployment(
         "distro_cat=`cat /etc/*-release`\n"
         + "if [[ $distro_cat == *Ubuntu* ]]; then\n"
@@ -143,6 +181,18 @@ def package_deps(logfile=None):
         name="./deploy_package_deps.sh",
         logfile=logfile)
 
+def shell_lookup_helper(username):
+    zsh_user = False
+    ldap_info = ldap._search_ldap(username)
+    try:
+        ldap_info_dict = ldap_info[0][1]
+    except IndexError:
+        return False
+    for key in ldap_info_dict.iterkeys():
+        if key == "loginShell":
+            if 'zsh' in ldap_info_dict[key][0]:
+                zsh_user = True
+    return zsh_user
 
 def redeploy_script(filename, username, instance, logfile=None):
         awesome_atmo_call = "%s --service_type=%s --service_url=%s"
@@ -229,9 +279,10 @@ def init(instance, username, password=None, redeploy=False, *args, **kwargs):
 
         script_init = init_log()
 
-        script_deps = package_deps()
+        script_deps = package_deps(logfile,username)
 
-        script_wget = wget_file(atmo_init, url, logfile)
+        script_wget = wget_file(atmo_init, url, logfile,
+                                attempts=3)
 
         script_chmod = chmod_ax_file(atmo_init, logfile)
 
@@ -259,12 +310,3 @@ def init(instance, username, password=None, redeploy=False, *args, **kwargs):
             script_list.append(script_rm_scripts)
 
         return MultiStepDeployment(script_list)
-
-        # kwargs.update({'deploy': msd})
-
-        # private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
-        # kwargs.update({'ssh_key': private_key})
-
-        # kwargs.update({'timeout': 120})
-
-        # return self.deploy_to(instance, *args, **kwargs)

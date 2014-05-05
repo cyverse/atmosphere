@@ -55,7 +55,7 @@ CELERYD_GROUP="root"
 # Additional celery flower settings
 ###
 
-FLOWER_ACCESS_LIST="contact.steve.gregory@gmail.com|ipc.edwin@gmail.com|aedmonds60@gmail.com|jmatt@jmatt.org|cjlarose@gmail.com|cjlarose@email.arizona.edu|netvato@gmail.com|rbovill@gmail.com|jerry57@gmail.com|sangeeta@email.arizona.edu|ipc.dboss@gmail.com"
+FLOWER_ACCESS_LIST="contact@steve-gregory.com|contact.steve.gregory@gmail.com|ipc.edwin@gmail.com|aedmonds60@gmail.com|jmatt@jmatt.org|cjlarose@gmail.com|cjlarose@email.arizona.edu|netvato@gmail.com|rbovill@gmail.com|jerry57@gmail.com|sangeeta@email.arizona.edu|ipc.dboss@gmail.com|amercer1@email.arizona.edu"
 FLOWER_LOG_FILE="/var/log/celery/flower.log"
 CELERYD_FLOWER="$CELERYD_CHDIR/manage.py celery flower"
 CELERY_FLOWER_OPTS="--certfile=$SSH_CERT_FILE --keyfile=$SSH_KEY_FILE --port=8443 --log_file_prefix=$FLOWER_LOG_FILE --logging=warn --url_prefix=flower --auth=$FLOWER_ACCESS_LIST"

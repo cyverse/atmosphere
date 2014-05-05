@@ -107,7 +107,6 @@ Atmo.Utils.update_weather = function() {
           // Apply minimal formatting to occupancy.
           occupancy *= 100;
           occupancy = occupancy.toFixed(2);
-
           var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
           var weather = '';
 
@@ -140,6 +139,8 @@ Atmo.Utils.update_weather = function() {
               var provider = Atmo.providers.get(provider_id);
               var content = provider.get('location');
               content += ' is at ' + occupancy + '% capacity.<br /> The forecast is '+weather+'.';
+              //TODO: Remove this line when you want normal functionality again
+              content = provider.get('location');
               return content;
             });
           }

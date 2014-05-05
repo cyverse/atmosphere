@@ -180,6 +180,59 @@ Helpful links:
     return email_from_admin(user, subject, body)
 
 
+def send_deploy_failed_email(core_instance, exception_str):
+    """
+    Sends an email to the admins, who will verify the reason for the error.
+    """
+    user = core_instance.created_by
+    user_email = lookupEmail(user.username)
+    body = """ADMINS: An instance has FAILED to deploy succesfully.
+The exception and relevant details about the image can be found here:
+---
+Failed Instance Details:
+  Alias: %s
+  Owner: %s (%s)
+  IP Address: %s
+  Image ID: %s
+---
+Exception: %s
+""" % (core_instance.provider_alias,
+       user, user_email,
+       core_instance.ip_address,
+       core_instance.provider_machine.identifier, 
+       exception_str)
+    subject = 'An Atmosphere Instance has failed to launch.'
+    return email_to_admin(subject, body, user.username, user_email,
+                          cc_user=False)
+
+
+def send_image_request_failed_email(machine_request, exception_str):
+    """
+    Sends an email to the admins, who will verify the reason for the error,
+    with an option to re-approve the request.
+    """
+    user_email = lookupEmail(user.username)
+    approve_link = '%s/api/v1/request_image/%s/approve' \
+        % (settings.SERVER_URL, machine_request.id)
+    body = """ADMINS: A machine request has FAILED."
+Please look over the exception. If the exception is one-time failure
+you can re-approve the image here: %s
+------------------------------------------------------------------
+Machine Request:
+  ID: %d
+  Owner: %s
+  Instance: %s
+  IP Address: %s
+Exception: %s
+""" % (approve_link, machine_request.id, machine_request.new_machine_owner,
+        machine_request.instance.provider_alias, 
+        machine_request.instance.ip_address,
+        exception_str)
+    subject = 'Your Atmosphere Image is Complete'
+    return email_to_admin(subject, body, user.username, user_email,
+                          cc_user=False)
+
+
 def send_image_request_email(user, new_machine, name):
     """
     Sends an email to the admins, who will verify the image boots successfully.
@@ -187,20 +240,15 @@ def send_image_request_email(user, new_machine, name):
     which will provide useful information about the new image.
     """
     user_email = lookupEmail(user.username)
-    body = """ADMINS: A new image has been completed.
-Please ensure the image launches correctly.
-After verifying the image, forward the contents of this e-mail to: %s
-------------------------------------------------------------------
-Hello %s,
+    body = """Hello %s,
 
 Your image is ready. The image ID is "%s" and the image is named "%s".
 
 Thank you for using atmosphere!
 If you have any questions please contact: support@iplantcollaborative.org""" %\
-        (user_email, user.username, new_machine.identifier, name)
+        (user.username, new_machine.identifier, name)
     subject = 'Your Atmosphere Image is Complete'
-    return email_to_admin(subject, body, user.username, user_email,
-                          cc_user=False)
+    return email_from_admin(user, subject, body)
 
 
 def send_new_provider_email(username, provider_name):

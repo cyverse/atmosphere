@@ -27,6 +27,7 @@ from core.models.user import AtmosphereUser
 from core.models.volume import Volume
 
 from core.application import save_app_data
+from threepio import logger
 
 def private_object(modeladmin, request, queryset):
         queryset.update(private=True)
@@ -76,10 +77,9 @@ class AllocationAdmin(admin.ModelAdmin):
 class ProviderMachineAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     search_fields = ["application__name", "provider__location", "identifier"]
-    list_display = ["identifier", "provider", "application"]
+    list_display = ["identifier", "provider", "application", "end_date"]
     list_filter = [
         "provider__location",
-        "application__featured",
         "application__private",
     ]
 
@@ -156,8 +156,7 @@ class VolumeAdmin(admin.ModelAdmin):
 class ApplicationAdmin(admin.ModelAdmin):
     actions = [end_date_object, private_object]
     search_fields = ["name", "id"]
-    list_display = [
-        "name", "start_date", "end_date", "private", "featured", "created_by"]
+    list_display = ["uuid", "get_provider_machine_set", "name", "private", "created_by", "start_date", "end_date" ]
     filter_vertical = ["tags",]
     def save_model(self, request, obj, form, change):
         user = request.user
@@ -165,7 +164,11 @@ class ApplicationAdmin(admin.ModelAdmin):
         application.save()
         form.save_m2m()
         if change:
-            save_app_data(application)
+            try:
+                save_app_data(application)
+            except Exception, e:
+                logger.exception("Could not update metadata for application %s"
+                                 % application)
         return application
 
 
@@ -253,7 +256,7 @@ class MachineRequestAdmin(admin.ModelAdmin):
         return None
 
 
-class InstanceStatusAdmin(admin.ModelAdmin):
+class InstanceStatusHistoryAdmin(admin.ModelAdmin):
     search_fields = ["instance__created_by__username",
             "instance__provider_alias", "status__name"]
     list_display = ["instance", "status", "start_date", "end_date"]
@@ -281,7 +284,7 @@ admin.site.register(Allocation, AllocationAdmin)
 admin.site.register(Identity, IdentityAdmin)
 admin.site.register(IdentityMembership, IdentityMembershipAdmin)
 admin.site.register(Instance, InstanceAdmin)
-admin.site.register(InstanceStatusHistory, InstanceStatusAdmin)
+admin.site.register(InstanceStatusHistory, InstanceStatusHistoryAdmin)
 admin.site.register(MachineRequest, MachineRequestAdmin)
 admin.site.register(MaintenanceRecord, MaintenanceAdmin)
 admin.site.register(NodeController, NodeControllerAdmin)

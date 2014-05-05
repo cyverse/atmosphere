@@ -323,6 +323,7 @@ class AccountDriver():
             username,
             self.hashpass(username),
             project_name,
+            get_unique_number=get_uid_number,
             **net_args)
         return True
 
@@ -357,8 +358,11 @@ class AccountDriver():
         # Convert from libcloud names to openstack client names
         net_args = self._base_network_creds()
         return self.network_manager.create_project_network(
-            username, password, project_name,
-            get_cidr=get_uid_number, **net_args)
+            username,
+            password,
+            project_name,
+            get_unique_number=get_uid_number,
+            **net_args)
 
     # Useful methods called from above..
     def get_or_create_user(self, username, password=None,

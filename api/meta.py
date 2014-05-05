@@ -14,16 +14,17 @@ from rest_framework.reverse import reverse
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
 
 from api import failure_response, prepare_driver, invalid_creds
+from api.permissions import InMaintenance, ApiAuthRequired
 
 
 class Meta(APIView):
     """
-    Atmosphere service meta rest api.
+    Meta-details about Atmosphere API, including self-describing URLs.
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def get(self, request, provider_id, identity_id):
         """
         Returns all available URLs based on the user profile.
@@ -39,48 +40,48 @@ class Meta(APIView):
 
 def add_staff_urls(request, provider_id, identity_id):
     data = {
-        'request-image-list': reverse('direct-machine-request-list',
+            'request-image-list': reverse('api:private_apis:direct-machine-request-list',
                             request=request),
         }
 def add_user_urls(request, provider_id, identity_id):
     data = {
-        'group-list': reverse('group-list',
+        'group-list': reverse('api:public_apis:group-list',
                             request=request),
-        'tag-list': reverse('tag-list',
+        'tag-list': reverse('api:public_apis:tag-list',
                             request=request),
-        'provider-list': reverse('provider-list',
+        'provider-list': reverse('api:public_apis:provider-list',
                             request=request),
-        'occupancy': reverse('occupancy',
+        'occupancy': reverse('api:private_apis:occupancy',
                             args=(provider_id,),
                             request=request),
-        'hypervisor': reverse('hypervisor',
+        'hypervisor': reverse('api:private_apis:hypervisor',
                             args=(provider_id,),
                             request=request),
-        'identity-list': reverse('identity-list',
+        'identity-list': reverse('api:public_apis:identity-list',
                             args=(provider_id,),
                             request=request),
-        'volume-list': reverse('volume-list',
+        'volume-list': reverse('api:public_apis:volume-list',
                           args=(provider_id, identity_id),
                           request=request),
-        'meta': reverse('meta-detail',
+        'meta': reverse('api:private_apis:meta-detail',
                         args=(provider_id, identity_id),
                         request=request),
-        'machine-history-list': reverse('machine-history',
+        'machine-history-list': reverse('api:public_apis:machine-history',
                             args=(provider_id, identity_id),
                             request=request),
-        'instance-history-list': reverse('instance-history',
+        'instance-history-list': reverse('api:public_apis:instance-history',
                             args=(provider_id, identity_id),
                             request=request),
-        'instance-list': reverse('instance-list',
+        'instance-list': reverse('api:public_apis:instance-list',
                             args=(provider_id, identity_id),
                             request=request),
-        'machine-list': reverse('machine-list',
+        'machine-list': reverse('api:public_apis:machine-list',
                            args=(provider_id, identity_id),
                            request=request),
-        'size-list': reverse('size-list',
+        'size-list': reverse('api:public_apis:size-list',
                         args=(provider_id, identity_id),
                         request=request),
-        'profile': reverse('profile', request=request)
+        'profile': reverse('api:public_apis:profile', request=request)
     }
     return data
 
@@ -88,7 +89,8 @@ class MetaAction(APIView):
     """
     Atmosphere service meta rest api.
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id, action=None):
         """
         """

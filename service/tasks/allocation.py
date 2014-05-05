@@ -57,22 +57,41 @@ def monitor_instances_for(provider):
         return
     instance_map = get_instance_owner_map(provider)
     for username in instance_map.keys():
-        try:
-            user = AtmosphereUser.objects.get(username=username)
-            group = Group.objects.get(name=user.username)
-            ident = user.identity_set.get(provider=provider)
-            im = ident.identitymembership_set.get(member=group)
-            if not im.allocation:
-                continue
-            instances = instance_map[username]
-            over_allocation = over_allocation_test(im.identity, instances)
-            if over_allocation:
-                continue
-            core_instances = im.identity.instance_set.filter(end_date=None)
-            update_instances(im.identity, instances, core_instances)
-        except:
-            logger.exception("Unable to monitor User:%s" % username)
+        instances = instance_map[username]
+        monitor_instances_for_user(provider, username, instances)
     logger.info("Monitoring completed")
+
+def monitor_instances_for_user(provider, username, instances):
+    from core.models.instance import convert_esh_instance
+    from api import get_esh_driver
+    try:
+        user = AtmosphereUser.objects.get(username=username)
+        #TODO: When user->group is no longer true,
+        # we will need to modify this..
+        group = Group.objects.get(name=user.username)
+        ident = user.identity_set.get(provider=provider)
+        im = ident.identitymembership_set.get(member=group)
+        #NOTE: Couples with API, probably want this in
+        # service/driver
+        driver = get_esh_driver(ident)
+        core_instances = []
+        #NOTE: We are converting them so they will
+        # be picked up as core models for the 'over_allocation_test'
+        for instance in instances:
+            c_inst = convert_esh_instance(
+                    driver, instance,
+                    ident.provider.id, ident.id, ident.created_by)
+            core_instances.append(c_inst)
+        over_allocation = over_allocation_test(im.identity,
+                                               instances)
+        core_instances = user.instance_set.filter(
+                provider_machine__provider=provider,
+                end_date=None)
+        core_instances_ident = ident.instance_set.filter(end_date=None)
+        update_instances(driver, im.identity, instances, core_instances)
+    except:
+        logger.exception("Unable to monitor User:%s on Provider:%s"
+                         % (username,provider))
 
     
 def _include_all_idents(identities, owner_map):
@@ -118,6 +137,7 @@ def over_allocation_test(identity, esh_instances):
         logger.info('Do not enforce allocations in DEBUG mode')
         return False
     driver = get_esh_driver(identity)
+    running_instances = []
     for instance in esh_instances:
         #Suspend active instances, update the task in the DB
         try:
@@ -131,13 +151,12 @@ def over_allocation_test(identity, esh_instances):
                                             identity.provider.id,
                                             identity.id,
                                             identity.created_by)
-        updated_core.update_history(updated_esh.extra['status'],
-                                    updated_esh.extra.get('task'))
+        running_instances.append(updated_core)
     #All instances are dealt with, move along.
     return True # User was over_allocation
 
 
-def update_instances(identity, esh_list, core_list):
+def update_instances(driver, identity, esh_list, core_list):
     """
     End-date core instances that don't show up in esh_list
     && Update the values of instances that do
@@ -153,8 +172,12 @@ def update_instances(identity, esh_list, core_list):
             core_instance.end_date_all()
             continue
         esh_instance = esh_list[index]
+        esh_size = driver.get_size(esh_instance.size.id)
+        core_size = convert_esh_size(esh_size, provider_id)
         core_instance.update_history(
             esh_instance.extra['status'],
+            core_size,
             esh_instance.extra.get('task') or
-            esh_instance.extra.get('metadata', {}).get('tmp_status'))
+            esh_instance.extra.get(
+                'metadata', {}).get('tmp_status'))
     return

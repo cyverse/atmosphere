@@ -9,6 +9,7 @@ from django.utils import timezone
 from threepio import logger
 
 from atmosphere import settings
+from core.application import get_os_account_driver, write_app_data
 from core.models.application import Application
 from core.models.application import create_application, get_application
 from core.models.identity import Identity
@@ -81,6 +82,8 @@ class ProviderMachine(models.Model):
     class Meta:
         db_table = "provider_machine"
         app_label = "core"
+        unique_together = ('provider', 'identifier')
+
 class ProviderMachineMembership(models.Model):
     """
     Members of a specific image and provider combination.
@@ -142,13 +145,43 @@ def load_provider_machine(provider_alias, machine_name, provider_id,
         app = create_application(provider_alias, provider_id, machine_name)
     return create_provider_machine(machine_name, provider_alias, provider_id, app=app, metadata=metadata)
 
+def _extract_tenant_name(identity):
+    tenant_name = identity.get_credential('ex_tenant_name')
+    if not tenant_name:
+        tenant_name = identity.get_credential('ex_project_name')
+    if not tenant_name:
+        raise Exception("Cannot update application owner without knowing the"
+        " tenant ID of the new owner. Please update your identity, or the"
+        " credential key fields above this line.")
+    return tenant_name
+
 def update_application_owner(application, identity):
+    old_identity = application.created_by_identity
+    if identity == old_identity:
+        #Do nothing.
+        return
+    tenant_name = _extract_tenant_name(identity)
+    old_tenant_name = _extract_tenant_name(old_identity)
+    #Prepare the application
     application.created_by_identity=identity
     application.created_by=identity.created_by
-    #PUSH METADATA
     application.save()
-
-
+    #Update all the PMs
+    all_pms = application.providermachine_set.all()
+    print "Updating %s machines.." % len(all_pms)
+    for provider_machine in all_pms:
+        accounts = get_os_account_driver(provider_machine.provider)
+        image_id = provider_machine.identifier
+        image = accounts.image_manager.get_image(image_id)
+        if not image:
+            continue
+        tenant_id = accounts.get_project(tenant_name).id
+        write_app_data(provider_machine, owner=tenant_id)
+        print "App data saved for %s" % image_id
+        accounts.image_manager.share_image(image, tenant_name)
+        print "Shared access to %s with %s" % (image_id, tenant_name)
+        accounts.image_manager.unshare_image(image, old_tenant_name)
+        print "Removed access to %s for %s" % (image_id, old_tenant_name)
 
 def create_provider_machine(machine_name, provider_alias, provider_id, app, metadata={}):
     #Attempt to match machine by provider alias
@@ -191,7 +224,7 @@ def get_provider_machine(identifier, provider_id):
         return None
 
 
-def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
+def convert_esh_machine(esh_driver, esh_machine, provider_id, user, image_id=None):
     """
     Takes as input an (rtwo) driver and machine, and a core provider id
     Returns as output a core ProviderMachine
@@ -240,7 +273,7 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
                      % (alias, name, app.name))
         app.name = name
         app.save()
-
+    _check_project(app, user)
     #if push_metadata and hasattr(esh_driver._connection,
     #                             'ex_set_image_metadata'):
     #    logger.debug("Creating App data for Image %s:%s" % (alias, app.name))
@@ -248,6 +281,14 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
     provider_machine.esh = esh_machine
     return provider_machine
 
+def _check_project(core_application, user):
+    """
+    Select a/multiple projects the application belongs to.
+    NOTE: User (NOT Identity!!) Specific
+    """
+    core_projects = core_application.get_projects(user)
+    #NOTE: for Applications, do NOT auto-assign default project
+    return core_projects
 
 def _convert_from_instance(esh_driver, provider_id, image_id):
     provider_machine = load_provider_machine(image_id, 'Unknown Image', provider_id)
@@ -269,7 +310,7 @@ def compare_core_machines(mach_1, mach_2):
     else:
         return cmp(mach_1.identifier, mach_2.identifier)
 
-def filter_core_machine(provider_machine, request_user=None):
+def filter_core_machine(provider_machine):
     """
     Filter conditions:
     * Application does not have an end_date
@@ -283,19 +324,4 @@ def filter_core_machine(provider_machine, request_user=None):
             return not(provider_machine.end_date < now)
         if provider_machine.application.end_date:
             return not(provider_machine.application.end_date < now)
-    #Ignore public users accessing private images..
-    #if provider_machine.application.private:
-    #    if request_user:
-    #        allowed_groups = [m.group for m in
-    #                          provider_machine.providermachinemembership_set.all()]
-    #        print "%s can be launched by:%s" \
-    #                     % (provider_machine, allowed_groups)
-    #        for group in allowed_groups:
-    #            allowed_users = [u.username for u in group.user_set.all()]
-    #            if request_user in allowed_users:
-    #                print "%s is allowed to use %s" % (request_user, provider_machine.identifier)
-    #                return True
-    #    print "%s is not allowed to use %s" % (request_user, provider_machine.identifier)
-    #    return False
-    #print "%s is not a private image" % (provider_machine.identifier)
     return True

@@ -21,6 +21,7 @@ import atmosphere
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
+SETTINGS_ROOT = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                             '../..'))
 SERVER_URL = 'https://yourserver.iplantc.org'
@@ -51,6 +52,32 @@ DATABASES = {
         'PORT': '5432'
     },
 }
+INSTALLED_APPS = (
+    #contrib apps
+    'django.contrib.auth',
+    'django.contrib.admin',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.staticfiles',
+
+    #3rd party apps
+    'rest_framework',
+    'rest_framework_swagger',
+
+    'south',
+    'djcelery',
+    'django_jenkins',
+    'pipeline',
+
+    #iPlant apps
+    'rtwo',
+
+    #atmosphere apps
+    'authentication',
+    'service',
+    'web',
+    'core',
+)
 
 DATABASE_ROUTERS = ['atmosphere.routers.Service']
 
@@ -85,7 +112,8 @@ STATICFILES_DIRS = (
 )
 
 # Make this unique, and don't share it with anybody.
-SECRET_KEY = '785nc+)g%w!g01#$#lc+weg2b!yc^z#17rvjln0c5r39*vg8%t'
+# NOTE: This value is not used, check local.py!
+SECRET_KEY = None
 
 # This key however should stay the same, and be shared with all Atmosphere
 ATMOSPHERE_NAMESPACE_UUID=UUID("40227dff-dedf-469c-a9f8-1953a7372ac1")
@@ -164,33 +192,10 @@ AUTH_PROFILE_MODULE = 'core.UserProfile'
 AUTHENTICATION_BACKENDS = (
     'authentication.authBackends.CASLoginBackend',  # For Web-Access
     'authentication.authBackends.LDAPLoginBackend',  # For Service-Access
+    'authentication.authBackends.OAuthLoginBackend',  # For 3rd-party-web Service-Access
     #'django.contrib.auth.backends.ModelBackend',
 )
 
-INSTALLED_APPS = (
-    #contrib apps
-    'django.contrib.auth',
-    'django.contrib.admin',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.staticfiles',
-
-    #3rd party apps
-    'rest_framework',
-    'south',
-    'djcelery',
-    'django_jenkins',
-    'pipeline',
-
-    #iPlant apps
-    'rtwo',
-
-    #atmosphere apps
-    'authentication',
-    'service',
-    'web',
-    'core',
-)
 
 JENKINS_TASKS = (
     'django_jenkins.tasks.with_coverage',
@@ -220,10 +225,30 @@ LOG_FILENAME = os.path.abspath(os.path.join(
     os.path.dirname(atmosphere.__file__),
     '..',
     'logs/atmosphere.log'))
+
 threepio.initialize("atmosphere",
                     log_filename=LOG_FILENAME,
                     app_logging_level=LOGGING_LEVEL,
                     dep_logging_level=DEP_LOGGING_LEVEL)
+## NOTE: The format for status_logger
+# timestamp, user, instance_alias, machine_alias, size_alias, status_update
+
+STATUS_LOG_FILENAME = os.path.abspath(os.path.join(
+    os.path.dirname(atmosphere.__file__),
+    '..',
+    'logs/atmosphere_status.log'))
+fh = logging.FileHandler(STATUS_LOG_FILENAME)
+# create formatter and add it to the handlers
+base_format = '%(message)s'
+formatter = logging.Formatter(base_format)
+fh.setFormatter(formatter)
+threepio.status_logger = threepio\
+        .initialize("atmosphere_status",
+                    handlers=[fh],
+                    app_logging_level=LOGGING_LEVEL,
+                    dep_logging_level=DEP_LOGGING_LEVEL,
+                    global_logger=False,
+                    format=base_format)
 threepio.email_logger = threepio\
         .initialize("atmosphere_email",
                     log_filename=LOG_FILENAME,
@@ -252,15 +277,37 @@ sys.stdout = sys.stderr
 ##REST FRAMEWORK
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (
+        # Included Renderers
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.JSONPRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework.renderers.YAMLRenderer',
         'rest_framework.renderers.XMLRenderer',
+        # Our Renderers
+        'api.renderers.PNGRenderer',
+        'api.renderers.JPEGRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'authentication.token.OAuthTokenAuthentication',
         'authentication.token.TokenAuthentication',
     )
+}
+#REST_FRAMEWORK_SWAGGER
+SWAGGER_SETTINGS = {
+    "exclude_namespaces": [
+        "private_apis",
+    ], # List URL namespaces to ignore
+    "api_version": '0.1',  # Specify your API's version
+    "api_path": "/",  # Specify the path to your API not a root level
+    "enabled_methods": [  # Specify which methods to enable in Swagger UI
+        'get',
+        'post',
+        'patch',
+        'delete'
+    ],
+    "api_key": '', # An API key
+    "is_authenticated": False,  # Set to True to enforce user authentication,
+    "is_superuser": False,  # Set to True to enforce admin only access
 }
 
 ##CASLIB
@@ -294,9 +341,9 @@ CELERY_TASK_RESULT_EXPIRES = 3*60*60 #Store results for 3 hours
 #CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
 CELERYBEAT_CHDIR=PROJECT_ROOT
 CELERYD_MAX_TASKS_PER_CHILD=50
-CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [PID:%(process)d] @ %(pathname)s on %(lineno)d] %(message)s"
-CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [PID:%(process)d] [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
-# Django-Celery Local Settings
+CELERYD_LOG_FORMAT="[%(asctime)s: %(name)s-%(levelname)s/%(processName)s [PID:%(process)d] @ %(pathname)s on %(lineno)d] %(message)s"
+CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(name)s-%(levelname)s/%(processName)s [PID:%(process)d] [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
+
 # Django-Celery Local Settings
 #CELERY_QUEUES = (
 #        Queue('imaging'), Exchange('imaging'), routing_key='imaging'),
@@ -322,7 +369,7 @@ CELERYBEAT_SCHEDULE = {
     "monitor_instances": {
         "task": "monitor_instances",
         "schedule" : timedelta(minutes=15),
-        "options": {"expires":5*60, "time_limit":5*60,
+        "options": {"expires":10*60, "time_limit":10*60,
                     "queue":"celery_periodic"}
     },
     "clear_empty_ips": {
@@ -330,12 +377,6 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(hour="0", minute="0", day_of_week="*"),
         "options":{"expires": 60*60,
                    "queue":"celery_periodic"}
-    },
-    "test_all_instance_links": {
-        "task": "test_all_instance_links",
-        "schedule": timedelta(minutes=15),
-        "options": {"expires":10*60, "time_limit":2*60,
-                    "queue":"celery_periodic"}
     },
     "remove_empty_networks": {
         "task": "remove_empty_networks",
@@ -356,8 +397,8 @@ CELERY_ROUTES += ({
         {"queue": "imaging", "routing_key": "imaging.complete"},
         },)
 #     # Django-Celery Development settings
-#     CELERY_ALWAYS_EAGER = True
-#     CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
+# CELERY_ALWAYS_EAGER = True
+# CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
 import djcelery
 djcelery.setup_loader()

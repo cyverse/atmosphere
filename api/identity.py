@@ -1,35 +1,28 @@
-"""
-Atmosphere service identity rest api.
-
-"""
-
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
 
 from core.models.group import Group
 
 from api.serializers import IdentitySerializer, IdentityDetailSerializer
+from api.permissions import InMaintenance, ApiAuthRequired
 
 class IdentityDetailList(APIView):
-    """
-    Represents:
-        A List of Identity
-        Calls to the Identity Class
+    """The identity contains every credential necessary for atmosphere to connect 'The Provider' with a specific user.
+    These credentials can vary from provider to provider.
     """
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def get(self, request):
         """
-        List of identity that match USER and the provider_id
-        * Identity's belonging to the group matching the username
-        TODO: This should be user, user.groups.all, etc. to account for
-        future 'shared' identitys
+        Authentication Required, all identities available to the user
         """
+        #NOTE: This is actually all Identities belonging to the group matching the username
+        #TODO: This should be user, user.groups.all, etc. to account for future 'shared' identitys
         username = request.user.username
         group = Group.objects.get(name=username)
         providers = group.providers.filter(active=True, end_date=None)
@@ -41,20 +34,19 @@ class IdentityDetailList(APIView):
 
 
 class IdentityList(APIView):
-    """
-    Represents:
-        A List of Identity
-        Calls to the Identity Class
+    """The identity contains every credential necessary for atmosphere to connect 'The Provider' with a specific user.
+    These credentials can vary from provider to provider.
     """
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, format=None):
         """
-        List of identity that match USER and the provider_id
-        * Identity's belonging to the group matching the username
-        TODO: This should be user, user.groups.all, etc. to account for
-        future 'shared' identitys
+        List of identities for the user on the selected provider.
         """
+        #NOTE: Identity's belonging to the group matching the username
+        #TODO: This should be user, user.groups.all, etc. to account for
+        #future 'shared' identitys
         username = request.user.username
         group = Group.objects.get(name=username)
         provider = group.providers.get(id=provider_id,
@@ -66,14 +58,15 @@ class IdentityList(APIView):
 
 
 class Identity(APIView):
+    """The identity contains every credential necessary for atmosphere to connect 'The Provider' with a specific user.
+    These credentials can vary from provider to provider.
     """
-    Represents:
-        Calls to modify the single Identity
-    """
-    @api_auth_token_required
+
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id, format=None):
         """
-        Return the credential information for this identity
+        Authentication Required, Get details for a specific identity.
         """
         username = request.user.username
         group = Group.objects.get(name=username)
