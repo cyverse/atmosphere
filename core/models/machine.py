@@ -45,6 +45,11 @@ class ProviderMachine(models.Model):
     def icon_url(self):
         return self.application.icon.url if self.application.icon else None
 
+    def save(self, *args, **kwargs):
+        #Update values on the application
+        self.application.update(**kwargs)
+        super(ProviderMachine, self).save(*args, **kwargs)
+
     def creator_name(self):
         if self.application:
             return self.application.created_by.username
@@ -157,9 +162,6 @@ def _extract_tenant_name(identity):
 
 def update_application_owner(application, identity):
     old_identity = application.created_by_identity
-    if identity == old_identity:
-        #Do nothing.
-        return
     tenant_name = _extract_tenant_name(identity)
     old_tenant_name = _extract_tenant_name(old_identity)
     #Prepare the application

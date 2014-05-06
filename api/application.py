@@ -10,6 +10,7 @@ from threepio import logger
 
 from core.models import Application as CoreApplication
 from core.models import Identity
+from core.models.machine import update_application_owner
 from core.models.application import visible_applications, public_applications
 
 from service.machine_search import search, CoreApplicationSearch
@@ -83,7 +84,6 @@ class Application(APIView):
         Update specific application
 
         Params:app_uuid -- Unique ID of application
-
         """
         user = request.user
         data = request.DATA
@@ -93,6 +93,7 @@ class Application(APIView):
                                     "Application with uuid %s does not exist"
                                     % app_uuid)
         app = app[0]
+        self._update_application(request, app, **kwargs)
 
     def patch(self, request, app_uuid, **kwargs):
         """
@@ -101,7 +102,6 @@ class Application(APIView):
         Params:app_uuid -- Unique ID of application
 
         """
-        user = request.user
         data = request.DATA
         app = CoreApplication.objects.filter(uuid=app_uuid)
         if not app:
@@ -109,15 +109,18 @@ class Application(APIView):
                                     "Application with uuid %s does not exist"
                                     % app_uuid)
         app = app[0]
+        self._update_application(request, app, **kwargs)
+
+    def _update_application(self, request, app, **kwargs):
+        user = request.user
         app_owner = app.created_by
         app_members = app.get_members()
-        if user != app_owner and not any(group for group
-                                         in user.group_set.all()
-                                         if group in app_members):
+        if user != app_owner and not Group.check_membership(user, app_members):
             return failure_response(status.HTTP_403_FORBIDDEN,
                                     "You are not the Application owner. "
                                     "This incident will be reported")
-        partial_update = kwargs.get('_partial',True)
+            #Or it wont.. Up to operations..
+        partial_update = True if request.method == 'PATCH' else False
         serializer = ApplicationSerializer(app, data=data,
                                            context={'user':request.user},
                                            partial=partial_update)
@@ -126,6 +129,9 @@ class Application(APIView):
             #TODO: Update application metadata on each machine?
             #update_machine_metadata(esh_driver, esh_machine, data)
             serializer.save()
+            if 'created_by_identity' in request.DATA:
+                identity = serializer.object.created_by_identity
+                update_application_owner(core_machine.application, identity)
             logger.info(serializer.data)
             return Response(serializer.data)
         return failure_response(

@@ -87,7 +87,7 @@ class AccountDriver():
         admin_creds = admin_identity.get_credentials()
         self.admin_driver = get_esh_driver(admin_identity)
         admin_creds = self._libcloud_to_openstack(admin_creds)
-        all_creds = {}
+        all_creds = {'location': provider.get_location()}
         all_creds.update(admin_creds)
         all_creds.update(provider_creds)
         return all_creds
@@ -524,6 +524,7 @@ class AccountDriver():
         net_args.get("region_name")
         #Ignored:
         net_args["auth_url"] = net_args.pop("admin_url").replace("/tokens", "")
+        net_args.pop("location", None)
 
         return net_args
 
@@ -535,16 +536,9 @@ class AccountDriver():
         """
         img_args = credentials.copy()
         #Required:
-        img_args.get("username")
-        img_args.get("password")
-        img_args.get("tenant_name")
-
-        img_args["auth_url"] = img_args.get("auth_url").replace("/tokens", "")
-        img_args.get("region_name")
-        #Ignored:
-        img_args.pop("admin_url", None)
-        img_args.pop("router_name", None)
-        img_args.pop("ex_project_name", None)
+        for required_arg in ["username", "password", "tenant_name", "auth_url", "region_name"]:
+            if not img_args.has_key(required_arg) or not img_args[required_arg]:
+                raise ValueError("ImageManager is missing a Required Argument: %s" % required_arg)
 
         return img_args
 
@@ -565,6 +559,7 @@ class AccountDriver():
         user_args.get("region_name")
         #Removable args:
         user_args.pop("admin_url", None)
+        user_args.pop("location", None)
         user_args.pop("router_name", None)
         user_args.pop("ex_project_name", None)
         return user_args

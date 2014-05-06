@@ -37,7 +37,7 @@ git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive
 git+git://github.com/iPlantCollaborativeOpenSource/rtwo.git#egg=rtwo
 git+git://github.com/iPlantCollaborativeOpenSource/django-rest-swagger.git#egg=rest_framework_swagger
 git+git://github.com/jmatt/threepio.git#egg=threepio
-git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.6
+git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.7
 git+git://github.com/kmmbvnr/django-jenkins
 git+git://github.com/mher/flower
 git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient
