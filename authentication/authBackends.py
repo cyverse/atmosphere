@@ -10,7 +10,7 @@ from threepio import logger
 from authentication import get_or_create_user
 from authentication.protocol.ldap import ldap_validate, ldap_formatAttrs
 from authentication.protocol.ldap import lookupUser as ldap_lookupUser
-from authentication.protocol.cas import cas_validateUser, cas_formatAttrs
+from authentication.protocol.cas import cas_validateUser
 from authentication.protocol.oauth import get_user_for_token, oauth_formatAttrs
 from authentication.protocol.oauth import lookupUser as oauth_lookupUser
 
@@ -37,7 +37,7 @@ class CASLoginBackend(ModelBackend):
         if not success:
             logger.debug("CAS Authentication failed - "+username)
             return None
-        attributes = cas_formatAttrs(cas_response)
+        attributes = cas_response.attributes
         return get_or_create_user(username, attributes)
 
 
