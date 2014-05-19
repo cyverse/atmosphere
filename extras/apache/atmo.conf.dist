@@ -9,7 +9,7 @@
 
         RewriteEngine On
         RewriteCond %{HTTPS} !=on
-        RewriteRule ^/?(.*) https://???.iplantc.org/$1 [R,L]
+        RewriteRule ^/?(.*) https://MYHOSTNAMEHERE.iplantc.org/$1 [R,L]
 </VirtualHost>
 
 
@@ -21,11 +21,11 @@ ProxyRequests Off
 ProxyPreserveHost On
 SSLProxyEngine On
 
-ProxyPass         /flower  https://???.iplantc.org:8443
-ProxyPassReverse  /flower  https://???.iplantc.org:8443
-ProxyPassReverse  /flower  https://???.iplantc.org/flower
+ProxyPass         /flower  https://MYHOSTNAMEHERE.iplantc.org:8443
+ProxyPassReverse  /flower  https://MYHOSTNAMEHERE.iplantc.org:8443
+ProxyPassReverse  /flower  https://MYHOSTNAMEHERE.iplantc.org/flower
 
-<Proxy https://???.iplantc.org:8443/flower*>
+<Proxy https://MYHOSTNAMEHERE.iplantc.org:8443/flower*>
   Order deny,allow
   Allow from all
 </Proxy>
@@ -34,11 +34,11 @@ ProxyPassReverse  /flower  https://???.iplantc.org/flower
 ##
 ## Jenkins proxy redirection
 ##
-ProxyPass         /jenkins  http://???.iplantc.org:8080/jenkins
-ProxyPassReverse  /jenkins  http://???.iplantc.org:8080/jenkins
-ProxyPassReverse  /jenkins  http://???.iplantc.org/jenkins
+ProxyPass         /jenkins  http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins
+ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins
+ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE.iplantc.org/jenkins
 
-<Proxy http://???.iplantc.org:8080/jenkins*>
+<Proxy http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins*>
   Order deny,allow
   Allow from all
 </Proxy>
@@ -55,20 +55,20 @@ ProxyPassReverse  /jenkins  http://???.iplantc.org/jenkins
     SSLEngine on
     SSLProtocol all -SSLv2
     SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
-    SSLCertificateFile /etc/ssl/certs/iplantc.org.crt
-    SSLCertificateKeyFile /etc/ssl/private/iplantc.key
-    SSLCertificateChainFile /etc/ssl/certs/gd_bundle.crt
+    SSLCertificateFile /etc/ssl/certs/BASECERTHERE
+    SSLCertificateKeyFile /etc/ssl/private/KEYHERE
+    SSLCertificateChainFile /etc/ssl/certs/BUNDLECERTHERE
 
 
     # Static files
     # The following URLs are proxied to ATMOSPHERE:
-    Alias /static/admin /opt/dev/atmosphere/static/admin
-    Alias /static/rest_framework_swagger /opt/dev/atmosphere/static/rest_framework_swagger
-    Alias /static/rest_framework /opt/dev/atmosphere/static/rest_framework
+    Alias /static/admin LOCATIONOFATMOSPHEREHERE/static/admin
+    Alias /static/rest_framework_swagger LOCATIONOFATMOSPHEREHERE/static/rest_framework_swagger
+    Alias /static/rest_framework LOCATIONOFATMOSPHEREHERE/static/rest_framework
 
     # The following URLs are proxied to TROPOSPHERE:
-    Alias /static /opt/dev/troposphere/troposphere/assets
-    Alias /resources /opt/dev/atmosphere/resources
+    Alias /static LOCATIONOFTROPOSPHERE/troposphere/assets
+    Alias /resources LOCATIONOFTROPOSPHERE/resources
 
     # Logging
     ErrorLog /var/log/apache2/ssl_error.log
@@ -84,7 +84,7 @@ ProxyPassReverse  /jenkins  http://???.iplantc.org/jenkins
     WSGIDaemonProcess troposphere_app processes=1 threads=15 display-name=%{GROUP}
     WSGIProcessGroup troposphere_app
 
-    WSGIScriptAlias / /opt/dev/troposphere/troposphere/wsgi.py
+    WSGIScriptAlias / LOCATIONOFTROPOSPHERE/troposphere/wsgi.py
 
 </VirtualHost>
 
@@ -98,8 +98,8 @@ Listen 5000
     RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
 
     #Send iplantcollabortive to iplantc
-    RewriteCond %{HTTP_HOST} ^???.iplantcollaborative.org$
-    RewriteRule ^/(.*)$       https://???.iplantc.org/$1 [R,L]
+    RewriteCond %{HTTP_HOST} ^MYHOSTNAMEHERE.iplantcollaborative.org$
+    RewriteRule ^/(.*)$       https://MYHOSTNAMEHERE.iplantc.org/$1 [R,L]
     
     
     #Logging
@@ -111,9 +111,9 @@ Listen 5000
     SSLEngine on
     SSLProtocol all -SSLv2
     SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
-    SSLCertificateFile /etc/ssl/certs/iplantc.org.crt
-    SSLCertificateKeyFile /etc/ssl/private/iplantc.key
-    SSLCertificateChainFile /etc/ssl/certs/gd_bundle.crt
+    SSLCertificateFile /etc/ssl/certs/BASECERTHERE
+    SSLCertificateKeyFile /etc/ssl/private/KEYHERE
+    SSLCertificateChainFile /etc/ssl/certs/BUNDLECERTHERE
     
     <Files ~ "\.(cgi|shtml|phtml|php3?)$">
         SSLOptions +StdEnvVars
@@ -128,19 +128,19 @@ Listen 5000
     
     #This is for atmosphere
     #favicon and robots are better served outside of WSGI
-    Alias /favicon.ico /opt/dev/atmosphere/static/images/favicon.ico
-    Alias /robots.txt /opt/dev/atmosphere/templates/robots.txt
+    Alias /favicon.ico LOCATIONOFATMOSPHERE/static/images/favicon.ico
+    Alias /robots.txt LOCATIONOFATMOSPHERE/templates/robots.txt
 
     #init_files && resources will auto-direct to the file
-    Alias /init_files /opt/dev/atmosphere/init_files
-    Alias /resources /opt/dev/atmosphere/resources
-    Alias /static /opt/dev/atmosphere/static
+    Alias /init_files LOCATIONOFATMOSPHERE/init_files
+    Alias /resources LOCATIONOFATMOSPHERE/resources
+    Alias /static LOCATIONOFATMOSPHERE/static
 
     #Passing WSGI to any other folder
     WSGIDaemonProcess atmosphere_app processes=1 threads=15 display-name=%{GROUP}
     WSGIProcessGroup atmosphere_app
 
-    WSGIScriptAlias / /opt/dev/atmosphere/atmosphere/wsgi.py
+    WSGIScriptAlias / LOCATIONOFATMOSPHERE/atmosphere/wsgi.py
     
     # Shell
     <Location /shell>
