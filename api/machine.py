@@ -69,7 +69,7 @@ def all_filtered_machines():
 class MachineList(APIView):
     """List of machines."""
 
-    permission_classes = (InMaintenance,ApiAuthRequired)
+    permission_classes = (InMaintenance, ApiAuthRequired)
 
     def get(self, request, provider_id, identity_id):
         """
@@ -98,7 +98,7 @@ class MachineList(APIView):
 class MachineHistory(APIView):
     """Details about the machine history for an identity."""
 
-    permission_classes = (InMaintenance,ApiAuthRequired)
+    permission_classes = (InMaintenance, ApiAuthRequired)
 
     def get(self, request, provider_id, identity_id):
         data = request.DATA
@@ -161,7 +161,7 @@ def get_first(coll):
 class MachineSearch(APIView):
     """Provides server-side machine search for an identity."""
 
-    permission_classes = (InMaintenance,ApiAuthRequired)
+    permission_classes = (InMaintenance, ApiAuthRequired)
 
     def get(self, request, provider_id, identity_id):
         """
@@ -211,7 +211,7 @@ class Machine(APIView):
     """Details about a specific machine, as seen by that identity."""
 
     permission_classes = (ApiAuthRequired,)
-    
+
     def get(self, request, provider_id, identity_id, machine_id):
         """
         Lookup the machine information
@@ -226,8 +226,9 @@ class Machine(APIView):
         esh_machine = esh_driver.get_machine(machine_id)
         core_machine = convert_esh_machine(esh_driver, esh_machine,
                                            provider_id, user)
-        serialized_data = ProviderMachineSerializer(core_machine,
-                                                    request_user=request.user).data
+        serialized_data = ProviderMachineSerializer(
+            core_machine,
+            request_user=request.user).data
         response = Response(serialized_data)
         return response
 
@@ -301,14 +302,15 @@ class Machine(APIView):
             status.HTTP_400_BAD_REQUEST,
             serializer.errors)
 
+
 class MachineIcon(APIView):
     """
     Represents:
         Calls to modify the single machine
     TODO: DELETE when we allow owners to 'end-date' their machine..
     """
-    renderer_classes = (JPEGRenderer,PNGRenderer,)
-    permission_classes = (ApiAuthRequired,)
+    renderer_classes = (JPEGRenderer, PNGRenderer)
+    permission_classes = (ApiAuthRequired)
 
     def get(self, request, provider_id, identity_id, machine_id):
         user = request.user
@@ -330,6 +332,7 @@ class MachineIcon(APIView):
         image_name, image_ext = os.path.splitext(app_icon.name)
         return Response(app_icon.file)
 
+
 class MachineVote(APIView):
     """Rate the selected image by voting."""
 
@@ -342,7 +345,7 @@ class MachineVote(APIView):
         Update on server (If applicable)
         """
         core_machine = ProviderMachine.objects.filter(provider__id=provider_id,
-                identifier=machine_id)
+                                                      identifier=machine_id)
         if not core_machine:
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
@@ -367,7 +370,7 @@ class MachineVote(APIView):
         vote = data['vote']
 
         core_machine = ProviderMachine.objects.filter(provider__id=provider_id,
-                identifier=machine_id)
+                                                      identifier=machine_id)
         if not core_machine:
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
