@@ -234,7 +234,7 @@ class ProjectList(APIView):
         """
         user = request.user
         group = get_user_group(user.username)
-        projects = group.projects.all()
+        projects = group.projects.filter(only_current)
         serialized_data = ProjectSerializer(projects, many=True,
                                             context={"user":request.user}).data
         response = Response(serialized_data)
