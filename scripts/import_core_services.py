@@ -26,7 +26,8 @@ def main():
     os_driver = OSAccountDriver(Provider.objects.get(location='iPlant Cloud - Tucson'))
     found = 0
     create = 0
-    core_services = ['estevetest03', ]  # get_core_services()
+    raise Exception("Must manually set core_services!! See Line 30.")
+    core_services = ['jchansen', ] # get_core_services() # ['estevetest03', ]
     for user in core_services:
         euca_driver.create_account(user, max_quota=True)
         # Then add the Openstack Identity
@@ -51,6 +52,7 @@ def members_query_groupy(groupname):
         % groupname)
     json_obj = r.json()
     usernames = []
+    print json_obj
     for user in json_obj['data']:
         usernames.append(user['name'].replace('esteve', 'sgregory'))
     return usernames

@@ -76,7 +76,7 @@ class MachineRequest(models.Model):
     def get_access_list(self):
         if '[' not in self.access_list:
             #Format = "test1, test2, test3"
-            json_loads_list = str(raw_access_list.split(", "))
+            json_loads_list = str(access_list.split(", "))
             #New Format = "[u'test1', u'test2', u'test3']"
         else:
             #Format = "[u'test1', u'test2', u'test3']"
