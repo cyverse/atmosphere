@@ -43,6 +43,18 @@ class Group(DjangoGroup):
                                           blank=True)
 
     @classmethod
+    def check_membership(cls, test_user, membership_groups):
+        """
+        PARAMS:
+          test_user - DjangoUser to be tested
+          membership_groups - List of groups allowed membership to... Something.
+        RETURNS:
+          True/False - If any of the users groups grants membership access.
+        """
+        return any(group for group
+                   in test_user.group_set.all() if group in membership_groups)
+
+    @classmethod
     def check_access(cls, user, groupname):
         try:
             group = Group.objects.get(name=groupname)

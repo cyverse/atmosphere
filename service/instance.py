@@ -367,7 +367,11 @@ def destroy_instance(identity_id, instance_alias):
         return None
     if isinstance(esh_driver, OSDriver):
         #Openstack: Remove floating IP first
-        esh_driver._connection.ex_disassociate_floating_ip(instance)
+        try:
+            esh_driver._connection.ex_disassociate_floating_ip(instance)
+        except Exception as exc:
+            if 'floating ip not found' not in exc.message:
+                raise
     node_destroyed = esh_driver._connection.destroy_node(instance)
     return node_destroyed
 

@@ -54,11 +54,11 @@ class MachineTests(TestCase):
         self.api_client.login(
                 username=settings.TEST_RUNNER_USER,
                 password=settings.TEST_RUNNER_PASS)
-        reverse_link = reverse('machine-list',
+        reverse_link = reverse('api:public_apis:machine-list',
                                args=[self.os_id.provider.id,
                                      self.os_id.id])
         self.os_machine_url = urljoin(settings.SERVER_URL, reverse_link)
-        reverse_link = reverse('machine-list',
+        reverse_link = reverse('api:public_apis:machine-list',
                               args=[self.euca_id.provider.id,
                                     self.euca_id.id])
         self.euca_machine_url = urljoin(settings.SERVER_URL, reverse_link)

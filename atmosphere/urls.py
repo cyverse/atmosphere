@@ -74,7 +74,8 @@ urlpatterns = patterns(
     #    CAS Validation:
     #    Service URL validates the ticket returned after CAS login
     url(r'^CAS_serviceValidater',
-        'authentication.protocol.cas.cas_validateTicket'),
+        'authentication.protocol.cas.cas_validateTicket',
+        name="cas-service-validate-link"),
     #    A valid callback URL for maintaining proxy requests
     #    This URL retrieves Proxy IOU combination
     url(r'^CAS_proxyCallback',
@@ -97,10 +98,9 @@ urlpatterns = patterns(
     #Error Redirection
     url(r'^no_user/$', 'web.views.no_user_redirect'),
     #API Layer
-    url(r'^api/v1/',
-         include("api.urls")),
+    url(r'^api/v1/', include("api.urls", namespace="api")),
 
-    #
+    #API Documentation
     url(r'^api-docs/', include('rest_framework_swagger.urls')), 
 
     ### DJANGORESTFRAMEWORK ###

@@ -60,37 +60,37 @@ class MachineRequestTests(TestCase):
         self.api_client.login(
                 username=settings.TEST_RUNNER_USER,
                 password=settings.TEST_RUNNER_PASS)
-        reverse_link = reverse('instance-list',
+        reverse_link = reverse('api:public_apis:instance-list',
                                args=[self.os_id.provider.id,
                                      self.os_id.id])
         self.os_instance_url = urljoin(settings.SERVER_URL, reverse_link)
-        reverse_link = reverse('instance-list',
+        reverse_link = reverse('api:public_apis:instance-list',
                               args=[self.euca_id.provider.id,
                                     self.euca_id.id])
         self.euca_instance_url = urljoin(settings.SERVER_URL, reverse_link)
-        reverse_link = reverse('machine-request-list',
+        reverse_link = reverse('api:public_apis:machine-request-list',
                                args=[self.os_id.provider.id,
                                      self.os_id.id])
         self.os_request_url = urljoin(settings.SERVER_URL, reverse_link)
-        reverse_link = reverse('machine-request-list',
+        reverse_link = reverse('api:public_apis:machine-request-list',
                               args=[self.euca_id.provider.id,
                                     self.euca_id.id])
         self.euca_request_url = urljoin(settings.SERVER_URL, reverse_link)
         
     def openstack_mach_and_size(self):
-        reverse_link = reverse('machine-list',
+        reverse_link = reverse('api:public_apis:machine-list',
                                args=[self.os_id.provider.id,
                                      self.os_id.id])
         self.os_machine_url = urljoin(settings.SERVER_URL, reverse_link)
         self.api_client.get(self.os_machine_url)
-        reverse_link = reverse('size-list',
+        reverse_link = reverse('api:public_apis:size-list',
                                args=[self.os_id.provider.id,
                                      self.os_id.id])
         self.os_size_url = urljoin(settings.SERVER_URL, reverse_link)
         self.api_client.get(self.os_size_url)
 
     def euca_mach_and_size(self):
-        reverse_link = reverse('machine-list',
+        reverse_link = reverse('api:public_apis:machine-list',
                               args=[self.euca_id.provider.id,
                                     self.euca_id.id])
         self.euca_machine_url = urljoin(settings.SERVER_URL, reverse_link)
@@ -129,11 +129,11 @@ class MachineRequestTests(TestCase):
     #    request_id = self.create_machine_request(
     #            self.euca_request_url,
     #            instance_id, instance_ip, self.euca_id.provider.id)
-    #    approval_link = reverse('direct-machine-request-action',
+    #    approval_link = reverse('api:private_apis:direct-machine-request-action',
     #                          args=[request_id, 'approve'])
     #    euca_approval_url = urljoin(settings.SERVER_URL, approval_link)
     #    self.approve_machine_request(euca_approval_url)
-    #    machine_request_url = reverse('direct-machine-request-detail',
+    #    machine_request_url = reverse('api:private_apis:direct-machine-request-detail',
     #            args=[request_id,])
     #    new_machine_id = self.wait_for_machine_request(machine_request_url)
     #    machine_alias = new_machine_id
@@ -183,12 +183,12 @@ class MachineRequestTests(TestCase):
     #            instance_id, instance_ip, self.os_id.provider.id)
     #    #E-mail for approval sent to ADMINS here..
     #    #Image ready for approval after this line returns
-    #    approval_link = reverse('direct-machine-request-action',
+    #    approval_link = reverse('api:private_apis:direct-machine-request-action',
     #                          args=[request_id, 'approve'])
     #    os_approval_url = urljoin(settings.SERVER_URL, approval_link)
     #    self.approve_machine_request(os_approval_url)
     #    #Machine will be imaged HERE.. Image EXISTS after this line returns!
-    #    machine_request_url = reverse('direct-machine-request-detail',
+    #    machine_request_url = reverse('api:private_apis:direct-machine-request-detail',
     #            args=[request_id,])
     #    new_machine_id = self.wait_for_machine_request(machine_request_url)
     #    machine_alias = new_machine_id

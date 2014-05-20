@@ -19,6 +19,11 @@ from core.models.group import Group, get_user_group
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProjectSerializer
 
+from django.utils import timezone
+from django.db.models import Q
+
+only_current = Q(end_date=None) | Q(end_date__gt=timezone.now())
+
 class ProjectApplicationExchange(APIView):
     permission_classes = (ApiAuthRequired,)
     def put(self, request, project_id, application_uuid):
@@ -147,7 +152,7 @@ class ProjectVolumeList(APIView):
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
         projects = group.projects.get(id=project_id)
-        volumes = projects.volumes.all()
+        volumes = projects.volumes.filter(only_current)
         serialized_data = VolumeSerializer(volumes, many=True,
                                             context={"user":request.user}).data
         response = Response(serialized_data)
@@ -165,7 +170,7 @@ class ProjectApplicationList(APIView):
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
         projects = group.projects.get(id=project_id)
-        applications = projects.applications.all()
+        applications = projects.applications.filter(only_current)
         serialized_data = ApplicationSerializer(applications, many=True,
                                             context={"user":request.user}).data
         response = Response(serialized_data)
@@ -184,7 +189,7 @@ class ProjectInstanceList(APIView):
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
         projects = group.projects.get(id=project_id)
-        instances = projects.instances.all()
+        instances = projects.instances.filter(only_current)
         serialized_data = InstanceSerializer(instances, many=True,
                                             context={"user":request.user}).data
         response = Response(serialized_data)
@@ -229,7 +234,7 @@ class ProjectList(APIView):
         """
         user = request.user
         group = get_user_group(user.username)
-        projects = group.projects.all()
+        projects = group.projects.filter(only_current)
         serialized_data = ProjectSerializer(projects, many=True,
                                             context={"user":request.user}).data
         response = Response(serialized_data)
@@ -322,13 +327,13 @@ class ProjectDetail(APIView):
         if not project:
             return Response("Project with ID=%s does not exist" % project_id,
                             status=status.HTTP_400_BAD_REQUEST)
+        project = project[0]
         if project.name == 'Default':
             return Response(
                     "The 'Default' project is reserved and cannot be deleted.",
                     status=status.HTTP_409_CONFLICT)
-        project = project[0]
         default_project = group.projects.get(name='Default')
-        project.migrate_objects(default_project)
+        project.copy_objects(default_project)
         project.delete_project()
         serialized_data = ProjectSerializer(project,
                                             context={"user":request.user}).data

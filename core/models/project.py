@@ -17,7 +17,7 @@ class Project(models.Model):
       * Volume
     """
     name = models.CharField(max_length=256)
-    description = models.TextField()
+    description = models.TextField(blank=True)
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
     owner = models.ForeignKey(Group, related_name="projects")

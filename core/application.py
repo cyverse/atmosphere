@@ -140,11 +140,17 @@ def write_app_data(provider_machine, **extras):
     #Set the owner explicitly if necessary
     if 'owner' in extras:
         image_kwargs['owner'] = extras['owner']
+    # Using Glance:
+    #image = image_manager.get_image(image_id)
+    #image_manager.update_image(image, **image_kwargs)
 
-    image_manager.update_image(image_id, **image_kwargs)
-    logger.info("Machine<%s> new app data: %s"
-                % (image_id, properties))
-    return update_machine_metadata(esh_driver, esh_machine, properties)
+    # Using rtwo/libcloud:
+    esh_driver = image_manager.admin_driver
+    esh_machine = esh_driver.get_machine(image_id)
+    update_machine_metadata(esh_driver, esh_machine, properties)
+
+    logger.info("Machine<%s> new app data: %s" % (image_id, properties))
+    return
 
 
 def clear_app_data(provider_machine):
