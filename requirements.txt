@@ -30,7 +30,7 @@ pep8==1.4.6
 # The github repos:
 # These repos will install the master/latest branch each time pip install
 # --upgrade is executed
-git+git://github.com/celery/kombu.git#egg=kombu
+git+git://github.com/celery/kombu.git@4b35ccab1fc614c766301d09ac07f0d6d799fe40#egg=kombu
 git+git://github.com/iPlantCollaborativeOpenSource/caslib.py.git#egg=caslib
 git+git://github.com/iPlantCollaborativeOpenSource/jwt.py.git#egg=jwt
 git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive
