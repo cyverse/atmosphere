@@ -20,6 +20,7 @@ from core.fields import VersionNumberField, VersionNumber
 from core.metadata import _get_owner_identity
 from core.application import write_app_data, has_app_data, get_app_data
 
+
 class ProviderMachine(models.Model):
     """
     Machines are created by Providers, and multiple providers
@@ -40,7 +41,6 @@ class ProviderMachine(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
     version = VersionNumberField(default=int(VersionNumber(1,)))
 
-    
     def icon_url(self):
         return self.application.icon.url if self.application.icon else None
 
@@ -67,7 +67,8 @@ class ProviderMachine(models.Model):
         if self.esh and self.esh._image\
            and self.esh._image.extra\
            and self.esh._image.extra.get('metadata'):
-            return self.esh._image.extra['metadata'].get('application_owner', "admin")
+            return self.esh._image.extra['metadata'].get('application_owner',
+                                                         "admin")
 
     def esh_state(self):
         if self.esh and self.esh._image\
@@ -81,12 +82,14 @@ class ProviderMachine(models.Model):
     class Meta:
         db_table = "provider_machine"
         app_label = "core"
+
+
 class ProviderMachineMembership(models.Model):
     """
     Members of a specific image and provider combination.
     Members can view & launch respective machines.
-    If the can_share flag is set, then members also have ownership--they can give
-    membership to other users.
+    If the can_share flag is set, then members also have ownership--they
+    can give membership to other users.
     The unique_together field ensures just one of those states is true.
     """
     provider_machine = models.ForeignKey(ProviderMachine)
@@ -96,6 +99,7 @@ class ProviderMachineMembership(models.Model):
     def __unicode__(self):
         return "(ProviderMachine:%s - Member:%s) " %\
             (self.provider_machine.identifier, self.group.name)
+
     class Meta:
         db_table = 'provider_machine_membership'
         app_label = 'core'
@@ -140,34 +144,42 @@ def load_provider_machine(provider_alias, machine_name, provider_id,
         app = get_application(provider_alias, app_uuid=metadata.get('uuid'))
     if not app:
         app = create_application(provider_alias, provider_id, machine_name)
-    return create_provider_machine(machine_name, provider_alias, provider_id, app=app, metadata=metadata)
+    return create_provider_machine(machine_name,
+                                   provider_alias,
+                                   provider_id,
+                                   app=app,
+                                   metadata=metadata)
+
 
 def update_application_owner(application, identity):
-    application.created_by_identity=identity
-    application.created_by=identity.created_by
+    application.created_by_identity = identity
+    application.created_by = identity.created_by
     #PUSH METADATA
     application.save()
 
 
-
-def create_provider_machine(machine_name, provider_alias, provider_id, app, metadata={}):
+def create_provider_machine(machine_name,
+                            provider_alias,
+                            provider_id,
+                            app,
+                            metadata={}):
     #Attempt to match machine by provider alias
     #Admin identity used until the real owner can be identified.
     provider = Provider.objects.get(id=provider_id)
 
     #TODO: Read admin owner from location IFF eucalyptus
-    machine_owner = _get_owner_identity(metadata.get('owner',''), provider_id)
+    machine_owner = _get_owner_identity(metadata.get('owner', ''), provider_id)
 
     logger.debug("Provider %s" % provider)
     logger.debug("App %s" % app)
     provider_machine = ProviderMachine.objects.create(
-        application = app,
-        provider = provider,
-        created_by = machine_owner.created_by,
-        created_by_identity = machine_owner,
-        identifier = provider_alias,
-        version = metadata.get('version',
-            VersionNumber.string_to_version('1.0')))
+        application=app,
+        provider=provider,
+        created_by=machine_owner.created_by,
+        created_by_identity=machine_owner,
+        identifier=provider_alias,
+        version=metadata.get('version',
+                             VersionNumber.string_to_version('1.0')))
     logger.info("New ProviderMachine created: %s" % provider_machine)
     add_to_cache(provider_machine)
     return provider_machine
@@ -185,7 +197,8 @@ def add_to_cache(provider_machine):
 
 def get_provider_machine(identifier, provider_id):
     try:
-        machine = ProviderMachine.objects.get(provider__id=provider_id, identifier=identifier)
+        machine = ProviderMachine.objects.get(provider__id=provider_id,
+                                              identifier=identifier)
         return machine
     except ProviderMachine.DoesNotExist:
         return None
@@ -204,7 +217,7 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
     if not esh_machine._image:
         metadata = {}
     else:
-        metadata = esh_machine._image.extra.get('metadata',{})
+        metadata = esh_machine._image.extra.get('metadata', {})
     name = esh_machine.name
     alias = esh_machine.alias
 
@@ -250,8 +263,11 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, image_id=None):
 
 
 def _convert_from_instance(esh_driver, provider_id, image_id):
-    provider_machine = load_provider_machine(image_id, 'Unknown Image', provider_id)
+    provider_machine = load_provider_machine(image_id,
+                                             'Unknown Image',
+                                             provider_id)
     return provider_machine
+
 
 def compare_core_machines(mach_1, mach_2):
     """
@@ -269,6 +285,7 @@ def compare_core_machines(mach_1, mach_2):
     else:
         return cmp(mach_1.identifier, mach_2.identifier)
 
+
 def filter_core_machine(provider_machine, request_user=None):
     """
     Filter conditions:
@@ -276,26 +293,24 @@ def filter_core_machine(provider_machine, request_user=None):
     * end_date < now
     """
     now = timezone.now()
-    #Ignore end dated providers
+    #end dated providers
     if provider_machine.end_date or\
        provider_machine.application.end_date:
         if provider_machine.end_date:
-            return not(provider_machine.end_date < now)
+            if provider_machine.end_date < now:
+                return False
         if provider_machine.application.end_date:
-            return not(provider_machine.application.end_date < now)
-    #Ignore public users accessing private images..
-    #if provider_machine.application.private:
-    #    if request_user:
-    #        allowed_groups = [m.group for m in
-    #                          provider_machine.providermachinemembership_set.all()]
-    #        print "%s can be launched by:%s" \
-    #                     % (provider_machine, allowed_groups)
-    #        for group in allowed_groups:
-    #            allowed_users = [u.username for u in group.user_set.all()]
-    #            if request_user in allowed_users:
-    #                print "%s is allowed to use %s" % (request_user, provider_machine.identifier)
-    #                return True
-    #    print "%s is not allowed to use %s" % (request_user, provider_machine.identifier)
-    #    return False
-    #print "%s is not a private image" % (provider_machine.identifier)
+            if provider_machine.application.end_date < now:
+                return False
+    #public users accessing private images..
+    if provider_machine.application.private:
+        if request_user:
+            allowed_groups_pm =\
+                [m.group for m in
+                 provider_machine.providermachinemembership_set.all()]
+            allowed_groups_a =\
+                [m.group for m in
+                 provider_machine.providermachinemembership_set.all()]
+        else:
+            return False
     return True
