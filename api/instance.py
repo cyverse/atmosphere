@@ -1,6 +1,3 @@
-"""
-Atmosphere service instance rest api.
-"""
 from datetime import datetime
 import time
 
@@ -16,7 +13,6 @@ from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
 
 from core.models import AtmosphereUser as User
 from core.models.provider import AccountProvider
@@ -38,6 +34,7 @@ from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError
 
 from api import failure_response, prepare_driver, invalid_creds
+from api.permissions import ApiAuthRequired
 from api.serializers import InstanceSerializer, PaginatedInstanceSerializer
 from api.serializers import InstanceHistorySerializer,\
     PaginatedInstanceHistorySerializer
@@ -46,11 +43,13 @@ from api.serializers import VolumeSerializer
 
 class InstanceList(APIView):
     """
-    Represents:
-        A Manager of Instance
-        Calls to the Instance Class
-    """
-    @api_auth_token_required
+    Instances are the objects created when you launch a machine. They are
+    represented by a unique ID, randomly generated on launch, important
+    attributes of an Instance are:
+    Name, Status (building, active, suspended), Size, Machine"""
+
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id):
         """
         Returns a list of all instances
@@ -85,7 +84,6 @@ class InstanceList(APIView):
         response['Cache-Control'] = 'no-cache'
         return response
 
-    @api_auth_token_required
     def post(self, request, provider_id, identity_id, format=None):
         """
         Instance Class:
@@ -139,14 +137,14 @@ class InstanceList(APIView):
 
 
 class InstanceHistory(APIView):
-    """
-    An InstanceHistory provides instance history for an identity.
+    """List of instance history for specific instance."""
 
-    GET - A chronologically ordered list of Instances.
-    """
-
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id=None, identity_id=None):
+        """
+        Authentication required, Retrieve a list of previously launched instances.
+        """
         data = request.DATA
         params = request.QUERY_PARAMS.copy()
         user = User.objects.filter(username=request.user)
@@ -209,18 +207,32 @@ class InstanceHistory(APIView):
 
 class InstanceAction(APIView):
     """
-    An InstanceAction allows users to:
+    This endpoint will allow you to run a specific action on an instance, via a POST.
+    Returns: 200, data: {'result':'success',...}
+             On Error, a more specfific message applies.
+    Data variables:
+     ___
+    * action - The action you wish to take on your instance
+    * action_params - any parameters required (as detailed on the api) to run the requested action.
+    Instance Actions:
+    ___
+    * attach_volume/detach_volume - action_params: volume_id
+    * resize - action params: size_id
+    * suspend/resume
+    * start/stop
+    * rebuild - action_params: machine_alias
+    * reboot - action_params: reset_type(soft/hard)
+    * redeploy - Helpful for when Shell/VNC stop working.
 
-    TODO:Find a list of available actions for an instance.
+    Instances are the objects created when you launch a machine. They are
+    represented by a unique ID, randomly generated on launch, important
+    attributes of an Instance are:
+    Name, Status (building, active, suspended), Size, Machine"""
 
-    GET - None
-
-    POST - Run specified action
-    """
-
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def post(self, request, provider_id, identity_id, instance_id):
-        """
+        """Authentication Required, Attempt a specific instance action, including necessary parameters.
         """
         #Service-specific call to action
         action_params = request.DATA
@@ -344,16 +356,17 @@ class InstanceAction(APIView):
 
 class Instance(APIView):
     """
-    An instance is a self-contained copy
-    of a machine built to a specific size and hosted on a specific provider
-    """
+    Instances are the objects created when you launch a machine. They are
+    represented by a unique ID, randomly generated on launch, important
+    attributes of an Instance are:
+    Name, Status (building, active, suspended), Size, Machine"""
     #renderer_classes = (JSONRenderer, JSONPRenderer)
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id, instance_id):
         """
-        Return the object belonging to this instance ID
-        TODO: Filter out instances you shouldnt see (permissions..)
+        Authentication Required, get instance details.
         """
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
@@ -369,10 +382,8 @@ class Instance(APIView):
         response['Cache-Control'] = 'no-cache'
         return response
 
-    @api_auth_token_required
     def patch(self, request, provider_id, identity_id, instance_id):
-        """
-        """
+        """Authentication Required, update metadata about the instance"""
         user = request.user
         data = request.DATA
         esh_driver = prepare_driver(request, provider_id, identity_id)
@@ -399,14 +410,8 @@ class Instance(APIView):
                 serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST)
 
-    @api_auth_token_required
     def put(self, request, provider_id, identity_id, instance_id):
-        """
-        TODO:
-            Options for put
-            - Instance status change (suspend,resume,etc.)
-            - DB changes (Name, tags)
-        """
+        """Authentication Required, update metadata about the instance"""
         user = request.user
         data = request.DATA
         #Ensure item exists on the server first
@@ -431,8 +436,11 @@ class Instance(APIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400)
 
-    @api_auth_token_required
     def delete(self, request, provider_id, identity_id, instance_id):
+        """Authentication Required, TERMINATE the instance.
+
+        Be careful, there is no going back once you've deleted an instance.
+        """
         user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
         if not esh_driver:

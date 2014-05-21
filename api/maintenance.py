@@ -12,10 +12,10 @@ from rest_framework import status
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
 from core.models.maintenance import MaintenanceRecord as CoreMaintenanceRecord
 
 from api.serializers import MaintenanceRecordSerializer
+from api.permissions import InMaintenance, ApiAuthRequired
 
 
 class MaintenanceRecordList(APIView):
@@ -24,7 +24,8 @@ class MaintenanceRecordList(APIView):
     Use ?active=True to get current maintenenace.
     """
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request):
         """
         """
@@ -57,7 +58,8 @@ class MaintenanceRecord(APIView):
     """
     Represents a maintenance record.
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, record_id):
         """
         Get a maintenance record.
@@ -69,7 +71,6 @@ class MaintenanceRecord(APIView):
                             status=status.HTTP_404_NOT_FOUND)
         return Response(MaintenanceRecordSerializer(mach_request).data)
 
-    @api_auth_token_required
     def patch(self, request, record_id):
         """
         Update a maintenance record.
@@ -88,7 +89,6 @@ class MaintenanceRecord(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @api_auth_token_required
     def put(self, request, record_id):
         """
         Update a maintenance record.

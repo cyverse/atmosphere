@@ -18,7 +18,7 @@ from libcloud.compute.types import Provider, NodeState, DeploymentError
 from atmosphere.celery import app
 from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
 
-from threepio import logger
+from threepio import logger, status_logger
 from rtwo.exceptions import NonZeroDeploymentException
 
 from core.email import send_instance_email
@@ -31,6 +31,15 @@ from service.driver import get_driver
 from service.networking import _generate_ssh_kwargs
 from service.deploy import init, check_process
 
+
+def _update_status_log(instance, status_update):
+    now_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    user = instance._node.extra['metadata']['creator']
+    size_alias = instance._node.extra['flavorId']
+    machine_alias = instance._node.extra['imageId']
+    status_logger.debug("%s,%s,%s,%s,%s,%s"
+                 % (now_time, user, instance.alias, machine_alias, size_alias,
+                    status_update))
 
 @task(name="print_debug")
 def print_debug():
@@ -61,6 +70,59 @@ def complete_resize(driverCls, provider, identity, instance_alias,
         logger.exception(exc)
         complete_resize.retry(exc=exc)
 
+#@task(name="instance_watcher", max_retries=1, default_retry_delay=15)
+#def instance_watcher(driverCls, provider, identity, instance_alias, **task_kwargs):
+#    """
+#    """
+#    attempts = 0
+#    FINAL_STATES = ["active", "suspended"]
+#    current_status = ""
+#    logger.debug("instance_watcher task started for %s at %s." %
+#            (instance_alias, datetime.now()))
+#    while True:
+#        #Give up after 50 min cumulative.
+#        attempts += 1
+#        if attempts > 200:
+#            break
+#        try:
+#            driver = get_driver(driverCls, provider, identity)
+#            instance = driver.get_instance(instance_alias)
+#            if not instance:
+#                logger.debug("Instance has been teminated: %s." %
+#                        instance_alias)
+#                now_time = datetime.now()
+#                status_logger.debug("%s,%s,%s,%s,%s"
+#                         % (now_time, "<unknown>", instance_alias, "<unknown>",
+#                            "terminated"))
+#                break
+#            i_user = instance._node.extra['metadata']['creator']
+#            i_status = instance._node.extra['status'].lower()
+#            i_size = instance._node.extra['flavorId']
+#            i_task = instance._node.extra['task']
+#            i_tmp_task = instance._node.extra['metadata']['tmp_status']
+#            if not i_task:
+#                i_task = i_tmp_task
+#            new_status = i_status if not i_task else "%s - %s" % (i_status, i_task)
+#            now_time = datetime.now()
+#            if i_status not in FINAL_STATES or i_task:
+#                if new_status != current_status:
+#                    current_status = new_status
+#                    status_logger.debug("%s,%s,%s,%s,%s"
+#                                        % (now_time, i_user, instance.id,
+#                                           i_size, new_status))
+#                time.sleep(15)
+#                continue
+#            status_logger.debug("%s,%s,%s,%s,%s"
+#                         % (now_time, i_user, instance.id, i_size, new_status))
+#            break
+#        except Exception as exc:
+#            logger.exception("Encountered exception while watching instance %s"
+#                             % instance_alias)
+#            time.sleep(15)
+#    logger.debug("instance_watcher task finished for %s at %s." %
+#            (instance_alias, datetime.now()))
+#    return attempts
+
 @task(name="wait_for", max_retries=250, default_retry_delay=15)
 def wait_for(driverCls, provider, identity, instance_alias, status_query,
         tasks_allowed=False, **task_kwargs):
@@ -77,7 +139,7 @@ def wait_for(driverCls, provider, identity, instance_alias, status_query,
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_alias)
         if not instance:
-            logger.debug("Instance has been teminated: %s." % instance_id)
+            logger.debug("Instance has been teminated: %s." % instance_alias)
             return False
         i_status = instance._node.extra['status'].lower()
         i_task = instance._node.extra['task']
@@ -276,6 +338,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
                                .ex_get_image_metadata(instance.machine)
         deploy_chain = get_deploy_chain(driverCls, provider, identity,
                                         instance, password, redeploy)
+        logger.debug("Starting deploy chain for: %s." % instance_id)
         deploy_chain.apply_async()
         #Can be really useful when testing.
         #if kwargs.get('delay'):
@@ -284,7 +347,9 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
     except SystemExit:
         logger.exception("System Exits are BAD! Find this and get rid of it!")
         raise Exception("System Exit called")
-    except NonZeroDeploymentException:
+    except NonZeroDeploymentException as non_zero:
+        logger.error(str(non_zero))
+        logger.error(non_zero.__dict__)
         raise
     except Exception as exc:
         logger.warn(exc)
@@ -298,7 +363,7 @@ def get_deploy_chain(driverCls, provider, identity,
             driverCls, provider, identity, instance_id, "active")
     if not instance.ip:
         #Init the networking
-        logger.debug("IP address missing")
+        logger.debug("IP address missing -- add 'add floating IP' tasks..")
         network_meta_task = update_metadata.si(
                 driverCls, provider, identity, instance_id,
                 {'tmp_status': 'networking'})
@@ -464,6 +529,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         kwargs = _generate_ssh_kwargs()
         kwargs.update({'deploy': msd})
         driver.deploy_to(instance, **kwargs)
+        _update_status_log(instance, "Deploy Finished")
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
     except DeploymentError as exc:
         logger.exception(exc)
@@ -544,8 +610,6 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata):
     except Exception as exc:
         logger.exception(exc)
         update_metadata.retry(exc=exc)
-
-
 # Floating IP Tasks
 @task(name="add_floating_ip",
       #Defaults will not be used, see countdown call below
@@ -575,6 +639,7 @@ def add_floating_ip(driverCls, provider, identity,
         else:
             floating_ip = driver._connection.neutron_associate_ip(
                 instance, *args, **kwargs)["floating_ip_address"]
+        _update_status_log(instance, "Networking Complete")
         #TODO: Implement this as its own task, with the result from
         #'floating_ip' passed in. Add it to the deploy_chain before deploy_to
         hostname = ""

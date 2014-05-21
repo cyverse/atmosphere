@@ -10,16 +10,17 @@ from rest_framework.reverse import reverse
 from threepio import logger
 ## Atmosphere Libraries
 
-from authentication.decorators import api_auth_token_required
 
+from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProjectSerializer
 
 
 class Project(APIView):
     """
     """
-
-    @api_auth_token_required
+    
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request):
         """
         """

@@ -12,10 +12,10 @@ from threepio import logger
 
 from chromogenic.tasks import machine_export_task
 
-from authentication.decorators import api_auth_token_required
 
 from core.models.machine_export import MachineExport as CoreMachineExport
 
+from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import MachineExportSerializer
 
 
@@ -24,7 +24,8 @@ class MachineExportList(APIView):
     Starts the process of bundling a running instance
     """
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id):
         """
         """
@@ -34,7 +35,6 @@ class MachineExportList(APIView):
         response = Response(serialized_data)
         return response
 
-    @api_auth_token_required
     def post(self, request, provider_id, identity_id):
         """
         Create a new object based on DATA
@@ -65,7 +65,8 @@ class MachineExport(APIView):
         Calls to modify the single machine
     TODO: DELETE when we allow owners to 'end-date' their machine..
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id, machine_export_id):
         """
         Lookup the machine information
@@ -83,7 +84,6 @@ class MachineExport(APIView):
         response = Response(serialized_data)
         return response
 
-    @api_auth_token_required
     def patch(self, request, provider_id, identity_id, machine_export_id):
         """
         Meta data changes in 'pending' are OK
@@ -106,7 +106,6 @@ class MachineExport(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @api_auth_token_required
     def put(self, request, provider_id, identity_id, machine_export_id):
         """
         Meta data changes in 'pending' are OK

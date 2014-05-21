@@ -3,9 +3,10 @@ import os.path
 import time
 import uuid
 
+from django.utils.timezone import datetime
 from djcelery.app import app
 
-from threepio import logger
+from threepio import logger, status_logger
 
 from rtwo.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
@@ -300,7 +301,8 @@ def resume_instance(esh_driver, esh_instance,
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
-    from service.tasks.driver import update_metadata
+    from service.tasks.driver import update_metadata, _update_status_log
+    _update_status_log(esh_instance, "Resuming Instance")
     size = esh_driver.get_size(esh_instance.size.id)
     check_quota(user.username, identity_id, size, resuming=True)
     #admin_capacity_check(provider_id, esh_instance.id)
@@ -365,7 +367,11 @@ def destroy_instance(identity_id, instance_alias):
         return None
     if isinstance(esh_driver, OSDriver):
         #Openstack: Remove floating IP first
-        esh_driver._connection.ex_disassociate_floating_ip(instance)
+        try:
+            esh_driver._connection.ex_disassociate_floating_ip(instance)
+        except Exception as exc:
+            if 'floating ip not found' not in exc.message:
+                raise
     node_destroyed = esh_driver._connection.destroy_node(instance)
     return node_destroyed
 
@@ -381,7 +387,10 @@ def launch_instance(user, provider_id, identity_id,
 
     returns a core_instance object after updating core DB.
     """
-
+    now_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    status_logger.debug("%s,%s,%s,%s,%s,%s"
+                 % (now_time, user, "No Instance", machine_alias, size_alias,
+                    "Request Received"))
     core_identity = CoreIdentity.objects.get(id=identity_id)
 
     esh_driver = get_esh_driver(core_identity, user)

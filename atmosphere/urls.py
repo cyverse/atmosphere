@@ -94,23 +94,21 @@ urlpatterns = patterns(
     #Redirects
     url(r'^no_user/$', 'web.views.no_user_redirect'),
 
+    #
+    url(r'^api-docs/', include('rest_framework_swagger.urls')), 
+
     ### DJANGORESTFRAMEWORK ###
     url(r'^api-auth/',
         include('rest_framework.urls', namespace='rest_framework'))
 )
 
-urlpatterns += format_suffix_patterns(patterns(
-    '',
-
+private_apis = patterns('',
     # E-mail API
-    url(r'^feedback', Feedback.as_view()),
+    url(r'^api/v1/feedback', Feedback.as_view()),
     url(r'^api/v1/email_support', SupportEmail.as_view()),
     url(r'^api/v1/request_quota/$', QuotaEmail.as_view()),
 
-
-    # v1 of The atmosphere API 
     url(r'api/v1/project/$', Project.as_view()),
-    url(r'api/v1/version/$', Version.as_view()),
     url(r'^api/v1/maintenance/$',
         MaintenanceRecordList.as_view(),
         name='maintenance-record-list'),
@@ -121,31 +119,6 @@ urlpatterns += format_suffix_patterns(patterns(
 
     #url(r'^api/v1/user/$', atmo_valid_token_required(UserManagement.as_view())),
     #url(r'^api/v1/user/(?P<username>.*)/$', User.as_view()),
-    url(r'^api/v1/profile/$', Profile.as_view(), name='profile'),
-    url(r'^api/v1/provider/(?P<provider_id>\d+)/occupancy/$',
-        Occupancy.as_view(), name='occupancy'),
-    url(r'^api/v1/provider/(?P<provider_id>\d+)/hypervisor/$',
-        Hypervisor.as_view(), name='hypervisor'),
-
-    url(r'^api/v1/group/$', GroupList.as_view(), name='group-list'),
-    url(r'^api/v1/group/(?P<groupname>.*)/$', Group.as_view()),
-
-    url(r'^api/v1/tag/$', TagList.as_view(), name='tag-list'),
-    url(r'^api/v1/tag/(?P<tag_slug>.*)/$', Tag.as_view()),
-
-    url(r'^api/v1/application/$',
-        ApplicationList.as_view(),
-        name='application-list'),
-
-    url(r'^api/v1/application/search/$',
-        ApplicationSearch.as_view(),
-        name='application-search'),
-    url(r'^api/v1/application/(?P<app_uuid>[a-zA-Z0-9-]+)/$',
-        Application.as_view(),
-        name='application-detail'),
-
-    url(r'^api/v1/instance/$', InstanceHistory.as_view(),
-        name='instance-history'),
 
     url(r'^api/v1/request_image/$',
         MachineRequestStaffList.as_view(), name='direct-machine-request-list'),
@@ -166,13 +139,12 @@ urlpatterns += format_suffix_patterns(patterns(
         + '/identity/(?P<identity_id>\d+)/image_export/(?P<machine_request_id>\d+)/$',
         MachineExport.as_view(), name='machine-export'),
 
+    url(r'^api/v1/provider/(?P<provider_id>\d+)'
+        + '/identity/(?P<identity_id>\d+)/meta/$', Meta.as_view(), name='meta-detail'),
+    url(r'^api/v1/provider/(?P<provider_id>\d+)'
+        + '/identity/(?P<identity_id>\d+)/meta/(?P<action>.*)/$',
+        MetaAction.as_view(), name='meta-action'),
 
-    url(r'^api/v1/provider/(?P<provider_id>\d+)'
-    + '/identity/(?P<identity_id>\d+)/request_image/$',
-        MachineRequestList.as_view(), name='machine-request-list'),
-    url(r'^api/v1/provider/(?P<provider_id>\d+)'
-    + '/identity/(?P<identity_id>\d+)/request_image/(?P<machine_request_id>\d+)/$',
-        MachineRequest.as_view(), name='machine-request'),
 
 
     url(r'^api/v1/provider/(?P<provider_id>\d+)'
@@ -184,6 +156,63 @@ urlpatterns += format_suffix_patterns(patterns(
         + '/identity/(?P<identity_id>\d+)/instance/'
         + '(?P<instance_id>[a-zA-Z0-9-]+)/action/$',
         InstanceAction.as_view(), name='instance-action'),
+
+    url(r'^api/v1/provider/(?P<provider_id>\d+)'
+        + '/identity/(?P<identity_id>\d+)/hypervisor/$',
+        HypervisorList.as_view(), name='hypervisor-list'),
+    url(r'^api/v1/provider/(?P<provider_id>\d+)'
+        + '/identity/(?P<identity_id>\d+)/hypervisor/(?P<hypervisor_id>\d+)/$',
+        HypervisorDetail.as_view(), name='hypervisor-detail'),
+
+    url(r'^api/v1/provider/(?P<provider_id>\d+)'
+        + '/identity/(?P<identity_id>\d+)/step/$',
+        StepList.as_view(), name='step-list'),
+    url(r'^api/v1/provider/(?P<provider_id>\d+)'
+        + '/identity/(?P<identity_id>\d+)/step/(?P<step_id>[a-zA-Z0-9-]+)/$',
+        Step.as_view(), name='step-detail'),
+    url(r'^api/v1/provider/(?P<provider_id>\d+)/occupancy/$',
+        Occupancy.as_view(), name='occupancy'),
+    url(r'^api/v1/provider/(?P<provider_id>\d+)/hypervisor/$',
+        Hypervisor.as_view(), name='hypervisor'),
+
+    )
+urlpatterns += patterns('',
+        url(r'^', include(private_apis,namespace="private_apis")))
+
+urlpatterns += format_suffix_patterns(patterns(
+    '',
+
+    # v1 of The atmosphere API 
+    url(r'api/v1/version/$', Version.as_view()),
+    url(r'^api/v1/profile/$', Profile.as_view(), name='profile'),
+    url(r'^api/v1/group/$', GroupList.as_view(), name='group-list'),
+    url(r'^api/v1/group/(?P<groupname>.*)/$', Group.as_view()),
+
+    url(r'^api/v1/tag/$', TagList.as_view(), name='tag-list'),
+    url(r'^api/v1/tag/(?P<tag_slug>.*)/$', Tag.as_view()),
+
+    url(r'^api/v1/application/$',
+        ApplicationList.as_view(),
+        name='application-list'),
+
+    url(r'^api/v1/application/search/$',
+        ApplicationSearch.as_view(),
+        name='application-search'),
+    url(r'^api/v1/application/(?P<app_uuid>[a-zA-Z0-9-]+)/$',
+        Application.as_view(),
+        name='application-detail'),
+
+    url(r'^api/v1/instance/$', InstanceHistory.as_view(),
+        name='instance-history'),
+
+    url(r'^api/v1/provider/(?P<provider_id>\d+)'
+    + '/identity/(?P<identity_id>\d+)/request_image/$',
+        MachineRequestList.as_view(), name='machine-request-list'),
+    url(r'^api/v1/provider/(?P<provider_id>\d+)'
+    + '/identity/(?P<identity_id>\d+)/request_image/(?P<machine_request_id>\d+)/$',
+        MachineRequest.as_view(), name='machine-request'),
+
+
     url(r'^api/v1/provider/(?P<provider_id>\d+)'
         + '/identity/(?P<identity_id>\d+)/instance/history/$',
         InstanceHistory.as_view(), name='instance-history'),
@@ -195,26 +224,11 @@ urlpatterns += format_suffix_patterns(patterns(
         InstanceList.as_view(), name='instance-list'),
 
     url(r'^api/v1/provider/(?P<provider_id>\d+)'
-        + '/identity/(?P<identity_id>\d+)/hypervisor/$',
-        HypervisorList.as_view(), name='hypervisor-list'),
-    url(r'^api/v1/provider/(?P<provider_id>\d+)'
-        + '/identity/(?P<identity_id>\d+)/hypervisor/(?P<hypervisor_id>\d+)/$',
-        HypervisorDetail.as_view(), name='hypervisor-detail'),
-
-    url(r'^api/v1/provider/(?P<provider_id>\d+)'
         + '/identity/(?P<identity_id>\d+)/size/$',
         SizeList.as_view(), name='size-list'),
     url(r'^api/v1/provider/(?P<provider_id>\d+)'
         + '/identity/(?P<identity_id>\d+)/size/(?P<size_id>\d+)/$',
         Size.as_view(), name='size-detail'),
-
-
-    url(r'^api/v1/provider/(?P<provider_id>\d+)'
-        + '/identity/(?P<identity_id>\d+)/step/$',
-        StepList.as_view(), name='step-list'),
-    url(r'^api/v1/provider/(?P<provider_id>\d+)'
-        + '/identity/(?P<identity_id>\d+)/step/(?P<step_id>[a-zA-Z0-9-]+)/$',
-        Step.as_view(), name='step-detail'),
 
 
     url(r'^api/v1/provider/(?P<provider_id>\d+)'
@@ -243,13 +257,6 @@ urlpatterns += format_suffix_patterns(patterns(
     #    + '/machine/(?P<machine_id>[a-zA-Z0-9-]+)'
     #    + '/vote/$',
     #    MachineVote.as_view(), name='machine-vote'),
-
-
-    url(r'^api/v1/provider/(?P<provider_id>\d+)'
-        + '/identity/(?P<identity_id>\d+)/meta/$', Meta.as_view(), name='meta-detail'),
-    url(r'^api/v1/provider/(?P<provider_id>\d+)'
-        + '/identity/(?P<identity_id>\d+)/meta/(?P<action>.*)/$',
-        MetaAction.as_view(), name='meta-action'),
 
 
     url(r'^api/v1/provider/(?P<provider_id>\d+)'
