@@ -62,9 +62,9 @@ ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE.iplantc.org/jenkins
 
     # Static files
     # The following URLs are proxied to ATMOSPHERE:
-    Alias /static/admin LOCATIONOFATMOSPHEREHERE/static/admin
-    Alias /static/rest_framework_swagger LOCATIONOFATMOSPHEREHERE/static/rest_framework_swagger
-    Alias /static/rest_framework LOCATIONOFATMOSPHEREHERE/static/rest_framework
+    Alias /static/admin LOCATIONOFATMOSPHERE/static/admin
+    Alias /static/rest_framework_swagger LOCATIONOFATMOSPHERE/static/rest_framework_swagger
+    Alias /static/rest_framework LOCATIONOFATMOSPHERE/static/rest_framework
 
     # The following URLs are proxied to TROPOSPHERE:
     Alias /static LOCATIONOFTROPOSPHERE/troposphere/assets
