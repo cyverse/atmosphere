@@ -2,6 +2,7 @@
 Deploy methods for Atmosphere
 """
 from os.path import basename
+import time
 
 from libcloud.compute.deployment import ScriptDeployment
 from libcloud.compute.deployment import MultiStepDeployment
@@ -10,6 +11,7 @@ from threepio import logger
 
 from atmosphere import settings
 from atmosphere.settings import secrets
+
 from authentication.protocol import ldap
 
 
@@ -28,11 +30,27 @@ class LoggedScriptDeployment(ScriptDeployment):
             self.script = self.script + " >> %s 2>&1" % logfile
         #logger.info(self.script)
 
-    def run(self, node, client):
+    def run(self, node, client, attempts=1):
         """
         Server-side logging
+
+        Optional Param: attempts - # of times to retry
+        in the event of a Non-Zero exit status(code)
         """
-        node = super(LoggedScriptDeployment, self).run(node, client)
+        attempt = 0
+        retry_time = 0
+        while attempt < attempts:
+            node = super(LoggedScriptDeployment, self).run(node, client)
+            if self.exit_status == 0:
+                break
+            attempt += 1
+            retry_time = 2 * 2**attempt # 4,8,16..
+            logger.debug(
+                "WARN: Script %s on Node %s is non-zero."
+                " Will re-try in %s seconds. Attempt: %s/%s"
+                % (node.id, self.name, retry_time, attempt, attempts))
+            time.sleep(retry_time)
+
         if self.stdout:
             logger.debug('%s (%s)STDOUT: %s' % (node.id, self.name,
                                                 self.stdout))
@@ -108,7 +126,9 @@ def mkfs_volume(device):
 
 
 def umount_volume(mount_location):
-    return ScriptDeployment("umount %s" % (mount_location),
+    return ScriptDeployment("mounts=`mount | grep '%s' | cut -d' ' -f3`; "
+                            "for mount in $mounts; do umount %s; done;"
+                            % (mount_location, mount_location),
                             name="./deploy_umount_volume.sh")
 
 
@@ -124,12 +144,11 @@ def step_script(step):
     return ScriptDeployment(script, name="./" + step.get_script_name())
 
 
-def wget_file(filename, url, logfile=None):
+def wget_file(filename, url, logfile=None, attempts=3):
     name = './deploy_wget_%s.sh' % (basename(filename))
     return LoggedScriptDeployment(
         "wget -O %s %s" % (filename, url),
-        name=name,
-        logfile=logfile)
+        name=name, attempts=attempts, logfile=logfile)
 
 
 def chmod_ax_file(filename, logfile=None):
@@ -259,7 +278,8 @@ def init(instance, username, password=None, redeploy=False, *args, **kwargs):
 
         script_deps = package_deps(logfile,username)
 
-        script_wget = wget_file(atmo_init, url, logfile)
+        script_wget = wget_file(atmo_init, url, logfile=logfile,
+                                attempts=3)
 
         script_chmod = chmod_ax_file(atmo_init, logfile)
 
@@ -287,12 +307,3 @@ def init(instance, username, password=None, redeploy=False, *args, **kwargs):
             script_list.append(script_rm_scripts)
 
         return MultiStepDeployment(script_list)
-
-        # kwargs.update({'deploy': msd})
-
-        # private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
-        # kwargs.update({'ssh_key': private_key})
-
-        # kwargs.update({'timeout': 120})
-
-        # return self.deploy_to(instance, *args, **kwargs)

@@ -11,13 +11,13 @@ from rest_framework.response import Response
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
 
 from core.models.flow import Flow as CoreFlow
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import Instance as CoreInstance
 from core.models.step import Step as CoreStep
 
+from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import StepSerializer
 
 from api import failure_response
@@ -27,7 +27,8 @@ class StepList(APIView):
     """
     List all steps for an identity.
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id):
         """
         Using provider and identity, getlist of machines
@@ -38,7 +39,6 @@ class StepList(APIView):
         serialized_data = StepSerializer(step_list, many=True).data
         return Response(serialized_data)
 
-    @api_auth_token_required
     def post(self, request, provider_id, identity_id):
         """
         Create a new step.
@@ -80,7 +80,8 @@ class Step(APIView):
     """
     View a details of a step.
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id, step_id):
         """
         Get details of a specific step.
@@ -95,7 +96,6 @@ class Step(APIView):
         serialized_data = StepSerializer(step).data
         return Response(serialized_data)
 
-    @api_auth_token_required
     def put(self, request, provider_id, identity_id, step_id):
         """
         Update a specific step.
@@ -125,7 +125,6 @@ class Step(APIView):
             serializer.errors)
 
 
-    @api_auth_token_required
     def delete(self, request, provider_id, identity_id, step_id):
         """
         Delete a specific step.

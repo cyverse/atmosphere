@@ -52,6 +52,33 @@ DATABASES = {
         'PORT': '5432'
     },
 }
+INSTALLED_APPS = (
+    #contrib apps
+    'django.contrib.auth',
+    'django.contrib.admin',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.staticfiles',
+
+    #3rd party apps
+    'rest_framework',
+    'rest_framework_swagger',
+
+    'south',
+    'djcelery',
+    'django_jenkins',
+    'pipeline',
+    'corsheaders',
+
+    #iPlant apps
+    'rtwo',
+
+    #atmosphere apps
+    'authentication',
+    'service',
+    'web',
+    'core',
+)
 
 DATABASE_ROUTERS = ['atmosphere.routers.Service']
 
@@ -139,7 +166,11 @@ TEMPLATE_LOADERS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'corsheaders.middleware.CorsMiddleware',
+    # corsheaders.middleware.CorsMiddleware Must be ahead of
+    # configuration CommonMiddleware for an edge case.
     'django.middleware.common.CommonMiddleware',
+
     'django.middleware.csrf.CsrfViewMiddleware',
 
     'django.middleware.gzip.GZipMiddleware',
@@ -170,30 +201,9 @@ AUTHENTICATION_BACKENDS = (
     #'django.contrib.auth.backends.ModelBackend',
 )
 
-INSTALLED_APPS = (
-    #contrib apps
-    'django.contrib.auth',
-    'django.contrib.admin',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.staticfiles',
-
-    #3rd party apps
-    'rest_framework',
-    'south',
-    'djcelery',
-    'django_jenkins',
-    'pipeline',
-
-    #iPlant apps
-    'rtwo',
-
-    #atmosphere apps
-    'authentication',
-    'service',
-    'web',
-    'core',
-)
+# django-cors-headers
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_WHITELIST = None
 
 JENKINS_TASKS = (
     'django_jenkins.tasks.with_coverage',
@@ -223,10 +233,30 @@ LOG_FILENAME = os.path.abspath(os.path.join(
     os.path.dirname(atmosphere.__file__),
     '..',
     'logs/atmosphere.log'))
+
 threepio.initialize("atmosphere",
                     log_filename=LOG_FILENAME,
                     app_logging_level=LOGGING_LEVEL,
                     dep_logging_level=DEP_LOGGING_LEVEL)
+## NOTE: The format for status_logger
+# timestamp, user, instance_alias, machine_alias, size_alias, status_update
+
+STATUS_LOG_FILENAME = os.path.abspath(os.path.join(
+    os.path.dirname(atmosphere.__file__),
+    '..',
+    'logs/atmosphere_status.log'))
+fh = logging.FileHandler(STATUS_LOG_FILENAME)
+# create formatter and add it to the handlers
+base_format = '%(message)s'
+formatter = logging.Formatter(base_format)
+fh.setFormatter(formatter)
+threepio.status_logger = threepio\
+        .initialize("atmosphere_status",
+                    handlers=[fh],
+                    app_logging_level=LOGGING_LEVEL,
+                    dep_logging_level=DEP_LOGGING_LEVEL,
+                    global_logger=False,
+                    format=base_format)
 threepio.email_logger = threepio\
         .initialize("atmosphere_email",
                     log_filename=LOG_FILENAME,
@@ -270,6 +300,23 @@ REST_FRAMEWORK = {
         'authentication.token.TokenAuthentication',
     )
 }
+#REST_FRAMEWORK_SWAGGER
+SWAGGER_SETTINGS = {
+    "exclude_namespaces": [
+        "private_apis",
+    ], # List URL namespaces to ignore
+    "api_version": '0.1',  # Specify your API's version
+    "api_path": "/",  # Specify the path to your API not a root level
+    "enabled_methods": [  # Specify which methods to enable in Swagger UI
+        'get',
+        'post',
+        'patch',
+        'delete'
+    ],
+    "api_key": '', # An API key
+    "is_authenticated": False,  # Set to True to enforce user authentication,
+    "is_superuser": False,  # Set to True to enforce admin only access
+}
 
 ##CASLIB
 SERVER_URL = SERVER_URL + REDIRECT_URL
@@ -302,9 +349,9 @@ CELERY_TASK_RESULT_EXPIRES = 3*60*60 #Store results for 3 hours
 #CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
 CELERYBEAT_CHDIR=PROJECT_ROOT
 CELERYD_MAX_TASKS_PER_CHILD=50
-CELERYD_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [PID:%(process)d] @ %(pathname)s on %(lineno)d] %(message)s"
-CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(levelname)s/%(processName)s [PID:%(process)d] [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
-# Django-Celery Local Settings
+CELERYD_LOG_FORMAT="[%(asctime)s: %(name)s-%(levelname)s/%(processName)s [PID:%(process)d] @ %(pathname)s on %(lineno)d] %(message)s"
+CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(name)s-%(levelname)s/%(processName)s [PID:%(process)d] [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
+
 # Django-Celery Local Settings
 #CELERY_QUEUES = (
 #        Queue('imaging'), Exchange('imaging'), routing_key='imaging'),
@@ -330,7 +377,7 @@ CELERYBEAT_SCHEDULE = {
     "monitor_instances": {
         "task": "monitor_instances",
         "schedule" : timedelta(minutes=15),
-        "options": {"expires":9*60, "time_limit":5*60,
+        "options": {"expires":10*60, "time_limit":10*60,
                     "queue":"celery_periodic"}
     },
     "clear_empty_ips": {

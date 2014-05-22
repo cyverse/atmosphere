@@ -7,8 +7,10 @@ South==0.8.4
 apache-libcloud==0.14.0
 celery==3.1.9
 django-celery==3.1.9
+django-cors-headers==0.12
 django-pipeline==1.3.20
 djangorestframework==2.3.12
+#django-rest-swagger==0.1.14
 redis==2.9.0
 Hiredis==0.1.2
 boto==2.23.0
@@ -28,10 +30,12 @@ pep8==1.4.6
 # The github repos:
 # These repos will install the master/latest branch each time pip install
 # --upgrade is executed
+git+git://github.com/celery/kombu.git#egg=kombu
 git+git://github.com/iPlantCollaborativeOpenSource/caslib.py.git#egg=caslib
 git+git://github.com/iPlantCollaborativeOpenSource/jwt.py.git#egg=jwt
 git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive
 git+git://github.com/iPlantCollaborativeOpenSource/rtwo.git#egg=rtwo
+git+git://github.com/iPlantCollaborativeOpenSource/django-rest-swagger.git#egg=rest_framework_swagger
 git+git://github.com/jmatt/threepio.git#egg=threepio
 git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.6
 git+git://github.com/kmmbvnr/django-jenkins

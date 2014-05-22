@@ -71,6 +71,7 @@ def get_app_driver(provider_machine):
 
 def _tenant_name_to_id(provider, tenant_name):
     from service.accounts.openstack import AccountDriver as OSAccountDriver
+    from core.models import Provider, ProviderMachine, MachineRequest
     if provider not in Provider.get_active(type_name='openstack'):
         raise Exception("An active openstack provider is required to"
                         " update image owner")

@@ -11,7 +11,6 @@ from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
 
 from core.models.provider import AccountProvider
 from core.models.volume import convert_esh_volume
@@ -19,15 +18,16 @@ from core.models.volume import convert_esh_volume
 from service.volume import create_volume
 from service.exceptions import OverQuotaError
 
-from api.serializers import VolumeSerializer
 from api import prepare_driver, failure_response, invalid_creds
+from api.permissions import InMaintenance, ApiAuthRequired
+from api.serializers import VolumeSerializer
 
 
 class VolumeList(APIView):
-    """
-    List all volumes
-    """
-    @api_auth_token_required
+    """List all volumes on Identity"""
+
+    permission_classes = (ApiAuthRequired,)
+
     def get(self, request, provider_id, identity_id):
         """
         Retrieves list of volumes and updates the DB
@@ -52,7 +52,6 @@ class VolumeList(APIView):
         response = Response(serializer.data)
         return response
 
-    @api_auth_token_required
     def post(self, request, provider_id, identity_id):
         """
         Creates a new volume and adds it to the DB
@@ -89,10 +88,9 @@ class VolumeList(APIView):
 
 
 class Volume(APIView):
-    """
-    List all volumes
-    """
-    @api_auth_token_required
+    """Details of specific volume on Identity."""
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id, volume_id):
         """
         """
@@ -110,7 +108,6 @@ class Volume(APIView):
         response = Response(serialized_data)
         return response
 
-    @api_auth_token_required
     def patch(self, request, provider_id, identity_id, volume_id):
         """
         Updates DB values for volume
@@ -139,7 +136,6 @@ class Volume(APIView):
                 status.HTTP_400_BAD_REQUEST,
                 serializer.errors)
 
-    @api_auth_token_required
     def put(self, request, provider_id, identity_id, volume_id):
         """
         Updates DB values for volume
@@ -168,7 +164,6 @@ class Volume(APIView):
                 status.HTTP_400_BAD_REQUEST,
                 serializer.errors)
 
-    @api_auth_token_required
     def delete(self, request, provider_id, identity_id, volume_id):
         """
         Destroys the volume and updates the DB
