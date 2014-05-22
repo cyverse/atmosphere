@@ -1,9 +1,8 @@
 """
 Deploy methods for Atmosphere
 """
-import time
-
 from os.path import basename
+import time
 
 from libcloud.compute.deployment import ScriptDeployment
 from libcloud.compute.deployment import MultiStepDeployment
@@ -12,6 +11,7 @@ from threepio import logger
 
 from atmosphere import settings
 from atmosphere.settings import secrets
+
 from authentication.protocol import ldap
 
 
@@ -144,7 +144,7 @@ def step_script(step):
     return ScriptDeployment(script, name="./" + step.get_script_name())
 
 
-def wget_file(filename, url, attempts=1, logfile=None):
+def wget_file(filename, url, logfile=None, attempts=3):
     name = './deploy_wget_%s.sh' % (basename(filename))
     return LoggedScriptDeployment(
         "wget -O %s %s" % (filename, url),
@@ -278,7 +278,7 @@ def init(instance, username, password=None, redeploy=False, *args, **kwargs):
 
         script_deps = package_deps(logfile,username)
 
-        script_wget = wget_file(atmo_init, url, logfile,
+        script_wget = wget_file(atmo_init, url, logfile=logfile,
                                 attempts=3)
 
         script_chmod = chmod_ax_file(atmo_init, logfile)
