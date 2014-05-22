@@ -11,13 +11,21 @@ from rest_framework.reverse import reverse
 from threepio import logger
 ## Atmosphere Libraries
 
-from authentication.decorators import api_auth_token_required
 
+from api import failure_response
 from api.serializers import ProjectSerializer, InstanceSerializer,\
         VolumeSerializer, ApplicationSerializer
-from core.models.group import get_user_group
+from core.models.group import Group, get_user_group
+from api.permissions import InMaintenance, ApiAuthRequired
+from api.serializers import ProjectSerializer
+
+from django.utils import timezone
+from django.db.models import Q
+
+only_current = Q(end_date=None) | Q(end_date__gt=timezone.now())
 
 class ProjectApplicationExchange(APIView):
+    permission_classes = (ApiAuthRequired,)
     def put(self, request, project_id, application_uuid):
         user = request.user
         group = get_user_group(user.username)
@@ -56,6 +64,7 @@ class ProjectApplicationExchange(APIView):
 
 
 class ProjectInstanceExchange(APIView):
+    permission_classes = (ApiAuthRequired,)
     def put(self, request, project_id, instance_id):
         user = request.user
         group = get_user_group(user.username)
@@ -94,6 +103,7 @@ class ProjectInstanceExchange(APIView):
 
 
 class ProjectVolumeExchange(APIView):
+    permission_classes = (ApiAuthRequired,)
     def put(self, request, project_id, volume_id):
         user = request.user
         group = get_user_group(user.username)
@@ -133,8 +143,8 @@ class ProjectVolumeExchange(APIView):
 class ProjectVolumeList(APIView):
     """
     """
+    permission_classes = (ApiAuthRequired,)
 
-    @api_auth_token_required
     def get(self, request, project_id):
         """
         """
@@ -142,7 +152,7 @@ class ProjectVolumeList(APIView):
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
         projects = group.projects.get(id=project_id)
-        volumes = projects.volumes.all()
+        volumes = projects.volumes.filter(only_current)
         serialized_data = VolumeSerializer(volumes, many=True,
                                             context={"user":request.user}).data
         response = Response(serialized_data)
@@ -151,8 +161,8 @@ class ProjectVolumeList(APIView):
 class ProjectApplicationList(APIView):
     """
     """
+    permission_classes = (ApiAuthRequired,)
 
-    @api_auth_token_required
     def get(self, request, project_id):
         """
         """
@@ -160,7 +170,7 @@ class ProjectApplicationList(APIView):
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
         projects = group.projects.get(id=project_id)
-        applications = projects.applications.all()
+        applications = projects.applications.filter(only_current)
         serialized_data = ApplicationSerializer(applications, many=True,
                                             context={"user":request.user}).data
         response = Response(serialized_data)
@@ -170,7 +180,8 @@ class ProjectInstanceList(APIView):
     """
     """
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def get(self, request, project_id):
         """
         """
@@ -178,7 +189,7 @@ class ProjectInstanceList(APIView):
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
         projects = group.projects.get(id=project_id)
-        instances = projects.instances.all()
+        instances = projects.instances.filter(only_current)
         serialized_data = InstanceSerializer(instances, many=True,
                                             context={"user":request.user}).data
         response = Response(serialized_data)
@@ -188,7 +199,8 @@ class ProjectList(APIView):
     """
     """
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def post(self, request):
         """
         """
@@ -197,8 +209,16 @@ class ProjectList(APIView):
         if data.get('name') == 'Default':
             return Response("The 'Default' project name is reserved",
                             status=status.HTTP_409_CONFLICT)
+        #Default to creating for the 'user-group'
+        if not data.get('owner'):
+            data['owner'] = user.username
+        elif not Group.check_access(user, data['owner']):
+            return failure_response(
+                    status.HTTP_403_FORBIDDEN,
+                    "Current User: %s - Cannot assign project for group %s"
+                    % (user.username, data['owner']))
         serializer = ProjectSerializer(data=data,
-                                            context={"user":request.user})
+                                       context={"user":request.user})
         if serializer.is_valid():
             serializer.save()
             response = Response(
@@ -209,13 +229,12 @@ class ProjectList(APIView):
             return Response(serializer.errors,
                     status=status.HTTP_400_BAD_REQUEST)
 
-    @api_auth_token_required
     def get(self, request):
         """
         """
         user = request.user
         group = get_user_group(user.username)
-        projects = group.projects.all()
+        projects = group.projects.filter(only_current)
         serialized_data = ProjectSerializer(projects, many=True,
                                             context={"user":request.user}).data
         response = Response(serialized_data)
@@ -226,7 +245,8 @@ class ProjectDetail(APIView):
     """
     """
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def patch(self, request, project_id):
         """
         """
@@ -255,7 +275,6 @@ class ProjectDetail(APIView):
             return Response(serializer.errors,
                     status=status.HTTP_400_BAD_REQUEST)
 
-    @api_auth_token_required
     def put(self, request, project_id):
         """
         """
@@ -284,7 +303,6 @@ class ProjectDetail(APIView):
             return Response(serializer.errors,
                     status=status.HTTP_400_BAD_REQUEST)
 
-    @api_auth_token_required
     def get(self, request, project_id):
         """
         """
@@ -300,7 +318,6 @@ class ProjectDetail(APIView):
         return response
 
 
-    @api_auth_token_required
     def delete(self, request, project_id):
         """
         """
@@ -310,13 +327,13 @@ class ProjectDetail(APIView):
         if not project:
             return Response("Project with ID=%s does not exist" % project_id,
                             status=status.HTTP_400_BAD_REQUEST)
+        project = project[0]
         if project.name == 'Default':
             return Response(
                     "The 'Default' project is reserved and cannot be deleted.",
                     status=status.HTTP_409_CONFLICT)
-        project = project[0]
         default_project = group.projects.get(name='Default')
-        project.migrate_objects(default_project)
+        project.copy_objects(default_project)
         project.delete_project()
         serialized_data = ProjectSerializer(project,
                                             context={"user":request.user}).data

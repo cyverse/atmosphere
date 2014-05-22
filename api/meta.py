@@ -40,48 +40,48 @@ class Meta(APIView):
 
 def add_staff_urls(request, provider_id, identity_id):
     data = {
-        'request-image-list': reverse('direct-machine-request-list',
+            'request-image-list': reverse('api:private_apis:direct-machine-request-list',
                             request=request),
         }
 def add_user_urls(request, provider_id, identity_id):
     data = {
-        'group-list': reverse('group-list',
+        'group-list': reverse('api:public_apis:group-list',
                             request=request),
-        'tag-list': reverse('tag-list',
+        'tag-list': reverse('api:public_apis:tag-list',
                             request=request),
-        'provider-list': reverse('provider-list',
+        'provider-list': reverse('api:public_apis:provider-list',
                             request=request),
-        'occupancy': reverse('occupancy',
+        'occupancy': reverse('api:private_apis:occupancy',
                             args=(provider_id,),
                             request=request),
-        'hypervisor': reverse('hypervisor',
+        'hypervisor': reverse('api:private_apis:hypervisor',
                             args=(provider_id,),
                             request=request),
-        'identity-list': reverse('identity-list',
+        'identity-list': reverse('api:public_apis:identity-list',
                             args=(provider_id,),
                             request=request),
-        'volume-list': reverse('volume-list',
+        'volume-list': reverse('api:public_apis:volume-list',
                           args=(provider_id, identity_id),
                           request=request),
-        'meta': reverse('meta-detail',
+        'meta': reverse('api:private_apis:meta-detail',
                         args=(provider_id, identity_id),
                         request=request),
-        'machine-history-list': reverse('machine-history',
+        'machine-history-list': reverse('api:public_apis:machine-history',
                             args=(provider_id, identity_id),
                             request=request),
-        'instance-history-list': reverse('instance-history',
+        'instance-history-list': reverse('api:public_apis:instance-history',
                             args=(provider_id, identity_id),
                             request=request),
-        'instance-list': reverse('instance-list',
+        'instance-list': reverse('api:public_apis:instance-list',
                             args=(provider_id, identity_id),
                             request=request),
-        'machine-list': reverse('machine-list',
+        'machine-list': reverse('api:public_apis:machine-list',
                            args=(provider_id, identity_id),
                            request=request),
-        'size-list': reverse('size-list',
+        'size-list': reverse('api:public_apis:size-list',
                         args=(provider_id, identity_id),
                         request=request),
-        'profile': reverse('profile', request=request)
+        'profile': reverse('api:public_apis:profile', request=request)
     }
     return data
 

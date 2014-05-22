@@ -9,41 +9,36 @@
 
         RewriteEngine On
         RewriteCond %{HTTPS} !=on
-        RewriteRule ^/?(.*) https://MYHOSTNAMEHERE/$1 [R,L]
+        RewriteRule ^/?(.*) https://MYHOSTNAMEHERE.iplantc.org/$1 [R,L]
 </VirtualHost>
 
-###
-### WSGI Configuration
-###
-
-WSGIPythonHome VIRTUALENVHERE
-
-SSLCryptoDevice builtin
 
 ##
 ## Celery-Flower proxy redirection
 ##
+
 ProxyRequests Off
 ProxyPreserveHost On
 SSLProxyEngine On
 
-ProxyPass         /flower  https://MYHOSTNAMEHERE:8443
-ProxyPassReverse  /flower  https://MYHOSTNAMEHERE:8443
-ProxyPassReverse  /flower  https://MYHOSTNAMEHERE/flower
+ProxyPass         /flower  https://MYHOSTNAMEHERE.iplantc.org:8443
+ProxyPassReverse  /flower  https://MYHOSTNAMEHERE.iplantc.org:8443
+ProxyPassReverse  /flower  https://MYHOSTNAMEHERE.iplantc.org/flower
 
-<Proxy https://MYHOSTNAMEHERE:8443/flower*>
+<Proxy https://MYHOSTNAMEHERE.iplantc.org:8443/flower*>
   Order deny,allow
   Allow from all
 </Proxy>
 
+
 ##
 ## Jenkins proxy redirection
 ##
-ProxyPass         /jenkins  http://MYHOSTNAMEHERE:8080/jenkins
-ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE:8080/jenkins
-ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE/jenkins
+ProxyPass         /jenkins  http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins
+ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins
+ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE.iplantc.org/jenkins
 
-<Proxy http://MYHOSTNAMEHERE:8080/jenkins*>
+<Proxy http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins*>
   Order deny,allow
   Allow from all
 </Proxy>
@@ -51,67 +46,111 @@ ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE/jenkins
 ## SSL Virtual Host Context
 ##
 
+###############################################################################
+## Troposphere Server Virtualhost (Port 443)
+###############################################################################
 <VirtualHost _default_:443>
 
-#Rewrite
-RewriteEngine On
-RewriteCond %{HTTP:Authorization} ^(.*)
-RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
-
-#for the old domain
-RewriteCond %{HTTP_HOST} ^MYHOSTNAMEHERE$
-RewriteRule ^/(.*)$       https://MYHOSTNAMEHERE/$1 [R,L]
-
-#Logging
-ErrorLog /var/log/apache2/ssl_error.log
-TransferLog /var/log/apache2/ssl_access.log
-LogLevel warn
+    #SSL
+    SSLEngine on
+    SSLProtocol all -SSLv2
+    SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
+    SSLCertificateFile /etc/ssl/certs/BASECERTHERE
+    SSLCertificateKeyFile /etc/ssl/private/KEYHERE
+    SSLCertificateChainFile /etc/ssl/certs/BUNDLECERTHERE
 
 
-#SSL
-SSLEngine on
-SSLProtocol all -SSLv2
-SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
-SSLCertificateFile /etc/ssl/certs/BASECERTHERE
-SSLCertificateKeyFile /etc/ssl/private/KEYHERE
-SSLCertificateChainFile /etc/ssl/certs/BUNDLECERTHERE
+    # Static files
+    # The following URLs are proxied to ATMOSPHERE:
+    Alias /static/admin LOCATIONOFATMOSPHEREHERE/static/admin
+    Alias /static/rest_framework_swagger LOCATIONOFATMOSPHEREHERE/static/rest_framework_swagger
+    Alias /static/rest_framework LOCATIONOFATMOSPHEREHERE/static/rest_framework
 
-<Files ~ "\.(cgi|shtml|phtml|php3?)$">
-    SSLOptions +StdEnvVars
-</Files>
-<Directory "/var/www/cgi-bin">
-    SSLOptions +StdEnvVars
-</Directory>
+    # The following URLs are proxied to TROPOSPHERE:
+    Alias /static LOCATIONOFTROPOSPHERE/troposphere/assets
+    Alias /resources LOCATIONOFTROPOSPHERE/resources
 
-SetEnvIf User-Agent ".*MSIE.*" \
-         nokeepalive ssl-unclean-shutdown \
-         downgrade-1.0 force-response-1.0
+    # Logging
+    ErrorLog /var/log/apache2/ssl_error.log
+    TransferLog /var/log/apache2/ssl_access.log
+    LogLevel warn
 
+    RewriteEngine On
+    # The following Rewrites should point to ATMOSPHERE:
+    RewriteRule ^/api/(.*)   https://localhost:5000/api/$1 [P]
+    RewriteRule ^/api-docs/(.*)   https://localhost:5000/api-docs/$1 [P]
+    RewriteRule ^/admin/(.*)   https://localhost:5000/admin/$1 [P]
 
-#This is for atmosphere
-Alias /favicon.ico LOCATIONOFATMOSPHEREHERE/static/images/favicon.ico
-Alias /robots.txt LOCATIONOFATMOSPHEREHERE/templates/robots.txt
-#init_files && resources will auto-direct to the file
-Alias /init_files LOCATIONOFATMOSPHEREHERE/init_files
-Alias /resources LOCATIONOFATMOSPHEREHERE/resources
-Alias /static LOCATIONOFATMOSPHEREHERE/static
+    WSGIDaemonProcess troposphere_app processes=1 threads=15 display-name=%{GROUP}
+    WSGIProcessGroup troposphere_app
 
-#Assing WSGI to any other folder
-WSGIScriptAlias / LOCATIONOFATMOSPHEREHERE/atmosphere/wsgi.py
+    WSGIScriptAlias / LOCATIONOFTROPOSPHERE/troposphere/wsgi.py
 
-#Notifications
-<Location /n/>
-          ProxyPass http://localhost:9000/
-</Location>
+</VirtualHost>
 
-# Shell
-<Location /shell>
-    AuthType CAS
-    AuthName "CAS"
-    require valid-user
-    CASScope /
-    Order allow,deny
-    Allow from all
-</Location>
+Listen 5000
+<VirtualHost *:5000>
 
+    #Rewrite 
+    RewriteEngine On
+    # Necessary for DRF and Token Authorization
+    RewriteCond %{HTTP:Authorization} ^(.*)
+    RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
+
+    #Send iplantcollabortive to iplantc
+    RewriteCond %{HTTP_HOST} ^MYHOSTNAMEHERE.iplantcollaborative.org$
+    RewriteRule ^/(.*)$       https://MYHOSTNAMEHERE.iplantc.org/$1 [R,L]
+    
+    
+    #Logging
+    ErrorLog /var/log/apache2/ssl_error.log
+    TransferLog /var/log/apache2/ssl_access.log
+    LogLevel warn
+    
+    #SSL
+    SSLEngine on
+    SSLProtocol all -SSLv2
+    SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
+    SSLCertificateFile /etc/ssl/certs/BASECERTHERE
+    SSLCertificateKeyFile /etc/ssl/private/KEYHERE
+    SSLCertificateChainFile /etc/ssl/certs/BUNDLECERTHERE
+    
+    <Files ~ "\.(cgi|shtml|phtml|php3?)$">
+        SSLOptions +StdEnvVars
+    </Files>
+    <Directory "/var/www/cgi-bin">
+        SSLOptions +StdEnvVars
+    </Directory>
+    
+    SetEnvIf User-Agent ".*MSIE.*" \
+             nokeepalive ssl-unclean-shutdown \
+             downgrade-1.0 force-response-1.0
+    
+    #This is for atmosphere
+    #favicon and robots are better served outside of WSGI
+    Alias /favicon.ico LOCATIONOFATMOSPHERE/static/images/favicon.ico
+    Alias /robots.txt LOCATIONOFATMOSPHERE/templates/robots.txt
+
+    #init_files && resources will auto-direct to the file
+    Alias /init_files LOCATIONOFATMOSPHERE/init_files
+    Alias /resources LOCATIONOFATMOSPHERE/resources
+    Alias /static LOCATIONOFATMOSPHERE/static
+
+    #Passing WSGI to any other folder
+    WSGIDaemonProcess atmosphere_app processes=1 threads=15 display-name=%{GROUP}
+    WSGIProcessGroup atmosphere_app
+
+    WSGIScriptAlias / LOCATIONOFATMOSPHERE/atmosphere/wsgi.py
+    
+    # Shell
+    <Location /shell>
+        AuthType CAS
+        AuthName "CAS"
+        require valid-user
+        CASScope /
+        Order allow,deny
+        Allow from all
+    </Location>
+    
+    
 </VirtualHost>

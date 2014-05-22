@@ -15,6 +15,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		'click .request_imaging_btn': 'request_imaging',
 		'click .report_instance_btn': 'report_instance',
 		'click .resize_instance_btn' : 'resize_instance',
+		'click .console_instance_btn' : 'console_instance',
 		'click .reboot_instance_btn' : 'reboot_instance',
         'click .hard_reboot_instance_btn' : 'hard_reboot_instance',
 		'change select[name="vis"]': 'toggle_vis_input',
@@ -490,6 +491,25 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		this.$el.find('a.report_instance_tab').fadeIn('fast').trigger('click');
 		this.$el.find('.report_instance_form').fadeIn('fast');
 
+	},
+	console_instance: function() {
+		Atmo.Utils.notify('Launching Instance Console', 'The new console window will appear in a new tab momentarily.');
+        data = {"action":"console"};
+	    var newtab = window.open(url, '_blank');
+		var ident = Atmo.profile.get('selected_identity');
+		var instance_id = this.model.get('id');
+		$.ajax({
+			url: site_root + '/api/v1/provider/' + ident.get('provider_id') + '/identity/' + ident.get('id') + '/instance/' + instance_id + '/action/',
+			type: 'POST',
+			data: data,
+			success: function(result_obj) {
+                url = result_obj['object']
+                newtab.location = url;
+			},
+			error: function(request, status, error) {
+			   Atmo.Utils.notifyErrors(request, 'Could not stop instance for the following error(s):');	
+			}
+		});
 	},
 	resize_instance: function() {
 

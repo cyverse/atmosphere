@@ -228,7 +228,7 @@ INIT_SCRIPT_PREFIX = '/init_files/'
 
 ## logging
 LOGGING_LEVEL = logging.DEBUG
-DEP_LOGGING_LEVEL = logging.INFO  # Logging level for dependencies.
+DEP_LOGGING_LEVEL = logging.DEBUG  # Logging level for dependencies.
 LOG_FILENAME = os.path.abspath(os.path.join(
     os.path.dirname(atmosphere.__file__),
     '..',
@@ -325,7 +325,6 @@ SERVICE_URL = SERVER_URL + '/CAS_serviceValidater?sendback='\
     + REDIRECT_URL + '/application/'
 PROXY_URL = SERVER_URL + '/CAS_proxyUrl'
 PROXY_CALLBACK_URL = SERVER_URL + '/CAS_proxyCallback'
-caslib.cas_init(CAS_SERVER, SERVICE_URL, PROXY_URL, PROXY_CALLBACK_URL)
 
 
 #pyes secrets
@@ -405,8 +404,8 @@ CELERY_ROUTES += ({
         {"queue": "imaging", "routing_key": "imaging.complete"},
         },)
 #     # Django-Celery Development settings
-#     CELERY_ALWAYS_EAGER = True
-#     CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
+# CELERY_ALWAYS_EAGER = True
+# CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
 import djcelery
 djcelery.setup_loader()

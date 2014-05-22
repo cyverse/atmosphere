@@ -188,105 +188,108 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
         else if (task ==='deploy_error') {
             return 'deploy_error';
         }
-		else {
-			return 'active';
-			// Applies for: hard_reboot, build, shutoff, suspended, and revert_resize
-		}
-	},
-	add_instance_task: function() {
-		// So we know not to override stuff if the API respond reverts to a non-task state
-		this.in_task = true;
-
-		var percent = 0;
-
-		if (this.model.get('state').indexOf('-') == -1) {
-			/* This can mean one of two things: 
-				1. Instance has reached final state (it's 100% done)
-				2. The instance hasn't been reached in the queue (it's 5% done)
-			*/
-				percent = (this.final_state == this.model.get('state')) ? 100 : 5;
-
-		}
-		else {
-			var parts = this.model.get('state').split('-');
-			var state = parts[0].trim();
-			var task = parts[1].trim();
-
-			// Deal with Openstack Grizzly's silly hyphenated states "powering-on" and "powering-off"
-			if (parts.length == 3)
-				task = parts[1].trim() + '-' + parts[2].trim();
-
-			percent = this.get_percent_complete(state, task);
-			this.final_state = this.get_final_state(state, task);
-		}
-        
-        if(this.final_state !== 'deploy_error'){
-            // Do initial update
-            this.update_percent_complete(percent);
-           // Initialize polling
-            this.poll_instance();
+        else {
+            return 'active';
+            // Applies for: hard_reboot, build, shutoff, suspended, and revert_resize
         }
-	},
-	update_percent_complete: function(percent) {
+    },
+    add_instance_task: function() {
+        // So we know not to override stuff if the API respond reverts to a non-task state
+        this.in_task = true;
 
-		var graph_holder, graph_bar, self = this;
-		if (this.$el.find('.graphBar').length == 1) {
-			graph_holder = this.$el.find('.graphBar');
-			graph_bar = this.$el.find('[class$="GraphBar active"]');
-			graph_bar.css('width', ''+percent+'%');
-		}
-		else {
-			this.$el.find('.media-body').append($('<div>', {
-				class: 'graphBar',
-				style: 'height: 16px'
-			}));
-			graph_holder = this.$el.find('.graphBar');
-			graph_holder.append($('<div>', {
-				class: 'blueGraphBar active',
-				width: '0%'
-			}));
-			graph_bar = graph_holder.children();
-		}
+        var percent = 0;
 
-		// Update if necessary
-		setTimeout(function() {
-			graph_bar.css('width', ''+percent+'%');
-		}, 1.5 * 1000);
+        if (this.model.get('state').indexOf('-') == -1) {
+            /* This can mean one of two things: 
+                1. Instance has reached final state (it's 100% done)
+                2. The instance hasn't been reached in the queue (it's 5% done)
+            */
+                percent = (this.final_state == this.model.get('state')) ? 100 : 5;
 
-		if (percent == 100) {
-			clearInterval(this.poll);
-			this.poll = undefined;
-			this.final_state = undefined;
+        }
+        else {
+            var parts = this.model.get('state').split('-');
+            var state = parts[0].trim();
+            var task = parts[1].trim();
 
-			// Allow animation to complete, then hide graph bar
-			setTimeout(function() {
-				self.$el.find('.graphBar').slideUp('fast', function() {
-					$(this).remove();	
-				});
-			}, 2 * 1000);
+            // Deal with Openstack Grizzly's silly hyphenated states "powering-on" and "powering-off"
+            if (parts.length == 3)
+                task = parts[1].trim() + '-' + parts[2].trim();
 
-			this.in_task = false;
-		}
-	},
-	get_percent_complete: function(state, task) {
-		var states = {
-			'build' : {
-				'block_device_mapping' : 10,			// Number represents percent task *completed* when in this state
-				'scheduling' : 20,
-				'networking' : 30,
-				'spawning' : 40,
-			},
-			'reboot' : {
-				'rebooting' : 50
-			},
-			'hard_reboot' : {
-				'rebooting_hard' : 50
-			},
-			'resize' : {
-				'resize_prep' : 10,
-				'resize_migrating' : 20,
-				'resize_migrated' : 40,
-				'resize_finish' : 70,
+            percent = this.get_percent_complete(state, task);
+            this.final_state = this.get_final_state(state, task);
+        }
+        if(this.final_state === 'deploy_error'){
+            return
+        }
+
+        // Do initial update
+        this.update_percent_complete(percent);
+
+        // Initialize polling
+        this.poll_instance();
+
+    },
+    update_percent_complete: function(percent) {
+
+        var graph_holder, graph_bar, self = this;
+        if (this.$el.find('.graphBar').length == 1) {
+            graph_holder = this.$el.find('.graphBar');
+            graph_bar = this.$el.find('[class$="GraphBar active"]');
+            graph_bar.css('width', ''+percent+'%');
+        }
+        else {
+            this.$el.find('.media-body').append($('<div>', {
+                class: 'graphBar',
+                style: 'height: 16px'
+            }));
+            graph_holder = this.$el.find('.graphBar');
+            graph_holder.append($('<div>', {
+                class: 'blueGraphBar active',
+                width: '0%'
+            }));
+            graph_bar = graph_holder.children();
+        }
+
+        // Update if necessary
+        setTimeout(function() {
+            graph_bar.css('width', ''+percent+'%');
+        }, 1.5 * 1000);
+
+        if (percent == 100) {
+            clearInterval(this.poll);
+            this.poll = undefined;
+            this.final_state = undefined;
+
+            // Allow animation to complete, then hide graph bar
+            setTimeout(function() {
+                self.$el.find('.graphBar').slideUp('fast', function() {
+                    $(this).remove();    
+                });
+            }, 2 * 1000);
+
+            this.in_task = false;
+        }
+    },
+    get_percent_complete: function(state, task) {
+        var states = {
+            'build' : {
+                'block_device_mapping' : 10,            // Number represents percent task *completed* when in this state
+                'scheduling' : 20,
+                'networking' : 30,
+                'spawning' : 40,
+            },
+            'reboot' : {
+                'rebooting' : 50
+            },
+            'hard_reboot' : {
+                'rebooting_hard' : 50
+            },
+            'resize' : {
+                'resize_prep' : 10,
+                'resize_migrating' : 20,
+                'resize_migrated' : 40,
+                'resize_finish' : 70,
                 'verify_resize' : 90,
             },
             'active' : {

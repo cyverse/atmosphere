@@ -17,12 +17,6 @@ from authentication.token import validate_token
 
 def atmo_login_required(func):
     def atmo_login(request, *args, **kwargs):
-        """
-        Django Requests need to be formally logged in to Django
-        However, WHO needs to be authenticated is determined
-        by the available server session data
-        @redirect - location to redirect user after logging in
-        """
         if not request:
             logger.debug("[NOREQUEST] User is being logged out because request"
                          " is empty")
@@ -75,13 +69,8 @@ def atmo_login_required(func):
 
 
 def atmo_valid_token_required(func):
-    """
-    Use this decorator to authenticate WSGIRequest objects (Legacy..Supported)
-    """
     def atmo_validate_token(request, *args, **kwargs):
-        """
-        Used for requests that require a valid token
-        """
+        #Used for requests that require a valid token
         token_key = request.session.get('token')
         if validate_token(token_key, request):
             return func(request, *args, **kwargs)
@@ -91,22 +80,11 @@ def atmo_valid_token_required(func):
     return atmo_validate_token
 
 def validate_request_user(request):
-    """
-    Used for requests that require a valid token
-    NOTE: Calling request.user for the first time will call 'authenticate'
-        in the auth.token.TokenAuthentication class
-    """
     user = request.user
     return True if user and user.is_authenticated() else False
 
 def api_auth_token_required(func):
-    """
-    Use this decorator to authenticate rest_framework.request.Request objects
-    """
     def validate_auth_token(decorated_func, *args, **kwargs):
-        """
-        Redirect requests to this decorator if the request user is invalid
-        """
         request = args[0]
         valid_user = validate_request_user(request)
         if not valid_user:
@@ -120,18 +98,10 @@ def api_auth_token_required(func):
     return validate_auth_token
 
 def api_auth_token_optional(func):
-    """
-    This decorator is used for a specific API endpoint:
-    * Endpoint authentication NOT required
-    * IF authenticated, the result of the function changes.
-
-    If your endpoint does not match the second case, no decorator is necessary.
-    """
     def validate_auth_token(decorated_func, *args, **kwargs):
-        """
-        NOTE: Calling request.user for the first time will call 'authenticate'
-            in the auth.token.TokenAuthentication class
-        """
+        #Used for requests that require a valid token
+        #NOTE: Calling request.user for the first time will call 'authenticate'
+        #    in the auth.token.TokenAuthentication class
         request = args[0]
         #The result is irrelevant, but
         # the func will be able to 

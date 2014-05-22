@@ -29,6 +29,7 @@ from rest_framework import pagination
 
 from threepio import logger
 
+only_current = Q(end_date=None) | Q(end_date__gt=timezone.now())
 """
 Useful Serializer methods here..
 """
@@ -38,11 +39,12 @@ def get_context_user(serializer, kwargs, required=False):
     user = context.get('user')
     request = context.get('request')
     if not user and not request:
-        print_str = "%s was initialized "\
-                    "without appropriate context."\
-                    "For complete results include the 'context' kwarg, "\
-                    "with key 'request' OR 'user'."\
-                    " (e.g. context={'user':user,'request':request})"\
+        print_str = "%s was initialized"\
+                    " without appropriate context."\
+                    " Sometimes, like on imports, this is normal."\
+                    " For complete results include the \"context\" kwarg,"\
+                    " with key \"request\" OR \"user\"."\
+                    " (e.g. context={\"user\":user,\"request\":request})"\
                     % (serializer,)
         if required:
             raise Exception(print_str)
@@ -54,8 +56,8 @@ def get_context_user(serializer, kwargs, required=False):
         if type(user) == str:
             user = AtmosphereUser.objects.get(
                     username=user)
-        elif type(user) != AtmosphereUser:
-            raise Exception("This Serializer REQUIRES the 'user' "
+        elif type(user) not in [AnonymousUser,AtmosphereUser]:
+            raise Exception("This Serializer REQUIRES the \"user\" "
                             "to be of type str or AtmosphereUser")
     elif request:
         user = request.user
@@ -623,18 +625,19 @@ class VolumeSerializer(serializers.ModelSerializer):
 
 
 class ProjectSerializer(serializers.ModelSerializer):
+    #Edits to Writable fields..
+    owner = serializers.SlugRelatedField(slug_field="name")
     # These fields are READ-ONLY!
-    owner = serializers.Field(source="owner")
     applications = serializers.SerializerMethodField('get_user_applications')
     instances = serializers.SerializerMethodField('get_user_instances')
     volumes = serializers.SerializerMethodField('get_user_volumes')
 
     def get_user_applications(self, project):
-        return [ApplicationSerializer(item,context={'user':self.context.get('user')}).data for item in project.applications.all()]
+        return [ApplicationSerializer(item,context={'user':self.context.get('user')}).data for item in project.applications.filter(only_current)]
     def get_user_instances(self, project):
-        return [InstanceSerializer(item,context={'user':self.context.get('user')}).data for item in project.instances.all()]
+        return [InstanceSerializer(item,context={'user':self.context.get('user')}).data for item in project.instances.filter(only_current)]
     def get_user_volumes(self, project):
-        return [VolumeSerializer(item, context={'user':self.context.get('user')}).data for item in project.volumes.all()]
+        return [VolumeSerializer(item, context={'user':self.context.get('user')}).data for item in project.volumes.filter(only_current)]
 
 
     def __init__(self, *args, **kwargs):

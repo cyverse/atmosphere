@@ -48,9 +48,7 @@ provider_specific = r"^provider/(?P<provider_id>\d+)"
 identity_specific = provider_specific + r"/identity/(?P<identity_id>\d+)"
 user_match = "[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*)"
 
-urlpatterns = format_suffix_patterns(patterns(
-    '',
-
+private_apis = patterns('',
     # E-mail API
     url(r'^email/feedback', Feedback.as_view()),
     url(r'^email/support', SupportEmail.as_view()),
@@ -64,7 +62,7 @@ urlpatterns = format_suffix_patterns(patterns(
     # static files
     url(r'^init_files/(?P<file_location>.*)$', 'web.views.get_resource'),
 
-    # v1 of The atmosphere API 
+    #Project Related APIs
     url(r'project/$',
         ProjectList.as_view(),
         name='project-list'),
@@ -94,10 +92,6 @@ urlpatterns = format_suffix_patterns(patterns(
 
 
 
-    url(r'version/$', Version.as_view()),
-    url(r'^maintenance/$',
-        MaintenanceRecordList.as_view(),
-        name='maintenance-record-list'),
     url(r'^maintenance/(?P<record_id>\d+)/$',
         MaintenanceRecord.as_view(),
         name='maintenance-record'),
@@ -105,22 +99,13 @@ urlpatterns = format_suffix_patterns(patterns(
 
     #url(r'^user/$', atmo_valid_token_required(UserManagement.as_view())),
     #url(r'^user/(?P<username>.*)/$', User.as_view()),
-    url(r'^profile/$', Profile.as_view(), name='profile'),
+
     url(provider_specific + r'/occupancy/$',
         Occupancy.as_view(), name='occupancy'),
     url(provider_specific + r'/hypervisor/$',
         Hypervisor.as_view(), name='hypervisor'),
 
-    url(r'^group/$', GroupList.as_view(), name='group-list'),
-    url(r'^group/(?P<groupname>.*)/$', Group.as_view()),
-
-    url(r'^tag/$', TagList.as_view(), name='tag-list'),
-    url(r'^tag/(?P<tag_slug>.*)/$', Tag.as_view()),
-
-    url(r'^application/$',
-        ApplicationList.as_view(),
-        name='application-list'),
-
+    #Application Bookmarks (Leave out until new UI Ready )
     url(r'^bookmark/$',
         ApplicationBookmarkList.as_view(), name='bookmark-list'),
 
@@ -131,16 +116,7 @@ urlpatterns = format_suffix_patterns(patterns(
         ApplicationBookmarkDetail.as_view(), name='bookmark-application'),
 
 
-    url(r'^application/search/$',
-        ApplicationSearch.as_view(),
-        name='application-search'),
-    url(r'^application/(?P<app_uuid>[a-zA-Z0-9-]+)/$',
-        Application.as_view(),
-        name='application-detail'),
-
-    url(r'^instance/$', InstanceHistory.as_view(),
-        name='instance-history'),
-
+    #Machine Requests (Staff view)
     url(r'^request_image/$',
         MachineRequestStaffList.as_view(), name='direct-machine-request-list'),
     url(r'^request_image/(?P<machine_request_id>\d+)/$',
@@ -158,16 +134,55 @@ urlpatterns = format_suffix_patterns(patterns(
     url(identity_specific + r'/image_export/(?P<machine_request_id>\d+)/$',
         MachineExport.as_view(), name='machine-export'),
 
+    url(identity_specific + r'/hypervisor/$',
+        HypervisorList.as_view(), name='hypervisor-list'),
+    url(identity_specific + r'/hypervisor/(?P<hypervisor_id>\d+)/$',
+        HypervisorDetail.as_view(), name='hypervisor-detail'),
 
-    url(identity_specific + r'/request_image/$',
-        MachineRequestList.as_view(), name='machine-request-list'),
-    url(identity_specific + r'/request_image/(?P<machine_request_id>\d+)/$',
-        MachineRequest.as_view(), name='machine-request'),
+    url(identity_specific + r'/step/$',
+        StepList.as_view(), name='step-list'),
+    url(identity_specific + r'/step/(?P<step_id>[a-zA-Z0-9-]+)/$',
+        Step.as_view(), name='step-detail'),
 
 
-    url(identity_specific + r'/profile/$',
-        Profile.as_view(), name='profile-detail'),
 
+    #TODO: Uncomment when 'voting' feature is ready.
+    url(identity_specific + r'/machine/(?P<machine_id>[a-zA-Z0-9-]+)/vote/$',
+        MachineVote.as_view(), name='machine-vote'),
+
+    url(identity_specific + r'/meta/$', Meta.as_view(), name='meta-detail'),
+    url(identity_specific + r'/meta/(?P<action>.*)/$',
+        MetaAction.as_view(), name='meta-action'),
+
+    url(identity_specific + r'/members/$',
+        IdentityMembershipList.as_view(), name='identity-membership-list'),
+    url(identity_specific + r'/members/(?P<group_name>(%s)$' % user_match,
+        IdentityMembership.as_view(), name='identity-membership-detail'),
+)
+
+public_apis = format_suffix_patterns(patterns(
+    '',
+    url(r'^profile/$', Profile.as_view(), name='profile'),
+
+    url(r'^group/$', GroupList.as_view(), name='group-list'),
+    url(r'^group/(?P<groupname>.*)/$', Group.as_view()),
+
+    url(r'^tag/$', TagList.as_view(), name='tag-list'),
+    url(r'^tag/(?P<tag_slug>.*)/$', Tag.as_view()),
+
+    url(r'^application/$',
+        ApplicationList.as_view(),
+        name='application-list'),
+
+    url(r'^application/search/$',
+        ApplicationSearch.as_view(),
+        name='application-search'),
+    url(r'^application/(?P<app_uuid>[a-zA-Z0-9-]+)/$',
+        Application.as_view(),
+        name='application-detail'),
+
+    url(r'^instance/$', InstanceHistory.as_view(),
+        name='instance-history'),
 
     url(identity_specific + r'/instance/'
         + '(?P<instance_id>[a-zA-Z0-9-]+)/action/$',
@@ -179,21 +194,10 @@ urlpatterns = format_suffix_patterns(patterns(
     url(identity_specific + r'/instance/$',
         InstanceList.as_view(), name='instance-list'),
 
-    url(identity_specific + r'/hypervisor/$',
-        HypervisorList.as_view(), name='hypervisor-list'),
-    url(identity_specific + r'/hypervisor/(?P<hypervisor_id>\d+)/$',
-        HypervisorDetail.as_view(), name='hypervisor-detail'),
-
     url(identity_specific + r'/size/$',
         SizeList.as_view(), name='size-list'),
     url(identity_specific + r'/size/(?P<size_id>\d+)/$',
         Size.as_view(), name='size-detail'),
-
-
-    url(identity_specific + r'/step/$',
-        StepList.as_view(), name='step-list'),
-    url(identity_specific + r'/step/(?P<step_id>[a-zA-Z0-9-]+)/$',
-        Step.as_view(), name='step-detail'),
 
 
     url(identity_specific + r'/volume/$',
@@ -212,21 +216,6 @@ urlpatterns = format_suffix_patterns(patterns(
         Machine.as_view(), name='machine-detail'),
     url(identity_specific + r'/machine/(?P<machine_id>[a-zA-Z0-9-]+)'
         + '/icon/$', MachineIcon.as_view(), name='machine-icon'),
-    #TODO: Uncomment when 'voting' feature is ready.
-    #url(identity_specific + r'/machine/(?P<machine_id>[a-zA-Z0-9-]+)'
-    #    + '/vote/$',
-    #    MachineVote.as_view(), name='machine-vote'),
-
-
-    url(identity_specific + r'/meta/$', Meta.as_view(), name='meta-detail'),
-    url(identity_specific + r'/meta/(?P<action>.*)/$',
-        MetaAction.as_view(), name='meta-action'),
-
-
-    url(identity_specific + r'/members/$',
-        IdentityMembershipList.as_view(), name='identity-membership-list'),
-    url(identity_specific + r'/members/(?P<group_name>(%s)$' % user_match,
-        IdentityMembership.as_view(), name='identity-membership-detail'),
 
     url(provider_specific + r'/identity/$', IdentityList.as_view(), name='identity-list'),
     url(identity_specific + r'/$', Identity.as_view(), name='identity-detail'),
@@ -237,5 +226,25 @@ urlpatterns = format_suffix_patterns(patterns(
     url(r'^provider/(?P<provider_id>\d+)/$',
         Provider.as_view(), name='provider-detail'),
 
+
+    url(identity_specific + r'/request_image/$',
+        MachineRequestList.as_view(), name='machine-request-list'),
+    url(identity_specific + r'/request_image/(?P<machine_request_id>\d+)/$',
+        MachineRequest.as_view(), name='machine-request'),
+
+
+    url(identity_specific + r'/profile/$',
+        Profile.as_view(), name='profile-detail'),
+
+    url(r'version/$', Version.as_view()),
+    url(r'^maintenance/$',
+        MaintenanceRecordList.as_view(),
+        name='maintenance-record-list'),
+
 ))
+urlpatterns = patterns('',
+        url(r'^', include(private_apis,namespace="private_apis")))
+urlpatterns += patterns('',
+        url(r'^', include(public_apis,namespace="public_apis")))
+
 

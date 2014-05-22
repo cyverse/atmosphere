@@ -20,6 +20,9 @@ def get_uid_number(userid):
                              ldap_driver.SCOPE_SUBTREE,
                              "(uid=%s)" % userid)
         return int(attr[0][1]["uidNumber"][0]) - 10000
+    except IndexError:
+        logger.warn("Error - User %s does not exist" % userid)
+        return None
     except Exception as e:
         logger.warn("Error occurred getting user uidNumber for user: %s" % userid)
         logger.exception(e)
