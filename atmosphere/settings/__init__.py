@@ -68,6 +68,7 @@ INSTALLED_APPS = (
     'djcelery',
     'django_jenkins',
     'pipeline',
+    'corsheaders',
 
     #iPlant apps
     'rtwo',
@@ -165,7 +166,11 @@ TEMPLATE_LOADERS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'corsheaders.middleware.CorsMiddleware',
+    # corsheaders.middleware.CorsMiddleware Must be ahead of
+    # configuration CommonMiddleware for an edge case.
     'django.middleware.common.CommonMiddleware',
+
     'django.middleware.csrf.CsrfViewMiddleware',
 
     'django.middleware.gzip.GZipMiddleware',
@@ -196,6 +201,9 @@ AUTHENTICATION_BACKENDS = (
     #'django.contrib.auth.backends.ModelBackend',
 )
 
+# django-cors-headers
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_WHITELIST = None
 
 JENKINS_TASKS = (
     'django_jenkins.tasks.with_coverage',

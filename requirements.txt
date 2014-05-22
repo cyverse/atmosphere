@@ -7,6 +7,7 @@ South==0.8.4
 apache-libcloud==0.14.0
 celery==3.1.9
 django-celery==3.1.9
+django-cors-headers==0.12
 django-pipeline==1.3.20
 djangorestframework==2.3.12
 #django-rest-swagger==0.1.14
