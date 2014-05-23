@@ -342,6 +342,7 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
 def deploy_failed(task_uuid, driverCls, provider, identity, instance_id,
                   **celery_task_args):
     from core.models.instance import Instance
+    from core.email import send_deploy_failed_email
     try:
         logger.debug("deploy_failed task started at %s." % datetime.now())
         logger.info("task_uuid=%s" % task_uuid)
