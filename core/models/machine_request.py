@@ -246,7 +246,7 @@ def process_machine_request(machine_request, new_image_id):
     parent_mach = machine_request.instance.provider_machine
     parent_app = machine_request.instance.provider_machine.application
     if machine_request.new_machine_tags:
-        tags = [Tag.objects.get(name__iexact=tag) for tag in
+        tags = [Tag.objects.filter(name__iexact=tag)[0] for tag in
                 machine_request.new_machine_tags.split(',')]
     else:
         tags = []
