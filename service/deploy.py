@@ -19,18 +19,19 @@ from authentication.protocol import ldap
 # Deployment Classes
 #
 class LoggedScriptDeployment(ScriptDeployment):
-
-    def __init__(self, script, name=None, delete=False, logfile=None):
+    def __init__(self, script, name=None, delete=False, logfile=None,
+                 attempts=1):
         """
         Use this for client-side logging
         """
         super(LoggedScriptDeployment, self).__init__(
             script, name=name, delete=delete)
+        self.attempts = attempts
         if logfile:
             self.script = self.script + " >> %s 2>&1" % logfile
         #logger.info(self.script)
 
-    def run(self, node, client, attempts=1):
+    def run(self, node, client):
         """
         Server-side logging
 
@@ -39,7 +40,7 @@ class LoggedScriptDeployment(ScriptDeployment):
         """
         attempt = 0
         retry_time = 0
-        while attempt < attempts:
+        while attempt < self.attempts:
             node = super(LoggedScriptDeployment, self).run(node, client)
             if self.exit_status == 0:
                 break
@@ -48,7 +49,7 @@ class LoggedScriptDeployment(ScriptDeployment):
             logger.debug(
                 "WARN: Script %s on Node %s is non-zero."
                 " Will re-try in %s seconds. Attempt: %s/%s"
-                % (node.id, self.name, retry_time, attempt, attempts))
+                % (node.id, self.name, retry_time, attempt, self.attempts))
             time.sleep(retry_time)
 
         if self.stdout:

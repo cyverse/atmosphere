@@ -62,6 +62,7 @@ ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE.iplantc.org/jenkins
 
     # Static files
     # The following URLs are proxied to ATMOSPHERE:
+    Alias /init_files LOCATIONOFATMOSPHERE/init_files
     Alias /static/admin LOCATIONOFATMOSPHEREHERE/static/admin
     Alias /static/rest_framework_swagger LOCATIONOFATMOSPHEREHERE/static/rest_framework_swagger
     Alias /static/rest_framework LOCATIONOFATMOSPHEREHERE/static/rest_framework

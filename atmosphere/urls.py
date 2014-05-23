@@ -52,13 +52,13 @@ urlpatterns = patterns(
 
     # ADMIN Section:
     # Emulation controls for admin users
-    url(r'^admin/emulate/$', 'web.views.emulate_request'),
-    url(r'^admin/emulate/(?P<username>(%s)/$' % user_match, 'web.views.emulate_request'),
+    url(r'^admin/emulate[/]?$', 'web.views.emulate_request'),
+    url(r'^admin/emulate/(?P<username>(%s)[/]?$' % user_match, 'web.views.emulate_request'),
     # DB Admin Panel for admin users
     url(r'^admin/', include(admin.site.urls)),
 
     #v2 api auth by token
-    url(r'^auth/$', 'authentication.views.token_auth', name='token-auth'),
+    url(r'^auth[/]?$', 'authentication.views.token_auth', name='token-auth'),
 
     #File Retrieval:
     # Systemwide
@@ -68,8 +68,8 @@ urlpatterns = patterns(
 
     # GLOBAL Authentication Section:
     #   Login/Logout
-    url(r'^login/$', 'web.views.login'),
-    url(r'^logout/$', 'web.views.logout'),
+    url(r'^login[/]?$', 'web.views.login'),
+    url(r'^logout[/]?$', 'web.views.logout'),
     # CAS Authentication Section:
     #    CAS Validation:
     #    Service URL validates the ticket returned after CAS login
@@ -87,7 +87,7 @@ urlpatterns = patterns(
     url(r'^CASlogin/(?P<redirect>.*)$', 'authentication.cas_loginRedirect'),
 
     # The Front-Facing Web Application
-    url(r'^application/$', 'web.views.app'),
+    url(r'^application[/]?$', 'web.views.app'),
 
     # Experimental UI
     # TODO: Rename to application when it launches
@@ -96,7 +96,7 @@ urlpatterns = patterns(
     url(r'^partials/(?P<path>.*)$', 'web.views.partial'),
 
     #Error Redirection
-    url(r'^no_user/$', 'web.views.no_user_redirect'),
+    url(r'^no_user[/]?$', 'web.views.no_user_redirect'),
     #API Layer
     url(r'^api/v1/', include("api.urls", namespace="api")),
 
