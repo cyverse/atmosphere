@@ -858,15 +858,15 @@ def set_user_home_dir():
 
 def denyhost_whitelist():
     allow_list = [
-        "127.0.0.1"
-        "128.196.38.[1-127]"
-        "128.196.64.[1-512]"
-        "128.196.142.*"
-        "128.196.172.[128-255]"
-        "150.135.78.*"
-        "150.135.93.[128-255]"
-        "10.130.5.[128-155]"
-        "10.140.65.*"
+        "127.0.0.1",
+        "128.196.38.[1-127]",
+        "128.196.64.[1-512]",
+        "128.196.142.*",
+        "128.196.172.[128-255]",
+        "150.135.78.*",
+        "150.135.93.[128-255]",
+        "10.130.5.[128-155]",
+        "10.140.65.*",
     ]
     filename = "/var/lib/denyhosts/allowed-hosts"
     dirname = os.path.dirname(filename)
@@ -1037,6 +1037,7 @@ def run_boot_scripts():
         full_path = os.path.join(post_script_dir, file_name)
         try:
             if is_executable(full_path):
+                logging.info("Executing post-boot script: %s" % full_path)
                 output, error = run_command([full_path])
                 with open(stdout_logfile,'a') as output_file:
                     output_file.write("--\n%s OUTPUT:\n%s\n" % (full_path, output))
