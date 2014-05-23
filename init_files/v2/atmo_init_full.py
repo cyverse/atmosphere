@@ -328,7 +328,12 @@ def get_metadata():
 
 def collect_json_metadata(metadata_url):
     content = _make_request(metadata_url)
-    meta_obj = json.loads(content)
+    try:
+        meta_obj = json.loads(content)
+    except ValueError, bad_content:
+        logging.exception("JSON Metadata NOT FOUND. URL: %s" % request_url)
+        meta_obj = {}
+
     return meta_obj
 
 
