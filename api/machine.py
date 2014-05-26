@@ -1,3 +1,8 @@
+"""
+Atmosphere service machine rest api.
+
+"""
+import os
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 from django.db.models import Q
@@ -12,12 +17,13 @@ from core.models import AtmosphereUser as User
 from core.models.application import ApplicationScore
 from core.models.identity import Identity
 from core.models.machine import compare_core_machines, filter_core_machine,\
-    convert_esh_machine, ProviderMachine
+    update_application_owner, convert_esh_machine, ProviderMachine
 from core.metadata import update_machine_metadata
 
 from service.machine_search import search, CoreSearchProvider
 
 from api import prepare_driver, failure_response, invalid_creds
+from api.renderers import JPEGRenderer, PNGRenderer
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProviderMachineSerializer,\
     PaginatedProviderMachineSerializer, ApplicationScoreSerializer
@@ -42,11 +48,12 @@ def list_filtered_machines(esh_driver, provider_id, request_user=None):
         esh_machine_list,
         black_list=['eki-', 'eri-'])
     #logger.info("Filtered machines from esh:%s" % len(esh_machine_list))
-    core_machine_list = [convert_esh_machine(esh_driver, mach, provider_id)
+    core_machine_list = [convert_esh_machine(esh_driver, mach,
+                                             provider_id, request_user)
                          for mach in esh_machine_list]
     #logger.info("Core machines :%s" % len(core_machine_list))
     filtered_machine_list = [core_mach for core_mach in core_machine_list
-                             if filter_core_machine(core_mach, request_user)]
+                             if filter_core_machine(core_mach)]
     #logger.info("Filtered Core machines :%s" % len(filtered_machine_list))
     sorted_machine_list = sorted(filtered_machine_list,
                                  cmp=compare_core_machines)
@@ -62,7 +69,7 @@ def all_filtered_machines():
 class MachineList(APIView):
     """List of machines."""
 
-    permission_classes = (InMaintenance,ApiAuthRequired)
+    permission_classes = (InMaintenance, ApiAuthRequired)
 
     def get(self, request, provider_id, identity_id):
         """
@@ -70,12 +77,16 @@ class MachineList(APIView):
         TODO: Cache this request
         """
         try:
-            request_user = request.user.username
+            request_user = request.user
             filtered_machine_list = provider_filtered_machines(request,
                                                                provider_id,
                                                                identity_id,
                                                                request_user)
+        except InvalidCredsError:
+            return invalid_creds(provider_id, identity_id)
         except:
+            logger.exception("Unexpected exception for user:%s"
+                             % request_user)
             return invalid_creds(provider_id, identity_id)
         serialized_data = ProviderMachineSerializer(filtered_machine_list,
                                                     request_user=request.user,
@@ -87,7 +98,7 @@ class MachineList(APIView):
 class MachineHistory(APIView):
     """Details about the machine history for an identity."""
 
-    permission_classes = (InMaintenance,ApiAuthRequired)
+    permission_classes = (InMaintenance, ApiAuthRequired)
 
     def get(self, request, provider_id, identity_id):
         data = request.DATA
@@ -150,7 +161,7 @@ def get_first(coll):
 class MachineSearch(APIView):
     """Provides server-side machine search for an identity."""
 
-    permission_classes = (InMaintenance,ApiAuthRequired)
+    permission_classes = (InMaintenance, ApiAuthRequired)
 
     def get(self, request, provider_id, identity_id):
         """
@@ -200,27 +211,42 @@ class Machine(APIView):
     """Details about a specific machine, as seen by that identity."""
 
     permission_classes = (ApiAuthRequired,)
-    
+
     def get(self, request, provider_id, identity_id, machine_id):
         """
-        Lookup the machine information
+        Details view for specific machine
         (Lookup using the given provider/identity)
         """
+        user = request.user
         esh_driver = prepare_driver(request, provider_id, identity_id)
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
         #TODO: Need to determine that identity_id is ALLOWED to see machine_id.
         #     if not covered by calling as the users driver..
         esh_machine = esh_driver.get_machine(machine_id)
-        core_machine = convert_esh_machine(esh_driver, esh_machine, provider_id)
-        serialized_data = ProviderMachineSerializer(core_machine,
-                                                    request_user=request.user).data
+        core_machine = convert_esh_machine(esh_driver, esh_machine,
+                                           provider_id, user)
+        serialized_data = ProviderMachineSerializer(
+            core_machine,
+            request_user=request.user).data
         response = Response(serialized_data)
         return response
 
     def patch(self, request, provider_id, identity_id, machine_id):
         """
+        Partially update the machine information
+        (Lookup using the given provider/identity)
         """
+        return self._update_machine(request, provider_id, identity_id, machine_id)
+
+    def put(self, request, provider_id, identity_id, machine_id):
+        """
+        Update the machine information
+        (Lookup using the given provider/identity)
+        """
+        return self._update_machine(request, provider_id, identity_id, machine_id)
+
+    def _update_machine(self, request, provider_id, identity_id, machine_id):
         #TODO: Determine who is allowed to edit machines besides
         #core_machine.owner
         user = request.user
@@ -229,7 +255,8 @@ class Machine(APIView):
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
         esh_machine = esh_driver.get_machine(machine_id)
-        core_machine = convert_esh_machine(esh_driver, esh_machine, provider_id)
+        core_machine = convert_esh_machine(esh_driver, esh_machine,
+                                           provider_id, user)
         if not user.is_staff\
            and user is not core_machine.application.created_by:
             logger.warn('%s is Non-staff/non-owner trying to update a machine'
@@ -238,53 +265,54 @@ class Machine(APIView):
                 status.HTTP_401_UNAUTHORIZED,
                 "Only Staff and the machine Owner "
                 + "are allowed to change machine info.")
-        core_machine.application.update(request.DATA)
+
+        partial_update = True if request.method == 'PATCH' else False
         serializer = ProviderMachineSerializer(core_machine,
                                                request_user=request.user,
-                                               data=data, partial=True)
+                                               data=data,
+                                               partial=partial_update)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
             update_machine_metadata(esh_driver, esh_machine, data)
             serializer.save()
+            if 'created_by_identity' in request.DATA:
+                identity = serializer.object.created_by_identity
+                update_application_owner(core_machine.application, identity)
             logger.info(serializer.data)
             return Response(serializer.data)
         return failure_response(
             status.HTTP_400_BAD_REQUEST,
             serializer.errors)
 
-    def put(self, request, provider_id, identity_id, machine_id):
-        """
-        TODO: Determine who is allowed to edit machines besides
-            core_machine.owner
-        """
+
+class MachineIcon(APIView):
+    """
+    Represents:
+        Calls to modify the single machine
+    TODO: DELETE when we allow owners to 'end-date' their machine..
+    """
+    renderer_classes = (JPEGRenderer, PNGRenderer)
+    permission_classes = (ApiAuthRequired)
+
+    def get(self, request, provider_id, identity_id, machine_id):
         user = request.user
-        data = request.DATA
         esh_driver = prepare_driver(request, provider_id, identity_id)
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
+        #TODO: Need to determine that identity_id is ALLOWED to see machine_id.
+        #     if not covered by calling as the users driver..
         esh_machine = esh_driver.get_machine(machine_id)
-        core_machine = convert_esh_machine(esh_driver, esh_machine, provider_id)
-
-        if not user.is_staff\
-           and user is not core_machine.application.created_by:
-            logger.error('Non-staff/non-owner trying to update a machine')
+        core_machine = convert_esh_machine(esh_driver, esh_machine,
+                                           provider_id, user)
+        if not core_machine:
             return failure_response(
-                status.HTTP_401_UNAUTHORIZED,
-                'Only Staff and the machine Owner '
-                + 'are allowed to change machine info.')
-        core_machine.application.update(data)
-        serializer = ProviderMachineSerializer(core_machine,
-                                               request_user=request.user,
-                                               data=data, partial=True)
-        if serializer.is_valid():
-            logger.info('metadata = %s' % data)
-            update_machine_metadata(esh_driver, esh_machine, data)
-            serializer.save()
-            logger.info(serializer.data)
-            return Response(serializer.data)
-        return failure_response(
-            status.HTTP_400_BAD_REQUEST,
-            serializer.errors)
+                status.HTTP_400_BAD_REQUEST,
+                "Could not retrieve machine with ID = %s" % machine_id)
+        if not core_machine.application.icon:
+            return None
+        app_icon = core_machine.application.icon
+        image_name, image_ext = os.path.splitext(app_icon.name)
+        return Response(app_icon.file)
 
 
 class MachineVote(APIView):
@@ -299,7 +327,7 @@ class MachineVote(APIView):
         Update on server (If applicable)
         """
         core_machine = ProviderMachine.objects.filter(provider__id=provider_id,
-                identifier=machine_id)
+                                                      identifier=machine_id)
         if not core_machine:
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
@@ -324,7 +352,7 @@ class MachineVote(APIView):
         vote = data['vote']
 
         core_machine = ProviderMachine.objects.filter(provider__id=provider_id,
-                identifier=machine_id)
+                                                      identifier=machine_id)
         if not core_machine:
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,

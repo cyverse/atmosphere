@@ -256,7 +256,7 @@ class MachineRequestAdmin(admin.ModelAdmin):
         return None
 
 
-class InstanceStatusAdmin(admin.ModelAdmin):
+class InstanceStatusHistoryAdmin(admin.ModelAdmin):
     search_fields = ["instance__created_by__username",
             "instance__provider_alias", "status__name"]
     list_display = ["instance", "status", "start_date", "end_date"]
@@ -284,7 +284,7 @@ admin.site.register(Allocation, AllocationAdmin)
 admin.site.register(Identity, IdentityAdmin)
 admin.site.register(IdentityMembership, IdentityMembershipAdmin)
 admin.site.register(Instance, InstanceAdmin)
-admin.site.register(InstanceStatusHistory, InstanceStatusAdmin)
+admin.site.register(InstanceStatusHistory, InstanceStatusHistoryAdmin)
 admin.site.register(MachineRequest, MachineRequestAdmin)
 admin.site.register(MaintenanceRecord, MaintenanceAdmin)
 admin.site.register(NodeController, NodeControllerAdmin)

@@ -1,4 +1,3 @@
-from django.db.models.signals import post_save
 from django.db import models
 
 from threepio import logger
@@ -35,13 +34,3 @@ class UserProfile(models.Model):
     class Meta:
         db_table = 'user_profile'
         app_label = 'core'
-
-
-#Connects a user profile to created accounts
-def get_or_create_user_profile(sender, instance, created, **kwargs):
-    prof = UserProfile.objects.get_or_create(user=instance)
-    if prof[1] is True:
-        logger.debug("Creating User Profile for %s" % instance)
-
-
-post_save.connect(get_or_create_user_profile, sender=AtmosphereUser)

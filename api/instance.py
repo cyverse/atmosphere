@@ -79,6 +79,7 @@ class InstanceList(APIView):
         #TODO: Core/Auth checks for shared instances
 
         serialized_data = InstanceSerializer(core_instance_list,
+                                             context={'user':request.user},
                                              many=True).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
@@ -126,7 +127,9 @@ class InstanceList(APIView):
             return failure_response(status.HTTP_409_CONFLICT,
                                     exc.message)
 
-        serializer = InstanceSerializer(core_instance, data=data)
+        serializer = InstanceSerializer(core_instance,
+                                        context={'user':request.user},
+                                        data=data)
         #NEVER WRONG
         if serializer.is_valid():
             serializer.save()
@@ -207,22 +210,15 @@ class InstanceHistory(APIView):
 
 class InstanceAction(APIView):
     """
-    This endpoint will allow you to run a specific action on an instance, via a POST.
-    Returns: 200, data: {'result':'success',...}
-             On Error, a more specfific message applies.
+    This endpoint will allow you to run a specific action on an instance.
+    The GET method will retrieve all available actions and any parameters that are required.
+    The POST method expects DATA: {"action":...}
+                            Returns: 200, data: {'result':'success',...}
+                                     On Error, a more specfific message applies.
     Data variables:
      ___
     * action - The action you wish to take on your instance
     * action_params - any parameters required (as detailed on the api) to run the requested action.
-    Instance Actions:
-    ___
-    * attach_volume/detach_volume - action_params: volume_id
-    * resize - action params: size_id
-    * suspend/resume
-    * start/stop
-    * rebuild - action_params: machine_alias
-    * reboot - action_params: reset_type(soft/hard)
-    * redeploy - Helpful for when Shell/VNC stop working.
 
     Instances are the objects created when you launch a machine. They are
     represented by a unique ID, randomly generated on launch, important
@@ -231,6 +227,42 @@ class InstanceAction(APIView):
 
     permission_classes = (ApiAuthRequired,)
     
+    def get(self, request, provider_id, identity_id, instance_id):
+        """Authentication Required, List all available instance actions ,including necessary parameters.
+        """
+        api_response = [
+                {"action":"attach_volume",
+                 "action_params":{
+                     "volume_id":"required",
+                     "device":"optional",
+                     "mount_location":"optional"},
+                 "description":"Attaches the volume <id> to instance"},
+                {"action":"detach_volume",
+                 "action_params":{"volume_id":"required"},
+                 "description":"Detaches the volume <id> to instance"},
+                {"action":"resize",
+                 "action_params":{"size":"required"},
+                 "description":"Resize instance to size <id>"},
+                {"action":"confirm_resize",
+                 "description":"Confirm the instance works after resize."},
+                {"action":"revert_resize",
+                 "description":"Revert the instance if resize fails."},
+                {"action":"suspend",
+                 "description":"Suspend the instance."},
+                {"action":"resume",
+                 "description":"Resume the instance."},
+                {"action":"start",
+                 "description":"Start the instance."},
+                {"action":"stop",
+                 "description":"Stop the instance."},
+                {"action":"reboot",
+                 "action_params":{"reboot_type":"optional"},
+                 "description":"Stop the instance."},
+                {"action":"console",
+                 "description":"Get noVNC Console."}]
+        response = Response(api_response, status=status.HTTP_200_OK)
+        return response
+
     def post(self, request, provider_id, identity_id, instance_id):
         """Authentication Required, Attempt a specific instance action, including necessary parameters.
         """
@@ -288,7 +320,9 @@ class InstanceAction(APIView):
                                                  provider_id,
                                                  identity_id,
                                                  user)
-                result_obj = VolumeSerializer(core_volume).data
+                result_obj = VolumeSerializer(core_volume,
+                                              context={'user':request.user}
+                                              ).data
             elif 'resize' == action:
                 size_alias = action_params.get('size', '')
                 if type(size_alias) == int:
@@ -316,6 +350,8 @@ class InstanceAction(APIView):
                               provider_id, identity_id, user)
             elif 'reset_network' == action:
                 esh_driver.reset_network(esh_instance)
+            elif 'console' == action:
+                result_obj = esh_driver._connection.ex_vnc_console(esh_instance)
             elif 'reboot' == action:
                 reboot_type = action_params.get('reboot_type', 'SOFT')
                 reboot_instance(esh_driver, esh_instance, reboot_type)
@@ -377,7 +413,8 @@ class Instance(APIView):
             return instance_not_found(instance_id)
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                              provider_id, identity_id, user)
-        serialized_data = InstanceSerializer(core_instance).data
+        serialized_data = InstanceSerializer(core_instance,
+                                             context={'user':request.user}).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
@@ -395,7 +432,8 @@ class Instance(APIView):
         #Gather the DB related item and update
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                              provider_id, identity_id, user)
-        serializer = InstanceSerializer(core_instance, data=data, partial=True)
+        serializer = InstanceSerializer(core_instance, data=data,
+                                        context={'user':request.user}, partial=True)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
             update_instance_metadata(esh_driver, esh_instance, data,
@@ -424,7 +462,8 @@ class Instance(APIView):
         #Gather the DB related item and update
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                              provider_id, identity_id, user)
-        serializer = InstanceSerializer(core_instance, data=data)
+        serializer = InstanceSerializer(core_instance, data=data,
+                                        context={'user':request.user})
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
             update_instance_metadata(esh_driver, esh_instance, data)
@@ -462,7 +501,8 @@ class Instance(APIView):
                                                  user)
             if core_instance:
                 core_instance.end_date_all()
-            serialized_data = InstanceSerializer(core_instance).data
+            serialized_data = InstanceSerializer(core_instance,
+                                                 context={'user':request.user}).data
             response = Response(serialized_data, status=status.HTTP_200_OK)
             response['Cache-Control'] = 'no-cache'
             return response
@@ -474,14 +514,17 @@ def valid_post_data(data):
     """
     Return any missing required post key names.
     """
-    required = ['machine_alias', 'size_alias']
-    return [key for key in required if not key in data]
+    required = ['machine_alias', 'size_alias', 'name']
+    #Return any keys that don't match criteria
+    return [key for key in required
+            #Key must exist and have a non-empty value.
+            if not ( key in data and len(data[key]) > 0)]
 
 
 def keys_not_found(missing_keys):
     return failure_response(
         status.HTTP_400_BAD_REQUEST,
-        'Missing required POST datavariables : %s' % missing_keys)
+        'Missing data for variable(s): %s' % missing_keys)
 
 
 def instance_not_found(instance_id):
