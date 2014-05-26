@@ -87,11 +87,8 @@ class ProviderMachine(models.Model):
     class Meta:
         db_table = "provider_machine"
         app_label = "core"
-<<<<<<< HEAD
-
-=======
         unique_together = ('provider', 'identifier')
->>>>>>> 9d9e3e18358496e4ed0d1a2e0379fb66c6ef4674
+
 
 class ProviderMachineMembership(models.Model):
     """
@@ -166,12 +163,13 @@ def _extract_tenant_name(identity):
         tenant_name = identity.get_credential('ex_project_name')
     if not tenant_name:
         raise Exception("Cannot update application owner without knowing the"
-        " tenant ID of the new owner. Please update your identity, or the"
-        " credential key fields above this line.")
+                        " tenant ID of the new owner. Please update your"
+                        " identity, or the credential key fields above"
+                        " this line.")
     return tenant_name
 
+
 def update_application_owner(application, identity):
-<<<<<<< HEAD
     application.created_by_identity = identity
     application.created_by = identity.created_by
     #PUSH METADATA
@@ -183,13 +181,12 @@ def create_provider_machine(machine_name,
                             provider_id,
                             app,
                             metadata={}):
-=======
     old_identity = application.created_by_identity
     tenant_name = _extract_tenant_name(identity)
     old_tenant_name = _extract_tenant_name(old_identity)
     #Prepare the application
-    application.created_by_identity=identity
-    application.created_by=identity.created_by
+    application.created_by_identity = identity
+    application.created_by = identity.created_by
     application.save()
     #Update all the PMs
     all_pms = application.providermachine_set.all()
@@ -208,8 +205,9 @@ def create_provider_machine(machine_name,
         accounts.image_manager.unshare_image(image, old_tenant_name)
         print "Removed access to %s for %s" % (image_id, old_tenant_name)
 
-def create_provider_machine(machine_name, provider_alias, provider_id, app, metadata={}):
->>>>>>> 9d9e3e18358496e4ed0d1a2e0379fb66c6ef4674
+
+def create_provider_machine(machine_name, provider_alias, provider_id, app,
+                            metadata={}):
     #Attempt to match machine by provider alias
     #Admin identity used until the real owner can be identified.
     provider = Provider.objects.get(id=provider_id)
@@ -251,7 +249,8 @@ def get_provider_machine(identifier, provider_id):
         return None
 
 
-def convert_esh_machine(esh_driver, esh_machine, provider_id, user, image_id=None):
+def convert_esh_machine(esh_driver, esh_machine, provider_id, user,
+                        image_id=None):
     """
     Takes as input an (rtwo) driver and machine, and a core provider id
     Returns as output a core ProviderMachine
@@ -308,6 +307,7 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, user, image_id=Non
     provider_machine.esh = esh_machine
     return provider_machine
 
+
 def _check_project(core_application, user):
     """
     Select a/multiple projects the application belongs to.
@@ -316,6 +316,7 @@ def _check_project(core_application, user):
     core_projects = core_application.get_projects(user)
     #NOTE: for Applications, do NOT auto-assign default project
     return core_projects
+
 
 def _convert_from_instance(esh_driver, provider_id, image_id):
     provider_machine = load_provider_machine(image_id,
