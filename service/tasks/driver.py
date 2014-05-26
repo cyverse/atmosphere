@@ -149,7 +149,7 @@ def wait_for(driverCls, provider, identity, instance_alias, status_query,
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_alias)
         if not instance:
-            logger.debug("Instance has been teminated: %s." % instance_alias)
+            logger.debug("Instance has been terminated: %s." % instance_alias)
             return False
         i_status = instance._node.extra['status'].lower()
         i_task = instance._node.extra['task']
@@ -819,6 +819,8 @@ def update_membership():
                 logger.debug("pm filter is bad!")
                 logger.debug(pm)
                 continue
+            else:
+                pm = pm[0]
             app_manager = pm.application.applicationmembership_set
             if not img.is_public:
                 #Lookup members
