@@ -9,7 +9,7 @@
 
         RewriteEngine On
         RewriteCond %{HTTPS} !=on
-        RewriteRule ^/?(.*) https://MYHOSTNAMEHERE.iplantc.org/$1 [R,L]
+        RewriteRule ^/?(.*) https://MYHOSTNAMEHERE/$1 [R,L]
 </VirtualHost>
 
 
@@ -21,11 +21,11 @@ ProxyRequests Off
 ProxyPreserveHost On
 SSLProxyEngine On
 
-ProxyPass         /flower  https://MYHOSTNAMEHERE.iplantc.org:8443
-ProxyPassReverse  /flower  https://MYHOSTNAMEHERE.iplantc.org:8443
-ProxyPassReverse  /flower  https://MYHOSTNAMEHERE.iplantc.org/flower
+ProxyPass         /flower  https://MYHOSTNAMEHERE:8443
+ProxyPassReverse  /flower  https://MYHOSTNAMEHERE:8443
+ProxyPassReverse  /flower  https://MYHOSTNAMEHERE/flower
 
-<Proxy https://MYHOSTNAMEHERE.iplantc.org:8443/flower*>
+<Proxy https://MYHOSTNAMEHERE:8443/flower*>
   Order deny,allow
   Allow from all
 </Proxy>
@@ -34,11 +34,11 @@ ProxyPassReverse  /flower  https://MYHOSTNAMEHERE.iplantc.org/flower
 ##
 ## Jenkins proxy redirection
 ##
-ProxyPass         /jenkins  http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins
-ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins
-ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE.iplantc.org/jenkins
+ProxyPass         /jenkins  http://MYHOSTNAMEHERE:8080/jenkins
+ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE:8080/jenkins
+ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE/jenkins
 
-<Proxy http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins*>
+<Proxy http://MYHOSTNAMEHERE:8080/jenkins*>
   Order deny,allow
   Allow from all
 </Proxy>
@@ -68,7 +68,7 @@ ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE.iplantc.org/jenkins
     Alias /static/rest_framework LOCATIONOFATMOSPHEREHERE/static/rest_framework
 
     # The following URLs are proxied to TROPOSPHERE:
-    Alias /static LOCATIONOFTROPOSPHERE/troposphere/assets
+    Alias /assets LOCATIONOFTROPOSPHERE/troposphere/assets
     Alias /resources LOCATIONOFTROPOSPHERE/resources
 
     # Logging
@@ -100,7 +100,7 @@ Listen 5000
 
     #Send iplantcollabortive to iplantc
     RewriteCond %{HTTP_HOST} ^MYHOSTNAMEHERE.iplantcollaborative.org$
-    RewriteRule ^/(.*)$       https://MYHOSTNAMEHERE.iplantc.org/$1 [R,L]
+    RewriteRule ^/(.*)$       https://MYHOSTNAMEHERE/$1 [R,L]
     
     
     #Logging

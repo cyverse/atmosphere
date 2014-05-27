@@ -25,7 +25,7 @@ SETTINGS_ROOT = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                             '../..'))
 APPEND_SLASH = False
-SERVER_URL = 'https://yourserver.iplantc.org'
+SERVER_URL = 'https://MYHOSTNAMEHERE'
 # IF on the root directory, this should be BLANK, else: /path/to/web (NO
 # TRAILING /)
 REDIRECT_URL = ''
