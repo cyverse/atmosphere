@@ -32,7 +32,7 @@ from api.project import ProjectInstanceList, ProjectInstanceExchange,\
         ProjectVolumeList, ProjectVolumeExchange
 from api.profile import Profile
 from api.provider import ProviderList, Provider
-from api.size import SizeList, Size, DBSizeList, DBSize
+from api.size import SizeList, Size
 from api.hypervisor import HypervisorList, HypervisorDetail
 from api.step import StepList, Step
 from api.tag import TagList, Tag
@@ -194,10 +194,6 @@ public_apis = format_suffix_patterns(patterns(
     url(identity_specific + r'/instance[/]?$',
         InstanceList.as_view(), name='instance-list'),
 
-    url(provider_specific + r'/size[/]?$',
-        DBSizeList.as_view(), name='size-list-cache'),
-    url(provider_specific + r'/size/(?P<size_id>\d+)[/]?$',
-        DBSize.as_view(), name='size-detail-cache'),
     url(identity_specific + r'/size[/]?$',
         SizeList.as_view(), name='size-list'),
     url(identity_specific + r'/size/(?P<size_id>\d+)[/]?$',

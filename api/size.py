@@ -8,52 +8,12 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from api import failure_response, prepare_driver, invalid_creds
+from api import prepare_driver, invalid_creds
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProviderSizeSerializer
 
 
 from core.models.size import convert_esh_size
-
-
-class DBSizeList(APIView):
-    """List all active sizes."""
-    permission_classes = (ApiAuthRequired,)
-    
-    def get(self, request, provider_id, identity_id):
-        """
-        Using provider and identity, getlist of machines
-        TODO: Cache this request
-        """
-        try:
-            size_list = ProviderSize.objects.filter(only_current, provider__id=provider_id)
-        except:
-            return failure_response(
-                status.HTTP_401_UNAUTHORIZED,
-                "No sizes found for Provider with ID=%s" % provider_id)
-        serialized_data = ProviderSizeSerializer(size_list, many=True).data
-        response = Response(serialized_data)
-        return response
-
-
-class DBSize(APIView):
-    """View a single size"""
-    permission_classes = (ApiAuthRequired,)
-    
-    def get(self, request, provider_id, identity_id, size_id):
-        """
-        Lookup the size information (Lookup using the given provider/identity)
-        Update on server DB (If applicable)
-        """
-        try:
-            ps = ProviderSize.objects.get(provider__id=provider_id, id=size_id)
-        except:
-            return failure_response(
-                status.HTTP_401_UNAUTHORIZED,
-                "Size not found.")
-        serialized_data = ProviderSizeSerializer(ps).data
-        response = Response(serialized_data)
-        return response
 
 
 class SizeList(APIView):
