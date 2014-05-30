@@ -7,24 +7,26 @@ Debugging atmo_init_full locally:
     >>> import atmo_init_full
     >>>
 """
-import getopt
-import logging
-import os
-try:
-    import json
-except ImportError:
-    import simplejson as json
 import errno
-import re
-import time
-import urllib2
-import subprocess
-import sys
+import getopt
 try:
     from hashlib import sha1
 except ImportError:
     #Support for python 2.4
     from sha import sha as sha1
+try:
+    import json
+except ImportError:
+    import simplejson as json
+import logging
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+import urllib2
+
 
 ATMOSERVER = ""
 ATMO_INIT_FILES = ""
@@ -425,6 +427,7 @@ def start_vncserver(user):
     if not running_process("vncserver", user):
         run_command(['/bin/su', '%s' % user, '-c', '/usr/bin/vncserver'])
 
+
 def running_process(proc_name, user=None):
     if user:
         logging.debug("Limiting scope of Process %s to those launched by %s"
@@ -445,10 +448,11 @@ def running_process(proc_name, user=None):
     logging.debug("No PID found for proccess name:%s" % (proc_name))
     return False
 
+
 def vnc(user, distro, license=None):
     try:
         if not os.path.isfile('/usr/bin/X')\
-        and not os.path.isfile('/usr/bin/xterm'):
+           and not os.path.isfile('/usr/bin/xterm'):
             logging.debug("Could not find a GUI on this machine, "
                           "Skipping VNC Install.")
             return
@@ -572,22 +576,38 @@ def iplant_files(distro):
         "/usr/local/bin/atmo_check_idle.py",
         match_hash="ab37a256e15ef5f529b4f4811f78174265eb7aa0")
     run_command(["/bin/chmod", "a+x", "/usr/local/bin/atmo_check_idle.py"])
-
-    run_command(["/bin/mkdir", "-p", "/opt/irodsidrop"])
-    download_file("http://www.iplantc.org/sites/default/files/irods/idrop.jar",
-                  "/opt/irodsidrop/idrop-latest.jar",
-                  match_hash="275cc7fb744b0f29caa7b276f689651a2159c23e")
-    download_file(
-        "http://www.iplantcollaborative.org/sites/default/files/"
-        + "idroprun.sh.txt", "/opt/irodsidrop/idroprun.sh",
-        match_hash="0e9cec8ce1d38476dda1646631a54f6b2ddceff5")
-    run_command(['/bin/chmod', 'a+x', '/opt/irodsidrop/idroprun.sh'])
     download_file('%s/%s/iplant_backup.sh'
                   % (ATMO_INIT_FILES, SCRIPT_VERSION),
                   "/usr/local/bin/iplant_backup",
                   match_hash='72925d4da5ed30698c81cc95b0a610c8754500e7')
     run_command(['/bin/chmod', 'a+x', "/usr/local/bin/iplant_backup"])
 
+
+def idrop(username, distro):
+    download_file("%s/%s/idrop.tgz" % (ATMO_INIT_FILES, SCRIPT_VERSION),
+                  "/opt/idrop.tgz",
+                  match_hash="a85e56ea83ae65c03e1052d8d841ae63e8c13c98")
+    download_file(
+        "%s/%s/idrop.desktop" % (ATMO_INIT_FILES, SCRIPT_VERSION),
+        "/opt/idrop.desktop",
+        match_hash="c0dbe48b733478549d3d1eb4ad4468861bcbd3bd")
+    run_command(["/bin/tar", "-xvjf", "/opt/idrop.tgz", "-C", "/opt/"])
+    new_idropdesktop = "/opt/idrop.desktop"
+    if os.path.exists("/etc/skel/Desktop/idrop.desktop"):
+        os.remove("/etc/skel/Desktop/idrop.desktop")
+    shutil.copy2(new_idropdesktop, "/etc/skel/Desktop/")
+    for name in os.listdir("/home/"):
+        dirname = os.path.join("/home/", name)
+        if os.path.isdir(dirname):
+            if not os.path.exists(os.path.join(dirname, "Desktop")):
+                continue
+            idropdesktop = os.path.join(dirname, "Desktop", "idrop.desktop")
+            if os.path.exists(idropdesktop):
+                os.remove(idropdesktop)
+            shutil.copy2(new_idropdesktop, idropdesktop)
+    os.remove("/opt/idrop.tgz")
+    os.remove("/opt/idrop.desktop")
+                            
 
 def modify_rclocal(username, distro, hostname='localhost'):
     try:
@@ -651,8 +671,8 @@ def start_shellinaboxd():
     if not running_process("shellinaboxd"):
         run_command([
             "/usr/bin/nohup /usr/local/bin/shellinaboxd -b -t "
-            "-f beep.wav:/dev/null > /var/log/atmo/shellinaboxd.log 2>&1 &"
-            ], shell=True)
+            "-f beep.wav:/dev/null > /var/log/atmo/shellinaboxd.log 2>&1 &"],
+            shell=True)
 
 
 def atmo_cl():
@@ -1011,7 +1031,7 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vncl
     run_command(['/bin/chmod', 'u+s', '/bin/fusermount'])
     vnc(linuxuser, distro, vnclicense)
     iplant_files(distro)
-    #atmo_cl()
+    idrop(linuxuser, distro)
     nagios()
     distro_files(distro)
     update_timezone()
@@ -1023,7 +1043,8 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vncl
 
 
 def is_executable(full_path):
-    return  os.path.isfile(full_path) and os.access(full_path, os.X_OK)
+    return os.path.isfile(full_path) and os.access(full_path, os.X_OK)
+
 
 def run_boot_scripts():
     post_script_dir = "/etc/atmo/post-scripts.d"
@@ -1039,10 +1060,14 @@ def run_boot_scripts():
             if is_executable(full_path):
                 logging.info("Executing post-boot script: %s" % full_path)
                 output, error = run_command([full_path])
-                with open(stdout_logfile,'a') as output_file:
+                output_file = open(stdout_logfile, 'a')
+                if output_file:
                     output_file.write("--\n%s OUTPUT:\n%s\n" % (full_path, output))
-                with open(stderr_logfile,'a') as output_file:
+                    output_file.close()
+                output_file = open(stderr_logfile, 'a')
+                if output_file:
                     output_file.write("--\n%s ERROR:\n%s\n" % (full_path, error))
+                    output_file.close()
         except Exception, exc:
             logging.exception("Exception executing/logging the file: %s"
                               % full_path)
@@ -1051,9 +1076,8 @@ def run_boot_scripts():
 def add_zsh():
     if os.path.exists("/bin/zsh") and not os.path.exists("/usr/bin/zsh"):
         run_command(['ln', '-s', '/bin/zsh', '/usr/bin/zsh'])
-            
 
-##MAIN##
+
 def main(argv):
     init_logs('/var/log/atmo/atmo_init_full.log')
     instance_data = {"atmosphere": {}}
