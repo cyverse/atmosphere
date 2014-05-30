@@ -7,26 +7,29 @@ Debugging atmo_init_full locally:
     >>> import atmo_init_full
     >>>
 """
-import getopt
-import logging
-import os
-try:
-    import json
-except ImportError:
-    import simplejson as json
 import errno
-import re
-import time
-import urllib2
-import subprocess
-import sys
+import getopt
 try:
     from hashlib import sha1
 except ImportError:
     #Support for python 2.4
     from sha import sha as sha1
+try:
+    import json
+except ImportError:
+    import simplejson as json
+import logging
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+import urllib2
+
 
 ATMOSERVER = ""
+ATMO_INIT_FILES = ""
 USER_HOME_DIR = ""
 eucalyptus_meta_server = 'http://128.196.172.136:8773/latest/meta-data/'
 openstack_meta_server = 'http://169.254.169.254/latest/meta-data/'
@@ -118,13 +121,15 @@ def set_hostname(hostname, distro):
     if is_rhel(distro):
         run_command(['/usr/bin/yum', '-qy', 'install', 'dhcp'])
         download_file(
-            '%s/init_files/%s/centos_hostname-exit-hook.sh' % (ATMOSERVER, SCRIPT_VERSION),
+            '%s/%s/centos_hostname-exit-hook.sh'
+            % (ATMO_INIT_FILES, SCRIPT_VERSION),
             "/etc/dhclient-exit-hooks",
             match_hash='')
         run_command(['/bin/chmod', 'a+x', "/etc/dhclient-exit-hooks"])
     else:
         download_file(
-            '%s/init_files/%s/ubuntu_hostname-exit-hook.sh' % (ATMOSERVER, SCRIPT_VERSION),
+            '%s/%s/ubuntu_hostname-exit-hook.sh'
+            % (ATMO_INIT_FILES, SCRIPT_VERSION),
             "/etc/dhcp/dhclient-exit-hooks.d/hostname",
             match_hash='')
         run_command(['/bin/chmod', 'a+x', "/etc/dhcp/dhclient-exit-hooks.d/hostname"])
@@ -325,7 +330,12 @@ def get_metadata():
 
 def collect_json_metadata(metadata_url):
     content = _make_request(metadata_url)
-    meta_obj = json.loads(content)
+    try:
+        meta_obj = json.loads(content)
+    except ValueError, bad_content:
+        logging.exception("JSON Metadata NOT FOUND. URL: %s" % request_url)
+        meta_obj = {}
+
     return meta_obj
 
 
@@ -417,6 +427,7 @@ def start_vncserver(user):
     if not running_process("vncserver", user):
         run_command(['/bin/su', '%s' % user, '-c', '/usr/bin/vncserver'])
 
+
 def running_process(proc_name, user=None):
     if user:
         logging.debug("Limiting scope of Process %s to those launched by %s"
@@ -437,10 +448,11 @@ def running_process(proc_name, user=None):
     logging.debug("No PID found for proccess name:%s" % (proc_name))
     return False
 
+
 def vnc(user, distro, license=None):
     try:
         if not os.path.isfile('/usr/bin/X')\
-        and not os.path.isfile('/usr/bin/xterm'):
+           and not os.path.isfile('/usr/bin/xterm'):
             logging.debug("Could not find a GUI on this machine, "
                           "Skipping VNC Install.")
             return
@@ -449,8 +461,8 @@ def vnc(user, distro, license=None):
             run_command(['/usr/bin/yum', '-qy', 'remove', 'vnc-E',
                          'realvnc-vnc-server'])
             download_file(
-                '%s/init_files/%s/VNC-Server-5.0.4-Linux-x64.rpm'
-                % (ATMOSERVER, SCRIPT_VERSION),
+                '%s/%s/VNC-Server-5.0.4-Linux-x64.rpm'
+                % (ATMO_INIT_FILES, SCRIPT_VERSION),
                 "/opt/VNC-Server-5.0.4-Linux-x64.rpm",
                 match_hash='0c59f2d84880a6848398870e5f0aa39f09e413bc')
             run_command(['/bin/rpm', '-Uvh',
@@ -463,8 +475,8 @@ def vnc(user, distro, license=None):
                          '/etc/pam.d/vncserver.custom'], bash_wrap=True)
         else:
             download_file(
-                '%s/init_files/%s/VNC-Server-5.0.4-Linux-x64.deb'
-                % (ATMOSERVER, SCRIPT_VERSION),
+                '%s/%s/VNC-Server-5.0.4-Linux-x64.deb'
+                % (ATMO_INIT_FILES, SCRIPT_VERSION),
                 "/opt/VNC-Server-5.0.4-Linux-x64.deb",
                 match_hash='c2b390157c82fd556e60fe392b6c5bc5c5efcb29')
             run_command(['/usr/bin/dpkg', '-i',
@@ -478,7 +490,8 @@ def vnc(user, distro, license=None):
         time.sleep(1)
         run_command(['/usr/bin/vnclicense', '-add', license], block_log=True)
         download_file(
-            '%s/init_files/%s/vnc-config.sh' % (ATMOSERVER, SCRIPT_VERSION),
+            '%s/%s/vnc-config.sh'
+            % (ATMO_INIT_FILES, SCRIPT_VERSION),
             os.path.join(USER_HOME_DIR, 'vnc-config.sh'),
             match_hash='806b22083c73628914194a74f3ff7d7274a7cf23')
         run_command(['/bin/chmod', 'a+x',
@@ -563,22 +576,38 @@ def iplant_files(distro):
         "/usr/local/bin/atmo_check_idle.py",
         match_hash="ab37a256e15ef5f529b4f4811f78174265eb7aa0")
     run_command(["/bin/chmod", "a+x", "/usr/local/bin/atmo_check_idle.py"])
-
-    run_command(["/bin/mkdir", "-p", "/opt/irodsidrop"])
-    download_file("http://www.iplantc.org/sites/default/files/irods/idrop.jar",
-                  "/opt/irodsidrop/idrop-latest.jar",
-                  match_hash="275cc7fb744b0f29caa7b276f689651a2159c23e")
-    download_file(
-        "http://www.iplantcollaborative.org/sites/default/files/"
-        + "idroprun.sh.txt", "/opt/irodsidrop/idroprun.sh",
-        match_hash="0e9cec8ce1d38476dda1646631a54f6b2ddceff5")
-    run_command(['/bin/chmod', 'a+x', '/opt/irodsidrop/idroprun.sh'])
-    download_file('%s/init_files/%s/iplant_backup.sh'
-                  % (ATMOSERVER, SCRIPT_VERSION),
+    download_file('%s/%s/iplant_backup.sh'
+                  % (ATMO_INIT_FILES, SCRIPT_VERSION),
                   "/usr/local/bin/iplant_backup",
                   match_hash='72925d4da5ed30698c81cc95b0a610c8754500e7')
     run_command(['/bin/chmod', 'a+x', "/usr/local/bin/iplant_backup"])
 
+
+def idrop(username, distro):
+    download_file("%s/%s/idrop.tgz" % (ATMO_INIT_FILES, SCRIPT_VERSION),
+                  "/opt/idrop.tgz",
+                  match_hash="a85e56ea83ae65c03e1052d8d841ae63e8c13c98")
+    download_file(
+        "%s/%s/idrop.desktop" % (ATMO_INIT_FILES, SCRIPT_VERSION),
+        "/opt/idrop.desktop",
+        match_hash="c0dbe48b733478549d3d1eb4ad4468861bcbd3bd")
+    run_command(["/bin/tar", "-xvjf", "/opt/idrop.tgz", "-C", "/opt/"])
+    new_idropdesktop = "/opt/idrop.desktop"
+    if os.path.exists("/etc/skel/Desktop/idrop.desktop"):
+        os.remove("/etc/skel/Desktop/idrop.desktop")
+    shutil.copy2(new_idropdesktop, "/etc/skel/Desktop/")
+    for name in os.listdir("/home/"):
+        dirname = os.path.join("/home/", name)
+        if os.path.isdir(dirname):
+            if not os.path.exists(os.path.join(dirname, "Desktop")):
+                continue
+            idropdesktop = os.path.join(dirname, "Desktop", "idrop.desktop")
+            if os.path.exists(idropdesktop):
+                os.remove(idropdesktop)
+            shutil.copy2(new_idropdesktop, idropdesktop)
+    os.remove("/opt/idrop.tgz")
+    os.remove("/opt/idrop.desktop")
+                            
 
 def modify_rclocal(username, distro, hostname='localhost'):
     try:
@@ -627,8 +656,8 @@ def shellinaboxd(distro):
                      'gcc', 'make', 'patch'])
     shellinaboxd_file = os.path.join(USER_HOME_DIR,
                                      'shellinaboxd-install.sh')
-    download_file('%s/init_files/%s/shellinaboxd-install.sh'
-                  % (ATMOSERVER, SCRIPT_VERSION),
+    download_file('%s/%s/shellinaboxd-install.sh'
+                  % (ATMO_INIT_FILES, SCRIPT_VERSION),
                   shellinaboxd_file,
                   match_hash='1e057ca1ac9986cb829d5c138d4f7d9532dcab12')
     run_command(['/bin/chmod', 'a+x', shellinaboxd_file])
@@ -642,25 +671,25 @@ def start_shellinaboxd():
     if not running_process("shellinaboxd"):
         run_command([
             "/usr/bin/nohup /usr/local/bin/shellinaboxd -b -t "
-            "-f beep.wav:/dev/null > /var/log/atmo/shellinaboxd.log 2>&1 &"
-            ], shell=True)
+            "-f beep.wav:/dev/null > /var/log/atmo/shellinaboxd.log 2>&1 &"],
+            shell=True)
 
 
 def atmo_cl():
-    download_file('%s/init_files/%s/atmocl'
-                  % (ATMOSERVER, SCRIPT_VERSION),
+    download_file('%s/%s/atmocl'
+                  % (ATMO_INIT_FILES, SCRIPT_VERSION),
                   '/usr/local/bin/atmocl',
                   match_hash='28cd2fd6e7fd78f1b58a6135afa283bd7ca6027a')
-    download_file('%s/init_files/%s/AtmoCL.jar'
-                  % (ATMOSERVER, SCRIPT_VERSION),
+    download_file('%s/%s/AtmoCL.jar'
+                  % (ATMO_INIT_FILES, SCRIPT_VERSION),
                   '/usr/local/bin/AtmoCL.jar',
                   match_hash='24c6acb7184c54ba666134120ac9073415a5b947')
     run_command(['/bin/chmod', 'a+x', '/usr/local/bin/atmocl'])
 
 
 def nagios():
-    download_file('%s/init_files/%s/nrpe-snmp-install.sh'
-                  % (ATMOSERVER, SCRIPT_VERSION),
+    download_file('%s/%s/nrpe-snmp-install.sh'
+                  % (ATMO_INIT_FILES, SCRIPT_VERSION),
                   os.path.join(USER_HOME_DIR, 'nrpe-snmp-install.sh'),
                   match_hash='9076213c0c53d18dbfcb26dfe95e7650256b54da')
     run_command(['/bin/chmod', 'a+x',
@@ -849,15 +878,15 @@ def set_user_home_dir():
 
 def denyhost_whitelist():
     allow_list = [
-        "127.0.0.1"
-        "128.196.38.[1-127]"
-        "128.196.64.[1-512]"
-        "128.196.142.*"
-        "128.196.172.[128-255]"
-        "150.135.78.*"
-        "150.135.93.[128-255]"
-        "10.130.5.[128-155]"
-        "10.140.65.*"
+        "127.0.0.1",
+        "128.196.38.[1-127]",
+        "128.196.64.[1-512]",
+        "128.196.142.*",
+        "128.196.172.[128-255]",
+        "150.135.78.*",
+        "150.135.93.[128-255]",
+        "10.130.5.[128-155]",
+        "10.140.65.*",
     ]
     filename = "/var/lib/denyhosts/allowed-hosts"
     dirname = os.path.dirname(filename)
@@ -1002,7 +1031,7 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vncl
     run_command(['/bin/chmod', 'u+s', '/bin/fusermount'])
     vnc(linuxuser, distro, vnclicense)
     iplant_files(distro)
-    #atmo_cl()
+    idrop(linuxuser, distro)
     nagios()
     distro_files(distro)
     update_timezone()
@@ -1013,12 +1042,42 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vncl
     notify_launched_instance(instance_data, instance_metadata)
 
 
+def is_executable(full_path):
+    return os.path.isfile(full_path) and os.access(full_path, os.X_OK)
+
+
+def run_boot_scripts():
+    post_script_dir = "/etc/atmo/post-scripts.d"
+    if not os.path.isdir(post_script_dir):
+        #Nothing to execute.
+        return
+    post_script_log_dir = "/var/log/atmo/post-scripts"
+    stdout_logfile = os.path.join(post_script_log_dir, "stdout")
+    stderr_logfile = os.path.join(post_script_log_dir, "stderr")
+    for file_name in os.listdir(post_script_dir):
+        full_path = os.path.join(post_script_dir, file_name)
+        try:
+            if is_executable(full_path):
+                logging.info("Executing post-boot script: %s" % full_path)
+                output, error = run_command([full_path])
+                output_file = open(stdout_logfile, 'a')
+                if output_file:
+                    output_file.write("--\n%s OUTPUT:\n%s\n" % (full_path, output))
+                    output_file.close()
+                output_file = open(stderr_logfile, 'a')
+                if output_file:
+                    output_file.write("--\n%s ERROR:\n%s\n" % (full_path, error))
+                    output_file.close()
+        except Exception, exc:
+            logging.exception("Exception executing/logging the file: %s"
+                              % full_path)
+
+
 def add_zsh():
     if os.path.exists("/bin/zsh") and not os.path.exists("/usr/bin/zsh"):
         run_command(['ln', '-s', '/bin/zsh', '/usr/bin/zsh'])
-            
 
-##MAIN##
+
 def main(argv):
     init_logs('/var/log/atmo/atmo_init_full.log')
     instance_data = {"atmosphere": {}}
@@ -1075,6 +1134,9 @@ def main(argv):
     source = "".join(args)
     logging.debug("Atmoserver - %s" % ATMOSERVER)
     logging.debug("Atmosphere init parameters- %s" % instance_data)
+    global ATMO_INIT_FILES
+    ATMO_INIT_FILES = "%s/init_files" % ATMOSERVER
+    logging.debug("Atmosphere init files location- %s" % ATMO_INIT_FILES)
     set_user_home_dir()
     add_zsh()
     if redeploy:
@@ -1083,7 +1145,8 @@ def main(argv):
         instance_metadata = get_metadata()
         logging.debug("Instance metadata - %s" % instance_metadata)
         deploy_atmo_init(user_id, instance_data, instance_metadata, root_password, vnclicense)
-    logging.info("Complete.")
+    logging.info("Atmo Init Completed.. Checking for boot scripts.")
+    run_boot_scripts()
 
 
 if __name__ == "__main__":
