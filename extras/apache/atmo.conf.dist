@@ -1,148 +1,97 @@
-###
-### HTTP Virtual Host Context
-###
-
+###############################################################################
+## HTTP Virtual Host Context (Forwards requests to HTTPS)
+###############################################################################
 <VirtualHost *:80>
 	ErrorLog ${APACHE_LOG_DIR}/error.log
 	LogLevel warn
 	CustomLog ${APACHE_LOG_DIR}/access.log combined
 
-        RewriteEngine On
-        RewriteCond %{HTTPS} !=on
-        RewriteRule ^/?(.*) https://MYHOSTNAMEHERE/$1 [R,L]
+  RewriteEngine On
+  RewriteCond %{HTTPS} !=on
+  RewriteRule ^/?(.*) https://MYHOSTNAMEHERE.iplantc.org/$1 [R,L]
 </VirtualHost>
 
+###############################################################################
+## SSL Configuration
+###############################################################################
+SSLCryptoDevice builtin
 
-##
+###############################################################################
 ## Celery-Flower proxy redirection
-##
-
+###############################################################################
 ProxyRequests Off
 ProxyPreserveHost On
 SSLProxyEngine On
 
-ProxyPass         /flower  https://MYHOSTNAMEHERE:8443
-ProxyPassReverse  /flower  https://MYHOSTNAMEHERE:8443
-ProxyPassReverse  /flower  https://MYHOSTNAMEHERE/flower
+ProxyPass         /flower  https://MYHOSTNAMEHERE.iplantc.org:8443
+ProxyPassReverse  /flower  https://MYHOSTNAMEHERE.iplantc.org:8443
+ProxyPassReverse  /flower  https://MYHOSTNAMEHERE.iplantc.org/flower
 
-<Proxy https://MYHOSTNAMEHERE:8443/flower*>
+<Proxy https://MYHOSTNAMEHERE.iplantc.org:8443/flower*>
   Order deny,allow
   Allow from all
 </Proxy>
 
-
-##
+###############################################################################
 ## Jenkins proxy redirection
-##
+###############################################################################
 ProxyPass         /jenkins  http://MYHOSTNAMEHERE:8080/jenkins
 ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE:8080/jenkins
 ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE/jenkins
 
-<Proxy http://MYHOSTNAMEHERE:8080/jenkins*>
+<Proxy http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins*>
   Order deny,allow
   Allow from all
 </Proxy>
-##
-## SSL Virtual Host Context
-##
 
 ###############################################################################
-## Troposphere Server Virtualhost (Port 443)
+## Atmosphere Server Virtualhost (Port 443)
 ###############################################################################
-<VirtualHost _default_:443>
-
-    #SSL
-    SSLEngine on
-    SSLProtocol all -SSLv2
-    SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
-    SSLCertificateFile /etc/ssl/certs/BASECERTHERE
-    SSLCertificateKeyFile /etc/ssl/private/KEYHERE
-    SSLCertificateChainFile /etc/ssl/certs/BUNDLECERTHERE
-
-
-    # Static files
-    # The following URLs are proxied to ATMOSPHERE:
-    Alias /init_files LOCATIONOFATMOSPHERE/init_files
-    Alias /static/admin LOCATIONOFATMOSPHEREHERE/static/admin
-    Alias /static/rest_framework_swagger LOCATIONOFATMOSPHEREHERE/static/rest_framework_swagger
-    Alias /static/rest_framework LOCATIONOFATMOSPHEREHERE/static/rest_framework
-
-    # The following URLs are proxied to TROPOSPHERE:
-    Alias /assets LOCATIONOFTROPOSPHERE/troposphere/assets
-    Alias /resources LOCATIONOFTROPOSPHERE/resources
-
-    # Logging
-    ErrorLog /var/log/apache2/ssl_error.log
-    TransferLog /var/log/apache2/ssl_access.log
-    LogLevel warn
-
+<VirtualHost *:443>
+    # Rewrite
     RewriteEngine On
-    # The following Rewrites should point to ATMOSPHERE:
-    RewriteRule ^/api/(.*)   https://localhost:5000/api/$1 [P]
-    RewriteRule ^/api-docs/(.*)   https://localhost:5000/api-docs/$1 [P]
-    RewriteRule ^/admin/(.*)   https://localhost:5000/admin/$1 [P]
-
-    WSGIDaemonProcess troposphere_app processes=1 threads=15 display-name=%{GROUP}
-    WSGIProcessGroup troposphere_app
-
-    WSGIScriptAlias / LOCATIONOFTROPOSPHERE/troposphere/wsgi.py
-
-</VirtualHost>
-
-Listen 5000
-<VirtualHost *:5000>
-
-    #Rewrite 
-    RewriteEngine On
-    # Necessary for DRF and Token Authorization
     RewriteCond %{HTTP:Authorization} ^(.*)
     RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
-
-    #Send iplantcollabortive to iplantc
+    # for the old domain
     RewriteCond %{HTTP_HOST} ^MYHOSTNAMEHERE.iplantcollaborative.org$
-    RewriteRule ^/(.*)$       https://MYHOSTNAMEHERE/$1 [R,L]
-    
-    
-    #Logging
-    ErrorLog /var/log/apache2/ssl_error.log
-    TransferLog /var/log/apache2/ssl_access.log
-    LogLevel warn
-    
-    #SSL
+    RewriteRule ^/(.*)$       https://MYHOSTNAMEHERE.iplantc.org/$1 [R,L]
+  
+    # SSL Settings
     SSLEngine on
     SSLProtocol all -SSLv2
     SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
     SSLCertificateFile /etc/ssl/certs/BASECERTHERE
     SSLCertificateKeyFile /etc/ssl/private/KEYHERE
     SSLCertificateChainFile /etc/ssl/certs/BUNDLECERTHERE
-    
+  
     <Files ~ "\.(cgi|shtml|phtml|php3?)$">
         SSLOptions +StdEnvVars
     </Files>
     <Directory "/var/www/cgi-bin">
         SSLOptions +StdEnvVars
     </Directory>
-    
+  
     SetEnvIf User-Agent ".*MSIE.*" \
              nokeepalive ssl-unclean-shutdown \
              downgrade-1.0 force-response-1.0
-    
-    #This is for atmosphere
-    #favicon and robots are better served outside of WSGI
-    Alias /favicon.ico LOCATIONOFATMOSPHERE/static/images/favicon.ico
-    Alias /robots.txt LOCATIONOFATMOSPHERE/templates/robots.txt
 
+    SetEnv DJANGO_SETTINGS_MODULE atmosphere.settings
+
+    # Logging
+    ErrorLog /var/log/apache2/ssl_error.log
+    TransferLog /var/log/apache2/ssl_access.log
+    LogLevel warn
+
+    # Catch static file paths
+    # favicon and robots are better served outside of WSGI
+    Alias /favicon.ico PATH_TO_ATMOSPHERE/static/images/favicon.ico
+    Alias /robots.txt PATH_TO_ATMOSPHERE/templates/robots.txt
     #init_files && resources will auto-direct to the file
-    Alias /init_files LOCATIONOFATMOSPHERE/init_files
-    Alias /resources LOCATIONOFATMOSPHERE/resources
-    Alias /static LOCATIONOFATMOSPHERE/static
+    Alias /init_files PATH_TO_ATMOSPHERE/init_files
+    Alias /resources PATH_TO_ATMOSPHERE/resources
+    #Assing WSGI to any other folder
+    WSGIScriptAlias / PATH_TO_ATMOSPHERE/atmosphere/wsgi.py
 
-    #Passing WSGI to any other folder
-    WSGIDaemonProcess atmosphere_app processes=1 threads=15 display-name=%{GROUP}
-    WSGIProcessGroup atmosphere_app
-
-    WSGIScriptAlias / LOCATIONOFATMOSPHERE/atmosphere/wsgi.py
-    
     # Shell
     <Location /shell>
         AuthType CAS
@@ -152,6 +101,47 @@ Listen 5000
         Order allow,deny
         Allow from all
     </Location>
-    
-    
+
+    Alias /static/rest_framework PATH_TO_ATMOSPHERE/static/rest_framework
+
+    # The following URLs are proxied to Troposphere:
+    # /, /static, /applicaiton, /login, /logout, /cas/service
+    Alias /assets PATH_TO_TROPOSPHERE/troposphere/assets
+    ProxyPass /application http://localhost:5000/application
+    ProxyPassReverse /application http://localhost:5000/application
+    ProxyPass /login http://localhost:5000/login
+    ProxyPassReverse /login http://localhost:5000/login
+    ProxyPass /logout http://localhost:5000/logout
+    ProxyPassReverse /logout http://localhost:5000/logout
+    ProxyPass /cas/service http://localhost:5000/cas/service
+    ProxyPassReverse /cas/service http://localhost:5000/cas/service
+    ProxyPass /forbidden http://localhost:5000/forbidden
+    ProxyPassReverse /forbidden http://localhost:5000/forbidden
+
+    ProxyPassMatch ^/emulate http://localhost:5000
+    ProxyPassReverse /emulate http://localhost:5000
+    ProxyPassMatch ^/$ http://localhost:5000
+    ProxyPassReverse / http://localhost:5000
+
+</VirtualHost>
+
+###############################################################################
+## Troposphere Server Virtualhost (Port 5000)
+###############################################################################
+Listen 5000
+<VirtualHost *:5000>
+    SetEnv DJANGO_SETTINGS_MODULE troposphere.settings
+    WSGIScriptAlias / PATH_TO_TROPOSPHERE/troposphere/wsgi.py
+
+    # Logging
+    ErrorLog /var/log/apache2/ssl_error.log
+    TransferLog /var/log/apache2/ssl_access.log
+    LogLevel warn
+
+    <Directory PATH_TO_TROPOSPHERE/trosposphere>
+        <Files wsgi.py>
+        Order deny,allow
+        Require all granted
+        </Files>
+    </Directory>
 </VirtualHost>
