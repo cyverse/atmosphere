@@ -9,6 +9,7 @@ Debugging atmo_init_full locally:
 """
 import errno
 import getopt
+import glob
 try:
     from hashlib import sha1
 except ImportError:
@@ -601,13 +602,17 @@ def idrop(username, distro):
         if os.path.isdir(dirname):
             if not os.path.exists(os.path.join(dirname, "Desktop")):
                 continue
-            idropdesktop = os.path.join(dirname, "Desktop", "idrop.desktop")
-            if os.path.exists(idropdesktop):
-                os.remove(idropdesktop)
-            shutil.copy2(new_idropdesktop, idropdesktop)
+            idrop_path = os.path.join(dirname, "Desktop/")
+            idrop_match_str = os.path.join(idrop_path, "[i,I][d,D][r,R][o,O][p,P].desktop")
+            idrop_files = glob.glob(idrop_match_str)
+            for idrop_file in idrop_files:
+                if os.path.exists(idrop_file):
+                    os.remove(idrop_file)
+            shutil.copy2(new_idropdesktop, idrop_path)
     os.remove("/opt/idrop.tgz")
     os.remove("/opt/idrop.desktop")
-                            
+    shutil.rmtree("/opt/irodsidrop", ignore_errors=True)
+
 
 def modify_rclocal(username, distro, hostname='localhost'):
     try:
