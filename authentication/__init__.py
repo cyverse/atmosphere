@@ -15,6 +15,14 @@ def cas_logoutRedirect():
                                 "/cas/logout?service="+settings.SERVER_URL)
 
 
+def saml_loginRedirect(request, gateway=False):
+    login_url = settings.CAS_SERVER +\
+        "/cas/login?service="+settings.SERVER_URL +\
+        "/s_serviceValidater"
+    if gateway:
+        login_url += '&gateway=true'
+    return HttpResponseRedirect(login_url)
+
 def cas_loginRedirect(request, redirect=None, gateway=False):
     if not redirect:
         redirect = request.get_full_path()

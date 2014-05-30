@@ -16,7 +16,7 @@ chmod -R 600 ${ATMOSPHERE_HOME}/extras/ssh/id_rsa
 
 chown -R www-data:core-services ${ATMOSPHERE_HOME}
 
-chown -R root:root ${ATMOSPHERE_HOME}/extras/apache
+chown -R www-data:core-services ${ATMOSPHERE_HOME}/extras/apache
 
 chown -R root:root ${ATMOSPHERE_HOME}/extras/ssh
 
