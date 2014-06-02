@@ -26,11 +26,6 @@ from authentication.models import UserProxy
 #May be as short as 5min!
 PROXY_TICKET_EXPIRY = timedelta(days=1)
 
-def get_saml_client():
-    s_client = SAMLClient(settings.CAS_SERVER,
-            settings.SERVER_URL)
-    return s_client
-
 def get_cas_client():
     """
     This is how you initialize a CAS Client
@@ -104,6 +99,12 @@ def _set_redirect_url(sendback, request):
     return "%s?sendback=%s" % (absolute_url, sendback)
 
 
+def get_saml_client():
+    s_client = SAMLClient(settings.CAS_SERVER,
+            settings.SERVER_URL,
+            auth_prefix='/castest')
+    return s_client
+
 def saml_validateTicket(request):
     """
     Method expects 2 GET parameters: 'ticket' & 'sendback'
@@ -130,26 +131,26 @@ def saml_validateTicket(request):
     # ReturnLocation set, apply on successful authentication
 
     saml_client = get_saml_client()
-    cas_response = saml_client.saml_serviceValidate(ticket)
-    return HttpResponse(cas_response)
-    #    #TODO: Determine success
-    #    logger.debug("CAS Server did NOT validate ticket:%s"
-    #                 " and included this response:%s"
-    #                 % (ticket, cas_response.object))
-    #    return HttpResponseRedirect(redirect_logout_url)
-    #suc = cas_response.__dict__
+    saml_response = saml_client.saml_serviceValidate(ticket)
+    if not saml_response.success:
+        logger.debug("CAS Server did NOT validate ticket:%s"
+                     " and included this response:%s"
+                     % (ticket, saml_response.xml))
+        return HttpResponseRedirect(redirect_logout_url)
 
-    #try:
-    #    auth_token = createAuthToken(cas_response.user)
-    #except User.DoesNotExist:
-    #    return HttpResponseRedirect(no_user_url)
-    #if auth_token is None:
-    #    logger.info("Failed to create AuthToken")
-    #    HttpResponseRedirect(redirect_logout_url)
-    #createSessionToken(request, auth_token)
-    #return_to = request.GET['sendback']
-    #logger.info("Session token created, return to: %s" % return_to)
-    #return HttpResponseRedirect(return_to)
+    try:
+        auth_token = createAuthToken(saml_response.user)
+    except User.DoesNotExist:
+        return HttpResponseRedirect(no_user_url)
+    if auth_token is None:
+        logger.info("Failed to create AuthToken")
+        HttpResponseRedirect(redirect_logout_url)
+    createSessionToken(request, auth_token)
+    return_to = request.GET.get('sendback')
+    if not return_to:
+        return_to = "%s/application/" % settings.SERVER_URL
+    logger.info("Session token created, return to: %s" % return_to)
+    return HttpResponseRedirect(return_to)
 
 
 def cas_validateTicket(request):
