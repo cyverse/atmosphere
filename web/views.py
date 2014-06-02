@@ -68,7 +68,7 @@ def s_login(request):
     for record in records:
         if record.disable_login:
             disable_login = True
-    return saml_loginRedirect(request, settings.REDIRECT_URL+"/application/")
+    return saml_loginRedirect(request, settings.REDIRECT_URL+"/login/")
 
 def login(request):
     """

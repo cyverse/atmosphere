@@ -150,6 +150,7 @@ def saml_validateTicket(request):
     if not return_to:
         return_to = "%s/application/" % settings.SERVER_URL
     logger.info("Session token created, return to: %s" % return_to)
+    return_to += "?token=%s" % auth_token
     return HttpResponseRedirect(return_to)
 
 
