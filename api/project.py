@@ -172,7 +172,7 @@ class ProjectApplicationList(APIView):
         projects = group.projects.get(id=project_id)
         applications = projects.applications.filter(only_current)
         serialized_data = ApplicationSerializer(applications, many=True,
-                                            context={"user":request.user}).data
+                                                context={"user":request.user}).data
         response = Response(serialized_data)
         return response
 
