@@ -328,12 +328,12 @@ def get_metadata():
     return metadata
 
 
-def collect_json_metadata(request_url):
-    content = _make_request(request_url)
+def collect_json_metadata(metadata_url):
+    content = _make_request(metadata_url)
     try:
         meta_obj = json.loads(content)
     except ValueError, bad_content:
-        logging.exception("JSON Metadata NOT FOUND. URL: %s" % request_url)
+        logging.exception("JSON Metadata not found. url: %s" % metadata_url)
         meta_obj = {}
 
     return meta_obj
@@ -593,9 +593,11 @@ def idrop(username, distro):
         match_hash="c0dbe48b733478549d3d1eb4ad4468861bcbd3bd")
     run_command(["/bin/tar", "-xvjf", "/opt/idrop.tgz", "-C", "/opt/"])
     new_idropdesktop = "/opt/idrop.desktop"
+    if not os.path.isdir("/etc/skel/Desktop"):
+        os.makedirs("/etc/skel/Desktop")
     if os.path.exists("/etc/skel/Desktop/idrop.desktop"):
         os.remove("/etc/skel/Desktop/idrop.desktop")
-    shutil.copy2(new_idropdesktop, "/etc/skel/Desktop/")
+    shutil.copy2(new_idropdesktop, "/etc/skel/Desktop/idrop.desktop")
     for name in os.listdir("/home/"):
         dirname = os.path.join("/home/", name)
         if os.path.isdir(dirname):
