@@ -1,6 +1,9 @@
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from core.models.provider import Provider
+
+only_current = Q(end_date=None) | Q(end_date__gt=timezone.now())
 
 
 class Size(models.Model):

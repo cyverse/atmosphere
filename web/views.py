@@ -29,7 +29,8 @@ from threepio import logger
 # atmosphere libraries
 from atmosphere import settings
 
-from authentication import cas_loginRedirect, cas_logoutRedirect
+from authentication import cas_loginRedirect, cas_logoutRedirect,\
+        saml_loginRedirect
 from authentication.models import Token as AuthToken
 from authentication.decorators import atmo_login_required, atmo_valid_token_required
 
@@ -55,6 +56,19 @@ def redirectApp(request):
     return cas_loginRedirect(request,
                              settings.REDIRECT_URL+'/application/',
 			     gateway=True)
+
+def s_login(request):
+    """
+     SAML Login: Phase 1/2 Call SAML Login
+    """
+    #logger.info("Login Request:%s" % request)
+    #Form Sets 'next' when user clicks login
+    records = MaintenanceRecord.active()
+    disable_login = False
+    for record in records:
+        if record.disable_login:
+            disable_login = True
+    return saml_loginRedirect(request, settings.REDIRECT_URL+"/login/")
 
 def login(request):
     """

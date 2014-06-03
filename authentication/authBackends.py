@@ -17,6 +17,30 @@ from authentication.protocol.oauth import lookupUser as oauth_lookupUser
 
 
 
+class SAMLLoginBackend(ModelBackend):
+    """
+    Implemting an AuthenticationBackend
+    (Used by Django for logging in to admin, storing session info)
+    """
+    def authenticate(self, username=None, password=None, request=None):
+        """
+        Return user if validated by CAS
+        Return None otherwise.
+        """
+        logger.debug("U:%s P:%s R:%s" % (username, password, request))
+        if not request:
+            logger.debug("SAML Authentication skipped - No request.")
+            return None
+        #TODO: See if you were the auth backend used to originate the request.
+        #TODO: Look at request session for a token and see if its still valid.
+        import ipdb;ipdb.set_trace()
+        if False:
+            logger.debug("SAML Authentication failed - "+username)
+            return None
+        #attributes = saml_response.attributes
+        #return get_or_create_user(username, attributes)
+
+
 class CASLoginBackend(ModelBackend):
     """
     Implemting an AuthenticationBackend
