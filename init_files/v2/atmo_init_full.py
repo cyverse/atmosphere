@@ -596,7 +596,7 @@ def idrop(username, distro):
     new_idropdesktop = "/opt/idrop.desktop"
     if os.path.exists("/etc/skel/Desktop/idrop.desktop"):
         os.remove("/etc/skel/Desktop/idrop.desktop")
-    shutil.copy2(new_idropdesktop, "/etc/skel/Desktop/")
+    shutil.copy2(new_idropdesktop, "/etc/skel/Desktop/idrop.desktop")
     for name in os.listdir("/home/"):
         dirname = os.path.join("/home/", name)
         if os.path.isdir(dirname):
