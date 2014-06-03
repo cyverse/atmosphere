@@ -68,6 +68,11 @@ urlpatterns = patterns(
 
     # GLOBAL Authentication Section:
     #   Login/Logout
+    url(r'^s_login[/]?$', 'web.views.s_login'),
+    url(r'^s_serviceValidater[/]?$',
+        'authentication.protocol.cas.saml_validateTicket',
+        name="saml-service-validate-link"),
+
     url(r'^login[/]?$', 'web.views.login'),
     url(r'^logout[/]?$', 'web.views.logout'),
     # CAS Authentication Section:

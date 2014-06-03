@@ -127,71 +127,48 @@ def ldap_formatAttrs(ldap_attrs):
         return None
 
 
+def get_members(groupname):
+    """
+    """
+    try:
+        ldap_server = secrets.LDAP_SERVER
+        ldap_group_dn = secrets.LDAP_SERVER_DN.replace(
+            "ou=people", "ou=Groups")
+        ldap_conn = ldap_driver.initialize(ldap_server)
+        group_users = ldap_conn.search_s(ldap_group_dn,
+                                        ldap_driver.SCOPE_SUBTREE,
+                                        '(cn=%s)' % groupname)
+        return group_users[0][1]['memberUid']
+    except Exception as e:
+        logger.exception(e)
+        return []
+
+
 def is_atmo_user(username):
     """
     ldap_validate
     Using the username is in the atmo-user group return True
     otherwise False.
     """
-    try:
-        ldap_server = secrets.LDAP_SERVER
-        ldap_group_dn = secrets.LDAP_SERVER_DN.replace(
-            "ou=people", "ou=Groups")
-        ldap_conn = ldap_driver.initialize(ldap_server)
-        atmo_users = ldap_conn.search_s(ldap_group_dn,
-                                        ldap_driver.SCOPE_SUBTREE,
-                                        '(cn=atmo-user)')
-        return username in atmo_users[0][1]['memberUid']
-    except Exception as e:
-        logger.exception(e)
-        return False
+    members_list = get_members('atmo-user')
+    return username in members_list
 
 
 def get_atmo_users():
     """
     """
-    try:
-        ldap_server = secrets.LDAP_SERVER
-        ldap_group_dn = secrets.LDAP_SERVER_DN.replace(
-            "ou=people", "ou=Groups")
-        ldap_conn = ldap_driver.initialize(ldap_server)
-        atmo_users = ldap_conn.search_s(ldap_group_dn,
-                                        ldap_driver.SCOPE_SUBTREE,
-                                        '(cn=atmo-user)')
-        return atmo_users[0][1]['memberUid']
-    except Exception as e:
-        logger.exception(e)
-        return False
+    members_list = get_members('atmo-user')
+    return members_list
 
 def get_core_services():
     """
     """
-    try:
-        ldap_server = secrets.LDAP_SERVER
-        ldap_group_dn = secrets.LDAP_SERVER_DN.replace(
-            "ou=people", "ou=Groups")
-        ldap_conn = ldap_driver.initialize(ldap_server)
-        atmo_users = ldap_conn.search_s(ldap_group_dn,
-                                        ldap_driver.SCOPE_SUBTREE,
-                                        '(cn=core-services)')
-        return atmo_users[0][1]['memberUid']
-    except Exception as e:
-        logger.exception(e)
-        return False
+    members_list = get_members('core-services')
+    return members_list
 
 def get_staff_users():
     """
     """
-    try:
-        ldap_server = secrets.LDAP_SERVER
-        ldap_group_dn = secrets.LDAP_SERVER_DN.replace(
-            "ou=people", "ou=Groups")
-        ldap_conn = ldap_driver.initialize(ldap_server)
-        atmo_users = ldap_conn.search_s(ldap_group_dn,
-                                        ldap_driver.SCOPE_SUBTREE,
-                                        '(cn=staff)')
-        return atmo_users[0][1]['memberUid']
-    except Exception as e:
-        logger.exception(e)
-        return False
+    members_list = get_members('staff')
+    return members_list
 

@@ -341,3 +341,16 @@ class ApplicationBookmark(models.Model):
     class Meta:
         db_table = 'application_bookmark'
         app_label = 'core'
+
+
+class ApplicationThreshold(models.Model):
+    application = models.ForeignKey(Application, related_name="threshold")
+    memory_min = models.IntegerField(default=0)
+    storage_min = models.IntegerField(default=0)
+
+    def __unicode__(self):
+        return "%s requires >%sMB memory, >%s GB disk" % (self.application,
+                self.memory_min, self.storage_min)
+    class Meta:
+        db_table = 'application_threshold'
+        app_label = 'core'
