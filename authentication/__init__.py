@@ -23,7 +23,6 @@ def saml_loginRedirect(request, redirect=None, gateway=False):
     return HttpResponseRedirect(login_url)
 
 def cas_loginRedirect(request, redirect=None, gateway=False):
-    raise Exception()
     if not redirect:
         redirect = request.get_full_path()
     login_url = settings.CAS_SERVER +\
