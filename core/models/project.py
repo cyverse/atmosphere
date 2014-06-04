@@ -27,11 +27,12 @@ class Project(models.Model):
                                        null=True, blank=True)
     volumes = models.ManyToManyField(Volume, related_name="projects",
                                      null=True, blank=True)
+
     def __unicode__(self):
         return "%s Owner:%s: Apps:%s Instances:%s Volumes:%s"\
-                % (self.name, self.owner,
-                   self.applications.all(), self.instances.all(),
-                   self.volumes.all())
+            % (self.name, self.owner,
+               self.applications.all(), self.instances.all(),
+               self.volumes.all())
 
     def remove_object(self, related_obj):
         """
@@ -71,4 +72,3 @@ class Project(models.Model):
     class Meta:
         db_table = 'project'
         app_label = 'core'
-
