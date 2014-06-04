@@ -22,7 +22,9 @@ from api.serializers import ProjectSerializer
 from django.utils import timezone
 from django.db.models import Q
 
-only_current = Q(end_date=None) | Q(end_date__gt=timezone.now())
+only_current = Q()
+only_current |= Q(end_date=None)
+only_current |= Q(end_date__gt=timezone.now())
 
 class ProjectApplicationExchange(APIView):
     permission_classes = (ApiAuthRequired,)
