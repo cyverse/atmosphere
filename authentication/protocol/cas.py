@@ -98,6 +98,55 @@ def _set_redirect_url(sendback, request):
             reverse('cas-service-validate-link'))
     return "%s?sendback=%s" % (absolute_url, sendback)
 
+def saml_validateTicket(request):
+    """
+    Method expects 2 GET parameters: 'ticket' & 'sendback'
+    After a CAS Login:
+    Redirects the request based on the GET param 'ticket'
+    Unauthorized Users are redirected to '/' In the event of failure.
+    Authorized Users are redirected to the GET param 'sendback'
+    """
+
+    redirect_logout_url = settings.REDIRECT_URL+"/login/"
+    no_user_url = settings.REDIRECT_URL + "/no_user/"
+    logger.debug('GET Variables:%s' % request.GET)
+    ticket = request.GET.get('ticket', None)
+    sendback = request.GET.get('sendback', None)
+
+    if not ticket:
+        logger.info("No Ticket received in GET string "
+                    "-- Logout user: %s" % redirect_logout_url)
+        return HttpResponseRedirect(redirect_logout_url)
+
+    logger.debug("ServiceValidate endpoint includes a ticket."
+                 " Ticket must now be validated with SAML")
+
+    # ReturnLocation set, apply on successful authentication
+
+    saml_client = get_saml_client()
+    saml_response = saml_client.saml_serviceValidate(ticket)
+    if not saml_response.success:
+        logger.debug("CAS Server did NOT validate ticket:%s"
+                     " and included this response:%s"
+                     % (ticket, saml_response.xml))
+        return HttpResponseRedirect(redirect_logout_url)
+
+    try:
+        auth_token = createAuthToken(saml_response.user)
+    except User.DoesNotExist:
+        return HttpResponseRedirect(no_user_url)
+    if auth_token is None:
+        logger.info("Failed to create AuthToken")
+        HttpResponseRedirect(redirect_logout_url)
+    createSessionToken(request, auth_token)
+    return_to = request.GET.get('sendback')
+    if not return_to:
+        return_to = "%s/application/" % settings.SERVER_URL
+    logger.info("Session token created, return to: %s" % return_to)
+    return_to += "?token=%s" % auth_token
+    return HttpResponseRedirect(return_to)
+
+
 
 def get_saml_client():
     s_client = SAMLClient(settings.CAS_SERVER,
