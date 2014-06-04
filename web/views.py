@@ -29,6 +29,9 @@ from threepio import logger
 # atmosphere libraries
 from atmosphere import settings
 
+from authentication.protocol.oauth import \
+        get_cas_oauth_client, cas_profile_for_token
+from authentication.protocol.oauth import createOAuthToken
 from authentication import cas_loginRedirect, cas_logoutRedirect,\
         saml_loginRedirect
 from authentication.models import Token as AuthToken
@@ -55,7 +58,58 @@ def redirectApp(request):
     """
     return cas_loginRedirect(request,
                              settings.REDIRECT_URL+'/application/',
-			     gateway=True)
+                             gateway=True)
+
+def o_login_redirect(request):
+    oauth_client = get_cas_oauth_client()
+    url = oauth_client.authorize_url()
+    return HttpResponseRedirect(url)
+
+def o_callback_authorize(request):
+    if 'code' not in request.GET:
+        logger.info(request.__dict__)
+        return HttpResponse("")
+    oauth_code = request.GET['code']
+
+    #Exchange code for ticket
+    access_token, expires = _get_access_token(oauth_code)
+
+    if not access_token:
+        logger.info("Code %s invalid or expired. Redirecting the user."
+                    % oauth_code)
+        return o_login_redirect(request)
+
+    #Exchange ticket for profile
+    user_profile = cas_profile_for_token(access_token)
+
+    if not user_profile or "id" not in user_profile:
+        logger.error("AccessToken is producing an INVALID profile! "
+                     "Check the CAS server and caslib.py for more information.")
+        #NOTE: Make sure this redirects the user OUT of the loop!
+        return login(request)
+    #ASSERT: A valid OAuth token gave us the Users Profile.
+    # Now create an AuthToken and return it
+    username = user_profile["id"]
+    auth_token = createOAuthToken(username, access_token, expires)
+    #Set the username to the user to be emulated
+    #to whom the token also belongs
+    request.session['username'] = username
+    request.session['token'] = auth_token.key
+    logger.info("Returning user - %s - to application "
+                % username)
+    logger.info(request.session.__dict__)
+    logger.info(request.user)
+    return HttpResponseRedirect(settings.REDIRECT_URL+"/application/")
+
+def _get_access_token(oauth_code):
+    oauth_client = get_cas_oauth_client()
+    validate_resp_map = oauth_client.oauth_validateCode(oauth_code)
+    if not validate_resp_map or 'access_token' not in validate_resp_map:
+        return None, None
+    access_token = validate_resp_map['access_token'][0]
+    expires = validate_resp_map['expires'][0]
+    expiry_date = datetime.now() + timedelta(seconds=expires)
+    return access_token, expiry_date
 
 def s_login(request):
     """

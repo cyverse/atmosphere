@@ -21,7 +21,7 @@ class BearerTokenAuth(requests.auth.AuthBase):
         r.headers['Authorization'] = "Bearer %s" % self.access_token
         return r
 
-def createOAuthToken(username, token_key, token_expire):
+def createOAuthToken(username, token_key, token_expire=None):
     """
     returns a new token for username
     """
@@ -35,9 +35,14 @@ def createOAuthToken(username, token_key, token_expire):
             key=token_key,
             user=user,
             api_server_url=settings.API_SERVER_URL)
-    auth_user_token.update_expiration(token_expire)
+    if token_expire:
+        auth_user_token.update_expiration(token_expire)
     auth_user_token.save()
     return auth_user_token
+
+############################
+#METHODS SPECIFIC TO GROUPY!
+############################
 
 def create_user(username):
     oauth_attrs = lookupUser(username)
@@ -200,3 +205,22 @@ def generate_keys():
     json_obj = response.json()
     pem_id_key = json_obj['private']
     return pem_id_key
+
+###########################
+#CAS-SPECIFIC OAUTH METHODS
+###########################
+from caslib import OAuthClient
+def get_cas_oauth_client():
+    o_client = OAuthClient(settings.CAS_SERVER,
+            settings.OAUTH_CLIENT_CALLBACK,
+            settings.OAUTH_CLIENT_KEY,
+            settings.OAUTH_CLIENT_SECRET,
+            auth_prefix='/castest')
+    return o_client
+
+
+def cas_profile_for_token(access_token):
+    oauth_client = get_cas_oauth_client()
+    profile_map = oauth_client.oauth_profile(access_token)
+    return profile_map
+
