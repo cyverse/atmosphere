@@ -501,6 +501,8 @@ class Instance(APIView):
                                                  user)
             if core_instance:
                 core_instance.end_date_all()
+            else:
+                logger.warn("Unable to find core instance %s." % (instance_id))
             serialized_data = InstanceSerializer(core_instance,
                                                  context={'user':request.user}).data
             response = Response(serialized_data, status=status.HTTP_200_OK)
