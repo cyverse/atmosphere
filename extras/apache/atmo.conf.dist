@@ -113,6 +113,8 @@ ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE/jenkins
     ProxyPassReverse /login http://localhost:5000/login
     ProxyPass /logout http://localhost:5000/logout
     ProxyPassReverse /logout http://localhost:5000/logout
+    ProxyPass /cas/oauth2.0 http://localhost:5000/cas/oauth2.0
+    ProxyPassReverse /cas/oauth2.0 http://localhost:5000/cas/oauth2.0
     ProxyPass /cas/service http://localhost:5000/cas/service
     ProxyPassReverse /cas/service http://localhost:5000/cas/service
     ProxyPass /forbidden http://localhost:5000/forbidden

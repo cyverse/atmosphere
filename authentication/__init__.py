@@ -9,7 +9,6 @@ from atmosphere import settings
 from authentication.models import Token as AuthToken
 from core.models import AtmosphereUser as User
 
-
 def cas_logoutRedirect():
     return HttpResponseRedirect(settings.CAS_SERVER +
                                 "/cas/logout?service="+settings.SERVER_URL)
@@ -23,7 +22,6 @@ def saml_loginRedirect(request, redirect=None, gateway=False):
     return HttpResponseRedirect(login_url)
 
 def cas_loginRedirect(request, redirect=None, gateway=False):
-    raise Exception()
     if not redirect:
         redirect = request.get_full_path()
     login_url = settings.CAS_SERVER +\

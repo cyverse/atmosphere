@@ -99,6 +99,8 @@ def _set_redirect_url(sendback, request):
     return "%s?sendback=%s" % (absolute_url, sendback)
 
 
+
+
 def get_saml_client():
     s_client = SAMLClient(settings.CAS_SERVER,
             settings.SERVER_URL,
