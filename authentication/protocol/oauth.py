@@ -7,6 +7,7 @@ from authentication import get_or_create_user
 from authentication.models import Token as AuthToken
 from django.utils.timezone import datetime, timedelta
 from core.models.user import AtmosphereUser
+from caslib import OAuthClient
 
 # Requests auth class for access tokens
 class BearerTokenAuth(requests.auth.AuthBase):
@@ -209,7 +210,6 @@ def generate_keys():
 ###########################
 #CAS-SPECIFIC OAUTH METHODS
 ###########################
-from caslib import OAuthClient
 def get_cas_oauth_client():
     o_client = OAuthClient(settings.CAS_SERVER,
             settings.OAUTH_CLIENT_CALLBACK,
