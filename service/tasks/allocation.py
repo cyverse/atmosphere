@@ -66,6 +66,8 @@ def monitor_instances_for_user(provider, username, instances):
     from api import get_esh_driver
     try:
         user = AtmosphereUser.objects.get(username=username)
+        if not user:
+            return
         #TODO: When user->group is no longer true,
         # we will need to modify this..
         group = Group.objects.get(name=user.username)
