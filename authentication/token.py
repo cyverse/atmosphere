@@ -6,9 +6,11 @@ from rest_framework.authentication import BaseAuthentication
 
 from threepio import logger
 
+from authentication.exceptions import Unauthorized
 from authentication.models import Token as AuthToken
 from core.models.user import AtmosphereUser
-from authentication.protocol.oauth import cas_profile_for_token
+from authentication.protocol.oauth import \
+        cas_profile_for_token, cas_profile_contains
 from authentication.protocol.oauth import get_user_for_token, createOAuthToken
 from authentication.protocol.oauth import lookupUser as oauth_lookupUser
 from authentication.protocol.oauth import create_user as oauth_create_user
@@ -70,6 +72,13 @@ def validate_oauth_token(token, request=None):
     if not user_profile:
         return False
     username = user_profile["id"]
+    attrs = user_profile["attributes"]
+    #TEST 1 : Must be in the group 'atmo-user'
+    if not cas_profile_contains(attrs, 'atmo-user'):
+        raise Unauthorized("User %s is not a member of group 'atmo-user'"
+                           % username)
+    #TODO: TEST 2 : Must have an identity (?)
+
     #NOTE: Will reuse token if found.
     auth_token = createOAuthToken(username, token)
     logger.info("AuthToken for %s:%s" % (username, auth_token))

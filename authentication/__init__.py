@@ -9,7 +9,6 @@ from atmosphere import settings
 from authentication.models import Token as AuthToken
 from core.models import AtmosphereUser as User
 
-
 def cas_logoutRedirect():
     return HttpResponseRedirect(settings.CAS_SERVER +
                                 "/cas/logout?service="+settings.SERVER_URL)

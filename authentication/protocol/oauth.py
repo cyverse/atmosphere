@@ -218,9 +218,19 @@ def get_cas_oauth_client():
             auth_prefix='/castest')
     return o_client
 
+def cas_profile_contains(attrs, test_value):
+    #Two basic types of 'values'
+    #Lists: e.g. attrs['entitlement'] = ['group1','group2','group3']
+    #Objects: e.g. attrs['email'] = 'test@email.com'
+    for attr in attrs:
+        for (key,value) in attr.items():
+            if type(value) == list and test_value in value:
+                return True
+            elif value == test_value:
+                return True
+    return False
 
 def cas_profile_for_token(access_token):
     oauth_client = get_cas_oauth_client()
     profile_map = oauth_client.get_profile(access_token)
     return profile_map
-
