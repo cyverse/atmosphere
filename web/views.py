@@ -8,7 +8,7 @@ import json
 import uuid
 import urllib
 import httplib2
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # django http libraries
 from django.http import HttpResponse, HttpResponseRedirect
@@ -30,7 +30,7 @@ from threepio import logger
 from atmosphere import settings
 
 from authentication.protocol.oauth import \
-        get_cas_oauth_client, cas_profile_for_token
+        get_cas_oauth_client
 from authentication.protocol.oauth import createOAuthToken
 from authentication import cas_loginRedirect, cas_logoutRedirect,\
         saml_loginRedirect
@@ -68,29 +68,34 @@ def o_login_redirect(request):
 def o_callback_authorize(request):
     if 'code' not in request.GET:
         logger.info(request.__dict__)
+        #TODO - Maybe: Redirect into a login
         return HttpResponse("")
+
+    oauth_client = get_cas_oauth_client()
     oauth_code = request.GET['code']
 
     #Exchange code for ticket
-    access_token, expires = _get_access_token(oauth_code)
+    access_token, expiry_date = oauth_client.get_access_token(oauth_code)
 
     if not access_token:
-        logger.info("Code %s invalid or expired. Redirecting the user."
+        logger.info("The Code %s is invalid/expired. Attempting another login."
                     % oauth_code)
         return o_login_redirect(request)
 
-    #Exchange ticket for profile
-    user_profile = cas_profile_for_token(access_token)
+    #Exchange token for profile
+    user_profile = oauth_client.get_profile(access_token)
 
     if not user_profile or "id" not in user_profile:
         logger.error("AccessToken is producing an INVALID profile! "
                      "Check the CAS server and caslib.py for more information.")
         #NOTE: Make sure this redirects the user OUT of the loop!
         return login(request)
+
     #ASSERT: A valid OAuth token gave us the Users Profile.
     # Now create an AuthToken and return it
     username = user_profile["id"]
     auth_token = createOAuthToken(username, access_token, expires)
+
     #Set the username to the user to be emulated
     #to whom the token also belongs
     request.session['username'] = username
@@ -100,16 +105,6 @@ def o_callback_authorize(request):
     logger.info(request.session.__dict__)
     logger.info(request.user)
     return HttpResponseRedirect(settings.REDIRECT_URL+"/application/")
-
-def _get_access_token(oauth_code):
-    oauth_client = get_cas_oauth_client()
-    validate_resp_map = oauth_client.oauth_validateCode(oauth_code)
-    if not validate_resp_map or 'access_token' not in validate_resp_map:
-        return None, None
-    access_token = validate_resp_map['access_token'][0]
-    expires = validate_resp_map['expires'][0]
-    expiry_date = datetime.now() + timedelta(seconds=expires)
-    return access_token, expiry_date
 
 def s_login(request):
     """

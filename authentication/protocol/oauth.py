@@ -221,6 +221,6 @@ def get_cas_oauth_client():
 
 def cas_profile_for_token(access_token):
     oauth_client = get_cas_oauth_client()
-    profile_map = oauth_client.oauth_profile(access_token)
+    profile_map = oauth_client.get_profile(access_token)
     return profile_map
 
