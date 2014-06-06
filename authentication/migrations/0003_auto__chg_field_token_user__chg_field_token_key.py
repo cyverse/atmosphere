@@ -9,16 +9,10 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
 
-        # Changing field 'Token.user'
-        db.alter_column('auth_token', 'user_id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.AtmosphereUser']))
-
         # Changing field 'Token.key'
         db.alter_column('auth_token', 'key', self.gf('django.db.models.fields.CharField')(max_length=128, primary_key=True))
 
     def backwards(self, orm):
-
-        # Changing field 'Token.user'
-        db.alter_column('auth_token', 'user_id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User']))
 
         # Changing field 'Token.key'
         db.alter_column('auth_token', 'key', self.gf('django.db.models.fields.CharField')(max_length=64, primary_key=True))
@@ -44,7 +38,7 @@ class Migration(SchemaMigration):
             'issuedTime': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '128', 'primary_key': 'True'}),
             'remote_ip': ('django.db.models.fields.CharField', [], {'max_length': '128', 'null': 'True', 'blank': 'True'}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'auth_token'", 'to': "orm['core.AtmosphereUser']"}),
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'auth_token'", 'to': "orm['auth.User']"}),
             'user_agent': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'})
         },
         'authentication.userproxy': {
