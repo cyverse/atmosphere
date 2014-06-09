@@ -49,6 +49,9 @@ class TokenEmulate(APIView):
         token = createAuthToken(username)
         expireTime = token.issuedTime + secrets.TOKEN_EXPIRY_TIME
         auth_json = {
+            #Extra data passed only on emulation..
+            'emulated_by': request.user.username,
+            #Normal token data..
             'token': token.key,
             'username': token.user.username,
             'expires': expireTime.strftime("%b %d, %Y %H:%M:%S")

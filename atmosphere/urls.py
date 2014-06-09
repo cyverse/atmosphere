@@ -41,7 +41,7 @@ from authentication.decorators import atmo_valid_token_required
 resources_path = os.path.join(os.path.dirname(__file__), 'resources')
 mobile = os.path.join(os.path.dirname(__file__), 'mobile')
 cloud2 = os.path.join(os.path.dirname(__file__), 'cf2')
-user_match = "[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*)"
+user_match = "[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*"
 
 admin.autodiscover()
 urlpatterns = patterns(
@@ -53,7 +53,7 @@ urlpatterns = patterns(
     # ADMIN Section:
     # Emulation controls for admin users
     url(r'^admin/emulate[/]?$', 'web.views.emulate_request'),
-    url(r'^admin/emulate/(?P<username>(%s)[/]?$' % user_match, 'web.views.emulate_request'),
+    url(r'^admin/emulate/(?P<username>(%s))[/]?$' % user_match, 'web.views.emulate_request'),
     # DB Admin Panel for admin users
     url(r'^admin/', include(admin.site.urls)),
 
