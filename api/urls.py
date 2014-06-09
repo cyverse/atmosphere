@@ -36,6 +36,7 @@ from api.size import SizeList, Size
 from api.hypervisor import HypervisorList, HypervisorDetail
 from api.step import StepList, Step
 from api.tag import TagList, Tag
+from api.token import TokenEmulate
 from api.user import UserManagement, User
 from api.version import Version
 from api.volume import VolumeList, Volume
@@ -96,6 +97,7 @@ private_apis = patterns('',
         MaintenanceRecord.as_view(),
         name='maintenance-record'),
     url(r'^notification[/]?$', NotificationList.as_view()),
+    url(r'^token_emulate/(?P<username>.*)[/]?$', TokenEmulate.as_view()),
 
     #url(r'^user[/]?$', atmo_valid_token_required(UserManagement.as_view())),
     #url(r'^user/(?P<username>.*)[/]?$', User.as_view()),

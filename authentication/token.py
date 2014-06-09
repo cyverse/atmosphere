@@ -11,7 +11,7 @@ from authentication.models import Token as AuthToken
 from core.models.user import AtmosphereUser
 from authentication.protocol.oauth import \
         cas_profile_for_token, cas_profile_contains
-from authentication.protocol.oauth import get_user_for_token, createOAuthToken
+from authentication.protocol.oauth import get_user_for_token, obtainOAuthToken
 from authentication.protocol.oauth import lookupUser as oauth_lookupUser
 from authentication.protocol.oauth import create_user as oauth_create_user
 from authentication.protocol.cas import cas_validateUser
@@ -74,13 +74,16 @@ def validate_oauth_token(token, request=None):
     username = user_profile["id"]
     attrs = user_profile["attributes"]
     #TEST 1 : Must be in the group 'atmo-user'
-    if not cas_profile_contains(attrs, 'atmo-user'):
-        raise Unauthorized("User %s is not a member of group 'atmo-user'"
-                           % username)
+    #NOTE: Test 1 will be IGNORED until we can verify it returns 'entitlement'
+    # EVERY TIME!
+    #if not cas_profile_contains(attrs, 'atmo-user'):
+    #    raise Unauthorized("User %s is not a member of group 'atmo-user'"
+    #                       % username)
     #TODO: TEST 2 : Must have an identity (?)
-
-    #NOTE: Will reuse token if found.
-    auth_token = createOAuthToken(username, token)
+    if not AtmosphereUser.objects.filter(username=username):
+        raise Unauthorized("User %s does not exist as an AtmosphereUser"
+                           % username)
+    auth_token = obtainOAuthToken(username, token)
     logger.info("AuthToken for %s:%s" % (username, auth_token))
     if not auth_token:
         return False

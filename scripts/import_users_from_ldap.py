@@ -48,7 +48,8 @@ def main():
         print "No Provider Selected, using default provider: %s" % provider
         acct_driver = get_account_driver(provider)
 
-    groups = args.groups.split(",")
+    group_list = args.groups
+    groups = group_list.split(",") if group_list else []
     for groupname in groups:
         group_add = 0
         users = get_members(groupname)
