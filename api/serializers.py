@@ -61,9 +61,9 @@ def get_context_user(serializer, kwargs, required=False):
                             "to be of type str or AtmosphereUser")
     elif request:
         user = request.user
-    if user:
-        logger.debug("%s initialized with user %s"
-                     % (serializer, user))
+    #if user:
+    #    logger.debug("%s initialized with user %s"
+    #                 % (serializer, user))
     return user
 
 

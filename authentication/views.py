@@ -39,7 +39,8 @@ def token_auth(request):
     logger.info('Request to auth')
     logger.info(request)
 
-    token = None
+    token = request.POST.get('token', None)
+    emulate_user = request.POST.get('emulate_user', None)
 
     username = request.POST.get('username', None)
     #CAS authenticated user already has session data

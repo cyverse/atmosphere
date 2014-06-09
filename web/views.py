@@ -31,7 +31,7 @@ from atmosphere import settings
 
 from authentication.protocol.oauth import \
         get_cas_oauth_client
-from authentication.protocol.oauth import createOAuthToken
+from authentication.protocol.oauth import obtainOAuthToken
 from authentication import cas_loginRedirect, cas_logoutRedirect,\
         saml_loginRedirect
 from authentication.models import Token as AuthToken
@@ -94,7 +94,7 @@ def o_callback_authorize(request):
     #ASSERT: A valid OAuth token gave us the Users Profile.
     # Now create an AuthToken and return it
     username = user_profile["id"]
-    auth_token = createOAuthToken(username, access_token, expires)
+    auth_token = obtainOAuthToken(username, access_token, expires)
 
     #Set the username to the user to be emulated
     #to whom the token also belongs

@@ -22,7 +22,7 @@ class BearerTokenAuth(requests.auth.AuthBase):
         r.headers['Authorization'] = "Bearer %s" % self.access_token
         return r
 
-def createOAuthToken(username, token_key, token_expire=None):
+def obtainOAuthToken(username, token_key, token_expire=None):
     """
     returns a new token for username
     """
