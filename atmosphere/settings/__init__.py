@@ -300,6 +300,8 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'authentication.token.OAuthTokenAuthentication',
         'authentication.token.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+
     )
 }
 #REST_FRAMEWORK_SWAGGER

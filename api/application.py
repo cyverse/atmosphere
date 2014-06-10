@@ -46,7 +46,7 @@ class ApplicationList(APIView):
             my_apps = visible_applications(request.user)
             applications.extend(my_apps)
         serialized_data = ApplicationSerializer(applications,
-                                                context={'user':request.user},
+                                                context={'request':request},
                                                 many=True).data
         response = Response(serialized_data)
         return response
@@ -58,8 +58,8 @@ class Application(APIView):
         be uniquely identified by a specific UUID, or more commonly, by Name,
         Description, or Tag(s). 
     """
-    serializer_class = ApplicationSerializer
-    model = CoreApplication
+    #serializer_class = ApplicationSerializer
+    #model = CoreApplication
     permission_classes = (ApiAuthOptional,)
 
     def get(self, request, app_uuid, **kwargs):
@@ -75,7 +75,7 @@ class Application(APIView):
                                     % app_uuid)
         app = app[0]
         serialized_data = ApplicationSerializer(
-                app, context={'user':request.user}).data
+                app, context={'request':request}).data
         response = Response(serialized_data)
         return response
 
@@ -93,7 +93,7 @@ class Application(APIView):
                                     "Application with uuid %s does not exist"
                                     % app_uuid)
         app = app[0]
-        self._update_application(request, app, **kwargs)
+        return self._update_application(request, app, **kwargs)
 
     def patch(self, request, app_uuid, **kwargs):
         """
@@ -102,16 +102,16 @@ class Application(APIView):
         Params:app_uuid -- Unique ID of application
 
         """
-        data = request.DATA
         app = CoreApplication.objects.filter(uuid=app_uuid)
         if not app:
             return failure_response(status.HTTP_404_NOT_FOUND,
                                     "Application with uuid %s does not exist"
                                     % app_uuid)
         app = app[0]
-        self._update_application(request, app, **kwargs)
+        return self._update_application(request, app, **kwargs)
 
     def _update_application(self, request, app, **kwargs):
+        data = request.DATA
         user = request.user
         app_owner = app.created_by
         app_members = app.get_members()
@@ -122,7 +122,7 @@ class Application(APIView):
             #Or it wont.. Up to operations..
         partial_update = True if request.method == 'PATCH' else False
         serializer = ApplicationSerializer(app, data=data,
-                                           context={'user':request.user},
+                                           context={'request':request},
                                            partial=partial_update)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
@@ -181,11 +181,13 @@ class ApplicationSearch(APIView):
             serialized_data = \
                 PaginatedApplicationSerializer(
                     search_page,
-                    context={'user':request.user}).data
+                    context={'request':request}).data
         else:
             serialized_data = ApplicationSerializer(
                 search_result,
-                context={'user':request.user}).data
+                context={
+                    'request':request,
+                    }).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response

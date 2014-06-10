@@ -112,6 +112,8 @@ urlpatterns = patterns(
     url(r'^api-docs/', include('rest_framework_swagger.urls')), 
 
     ### DJANGORESTFRAMEWORK ###
+    url(r'^api-token-auth/',
+            'rest_framework.authtoken.views.obtain_auth_token'),
     url(r'^api-auth/',
         include('rest_framework.urls', namespace='rest_framework'))
 )

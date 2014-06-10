@@ -27,7 +27,7 @@ class SAMLLoginBackend(ModelBackend):
         Return user if validated by CAS
         Return None otherwise.
         """
-        logger.debug("U:%s P:%s R:%s" % (username, password, request))
+        #logger.debug("U:%s P:%s R:%s" % (username, password, request))
         if not request:
             logger.debug("SAML Authentication skipped - No request.")
             return None
@@ -80,6 +80,7 @@ class LDAPLoginBackend(ModelBackend):
             return None
         ldap_attrs = ldap_lookupUser(username)
         attributes = ldap_formatAttrs(ldap_attrs)
+        logger.debug("[LDAP] Authentication Success - " + username)
         return get_or_create_user(username, attributes)
 
 
