@@ -23,9 +23,13 @@ from django.utils import timezone
 from django.db.models import Q
 
 
-def only_current():
+def only_active():
     """
-    
+    Returns a query to filter only active Django ORM objects.
+
+    NOTE: This needs to be a function because otherwise timezone.now() is
+    evaluated when the module is evaluated and the logic does't work
+    appropriately.
     """
     return Q(end_date=None) | Q(end_date__gt=timezone.now())
 
@@ -158,7 +162,7 @@ class ProjectVolumeList(APIView):
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
         projects = group.projects.get(id=project_id)
-        volumes = projects.volumes.filter(only_current())
+        volumes = projects.volumes.filter(only_active())
         serialized_data = VolumeSerializer(volumes, many=True,
                                             context={"user":request.user}).data
         response = Response(serialized_data)
@@ -176,7 +180,7 @@ class ProjectApplicationList(APIView):
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
         projects = group.projects.get(id=project_id)
-        applications = projects.applications.filter(only_current())
+        applications = projects.applications.filter(only_active())
         serialized_data = ApplicationSerializer(applications, many=True,
                                                 context={"user":request.user}).data
         response = Response(serialized_data)
@@ -195,7 +199,7 @@ class ProjectInstanceList(APIView):
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
         projects = group.projects.get(id=project_id)
-        instances = projects.instances.filter(only_current())
+        instances = projects.instances.filter(only_active())
         serialized_data = InstanceSerializer(instances, many=True,
                                             context={"user":request.user}).data
         response = Response(serialized_data)
