@@ -65,7 +65,10 @@ def monitor_instances_for_user(provider, username, instances):
     from core.models.instance import convert_esh_instance
     from api import get_esh_driver
     try:
-        user = AtmosphereUser.objects.get(username=username)
+        try:
+            user = AtmosphereUser.objects.get(username=username)
+        except AtmosphereUser.DoesNotExist:
+            return
         if not user:
             return
         #TODO: When user->group is no longer true,
