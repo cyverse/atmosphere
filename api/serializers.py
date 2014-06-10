@@ -273,7 +273,7 @@ class ApplicationSerializer(serializers.Serializer):
     machines = serializers.RelatedField(source='get_provider_machines',
                                               read_only=True)
     is_bookmarked = AppBookmarkField(source="bookmarks.all")
-    threshold = serializers.RelatedField(read_only=True, source="threshold.all")
+    threshold = serializers.RelatedField(read_only=True, source="threshold")
     projects = ProjectsField()
 
     def __init__(self, *args, **kwargs):

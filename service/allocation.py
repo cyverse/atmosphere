@@ -67,7 +67,7 @@ def get_time(user, identity_id, delta):
     logger.debug('Calculating time of %s instances' % len(instances))
     for idx, i in enumerate(instances):
         #Runtime cannot be larger than the total 'window' of time observed
-        run_time = min(i.get_active_time(), delta)
+        run_time = min(i.get_active_time(delta), delta)
         new_total = run_time + total_time
         logger.debug(
                 '%s:<Instance %s> %s + %s = %s'

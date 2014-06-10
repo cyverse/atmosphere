@@ -344,7 +344,7 @@ class ApplicationBookmark(models.Model):
 
 
 class ApplicationThreshold(models.Model):
-    application = models.ForeignKey(Application, related_name="threshold")
+    application = models.OneToOneField(Application, related_name="threshold")
     memory_min = models.IntegerField(default=0)
     storage_min = models.IntegerField(default=0)
 
