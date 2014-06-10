@@ -2,13 +2,16 @@
 ## HTTP Virtual Host Context (Forwards requests to HTTPS)
 ###############################################################################
 <VirtualHost *:80>
-	ErrorLog ${APACHE_LOG_DIR}/error.log
-	LogLevel warn
-	CustomLog ${APACHE_LOG_DIR}/access.log combined
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    LogLevel warn
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
 
-  RewriteEngine On
-  RewriteCond %{HTTPS} !=on
-  RewriteRule ^/?(.*) https://MYHOSTNAMEHERE.iplantc.org/$1 [R,L]
+    Alias /init_files /opt/dev/atmosphere/init_files
+
+    RewriteEngine On
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{REQUEST_URI} !^/init_files
+    RewriteRule ^/?(.*) https://MYHOSTNAMEHERE.iplantc.org/$1 [R,L]
 </VirtualHost>
 
 ###############################################################################
@@ -28,8 +31,8 @@ ProxyPassReverse  /flower  https://MYHOSTNAMEHERE.iplantc.org:8443
 ProxyPassReverse  /flower  https://MYHOSTNAMEHERE.iplantc.org/flower
 
 <Proxy https://MYHOSTNAMEHERE.iplantc.org:8443/flower*>
-  Order deny,allow
-  Allow from all
+    Order deny,allow
+    Allow from all
 </Proxy>
 
 ###############################################################################
@@ -40,8 +43,8 @@ ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE:8080/jenkins
 ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE/jenkins
 
 <Proxy http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins*>
-  Order deny,allow
-  Allow from all
+    Order deny,allow
+    Allow from all
 </Proxy>
 
 ###############################################################################
