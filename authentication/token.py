@@ -6,9 +6,12 @@ from rest_framework.authentication import BaseAuthentication
 
 from threepio import logger
 
+from authentication.exceptions import Unauthorized
 from authentication.models import Token as AuthToken
 from core.models.user import AtmosphereUser
-from authentication.protocol.oauth import get_user_for_token, createOAuthToken
+from authentication.protocol.oauth import \
+        cas_profile_for_token, cas_profile_contains
+from authentication.protocol.oauth import get_user_for_token, obtainOAuthToken
 from authentication.protocol.oauth import lookupUser as oauth_lookupUser
 from authentication.protocol.oauth import create_user as oauth_create_user
 from authentication.protocol.cas import cas_validateUser
@@ -20,18 +23,22 @@ class TokenAuthentication(BaseAuthentication):
     To authenticate, pass the token key in the "Authorization"
     HTTP header, prepended with the string "Token ". For example:
         Authorization: Token 098f6bcd4621d373cade4e832627b4f6
+        Authorization: Bearer 098f6bcd4621d373cade4e832627b4f6
     """
     model = AuthToken
 
     def authenticate(self, request):
         token_key = None
         auth = request.META.get('HTTP_AUTHORIZATION', '').split()
-        if len(auth) == 2 and auth[0].lower() == "token":
+        if len(auth) == 2 and auth[0].lower() in ["bearer", "token"]:
             token_key = auth[1]
+
         if not token_key and 'token' in request.session:
             token_key = request.session['token']
         if validate_token(token_key):
             token = self.model.objects.get(key=token_key)
+            logger.info("AuthToken Obtained for %s:%s" % (token.user.username,
+                token_key))
             if token.user.is_active:
                 return (token.user, token)
         return None
@@ -65,11 +72,27 @@ def validate_oauth_token(token, request=None):
     On every request, ask OAuth to authorize the token
     """
     #Authorization test
-    username, expires = get_user_for_token(token)
-    if not username:
+    user_profile = cas_profile_for_token(token)
+    if not user_profile:
         return False
-    auth_token = createOAuthToken(username, token, expires)
-    logger.info("AuthToken for %s:%s" % (username, auth_token))
+    username = user_profile.get("id")
+    attrs = user_profile.get("attributes")
+    if not username or not attrs:
+        logger.info("Invalid Profile:%s does not have username/attributes"
+                    % user_profile)
+        return False
+    #TEST 1 : Must be in the group 'atmo-user'
+    #NOTE: Test 1 will be IGNORED until we can verify it returns 'entitlement'
+    # EVERY TIME!
+    #if not cas_profile_contains(attrs, 'atmo-user'):
+    #    raise Unauthorized("User %s is not a member of group 'atmo-user'"
+    #                       % username)
+    #TODO: TEST 2 : Must have an identity (?)
+    if not AtmosphereUser.objects.filter(username=username):
+        raise Unauthorized("User %s does not exist as an AtmosphereUser"
+                           % username)
+    auth_token = obtainOAuthToken(username, token)
+    logger.info("OAuthToken Obtained for %s:%s" % (username, auth_token))
     if not auth_token:
         return False
     return True
@@ -88,10 +111,10 @@ def validate_token(token, request=None):
         auth_token = AuthToken.objects.get(key=token)
         user = auth_token.user
     except AuthToken.DoesNotExist:
-        #logger.info("AuthToken <%s> does not exist." % token)
         return False
     if auth_token.is_expired():
         if request and request.META['REQUEST_METHOD'] == 'POST':
+            #See if the user (Or the user who is emulating a user) can be re-authed.
             user_to_auth = request.session.get('emulated_by', user)
             if cas_validateUser(user_to_auth):
                 #logger.debug("Reauthenticated user -- Token updated")
@@ -99,10 +122,13 @@ def validate_token(token, request=None):
                 auth_token.save()
                 return True
             else:
-                logger.warn("Could not reauthenticate user")
+                logger.info("Token %s expired, User %s "
+                            "could not be reauthenticated in CAS"
+                            % (token, user))
                 return False
         else:
-            #logger.debug("%s using EXPIRED token to GET data.." % user)
+            logger.debug("Token %s EXPIRED, but allowing User %s to GET data.."
+                         % (token, user))
             return True
     else:
         return True

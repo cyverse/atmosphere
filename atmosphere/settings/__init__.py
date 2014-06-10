@@ -196,7 +196,8 @@ AUTH_USER_MODULE = 'core.AtmosphereUser'
 AUTH_PROFILE_MODULE = 'core.UserProfile'
 
 AUTHENTICATION_BACKENDS = (
-    'authentication.authBackends.CASLoginBackend',  # For Web-Access
+    #'authentication.authBackends.CASLoginBackend',  # For Web-Access
+    'authentication.authBackends.SAMLLoginBackend',  # For Web-Access
     'authentication.authBackends.LDAPLoginBackend',  # For Service-Access
     'authentication.authBackends.OAuthLoginBackend',  # For 3rd-party-web Service-Access
     #'django.contrib.auth.backends.ModelBackend',
@@ -229,7 +230,7 @@ INIT_SCRIPT_PREFIX = '/init_files/'
 
 ## logging
 LOGGING_LEVEL = logging.DEBUG
-DEP_LOGGING_LEVEL = logging.DEBUG  # Logging level for dependencies.
+DEP_LOGGING_LEVEL = logging.WARN  # Logging level for dependencies.
 LOG_FILENAME = os.path.abspath(os.path.join(
     os.path.dirname(atmosphere.__file__),
     '..',

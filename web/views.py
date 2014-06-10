@@ -8,7 +8,7 @@ import json
 import uuid
 import urllib
 import httplib2
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # django http libraries
 from django.http import HttpResponse, HttpResponseRedirect
@@ -29,7 +29,11 @@ from threepio import logger
 # atmosphere libraries
 from atmosphere import settings
 
-from authentication import cas_loginRedirect, cas_logoutRedirect
+from authentication.protocol.oauth import \
+        get_cas_oauth_client
+from authentication.protocol.oauth import obtainOAuthToken
+from authentication import cas_loginRedirect, cas_logoutRedirect,\
+        saml_loginRedirect
 from authentication.models import Token as AuthToken
 from authentication.decorators import atmo_login_required, atmo_valid_token_required
 
@@ -54,7 +58,66 @@ def redirectApp(request):
     """
     return cas_loginRedirect(request,
                              settings.REDIRECT_URL+'/application/',
-			     gateway=True)
+                             gateway=True)
+
+def o_login_redirect(request):
+    oauth_client = get_cas_oauth_client()
+    url = oauth_client.authorize_url()
+    return HttpResponseRedirect(url)
+
+def o_callback_authorize(request):
+    if 'code' not in request.GET:
+        logger.info(request.__dict__)
+        #TODO - Maybe: Redirect into a login
+        return HttpResponse("")
+
+    oauth_client = get_cas_oauth_client()
+    oauth_code = request.GET['code']
+
+    #Exchange code for ticket
+    access_token, expiry_date = oauth_client.get_access_token(oauth_code)
+
+    if not access_token:
+        logger.info("The Code %s is invalid/expired. Attempting another login."
+                    % oauth_code)
+        return o_login_redirect(request)
+
+    #Exchange token for profile
+    user_profile = oauth_client.get_profile(access_token)
+
+    if not user_profile or "id" not in user_profile:
+        logger.error("AccessToken is producing an INVALID profile! "
+                     "Check the CAS server and caslib.py for more information.")
+        #NOTE: Make sure this redirects the user OUT of the loop!
+        return login(request)
+
+    #ASSERT: A valid OAuth token gave us the Users Profile.
+    # Now create an AuthToken and return it
+    username = user_profile["id"]
+    auth_token = obtainOAuthToken(username, access_token, expires)
+
+    #Set the username to the user to be emulated
+    #to whom the token also belongs
+    request.session['username'] = username
+    request.session['token'] = auth_token.key
+    logger.info("Returning user - %s - to application "
+                % username)
+    logger.info(request.session.__dict__)
+    logger.info(request.user)
+    return HttpResponseRedirect(settings.REDIRECT_URL+"/application/")
+
+def s_login(request):
+    """
+     SAML Login: Phase 1/2 Call SAML Login
+    """
+    #logger.info("Login Request:%s" % request)
+    #Form Sets 'next' when user clicks login
+    records = MaintenanceRecord.active()
+    disable_login = False
+    for record in records:
+        if record.disable_login:
+            disable_login = True
+    return saml_loginRedirect(request, settings.REDIRECT_URL+"/login/")
 
 def login(request):
     """

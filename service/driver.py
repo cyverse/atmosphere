@@ -36,6 +36,25 @@ def get_admin_driver(provider):
         return None
 
 
+def get_account_driver(provider):
+    """
+    Create an account driver for a given provider.
+    """
+    try:
+        type_name = provider.get_type_name().lower()
+        if 'openstack' in type_name:
+            from service.accounts.openstack import AccountDriver as\
+                    OSAccountDriver
+            return OSAccountDriver(provider)
+        elif 'eucalyptus' in type_name:
+            from service.accounts.eucalyptus import AccountDriver as\
+                    EucaAccountDriver
+            return EucaAccountDriver(provider)
+    except:
+        logger.exception("Account driver for provider %s not found." %
+                    (provider.location))
+        return None
+
 class DriverManager(object):
 
     _instance = None

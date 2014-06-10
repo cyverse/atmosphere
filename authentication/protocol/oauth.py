@@ -7,6 +7,7 @@ from authentication import get_or_create_user
 from authentication.models import Token as AuthToken
 from django.utils.timezone import datetime, timedelta
 from core.models.user import AtmosphereUser
+from caslib import OAuthClient
 
 # Requests auth class for access tokens
 class BearerTokenAuth(requests.auth.AuthBase):
@@ -21,7 +22,7 @@ class BearerTokenAuth(requests.auth.AuthBase):
         r.headers['Authorization'] = "Bearer %s" % self.access_token
         return r
 
-def createOAuthToken(username, token_key, token_expire):
+def obtainOAuthToken(username, token_key, token_expire=None):
     """
     returns a new token for username
     """
@@ -35,9 +36,14 @@ def createOAuthToken(username, token_key, token_expire):
             key=token_key,
             user=user,
             api_server_url=settings.API_SERVER_URL)
-    auth_user_token.update_expiration(token_expire)
+    if token_expire:
+        auth_user_token.update_expiration(token_expire)
     auth_user_token.save()
     return auth_user_token
+
+############################
+#METHODS SPECIFIC TO GROUPY!
+############################
 
 def create_user(username):
     oauth_attrs = lookupUser(username)
@@ -200,3 +206,31 @@ def generate_keys():
     json_obj = response.json()
     pem_id_key = json_obj['private']
     return pem_id_key
+
+###########################
+#CAS-SPECIFIC OAUTH METHODS
+###########################
+def get_cas_oauth_client():
+    o_client = OAuthClient(settings.CAS_SERVER,
+            settings.OAUTH_CLIENT_CALLBACK,
+            settings.OAUTH_CLIENT_KEY,
+            settings.OAUTH_CLIENT_SECRET,
+            auth_prefix='/castest')
+    return o_client
+
+def cas_profile_contains(attrs, test_value):
+    #Two basic types of 'values'
+    #Lists: e.g. attrs['entitlement'] = ['group1','group2','group3']
+    #Objects: e.g. attrs['email'] = 'test@email.com'
+    for attr in attrs:
+        for (key,value) in attr.items():
+            if type(value) == list and test_value in value:
+                return True
+            elif value == test_value:
+                return True
+    return False
+
+def cas_profile_for_token(access_token):
+    oauth_client = get_cas_oauth_client()
+    profile_map = oauth_client.get_profile(access_token)
+    return profile_map

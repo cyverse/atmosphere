@@ -41,7 +41,7 @@ from authentication.decorators import atmo_valid_token_required
 resources_path = os.path.join(os.path.dirname(__file__), 'resources')
 mobile = os.path.join(os.path.dirname(__file__), 'mobile')
 cloud2 = os.path.join(os.path.dirname(__file__), 'cf2')
-user_match = "[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*)"
+user_match = "[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*"
 
 admin.autodiscover()
 urlpatterns = patterns(
@@ -53,7 +53,7 @@ urlpatterns = patterns(
     # ADMIN Section:
     # Emulation controls for admin users
     url(r'^admin/emulate[/]?$', 'web.views.emulate_request'),
-    url(r'^admin/emulate/(?P<username>(%s)[/]?$' % user_match, 'web.views.emulate_request'),
+    url(r'^admin/emulate/(?P<username>(%s))[/]?$' % user_match, 'web.views.emulate_request'),
     # DB Admin Panel for admin users
     url(r'^admin/', include(admin.site.urls)),
 
@@ -68,6 +68,14 @@ urlpatterns = patterns(
 
     # GLOBAL Authentication Section:
     #   Login/Logout
+    url(r'^oauth2.0/callbackAuthorize[/]?$', 'web.views.o_callback_authorize'),
+    url(r'^o_login[/]?$', 'web.views.o_login_redirect'),
+
+    url(r'^s_login[/]?$', 'web.views.s_login'),
+    url(r'^s_serviceValidater[/]?$',
+        'authentication.protocol.cas.saml_validateTicket',
+        name="saml-service-validate-link"),
+
     url(r'^login[/]?$', 'web.views.login'),
     url(r'^logout[/]?$', 'web.views.logout'),
     # CAS Authentication Section:

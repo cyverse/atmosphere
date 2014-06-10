@@ -14,8 +14,8 @@ eucalyptus = ProviderType.objects.get(name='Eucalyptus')
 
 def main():
     new_provider = create_provider()
+    create_provider_credentials(new_provider)
     new_admin = create_admin(new_provider)
-
 
 def create_admin(provider):
     print "What is the username of the provider admin?"
@@ -25,14 +25,6 @@ def create_admin(provider):
     print "What is the tenant_name of the provider admin?"
     tenant_name_select = raw_input("tenant_name of provider admin: ")
 
-    print "What is the admin_url of the provider admin?"
-    admin_url_select = raw_input("admin_url of provider admin: ")
-    print "What is the auth_url of the provider admin?"
-    auth_url_select = raw_input("auth_url of provider admin: ")
-    print "What is the router_name of the provider admin?"
-    router_name_select = raw_input("router_name of provider admin: ")
-    print "What is the region_name of the provider admin?"
-    region_name_select = raw_input("region_name of provider admin: ")
 
     (user, group) = Group.create_usergroup(username_select)
 
@@ -46,6 +38,30 @@ def create_admin(provider):
                                               value=tenant_name_select)
     new_identity.credential_set.get_or_create(key='ex_project_name',
                                               value=tenant_name_select)
+
+    prov_membership = ProviderMembership.objects.get_or_create(
+        provider=provider, member=group)[0]
+    #TODO: Create quota if none exists
+    quota = Quota.objects.all()[0]
+    #Necessary for save hooks -- Default project, select an identity
+    user.save()
+
+    admin = AccountProvider.objects.get_or_create(
+        provider=provider, identity=new_identity)[0]
+    id_membership = IdentityMembership.objects.get_or_create(
+        identity=new_identity, member=group, quota=quota)[0]
+    return new_identity
+
+def create_provider_credentials(provider):
+    print "What is the admin_url for the provider?"
+    admin_url_select = raw_input("admin_url for the provider: ")
+    print "What is the auth_url for the provider?"
+    auth_url_select = raw_input("auth_url for the provider: ")
+    print "What is the router_name for the provider?"
+    router_name_select = raw_input("router_name for the provider: ")
+    print "What is the region_name for the provider?"
+    region_name_select = raw_input("region_name for the provider: ")
+
     provider.providercredential_set.get_or_create(key='admin_url',
                                                   value=admin_url_select)
     provider.providercredential_set.get_or_create(key='auth_url',
@@ -54,16 +70,6 @@ def create_admin(provider):
                                                   value=router_name_select)
     provider.providercredential_set.get_or_create(key='region_name',
                                                   value=region_name_select)
-
-    prov_membership = ProviderMembership.objects.get_or_create(
-        provider=provider, member=group)[0]
-    quota = Quota.objects.all()[0]
-    user.save()
-    admin = AccountProvider.objects.get_or_create(
-        provider=provider, identity=new_identity)[0]
-    id_membership = IdentityMembership.objects.get_or_create(
-        identity=new_identity, member=group, quota=quota)[0]
-    return new_identity
 
 
 def create_provider():
