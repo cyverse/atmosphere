@@ -23,18 +23,22 @@ class TokenAuthentication(BaseAuthentication):
     To authenticate, pass the token key in the "Authorization"
     HTTP header, prepended with the string "Token ". For example:
         Authorization: Token 098f6bcd4621d373cade4e832627b4f6
+        Authorization: Bearer 098f6bcd4621d373cade4e832627b4f6
     """
     model = AuthToken
 
     def authenticate(self, request):
         token_key = None
         auth = request.META.get('HTTP_AUTHORIZATION', '').split()
-        if len(auth) == 2 and auth[0].lower() == "token":
+        if len(auth) == 2 and auth[0].lower() in ["bearer", "token"]:
             token_key = auth[1]
+
         if not token_key and 'token' in request.session:
             token_key = request.session['token']
         if validate_token(token_key):
             token = self.model.objects.get(key=token_key)
+            logger.info("AuthToken Obtained for %s:%s" % (token.user.username,
+                token_key))
             if token.user.is_active:
                 return (token.user, token)
         return None
@@ -71,8 +75,12 @@ def validate_oauth_token(token, request=None):
     user_profile = cas_profile_for_token(token)
     if not user_profile:
         return False
-    username = user_profile["id"]
-    attrs = user_profile["attributes"]
+    username = user_profile.get("id")
+    attrs = user_profile.get("attributes")
+    if not username or not attrs:
+        logger.info("Invalid Profile:%s does not have username/attributes"
+                    % user_profile)
+        return False
     #TEST 1 : Must be in the group 'atmo-user'
     #NOTE: Test 1 will be IGNORED until we can verify it returns 'entitlement'
     # EVERY TIME!
@@ -84,7 +92,7 @@ def validate_oauth_token(token, request=None):
         raise Unauthorized("User %s does not exist as an AtmosphereUser"
                            % username)
     auth_token = obtainOAuthToken(username, token)
-    logger.info("AuthToken for %s:%s" % (username, auth_token))
+    logger.info("OAuthToken Obtained for %s:%s" % (username, auth_token))
     if not auth_token:
         return False
     return True
