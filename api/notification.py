@@ -36,9 +36,14 @@ class NotificationList(APIView):
         '''
         instance_token = params.get('token')
         username = params.get('userid')
-        vm_info = params.get('vminfo')
+        vm_info = params.get('vminfo',{})
         instance_name = params.get('name')
-        instance = CoreInstance.objects.filter(provider_alias=vm_info['instance-id'])
+        instance_id = vm_info.get('instance-id')
+        instance = None
+        if instance_id:
+            instance = CoreInstance.objects.filter(provider_alias=instance_id)
+        elif instance_token:
+            instance = CoreInstance.objects.filter(token=instance_token)
         error_list = []
         if not instance:
             error_list.append(
@@ -46,13 +51,15 @@ class NotificationList(APIView):
                  % instance_token)
             instance = CoreInstance.objects.filter(
                 ip_address=request.META['REMOTE_ADDR'])
+            #TODO: AND filter no end_date
         if not instance:
             error_list.append(
-                "The IP Address %s did not match a core instance."
+                "The IP Address %s did not match a new core instance."
                 % request.META['REMOTE_ADDR'])
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
                 str(error_list))
+        #Get out of the filter
         instance = instance[0]
         ip_address = vm_info.get('public-ipv4',
                                  request.META.get('REMOTE_ADDR'))
