@@ -30,16 +30,28 @@ def admin_address():
     return (settings.ADMINS[0][0], settings.ADMINS[0][1])
 
 
-def user_address(request):
+def lookup_user(request):
     """ Return the username and email given a django request object.
     """
     logger.debug("request = %s" % str(request))
     username = request.session.get('username', '')
+    return user_email_info(username)
+
+def user_email_info(username):
     logger.debug("user = %s" % username)
-    user_email = lookupEmail(username)
+    ldap_attrs = lookupUser(username)
+    user_email = ldap_attrs.get('mail',[None])[0]
+
     if not user_email:
         user_email = "%s@iplantcollaborative.org" % username
-    return (username, user_email)
+
+    user_name = ldap_attrs.get('cn',[""])[0]
+    if not user_name:
+        user_name = "%s %s" % ldap_attrs.get("displayName",[""])[0], ldap_attrs.get("sn",[""])[0]
+    if not user_name.strip(' '):
+        user_name = username
+
+    return (username, user_email, user_name)
 
 
 def request_info(request):
@@ -93,7 +105,7 @@ def email_admin(request, subject, message, cc_user=True):
         Returns True on success and False on failure.
     """
     user_agent, remote_ip, location, resolution = request_info(request)
-    user, user_email = user_address(request)
+    user, user_email, user_name = lookup_user(request)
     # build email body.
     body = u"%s\nLocation: %s\nSent From: %s - %s\nSent By: %s - %s"
     body %= (message,
@@ -112,7 +124,7 @@ def email_to_admin(subject, body, username=None,
     sendto, sendto_email = admin_address()
     #E-mail yourself if no users are provided
     if not username and not user_email:
-        username, user_email = username, user_email
+        username, user_email = sendto, sendto_email
     elif not user_email:  # Username provided
         user_email = lookupEmail(username)
     elif not username:  # user_email provided
@@ -150,8 +162,12 @@ def send_instance_email(user, instance_id, instance_name,
 
     Returns a boolean.
     """
+    username, user_email, user_name = user_email_info(user)
+
     launched_at = launched_at.replace(tzinfo=None)
     body = """
+Hello %s,
+
 The atmosphere instance <%s> is running and ready for use.
 
 Your Instance Information:
@@ -167,7 +183,8 @@ Helpful links:
   * https://pods.iplantcollaborative.org/wiki/display/atmman/Using+Instances
   Atmosphere E-mail Support
   * atmo@iplantcollaborative.org
-""" % (instance_id,
+""" % (user_name,
+       instance_id,
        instance_name,
        ip, linuxusername,
        launched_at.strftime('%b, %d %Y %H:%M:%S'),
@@ -185,19 +202,19 @@ def send_deploy_failed_email(core_instance, exception_str):
     Sends an email to the admins, who will verify the reason for the error.
     """
     user = core_instance.created_by
-    user_email = lookupEmail(user.username)
+    username, user_email, user_name = user_email_info(user.username)
     body = """ADMINS: An instance has FAILED to deploy succesfully.
 The exception and relevant details about the image can be found here:
 ---
 Failed Instance Details:
   Alias: %s
-  Owner: %s (%s)
+  Owner: %s (%s Email: %s)
   IP Address: %s
   Image ID: %s
 ---
 Exception: %s
 """ % (core_instance.provider_alias,
-       user, user_email,
+       user, user_name, user_email,
        core_instance.ip_address,
        core_instance.provider_machine.identifier, 
        exception_str)
@@ -211,7 +228,7 @@ def send_image_request_failed_email(machine_request, exception_str):
     Sends an email to the admins, who will verify the reason for the error,
     with an option to re-approve the request.
     """
-    user_email = lookupEmail(user.username)
+    username, user_email, user_name = user_email_info(user.username)
     approve_link = '%s/api/v1/request_image/%s/approve' \
         % (settings.SERVER_URL, machine_request.id)
     body = """ADMINS: A machine request has FAILED."
@@ -221,10 +238,12 @@ you can re-approve the image here: %s
 Machine Request:
   ID: %d
   Owner: %s
+  Contact:%s (E-mail: %s)
   Instance: %s
   IP Address: %s
 Exception: %s
 """ % (approve_link, machine_request.id, machine_request.new_machine_owner,
+        user_name, user_email,
         machine_request.instance.provider_alias, 
         machine_request.instance.ip_address,
         exception_str)
@@ -239,14 +258,14 @@ def send_image_request_email(user, new_machine, name):
     Upon launching, the admins will forward this email to the user,
     which will provide useful information about the new image.
     """
-    user_email = lookupEmail(user.username)
+    username, user_email, user_name = user_email_info(user.username)
     body = """Hello %s,
 
 Your image is ready. The image ID is "%s" and the image is named "%s".
 
 Thank you for using atmosphere!
 If you have any questions please contact: support@iplantcollaborative.org""" %\
-        (user.username, new_machine.identifier, name)
+        (user_name, new_machine.identifier, name)
     subject = 'Your Atmosphere Image is Complete'
     return email_from_admin(user, subject, body)
 
@@ -255,7 +274,7 @@ def send_new_provider_email(username, provider_name):
     subject = "Your iPlant Atmosphere account has been granted access "\
               "to the %s provider" % provider_name
     django_user = User.objects.get(username=username)
-    first_name = django_user.first_name
+    username, user_email, user_name = user_email_info(django_user.username)
     help_link = "https://pods.iplantcollaborative.org/wiki/"\
                 "display/atmman/Changing+Providers"
     ask_link = "http://ask.iplantcollaborative.org/"
@@ -268,7 +287,7 @@ If you have questions or encounter technical issues while using %s, you can
 browse and post questions to <a href="%s">iPlant Ask</a> or contact support@iplantcollaborative.org.
 <br/>
 Thank you,<br/>
-iPlant Atmosphere Team""" % (first_name,
+iPlant Atmosphere Team""" % (user_name,
                              provider_name,
                              help_link,
                              provider_name,
