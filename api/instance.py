@@ -79,7 +79,7 @@ class InstanceList(APIView):
         #TODO: Core/Auth checks for shared instances
 
         serialized_data = InstanceSerializer(core_instance_list,
-                                             context={'user':request.user},
+                                             context={"request":request},
                                              many=True).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
@@ -129,7 +129,7 @@ class InstanceList(APIView):
                                     exc.message)
 
         serializer = InstanceSerializer(core_instance,
-                                        context={'user':request.user},
+                                        context={"request":request},
                                         data=data)
         #NEVER WRONG
         if serializer.is_valid():
@@ -322,7 +322,7 @@ class InstanceAction(APIView):
                                                  identity_id,
                                                  user)
                 result_obj = VolumeSerializer(core_volume,
-                                              context={'user':request.user}
+                                              context={"request":request}
                                               ).data
             elif 'resize' == action:
                 size_alias = action_params.get('size', '')
@@ -415,7 +415,7 @@ class Instance(APIView):
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                              provider_id, identity_id, user)
         serialized_data = InstanceSerializer(core_instance,
-                                             context={'user':request.user}).data
+                                             context={"request":request}).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
@@ -434,7 +434,7 @@ class Instance(APIView):
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                              provider_id, identity_id, user)
         serializer = InstanceSerializer(core_instance, data=data,
-                                        context={'user':request.user}, partial=True)
+                                        context={"request":request}, partial=True)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
             update_instance_metadata(esh_driver, esh_instance, data,
@@ -464,7 +464,7 @@ class Instance(APIView):
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                              provider_id, identity_id, user)
         serializer = InstanceSerializer(core_instance, data=data,
-                                        context={'user':request.user})
+                                        context={"request":request})
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
             update_instance_metadata(esh_driver, esh_instance, data)
@@ -505,7 +505,7 @@ class Instance(APIView):
             else:
                 logger.warn("Unable to find core instance %s." % (instance_id))
             serialized_data = InstanceSerializer(core_instance,
-                                                 context={'user':request.user}).data
+                                                 context={"request":request}).data
             response = Response(serialized_data, status=status.HTTP_200_OK)
             response['Cache-Control'] = 'no-cache'
             return response

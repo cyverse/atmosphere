@@ -12,6 +12,7 @@ from libcloud.common.types import InvalidCredsError
 from threepio import logger
 
 
+from core.models.instance import convert_esh_instance
 from core.models.provider import AccountProvider
 from core.models.volume import convert_esh_volume
 
@@ -211,10 +212,10 @@ class VolumeList(APIView):
             image = driver.get_machine(image_id)
             image_size = image._connection.get_size(image._image)
             if int(size) > image_size + 4:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                "Volumes created from images can be no more than 4GB larger "
-                " than the size of the image: %s GB" % image_size)
+                return failure_response(
+                    status.HTTP_400_BAD_REQUEST,
+                    "Volumes created from images can be no more than 4GB larger "
+                    " than the size of the image: %s GB" % image_size)
 
         snapshot_id = data.get('snapshot')
         if snapshot_id:
@@ -346,6 +347,25 @@ class Volume(APIView):
 class BootVolume(APIView):
     """Launch an instance using this volume as the source"""
     permission_classes = (ApiAuthRequired,)
+
+    def _select_source(self, data):
+        source_id = source_type = get_source = None
+        if 'image_id' in data:
+            source_type = "image"
+            source_id = data.pop('image_id')
+            get_source = esh_driver.get_machine
+        elif 'snapshot_id' in data:
+            source_type = "snapshot"
+            source_id = data.pop('snapshot_id')
+            get_source = esh_driver._connection.ex_get_snapshot
+        elif 'volume_id' in data:
+            source_type = "volume"
+            source_id = data.pop('volume_id')
+        else:
+            source_type = "volume"
+            source_id = volume_id
+            get_source = esh_driver.get_volume
+        return (source_type, get_source, source_id)
     
     def post(self, request, provider_id, identity_id, volume_id=None):
         user = request.user
@@ -357,15 +377,36 @@ class BootVolume(APIView):
             return keys_not_found(missing_keys)
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
+        source = None
         name = data.pop('name')
-        size = data.pop('size')
-        image_id = data.pop('image_id',None)
-        response, esh_volume = boot_volume(esh_driver, identity_id, name, size, image_id=image_id, volume_id=volume_id, **data)
-        core_volume = convert_esh_volume(esh_volume, provider_id,
-                                         identity_id, user)
-        serialized_data = VolumeSerializer(core_volume,
-                                           context={'user':request.user}).data
+        size_id = data.pop('size')
+
+        (source_type, get_source, source_id) = _select_source(data)
+        if not get_source:
+            return failure_response(
+                    status.HTTP_400_BAD_REQUEST, 
+                    'Source could not be acquired. Did you send: ['
+                    'snapshot_id/volume_id/image_id] ?')
+        source = get_source(source_id)
+        if not source:
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                "%s %s does not exist"
+                % (source_type.title(),source_id))
+        size = esh_driver.get_size(size_id)
+        if not size:
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                "Size %s does not exist"
+                % (size_id,))
+
+        esh_instance = boot_volume(esh_driver, identity_id, name, size, source, source_type, **data)
+        core_instance = convert_esh_instance(esh_driver, esh_instance,
+                                             provider_id, identity_id, user)
+        serialized_data = InstanceSerializer(core_instance,
+                                             context={'request':request}).data
         response = Response(serialized_data)
+        return response
 
 
 def valid_launch_data(data):
@@ -375,7 +416,7 @@ def valid_launch_data(data):
     required = ['name', 'size']
     return [key for key in required
             #Key must exist and have a non-empty value.
-            if not ( key in data and len(data[key]) > 0)]
+            if key not in data or (type(data[key]) == str and len(data[key]) > 0)]
 
 
 def valid_snapshot_post_data(data):

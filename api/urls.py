@@ -39,7 +39,9 @@ from api.tag import TagList, Tag
 from api.token import TokenEmulate
 from api.user import UserManagement, User
 from api.version import Version
-from api.volume import VolumeSnapshot, VolumeSnapshotDetail, VolumeList, Volume
+from api.volume import BootVolume, \
+        VolumeSnapshot, VolumeSnapshotDetail, \
+        VolumeList, Volume
 
 from authentication.decorators import atmo_valid_token_required
 #Paste This for provider: provider\/(?P<provider_id>\\d+)
@@ -206,13 +208,13 @@ public_apis = format_suffix_patterns(patterns(
         VolumeList.as_view(), name='volume-list'),
     url(identity_specific + r'/volume/(?P<volume_id>[a-zA-Z0-9-]+)[/]?$',
         Volume.as_view(), name='volume-detail'),
+    url(identity_specific + r'/boot_volume[/]?(?P<volume_id>[a-zA-Z0-9-]+)?[/]?$',
+        BootVolume.as_view(), name='boot-volume'),
+
     url(identity_specific + r'/volume_snapshot[/]?$',
         VolumeSnapshot.as_view(), name='volume-snapshot'),
     url(identity_specific + r'/volume_snapshot/(?P<snapshot_id>[a-zA-Z0-9-]+)[/]?$',
         VolumeSnapshotDetail.as_view(), name='volume-snapshot-detail'),
-
-    url(identity_specific + r'/volume/(?P<volume_id>[a-zA-Z0-9-]+)?/boot[/]?$',
-        BootVolume.as_view(), name='volume-launch'),
 
     url(identity_specific + r'/machine[/]?$',
         MachineList.as_view(), name='machine-list'),

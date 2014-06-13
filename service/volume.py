@@ -1,5 +1,6 @@
 from core.models.quota import get_quota, has_storage_count_quota,\
         has_storage_quota
+from threepio import logger
 from service.instance import network_init
 from service.exceptions import OverQuotaError
 from core.models.identity import Identity
@@ -33,9 +34,13 @@ def boot_volume(esh_driver, identity_id, name, size, source_obj=None, source_typ
     #TODO: Prepare a network for the user
     core_identity = Identity.objects.get(id=identity_id)
     network = network_init(core_identity)
-    response, r_object = esh_driver._connection.ex_boot_volume(
+    success, server_obj = esh_driver._connection.ex_boot_volume(
             source_obj, source_type, name, size, network,
             **kwargs)
-    return response, r_object
-
-
+    if server_obj.has_key('server'):
+        instance_id = server_obj["server"]["id"]
+        instance = esh_driver.get_instance(instance_id)
+        return instance
+    else:
+        logger.info(server_obj)
+        return server_obj
