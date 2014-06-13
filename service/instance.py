@@ -388,8 +388,15 @@ def launch_instance(user, provider_id, identity_id,
     returns a core_instance object after updating core DB.
     """
     now_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if machine_alias:
+        alias = "machine,%s" % machine_alias
+    elif 'volume_alias' in kwargs:
+        alias = "boot_volume,%s" % kwargs['volume_alias']
+    else:
+        raise Exception("Not enough data to launch: "
+                        "volume_alias/machine_alias is missing")
     status_logger.debug("%s,%s,%s,%s,%s,%s"
-                 % (now_time, user, "No Instance", machine_alias, size_alias,
+                 % (now_time, user, "No Instance", alias, size_alias,
                     "Request Received"))
     core_identity = CoreIdentity.objects.get(id=identity_id)
 
@@ -403,9 +410,8 @@ def launch_instance(user, provider_id, identity_id,
     check_quota(user.username, identity_id, size)
 
     #May raise InvalidCredsError
-    (esh_instance, token, password) = launch_esh_instance(esh_driver, machine_alias,
-                                                size_alias, core_identity,
-                                                **kwargs)
+    (esh_instance, token, password) = launch_esh_instance(esh_driver,
+            machine_alias, size_alias, core_identity, **kwargs)
     #Convert esh --> core
     core_instance = convert_esh_instance(
         esh_driver, esh_instance, provider_id, identity_id,
@@ -494,7 +500,9 @@ def _to_lc_network(driver, network, subnet):
 
 
 def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
-                        name=None, username=None, using_admin=False, *args, **kwargs):
+        name=None, username=None, using_admin=False,
+        *args, **kwargs):
+
     """
     TODO: Remove extras, pass as kwarg_dict instead
 

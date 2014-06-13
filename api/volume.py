@@ -15,7 +15,7 @@ from threepio import logger
 from core.models.provider import AccountProvider
 from core.models.volume import convert_esh_volume
 
-from service.volume import create_volume
+from service.volume import create_volume, boot_volume
 from service.exceptions import OverQuotaError
 
 from api import prepare_driver, failure_response, invalid_creds
@@ -198,16 +198,31 @@ class VolumeList(APIView):
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
         data = request.DATA
-        missing_keys = valid_volume_post_data(data)
+        missing_keys = valid_create_data(data)
         if missing_keys:
             return keys_not_found(missing_keys)
         #Pass arguments
         name = data.get('name')
         size = data.get('size')
+        #Optional fields
         description = data.get('description')
+        image_id = data.get('image')
+        if image_id:
+            image = driver.get_machine(image_id)
+            image_size = image._connection.get_size(image._image)
+            if int(size) > image_size + 4:
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Volumes created from images can be no more than 4GB larger "
+                " than the size of the image: %s GB" % image_size)
+
+        snapshot_id = data.get('snapshot')
+        if snapshot_id:
+            snapshot = driver._connection.ex_get_snapshot(image_id)
         try:
             success, esh_volume = create_volume(esh_driver, identity_id,
-                                                name, size, description)
+                                                name, size, description,
+                                                snapshot=snapshot, image=image)
         except OverQuotaError, oqe:
             return over_quota(oqe)
         except InvalidCredsError:
@@ -328,6 +343,41 @@ class Volume(APIView):
         return response
 
 
+class BootVolume(APIView):
+    """Launch an instance using this volume as the source"""
+    permission_classes = (ApiAuthRequired,)
+    
+    def post(self, request, provider_id, identity_id, volume_id=None):
+        user = request.user
+        esh_driver = prepare_driver(request, provider_id, identity_id)
+        data = request.DATA
+
+        missing_keys = valid_launch_data(data)
+        if missing_keys:
+            return keys_not_found(missing_keys)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
+        name = data.pop('name')
+        size = data.pop('size')
+        image_id = data.pop('image_id',None)
+        response, esh_volume = boot_volume(esh_driver, identity_id, name, size, image_id=image_id, volume_id=volume_id, **data)
+        core_volume = convert_esh_volume(esh_volume, provider_id,
+                                         identity_id, user)
+        serialized_data = VolumeSerializer(core_volume,
+                                           context={'user':request.user}).data
+        response = Response(serialized_data)
+
+
+def valid_launch_data(data):
+    """
+    Return any missing required post key names.
+    """
+    required = ['name', 'size']
+    return [key for key in required
+            #Key must exist and have a non-empty value.
+            if not ( key in data and len(data[key]) > 0)]
+
+
 def valid_snapshot_post_data(data):
     """
     Return any missing required post key names.
@@ -336,8 +386,7 @@ def valid_snapshot_post_data(data):
     return [key for key in required
             #Key must exist and have a non-empty value.
             if key not in data or (type(data[key]) == str and len(data[key]) > 0)]
-
-def valid_volume_post_data(data):
+def valid_create_data(data):
     """
     Return any missing required post key names.
     """

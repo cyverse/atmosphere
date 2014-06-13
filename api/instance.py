@@ -109,10 +109,11 @@ class InstanceList(APIView):
         machine_alias = data.pop('machine_alias')
         hypervisor_name = data.pop('hypervisor',None)
         try:
-            core_instance = launch_instance(user, provider_id, identity_id,
-                                            size_alias, machine_alias, 
-                                            ex_availability_zone=hypervisor_name,
-                                            **data)
+            core_instance = launch_instance(
+                    user, provider_id, identity_id,
+                    size_alias, machine_alias,
+                    ex_availability_zone=hypervisor_name,
+                    **data)
         except OverQuotaError, oqe:
             return over_quota(oqe)
         except OverAllocationError, oae:
