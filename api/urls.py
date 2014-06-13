@@ -207,6 +207,8 @@ public_apis = format_suffix_patterns(patterns(
     url(identity_specific + r'/volume/(?P<volume_id>[a-zA-Z0-9-]+)[/]?$',
         Volume.as_view(), name='volume-detail'),
 
+    url(identity_specific + r'/volume/(?P<volume_id>[a-zA-Z0-9-]+)?/boot[/]?$',
+        BootVolume.as_view(), name='volume-launch'),
 
     url(identity_specific + r'/machine[/]?$',
         MachineList.as_view(), name='machine-list'),
