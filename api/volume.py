@@ -348,7 +348,7 @@ class BootVolume(APIView):
     """Launch an instance using this volume as the source"""
     permission_classes = (ApiAuthRequired,)
 
-    def _select_source(self, data):
+    def _select_source(self, esh_driver, data):
         source_id = source_type = get_source = None
         if 'image_id' in data:
             source_type = "image"
@@ -369,19 +369,21 @@ class BootVolume(APIView):
     
     def post(self, request, provider_id, identity_id, volume_id=None):
         user = request.user
-        esh_driver = prepare_driver(request, provider_id, identity_id)
         data = request.DATA
 
         missing_keys = valid_launch_data(data)
         if missing_keys:
             return keys_not_found(missing_keys)
+
+        esh_driver = prepare_driver(request, provider_id, identity_id)
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
+
         source = None
         name = data.pop('name')
         size_id = data.pop('size')
 
-        (source_type, get_source, source_id) = _select_source(data)
+        (source_type, get_source, source_id) = self._select_source(esh_driver, data)
         if not get_source:
             return failure_response(
                     status.HTTP_400_BAD_REQUEST, 

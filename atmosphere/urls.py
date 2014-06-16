@@ -110,6 +110,8 @@ urlpatterns = patterns(
 
     #API Documentation
     url(r'^api-docs/', include('rest_framework_swagger.urls')), 
+)
+private_root_urls = patterns('',
 
     ### DJANGORESTFRAMEWORK ###
     url(r'^api-token-auth/',
@@ -118,4 +120,6 @@ urlpatterns = patterns(
         include('rest_framework.urls', namespace='rest_framework'))
 )
 
+urlpatterns += patterns('',url(r'^',
+    include(private_root_urls,namespace="private_root_urls")))
 urlpatterns += staticfiles_urlpatterns()
