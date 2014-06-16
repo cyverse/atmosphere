@@ -76,7 +76,7 @@ class MachineRequest(models.Model):
     def get_access_list(self):
         if '[' not in self.access_list:
             #Format = "test1, test2, test3"
-            json_loads_list = str(raw_access_list.split(", "))
+            json_loads_list = str(self.access_list.split(", "))
             #New Format = "[u'test1', u'test2', u'test3']"
         else:
             #Format = "[u'test1', u'test2', u'test3']"
@@ -284,7 +284,7 @@ def process_machine_request(machine_request, new_image_id):
         app.save()
     #Set application data to an existing/new providermachine
     try:
-        new_machine = ProviderMachine.objects.get(identifier=new_image_id)
+        new_machine = ProviderMachine.objects.get(identifier=new_image_id, provider=new_provider)
         new_machine.application = app_to_use
         new_machine.version = machine_request.new_machine_version
         new_machine.created_by = user
