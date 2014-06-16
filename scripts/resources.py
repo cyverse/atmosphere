@@ -152,7 +152,7 @@ def main():
     parser.add_argument("--nodes", help="Filter by OpenStack compute nodes. (comma separated)")
     parser.add_argument("--python", help="Print Python data structures.", action="store_true")
     args = parser.parse_args()
-    statuses = None
+    status = None
     nodes = None
     if args.status:
         status = set(args.status.split(","))
