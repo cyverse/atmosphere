@@ -96,9 +96,11 @@ def delta_to_hours(tdelta):
 
 
 def get_allocation(username, identity_id):
-    membership = IdentityMembership.objects.get(identity__id=identity_id,
+    membership = IdentityMembership.objects.filter(identity__id=identity_id,
                                                 member__name=username)
-    return membership.allocation
+    if not membership:
+        return None
+    return membership[0].allocation
 
 
 def get_delta(allocation, time_period):
