@@ -52,13 +52,13 @@ urlpatterns = patterns(
 
     # ADMIN Section:
     # Emulation controls for admin users
-    url(r'^admin/emulate[/]?$', 'web.views.emulate_request'),
-    url(r'^admin/emulate/(?P<username>(%s))[/]?$' % user_match, 'web.views.emulate_request'),
+    url(r'^admin/emulate$', 'web.views.emulate_request'),
+    url(r'^admin/emulate/(?P<username>(%s))$' % user_match, 'web.views.emulate_request'),
     # DB Admin Panel for admin users
     url(r'^admin/', include(admin.site.urls)),
 
     #v2 api auth by token
-    url(r'^auth[/]?$', 'authentication.views.token_auth', name='token-auth'),
+    url(r'^auth$', 'authentication.views.token_auth', name='token-auth'),
 
     #File Retrieval:
     # Systemwide
@@ -68,16 +68,16 @@ urlpatterns = patterns(
 
     # GLOBAL Authentication Section:
     #   Login/Logout
-    url(r'^oauth2.0/callbackAuthorize[/]?$', 'web.views.o_callback_authorize'),
-    url(r'^o_login[/]?$', 'web.views.o_login_redirect'),
+    url(r'^oauth2.0/callbackAuthorize$', 'web.views.o_callback_authorize'),
+    url(r'^o_login$', 'web.views.o_login_redirect'),
 
-    url(r'^s_login[/]?$', 'web.views.s_login'),
-    url(r'^s_serviceValidater[/]?$',
+    url(r'^s_login$', 'web.views.s_login'),
+    url(r'^s_serviceValidater$',
         'authentication.protocol.cas.saml_validateTicket',
         name="saml-service-validate-link"),
 
-    url(r'^login[/]?$', 'web.views.login'),
-    url(r'^logout[/]?$', 'web.views.logout'),
+    url(r'^login$', 'web.views.login'),
+    url(r'^logout$', 'web.views.logout'),
     # CAS Authentication Section:
     #    CAS Validation:
     #    Service URL validates the ticket returned after CAS login
@@ -95,7 +95,7 @@ urlpatterns = patterns(
     url(r'^CASlogin/(?P<redirect>.*)$', 'authentication.cas_loginRedirect'),
 
     # The Front-Facing Web Application
-    url(r'^application[/]?$', 'web.views.app'),
+    url(r'^application$', 'web.views.app'),
 
     # Experimental UI
     # TODO: Rename to application when it launches
@@ -104,7 +104,7 @@ urlpatterns = patterns(
     url(r'^partials/(?P<path>.*)$', 'web.views.partial'),
 
     #Error Redirection
-    url(r'^no_user[/]?$', 'web.views.no_user_redirect'),
+    url(r'^no_user$', 'web.views.no_user_redirect'),
     #API Layer
     url(r'^api/v1/', include("api.urls", namespace="api")),
 

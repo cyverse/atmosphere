@@ -171,15 +171,13 @@ MIDDLEWARE_CLASSES = (
     # corsheaders.middleware.CorsMiddleware Must be ahead of
     # configuration CommonMiddleware for an edge case.
     'django.middleware.common.CommonMiddleware',
-
     'django.middleware.csrf.CsrfViewMiddleware',
-
     'django.middleware.gzip.GZipMiddleware',
     'pipeline.middleware.MinifyHTMLMiddleware',
-
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'atmosphere.slash_middleware.RemoveSlashMiddleware',
 )
 
 ROOT_URLCONF = 'atmosphere.urls'
@@ -200,7 +198,6 @@ AUTHENTICATION_BACKENDS = (
     'authentication.authBackends.SAMLLoginBackend',  # For Web-Access
     'authentication.authBackends.LDAPLoginBackend',  # For Service-Access
     'authentication.authBackends.OAuthLoginBackend',  # For 3rd-party-web Service-Access
-    #'django.contrib.auth.backends.ModelBackend',
 )
 
 # django-cors-headers
