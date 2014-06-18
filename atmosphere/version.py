@@ -22,6 +22,21 @@ def git_info():
     except OSError:
         return None
 
+
+def git_branch():
+    loc = abspath(dirname(__file__))
+    try:
+        p = Popen(
+            "cd \"%s\" && git "
+            "rev-parse --symbolic-full-name --abbrev-ref HEAD" % loc,
+            shell=True,
+            stdout=PIPE,
+            stderr=PIPE)
+        return p.communicate()[0].replace("\n", "")
+    except OSError:
+        return None
+
+
 def get_version(form='short'):
     """
     Returns the version string.
@@ -58,7 +73,8 @@ def get_version(form='short'):
     info = git_info()
     versions["git_sha"] = info[0:39]
     versions["git_sha_abbrev"] = "@" + info[0:6]
-    versions["date"] = parser.parse(info[40:])
+    versions["git_branch"] = git_branch()
+    versions["commit_date"] = parser.parse(info[40:])
     v += " " + versions["git_sha_abbrev"]
     versions["verbose"] = v
     if form is "verbose":

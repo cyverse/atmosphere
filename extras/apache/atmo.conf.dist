@@ -122,6 +122,8 @@ ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE/jenkins
     ProxyPassReverse /cas/service http://localhost:5000/cas/service
     ProxyPass /forbidden http://localhost:5000/forbidden
     ProxyPassReverse /forbidden http://localhost:5000/forbidden
+    ProxyPass /version http://localhost:5000/version
+    ProxyPassReverse /version http://localhost:5000/version
 
     ProxyPassMatch ^/emulate http://localhost:5000
     ProxyPassReverse /emulate http://localhost:5000
