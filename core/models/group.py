@@ -126,6 +126,7 @@ class ProviderMembership(models.Model):
     class Meta:
         db_table = 'provider_membership'
         app_label = 'core'
+        unique_together = ('provider', 'member')
 
 
 class IdentityMembership(models.Model):
@@ -218,6 +219,7 @@ class IdentityMembership(models.Model):
     class Meta:
         db_table = 'identity_membership'
         app_label = 'core'
+        unique_together = ('identity', 'member')
 
 
 class InstanceMembership(models.Model):
@@ -238,6 +240,7 @@ class InstanceMembership(models.Model):
     class Meta:
         db_table = 'instance_membership'
         app_label = 'core'
+        unique_together = ('instance', 'owner')
 
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
