@@ -307,6 +307,7 @@ REST_FRAMEWORK = {
 #REST_FRAMEWORK_SWAGGER
 SWAGGER_SETTINGS = {
     "exclude_namespaces": [
+        "private_root_urls",
         "private_apis",
     ], # List URL namespaces to ignore
     "api_version": '0.1',  # Specify your API's version

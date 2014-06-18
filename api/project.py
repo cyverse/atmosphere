@@ -164,7 +164,7 @@ class ProjectVolumeList(APIView):
         projects = group.projects.get(id=project_id)
         volumes = projects.volumes.filter(only_active())
         serialized_data = VolumeSerializer(volumes, many=True,
-                                            context={"user":request.user}).data
+                                            context={"request":request}).data
         response = Response(serialized_data)
         return response
 
@@ -182,7 +182,7 @@ class ProjectApplicationList(APIView):
         projects = group.projects.get(id=project_id)
         applications = projects.applications.filter(only_active())
         serialized_data = ApplicationSerializer(applications, many=True,
-                                                context={"user":request.user}).data
+                                                context={"request":request}).data
         response = Response(serialized_data)
         return response
 
@@ -201,7 +201,7 @@ class ProjectInstanceList(APIView):
         projects = group.projects.get(id=project_id)
         instances = projects.instances.filter(only_active())
         serialized_data = InstanceSerializer(instances, many=True,
-                                            context={"user":request.user}).data
+                                            context={"request":request}).data
         response = Response(serialized_data)
         return response
 
@@ -228,7 +228,7 @@ class ProjectList(APIView):
                     "Current User: %s - Cannot assign project for group %s"
                     % (user.username, data['owner']))
         serializer = ProjectSerializer(data=data,
-                                       context={"user":request.user})
+                                       context={"request":request})
         if serializer.is_valid():
             serializer.save()
             response = Response(
@@ -246,7 +246,7 @@ class ProjectList(APIView):
         group = get_user_group(user.username)
         projects = group.projects.filter(Q(end_date=None) | Q(end_date__gt=timezone.now()))
         serialized_data = ProjectSerializer(projects, many=True,
-                                            context={"user":request.user}).data
+                                            context={"request":request}).data
         response = Response(serialized_data)
         return response
 
@@ -269,7 +269,7 @@ class ProjectDetail(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
         project = project[0]
         serializer = ProjectSerializer(project, data=data, partial=True,
-                                            context={"user":request.user})
+                                            context={"request":request})
         if serializer.is_valid():
             #If the default project was renamed
             if project.name == "Default" \
@@ -297,7 +297,7 @@ class ProjectDetail(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
         project = project[0]
         serializer = ProjectSerializer(project, data=data,
-                                            context={"user":request.user})
+                                            context={"request":request})
         if serializer.is_valid():
             #If the default project was renamed
             if project.name == "Default" \
@@ -323,7 +323,7 @@ class ProjectDetail(APIView):
             return Response("Project with ID=%s does not exist" % project_id,
                             status=status.HTTP_400_BAD_REQUEST)
         serialized_data = ProjectSerializer(project,
-                                            context={"user":request.user}).data
+                                            context={"request":request}).data
         response = Response(serialized_data)
         return response
 
@@ -346,7 +346,7 @@ class ProjectDetail(APIView):
         project.copy_objects(default_project)
         project.delete_project()
         serialized_data = ProjectSerializer(project,
-                                            context={"user":request.user}).data
+                                            context={"request":request}).data
         response = Response(serialized_data)
         return response
 

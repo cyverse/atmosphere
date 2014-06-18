@@ -634,11 +634,14 @@ class ProjectSerializer(serializers.ModelSerializer):
     volumes = serializers.SerializerMethodField('get_user_volumes')
 
     def get_user_applications(self, project):
-        return [ApplicationSerializer(item,context={'user':self.context.get('user')}).data for item in project.applications.filter(only_current)]
+        return [ApplicationSerializer(item,
+            context={'request':self.context.get('request')}).data for item in project.applications.filter(only_current)]
     def get_user_instances(self, project):
-        return [InstanceSerializer(item,context={'user':self.context.get('user')}).data for item in project.instances.filter(only_current)]
+        return [InstanceSerializer(item,
+            context={'request':self.context.get('request')}).data for item in project.instances.filter(only_current)]
     def get_user_volumes(self, project):
-        return [VolumeSerializer(item, context={'user':self.context.get('user')}).data for item in project.volumes.filter(only_current)]
+        return [VolumeSerializer(item,
+            context={'request':self.context.get('request')}).data for item in project.volumes.filter(only_current)]
 
 
     def __init__(self, *args, **kwargs):

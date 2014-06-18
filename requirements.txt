@@ -4,7 +4,7 @@ Django==1.6
 pip>=1.4,<1.5
 Pillow==2.3.0
 South==0.8.4
-apache-libcloud==0.14.0
+apache-libcloud==0.14.1
 celery==3.1.9
 django-celery==3.1.9
 django-cors-headers==0.12
