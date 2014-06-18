@@ -37,7 +37,7 @@ class Feedback(APIView):
         """
         Creates a new feedback email and sends it to admins.
         """
-        required = ["message",]
+        required = ["message"]
         missing_keys = check_missing_keys(request.DATA, required)
         if missing_keys:
             return keys_not_found(missing_keys)
@@ -74,7 +74,9 @@ class QuotaEmail(APIView):
     """
     Post Quota Email via RESTful API
     """
+
     permission_classes = (ApiAuthRequired,)
+
     def post(self, request):
         """
         Creates a new Quota Request email and sends it to admins
@@ -96,16 +98,18 @@ class QuotaEmail(APIView):
         Returns a response.
         """
         user = User.objects.get(username=username)
-        membership = IdentityMembership.objects.get(identity=user.select_identity(),
-                                                    member__in=user.group_set.all())
-        admin_url = urlresolvers.reverse("admin:core_identitymembership_change",
-                                         args=(membership.id,))
+        membership = IdentityMembership.objects.get(
+            identity=user.select_identity(),
+            member__in=user.group_set.all())
+        admin_url = urlresolvers.reverse(
+            "admin:core_identitymembership_change",
+            args=(membership.id,))
         message = """
         Username : %s
         Quota Requested: %s
         Reason for Quota Increase: %s
         URL for Quota Increase:%s
-        """ % (username, new_quota, reason, 
+        """ % (username, new_quota, reason,
                request.build_absolute_uri(admin_url))
         subject = "Atmosphere Quota Request - %s" % username
         logger.info(message)
@@ -116,6 +120,7 @@ class QuotaEmail(APIView):
 class SupportEmail(APIView):
     """
     """
+
     permission_classes = (ApiAuthRequired,)
 
     def post(self, request):
