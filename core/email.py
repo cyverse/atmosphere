@@ -14,7 +14,7 @@ from threepio import logger, email_logger
 
 from atmosphere import settings
 
-from authentication.protocol.ldap import lookupEmail
+from authentication.protocol.ldap import lookupEmail, lookupUser
 
 
 def email_address_str(name, email):
@@ -33,21 +33,27 @@ def admin_address():
 def lookup_user(request):
     """ Return the username and email given a django request object.
     """
-    logger.debug("request = %s" % str(request))
-    username = request.session.get('username', '')
+    try:
+        username = request.session.get('username', '')
+    except:
+        pass
+    if not username and hasattr(request, "user"):
+        username = request.user.username
     return user_email_info(username)
+
 
 def user_email_info(username):
     logger.debug("user = %s" % username)
     ldap_attrs = lookupUser(username)
-    user_email = ldap_attrs.get('mail',[None])[0]
+    user_email = ldap_attrs.get('mail', [None])[0]
 
     if not user_email:
         user_email = "%s@iplantcollaborative.org" % username
 
-    user_name = ldap_attrs.get('cn',[""])[0]
+    user_name = ldap_attrs.get('cn', [""])[0]
     if not user_name:
-        user_name = "%s %s" % ldap_attrs.get("displayName",[""])[0], ldap_attrs.get("sn",[""])[0]
+        user_name = "%s %s" % (ldap_attrs.get("displayName", [""])[0],
+                               ldap_attrs.get("sn", [""])[0])
     if not user_name.strip(' '):
         user_name = username
 
@@ -216,7 +222,7 @@ Exception: %s
 """ % (core_instance.provider_alias,
        user, user_name, user_email,
        core_instance.ip_address,
-       core_instance.provider_machine.identifier, 
+       core_instance.provider_machine.identifier,
        exception_str)
     subject = 'An Atmosphere Instance has failed to launch.'
     return email_to_admin(subject, body, user.username, user_email,
@@ -244,7 +250,7 @@ Machine Request:
 Exception: %s
 """ % (approve_link, machine_request.id, machine_request.new_machine_owner,
         user_name, user_email,
-        machine_request.instance.provider_alias, 
+        machine_request.instance.provider_alias,
         machine_request.instance.ip_address,
         exception_str)
     subject = 'Your Atmosphere Image is Complete'

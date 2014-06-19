@@ -85,6 +85,7 @@ class QuotaEmail(APIView):
         missing_keys = check_missing_keys(request.DATA, required)
         if missing_keys:
             return keys_not_found(missing_keys)
+        logger.debug("request.DATA = %s" % (str(request.DATA)))
         result = self._email(request,
                              request.user.username,
                              request.DATA["quota"],
