@@ -1,7 +1,10 @@
+import time
+
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 
 from django.utils import timezone
+from django.conf import settings
 
 from celery.decorators import task
 from celery.task.schedules import crontab
@@ -10,7 +13,8 @@ from core.models.group import Group
 from core.models.user import AtmosphereUser
 from core.models.provider import Provider
 
-from service.allocation import check_over_allocation
+from service.allocation import check_over_allocation, current_instance_time,\
+get_delta, get_allocation
 from service.driver import get_admin_driver
 
 from threepio import logger
@@ -25,73 +29,74 @@ def monitor_instances():
         monitor_instances_for(p)
 
 
-def get_instance_owner_map(provider):
+def get_instance_owner_map(provider, users=None):
     """
     All keys == All identities
     """
     admin_driver = get_admin_driver(provider)
     meta = admin_driver.meta(admin_driver=admin_driver)
-    all_identities = provider.identity_set.all()
-    logger.info("Retrieving all tenants..")
-    all_tenants = admin_driver._connection._keystone_list_tenants()
-    logger.info("Retrieved %s tenants. Retrieving all instances.."
-                % len(all_tenants))
+
+    all_identities = _select_identities(provider, users)
+
     all_instances = meta.all_instances()
-    logger.info("Retrieved %s instances." % len(all_instances))
+    all_tenants = admin_driver._connection._keystone_list_tenants()
     #Convert instance.owner from tenant-id to tenant-name all at once
     all_instances = _convert_tenant_id_to_names(all_instances, all_tenants)
-    logger.info("Owner information added.")
     #Make a mapping of owner-to-instance
-    instance_map = _make_instance_owner_map(all_instances)
+    instance_map = _make_instance_owner_map(all_instances, users=users)
     logger.info("Instance owner map created")
     identity_map = _include_all_idents(all_identities, instance_map)
     logger.info("Identity map created")
     return identity_map
 
-def monitor_instances_for(provider):
+def monitor_instances_for(provider, users=None, print_logs=False):
     """
     Update instances for provider.
     """
     #For now, lets just ignore everything that isn't openstack.
     if 'openstack' not in provider.type.name.lower():
         return
-    instance_map = get_instance_owner_map(provider)
+
+    instance_map = get_instance_owner_map(provider, users=users)
+
+    if print_logs:
+        import logging, sys
+        consolehandler = logging.StreamHandler(sys.stdout)
+        consolehandler.setLevel(logging.DEBUG)
+        logger.addHandler(consolehandler)
+
     for username in instance_map.keys():
         instances = instance_map[username]
         monitor_instances_for_user(provider, username, instances)
     logger.info("Monitoring completed")
+    if print_logs:
+        logger.removeHandler(consolehandler)
 
 def monitor_instances_for_user(provider, username, instances):
     from core.models.instance import convert_esh_instance
-    from api import get_esh_driver
     try:
         user = AtmosphereUser.objects.get(username=username)
-        #TODO: When user->group is no longer true,
-        # we will need to modify this..
-        group = Group.objects.get(name=user.username)
-        ident = user.identity_set.get(provider=provider)
-        im = ident.identitymembership_set.get(member=group)
-        #NOTE: Couples with API, probably want this in
-        # service/driver
-        driver = get_esh_driver(ident)
-        core_instances = []
-        #NOTE: We are converting them so they will
-        # be picked up as core models for the 'over_allocation_test'
-        for instance in instances:
-            c_inst = convert_esh_instance(
-                    driver, instance,
-                    ident.provider.id, ident.id, ident.created_by)
-            core_instances.append(c_inst)
-        over_allocation = over_allocation_test(im.identity,
-                                               instances)
-        core_instances = user.instance_set.filter(
-                provider_machine__provider=provider,
-                end_date=None)
-        core_instances_ident = ident.instance_set.filter(end_date=None)
-        update_instances(im.identity, instances, core_instances)
-    except:
-        logger.exception("Unable to monitor User:%s on Provider:%s"
-                         % (username,provider))
+    except AtmosphereUser.DoesNotExist:
+        if instances:
+            logger.warn("WARNING: User %s has %s instances, but does not"
+            "exist on this database" % username, len(instances))
+        return
+    for identity in user.identity_set.filter(provider=provider):
+        try:
+            identity_id = identity.id
+            #GATHER STATISTICS FIRST
+            #This will be: Calculate time that user has used all instances within a
+            #given delta, including the instances listed currently.
+            time_period=relativedelta(day=1, months=1)
+            allocation = get_allocation(username, identity_id)
+            delta_time = get_delta(allocation, time_period)
+            time_used = current_instance_time(
+                    user, instances,
+                    identity_id, delta_time)
+            enforce_allocation(identity, user, time_used)
+        except:
+            logger.exception("Unable to monitor Identity:%s"
+                         % (identity,))
 
     
 def _include_all_idents(identities, owner_map):
@@ -104,14 +109,22 @@ def _include_all_idents(identities, owner_map):
             owner_map[user] = []
     return owner_map
 
-def _make_instance_owner_map(instances):
+def _make_instance_owner_map(instances, users=None):
     owner_map = {}
     for i in instances:
+        if i.owner not in users:
+            continue
         key = i.owner
         instance_list = owner_map.get(key, [])
         instance_list.append(i)
         owner_map[key] = instance_list
     return owner_map
+
+
+def _select_identities(provider, users=None):
+    if users:
+        return provider.identity_set.filter(created_by__username__in=users)
+    return provider.identity_set.all()
 
 
 def _convert_tenant_id_to_names(instances, tenants):
@@ -121,40 +134,42 @@ def _convert_tenant_id_to_names(instances, tenants):
                 i.owner = tenant['name']
     return instances
 
-def over_allocation_test(identity, esh_instances):
-    from api import get_esh_driver
-    from core.models.instance import convert_esh_instance
-    from atmosphere import settings
-    over_allocated, time_diff = check_over_allocation(
-        identity.created_by.username, identity.id,
-        time_period=relativedelta(day=1, months=1))
-    logger.info("Overallocation Test: %s - %s - %s\tInstances:%s"
-                % (identity.created_by.username, over_allocated, time_diff, esh_instances))
+def enforce_allocation(identity, user, time_used):
+    #TODO: When user->group is no longer true,
+    # we will need to modify this..
+    group = Group.objects.get(name=user.username)
+    im = identity.identitymembership_set.get(member=group)
+    allocation = get_allocation(user.username, identity.id)
+    if not allocation:
+        return False
+    max_time_allowed = timedelta(minutes=allocation.threshold)
+    time_diff = max_time_allowed - time_used
+    over_allocated = time_diff.total_seconds() <= 0
     if not over_allocated:
-        # Nothing changed, bail.
         return False
     if settings.DEBUG:
         logger.info('Do not enforce allocations in DEBUG mode')
         return False
+    logger.info("%s is OVER their allowed quota by %s" %
+                 (user.username, time_diff))
     driver = get_esh_driver(identity)
-    running_instances = []
+    esh_instances = driver.list_instances()
     for instance in esh_instances:
-        #Suspend active instances, update the task in the DB
         try:
             if driver._is_active_instance(instance):
+                #Suspend active instances, update the task in the DB
                 driver.suspend_instance(instance)
+                #Give it a few seconds to suspend
+                time.sleep(3)
+                updated_esh = driver.get_instance(instance.id)
+                updated_core = convert_esh_instance(
+                        driver, updated_esh,
+                        identity.provider.id,
+                        identity.id,
+                        user)
         except Exception, e:
             if 'in vm_state suspended' not in e.message:
                 raise
-        updated_esh = driver.get_instance(instance.id)
-        updated_core = convert_esh_instance(driver, updated_esh,
-                                            identity.provider.id,
-                                            identity.id,
-                                            identity.created_by)
-        updated_core.update_history(updated_esh.extra['status'],
-                                    updated_esh.extra.get('task'))
-        running_instances.append(updated_core)
-    #All instances are dealt with, move along.
     return True # User was over_allocation
 
 

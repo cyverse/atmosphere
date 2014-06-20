@@ -2,7 +2,6 @@ from django.db import models
 from django.utils import timezone
 from core.models.provider import Provider
 
-
 class Size(models.Model):
     """
     """

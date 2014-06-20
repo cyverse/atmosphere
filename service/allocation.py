@@ -1,24 +1,42 @@
+import sys
+
 from datetime import timedelta
 
+from django.db.models import Q
 from django.utils import timezone
 from core.models import AtmosphereUser as User
 
 from core.models import IdentityMembership, Identity
-from core.models.instance import Instance
+from core.models.instance import Instance, convert_esh_instance
 from threepio import logger
 
+def strfdelta(tdelta, fmt=None):
+    from string import Formatter
+    if not fmt:
+        #The standard, most human readable format.
+        fmt = "{D} days {H:02} hours {M:02} minutes {S:02} seconds"
+    if tdelta == timedelta():
+        return "0 minutes"
+    formatter = Formatter()
+    return_map = {}
+    div_by_map = {'D': 86400, 'H': 3600, 'M': 60, 'S': 1}
+    keys = map( lambda x: x[1], list(formatter.parse(fmt)))
+    remainder = int(tdelta.total_seconds())
 
-def filter_by_time_delta(instances, delta):
-    """
-    Return all running instances AND all instances between now and 'delta'
-    """
-    time_ago = timezone.now() - delta
-    running_insts = [i for i in instances if not i.end_date]
-    older_insts = [i for i in instances if i.end_date
-                   and i.end_date > time_ago]
-    older_insts.extend(running_insts)
-    return older_insts
+    for unit in ('D', 'H', 'M', 'S'):
+        if unit in keys and unit in div_by_map.keys():
+            return_map[unit], remainder = divmod(remainder, div_by_map[unit])
 
+    return formatter.format(fmt, **return_map)
+
+def strfdate(datetime_o, fmt=None):
+    if not fmt:
+        #The standard, most human readable format.
+        fmt = "%m/%d/%Y %H:%M:%S"
+    if not datetime_o:
+        datetime_o = timezone.now()
+
+    return datetime_o.strftime(fmt)
 
 def get_burn_time(user, identity_id, delta, threshold):
     """
@@ -33,7 +51,7 @@ def get_burn_time(user, identity_id, delta, threshold):
         delta = timedelta(minutes=delta)
     if type(threshold) is not timedelta:
         delta = timedelta(minutes=threshold)
-    time_used = get_time(user, identity_id, delta)
+    time_used = core_instance_time(user, identity_id, delta)
     time_remaining = threshold - time_used
     #If we used all of our allocation, dont calculate burn time
     if time_remaining < timedelta(0):
@@ -53,34 +71,68 @@ def get_burn_time(user, identity_id, delta, threshold):
     return burn_time
 
 
-def get_time(user, identity_id, delta):
+def current_instance_time(user, instances, identity_id, delta_time):
+    """
+    Add all running instances to core, so that the database is up to date
+    before calling 'core_instance_time'
+    """
+    from api import get_esh_driver
+    ident = Identity.objects.get(id=identity_id)
+    driver = get_esh_driver(ident)
+    core_instance_list = [
+            convert_esh_instance(driver, inst,
+                                 ident.provider.id, ident.id, user)
+                          for inst in instances]
+    #All instances that don't have an end-date should be
+    #included, even if all of their time is not.
+    time_used = core_instance_time(user, ident.id, delta_time, running=core_instance_list)
+    return time_used
+
+
+
+def core_instance_time(user, identity_id, delta, running=[]):
+    """
+    Called 'core_instance' time because it relies on the data
+    in core to be relevant. 
+    
+    If you (potentially) have new instances on the
+    driver, you should be using current_instance_time
+    """
     if type(user) is not User:
         user = User.objects.filter(username=user)
     if type(delta) is not timedelta:
         delta = timedelta(minutes=delta)
-
     total_time = timedelta(0)
+    past_time = timezone.now() - delta
     #Calculate only the specific users time allocation..
-    instances = Instance.objects.filter(created_by=user,
-                                        created_by_identity__id=identity_id)
-    instances = filter_by_time_delta(instances, delta)
+    instances = Instance.objects.filter(
+            Q(end_date=None) | Q(end_date__gt=past_time),
+            created_by=user, created_by_identity__id=identity_id)
     logger.debug('Calculating time of %s instances' % len(instances))
+    logger.debug(
+            'INSTANCE,username,alias[:5],start_date,end_date,run_time,total_time')
+    logger.debug(
+            'HISTORY,username,alias[:5],status,size_name,size_cpu,'
+            'start_count,end_count, active_time,cpu_time')
     for idx, i in enumerate(instances):
-        #Runtime cannot be larger than the total 'window' of time observed
-        run_time = min(i.get_active_time_d(delta), delta)
+        #If we know what instances are running, and this isn't one of them,
+        # it missed end-dating. Lets do something about it
+        if running and i not in running:
+            i.end_date_all()
+        run_time = i.get_active_time(delta)
         new_total = run_time + total_time
         logger.debug(
-                '%s:<Instance %s> %s + %s = %s'
-                % (idx, i.provider_alias[-5:],
-                   delta_to_minutes(run_time),
-                   delta_to_minutes(total_time),
-                   delta_to_minutes(new_total)))
+                'INSTANCE,%s,%s,%s,%s,%s,%s'
+                % (user.username, i.provider_alias[:5],
+                   strfdate(i.start_date),
+                   strfdate(i.end_date),
+                   strfdelta(run_time),
+                   strfdelta(new_total)))
         total_time = new_total
-    logger.debug("%s hours == %s minutes == %s"
-            % (delta_to_hours(total_time),
-               delta_to_minutes(total_time),
-                total_time))
+    logger.debug("TOTAL,%s,%s"
+            % (user.username, strfdelta(total_time)))
     return total_time
+
 
 
 def delta_to_minutes(tdelta):
@@ -140,7 +192,7 @@ def check_over_allocation(username, identity_id,
     max_time_allowed = timedelta(minutes=allocation.threshold)
     logger.debug("%s Allocation: %s Time allowed"
                  % (username, max_time_allowed))
-    total_time_used = get_time(username, identity_id, delta_time)
+    total_time_used = core_instance_time(username, identity_id, delta_time)
     logger.debug("%s Time Used: %s"
                  % (username, total_time_used))
     time_diff = max_time_allowed - total_time_used
