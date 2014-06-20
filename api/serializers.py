@@ -1,7 +1,6 @@
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Q
-from django.utils import timezone
 
+from core.models import only_current
 from core.models.application import Application, ApplicationScore,\
         ApplicationBookmark
 from core.models.credential import Credential
@@ -29,7 +28,6 @@ from rest_framework import pagination
 
 from threepio import logger
 
-only_current = Q(end_date=None) | Q(end_date__gt=timezone.now())
 """
 Useful Serializer methods here..
 """
@@ -49,7 +47,7 @@ def get_context_user(serializer, kwargs, required=False):
         if required:
             raise Exception(print_str)
         else:
-            logger.debug("Incomplete Data Warning:%s" % print_str)
+            #logger.debug("Incomplete Data Warning:%s" % print_str)
             return None
     if user:
         #NOTE: Converting str to atmosphere user is easier when debugging
@@ -635,13 +633,16 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     def get_user_applications(self, project):
         return [ApplicationSerializer(item,
-            context={'request':self.context.get('request')}).data for item in project.applications.filter(only_current)]
+            context={'request':self.context.get('request')}).data for item in
+            project.applications.filter(only_current())]
     def get_user_instances(self, project):
         return [InstanceSerializer(item,
-            context={'request':self.context.get('request')}).data for item in project.instances.filter(only_current)]
+            context={'request':self.context.get('request')}).data for item in
+            project.instances.filter(only_current())]
     def get_user_volumes(self, project):
         return [VolumeSerializer(item,
-            context={'request':self.context.get('request')}).data for item in project.volumes.filter(only_current)]
+            context={'request':self.context.get('request')}).data for item in
+            project.volumes.filter(only_current())]
 
 
     def __init__(self, *args, **kwargs):

@@ -144,13 +144,24 @@ def get_members(groupname):
         return []
 
 
+def is_staff(username):
+    """
+    ldap_validate
+    Using the username is in the atmo-user group return True
+    otherwise False.
+    """
+    return is_user_in_group(username,'staff')
+
 def is_atmo_user(username):
     """
     ldap_validate
     Using the username is in the atmo-user group return True
     otherwise False.
     """
-    members_list = get_members('atmo-user')
+    return is_user_in_group(username,'atmo-user')
+
+def is_user_in_group(username, groupname):
+    members_list = get_members(groupname)
     return username in members_list
 
 
