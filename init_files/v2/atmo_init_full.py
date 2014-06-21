@@ -494,7 +494,7 @@ def vnc(user, distro, license=None):
             '%s/%s/vnc-config.sh'
             % (ATMO_INIT_FILES, SCRIPT_VERSION),
             os.path.join(USER_HOME_DIR, 'vnc-config.sh'),
-            match_hash='806b22083c73628914194a74f3ff7d7274a7cf23')
+            match_hash='8c93da481f80e1a3542574d5b5d24f4e6abf7d16')
         run_command(['/bin/chmod', 'a+x',
                      os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
         run_command([os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
