@@ -21,6 +21,30 @@ from core.models.machine import ProviderMachine, convert_esh_machine
 from core.models.size import convert_esh_size
 from core.models.tag import Tag
 
+def strfdelta(tdelta, fmt=None):
+    from string import Formatter
+    if not fmt:
+        #The standard, most human readable format.
+        fmt = "{D} days {H:02} hours {M:02} minutes {S:02} seconds"
+    if tdelta == timedelta():
+        return "0 minutes"
+    formatter = Formatter()
+    return_map = {}
+    div_by_map = {'D': 86400, 'H': 3600, 'M': 60, 'S': 1}
+    keys = map( lambda x: x[1], list(formatter.parse(fmt)))
+    remainder = int(tdelta.total_seconds())
+
+    for unit in ('D', 'H', 'M', 'S'):
+        if unit in keys and unit in div_by_map.keys():
+            return_map[unit], remainder = divmod(remainder, div_by_map[unit])
+
+    return formatter.format(fmt, **return_map)
+
+def strfdate(datetime_o, fmt=None):
+    if not fmt:
+        #The standard, most human readable format.
+        fmt = "%Y-%m-%d %H:%M:%S"
+    return datetime_o.strftime(fmt)
 
 class Instance(models.Model):
     """
@@ -158,34 +182,39 @@ class Instance(models.Model):
 
     def _calculate_active_time(self, delta):
         #from service.allocation import delta_to_hours
-        status_history = self.instancestatushistory_set.all()
-        now = timezone.now()
-        if not status_history:
-            # No status history, use entire length of instance
-            # logger.info("First history update: %s starting %s" %
-            #             (self.provider_alias, now))
-            end_date = self.end_date if self.end_date else now
-            return end_date - self.start_date
-        #Start counting..
-        threshold_date = now - delta
+        past_time = timezone.now() - delta
+        recent_history = self.instancestatushistory_set.filter(
+                Q(end_date=None) | Q(end_date__gt=past_time)
+                ).order_by('start_date')
         total_time = timedelta()
-        for state in status_history:
-            if not state.is_active():
-                continue
+        inst_prefix = "HISTORY,%s,%s" % (self.created_by.username,
+                self.provider_alias[:6])
+        for idx, state in enumerate(recent_history):
+            #Can't start counting any earlier than 'delta'
+            if state.start_date < past_time:
+                start_count = past_time
+            else:
+                start_count = state.start_date
+            #If date is current, stop counting 'right now'
             if not state.end_date:
-                # logger.debug("Status %s has no end-date." %
-                #         state.status.name)
-                state.end_date = timezone.now()
-            if state.end_date < threshold_date:
-                #Ignore states that are pass the threshold
-                continue
-            active_time = state.end_date - state.start_date
-            new_total = active_time + total_time
-            #logger.info("%s + %s = %s" % 
-            #        (delta_to_hours(active_time), 
-            #         delta_to_hours(total_time),
-            #         delta_to_hours(new_total)))
-            total_time = new_total
+                final_count = timezone.now()
+            else:
+                final_count = state.end_date
+
+            if state.is_active():
+                #Active time is easy
+                active_time = final_count - start_count
+            else:
+                #Inactive states are NOT counted against the user
+                active_time = timedelta()
+            #multiply by CPU count of size.
+            cpu_time = active_time * state.size.cpu
+            logger.debug("%s,%s,%s,%s CPU,%s,%s,%s,%s"
+                % (inst_prefix, state.status.name,
+                   state.size.name, state.size.cpu, 
+                   strfdate(start_count), strfdate(final_count),
+                   strfdelta(active_time), strfdelta(cpu_time)))
+            total_time += cpu_time
         return total_time
 
         
@@ -472,10 +501,15 @@ def set_instance_from_metadata(esh_driver, core_instance):
         #logger.debug("EshDriver %s does not have function 'ex_get_metadata'"
         #            % esh_driver._connection.__class__)
         return core_instance
-    esh_instance = esh_driver.get_instance(core_instance.provider_alias)
-    if not esh_instance:
+    try:
+        esh_instance = esh_driver.get_instance(core_instance.provider_alias)
+        if not esh_instance:
+            return core_instance
+        metadata =  esh_driver._connection.ex_get_metadata(esh_instance)
+    except Exception, e:
+        logger.exception("Exception retrieving instance metadata for %s" %
+                core_instance.provider_alias)
         return core_instance
-    metadata =  esh_driver._connection.ex_get_metadata(esh_instance)
 
     #TODO: Match with actual instance launch metadata in service/instance.py
     #TODO: Probably better to redefine serializer as InstanceMetadataSerializer
