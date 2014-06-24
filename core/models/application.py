@@ -8,6 +8,7 @@ from hashlib import md5
 from threepio import logger
 
 from atmosphere import settings
+from core.models.query import only_current
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
 from core.metadata import _get_admin_owner
@@ -31,9 +32,18 @@ class Application(models.Model):
     created_by = models.ForeignKey('AtmosphereUser')
     created_by_identity = models.ForeignKey(Identity, null=True)
 
+    def _current_machines(self):
+        """
+        Return a list of current provider machines.
+        """
+        pms = self.providermachine_set.filter(
+                Q(provider__end_date=None) | Q(provider__end_date__gt=timezone.now()),
+                only_current())
+        return pms 
+
     def get_projects(self, user):
         projects = self.projects.filter(
-                Q(end_date=None) | Q(end_date__gt=timezone.now()),
+                only_current(),
                 owner=user,
                 )
         return projects
@@ -53,7 +63,7 @@ class Application(models.Model):
 
     def get_members(self):
         members = list(self.applicationmembership_set.all())
-        for provider_machine in self.providermachine_set.all():
+        for provider_machine in self._current_machines():
             members.extend(provider_machine.providermachinemembership_set.all())
         return members
 
@@ -72,12 +82,8 @@ class Application(models.Model):
         """
         return md5(self.uuid).hexdigest()
 
-    def get_provider_machine_set(self):
-        pms = self.providermachine_set.all()
-        return pms
-
     def get_provider_machines(self):
-        pms = self.providermachine_set.all()
+        pms = self._current_machines()
         return [{
             "start_date":pm.start_date,
             "end_date":pm.end_date,
@@ -99,7 +105,7 @@ class Application(models.Model):
 
     def update_images():
         from service.accounts.openstack import AccountDriver as OSAccounts
-        for pm in self.providermachine_set.all():
+        for pm in self._current_machines():
             if pm.provider.get_type_name().lower() != 'openstack':
                 continue
             image_id = pm.identifier

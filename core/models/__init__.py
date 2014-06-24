@@ -24,15 +24,6 @@ from core.models.step import Step
 from core.models.application import Application, ApplicationMembership,\
     ApplicationScore, ApplicationBookmark
 
-def only_current():
-    """
-    Use this query to restrict objects to those that have not been
-    end dated
-    """
-    from django.db.models import Q
-    from django.utils import timezone
-    return Q(end_date=None) | Q(end_date__gt=timezone.now())
-
 def get_or_create(Model, *args, **kwargs):
     return Model.objects.get_or_create(*args, **kwargs)[0]
 
