@@ -11,7 +11,6 @@ from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
 
-
 from core.models.instance import convert_esh_instance
 from core.models.provider import AccountProvider
 from core.models.volume import convert_esh_volume
@@ -216,6 +215,8 @@ class VolumeList(APIView):
                     status.HTTP_400_BAD_REQUEST,
                     "Volumes created from images can be no more than 4GB larger "
                     " than the size of the image: %s GB" % image_size)
+        else:
+            image = None
         snapshot_id = data.get('snapshot')
         if snapshot_id:
             snapshot = driver._connection.ex_get_snapshot(image_id)
