@@ -215,7 +215,7 @@ def get_cas_oauth_client():
             settings.OAUTH_CLIENT_CALLBACK,
             settings.OAUTH_CLIENT_KEY,
             settings.OAUTH_CLIENT_SECRET,
-            auth_prefix='/castest')
+            auth_prefix='/castest4')
     return o_client
 
 def cas_profile_contains(attrs, test_value):
