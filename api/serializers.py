@@ -15,12 +15,12 @@ from core.models.maintenance import MaintenanceRecord
 from core.models.profile import UserProfile
 from core.models.project import Project
 from core.models.provider import ProviderType, Provider
-from core.models.query import only_current
 from core.models.size import Size
 from core.models.step import Step
 from core.models.tag import Tag, find_or_create_tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
+from core.query import only_active
 
 from rest_framework import serializers
 
@@ -634,15 +634,15 @@ class ProjectSerializer(serializers.ModelSerializer):
     def get_user_applications(self, project):
         return [ApplicationSerializer(item,
             context={'request':self.context.get('request')}).data for item in
-            project.applications.filter(only_current())]
+            project.applications.filter(only_active())]
     def get_user_instances(self, project):
         return [InstanceSerializer(item,
             context={'request':self.context.get('request')}).data for item in
-            project.instances.filter(only_current())]
+            project.instances.filter(only_active())]
     def get_user_volumes(self, project):
         return [VolumeSerializer(item,
             context={'request':self.context.get('request')}).data for item in
-            project.volumes.filter(only_current())]
+            project.volumes.filter(only_active())]
 
 
     def __init__(self, *args, **kwargs):
