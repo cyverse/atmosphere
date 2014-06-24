@@ -9,7 +9,7 @@ from rest_framework import status
 from threepio import logger
 
 from core.models import Application as CoreApplication
-from core.models import Identity
+from core.models import Identity, Group
 from core.models.machine import update_application_owner
 from core.models.application import visible_applications, public_applications
 
