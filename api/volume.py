@@ -216,10 +216,11 @@ class VolumeList(APIView):
                     status.HTTP_400_BAD_REQUEST,
                     "Volumes created from images can be no more than 4GB larger "
                     " than the size of the image: %s GB" % image_size)
-
         snapshot_id = data.get('snapshot')
         if snapshot_id:
             snapshot = driver._connection.ex_get_snapshot(image_id)
+        else:
+            snapshot = None
         try:
             success, esh_volume = create_volume(esh_driver, identity_id,
                                                 name, size, description,
@@ -278,8 +279,7 @@ class Volume(APIView):
                                          identity_id, user)
         serializer = VolumeSerializer(core_volume, data=data, 
                                       context={'request':request},
-                
-                partial=True)
+                                      partial=True)
         if serializer.is_valid():
             serializer.save()
             response = Response(serializer.data)

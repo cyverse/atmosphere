@@ -7,7 +7,7 @@ from core.models.identity import Identity
 
 
 def create_volume(esh_driver, identity_id, name, size,
-        description=None, metadata=None, snapshot=None, image=None):
+                  description=None, metadata=None, snapshot=None, image=None):
     identity = Identity.objects.get(id=identity_id)
     quota = get_quota(identity_id)
     if not has_storage_quota(esh_driver, quota, size):
