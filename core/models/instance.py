@@ -177,10 +177,6 @@ class Instance(models.Model):
         total_time = self._calculate_active_time()
         return delta_to_hours(total_time)
 
-    def get_active_time(self):
-        total_time = self._calculate_active_time()
-        return total_time
-
     def _calculate_active_time_d(self, delta):
         #from service.allocation import delta_to_hours
         status_history = self.instancestatushistory_set.all()
@@ -218,11 +214,14 @@ class Instance(models.Model):
         total_time = self._calculate_active_time(delta)
         return delta_to_hours(total_time)
 
-    def get_active_time(self, delta):
+    def get_active_time(self, delta=None):
         total_time = self._calculate_active_time(delta)
         return total_time
 
-    def _calculate_active_time(self, delta):
+    def _calculate_active_time(self, delta=None):
+        if not delta:
+            #Start from 'the beginning'
+            delta = self.start_date
         #from service.allocation import delta_to_hours
         past_time = timezone.now() - delta
         recent_history = self.instancestatushistory_set.filter(
