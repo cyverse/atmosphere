@@ -173,7 +173,7 @@ def enforce_allocation(identity, user, time_used):
     return True # User was over_allocation
 
 
-def update_instances(identity, esh_list, core_list):
+def update_instances(driver, identity, esh_list, core_list):
     """
     End-date core instances that don't show up in esh_list
     && Update the values of instances that do
@@ -189,8 +189,12 @@ def update_instances(identity, esh_list, core_list):
             core_instance.end_date_all()
             continue
         esh_instance = esh_list[index]
+        esh_size = driver.get_size(esh_instance.size.id)
+        core_size = convert_esh_size(esh_size, provider_id)
         core_instance.update_history(
             esh_instance.extra['status'],
+            core_size,
             esh_instance.extra.get('task') or
-            esh_instance.extra.get('metadata', {}).get('tmp_status'))
+            esh_instance.extra.get(
+                'metadata', {}).get('tmp_status'))
     return

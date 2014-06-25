@@ -68,6 +68,7 @@ INSTALLED_APPS = (
     'djcelery',
     'django_jenkins',
     'pipeline',
+    'corsheaders',
 
     #iPlant apps
     'rtwo',
@@ -165,7 +166,11 @@ TEMPLATE_LOADERS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'corsheaders.middleware.CorsMiddleware',
+    # corsheaders.middleware.CorsMiddleware Must be ahead of
+    # configuration CommonMiddleware for an edge case.
     'django.middleware.common.CommonMiddleware',
+
     'django.middleware.csrf.CsrfViewMiddleware',
 
     'django.middleware.gzip.GZipMiddleware',
@@ -196,6 +201,9 @@ AUTHENTICATION_BACKENDS = (
     #'django.contrib.auth.backends.ModelBackend',
 )
 
+# django-cors-headers
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_WHITELIST = None
 
 JENKINS_TASKS = (
     'django_jenkins.tasks.with_coverage',
@@ -220,7 +228,7 @@ INIT_SCRIPT_PREFIX = '/init_files/'
 
 ## logging
 LOGGING_LEVEL = logging.DEBUG
-DEP_LOGGING_LEVEL = logging.INFO  # Logging level for dependencies.
+DEP_LOGGING_LEVEL = logging.DEBUG  # Logging level for dependencies.
 LOG_FILENAME = os.path.abspath(os.path.join(
     os.path.dirname(atmosphere.__file__),
     '..',
@@ -277,11 +285,15 @@ sys.stdout = sys.stderr
 ##REST FRAMEWORK
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (
+        # Included Renderers
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.JSONPRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework.renderers.YAMLRenderer',
         'rest_framework.renderers.XMLRenderer',
+        # Our Renderers
+        'api.renderers.PNGRenderer',
+        'api.renderers.JPEGRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'authentication.token.OAuthTokenAuthentication',
@@ -392,8 +404,8 @@ CELERY_ROUTES += ({
         {"queue": "imaging", "routing_key": "imaging.complete"},
         },)
 #     # Django-Celery Development settings
-#     CELERY_ALWAYS_EAGER = True
-#     CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
+# CELERY_ALWAYS_EAGER = True
+# CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
 import djcelery
 djcelery.setup_loader()

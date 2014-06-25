@@ -54,11 +54,11 @@ class VolumeTests(TestCase):
         self.api_client.login(
                 username=settings.TEST_RUNNER_USER,
                 password=settings.TEST_RUNNER_PASS)
-        reverse_link = reverse('instance-list',
+        reverse_link = reverse('api:public_apis:instance-list',
                               args=[self.os_id.provider.id,
                                     self.os_id.id])
         self.os_instance_url = urljoin(settings.SERVER_URL, reverse_link)
-        reverse_link = reverse('volume-list',
+        reverse_link = reverse('api:public_apis:volume-list',
                                args=[self.os_id.provider.id,
                                      self.os_id.id])
         #Prepare Openstack
@@ -73,11 +73,11 @@ class VolumeTests(TestCase):
                 self, self.os_instance_url, **instance_data)
 
         #Prepare Eucalyptus
-        reverse_link = reverse('volume-list',
+        reverse_link = reverse('api:public_apis:volume-list',
                               args=[self.euca_id.provider.id,
                                     self.euca_id.id])
         self.euca_volume_url = urljoin(settings.SERVER_URL, reverse_link)
-        reverse_link = reverse('instance-list',
+        reverse_link = reverse('api:public_apis:instance-list',
                               args=[self.euca_id.provider.id,
                                     self.euca_id.id])
         self.euca_instance_url = urljoin(settings.SERVER_URL, reverse_link)

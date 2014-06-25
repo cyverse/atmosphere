@@ -21,7 +21,7 @@ root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, '/opt/env/atmo/lib/python2.7/site-packages/')
 sys.path.insert(1, root_dir)
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "atmosphere.settings")
+os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
 #LIBCLOUD_DEBUG = os.path.abspath(os.path.join(
 #    root_dir,
 #    'logs/libcloud.log'))

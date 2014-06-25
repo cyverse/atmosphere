@@ -31,6 +31,13 @@ class Application(models.Model):
     created_by = models.ForeignKey('AtmosphereUser')
     created_by_identity = models.ForeignKey(Identity, null=True)
 
+    def get_projects(self, user):
+        projects = self.projects.filter(
+                Q(end_date=None) | Q(end_date__gt=timezone.now()),
+                owner=user,
+                )
+        return projects
+
     def featured(self):
         return True if self.tags.filter(name__iexact='featured') else False
 
@@ -87,6 +94,7 @@ class Application(models.Model):
         """
         super(Application, self).save(*args, **kwargs)
         #TODO: if changes were made..
+        #TODO: Call out to OpenStack, Admin(Email), Groupy Hooks..
         #self.update_images()
 
     def update_images():

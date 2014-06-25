@@ -47,7 +47,8 @@ class VolumeList(APIView):
         core_volume_list = [convert_esh_volume(volume, provider_id,
                                                identity_id, user)
                             for volume in esh_volume_list]
-        serializer = VolumeSerializer(core_volume_list, many=True)
+        serializer = VolumeSerializer(core_volume_list,
+                                      context={'user':request.user}, many=True)
         response = Response(serializer.data)
         return response
 
@@ -81,7 +82,8 @@ class VolumeList(APIView):
         # Volume creation succeeded
         core_volume = convert_esh_volume(esh_volume, provider_id,
                                          identity_id, user)
-        serialized_data = VolumeSerializer(core_volume).data
+        serialized_data = VolumeSerializer(core_volume,
+                                           context={'user':request.user}).data
         return Response(serialized_data, status=status.HTTP_201_CREATED)
 
 
@@ -101,7 +103,8 @@ class Volume(APIView):
             return volume_not_found(volume_id)
         core_volume = convert_esh_volume(esh_volume, provider_id,
                                          identity_id, user)
-        serialized_data = VolumeSerializer(core_volume).data
+        serialized_data = VolumeSerializer(core_volume,
+                                           context={'user':request.user}).data
         response = Response(serialized_data)
         return response
 
@@ -120,7 +123,10 @@ class Volume(APIView):
             return volume_not_found(volume_id)
         core_volume = convert_esh_volume(esh_volume, provider_id,
                                          identity_id, user)
-        serializer = VolumeSerializer(core_volume, data=data, partial=True)
+        serializer = VolumeSerializer(core_volume, data=data, 
+                                      context={'user':request.user},
+                
+                partial=True)
         if serializer.is_valid():
             serializer.save()
             response = Response(serializer.data)
@@ -145,7 +151,10 @@ class Volume(APIView):
             return volume_not_found(volume_id)
         core_volume = convert_esh_volume(esh_volume, provider_id,
                                          identity_id, user)
-        serializer = VolumeSerializer(core_volume, data=data)
+        serializer = VolumeSerializer(core_volume, data=data,
+                                      context={'user':request.user},
+                
+                )
         if serializer.is_valid():
             serializer.save()
             response = Response(serializer.data)
@@ -174,7 +183,10 @@ class Volume(APIView):
         core_volume.end_date = datetime.now()
         core_volume.save()
         #Return the object
-        serialized_data = VolumeSerializer(core_volume).data
+        serialized_data = VolumeSerializer(core_volume,
+                                           context={'user':request.user},
+                
+                ).data
         response = Response(serialized_data)
         return response
 
@@ -184,7 +196,9 @@ def valid_post_data(data):
     Return any missing required post key names.
     """
     required = ['name', 'size']
-    return [key for key in required if not key in data]
+    return [key for key in required
+            #Key must exist and have a non-empty value.
+            if not ( key in data and len(data[key]) > 0)]
 
 
 def keys_not_found(missing_keys):

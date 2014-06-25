@@ -577,6 +577,17 @@ def iplant_files(distro):
         "/usr/local/bin/atmo_check_idle.py",
         match_hash="ab37a256e15ef5f529b4f4811f78174265eb7aa0")
     run_command(["/bin/chmod", "a+x", "/usr/local/bin/atmo_check_idle.py"])
+
+    run_command(["/bin/mkdir", "-p", "/opt/irodsidrop"])
+    download_file("http://www.iplantc.org/sites/default/files/irods/idrop.jar",
+                  "/opt/irodsidrop/idrop-latest.jar",
+                  match_hash="275cc7fb744b0f29caa7b276f689651a2159c23e")
+    download_file(
+        "http://www.iplantcollaborative.org/sites/default/files/"
+        + "idroprun.sh.txt", "/opt/irodsidrop/idroprun.sh",
+        match_hash="0e9cec8ce1d38476dda1646631a54f6b2ddceff5")
+    run_command(['/bin/chmod', 'a+x', '/opt/irodsidrop/idroprun.sh'])
+
     download_file('%s/%s/iplant_backup.sh'
                   % (ATMO_INIT_FILES, SCRIPT_VERSION),
                   "/usr/local/bin/iplant_backup",
@@ -1052,7 +1063,6 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vncl
 def is_executable(full_path):
     return os.path.isfile(full_path) and os.access(full_path, os.X_OK)
 
-
 def run_boot_scripts():
     post_script_dir = "/etc/atmo/post-scripts.d"
     if not os.path.isdir(post_script_dir):
@@ -1065,16 +1075,11 @@ def run_boot_scripts():
         full_path = os.path.join(post_script_dir, file_name)
         try:
             if is_executable(full_path):
-                logging.info("Executing post-boot script: %s" % full_path)
                 output, error = run_command([full_path])
-                output_file = open(stdout_logfile, 'a')
-                if output_file:
+                with open(stdout_logfile,'a') as output_file:
                     output_file.write("--\n%s OUTPUT:\n%s\n" % (full_path, output))
-                    output_file.close()
-                output_file = open(stderr_logfile, 'a')
-                if output_file:
+                with open(stderr_logfile,'a') as output_file:
                     output_file.write("--\n%s ERROR:\n%s\n" % (full_path, error))
-                    output_file.close()
         except Exception, exc:
             logging.exception("Exception executing/logging the file: %s"
                               % full_path)
@@ -1142,7 +1147,7 @@ def main(argv):
     logging.debug("Atmoserver - %s" % ATMOSERVER)
     logging.debug("Atmosphere init parameters- %s" % instance_data)
     global ATMO_INIT_FILES
-    ATMO_INIT_FILES = "%s/init_files" % ATMOSERVER
+    ATMO_INIT_FILES = "%s/api/v1/init_files" % ATMOSERVER
     logging.debug("Atmosphere init files location- %s" % ATMO_INIT_FILES)
     set_user_home_dir()
     add_zsh()

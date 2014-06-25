@@ -1,13 +1,13 @@
 """
 CAS authentication protocol
 
-Contact:        Steven Gregory <esteve@iplantcollaborative.org>
+Contact:        Steven Gregory <sgregory@iplantcollaborative.org>
                 J. Matt Peterson <jmatt@iplantcollaborative.org>
 
 """
 from datetime import timedelta
 import time
-
+from django.core.urlresolvers import reverse
 from django.utils import timezone
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
@@ -38,6 +38,16 @@ def get_cas_client():
             proxy_callback=settings.PROXY_CALLBACK_URL,
             self_signed_cert=settings.SELF_SIGNED_CERT)
 
+
+def get_cas_client():
+    """
+    This is how you initialize a CAS Client
+    """
+    return CASClient(settings.CAS_SERVER,
+            settings.SERVICE_URL,
+            proxy_url=settings.PROXY_URL,
+            proxy_callback=settings.PROXY_CALLBACK_URL,
+            self_signed_cert=settings.SELF_SIGNED_CERT)
 
 def cas_validateUser(username):
     """
@@ -96,15 +106,10 @@ CAS is an optional way to login to Atmosphere
 This code integrates caslib into the Auth system
 """
 
-
-def cas_setReturnLocation(sendback):
-    """
-    Reinitialize cas with the new sendback location
-    keeping all other variables the same.
-    """
-    caslib.cas_setServiceURL(
-        settings.SERVER_URL+"/CAS_serviceValidater?sendback="+sendback
-    )
+def _set_redirect_url(sendback, request):
+    absolute_url = request.build_absolute_uri(
+            reverse('cas-service-validate-link'))
+    return "%s?sendback=%s" % (absolute_url, sendback)
 
 
 def _set_redirect_url(sendback, request):

@@ -93,6 +93,35 @@ class MachineRequest(models.Model):
         exclude=re.split(", | |\n", self.exclude_files)
         return exclude
 
+    def old_admin_identity(self):
+        old_provider = self.parent_machine.provider
+        old_admin = old_provider.get_admin_identity()
+        return old_admin
+
+    def new_admin_identity(self):
+        new_provider = self.new_machine_provider
+        new_admin = new_provider.get_admin_identity()
+        return new_admin
+
+    def new_admin_driver(self):
+        (orig_managerCls, orig_creds,
+         new_managerCls, new_creds) = self.prepare_manager()
+        if new_managerCls:
+            manager = new_managerCls(**new_creds)
+        else:
+            manager = orig_managerCls(**orig_creds)
+        if not hasattr(manager, 'admin_driver'):
+            logger.warn("Manager %s has no 'admin_driver'" % manager)
+            return None
+        return manager.admin_driver
+
+    def active_provider(self):
+        active_provider = self.new_machine_provider
+        if not active_provider:
+            active_provider = self.parent_machine.provider
+        return active_provider
+
+
     def get_credentials(self):
         old_provider = self.parent_machine.provider
         old_creds = old_provider.get_credentials()
@@ -308,7 +337,7 @@ def process_machine_request(machine_request, new_image_id):
     add_to_cache(new_machine)
     machine_request.new_machine = new_machine
     machine_request.end_date = timezone.now()
-    machine_request.status = 'completed'
+    machine_request.status = 'verifying image'
     machine_request.save()
     return machine_request
 

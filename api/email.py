@@ -20,7 +20,6 @@ from core.models.volume import convert_esh_volume
 from service.volume import create_volume
 from service.exceptions import OverQuotaError
 
-from api.serializers import VolumeSerializer
 from api import prepare_driver, failure_response, invalid_creds
 
 from web.emails import feedback_email, quota_request_email, support_email
@@ -97,7 +96,9 @@ def valid_post_data(data, required_keys):
     """
     Return any missing required post key names.
     """
-    return [key for key in required_keys if not key in data]
+    return [key for key in required
+            #Key must exist and have a non-empty value.
+            if not ( key in data and len(data[key]) > 0)]
 
 
 def keys_not_found(missing_keys):

@@ -7,6 +7,7 @@ from dateutil.relativedelta import relativedelta
 from math import floor, ceil
 
 from django.db import models
+from django.db.models.signals import post_save
 from django.utils.timezone import datetime, timedelta
 from django.contrib.auth.models import Group as DjangoGroup
 
@@ -42,6 +43,26 @@ class Group(DjangoGroup):
                                           blank=True)
 
     @classmethod
+    def check_membership(cls, test_user, membership_groups):
+        """
+        PARAMS:
+          test_user - DjangoUser to be tested
+          membership_groups - List of groups allowed membership to... Something.
+        RETURNS:
+          True/False - If any of the users groups grants membership access.
+        """
+        return any(group for group
+                   in test_user.group_set.all() if group in membership_groups)
+
+    @classmethod
+    def check_access(cls, user, groupname):
+        try:
+            group = Group.objects.get(name=groupname)
+            return user in group.user_set.all()
+        except Group.DoesNotExist:
+            return False
+
+    @classmethod
     def create_usergroup(cls, username):
         user = AtmosphereUser.objects.get_or_create(username=username)[0]
         group = Group.objects.get_or_create(name=username)[0]
@@ -60,6 +81,18 @@ class Group(DjangoGroup):
     class Meta:
         db_table = 'group'
         app_label = 'core'
+
+#Save Hooks Here:
+def get_or_create_default_project(sender, instance, created, **kwargs):
+    from core.models.project import Project
+    project = Project.objects.get_or_create(owner=instance,
+                                            name="Default")
+    if project[1] is True:
+        logger.debug("Creating Project:'Default' for %s" % instance)
+
+
+#Instantiate the hooks:
+post_save.connect(get_or_create_default_project, sender=Group)
 
 
 class Leadership(models.Model):

@@ -10,6 +10,28 @@ from rtwo.provider import AWSProvider, EucaProvider, OSProvider
 from rtwo.provider import Provider as EshProvider
 from threepio import logger
 
+class Trait(models.Model):
+    """
+    Trait objects are created by developers,
+    they should not be added to unless they will
+    be used as logic-choices in code.
+    """
+    name = models.CharField(max_length=256)
+    description = models.TextField(null=True, blank=True)
+
+    def json(self):
+        return {
+            'name': self.name,
+            'description': self.description
+        }
+
+    class Meta:
+        db_table = 'trait'
+        app_label = 'core'
+
+    def __unicode__(self):
+        return self.name
+
 class PlatformType(models.Model):
     """
     Keep track of Virtualization Platform via type
@@ -51,35 +73,6 @@ class ProviderType(models.Model):
         return self.name
 
 
-class ProviderSize(models.Model):
-    #TODO: :Fix the providersize model to have a foreign key to Provider..
-    """
-    ProviderSize contains the exact amount of resources
-    in combination with am chine to launch an instance.
-    The alias' are different for each provider and the information necessary
-    in each size depends on the provider.
-    The current model includes CPU Units/RAM (In GB)/HDD Space (In GB)
-    Start date and end date are recorded for logging purposes
-
-    Optional fields include:
-      Bandwidth
-      Price
-    """
-    #Special field that is filled out when converting an eshSize
-    esh = None
-    name = models.CharField(max_length=256)  # Medium Instance
-    alias = models.CharField(max_length=256)  # m1.medium
-    cpu = models.IntegerField(null=True, blank=True)
-    ram = models.IntegerField(null=True, blank=True)
-    disk = models.IntegerField(null=True, blank=True)
-    start_date = models.DateTimeField(auto_now_add=True)
-    end_date = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        db_table = 'provider_size'
-        app_label = 'core'
-
-
 class Provider(models.Model):
     """
     Detailed information about a provider
@@ -90,12 +83,14 @@ class Provider(models.Model):
     Start date and end date are recorded for logging purposes
     """
     location = models.CharField(max_length=256)
+    description = models.TextField()
     type = models.ForeignKey(ProviderType)
     virtualization = models.ForeignKey(PlatformType)
     active = models.BooleanField(default=True)
     public = models.BooleanField(default=False)
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
+    traits = models.ManyToManyField(Trait, null=True, blank=True)
 
     @classmethod
     def get_active(cls, provider_id=None, type_name=None):
@@ -112,6 +107,33 @@ class Provider(models.Model):
             # no longer a list
             active_providers = active_providers.get(id=provider_id)
         return active_providers
+
+    def has_trait(self, trait_name):
+        """
+        """
+        return self.traits.filter(name=trait_name).count() != 0
+
+    def add_trait(self, trait_name):
+        """
+        """
+        trait = self.get_trait(trait_name)
+        return self.traits.add(trait)
+
+    def remove_trait(self, trait_name):
+        """
+        """
+        trait = self.get_trait(trait_name)
+        return self.traits.remove(trait)
+
+    def get_trait(self, trait_name):
+        try:
+            trait = trait.objects.get(name=trait_name)
+            return trait
+        except trait.DoesNotExist:
+            raise Exception("trait '%s' does not exist")
+
+    def get_traits(self):
+        return self.traits.all()
 
     def share(self, core_group):
         """
@@ -147,7 +169,6 @@ class Provider(models.Model):
         return group_names
 
     def get_esh_credentials(self, esh_provider):
-
         cred_map = self.get_credentials()
         if isinstance(esh_provider, OSProvider):
             cred_map['ex_force_auth_url'] = cred_map.pop('auth_url')

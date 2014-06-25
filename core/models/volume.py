@@ -2,6 +2,7 @@ from datetime import datetime
 import pytz
 
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 from core.models.provider import Provider
@@ -48,6 +49,13 @@ class Volume(models.Model):
         self.save()
         return self
 
+    def get_projects(self, user):
+        projects = self.projects.filter(
+                Q(end_date=None) | Q(end_date__gt=timezone.now()),
+                owner=user,
+                )
+        return projects
+
     def __unicode__(self):
         return "%s" % (self.alias,)
 
@@ -83,9 +91,21 @@ def convert_esh_volume(esh_volume, provider_id, identity_id, user):
     except Volume.DoesNotExist:
         volume = create_volume(name, alias, size, provider_id, identity_id,
                                user, created_on)
+    _check_project(volume, user)
     volume.esh = esh_volume
     return volume
 
+def _check_project(core_volume, user):
+    """
+    Select a/multiple projects the volume belongs to.
+    NOTE: User (NOT Identity!!) Specific
+    """
+    core_projects = core_volume.get_projects(user)
+    if not core_projects:
+        default_proj = user.get_default_project()
+        default_proj.volumes.add(core_volume)
+        core_projects = [default_proj]
+    return core_projects
 
 def create_volume(name, alias, size, provider_id, identity_id,
                   creator, created_on=None):
@@ -99,6 +119,8 @@ def create_volume(name, alias, size, provider_id, identity_id,
     if created_on:
         # Taking advantage of the ability to save string dates as datetime
         # but we need to get the actual date time after we are done..
+        #NOTE: Why is this different than the method in convert_esh_instance
+        #NOTE: -Steve
         volume.start_date = pytz.utc.localize(created_on)
         volume.save()
     volume = Volume.objects.get(id=volume.id)
