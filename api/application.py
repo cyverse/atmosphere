@@ -147,9 +147,8 @@ class ApplicationSearch(APIView):
     and the query will be perfomed for matches on: Name, Description, & Tag(s)
     """
 
-    permission_classes = (InMaintenance,)
+    permission_classes = (InMaintenance,ApiAuthOptional)
 
-    @api_auth_token_required
     def get(self, request):
         """"""
         data = request.DATA
