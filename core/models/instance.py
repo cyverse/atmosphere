@@ -7,6 +7,8 @@ from hashlib import md5
 from datetime import datetime, timedelta
 
 from django.db import models
+from django.db.models import Q
+
 #from django.contrib.auth.models import User
 #from core.models import AtmosphereUser as User
 from django.utils import timezone
@@ -178,17 +180,17 @@ class Instance(models.Model):
             #         delta_to_hours(new_total)))
             total_time = new_total
         return total_time
-    def get_active_hours(self):
+    def get_active_hours(self, delta):
         #Don't move it up. Circular reference.
         from service.allocation import delta_to_hours
-        total_time = self._calculate_active_time()
+        total_time = self._calculate_active_time(delta)
         return delta_to_hours(total_time)
 
-    def get_active_time(self):
-        total_time = self._calculate_active_time()
+    def get_active_time(self, delta):
+        total_time = self._calculate_active_time(delta)
         return total_time
 
-    def _calculate_active_time(self):
+    def _calculate_active_time(self, delta):
         #from service.allocation import delta_to_hours
         past_time = timezone.now() - delta
         recent_history = self.instancestatushistory_set.filter(
