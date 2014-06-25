@@ -126,6 +126,7 @@ class Identity(models.Model):
 
     @classmethod
     def create_identity(cls, username, provider_location,
+                        quota=None,
                         max_quota=False, account_admin=False, **kwarg_creds):
         """
         Create new User/Group & Identity for given provider_location
@@ -205,7 +206,11 @@ class Identity(models.Model):
                 key=c_key,
                 value=c_value)[0]
         #4. Assign a different quota, if requested
-        if max_quota:
+        if quota:
+            id_membership.quota = quota
+            id_membership.allocation = None
+            id_membership.save()
+        elif max_quota:
             quota = Quota.max_quota()
             id_membership.quota = quota
             id_membership.allocation = None

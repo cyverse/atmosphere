@@ -57,6 +57,11 @@ Atmo.Models.Instance = Atmo.Models.Base.extend({
 		attributes.private_dns_name = response.ip_address;
 		attributes.public_dns_name = response.ip_address;
 		
+		if(response.status === 'error'){
+			attributes.state = 'Atmosphere is at capacity. Please retry later.';
+			//attributes.status = attributes.state;
+		}
+
 		return attributes;
 	},
 	confirm_terminate: function(options) {

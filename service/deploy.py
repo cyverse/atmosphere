@@ -182,7 +182,7 @@ def redeploy_script(filename, username, instance, logfile=None):
             filename,
             "instance_service_v1",
             settings.INSTANCE_SERVICE_URL,
-            settings.SERVER_URL,
+            settings.DEPLOY_SERVER_URL,
             username)
         #kludge: weirdness without the str cast...
         str_awesome_atmo_call = str(awesome_atmo_call)
@@ -203,7 +203,7 @@ def init_script(filename, username, token, instance, password, redeploy, logfile
             filename,
             "instance_service_v1",
             settings.INSTANCE_SERVICE_URL,
-            settings.SERVER_URL,
+            settings.DEPLOY_SERVER_URL,
             username,
             token,
             instance.name,
@@ -255,7 +255,7 @@ def init(instance, username, password=None, redeploy=False, *args, **kwargs):
         server_atmo_init = "/init_files/v2/atmo_init_full.py"
         logfile = "/var/log/atmo/deploy.log"
 
-        url = "%s%s" % (settings.SERVER_URL, server_atmo_init)
+        url = "%s%s" % (settings.DEPLOY_SERVER_URL, server_atmo_init)
 
         script_init = init_log()
 

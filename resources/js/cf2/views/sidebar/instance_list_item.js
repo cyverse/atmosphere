@@ -305,8 +305,12 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
 				'resize_reverting' : 50
 			}
 		};
-
-		return states[state][task];
+		
+		if(states[state] && states[state][task]){
+			return states[state][task];
+		}else{
+			return 0;
+		}
 	},
 	poll_instance: function() {
 		var self = this;

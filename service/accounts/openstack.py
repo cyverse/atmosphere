@@ -110,7 +110,7 @@ class AccountDriver():
         self.network_manager = NetworkManager(**self.net_creds)
 
     def create_account(self, username, password=None, project_name=None,
-                       role_name=None, max_quota=False):
+                       role_name=None, quota=None, max_quota=False):
         """
         Create (And Update "latest changes") to an account
 
@@ -126,6 +126,7 @@ class AccountDriver():
             username, password, project_name, role_name, max_quota)
         ident = self.create_identity(username, password,
                                      project.name,
+                                     quota=quota,
                                      max_quota=max_quota)
         return ident
 
@@ -298,14 +299,14 @@ class AccountDriver():
         return missing_creds
 
     def create_identity(self, username, password, project_name,
-                        max_quota=False, account_admin=False):
+                        quota=None, max_quota=False, account_admin=False):
 
         if not self.core_provider:
             raise Exception("AccountDriver not initialized by provider, "
                             "cannot create identity")
-
         identity = Identity.create_identity(
             username, self.core_provider.location,
+            quota=quota,
             #Flags..
             max_quota=max_quota, account_admin=account_admin,
             ##Pass in credentials with cred_ namespace
