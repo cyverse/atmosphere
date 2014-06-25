@@ -190,7 +190,6 @@ def cas_validateTicket(request):
                      " and included this response:%s"
                      % (ticket, cas_response.object))
         return HttpResponseRedirect(redirect_logout_url)
-    suc = cas_response.__dict__
     if not cas_response.user:
         logger.debug("User attribute missing from cas response!"
                      "This may require a fix to caslib.py")
