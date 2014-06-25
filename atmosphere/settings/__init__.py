@@ -313,7 +313,6 @@ SERVICE_URL = SERVER_URL + '/CAS_serviceValidater?sendback='\
     + REDIRECT_URL + '/application/'
 PROXY_URL = SERVER_URL + '/CAS_proxyUrl'
 PROXY_CALLBACK_URL = SERVER_URL + '/CAS_proxyCallback'
-caslib.cas_init(CAS_SERVER, SERVICE_URL, PROXY_URL, PROXY_CALLBACK_URL)
 
 
 #pyes secrets
