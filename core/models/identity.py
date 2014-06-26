@@ -81,7 +81,7 @@ class Identity(models.Model):
     def share(self, core_group, quota=None):
         """
         """
-        from core.models import IdentityMembership, ProviderMembership
+        from core.models import IdentityMembership, ProviderMembership, Quota, Allocation
         existing_membership = IdentityMembership.objects.filter(
             member=core_group, identity=self)
         if existing_membership:
@@ -126,6 +126,7 @@ class Identity(models.Model):
 
     @classmethod
     def create_identity(cls, username, provider_location,
+                        quota=None,
                         max_quota=False, account_admin=False, **kwarg_creds):
         """
         Create new User/Group & Identity for given provider_location
@@ -145,7 +146,7 @@ class Identity(models.Model):
         """
         #Do not move up. ImportError.
         from core.models import Group, Credential, Quota,\
-            Provider, AccountProvider,\
+            Provider, AccountProvider, Allocation,\
             IdentityMembership, ProviderMembership
 
         provider = Provider.objects.get(location__iexact=provider_location)
@@ -171,12 +172,13 @@ class Identity(models.Model):
             p_membership = ProviderMembership.objects.get_or_create(
                 provider=provider, member=group)[0]
 
+            default_allocation = Allocation.default_allocation()
             #2. Create an Identity Membership
             identity = Identity.objects.get_or_create(
                 created_by=user, provider=provider)[0]
             #Two-tuple, (Object, created)
             id_membership = IdentityMembership.objects.get_or_create(
-                identity=identity, member=group, quota=Quota.default_quota())
+                identity=identity, member=group, allocation=default_allocation, quota=Quota.default_quota())
         #Either first in list OR object from two-tuple.. Its what we need.
         id_membership = id_membership[0]
 
@@ -204,9 +206,14 @@ class Identity(models.Model):
                 key=c_key,
                 value=c_value)[0]
         #4. Assign a different quota, if requested
-        if max_quota:
+        if quota:
+            id_membership.quota = quota
+            id_membership.allocation = None
+            id_membership.save()
+        elif max_quota:
             quota = Quota.max_quota()
             id_membership.quota = quota
+            id_membership.allocation = None
             id_membership.save()
         if account_admin:
             admin = AccountProvider.objects.get_or_create(

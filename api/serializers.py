@@ -389,7 +389,7 @@ class InstanceHistorySerializer(serializers.ModelSerializer):
     ip_address = serializers.CharField(read_only=True)
     start_date = serializers.DateTimeField(read_only=True)
     end_date = serializers.DateTimeField(read_only=True)
-    active_time = serializers.DateTimeField(read_only=True, source='get_active_time')
+    #active_time = serializers.DateTimeField(read_only=True, source='get_active_time')
     provider = serializers.CharField(read_only=True, source='provider_name')
     #Writeable fields
     name = serializers.CharField()

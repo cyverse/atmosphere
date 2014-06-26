@@ -13,7 +13,7 @@ CELERYD_NODES="atmosphere-node_1 imaging celery_periodic"
 # Extra arguments to pass to celeryd
 CELERYD_OPTS="-c:atmosphere-node_1 6"
 CELERYD_OPTS="$CELERYD_OPTS -Q:imaging imaging -c:imaging 1"
-CELERYD_OPTS="$CELERYD_OPTS -Q:celery_periodic celery_periodic -c:celery_periodic 1"
+CELERYD_OPTS="$CELERYD_OPTS -Q:celery_periodic celery_periodic -c:celery_periodic 3"
 
 #Our celery requires root access for sudo/chroot/mount
 C_FORCE_ROOT="True"
