@@ -23,14 +23,13 @@ class TokenAuthentication(BaseAuthentication):
     To authenticate, pass the token key in the "Authorization"
     HTTP header, prepended with the string "Token ". For example:
         Authorization: Token 098f6bcd4621d373cade4e832627b4f6
-        Authorization: Bearer 098f6bcd4621d373cade4e832627b4f6
     """
     model = AuthToken
 
     def authenticate(self, request):
         token_key = None
         auth = request.META.get('HTTP_AUTHORIZATION', '').split()
-        if len(auth) == 2 and auth[0].lower() in ["bearer", "token"]:
+        if len(auth) == 2 and auth[0].lower() == "token":
             token_key = auth[1]
 
         if not token_key and 'token' in request.session:
@@ -48,13 +47,13 @@ class OAuthTokenAuthentication(TokenAuthentication):
     """
     OAuthTokenAuthentication:
     To authenticate, pass the token key in the "Authorization" HTTP header,
-    prepend with the string "Bearer ". For example:
-        Authorization: Bearer 098f6bcd4621d373cade4e832627b4f6
+    prepend with the string "Token ". For example:
+        Authorization: Token 098f6bcd4621d373cade4e832627b4f6
     """
     def authenticate(self, request):
         token_key = None
         auth = request.META.get('HTTP_AUTHORIZATION', '').split()
-        if len(auth) == 2 and auth[0].lower() == "bearer":
+        if len(auth) == 2 and auth[0].lower() == "token":
             oauth_token = auth[1]
             if validate_oauth_token(oauth_token):
                 try:
