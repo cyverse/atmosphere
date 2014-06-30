@@ -1002,11 +1002,20 @@ def redeploy_atmo_init(user):
     mount_storage()
     start_vncserver(user)
     start_shellinaboxd()
+    distro = get_distro()
+    #Get IP addr//Hostname from instance metadata
+    instance_metadata = get_metadata()
+    hostname = get_hostname(instance_metadata)
+    logging.debug("Distro - %s" % distro)
+    logging.debug("Hostname - %s" % hostname)
+    set_hostname(hostname, distro)
 
 
 def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vnclicense):
     distro = get_distro()
     logging.debug("Distro - %s" % distro)
+    hostname = get_hostname(instance_metadata)
+    set_hostname(hostname, distro)
     linuxuser = user
     linuxpass = ""
     public_ip = get_public_ip(instance_metadata)
