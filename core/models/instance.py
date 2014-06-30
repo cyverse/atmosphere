@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 from django.db import models
 from django.db.models import Q
+
 #from django.contrib.auth.models import User
 #from core.models import AtmosphereUser as User
 from django.utils import timezone
@@ -176,11 +177,63 @@ class Instance(models.Model):
         total_time = self._calculate_active_time(delta)
         return delta_to_hours(total_time)
 
-    def get_active_time(self, delta):
+    def get_active_time(self, delta=None):
         total_time = self._calculate_active_time(delta)
         return total_time
 
-    def _calculate_active_time(self, delta):
+    def _calculate_active_time(self, delta=None):
+        if not delta:
+            #Default delta == Time since instance created.
+            delta = timezone.now() - self.start_date
+
+        past_time = timezone.now() - delta
+        recent_history = self.instancestatushistory_set.filter(
+                Q(end_date=None) | Q(end_date__gt=past_time)
+                ).order_by('start_date')
+        total_time = timedelta()
+        inst_prefix = "HISTORY,%s,%s" % (self.created_by.username,
+                self.provider_alias[:5])
+        for idx, state in enumerate(recent_history):
+            #Can't start counting any earlier than 'delta'
+            if state.start_date < past_time:
+                start_count = past_time
+            else:
+                start_count = state.start_date
+            #If date is current, stop counting 'right now'
+            if not state.end_date:
+                final_count = timezone.now()
+            else:
+                final_count = state.end_date
+
+            if state.is_active():
+                #Active time is easy
+                active_time = final_count - start_count
+            else:
+                #Inactive states are NOT counted against the user
+                active_time = timedelta()
+            #multiply by CPU count of size.
+            cpu_time = active_time * state.size.cpu
+            logger.debug("%s,%s,%s,%s CPU,%s,%s,%s,%s"
+                % (inst_prefix, state.status.name,
+                   state.size.name, state.size.cpu, 
+                   strfdate(start_count), strfdate(final_count),
+                   strfdelta(active_time), strfdelta(cpu_time)))
+            total_time += cpu_time
+        return total_time
+    def get_active_hours(self, delta):
+        #Don't move it up. Circular reference.
+        from service.allocation import delta_to_hours
+        total_time = self._calculate_active_time(delta)
+        return delta_to_hours(total_time)
+
+    def get_active_time(self, delta=None):
+        total_time = self._calculate_active_time(delta)
+        return total_time
+
+    def _calculate_active_time(self, delta=None):
+        if not delta:
+            #Start from 'the beginning'
+            delta = self.start_date
         #from service.allocation import delta_to_hours
         past_time = timezone.now() - delta
         recent_history = self.instancestatushistory_set.filter(
@@ -217,7 +270,7 @@ class Instance(models.Model):
             total_time += cpu_time
         return total_time
 
-        
+
 
     def end_date_all(self):
         """
@@ -254,6 +307,11 @@ class Instance(models.Model):
             except ProviderMachine.DoesNotExist as dne:
                 logger.exception("Unable to find provider_machine for %s." % self.provider_alias)
         return 'Unknown'
+
+    def esh_fault(self):
+        if self.esh:
+            return self.esh.extra.get('fault',{})
+        return {}
 
     def esh_status(self):
         if self.esh:
@@ -343,10 +401,10 @@ class InstanceStatusHistory(models.Model):
         return all_history
 
     def __unicode__(self):
-        return "%s (FROM:%s TO:%s)" % (self.status, 
+        return "%s (FROM:%s TO:%s)" % (self.status,
                                self.start_date,
                                self.end_date if self.end_date else '')
-    
+
     def is_active(self):
         """
         Use this function to determine whether or not a specific instance

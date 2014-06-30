@@ -102,7 +102,7 @@ class OAuthLoginBackend(ModelBackend):
             logger.debug("[OAUTH] Authentication skipped - No Request.")
             return None
         auth = request.META.get('HTTP_AUTHORIZATION', '').split()
-        if len(auth) == 2 and auth[0].lower() == "Bearer":
+        if len(auth) == 2 and auth[0].lower() == "Token":
             oauth_token = auth[1]
         logger.debug("[OAUTH] OAuth Token - %s " % oauth_token)
 

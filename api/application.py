@@ -9,7 +9,7 @@ from rest_framework import status
 from threepio import logger
 
 from core.models import Application as CoreApplication
-from core.models import Identity
+from core.models import Identity, Group
 from core.models.machine import update_application_owner
 from core.models.application import visible_applications, public_applications
 
@@ -147,9 +147,8 @@ class ApplicationSearch(APIView):
     and the query will be perfomed for matches on: Name, Description, & Tag(s)
     """
 
-    permission_classes = (InMaintenance,)
+    permission_classes = (InMaintenance,ApiAuthOptional)
 
-    @api_auth_token_required
     def get(self, request):
         """"""
         data = request.DATA

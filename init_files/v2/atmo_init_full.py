@@ -494,7 +494,7 @@ def vnc(user, distro, license=None):
             '%s/%s/vnc-config.sh'
             % (ATMO_INIT_FILES, SCRIPT_VERSION),
             os.path.join(USER_HOME_DIR, 'vnc-config.sh'),
-            match_hash='806b22083c73628914194a74f3ff7d7274a7cf23')
+            match_hash='8c93da481f80e1a3542574d5b5d24f4e6abf7d16')
         run_command(['/bin/chmod', 'a+x',
                      os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
         run_command([os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
@@ -577,6 +577,17 @@ def iplant_files(distro):
         "/usr/local/bin/atmo_check_idle.py",
         match_hash="ab37a256e15ef5f529b4f4811f78174265eb7aa0")
     run_command(["/bin/chmod", "a+x", "/usr/local/bin/atmo_check_idle.py"])
+
+    run_command(["/bin/mkdir", "-p", "/opt/irodsidrop"])
+    download_file("http://www.iplantc.org/sites/default/files/irods/idrop.jar",
+                  "/opt/irodsidrop/idrop-latest.jar",
+                  match_hash="275cc7fb744b0f29caa7b276f689651a2159c23e")
+    download_file(
+        "http://www.iplantcollaborative.org/sites/default/files/"
+        + "idroprun.sh.txt", "/opt/irodsidrop/idroprun.sh",
+        match_hash="0e9cec8ce1d38476dda1646631a54f6b2ddceff5")
+    run_command(['/bin/chmod', 'a+x', '/opt/irodsidrop/idroprun.sh'])
+
     download_file('%s/%s/iplant_backup.sh'
                   % (ATMO_INIT_FILES, SCRIPT_VERSION),
                   "/usr/local/bin/iplant_backup",
@@ -991,11 +1002,20 @@ def redeploy_atmo_init(user):
     mount_storage()
     start_vncserver(user)
     start_shellinaboxd()
+    distro = get_distro()
+    #Get IP addr//Hostname from instance metadata
+    instance_metadata = get_metadata()
+    hostname = get_hostname(instance_metadata)
+    logging.debug("Distro - %s" % distro)
+    logging.debug("Hostname - %s" % hostname)
+    set_hostname(hostname, distro)
 
 
 def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vnclicense):
     distro = get_distro()
     logging.debug("Distro - %s" % distro)
+    hostname = get_hostname(instance_metadata)
+    set_hostname(hostname, distro)
     linuxuser = user
     linuxpass = ""
     public_ip = get_public_ip(instance_metadata)
@@ -1051,7 +1071,6 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vncl
 
 def is_executable(full_path):
     return os.path.isfile(full_path) and os.access(full_path, os.X_OK)
-
 
 def run_boot_scripts():
     post_script_dir = "/etc/atmo/post-scripts.d"

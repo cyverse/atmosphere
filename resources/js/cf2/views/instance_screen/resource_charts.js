@@ -29,7 +29,6 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
         }
         else {
             total = Atmo.profile.get('selected_identity').get('quota')[this.quota_type];
-            //console.log(Atmo.profile.get('selected_identity').get('quota'));
 
             if (this.quota_type == 'storage') {
                 $.each(Atmo.volumes.models, function(i, volume) {

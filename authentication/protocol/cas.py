@@ -22,6 +22,8 @@ from atmosphere import settings
 from authentication import createAuthToken
 from authentication.models import UserProxy
 
+from django.core.urlresolvers import reverse
+
 #TODO: Find out the actual proxy ticket expiration time, it varies by server
 #May be as short as 5min!
 PROXY_TICKET_EXPIRY = timedelta(days=1)
@@ -97,8 +99,6 @@ def _set_redirect_url(sendback, request):
     absolute_url = request.build_absolute_uri(
             reverse('cas-service-validate-link'))
     return "%s?sendback=%s" % (absolute_url, sendback)
-
-
 
 
 def get_saml_client():
@@ -190,7 +190,6 @@ def cas_validateTicket(request):
                      " and included this response:%s"
                      % (ticket, cas_response.object))
         return HttpResponseRedirect(redirect_logout_url)
-    suc = cas_response.__dict__
     if not cas_response.user:
         logger.debug("User attribute missing from cas response!"
                      "This may require a fix to caslib.py")
