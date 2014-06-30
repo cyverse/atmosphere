@@ -308,6 +308,11 @@ class Instance(models.Model):
                 logger.exception("Unable to find provider_machine for %s." % self.provider_alias)
         return 'Unknown'
 
+    def esh_fault(self):
+        if self.esh:
+            return self.esh.extra.get('fault',{})
+        return {}
+
     def esh_status(self):
         if self.esh:
             return self.esh.get_status()
