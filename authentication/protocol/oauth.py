@@ -10,16 +10,16 @@ from core.models.user import AtmosphereUser
 from caslib import OAuthClient
 
 # Requests auth class for access tokens
-class BearerTokenAuth(requests.auth.AuthBase):
+class TokenAuth(requests.auth.AuthBase):
     """
     Authentication using the protocol:
-    Bearer <access_token>
+    Token <access_token>
     """
     def __init__(self, access_token):
         self.access_token = access_token
 
     def __call__(self, r):
-        r.headers['Authorization'] = "Bearer %s" % self.access_token
+        r.headers['Authorization'] = "Token %s" % self.access_token
         return r
 
 def obtainOAuthToken(username, token_key, token_expire=None):
@@ -57,10 +57,10 @@ def get_token_for_user(username):
         iss=secrets.OAUTH_ISSUE_USER,
         sub=username,
         scope=secrets.OAUTH_SCOPE)
-    #TODO: BearerTokenAuth here
+    #TODO: TokenAuth here
     response = requests.get('%s/o/oauth2/tokeninfo?access_token=%s'
             % (secrets.GROUPY_SERVER, access_token),
-            headers={'Authorization': 'Bearer %s' % access_token})
+            headers={'Authorization': 'Token %s' % access_token})
     json_obj = response.json()
     if 'on_behalf' in json_obj:
         username = json_obj['on_behalf']
@@ -73,10 +73,10 @@ def get_user_for_token(test_token):
         open(secrets.OAUTH_PRIVATE_KEY).read(),
         iss=secrets.OAUTH_ISSUE_USER,
         scope=secrets.OAUTH_SCOPE)
-    #TODO: BearerTokenAuth here
+    #TODO: TokenAuth here
     response = requests.get('%s/o/oauth2/tokeninfo?access_token=%s'
             % (secrets.GROUPY_SERVER, test_token),
-            headers={'Authorization': 'Bearer %s' % access_token})
+            headers={'Authorization': 'Token %s' % access_token})
     json_obj = response.json()
     logger.debug(json_obj)
     if 'on_behalf' in json_obj:
@@ -92,7 +92,7 @@ def get_atmo_users():
         scope=secrets.OAUTH_SCOPE)
     response = requests.get('%s/api/groups/atmo-user/members'
             % secrets.GROUPY_SERVER,
-            headers={'Authorization': 'Bearer %s' % access_token})
+            headers={'Authorization': 'Token %s' % access_token})
     return response
     #atmo_users = [user['name'] for user in response.json()]
     #return atmo_users

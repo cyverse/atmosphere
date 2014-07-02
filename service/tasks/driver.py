@@ -9,6 +9,7 @@ from django.conf import settings
 from django.utils.timezone import datetime
 
 from celery import chain
+from celery.contrib import rdb
 from celery.decorators import task
 from celery.task import current
 from celery.result import allow_join_result
@@ -353,8 +354,6 @@ def deploy_failed(task_uuid, driverCls, provider, identity, instance_id,
         logger.error(err_str)
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
-        core_instance = Instance.objects.get(provider_alias=instance_id)
-        send_deploy_failed_email(core_instance, err_str)
         update_instance_metadata(driver, instance,
                                  data={'tmp_status': 'deploy_error'},
                                  replace=False)
@@ -389,6 +388,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
                    *args, **kwargs):
     try:
         logger.debug("deploy_init_to task started at %s." % datetime.now())
+        rdb.set_trace()
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         if not instance:
@@ -397,7 +397,8 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         image_metadata = driver._connection\
                                .ex_get_image_metadata(instance.machine)
         deploy_chain = get_deploy_chain(driverCls, provider, identity,
-                                        instance, username, password, redeploy)
+                                        instance, password, redeploy)
+        logger.debug("Starting deploy chain for: %s." % instance_id)
         deploy_chain.apply_async()
         #Can be really useful when testing.
         #if kwargs.get('delay'):
@@ -480,7 +481,7 @@ def get_deploy_chain(driverCls, provider, identity, instance,
       default_retry_delay=15,
       ignore_result=True,
       max_retries=3)
-def destroy_instance(instance_alias, core_identity_id):
+def destroy_instance(core_identity_id, instance_alias):
     from service import instance as instance_service
     from rtwo.driver import OSDriver
     from api import get_esh_driver
@@ -586,9 +587,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         #NOTE: This is unrelated to the password argument
         logger.info(instance.extra)
         instance._node.extra['password'] = None
-        if not username:
-            username = identity.user.username
-        msd = init(instance, username, password, redeploy)
+        msd = init(instance, identity.user.username, password, redeploy)
 
         kwargs = _generate_ssh_kwargs()
         kwargs.update({'deploy': msd})
@@ -669,6 +668,9 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata):
         instance = driver.get_instance(instance_alias)
         if not instance:
             return
+        #NOTE: This task will only be executed in TEST mode
+        if app.conf.CELERY_ALWAYS_EAGER:
+            eager_update_metadata(driver, instance, metadata)
         return update_instance_metadata(
             driver, instance, data=metadata, replace=False)
         logger.debug("update_metadata task finished at %s." % datetime.now())
@@ -858,6 +860,8 @@ def update_membership():
                 logger.debug("pm filter is bad!")
                 logger.debug(pm)
                 continue
+            else:
+                pm = pm[0]
             app_manager = pm.application.applicationmembership_set
             if not img.is_public:
                 #Lookup members

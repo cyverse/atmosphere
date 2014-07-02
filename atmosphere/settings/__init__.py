@@ -227,7 +227,7 @@ DEPLOY_SERVER_URL = SERVER_URL.replace("https", "http")
 
 ## logging
 LOGGING_LEVEL = logging.DEBUG
-DEP_LOGGING_LEVEL = logging.WARN  # Logging level for dependencies.
+DEP_LOGGING_LEVEL = logging.INFO  # Logging level for dependencies.
 LOG_FILENAME = os.path.abspath(os.path.join(
     os.path.dirname(atmosphere.__file__),
     '..',

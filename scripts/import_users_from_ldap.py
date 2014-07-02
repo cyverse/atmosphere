@@ -10,7 +10,7 @@ from threepio import logger
 from authentication.protocol.ldap import is_atmo_user, get_members
 
 from core.models import AtmosphereUser as User
-from core.models import Provider
+from core.models import Provider, Quota
 
 from service.driver import get_account_driver
 
@@ -20,9 +20,15 @@ libcloud.security.VERIFY_SSL_CERT = False
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--provider", type=int,
+    parser.add_argument("--provider-list", action="store_true",
+                        help="List of provider names and IDs")
+    parser.add_argument("--quota-list", action="store_true",
+                        help="List of provider names and IDs")
+    parser.add_argument("--provider-id", type=int,
                         help="Atmosphere provider ID"
                         " to use when importing users.")
+    parser.add_argument("--quota-id",
+                        help="Atmosphere Quota ID to assign (Optional)")
     parser.add_argument("--groups",
                         help="LDAP groups to import. (comma separated)")
     parser.add_argument("--dry-run", action="store_true",
@@ -31,72 +37,90 @@ def main():
     parser.add_argument("--users",
                         help="LDAP usernames to import. (comma separated)")
     parser.add_argument("--admin", action="store_true",
-                        help="Users addded as admin and staff users.")
+                        help="ALL Users addded are treated as admin and staff "
+                        "users. They also receive the maximum quota.")
     args = parser.parse_args()
     make_admins = args.admin
     dry_run = args.dry_run
     users = None
-    added = 0
-    if dry_run:
-        print "Dry run initialized"
-    if args.provider:
-        provider = Provider.objects.get(id=args.provider)
-        print "Provider Selected:%s" % provider
-        acct_driver = get_account_driver(provider)
-    else:
-        provider = Provider.objects.get(location='iPlant Workshop Cloud - Tucson')
-        print "No Provider Selected, using default provider: %s" % provider
-        acct_driver = get_account_driver(provider)
+    quota = None
+    if args.provider_list:
+        print "ID\tName"
+        for p in Provider.objects.all().order_by('id'):
+            print "%d\t%s" % (p.id, p.location)
+        return
+    elif args.quota_list:
+        print "ID\tSpecs"
+        for q in Quota.objects.all().order_by('id'):
+            print "%s\t%s" % (q.id, q)
+        return
 
-    group_list = args.groups
-    groups = group_list.split(",") if group_list else []
+    #Debugging args
+    if dry_run:
+        print "Dry run initialized.."
+
+    #Optional args
+    if args.quota_id:
+        quota = Quota.objects.get(id=args.quota_id)
+
+    #Loosely "Required" args (Provider, Users AND/OR groups)
+    if not args.provider:
+        print "ERROR: Provider is required. To get a list of providers use"\
+                " --provider-list"
+    provider = Provider.objects.get(id=args.provider)
+    print "Provider Selected:%s" % provider
+
+    acct_driver = get_account_driver(provider)
+
+    groups = args.groups.split(",") if args.groups else []
+    total_added = process_groups(acct_driver, groups, quota, make_admins)
+
+    users = args.users.split(",") if args.users else []
+    total_added += process_users(acct_driver, users, quota, make_admins)
+
+    print "Processing complete. %d users processed." % total_added
+
+def process_groups(acct_driver, groups, quota=None, make_admin=False):
+    total_added = 0
     for groupname in groups:
         group_add = 0
         users = get_members(groupname)
         print "Total users in group %s:%s" % (groupname, len(users))
-        for user in users:
-            try:
-                if is_atmo_user(user):
-                    if not dry_run:
-                        acct_driver.create_account(user, max_quota=make_admins)
-                    group_add += 1
-                else:
-                    print "%s is not in the ldap atmosphere group (atmo-user)." % (user)
-                    continue
-                if make_admins:
-                    if not dry_run:
-                        make_admin(user)
-                    print "%s added as admin." % (user)
-                else:
-                    print "%s added." % (user)
-            except Exception as e:
-                print "Problem adding %s." % (user)
-                print e.message
-        print "Added %s users from group %s." % (group_add, groupname)
-        added += group_add
-    user_list = args.users
-    users = user_list.split(",") if user_list else []
-    for user in users:
-        # Then add the Openstack Identity
-        try:
-            if is_atmo_user(user):
-                if not dry_run:
-                    acct_driver.create_account(user, max_quota=make_admins)
-                added += 1
-            else:
-                print "%s is not in the ldap atmosphere group (atmo-user)." % (user)
-                continue
-            if make_admins:
-                if not dry_run:
-                    make_admin(user)
-                print "%s added as admin." % (user)
-            else:
-                print "%s added." % (user)
-        except Exception as e:
-            print "Problem adding %s." % (user)
-            print e.message
-    print "Total users added:%s" % (added)
+        group_add = process_users(acct_driver, users, quota, make_admin)
+        total_added += group_add
+    return total_added
 
+def process_users(acct_driver, users, quota=None, admin_user=False):
+    total_added += 0
+    for user in users:
+        success = process_user(acct_driver, user, quota, make_admins)
+        if success:
+            total_added += 1
+    print "Total users added:%s" % (total_added)
+    return total_added
+
+
+def process_user(acct_driver, username, quota=None, admin_user=False):
+    try:
+        if not atmo_user(username):
+            print "%s is not in the LDAP atmosphere group (atmo-user)." %\
+                    (username)
+            return False
+        if not dry_run:
+            acct_driver.create_account(username,
+                    quota=quota,
+                    max_quota=admin_user)  # Admin users get 'maximum quota'
+        if admin_user:
+            if not dry_run:
+                make_admin(username)
+            print "%s added as admin." % (username)
+        else:
+            print "%s added." % (username)
+        return True
+    except Exception as e:
+        print "Problem adding %s." % (username)
+        print e.message
+        return False
 
 def make_admin(user):
     u = User.objects.get(username=user)
