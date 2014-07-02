@@ -467,7 +467,7 @@ def vnc(user, distro, license=None):
                 "/opt/VNC-Server-5.2.0-Linux-x64.rpm",
                 match_hash='b314a2aeb3e0b5fe44f8abadea282ef597498548')
             run_command(['/bin/rpm', '-Uvh',
-                         '/opt/VNC-Server-5.0.4-Linux-x64.rpm'])
+                         '/opt/VNC-Server-5.2.0-Linux-x64.rpm'])
             run_command(['/bin/sed', '-i',
                          "'$a account    include      system-auth'",
                          '/etc/pam.d/vncserver.custom'], bash_wrap=True)
