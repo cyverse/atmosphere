@@ -25,7 +25,6 @@ def deploy_init_task(driver, instance,
                                 driver.provider,
                                 driver.identity,
                                 instance.alias,
-                                username,
                                 password,
                                 redeploy),
                                immutable=True, countdown=20)
@@ -48,8 +47,8 @@ def add_floating_ip_task(driver, instance, *args, **kwargs):
 
 
 def destroy_instance_task(instance, identity_id, *args, **kwargs):
-    destroy_instance.delay(instance.alias,
-                           identity_id,
+    destroy_instance.delay(identity_id,
+                           instance.alias,
                            *args, **kwargs)
 
 
