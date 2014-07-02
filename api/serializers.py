@@ -49,7 +49,7 @@ def get_context_user(serializer, kwargs, required=False):
         if required:
             raise Exception(print_str)
         else:
-            logger.debug("Incomplete Data Warning:%s" % print_str)
+            #logger.debug("Incomplete Data Warning:%s" % print_str)
             return None
     if user:
         #NOTE: Converting str to atmosphere user is easier when debugging

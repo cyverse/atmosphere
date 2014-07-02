@@ -273,7 +273,7 @@ def init(instance, username, password=None, redeploy=False, *args, **kwargs):
             token = instance.id
 
         atmo_init = "/usr/sbin/atmo_init_full.py"
-        server_atmo_init = "/init_files/v2/atmo_init_full.py"
+        server_atmo_init = "/api/v1/init_files/v2/atmo_init_full.py"
         logfile = "/var/log/atmo/deploy.log"
 
         url = "%s%s" % (settings.DEPLOY_SERVER_URL, server_atmo_init)

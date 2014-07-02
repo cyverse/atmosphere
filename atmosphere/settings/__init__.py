@@ -18,7 +18,7 @@ import caslib
 import atmosphere
 
 #Debug Mode
-DEBUG = True
+DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 SETTINGS_ROOT = os.path.abspath(os.path.dirname(__file__))

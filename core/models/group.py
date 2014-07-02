@@ -165,10 +165,10 @@ class IdentityMembership(models.Model):
         if not self.allocation:
             return {}
         #Don't move it up. Circular reference.
-        from service.allocation import get_time, get_burn_time,\
+        from service.allocation import core_instance_time, get_burn_time,\
             delta_to_minutes, delta_to_hours, get_delta
         delta = get_delta(self, time_period=relativedelta(day=1, months=1))
-        time_used = get_time(self.identity.created_by,
+        time_used = core_instance_time(self.identity.created_by,
                              self.identity.id,
                              delta)
         burn_time = get_burn_time(self.identity.created_by, self.identity.id,

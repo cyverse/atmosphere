@@ -44,7 +44,9 @@ def strfdelta(tdelta, fmt=None):
 def strfdate(datetime_o, fmt=None):
     if not fmt:
         #The standard, most human readable format.
-        fmt = "%Y-%m-%d %H:%M:%S"
+        fmt = "%m/%d/%Y %H:%M:%S"
+    if not datetime_o:
+        datetime_o = timezone.now()
     return datetime_o.strftime(fmt)
 
 class Instance(models.Model):
@@ -229,7 +231,7 @@ class Instance(models.Model):
                 ).order_by('start_date')
         total_time = timedelta()
         inst_prefix = "HISTORY,%s,%s" % (self.created_by.username,
-                self.provider_alias[:6])
+                self.provider_alias[:5])
         for idx, state in enumerate(recent_history):
             #Can't start counting any earlier than 'delta'
             if state.start_date < past_time:
