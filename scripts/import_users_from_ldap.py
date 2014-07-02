@@ -10,7 +10,7 @@ from threepio import logger
 from authentication.protocol.ldap import is_atmo_user, get_members
 
 from core.models import AtmosphereUser as User
-from core.models import Provider
+from core.models import Provider, Quota
 
 from service.driver import get_account_driver
 
@@ -20,9 +20,9 @@ libcloud.security.VERIFY_SSL_CERT = False
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--provider-list", type=int,
+    parser.add_argument("--provider-list", action="store_true",
                         help="List of provider names and IDs")
-    parser.add_argument("--quota-list",
+    parser.add_argument("--quota-list", action="store_true",
                         help="List of provider names and IDs")
     parser.add_argument("--provider-id", type=int,
                         help="Atmosphere provider ID"
@@ -45,14 +45,14 @@ def main():
     users = None
     quota = None
     if args.provider_list:
-        print "Name\tID"
-        for p in Provider.objects.all():
-            print "%s\t%s" % (p.name, p.id)
+        print "ID\tName"
+        for p in Provider.objects.all().order_by('id'):
+            print "%d\t%s" % (p.id, p.location)
         return
     elif args.quota_list:
-        print "Name\tSpecs"
-        for q in Quota.objects.all():
-            print "%s\t%s" % (q.name, q)
+        print "ID\tSpecs"
+        for q in Quota.objects.all().order_by('id'):
+            print "%s\t%s" % (q.id, q)
         return
 
     #Debugging args
@@ -80,7 +80,7 @@ def main():
 
     print "Processing complete. %d users processed." % total_added
 
-def process_groups(acct_driver, groups, quota=None, make_admin=False, 
+def process_groups(acct_driver, groups, quota=None, make_admin=False):
     total_added = 0
     for groupname in groups:
         group_add = 0
@@ -103,8 +103,8 @@ def process_users(acct_driver, users, quota=None, admin_user=False):
 def process_user(acct_driver, username, quota=None, admin_user=False):
     try:
         if not atmo_user(username):
-            print "%s is not in the LDAP atmosphere group (atmo-user)." %
-            (username)
+            print "%s is not in the LDAP atmosphere group (atmo-user)." %\
+                    (username)
             return False
         if not dry_run:
             acct_driver.create_account(username,
