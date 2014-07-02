@@ -388,7 +388,6 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
                    *args, **kwargs):
     try:
         logger.debug("deploy_init_to task started at %s." % datetime.now())
-        rdb.set_trace()
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         if not instance:
