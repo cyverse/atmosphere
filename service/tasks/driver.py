@@ -9,6 +9,7 @@ from django.conf import settings
 from django.utils.timezone import datetime
 
 from celery import chain
+from celery.contrib import rdb
 from celery.decorators import task
 from celery.task import current
 from celery.result import allow_join_result
@@ -387,6 +388,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
                    *args, **kwargs):
     try:
         logger.debug("deploy_init_to task started at %s." % datetime.now())
+        rdb.set_trace()
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         if not instance:
