@@ -1039,11 +1039,6 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vncl
     if root_password:
         set_root_password(root_password, distro)
 
-    if not is_rhel(distro):
-        run_command(['/usr/bin/apt-get', 'update'])
-    #else:
-    #   run_command(['/usr/bin/yum', 'check-update'])
-
     mount_storage()
     ldap_install()
     etc_skel_bashrc(linuxuser)
@@ -1066,11 +1061,12 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vncl
     insert_modprobe()
     denyhost_whitelist()
     modify_rclocal(linuxuser, distro, hostname)
-    notify_launched_instance(instance_data, instance_metadata)
+    #notify_launched_instance(instance_data, instance_metadata)
 
 
 def is_executable(full_path):
     return os.path.isfile(full_path) and os.access(full_path, os.X_OK)
+
 
 def run_boot_scripts():
     post_script_dir = "/etc/atmo/post-scripts.d"
