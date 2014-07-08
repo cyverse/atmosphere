@@ -99,7 +99,7 @@ def core_instance_time(user, identity_id, delta, running=[]):
     driver, you should be using current_instance_time
     """
     if type(user) is not User:
-        user = User.objects.filter(username=user)
+        user = User.objects.filter(username=user)[0]
     if type(delta) is not timedelta:
         delta = timedelta(minutes=delta)
     total_time = timedelta(0)

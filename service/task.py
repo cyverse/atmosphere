@@ -25,7 +25,6 @@ def deploy_init_task(driver, instance,
                                 driver.provider,
                                 driver.identity,
                                 instance.alias,
-                                username,
                                 password,
                                 redeploy),
                                immutable=True, countdown=20)

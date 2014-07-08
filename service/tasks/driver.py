@@ -9,6 +9,7 @@ from django.conf import settings
 from django.utils.timezone import datetime
 
 from celery import chain
+from celery.contrib import rdb
 from celery.decorators import task
 from celery.task import current
 from celery.result import allow_join_result
@@ -647,7 +648,7 @@ def check_process_task(driverCls, provider, identity,
         logger.debug("check_process_task finished at %s." % datetime.now())
     except Instance.DoesNotExist:
         logger.warn("check_process_task failed: Instance %s no longer exists"
-                    % instance_id)
+                    % instance_alias)
     except Exception as exc:
         logger.exception(exc)
         check_process_task.retry(exc=exc)

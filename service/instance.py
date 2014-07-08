@@ -309,10 +309,11 @@ def resume_instance(esh_driver, esh_instance,
     #admin_capacity_check(provider_id, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
-        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=False)
+        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True)
     esh_driver.resume_instance(esh_instance)
     if restore_ip:
         deploy_task.apply_async(countdown=10)
+
 def admin_get_instance(esh_driver, instance_id):
     instance_list = esh_driver.list_all_instances()
     esh_instance = [instance for instance in instance_list if

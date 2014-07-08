@@ -494,7 +494,7 @@ def vnc(user, distro, license=None):
             '%s/%s/vnc-config.sh'
             % (ATMO_INIT_FILES, SCRIPT_VERSION),
             os.path.join(USER_HOME_DIR, 'vnc-config.sh'),
-            match_hash='3aa9ae15317ede341d179334dfde70db5b3cde20')
+            match_hash='95f9095c443b80f912571308f7b4104005597456')
         run_command(['/bin/chmod', 'a+x',
                      os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
         run_command([os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
@@ -717,30 +717,6 @@ def nagios():
                  os.path.join(USER_HOME_DIR, 'nrpe-snmp-install.sh')])
 
 
-def notify_launched_instance(instance_data, metadata):
-    try:
-        import json
-    except ImportError:
-        #Support for python 2.4
-        import simplejson as json
-    service_url = instance_data['atmosphere']['instance_service_url']
-    userid = instance_data['atmosphere']['userid']
-    instance_token = instance_data['atmosphere']['instance_token']
-    instance_name = instance_data['atmosphere']['name']
-    data = {
-        'action': 'instance_launched',
-        'userid': userid,
-        'vminfo': metadata,
-        'token': instance_token,
-        'name': instance_name,
-    }
-    data = json.dumps(data)
-    request = urllib2.Request(service_url, data, {'Content-Type':
-                                                  'application/json'})
-    link = urllib2.urlopen(request)
-    response = link.read()
-    link.close()
-    logging.debug(response)
 
 
 def distro_files(distro):
@@ -869,7 +845,7 @@ def update_sshkeys(metadata):
         "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAxB+KLO6pTeZ9ye/GuT2i74LBl4lvfJm7ESo4O9tNJtIf8fcAHqm9HMr2dQBixxdsLUYjVyZLZM8mZQdEtLLvdd4Fqlse74ci4RIPTgvlgwTz6dRJfABD9plTM5r5C2Rc6jLur8iVR40wbHmbgLgcilXoYnRny4bFoAhfAHt2vxiMY6wnhiL9ESSUA/i1LrcYcGj2QAvAPLf2yTJFtXSCwnlBIJBjMASQiPaIU2+xUyQisgSF99tBS3DZyu4NVGnSGYGmKl84CEFp+x57US4YAl9zuAnM9ckTp4mOjStEvIpyyPJA03tDbfObSi50Qh5zta9I1PIAGxOznT6dJbI1bw== aedmonds@iplant",
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDgvgRtXgkvM/+eCSEqVuTiUpZMjRfA9AnXfz0YWS93uKImoodE5oJ7wUZqjpOmgXyX0xUDI4O4bCGiWVmSyiRiQpqZrRrF7Lzs4j0Nf6WvbKblPQMwcmhMJuaI9CwU5aEbEqkV5DhBHcUe4bFEb28rOXuUW6WMLzr4GrdGUMd3Fex64Bmn3FU7s6Av0orsgzVHKmoaCbqK2t3ioGAt1ISmeJwH6GasxmrSOsLLW+L5F65WrYFe0AhvxMsRLKQsuAbGDtFclOzrOmBudKEBLkvwkblW8PKg06hOv9axNX7C9xlalzEFnlqNWSJDu1DzIa2NuOr8paW5jgKeM78yuywt jmatt@leia",
         "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA2TtX9DohsBaOEoLlm8MN+W+gVp40jyv752NbMP/PV/LAz5MnScJcvbResAJx2AusL1F6sRNvo9poNZiab6wpfErQPZLfKGanPZGYSdonsNAhTu/XI+4ERPQXUA/maQ2qZtL1b+bmZxg9n/5MsZFpA1HrXP3M2LzYafF2IzZYWfsPuuZPsO3m/cUi0G8n7n0IKXZ4XghjGP5y/kmh5Udy9I5qreaTvvFlNJtBE9OL39EfWtjOxNGllwlGIAdsljfRxkeOzlahgtCJcaoW7X2A7GcV52itUwMKfTIboAXnZriwh5n0o1aLHCCdUAGDGHBYmP7fO7/2gIQKgpLfRkDEiQ== sangeeta@iplant",
-        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+SYMny6H2B5IjXe6gxofHRNza5LE3NqTCe6YgYnnzYjyXWtopSeb8mK2q1ODzlaQyqYoTvPqtn6rSyN+5oHGV4o6yU+Fl664t5rOdAwz/jGJK3WwG60Pc0eGQco0ldgjD7K6LWYVPIJZs+rGpZ70jF5JsTuHeplXOn5MX9oUvNxxgXRuySxvBNOGMn0RxydK8tBTbZMlJ5MkAi/bIOrEDHEfejCxKGWITpXGkdTS2s4THiY8WqFdHUPtQkEfQkXCsRpZ6HPw1gN+JYD5NI38dVVmrA+3MgFVJkwtLUbbAM0yxgKwaUaipNN1+DeYOxBuVRlRwrrAp3+fq+4QCJrXd root@dalloway",
+        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCZl557abm+BvoEn6WMpUJYZV+TWe1Gc3ApQbMcf+3kItRhDBvbe5hTijiex7HFnxqRGkMkzpr2vazNrGO1SFXbqGnXOeoxkJKFAslr/+9o8uKo4XO+Hq35cuJ99Wm4E6tIgzEN5sMPkUfD8YY7IOuii4covKSDXrBiCcLoxjbb8ViH2BFaeaMQhiLV8/GqzKYOZYWkVkdew1CcvGRJGF0dFE7ibwNp+M8La/r3//mJp9+foksei2BxL4mQp22w1Z0FvLeV70iQ09vJO5NN2T9RJH/hhtYNZfrXRjEG+trJNvLktj2h3WxcDHRlB9vnEKAykT2LSblDPTMhRl4d0Lff root@dalloway",
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFE/lyzLdFYZF3mxYwzrTITgov1NqtLuS5IY0fgjpdiVpHjWBUdXspTafKORbbM+t0ERTOqcSt24Vj5B8XUXImpzw2OAsl//AiKvHGRUenk7qY6/9IEUcay5mGAoiRpjLzDIDdtiQUAAEMKvkzanUBQOBJWVyO4Gq2aFUr4zweVLfvjejOspf2cZll/ojcPYmI9cKMq7fOgKSmRH2zUg+ORFlP1rQYugoETcGkcQg0IBsSMLT8gnYt3UWTW8S8ugtb4aaWVrId14Nc3sk+yDzPBaRX7iM3CQ5uKXPwjeID59RLMjQUFlHjqDSdZBOjXCFRHZbrbZZjS42o4OJAoLvF sgregory@mickey",
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDQNBua13LVIG61LNztP9b7k7T+Qg8t22Drhpy17WVwbBH1CPYdn5NR2rXUmfiOa3RhC5Pz6uXsYUJ4xexOUJaFKY3S8h9VaeaPxMyeA8oj9ssZC6tNLqNxqGzKJbHfSzQXofKwBH87e+du34mzqzm2apOMT2JVzxWmTwrl3JWnd2HG0odeVKMNsXLuQFN6jzCeJdLxHpu+dJOL6gJTW5t9AwoJ8jxmwO8xgUbk+7s38VATSuaV/RiIfXfGFv34CT7AY1gRxm1og9jjP6qkFMyZiO6M+lwrJIlHKTOKxw+xc15w/tIssUkeflzAcrkkNGzT8sBL39BoQOo9RTrMD2QL weather-balloon@wesley.iplantcollaborative.org",
         "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAo/O1gw1hn7I8sDgKGsIY/704O4/89JFO2AG2Quy9LCS5dO5HL40igFOUBmVkqy9ANPEMslaA5VwzPuP+ojKmDhTzoWc4wmvnCGjnZqaTW/+M+QfPSOKoyAaevKC4/Y2dxevS7eRdbeY5Pvweu5rf/eoCXF4DnGMWJ4C6IPVHy7gYpfZrdeiaYzxus53DvFNr4Dee9Y2jvY8wuS3EvL37DU1AGsv1UAN2IoOKZ9Itxwmhf/ZfnFyqMdebggceWRmpK/U2FuXewKMjoJ+HMWgzESR2Rit+9jGniiIVV3K5JeNmHqfWxu2BLpXDYEalX6l28opaiEbDevirwWmvoaAbDw== dboss"
@@ -1061,7 +1037,6 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vncl
     insert_modprobe()
     denyhost_whitelist()
     modify_rclocal(linuxuser, distro, hostname)
-    #notify_launched_instance(instance_data, instance_metadata)
 
 
 def is_executable(full_path):

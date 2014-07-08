@@ -65,21 +65,21 @@ def monitor_instances_for(provider, users=None, print_logs=False):
         consolehandler.setLevel(logging.DEBUG)
         logger.addHandler(consolehandler)
 
-    for username in instance_map.keys():
+    for username in sorted(instance_map.keys()):
         instances = instance_map[username]
-        monitor_instances_for_user(provider, username, instances)
+        monitor_instances_for_user(provider, username, instances, print_logs)
     logger.info("Monitoring completed")
     if print_logs:
         logger.removeHandler(consolehandler)
 
-def monitor_instances_for_user(provider, username, instances):
+def monitor_instances_for_user(provider, username, instances, print_logs=False):
     from core.models.instance import convert_esh_instance
     try:
         user = AtmosphereUser.objects.get(username=username)
     except AtmosphereUser.DoesNotExist:
         if instances:
             logger.warn("WARNING: User %s has %s instances, but does not"
-            "exist on this database" % username, len(instances))
+            "exist on this database" % (username, len(instances)))
         return
     for identity in user.identity_set.filter(provider=provider):
         try:
@@ -93,6 +93,8 @@ def monitor_instances_for_user(provider, username, instances):
             time_used = current_instance_time(
                     user, instances,
                     identity_id, delta_time)
+            if print_logs:
+                return
             enforce_allocation(identity, user, time_used)
         except:
             logger.exception("Unable to monitor Identity:%s"
@@ -111,8 +113,9 @@ def _include_all_idents(identities, owner_map):
 
 def _make_instance_owner_map(instances, users=None):
     owner_map = {}
+    
     for i in instances:
-        if i.owner not in users:
+        if users and i.owner not in users:
             continue
         key = i.owner
         instance_list = owner_map.get(key, [])

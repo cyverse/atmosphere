@@ -276,16 +276,23 @@ def init(instance, username, password=None, redeploy=False, *args, **kwargs):
     if not token:
         token = instance.id
     atmo_init = "/usr/sbin/atmo_init_full.py"
-    server_atmo_init = "/init_files/v2/atmo_init_full.py"
+    server_atmo_init = "/api/v1/init_files/v2/atmo_init_full.py"
     logfile = "/var/log/atmo/deploy.log"
+
     url = "%s%s" % (settings.DEPLOY_SERVER_URL, server_atmo_init)
+
     script_init = init_log()
+
     script_deps = package_deps(logfile, username)
+
     script_wget = wget_file(atmo_init, url, logfile=logfile,
                             attempts=3)
+
     script_chmod = chmod_ax_file(atmo_init, logfile)
+
     script_atmo_init = init_script(atmo_init, username, token,
                                    instance, password, redeploy, logfile)
+
     if redeploy:
         #Redeploy the instance
         script_atmo_init = redeploy_script(atmo_init, username,
@@ -301,7 +308,9 @@ def init(instance, username, password=None, redeploy=False, *args, **kwargs):
                        script_wget,
                        script_chmod,
                        script_atmo_init]
+
     if not settings.DEBUG:
         script_rm_scripts = rm_scripts(logfile=logfile)
         script_list.append(script_rm_scripts)
+
     return MultiStepDeployment(script_list)

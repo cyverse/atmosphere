@@ -5,6 +5,7 @@ echo Configuring vnc.
 echo "# vncserver common.custom configuration.
 SecurityTypes=RA2
 Permissions=root:f,%core-services:f,:f
+EnableAutoUpdateChecks=1
 
 # Atmosphere port configuration.
 HttpPort=5904
