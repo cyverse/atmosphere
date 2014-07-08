@@ -104,7 +104,7 @@ def process_users(acct_driver, users, quota=None, admin_user=False):
 
 def process_user(acct_driver, username, quota=None, admin_user=False):
     try:
-        if not atmo_user(username):
+        if not is_atmo_user(username):
             print "%s is not in the LDAP atmosphere group (atmo-user)." %\
                 (username)
             return False
