@@ -91,7 +91,7 @@ def validate_oauth_token(token, request=None):
         raise Unauthorized("User %s does not exist as an AtmosphereUser"
                            % username)
     auth_token = obtainOAuthToken(username, token)
-    logger.info("OAuthToken Obtained for %s:%s" % (username, auth_token))
+    #logger.info("OAuthToken Obtained for %s:%s" % (username, auth_token))
     if not auth_token:
         return False
     return True
