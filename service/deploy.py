@@ -236,13 +236,13 @@ def init_script(filename, username, token, instance, password,
         secrets.ATMOSPHERE_VNC_LICENSE)
     if password:
         awesome_atmo_call += " --root_password=%s" % (password)
-        #kludge: weirdness without the str cast...
-        str_awesome_atmo_call = str(awesome_atmo_call)
-        #logger.debug(isinstance(str_awesome_atmo_call, basestring))
-        return LoggedScriptDeployment(
-            str_awesome_atmo_call,
-            name='./deploy_call_atmoinit.sh',
-            logfile=logfile)
+    #kludge: weirdness without the str cast...
+    str_awesome_atmo_call = str(awesome_atmo_call)
+    #logger.debug(isinstance(str_awesome_atmo_call, basestring))
+    return LoggedScriptDeployment(
+        str_awesome_atmo_call,
+        name='./deploy_call_atmoinit.sh',
+        logfile=logfile)
 
 
 def rm_scripts(logfile=None):

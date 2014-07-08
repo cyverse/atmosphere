@@ -462,12 +462,12 @@ def vnc(user, distro, license=None):
             run_command(['/usr/bin/yum', '-qy', 'remove', 'vnc-E',
                          'realvnc-vnc-server'])
             download_file(
-                '%s/%s/VNC-Server-5.0.4-Linux-x64.rpm'
+                '%s/%s/VNC-Server-5.2.0-Linux-x64.rpm'
                 % (ATMO_INIT_FILES, SCRIPT_VERSION),
-                "/opt/VNC-Server-5.0.4-Linux-x64.rpm",
-                match_hash='0c59f2d84880a6848398870e5f0aa39f09e413bc')
+                "/opt/VNC-Server-5.2.0-Linux-x64.rpm",
+                match_hash='b314a2aeb3e0b5fe44f8abadea282ef597498548')
             run_command(['/bin/rpm', '-Uvh',
-                         '/opt/VNC-Server-5.0.4-Linux-x64.rpm'])
+                         '/opt/VNC-Server-5.2.0-Linux-x64.rpm'])
             run_command(['/bin/sed', '-i',
                          "'$a account    include      system-auth'",
                          '/etc/pam.d/vncserver.custom'], bash_wrap=True)
@@ -476,12 +476,12 @@ def vnc(user, distro, license=None):
                          '/etc/pam.d/vncserver.custom'], bash_wrap=True)
         else:
             download_file(
-                '%s/%s/VNC-Server-5.0.4-Linux-x64.deb'
+                '%s/%s/VNC-Server-5.2.0-Linux-x64.deb'
                 % (ATMO_INIT_FILES, SCRIPT_VERSION),
-                "/opt/VNC-Server-5.0.4-Linux-x64.deb",
-                match_hash='c2b390157c82fd556e60fe392b6c5bc5c5efcb29')
+                "/opt/VNC-Server-5.2.0-Linux-x64.deb",
+                match_hash='da3e390d3ae42771e39022d8c09cee047193e3bd')
             run_command(['/usr/bin/dpkg', '-i',
-                         '/opt/VNC-Server-5.0.4-Linux-x64.deb'])
+                         '/opt/VNC-Server-5.2.0-Linux-x64.deb'])
             new_file = open('/etc/pam.d/vncserver.custom', 'w')
             new_file.write("auth include  common-auth")
             new_file.close()
@@ -494,7 +494,7 @@ def vnc(user, distro, license=None):
             '%s/%s/vnc-config.sh'
             % (ATMO_INIT_FILES, SCRIPT_VERSION),
             os.path.join(USER_HOME_DIR, 'vnc-config.sh'),
-            match_hash='8c93da481f80e1a3542574d5b5d24f4e6abf7d16')
+            match_hash='3aa9ae15317ede341d179334dfde70db5b3cde20')
         run_command(['/bin/chmod', 'a+x',
                      os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
         run_command([os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
