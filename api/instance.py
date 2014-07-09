@@ -187,23 +187,24 @@ class InstanceHistory(APIView):
                 status.HTTP_400_BAD_REQUEST,
                 'Bad query string caused filter validation errors : %s'
                 % (e,))
-        if page:
-            paginator = Paginator(history_instance_list, 5)
-            try:
-                history_instance_page = paginator.page(page)
-            except PageNotAnInteger:
-                # If page is not an integer, deliver first page.
-                history_instance_page = paginator.page(1)
-            except EmptyPage:
-                # Page is out of range.
-                # deliver last page of results.
-                history_instance_page = paginator.page(paginator.num_pages)
-            serialized_data = \
-                PaginatedInstanceHistorySerializer(
-                    history_instance_page).data
+        if page or len(history_instance_list) == 0:
+            paginator = Paginator(history_instance_list, 5,
+                                  allow_empty_first_page=True)
         else:
-            serialized_data = InstanceHistorySerializer(history_instance_list,
-                                                        many=True).data
+            paginator = Paginator(history_instance_list,
+                                  len(history_instance_list),
+                                  allow_empty_first_page=True)
+        try:
+            history_instance_page = paginator.page(page)
+        except PageNotAnInteger:
+            # If page is not an integer, deliver first page.
+            history_instance_page = paginator.page(1)
+        except EmptyPage:
+            # Page is out of range.
+            # deliver last page of results.
+            history_instance_page = paginator.page(paginator.num_pages)
+        serialized_data = PaginatedInstanceHistorySerializer(
+            history_instance_page).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response

@@ -2,8 +2,6 @@
 Provide pluggable machine search for Atmosphere.
 
 """
-
-
 from abc import ABCMeta, abstractmethod
 import operator
 
@@ -13,7 +11,7 @@ from core.models.machine import compare_core_machines, filter_core_machine,\
     ProviderMachine
 from core.models.provider import Provider
 from core.models.application import Application
-
+from core.query import only_active
 
 def search(providers, identity, query):
     return reduce(operator.or_, [p.search(identity, query) for p in providers])
@@ -52,7 +50,8 @@ class CoreSearchProvider(BaseSearchProvider):
             Q(application__tags__name__icontains=query)
             | Q(application__tags__description__icontains=query)
             | Q(application__name__icontains=query)
-            | Q(application__description__icontains=query))
+            | Q(application__description__icontains=query),
+            only_active())
 
 
 class CoreApplicationSearch(BaseSearchProvider):
@@ -85,4 +84,5 @@ class CoreApplicationSearch(BaseSearchProvider):
             # OR app name
             | Q(name__icontains=query)
             # OR app desc
-            | Q(description__icontains=query))
+            | Q(description__icontains=query),
+            only_active())
