@@ -494,7 +494,7 @@ def vnc(user, distro, license=None):
             '%s/%s/vnc-config.sh'
             % (ATMO_INIT_FILES, SCRIPT_VERSION),
             os.path.join(USER_HOME_DIR, 'vnc-config.sh'),
-            match_hash='002b6db33fc60b4efceb715e9fcec752587cf82b')
+            match_hash='95f9095c443b80f912571308f7b4104005597456')
         run_command(['/bin/chmod', 'a+x',
                      os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
         run_command([os.path.join(USER_HOME_DIR, 'vnc-config.sh')])
@@ -1014,11 +1014,6 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vncl
         ssh_config(distro)
     if root_password:
         set_root_password(root_password, distro)
-
-    if not is_rhel(distro):
-        run_command(['/usr/bin/apt-get', 'update'])
-    #else:
-    #   run_command(['/usr/bin/yum', 'check-update'])
 
     mount_storage()
     ldap_install()

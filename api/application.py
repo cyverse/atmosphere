@@ -13,7 +13,7 @@ from core.models import Identity, Group
 from core.models.machine import update_application_owner
 from core.models.application import visible_applications, public_applications
 
-from service.machine_search import search, CoreApplicationSearch
+from service.search import search, CoreApplicationSearch
 
 from authentication.decorators import api_auth_token_optional,\
                                       api_auth_token_required
@@ -45,10 +45,28 @@ class ApplicationList(APIView):
         if request.user and type(request.user) != AnonymousUser:
             my_apps = visible_applications(request.user)
             applications.extend(my_apps)
-        serialized_data = ApplicationSerializer(applications,
-                                                context={'request':request},
-                                                many=True).data
+        page = request.QUERY_PARAMS.get('page')
+        if page or len(applications) == 0:
+            paginator = Paginator(applications, 20,
+                                  allow_empty_first_page=True)
+        else:
+            # return all results.
+            paginator = Paginator(applications, len(applications),
+                                  allow_empty_first_page=True)
+        try:
+            app_page = paginator.page(page)
+        except PageNotAnInteger:
+            # If page is not an integer, deliver first page.
+            app_page = paginator.page(1)
+        except EmptyPage:
+            # Page is out of range.
+            # deliver last page of results.
+            app_page = paginator.page(paginator.num_pages)
+        serialized_data = PaginatedApplicationSerializer(
+            app_page,
+            context={'request':request}).data
         response = Response(serialized_data)
+        response['Cache-Control'] = 'no-cache'
         return response
 
 
@@ -58,8 +76,7 @@ class Application(APIView):
         be uniquely identified by a specific UUID, or more commonly, by Name,
         Description, or Tag(s). 
     """
-    #serializer_class = ApplicationSerializer
-    #model = CoreApplication
+
     permission_classes = (ApiAuthOptional,)
 
     def get(self, request, app_uuid, **kwargs):
@@ -166,27 +183,25 @@ class ApplicationSearch(APIView):
         #Okay to search w/ identity=None
         search_result = search([CoreApplicationSearch], query, identity)
         page = request.QUERY_PARAMS.get('page')
-        if page:
-            paginator = Paginator(search_result, 20)
-            try:
-                search_page = paginator.page(page)
-            except PageNotAnInteger:
-                # If page is not an integer, deliver first page.
-                search_page = paginator.page(1)
-            except EmptyPage:
-                # Page is out of range.
-                # deliver last page of results.
-                search_page = paginator.page(paginator.num_pages)
-            serialized_data = \
-                PaginatedApplicationSerializer(
-                    search_page,
-                    context={'request':request}).data
+        if page or len(search_result) == 0:
+            paginator = Paginator(search_result, 20,
+                                  allow_empty_first_page=True)
         else:
-            serialized_data = ApplicationSerializer(
-                search_result,
-                context={
-                    'request':request,
-                    }).data
+            page = None
+            paginator = Paginator(search_result, len(search_result),
+                                  allow_empty_first_page=True)
+        try:
+            search_page = paginator.page(page)
+        except PageNotAnInteger:
+            # If page is not an integer, deliver first page.
+            search_page = paginator.page(1)
+        except EmptyPage:
+            # Page is out of range.
+            # deliver last page of results.
+            search_page = paginator.page(paginator.num_pages)
+        serialized_data = PaginatedApplicationSerializer(
+            search_page,
+            context={'request':request}).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response

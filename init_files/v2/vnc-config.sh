@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 echo Configuring vnc.
 
 echo "# vncserver common.custom configuration.

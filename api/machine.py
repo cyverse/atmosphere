@@ -20,7 +20,7 @@ from core.models.machine import compare_core_machines, filter_core_machine,\
     update_application_owner, convert_esh_machine, ProviderMachine
 from core.metadata import update_machine_metadata
 
-from service.machine_search import search, CoreSearchProvider
+from service.search import search, CoreSearchProvider
 
 from api import prepare_driver, failure_response, invalid_creds
 from api.renderers import JPEGRenderer, PNGRenderer
@@ -53,7 +53,7 @@ def list_filtered_machines(esh_driver, provider_id, request_user=None):
                          for mach in esh_machine_list]
     #logger.info("Core machines :%s" % len(core_machine_list))
     filtered_machine_list = [core_mach for core_mach in core_machine_list
-                             if filter_core_machine(core_mach)]
+                             if filter_core_machine(core_mach, request_user)]
     #logger.info("Filtered Core machines :%s" % len(filtered_machine_list))
     sorted_machine_list = sorted(filtered_machine_list,
                                  cmp=compare_core_machines)
@@ -119,30 +119,28 @@ class MachineHistory(APIView):
             history_machine_list =\
                 [m for m in all_machines_list if
                  m.application.created_by.username == user.username]
-            #logger.warn(len(history_machine_list))
         else:
             history_machine_list = []
 
         page = request.QUERY_PARAMS.get('page')
-        if page:
-            paginator = Paginator(history_machine_list, 5)
-            try:
-                history_machine_page = paginator.page(page)
-            except PageNotAnInteger:
-                # If page is not an integer, deliver first page.
-                history_machine_page = paginator.page(1)
-            except EmptyPage:
-                # Page is out of range.
-                # deliver last page of results.
-                history_machine_page = paginator.page(paginator.num_pages)
-            serialized_data = \
-                PaginatedProviderMachineSerializer(
-                    history_machine_page).data
+        if page or len(history_machine_list) == 0:
+            paginator = Paginator(history_machine_list, 5,
+                                  allow_empty_first_page=True)
         else:
-            serialized_data = ProviderMachineSerializer(
-                history_machine_list,
-                request_user=request.user).data
-
+            paginator = Paginator(history_machine_list,
+                                  len(histor_machine_list),
+                                  allow_empty_first_page=True)
+        try:
+            history_machine_page = paginator.page(page)
+        except PageNotAnInteger:
+            # If page is not an integer, deliver first page.
+            history_machine_page = paginator.page(1)
+        except EmptyPage:
+            # Page is out of range.
+            # deliver last page of results.
+            history_machine_page = paginator.page(paginator.num_pages)
+        serialized_data = PaginatedProviderMachineSerializer(
+            history_machine_page).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
@@ -184,24 +182,23 @@ class MachineSearch(APIView):
                 'Identity not provided,')
         search_result = search([CoreSearchProvider], identity, query)
         page = request.QUERY_PARAMS.get('page')
-        if page:
-            paginator = Paginator(search_result, 20)
-            try:
-                search_page = paginator.page(page)
-            except PageNotAnInteger:
-                # If page is not an integer, deliver first page.
-                search_page = paginator.page(1)
-            except EmptyPage:
-                # Page is out of range.
-                # deliver last page of results.
-                search_page = paginator.page(paginator.num_pages)
-            serialized_data = \
-                PaginatedProviderMachineSerializer(
-                    search_page).data
+        if page or len(search_result) == 0:
+            paginator = Paginator(search_result, 20,
+                                  allow_empty_first_page=True)
         else:
-            serialized_data = ProviderMachineSerializer(
-                search_result,
-                request_user=request.user).data
+            paginator = Paginator(search_result, len(search_result),
+                                  allow_empty_first_page=True)
+        try:
+            search_page = paginator.page(page)
+        except PageNotAnInteger:
+            # If page is not an integer, deliver first page.
+            search_page = paginator.page(1)
+        except EmptyPage:
+            # Page is out of range.
+            # deliver last page of results.
+            search_page = paginator.page(paginator.num_pages)
+        serialized_data = PaginatedProviderMachineSerializer(
+            search_page).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
