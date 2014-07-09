@@ -32,6 +32,7 @@ def start_machine_imaging(machine_request, delay=False):
     Builds up a machine imaging task using core.models.machine_request
     delay - If true, wait until task is completed before returning
     """
+    original_status = machine_request.status
     machine_request.status = 'imaging'
     machine_request.save()
     instance_id = machine_request.instance.provider_alias
@@ -67,7 +68,9 @@ def start_machine_imaging(machine_request, delay=False):
     # (Save tags, name, description, metadata, etc.)
     process_task = process_request.s(machine_request.id)
     process_task.link_error(imaging_error_task)
-
+    if 'processing' in original_status:
+        #If processing, start here..
+        init_task = process_task
     if dest_managerCls and dest_creds != orig_creds:
         migrate_task.link(process_task)
         migrate_task.link_error(imaging_error_task)
@@ -77,6 +80,9 @@ def start_machine_imaging(machine_request, delay=False):
     #Task 3 = Validate the new image by launching an instance
     validate_task = validate_new_image.s(machine_request.id)
     process_task.link(validate_task)
+    if machine_request.new_machine:
+        validate_task = validate_new_image.s(machine_request.new_machine.identifier, machine_request.id)
+        init_task = validate_task
     #Task 4 = Wait for new instance to be 'active'
     wait_for_task = wait_for.s(
             admin_driver.__class__, 
