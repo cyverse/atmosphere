@@ -259,10 +259,13 @@ class MachineRequestAdmin(admin.ModelAdmin):
 class InstanceStatusHistoryAdmin(admin.ModelAdmin):
     search_fields = ["instance__created_by__username",
             "instance__provider_alias", "status__name"]
-    list_display = ["instance", "status", "start_date", "end_date"]
+    list_display = ["instance_alias", "status", "start_date", "end_date"]
     list_filter = ["instance__provider_machine__provider__location",
+                   "instance__provider_alias",
                    "instance__created_by__username"]
 
+    def instance_alias(self, model):
+        return model.instance.provider_alias
 
 class InstanceAdmin(admin.ModelAdmin):
     search_fields = ["created_by__username", "provider_alias", "ip_address"]

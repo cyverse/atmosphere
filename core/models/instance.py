@@ -104,8 +104,9 @@ class Instance(models.Model):
                                       .get_or_create(name=status_name)
         if start_date:
             new_hist.start_date=start_date
-#        logger.debug("Created new history object: %s " % (new_hist))
+            logger.debug("Created new history object: %s " % (new_hist))
         return new_hist
+
     def _build_first_history(self, status_name, size, start_date,
                              first_update=False):
         first_status = status_name
@@ -135,8 +136,8 @@ class Instance(models.Model):
                     #There are more.. Must find table..
             }
             status_2 = task_to_status.get(task,'')
-            # logger.debug("Task provided:%s, Status should be %s"
-            #              % (task, status_2))
+            logger.debug("History - Task provided:%s, Status should be %s"
+                          % (task, status_2))
             #Update to the more relevant task
             if status_2:
                 status_name = status_2
@@ -145,7 +146,7 @@ class Instance(models.Model):
         if not last_hist:
             first_hist = self._build_first_history(status_name, size,
                                               self.start_date, first_update=first_update)
-            #logger.debug("Created the first history %s" % first_hist)
+            logger.debug("First history: %s" % first_hist)
             last_hist = first_hist
         #2. For Accounting, ensure the size of the instance always
         #   matches the listed size. Examples of when size don't match
@@ -154,10 +155,7 @@ class Instance(models.Model):
         #   * Multiple instances of Atmosphere without a shared DB
         #   NOTE: In these instances, ALL of the time assigned to the last
         #   object will be set at this level.
-        if last_hist.size != size:
-            last_hist.size = size
-            last_hist.save()
-        if last_hist.status.name == status_name:
+        if last_hist.status.name == status_name and last_hist.size.id == size.id:
             #logger.info("status_name matches last history:%s " %
             #        last_hist.status.name)
             return (last_hist, None)
@@ -229,6 +227,7 @@ class Instance(models.Model):
         recent_history = self.instancestatushistory_set.filter(
                 Q(end_date=None) | Q(end_date__gt=past_time)
                 ).order_by('start_date')
+        last_hist = self.last_history()
         total_time = timedelta()
         inst_prefix = "HISTORY,%s,%s" % (self.created_by.username,
                 self.provider_alias[:5])
@@ -240,7 +239,13 @@ class Instance(models.Model):
                 start_count = state.start_date
             #If date is current, stop counting 'right now'
             if not state.end_date:
-                final_count = timezone.now()
+                if state.id != last_hist.id:
+                    logger.warn(
+                    "WARNING: Bad history -- ISH Missing end date, but"
+                    "not the final state. Ignoring the result!")
+                    final_count = state.start_date # 0s out the result.
+                else:
+                    final_count = timezone.now()
             else:
                 final_count = state.end_date
 
