@@ -8,6 +8,7 @@ from math import floor, ceil
 
 from django.db import models
 from django.db.models.signals import post_save
+from django.utils import timezone
 from django.utils.timezone import datetime, timedelta
 from django.contrib.auth.models import Group as DjangoGroup
 
@@ -168,22 +169,27 @@ class IdentityMembership(models.Model):
         from service.allocation import core_instance_time, get_burn_time,\
             delta_to_minutes, delta_to_hours, get_delta
         delta = get_delta(self, time_period=relativedelta(day=1, months=1))
-        time_used = core_instance_time(self.identity.created_by,
+        #Keeps the times on these calculations consistent!
+        now_time = timezone.now()
+        time_used, _ = core_instance_time(self.identity.created_by,
                              self.identity.id,
-                             delta)
+                             delta,
+                             now_time=now_time)
+        hours_used = delta_to_hours(time_used)
+
         burn_time = get_burn_time(self.identity.created_by, self.identity.id,
                                   delta,
-                                  timedelta(minutes=self.allocation.threshold))
-        mins_consumed = delta_to_minutes(time_used)
-        if burn_time:
-            burn_time = delta_to_hours(burn_time)
-        zero_time = datetime.now() + timedelta(
-                minutes=(self.allocation.threshold - mins_consumed))
+                                  timedelta(minutes=self.allocation.threshold),
+                                  now_time=now_time)
+
+        zero_time = now_time + burn_time if burn_time else None
+        burned_per_hour = delta_to_hours(burn_time)
+
         allocation_dict = {
             "threshold": floor(self.allocation.threshold/60),
-            "current": floor(mins_consumed/60),
+            "current": hours_used,
             "delta": ceil(delta.total_seconds()/60),
-            "burn": burn_time,
+            "burn": burned_per_hour,
             "ttz": zero_time,
         }
         return allocation_dict

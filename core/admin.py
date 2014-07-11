@@ -263,9 +263,10 @@ class InstanceStatusHistoryAdmin(admin.ModelAdmin):
     list_filter = ["instance__provider_machine__provider__location",
                    "instance__provider_alias",
                    "instance__created_by__username"]
-
+    ordering = ('-start_date',)
     def instance_alias(self, model):
         return model.instance.provider_alias
+
 
 class InstanceAdmin(admin.ModelAdmin):
     search_fields = ["created_by__username", "provider_alias", "ip_address"]
