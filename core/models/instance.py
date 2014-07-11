@@ -306,7 +306,11 @@ class Instance(models.Model):
 
     def esh_size(self):
         if not self.esh or not hasattr(self.esh._node, 'extra'):
-            return "Unknown"
+            last_history = self.get_last_history()
+            if last_history:
+                return last_history.status.name
+            else:
+                return "Unknown"
         extras = self.esh._node.extra
         if extras.has_key('flavorId'):
             return extras['flavorId']
