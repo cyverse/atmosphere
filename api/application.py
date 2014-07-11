@@ -48,11 +48,8 @@ class ApplicationList(APIView):
         featured_value = request.QUERY_PARAMS.get('featured')
         if featured_value:
             featured = featured_value.lower() == "true"
-            logger.debug(featured)
             if featured:
                 applications = [a for a in applications if a.featured()]
-                logger.debug(type(applications[0].featured))
-                logger.debug(len(applications))
             else:
                 applications = [a for a in applications if not a.featured()]
         page = request.QUERY_PARAMS.get('page')
