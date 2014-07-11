@@ -51,7 +51,7 @@ class CASLoginBackend(ModelBackend):
         Return user if validated by CAS
         Return None otherwise.
         """
-        logger.debug("U:%s P:%s R:%s" % (username, password, request))
+        #logger.debug("U:%s P:%s R:%s" % (username, password, request))
         if not username:
             logger.debug("CAS Authentication skipped - No Username.")
             return None

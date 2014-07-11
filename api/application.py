@@ -45,6 +45,13 @@ class ApplicationList(APIView):
         if request.user and type(request.user) != AnonymousUser:
             my_apps = visible_applications(request.user)
             applications.extend(my_apps)
+        featured_value = request.QUERY_PARAMS.get('featured')
+        if featured_value:
+            featured = featured_value.lower() == "true"
+            if featured:
+                applications = [a for a in applications if a.featured()]
+            else:
+                applications = [a for a in applications if not a.featured()]
         page = request.QUERY_PARAMS.get('page')
         if page or len(applications) == 0:
             paginator = Paginator(applications, 20,
