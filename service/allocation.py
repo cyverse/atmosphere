@@ -146,7 +146,6 @@ def current_instance_time(user, instances, identity_id, delta_time):
     return time_used
 
 
-
 def core_instance_time(user, identity_id, delta, running=[], now_time=None):
     """
     Called 'core_instance' time because it relies on the data
