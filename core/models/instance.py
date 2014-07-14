@@ -595,10 +595,12 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
         #information.
         esh_size = esh_driver.get_size(esh_size.id)
     core_size = convert_esh_size(esh_size, provider_id)
+    #TODO: You are the mole!
     core_instance.update_history(
         esh_instance.extra['status'],
         core_size,
-        esh_instance.extra.get('task'))
+        esh_instance.extra.get('task') or
+        esh_instance.extra.get('metadata',{}).get('tmp_status'))
     #Update values in core with those found in metadata.
     core_instance = set_instance_from_metadata(esh_driver, core_instance)
     return core_instance
