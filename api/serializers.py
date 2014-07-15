@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AnonymousUser
 
 from core.models.application import Application, ApplicationScore,\
-        ApplicationBookmark
+    ApplicationBookmark
 from core.models.credential import Credential
 from core.models.group import get_user_group
 from core.models.group import Group
@@ -28,12 +28,10 @@ from rest_framework import pagination
 
 from threepio import logger
 
-"""
-Useful Serializer methods here..
-"""
 
+# Useful Serializer methods
 def get_context_user(serializer, kwargs, required=False):
-    context = kwargs.get('context',{})
+    context = kwargs.get('context', {})
     user = context.get('user')
     request = context.get('request')
     if not user and not request:
@@ -53,8 +51,8 @@ def get_context_user(serializer, kwargs, required=False):
         #NOTE: Converting str to atmosphere user is easier when debugging
         if type(user) == str:
             user = AtmosphereUser.objects.get(
-                    username=user)
-        elif type(user) not in [AnonymousUser,AtmosphereUser]:
+                username=user)
+        elif type(user) not in [AnonymousUser, AtmosphereUser]:
             raise Exception("This Serializer REQUIRES the \"user\" "
                             "to be of type str or AtmosphereUser")
     elif request:
@@ -75,10 +73,8 @@ def get_projects_for_obj(serializer, related_obj):
     projects = related_obj.get_projects(serializer.request_user)
     return [p.id for p in projects]
 
-"""
-Custom Fields go here!
-"""
 
+# Custom Fields
 class ProjectsField(serializers.WritableField):
     def to_native(self, project_mgr):
         request_user = self.root.request_user
@@ -103,7 +99,7 @@ class ProjectsField(serializers.WritableField):
         if type(value) == list:
             new_projects = value
         else:
-            new_projects = [value,]
+            new_projects = [value, ]
 
         # Remove related_obj from Old Project(s)
         old_projects = related_obj.get_projects(user)
@@ -143,11 +139,11 @@ class AppBookmarkField(serializers.WritableField):
         user = self.root.request_user
         if value:
             ApplicationBookmark.objects.\
-                    get_or_create(application=app, user=user)
+                get_or_create(application=app, user=user)
             result = True
         else:
             ApplicationBookmark.objects\
-                    .filter(application=app, user=user).delete()
+                               .filter(application=app, user=user).delete()
             result = False
         into[field_name] = result
 
@@ -204,17 +200,18 @@ class InstanceRelatedField(serializers.RelatedField):
             return
         try:
             into["instance"] = Instance.objects.get(provider_alias=value)
-            into[field_name] = Instance.objects.get(provider_alias=value).provider_alias
+            into[field_name] = Instance.objects.get(
+                provider_alias=value).provider_alias
         except Instance.DoesNotExist:
             into[field_name] = None
 
-"""
-Serializers below this line
-"""
+
+# Serializers
 class AccountSerializer(serializers.Serializer):
     pass
     #Define fields here
     #TODO: Define a spec that we expect from list_users across all providers
+
 
 class ProviderSerializer(serializers.ModelSerializer):
     type = serializers.SlugRelatedField(slug_field='name')
@@ -224,6 +221,7 @@ class ProviderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Provider
         exclude = ('active', 'start_date', 'end_date')
+
 
 class CleanedIdentitySerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
@@ -247,6 +245,7 @@ class IdentitySerializer(serializers.ModelSerializer):
         fields = ('id', 'created_by', 'provider', 'credentials', 'quota',
                   'membership')
 
+
 class ApplicationSerializer(serializers.Serializer):
     """
     test maybe something
@@ -269,7 +268,7 @@ class ApplicationSerializer(serializers.Serializer):
     private = serializers.BooleanField(source='private')
     featured = serializers.BooleanField(source='featured')
     machines = serializers.RelatedField(source='get_provider_machines',
-                                              read_only=True)
+                                        read_only=True)
     is_bookmarked = AppBookmarkField(source="bookmarks.all")
     threshold = serializers.RelatedField(read_only=True, source="threshold")
     projects = ProjectsField()
@@ -281,6 +280,7 @@ class ApplicationSerializer(serializers.Serializer):
 
     class Meta:
         model = Application
+
 
 class PaginatedApplicationSerializer(pagination.PaginationSerializer):
     """
@@ -295,6 +295,7 @@ class PaginatedApplicationSerializer(pagination.PaginationSerializer):
     class Meta:
         object_serializer_class = ApplicationSerializer
 
+
 class ApplicationBookmarkSerializer(serializers.ModelSerializer):
     """
     """
@@ -307,22 +308,24 @@ class ApplicationBookmarkSerializer(serializers.ModelSerializer):
 
     def get_bookmark_alias(self, bookmark_obj):
         return bookmark_obj.application.uuid
+
     class Meta:
         model = ApplicationBookmark
-        fields = ('type','alias')
-    
+        fields = ('type', 'alias')
+
 
 class ApplicationScoreSerializer(serializers.ModelSerializer):
     """
     """
     #TODO:Need to validate provider/identity membership on id change
     username = serializers.CharField(read_only=True, source='user.username')
-    application = serializers.CharField(read_only=True, source='application.name')
+    application = serializers.CharField(read_only=True,
+                                        source='application.name')
     vote = serializers.CharField(read_only=True, source='get_vote_name')
 
     class Meta:
         model = ApplicationScore
-        fields = ('username',"application", "vote")
+        fields = ('username', "application", "vote")
 
 
 class CredentialSerializer(serializers.ModelSerializer):
@@ -335,10 +338,10 @@ class InstanceSerializer(serializers.ModelSerializer):
     #R/O Fields first!
     alias = serializers.CharField(read_only=True, source='provider_alias')
     alias_hash = serializers.CharField(read_only=True, source='hash_alias')
-    application_name = serializers.CharField(read_only=True,
-            source='provider_machine.application.name')
-    application_uuid = serializers.CharField(read_only=True,
-            source='provider_machine.application.uuid')
+    application_name = serializers.CharField(
+        read_only=True, source='provider_machine.application.name')
+    application_uuid = serializers.CharField(
+        read_only=True, source='provider_machine.application.uuid')
     #created_by = serializers.CharField(read_only=True, source='creator_name')
     created_by = serializers.SlugRelatedField(slug_field='username',
                                               source='created_by',
@@ -356,8 +359,8 @@ class InstanceSerializer(serializers.ModelSerializer):
     token = serializers.CharField(read_only=True)
     has_shell = serializers.BooleanField(read_only=True, source='shell')
     has_vnc = serializers.BooleanField(read_only=True, source='vnc')
-    #provider = serializers.CharField(read_only=True, source='provider_name')
-    identity = CleanedIdentitySerializer(source="created_by_identity", read_only=True)
+    identity = CleanedIdentitySerializer(source="created_by_identity",
+                                         read_only=True)
     #Writeable fields
     name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', source='tags', many=True)
@@ -390,7 +393,6 @@ class InstanceHistorySerializer(serializers.ModelSerializer):
     ip_address = serializers.CharField(read_only=True)
     start_date = serializers.DateTimeField(read_only=True)
     end_date = serializers.DateTimeField(read_only=True)
-    #active_time = serializers.DateTimeField(read_only=True, source='get_active_time')
     provider = serializers.CharField(read_only=True, source='provider_name')
     #Writeable fields
     name = serializers.CharField()
@@ -408,6 +410,7 @@ class PaginatedInstanceHistorySerializer(pagination.PaginationSerializer):
     """
     class Meta:
         object_serializer_class = InstanceHistorySerializer
+
 
 class PaginatedInstanceSerializer(pagination.PaginationSerializer):
     """
@@ -461,7 +464,7 @@ class MachineRequestSerializer(serializers.ModelSerializer):
                                         required=False)
     tags = serializers.CharField(source='new_machine_tags', required=False)
     new_machine = serializers.SlugRelatedField(slug_field='identifier',
-            required=False)
+                                               required=False)
 
     class Meta:
         model = MachineRequest
@@ -486,6 +489,7 @@ class IdentityDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Identity
         exclude = ('credentials', 'created_by', 'provider')
+
 
 class AtmoUserSerializer(serializers.ModelSerializer):
     selected_identity = IdentityRelatedField(source='select_identity')
@@ -516,10 +520,10 @@ class AtmoUserSerializer(serializers.ModelSerializer):
                                           "selected_identity: %s"
                                           % selected_identity)
 
-
     class Meta:
         model = AtmosphereUser
-        exclude = ('id','password')
+        exclude = ('id', 'password')
+
 
 class ProfileSerializer(serializers.ModelSerializer):
     """
@@ -541,10 +545,11 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     #R/O Fields first!
     alias = serializers.CharField(read_only=True, source='identifier')
     alias_hash = serializers.CharField(read_only=True, source='hash_alias')
-    created_by = serializers.CharField(read_only=True,
-                                       source='application.created_by.username')
+    created_by = serializers.CharField(
+        read_only=True, source='application.created_by.username')
     icon = serializers.CharField(read_only=True, source='icon_url')
-    private = serializers.CharField(read_only=True, source='application.private')
+    private = serializers.CharField(
+        read_only=True, source='application.private')
     architecture = serializers.CharField(read_only=True,
                                          source='esh_architecture')
     ownerid = serializers.CharField(read_only=True, source='esh_ownerid')
@@ -561,16 +566,15 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     version = serializers.CharField(source='version')
 
     def __init__(self, *args, **kwargs):
-        self.request_user = kwargs.pop('request_user',None)
+        self.request_user = kwargs.pop('request_user', None)
         super(ProviderMachineSerializer, self).__init__(*args, **kwargs)
 
     def get_scores(self, pm):
         app = pm.application
         scores = app.get_scores()
         update_dict = {
-                "has_voted": False,
-                "vote_cast": None
-                }
+            "has_voted": False,
+            "vote_cast": None}
         if not self.request_user:
             scores.update(update_dict)
             return scores
@@ -633,26 +637,30 @@ class ProjectSerializer(serializers.ModelSerializer):
     volumes = serializers.SerializerMethodField('get_user_volumes')
 
     def get_user_applications(self, project):
-        return [ApplicationSerializer(item,
-            context={'request':self.context.get('request')}).data for item in
+        return [ApplicationSerializer(
+            item,
+            context={'request': self.context.get('request')}).data for item in
             project.applications.filter(only_active())]
-    def get_user_instances(self, project):
-        return [InstanceSerializer(item,
-            context={'request':self.context.get('request')}).data for item in
-            project.instances.filter(only_active())]
-    def get_user_volumes(self, project):
-        return [VolumeSerializer(item,
-            context={'request':self.context.get('request')}).data for item in
-            project.volumes.filter(only_active())]
 
+    def get_user_instances(self, project):
+        return [InstanceSerializer(
+            item,
+            context={'request': self.context.get('request')}).data for item in
+            project.instances.filter(only_active())]
+
+    def get_user_volumes(self, project):
+        return [VolumeSerializer(
+            item,
+            context={'request': self.context.get('request')}).data for item in
+            project.volumes.filter(only_active())]
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)
         super(ProjectSerializer, self).__init__(*args, **kwargs)
 
-
     class Meta:
         model = Project
+
 
 class ProviderSizeSerializer(serializers.ModelSerializer):
     occupancy = serializers.CharField(read_only=True, source='esh_occupancy')
