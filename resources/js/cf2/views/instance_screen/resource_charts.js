@@ -337,7 +337,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
             end_date;
         if (quota.allocation !== null && quota.allocation !== undefined) {
             time_quota_left = quota.allocation.ttz,
-            end_date = new Date(time_quota_left);
+            end_date = time_quota_left ? new Date(time_quota_left) : null;
         } 
         
         if (this.quota_type == 'cpu') {
