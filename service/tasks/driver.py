@@ -814,7 +814,7 @@ def update_membership():
             driver = OSAcctDriver(provider)
         else:
             logger.warn("Encountered unknown ProviderType:%s, expected"
-                        " [Openstack]")
+                        " [Openstack] " % (provider.type.name,))
             continue
         images = driver.list_all_images()
         changes = 0

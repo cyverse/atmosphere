@@ -1,5 +1,6 @@
 import time
 
+from api import get_esh_driver
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 
@@ -18,6 +19,34 @@ get_delta, get_allocation
 from service.driver import get_admin_driver
 
 from threepio import logger
+def strfdelta(tdelta, fmt=None):
+    from string import Formatter
+    if not fmt:
+        #The standard, most human readable format.
+        fmt = "{D} days {H:02} hours {M:02} minutes {S:02} seconds"
+    if tdelta == timedelta():
+        return "0 minutes"
+    formatter = Formatter()
+    return_map = {}
+    div_by_map = {'D': 86400, 'H': 3600, 'M': 60, 'S': 1}
+    keys = map( lambda x: x[1], list(formatter.parse(fmt)))
+    remainder = int(tdelta.total_seconds())
+
+    for unit in ('D', 'H', 'M', 'S'):
+        if unit in keys and unit in div_by_map.keys():
+            return_map[unit], remainder = divmod(remainder, div_by_map[unit])
+
+    return formatter.format(fmt, **return_map)
+
+def strfdate(datetime_o, fmt=None):
+    if not fmt:
+        #The standard, most human readable format.
+        fmt = "%m/%d/%Y %H:%M:%S"
+    if not datetime_o:
+        datetime_o = timezone.now()
+
+    return datetime_o.strftime(fmt)
+
 
 
 @task(name="monitor_instances")
@@ -65,6 +94,8 @@ def monitor_instances_for(provider, users=None, print_logs=False):
         consolehandler.setLevel(logging.DEBUG)
         logger.addHandler(consolehandler)
 
+    if print_logs:
+        print_table_header()
     for username in sorted(instance_map.keys()):
         instances = instance_map[username]
         monitor_instances_for_user(provider, username, instances, print_logs)
@@ -73,8 +104,12 @@ def monitor_instances_for(provider, users=None, print_logs=False):
         logger.removeHandler(consolehandler)
 
 def monitor_instances_for_user(provider, username, instances, print_logs=False):
-    from core.models.instance import convert_esh_instance
+    """
+    """
+    from core.models import IdentityMembership
     try:
+        #Note: This username may or may not have an associated
+        #Allocation/IdentityMembership
         user = AtmosphereUser.objects.get(username=username)
     except AtmosphereUser.DoesNotExist:
         if instances:
@@ -87,20 +122,43 @@ def monitor_instances_for_user(provider, username, instances, print_logs=False):
             #GATHER STATISTICS FIRST
             #This will be: Calculate time that user has used all instances within a
             #given delta, including the instances listed currently.
-            time_period=relativedelta(day=1, months=1)
+            time_period=settings.FIXED_WINDOW
             allocation = get_allocation(username, identity_id)
             delta_time = get_delta(allocation, time_period)
-            time_used = current_instance_time(
+            time_used, instance_status_map = current_instance_time(
                     user, instances,
                     identity_id, delta_time)
             if print_logs:
+                print_table_row(instance_status_map, user, allocation, time_used)
                 return
             enforce_allocation(identity, user, time_used)
+        except IdentityMembership.DoesNotExist:
+            if instances:
+                logger.warn("WARNING: User %s has %s instances, but does not"
+                "exist on this database" % (username, len(instances)))
         except:
             logger.exception("Unable to monitor Identity:%s"
                          % (identity,))
+def print_table_header():
+    print "Username,Allocation allowed (min),Allocation Used (min),Instance,Status,"\
+          "Size (name),Size (CPUs),Start_Time,"\
+          "End_Time,Active_Time,Cpu_Time"
 
-    
+def print_table_row(instance_status_map, user, allocation, time_used):
+    max_time_allowed = timedelta(minutes=allocation.threshold)
+    print "%s,%s,%s,,,,,,,,,,"\
+            % (user.username,
+               strfdelta(max_time_allowed),
+               strfdelta(time_used))
+    for instance, status_list in instance_status_map.items():
+        for history in status_list:
+            print ",,,%s,%s,%s,%s,%s,%s,%s,%s" %\
+            (instance.provider_alias,
+             history.status.name,
+             history.size.name, history.size.cpu,
+             strfdate(history.start_date), strfdate(history.end_date),
+             strfdelta(history.active_time), strfdelta(history.cpu_time))
+
 def _include_all_idents(identities, owner_map):
     #Include all identities with 0 instances to the monitoring
     identity_owners = [ident.get_credential('ex_tenant_name')
@@ -138,6 +196,7 @@ def _convert_tenant_id_to_names(instances, tenants):
     return instances
 
 def enforce_allocation(identity, user, time_used):
+    from core.models.instance import convert_esh_instance
     #TODO: When user->group is no longer true,
     # we will need to modify this..
     group = Group.objects.get(name=user.username)
@@ -150,9 +209,9 @@ def enforce_allocation(identity, user, time_used):
     over_allocated = time_diff.total_seconds() <= 0
     if not over_allocated:
         return False
-    if settings.DEBUG:
-        logger.info('Do not enforce allocations in DEBUG mode')
-        return False
+    #if settings.DEBUG:
+    #    logger.info('Do not enforce allocations in DEBUG mode')
+    #    return False
     logger.info("%s is OVER their allowed quota by %s" %
                  (user.username, time_diff))
     driver = get_esh_driver(identity)

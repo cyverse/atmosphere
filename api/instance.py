@@ -518,7 +518,8 @@ def valid_post_data(data):
     #Return any keys that don't match criteria
     return [key for key in required
             #Key must exist and have a non-empty value.
-            if not ( key in data and len(data[key]) > 0)]
+            if key not in data
+            or (type(data[key]) == str and len(data[key]) > 0)]
 
 
 def keys_not_found(missing_keys):

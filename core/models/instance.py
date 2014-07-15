@@ -84,94 +84,90 @@ class Instance(models.Model):
                 )
         return projects
 
-    def last_history(self):
+    def get_last_history(self):
         """
         Returns the newest InstanceStatusHistory
         """
-        last_hist = InstanceStatusHistory.objects\
-                .filter(instance=self).order_by('-start_date')
-        if not last_hist:
+        #TODO: Profile Option
+        #try:
+        #    return self.instancestatushistory_set.latest('id')
+        #except InstanceStatusHistory.DoesNotExist:
+        #    return None
+            
+        #TODO: Profile current choice
+        last_history = self.instancestatushistory_set.all().order_by('-start_date')
+        if not last_history:
             return None
-        return last_hist[0]
+        return last_history[0]
 
-    def new_history(self, size, status_name, start_date=None):
-        """
-        Creates a new (Unsaved!) InstanceStatusHistory
-        """
-        new_hist = InstanceStatusHistory(size=size)
-        new_hist.instance = self
-        new_hist.status, created = InstanceStatus.objects\
-                                      .get_or_create(name=status_name)
-        if start_date:
-            new_hist.start_date=start_date
-#        logger.debug("Created new history object: %s " % (new_hist))
-        return new_hist
     def _build_first_history(self, status_name, size, start_date,
                              first_update=False):
-        first_status = status_name
         if not first_update and status_name not in ['build', 'pending', 'running']:
-            #Not the first update, so we must
-            #Assume instance was Active from start of instance to now
-            first_status = 'active'
-        first_hist = self.new_history(size, first_status, start_date)
-        first_hist.save()
-        return first_hist
+            #Instance state is 'unknown' from start of instance until now
+            #NOTE: This is needed to prevent over-charging accounts
+            status_name = 'unknown'
+        first_history = InstanceStatusHistory.create_history(
+                status_name, size, start_date)
+        first_history.save()
+        return first_history
+
+    def _task_to_status(self, task_name):
+        task_status_map = {
+                #Suspend tasks
+                'resuming':'active',
+                'suspending':'suspended',
+                #Shutdown tasks
+                'powering-on':'active',
+                'powering-off':'suspended',
+                #Instance launch tasks
+                'initializing':'build',
+                'scheduling':'build',
+                'spawning':'build',
+                #Atmosphere Task-specific lines
+                'networking':'build',
+                'deploying':'build',
+                'deploy_error':'build',
+                #There are more.. Must find table..
+        }
+        new_status = task_status_map.get(task_name)
+        logger.debug("History - Task provided:%s, Status should be %s"
+                      % (task_name, new_status))
+        return new_status
+
 
     def update_history(self, status_name, size, task=None, first_update=False):
+        """
+        Given the status name and size, look up the previous history object
+        If nothing has changed: return (False, last_history)
+        else: end date previous history object, start new history object.
+              return (True, new_history)
+        """
+        #1. Get status name
         if task:
-            task_to_status = {
-                    'resuming':'active',
-                    'suspending':'suspended',
-                    'powering-on':'active',
-                    'powering-off':'suspended',
-                    #Tasks that occur during the normal build process
-                    'initializing':'build',
-                    'scheduling':'build',
-                    'spawning':'build',
-                    #Atmosphere Task-specific lines
-                    'networking':'build',
-                    'deploying':'build',
-                    'deploy_error':'build',
-                    #There are more.. Must find table..
-            }
-            status_2 = task_to_status.get(task,'')
-            # logger.debug("Task provided:%s, Status should be %s"
-            #              % (task, status_2))
-            #Update to the more relevant task
-            if status_2:
-                status_name = status_2
-        last_hist = self.last_history()
-        #1. Build an active status if this is the first time
-        if not last_hist:
-            first_hist = self._build_first_history(status_name, size,
-                                              self.start_date, first_update=first_update)
-            #logger.debug("Created the first history %s" % first_hist)
-            last_hist = first_hist
-        #2. For Accounting, ensure the size of the instance always
-        #   matches the listed size. Examples of when size don't match
-        #   but the current status has not changed:
-        #   * Resize calls completed outside of Atmosphere
-        #   * Multiple instances of Atmosphere without a shared DB
-        #   NOTE: In these instances, ALL of the time assigned to the last
-        #   object will be set at this level.
-        if last_hist.size != size:
-            last_hist.size = size
-            last_hist.save()
-        if last_hist.status.name == status_name:
+            new_status = self._task_to_status(task)
+            if new_status:
+                status_name = new_status
+        #2. Get the last history (or Build a new one if no other exists)
+        last_history = self.get_last_history()
+        if not last_history:
+            last_history = InstanceStatusHistory.create_history(
+                    status_name, self, size, self.start_date)
+            last_history.save()
+            logger.debug("First history: %s" % last_history)
+
+        #2. Size and name must match to continue using last history
+        if last_history.status.name == status_name and last_history.size.id == size.id:
             #logger.info("status_name matches last history:%s " %
-            #        last_hist.status.name)
-            return (last_hist, None)
-        #3. ASSERT: A new history item is required due to a State Change
+            #        last_history.status.name)
+            return (False, last_history)
+
+        #3. ASSERT: A new history item is required due to a State or Size Change
         now_time = timezone.now()
-        last_hist.end_date = now_time
-        last_hist.save()
-        new_hist = self.new_history(size, status_name, now_time)
-        new_hist.save()
-        logger.info("Status Update - User:%s Instance:%s Old:%s New:%s Time:%s"
-                    % (self.created_by, self.provider_alias,
-                       last_hist.status.name, new_hist.status.name,
-                       now_time))
-        return (last_hist, new_hist)
+        new_history = InstanceStatusHistory.transaction(
+                status_name, self, size,
+                start_time=now_time,
+                last_history=last_history)
+        return (True, new_history)
 
     def get_active_hours(self):
         #Don't move it up. Circular reference.
@@ -216,49 +212,54 @@ class Instance(models.Model):
         total_time = self._calculate_active_time(delta)
         return delta_to_hours(total_time)
 
-    def get_active_time(self, delta=None):
-        total_time = self._calculate_active_time(delta)
-        return total_time
+    def get_active_time(self, earliest_time=None, latest_time=None):
+        """
+        Return active time, and the reference list that was counted.
+        """
+        accounting_list = self._accounting_list(earliest_time, latest_time)
 
-    def _calculate_active_time(self, delta=None):
-        if not delta:
-            #Start from 'the beginning'
-            delta = self.start_date
-        #from service.allocation import delta_to_hours
-        past_time = timezone.now() - delta
-        recent_history = self.instancestatushistory_set.filter(
-                Q(end_date=None) | Q(end_date__gt=past_time)
-                ).order_by('start_date')
         total_time = timedelta()
-        inst_prefix = "HISTORY,%s,%s" % (self.created_by.username,
-                self.provider_alias[:5])
-        for idx, state in enumerate(recent_history):
-            #Can't start counting any earlier than 'delta'
-            if state.start_date < past_time:
-                start_count = past_time
-            else:
-                start_count = state.start_date
-            #If date is current, stop counting 'right now'
-            if not state.end_date:
-                final_count = timezone.now()
-            else:
-                final_count = state.end_date
+        for state in accounting_list:
+            total_time += state.cpu_time
+        return total_time, accounting_list
 
-            if state.is_active():
-                #Active time is easy
-                active_time = final_count - start_count
-            else:
-                #Inactive states are NOT counted against the user
-                active_time = timedelta()
-            #multiply by CPU count of size.
-            cpu_time = active_time * state.size.cpu
-            logger.debug("%s,%s,%s,%s CPU,%s,%s,%s,%s"
-                % (inst_prefix, state.status.name,
-                   state.size.name, state.size.cpu, 
-                   strfdate(start_count), strfdate(final_count),
-                   strfdelta(active_time), strfdelta(cpu_time)))
-            total_time += cpu_time
-        return total_time
+    def recent_history(self, earliest_time, latest_time):
+        """
+        Return all Instance Status History
+          Currently Running
+          OR
+          Terminated after: now() - delta (ex:7 days, 1 month, etc.)
+        """
+        active_history = self.instancestatushistory_set.filter(
+                # Collect history that is Current or has 'countable' time..
+                Q(end_date=None) | Q(end_date__gt=earliest_time)
+                ).order_by('start_date')
+        return active_history
+
+
+
+    def _accounting_list(self, earliest_time=None, latest_time=None):
+        """
+        Return the list of InstanceStatusHistory that should be counted,
+        according to the limits of 'earliest_time' and 'latest_time'
+        """
+        if not latest_time:
+            latest_time = timezone.now()
+        #Determine the earliest time to start counts.
+        if not earliest_time:
+            earliest_time = self.start_date
+
+        total_time = timedelta()
+        accounting_list = []
+        last_history = self.get_last_history()
+        active_history = self.recent_history(earliest_time, latest_time)
+
+        for state in active_history:
+            active_time = state.get_active_time(earliest_time, latest_time)
+            state.active_time = active_time
+            state.cpu_time = active_time * state.size.cpu
+            accounting_list.append(state)
+        return accounting_list
 
 
 
@@ -301,10 +302,17 @@ class Instance(models.Model):
     def esh_status(self):
         if self.esh:
             return self.esh.get_status()
-        return "Unknown"
+        last_history = self.get_last_history()
+        if last_history:
+            return last_history.status.name
+        else:
+            return "Unknown"
 
     def esh_size(self):
         if not self.esh or not hasattr(self.esh._node, 'extra'):
+            last_history = self.get_last_history()
+            if last_history:
+                return last_history.size.name
             return "Unknown"
         extras = self.esh._node.extra
         if extras.has_key('flavorId'):
@@ -373,6 +381,78 @@ class InstanceStatusHistory(models.Model):
     status = models.ForeignKey(InstanceStatus)
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
+
+    @classmethod
+    def transaction(cls, status_name, instance, size,
+                    start_time=None, last_history=None):
+        if not last_history:
+            last_history = instance.get_last_history()
+        if not last_history:
+            raise ValueError("A previous history is required "
+                             "to perform a transaction. Instance:%s"
+                             % (instance,))
+        elif last_history.end_date:
+            raise ValueError("Old history already has end date: %s"
+                             % old_history)
+
+        last_history.end_date = start_time
+        last_history.save()
+
+        new_history = InstanceStatusHistory.create_history(
+                status_name, instance, size, start_time)
+        new_history.save()
+        logger.info("Status Update - User:%s Instance:%s Old:%s New:%s Time:%s"
+                    % (instance.created_by, instance.provider_alias,
+                       last_history.status.name, new_history.status.name,
+                       new_history.start_date))
+        return new_history
+
+    @classmethod
+    def create_history(cls, status_name, instance, size, start_date=None):
+        """
+        Creates a new (Unsaved!) InstanceStatusHistory
+        """
+        status, _ = InstanceStatus.objects.get_or_create(name=status_name)
+        new_history = InstanceStatusHistory(
+            instance=instance, size=size, status=status)
+        if start_date:
+            new_history.start_date=start_date
+            logger.debug("Created new history object: %s " % (new_history))
+        return new_history
+
+    def get_active_time(self, earliest_time=None, latest_time=None):
+        """
+        A set of filters used to determine the amount of 'active time'
+        earliest_time and latest_time are taken into account, if provided.
+        """
+        # Inactive states are not counted against you.
+        if not self.is_active():
+            return timedelta()
+
+        # When to start counting
+        if earliest_time and self.start_date <= earliest_time:
+            start_time = earliest_time
+        else:
+            start_time = self.start_date
+
+        # When to stop counting.. Some history may have no end date!
+        if latest_time:
+            if not self.end_date or self.end_date >= latest_time:
+                final_time = latest_time
+                #TODO: Possibly check latest_time < timezone.now() to prevent
+                #      bad input? 
+            else:
+                final_time = self.end_date
+        elif self.end_date:
+            final_time = self.end_date
+        else:
+            #This is the current status, so stop counting now..
+            final_time = timezone.now()
+
+        #Active time is easy now!
+        active_time = final_time - start_time
+        return active_time
+    
 
     @classmethod
     def intervals(cls, instance, start_date=None, end_date=None):
@@ -515,10 +595,12 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
         #information.
         esh_size = esh_driver.get_size(esh_size.id)
     core_size = convert_esh_size(esh_size, provider_id)
+    #TODO: You are the mole!
     core_instance.update_history(
         esh_instance.extra['status'],
         core_size,
-        esh_instance.extra.get('task'))
+        esh_instance.extra.get('task') or
+        esh_instance.extra.get('metadata',{}).get('tmp_status'))
     #Update values in core with those found in metadata.
     core_instance = set_instance_from_metadata(esh_driver, core_instance)
     return core_instance
