@@ -25,10 +25,13 @@ class OverAllocationError(Exception):
 
 class OverQuotaError(Exception):
 
-    def __init__(self, resource, requested, used, limit):
-        self.message = "Quota exceeded: Requested %s %s but already used "\
+    def __init__(self, resource=None, requested=None, used=None, limit=None, message=None):
+        if not message:
+            self.message = "Quota exceeded: Requested %s %s but already used "\
                        "%s/%s %s."\
                        % (requested, resource, used, limit, resource)
+        else:
+            self.message = message
         super(OverQuotaError, self).__init__(self.message)
 
     def __str__(self):

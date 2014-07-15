@@ -36,7 +36,10 @@ from service.networking import _generate_ssh_kwargs
 
 def _update_status_log(instance, status_update):
     now_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    user = instance._node.extra['metadata']['creator']
+    try:
+        user = instance._node.extra['metadata']['creator']
+    except KeyError, no_user:
+        user = "Unknown -- Metadata missing"
     size_alias = instance._node.extra['flavorId']
     machine_alias = instance._node.extra['imageId']
     status_logger.debug("%s,%s,%s,%s,%s,%s"
@@ -206,9 +209,9 @@ def clear_empty_ips():
     identities = Identity.objects.filter(
         provider__type__name__iexact='openstack',
         provider__active=True)
-    typename = ident.provider.type.name
-    username = ident.created_by.username
-    key_sorter = lambda ident: attrgetter(typename, username)
+    key_sorter = lambda ident: attrgetter(
+    				ident.provider.type.name,
+    				ident.created_by.username)
     identities = sorted(
         identities,
         key=key_sorter)
@@ -562,6 +565,9 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         #TODO: Check if all exceptions thrown at this time
         #fall in this category, and possibly don't retry if
         #you hit the Exception block below this.
+        _deploy_init_to.retry(exc=exc)
+    except SystemExit as bad_ssh:
+        logger.exception("ERROR: Someone has raised a SystemExit!")
         _deploy_init_to.retry(exc=exc)
     except Exception as exc:
         logger.exception(exc)

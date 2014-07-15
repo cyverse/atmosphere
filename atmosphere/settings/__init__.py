@@ -381,7 +381,7 @@ CELERYBEAT_SCHEDULE = {
     },
     "clear_empty_ips": {
         "task": "clear_empty_ips",
-        "schedule": crontab(hour="0", minute="0", day_of_week="*"),
+        "schedule": timedelta(minutes=20), # crontab(hour="0", minute="0", day_of_week="*"),
         "options":{"expires": 60*60,
                    "queue":"celery_periodic"}
     },
