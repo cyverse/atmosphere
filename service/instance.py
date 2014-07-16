@@ -294,6 +294,7 @@ def test_capacity(hypervisor_hostname, instance, hypervisor_stats):
     if disk_used + disk_needed > disk_total:
         raise HypervisorCapacityError(hypervisor_hostname, "Hypervisor is over-capacity. %s" % log_str)
 
+
 def resume_instance(esh_driver, esh_instance,
                     provider_id, identity_id,
                     user, restore_ip=True,
