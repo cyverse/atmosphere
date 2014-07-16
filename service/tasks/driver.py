@@ -243,6 +243,10 @@ def clear_empty_ips():
                          for inst in instances)
             inactive = all(driver._is_inactive_instance(inst)
                            for inst in instances)
+            for instance in instances:
+                if driver._is_inactive_instance(instance) and instance.ip:
+                    # If an inactive instance has floating/fixed IPs.. Remove them!
+                    instance_service.remove_ips(driver, instance)
             if active and not inactive:
                 #User has >1 active instances AND not all instances inactive
                 pass
