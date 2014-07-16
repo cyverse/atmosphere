@@ -3,7 +3,6 @@ Atmosphere utilizes the DjangoGroup model
 to manage users via the membership relationship
 """
 #from datetime import timedelta
-from dateutil.relativedelta import relativedelta
 from math import floor, ceil
 
 from django.db import models
@@ -167,9 +166,10 @@ class IdentityMembership(models.Model):
         if not self.allocation:
             return {}
         #Don't move it up. Circular reference.
+        from django.conf import settings
         from service.allocation import core_instance_time, get_burn_time,\
             delta_to_minutes, delta_to_hours, get_delta
-        delta = get_delta(self, time_period=relativedelta(day=1, months=1))
+        delta = get_delta(self, time_period=settings.FIXED_WINDOW)
         #Keeps the times on these calculations consistent!
         now_time = timezone.now()
         time_used, _ = core_instance_time(self.identity.created_by,

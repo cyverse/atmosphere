@@ -68,10 +68,14 @@ def get_esh_map(core_provider):
         return None
 
 
-def get_esh_provider(core_provider):
+def get_esh_provider(core_provider, username=None):
     try:
+        if username:
+            identifier="%s+%s" % (core_provider.location, username)
+        else:
+            identifier="%s" % core_provider.location
         esh_map = get_esh_map(core_provider)
-        provider = esh_map['provider'](identifier=core_provider.location)
+        provider = esh_map['provider'](identifier=identifier)
         return provider
     except Exception, e:
         logger.exception(e)
@@ -86,7 +90,7 @@ def get_esh_driver(core_identity, username=None):
             user = core_identity.created_by
         else:
             user = DjangoUser.objects.get(username=username)
-        provider = get_esh_provider(core_provider)
+        provider = get_esh_provider(core_provider, username=user.username)
         provider_creds = core_identity.provider.get_esh_credentials(provider)
         identity_creds = core_identity.get_credentials()
         identity = esh_map['identity'](provider, user=user, **identity_creds)

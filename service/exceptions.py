@@ -10,6 +10,7 @@ class HypervisorCapacityError(Exception):
         self.message = message
         super(HypervisorCapacityError, self).__init__(self.message)
 
+
 class OverAllocationError(Exception):
 
     def __init__(self, wait_timedelta):
@@ -25,14 +26,14 @@ class OverAllocationError(Exception):
 
 class OverQuotaError(Exception):
 
-    def __init__(self, resource=None, requested=None, used=None, limit=None,
-            message=None):
+    def __init__(self, resource=None, requested=None,
+                 used=None, limit=None, message=None):
         if not message:
             self.message = "Quota exceeded: Requested %s %s but already used "\
-                       "%s/%s %s."\
-                       % (requested, resource, used, limit, resource)
-        self.message = message
-
+                           "%s/%s %s."\
+                           % (requested, resource, used, limit, resource)
+        else:
+            self.message = message
         super(OverQuotaError, self).__init__(self.message)
 
     def __str__(self):
@@ -60,7 +61,7 @@ class DeviceBusyException(Exception):
 class SizeNotAvailable(Exception):
 
     def __init__(self):
-        message = "Size Not Available."
+        self.message = "Size Not Available."
         super(SizeNotAvailable, self).__init__()
 
     def __str__(self):
