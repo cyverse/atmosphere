@@ -15,7 +15,7 @@ def main():
     """
     TODO: Add argparse, --delete : Deletes existing users in openstack (Never use in PROD)
     """
-    openstack = Provider.objects.get(location='OpenStack-Tucson (BETA)')
+    openstack = Provider.objects.get(location='iPlant Cloud - Tucson')
     os_driver = OSAccountDriver(openstack)
     found = 0
     create = 0
@@ -32,7 +32,6 @@ def main():
 
     staff_users = sorted(list(set(staff) & set(usernames)))
     non_staff = sorted(list(set(usernames) - set(staff)))
-    non_staff = non_staff[2069:]
     for user in non_staff:
         #Raise everybody's quota
         #try:
@@ -41,27 +40,32 @@ def main():
             print "Missing user:%s" % user
             continue
         im = im_list[0]
-        if im.quota.cpu == quota_dict["cpu"]:
+        if not im.allocation:
+            print "User missing Allocation: %s" % user
+            im.allocation = Allocation.default_allocation()
+            im.save()
+        #Ignore the quota set if you are above it..
+        if im.quota.cpu >= quota_dict["cpu"] \
+                or im.quota.memory >= quota_dict["memory"]:
             continue
         print "Existing Quota CPU:%s should be %s" % (im.quota.cpu, quota_dict["cpu"])
         im.quota = higher_quota
-        im.allocation = Allocation.default_allocation()
         im.save()
         print 'Found non-staff user:%s -- Update quota and add allocation' % user
-    for user in staff_users:
-        # Openstack account exists, but we need the identity.
-        im = IdentityMembership.objects.filter(identity__created_by__username=user, identity__provider=openstack)
-        if not im:
-            print "Missing user:%s" % user
-            continue
-        im = im[0]
-        if im.quota.cpu == quota_dict["cpu"]:
-            continue
-        #Disable time allocation
-        im.allocation = None
-        im.quota = higher_quota
-        im.save()
-        print 'Found staff user:%s -- Update quota and no allocation' % user
+    #for user in staff_users:
+    #    # Openstack account exists, but we need the identity.
+    #    im = IdentityMembership.objects.filter(identity__created_by__username=user, identity__provider=openstack)
+    #    if not im:
+    #        print "Missing user:%s" % user
+    #        continue
+    #    im = im[0]
+    #    if im.quota.cpu == quota_dict["cpu"]:
+    #        continue
+    #    #Disable time allocation
+    #    im.allocation = None
+    #    im.quota = higher_quota
+    #    im.save()
+    #    print 'Found staff user:%s -- Update quota and no allocation' % user
     print "Total users added to atmosphere:%s" % len(usernames)
 
 

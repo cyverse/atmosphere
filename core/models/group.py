@@ -2,9 +2,13 @@
 Atmosphere utilizes the DjangoGroup model
 to manage users via the membership relationship
 """
-from datetime import timedelta
-from math import floor
+#from datetime import timedelta
+from math import floor, ceil
+
 from django.db import models
+from django.db.models.signals import post_save
+from django.utils import timezone
+from django.utils.timezone import datetime, timedelta
 from django.contrib.auth.models import Group as DjangoGroup
 
 from threepio import logger
@@ -26,10 +30,37 @@ class Group(DjangoGroup):
                                        blank=True)
     identities = models.ManyToManyField(Identity, through='IdentityMembership',
                                         blank=True)
-    instances = models.ManyToManyField('Instance', through='InstanceMembership',
+    instances = models.ManyToManyField('Instance',
+                                       through='InstanceMembership',
                                        blank=True)
-    applications = models.ManyToManyField(Application, through='ApplicationMembership',
-                                       blank=True)
+    applications = models.ManyToManyField(Application,
+                                          related_name='members',
+                                          through='ApplicationMembership',
+                                          blank=True)
+    provider_machines = models.ManyToManyField('ProviderMachine',
+                                          related_name='members',
+                                          through='ProviderMachineMembership',
+                                          blank=True)
+
+    @classmethod
+    def check_membership(cls, test_user, membership_groups):
+        """
+        PARAMS:
+          test_user - DjangoUser to be tested
+          membership_groups - List of groups allowed membership to... Something.
+        RETURNS:
+          True/False - If any of the users groups grants membership access.
+        """
+        return any(group for group
+                   in test_user.group_set.all() if group in membership_groups)
+
+    @classmethod
+    def check_access(cls, user, groupname):
+        try:
+            group = Group.objects.get(name=groupname)
+            return user in group.user_set.all()
+        except Group.DoesNotExist:
+            return False
 
     @classmethod
     def create_usergroup(cls, username):
@@ -51,6 +82,18 @@ class Group(DjangoGroup):
         db_table = 'group'
         app_label = 'core'
 
+#Save Hooks Here:
+def get_or_create_default_project(sender, instance, created, **kwargs):
+    from core.models.project import Project
+    project = Project.objects.get_or_create(owner=instance,
+                                            name="Default")
+    if project[1] is True:
+        logger.debug("Creating Project:'Default' for %s" % instance)
+
+
+#Instantiate the hooks:
+post_save.connect(get_or_create_default_project, sender=Group)
+
 
 class Leadership(models.Model):
     user = models.ForeignKey('AtmosphereUser')
@@ -61,7 +104,7 @@ class Leadership(models.Model):
         app_label = 'core'
 
 
-def getUsergroup(username):
+def get_user_group(username):
     groups = Group.objects.filter(name=username)
     if not groups:
         return None
@@ -122,25 +165,33 @@ class IdentityMembership(models.Model):
         if not self.allocation:
             return {}
         #Don't move it up. Circular reference.
-        from service.allocation import get_time, get_burn_time,\
-            delta_to_minutes, delta_to_hours
-        time_used = get_time(self.identity.created_by,
+        from django.conf import settings
+        from service.allocation import core_instance_time, get_burn_time,\
+            delta_to_minutes, delta_to_hours, get_delta
+        delta = get_delta(self, time_period=settings.FIXED_WINDOW)
+        #Keeps the times on these calculations consistent!
+        now_time = timezone.now()
+        time_used, _ = core_instance_time(self.identity.created_by,
                              self.identity.id,
-                             timedelta(
-                                 minutes=self.allocation.delta))
+                             delta,
+                             now_time=now_time)
+        hours_used = delta_to_hours(time_used)
+
         burn_time = get_burn_time(self.identity.created_by, self.identity.id,
-                                  timedelta(minutes=self.allocation.delta),
-                                  timedelta(minutes=self.allocation.threshold))
-        mins_consumed = delta_to_minutes(time_used)
-        if burn_time:
-            burn_time = delta_to_hours(burn_time)
+                                  delta,
+                                  timedelta(minutes=self.allocation.threshold),
+                                  now_time=now_time)
+
+        zero_time = now_time + burn_time if burn_time else None
+        burned_per_hour = delta_to_hours(burn_time)
 
         allocation_dict = {
             "threshold": floor(self.allocation.threshold/60),
-            "current": floor(mins_consumed/60),
-            "delta": self.allocation.delta,
-            "burn": burn_time,
-            "ttz": (self.allocation.threshold - mins_consumed)/60}
+            "current": hours_used,
+            "delta": ceil(delta.total_seconds()/60),
+            "burn": burned_per_hour,
+            "ttz": zero_time,
+        }
         return allocation_dict
 
     def get_quota_dict(self):

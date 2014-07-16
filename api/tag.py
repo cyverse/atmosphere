@@ -7,31 +7,34 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from authentication.decorators import api_auth_token_required
 
 from core.models import Tag as CoreTag
+from api import failure_response
 from api.serializers import TagSerializer
+from api.permissions import InMaintenance, ApiAuthRequired
 
 
 class TagList(APIView):
     """
-    Represents:
-        A List of Tag
-        Calls to the Tag Class
+        Tags are a easy way to allow users to group several images as similar
+        based on a feature/program of the application.
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, *args, **kwargs):
         """
-        List of all tags
+        List all public tags.
         """
         tags = CoreTag.objects.all()
         serializer = TagSerializer(tags, many=True)
         return Response(serializer.data)
 
-    @api_auth_token_required
     def post(self, request, *args, **kwargs):
-        """
-        Create a new tag resource
+        """Create a new tag resource
+        Params:name -- Name of the new Tag
+        Returns: 
+        Status Code: 201 Body: A new Tag object
+        Status Code: 400 Body: Errors (Duplicate/Invalid Name)
         """
         user = request.user
         data = request.DATA.copy()
@@ -51,10 +54,35 @@ class TagList(APIView):
 
 class Tag(APIView):
     """
-    Represents:
-        Calls to modify the single Tag
+        Tags are a easy way to allow users to group several images as similar
+        based on a feature/program of the application.
+
+        This API resource allows you to Retrieve, Update, or Delete your Tag.
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
+    def delete(self, request, tag_slug, *args, **kwargs):
+        """
+        Remove the tag, if it is no longer in use.
+        """
+        try:
+            tag = CoreTag.objects.get(name__iexact=tag_slug)
+        except CoreTag.DoesNotExist:
+            return failure_response(status.HTTP_404_NOT_FOUND, 
+                                    'Tag %s does not exist' % tag_slug)
+        if tag.in_use():
+            instance_count = tag.instance_set.count()
+            app_count = tag.application_set.count()
+            return failure_response(
+                    status.HTTP_409_CONFLICT,                    
+                    "Tag cannot be deleted while it is in use by"
+                             "%s instances and %s applications. "
+                             "To delete the tag, first remove "
+                             "the tag from ALL objects using it"
+                             % (instance_count, app_count))
+        tag.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def get(self, request, tag_slug, *args, **kwargs):
         """
         Return the credential information for this tag
@@ -67,7 +95,6 @@ class Tag(APIView):
         serializer = TagSerializer(tag)
         return Response(serializer.data)
 
-    @api_auth_token_required
     def put(self, request, tag_slug, *args, **kwargs):
         """
         Return the credential information for this tag

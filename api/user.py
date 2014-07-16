@@ -12,9 +12,9 @@ from rest_framework import status
 from threepio import logger
 
 
-from authentication.decorators import api_auth_token_required
 
 from service.accounts.eucalyptus import AccountDriver
+from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProfileSerializer
 from core.models.provider import Provider
 
@@ -23,9 +23,9 @@ class UserManagement(APIView):
     Represents both the collection of users
     AND
     Objects on the User class
-    TODO: LOCK THIS CLASS DOWN!!!
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+
     def post(self, request):
         """
         User Class:
@@ -52,7 +52,6 @@ class UserManagement(APIView):
         response = Response(serialized_data)
         return response
 
-    @api_auth_token_required
     def get(self, request):
         user = request.user
         if user.username is not 'admin' and not user.is_superuser:
@@ -67,8 +66,11 @@ class UserManagement(APIView):
 
 
 class User(APIView):
+    """
+    """
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, username):
         """
         Return the object belonging to the user
@@ -93,7 +95,6 @@ class User(APIView):
         response = Response(serialized_data)
         return response
 
-    @api_auth_token_required
     def delete(self, request, username):
         """
         Remove the user belonging to the username.
@@ -109,7 +110,6 @@ class User(APIView):
         return Response('NotImplemented',
                         status=status.HTTP_501_NOT_IMPLEMENTED)
 
-    @api_auth_token_required
     def put(self, request, username):
         """
         Update user information

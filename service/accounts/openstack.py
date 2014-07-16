@@ -87,7 +87,7 @@ class AccountDriver():
         admin_creds = admin_identity.get_credentials()
         self.admin_driver = get_esh_driver(admin_identity)
         admin_creds = self._libcloud_to_openstack(admin_creds)
-        all_creds = {}
+        all_creds = {'location': provider.get_location()}
         all_creds.update(admin_creds)
         all_creds.update(provider_creds)
         return all_creds
@@ -110,7 +110,7 @@ class AccountDriver():
         self.network_manager = NetworkManager(**self.net_creds)
 
     def create_account(self, username, password=None, project_name=None,
-                       role_name=None, max_quota=False):
+                       role_name=None, quota=None, max_quota=False):
         """
         Create (And Update "latest changes") to an account
 
@@ -126,6 +126,7 @@ class AccountDriver():
             username, password, project_name, role_name, max_quota)
         ident = self.create_identity(username, password,
                                      project.name,
+                                     quota=quota,
                                      max_quota=max_quota)
         return ident
 
@@ -298,14 +299,14 @@ class AccountDriver():
         return missing_creds
 
     def create_identity(self, username, password, project_name,
-                        max_quota=False, account_admin=False):
+                        quota=None, max_quota=False, account_admin=False):
 
         if not self.core_provider:
             raise Exception("AccountDriver not initialized by provider, "
                             "cannot create identity")
-
         identity = Identity.create_identity(
             username, self.core_provider.location,
+            quota=quota,
             #Flags..
             max_quota=max_quota, account_admin=account_admin,
             ##Pass in credentials with cred_ namespace
@@ -323,6 +324,7 @@ class AccountDriver():
             username,
             self.hashpass(username),
             project_name,
+            get_unique_number=get_uid_number,
             **net_args)
         return True
 
@@ -357,8 +359,11 @@ class AccountDriver():
         # Convert from libcloud names to openstack client names
         net_args = self._base_network_creds()
         return self.network_manager.create_project_network(
-            username, password, project_name,
-            get_cidr=get_uid_number, **net_args)
+            username,
+            password,
+            project_name,
+            get_unique_number=get_uid_number,
+            **net_args)
 
     # Useful methods called from above..
     def get_or_create_user(self, username, password=None,
@@ -415,8 +420,14 @@ class AccountDriver():
         """
         return username
 
-    def get_project(self, project):
-        return self.user_manager.get_project(project)
+    def list_all_images(self, **kwargs):
+        return self.image_manager.list_images(**kwargs)
+
+    def get_project_by_id(self, project_id):
+        return self.user_manager.get_project_by_id(project_id)
+
+    def get_project(self, project_name):
+        return self.user_manager.get_project(project_name)
 
     def list_projects(self):
         return self.user_manager.list_projects()
@@ -514,6 +525,7 @@ class AccountDriver():
         net_args.get("region_name")
         #Ignored:
         net_args["auth_url"] = net_args.pop("admin_url").replace("/tokens", "")
+        net_args.pop("location", None)
 
         return net_args
 
@@ -525,16 +537,9 @@ class AccountDriver():
         """
         img_args = credentials.copy()
         #Required:
-        img_args.get("username")
-        img_args.get("password")
-        img_args.get("tenant_name")
-
-        img_args["auth_url"] = img_args.get("auth_url").replace("/tokens", "")
-        img_args.get("region_name")
-        #Ignored:
-        img_args.pop("admin_url", None)
-        img_args.pop("router_name", None)
-        img_args.pop("ex_project_name", None)
+        for required_arg in ["username", "password", "tenant_name", "auth_url", "region_name"]:
+            if not img_args.has_key(required_arg) or not img_args[required_arg]:
+                raise ValueError("ImageManager is missing a Required Argument: %s" % required_arg)
 
         return img_args
 
@@ -555,6 +560,7 @@ class AccountDriver():
         user_args.get("region_name")
         #Removable args:
         user_args.pop("admin_url", None)
+        user_args.pop("location", None)
         user_args.pop("router_name", None)
         user_args.pop("ex_project_name", None)
         return user_args

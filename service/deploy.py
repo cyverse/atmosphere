@@ -2,6 +2,7 @@
 Deploy methods for Atmosphere
 """
 from os.path import basename
+import time
 
 from libcloud.compute.deployment import ScriptDeployment
 from libcloud.compute.deployment import MultiStepDeployment
@@ -11,18 +12,21 @@ from threepio import logger
 from atmosphere import settings
 from atmosphere.settings import secrets
 
+from authentication.protocol import ldap
+
 
 #
 # Deployment Classes
 #
 class LoggedScriptDeployment(ScriptDeployment):
-
-    def __init__(self, script, name=None, delete=False, logfile=None):
+    def __init__(self, script, name=None, delete=False, logfile=None,
+                 attempts=1):
         """
         Use this for client-side logging
         """
         super(LoggedScriptDeployment, self).__init__(
             script, name=name, delete=delete)
+        self.attempts = attempts
         if logfile:
             self.script = self.script + " >> %s 2>&1" % logfile
         #logger.info(self.script)
@@ -30,8 +34,24 @@ class LoggedScriptDeployment(ScriptDeployment):
     def run(self, node, client):
         """
         Server-side logging
+
+        Optional Param: attempts - # of times to retry
+        in the event of a Non-Zero exit status(code)
         """
-        node = super(LoggedScriptDeployment, self).run(node, client)
+        attempt = 0
+        retry_time = 0
+        while attempt < self.attempts:
+            node = super(LoggedScriptDeployment, self).run(node, client)
+            if self.exit_status == 0:
+                break
+            attempt += 1
+            retry_time = 2 * 2**attempt # 4,8,16..
+            logger.debug(
+                "WARN: Script %s on Node %s is non-zero."
+                " Will re-try in %s seconds. Attempt: %s/%s"
+                % (node.id, self.name, retry_time, attempt, self.attempts))
+            time.sleep(retry_time)
+
         if self.stdout:
             logger.debug('%s (%s)STDOUT: %s' % (node.id, self.name,
                                                 self.stdout))
@@ -57,6 +77,9 @@ def get_distro(distro='ubuntu'):
 def build_script(script_input, name=None):
     return ScriptDeployment(script_input, name=name)
 
+def deploy_test():
+    return ScriptDeployment(
+            "\n", name="./deploy_test.sh")
 
 def install_base_requirements(distro='ubuntu'):
     script_txt = "%s install -qy utils-linux %s"\
@@ -68,7 +91,7 @@ def install_base_requirements(distro='ubuntu'):
 
 def freeze_instance(sleep_time=45):
     return ScriptDeployment(
-        "fsfreeze -f / && sleep %s && fsfreeze -u /" % sleep_time,
+        "nohup fsfreeze -f / && sleep %s && fsfreeze -u / &" % sleep_time,
         name="./deploy_freeze_instance.sh")
 
 
@@ -83,6 +106,16 @@ def check_mount():
                             name="./deploy_check_mount.sh")
 
 
+def check_process(proc_name):
+    return ScriptDeployment(
+        "if ps aux | grep '%s' > /dev/null; "
+        "then echo '1:%s is running'; "
+        "else echo '0:%s is NOT running'; "
+        "fi"
+        % (proc_name, proc_name, proc_name),
+        name="./deploy_check_process_%s.sh"
+        % (proc_name,))
+
 def check_volume(device):
     return ScriptDeployment("tune2fs -l %s" % (device),
                             name="./deploy_check_volume.sh")
@@ -94,7 +127,9 @@ def mkfs_volume(device):
 
 
 def umount_volume(mount_location):
-    return ScriptDeployment("umount %s" % (mount_location),
+    return ScriptDeployment("mounts=`mount | grep '%s' | cut -d' ' -f3`; "
+                            "for mount in $mounts; do umount %s; done;"
+                            % (mount_location, mount_location),
                             name="./deploy_umount_volume.sh")
 
 
@@ -110,12 +145,11 @@ def step_script(step):
     return ScriptDeployment(script, name="./" + step.get_script_name())
 
 
-def wget_file(filename, url, logfile=None):
+def wget_file(filename, url, logfile=None, attempts=3):
     name = './deploy_wget_%s.sh' % (basename(filename))
     return LoggedScriptDeployment(
         "wget -O %s %s" % (filename, url),
-        name=name,
-        logfile=logfile)
+        name=name, attempts=attempts, logfile=logfile)
 
 
 def chmod_ax_file(filename, logfile=None):
@@ -125,14 +159,19 @@ def chmod_ax_file(filename, logfile=None):
         logfile=logfile)
 
 
-def package_deps(logfile=None):
+def package_deps(logfile=None, username=None):
     #These requirements are for Editors, Shell-in-a-box, etc.
     do_ubuntu = "apt-get update;apt-get install -y emacs vim wget "\
                 + "language-pack-en make gcc g++ gettext texinfo "\
-                + "autoconf automake python-httplib2"
+                + "autoconf automake python-httplib2 "
     do_centos = "yum install -y emacs vim-enhanced wget make "\
                 + "gcc gettext texinfo autoconf automake "\
-                + "python-simplejson python-httplib2"
+                + "python-simplejson python-httplib2 "
+
+    if shell_lookup_helper(username):
+        do_ubuntu = do_ubuntu + "zsh "
+        do_centos = do_centos + "zsh "
+
     return LoggedScriptDeployment(
         "distro_cat=`cat /etc/*-release`\n"
         + "if [[ $distro_cat == *Ubuntu* ]]; then\n"
@@ -143,20 +182,53 @@ def package_deps(logfile=None):
         name="./deploy_package_deps.sh",
         logfile=logfile)
 
+def shell_lookup_helper(username):
+    zsh_user = False
+    ldap_info = ldap._search_ldap(username)
+    try:
+        ldap_info_dict = ldap_info[0][1]
+    except IndexError:
+        return False
+    for key in ldap_info_dict.iterkeys():
+        if key == "loginShell":
+            if 'zsh' in ldap_info_dict[key][0]:
+                zsh_user = True
+    return zsh_user
 
-def init_script(filename, username, token, instance, password, logfile=None):
+def redeploy_script(filename, username, instance, logfile=None):
+        awesome_atmo_call = "%s --service_type=%s --service_url=%s"
+        awesome_atmo_call += " --server=%s --user_id=%s"
+        awesome_atmo_call += " --redeploy"
+        awesome_atmo_call %= (
+            filename,
+            "instance_service_v1",
+            settings.INSTANCE_SERVICE_URL,
+            settings.DEPLOY_SERVER_URL,
+            username)
+        #kludge: weirdness without the str cast...
+        str_awesome_atmo_call = str(awesome_atmo_call)
+        #logger.debug(isinstance(str_awesome_atmo_call, basestring))
+        return LoggedScriptDeployment(
+            str_awesome_atmo_call,
+            name='./deploy_call_atmoinit.sh',
+            logfile=logfile)
+
+
+def init_script(filename, username, token, instance, password, redeploy, logfile=None):
         awesome_atmo_call = "%s --service_type=%s --service_url=%s"
         awesome_atmo_call += " --server=%s --user_id=%s"
         awesome_atmo_call += " --token=%s --name=\"%s\""
+        awesome_atmo_call += "%s"
         awesome_atmo_call += " --vnc_license=%s"
         awesome_atmo_call %= (
             filename,
             "instance_service_v1",
             settings.INSTANCE_SERVICE_URL,
-            settings.SERVER_URL,
+            settings.DEPLOY_SERVER_URL,
             username,
             token,
             instance.name,
+            " --redeploy" if redeploy else "",
             secrets.ATMOSPHERE_VNC_LICENSE)
         if password:
             awesome_atmo_call += " --root_password=%s" % (password)
@@ -187,7 +259,7 @@ def init_log():
         name="./deploy_init_log.sh")
 
 
-def init(instance, username, password=None, *args, **kwargs):
+def init(instance, username, password=None, redeploy=False, *args, **kwargs):
         """
         Creates a multi script deployment to prepare and call
         the latest init script
@@ -201,36 +273,41 @@ def init(instance, username, password=None, *args, **kwargs):
             token = instance.id
 
         atmo_init = "/usr/sbin/atmo_init_full.py"
-        server_atmo_init = "/init_files/v2/atmo_init_full.py"
+        server_atmo_init = "/api/v1/init_files/v2/atmo_init_full.py"
         logfile = "/var/log/atmo/deploy.log"
 
-        url = "%s%s" % (settings.SERVER_URL, server_atmo_init)
+        url = "%s%s" % (settings.DEPLOY_SERVER_URL, server_atmo_init)
 
         script_init = init_log()
 
-        script_deps = package_deps()
+        script_deps = package_deps(logfile,username)
 
-        script_wget = wget_file(atmo_init, url, logfile)
+        script_wget = wget_file(atmo_init, url, logfile=logfile,
+                                attempts=3)
 
         script_chmod = chmod_ax_file(atmo_init, logfile)
 
         script_atmo_init = init_script(atmo_init, username, token,
-                                       instance, password, logfile)
+                                       instance, password, redeploy, logfile)
 
-        #TODO: REMOVE THIS LINE BEFORE 2/4/14
-        #script_rm_scripts = rm_scripts(logfile=logfile)
+        if redeploy:
+            #Redeploy the instance
+            script_atmo_init = redeploy_script(atmo_init, username,
+                                               instance, logfile)
+            script_list = [script_init,
+                           script_wget,
+                           script_chmod,
+                           script_atmo_init]
+        else:
+            #Standard install
+            script_list = [script_init,
+                            script_deps,
+                            script_wget,
+                            script_chmod,
+                            script_atmo_init]
 
-        return MultiStepDeployment([script_init,
-                                    script_deps,
-                                    script_wget,
-                                    script_chmod,
-                                    script_atmo_init])
+        if not settings.DEBUG:
+            script_rm_scripts = rm_scripts(logfile=logfile)
+            script_list.append(script_rm_scripts)
 
-        # kwargs.update({'deploy': msd})
-
-        # private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
-        # kwargs.update({'ssh_key': private_key})
-
-        # kwargs.update({'timeout': 120})
-
-        # return self.deploy_to(instance, *args, **kwargs)
+        return MultiStepDeployment(script_list)

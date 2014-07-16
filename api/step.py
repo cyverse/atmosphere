@@ -11,23 +11,24 @@ from rest_framework.response import Response
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
 
 from core.models.flow import Flow as CoreFlow
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import Instance as CoreInstance
 from core.models.step import Step as CoreStep
 
+from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import StepSerializer
 
-from api import failureJSON, prepare_driver
+from api import failure_response
 
 
 class StepList(APIView):
     """
     List all steps for an identity.
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id):
         """
         Using provider and identity, getlist of machines
@@ -38,7 +39,6 @@ class StepList(APIView):
         serialized_data = StepSerializer(step_list, many=True).data
         return Response(serialized_data)
 
-    @api_auth_token_required
     def post(self, request, provider_id, identity_id):
         """
         Create a new step.
@@ -46,11 +46,12 @@ class StepList(APIView):
         data = request.DATA.copy()
         valid, messages = validate_post(data)
         if not valid:
-            return Response(messages,
-                            status=status.HTTP_400_BAD_REQUEST)
-
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                messages)
         if data.get("instance_alias"):
-            instance = CoreInstance.objects.get(provider_alias=data["instance_alias"])
+            instance = CoreInstance.objects.get(
+                provider_alias=data["instance_alias"])
         else:
             instance = None
         if data.get("flow_alias"):
@@ -70,14 +71,17 @@ class StepList(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return failure_response(
+            status.HTTP_400_BAD_REQUEST,
+            serializer.errors)
 
 
 class Step(APIView):
     """
     View a details of a step.
     """
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id, step_id):
         """
         Get details of a specific step.
@@ -92,7 +96,6 @@ class Step(APIView):
         serialized_data = StepSerializer(step).data
         return Response(serialized_data)
 
-    @api_auth_token_required
     def put(self, request, provider_id, identity_id, step_id):
         """
         Update a specific step.
@@ -109,16 +112,19 @@ class Step(APIView):
         if not step:
             return step_not_found(step_id)
         if not user.is_staff and user != step.created_by:
-            return Response(["Only the step creator can update %s step." % step_id],
-                            status=status.HTTP_400_BAD_REQUEST)
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Only the step creator can update %s step." % step_id)
         required_fields(data, step)
         serializer = StepSerializer(step, data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return failure_response(
+            status.HTTP_400_BAD_REQUEST,
+            serializer.errors)
 
-    @api_auth_token_required
+
     def delete(self, request, provider_id, identity_id, step_id):
         """
         Delete a specific step.
@@ -135,15 +141,19 @@ class Step(APIView):
         if not step:
             return step_not_found(step_id)
         if not user.is_staff and user != step.created_by:
-            return Response(["Only the step creator can delete %s step." % step_id],
-                            status=status.HTTP_400_BAD_REQUEST)
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Only the step creator can delete %s step." %
+                step_id)
         required_fields(data, step)
         step.end_date = timezone.now()
         serializer = StepSerializer(step, data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return failure_response(
+            status.HTTP_400_BAD_REQUEST,
+            serializer.errors)
 
 
 def required_fields(data, step):
@@ -170,8 +180,9 @@ def fetch_step(identity_id, step_id):
 
 
 def step_not_found(step_id):
-    return Response(['Step %s was not found.' % step_id],
-                    status=status.HTTP_404_NOT_FOUND)
+    return failure_response(
+        status.HTTP_404_NOT_FOUND,
+        'Step %s was not found.' % step_id)
 
 
 def validate_post(data):

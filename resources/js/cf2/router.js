@@ -41,23 +41,20 @@ Atmo.Router = Backbone.Router.extend({
       Atmo.maintenances.fetch({
         async: false,
       });
-      if (!Atmo.maintenances.in_maintenance(identity_provider_id)) {
         Atmo.instances = new Atmo.Collections.Instances();
         Atmo.volumes = new Atmo.Collections.Volumes();
         Atmo.images = new Atmo.Collections.Machines();
+        if (Atmo.profile.get('is_staff') === true) {
+            Atmo.instance_hypervisors = new Atmo.Collections.Hypervisors();
+            Atmo.instance_hypervisors.fetch({async: false});
+        }
         Atmo.instance_types = new Atmo.Collections.Sizes();
-        Atmo.instance_types.fetch({async: false});
-        new Atmo.Views.Sidebar({el: $('#menu_wrapper')}).render();
-        Atmo.instances.fetch({
-          async: false
-        });
-        Atmo.volumes.fetch();
-        Atmo.images.fetch();
-      }
 
       Atmo.notifications = new Atmo.Collections.Notifications();
       
       this.main = new Atmo.Views.Main({el: $('#main')[0]}).render();
+      new Atmo.Views.Sidebar({el: $('#menu_wrapper')}).render();
+
 
       setInterval(function() {
         $('#refresh_instances_button').click();
@@ -114,19 +111,19 @@ Atmo.Router = Backbone.Router.extend({
       $('#contact_support').click(function(e) {
         e.preventDefault();
         $('#feedback_link').trigger('click');
-      });
-      
-      // Populate version number
-      $.ajax({
-	type: 'GET',
-	url: site_root + '/api/v1/version/', 
-	statusCode: {
-	  200:  function(response) {
-	    $('#version').html('(v. ' + response['normal'] + ')');
-	  }
-	},
-      });
-      
+                                  });
+        $.ajax({
+                   type: 'GET',
+                   url: site_root + '/api/v1/version/',
+                   statusCode: {
+                       200:  function(response) {
+                           $('#version').html('<a href="https://github.com/iPlantCollaborativeOpenSource/atmosphere/tree/'
+                                              + response['git_sha'] + '">'
+                                              + new Date(response['date']).toString("F") + ' '
+                                              + '(' + response['git_sha_abbrev'] + ')</a>');
+                       }
+                   },
+               });
       $('#total_cpu_time a').click(function() {
 	$('#cpu_modal').modal('show');
       });
@@ -137,12 +134,10 @@ Atmo.Router = Backbone.Router.extend({
     var identity_provider_id = identity.get("provider_id");
     if(!Atmo.maintenances.in_maintenance(identity_provider_id)){
       this.main.show_instance_screen();
-      if (Atmo.instances.models.length > 0 && !Atmo.instances.selected_instance) {
-          Atmo.instances.select_instance(Atmo.instances.models[0]);
-        }
-	else {
-	  Backbone.history.navigate('instances');
-	}
+      Atmo.instances.on('reset', function(collection) {
+           if (!collection.isEmpty() && !collection.selected_instance)
+               collection.select_instance(collection.at(0));
+      });
         // Hide all help tips so none remain after navigating away from it
         Atmo.Utils.hide_all_help();
       }
@@ -187,4 +182,13 @@ Atmo.Router = Backbone.Router.extend({
 $(document).ready(function() {
   window.app = new Atmo.Router();
   Backbone.history.start();
+
+  var identity = Atmo.profile.get('selected_identity');
+  var identity_provider_id = identity.get("provider_id");
+  if (!Atmo.maintenances.in_maintenance(identity_provider_id)) {
+        Atmo.instance_types.fetch({async: false});
+        Atmo.instances.fetch();
+        Atmo.volumes.fetch();
+        Atmo.images.fetch();
+  }
 });

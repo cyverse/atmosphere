@@ -57,7 +57,7 @@
 
 					  {% for record in records %}
 						<div class='maintenance-message'
-					  id='maintenance-record-{{record.id}}'><i class="glyphicon-info-sign
+					  id='maintenance-record-{{record.id}}'><i class="glyphicon glyphicon-info-sign
 					  icon-white"></i>
 {% if record.provider %}
   {{record.provider}} {{record.message}}
@@ -67,7 +67,10 @@
 					  {% endfor %}
 					  <form method="post" action=".">
 						{% csrf_token %}
+{% if disable_login == False %}
 						<input type="submit" value="Log in with your iPlant ID" class="submitButton">
+{% else %}
+{% endif %}
 						<input type="hidden" name="next" value="/">
 					  </form>
 

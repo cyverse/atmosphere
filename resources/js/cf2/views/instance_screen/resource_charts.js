@@ -29,7 +29,6 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
         }
         else {
             total = Atmo.profile.get('selected_identity').get('quota')[this.quota_type];
-            //console.log(Atmo.profile.get('selected_identity').get('quota'));
 
             if (this.quota_type == 'storage') {
                 $.each(Atmo.volumes.models, function(i, volume) {
@@ -206,7 +205,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 
                     // Filter out any instances that aren't active
                     instances = _.filter(instances, function(instance) {
-                        return instance['state'] != 'suspended' && instance['state'] != 'stopped';
+                        return instance['state'] != 'suspended';
                     });
 
                     // Add together quota used by instances cumulatively
@@ -275,7 +274,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
         var percent = 0, cssPercent = 0;
 
         if (used > 0) {
-            percent = Math.floor((used / total) * 100);
+            percent = Math.min(100,Math.floor((used / total) * 100));
             cssPercent = (percent > 100) ? 100 : percent;
         }
         else {
@@ -331,8 +330,16 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
     show_quota_info: function(used, total, is_projected, under_quota, time_obj) {
         // is_projected: boolean, should quota denote future use or current use
 
-        var info = '';
-
+        var info = '',
+            selected_identity = Atmo.profile.get('selected_identity'),
+            quota = selected_identity.get('quota'),
+            time_quota_left,
+            end_date;
+        if (quota.allocation !== null && quota.allocation !== undefined) {
+            time_quota_left = quota.allocation.ttz,
+            end_date = time_quota_left ? new Date(time_quota_left) : null;
+        } 
+        
         if (this.quota_type == 'cpu') {
             quota_title = "Processor Unit";
             quota_desc = "aproximation of CPU hours";
@@ -395,13 +402,14 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
         // Place info into sibling div element
         var info_holder = this.$el.parent().find('#' + this.quota_type + 'Holder_info');
         info_holder.html(info);
-        var remaining = total - used;
+        var remaining = Math.max(0,total - used);
         var remaining_str = remaining + ' ' + quota_unit + 's';
 
         popover_content = 'The graph above represents the <b>' + quota_desc + ' you have currently used</b> for this provider.<br /><br />';
         popover_content += 'As of now, you have <b>' +  remaining_str + ' remaining.</b><br /><br />';
-        if (time_obj) {
-            popover_content += "Given your current instance configuration, you will <b>run out of ALL your " + quota_title.toLowerCase() + " in " + time_obj.burn_time + ' ' + quota_unit +'s</b>';
+        if (time_obj != null && time_obj.burn_time != null && end_date) {
+            popover_content += "Given your current instance configuration, you will <b>run out of ALL your instance time by  " +
+            ((end_date != undefined) ? end_date._toString() : remaining_str) +'</b>';
         }
         this.$el.popover('destroy');
         this.$el.popover({

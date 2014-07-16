@@ -15,7 +15,9 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		'click .request_imaging_btn': 'request_imaging',
 		'click .report_instance_btn': 'report_instance',
 		'click .resize_instance_btn' : 'resize_instance',
+		'click .console_instance_btn' : 'console_instance',
 		'click .reboot_instance_btn' : 'reboot_instance',
+        'click .hard_reboot_instance_btn' : 'hard_reboot_instance',
 		'change select[name="vis"]': 'toggle_vis_input',
 		'click .editing': 'edit_instance_info',
 		'click .editable' : 'redir_edit_instance_info',
@@ -43,7 +45,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		if (this.model.get('state_is_active') && this.model.get('has_vnc') == true) {
 			this.$el.find('.instance_tabs a.instance_vnc_tab')
 				.show()
-				.removeClass("tab_disabled")
+				.removeClass("disabled")
 				.attr("title", "");
 
 			// Get rid of tooltip and 'VNC Unavailable' text
@@ -52,7 +54,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		} 
 		else if (this.model.get('has_vnc') == false || this.model.get('has_vnc') == undefined) { 
 			this.$el.find('.instance_tabs a.instance_vnc_tab')
-				.addClass("tab_disabled")
+				.addClass("disabled")
 				.attr("title", "This instance does not support VNC");
 			
 			// Give you user reasons it might be disabled
@@ -88,7 +90,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		if (this.model.get('state_is_active') && this.model.get('has_shell') == true) {
 			this.$el.find('.instance_tabs a.instance_shell_tab')
 				.show()
-				.removeClass("tab_disabled")
+				.removeClass("disabled")
 				.attr("title", "");
 			
 			// Get rid of tooltip and 'Shell Unavailable' text
@@ -97,7 +99,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		} 
 		else if (this.model.get('has_shell') == false || this.model.get('has_shell') == undefined) {
 			this.$el.find('.instance_tabs a.instance_shell_tab')
-				.addClass("tab_disabled")
+				.addClass("disabled")
 				.attr("title", "This instance does not support shell.");
 
 			// Give you user reasons it might be disabled
@@ -133,7 +135,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		this.$el.data('instance', this.model);
 		this.$el.attr('data-instanceid', this.model.get('id'));
 		var self = this;
-		this.$el.find('.instance_tabs a.instance_shell_tab, .instance_tabs a.instance_vnc_tab').addClass("tab_disabled");
+		this.$el.find('.instance_tabs a.instance_shell_tab, .instance_tabs a.instance_vnc_tab').addClass("disabled");
 
 		// Enable Shell/VNC if instance has those available
         this.update_shell_tab();
@@ -203,7 +205,11 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		this.$el.find('.instance_info').html(_.template(Atmo.Templates.instance_info_tab, this.model.toJSON()));
 
 		var self = this;
-
+        var ip_span = this.$el.find('#instance-ip-span');
+        if (this.model.get('public_dns_name') == "0.0.0.0") {
+            //Clear the IP address field
+            ip_span.html("");
+        }
 		// Display OpenStack-specific options
 		if (Atmo.profile.get('selected_identity').get('provider').match(/openstack/i) || Atmo.profile.get('selected_identity').get('provider').match(/iplant/i) ) {
 
@@ -237,6 +243,8 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				this.$el.find('.request_imaging_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.report_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('.hard_reboot_instance_dropdown').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('.hard_reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.suspend_resume_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.start_stop_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('a[href^="#request_imaging"]').hide();
@@ -276,8 +284,10 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 				this.$el.find('.request_imaging_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.report_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
-				this.$el.find('#instance_tabs a[href="#instance_shell"]').addClass("tab_disabled");
-				this.$el.find('#instance_tabs a[href="#instance_vnc"]').addClass("tab_disabled");
+				this.$el.find('.hard_reboot_instance_dropdown').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('.hard_reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+				this.$el.find('#instance_tabs a[href="#instance_shell"]').addClass("disabled");
+				this.$el.find('#instance_tabs a[href="#instance_vnc"]').addClass("disabled");
 			}
 
 			// Don't permit terminate if instance is suspended
@@ -286,7 +296,6 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 			this.$el.find('#euca_controls').fadeIn('fast');
 		}
-
         this.display_graph();
 
 		// Shutting-down/terminted instances should have terminate button disabled
@@ -381,7 +390,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 		var ipaddr = this.model.get("public_dns_name");
 		
-		if (this.$el.find('.instance_tabs a[href="#instance_shell"]').hasClass("tab_disabled")) {
+		if (this.$el.find('.instance_tabs a[href="#instance_shell"]').hasClass("disabled")) {
 			return false;
 		} else {
 			var currentShell = this.$el.find('.shell_iframe[data-ip="'+ipaddr+'"]');
@@ -419,7 +428,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 	instance_vnc: function() {
 		var ipaddr = this.model.get("public_dns_name");
 
-		if (this.$el.find('.instance_tabs a.instance_vnc_tab').hasClass("tab_disabled")) {
+		if (this.$el.find('.instance_tabs a.instance_vnc_tab').hasClass("disabled")) {
 			return false;
 		} else {
 			var currentVNC = this.$el.find('.vnc_iframe[data-ip="'+ipaddr+'"]');
@@ -482,6 +491,25 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		this.$el.find('a.report_instance_tab').fadeIn('fast').trigger('click');
 		this.$el.find('.report_instance_form').fadeIn('fast');
 
+	},
+	console_instance: function() {
+		Atmo.Utils.notify('Launching Instance Console', 'The new console window will appear in a new tab momentarily.');
+        data = {"action":"console"};
+	    var newtab = window.open(url, '_blank');
+		var ident = Atmo.profile.get('selected_identity');
+		var instance_id = this.model.get('id');
+		$.ajax({
+			url: site_root + '/api/v1/provider/' + ident.get('provider_id') + '/identity/' + ident.get('id') + '/instance/' + instance_id + '/action/',
+			type: 'POST',
+			data: data,
+			success: function(result_obj) {
+                url = result_obj['object']
+                newtab.location = url;
+			},
+			error: function(request, status, error) {
+			   Atmo.Utils.notifyErrors(request, 'Could not stop instance for the following error(s):');	
+			}
+		});
 	},
 	resize_instance: function() {
 
@@ -593,18 +621,21 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			this.edit_instance_info(e);
 	},
 	reboot_instance: function(e) {
-		var header = '';		// Title of confirmation modal
-		var body = '';			// Body of confirmation modal
-		var ok_button = '';		// The text of the confirmation button
-		var on_confirm;			// Function to perform if user confirms modal
-		var data = {};			// Post data for the action to perform on the instance
-		var id = Atmo.profile.get('selected_identity');
-		var self = this;
+	    var header = '',
+            body = '',
+            ok_button = '',
+            on_confirm,
+            data = {},
+            identity_id = Atmo.profile.get('selected_identity'),
+            identity = Atmo.identities.get(identity_id),
+            provider_name = identity.get('provider').get('type'),
+            provider_name_lowercase = provider_name.toLowerCase(),
+            self = this;
 
 		header = 'Reboot Instance';
 
 		// Reboot is hard or soft depending on whether you're on OpenStack or Eucalyptus, respectively
-		if (Atmo.profile.get('selected_identity').get('provider_id') == 2) {
+		if (provider_name_lowercase === 'openstack') {
 			body = '<p class="alert alert-error"><i class="glyphicon glyphicon-question-sign"></i> <strong>WARNING</strong> '
 				+ 'Rebooting an instance will cause it to temporarily shut down and become inaccessible during that time.';
 		}
@@ -617,27 +648,75 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		on_confirm = function() {
 			Atmo.Utils.notify('Instance is rebooting...', 'Instance will finish rebooting momentarily.');
 			$.ajax({
-				url: site_root + '/api/v1/provider/' + id.get('provider_id') + '/identity/' + id.get('id') + '/instance/' + self.model.get('id') + '/action/',
+				url: site_root + '/api/v1/provider/' +
+                     identity_id.get('provider_id') + '/identity/' + identity_id.get('id') 
+                     + '/instance/' + self.model.get('id') + '/action/',
+
 				type: 'POST',
 				data: data,
 				success: function() {
 					// Merges models to those that are accurate based on server response
 					Atmo.instances.update();
-					if (Atmo.profile.get('selected_identity').get('provider_id') == 1)
+					if (provider_name_lowercase !== 'openstack')
 						Atmo.Utils.notify("Reboot Successful", "Your instance has successfully performed a soft reboot.");
 				}, 
-				error: function() {
-					Atmo.Utils.notify(
-						'Could not reboot instance', 
-						'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
-						{ no_timeout: true }
-					);
+				error: function(request,model,error) {
+				  Atmo.Utils.notifyErrors(request,'Could not reboot instance for the following reason(s):');					
 				}
 			});
 		};
 
 		Atmo.Utils.confirm(header, body, { ok_button: ok_button, on_confirm: on_confirm });
 	},
+
+    hard_reboot_instance: function(e){
+        var header = '',
+            body = '',
+            ok_button = '',
+            on_confirm,
+            data = {},
+            identity_id = Atmo.profile.get('selected_identity'),
+            identity = Atmo.identities.get(identity_id),
+            provider_name = identity.get('provider').get('type'),
+            provider_name_lowercase = provider_name.toLowerCase(),
+            self = this;
+
+        header = 'Hard Reboot Instance';
+
+        if(provider_name_lowercase === 'openstack'){
+            body = '<p class="alert alert-error"><i class="glyphicon glyphicon-question-sign"></i> <strong>WARNING</strong> '
+                 + 'Rebooting an instance will cause it to temporarily shut down and become inaccessible during that time.';
+        }
+        else{
+            body = 'Your instance will perform a soft reboot.';
+        }
+
+        ok_button = 'Hard Reboot Instance';
+        data = { action : "reboot" , reboot_type : "HARD" };
+        on_confirm = function(){
+            Atmo.Utils.notify('Instance is hard rebooting...', 'Instance will finish rebooting momentarily.');
+            $.ajax({
+                url: site_root + '/api/v1/provider/' +
+                     identity_id.get('provider_id') + '/identity/' +
+                     identity_id.get('id') + '/instance/' +
+                     self.model.get('id') + '/action/',
+
+                type: 'POST',
+                data: data,
+                success: function(){
+                    Atmo.instances.update();
+                    if(provider_name_lowercase !== 'openstack')
+                        Atmo.Utils.notify("Reboot Successful", "Your instance has successfully performed a soft reboot.");
+                },
+                error: function(request, model, error){
+                    Atmo.Utils.notifyErrors(request,'Could not reboot instance for the following reason(s):');
+                }
+            });
+        };
+
+        Atmo.Utils.confirm(header, body, { ok_button: ok_button, on_confirm: on_confirm });
+    },
+
 	suspend_resume_instance: function(e) {
 		var header = '';		// Title of confirmation modal
 		var body = '';			// Body of confirmation modal
@@ -683,16 +762,12 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 						success: function() {
 							Atmo.instances.update();
 						},
-						error: function() {
-							self.model.set({state: 'suspended',
+						error: function(request, status, error) {
+						   self.model.set({state: 'suspended',
 											state_is_build: false,
 											state_is_inactive: true});
 
-							Atmo.Utils.notify(
-								'Could not resume instance', 
-								'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
-								{ no_timeout: true }
-							);
+						  Atmo.Utils.notifyErrors(request,'You could not resume your instance for the following reason(s):');
 						}
 					});
 				};
@@ -707,7 +782,8 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			header = 'Suspend Instance';
 			body = '<p class="alert alert-error"><i class="glyphicon glyphicon-warning-sign"></i> <strong>WARNING</strong> '
 				+ 'Suspending an instance will freeze its state, and the IP address may change when you resume the instance.</p>'
-				+ 'Suspending an instance frees up resources for other users and allows you to safely preserve the state of your instance without imaging.'
+				+ 'Suspending an instance frees up resources for other users and allows you to safely preserve the state of your instance without imaging. '
+				+ 'Your time allocation no longer counts against you in the suspended mode.'
 				+ '<br><br>'
 				+ 'Your resource usage charts will only reflect the freed resources once the instance\'s state is "suspended."';
 			ok_button = 'Suspend Instance';
@@ -723,13 +799,9 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 						// Merges models to those that are accurate based on server response
 						Atmo.instances.update();
 					}, 
-					error: function() {
-						self.model.set({ state_is_active: true, state_is_build: false });
-						Atmo.Utils.notify(
-							'Could not suspend instance', 
-							'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
-							{ no_timeout: true }
-						);
+					error: function(request,status,error) {
+					  self.model.set({ state_is_active: true, state_is_build: false });
+					  Atmo.Utils.notifyErrors(request, 'You could not suspend your instance for the following reason(s):');
 					}
 				});
 			};
@@ -781,15 +853,11 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 							// Merges models to those that are accurate based on server response
 							Atmo.instances.update();
 						}, 
-						error: function() {
+						error: function(request, status, error) {
 							self.model.set({state: 'shutoff',
 											state_is_build: false,
 											state_is_inactive: true});
-							Atmo.Utils.notify(
-								'Could not start instance', 
-								'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
-								{ no_timeout: true }
-							);
+							Atmo.Utils.notifyErrors(request,'Coult not start instance for the following reason(s):');
 						}
 					});
 				};
@@ -802,7 +870,7 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 		}
 		else {
 			header = 'Stop Instance';
-			body = 'Your instance will be stopped.';
+			body = 'Your instance will be stopped.<br /><br/><strong>NOTE:</strong> This will NOT affect your resources. To preserve resources and time allocation you must Suspend your instance.';
 			ok_button = 'Stop Instance';
 			data = { "action" : "stop" };
 			on_confirm = function() {
@@ -816,12 +884,8 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 						// Merges models to those that are accurate based on server response
 						Atmo.instances.update();
 					},
-					error: function() {
-						Atmo.Utils.notify(
-							'Could not stop instance', 
-							'If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
-							{ no_timeout: true }
-						);
+					error: function(request, status, error) {
+					   Atmo.Utils.notifyErrors(request, 'Could not stop instance for the following error(s):');	
 					}
 				});
 			};

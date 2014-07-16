@@ -12,7 +12,7 @@ from threepio import logger
 from core.email import send_instance_email
 from core.models.instance import Instance as CoreInstance
 
-from api import failureJSON
+from api import failure_response
 
 
 class NotificationList(APIView):
@@ -21,6 +21,10 @@ class NotificationList(APIView):
         A List of Instance
         Calls to the Instance Class
     """
+    #Nothing required for this API, instances call out to here
+    #TODO: Write a permission "hasInstanceRemoteAddr"
+    #permission_classes = (,)
+
     def _select_action(self, request, action, params):
         if 'instance_launched' in action:
             self._email_instance_owner(request, params)
@@ -32,26 +36,30 @@ class NotificationList(APIView):
         '''
         instance_token = params.get('token')
         username = params.get('userid')
-        vm_info = params.get('vminfo')
+        vm_info = params.get('vminfo',{})
         instance_name = params.get('name')
-        instance = CoreInstance.objects.filter(provider_alias=vm_info['instance-id'])
-        if not instance:
-            error_list = [
-                {'code': 404,
-                 'message': 'The token %s did not match a core instance'
-                 % instance_token}
-            ]
-            instance = CoreInstance.objects.filter(
-                ip_address=request.META['REMOTE_ADDR'])
+        instance_id = vm_info.get('instance-id')
+        instance = None
+        if instance_id:
+            instance = CoreInstance.objects.filter(provider_alias=instance_id)
+        elif instance_token:
+            instance = CoreInstance.objects.filter(token=instance_token)
+        error_list = []
         if not instance:
             error_list.append(
-                {'code': 404,
-                 'message':
-                 'The IP Address %s did not match a core instance'
-                 % request.META['REMOTE_ADDR']}
-            )
-            errorObj = failureJSON(error_list)
-            return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+                "The token %s did not match a core instance."
+                 % instance_token)
+            instance = CoreInstance.objects.filter(
+                ip_address=request.META['REMOTE_ADDR'])
+            #TODO: AND filter no end_date
+        if not instance:
+            error_list.append(
+                "The IP Address %s did not match a new core instance."
+                % request.META['REMOTE_ADDR'])
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                str(error_list))
+        #Get out of the filter
         instance = instance[0]
         ip_address = vm_info.get('public-ipv4',
                                  request.META.get('REMOTE_ADDR'))

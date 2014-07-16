@@ -1,41 +1,80 @@
-import uuid
-import time
+from dateutil.relativedelta import relativedelta
 import os.path
+import time
+import uuid
+
+from django.utils.timezone import datetime
 from djcelery.app import app
+
+from threepio import logger, status_logger
 
 from rtwo.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
     OSProvider, OSValhallaProvider
 from rtwo.driver import OSDriver
-from threepio import logger
 
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import convert_esh_instance
 from core.models.size import convert_esh_size
 from core.models.provider import AccountProvider
 
-from atmosphere import settings
-from atmosphere.settings import secrets
-
 from api import get_esh_driver
 
+from atmosphere import settings
+from atmosphere.settings import secrets
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
-    SizeNotAvailable
+    SizeNotAvailable, HypervisorCapacityError
 from service.accounts.openstack import AccountDriver as OSAccountDriver
+                
+def reboot_instance(esh_driver, esh_instance, reboot_type="SOFT"):
+    """
+    Default to a soft reboot, but allow option for hard reboot.
+    """
+    esh_driver.reboot_instance(esh_instance, reboot_type=reboot_type)
+    #reboots take very little time..
+    redeploy_init(esh_driver, esh_instance, countdown=5)
 
+def resize_instance(esh_driver, esh_instance, size_alias,
+                    provider_id, identity_id, user):
+    size = esh_driver.get_size(size_alias)
+    redeploy_task = resize_and_redeploy(esh_driver, esh_instance, identity_id)
+    esh_driver.resize_instance(esh_instance, size)
+    redeploy_task.apply_async()
+    #Write build state for new size
+    update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
+
+def confirm_resize(esh_driver, esh_instance, provider_id, identity_id, user):
+    esh_driver.confirm_resize_instance(esh_instance)
+    #Double-Check we are counting on new size
+    update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
 # Networking specific
-def remove_ips(esh_driver, esh_instance):
+def remove_ips(esh_driver, esh_instance, update_meta=True):
+    """
+    Returns: (floating_removed, fixed_removed)
+    """
     network_manager = esh_driver._connection.get_network_manager()
-    network_manager.disassociate_floating_ip(esh_instance.id)
+    #Floating
+    result = network_manager.disassociate_floating_ip(esh_instance.id)
+    logger.info("Removed Floating IP for Instance %s - Result:%s"
+                % (esh_instance.id, result))
+    if update_meta:
+        update_instance_metadata(esh_driver, esh_instance,
+                                 data={'public-ip': '',
+                                       'public-hostname':''},
+                                 replace=False)
+    #Fixed
     instance_ports = network_manager.list_ports(device_id=esh_instance.id)
     if instance_ports:
         fixed_ips = instance_ports[0].get('fixed_ips',[])
         if fixed_ips:
             fixed_ip = fixed_ips[0]['ip_address']
-            esh_driver._connection.ex_remove_fixed_ip(esh_instance, fixed_ip)
+            result = esh_driver._connection.ex_remove_fixed_ip(esh_instance, fixed_ip)
+            logger.info("Removed Fixed IP %s - Result:%s" % (fixed_ip, result))
+            return (True, True)
+    return (True, False)
 
 def remove_network(esh_driver, identity_id):
     from service.tasks.driver import remove_empty_network
@@ -46,11 +85,15 @@ def remove_network(esh_driver, identity_id):
 
 def restore_network(esh_driver, esh_instance, identity_id):
     core_identity = CoreIdentity.objects.get(id=identity_id)
-    (network, subnet) = network_init(core_identity)
-    return network, subnet
+    network = network_init(core_identity)
+    return network
 
-def restore_ips(esh_driver, esh_instance):
-    from service.tasks.driver import add_floating_ip
+def _convert_network_name(esh_driver, esh_instance):
+    """
+    For a given instance, retrieve the network-name and 
+    convert it to a network-id
+    """
+    #Get network name and convert to network ID
     node_network = esh_instance.extra.get('addresses')
     if not node_network:
         raise Exception("Could not determine the network for node %s"
@@ -58,7 +101,7 @@ def restore_ips(esh_driver, esh_instance):
     try:
         network_name = node_network.keys()[0]
     except Exception, e:
-        raise Exception("Could not determine network name for node %s"
+        raise Exception("Could not determine name of the network for node %s"
                         % node)
 
     try:
@@ -71,13 +114,85 @@ def restore_ips(esh_driver, esh_instance):
     except Exception, e:
         raise
 
-    esh_driver._connection.ex_add_fixed_ip(esh_instance, network_id)
-    add_floating_ip.s(esh_driver.__class__, esh_driver.provider,
-                      esh_driver.identity,
-                      esh_instance.id).apply_async(countdown=10)
+    return network_id
+
+def resize_and_redeploy(esh_driver, esh_instance, core_identity_id):
+    """
+    Use this function to kick off the async task when you ONLY want to deploy
+    (No add fixed, No add floating)
+    """
+    from service.tasks.driver import deploy_init_to, deploy_script
+    from service.tasks.driver import wait_for, complete_resize
+    from service.deploy import deploy_test
+    touch_script = deploy_test()
+    core_identity = CoreIdentity.objects.get(id=core_identity_id)
+
+    task_one = wait_for.s(
+            esh_driver.__class__, esh_driver.provider,
+            esh_driver.identity, esh_instance.id, "verify_resize")
+    task_two = deploy_script.si(
+            esh_driver.__class__, esh_driver.provider,
+            esh_driver.identity, esh_instance.id, touch_script)
+    task_three = complete_resize.si(
+            esh_driver.__class__, esh_driver.provider,
+            esh_driver.identity, esh_instance.id,
+            core_identity.provider.id, core_identity.id, core_identity.created_by)
+    task_four = deploy_init_to.si(
+            esh_driver.__class__, esh_driver.provider,
+            esh_driver.identity, esh_instance.id,
+            redeploy=True)
+    #Link em all together!
+    task_one.link(task_two)
+    task_two.link(task_three)
+    task_three.link(task_four)
+    return task_one
 
 
-#Instance specific
+def redeploy_init(esh_driver, esh_instance, countdown=None):
+    """
+    Use this function to kick off the async task when you ONLY want to deploy
+    (No add fixed, No add floating)
+    """
+    from service.tasks.driver import deploy_init_to
+    logger.info("Add floating IP and Deploy")
+    deploy_init_to.s(esh_driver.__class__, esh_driver.provider,
+                     esh_driver.identity, esh_instance.id,
+                     redeploy=True).apply_async(countdown=countdown)
+
+
+def restore_ip_chain(esh_driver, esh_instance, redeploy=False):
+    """
+    Returns: a task, chained together
+    task chain: wait_for("active") --> AddFixed --> AddFloating
+    --> reDeploy
+    start with: task.apply_async()
+    """
+    from service.tasks.driver import \
+            wait_for, add_fixed_ip, add_floating_ip, deploy_init_to
+    init_task = wait_for.s(
+            esh_driver.__class__, esh_driver.provider,
+            esh_driver.identity, esh_instance.id, ["active",],
+            no_tasks=True)
+    #Step 1: Add fixed
+    fixed_ip_task = add_fixed_ip.si(
+            esh_driver.__class__, esh_driver.provider,
+            esh_driver.identity, esh_instance.id)
+    init_task.link(fixed_ip_task)
+    #Add float and re-deploy OR just add floating IP...
+    if redeploy:
+        deploy_task = deploy_init_to.si(esh_driver.__class__, esh_driver.provider,
+                     esh_driver.identity, esh_instance.id,
+                     redeploy=True)
+        fixed_ip_task.link(deploy_task)
+    else:
+        logger.info("Skip deployment, Add floating IP only")
+        floating_ip_task = add_floating_ip.si(esh_driver.__class__, esh_driver.provider,
+                          esh_driver.identity,
+                          esh_instance.id)
+        fixed_ip_task.link(floating_ip_task)
+    return init_task
+
+
 def stop_instance(esh_driver, esh_instance, provider_id, identity_id, user,
                   reclaim_ip=True):
     """
@@ -99,20 +214,14 @@ def start_instance(esh_driver, esh_instance, provider_id, identity_id, user,
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
     from service.tasks.driver import update_metadata
+    #Don't check capacity because.. I think.. its already being counted.
+    #admin_capacity_check(provider_id, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
-    if update_meta:
-        update_instance_metadata(esh_driver, esh_instance,
-                                 data={'tmp_status': 'networking'},
-                                 replace=False)
+        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True)
     esh_driver.start_instance(esh_instance)
     if restore_ip:
-        restore_ips(esh_driver, esh_instance)
-    if update_meta:
-        #Run this task only when instance moves from suspended --> active
-        update_metadata.s(
-            esh_driver.__class__, esh_driver.provider, esh_driver.identity,
-            esh_instance.id, {'tmp_status': ''}).apply_async(countdown=30)
+        deploy_task.apply_async(countdown=10)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
 
@@ -131,6 +240,59 @@ def suspend_instance(esh_driver, esh_instance,
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
     return suspended
 
+def admin_capacity_check(provider_id, instance_id):
+    from service.driver import get_admin_driver
+    from core.models import Provider
+    p = Provider.objects.get(id=provider_id)
+    admin_driver = get_admin_driver(p)
+    instance = admin_driver.get_instance(instance_id)
+    if not instance:
+        logger.warn("ERROR - Could not find instance id=%s"
+                    % (instance_id,))
+        return
+    hypervisor_hostname = instance.extra['object']\
+            .get('OS-EXT-SRV-ATTR:hypervisor_hostname')
+    if not hypervisor_hostname:
+        logger.warn("ERROR - Server Attribute hypervisor_hostname missing!"
+                    "Assumed to be under capacity")
+        return
+    hypervisor_stats = admin_driver._connection.ex_detail_hypervisor_node(
+            hypervisor_hostname)
+    return test_capacity(hypervisor_hostname, instance, hypervisor_stats)
+
+def test_capacity(hypervisor_hostname, instance, hypervisor_stats):
+    """
+    Test that the hypervisor has the capacity to bring an inactive instance
+    back online on the compute node
+    """
+    #CPU tests first (Most likely bottleneck)
+    cpu_total = hypervisor_stats['vcpus']
+    cpu_used = hypervisor_stats['vcpus_used']
+    cpu_needed = instance.size.cpu
+    log_str = "Resource:%s Used:%s Additional:%s Total:%s"\
+            % ("cpu", cpu_used, cpu_needed, cpu_total)
+    logger.debug(log_str)
+    if cpu_used + cpu_needed > cpu_total:
+        raise HypervisorCapacityError(hypervisor_hostname, "Hypervisor is over-capacity. %s" % log_str)
+
+    # ALL MEMORY VALUES IN MB
+    mem_total = hypervisor_stats['memory_mb']
+    mem_used = hypervisor_stats['memory_mb_used']
+    mem_needed = instance.size.ram
+    log_str = "Resource:%s Used:%s Additional:%s Total:%s"\
+            % ("mem", mem_used, mem_needed, mem_total)
+    logger.debug(log_str)
+    if mem_used + mem_needed > mem_total:
+        raise HypervisorCapacityError(hypervisor_hostname, "Hypervisor is over-capacity. %s" % log_str)
+
+    # ALL DISK VALUES IN GB
+    disk_total = hypervisor_stats['local_gb']
+    disk_used = hypervisor_stats['local_gb_used']
+    disk_needed = instance.size.disk + instance.size.ephemeral
+    log_str = "Resource:%s Used:%s Additional:%s Total:%s"\
+            % ("disk", disk_used, disk_needed, disk_total)
+    if disk_used + disk_needed > disk_total:
+        raise HypervisorCapacityError(hypervisor_hostname, "Hypervisor is over-capacity. %s" % log_str)
 
 def resume_instance(esh_driver, esh_instance,
                     provider_id, identity_id,
@@ -140,51 +302,48 @@ def resume_instance(esh_driver, esh_instance,
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
-    from service.tasks.driver import update_metadata
-    check_quota(user.username, identity_id, esh_instance.size, resuming=True)
+    from service.tasks.driver import update_metadata, _update_status_log
+    _update_status_log(esh_instance, "Resuming Instance")
+    size = esh_driver.get_size(esh_instance.size.id)
+    check_quota(user.username, identity_id, size, resuming=True)
+    #admin_capacity_check(provider_id, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
-    if update_meta:
-        update_instance_metadata(esh_driver, esh_instance,
-                                 data={'tmp_status': 'networking'},
-                                 replace=False)
+        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True)
     esh_driver.resume_instance(esh_instance)
     if restore_ip:
-        restore_ips(esh_driver, esh_instance)
-    if update_meta:
-        #Run this task only when instance moves from suspended --> active
-        update_metadata.s(
-            esh_driver.__class__, esh_driver.provider, esh_driver.identity,
-            esh_instance.id, {'tmp_status': ''}).apply_async(countdown=30)
-    update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
+        deploy_task.apply_async(countdown=10)
 
+def admin_get_instance(esh_driver, instance_id):
+    instance_list = esh_driver.list_all_instances()
+    esh_instance = [instance for instance in instance_list if
+                    instance.id == instance_id]
+    if not esh_instance:
+        return None
+    return esh_instance[0]
 
 def update_status(esh_driver, instance_id, provider_id, identity_id, user):
+    """
+    All that this method really does is:
+    * Query for the instance
+    * call 'convert_esh_instance'
+    Converting the instance internally updates the status history..
+    But it makes more sense to call this function in the code..
+    """
     #Grab a new copy of the instance
-    instance_list_method = esh_driver.list_instances
 
     if AccountProvider.objects.filter(identity__id=identity_id):
-        # Instance list method changes when using the OPENSTACK provider
-        instance_list_method = esh_driver.list_all_instances
-
-    try:
-        esh_instance_list = instance_list_method()
-    except InvalidCredsError:
-        return invalid_creds(provider_id, identity_id)
-
-    esh_instance = [instance for instance in esh_instance_list if
-                    instance.id == instance_id]
-    esh_instance = esh_instance[0]
-
+        esh_instance = admin_get_instance(esh_driver, instance_id)
+    else:
+        esh_instance = esh_driver.get_instance(instance_id)
+    if not esh_instance:
+        return None
     #Convert & Update based on new status change
     core_instance = convert_esh_instance(esh_driver,
                                          esh_instance,
                                          provider_id,
                                          identity_id,
                                          user)
-    core_instance.update_history(
-        core_instance.esh.extra['status'],
-        core_instance.esh.extra.get('task'))
 
 
 def get_core_instances(identity_id):
@@ -209,7 +368,11 @@ def destroy_instance(identity_id, instance_alias):
         return None
     if isinstance(esh_driver, OSDriver):
         #Openstack: Remove floating IP first
-        esh_driver._connection.ex_disassociate_floating_ip(instance)
+        try:
+            esh_driver._connection.ex_disassociate_floating_ip(instance)
+        except Exception as exc:
+            if 'floating ip not found' not in exc.message:
+                raise
     node_destroyed = esh_driver._connection.destroy_node(instance)
     return node_destroyed
 
@@ -225,7 +388,10 @@ def launch_instance(user, provider_id, identity_id,
 
     returns a core_instance object after updating core DB.
     """
-
+    now_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    status_logger.debug("%s,%s,%s,%s,%s,%s"
+                 % (now_time, user, "No Instance", machine_alias, size_alias,
+                    "Request Received"))
     core_identity = CoreIdentity.objects.get(id=identity_id)
 
     esh_driver = get_esh_driver(core_identity, user)
@@ -245,9 +411,12 @@ def launch_instance(user, provider_id, identity_id,
     core_instance = convert_esh_instance(
         esh_driver, esh_instance, provider_id, identity_id,
         user, token, password)
+    esh_size = esh_driver.get_size(esh_instance.size.id)
+    core_size = convert_esh_size(esh_size, provider_id)
     core_instance.update_history(
         core_instance.esh.extra['status'],
-        #2nd arg is task OR tmp_status
+        core_size,
+        #3rd arg is task OR tmp_status
         core_instance.esh.extra.get('task') or
         core_instance.esh.extra.get('metadata', {}).get('tmp_status'),
         first_update=True)
@@ -270,10 +439,11 @@ def check_quota(username, identity_id, esh_size, resuming=False):
                                                   esh_size, resuming=resuming)
     if over_quota:
         raise OverQuotaError(resource, requested, used, allowed)
-
-    (over_allocation, time_diff) = check_over_allocation(username,
-                                                         identity_id)
-    if over_allocation:
+    (over_allocation, time_diff) =\
+        check_over_allocation(username,
+                              identity_id,
+                              time_period=relativedelta(day=1, months=1))
+    if over_allocation and not settings.DEBUG:
         raise OverAllocationError(time_diff)
 
 
@@ -308,11 +478,24 @@ def network_init(core_identity):
         return
     os_driver = OSAccountDriver(core_identity.provider)
     (network, subnet) = os_driver.create_network(core_identity)
-    return (network, subnet)
+    lc_network = _to_lc_network(os_driver.admin_driver, network, subnet)
+    return lc_network
+
+
+def _to_lc_network(driver, network, subnet):
+    from libcloud.compute.drivers.openstack import OpenStackNetwork
+    lc_network = OpenStackNetwork(
+            network['id'],
+            network['name'],
+            subnet['cidr'],
+            driver,
+            {"network":network,
+             "subnet": subnet})
+    return lc_network
 
 
 def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
-                        name=None, username=None, *args, **kwargs):
+                        name=None, username=None, using_admin=False, *args, **kwargs):
     """
     TODO: Remove extras, pass as kwarg_dict instead
 
@@ -363,8 +546,9 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
                                  **kwargs)
         elif isinstance(driver.provider, OSProvider):
             deploy = True
-            security_group_init(core_identity)
-            network_init(core_identity)
+            if not using_admin:
+                security_group_init(core_identity)
+            network = network_init(core_identity)
             keypair_init(core_identity)
             credentials = core_identity.get_credentials()
             tenant_name = credentials.get('ex_tenant_name')
@@ -378,12 +562,14 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
                                                   token=instance_token,
                                                   ex_metadata=ex_metadata,
                                                   ex_keyname=ex_keyname,
+                                                  networks=[network],
                                                   deploy=True, **kwargs)
             #Used for testing.. Eager ignores countdown
             if app.conf.CELERY_ALWAYS_EAGER:
-                time.sleep(4*60)
+                logger.debug("Eager Task, wait 1 minute")
+                time.sleep(1*60)
             # call async task to deploy to instance.
-            task.deploy_init_task(driver, esh_instance, instance_password)
+            task.deploy_init_task(driver, esh_instance, username, instance_password)
         elif isinstance(driver.provider, AWSProvider):
             #TODO:Extra stuff needed for AWS provider here
             esh_instance = driver.deploy_instance(name=name, image=machine,
@@ -430,6 +616,8 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
     allows JSONArrays as values for metadata!
     """
     wait_time = 1
+    if not esh_instance:
+        return {}
     instance_id = esh_instance.id
 
     if not hasattr(esh_driver._connection, 'ex_set_metadata'):

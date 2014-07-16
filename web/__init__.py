@@ -2,24 +2,7 @@
 Atmosphere web helper methods..
 
 """
-
-
 from threepio import logger
-
-
-
-def prepare_driver(request, provider_id, identity_id):
-    """
-    TODO: Cache driver based on specific provider
-    return esh_driver
-    """
-    from api import get_esh_driver
-    from core.models import Provider, Identity
-    username = extractUser(request).username
-    core_provider = Provider.objects.get(id=provider_id)
-    core_identity = Identity.objects.get(id=identity_id)
-    esh_driver = get_esh_driver(core_provider, core_identity, username)
-    return esh_driver
 
 
 def extractUser(request):

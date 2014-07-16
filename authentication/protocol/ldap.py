@@ -94,6 +94,10 @@ def ldap_validate(username, password):
     Using the username and password parameters, test with an LDAP bind.
     If the connection succeeds, the credentials are authentic.
     """
+    if not username or not password:
+        logger.warn("[LDAP] Skip Test - Username/Password combination missing ")
+        return
+
     try:
         ldap_server = secrets.LDAP_SERVER
         ldap_server_dn = secrets.LDAP_SERVER_DN

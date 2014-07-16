@@ -1,84 +1,90 @@
-"""
-Atmosphere service instance rest api.
-"""
 from datetime import datetime
 import time
-from core.models import AtmosphereUser as User
+
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 from django.db.models import Q
 
 from rest_framework import status
-from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
 
+from core.models import AtmosphereUser as User
 from core.models.provider import AccountProvider
 from core.models.instance import convert_esh_instance
 from core.models.instance import Instance as CoreInstance
 from core.models.size import convert_esh_size
 from core.models.volume import convert_esh_volume
 
-from api import failureJSON, prepare_driver
-from api.serializers import InstanceSerializer, PaginatedInstanceSerializer
-from api.serializers import InstanceHistorySerializer, PaginatedInstanceHistorySerializer
-from api.serializers import VolumeSerializer
-
 from service import task
 from service.deploy import build_script
-from service.instance import launch_instance, start_instance, stop_instance,\
-    suspend_instance, resume_instance, update_instance_metadata
+from service.instance import redeploy_init, reboot_instance,\
+    launch_instance, resize_instance, confirm_resize,\
+    start_instance, resume_instance,\
+    stop_instance, suspend_instance,\
+    update_instance_metadata
+
 from service.quota import check_over_quota
-from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
-    SizeNotAvailable
+    SizeNotAvailable, HypervisorCapacityError
+
+from api import failure_response, prepare_driver, invalid_creds
+from api.permissions import ApiAuthRequired
+from api.serializers import InstanceSerializer, PaginatedInstanceSerializer
+from api.serializers import InstanceHistorySerializer,\
+    PaginatedInstanceHistorySerializer
+from api.serializers import VolumeSerializer
+
 
 class InstanceList(APIView):
     """
-    Represents:
-        A Manager of Instance
-        Calls to the Instance Class
-    """
-    @api_auth_token_required
+    Instances are the objects created when you launch a machine. They are
+    represented by a unique ID, randomly generated on launch, important
+    attributes of an Instance are:
+    Name, Status (building, active, suspended), Size, Machine"""
+
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id):
         """
         Returns a list of all instances
         """
         user = request.user
-        esh_driver = prepare_driver(request, identity_id)
+        esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
 
         instance_list_method = esh_driver.list_instances
 
         if AccountProvider.objects.filter(identity__id=identity_id):
             # Instance list method changes when using the OPENSTACK provider
             instance_list_method = esh_driver.list_all_instances
-
         try:
             esh_instance_list = instance_list_method()
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
 
         core_instance_list = [convert_esh_instance(esh_driver,
-                                                 inst,
-                                                 provider_id,
-                                                 identity_id,
-                                                 user)
+                                                   inst,
+                                                   provider_id,
+                                                   identity_id,
+                                                   user)
                               for inst in esh_instance_list]
 
         #TODO: Core/Auth checks for shared instances
 
         serialized_data = InstanceSerializer(core_instance_list,
+                                             context={'user':request.user},
                                              many=True).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
 
-    @api_auth_token_required
     def post(self, request, provider_id, identity_id, format=None):
         """
         Instance Class:
@@ -101,9 +107,12 @@ class InstanceList(APIView):
         #Pass these as args
         size_alias = data.pop('size_alias')
         machine_alias = data.pop('machine_alias')
+        hypervisor_name = data.pop('hypervisor',None)
         try:
-            core_instance = launch_instance(user, provider_id, identity_id, 
-                                            size_alias, machine_alias, **data)
+            core_instance = launch_instance(user, provider_id, identity_id,
+                                            size_alias, machine_alias, 
+                                            ex_availability_zone=hypervisor_name,
+                                            **data)
         except OverQuotaError, oqe:
             return over_quota(oqe)
         except OverAllocationError, oae:
@@ -112,8 +121,15 @@ class InstanceList(APIView):
             return size_not_availabe(snae)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
+        except Exception as exc:
+            logger.exception("Encountered a generic exception. "
+                             "Returning 409-CONFLICT")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    exc.message)
 
-        serializer = InstanceSerializer(core_instance, data=data)
+        serializer = InstanceSerializer(core_instance,
+                                        context={'user':request.user},
+                                        data=data)
         #NEVER WRONG
         if serializer.is_valid():
             serializer.save()
@@ -124,60 +140,52 @@ class InstanceList(APIView):
 
 
 class InstanceHistory(APIView):
-    """
-    An InstanceHistory provides instance history for an identity.
+    """List of instance history for specific instance."""
 
-    GET - A chronologically ordered list of Instances.
-    """
-
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id=None, identity_id=None):
+        """
+        Authentication required, Retrieve a list of previously launched instances.
+        """
         data = request.DATA
         params = request.QUERY_PARAMS.copy()
-
         user = User.objects.filter(username=request.user)
         if user and len(user) > 0:
             user = user[0]
         else:
-            errorObj = failureJSON([{
-                'code': 401,
-                'message': 'User not found'}])
-            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
-
-        page = params.pop('page',None)
-        emulate_name = params.pop('username',None)
+            return failure_response(status.HTTP_401_UNAUTHORIZED,
+                                    'User not found')
+        page = params.pop('page', None)
+        emulate_name = params.pop('username', None)
         try:
-            #Support for staff users to emulate a specific user history
+            # Support for staff users to emulate a specific user history
             if user.is_staff and emulate_name:
-                emualate_name = emulate_name[0] # Querystring conversion
+                emualate_name = emulate_name[0]  # Querystring conversion
                 user = User.objects.get(username=emulate_name)
-
             # List of all instances created by user
             history_instance_list = CoreInstance.objects.filter(
                 created_by=user).order_by("-start_date")
-
             #Filter the list based on query strings
             for filter_key, value in params.items():
                 if 'start_date' == filter_key:
                     history_instance_list = history_instance_list.filter(
-                                            start_date__gt=value)
+                        start_date__gt=value)
                 elif 'end_date' == filter_key:
                     history_instance_list = history_instance_list.filter(
-                                            Q(end_date=None) |
-                                            Q(end_date__lt=value))
+                        Q(end_date=None) |
+                        Q(end_date__lt=value))
                 elif 'ip_address' == filter_key:
                     history_instance_list = history_instance_list.filter(
-                                            ip_address__contains=value)
+                        ip_address__contains=value)
                 elif 'alias' == filter_key:
                     history_instance_list = history_instance_list.filter(
-                                            provider_alias__contains=value)
-
+                        provider_alias__contains=value)
         except Exception as e:
-            errorObj = failureJSON([{
-                'code': 400,
-                'message': 'Bad query string caused filter validation errors : %s'
-                           % (e,)}])
-            return Response(errorObj, status=status.HTTP_401_UNAUTHORIZED)
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                'Bad query string caused filter validation errors : %s'
+                % (e,))
         if page:
             paginator = Paginator(history_instance_list, 5)
             try:
@@ -194,8 +202,7 @@ class InstanceHistory(APIView):
                     history_instance_page).data
         else:
             serialized_data = InstanceHistorySerializer(history_instance_list,
-                                                 many=True).data
-
+                                                        many=True).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
@@ -203,38 +210,77 @@ class InstanceHistory(APIView):
 
 class InstanceAction(APIView):
     """
-    An InstanceAction allows users to:
+    This endpoint will allow you to run a specific action on an instance.
+    The GET method will retrieve all available actions and any parameters that are required.
+    The POST method expects DATA: {"action":...}
+                            Returns: 200, data: {'result':'success',...}
+                                     On Error, a more specfific message applies.
+    Data variables:
+     ___
+    * action - The action you wish to take on your instance
+    * action_params - any parameters required (as detailed on the api) to run the requested action.
 
-    TODO:Find a list of available actions for an instance.
+    Instances are the objects created when you launch a machine. They are
+    represented by a unique ID, randomly generated on launch, important
+    attributes of an Instance are:
+    Name, Status (building, active, suspended), Size, Machine"""
 
-    GET - None
-
-    POST - Run specified action
-    """
-
-    @api_auth_token_required
-    def post(self, request, provider_id, identity_id, instance_id):
+    permission_classes = (ApiAuthRequired,)
+    
+    def get(self, request, provider_id, identity_id, instance_id):
+        """Authentication Required, List all available instance actions ,including necessary parameters.
         """
+        api_response = [
+                {"action":"attach_volume",
+                 "action_params":{
+                     "volume_id":"required",
+                     "device":"optional",
+                     "mount_location":"optional"},
+                 "description":"Attaches the volume <id> to instance"},
+                {"action":"detach_volume",
+                 "action_params":{"volume_id":"required"},
+                 "description":"Detaches the volume <id> to instance"},
+                {"action":"resize",
+                 "action_params":{"size":"required"},
+                 "description":"Resize instance to size <id>"},
+                {"action":"confirm_resize",
+                 "description":"Confirm the instance works after resize."},
+                {"action":"revert_resize",
+                 "description":"Revert the instance if resize fails."},
+                {"action":"suspend",
+                 "description":"Suspend the instance."},
+                {"action":"resume",
+                 "description":"Resume the instance."},
+                {"action":"start",
+                 "description":"Start the instance."},
+                {"action":"stop",
+                 "description":"Stop the instance."},
+                {"action":"reboot",
+                 "action_params":{"reboot_type":"optional"},
+                 "description":"Stop the instance."},
+                {"action":"console",
+                 "description":"Get noVNC Console."}]
+        response = Response(api_response, status=status.HTTP_200_OK)
+        return response
+
+    def post(self, request, provider_id, identity_id, instance_id):
+        """Authentication Required, Attempt a specific instance action, including necessary parameters.
         """
         #Service-specific call to action
         action_params = request.DATA
         if not action_params.get('action', None):
-            errorObj = failureJSON([{
-                'code': 400,
-                'message':
-                'POST request to /action require a BODY with \'action\':'}])
-            return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
-
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                'POST request to /action require a BODY with \'action\'.')
         result_obj = None
         user = request.user
-        esh_driver = prepare_driver(request, identity_id)
-
+        esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         instance_list_method = esh_driver.list_instances
-
         if AccountProvider.objects.filter(identity__id=identity_id):
             # Instance list method changes when using the OPENSTACK provider
             instance_list_method = esh_driver.list_all_instances
-
         try:
             esh_instance_list = instance_list_method()
         except InvalidCredsError:
@@ -242,17 +288,15 @@ class InstanceAction(APIView):
 
         esh_instance = esh_driver.get_instance(instance_id)
         if not esh_instance:
-            errorObj = failureJSON([{
-                'code': 400,
-                'message': 'Instance %s no longer exists' % (instance_id,)}])
-            return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
-
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                'Instance %s no longer exists' % (instance_id,))
         action = action_params['action']
         try:
             if 'volume' in action:
                 volume_id = action_params.get('volume_id')
                 if 'attach_volume' == action:
-                    mount_location = action_params.get('mount_location',None)
+                    mount_location = action_params.get('mount_location', None)
                     if mount_location == 'null' or mount_location == 'None':
                         mount_location = None
                     device = action_params.get('device', None)
@@ -262,39 +306,42 @@ class InstanceAction(APIView):
                                             volume_id, device, mount_location)
                 elif 'detach_volume' == action:
                     (result, error_msg) = task.detach_volume_task(
-                                                            esh_driver, 
-                                                            esh_instance.alias,
-                                                            volume_id)
+                        esh_driver,
+                        esh_instance.alias,
+                        volume_id)
                     if not result and error_msg:
                         #Return reason for failed detachment
-                        errorObj = failureJSON([{'code': 400,
-                                                 'message': error_msg}])
-                        return Response(errorObj,
-                                        status=status.HTTP_400_BAD_REQUEST)
-
+                        return failure_response(
+                            status.HTTP_400_BAD_REQUEST,
+                            error_msg)
                 #Task complete, convert the volume and return the object
                 esh_volume = esh_driver.get_volume(volume_id)
                 core_volume = convert_esh_volume(esh_volume,
-                                               provider_id,
-                                               identity_id,
-                                               user)
-                result_obj = VolumeSerializer(core_volume).data
+                                                 provider_id,
+                                                 identity_id,
+                                                 user)
+                result_obj = VolumeSerializer(core_volume,
+                                              context={'user':request.user}
+                                              ).data
             elif 'resize' == action:
                 size_alias = action_params.get('size', '')
                 if type(size_alias) == int:
                     size_alias = str(size_alias)
-                size = esh_driver.get_size(size_alias)
-                esh_driver.resize_instance(esh_instance, size)
+                resize_instance(esh_driver, esh_instance, size_alias,
+                               provider_id, identity_id, user)
             elif 'confirm_resize' == action:
-                esh_driver.confirm_resize_instance(esh_instance)
+                confirm_resize(esh_driver, esh_instance,
+                               provider_id, identity_id, user)
             elif 'revert_resize' == action:
                 esh_driver.revert_resize_instance(esh_instance)
+            elif 'redeploy' == action:
+                redeploy_init(esh_driver, esh_instance, countdown=None)
             elif 'resume' == action:
                 resume_instance(esh_driver, esh_instance,
                                 provider_id, identity_id, user)
             elif 'suspend' == action:
                 suspend_instance(esh_driver, esh_instance,
-                                provider_id, identity_id, user)
+                                 provider_id, identity_id, user)
             elif 'start' == action:
                 start_instance(esh_driver, esh_instance,
                                provider_id, identity_id, user)
@@ -303,20 +350,19 @@ class InstanceAction(APIView):
                               provider_id, identity_id, user)
             elif 'reset_network' == action:
                 esh_driver.reset_network(esh_instance)
+            elif 'console' == action:
+                result_obj = esh_driver._connection.ex_vnc_console(esh_instance)
             elif 'reboot' == action:
-                esh_driver.reboot_instance(esh_instance)
+                reboot_type = action_params.get('reboot_type', 'SOFT')
+                reboot_instance(esh_driver, esh_instance, reboot_type)
             elif 'rebuild' == action:
                 machine_alias = action_params.get('machine_alias', '')
                 machine = esh_driver.get_machine(machine_alias)
                 esh_driver.rebuild_instance(esh_instance, machine)
             else:
-                errorObj = failureJSON([{
-                    'code': 400,
-                    'message': 'Unable to to perform action %s.' % (action)}])
-                return Response(
-                    errorObj,
-                    status=status.HTTP_400_BAD_REQUEST)
-
+                return failure_response(
+                    status.HTTP_400_BAD_REQUEST,
+                    'Unable to to perform action %s.' % (action))
             #ASSERT: The action was executed successfully
             api_response = {
                 'result': 'success',
@@ -327,6 +373,8 @@ class InstanceAction(APIView):
             response = Response(api_response, status=status.HTTP_200_OK)
             return response
         ### Exception handling below..
+        except HypervisorCapacityError, hce:
+            return over_capacity(hce)
         except OverQuotaError, oqe:
             return over_quota(oqe)
         except OverAllocationError, oae:
@@ -336,70 +384,60 @@ class InstanceAction(APIView):
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
         except NotImplemented, ne:
-            logger.exception(ne)
-            errorObj = failureJSON([{
-                'code': 404,
-                'message':
-                'The requested action %s is not available on this provider'
-                % action_params['action']}])
-            return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                "The requested action %s is not available on this provider"
+                % action_params['action'])
 
 
 class Instance(APIView):
     """
-    An instance is a self-contained copy
-    of a machine built to a specific size and hosted on a specific provider
-    """
+    Instances are the objects created when you launch a machine. They are
+    represented by a unique ID, randomly generated on launch, important
+    attributes of an Instance are:
+    Name, Status (building, active, suspended), Size, Machine"""
     #renderer_classes = (JSONRenderer, JSONPRenderer)
 
-    @api_auth_token_required
+    permission_classes = (ApiAuthRequired,)
+    
     def get(self, request, provider_id, identity_id, instance_id):
         """
-        Return the object belonging to this instance ID
-        TODO: Filter out instances you shouldnt see (permissions..)
+        Authentication Required, get instance details.
         """
         user = request.user
-        esh_driver = prepare_driver(request, identity_id)
-
-        try:
-            esh_instance = esh_driver.get_instance(instance_id)
-        except InvalidCredsError:
+        esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
             return invalid_creds(provider_id, identity_id)
-
+        esh_instance = esh_driver.get_instance(instance_id)
         if not esh_instance:
             return instance_not_found(instance_id)
-
         core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                           provider_id, identity_id, user)
-
-        serialized_data = InstanceSerializer(core_instance).data
+                                             provider_id, identity_id, user)
+        serialized_data = InstanceSerializer(core_instance,
+                                             context={'user':request.user}).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
 
-    @api_auth_token_required
     def patch(self, request, provider_id, identity_id, instance_id):
-        """
-        """
+        """Authentication Required, update metadata about the instance"""
         user = request.user
         data = request.DATA
-        #Ensure item exists on the server first
-        esh_driver = prepare_driver(request, identity_id)
-        try:
-            esh_instance = esh_driver.get_instance(instance_id)
-        except InvalidCredsError:
+        esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
             return invalid_creds(provider_id, identity_id)
-
+        esh_instance = esh_driver.get_instance(instance_id)
         if not esh_instance:
             return instance_not_found(instance_id)
-
         #Gather the DB related item and update
         core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                           provider_id, identity_id, user)
-        serializer = InstanceSerializer(core_instance, data=data, partial=True)
+                                             provider_id, identity_id, user)
+        serializer = InstanceSerializer(core_instance, data=data,
+                                        context={'user':request.user}, partial=True)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
-            update_instance_metadata(esh_driver, esh_instance, data)
+            update_instance_metadata(esh_driver, esh_instance, data,
+                    replace=False)
             serializer.save()
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
@@ -410,30 +448,22 @@ class Instance(APIView):
                 serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST)
 
-    @api_auth_token_required
     def put(self, request, provider_id, identity_id, instance_id):
-        """
-        TODO:
-            Options for put
-            - Instance status change (suspend,resume,etc.)
-            - DB changes (Name, tags)
-        """
+        """Authentication Required, update metadata about the instance"""
         user = request.user
         data = request.DATA
         #Ensure item exists on the server first
-        esh_driver = prepare_driver(request, identity_id)
-        try:
-            esh_instance = esh_driver.get_instance(instance_id)
-        except InvalidCredsError:
+        esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
             return invalid_creds(provider_id, identity_id)
-
+        esh_instance = esh_driver.get_instance(instance_id)
         if not esh_instance:
             return instance_not_found(instance_id)
-
         #Gather the DB related item and update
         core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                           provider_id, identity_id, user)
-        serializer = InstanceSerializer(core_instance, data=data)
+                                             provider_id, identity_id, user)
+        serializer = InstanceSerializer(core_instance, data=data,
+                                        context={'user':request.user})
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
             update_instance_metadata(esh_driver, esh_instance, data)
@@ -445,11 +475,15 @@ class Instance(APIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400)
 
-    @api_auth_token_required
     def delete(self, request, provider_id, identity_id, instance_id):
-        user = request.user
-        esh_driver = prepare_driver(request, identity_id)
+        """Authentication Required, TERMINATE the instance.
 
+        Be careful, there is no going back once you've deleted an instance.
+        """
+        user = request.user
+        esh_driver = prepare_driver(request, provider_id, identity_id)
+        if not esh_driver:
+            return invalid_creds(provider_id, identity_id)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
             if not esh_instance:
@@ -467,7 +501,8 @@ class Instance(APIView):
                                                  user)
             if core_instance:
                 core_instance.end_date_all()
-            serialized_data = InstanceSerializer(core_instance).data
+            serialized_data = InstanceSerializer(core_instance,
+                                                 context={'user':request.user}).data
             response = Response(serialized_data, status=status.HTTP_200_OK)
             response['Cache-Control'] = 'no-cache'
             return response
@@ -475,54 +510,49 @@ class Instance(APIView):
             return invalid_creds(provider_id, identity_id)
 
 
-# Commonly used error responses
 def valid_post_data(data):
-    expected_data = ['machine_alias','size_alias']
-    missing_keys = []
-    for key in expected_data:
-        if not data.has_key(key):
-            missing_keys.append(key)
-    return missing_keys
+    """
+    Return any missing required post key names.
+    """
+    required = ['machine_alias', 'size_alias', 'name']
+    #Return any keys that don't match criteria
+    return [key for key in required
+            #Key must exist and have a non-empty value.
+            if key not in data
+            or (type(data[key]) == str and len(data[key]) > 0)]
 
 
 def keys_not_found(missing_keys):
-    errorObj = failureJSON([{
-        'code': 400,
-        'message': 'Missing required POST datavariables : %s' % missing_keys}])
-    return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+    return failure_response(
+        status.HTTP_400_BAD_REQUEST,
+        'Missing data for variable(s): %s' % missing_keys)
 
 
 def instance_not_found(instance_id):
-    errorObj = failureJSON([{
-        'code': 404,
-        'message': 'Instance %s does not exist' % instance_id}])
-    return Response(errorObj, status=status.HTTP_404_NOT_FOUND)
-
-
-def invalid_creds(provider_id, identity_id):
-    logger.warn('Authentication Failed. Provider-id:%s Identity-id:%s'
-                % (provider_id, identity_id))
-    errorObj = failureJSON([{'code': 401,
-        'message': 'Identity/Provider Authentication Failed'}])
-    return Response(errorObj, status=status.HTTP_400_BAD_REQUEST)
+    return failure_response(
+        status.HTTP_404_NOT_FOUND,
+        'Instance %s does not exist' % instance_id)
 
 
 def size_not_availabe(sna_exception):
-    errorObj = failureJSON([{
-        'code': 413,
-        'message': sna_exception.message}])
-    return Response(errorObj, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+    return failure_response(
+        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+        sna_exception.message)
+
+
+def over_capacity(capacity_exception):
+    return failure_response(
+        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+        capacity_exception.message)
 
 
 def over_quota(quota_exception):
-    errorObj = failureJSON([{
-        'code': 413,
-        'message': quota_exception.message}])
-    return Response(errorObj, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+    return failure_response(
+        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+        quota_exception.message)
 
 
 def over_allocation(allocation_exception):
-    errorObj = failureJSON([{
-        'code': 413,
-        'message': allocation_exception.message}])
-    return Response(errorObj, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+    return failure_response(
+        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+        allocation_exception.message)

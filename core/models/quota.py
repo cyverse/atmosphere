@@ -9,17 +9,18 @@ class Quota(models.Model):
     Quota limits the amount of resources that can be used for a User/Group
     Quotas are set at the Identity Level in IdentityMembership
     """
-    cpu = models.IntegerField(null=True, blank=True, default=2)  # In CPU Units
-    memory = models.IntegerField(null=True, blank=True, default=4)  # In GB
-    storage = models.IntegerField(null=True, blank=True, default=50)  # In GB
+    cpu = models.IntegerField(null=True, blank=True, default=16)  # In CPU Units
+    memory = models.IntegerField(null=True, blank=True, default=128)  # In GB
+    storage = models.IntegerField(null=True, blank=True, default=10)  # In GB
     # In #Volumes allowed
     storage_count = models.IntegerField(null=True, blank=True, default=1)
     # In #Suspended instances allowed
     suspended_count = models.IntegerField(null=True, blank=True, default=2)
 
     def __unicode__(self):
-        return "CPU:%s, MEM:%s, DISK:%s DISK #:%s" %\
-            (self.cpu, self.memory, self.storage, self.storage_count)
+        return "CPU:%s, MEM:%s, DISK:%s DISK #:%s SUSPEND #:%s" %\
+            (self.cpu, self.memory, self.storage,
+             self.storage_count, self.suspended_count)
 
     @classmethod
     def max_quota(self, by_type='cpu'):
@@ -60,7 +61,8 @@ class Quota(models.Model):
             'cpu': cls._meta.get_field('cpu').default,
             'memory': cls._meta.get_field('memory').default,
             'storage': cls._meta.get_field('storage').default,
-            'storage_count': cls._meta.get_field('storage_count').default
+            'storage_count': cls._meta.get_field('storage_count').default,
+            'suspended_count': cls._meta.get_field('suspended_count').default
         }
 
     class Meta:

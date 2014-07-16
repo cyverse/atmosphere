@@ -31,7 +31,7 @@ def setUp_euca():
     euca_accounts = EucaAccounts(euca_provider)
     euca_user = euca_accounts.get_user(settings.TEST_RUNNER_USER)
     euca_id = euca_accounts.create_account(euca_user, max_quota=True)
-    reverse_link = reverse('instance-list',
+    reverse_link = reverse('api:public_apis:instance-list',
                           args=[euca_id.provider.id,
                                 euca_id.id])
     euca_instance_url = urljoin(settings.SERVER_URL, reverse_link)
@@ -46,7 +46,7 @@ def setUp_openstack():
             settings.TEST_RUNNER_USER, 
             os_accounts.hashpass(settings.TEST_RUNNER_USER),
             max_quota=True)
-    reverse_link = reverse('instance-list',
+    reverse_link = reverse('api:public_apis:instance-list',
                            args=[os_id.provider.id,
                                  os_id.id])
     os_base_instance_url = urljoin(settings.SERVER_URL, reverse_link)
@@ -86,8 +86,8 @@ class InstanceTests(TestCase):
     def tearDown(self):
         self.api_client.logout()
 
-    def test_openstack_launch(self):
-        self.os_instance_id, self.os_instance_ip = self.launch_openstack_instance()
+    #def test_openstack_launch(self):
+    #    self.os_instance_id, self.os_instance_ip = self.launch_openstack_instance()
 
     #def test_openstack_stop_start(self):
     #    self.os_instance_id, self.os_instance_ip = self.launch_openstack_instance()

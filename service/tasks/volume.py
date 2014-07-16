@@ -11,6 +11,9 @@ from celery import chain
 
 from threepio import logger
 from rtwo.driver import EucaDriver, OSDriver
+from libcloud.compute.types import DeploymentError
+
+from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
 
 from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
@@ -35,15 +38,18 @@ def check_volume_task(driverCls, provider, identity,
         volume = driver.get_volume(volume_id)
         device = volume.extra['attachmentSet'][0]['device']
 
-        private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
+        private_key = ATMOSPHERE_PRIVATE_KEYFILE
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'timeout': 120})
 
         #One script to make two checks:
         #1. Voume exists 2. Volume has a filesystem
         cv_script = check_volume(device)
-        kwargs.update({'deploy': cv_script})
+        #NOTE: non_zero_deploy needed to stop DeploymentError from being raised
+        kwargs.update({'deploy': cv_script,
+                       'non_zero_deploy': True})
         driver.deploy_to(instance, **kwargs)
+        kwargs.pop('non_zero_deploy',None)
         #Script execute
 
         if cv_script.exit_status != 0:
@@ -61,6 +67,8 @@ def check_volume_task(driverCls, provider, identity,
                 raise Exception('Volume check failed: Something weird')
 
         logger.debug("check_volume task finished at %s." % datetime.now())
+    except DeploymentError as exc:
+        logger.exception(exc)
     except Exception as exc:
         logger.warn(exc)
         check_volume_task.retry(exc=exc)
@@ -81,10 +89,12 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         logger.debug(volume)
         try:
             device = volume.extra['attachmentSet'][0]['device']
-        except:
+        except KeyError, IndexError:
+            logger.warn("Volume %s missing attachmentSet in Extra"
+                        % (volume,))
             device = None
         if not device:
-            #Device was never attached -- Nothing to mount
+            logger.warn("Device never attached. Nothing to mount")
             return
 
         private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
@@ -97,6 +107,7 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         driver.deploy_to(instance, **kwargs)
 
         if device in cm_script.stdout:
+            logger.warn("Device already mounted. Mount output:%s" % cm_script.stdout)
             #Device has already been mounted. Move along..
             return
 
@@ -117,7 +128,8 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         mv_script = mount_volume(device, mount_location)
         kwargs.update({'deploy': mv_script})
         driver.deploy_to(instance, **kwargs)
-
+        #TODO: Update metadata to include volume mount
+        # so this data can persist on the UI?
         logger.debug("mount task finished at %s." % datetime.now())
         return mount_location
     except Exception as exc:
@@ -239,7 +251,7 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
 
         if 'available' in volume.extra.get('status',''):
             raise Exception("Volume %s failed to attach to instance %s"
-                            % (volume, instance))
+                            % (volume.id, instance.id))
 
         #Device path for euca == openstack
         try:

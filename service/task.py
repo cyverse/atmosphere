@@ -16,13 +16,18 @@ from service.tasks.volume import attach_task, mount_task, check_volume_task
 from service.tasks.volume import detach_task, umount_task
 
 
-def deploy_init_task(driver, instance, password=None, *args, **kwargs):
+def deploy_init_task(driver, instance,
+                     username=None, password=None, redeploy=False,
+                     *args, **kwargs):
+    from service.tasks.driver import _update_status_log
+    _update_status_log(instance, "Launching Instance")
     deploy_init_to.apply_async((driver.__class__,
                                 driver.provider,
                                 driver.identity,
                                 instance.alias,
-                                password),
-                               immutable=True, countdown=60)
+                                password,
+                                redeploy),
+                               immutable=True, countdown=20)
 
 
 def deploy_to_task(driver, instance, *args, **kwargs):
@@ -80,3 +85,4 @@ def attach_volume_task(driver, instance_id, volume_id, device=None,
     mount_task.delay(
         driver.__class__, driver.provider, driver.identity,
         instance_id, volume_id, mount_location).get()
+    return mount_location

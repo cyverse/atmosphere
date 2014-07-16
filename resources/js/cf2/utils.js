@@ -107,7 +107,6 @@ Atmo.Utils.update_weather = function() {
           // Apply minimal formatting to occupancy.
           occupancy *= 100;
           occupancy = occupancy.toFixed(2);
-
           var weather_classes = ['sunny', 'cloudy', 'rainy', 'stormy'];
           var weather = '';
 
@@ -140,6 +139,8 @@ Atmo.Utils.update_weather = function() {
               var provider = Atmo.providers.get(provider_id);
               var content = provider.get('location');
               content += ' is at ' + occupancy + '% capacity.<br /> The forecast is '+weather+'.';
+              //TODO: Remove this line when you want normal functionality again
+              content = provider.get('location');
               return content;
             });
           }
@@ -333,3 +334,17 @@ Atmo.Utils.confirm_detach_volume = function(volume, instance, options) {
 Number.prototype.toCurrencyString = function() {
     return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/, '$1,');
 };
+
+//Helper function that will string together responses in the result of a 400 level error. Then will call Utils.notify method to display it
+Atmo.Utils.notifyErrors = function(request, notificationString) { 
+  var responseText = jQuery.parseJSON(request.responseText);
+  var errorString = "";
+  for (error in responseText.errors){ 
+    errorString = errorString + "\n" + responseText.errors[error].message;
+  }
+  Atmo.Utils.notify(
+    notificationString, 
+    '' + errorString  + ' If the problem persists, please contact <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', 
+    { no_timeout: true }
+  );
+}

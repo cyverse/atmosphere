@@ -31,7 +31,9 @@ Atmo.Views.RequestImagingForm = Backbone.View.extend({
 
 			var identity = Atmo.identities.models[i];
 			var name = Atmo.identities.models[i].get('provider').get('location');
-
+            // Skip eucalyptus
+            if (name.match(/eucalyptus/i))
+                continue
 			if (identity.get('selected'))
 				this.$el.find('select[name="provider"]').prepend('<option value="' + identity.get('provider_id') + '">' + name + '</option>');
 			else
