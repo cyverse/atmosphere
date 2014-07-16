@@ -122,7 +122,7 @@ def monitor_instances_for_user(provider, username, instances, print_logs=False):
             #GATHER STATISTICS FIRST
             #This will be: Calculate time that user has used all instances within a
             #given delta, including the instances listed currently.
-            time_period=relativedelta(day=1, months=1)
+            time_period=settings.FIXED_WINDOW
             allocation = get_allocation(username, identity_id)
             delta_time = get_delta(allocation, time_period)
             time_used, instance_status_map = current_instance_time(
