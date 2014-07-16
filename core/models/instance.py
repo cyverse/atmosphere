@@ -163,11 +163,15 @@ class Instance(models.Model):
 
         #3. ASSERT: A new history item is required due to a State or Size Change
         now_time = timezone.now()
-        new_history = InstanceStatusHistory.transaction(
-                status_name, self, size,
-                start_time=now_time,
-                last_history=last_history)
-        return (True, new_history)
+        try:
+            new_history = InstanceStatusHistory.transaction(
+                    status_name, self, size,
+                    start_time=now_time,
+                    last_history=last_history)
+            return (True, new_history)
+        except ValueError, bad_transaction:
+            logger.exception("Bad transaction")
+            return (False, last_history)
 
     def get_active_hours(self):
         #Don't move it up. Circular reference.
@@ -393,7 +397,7 @@ class InstanceStatusHistory(models.Model):
                              % (instance,))
         elif last_history.end_date:
             raise ValueError("Old history already has end date: %s"
-                             % old_history)
+                             % last_history)
 
         last_history.end_date = start_time
         last_history.save()
