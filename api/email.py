@@ -2,13 +2,10 @@
 Atmosphere api email
 """
 from django.core import urlresolvers
-from django.utils.timezone import datetime
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-
-from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
 
@@ -16,14 +13,10 @@ from authentication.protocol.ldap import lookupEmail
 
 from core.email import email_admin
 from core.models.group import IdentityMembership
-from core.models.provider import AccountProvider
-from core.models.volume import convert_esh_volume
+from core.models.user import AtmosphereUser as User
 
-from service.volume import create_volume
-from service.exceptions import OverQuotaError
-
-from api import prepare_driver, failure_response, invalid_creds
-from api.permissions import InMaintenance, ApiAuthRequired
+from api import failure_response
+from api.permissions import ApiAuthRequired
 
 
 class Feedback(APIView):
@@ -160,7 +153,8 @@ def check_missing_keys(data, required_keys):
     """
     return [key for key in required_keys
             #Key must exist and have a non-empty value.
-            if not (key in data and len(data[key]) > 0)]
+            if key not in data
+            or (type(data[key]) == str and len(data[key]) > 0)]
 
 
 def keys_not_found(missing_keys):

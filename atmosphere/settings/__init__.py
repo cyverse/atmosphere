@@ -2,9 +2,9 @@
 Settings for atmosphere project.
 
 """
-
 from __future__ import absolute_import
 from datetime import timedelta
+from dateutil.relativedelta import relativedelta
 from celery.schedules import crontab
 from uuid import UUID
 import logging
@@ -13,7 +13,6 @@ import os.path
 import sys
 
 import threepio
-import caslib
 
 import atmosphere
 
@@ -93,6 +92,9 @@ USE_I18N = True
 
 USE_TZ = True
 
+#Atmosphere Time Allocation settings
+FIXED_WINDOW = relativedelta(day=15, months=1)
+
 # Absolute path to the directory that holds media.
 # Example: '/home/media/media.lawrence.com/'
 MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'resources/')
@@ -118,7 +120,7 @@ STATICFILES_DIRS = (
 SECRET_KEY = None
 
 # This key however should stay the same, and be shared with all Atmosphere
-ATMOSPHERE_NAMESPACE_UUID=UUID("40227dff-dedf-469c-a9f8-1953a7372ac1")
+ATMOSPHERE_NAMESPACE_UUID = UUID("40227dff-dedf-469c-a9f8-1953a7372ac1")
 
 #django-pipeline configuration
 PIPELINE = False
@@ -158,8 +160,8 @@ STATICFILES_FINDERS = (
     'pipeline.finders.CachedFileFinder',
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-#    'pipeline.finders.AppDirectoriesFinder',
-#    'pipeline.finders.CachedFileFinder',
+    #'pipeline.finders.AppDirectoriesFinder',
+    #'pipeline.finders.CachedFileFinder',
 )
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.Loader',
@@ -194,10 +196,13 @@ AUTH_USER_MODULE = 'core.AtmosphereUser'
 AUTH_PROFILE_MODULE = 'core.UserProfile'
 
 AUTHENTICATION_BACKENDS = (
-    #'authentication.authBackends.CASLoginBackend',  # For Web-Access
-    'authentication.authBackends.SAMLLoginBackend',  # For Web-Access
-    'authentication.authBackends.LDAPLoginBackend',  # For Service-Access
-    'authentication.authBackends.OAuthLoginBackend',  # For 3rd-party-web Service-Access
+    # For Web-Access
+    #'authentication.authBackends.CASLoginBackend',
+    'authentication.authBackends.SAMLLoginBackend',
+    # For Service-Access
+    'authentication.authBackends.LDAPLoginBackend',
+    # For 3rd-party-web Service-Access
+    'authentication.authBackends.OAuthLoginBackend',
 )
 
 # django-cors-headers
@@ -306,7 +311,7 @@ SWAGGER_SETTINGS = {
     "exclude_namespaces": [
         "private_root_urls",
         "private_apis",
-    ], # List URL namespaces to ignore
+    ],  # List URL namespaces to ignore
     "api_version": '0.1',  # Specify your API's version
     "api_path": "/",  # Specify the path to your API not a root level
     "enabled_methods": [  # Specify which methods to enable in Swagger UI
@@ -315,7 +320,7 @@ SWAGGER_SETTINGS = {
         'patch',
         'delete'
     ],
-    "api_key": '', # An API key
+    "api_key": '',  # An API key
     "is_authenticated": False,  # Set to True to enforce user authentication,
     "is_superuser": False,  # Set to True to enforce admin only access
 }
@@ -346,18 +351,23 @@ CELERY_ENABLE_UTC = True
 CELERY_TIMEZONE = "America/Phoenix"
 CELERY_SEND_EVENTS = True
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-CELERY_TASK_RESULT_EXPIRES = 3*60*60 #Store results for 3 hours
+CELERY_TASK_RESULT_EXPIRES = 3*60*60  # Store results for 3 hours
 #CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
-CELERYBEAT_CHDIR=PROJECT_ROOT
-CELERYD_MAX_TASKS_PER_CHILD=50
-CELERYD_LOG_FORMAT="[%(asctime)s: %(name)s-%(levelname)s/%(processName)s [PID:%(process)d] @ %(pathname)s on %(lineno)d] %(message)s"
-CELERYD_TASK_LOG_FORMAT="[%(asctime)s: %(name)s-%(levelname)s/%(processName)s [PID:%(process)d] [%(task_name)s(%(task_id)s)] @ %(pathname)s on %(lineno)d] %(message)s"
+CELERYBEAT_CHDIR = PROJECT_ROOT
+CELERYD_MAX_TASKS_PER_CHILD = 50
+CELERYD_LOG_FORMAT = "[%(asctime)s: %(name)s-%(levelname)s"\
+    "/%(processName)s [PID:%(process)d]"\
+    " @ %(pathname)s on %(lineno)d] %(message)s"
+CELERYD_TASK_LOG_FORMAT = "[%(asctime)s: %(name)s-%(levelname)s"\
+    "/%(processName)s [PID:%(process)d]"\
+    " [%(task_name)s(%(task_id)s)] "\
+    "@ %(pathname)s on %(lineno)d] %(message)s"
 
 # Django-Celery Local Settings
 #CELERY_QUEUES = (
 #        Queue('imaging'), Exchange('imaging'), routing_key='imaging'),
 #    )
-CELERY_DEFAULT_QUEUE='default'
+CELERY_DEFAULT_QUEUE = 'default'
 
 #NOTE: Leave this block out until the 'bug' regarding CELERY_ROUTES is fixed
 #      See steve gregory for more details..
@@ -372,39 +382,40 @@ CELERYBEAT_SCHEDULE = {
     "check_image_membership": {
         "task": "check_image_membership",
         "schedule": timedelta(minutes=15),
-        "options": {"expires": 10*60, "time_limit":2*60,
+        "options": {"expires": 10*60, "time_limit": 2*60,
                     "queue": "celery_periodic"}
     },
     "monitor_instances": {
         "task": "monitor_instances",
-        "schedule" : timedelta(minutes=15),
-        "options": {"expires":10*60, "time_limit":10*60,
-                    "queue":"celery_periodic"}
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 10*60, "time_limit": 10*60,
+                    "queue": "celery_periodic"}
     },
     "clear_empty_ips": {
         "task": "clear_empty_ips",
-        "schedule": crontab(hour="0", minute="0", day_of_week="*"),
-        "options":{"expires": 60*60,
-                   "queue":"celery_periodic"}
+        "schedule": timedelta(minutes=20),
+        #"schedule": crontab(hour="0", minute="0", day_of_week="*"),
+        "options": {"expires": 60*60,
+                "queue": "celery_periodic"}
     },
     "remove_empty_networks": {
         "task": "remove_empty_networks",
         "schedule": crontab(hour="*/2", minute="0", day_of_week="*"),
-        "options": {"expires":5*60, "time_limit":5*60,
+        "options": {"expires": 5*60, "time_limit": 5*60,
                     "queue": "celery_periodic"}
     },
 }
-CELERY_ROUTES= ('atmosphere.route_logger.RouteLogger', )
+CELERY_ROUTES = ('atmosphere.route_logger.RouteLogger', )
 CELERY_ROUTES += ({
-    "chromogenic.tasks.migrate_instance_task" : \
-        {"queue": "imaging", "routing_key": "imaging.execute"},
-    "chromogenic.tasks.machine_imaging_task" : \
-        {"queue": "imaging", "routing_key": "imaging.execute"},
-    "service.tasks.machine.freeze_instance_task" : \
-        {"queue": "imaging", "routing_key": "imaging.prepare"},
-    "service.tasks.machine.process_request" : \
-        {"queue": "imaging", "routing_key": "imaging.complete"},
-        },)
+    "chromogenic.tasks.migrate_instance_task":
+    {"queue": "imaging", "routing_key": "imaging.execute"},
+    "chromogenic.tasks.machine_imaging_task":
+    {"queue": "imaging", "routing_key": "imaging.execute"},
+    "service.tasks.machine.freeze_instance_task":
+    {"queue": "imaging", "routing_key": "imaging.prepare"},
+    "service.tasks.machine.process_request":
+    {"queue": "imaging", "routing_key": "imaging.complete"},
+},)
 #     # Django-Celery Development settings
 # CELERY_ALWAYS_EAGER = True
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75

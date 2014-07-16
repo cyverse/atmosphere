@@ -1049,6 +1049,8 @@ def run_boot_scripts():
         #Nothing to execute.
         return
     post_script_log_dir = "/var/log/atmo/post-scripts"
+    if not os.path.exists(post_script_log_dir):
+        mkdir_p(post_script_log_dir)
     stdout_logfile = os.path.join(post_script_log_dir, "stdout")
     stderr_logfile = os.path.join(post_script_log_dir, "stderr")
     for file_name in os.listdir(post_script_dir):

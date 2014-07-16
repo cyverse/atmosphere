@@ -163,11 +163,15 @@ class Instance(models.Model):
 
         #3. ASSERT: A new history item is required due to a State or Size Change
         now_time = timezone.now()
-        new_history = InstanceStatusHistory.transaction(
-                status_name, self, size,
-                start_time=now_time,
-                last_history=last_history)
-        return (True, new_history)
+        try:
+            new_history = InstanceStatusHistory.transaction(
+                    status_name, self, size,
+                    start_time=now_time,
+                    last_history=last_history)
+            return (True, new_history)
+        except ValueError, bad_transaction:
+            logger.exception("Bad transaction")
+            return (False, last_history)
 
     def get_active_hours(self, delta):
         #Don't move it up. Circular reference.
@@ -410,7 +414,7 @@ class InstanceStatusHistory(models.Model):
                              % (instance,))
         elif last_history.end_date:
             raise ValueError("Old history already has end date: %s"
-                             % old_history)
+                             % last_history)
 
         last_history.end_date = start_time
         last_history.save()
@@ -612,10 +616,12 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
         #information.
         esh_size = esh_driver.get_size(esh_size.id)
     core_size = convert_esh_size(esh_size, provider_id)
+    #TODO: You are the mole!
     core_instance.update_history(
         esh_instance.extra['status'],
         core_size,
-        esh_instance.extra.get('task'))
+        esh_instance.extra.get('task') or
+        esh_instance.extra.get('metadata',{}).get('tmp_status'))
     #Update values in core with those found in metadata.
     core_instance = set_instance_from_metadata(esh_driver, core_instance)
     return core_instance
