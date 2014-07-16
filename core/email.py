@@ -23,6 +23,12 @@ def email_address_str(name, email):
     return "%s <%s>" % (name, email)
 
 
+def request_tracker_address():
+    """ Return the admin name and admin email from
+        django's settings.
+    """
+    return (settings.ATMO_SUPPORT[0][0], settings.ATMO_SUPPORT[0][1])
+
 def admin_address():
     """ Return the admin name and admin email from
         django's settings.
@@ -87,7 +93,7 @@ def send_email(subject, body, from_email, to, cc=None,
         return False
 
 
-def email_admin(request, subject, message, cc_user=True):
+def email_admin(request, subject, message, cc_user=True, request_tracker=False):
     """ Use request, subject and message to build and send a standard
         Atmosphere user request email. From an atmosphere user to admins.
         Returns True on success and False on failure.
@@ -100,16 +106,20 @@ def email_admin(request, subject, message, cc_user=True):
              location,
              user, remote_ip,
              user_agent, resolution)
-    return email_to_admin(subject, body, user, user_email, cc_user=cc_user)
+    return email_to_admin(subject, body, user, user_email, cc_user=cc_user,
+                          request_tracker=request_tracker)
 
 
 def email_to_admin(subject, body, username=None,
-                   user_email=None, cc_user=True):
+                   user_email=None, cc_user=True, request_tracker=False):
     """
     Send a basic email to the admins. Nothing more than subject and message
     are required.
     """
-    sendto, sendto_email = admin_address()
+    if request_tracker:
+        sendto, sendto_email = request_tracker_address()
+    else:
+        sendto, sendto_email = admin_address()
     #E-mail yourself if no users are provided
     if not username and not user_email:
         username, user_email = username, user_email
@@ -117,7 +127,7 @@ def email_to_admin(subject, body, username=None,
         user_email = lookupEmail(username)
     elif not username:  # user_email provided
         username = 'Unknown'
-    if not cc_user:
+    if request_tracker or not cc_user:
         #Send w/o the CC
         return send_email(subject, body,
                           from_email=email_address_str(username, user_email),

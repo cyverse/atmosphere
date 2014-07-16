@@ -119,7 +119,7 @@ def feedback_email(request, username, user_email, message):
     """
     subject = 'Subject: Atmosphere Client Feedback from %s' % username
     message = '---\nFeedback: %s\n---' % message
-    email_success = email_admin(request, subject, message)
+    email_success = email_admin(request, subject, message, request_tracker=True)
     if email_success:
         resp = {'result':
                    {'code': 'success',
@@ -145,5 +145,5 @@ def support_email(request, subject, message):
 
     Returns a response.
     """
-    email_success = email_admin(request, subject, message)
+    email_success = email_admin(request, subject, message, request_tracker=True)
     return {"email_sent": email_success}

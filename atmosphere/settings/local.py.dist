@@ -28,6 +28,10 @@ except ImportError:
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
+ATMO_SUPPORT = (
+    ("Atmosphere Support", "atmo-rt@iplantcollaborative.org"),
+)
+
 PROJECT_ROOT = os.path.abspath(
     os.path.join(
         os.path.dirname(__file__), "../.."))

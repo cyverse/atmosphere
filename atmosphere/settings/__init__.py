@@ -40,6 +40,11 @@ ADMINS = (
     ('Steven Gregory', 'esteve@iplantcollaborative.org'),
 )
 
+# Required to send RequestTracker emails
+# ("Atmosphere Support", "atmo-rt@iplantcollaborative.org")
+ATMO_SUPPORT = ADMINS
+
+#Django uses this one..
 MANAGERS = ADMINS
 
 DATABASES = {
