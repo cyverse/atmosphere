@@ -1,17 +1,20 @@
+from uuid import uuid5, UUID
+from hashlib import md5
+
 from django.db import models
 from django.db.models import Q
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
-from uuid import uuid5, UUID
-from hashlib import md5
 
 from threepio import logger
 
 from atmosphere import settings
+
 from core.query import only_active
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
 from core.metadata import _get_admin_owner
+
 
 class Application(models.Model):
     """
@@ -37,15 +40,15 @@ class Application(models.Model):
         Return a list of current provider machines.
         """
         pms = self.providermachine_set.filter(
-                Q(provider__end_date=None) | Q(provider__end_date__gt=timezone.now()),
-                only_active())
-        return pms 
+            Q(provider__end_date=None)
+            | Q(provider__end_date__gt=timezone.now()),
+            only_active())
+        return pms
 
     def get_projects(self, user):
         projects = self.projects.filter(
-                only_active(),
-                owner=user,
-                )
+            only_active(),
+            owner=user)
         return projects
 
     def featured(self):
@@ -64,14 +67,13 @@ class Application(models.Model):
     def get_members(self):
         members = list(self.applicationmembership_set.all())
         for provider_machine in self._current_machines():
-            members.extend(provider_machine.providermachinemembership_set.all())
+            members.extend(
+                provider_machine.providermachinemembership_set.all())
         return members
 
     def get_scores(self):
         (ups, downs, total) = ApplicationScore.get_scores(self)
-        return {"up": ups,
-                "down": downs, 
-                "total": total}
+        return {"up": ups, "down": downs, "total": total}
 
     def icon_url(self):
         return self.icon.url if self.icon else None
@@ -84,12 +86,11 @@ class Application(models.Model):
 
     def get_provider_machines(self):
         pms = self._current_machines()
-        return [{
-            "start_date":pm.start_date,
-            "end_date":pm.end_date,
-            "alias":pm.identifier,
-            "version":pm.version,
-            "provider":pm.provider.id} for pm in pms]
+        return [{"start_date": pm.start_date,
+                 "end_date": pm.end_date,
+                 "alias": pm.identifier,
+                 "version": pm.version,
+                 "provider": pm.provider.id} for pm in pms]
 
     def save(self, *args, **kwargs):
         """
@@ -122,7 +123,6 @@ class Application(models.Model):
     def diff_updates(self, provider_machine, image):
         pass
 
-
     def update(self, *args, **kwargs):
         """
         Allows for partial updating of the model
@@ -154,9 +154,10 @@ class Application(models.Model):
 
 class ApplicationMembership(models.Model):
     """
-    Members of a private image can view & launch its respective machines. If the
-    can_modify flag is set, then members also have ownership--they can make
-    changes. The unique_together field ensures just one of those states is true.
+    Members of a private image can view & launch its respective machines. If
+    the can_modify flag is set, then members also have ownership--they can make
+    changes. The unique_together field ensures just one of those states is
+    true.
     """
     application = models.ForeignKey(Application)
     group = models.ForeignKey('Group')
@@ -173,17 +174,19 @@ class ApplicationMembership(models.Model):
         app_label = 'core'
         unique_together = ('application', 'group')
 
+
 def public_applications():
     apps = []
     for app in Application.objects.filter(
             Q(end_date=None) | Q(end_date__gt=timezone.now()),
             private=False):
         if any(pm.provider.is_active()
-               for pm in 
+               for pm in
                app.providermachine_set.filter(
                    Q(end_date=None) | Q(end_date__gt=timezone.now()))):
             _add_app(apps, app)
     return apps
+
 
 def visible_applications(user):
     apps = []
@@ -198,7 +201,7 @@ def visible_applications(user):
             private=True):
         #Retrieve the machines associated with this app
         machine_set = app.providermachine_set.filter(
-                   Q(end_date=None) | Q(end_date__gt=now_time))
+            Q(end_date=None) | Q(end_date__gt=now_time))
         #Skip app if all their machines are on inactive providers.
         if all(not pm.provider.is_active() for pm in machine_set):
             continue
@@ -211,11 +214,11 @@ def visible_applications(user):
                 break
     return apps
 
+
 def _add_app(app_list, app):
     if app not in app_list:
         app_list.append(app)
 
-    
 
 def get_application(identifier, app_uuid=None):
     if not app_uuid:
@@ -232,8 +235,8 @@ def get_application(identifier, app_uuid=None):
 
 
 def create_application(identifier, provider_id, name=None,
-        owner=None, private=False, version=None, description=None, tags=None,
-        uuid=None):
+                       owner=None, private=False, version=None,
+                       description=None, tags=None, uuid=None):
     from core.models import AtmosphereUser
     if not uuid:
         uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(identifier))
@@ -249,15 +252,15 @@ def create_application(identifier, provider_id, name=None,
         owner = _get_admin_owner(provider_id)
     if not tags:
         tags = []
-    new_app = Application.objects.create(
-            name=name,
-            description=description,
-            created_by=owner.created_by,
-            created_by_identity=owner,
-            uuid=uuid)
+    new_app = Application.objects.create(name=name,
+                                         description=description,
+                                         created_by=owner.created_by,
+                                         created_by_identity=owner,
+                                         uuid=uuid)
     if tags:
         updateTags(new_app, tags, owner.created_by)
     return new_app
+
 
 class ApplicationScore(models.Model):
     """
@@ -287,15 +290,15 @@ class ApplicationScore(models.Model):
     @classmethod
     def last_vote(cls, application, user):
         votes_cast = ApplicationScore.objects.filter(
-                Q(end_date=None) | Q(end_date__gt=timezone.now()),
-                application=application, user=user)
+            Q(end_date=None) | Q(end_date__gt=timezone.now()),
+            application=application, user=user)
         return votes_cast[0] if votes_cast else None
 
     @classmethod
     def get_scores(cls, application):
         scores = ApplicationScore.objects.filter(
-                Q(end_date=None) | Q(end_date__gt=timezone.now()),
-                application=application)
+            Q(end_date=None) | Q(end_date__gt=timezone.now()),
+            application=application)
         ups = downs = 0
         for app_score in scores:
             if app_score.score > 0:
@@ -311,10 +314,9 @@ class ApplicationScore(models.Model):
         if prev_vote:
             prev_vote.end_date = timezone.now()
             prev_vote.save()
-        return ApplicationScore.objects.create(
-                application=application,
-                user=user,
-                score=-1)
+        return ApplicationScore.objects.create(application=application,
+                                               user=user,
+                                               score=-1)
 
     @classmethod
     def novote(cls, application, user):
@@ -322,10 +324,9 @@ class ApplicationScore(models.Model):
         if prev_vote:
             prev_vote.end_date = timezone.now()
             prev_vote.save()
-        return ApplicationScore.objects.create(
-                application=application,
-                user=user,
-                score=0)
+        return ApplicationScore.objects.create(application=application,
+                                               user=user,
+                                               score=0)
 
     @classmethod
     def upvote(cls, application, user):
@@ -333,10 +334,10 @@ class ApplicationScore(models.Model):
         if prev_vote:
             prev_vote.end_date = timezone.now()
             prev_vote.save()
-        return ApplicationScore.objects.create(
-                application=application,
-                user=user,
-                score=1)
+        return ApplicationScore.objects.create(application=application,
+                                               user=user,
+                                               score=1)
+
 
 class ApplicationBookmark(models.Model):
     user = models.ForeignKey('AtmosphereUser', related_name="bookmarks")
@@ -344,6 +345,7 @@ class ApplicationBookmark(models.Model):
 
     def __unicode__(self):
         return "%s + %s" % (self.user, self.application)
+
     class Meta:
         db_table = 'application_bookmark'
         app_label = 'core'
@@ -356,7 +358,9 @@ class ApplicationThreshold(models.Model):
 
     def __unicode__(self):
         return "%s requires >%sMB memory, >%s GB disk" % (self.application,
-                self.memory_min, self.storage_min)
+                                                          self.memory_min,
+                                                          self.storage_min)
+
     class Meta:
         db_table = 'application_threshold'
         app_label = 'core'
