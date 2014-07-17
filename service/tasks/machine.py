@@ -135,6 +135,7 @@ def set_machine_request_metadata(machine_request, image_id):
 def machine_request_error(task_uuid, machine_request_id):
     logger.info("machine_request_id=%s" % machine_request_id)
     logger.info("task_uuid=%s" % task_uuid)
+    machine_request = MachineRequest.objects.get(id=machine_request_id)
 
     result = app.AsyncResult(task_uuid)
     with allow_join_result():
