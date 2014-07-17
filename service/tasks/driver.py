@@ -572,7 +572,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         _deploy_init_to.retry(exc=exc)
     except SystemExit as bad_ssh:
         logger.exception("ERROR: Someone has raised a SystemExit!")
-        _deploy_init_to.retry(exc=exc)
+        _deploy_init_to.retry(exc=bad_ssh)
     except Exception as exc:
         logger.exception(exc)
         _deploy_init_to.retry(exc=exc)
