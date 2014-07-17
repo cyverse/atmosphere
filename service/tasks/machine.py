@@ -78,6 +78,7 @@ def start_machine_imaging(machine_request, delay=False):
         image_task.link(process_task)
         image_task.link_error(imaging_error_task)
     #Task 3 = Validate the new image by launching an instance
+    #TODO: Determine when to validate
     validate_task = validate_new_image.s(machine_request.id)
     process_task.link(validate_task)
     if machine_request.new_machine:
