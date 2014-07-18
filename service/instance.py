@@ -122,14 +122,14 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_id):
     (No add fixed, No add floating)
     """
     from service.tasks.driver import deploy_init_to, deploy_script
-    from service.tasks.driver import wait_for, complete_resize
+    from service.tasks.driver import wait_for_instance, complete_resize
     from service.deploy import deploy_test
     touch_script = deploy_test()
     core_identity = CoreIdentity.objects.get(id=core_identity_id)
 
-    task_one = wait_for.s(
-            esh_driver.__class__, esh_driver.provider,
-            esh_driver.identity, esh_instance.id, "verify_resize")
+    task_one = wait_for_instance.s(
+            esh_instance.id, esh_driver.__class__, esh_driver.provider,
+            esh_driver.identity, "verify_resize")
     task_two = deploy_script.si(
             esh_driver.__class__, esh_driver.provider,
             esh_driver.identity, esh_instance.id, touch_script)
@@ -168,10 +168,11 @@ def restore_ip_chain(esh_driver, esh_instance, redeploy=False):
     start with: task.apply_async()
     """
     from service.tasks.driver import \
-            wait_for, add_fixed_ip, add_floating_ip, deploy_init_to
-    init_task = wait_for.s(
-            esh_driver.__class__, esh_driver.provider,
-            esh_driver.identity, esh_instance.id, ["active",],
+            wait_for_instance, add_fixed_ip, add_floating_ip, deploy_init_to
+    init_task = wait_for_instance.s(
+            esh_instance.id, esh_driver.__class__, esh_driver.provider,
+            esh_driver.identity, "active",
+            #TODO: DELETEME below.
             no_tasks=True)
     #Step 1: Add fixed
     fixed_ip_task = add_fixed_ip.si(

@@ -2,7 +2,6 @@
 Atmosphere core email.
 
 """
-from datetime import datetime
 
 from core.models import AtmosphereUser as User
 from django.utils import timezone as django_timezone
@@ -28,6 +27,7 @@ def request_tracker_address():
         django's settings.
     """
     return (settings.ATMO_SUPPORT[0][0], settings.ATMO_SUPPORT[0][1])
+
 
 def admin_address():
     """ Return the admin name and admin email from
@@ -93,7 +93,8 @@ def send_email(subject, body, from_email, to, cc=None,
         return False
 
 
-def email_admin(request, subject, message, cc_user=True, request_tracker=False):
+def email_admin(request, subject, message,
+                cc_user=True, request_tracker=False):
     """ Use request, subject and message to build and send a standard
         Atmosphere user request email. From an atmosphere user to admins.
         Returns True on success and False on failure.
@@ -209,7 +210,7 @@ Exception: %s
 """ % (core_instance.provider_alias,
        user, user_email,
        core_instance.ip_address,
-       core_instance.provider_machine.identifier, 
+       core_instance.provider_machine.identifier,
        exception_str)
     subject = 'An Atmosphere Instance has failed to launch.'
     return email_to_admin(subject, body, user.username, user_email,
@@ -221,6 +222,7 @@ def send_image_request_failed_email(machine_request, exception_str):
     Sends an email to the admins, who will verify the reason for the error,
     with an option to re-approve the request.
     """
+    user = machine_request.new_machine_owner
     user_email = lookupEmail(user.username)
     approve_link = '%s/api/v1/request_image/%s/approve' \
         % (settings.SERVER_URL, machine_request.id)
@@ -235,10 +237,10 @@ Machine Request:
   IP Address: %s
 Exception: %s
 """ % (approve_link, machine_request.id, machine_request.new_machine_owner,
-        machine_request.instance.provider_alias, 
+        machine_request.instance.provider_alias,
         machine_request.instance.ip_address,
         exception_str)
-    subject = 'Your Atmosphere Image is Complete'
+    subject = 'ERROR - Atmosphere Imaging Task has encountered an exception'
     return email_to_admin(subject, body, user.username, user_email,
                           cc_user=False)
 
@@ -249,7 +251,6 @@ def send_image_request_email(user, new_machine, name):
     Upon launching, the admins will forward this email to the user,
     which will provide useful information about the new image.
     """
-    user_email = lookupEmail(user.username)
     body = """Hello %s,
 
 Your image is ready. The image ID is "%s" and the image is named "%s".

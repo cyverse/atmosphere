@@ -136,8 +136,8 @@ def complete_resize(driverCls, provider, identity, instance_alias,
 #    return attempts
 
 
-@task(name="wait_for", max_retries=250, default_retry_delay=15)
-def wait_for(driverCls, provider, identity, instance_alias, status_query,
+@task(name="wait_for_instance", max_retries=250, default_retry_delay=15)
+def wait_for_instance(instance_alias, driverCls, provider, identity, status_query,
              tasks_allowed=False, **task_kwargs):
     """
     #Task makes 250 attempts to 'look at' the instance, waiting 15sec each try
@@ -148,7 +148,7 @@ def wait_for(driverCls, provider, identity, instance_alias, status_query,
     """
     from service import instance as instance_service
     try:
-        logger.debug("wait_for task started at %s." % datetime.now())
+        logger.debug("wait_for_instance task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_alias)
         if not instance:
@@ -167,7 +167,7 @@ def wait_for(driverCls, provider, identity, instance_alias, status_query,
         if "Not Ready" not in str(exc):
             # Ignore 'normal' errors.
             logger.exception(exc)
-        wait_for.retry(exc=exc)
+        wait_for_instance.retry(exc=exc)
 
 
 @task(name="add_fixed_ip",
@@ -387,8 +387,8 @@ def get_deploy_chain(driverCls, provider, identity,
                      instance, password, redeploy=False):
     instance_id = instance.id
 
-    wait_active_task = wait_for.s(
-        driverCls, provider, identity, instance_id, "active")
+    wait_active_task = wait_for_instance.s(
+        instance_id, driverCls, provider, identity, "active")
     if not instance.ip:
         #Init the networking
         logger.debug("IP address missing -- add 'add floating IP' tasks..")
@@ -448,7 +448,7 @@ def get_deploy_chain(driverCls, provider, identity,
       default_retry_delay=15,
       ignore_result=True,
       max_retries=3)
-def destroy_instance(core_identity_id, instance_alias):
+def destroy_instance(instance_alias, core_identity_id):
     from service import instance as instance_service
     from rtwo.driver import OSDriver
     from api import get_esh_driver
