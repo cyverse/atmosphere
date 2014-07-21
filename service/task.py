@@ -47,9 +47,8 @@ def add_floating_ip_task(driver, instance, *args, **kwargs):
 
 
 def destroy_instance_task(instance, identity_id, *args, **kwargs):
-    destroy_instance.delay(identity_id,
-                           instance.alias,
-                           *args, **kwargs)
+    destroy_instance.delay(
+            instance.alias, identity_id, *args, **kwargs)
 
 
 def detach_volume_task(driver, instance_id, volume_id, *args, **kwargs):
