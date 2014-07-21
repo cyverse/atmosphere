@@ -2,23 +2,24 @@ import time
 
 from api import get_esh_driver
 from datetime import timedelta
-from dateutil.relativedelta import relativedelta
 
 from django.utils import timezone
 from django.conf import settings
 
 from celery.decorators import task
-from celery.task.schedules import crontab
 
 from core.models.group import Group
+from core.models.size import convert_esh_size
 from core.models.user import AtmosphereUser
 from core.models.provider import Provider
 
-from service.allocation import check_over_allocation, current_instance_time,\
-get_delta, get_allocation
+from service.allocation import current_instance_time,\
+    get_delta, get_allocation
 from service.driver import get_admin_driver
 
 from threepio import logger
+
+
 def strfdelta(tdelta, fmt=None):
     from string import Formatter
     if not fmt:
@@ -29,7 +30,7 @@ def strfdelta(tdelta, fmt=None):
     formatter = Formatter()
     return_map = {}
     div_by_map = {'D': 86400, 'H': 3600, 'M': 60, 'S': 1}
-    keys = map( lambda x: x[1], list(formatter.parse(fmt)))
+    keys = map(lambda x: x[1], list(formatter.parse(fmt)))
     remainder = int(tdelta.total_seconds())
 
     for unit in ('D', 'H', 'M', 'S'):
@@ -37,6 +38,7 @@ def strfdelta(tdelta, fmt=None):
             return_map[unit], remainder = divmod(remainder, div_by_map[unit])
 
     return formatter.format(fmt, **return_map)
+
 
 def strfdate(datetime_o, fmt=None):
     if not fmt:
@@ -46,7 +48,6 @@ def strfdate(datetime_o, fmt=None):
         datetime_o = timezone.now()
 
     return datetime_o.strftime(fmt)
-
 
 
 @task(name="monitor_instances")
@@ -78,6 +79,7 @@ def get_instance_owner_map(provider, users=None):
     logger.info("Identity map created")
     return identity_map
 
+
 def monitor_instances_for(provider, users=None, print_logs=False):
     """
     Update instances for provider.
@@ -89,7 +91,8 @@ def monitor_instances_for(provider, users=None, print_logs=False):
     instance_map = get_instance_owner_map(provider, users=users)
 
     if print_logs:
-        import logging, sys
+        import logging
+        import sys
         consolehandler = logging.StreamHandler(sys.stdout)
         consolehandler.setLevel(logging.DEBUG)
         logger.addHandler(consolehandler)
@@ -103,7 +106,9 @@ def monitor_instances_for(provider, users=None, print_logs=False):
     if print_logs:
         logger.removeHandler(consolehandler)
 
-def monitor_instances_for_user(provider, username, instances, print_logs=False):
+
+def monitor_instances_for_user(provider, username, instances,
+                               print_logs=False):
     """
     """
     from core.models import IdentityMembership
@@ -114,50 +119,56 @@ def monitor_instances_for_user(provider, username, instances, print_logs=False):
     except AtmosphereUser.DoesNotExist:
         if instances:
             logger.warn("WARNING: User %s has %s instances, but does not"
-            "exist on this database" % (username, len(instances)))
+                        "exist on this database" % (username, len(instances)))
         return
     for identity in user.identity_set.filter(provider=provider):
         try:
             identity_id = identity.id
             #GATHER STATISTICS FIRST
-            #This will be: Calculate time that user has used all instances within a
+            #This will be: Calculate time for all instances within a
             #given delta, including the instances listed currently.
-            time_period=settings.FIXED_WINDOW
+            time_period = settings.FIXED_WINDOW
             allocation = get_allocation(username, identity_id)
             delta_time = get_delta(allocation, time_period)
             time_used, instance_status_map = current_instance_time(
-                    user, instances,
-                    identity_id, delta_time)
+                user, instances,
+                identity_id, delta_time)
             if print_logs:
-                print_table_row(instance_status_map, user, allocation, time_used)
+                print_table_row(instance_status_map, user,
+                                allocation, time_used)
                 return
             enforce_allocation(identity, user, time_used)
         except IdentityMembership.DoesNotExist:
             if instances:
-                logger.warn("WARNING: User %s has %s instances, but does not"
-                "exist on this database" % (username, len(instances)))
+                logger.warn(
+                    "WARNING: User %s has %s instances, but does not"
+                    "exist on this database" % (username, len(instances)))
         except:
             logger.exception("Unable to monitor Identity:%s"
-                         % (identity,))
+                             % (identity,))
+
+
 def print_table_header():
-    print "Username,Allocation allowed (min),Allocation Used (min),Instance,Status,"\
-          "Size (name),Size (CPUs),Start_Time,"\
+    print "Username,Allocation allowed (min),Allocation Used (min),"\
+          "Instance,Status,Size (name),Size (CPUs),Start_Time,"\
           "End_Time,Active_Time,Cpu_Time"
+
 
 def print_table_row(instance_status_map, user, allocation, time_used):
     max_time_allowed = timedelta(minutes=allocation.threshold)
     print "%s,%s,%s,,,,,,,,,,"\
-            % (user.username,
-               strfdelta(max_time_allowed),
-               strfdelta(time_used))
+          % (user.username,
+             strfdelta(max_time_allowed),
+             strfdelta(time_used))
     for instance, status_list in instance_status_map.items():
         for history in status_list:
             print ",,,%s,%s,%s,%s,%s,%s,%s,%s" %\
-            (instance.provider_alias,
-             history.status.name,
-             history.size.name, history.size.cpu,
-             strfdate(history.start_date), strfdate(history.end_date),
-             strfdelta(history.active_time), strfdelta(history.cpu_time))
+                  (instance.provider_alias,
+                   history.status.name,
+                   history.size.name, history.size.cpu,
+                   strfdate(history.start_date), strfdate(history.end_date),
+                   strfdelta(history.active_time), strfdelta(history.cpu_time))
+
 
 def _include_all_idents(identities, owner_map):
     #Include all identities with 0 instances to the monitoring
@@ -169,9 +180,10 @@ def _include_all_idents(identities, owner_map):
             owner_map[user] = []
     return owner_map
 
+
 def _make_instance_owner_map(instances, users=None):
     owner_map = {}
-    
+
     for i in instances:
         if users and i.owner not in users:
             continue
@@ -195,12 +207,13 @@ def _convert_tenant_id_to_names(instances, tenants):
                 i.owner = tenant['name']
     return instances
 
+
 def enforce_allocation(identity, user, time_used):
     from core.models.instance import convert_esh_instance
     #TODO: When user->group is no longer true,
-    # we will need to modify this..
-    group = Group.objects.get(name=user.username)
-    im = identity.identitymembership_set.get(member=group)
+    #TODO: Is 'group' allowed to use this identity?
+    #group = Group.objects.get(name=user.username)
+    #im = identity.identitymembership_set.get(member=group)
     allocation = get_allocation(user.username, identity.id)
     if not allocation:
         return False
@@ -209,11 +222,11 @@ def enforce_allocation(identity, user, time_used):
     over_allocated = time_diff.total_seconds() <= 0
     if not over_allocated:
         return False
-    #if settings.DEBUG:
-    #    logger.info('Do not enforce allocations in DEBUG mode')
-    #    return False
+    if not settings.ENFORCING:
+        logger.info('Settings dictate allocations are NOT enforced')
+        return False
     logger.info("%s is OVER their allowed quota by %s" %
-                 (user.username, time_diff))
+                (user.username, time_diff))
     driver = get_esh_driver(identity)
     esh_instances = driver.list_instances()
     for instance in esh_instances:
@@ -225,14 +238,14 @@ def enforce_allocation(identity, user, time_used):
                 time.sleep(3)
                 updated_esh = driver.get_instance(instance.id)
                 updated_core = convert_esh_instance(
-                        driver, updated_esh,
-                        identity.provider.id,
-                        identity.id,
-                        user)
+                    driver, updated_esh,
+                    identity.provider.id,
+                    identity.id,
+                    user)
         except Exception, e:
             if 'in vm_state suspended' not in e.message:
                 raise
-    return True # User was over_allocation
+    return True  # User was over_allocation
 
 
 def update_instances(driver, identity, esh_list, core_list):
@@ -241,7 +254,8 @@ def update_instances(driver, identity, esh_list, core_list):
     && Update the values of instances that do
     """
     esh_ids = [instance.id for instance in esh_list]
-    #logger.info('%s Instances for Identity %s: %s' % (len(esh_ids), identity, esh_ids))
+    #logger.info('%s Instances for Identity %s: %s'
+    #            % (len(esh_ids), identity, esh_ids))
     for core_instance in core_list:
         try:
             index = esh_ids.index(core_instance.provider_alias)
@@ -252,7 +266,7 @@ def update_instances(driver, identity, esh_list, core_list):
             continue
         esh_instance = esh_list[index]
         esh_size = driver.get_size(esh_instance.size.id)
-        core_size = convert_esh_size(esh_size, provider_id)
+        core_size = convert_esh_size(esh_size, identity.provider.id)
         core_instance.update_history(
             esh_instance.extra['status'],
             core_size,

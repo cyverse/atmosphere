@@ -137,9 +137,9 @@ def complete_resize(driverCls, provider, identity, instance_alias,
 #    return attempts
 
 
-@task(name="wait_for", max_retries=250, default_retry_delay=15)
-def wait_for(instance_alias, driverCls, provider, identity, status_query,
-             tasks_allowed=False, return_id=False, **task_kwargs):
+@task(name="wait_for_instance", max_retries=250, default_retry_delay=15)
+def wait_for_instance(instance_alias, driverCls, provider, identity, status_query,
+             tasks_allowed=False, **task_kwargs):
     """
     #Task makes 250 attempts to 'look at' the instance, waiting 15sec each try
     Cumulative time == 1 hour 2 minutes 30 seconds before FAILURE
@@ -152,7 +152,7 @@ def wait_for(instance_alias, driverCls, provider, identity, status_query,
         logger.debug("wait_for task started at %s." % datetime.now())
         if app.conf.CELERY_ALWAYS_EAGER:
             logger.debug("Eager task - DO NOT return until its ready!")
-            return _eager_override(wait_for, _is_instance_ready,
+            return _eager_override(wait_for_instance, _is_instance_ready,
                                    (driverCls, provider, identity,
                                     instance_alias, status_query,
                                     tasks_allowed, return_id), {})
@@ -165,7 +165,7 @@ def wait_for(instance_alias, driverCls, provider, identity, status_query,
         if "Not Ready" not in str(exc):
             # Ignore 'normal' errors.
             logger.exception(exc)
-        wait_for.retry(exc=exc)
+        wait_for_instance.retry(exc=exc)
 
 
 def _eager_override(task_class, run_method, args, kwargs):
@@ -279,6 +279,10 @@ def clear_empty_ips():
                          for inst in instances)
             inactive = all(driver._is_inactive_instance(inst)
                            for inst in instances)
+            for instance in instances:
+                if driver._is_inactive_instance(instance) and instance.ip:
+                    # If an inactive instance has floating/fixed IPs.. Remove them!
+                    instance_service.remove_ips(driver, instance)
             if active and not inactive:
                 #User has >1 active instances AND not all instances inactive
                 pass
@@ -421,7 +425,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
 def get_deploy_chain(driverCls, provider, identity, instance,
                      username=None, password=None, redeploy=False):
     instance_id = instance.id
-    wait_active_task = wait_for.s(
+    wait_active_task = wait_for_instance.s(
         instance_id, driverCls, provider, identity, "active")
     if not instance.ip:
         #Init the networking
@@ -483,7 +487,7 @@ def get_deploy_chain(driverCls, provider, identity, instance,
       default_retry_delay=15,
       ignore_result=True,
       max_retries=3)
-def destroy_instance(core_identity_id, instance_alias):
+def destroy_instance(instance_alias, core_identity_id):
     from service import instance as instance_service
     from rtwo.driver import OSDriver
     from api import get_esh_driver
@@ -608,7 +612,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         _deploy_init_to.retry(exc=exc)
     except SystemExit as bad_ssh:
         logger.exception("ERROR: Someone has raised a SystemExit!")
-        _deploy_init_to.retry(exc=exc)
+        _deploy_init_to.retry(exc=bad_ssh)
     except Exception as exc:
         logger.exception(exc)
         _deploy_init_to.retry(exc=exc)

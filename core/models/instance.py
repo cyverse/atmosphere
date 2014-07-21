@@ -1,20 +1,19 @@
 """
   Instance model for atmosphere.
 """
-import pytz
 import time
 from hashlib import md5
 from datetime import datetime, timedelta
 
-from django.db import models
+from django.db import models, transaction, DatabaseError
 from django.db.models import Q
-
-#from django.contrib.auth.models import User
-#from core.models import AtmosphereUser as User
 from django.utils import timezone
+
+import pytz
 
 from rtwo.machine import MockMachine
 from rtwo.size import MockSize
+
 from threepio import logger
 
 from core.models.identity import Identity
@@ -406,27 +405,31 @@ class InstanceStatusHistory(models.Model):
     @classmethod
     def transaction(cls, status_name, instance, size,
                     start_time=None, last_history=None):
-        if not last_history:
-            last_history = instance.get_last_history()
-        if not last_history:
-            raise ValueError("A previous history is required "
-                             "to perform a transaction. Instance:%s"
-                             % (instance,))
-        elif last_history.end_date:
-            raise ValueError("Old history already has end date: %s"
-                             % last_history)
-
-        last_history.end_date = start_time
-        last_history.save()
-
-        new_history = InstanceStatusHistory.create_history(
-                status_name, instance, size, start_time)
-        new_history.save()
-        logger.info("Status Update - User:%s Instance:%s Old:%s New:%s Time:%s"
-                    % (instance.created_by, instance.provider_alias,
-                       last_history.status.name, new_history.status.name,
-                       new_history.start_date))
-        return new_history
+        try:
+            with transaction.atomic():
+                if not last_history:
+                    last_history = instance.get_last_history()\
+                                           .select_for_update(nowait=True)
+                    if not last_history:
+                        raise ValueError("A previous history is required "
+                                         "to perform a transaction. Instance:%s"
+                                         % (instance,))
+                    elif last_history.end_date:
+                        raise ValueError("Old history already has end date: %s"
+                                         % last_history)
+                last_history.end_date = start_time
+                last_history.save()
+                new_history = InstanceStatusHistory.create_history(
+                    status_name, instance, size, start_time)
+                logger.info("Status Update - User:%s Instance:%s Old:%s New:%s Time:%s"
+                            % (instance.created_by, instance.provider_alias,
+                               last_history.status.name, new_history.status.name,
+                               new_history.start_date))
+                new_history.save()
+            return new_history
+        except DatabaseError as dbe:
+            logger.exception("instance_status_history: Lock is already acquired by"
+                             "another transaction.")
 
     @classmethod
     def create_history(cls, status_name, instance, size, start_date=None):
