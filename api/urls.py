@@ -15,7 +15,8 @@ from api.group import GroupList, Group
 from api.identity_membership import IdentityMembershipList, IdentityMembership
 from api.identity import IdentityList, Identity, IdentityDetailList
 from api.instance import InstanceList, Instance,\
-    InstanceAction, InstanceHistory
+    InstanceAction, InstanceHistory, InstanceHistoryDetail,\
+    InstanceStatusHistoryDetail
 from api.machine import MachineList, Machine, MachineHistory,\
     MachineSearch, MachineVote, MachineIcon
 from api.machine_request import MachineRequestList, MachineRequest,\
@@ -184,14 +185,19 @@ public_apis = format_suffix_patterns(patterns(
         Application.as_view(),
         name='application-detail'),
 
-    url(r'^instance$', InstanceHistory.as_view(),
+    url(r'^instance_history$', InstanceHistory.as_view(),
+        name='instance-history'),
+    url(r'^instance_history/'
+        '(?P<instance_id>[a-zA-Z0-9-]+)$', InstanceHistoryDetail.as_view(),
+        name='instance-history'),
+    url(r'^instance_history/'
+        '(?P<instance_id>[a-zA-Z0-9-]+)/'
+        'status_history$', InstanceStatusHistoryDetail.as_view(),
         name='instance-history'),
 
     url(identity_specific + r'/instance/'
         + '(?P<instance_id>[a-zA-Z0-9-]+)/action$',
         InstanceAction.as_view(), name='instance-action'),
-    url(identity_specific + r'/instance/history$',
-        InstanceHistory.as_view(), name='instance-history'),
     url(identity_specific + r'/instance/(?P<instance_id>[a-zA-Z0-9-]+)$',
         Instance.as_view(), name='instance-detail'),
     url(identity_specific + r'/instance$',

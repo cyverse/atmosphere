@@ -8,6 +8,7 @@ from core.models.group import Group
 from core.models.group import IdentityMembership
 from core.models.identity import Identity
 from core.models.instance import Instance
+from core.models.instance import InstanceStatusHistory
 from core.models.machine import ProviderMachine
 from core.models.machine_request import MachineRequest
 from core.models.machine_export import MachineExport
@@ -702,3 +703,9 @@ class TagSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Tag
+class InstanceStatusHistorySerializer(serializers.ModelSerializer):
+    instance = serializers.SlugRelatedField(slug_field='provider_alias')
+    size = serializers.SlugRelatedField(slug_field='alias')
+
+    class Meta:
+        model = InstanceStatusHistory

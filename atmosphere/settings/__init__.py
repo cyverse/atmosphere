@@ -312,6 +312,7 @@ REST_FRAMEWORK = {
 
     )
 }
+LOGIN_REDIRECT_URL="/api/v1"
 #REST_FRAMEWORK_SWAGGER
 SWAGGER_SETTINGS = {
     "exclude_namespaces": [
