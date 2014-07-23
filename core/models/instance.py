@@ -113,7 +113,7 @@ class Instance(models.Model):
     def _task_to_status(self, task_name):
         task_status_map = {
                 #Suspend tasks
-                'resuming':'active',
+                'resuming':'build',
                 'suspending':'suspended',
                 #Shutdown tasks
                 'powering-on':'active',
@@ -129,8 +129,8 @@ class Instance(models.Model):
                 #There are more.. Must find table..
         }
         new_status = task_status_map.get(task_name)
-        logger.debug("History - Task provided:%s, Status should be %s"
-                      % (task_name, new_status))
+        logger.debug("Instance:%s History - Task provided:%s, Status should be %s"
+                      % (self.provider_alias, task_name, new_status))
         return new_status
 
 
@@ -144,6 +144,8 @@ class Instance(models.Model):
         #1. Get status name
         if task:
             new_status = self._task_to_status(task)
+            #TODO: More validation needed.
+            #suspended - deploy_error == build.. but thats not ideal.
             if new_status:
                 status_name = new_status
         #2. Get the last history (or Build a new one if no other exists)
