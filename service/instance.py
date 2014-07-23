@@ -1,4 +1,3 @@
-from dateutil.relativedelta import relativedelta
 import os.path
 import time
 import uuid
@@ -450,7 +449,7 @@ def check_quota(username, identity_id, esh_size, resuming=False):
     (over_allocation, time_diff) =\
         check_over_allocation(username,
                               identity_id,
-                              time_period=relativedelta(day=1, months=1))
+                              time_period=settings.FIXED_WINDOW)
     if over_allocation and not settings.DEBUG:
         raise OverAllocationError(time_diff)
 

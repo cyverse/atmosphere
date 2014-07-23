@@ -240,12 +240,14 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 			// Disable if instance is not running
 			if (!this.model.get('state_is_active')) {
+			    if (!this.model.get('state') == 'active') {
+				    this.$el.find('.reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+				    this.$el.find('.hard_reboot_instance_dropdown').addClass('disabled').attr('disabled', 'disabled');
+				    this.$el.find('.hard_reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+				    this.$el.find('.suspend_resume_instance_btn').addClass('disabled').attr('disabled', 'disabled');
+				}
 				this.$el.find('.request_imaging_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.report_instance_btn').addClass('disabled').attr('disabled', 'disabled');
-				this.$el.find('.reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
-				this.$el.find('.hard_reboot_instance_dropdown').addClass('disabled').attr('disabled', 'disabled');
-				this.$el.find('.hard_reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
-				this.$el.find('.suspend_resume_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('.start_stop_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				this.$el.find('a[href^="#request_imaging"]').hide();
 
