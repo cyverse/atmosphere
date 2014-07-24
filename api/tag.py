@@ -11,7 +11,7 @@ from rest_framework import status
 from core.models import Tag as CoreTag
 from api import failure_response
 from api.serializers import TagSerializer
-from api.permissions import InMaintenance, ApiAuthRequired
+from api.permissions import InMaintenance, ApiAuthRequired, ApiAuthOptional
 
 
 class TagList(APIView):
@@ -19,7 +19,7 @@ class TagList(APIView):
         Tags are a easy way to allow users to group several images as similar
         based on a feature/program of the application.
     """
-    permission_classes = (ApiAuthRequired,)
+    permission_classes = (ApiAuthOptional,)
     
     def get(self, request, *args, **kwargs):
         """
