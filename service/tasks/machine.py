@@ -40,14 +40,18 @@ def _get_imaging_task(orig_managerCls, orig_creds,
             orig_managerCls, orig_creds, imaging_args)
         return image_task
 
+def _recover_from_error(status_name):
+    if 'exception' in status_name:
+        return status_name[status_name.find("(")+1:status_name.find(")")]
+    return status_name
+
 def start_machine_imaging(machine_request, delay=False):
     """
     Builds up a machine imaging task using core.models.machine_request
     delay - If true, wait until task is completed before returning
     """
     original_status = machine_request.status
-    machine_request.status = 'imaging'
-    machine_request.save()
+    original_status = _recover_from_error(original_status)
     instance_id = machine_request.instance.provider_alias
 
     (orig_managerCls, orig_creds,
@@ -68,7 +72,7 @@ def start_machine_imaging(machine_request, delay=False):
     #Task 2 = Process the machine request
     if 'processing' in original_status:
         #If processing, start here..
-        image_id = mr.status.replace("processing - ","")
+        image_id = machine_request.status.replace("processing - ","")
         logger.info("Start with processing" % image_id)
         process_task = process_request.s(image_id, machine_request.id)
         init_task = process_task
@@ -112,6 +116,10 @@ def start_machine_imaging(machine_request, delay=False):
     destroy_task.link(email_task)
 
     email_task.link_error(imaging_error_task)
+    #Set status to imaging ONLY if our initial task is the imaging task.
+    if init_task == imaging_task:
+        machine_request.status = 'imaging'
+        machine_request.save()
     # Start the task.
     async = init_task.apply_async()
     if delay:
