@@ -78,6 +78,7 @@ OAUTH_CLIENT_CALLBACK = SERVER_URL + "/oauth2.0/callbackAuthorize"
 SELF_SIGNED_CERT = False
 SERVER_URL = SERVER_URL+REDIRECT_URL
 CAS_SERVER = ""
+CAS_AUTH_PREFIX = "/cas4test"
 SERVICE_URL = SERVER_URL+"/CAS_serviceValidater?sendback="+REDIRECT_URL+"/application/"
 PROXY_URL = SERVER_URL+"/CAS_proxyUrl"
 PROXY_CALLBACK_URL = SERVER_URL+"/CAS_proxyCallback"
