@@ -26,9 +26,10 @@ def saml_loginRedirect(request, redirect=None, gateway=False):
 def cas_loginRedirect(request, redirect=None, gateway=False):
     if not redirect:
         redirect = request.get_full_path()
-    login_url = settings.CAS_SERVER + settings.CAS_AUTH_PREFIX + \
-        "/login?service="+settings.SERVER_URL +\
-        "/CAS_serviceValidater?sendback="+redirect
+    redirect_to = "%s/CAS_serviceValidater?sendback=%s" \
+            % (settings.SERVER_URL, redirect)
+    login_url = "%s%s/login?service=%s" \
+            % (settings.CAS_SERVER, settings.CAS_AUTH_PREFIX, redirect_to)
     if gateway:
         login_url += '&gateway=true'
     return HttpResponseRedirect(login_url)

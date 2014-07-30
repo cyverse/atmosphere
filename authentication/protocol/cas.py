@@ -117,7 +117,7 @@ def saml_validateTicket(request):
     Authorized Users are redirected to the GET param 'sendback'
     """
 
-    redirect_logout_url = settings.REDIRECT_URL+"/s_login/"
+    redirect_logout_url = settings.REDIRECT_URL+"/login/"
     no_user_url = settings.REDIRECT_URL + "/no_user/"
     logger.debug('GET Variables:%s' % request.GET)
     ticket = request.GET.get('ticket', None)
