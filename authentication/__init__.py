@@ -15,8 +15,10 @@ def cas_logoutRedirect():
 
 
 def saml_loginRedirect(request, redirect=None, gateway=False):
-    login_url = "%s/castest/login?service=%s/s_serviceValidater?sendback=%s" %\
-                (settings.CAS_SERVER, settings.SERVER_URL, redirect)
+    login_url = "%s%s/login?service=%s/s_serviceValidater%s" %\
+                (settings.CAS_SERVER, settings.CAS_AUTH_PREFIX,
+                 settings.SERVER_URL,
+                 "?sendback=%s" % redirect if redirect else "")
     if gateway:
         login_url += '&gateway=true'
     return HttpResponseRedirect(login_url)
@@ -24,8 +26,8 @@ def saml_loginRedirect(request, redirect=None, gateway=False):
 def cas_loginRedirect(request, redirect=None, gateway=False):
     if not redirect:
         redirect = request.get_full_path()
-    login_url = settings.CAS_SERVER +\
-        "/cas/login?service="+settings.SERVER_URL +\
+    login_url = settings.CAS_SERVER + settings.CAS_AUTH_PREFIX + \
+        "/login?service="+settings.SERVER_URL +\
         "/CAS_serviceValidater?sendback="+redirect
     if gateway:
         login_url += '&gateway=true'

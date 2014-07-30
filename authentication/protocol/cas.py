@@ -117,7 +117,7 @@ def saml_validateTicket(request):
     Authorized Users are redirected to the GET param 'sendback'
     """
 
-    redirect_logout_url = settings.REDIRECT_URL+"/login/"
+    redirect_logout_url = settings.REDIRECT_URL+"/s_login/"
     no_user_url = settings.REDIRECT_URL + "/no_user/"
     logger.debug('GET Variables:%s' % request.GET)
     ticket = request.GET.get('ticket', None)
@@ -151,7 +151,8 @@ def saml_validateTicket(request):
     createSessionToken(request, auth_token)
     return_to = request.GET.get('sendback')
     if not return_to:
-        return_to = "%s/application/" % settings.SERVER_URL
+        return HttpResponse(saml_response.response,
+                            content_type="text/xml; charset=utf-8")
     logger.info("Session token created, return to: %s" % return_to)
     return_to += "?token=%s" % auth_token
     return HttpResponseRedirect(return_to)
