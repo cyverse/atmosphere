@@ -3,6 +3,7 @@ Atmosphere service machine rest api.
 
 """
 import os
+
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 from django.db.models import Q
@@ -10,6 +11,8 @@ from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+
+from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
 
