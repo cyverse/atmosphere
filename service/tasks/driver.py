@@ -772,7 +772,7 @@ def remove_empty_network(
             inactive_instances = all(driver._is_inactive_instance(
                 instance) for instance in instances)
             #Inactive instances, True: Remove network, False
-            remove_network = not inactive_instances
+            remove_network = True#not inactive_instances
             #Check for project network
             from service.accounts.openstack import AccountDriver as\
                 OSAccountDriver
