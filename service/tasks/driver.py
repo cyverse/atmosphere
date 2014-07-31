@@ -139,7 +139,7 @@ def complete_resize(driverCls, provider, identity, instance_alias,
 
 @task(name="wait_for_instance", max_retries=250, default_retry_delay=15)
 def wait_for_instance(instance_alias, driverCls, provider, identity, status_query,
-             tasks_allowed=False, **task_kwargs):
+             tasks_allowed=False, return_id=False, **task_kwargs):
     """
     #Task makes 250 attempts to 'look at' the instance, waiting 15sec each try
     Cumulative time == 1 hour 2 minutes 30 seconds before FAILURE
@@ -189,7 +189,7 @@ def _is_instance_ready(driverCls, provider, identity,
     driver = get_driver(driverCls, provider, identity)
     instance = driver.get_instance(instance_alias)
     if not instance:
-        logger.debug("Instance has been teminated: %s." % instance_id)
+        logger.debug("Instance has been terminated: %s." % instance.id)
         if return_id:
             return None
         return False
