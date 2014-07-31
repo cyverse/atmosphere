@@ -240,7 +240,8 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 
 			// Disable if instance is not running
 			if (!this.model.get('state_is_active')) {
-			    if (!this.model.get('state') == 'active') {
+                            var state = this.model.get('state');
+			    if (state != 'active' && (state == 'suspended - resuming' || state == 'active - suspending')) {
 				    this.$el.find('.reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');
 				    this.$el.find('.hard_reboot_instance_dropdown').addClass('disabled').attr('disabled', 'disabled');
 				    this.$el.find('.hard_reboot_instance_btn').addClass('disabled').attr('disabled', 'disabled');

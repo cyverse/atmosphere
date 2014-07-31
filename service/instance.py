@@ -67,19 +67,22 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
     #Fixed
     instance_ports = network_manager.list_ports(device_id=esh_instance.id)
     if instance_ports:
-        fixed_ips = instance_ports[0].get('fixed_ips',[])
+        fixed_ip_port = instance_ports[0]
+        fixed_ips = fixed_ip_port.get('fixed_ips',[])
         if fixed_ips:
             fixed_ip = fixed_ips[0]['ip_address']
             result = esh_driver._connection.ex_remove_fixed_ip(esh_instance, fixed_ip)
             logger.info("Removed Fixed IP %s - Result:%s" % (fixed_ip, result))
-            return (True, True)
+        esh_driver._connection.ex_detach_interface(
+                esh_instance.id, fixed_ip_port['id'])
+        return (True, True)
     return (True, False)
 
 def remove_network(esh_driver, identity_id):
     from service.tasks.driver import remove_empty_network
     remove_empty_network.s(esh_driver.__class__, esh_driver.provider,
                            esh_driver.identity, identity_id,
-                           remove_network=False).apply_async(countdown=20)
+                           remove_network=True).apply_async(countdown=20)
 
 
 def restore_network(esh_driver, esh_instance, identity_id):
@@ -96,19 +99,19 @@ def _convert_network_name(esh_driver, esh_instance):
     node_network = esh_instance.extra.get('addresses')
     if not node_network:
         raise Exception("Could not determine the network for node %s"
-                        % node)
+                        % esh_instance)
     try:
         network_name = node_network.keys()[0]
     except Exception, e:
         raise Exception("Could not determine name of the network for node %s"
-                        % node)
+                        % esh_instance)
 
     try:
         network_manager = esh_driver._connection.get_network_manager()
         network = network_manager.find_network(network_name)
         if not network:
             raise Exception("NetworkManager Could not determine the network"
-                        "for node %s" % node)
+                        "for node %s" % esh_instance)
         network_id = network[0]['id']
     except Exception, e:
         raise
