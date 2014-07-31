@@ -56,7 +56,7 @@ def list_filtered_machines(esh_driver, provider_id, request_user=None):
                          for mach in esh_machine_list]
     #logger.info("Core machines :%s" % len(core_machine_list))
     filtered_machine_list = [core_mach for core_mach in core_machine_list
-                             if filter_core_machine(core_mach, request_user)]
+                             if filter_core_machine(core_mach)]
     #logger.info("Filtered Core machines :%s" % len(filtered_machine_list))
     sorted_machine_list = sorted(filtered_machine_list,
                                  cmp=compare_core_machines)
@@ -87,10 +87,11 @@ class MachineList(APIView):
                                                                request_user)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
-        except:
+        except Exception as e:
             logger.exception("Unexpected exception for user:%s"
                              % request_user)
-            return invalid_creds(provider_id, identity_id)
+            return failure_response(status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    e.message)
         serialized_data = ProviderMachineSerializer(filtered_machine_list,
                                                     request_user=request.user,
                                                     many=True).data
