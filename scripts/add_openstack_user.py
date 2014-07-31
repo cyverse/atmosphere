@@ -21,7 +21,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('users', type=str, nargs='+')
     args = parser.parse_args()
-    openstack_prov = Provider.objects.get(location='OPENSTACK')
+    openstack_prov = Provider.objects.get(location='iPlant Workshop Cloud - Tucson')
     driver = AccountDriver(openstack_prov)
     success = 0
     for username in args.users:
