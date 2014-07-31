@@ -33,7 +33,6 @@ class SAMLLoginBackend(ModelBackend):
             return None
         #TODO: See if you were the auth backend used to originate the request.
         #TODO: Look at request session for a token and see if its still valid.
-        import ipdb;ipdb.set_trace()
         if False:
             logger.debug("SAML Authentication failed - "+username)
             return None
@@ -104,6 +103,11 @@ class OAuthLoginBackend(ModelBackend):
         auth = request.META.get('HTTP_AUTHORIZATION', '').split()
         if len(auth) == 2 and auth[0].lower() == "Token":
             oauth_token = auth[1]
+        else:
+            oauth_token = None
+        if not oauth_token:
+            logger.debug("[OAUTH] Authentication skipped - No Token.")
+            return None
         logger.debug("[OAUTH] OAuth Token - %s " % oauth_token)
 
         valid_user, _ = get_user_for_token(oauth_token)
