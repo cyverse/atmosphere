@@ -99,19 +99,19 @@ def _convert_network_name(esh_driver, esh_instance):
     node_network = esh_instance.extra.get('addresses')
     if not node_network:
         raise Exception("Could not determine the network for node %s"
-                        % node)
+                        % esh_instance)
     try:
         network_name = node_network.keys()[0]
     except Exception, e:
         raise Exception("Could not determine name of the network for node %s"
-                        % node)
+                        % esh_instance)
 
     try:
         network_manager = esh_driver._connection.get_network_manager()
         network = network_manager.find_network(network_name)
         if not network:
             raise Exception("NetworkManager Could not determine the network"
-                        "for node %s" % node)
+                        "for node %s" % esh_instance)
         network_id = network[0]['id']
     except Exception, e:
         raise

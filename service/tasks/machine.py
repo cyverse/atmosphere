@@ -73,7 +73,7 @@ def start_machine_imaging(machine_request, delay=False):
     if 'processing' in original_status:
         #If processing, start here..
         image_id = machine_request.status.replace("processing - ","")
-        logger.info("Start with processing" % image_id)
+        logger.info("Start with processing:%s" % image_id)
         process_task = process_request.s(image_id, machine_request.id)
         init_task = process_task
     else:

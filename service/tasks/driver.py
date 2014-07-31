@@ -217,6 +217,8 @@ def clear_empty_ips():
         key=key_sorter)
     os_acct_driver = None
     total = len(identities)
+    num_removed = 0
+    nets_removed = 0
     for idx, core_identity in enumerate(identities):
         try:
             #Initialize the drivers
@@ -237,6 +239,7 @@ def clear_empty_ips():
             if num_ips_removed:
                 logger.debug("Removed %s ips from OpenStack Tenant %s"
                              % (num_ips_removed, tenant_name))
+                num_removed += num_ips_removed
             #Test for active/inactive instances
             instances = driver.list_instances()
             active = any(driver._is_active_instance(inst)
@@ -265,12 +268,14 @@ def clear_empty_ips():
                     os_acct_driver.delete_network(
                         core_identity,
                         remove_network=remove_network)
+                    nets_removed += 1
             else:
                 #logger.info("No Network found. Skipping %s" % tenant_name)
                 pass
         except Exception as exc:
             logger.exception(exc)
     logger.debug("clear_empty_ips task finished at %s." % datetime.now())
+    return (num_removed, nets_removed)
 
 
 @task(name="_send_instance_email",
