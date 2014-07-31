@@ -254,7 +254,6 @@ class Instance(models.Model):
         return active_history
 
 
-
     def _accounting_list(self, earliest_time=None, latest_time=None):
         """
         Return the list of InstanceStatusHistory that should be counted,
