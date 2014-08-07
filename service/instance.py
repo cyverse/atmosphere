@@ -73,9 +73,9 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
             fixed_ip = fixed_ips[0]['ip_address']
             result = esh_driver._connection.ex_remove_fixed_ip(esh_instance, fixed_ip)
             logger.info("Removed Fixed IP %s - Result:%s" % (fixed_ip, result))
-        result = esh_driver._connection.ex_detach_interface(
-                esh_instance.id, fixed_ip_port['id'])
-        logger.info("Detached Port: %s - Result:%s" % (fixed_ip_port, result))
+        #result = esh_driver._connection.ex_detach_interface(
+        #        esh_instance.id, fixed_ip_port['id'])
+        #logger.info("Detached Port: %s - Result:%s" % (fixed_ip_port, result))
         return (True, True)
     return (True, False)
 
@@ -83,7 +83,7 @@ def remove_network(esh_driver, identity_id):
     from service.tasks.driver import remove_empty_network
     remove_empty_network.s(esh_driver.__class__, esh_driver.provider,
                            esh_driver.identity, identity_id,
-                           remove_network=True).apply_async(countdown=20)
+                           remove_network=False).apply_async(countdown=20)
 
 
 def restore_network(esh_driver, esh_instance, identity_id):
