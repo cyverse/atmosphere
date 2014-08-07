@@ -184,9 +184,10 @@ def add_fixed_ip(driverCls, provider, identity, instance_id):
             logger.debug("Instance has been teminated: %s." % instance_id)
             return None
         if instance._node.private_ips:
+            #TODO: Attempt to rescue
+            logger.info("Instance has fixed IP: %s" % instance_id)
             return instance
-        network_id = instance_service._convert_network_name(
-            driver, instance)
+        network_id = instance_service._get_network_id(driver, instance)
         fixed_ip = driver._connection.ex_add_fixed_ip(instance, network_id)
         logger.debug("add_fixed_ip task finished at %s." % datetime.now())
         return fixed_ip
@@ -696,9 +697,26 @@ def add_floating_ip(driverCls, provider, identity,
         else:
             # Find a way to convert new floating IPs to hostnames..
             hostname = floating_ip
-        update_instance_metadata(driver, instance, data={
+
+        metadata_update = {
             'public-hostname': hostname,
-            'public-ip': floating_ip}, replace=False)
+            'public-ip': floating_ip
+        }
+        #NOTE: This is part of the temp change, should be removed when moving
+        # to vxlan
+        instance_ports = driver._connection.neutron_list_ports(device_id=instance.id)
+        network = driver._connection.neutron_get_tenant_network()
+        if instance_ports:
+            for idx, fixed_ip_port in enumerate(instance_ports):
+                fixed_ips = fixed_ip_port.get('fixed_ips',[])
+                mac_addr = fixed_ip_port.get('mac_address')
+                metadata_update['mac-address%s' % idx] = mac_addr
+                metadata_update['port-id%s' % idx] = fixed_ip_port['id']
+                metadata_update['network-id%s' % idx] = network['id']
+        #EndNOTE:
+
+        update_instance_metadata(
+            driver, instance, data=metadata_update, replace=False)
 
         logger.info("Assigned IP:%s - Hostname:%s" % (floating_ip, hostname))
         #End
@@ -769,6 +787,7 @@ def remove_empty_network(
         driver = get_driver(driverCls, provider, identity)
         instances = driver.list_instances()
         active_instances = False
+        #TODO: Replace with any()
         for instance in instances:
             if driver._is_active_instance(instance):
                 active_instances = True

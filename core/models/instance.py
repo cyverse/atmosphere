@@ -112,6 +112,8 @@ class Instance(models.Model):
 
     def _task_to_status(self, task_name):
         task_status_map = {
+                #Terminate tasks
+                #'deleting': 'active',
                 #Suspend tasks
                 'resuming':'build',
                 'suspending':'suspended',

@@ -73,8 +73,9 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
             fixed_ip = fixed_ips[0]['ip_address']
             result = esh_driver._connection.ex_remove_fixed_ip(esh_instance, fixed_ip)
             logger.info("Removed Fixed IP %s - Result:%s" % (fixed_ip, result))
-        esh_driver._connection.ex_detach_interface(
+        result = esh_driver._connection.ex_detach_interface(
                 esh_instance.id, fixed_ip_port['id'])
+        logger.info("Detached Port: %s - Result:%s" % (fixed_ip_port, result))
         return (True, True)
     return (True, False)
 
@@ -90,33 +91,54 @@ def restore_network(esh_driver, esh_instance, identity_id):
     network = network_init(core_identity)
     return network
 
-def _convert_network_name(esh_driver, esh_instance):
+def restore_instance_port(esh_driver, esh_instance):
+    """
+    This can be ignored when we move to vxlan
+    """
+    try:
+        import libvirt
+    except ImportError:
+        raise Exception(
+            "Cannot restore instance port without libvirt. To Install:"
+            " apt-get install python-libvirt\n"
+            " cp /usr/lib/python2.7/dist-packages/*libvirt* "
+            "/virtualenv/lib/python2.7/site-packages\n")
+    conn = libvirt.openReadOnly()
+
+def _extract_network_metadata(network_manager, node_Network):
+    try:
+        network_name = node_network.keys()[0]
+        network = network_manager.find_network(network_name)
+        node_network = esh_instance.extra.get('addresses')
+        network_id = network[0]['id']
+        return network_id
+    except (IndexError, KeyError) as e:
+        logger.warn(
+            "Non-standard 'addresses' metadata. "
+            "Cannot extract network_id" % esh_instance)
+        return None
+
+def _get_network_id(esh_driver, esh_instance):
     """
     For a given instance, retrieve the network-name and 
     convert it to a network-id
     """
-    #Get network name and convert to network ID
+    network_id = None
+    network_manager = esh_driver._connection.get_network_manager()
+
+    #Get network name from fixed IP metadata 'addresses'
     node_network = esh_instance.extra.get('addresses')
-    if not node_network:
-        raise Exception("Could not determine the network for node %s"
-                        % esh_instance)
-    try:
-        network_name = node_network.keys()[0]
-    except Exception, e:
-        raise Exception("Could not determine name of the network for node %s"
-                        % esh_instance)
-
-    try:
-        network_manager = esh_driver._connection.get_network_manager()
-        network = network_manager.find_network(network_name)
-        if not network:
-            raise Exception("NetworkManager Could not determine the network"
+    if node_network:
+        network_id = _extract_network_metadata(network_manager, node_network)
+    if not network_id:
+        tenant_net = network_manager.tenant_networks()
+        if tenant_nets:
+            network_id = tenant_nets[0]["id"]
+    if not network_id:
+        raise Exception("NetworkManager Could not determine the network"
                         "for node %s" % esh_instance)
-        network_id = network[0]['id']
-    except Exception, e:
-        raise
-
     return network_id
+
 
 def resize_and_redeploy(esh_driver, esh_instance, core_identity_id):
     """
@@ -312,6 +334,7 @@ def resume_instance(esh_driver, esh_instance,
     #admin_capacity_check(provider_id, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
+        restore_instance_port(esh_driver, esh_instance)
         deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True)
     esh_driver.resume_instance(esh_instance)
     if restore_ip:
