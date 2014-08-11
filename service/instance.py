@@ -726,7 +726,8 @@ def _get_next_fixed_ip(ports):
 
 def _repair_instance_networking(esh_driver, esh_instance, provider_id, identity_id):
     from service.tasks.driver import \
-            add_floating_ip, wait_for_instance, deploy_init_to, deploy_failed
+            add_floating_ip, wait_for_instance, \
+            deploy_init_to, deploy_failed, update_metadata
     logger.info("Instance %s needs to create and attach port instead"
                 % esh_instance.id)
     core_identity = CoreIdentity.objects.get(id=identity_id)
@@ -742,22 +743,28 @@ def _repair_instance_networking(esh_driver, esh_instance, provider_id, identity_
     logger.info("Instance %s needs to hard reboot instead of resume" %
                 esh_instance.id)
     esh_driver.reboot_instance(esh_instance,'HARD')
-    final_update = esh_instance.extra['metadata']
-    final_update.pop('tmp_status')
-    final_update.pop('iplant_suspend_fix')
-    remove_status_task = update_instance_metadata(
-            esh_driver, esh_instance, final_update, replace=True)
+
     #Custom task-chain.. Wait for active then redeploy scripts
-    #(Adding IP is done)
+    #(Adding IP is done).. Then remove metadata
     init_task = wait_for_instance.s(
             esh_instance.id, esh_driver.__class__, esh_driver.provider,
             esh_driver.identity, "active")
+
     deploy_task = deploy_init_to.si(esh_driver.__class__, esh_driver.provider,
                      esh_driver.identity, esh_instance.id,
                      redeploy=True)
     deploy_task.link_error(
         deploy_failed.s(esh_driver.__class__, esh_driver.provider,
             esh_driver.identity, esh_instance.id))
+
+    final_update = esh_instance.extra['metadata']
+    final_update.pop('tmp_status')
+    final_update.pop('iplant_suspend_fix')
+    remove_status_task = update_metadata.si(
+            esh_driver.__class__, esh_driver.provider, esh_driver.identity,
+            esh_instance.id, final_update, replace_metadata=True)
+    deploy_task.link(remove_status_task)
+
     #Attempt to redeploy after the restart..
     init_task.link(deploy_task)
     init_task.apply_async()
