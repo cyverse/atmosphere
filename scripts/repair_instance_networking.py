@@ -83,16 +83,6 @@ def repair_instance(accounts, admin, instance, provider):
         subnet = network_resources['subnets'][0]
     user_driver = get_esh_driver(identity)
     max_ip = -1
-    for port in network_resources['ports']:
-        fixed_ip = port['fixed_ips']
-        if not fixed_ip:
-            continue
-        fixed_ip = fixed_ip[0]['ip_address']
-        max_ip = max(max_ip, ip2long(fixed_ip))
-    if max_ip <= 0:
-        raise Exception("Next IP address could not be determined"
-                        " (You have no existing Fixed IPs!)")
-    new_fixed_ip = long2ip(max_ip + 1)
     port = accounts.network_manager.create_port(instance.id, network['id'],
             subnet['id'], new_fixed_ip, tenant_id)
     print "Created new port: %s" % port

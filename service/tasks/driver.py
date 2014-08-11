@@ -7,7 +7,6 @@ import time
 
 from django.conf import settings
 from django.utils.timezone import datetime
-
 from celery import chain
 from celery.decorators import task
 from celery.task import current
@@ -31,6 +30,7 @@ from core.models.profile import UserProfile
 from service.deploy import init, check_process
 from service.driver import get_driver
 from service.instance import update_instance_metadata
+from service.instance import _create_and_attach_port
 from service.networking import _generate_ssh_kwargs
 
 
@@ -174,7 +174,7 @@ def wait_for_instance(instance_alias, driverCls, provider, identity, status_quer
       ignore_result=True,
       default_retry_delay=15,
       max_retries=15)
-def add_fixed_ip(driverCls, provider, identity, instance_id):
+def add_fixed_ip(driverCls, provider, identity, instance_id, core_identity_id=None):
     from service import instance as instance_service
     try:
         logger.debug("add_fixed_ip task started at %s." % datetime.now())
@@ -187,6 +187,7 @@ def add_fixed_ip(driverCls, provider, identity, instance_id):
             #TODO: Attempt to rescue
             logger.info("Instance has fixed IP: %s" % instance_id)
             return instance
+
         network_id = instance_service._get_network_id(driver, instance)
         fixed_ip = driver._connection.ex_add_fixed_ip(instance, network_id)
         logger.debug("add_fixed_ip task finished at %s." % datetime.now())
@@ -420,9 +421,17 @@ def get_deploy_chain(driverCls, provider, identity,
         driverCls, provider, identity, instance_id, "vnc")
 
     #Then remove the tmp_status
+    if instance.extra['metadata'].get('iplant_suspend_fix'):
+        replace = True
+        final_update = instance.extra['metadata']
+        final_update.pop('tmp_status')
+        final_update.pop('iplant_suspend_fix')
+    else:
+        final_update = {'tmp_status': ''}
+        replace = False
     remove_status_task = update_metadata.si(
         driverCls, provider, identity, instance_id,
-        {'tmp_status': ''})
+        final_update, replace)
 
     #Finally email the user
     if not redeploy:
@@ -631,7 +640,8 @@ def check_process_task(driverCls, provider, identity,
 
 
 @task(name="update_metadata", max_retries=250, default_retry_delay=15)
-def update_metadata(driverCls, provider, identity, instance_alias, metadata):
+def update_metadata(driverCls, provider, identity, instance_alias, metadata,
+        replace_metadata=False):
     """
     #NOTE: While this looks like a large number (250 ?!) of retries
     # we expect this task to fail often when the image is building
@@ -647,7 +657,7 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata):
         if app.conf.CELERY_ALWAYS_EAGER:
             eager_update_metadata(driver, instance, metadata)
         return update_instance_metadata(
-            driver, instance, data=metadata, replace=False)
+            driver, instance, data=metadata, replace=replace_metadata)
         logger.debug("update_metadata task finished at %s." % datetime.now())
     except Exception as exc:
         logger.exception(exc)

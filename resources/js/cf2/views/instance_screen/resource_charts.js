@@ -205,7 +205,7 @@ Atmo.Views.ResourceCharts = Backbone.View.extend({
 
                     // Filter out any instances that aren't active
                     instances = _.filter(instances, function(instance) {
-                        return instance['state'] != 'suspended';
+                        return instance['state'] != 'suspended' && instances['state'] != 'shutoff';
                     });
 
                     // Add together quota used by instances cumulatively
