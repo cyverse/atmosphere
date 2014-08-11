@@ -55,7 +55,7 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
     Returns: (floating_removed, fixed_removed)
     """
     network_manager = esh_driver._connection.get_network_manager()
-    #Floating
+    #Delete the Floating IP
     result = network_manager.disassociate_floating_ip(esh_instance.id)
     logger.info("Removed Floating IP for Instance %s - Result:%s"
                 % (esh_instance.id, result))
@@ -73,11 +73,17 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
             fixed_ip = fixed_ips[0]['ip_address']
             result = esh_driver._connection.ex_remove_fixed_ip(esh_instance, fixed_ip)
             logger.info("Removed Fixed IP %s - Result:%s" % (fixed_ip, result))
+        return (True, True)
+    return (True, False)
+
+def detach_port(esh_driver, esh_instance):
+    instance_ports = network_manager.list_ports(device_id=esh_instance.id)
+    if instance_ports:
+        fixed_ip_port = instance_ports[0]
         result = esh_driver._connection.ex_detach_interface(
                 esh_instance.id, fixed_ip_port['id'])
         logger.info("Detached Port: %s - Result:%s" % (fixed_ip_port, result))
-        return (True, True)
-    return (True, False)
+    return result
 
 def remove_network(esh_driver, identity_id):
     from service.tasks.driver import remove_empty_network
@@ -736,6 +742,7 @@ def _repair_instance_networking(esh_driver, esh_instance, provider_id, identity_
                 esh_instance.id)
     attached_intf = _create_and_attach_port(provider, esh_driver, esh_instance,
                 core_identity)
+    logger.info("Attached Interface: %s" % attached_intf)
     logger.info("Adding floating IP manually, Instance %s" %
                 esh_instance.id)
     add_floating_ip(esh_driver.__class__, esh_driver.provider,
