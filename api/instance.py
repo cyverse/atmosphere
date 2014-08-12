@@ -127,7 +127,7 @@ class InstanceList(APIView):
             logger.exception("Encountered a generic exception. "
                              "Returning 409-CONFLICT")
             return failure_response(status.HTTP_409_CONFLICT,
-                                    exc.message)
+                                    str(exc.message))
 
         serializer = InstanceSerializer(core_instance,
                                         context={"request":request},

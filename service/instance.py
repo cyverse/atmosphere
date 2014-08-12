@@ -15,7 +15,7 @@ from rtwo.driver import OSDriver
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import convert_esh_instance
 from core.models.size import convert_esh_size
-from core.models.provider import AccountProvider
+from core.models.provider import AccountProvider, Provider
 
 from api import get_esh_driver
 
@@ -55,7 +55,7 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
     Returns: (floating_removed, fixed_removed)
     """
     network_manager = esh_driver._connection.get_network_manager()
-    #Floating
+    #Delete the Floating IP
     result = network_manager.disassociate_floating_ip(esh_instance.id)
     logger.info("Removed Floating IP for Instance %s - Result:%s"
                 % (esh_instance.id, result))
@@ -73,16 +73,23 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
             fixed_ip = fixed_ips[0]['ip_address']
             result = esh_driver._connection.ex_remove_fixed_ip(esh_instance, fixed_ip)
             logger.info("Removed Fixed IP %s - Result:%s" % (fixed_ip, result))
-        esh_driver._connection.ex_detach_interface(
-                esh_instance.id, fixed_ip_port['id'])
         return (True, True)
     return (True, False)
+
+def detach_port(esh_driver, esh_instance):
+    instance_ports = network_manager.list_ports(device_id=esh_instance.id)
+    if instance_ports:
+        fixed_ip_port = instance_ports[0]
+        result = esh_driver._connection.ex_detach_interface(
+                esh_instance.id, fixed_ip_port['id'])
+        logger.info("Detached Port: %s - Result:%s" % (fixed_ip_port, result))
+    return result
 
 def remove_network(esh_driver, identity_id):
     from service.tasks.driver import remove_empty_network
     remove_empty_network.s(esh_driver.__class__, esh_driver.provider,
                            esh_driver.identity, identity_id,
-                           remove_network=True).apply_async(countdown=20)
+                           remove_network=False).apply_async(countdown=20)
 
 
 def restore_network(esh_driver, esh_instance, identity_id):
@@ -90,33 +97,54 @@ def restore_network(esh_driver, esh_instance, identity_id):
     network = network_init(core_identity)
     return network
 
-def _convert_network_name(esh_driver, esh_instance):
+def restore_instance_port(esh_driver, esh_instance):
+    """
+    This can be ignored when we move to vxlan
+    """
+    try:
+        import libvirt
+    except ImportError:
+        raise Exception(
+            "Cannot restore instance port without libvirt. To Install:"
+            " apt-get install python-libvirt\n"
+            " cp /usr/lib/python2.7/dist-packages/*libvirt* "
+            "/virtualenv/lib/python2.7/site-packages\n")
+    conn = libvirt.openReadOnly()
+
+def _extract_network_metadata(network_manager, esh_instance, node_network):
+    try:
+        network_name = node_network.keys()[0]
+        network = network_manager.find_network(network_name)
+        node_network = esh_instance.extra.get('addresses')
+        network_id = network[0]['id']
+        return network_id
+    except (IndexError, KeyError) as e:
+        logger.warn(
+            "Non-standard 'addresses' metadata. "
+            "Cannot extract network_id" % esh_instance)
+        return None
+
+def _get_network_id(esh_driver, esh_instance):
     """
     For a given instance, retrieve the network-name and 
     convert it to a network-id
     """
-    #Get network name and convert to network ID
+    network_id = None
+    network_manager = esh_driver._connection.get_network_manager()
+
+    #Get network name from fixed IP metadata 'addresses'
     node_network = esh_instance.extra.get('addresses')
-    if not node_network:
-        raise Exception("Could not determine the network for node %s"
-                        % esh_instance)
-    try:
-        network_name = node_network.keys()[0]
-    except Exception, e:
-        raise Exception("Could not determine name of the network for node %s"
-                        % esh_instance)
-
-    try:
-        network_manager = esh_driver._connection.get_network_manager()
-        network = network_manager.find_network(network_name)
-        if not network:
-            raise Exception("NetworkManager Could not determine the network"
+    if node_network:
+        network_id = _extract_network_metadata(network_manager, esh_instance, node_network)
+    if not network_id:
+        tenant_nets = network_manager.tenant_networks()
+        if tenant_nets:
+            network_id = tenant_nets[0]["id"]
+    if not network_id:
+        raise Exception("NetworkManager Could not determine the network"
                         "for node %s" % esh_instance)
-        network_id = network[0]['id']
-    except Exception, e:
-        raise
-
     return network_id
+
 
 def resize_and_redeploy(esh_driver, esh_instance, core_identity_id):
     """
@@ -162,7 +190,8 @@ def redeploy_init(esh_driver, esh_instance, countdown=None):
                      redeploy=True).apply_async(countdown=countdown)
 
 
-def restore_ip_chain(esh_driver, esh_instance, redeploy=False):
+def restore_ip_chain(esh_driver, esh_instance, redeploy=False,
+        core_identity_id=None):
     """
     Returns: a task, chained together
     task chain: wait_for("active") --> AddFixed --> AddFloating
@@ -179,7 +208,7 @@ def restore_ip_chain(esh_driver, esh_instance, redeploy=False):
     #Step 1: Add fixed
     fixed_ip_task = add_fixed_ip.si(
             esh_driver.__class__, esh_driver.provider,
-            esh_driver.identity, esh_instance.id)
+            esh_driver.identity, esh_instance.id, core_identity_id)
     init_task.link(fixed_ip_task)
     #Add float and re-deploy OR just add floating IP...
     if redeploy:
@@ -210,7 +239,8 @@ def stop_instance(esh_driver, esh_instance, provider_id, identity_id, user,
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
 
-def start_instance(esh_driver, esh_instance, provider_id, identity_id, user,
+def start_instance(esh_driver, esh_instance,
+                    provider_id, identity_id, user,
                    restore_ip=True, update_meta=True):
     """
 
@@ -222,6 +252,13 @@ def start_instance(esh_driver, esh_instance, provider_id, identity_id, user,
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
         deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True)
+
+    needs_fixing = esh_instance.extra['metadata'].get('iplant_suspend_fix')
+    logger.info("Instance %s needs to hard reboot instead of start" %
+            esh_instance.id)
+    if needs_fixing:
+        return _repair_instance_networking(esh_driver, esh_instance, provider_id, identity_id)
+
     esh_driver.start_instance(esh_instance)
     if restore_ip:
         deploy_task.apply_async(countdown=10)
@@ -313,7 +350,16 @@ def resume_instance(esh_driver, esh_instance,
     #admin_capacity_check(provider_id, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_id)
-        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True)
+        #restore_instance_port(esh_driver, esh_instance)
+        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True,
+                #NOTE: after removing FIXME, This parameter can be removed as well
+                core_identity_id=identity_id)
+    #FIXME: These three lines are necessary to repair our last network outage.
+    # At some point, we should re-evaluate when it is safe to remove
+    needs_fixing = esh_instance.extra['metadata'].get('iplant_suspend_fix')
+    if needs_fixing:
+        return _repair_instance_networking(esh_driver, esh_instance, provider_id, identity_id)
+
     esh_driver.resume_instance(esh_instance)
     if restore_ip:
         deploy_task.apply_async(countdown=10)
@@ -652,3 +698,90 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
         else:
             raise
 
+
+def _create_and_attach_port(provider, driver, instance, core_identity):
+    accounts = OSAccountDriver(core_identity.provider)
+    tenant_id = instance.extra['tenantId']
+    network_resources = accounts.network_manager.find_tenant_resources(tenant_id)
+    network = network_resources['networks']
+    if not network:
+        network, subnet = accounts.create_network(core_identity)
+    else:
+        network = network[0]
+        subnet = network_resources['subnets'][0]
+    #new_fixed_ip = _get_next_fixed_ip(network_resources['ports'])
+    #admin = accounts.admin_driver
+    #port = accounts.network_manager.create_port(
+    #    instance.id, network['id'], subnet['id'], new_fixed_ip, tenant_id)
+    attached_intf = driver._connection.ex_attach_interface(instance.id, network['id'])
+    return attached_intf
+   
+def _get_next_fixed_ip(ports):
+    """
+    Expects the output from user-specific neutron port-list. will determine the
+    next available fixed IP by 'counting' the highest allocated IP address and
+    adding one to it.
+    """
+    try:
+        from iptools.ipv4 import ip2long, long2ip
+    except ImportError:
+        raise Exception("For this script, we need iptools. pip install iptools")
+    max_ip = -1
+    for port in ports:
+        fixed_ip = port['fixed_ips']
+        if not fixed_ip:
+            continue
+        fixed_ip = fixed_ip[0]['ip_address']
+        max_ip = max(max_ip, ip2long(fixed_ip))
+    if max_ip <= 0:
+        raise Exception("Next IP address could not be determined"
+                        " (You have no existing Fixed IPs!)")
+    new_fixed_ip = long2ip(max_ip + 1)
+    return new_fixed_ip
+
+def _repair_instance_networking(esh_driver, esh_instance, provider_id, identity_id):
+    from service.tasks.driver import \
+            add_floating_ip, wait_for_instance, \
+            deploy_init_to, deploy_failed, update_metadata
+    logger.info("Instance %s needs to create and attach port instead"
+                % esh_instance.id)
+    core_identity = CoreIdentity.objects.get(id=identity_id)
+    provider = Provider.objects.get(id=provider_id)
+    logger.info("Attaching interface manually, Instance %s" %
+                esh_instance.id)
+    attached_intf = _create_and_attach_port(provider, esh_driver, esh_instance,
+                core_identity)
+    logger.info("Attached Interface: %s" % attached_intf)
+    logger.info("Adding floating IP manually, Instance %s" %
+                esh_instance.id)
+    add_floating_ip(esh_driver.__class__, esh_driver.provider,
+                    esh_driver.identity, esh_instance.id)
+    logger.info("Instance %s needs to hard reboot instead of resume" %
+                esh_instance.id)
+    esh_driver.reboot_instance(esh_instance,'HARD')
+
+    #Custom task-chain.. Wait for active then redeploy scripts
+    #(Adding IP is done).. Then remove metadata
+    init_task = wait_for_instance.s(
+            esh_instance.id, esh_driver.__class__, esh_driver.provider,
+            esh_driver.identity, "active")
+
+    deploy_task = deploy_init_to.si(esh_driver.__class__, esh_driver.provider,
+                     esh_driver.identity, esh_instance.id,
+                     redeploy=True)
+    deploy_task.link_error(
+        deploy_failed.s(esh_driver.__class__, esh_driver.provider,
+            esh_driver.identity, esh_instance.id))
+
+    final_update = esh_instance.extra['metadata']
+    final_update.pop('tmp_status')
+    final_update.pop('iplant_suspend_fix')
+    remove_status_task = update_metadata.si(
+            esh_driver.__class__, esh_driver.provider, esh_driver.identity,
+            esh_instance.id, final_update, replace_metadata=True)
+    deploy_task.link(remove_status_task)
+
+    #Attempt to redeploy after the restart..
+    init_task.link(deploy_task)
+    init_task.apply_async()
+    return

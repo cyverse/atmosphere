@@ -350,7 +350,7 @@ Atmo.Views.SidebarInstanceListItem = Backbone.View.extend({
             }
 
             if (self.model.get('state') != self.final_state || self.final_state != undefined) {
-                this.poll = setInterval(poll_instances, 10 * 1000);
+                this.poll = setInterval(poll_instances, 60 * 1000);
             }
         }
     }

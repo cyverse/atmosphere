@@ -269,15 +269,20 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			// Show appropriate controls
 			this.$el.find('#openstack_controls').fadeIn('fast');
 
-			if (this.model.get('state') == 'suspended')
-				this.$el.find('.btn.suspend_resume_instance_btn').html('<i class="glyphicon glyphicon-play"></i> Resume').removeClass('disabled').removeAttr('disabled');
-			else 
+			if (this.model.get('state') == 'suspended') {
+				var resume_button = this.$el.find('.btn.suspend_resume_instance_btn');
+                resume_button.html('<i class="glyphicon glyphicon-play"></i> Resume');
+                resume_button.removeClass('disabled').removeAttr('disabled');
+            } else {
 				this.$el.find('.btn.suspend_resume_instance_btn').fadeIn('fast');
-
-			if (this.model.get('state') == 'shutoff')
-				this.$el.find('.btn.start_stop_instance_btn').html('<i class="glyphicon glyphicon-share-alt"></i> Start').removeClass('disabled').removeAttr('disabled');
-			else
+            }
+			if (this.model.get('state') == 'shutoff') {
+				var start_button = this.$el.find('.btn.start_stop_instance_btn');
+                start_button.html('<i class="glyphicon glyphicon-share-alt"></i> Start');
+                start_button.removeClass('disabled').removeAttr('disabled');
+            } else {
 				this.$el.find('.btn.start_stop_instance_btn').fadeIn('fast');
+		    }
 		}
 		else {
 			this.$el.find('#openstack_controls').remove();
