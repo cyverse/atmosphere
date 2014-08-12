@@ -272,18 +272,14 @@ Atmo.Views.InstanceTabsHolder = Backbone.View.extend({
 			if (this.model.get('state') == 'suspended') {
 				var resume_button = this.$el.find('.btn.suspend_resume_instance_btn');
                 resume_button.html('<i class="glyphicon glyphicon-play"></i> Resume');
-                resume_button.addClass('disabled');
-                resume_button.attr('disabled','disabled');
-                //resume_button.removeClass('disabled').removeAttr('disabled');
+                resume_button.removeClass('disabled').removeAttr('disabled');
             } else {
 				this.$el.find('.btn.suspend_resume_instance_btn').fadeIn('fast');
             }
 			if (this.model.get('state') == 'shutoff') {
 				var start_button = this.$el.find('.btn.start_stop_instance_btn');
                 start_button.html('<i class="glyphicon glyphicon-share-alt"></i> Start');
-                start_button.addClass('disabled');
-                start_button.attr('disabled','disabled');
-                //start_button.removeClass('disabled').removeAttr('disabled');
+                start_button.removeClass('disabled').removeAttr('disabled');
             } else {
 				this.$el.find('.btn.start_stop_instance_btn').fadeIn('fast');
 		    }
