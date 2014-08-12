@@ -17,7 +17,7 @@ from api.serializers import ProjectSerializer, InstanceSerializer,\
         VolumeSerializer, ApplicationSerializer
 from core.models.group import Group, get_user_group
 from api.permissions import InMaintenance, ApiAuthRequired
-from api.serializers import ProjectSerializer
+from api.serializers import NoProjectSerializer
 
 from django.utils import timezone
 from django.db.models import Q
@@ -205,6 +205,22 @@ class ProjectInstanceList(APIView):
         response = Response(serialized_data)
         return response
 
+class NoProjectList(APIView):
+    """
+    """
+
+    permission_classes = (ApiAuthRequired,)
+    def get(self, request):
+        """
+        """
+        user = request.user
+        #Get all instances, volumes, applications owned by me
+        #where project==None
+        serialized_data = NoProjectSerializer(user,
+                                            context={"request":request}).data
+        response = Response(serialized_data)
+        return response
+
 class ProjectList(APIView):
     """
     """
@@ -216,9 +232,6 @@ class ProjectList(APIView):
         """
         user = request.user
         data = request.DATA
-        if data.get('name') == 'Default':
-            return Response("The 'Default' project name is reserved",
-                            status=status.HTTP_409_CONFLICT)
         #Default to creating for the 'user-group'
         if not data.get('owner'):
             data['owner'] = user.username
@@ -271,11 +284,6 @@ class ProjectDetail(APIView):
         serializer = ProjectSerializer(project, data=data, partial=True,
                                             context={"request":request})
         if serializer.is_valid():
-            #If the default project was renamed
-            if project.name == "Default" \
-                    and serializer.object.name != "Default":
-                #Create another one.
-                group.projects.get_or_create(name="Default")
             serializer.save()
             response = Response(
                     serializer.data,
@@ -299,11 +307,6 @@ class ProjectDetail(APIView):
         serializer = ProjectSerializer(project, data=data,
                                             context={"request":request})
         if serializer.is_valid():
-            #If the default project was renamed
-            if project.name == "Default" \
-                    and serializer.object.name != "Default":
-                #Create another one.
-                group.projects.get_or_create(name="Default")
             serializer.save()
             response = Response(
                     serializer.data,
@@ -338,12 +341,11 @@ class ProjectDetail(APIView):
             return Response("Project with ID=%s does not exist" % project_id,
                             status=status.HTTP_400_BAD_REQUEST)
         project = project[0]
-        if project.name == 'Default':
+        if project.has_resources():
             return Response(
-                    "The 'Default' project is reserved and cannot be deleted.",
-                    status=status.HTTP_409_CONFLICT)
-        default_project = group.projects.get(name='Default')
-        project.copy_objects(default_project)
+                "Project with ID=%s has running resources. "
+                "Resources MUST be deleted before deleting the project."
+                % project_id, status=status.HTTP_409_CONFLICT)
         project.delete_project()
         serialized_data = ProjectSerializer(project,
                                             context={"request":request}).data

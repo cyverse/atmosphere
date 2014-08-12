@@ -26,7 +26,7 @@ from api.maintenance import MaintenanceRecordList, MaintenanceRecord
 from api.meta import Meta, MetaAction
 from api.notification import NotificationList
 from api.occupancy import Occupancy, Hypervisor
-from api.project import ProjectList, ProjectDetail
+from api.project import NoProjectList, ProjectList, ProjectDetail
 from api.project import ProjectInstanceList, ProjectInstanceExchange,\
         ProjectApplicationList, ProjectApplicationExchange,\
         ProjectVolumeList, ProjectVolumeExchange
@@ -69,6 +69,9 @@ private_apis = patterns('',
     url(r'project$',
         ProjectList.as_view(),
         name='project-list'),
+    url(r'project/null$',
+        NoProjectList.as_view(),
+        name='empty-project-list'),
     url(r'project/(?P<project_id>\d+)$',
         ProjectDetail.as_view(),
         name='project-detail'),
