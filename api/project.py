@@ -230,6 +230,51 @@ class NoProjectList(APIView):
                                             context={"request":request}).data
         response = Response(serialized_data)
         return response
+class NoProjectVolumeList(APIView):
+    """
+    """
+    permission_classes = (ApiAuthRequired,)
+
+    def get(self, request):
+        """
+        """
+        user = request.user
+        volumes = user.volume_set.filter(only_active(), projects=None)
+        serialized_data = VolumeSerializer(volumes, many=True,
+                                            context={"request":request}).data
+        response = Response(serialized_data)
+        return response
+
+class NoProjectApplicationList(APIView):
+    """
+    """
+    permission_classes = (ApiAuthRequired,)
+
+    def get(self, request):
+        """
+        """
+        user = request.user
+        applications = user.application_set.filter(only_active(), projects=None)
+        serialized_data = ApplicationSerializer(applications, many=True,
+                                                context={"request":request}).data
+        response = Response(serialized_data)
+        return response
+
+class NoProjectInstanceList(APIView):
+    """
+    """
+
+    permission_classes = (ApiAuthRequired,)
+
+    def get(self, request):
+        """
+        """
+        user = request.user
+        volumes = user.instance_set.filter(only_active(), projects=None)
+        serialized_data = InstanceSerializer(instances, many=True,
+                                            context={"request":request}).data
+        response = Response(serialized_data)
+        return response
 
 class ProjectList(APIView):
     """
