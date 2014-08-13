@@ -1,6 +1,7 @@
 from datetime import datetime
 import time
 
+from django.utils import timezone
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 from django.db.models import Q
@@ -141,6 +142,17 @@ class InstanceList(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
 
 
+def _sort_instance_history(history_instance_list, sort_by, descending=False):
+    #Using the 'sort_by' variable, sort the list:
+    if not sort_by or 'end_date' in sort_by:
+        return sorted(history_instance_list, key=lambda ish:
+                ish.end_date if ish.end_date else timezone.now(),
+                reverse=descending)
+    elif 'start_date' in sort_by:
+        return sorted(history_instance_list, key=lambda ish:
+                ish.start_date if ish.start_date else timezone.now(),
+                reverse=descending)
+
 def _filter_instance_history(history_instance_list, params):
     #Filter the list based on query strings
     for filter_key, value in params.items():
@@ -184,10 +196,14 @@ class InstanceHistory(APIView):
                                         emualte_name)
         try:
             # List of all instances created by user
+            sort_by = params.get('sort_by','')
+            order_by = params.get('order_by','desc')
             history_instance_list = CoreInstance.objects.filter(
                 created_by=user).order_by("-start_date")
             history_instance_list = _filter_instance_history(
                     history_instance_list, params)
+            history_instance_list = _sort_instance_history(
+                    history_instance_list, sort_by, 'desc' in order_by.lower())
         except Exception as e:
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
