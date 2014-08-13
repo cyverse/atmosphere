@@ -89,6 +89,11 @@ class ProjectInstanceExchange(APIView):
                             % (instance_id,),
                             status=status.HTTP_400_BAD_REQUEST)
         instance = instance[0]
+        existing_projects = instance.project_set.all()
+        if existing_projects:
+            for proj in existing_projects:
+                proj.remove_object(instance)
+
         project.add_object(instance)
         response = Response(status=status.HTTP_204_NO_CONTENT)
         return response
@@ -128,6 +133,11 @@ class ProjectVolumeExchange(APIView):
                             % (volume_id,),
                             status=status.HTTP_400_BAD_REQUEST)
         volume = volume[0]
+        existing_projects = volume.project_set.all()
+        if existing_projects:
+            for proj in existing_projects:
+                proj.remove_object(volume)
+
         project.add_object(volume)
         response = Response(status=status.HTTP_204_NO_CONTENT)
         return response
