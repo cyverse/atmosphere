@@ -112,6 +112,8 @@ class Instance(models.Model):
 
     def _task_to_status(self, task_name):
         task_status_map = {
+                #Terminate tasks
+                #'deleting': 'active',
                 #Suspend tasks
                 'resuming':'build',
                 'suspending':'suspended',
@@ -254,7 +256,6 @@ class Instance(models.Model):
         return active_history
 
 
-
     def _accounting_list(self, earliest_time=None, latest_time=None):
         """
         Return the list of InstanceStatusHistory that should be counted,
@@ -334,7 +335,7 @@ class Instance(models.Model):
         if not self.esh or not hasattr(self.esh._node, 'extra'):
             last_history = self.get_last_history()
             if last_history:
-                return last_history.size.name
+                return last_history.size.alias
             return "Unknown"
         extras = self.esh._node.extra
         if extras.has_key('flavorId'):

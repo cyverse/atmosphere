@@ -115,6 +115,7 @@ def prepare_driver(request, provider_id, identity_id):
         if identity in request.user.identity_set.all():
             return get_esh_driver(identity)
     except ObjectDoesNotExist:
+        logger.exception("Bad things happening")
         pass
 
 

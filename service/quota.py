@@ -38,10 +38,11 @@ def get_current_quota(identity_id):
     cpu = ram = disk = suspended = 0
     instances = driver.list_instances()
     for instance in instances:
-        if instance.extra['status'] == 'suspended':
+        if instance.extra['status'] == 'suspended'\
+        or instance.extra['status'] == 'shutoff':
             suspended += 1
             continue
-        size = instance.size
+        size = driver.get_size(instance.size.id)
         cpu += size.cpu
         ram += size.ram
         disk += size._size.disk

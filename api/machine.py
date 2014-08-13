@@ -3,6 +3,7 @@ Atmosphere service machine rest api.
 
 """
 import os
+
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 from django.db.models import Q
@@ -10,6 +11,8 @@ from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+
+from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
 
@@ -53,7 +56,7 @@ def list_filtered_machines(esh_driver, provider_id, request_user=None):
                          for mach in esh_machine_list]
     #logger.info("Core machines :%s" % len(core_machine_list))
     filtered_machine_list = [core_mach for core_mach in core_machine_list
-                             if filter_core_machine(core_mach, request_user)]
+                             if filter_core_machine(core_mach)]
     #logger.info("Filtered Core machines :%s" % len(filtered_machine_list))
     sorted_machine_list = sorted(filtered_machine_list,
                                  cmp=compare_core_machines)
@@ -84,10 +87,11 @@ class MachineList(APIView):
                                                                request_user)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
-        except:
+        except Exception as e:
             logger.exception("Unexpected exception for user:%s"
                              % request_user)
-            return invalid_creds(provider_id, identity_id)
+            return failure_response(status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    e.message)
         serialized_data = ProviderMachineSerializer(filtered_machine_list,
                                                     request_user=request.user,
                                                     many=True).data
@@ -140,7 +144,7 @@ class MachineHistory(APIView):
             # deliver last page of results.
             history_machine_page = paginator.page(paginator.num_pages)
         serialized_data = PaginatedProviderMachineSerializer(
-            history_machine_page).data
+            history_machine_page, context={'request':request}).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
@@ -198,7 +202,7 @@ class MachineSearch(APIView):
             # deliver last page of results.
             search_page = paginator.page(paginator.num_pages)
         serialized_data = PaginatedProviderMachineSerializer(
-            search_page).data
+            search_page, context={'request':request}).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response

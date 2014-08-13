@@ -247,7 +247,7 @@ class IdentitySerializer(serializers.ModelSerializer):
                   'membership')
 
 
-class ApplicationSerializer(serializers.Serializer):
+class ApplicationSerializer(serializers.ModelSerializer):
     """
     test maybe something
     """
@@ -628,6 +628,32 @@ class VolumeSerializer(serializers.ModelSerializer):
         model = Volume
         exclude = ('id', 'created_by_identity', 'end_date')
 
+
+class NoProjectSerializer(serializers.ModelSerializer):
+    applications = serializers.SerializerMethodField('get_user_applications')
+    instances = serializers.SerializerMethodField('get_user_instances')
+    volumes = serializers.SerializerMethodField('get_user_volumes')
+
+    def get_user_applications(self, atmo_user):
+        return [ApplicationSerializer(
+            item,
+            context={'request': self.context.get('request')}).data for item in
+            atmo_user.application_set.filter(only_active(), projects=None)]
+
+    def get_user_instances(self, atmo_user):
+        return [InstanceSerializer(
+            item,
+            context={'request': self.context.get('request')}).data for item in
+            atmo_user.instance_set.filter(only_active(), projects=None)]
+
+    def get_user_volumes(self, atmo_user):
+        return [VolumeSerializer(
+            item,
+            context={'request': self.context.get('request')}).data for item in
+            atmo_user.volume_set.filter(only_active(), projects=None)]
+    class Meta:
+        model = AtmosphereUser
+        fields = ('applications', 'instances', 'volumes')
 
 class ProjectSerializer(serializers.ModelSerializer):
     #Edits to Writable fields..
