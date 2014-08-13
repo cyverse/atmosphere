@@ -171,26 +171,18 @@ class InstanceHistory(APIView):
         """
         data = request.DATA
         params = request.QUERY_PARAMS.copy()
-        user = User.objects.filter(username=request.user)
-        if user and len(user) > 0:
-            user = user[0]
-        else:
-            return failure_response(status.HTTP_401_UNAUTHORIZED,
-                                    'Request User %s not found' %
-                                    user)
-        page = params.pop('page', None)
         emulate_name = params.pop('username', None)
+        user = request.user
+        # Support for staff users to emulate a specific user history
+        if user.is_staff and emulate_name:
+            emualate_name = emulate_name[0]  # Querystring conversion
+            try:
+                user = User.objects.get(username=emulate_name)
+            except User.DoesNotExist:
+                return failure_response(status.HTTP_401_UNAUTHORIZED,
+                                        'Emulated User %s not found' %
+                                        emualte_name)
         try:
-            # Support for staff users to emulate a specific user history
-            if user.is_staff and emulate_name:
-                emualate_name = emulate_name[0]  # Querystring conversion
-                user = User.objects.filter(username=emulate_name)
-                if user and len(user) > 0:
-                    user = user[0]
-                else:
-                    return failure_response(status.HTTP_401_UNAUTHORIZED,
-                                            'Emulated User %s not found' %
-                                            emualte_name)
             # List of all instances created by user
             history_instance_list = CoreInstance.objects.filter(
                 created_by=user).order_by("-start_date")
@@ -201,8 +193,10 @@ class InstanceHistory(APIView):
                 status.HTTP_400_BAD_REQUEST,
                 'Bad query string caused filter validation errors : %s'
                 % (e,))
+
+        page = params.get('page')
         if page or len(history_instance_list) == 0:
-            paginator = Paginator(history_instance_list, 5,
+            paginator = Paginator(history_instance_list, 20,
                                   allow_empty_first_page=True)
         else:
             paginator = Paginator(history_instance_list,
@@ -218,7 +212,7 @@ class InstanceHistory(APIView):
             # deliver last page of results.
             history_instance_page = paginator.page(paginator.num_pages)
         serialized_data = PaginatedInstanceHistorySerializer(
-            history_instance_page).data
+                history_instance_page, context={'request':request}).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response

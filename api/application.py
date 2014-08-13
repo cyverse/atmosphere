@@ -34,8 +34,6 @@ class ApplicationList(APIView):
         Description, or Tag(s).
     """
 
-    serializer_class = ApplicationSerializer
-    model = CoreApplication
     permission_classes = (InMaintenance, ApiAuthOptional)
 
     def get(self, request, **kwargs):
@@ -52,6 +50,7 @@ class ApplicationList(APIView):
                 applications = [a for a in applications if a.featured()]
             else:
                 applications = [a for a in applications if not a.featured()]
+
         page = request.QUERY_PARAMS.get('page')
         if page or len(applications) == 0:
             paginator = Paginator(applications, 20,
