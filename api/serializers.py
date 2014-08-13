@@ -247,7 +247,7 @@ class IdentitySerializer(serializers.ModelSerializer):
                   'membership')
 
 
-class ApplicationSerializer(serializers.Serializer):
+class ApplicationSerializer(serializers.ModelSerializer):
     """
     test maybe something
     """
