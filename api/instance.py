@@ -503,6 +503,17 @@ class InstanceAction(APIView):
                 status.HTTP_404_NOT_FOUND,
                 "The requested action %s is not available on this provider"
                 % action_params['action'])
+        except Exception, exc:
+            message = exc.message
+            if message.startswith('409 Conflict'):
+                return failure_response(
+                    status.HTTP_409_CONFLICT,
+                    message)
+            return failure_response(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "The requested action %s encountered "
+                "an irrecoverable exception: %s"
+                % (action_params['action'], message))
 
 
 class Instance(APIView):
