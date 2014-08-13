@@ -8,16 +8,6 @@ from threepio import logger
 class AtmosphereUser(AbstractUser):
     selected_identity = models.ForeignKey('Identity', blank=True, null=True)
 
-    def get_default_project(user):
-        """
-        Return the 'default' project for 'User'
-        """
-        from core.models.group import get_user_group
-        group = get_user_group(user.username)
-        project, created = group.projects.get_or_create(name="Default")
-        if created:
-            logger.info("Created new 'Default' project for user: %s" % user)
-        return project
 
     def user_quota(self):
         identity = self.select_identity()

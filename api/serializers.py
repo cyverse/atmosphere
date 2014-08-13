@@ -357,6 +357,7 @@ class InstanceSerializer(serializers.ModelSerializer):
                                                source='hash_machine_alias')
     ip_address = serializers.CharField(read_only=True)
     start_date = serializers.DateTimeField(read_only=True)
+    end_date = serializers.DateTimeField(read_only=True)
     token = serializers.CharField(read_only=True)
     has_shell = serializers.BooleanField(read_only=True, source='shell')
     has_vnc = serializers.BooleanField(read_only=True, source='vnc')
@@ -374,7 +375,7 @@ class InstanceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Instance
-        exclude = ('id', 'end_date', 'provider_machine', 'provider_alias',
+        exclude = ('id', 'provider_machine', 'provider_alias',
                    'shell', 'vnc', 'password', 'created_by_identity')
 
 
