@@ -62,7 +62,6 @@ def list_filtered_machines(esh_driver, provider_id, request_user=None):
                                  cmp=compare_core_machines)
     return sorted_machine_list
 
-
 def all_filtered_machines():
     return ProviderMachine.objects.exclude(
         Q(identifier__startswith="eki-")
