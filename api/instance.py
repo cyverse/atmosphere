@@ -345,8 +345,7 @@ class InstanceAction(APIView):
     def get(self, request, provider_id, identity_id, instance_id):
         """Authentication Required, List all available instance actions ,including necessary parameters.
         """
-        api_response = [
-                {"action":"attach_volume",
+        actions = [{"action":"attach_volume",
                  "action_params":{
                      "volume_id":"required",
                      "device":"optional",
@@ -371,11 +370,11 @@ class InstanceAction(APIView):
                 {"action":"stop",
                  "description":"Stop the instance."},
                 {"action":"reboot",
-                 "action_params":{"reboot_type":"optional"},
+                 "action_params":{"reboot_type (optional)":"SOFT/HARD"},
                  "description":"Stop the instance."},
                 {"action":"console",
                  "description":"Get noVNC Console."}]
-        response = Response(api_response, status=status.HTTP_200_OK)
+        response = Response(actions, status=status.HTTP_200_OK)
         return response
 
     def post(self, request, provider_id, identity_id, instance_id):
