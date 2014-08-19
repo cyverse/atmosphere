@@ -135,21 +135,82 @@ def set_hostname(hostname, distro):
             match_hash='')
         run_command(['/bin/chmod', 'a+x', "/etc/dhcp/dhclient-exit-hooks.d/hostname"])
 
+def _get_local_ip():
+    try:
+        import socket
+    except ImportError:
+        logging.warn("Socket module does not exist!")
+        return None
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        #Google DNS availability
+        s.connect(("8.8.8.8",80))
+        ip_addr = s.getsockname()[0]
+        s.close()
+        return ip_addr
+    except socket.gaierror:
+        return None
 
-def get_hostname(instance_metadata):
-    #As set by atmosphere in the instance metadata
-    hostname = instance_metadata.get('meta', {}).get('public-hostname')
-    #As returned by metadata service
-    if not hostname:
-        hostname = instance_metadata.get('public-hostname')
-    if not hostname:
-        hostname = instance_metadata.get('local-hostname')
-    if not hostname:
-        hostname = instance_metadata.get('hostname')
-    #No hostname, look for public ip instead
-    if not hostname:
-        return get_public_ip(instance_metadata)
-    return hostname
+def _test_hostname(hostname):
+    try:
+        import socket
+    except ImportError:
+        logging.warn("Socket module does not exist!")
+        return False
+    try:
+        socket.gethostbyname_ex(hostname)
+        return True
+    except socket.gaierror:
+        return False
+
+def _get_hostname_by_socket(public_ip):
+    try:
+        import socket
+    except ImportError:
+        logging.warn("Socket module does not exist!")
+        return public_ip
+    fqdn = socket.getfqdn(public_ip)
+    return fqdn
+
+def get_hostname(instance_metadata, public_ip_hint=None):
+    """
+    Attempts multiple ways to establish the public IP and hostname.
+    The hostname will be tested for DNS resolution before it is applied
+    (To avoid setting <machine_name>.novalocal)
+    """
+    ip_address = None
+    #1. Look for 'public-ipv4' in metadata
+    if not instance_metadata:
+        instance_metadata = {}
+    if 'public-ipv4' in instance_metadata:
+        public_hostname = _get_hostname_by_socket(instance_metadata['public-ipv4'])
+        result = _test_hostname(public_hostname)
+        if result:
+            return public_hostname
+
+    #2. Look in user-defined metadata public-hostname OR public-ip
+    defined_metadata = instance_metadata.get('meta',{})
+    if defined_metadata.get('public-hostname'):
+        public_hostname = defined_metadata['public-hostname']
+        result = _test_hostname(public_hostname)
+        if result:
+            return public_hostname
+    if defined_metadata.get('public-ip'):
+        public_hostname = _get_hostname_by_socket(defined_metadata['public-ip'])
+        result = _test_hostname(public_hostname)
+        if result:
+            return public_hostname
+    if public_ip_hint:
+        public_hostname = _get_hostname_by_socket(public_ip_hint)
+        result = _test_hostname(public_hostname)
+        if result:
+            return public_hostname
+    #4. As a last resort, use the instance's (Fixed) IP address
+    ip_addr = _get_local_ip()
+    if ip_addr:
+        return ip_addr
+    #5. If NONE of these work, use 'localhost'
+    return 'localhost'
 
 
 def get_public_ip(instance_metadata):
@@ -158,7 +219,16 @@ def get_public_ip(instance_metadata):
     """
     ip_addr = instance_metadata.get('public-ipv4')
     if not ip_addr:
+        defined_metadata = instance_metadata.get('meta',{})
+        if defined_metadata.get('public-ip'):
+            ip_addr = defined_metadata['public-ip']
+            logging.info("NOTE: key 'public-ipv4' MISSING from metadata!"
+                         " Falling back to defined metadata:%s" % ip_addr)
+            return
+    if not ip_addr:
         ip_addr = instance_metadata.get('local-ipv4')
+    if not ip_addr:
+        ip_addr = _get_local_ip()
     if not ip_addr:
         ip_addr = 'localhost'
     return ip_addr
@@ -974,20 +1044,21 @@ def append_to_file(filename, text):
         logging.exception("Failed to append text: %s" % text)
 
 
-def redeploy_atmo_init(user):
+def redeploy_atmo_init(user, public_ip_hint):
     mount_storage()
     start_vncserver(user)
     start_shellinaboxd()
     distro = get_distro()
     #Get IP addr//Hostname from instance metadata
     instance_metadata = get_metadata()
-    hostname = get_hostname(instance_metadata)
+    hostname = get_hostname(instance_metadata, public_ip_hint)
     logging.debug("Distro - %s" % distro)
     logging.debug("Hostname - %s" % hostname)
     set_hostname(hostname, distro)
 
 
-def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vnclicense):
+def deploy_atmo_init(user, instance_data, instance_metadata, root_password,
+                     vnclicense, public_ip_hint):
     distro = get_distro()
     logging.debug("Distro - %s" % distro)
     hostname = get_hostname(instance_metadata)
@@ -995,7 +1066,7 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password, vncl
     linuxuser = user
     linuxpass = ""
     public_ip = get_public_ip(instance_metadata)
-    hostname = get_hostname(instance_metadata)
+    hostname = get_hostname(instance_metadata, public_ip_hint)
     set_hostname(hostname, distro)
     instance_metadata['linuxusername'] = linuxuser
     instance_metadata["linuxuserpassword"] = linuxpass
@@ -1080,6 +1151,7 @@ def add_zsh():
 def main(argv):
     init_logs('/var/log/atmo/atmo_init_full.log')
     instance_data = {"atmosphere": {}}
+    public_ip_hint = None
     service_type = None
     instance_service_url = None
     instance_service_url = None
@@ -1098,7 +1170,10 @@ def main(argv):
         logging.error("Invalid arguments provided.")
         sys.exit(2)
     for opt, arg in opts:
-        if opt in ("-t", "--service_type"):
+        if opt in ("--public-ip"):
+            instance_data["atmosphere"]["public_ip_hint"] = arg
+            public_ip_hint = arg
+        elif opt in ("-t", "--service_type"):
             instance_data["atmosphere"]["service_type"] = arg
             service_type = arg
         elif opt in ("-T", "--token"):
@@ -1139,11 +1214,12 @@ def main(argv):
     set_user_home_dir()
     add_zsh()
     if redeploy:
-        redeploy_atmo_init(user_id)
+        redeploy_atmo_init(user_id, public_ip_hint)
     else:
         instance_metadata = get_metadata()
         logging.debug("Instance metadata - %s" % instance_metadata)
-        deploy_atmo_init(user_id, instance_data, instance_metadata, root_password, vnclicense)
+        deploy_atmo_init(user_id, instance_data, instance_metadata,
+                         root_password, vnclicense, public_ip_hint)
     logging.info("Atmo Init Completed.. Checking for boot scripts.")
     run_boot_scripts()
 
