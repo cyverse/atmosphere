@@ -15,13 +15,15 @@ from threepio import logger
 
 
 from core.models import AtmosphereUser as User
-from core.models.provider import AccountProvider
+from core.models.identity import Identity
 from core.models.instance import convert_esh_instance
 from core.models.instance import Instance as CoreInstance
+from core.models.provider import AccountProvider
 from core.models.size import convert_esh_size
 from core.models.volume import convert_esh_volume
 
 from service import task
+from service.cache import get_cached_driver, get_cached_instances
 from service.deploy import build_script
 from service.instance import redeploy_init, reboot_instance,\
     launch_instance, resize_instance, confirm_resize,\
@@ -59,26 +61,15 @@ class InstanceList(APIView):
         esh_driver = prepare_driver(request, provider_id, identity_id)
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
-
-        instance_list_method = esh_driver.list_instances
-
-        if AccountProvider.objects.filter(identity__id=identity_id):
-            # Instance list method changes when using the OPENSTACK provider
-            instance_list_method = esh_driver.list_all_instances
-        try:
-            esh_instance_list = instance_list_method()
-        except InvalidCredsError:
-            return invalid_creds(provider_id, identity_id)
-
+        identity = Identity.objects.get(id=identity_id)
+        esh_instance_list = get_cached_instances(identity=identity)
         core_instance_list = [convert_esh_instance(esh_driver,
                                                    inst,
                                                    provider_id,
                                                    identity_id,
                                                    user)
                               for inst in esh_instance_list]
-
         #TODO: Core/Auth checks for shared instances
-
         serialized_data = InstanceSerializer(core_instance_list,
                                              context={"request":request},
                                              many=True).data
