@@ -24,13 +24,13 @@ class Size(models.Model):
 
     def esh_total(self):
         try:
-            return self.esh._size.extra['occupancy']['total']
+            return self.esh.extra['occupancy']['total']
         except (AttributeError, KeyError):
             return 1
 
     def esh_remaining(self):
         try:
-            return self.esh._size.extra['occupancy']['remaining']
+            return self.esh.extra['occupancy']['remaining']
         except (AttributeError, KeyError):
             return 1
 
@@ -82,13 +82,13 @@ class Size(models.Model):
 def convert_esh_size(esh_size, provider_id):
     """
     """
-    alias = esh_size._size.id
+    alias = esh_size.id
     try:
         core_size = Size.objects.get(alias=alias, provider__id=provider_id)
         new_esh_data = {
-            'name': esh_size._size.name,
-            'mem': esh_size._size.ram,
-            'root': esh_size._size.disk,
+            'name': esh_size.name,
+            'mem': esh_size.ram,
+            'root': esh_size.disk,
             'disk': esh_size.ephemeral,
             'cpu': esh_size.cpu,
         }
@@ -96,9 +96,9 @@ def convert_esh_size(esh_size, provider_id):
         core_size.update(**new_esh_data)
     except Size.DoesNotExist:
         #Gather up the additional, necessary information to create a DB repr
-        name = esh_size._size.name
-        ram = esh_size._size.ram
-        disk = esh_size._size.disk
+        name = esh_size.name
+        ram = esh_size.ram
+        disk = esh_size.disk
         root = esh_size.ephemeral
         cpu = esh_size.cpu
         core_size = create_size(name, alias, cpu, ram, disk, root, provider_id)

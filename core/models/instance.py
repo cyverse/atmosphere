@@ -21,6 +21,7 @@ from core.models.machine import ProviderMachine, convert_esh_machine
 from core.models.size import convert_esh_size
 from core.models.tag import Tag
 
+
 def strfdelta(tdelta, fmt=None):
     from string import Formatter
     if not fmt:
@@ -33,12 +34,12 @@ def strfdelta(tdelta, fmt=None):
     div_by_map = {'D': 86400, 'H': 3600, 'M': 60, 'S': 1}
     keys = map( lambda x: x[1], list(formatter.parse(fmt)))
     remainder = int(tdelta.total_seconds())
-
     for unit in ('D', 'H', 'M', 'S'):
         if unit in keys and unit in div_by_map.keys():
             return_map[unit], remainder = divmod(remainder, div_by_map[unit])
 
     return formatter.format(fmt, **return_map)
+
 
 def strfdate(datetime_o, fmt=None):
     if not fmt:
@@ -47,6 +48,7 @@ def strfdate(datetime_o, fmt=None):
     if not datetime_o:
         datetime_o = timezone.now()
     return datetime_o.strftime(fmt)
+
 
 class Instance(models.Model):
     """
@@ -91,8 +93,7 @@ class Instance(models.Model):
         #try:
         #    return self.instancestatushistory_set.latest('id')
         #except InstanceStatusHistory.DoesNotExist:
-        #    return None
-            
+        #    return None            
         #TODO: Profile current choice
         last_history = self.instancestatushistory_set.all().order_by('-start_date')
         if not last_history:
@@ -133,7 +134,6 @@ class Instance(models.Model):
                       % (self.provider_alias, task_name, new_status))
         return new_status
 
-
     def update_history(self, status_name, size, task=None, first_update=False):
         """
         Given the status name and size, look up the previous history object
@@ -155,13 +155,11 @@ class Instance(models.Model):
                     status_name, self, size, self.start_date)
             last_history.save()
             logger.debug("First history: %s" % last_history)
-
         #2. Size and name must match to continue using last history
         if last_history.status.name == status_name and last_history.size.id == size.id:
             #logger.info("status_name matches last history:%s " %
             #        last_history.status.name)
             return (False, last_history)
-
         #3. ASSERT: A new history item is required due to a State or Size Change
         now_time = timezone.now()
         try:
@@ -223,6 +221,7 @@ class Instance(models.Model):
                    strfdelta(active_time), strfdelta(cpu_time)))
             total_time += cpu_time
         return total_time
+
     def get_active_hours(self, delta):
         #Don't move it up. Circular reference.
         from service.allocation import delta_to_hours
@@ -253,7 +252,6 @@ class Instance(models.Model):
                 ).order_by('start_date')
         return active_history
 
-
     def _accounting_list(self, earliest_time=None, latest_time=None):
         """
         Return the list of InstanceStatusHistory that should be counted,
@@ -277,8 +275,6 @@ class Instance(models.Model):
             accounting_list.append(state)
         return accounting_list
 
-
-
     def end_date_all(self):
         """
         Call this function to tie up loose ends when the instance is finished
@@ -288,11 +284,11 @@ class Instance(models.Model):
         ish_list = InstanceStatusHistory.objects.filter(instance=self)
         for ish in ish_list:
             if not ish.end_date:
-#                logger.info('Saving history:%s' % ish)
+                # logger.info('Saving history:%s' % ish)
                 ish.end_date = now_time
                 ish.save()
         if not self.end_date:
-#            logger.info("Saving Instance:%s" % self)
+            # logger.info("Saving Instance:%s" % self)
             self.end_date = now_time
             self.save()
 
@@ -330,12 +326,12 @@ class Instance(models.Model):
             return "Unknown"
 
     def esh_size(self):
-        if not self.esh or not hasattr(self.esh._node, 'extra'):
+        if not self.esh or not hasattr(self.esh, 'extra'):
             last_history = self.get_last_history()
             if last_history:
                 return last_history.size.alias
             return "Unknown"
-        extras = self.esh._node.extra
+        extras = self.esh.extra
         if extras.has_key('flavorId'):
             return extras['flavorId']
         elif extras.has_key('instance_type'):
@@ -532,14 +528,23 @@ def find_instance(instance_id):
         return core_instance[0]
     return None
 
+
 def _find_esh_ip(esh_instance):
+    if esh_instance.ip:
+        return esh_instance.ip
     try:
-        ip_address = esh_instance._node.public_ips[0]
-    except IndexError:  # no public ip
+        if not hasattr(esh_instance, "extra")\
+           or not esh_instance.extra.get("addresses"):
+            return "0.0.0.0"
+        ips = esh_instance.extra["addresses"].values()
+        ip_address = [ip for ip in ips[0]\
+                      if ip["OS-EXT-IPS:type"] == "floating"][0]["addr"]
+    except Exception:  # no public ip
         try:
-            ip_address = esh_instance._node.private_ips[0]
-        except IndexError:  # no private ip
-            ip_address = '0.0.0.0'
+            ip_address = [ip for ip in ips[0]\
+                          if ip["OS-EXT-IPS:type"] == "fixed"][0]["addr"]
+        except Exception:  # no private ip
+            ip_address = "0.0.0.0"
     return ip_address
 
 
@@ -548,6 +553,7 @@ def _update_core_instance(core_instance, ip_address, password):
     if password:
         core_instance.password = password
     core_instance.save()
+
 
 def _find_esh_start_date(esh_instance):
     if 'launchdatetime' in esh_instance.extra:
@@ -562,6 +568,7 @@ def _find_esh_start_date(esh_instance):
         "now. Get the real launch time, bra.")
     start_date = _convert_timestamp(create_stamp)
     return start_date
+
 
 def _convert_timestamp(create_stamp):
     # create_stamp is an iso 8601 timestamp string
