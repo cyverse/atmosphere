@@ -110,6 +110,7 @@ def validate_token(token, request=None):
         auth_token = AuthToken.objects.get(key=token)
         user = auth_token.user
     except AuthToken.DoesNotExist:
+        logger.info("AuthToken Retrieved:%s Does not exist." % (token,))
         return False
     if auth_token.is_expired():
         if request and request.META['REQUEST_METHOD'] == 'POST':
