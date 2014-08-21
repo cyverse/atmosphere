@@ -1,10 +1,9 @@
 from threepio import logger
 
-from api import get_esh_driver
-
 from core.models import IdentityMembership, Identity, Provider
-from service.accounts.openstack import AccountDriver
 
+from service.accounts.openstack import AccountDriver
+from service.cache import get_cached_driver
 
 def set_provider_quota(identity_id):
     """
@@ -14,7 +13,7 @@ def set_provider_quota(identity_id):
         #Can't update quota if credentials arent set
         return
     if identity.provider.get_type_name().lower() == 'openstack':
-        driver = get_esh_driver(identity)
+        driver = get_cached_driver(identity=identity)
         username = identity.created_by.username
         user_id = driver._connection._get_user_id()
         tenant_id = driver._connection._get_tenant_id()
@@ -34,7 +33,8 @@ def set_provider_quota(identity_id):
 
 
 def get_current_quota(identity_id):
-    driver = get_esh_driver(Identity.objects.get(id=identity_id))
+    driver = get_cached_driver(
+        identity=Identity.objects.get(id=identity_id))
     cpu = ram = disk = suspended = 0
     instances = driver.list_instances()
     for instance in instances:
@@ -44,7 +44,7 @@ def get_current_quota(identity_id):
         size = instance.size
         cpu += size.cpu
         ram += size.ram
-        disk += size._size.disk
+        disk += size.disk
     return {'cpu': cpu, 'ram': ram, 'disk': disk, 'suspended_count': suspended}
 
 
@@ -73,7 +73,7 @@ def check_over_quota(username, identity_id, esh_size=None, resuming=False):
     if esh_size:
         new_cpu = cur_cpu + esh_size.cpu
         new_ram = cur_ram + esh_size.ram
-        new_disk = cur_disk + esh_size._size.disk
+        new_disk = cur_disk + esh_size.disk
         logger.debug("Quota including size: %s"
                      % ({'cpu': cur_cpu, 'ram': cur_ram,
                          'disk': cur_disk}))

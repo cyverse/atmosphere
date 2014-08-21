@@ -15,7 +15,7 @@ from core.models.provider import Provider
 
 from service.allocation import current_instance_time,\
     get_delta, get_allocation
-from service.driver import get_admin_driver
+from service.cache import get_cached_driver, get_cached_instances
 
 from threepio import logger
 
@@ -63,12 +63,9 @@ def get_instance_owner_map(provider, users=None):
     """
     All keys == All identities
     """
-    admin_driver = get_admin_driver(provider)
-    meta = admin_driver.meta(admin_driver=admin_driver)
-
+    admin_driver = get_cached_driver(provider=provider)
     all_identities = _select_identities(provider, users)
-
-    all_instances = meta.all_instances()
+    all_instances = get_cached_instances(provider=provider)
     all_tenants = admin_driver._connection._keystone_list_tenants()
     #Convert instance.owner from tenant-id to tenant-name all at once
     all_instances = _convert_tenant_id_to_names(all_instances, all_tenants)
@@ -117,9 +114,9 @@ def monitor_instances_for_user(provider, username, instances,
         #Allocation/IdentityMembership
         user = AtmosphereUser.objects.get(username=username)
     except AtmosphereUser.DoesNotExist:
-        if instances:
-            logger.warn("WARNING: User %s has %s instances, but does not"
-                        "exist on this database" % (username, len(instances)))
+        #if instances:
+        #    logger.warn("WARNING: User %s has %s instances, but does not"
+        #                "exist on this database" % (username, len(instances)))
         return
     for identity in user.identity_set.filter(provider=provider):
         try:
@@ -139,10 +136,11 @@ def monitor_instances_for_user(provider, username, instances,
                 return
             enforce_allocation(identity, user, time_used)
         except IdentityMembership.DoesNotExist:
-            if instances:
-                logger.warn(
-                    "WARNING: User %s has %s instances, but does not"
-                    "exist on this database" % (username, len(instances)))
+            pass
+            #if instances:
+            #    logger.warn(
+            #        "WARNING: User %s has %s instances, but does not"
+            #        "exist on this database" % (username, len(instances)))
         except:
             logger.exception("Unable to monitor Identity:%s"
                              % (identity,))
@@ -273,4 +271,4 @@ def update_instances(driver, identity, esh_list, core_list):
             esh_instance.extra.get('task') or
             esh_instance.extra.get(
                 'metadata', {}).get('tmp_status'))
-    return
+
