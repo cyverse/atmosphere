@@ -74,7 +74,9 @@ class ProjectApplicationExchange(APIView):
 
 
 class ProjectInstanceExchange(APIView):
+
     permission_classes = (ApiAuthRequired,)
+
     def put(self, request, project_id, instance_id):
         user = request.user
         group = get_user_group(user.username)
@@ -186,9 +188,8 @@ class ProjectApplicationList(APIView):
         response = Response(serialized_data)
         return response
 
+
 class ProjectInstanceList(APIView):
-    """
-    """
 
     permission_classes = (ApiAuthRequired,)
 
@@ -205,9 +206,8 @@ class ProjectInstanceList(APIView):
         response = Response(serialized_data)
         return response
 
+
 class ProjectList(APIView):
-    """
-    """
 
     permission_classes = (ApiAuthRequired,)
 
