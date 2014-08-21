@@ -581,7 +581,8 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
                 logger.debug("Eager Task, wait 1 minute")
                 time.sleep(1*60)
             # call async task to deploy to instance.
-            task.deploy_init_task(driver, esh_instance, username, instance_password)
+            task.deploy_init_task(driver, esh_instance, username,
+                                  instance_password, instance_token)
         elif isinstance(driver.provider, AWSProvider):
             #TODO:Extra stuff needed for AWS provider here
             esh_instance = driver.deploy_instance(name=name, image=machine,

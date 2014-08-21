@@ -584,7 +584,7 @@ def deploy_script(driverCls, provider, identity, instance_id,
       time_limit=30*60,  # 30minute hard-set time limit.
       max_retries=10)
 def _deploy_init_to(driverCls, provider, identity, instance_id,
-                    username=None, password=None, redeploy=False,
+                    username=None, password=None, token=None, redeploy=False,
                     **celery_task_args):
     try:
         logger.debug("_deploy_init_to task started at %s." % datetime.now())
@@ -595,10 +595,10 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
             logger.debug("Instance has been teminated: %s." % instance_id)
             return
 
-        #NOTE: This is unrelated to the password argument
+        #NOTE: This is required to use ssh to connect.
         logger.info(instance.extra)
         instance._node.extra['password'] = None
-        msd = init(instance, identity.user.username, password, redeploy)
+        msd = init(instance, identity.user.username, password, token, redeploy)
 
         kwargs = _generate_ssh_kwargs()
         kwargs.update({'deploy': msd})
