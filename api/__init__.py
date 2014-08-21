@@ -137,3 +137,11 @@ def invalid_creds(provider_id, identity_id):
     return failure_response(
         status.HTTP_401_UNAUTHORIZED,
         'Identity/Provider Authentication Failed')
+
+def connection_failure(provider_id, identity_id):
+    logger.warn('Multiple Connection Attempts Failed. Provider-id:%s Identity-id:%s'
+                % (provider_id, identity_id))
+    return failure_response(
+        status.HTTP_504_GATEWAY_TIMEOUT,
+        'Multiple connection attempts to the provider %s have failed. Please'
+        ' try again later.' % provider_id)

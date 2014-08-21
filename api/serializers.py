@@ -645,13 +645,16 @@ class NoProjectSerializer(serializers.ModelSerializer):
         return [InstanceSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            atmo_user.instance_set.filter(only_active(), projects=None)]
+            atmo_user.instance_set.filter(only_active(),
+                provider_machine__provider__active=True,
+                projects=None)]
 
     def get_user_volumes(self, atmo_user):
         return [VolumeSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            atmo_user.volume_set.filter(only_active(), projects=None)]
+            atmo_user.volume_set.filter(only_active(), 
+                provider__active=True, projects=None)]
     class Meta:
         model = AtmosphereUser
         fields = ('applications', 'instances', 'volumes')
@@ -674,13 +677,15 @@ class ProjectSerializer(serializers.ModelSerializer):
         return [InstanceSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            project.instances.filter(only_active())]
+            project.instances.filter(only_active(),
+                provider_machine__provider__active=True
+                )]
 
     def get_user_volumes(self, project):
         return [VolumeSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            project.volumes.filter(only_active())]
+            project.volumes.filter(only_active(), provider__active=True)]
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)

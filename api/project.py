@@ -176,7 +176,7 @@ class ProjectVolumeList(APIView):
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
         projects = group.projects.get(id=project_id)
-        volumes = projects.volumes.filter(only_active())
+        volumes = projects.volumes.filter(only_active(), provider__active=True)
         serialized_data = VolumeSerializer(volumes, many=True,
                                             context={"request":request}).data
         response = Response(serialized_data)
@@ -212,7 +212,8 @@ class ProjectInstanceList(APIView):
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
         projects = group.projects.get(id=project_id)
-        instances = projects.instances.filter(only_active())
+        instances = projects.instances.filter(only_active(),
+                provider_machine__provider__active=True)
         serialized_data = InstanceSerializer(instances, many=True,
                                             context={"request":request}).data
         response = Response(serialized_data)
@@ -242,7 +243,7 @@ class NoProjectVolumeList(APIView):
         """
         """
         user = request.user
-        volumes = user.volume_set.filter(only_active(), projects=None)
+        volumes = user.volume_set.filter(only_active(), provider__active=True, projects=None)
         serialized_data = VolumeSerializer(volumes, many=True,
                                             context={"request":request}).data
         response = Response(serialized_data)
@@ -274,7 +275,9 @@ class NoProjectInstanceList(APIView):
         """
         """
         user = request.user
-        instances = user.instance_set.filter(only_active(), projects=None)
+        instances = user.instance_set.filter(only_active(), 
+                provider_machine__provider__active=True,
+                projects=None)
         serialized_data = InstanceSerializer(instances, many=True,
                                             context={"request":request}).data
         response = Response(serialized_data)
