@@ -1,5 +1,5 @@
 """
-Atmosphere service instance rest api.
+Atmosphere service project rest api.
 
 """
 ## Frameworks
@@ -15,9 +15,11 @@ from threepio import logger
 from api import failure_response
 from api.serializers import ProjectSerializer, InstanceSerializer,\
         VolumeSerializer, ApplicationSerializer
+from core.models.project import Project
 from core.models.group import Group, get_user_group
-from api.permissions import InMaintenance, ApiAuthRequired
-from api.serializers import ProjectSerializer
+from api.permissions import InMaintenance, ApiAuthRequired,\
+        ProjectOwnerRequired
+from api.serializers import NoProjectSerializer
 
 from django.utils import timezone
 from django.db.models import Q
@@ -35,22 +37,23 @@ def only_active():
 
 
 class ProjectApplicationExchange(APIView):
-    permission_classes = (ApiAuthRequired,)
+    permission_classes = (ApiAuthRequired,ProjectOwnerRequired)
     def put(self, request, project_id, application_uuid):
         user = request.user
-        group = get_user_group(user.username)
-        project = group.projects.filter(id=project_id)
+        project = Project.objects.filter(id=project_id)
         if not project:
             return Response("Project with ID=%s does not exist" % project_id,
                             status=status.HTTP_400_BAD_REQUEST)
-        project = project[0]
         application = user.application_set.filter(uuid=application_uuid)
         if not application:
             return Response("application with ID=%s not found in the database"
                             % (application_uuid,),
                             status=status.HTTP_400_BAD_REQUEST)
+        project = project[0]
         application = application[0]
+
         project.add_object(application)
+
         response = Response(status=status.HTTP_204_NO_CONTENT)
         return response
 
@@ -75,7 +78,7 @@ class ProjectApplicationExchange(APIView):
 
 class ProjectInstanceExchange(APIView):
 
-    permission_classes = (ApiAuthRequired,)
+    permission_classes = (ApiAuthRequired,ProjectOwnerRequired)
 
     def put(self, request, project_id, instance_id):
         user = request.user
@@ -91,6 +94,11 @@ class ProjectInstanceExchange(APIView):
                             % (instance_id,),
                             status=status.HTTP_400_BAD_REQUEST)
         instance = instance[0]
+        existing_projects = instance.projects.all()
+        if existing_projects:
+            for proj in existing_projects:
+                proj.remove_object(instance)
+
         project.add_object(instance)
         response = Response(status=status.HTTP_204_NO_CONTENT)
         return response
@@ -115,21 +123,25 @@ class ProjectInstanceExchange(APIView):
 
 
 class ProjectVolumeExchange(APIView):
-    permission_classes = (ApiAuthRequired,)
+    permission_classes = (ApiAuthRequired,ProjectOwnerRequired)
     def put(self, request, project_id, volume_id):
         user = request.user
-        group = get_user_group(user.username)
-        project = group.projects.filter(id=project_id)
+        project = Project.objects.filter(id=project_id)
         if not project:
             return Response("Project with ID=%s does not exist" % project_id,
                             status=status.HTTP_400_BAD_REQUEST)
-        project = project[0]
         volume = user.volume_set.filter(alias=volume_id)
         if not volume:
             return Response("volume with ID=%s not found in the database"
                             % (volume_id,),
                             status=status.HTTP_400_BAD_REQUEST)
+        project = project[0]
         volume = volume[0]
+        existing_projects = volume.projects.all()
+        if existing_projects:
+            for proj in existing_projects:
+                proj.remove_object(volume)
+
         project.add_object(volume)
         response = Response(status=status.HTTP_204_NO_CONTENT)
         return response
@@ -206,6 +218,70 @@ class ProjectInstanceList(APIView):
         response = Response(serialized_data)
         return response
 
+<<<<<<< HEAD
+=======
+class NoProjectList(APIView):
+    """
+    """
+
+    permission_classes = (ApiAuthRequired,)
+    def get(self, request):
+        """
+        """
+        user = request.user
+        #Get all instances, volumes, applications owned by me
+        #where project==None
+        serialized_data = NoProjectSerializer(user,
+                                            context={"request":request}).data
+        response = Response(serialized_data)
+        return response
+class NoProjectVolumeList(APIView):
+    """
+    """
+    permission_classes = (ApiAuthRequired,)
+
+    def get(self, request):
+        """
+        """
+        user = request.user
+        volumes = user.volume_set.filter(only_active(), projects=None)
+        serialized_data = VolumeSerializer(volumes, many=True,
+                                            context={"request":request}).data
+        response = Response(serialized_data)
+        return response
+
+class NoProjectApplicationList(APIView):
+    """
+    """
+    permission_classes = (ApiAuthRequired,)
+
+    def get(self, request):
+        """
+        """
+        user = request.user
+        applications = user.application_set.filter(only_active(), projects=None)
+        serialized_data = ApplicationSerializer(applications, many=True,
+                                                context={"request":request}).data
+        response = Response(serialized_data)
+        return response
+
+
+class NoProjectInstanceList(APIView):
+    """
+    """
+
+    permission_classes = (ApiAuthRequired,)
+
+    def get(self, request):
+        """
+        """
+        user = request.user
+        instances = user.instance_set.filter(only_active(), projects=None)
+        serialized_data = InstanceSerializer(instances, many=True,
+                                            context={"request":request}).data
+        response = Response(serialized_data)
+        return response
+
 
 class ProjectList(APIView):
 
@@ -216,9 +292,6 @@ class ProjectList(APIView):
         """
         user = request.user
         data = request.DATA
-        if data.get('name') == 'Default':
-            return Response("The 'Default' project name is reserved",
-                            status=status.HTTP_409_CONFLICT)
         #Default to creating for the 'user-group'
         if not data.get('owner'):
             data['owner'] = user.username
@@ -271,11 +344,6 @@ class ProjectDetail(APIView):
         serializer = ProjectSerializer(project, data=data, partial=True,
                                             context={"request":request})
         if serializer.is_valid():
-            #If the default project was renamed
-            if project.name == "Default" \
-                    and serializer.object.name != "Default":
-                #Create another one.
-                group.projects.get_or_create(name="Default")
             serializer.save()
             response = Response(
                     serializer.data,
@@ -299,11 +367,6 @@ class ProjectDetail(APIView):
         serializer = ProjectSerializer(project, data=data,
                                             context={"request":request})
         if serializer.is_valid():
-            #If the default project was renamed
-            if project.name == "Default" \
-                    and serializer.object.name != "Default":
-                #Create another one.
-                group.projects.get_or_create(name="Default")
             serializer.save()
             response = Response(
                     serializer.data,
@@ -338,12 +401,12 @@ class ProjectDetail(APIView):
             return Response("Project with ID=%s does not exist" % project_id,
                             status=status.HTTP_400_BAD_REQUEST)
         project = project[0]
-        if project.name == 'Default':
+        running_resources = project.has_running_resources()
+        if running_resources:
             return Response(
-                    "The 'Default' project is reserved and cannot be deleted.",
-                    status=status.HTTP_409_CONFLICT)
-        default_project = group.projects.get(name='Default')
-        project.copy_objects(default_project)
+                "Project %s has running resources. These resources "
+                "MUST be transferred or deleted before deleting the project."
+                % project.name, status=status.HTTP_409_CONFLICT)
         project.delete_project()
         serialized_data = ProjectSerializer(project,
                                             context={"request":request}).data

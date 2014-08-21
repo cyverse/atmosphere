@@ -20,6 +20,38 @@ from api.permissions import InMaintenance, ApiAuthOptional
 from api.serializers import \
     ApplicationSerializer, PaginatedApplicationSerializer
 
+def _filter_applications(applications, user, params):
+    #Filter the list based on query strings
+    #DB Queryset modifications
+    for filter_key, value in params.items():
+        if 'start_date' == filter_key:
+            applications = applications.filter(
+                start_date__gt=value)
+        elif 'end_date' == filter_key:
+            applications = applications.filter(
+                Q(end_date=None) |
+                Q(end_date__lt=value))
+        elif 'tag' == filter_key:
+            applications = applications.filter(
+                tags__name=value)
+    #List comprehensions 
+    for filter_key, value in params.items():
+        if 'featured' == filter_key:
+            #Support for 'featured=true' and 'featured=false'
+            featured = value.lower() == "true"
+            if featured:
+                applications = [a for a in applications if a.featured()]
+            else:
+                applications = [a for a in applications if not a.featured()]
+        elif 'bookmark' == filter_key:
+            if type(user) == AnonymousUser:
+                return []
+            bookmarked_apps = [bm.application for bm in user.bookmarks.all()]
+            applications = [a for a in applications if a in bookmarked_apps]
+
+    return applications
+
+
 
 class ApplicationList(APIView):
     """
@@ -34,8 +66,6 @@ class ApplicationList(APIView):
         Description, or Tag(s).
     """
 
-    serializer_class = ApplicationSerializer
-    model = CoreApplication
     permission_classes = (InMaintenance, ApiAuthOptional)
 
     def get(self, request, **kwargs):
@@ -45,14 +75,10 @@ class ApplicationList(APIView):
         if request.user and type(request.user) != AnonymousUser:
             my_apps = visible_applications(request.user)
             applications.extend(my_apps)
-        featured_value = request.QUERY_PARAMS.get('featured')
-        if featured_value:
-            featured = featured_value.lower() == "true"
-            if featured:
-                applications = [a for a in applications if a.featured()]
-            else:
-                applications = [a for a in applications if not a.featured()]
-        page = request.QUERY_PARAMS.get('page')
+        params = request.QUERY_PARAMS
+        applications = _filter_applications(applications, request.user, params)
+
+        page = params.get('page')
         if page or len(applications) == 0:
             paginator = Paginator(applications, 20,
                                   allow_empty_first_page=True)

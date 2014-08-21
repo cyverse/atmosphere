@@ -62,7 +62,6 @@ def list_filtered_machines(esh_driver, provider_id, request_user=None):
                                  cmp=compare_core_machines)
     return sorted_machine_list
 
-
 def all_filtered_machines():
     return ProviderMachine.objects.exclude(
         Q(identifier__startswith="eki-")
@@ -144,7 +143,7 @@ class MachineHistory(APIView):
             # deliver last page of results.
             history_machine_page = paginator.page(paginator.num_pages)
         serialized_data = PaginatedProviderMachineSerializer(
-            history_machine_page).data
+            history_machine_page, context={'request':request}).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
@@ -202,7 +201,7 @@ class MachineSearch(APIView):
             # deliver last page of results.
             search_page = paginator.page(paginator.num_pages)
         serialized_data = PaginatedProviderMachineSerializer(
-            search_page).data
+            search_page, context={'request':request}).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response

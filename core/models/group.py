@@ -82,19 +82,6 @@ class Group(DjangoGroup):
         db_table = 'group'
         app_label = 'core'
 
-#Save Hooks Here:
-def get_or_create_default_project(sender, instance, created, **kwargs):
-    from core.models.project import Project
-    project = Project.objects.get_or_create(owner=instance,
-                                            name="Default")
-    if project[1] is True:
-        logger.debug("Creating Project:'Default' for %s" % instance)
-
-
-#Instantiate the hooks:
-post_save.connect(get_or_create_default_project, sender=Group)
-
-
 class Leadership(models.Model):
     user = models.ForeignKey('AtmosphereUser')
     group = models.ForeignKey(Group)

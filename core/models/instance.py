@@ -113,6 +113,8 @@ class Instance(models.Model):
 
     def _task_to_status(self, task_name):
         task_status_map = {
+                #Terminate tasks
+                #'deleting': 'active',
                 #Suspend tasks
                 'resuming':'build',
                 'suspending':'suspended',
@@ -614,8 +616,6 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
                                       start_date, token, password)
     #Add 'esh' object
     core_instance.esh = esh_instance
-    #Confirm instance exists in a project
-    _check_project(core_instance, user)
     #Update the InstanceStatusHistory
     #NOTE: Querying for esh_size because esh_instance
     #Only holds the alias, not all the values.
@@ -636,18 +636,6 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
     #Update values in core with those found in metadata.
     core_instance = set_instance_from_metadata(esh_driver, core_instance)
     return core_instance
-
-def _check_project(core_instance, user):
-    """
-    Select a/multiple projects the instance belongs to.
-    NOTE: User (NOT Identity!!) Specific
-    """
-    core_projects = core_instance.get_projects(user)
-    if not core_projects:
-        default_proj = user.get_default_project()
-        default_proj.instances.add(core_instance)
-        core_projects = [default_proj]
-    return core_projects
 
 
 def set_instance_from_metadata(esh_driver, core_instance):

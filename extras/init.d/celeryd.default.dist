@@ -54,12 +54,23 @@ CELERYD_GROUP="root"
 #
 # Additional celery flower settings
 ###
+<<<<<<< HEAD:extras/init.d/celeryd.default
 
 FLOWER_ACCESS_LIST="steve@blazingsw.com|contact.steve.gregory@gmail.com|jmatt@jmatt.org|ipc.edwin@gmail.com|aedmonds60@gmail.com|netvato@gmail.com|rbovill@gmail.com|jerry57@gmail.com|sangeeta@email.arizona.edu|ipc.dboss@gmail.com|amercer1@email.arizona.edu"
 FLOWER_LOG_FILE="/var/log/celery/flower.log"
 CELERYD_FLOWER="$CELERYD_CHDIR/manage.py celery flower"
 CELERY_FLOWER_OPTS="--certfile=$SSH_CERT_FILE --keyfile=$SSH_KEY_FILE --port=8443 --log_file_prefix=$FLOWER_LOG_FILE --logging=warn --url_prefix=flower"
 # --auth=$FLOWER_ACCESS_LIST"
+=======
+ADMIN_USER="flower_user"
+ADMIN_PASS="flower_pass"
+OAUTH_ACCESS_LIST=""
+FLOWER_LOG_FILE="/var/log/celery/flower.log"
+CELERYD_FLOWER="$CELERYD_CHDIR/manage.py celery flower"
+CELERY_FLOWER_OPTS="--certfile=$SSH_CERT_FILE --keyfile=$SSH_KEY_FILE --port=8443 --log_file_prefix=$FLOWER_LOG_FILE --logging=warn --url_prefix=flower"
+#CELERY_FLOWER_OPTS="$CELERY_FLOWER_OPTS --auth=$OAUTH_ACCESS_LIST"
+CELERY_FLOWER_OPTS="$CELERY_FLOWER_OPTS --basic_auth=$ADMIN_USER:$ADMIN_PASS"
+>>>>>>> ed0e2d4bd4651adcb2d7b4cdd8a44b484dad683e:extras/init.d/celeryd.default.dist
 
 ###
 #

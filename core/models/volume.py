@@ -157,8 +157,8 @@ def convert_esh_volume(esh_volume, provider_id, identity_id, user):
     except Volume.DoesNotExist:
         volume = create_volume(name, alias, size, provider_id, identity_id,
                                user, created_on)
-    _check_project(volume, user)
     volume.esh = esh_volume
+    _check_project(volume, user)
     volume._update_history()
     return volume
 

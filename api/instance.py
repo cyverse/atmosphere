@@ -1,6 +1,7 @@
 from datetime import datetime
 import time
 
+from django.utils import timezone
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 from django.db.models import Q
@@ -118,7 +119,7 @@ class InstanceList(APIView):
             logger.exception("Encountered a generic exception. "
                              "Returning 409-CONFLICT")
             return failure_response(status.HTTP_409_CONFLICT,
-                                    exc.message)
+                                    str(exc.message))
 
         serializer = InstanceSerializer(core_instance,
                                         context={"request":request},
@@ -131,6 +132,17 @@ class InstanceList(APIView):
             return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
 
+
+def _sort_instance_history(history_instance_list, sort_by, descending=False):
+    #Using the 'sort_by' variable, sort the list:
+    if not sort_by or 'end_date' in sort_by:
+        return sorted(history_instance_list, key=lambda ish:
+                ish.end_date if ish.end_date else timezone.now(),
+                reverse=descending)
+    elif 'start_date' in sort_by:
+        return sorted(history_instance_list, key=lambda ish:
+                ish.start_date if ish.start_date else timezone.now(),
+                reverse=descending)
 
 def _filter_instance_history(history_instance_list, params):
     #Filter the list based on query strings
@@ -162,38 +174,36 @@ class InstanceHistory(APIView):
         """
         data = request.DATA
         params = request.QUERY_PARAMS.copy()
-        user = User.objects.filter(username=request.user)
-        if user and len(user) > 0:
-            user = user[0]
-        else:
-            return failure_response(status.HTTP_401_UNAUTHORIZED,
-                                    'Request User %s not found' %
-                                    user)
-        page = params.pop('page', None)
         emulate_name = params.pop('username', None)
+        user = request.user
+        # Support for staff users to emulate a specific user history
+        if user.is_staff and emulate_name:
+            emualate_name = emulate_name[0]  # Querystring conversion
+            try:
+                user = User.objects.get(username=emulate_name)
+            except User.DoesNotExist:
+                return failure_response(status.HTTP_401_UNAUTHORIZED,
+                                        'Emulated User %s not found' %
+                                        emualte_name)
         try:
-            # Support for staff users to emulate a specific user history
-            if user.is_staff and emulate_name:
-                emualate_name = emulate_name[0]  # Querystring conversion
-                user = User.objects.filter(username=emulate_name)
-                if user and len(user) > 0:
-                    user = user[0]
-                else:
-                    return failure_response(status.HTTP_401_UNAUTHORIZED,
-                                            'Emulated User %s not found' %
-                                            emualte_name)
             # List of all instances created by user
+            sort_by = params.get('sort_by','')
+            order_by = params.get('order_by','desc')
             history_instance_list = CoreInstance.objects.filter(
                 created_by=user).order_by("-start_date")
             history_instance_list = _filter_instance_history(
                     history_instance_list, params)
+            history_instance_list = _sort_instance_history(
+                    history_instance_list, sort_by, 'desc' in order_by.lower())
         except Exception as e:
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
                 'Bad query string caused filter validation errors : %s'
                 % (e,))
+
+        page = params.get('page')
         if page or len(history_instance_list) == 0:
-            paginator = Paginator(history_instance_list, 5,
+            paginator = Paginator(history_instance_list, 20,
                                   allow_empty_first_page=True)
         else:
             paginator = Paginator(history_instance_list,
@@ -209,7 +219,7 @@ class InstanceHistory(APIView):
             # deliver last page of results.
             history_instance_page = paginator.page(paginator.num_pages)
         serialized_data = PaginatedInstanceHistorySerializer(
-            history_instance_page).data
+                history_instance_page, context={'request':request}).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
@@ -326,8 +336,7 @@ class InstanceAction(APIView):
     def get(self, request, provider_id, identity_id, instance_id):
         """Authentication Required, List all available instance actions ,including necessary parameters.
         """
-        api_response = [
-                {"action":"attach_volume",
+        actions = [{"action":"attach_volume",
                  "action_params":{
                      "volume_id":"required",
                      "device":"optional",
@@ -352,11 +361,11 @@ class InstanceAction(APIView):
                 {"action":"stop",
                  "description":"Stop the instance."},
                 {"action":"reboot",
-                 "action_params":{"reboot_type":"optional"},
+                 "action_params":{"reboot_type (optional)":"SOFT/HARD"},
                  "description":"Stop the instance."},
                 {"action":"console",
                  "description":"Get noVNC Console."}]
-        response = Response(api_response, status=status.HTTP_200_OK)
+        response = Response(actions, status=status.HTTP_200_OK)
         return response
 
     def post(self, request, provider_id, identity_id, instance_id):
@@ -484,6 +493,17 @@ class InstanceAction(APIView):
                 status.HTTP_404_NOT_FOUND,
                 "The requested action %s is not available on this provider"
                 % action_params['action'])
+        except Exception, exc:
+            message = exc.message
+            if message.startswith('409 Conflict'):
+                return failure_response(
+                    status.HTTP_409_CONFLICT,
+                    message)
+            return failure_response(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "The requested action %s encountered "
+                "an irrecoverable exception: %s"
+                % (action_params['action'], message))
 
 
 class Instance(APIView):

@@ -34,6 +34,15 @@ class Project(models.Model):
                self.applications.all(), self.instances.all(),
                self.volumes.all())
 
+    def has_running_resources(self):
+        now_date = timezone.now()
+        if any(not instance.end_date or instance.end_date >= now_date
+               for instance in self.instances.all()):
+            return True
+        if any(not volume.end_date or volume.end_date >= now_date
+               for volume in self.volumes.all()):
+            return True
+
     def remove_object(self, related_obj):
         """
         Use this function to move A single object
