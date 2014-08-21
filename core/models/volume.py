@@ -158,22 +158,8 @@ def convert_esh_volume(esh_volume, provider_id, identity_id, user):
         volume = create_volume(name, alias, size, provider_id, identity_id,
                                user, created_on)
     volume.esh = esh_volume
-    _check_project(volume, user)
     volume._update_history()
     return volume
-
-
-def _check_project(core_volume, user):
-    """
-    Select a/multiple projects the volume belongs to.
-    NOTE: User (NOT Identity!!) Specific
-    """
-    core_projects = core_volume.get_projects(user)
-    if not core_projects:
-        default_proj = user.get_default_project()
-        default_proj.volumes.add(core_volume)
-        core_projects = [default_proj]
-    return core_projects
 
 
 def create_volume(name, alias, size, provider_id, identity_id,
