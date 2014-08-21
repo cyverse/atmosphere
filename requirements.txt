@@ -40,7 +40,7 @@ git+git://github.com/iPlantCollaborativeOpenSource/django-rest-swagger.git#egg=r
 git+git://github.com/jmatt/threepio.git#egg=threepio
 git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.7
 git+git://github.com/mher/flower
-git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient
-git+git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient
-git+git://github.com/openstack/python-neutronclient.git#egg=python-neutronclient
-git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient
+git+git://github.com/openstack/python-glanceclient.git@0.13.0#egg=python-glanceclient
+git+git://github.com/openstack/python-keystoneclient.git@0.10.0#egg=python-keystoneclient
+git+git://github.com/openstack/python-neutronclient.git@2.3.6#egg=python-neutronclient
+git+git://github.com/openstack/python-novaclient.git@2.18.1#egg=python-novaclient
