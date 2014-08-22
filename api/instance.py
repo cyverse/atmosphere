@@ -35,7 +35,7 @@ from service.instance import redeploy_init, reboot_instance,\
 
 from service.quota import check_over_quota
 from service.exceptions import OverAllocationError, OverQuotaError,\
-    SizeNotAvailable, HypervisorCapacityError
+    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated
 
 from api import failure_response, prepare_driver,\
         invalid_creds, connection_failure
@@ -115,6 +115,8 @@ class InstanceList(APIView):
             return over_quota(oae)
         except SizeNotAvailable, snae:
             return size_not_availabe(snae)
+        except SecurityGroupNotCreated:
+            return connection_failure(provider_id, identity_id)
         except ConnectionFailure:
             return connection_failure(provider_id, identity_id)
         except InvalidCredsError:

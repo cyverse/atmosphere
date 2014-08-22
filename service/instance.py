@@ -24,7 +24,7 @@ from atmosphere.settings import secrets
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
-    SizeNotAvailable, HypervisorCapacityError
+    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated
 from service.accounts.openstack import AccountDriver as OSAccountDriver
                 
 def reboot_instance(esh_driver, esh_instance, reboot_type="SOFT"):
@@ -460,7 +460,7 @@ def launch_instance(user, provider_id, identity_id,
     #May raise OverQuotaError or OverAllocationError
     check_quota(user.username, identity_id, size)
 
-    #May raise InvalidCredsError
+    #May raise InvalidCredsError, SecurityGroupNotCreated
     (esh_instance, token, password) = launch_esh_instance(esh_driver,
             machine_alias, size_alias, core_identity, **kwargs)
     #Convert esh --> core
@@ -503,14 +503,24 @@ def check_quota(username, identity_id, esh_size, resuming=False):
         raise OverAllocationError(time_diff)
 
 
-def security_group_init(core_identity):
+def security_group_init(core_identity, max_attempts = 3):
     os_driver = OSAccountDriver(core_identity.provider)
     creds = core_identity.get_credentials()
-    security_group = os_driver.init_security_group(
-        creds['key'], creds['secret'],
-        creds['ex_tenant_name'], creds['ex_tenant_name'],
-        os_driver.MASTER_RULES_LIST)
-    return security_group
+    #TODO: Remove kludge when openstack connections can be
+    #Deemed reliable. Otherwise generalize this pattern so it
+    #can be arbitrarilly applied to any call that is deemed 'unstable'.
+    # -Steve
+    attempt = 0
+    while attempt < max_attempts:
+        attempt += 1
+        security_group = os_driver.init_security_group(
+            creds['key'], creds['secret'],
+            creds['ex_tenant_name'], creds['ex_tenant_name'],
+            os_driver.MASTER_RULES_LIST)
+        if security_group:
+            return security_group
+        time.sleep(2**attempt)
+    raise SecurityGroupNotCreated()
 
 
 def keypair_init(core_identity):
