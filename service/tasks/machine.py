@@ -42,8 +42,8 @@ def _get_imaging_task(orig_managerCls, orig_creds,
 
 def _recover_from_error(status_name):
     if 'exception' in status_name:
-        return status_name[status_name.find("(")+1:status_name.find(")")]
-    return status_name
+        return True, status_name[status_name.find("(")+1:status_name.find(")")]
+    return False, status_name
 
 def start_machine_imaging(machine_request, delay=False):
     """
@@ -51,7 +51,10 @@ def start_machine_imaging(machine_request, delay=False):
     delay - If true, wait until task is completed before returning
     """
     original_status = machine_request.status
-    original_status = _recover_from_error(original_status)
+    last_run_error, original_status = _recover_from_error(original_status)
+    if last_run_error:
+        machine_request.status = original_status
+        machine_request.save()
     instance_id = machine_request.instance.provider_alias
 
     (orig_managerCls, orig_creds,
@@ -73,7 +76,7 @@ def start_machine_imaging(machine_request, delay=False):
     if 'processing' in original_status:
         #If processing, start here..
         image_id = machine_request.status.replace("processing - ","")
-        logger.info("Start with processing" % image_id)
+        logger.info("Start with processing:%s" % image_id)
         process_task = process_request.s(image_id, machine_request.id)
         init_task = process_task
     else:

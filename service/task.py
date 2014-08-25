@@ -17,7 +17,7 @@ from service.tasks.volume import detach_task, umount_task
 
 
 def deploy_init_task(driver, instance,
-                     username=None, password=None, redeploy=False,
+                     username=None, password=None, token=None, redeploy=False,
                      *args, **kwargs):
     from service.tasks.driver import _update_status_log
     _update_status_log(instance, "Launching Instance")
@@ -25,7 +25,7 @@ def deploy_init_task(driver, instance,
                                 driver.provider,
                                 driver.identity,
                                 instance.alias,
-                                password,
+                                token,
                                 redeploy),
                                immutable=True, countdown=20)
 

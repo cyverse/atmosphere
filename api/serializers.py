@@ -247,7 +247,7 @@ class IdentitySerializer(serializers.ModelSerializer):
                   'membership')
 
 
-class ApplicationSerializer(serializers.Serializer):
+class ApplicationSerializer(serializers.ModelSerializer):
     """
     test maybe something
     """
@@ -357,6 +357,7 @@ class InstanceSerializer(serializers.ModelSerializer):
                                                source='hash_machine_alias')
     ip_address = serializers.CharField(read_only=True)
     start_date = serializers.DateTimeField(read_only=True)
+    end_date = serializers.DateTimeField(read_only=True)
     token = serializers.CharField(read_only=True)
     has_shell = serializers.BooleanField(read_only=True, source='shell')
     has_vnc = serializers.BooleanField(read_only=True, source='vnc')
@@ -374,7 +375,7 @@ class InstanceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Instance
-        exclude = ('id', 'end_date', 'provider_machine', 'provider_alias',
+        exclude = ('id', 'provider_machine', 'provider_alias',
                    'shell', 'vnc', 'password', 'created_by_identity')
 
 
@@ -629,6 +630,35 @@ class VolumeSerializer(serializers.ModelSerializer):
         exclude = ('id', 'created_by_identity', 'end_date')
 
 
+class NoProjectSerializer(serializers.ModelSerializer):
+    applications = serializers.SerializerMethodField('get_user_applications')
+    instances = serializers.SerializerMethodField('get_user_instances')
+    volumes = serializers.SerializerMethodField('get_user_volumes')
+
+    def get_user_applications(self, atmo_user):
+        return [ApplicationSerializer(
+            item,
+            context={'request': self.context.get('request')}).data for item in
+            atmo_user.application_set.filter(only_active(), projects=None)]
+
+    def get_user_instances(self, atmo_user):
+        return [InstanceSerializer(
+            item,
+            context={'request': self.context.get('request')}).data for item in
+            atmo_user.instance_set.filter(only_active(),
+                provider_machine__provider__active=True,
+                projects=None)]
+
+    def get_user_volumes(self, atmo_user):
+        return [VolumeSerializer(
+            item,
+            context={'request': self.context.get('request')}).data for item in
+            atmo_user.volume_set.filter(only_active(), 
+                provider__active=True, projects=None)]
+    class Meta:
+        model = AtmosphereUser
+        fields = ('applications', 'instances', 'volumes')
+
 class ProjectSerializer(serializers.ModelSerializer):
     #Edits to Writable fields..
     owner = serializers.SlugRelatedField(slug_field="name")
@@ -647,13 +677,15 @@ class ProjectSerializer(serializers.ModelSerializer):
         return [InstanceSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            project.instances.filter(only_active())]
+            project.instances.filter(only_active(),
+                provider_machine__provider__active=True
+                )]
 
     def get_user_volumes(self, project):
         return [VolumeSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            project.volumes.filter(only_active())]
+            project.volumes.filter(only_active(), provider__active=True)]
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)

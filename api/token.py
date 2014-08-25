@@ -35,6 +35,9 @@ class TokenEmulate(APIView):
         """
         params = request.DATA
         user = request.user
+        if not username:
+            return Response("Username was not provided",
+                    status=status.HTTP_400_BAD_REQUEST)
         if user.username is not 'admin' and not user.is_superuser:
             logger.error("URGENT! User: %s is attempting to emulate a user!"
                          % user.username)

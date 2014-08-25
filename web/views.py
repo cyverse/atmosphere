@@ -94,7 +94,7 @@ def o_callback_authorize(request):
     #ASSERT: A valid OAuth token gave us the Users Profile.
     # Now create an AuthToken and return it
     username = user_profile["id"]
-    auth_token = obtainOAuthToken(username, access_token, expires)
+    auth_token = obtainOAuthToken(username, access_token, expiry_date)
 
     #Set the username to the user to be emulated
     #to whom the token also belongs
@@ -117,7 +117,7 @@ def s_login(request):
     for record in records:
         if record.disable_login:
             disable_login = True
-    return saml_loginRedirect(request, settings.REDIRECT_URL+"/login/")
+    return saml_loginRedirect(request)
 
 def login(request):
     """

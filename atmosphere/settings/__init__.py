@@ -205,7 +205,7 @@ AUTH_PROFILE_MODULE = 'core.UserProfile'
 
 AUTHENTICATION_BACKENDS = (
     # For Web-Access
-    #'authentication.authBackends.CASLoginBackend',
+    'authentication.authBackends.CASLoginBackend',
     'authentication.authBackends.SAMLLoginBackend',
     # For Service-Access
     'authentication.authBackends.LDAPLoginBackend',

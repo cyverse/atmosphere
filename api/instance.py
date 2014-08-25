@@ -1,6 +1,7 @@
 from datetime import datetime
 import time
 
+from django.utils import timezone
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 from django.db.models import Q
@@ -9,19 +10,22 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from rtwo.exceptions import ConnectionFailure
 from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
 
 
 from core.models import AtmosphereUser as User
-from core.models.provider import AccountProvider
+from core.models.identity import Identity
 from core.models.instance import convert_esh_instance
 from core.models.instance import Instance as CoreInstance
+from core.models.provider import AccountProvider
 from core.models.size import convert_esh_size
 from core.models.volume import convert_esh_volume
 
 from service import task
+from service.cache import get_cached_driver, get_cached_instances
 from service.deploy import build_script
 from service.instance import redeploy_init, reboot_instance,\
     launch_instance, resize_instance, confirm_resize,\
@@ -31,9 +35,10 @@ from service.instance import redeploy_init, reboot_instance,\
 
 from service.quota import check_over_quota
 from service.exceptions import OverAllocationError, OverQuotaError,\
-    SizeNotAvailable, HypervisorCapacityError
+    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated
 
-from api import failure_response, prepare_driver, invalid_creds
+from api import failure_response, prepare_driver,\
+        invalid_creds, connection_failure
 from api.permissions import ApiAuthRequired
 from api.serializers import InstanceStatusHistorySerializer
 from api.serializers import InstanceSerializer, PaginatedInstanceSerializer
@@ -59,26 +64,15 @@ class InstanceList(APIView):
         esh_driver = prepare_driver(request, provider_id, identity_id)
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
-
-        instance_list_method = esh_driver.list_instances
-
-        if AccountProvider.objects.filter(identity__id=identity_id):
-            # Instance list method changes when using the OPENSTACK provider
-            instance_list_method = esh_driver.list_all_instances
-        try:
-            esh_instance_list = instance_list_method()
-        except InvalidCredsError:
-            return invalid_creds(provider_id, identity_id)
-
+        identity = Identity.objects.get(id=identity_id)
+        esh_instance_list = get_cached_instances(identity=identity)
         core_instance_list = [convert_esh_instance(esh_driver,
                                                    inst,
                                                    provider_id,
                                                    identity_id,
                                                    user)
                               for inst in esh_instance_list]
-
         #TODO: Core/Auth checks for shared instances
-
         serialized_data = InstanceSerializer(core_instance_list,
                                              context={"request":request},
                                              many=True).data
@@ -121,13 +115,17 @@ class InstanceList(APIView):
             return over_quota(oae)
         except SizeNotAvailable, snae:
             return size_not_availabe(snae)
+        except SecurityGroupNotCreated:
+            return connection_failure(provider_id, identity_id)
+        except ConnectionFailure:
+            return connection_failure(provider_id, identity_id)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
                              "Returning 409-CONFLICT")
             return failure_response(status.HTTP_409_CONFLICT,
-                                    exc.message)
+                                    str(exc.message))
 
         serializer = InstanceSerializer(core_instance,
                                         context={"request":request},
@@ -140,6 +138,17 @@ class InstanceList(APIView):
             return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
 
+
+def _sort_instance_history(history_instance_list, sort_by, descending=False):
+    #Using the 'sort_by' variable, sort the list:
+    if not sort_by or 'end_date' in sort_by:
+        return sorted(history_instance_list, key=lambda ish:
+                ish.end_date if ish.end_date else timezone.now(),
+                reverse=descending)
+    elif 'start_date' in sort_by:
+        return sorted(history_instance_list, key=lambda ish:
+                ish.start_date if ish.start_date else timezone.now(),
+                reverse=descending)
 
 def _filter_instance_history(history_instance_list, params):
     #Filter the list based on query strings
@@ -171,38 +180,36 @@ class InstanceHistory(APIView):
         """
         data = request.DATA
         params = request.QUERY_PARAMS.copy()
-        user = User.objects.filter(username=request.user)
-        if user and len(user) > 0:
-            user = user[0]
-        else:
-            return failure_response(status.HTTP_401_UNAUTHORIZED,
-                                    'Request User %s not found' %
-                                    user)
-        page = params.pop('page', None)
         emulate_name = params.pop('username', None)
+        user = request.user
+        # Support for staff users to emulate a specific user history
+        if user.is_staff and emulate_name:
+            emualate_name = emulate_name[0]  # Querystring conversion
+            try:
+                user = User.objects.get(username=emulate_name)
+            except User.DoesNotExist:
+                return failure_response(status.HTTP_401_UNAUTHORIZED,
+                                        'Emulated User %s not found' %
+                                        emualte_name)
         try:
-            # Support for staff users to emulate a specific user history
-            if user.is_staff and emulate_name:
-                emualate_name = emulate_name[0]  # Querystring conversion
-                user = User.objects.filter(username=emulate_name)
-                if user and len(user) > 0:
-                    user = user[0]
-                else:
-                    return failure_response(status.HTTP_401_UNAUTHORIZED,
-                                            'Emulated User %s not found' %
-                                            emualte_name)
             # List of all instances created by user
+            sort_by = params.get('sort_by','')
+            order_by = params.get('order_by','desc')
             history_instance_list = CoreInstance.objects.filter(
                 created_by=user).order_by("-start_date")
             history_instance_list = _filter_instance_history(
                     history_instance_list, params)
+            history_instance_list = _sort_instance_history(
+                    history_instance_list, sort_by, 'desc' in order_by.lower())
         except Exception as e:
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
                 'Bad query string caused filter validation errors : %s'
                 % (e,))
+
+        page = params.get('page')
         if page or len(history_instance_list) == 0:
-            paginator = Paginator(history_instance_list, 5,
+            paginator = Paginator(history_instance_list, 20,
                                   allow_empty_first_page=True)
         else:
             paginator = Paginator(history_instance_list,
@@ -218,7 +225,7 @@ class InstanceHistory(APIView):
             # deliver last page of results.
             history_instance_page = paginator.page(paginator.num_pages)
         serialized_data = PaginatedInstanceHistorySerializer(
-            history_instance_page).data
+                history_instance_page, context={'request':request}).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
@@ -335,8 +342,7 @@ class InstanceAction(APIView):
     def get(self, request, provider_id, identity_id, instance_id):
         """Authentication Required, List all available instance actions ,including necessary parameters.
         """
-        api_response = [
-                {"action":"attach_volume",
+        actions = [{"action":"attach_volume",
                  "action_params":{
                      "volume_id":"required",
                      "device":"optional",
@@ -361,11 +367,11 @@ class InstanceAction(APIView):
                 {"action":"stop",
                  "description":"Stop the instance."},
                 {"action":"reboot",
-                 "action_params":{"reboot_type":"optional"},
+                 "action_params":{"reboot_type (optional)":"SOFT/HARD"},
                  "description":"Stop the instance."},
                 {"action":"console",
                  "description":"Get noVNC Console."}]
-        response = Response(api_response, status=status.HTTP_200_OK)
+        response = Response(actions, status=status.HTTP_200_OK)
         return response
 
     def post(self, request, provider_id, identity_id, instance_id):
@@ -388,6 +394,8 @@ class InstanceAction(APIView):
             instance_list_method = esh_driver.list_all_instances
         try:
             esh_instance_list = instance_list_method()
+        except ConnectionFailure:
+            return connection_failure(provider_id, identity_id)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
 
@@ -486,6 +494,8 @@ class InstanceAction(APIView):
             return over_quota(oae)
         except SizeNotAvailable, snae:
             return size_not_availabe(snae)
+        except ConnectionFailure:
+            return connection_failure(provider_id, identity_id)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
         except NotImplemented, ne:
@@ -493,6 +503,17 @@ class InstanceAction(APIView):
                 status.HTTP_404_NOT_FOUND,
                 "The requested action %s is not available on this provider"
                 % action_params['action'])
+        except Exception, exc:
+            message = exc.message
+            if message.startswith('409 Conflict'):
+                return failure_response(
+                    status.HTTP_409_CONFLICT,
+                    message)
+            return failure_response(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "The requested action %s encountered "
+                "an irrecoverable exception: %s"
+                % (action_params['action'], message))
 
 
 class Instance(APIView):
@@ -515,6 +536,14 @@ class Instance(APIView):
             return invalid_creds(provider_id, identity_id)
         esh_instance = esh_driver.get_instance(instance_id)
         if not esh_instance:
+            try:
+                core_inst = CoreInstance.objects.get(
+                    provider_alias=instance_id,
+                    provider_machine__provider__id=provider_id,
+                    created_by_identity__id=identity_id)
+                core_inst.end_date_all()
+            except CoreInstance.DoesNotExist:
+                pass
             return instance_not_found(instance_id)
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                              provider_id, identity_id, user)
@@ -613,6 +642,8 @@ class Instance(APIView):
             response = Response(serialized_data, status=status.HTTP_200_OK)
             response['Cache-Control'] = 'no-cache'
             return response
+        except ConnectionFailure:
+            return connection_failure(provider_id, identity_id)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
 

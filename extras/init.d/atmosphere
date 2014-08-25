@@ -28,6 +28,7 @@ elif [ ! -f  $CELERYBEAT_INITD ]; then
     exit 1
 elif [ ! -f  $CELERY_DEFAULT ]; then
     echo "MISSING DEPEDENCY: Celery config file $CELERY_DEFAULT missing."
+    echo "cp /opt/dev/atmosphere/extras/init.d/celeryd.default.dist /opt/dev/atmosphere/extras/init.d/celeryd.default"
     echo "ln -s /opt/dev/atmosphere/extras/init.d/celeryd.default $CELERY_DEFAULT"
     exit 1
 elif [ ! -f  $REDIS_INITD ]; then

@@ -1,6 +1,6 @@
 /var/log/apache2/* {
     daily
-    maxsize=500k
+    #maxsize=500k
     missingok
     rotate 5
     compress
@@ -19,7 +19,7 @@
 }
 /var/log/celery/* {
     daily
-    maxsize=500k
+    #maxsize=500k
     missingok
     rotate 5
     compress
@@ -30,7 +30,7 @@
 }
 /opt/dev/atmosphere/logs/* {
     daily
-    maxsize=500k
+    #maxsize=500k
     missingok
     rotate 5
     compress

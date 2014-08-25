@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
+from rtwo.exceptions import ConnectionFailure
 from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
@@ -14,11 +15,12 @@ from threepio import logger
 from core.models.instance import convert_esh_instance
 from core.models.provider import AccountProvider
 from core.models.volume import convert_esh_volume
+from core.models.volume import Volume as CoreVolume
 
 from service.volume import create_volume, boot_volume
 from service.exceptions import OverQuotaError
 
-from api import prepare_driver, failure_response, invalid_creds
+from api import prepare_driver, failure_response, invalid_creds, connection_failure
 from api.permissions import ApiAuthRequired
 from api.serializers import VolumeSerializer, InstanceSerializer
 
@@ -118,6 +120,8 @@ class VolumeSnapshot(APIView):
             return Response(serialized_data, status=status.HTTP_201_CREATED)
         except OverQuotaError, oqe:
             return over_quota(oqe)
+        except ConnectionFailure:
+            return connection_failure(provider_id, identity_id)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
 
@@ -228,6 +232,8 @@ class VolumeList(APIView):
                                                 snapshot=snapshot, image=image)
         except OverQuotaError, oqe:
             return over_quota(oqe)
+        except ConnectionFailure:
+            return connection_failure(provider_id, identity_id)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
         if not success:
@@ -255,6 +261,14 @@ class Volume(APIView):
             return invalid_creds(provider_id, identity_id)
         esh_volume = esh_driver.get_volume(volume_id)
         if not esh_volume:
+            try:
+                core_volume = CoreVolume.objects.get(
+                    alias=volume_id,
+                    provider__id=provider_id)
+                core_volume.end_date = datetime.now()
+                core_volume.save()
+            except CoreVolume.DoesNotExist:
+                pass
             return volume_not_found(volume_id)
         core_volume = convert_esh_volume(esh_volume, provider_id,
                                          identity_id, user)

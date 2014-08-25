@@ -263,7 +263,8 @@ def init_log():
         name="./deploy_init_log.sh")
 
 
-def init(instance, username, password=None, redeploy=False, *args, **kwargs):
+def init(instance, username, password=None, token=None, redeploy=False,
+         *args, **kwargs):
     """
     Creates a multi script deployment to prepare and call
     the latest init script

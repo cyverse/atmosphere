@@ -4,11 +4,14 @@ from datetime import timedelta
 
 from django.db.models import Q
 from django.utils import timezone
-from core.models import AtmosphereUser as User
 
+from threepio import logger
+
+from core.models import AtmosphereUser as User
 from core.models import IdentityMembership, Identity
 from core.models.instance import Instance, convert_esh_instance
-from threepio import logger
+
+from service.cache import get_cached_driver
 
 
 def check_over_allocation(username, identity_id,
@@ -135,11 +138,11 @@ def current_instance_time(user, instances, identity_id, delta_time):
     """
     from api import get_esh_driver
     ident = Identity.objects.get(id=identity_id)
-    driver = get_esh_driver(ident)
+    driver = get_cached_driver(identity=ident)
     core_instance_list = [
-            convert_esh_instance(driver, inst,
-                                 ident.provider.id, ident.id, user)
-                          for inst in instances]
+        convert_esh_instance(driver, inst,
+                             ident.provider.id, ident.id, user)
+        for inst in instances]
     #All instances that don't have an end-date should be
     #included, even if all of their time is not.
     time_used = core_instance_time(user, ident.id, delta_time, running=core_instance_list)

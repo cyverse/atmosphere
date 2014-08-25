@@ -54,9 +54,9 @@ def check_volume_task(driverCls, provider, identity,
 
         if cv_script.exit_status != 0:
             if 'No such file' in cv_script.stdout:
-                raise Exception('Volume check failed: '
+                raise Exception('Volume check failed: %s. '
                                 'Device %s does not exist on instance %s'
-                                % (device, instance))
+                                % (volume, device, instance))
             elif 'Bad magic number' in cv_script.stdout:
                 #Filesystem needs to be created for this device
                 logger.info("Mkfs needed")

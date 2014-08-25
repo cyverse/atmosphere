@@ -36,6 +36,7 @@ def get_cas_client():
             settings.SERVICE_URL,
             proxy_url=settings.PROXY_URL,
             proxy_callback=settings.PROXY_CALLBACK_URL,
+            auth_prefix=settings.CAS_AUTH_PREFIX,
             self_signed_cert=settings.SELF_SIGNED_CERT)
 
 def cas_validateUser(username):
@@ -104,7 +105,7 @@ def _set_redirect_url(sendback, request):
 def get_saml_client():
     s_client = SAMLClient(settings.CAS_SERVER,
             settings.SERVER_URL,
-            auth_prefix='/castest')
+            auth_prefix=settings.CAS_AUTH_PREFIX)
     return s_client
 
 def saml_validateTicket(request):
@@ -150,7 +151,8 @@ def saml_validateTicket(request):
     createSessionToken(request, auth_token)
     return_to = request.GET.get('sendback')
     if not return_to:
-        return_to = "%s/application/" % settings.SERVER_URL
+        return HttpResponse(saml_response.response,
+                            content_type="text/xml; charset=utf-8")
     logger.info("Session token created, return to: %s" % return_to)
     return_to += "?token=%s" % auth_token
     return HttpResponseRedirect(return_to)
