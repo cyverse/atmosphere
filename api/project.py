@@ -218,8 +218,7 @@ class ProjectInstanceList(APIView):
         response = Response(serialized_data)
         return response
 
-<<<<<<< HEAD
-=======
+
 class NoProjectList(APIView):
     """
     """
