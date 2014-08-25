@@ -219,6 +219,10 @@ class ProjectInstanceList(APIView):
         response = Response(serialized_data)
         return response
 
+<<<<<<< HEAD
+
+=======
+>>>>>>> a9779f3f4b5813c9b77735abf7aee85167fc469b
 class NoProjectList(APIView):
     """
     """
