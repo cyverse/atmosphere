@@ -15,12 +15,13 @@ from threepio import logger
 from core.models.provider import AccountProvider
 from core.models.volume import convert_esh_volume
 
-from service.volume import create_volume, boot_volume
+from service.volume import create_volume
+from service.instance import boot_volume
 from service.exceptions import OverQuotaError
 
 from api import prepare_driver, failure_response, invalid_creds
 from api.permissions import InMaintenance, ApiAuthRequired
-from api.serializers import VolumeSerializer
+from api.serializers import VolumeSerializer, InstanceSerializer
 
 
 class VolumeSnapshot(APIView):
@@ -358,12 +359,20 @@ class BootVolume(APIView):
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
         name = data.pop('name')
-        size = data.pop('size')
+        size_alias = data.pop('size')
         image_id = data.pop('image_id',None)
-        response, esh_volume = boot_volume(esh_driver, identity_id, name, size, image_id=image_id, volume_id=volume_id, **data)
-        core_volume = convert_esh_volume(esh_volume, provider_id,
-                                         identity_id, user)
-        serialized_data = VolumeSerializer(core_volume,
+
+        boot_index = data.pop('boot_index',None)
+        volume_size = data.pop('volume_size',None)
+        #By default, do NOT destroy the volume when you shutdown the instance.
+        shutdown = data.pop('shutdown',False)
+        core_instance = boot_volume(esh_driver, identity_id, name,
+                size_alias, volume_alias=volume_alias,
+                snapshot_alias=snapshot_alias, machine_alias=machine_alias,
+                boot_index=boot_index, shutdown=shutdown,
+                volume_size=volume_size)
+
+        serialized_data = InstanceSerializer(core_instance,
                                            context={'user':request.user}).data
         response = Response(serialized_data)
 
