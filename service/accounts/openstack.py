@@ -209,10 +209,16 @@ class AccountDriver():
             if not sec_groups:
                 nova.security_group.create("default", project_name)
             self.network_manager.rename_security_group(project)
+        except ConnectionError, ce:
+            logger.exception(
+                    "Failed to establish connection."
+                    " Security group creation FAILED")
+            return None
         except NeutronClientException, nce:
             if nce.status_code != 404:
                 logger.exception("Encountered unknown exception while renaming"
                                  " the security group")
+            return None
 
         #Start creating security group
         return self.user_manager.build_security_group(

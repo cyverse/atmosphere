@@ -10,6 +10,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from rtwo.exceptions import ConnectionFailure
 from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
@@ -34,9 +35,10 @@ from service.instance import redeploy_init, reboot_instance,\
 
 from service.quota import check_over_quota
 from service.exceptions import OverAllocationError, OverQuotaError,\
-    SizeNotAvailable, HypervisorCapacityError
+    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated
 
-from api import failure_response, prepare_driver, invalid_creds
+from api import failure_response, prepare_driver,\
+        invalid_creds, connection_failure
 from api.permissions import ApiAuthRequired
 from api.serializers import InstanceStatusHistorySerializer
 from api.serializers import InstanceSerializer, PaginatedInstanceSerializer
@@ -113,6 +115,10 @@ class InstanceList(APIView):
             return over_quota(oae)
         except SizeNotAvailable, snae:
             return size_not_availabe(snae)
+        except SecurityGroupNotCreated:
+            return connection_failure(provider_id, identity_id)
+        except ConnectionFailure:
+            return connection_failure(provider_id, identity_id)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
         except Exception as exc:
@@ -388,6 +394,8 @@ class InstanceAction(APIView):
             instance_list_method = esh_driver.list_all_instances
         try:
             esh_instance_list = instance_list_method()
+        except ConnectionFailure:
+            return connection_failure(provider_id, identity_id)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
 
@@ -486,6 +494,8 @@ class InstanceAction(APIView):
             return over_quota(oae)
         except SizeNotAvailable, snae:
             return size_not_availabe(snae)
+        except ConnectionFailure:
+            return connection_failure(provider_id, identity_id)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
         except NotImplemented, ne:
@@ -526,6 +536,14 @@ class Instance(APIView):
             return invalid_creds(provider_id, identity_id)
         esh_instance = esh_driver.get_instance(instance_id)
         if not esh_instance:
+            try:
+                core_inst = CoreInstance.objects.get(
+                    provider_alias=instance_id,
+                    provider_machine__provider__id=provider_id,
+                    created_by_identity__id=identity_id)
+                core_inst.end_date_all()
+            except CoreInstance.DoesNotExist:
+                pass
             return instance_not_found(instance_id)
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                              provider_id, identity_id, user)
@@ -624,6 +642,8 @@ class Instance(APIView):
             response = Response(serialized_data, status=status.HTTP_200_OK)
             response['Cache-Control'] = 'no-cache'
             return response
+        except ConnectionFailure:
+            return connection_failure(provider_id, identity_id)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
 
