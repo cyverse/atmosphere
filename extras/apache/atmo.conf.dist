@@ -1,3 +1,11 @@
+### KEEP THIS LINE HERE!
+### Avoids the Proxy 502 Errors
+### REF:
+### http://serverfault.com/questions/185894/proxy-error-502-reason-error-reading-from-remote-server-with-apache-2-2-3-de
+SetEnv proxy-initial-not-pooled 1
+SetEnv proxy-nokeepalive 0
+
+
 ###############################################################################
 ## HTTP Virtual Host Context (Forwards requests to HTTPS)
 ###############################################################################
@@ -58,7 +66,7 @@ ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE/jenkins
     # for the old domain
     RewriteCond %{HTTP_HOST} ^MYHOSTNAMEHERE.iplantcollaborative.org$
     RewriteRule ^/(.*)$       https://MYHOSTNAMEHERE.iplantc.org/$1 [R,L]
-  
+
     # SSL Settings
     SSLEngine on
     SSLProtocol all -SSLv2
@@ -66,14 +74,14 @@ ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE/jenkins
     SSLCertificateFile /etc/ssl/certs/BASECERTHERE
     SSLCertificateKeyFile /etc/ssl/private/KEYHERE
     SSLCertificateChainFile /etc/ssl/certs/BUNDLECERTHERE
-  
+
     <Files ~ "\.(cgi|shtml|phtml|php3?)$">
         SSLOptions +StdEnvVars
     </Files>
     <Directory "/var/www/cgi-bin">
         SSLOptions +StdEnvVars
     </Directory>
-  
+
     SetEnvIf User-Agent ".*MSIE.*" \
              nokeepalive ssl-unclean-shutdown \
              downgrade-1.0 force-response-1.0
