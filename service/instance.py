@@ -689,8 +689,8 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
         return {}
     instance_id = esh_instance.id
 
-    if not hasattr(esh_driver._connection, 'ex_set_metadata'):
-        logger.warn("EshDriver %s does not have function 'ex_set_metadata'"
+    if not hasattr(esh_driver._connection, 'ex_write_metadata'):
+        logger.warn("EshDriver %s does not have function 'ex_write_metadata'"
                     % esh_driver._connection.__class__)
         return {}
     if esh_instance.extra['status'] == 'build':
@@ -700,7 +700,7 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
     if data.get('name'):
         esh_driver._connection.ex_set_server_name(esh_instance, data['name'])
     try:
-        return esh_driver._connection.ex_set_metadata(esh_instance, data,
+        return esh_driver._connection.ex_write_metadata(esh_instance, data,
                 replace_metadata=replace)
     except Exception, e:
         logger.exception("Error updating the metadata")

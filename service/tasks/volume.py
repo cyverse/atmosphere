@@ -36,7 +36,8 @@ def check_volume_task(driverCls, provider, identity,
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         volume = driver.get_volume(volume_id)
-        device = volume.extra['attachmentSet'][0]['device']
+        attach_data = volume.extra['attachments'][0]
+        device = attach_data['device']
 
         private_key = ATMOSPHERE_PRIVATE_KEYFILE
         kwargs.update({'ssh_key': private_key})
@@ -88,9 +89,10 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         volume = driver.get_volume(volume_id)
         logger.debug(volume)
         try:
-            device = volume.extra['attachmentSet'][0]['device']
+            attach_data = volume.extra['attachments'][0]
+            device = attach_data['device']
         except KeyError, IndexError:
-            logger.warn("Volume %s missing attachmentSet in Extra"
+            logger.warn("Volume %s missing attachments in Extra"
                         % (volume,))
             device = None
         if not device:
@@ -148,7 +150,8 @@ def umount_task(driverCls, provider, identity, instance_id,
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         volume = driver.get_volume(volume_id)
-        device = volume.extra['attachmentSet'][0]['device']
+        attach_data = volume.extra['attachments'][0]
+        device = attach_data['device']
 
         #Check mount to find the mount_location for device
         private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
@@ -237,9 +240,9 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
             if isinstance(driver, OSDriver) and\
                     'attaching' not in volume.extra.get('status',''):
                 break
-            attach_set = volume.extra['attachmentSet'][0]
+            attach_data = volume.extra['attachments'][0]
             if isinstance(driver, EucaDriver) and\
-                    'attaching' not in attach_set.get('status', ''):
+                    'attaching' not in attach_data.get('status', ''):
                 break
             # Exponential backoff..
             attempts += 1
@@ -255,7 +258,7 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
 
         #Device path for euca == openstack
         try:
-            device = volume.extra['attachmentSet'][0]['device']
+            device = attach_data['device']
         except:
             device = None
 
@@ -291,9 +294,9 @@ def detach_task(driverCls, provider, identity,
                     and 'detaching' not in volume.extra['status']:
                 break
             #The Eucalyptus way
-            attach_set = volume.extra['attachmentSet']
-            if isinstance(driver, EucaDriver) and attach_set\
-                    and 'detaching' not in attach_set[0].get('status'):
+            attach_data = volume.extra['attachments'][0]
+            if isinstance(driver, EucaDriver) and attach_data\
+                    and 'detaching' not in attach_data.get('status'):
                 break
             # Exponential backoff..
             attempts += 1
