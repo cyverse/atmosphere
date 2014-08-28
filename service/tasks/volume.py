@@ -219,7 +219,6 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         volume = driver.get_volume(volume_id)
-
         #Step 1. Attach the volume
         #NOTE: device_choice !== device 100%
         driver.attach_volume(instance,
@@ -240,9 +239,8 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
             if isinstance(driver, OSDriver) and\
                     'attaching' not in volume.extra.get('status',''):
                 break
-            attach_data = volume.extra['attachments'][0]
             if isinstance(driver, EucaDriver) and\
-                    'attaching' not in attach_data.get('status', ''):
+                    'attaching' not in volume.extra.get('status', ''):
                 break
             # Exponential backoff..
             attempts += 1
@@ -258,8 +256,12 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
 
         #Device path for euca == openstack
         try:
+            attach_data = volume.extra['attachments'][0]
             device = attach_data['device']
-        except:
+        except (IndexError, KeyError), bad_fetch:
+            logger.warn("Could not find 'device' in "
+                        "volume.extra['attachments']: "
+                        "Volume:%s Extra:%s" % (volume.id, volume.extra))
             device = None
 
         logger.debug("attach_task finished at %s." % datetime.now())

@@ -79,7 +79,7 @@ class Volume(models.Model):
 
     def get_attach_data(self):
         if self.esh and self.esh.extra:
-            attach_data = self.esh.extra.get('attachmentSet', {})
+            attach_data = self.esh.extra.get('attachments', {})
         else:
             attach_data = {}
         if attach_data:
