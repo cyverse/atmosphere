@@ -24,7 +24,8 @@ from atmosphere.settings import secrets
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
-    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated
+    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
+    VolumeAttachConflict
 from service.accounts.openstack import AccountDriver as OSAccountDriver
                 
 def reboot_instance(esh_driver, esh_instance, reboot_type="SOFT"):
@@ -416,6 +417,7 @@ def destroy_instance(identity_id, instance_alias):
     #Bail if instance doesnt exist
     if not instance:
         return None
+    _check_volume_attachment(esh_driver, instance)
     if isinstance(esh_driver, OSDriver):
         #Openstack: Remove floating IP first
         try:
@@ -796,3 +798,15 @@ def _repair_instance_networking(esh_driver, esh_instance, provider_id, identity_
     init_task.link(deploy_task)
     init_task.apply_async()
     return
+
+
+def _check_volume_attachment(driver, instance):
+    volumes = driver.list_volumes()
+    for vol in volumes:
+        attachment_set = vol.extra.get('attachments',[])
+        if not attachment_set:
+            continue
+        for attachment in attachment_set:
+            if instance.alias == attachment['serverId']:
+                raise VolumeAttachConflict(instance.alias, vol.alias)
+    return False

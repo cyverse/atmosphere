@@ -75,3 +75,13 @@ class SizeNotAvailable(Exception):
 
     def __str__(self):
         return "%s" % (self.message, )
+
+class VolumeAttachConflict(Exception):
+
+    def __init__(self, instance_id, volume_id):
+        self.message = "Volume %s is still attached to instance %s"\
+                % (volume_id, instance_id)
+        super(VolumeAttachConflict, self).__init__()
+
+    def __str__(self):
+        return "%s" % (self.message, )
