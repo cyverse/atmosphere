@@ -6,9 +6,42 @@ from threepio import logger
 
 
 from core.models.group import Group
+from core.models.identity import Identity as CoreIdentity
 
+from api import failure_response
 from api.serializers import IdentitySerializer, IdentityDetailSerializer
 from api.permissions import InMaintenance, ApiAuthRequired
+
+class IdentityDetail(APIView):
+    """The identity contains every credential necessary for atmosphere to connect 'The Provider' with a specific user.
+    These credentials can vary from provider to provider.
+    """
+
+    permission_classes = (ApiAuthRequired,)
+
+    def get(self, request, identity_id):
+        """
+        Authentication Required, all identities available to the user
+        """
+        #NOTE: This is actually all Identities belonging to the group matching the username
+        #TODO: This should be user, user.groups.all, etc. to account for future 'shared' identitys
+        username = request.user.username
+        group = Group.objects.get(name=username)
+        providers = group.providers.filter(active=True, end_date=None)
+        identity = None
+        for p in providers:
+            try:
+                identity = group.identities.get(provider=p, id=identity_id)
+            except CoreIdentity.DoesNotExist:
+                pass
+        if not identity:
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                "The requested Identity ID %s was not found on an active provider"
+                % identity_id)
+        serialized_data = IdentityDetailSerializer(identity).data
+        return Response(serialized_data)
+
 
 class IdentityDetailList(APIView):
     """The identity contains every credential necessary for atmosphere to connect 'The Provider' with a specific user.

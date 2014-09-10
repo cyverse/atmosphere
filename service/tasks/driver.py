@@ -568,6 +568,8 @@ def deploy_script(driverCls, provider, identity, instance_id,
         if not instance:
             logger.debug("Instance has been teminated: %s." % instance_id)
             return
+        #TODO: Is this still necessary? What about times when we want to use
+        # the adminPass? --Steve
         instance._node.extra['password'] = None
 
         kwargs = _generate_ssh_kwargs()
@@ -606,6 +608,8 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
             return
 
         #NOTE: This is required to use ssh to connect.
+        #TODO: Is this still necessary? What about times when we want to use
+        # the adminPass? --Steve
         logger.info(instance.extra)
         instance._node.extra['password'] = None
         msd = init(instance, identity.user.username, password, token, redeploy)

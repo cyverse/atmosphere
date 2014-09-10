@@ -33,7 +33,8 @@ from service.instance import redeploy_init, reboot_instance,\
     update_instance_metadata
 from service.quota import check_over_quota
 from service.exceptions import OverAllocationError, OverQuotaError,\
-    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated
+    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
+    VolumeAttachConflict
 
 from api import failure_response, prepare_driver,\
         invalid_creds, connection_failure
@@ -640,6 +641,9 @@ class Instance(APIView):
             response = Response(serialized_data, status=status.HTTP_200_OK)
             response['Cache-Control'] = 'no-cache'
             return response
+        except VolumeAttachConflict, exc:
+            message = exc.message
+            return failure_response(status.HTTP_409_CONFLICT, message)
         except ConnectionFailure:
             return connection_failure(provider_id, identity_id)
         except InvalidCredsError:

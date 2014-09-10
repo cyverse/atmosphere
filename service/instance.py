@@ -24,7 +24,8 @@ from atmosphere.settings import secrets
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
-    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated
+    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
+    VolumeAttachConflict
 from service.accounts.openstack import AccountDriver as OSAccountDriver
                 
 def reboot_instance(esh_driver, esh_instance, reboot_type="SOFT"):
@@ -416,6 +417,7 @@ def destroy_instance(identity_id, instance_alias):
     #Bail if instance doesnt exist
     if not instance:
         return None
+    _check_volume_attachment(esh_driver, instance)
     if isinstance(esh_driver, OSDriver):
         #Openstack: Remove floating IP first
         try:
@@ -689,8 +691,8 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
         return {}
     instance_id = esh_instance.id
 
-    if not hasattr(esh_driver._connection, 'ex_set_metadata'):
-        logger.warn("EshDriver %s does not have function 'ex_set_metadata'"
+    if not hasattr(esh_driver._connection, 'ex_write_metadata'):
+        logger.warn("EshDriver %s does not have function 'ex_write_metadata'"
                     % esh_driver._connection.__class__)
         return {}
     if esh_instance.extra['status'] == 'build':
@@ -700,7 +702,7 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
     if data.get('name'):
         esh_driver._connection.ex_set_server_name(esh_instance, data['name'])
     try:
-        return esh_driver._connection.ex_set_metadata(esh_instance, data,
+        return esh_driver._connection.ex_write_metadata(esh_instance, data,
                 replace_metadata=replace)
     except Exception, e:
         logger.exception("Error updating the metadata")
@@ -796,3 +798,15 @@ def _repair_instance_networking(esh_driver, esh_instance, provider_id, identity_
     init_task.link(deploy_task)
     init_task.apply_async()
     return
+
+
+def _check_volume_attachment(driver, instance):
+    volumes = driver.list_volumes()
+    for vol in volumes:
+        attachment_set = vol.extra.get('attachments',[])
+        if not attachment_set:
+            continue
+        for attachment in attachment_set:
+            if instance.alias == attachment['serverId']:
+                raise VolumeAttachConflict(instance.alias, vol.alias)
+    return False
