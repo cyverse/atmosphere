@@ -46,9 +46,9 @@ ProxyPassReverse  /flower  https://MYHOSTNAMEHERE.iplantc.org/flower
 ###############################################################################
 ## Jenkins proxy redirection
 ###############################################################################
-ProxyPass         /jenkins  http://MYHOSTNAMEHERE:8080/jenkins
-ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE:8080/jenkins
-ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE/jenkins
+ProxyPass         /jenkins  http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins
+ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins
+ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE.iplantc.org/jenkins
 
 <Proxy http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins*>
     Order deny,allow
