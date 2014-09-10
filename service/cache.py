@@ -28,8 +28,10 @@ def _get_cached_driver(provider=None, identity=None, force=False):
     return drivers[identity]
 
 
-def _get_cached(key, data_method, scrub_method):
+def _get_cached(key, data_method, scrub_method, force=False):
     r = redis.StrictRedis()
+    if force:
+        r.delete(key)
     data = r.get(key)
     if not data:
         data = data_method()
@@ -65,40 +67,46 @@ def get_cached_driver(provider=None, identity=None, force=False):
                               force=force)
 
 
-def get_cached_instances(provider=None, identity=None):
+def get_cached_instances(provider=None, identity=None, force=False):
     _validate_parameters(provider, identity)
-    cached_driver = _get_cached_driver(provider=provider, identity=identity)
+    cached_driver = _get_cached_driver(provider=provider, identity=identity,
+                                       force=force)
     all_instances_method = cached_driver.list_all_instances
     if provider:
-        key = "instances"
+        key = "instances.{0}".format(provider.id)
     else:
         key = "instances.{0}.{1}".format(identity.created_by.username, identity.id)
     return _get_cached(key,
-                      all_instances_method,
-                      _scrub)
+                       all_instances_method,
+                       _scrub,
+                       force=force)
 
 
-def get_cached_volumes(provider=None, identity=None):
+def get_cached_volumes(provider=None, identity=None, force=False):
     _validate_parameters(provider, identity)
-    cached_driver = _get_cached_driver(provider=provider, identity=identity)
+    cached_driver = _get_cached_driver(provider=provider, identity=identity,
+                                       force=force)
     all_volumes_method = cached_driver.list_all_volumes
     if provider:
-        key = "volumes"
+        key = "volumes.{0}".format(provider.id)
     else:
         key = "volumes.{0}.{1}".format(identity.created_by.username, identity.id)
     return _get_cached(key,
-                      all_volumes_method,
-                      _scrub)
+                       all_volumes_method,
+                       _scrub,
+                       force=force)
 
 
-def get_cached_machines(provider=None, identity=None):
+def get_cached_machines(provider=None, identity=None, force=False):
     _validate_parameters(provider, identity)
-    cached_driver = _get_cached_driver(provider=provider, identity=identity)
+    cached_driver = _get_cached_driver(provider=provider, identity=identity,
+                                       force=force)
     all_machines_method = cached_driver.list_machines
     if provider:
-        key = "machines"
+        key = "machines.{0}".format(provider.id)
     else:
         key = "machines.{0}.{1}".format(identity.created_by.username, identity.id)
     return _get_cached(key,
                        all_machines_method,
-                       _scrub)
+                       _scrub,
+                       force=force)
