@@ -15,7 +15,6 @@ from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
 
-
 from core.models import AtmosphereUser as User
 from core.models.identity import Identity
 from core.models.instance import convert_esh_instance
@@ -32,7 +31,6 @@ from service.instance import redeploy_init, reboot_instance,\
     start_instance, resume_instance,\
     stop_instance, suspend_instance,\
     update_instance_metadata
-
 from service.quota import check_over_quota
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated
