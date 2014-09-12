@@ -15,7 +15,6 @@ from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
 
-
 from core.models import AtmosphereUser as User
 from core.models.identity import Identity
 from core.models.instance import convert_esh_instance
@@ -31,11 +30,12 @@ from service.instance import redeploy_init, reboot_instance,\
     launch_instance, resize_instance, confirm_resize,\
     start_instance, resume_instance,\
     stop_instance, suspend_instance,\
-    update_instance_metadata
+    update_instance_metadata, _check_volume_attachment
 
 from service.quota import check_over_quota
 from service.exceptions import OverAllocationError, OverQuotaError,\
-    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated
+    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
+    VolumeAttachConflict
 
 from api import failure_response, prepare_driver,\
         invalid_creds, connection_failure
@@ -622,6 +622,8 @@ class Instance(APIView):
             esh_instance = esh_driver.get_instance(instance_id)
             if not esh_instance:
                 return instance_not_found(instance_id)
+            #Test that there is not an attached volume BEFORE we destroy
+            _check_volume_attachment(esh_driver, instance)
             task.destroy_instance_task(esh_instance, identity_id)
             existing_instance = esh_driver.get_instance(instance_id)
             if existing_instance:
@@ -642,6 +644,9 @@ class Instance(APIView):
             response = Response(serialized_data, status=status.HTTP_200_OK)
             response['Cache-Control'] = 'no-cache'
             return response
+        except VolumeAttachConflict, exc:
+            message = exc.message
+            return failure_response(status.HTTP_409_CONFLICT, message)
         except ConnectionFailure:
             return connection_failure(provider_id, identity_id)
         except InvalidCredsError:

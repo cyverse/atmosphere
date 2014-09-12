@@ -23,11 +23,13 @@ python-ldap==2.4.13
 pytz==2013.9
 django-redis-cache==0.10.0
 requests==2.2
+threepio==0.2.0
 # Dev requirements
 ipython==2.1
 ipdb==0.8
 flake8==2.1.0
 pep8==1.4.6
+# dependency_links
 # The github repos:
 # These repos will install the master/latest branch each time pip install
 # --upgrade is executed
@@ -37,7 +39,6 @@ git+git://github.com/iPlantCollaborativeOpenSource/jwt.py.git#egg=jwt
 git+git://github.com/iPlantCollaborativeOpenSource/rfive.git#egg=rfive
 git+git://github.com/iPlantCollaborativeOpenSource/rtwo.git#egg=rtwo
 git+git://github.com/iPlantCollaborativeOpenSource/django-rest-swagger.git#egg=rest_framework_swagger
-git+git://github.com/jmatt/threepio.git#egg=threepio
 git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.7
 git+git://github.com/mher/flower
 git+git://github.com/openstack/python-glanceclient.git@0.13.0#egg=python-glanceclient

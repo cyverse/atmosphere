@@ -16,6 +16,8 @@ def create_volume(esh_driver, identity_id, name, size,
     if not has_storage_count_quota(esh_driver, quota, 1):
         raise OverQuotaError(
                 message="Maximum # of Storage Volumes Exceeded")
+    #NOTE: Calling non-standard create_volume_obj so we know the ID
+    # of newly created volume. Libcloud just returns 'True'... --Steve
     success, esh_volume = esh_driver.create_volume(
         size=size,
         name=name,
