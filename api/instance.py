@@ -15,7 +15,6 @@ from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
 
-
 from core.models import AtmosphereUser as User
 from core.models.identity import Identity
 from core.models.instance import convert_esh_instance

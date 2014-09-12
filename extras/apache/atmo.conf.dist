@@ -8,7 +8,7 @@
 # apt-get install libapache2-mod-macro
 ##
 
-<Macro Atmosphere $MYHOSTNAMEHERE $PATH_TO_ATMOSPHERE $PATH_TO_TROPOSPHERE>
+<Macro Atmosphere $MYHOSTNAMEHERE $PATH_TO_ATMOSPHERE $PATH_TO_TROPOSPHERE $BASECERTHERE $KEYHERE $BUNDLECERTHERE>
     ### KEEP THIS LINE HERE!
     ### Avoids the Proxy 502 Errors
     ### REF:
@@ -45,11 +45,11 @@
     ProxyPreserveHost On
     SSLProxyEngine On
 
-    ProxyPass         /flower  https://$MYHOSTNAMEHERE.iplantc.org:8443
-    ProxyPassReverse  /flower  https://$MYHOSTNAMEHERE.iplantc.org:8443
-    ProxyPassReverse  /flower  https://$MYHOSTNAMEHERE.iplantc.org/flower
+    ProxyPass         /flower  https://$MYHOSTNAMEHERE:8443
+    ProxyPassReverse  /flower  https://$MYHOSTNAMEHERE:8443
+    ProxyPassReverse  /flower  https://$MYHOSTNAMEHERE/flower
 
-    <Proxy https://$MYHOSTNAMEHERE.iplantc.org:8443/flower*>
+    <Proxy https://$MYHOSTNAMEHERE:8443/flower*>
         Order deny,allow
         Allow from all
     </Proxy>
@@ -61,7 +61,7 @@
     ProxyPassReverse  /jenkins  http://$MYHOSTNAMEHERE:8080/jenkins
     ProxyPassReverse  /jenkins  http://$MYHOSTNAMEHERE/jenkins
 
-    <Proxy http://$MYHOSTNAMEHERE.iplantc.org:8080/jenkins*>
+    <Proxy http://$MYHOSTNAMEHERE:8080/jenkins*>
         Order deny,allow
         Allow from all
     </Proxy>
@@ -79,15 +79,15 @@
         # -Steve
         # Redirects .iplantcollaborative --> .iplantc
         RewriteCond %{HTTP_HOST} ^$MYHOSTNAMEHERE.iplantcollaborative.org$
-        RewriteRule ^/(.*)$       https://$MYHOSTNAMEHERE.iplantc.org/$1 [R,L]
+        RewriteRule ^/(.*)$       https://$MYHOSTNAMEHERE/$1 [R,L]
 
         # SSL Settings
         SSLEngine on
         SSLProtocol all -SSLv2
         SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
-        SSLCertificateFile /etc/ssl/certs/BASECERTHERE
-        SSLCertificateKeyFile /etc/ssl/private/KEYHERE
-        SSLCertificateChainFile /etc/ssl/certs/BUNDLECERTHERE
+        SSLCertificateFile /etc/ssl/certs/$BASECERTHERE
+        SSLCertificateKeyFile /etc/ssl/private/$KEYHERE
+        SSLCertificateChainFile /etc/ssl/certs/$BUNDLECERTHERE
 
         <Files ~ "\.(cgi|shtml|phtml|php3?)$">
             SSLOptions +StdEnvVars
@@ -178,4 +178,4 @@
     </VirtualHost>
 </Macro>
 ##Add your line below, it should look something like this:
-##Use Atmosphere vm.iplantc[ollaborative].org /opt/dev/atmosphere /opt/dev/troposphere
+##Use Atmosphere vm.iplantc[ollaborative].org /opt/dev/atmosphere /opt/dev/troposphere [name_of_ssl_cert.crt] [name_of_ssl_key.key] [name_of_ssl_bundle.crt]
