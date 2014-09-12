@@ -31,7 +31,7 @@ from service.instance import redeploy_init, reboot_instance,\
     launch_instance, resize_instance, confirm_resize,\
     start_instance, resume_instance,\
     stop_instance, suspend_instance,\
-    update_instance_metadata
+    update_instance_metadata, _check_volume_attachment
 
 from service.quota import check_over_quota
 from service.exceptions import OverAllocationError, OverQuotaError,\
@@ -623,6 +623,8 @@ class Instance(APIView):
             esh_instance = esh_driver.get_instance(instance_id)
             if not esh_instance:
                 return instance_not_found(instance_id)
+            #Test that there is not an attached volume BEFORE we destroy
+            _check_volume_attachment(esh_driver, instance)
             task.destroy_instance_task(esh_instance, identity_id)
             existing_instance = esh_driver.get_instance(instance_id)
             if existing_instance:
