@@ -32,6 +32,8 @@ class MaintenanceRecord(models.Model):
             else:
                 records = records.filter(Q(provider__exact=provider)
                                          | Q(provider__isnull=True))
+        else:
+            records = records.filter(Q(provider__isnull=True))
         return records
 
     @classmethod
