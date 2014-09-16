@@ -15,7 +15,8 @@ from threepio import logger
 from core.models.maintenance import MaintenanceRecord as CoreMaintenanceRecord
 
 from api.serializers import MaintenanceRecordSerializer
-from api.permissions import InMaintenance, ApiAuthRequired
+from api.permissions import InMaintenance, ApiAuthRequired, ApiAuthOptional
+from django.contrib.auth.models import AnonymousUser
 
 
 class MaintenanceRecordList(APIView):
@@ -24,33 +25,31 @@ class MaintenanceRecordList(APIView):
     Use ?active=True to get current maintenenace.
     """
 
-    permission_classes = (ApiAuthRequired,)
+    permission_classes = (ApiAuthOptional,)
     
     def get(self, request):
         """
         """
+        query = request.GET
         user = request.user
-        groups = user.group_set.all()
         providers = []
         records = CoreMaintenanceRecord.objects.none()
-        for g in groups:
-            for p in g.providers.all():
-                if p not in providers:
-                    providers.append(p)
-        if 'active' in request.GET:
-            if request.GET['active'].lower() == "true":
-                now_time = timezone.now()
-                for p in providers:
-                    records |= CoreMaintenanceRecord.active(p)
-            else:
-                all_records = CoreMaintenanceRecord.objects.all()
-                now_time = timezone.now()
-                for p in providers:
-                    records |= CoreMaintenanceRecord.active(p)
-                records = all_records.exclude(id__in=records)
+        active_records = query.get('active','false').lower() == "true"
+        if user and type(user) != AnonymousUser:
+            groups = user.group_set.all()
+            for g in groups:
+                for p in g.providers.all():
+                    if active_records:
+                        records |= CoreMaintenanceRecord.active(p)
+                    else:
+                        records |= CoreMaintenanceRecord.objects.filter(
+                                provider=p)
+        if active_records:
+            global_records = CoreMaintenanceRecord.active()
         else:
-            records = CoreMaintenanceRecord.objects.filter(
-                Q(provider__in=providers) | Q(provider=None))
+            global_records  = CoreMaintenanceRecord.objects.filter(
+                    provider=None)
+        records |= global_records
         return Response(MaintenanceRecordSerializer(records, many=True).data)
 
 
