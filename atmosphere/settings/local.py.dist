@@ -42,7 +42,7 @@ TEST_RUNNER='atmosphere.test_runner.CeleryDiscoverTestSuiteRunner'
 TEST_RUNNER_USER=''
 TEST_RUNNER_PASS=''
 
-SERVER_URL = ""
+SERVER_URL = "SERVERNAMEHERE"
 
 DATABASES = {
     "default": {
@@ -69,7 +69,7 @@ ATMOSPHERE_KEYPAIR_NAME=""
 INSTANCE_SERVICE_URL = SERVER_URL + REDIRECT_URL + "/api/v1/notification/"
 API_SERVER_URL = SERVER_URL + REDIRECT_URL + "/resources/v1"
 AUTH_SERVER_URL = SERVER_URL + REDIRECT_URL + "/auth"
-DEPLOY_SERVER_URL = SERVER_URL.replace("https", "http")
+DEPLOY_SERVER_URL = SERVER_URL.replace("https:", "http:")
 
 # CASLIB
 OAUTH_CLIENT_KEY = "OauthClientKey"
