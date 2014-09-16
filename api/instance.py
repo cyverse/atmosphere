@@ -623,7 +623,7 @@ class Instance(APIView):
             if not esh_instance:
                 return instance_not_found(instance_id)
             #Test that there is not an attached volume BEFORE we destroy
-            _check_volume_attachment(esh_driver, instance)
+            _check_volume_attachment(esh_driver, esh_instance)
             task.destroy_instance_task(esh_instance, identity_id)
             existing_instance = esh_driver.get_instance(instance_id)
             if existing_instance:
