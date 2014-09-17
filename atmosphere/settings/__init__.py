@@ -87,7 +87,7 @@ INSTALLED_APPS = (
     'web',
     'core',
 )
-
+PROJECTS_APPS = ["authentication","service","core"]
 DATABASE_ROUTERS = ['atmosphere.routers.Service']
 
 TIME_ZONE = 'America/Phoenix'
