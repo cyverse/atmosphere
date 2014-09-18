@@ -6,6 +6,7 @@ Pillow==2.3.0
 South==0.8.4
 apache-libcloud==0.14.1
 celery==3.1.9
+coverage==3.7.1
 django-celery==3.1.9
 django-cors-headers==0.12
 django-jenkins==0.16.2
