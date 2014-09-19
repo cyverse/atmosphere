@@ -39,34 +39,6 @@
     SSLCryptoDevice builtin
 
     ###############################################################################
-    ## Celery-Flower proxy redirection
-    ###############################################################################
-    ProxyRequests Off
-    ProxyPreserveHost On
-    SSLProxyEngine On
-
-    ProxyPass         /flower  https://$MYHOSTNAMEHERE:8443
-    ProxyPassReverse  /flower  https://$MYHOSTNAMEHERE:8443
-    ProxyPassReverse  /flower  https://$MYHOSTNAMEHERE/flower
-
-    <Proxy https://$MYHOSTNAMEHERE:8443/flower*>
-        Order deny,allow
-        Allow from all
-    </Proxy>
-
-    ###############################################################################
-    ## Jenkins proxy redirection
-    ###############################################################################
-    ProxyPass         /jenkins  http://$MYHOSTNAMEHERE:8080/jenkins
-    ProxyPassReverse  /jenkins  http://$MYHOSTNAMEHERE:8080/jenkins
-    ProxyPassReverse  /jenkins  http://$MYHOSTNAMEHERE/jenkins
-
-    <Proxy http://$MYHOSTNAMEHERE:8080/jenkins*>
-        Order deny,allow
-        Allow from all
-    </Proxy>
-
-    ###############################################################################
     ## Atmosphere Server Virtualhost (Port 443)
     ###############################################################################
     <VirtualHost *:443>
@@ -99,6 +71,41 @@
         SetEnvIf User-Agent ".*MSIE.*" \
                  nokeepalive ssl-unclean-shutdown \
                  downgrade-1.0 force-response-1.0
+        ###############################################################################
+        ## Celery-Flower proxy redirection
+        ###############################################################################
+        ProxyRequests Off
+        ProxyPreserveHost On
+        SSLProxyEngine On
+        AllowEncodedSlashes NoDecode
+
+        ProxyPass         /flower  https://$MYHOSTNAMEHERE:8443
+        ProxyPassReverse  /flower  https://$MYHOSTNAMEHERE:8443
+        ProxyPassReverse  /flower  https://$MYHOSTNAMEHERE/flower
+
+        <Proxy https://$MYHOSTNAMEHERE:8443/flower*>
+            Order deny,allow
+            Allow from all
+        </Proxy>
+
+        ###############################################################################
+        ## Jenkins proxy redirection
+        ###############################################################################
+        <Proxy /jenkins*>
+          Order deny,allow
+          Allow from all
+        </Proxy>
+        
+        ProxyPass         /jenkins  http://localhost:8080/jenkins nocanon
+        ProxyPassReverse  /jenkins  http://localhost:8080/jenkins
+        ProxyPassReverse  /jenkins  https://$MYHOSTNAMEHERE/jenkins
+        RequestHeader set X-Forwarded-Proto "https"
+        RequestHeader set X-Forwarded-Port "443"
+
+        ###############################################################################
+        ## Atmosphere Server VirtualHost (Port 443)
+        ###############################################################################
+
 
         SetEnv DJANGO_SETTINGS_MODULE atmosphere.settings
 
