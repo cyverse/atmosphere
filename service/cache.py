@@ -97,6 +97,7 @@ def get_cached_volumes(provider=None, identity=None, force=False):
                        force=force)
 
 
+
 def get_cached_machines(provider=None, identity=None, force=False):
     _validate_parameters(provider, identity)
     cached_driver = _get_cached_driver(provider=provider, identity=identity,
