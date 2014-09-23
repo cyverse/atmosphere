@@ -6,8 +6,6 @@ Atmosphere web views.
 import os
 import json
 import uuid
-import urllib
-import httplib2
 from datetime import datetime, timedelta
 
 # django http libraries
