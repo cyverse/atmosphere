@@ -105,6 +105,8 @@ celery-restart)
     fi
     echo "Restarting Atmosphere Web Service"
     service apache2 restart
+    echo "Force Killing All Celery Nodes"
+    service celeryd kill
     echo "Restarting Atmosphere Celery Nodes"
     service celeryd restart
     service celerybeat restart
