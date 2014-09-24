@@ -16,7 +16,7 @@ from api.identity_membership import IdentityMembershipList, IdentityMembership
 from api.identity import IdentityList, Identity, IdentityDetail, IdentityDetailList
 from api.instance import InstanceList, Instance,\
     InstanceAction, InstanceHistory, InstanceHistoryDetail,\
-    InstanceStatusHistoryDetail
+    InstanceStatusHistoryDetail, InstanceTagList, InstanceTagDetail
 from api.machine import MachineList, Machine, MachineHistory,\
     MachineSearch, MachineVote, MachineIcon
 from api.machine_request import MachineRequestList, MachineRequest,\
@@ -212,7 +212,13 @@ public_apis = format_suffix_patterns(patterns(
         name='instance-history'),
 
     url(identity_specific + r'/instance/'
-        + '(?P<instance_id>[a-zA-Z0-9-]+)/action$',
+        + '(?P<instance_id>[a-za-z0-9-]+)/tag$',
+        InstanceTagList.as_view(), name='instance-tag-list'),
+    url(identity_specific + r'/instance/'
+        + '(?P<instance_id>[a-zA-Z0-9-]+)/tag/(?P<tag_slug>.*)$',
+        InstanceTagDetail.as_view(), name='instance-tag-detail'),
+    url(identity_specific + r'/instance/'
+        + '(?P<instance_id>[a-za-z0-9-]+)/action$',
         InstanceAction.as_view(), name='instance-action'),
     url(identity_specific + r'/instance/(?P<instance_id>[a-zA-Z0-9-]+)$',
         Instance.as_view(), name='instance-detail'),

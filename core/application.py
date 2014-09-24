@@ -43,18 +43,22 @@ def _db_update_owner(application, username):
 def _os_update_owner(provider_machine, tenant_name):
     from core.models import Provider
     from service.driver import get_admin_driver
+    from service.cache import get_cached_machines, get_cached_driver
     provider = provider_machine.provider
     if provider not in Provider.get_active(type_name='openstack'):
         raise Exception("An active openstack provider is required to"
                         " update image owner")
-    esh_driver = get_admin_driver(provider)
+    esh_driver = get_cached_driver(provider)
     if not esh_driver:
         raise Exception("The account driver of Provider %s is required to"
                         " update image metadata" % provider)
-    esh_machine = esh_driver.get_machine(provider_machine.identifier)
+    esh_machines = get_cached_machines(provider, force=True)
+    esh_machine = [mach for mach in esh_machines
+                    if mach.alias == provider_machine.identifier]
     if not esh_machine:
         raise Exception("Machine with ID  %s not found"
                         % provider_machine.identifier)
+    esh_machine = esh_machine[0]
     tenant_id = _tenant_name_to_id(provider_machine.provider, tenant_name)
     update_machine_metadata(esh_driver, esh_machine,
                             {"owner": tenant_id,

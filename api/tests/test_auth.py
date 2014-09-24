@@ -106,14 +106,15 @@ class AuthTests(TestCase):
     def tearDown(self):
         pass
 
-    def test_oauth_token(self):
-        """
-        Explicitly call auth and test that tokens can be created.
-        """
-        self.oauth_api_client = OAuthTokenAPIClient()
-        self.oauth_api_client.login(oauth_user='sgregory')
-        verify_expected_output(self, self.oauth_api_client.token, self.expected_output)
-        self.oauth_api_client.logout()
+    #TODO: Remove comments if testing of 'Groupy' OAuth is required.
+    #def test_oauth_token(self):
+    #    """
+    #    Explicitly call auth and test that tokens can be created.
+    #    """
+    #    self.oauth_api_client = OAuthTokenAPIClient()
+    #    self.oauth_api_client.login(oauth_user='sgregory')
+    #    verify_expected_output(self, self.oauth_api_client.token, self.expected_output)
+    #    self.oauth_api_client.logout()
 
     def test_api_token(self):
         """

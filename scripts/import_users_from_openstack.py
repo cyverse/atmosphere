@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import time
+import time, requests
 
 
 from threepio import logger
@@ -7,13 +7,16 @@ from threepio import logger
 from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 from core.models import AtmosphereUser as User
-from core.models import Provider
+from core.models import Provider, Quota
 
 def main():
     """
     TODO: Add argparse, --delete : Deletes existing users in openstack (Never use in PROD)
     """
-    openstack = Provider.objects.get(location='OpenStack-Tucson (BETA)')
+    openstack = Provider.objects.filter(type__name__iexact="openstack").order_by("id")
+    if not openstack:
+      raise Provider.DoesNotExist("No OpenStack Provider Found")
+    openstack = openstack[0]
     os_driver = OSAccountDriver(openstack)
     found = 0
     create = 0
@@ -37,9 +40,9 @@ def main():
         im.save()
     print "Total users added to atmosphere:%s" % len(usernames)
 
-staff_users = []
 def is_staff(core_identity):
     #Query Groupy
+    staff_users = []
     if not staff_users:
         staff_users = members_query_groupy("staff")
     if core_identity.created_by.username in staff_users:

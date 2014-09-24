@@ -1,164 +1,188 @@
-### KEEP THIS LINE HERE!
-### Avoids the Proxy 502 Errors
-### REF:
-### http://serverfault.com/questions/185894/proxy-error-502-reason-error-reading-from-remote-server-with-apache-2-2-3-de
-SetEnv proxy-initial-not-pooled 1
-SetEnv proxy-nokeepalive 0
+###########################
+## This is a 'mod_macro' configuration. NONE of the information inside the
+#macro should be changed to enable Atmosphere on apache. Simply scroll to the
+#bottom of the page and add the one line corresponding to your specific
+#hostname and atmosphere/troposphere path
+#
+# If you do not have 'mod_macro' installed for apache:
+# apt-get install libapache2-mod-macro
+##
+
+<Macro Atmosphere $MYSHORTNAME $MYHOSTNAMEHERE $PATH_TO_ATMOSPHERE $PATH_TO_TROPOSPHERE $BASECERTHERE $KEYHERE $BUNDLECERTHERE>
+    ### KEEP THIS LINE HERE!
+    ### Avoids the Proxy 502 Errors
+    ### REF:
+    ### http://serverfault.com/questions/185894/proxy-error-502-reason-error-reading-from-remote-server-with-apache-2-2-3-de
+    SetEnv proxy-initial-not-pooled 1
+    SetEnv proxy-nokeepalive 0
 
 
-###############################################################################
-## HTTP Virtual Host Context (Forwards requests to HTTPS)
-###############################################################################
-<VirtualHost *:80>
-    ErrorLog ${APACHE_LOG_DIR}/error.log
-    LogLevel warn
-    CustomLog ${APACHE_LOG_DIR}/access.log combined
+    ###############################################################################
+    ## HTTP Virtual Host Context (Forwards requests to HTTPS @ MYHOSTNAMEHERE)
+    ###############################################################################
+    <VirtualHost *:80>
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        LogLevel warn
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
 
-    Alias /init_files /opt/dev/atmosphere/init_files
+        Alias /init_files /opt/dev/atmosphere/init_files
 
-    RewriteEngine On
-    RewriteCond %{HTTPS} !=on
-    RewriteCond %{REQUEST_URI} !^/init_files
-    RewriteRule ^/?(.*) https://MYHOSTNAMEHERE.iplantc.org/$1 [R,L]
-</VirtualHost>
+        RewriteEngine On
+        RewriteCond %{HTTPS} !=on
+        RewriteCond %{REQUEST_URI} !^/init_files
+        RewriteRule ^/?(.*) https://$MYHOSTNAMEHERE/$1 [R,L]
+    </VirtualHost>
 
-###############################################################################
-## SSL Configuration
-###############################################################################
-SSLCryptoDevice builtin
+    ###############################################################################
+    ## SSL Configuration
+    ###############################################################################
+    SSLCryptoDevice builtin
 
-###############################################################################
-## Celery-Flower proxy redirection
-###############################################################################
-ProxyRequests Off
-ProxyPreserveHost On
-SSLProxyEngine On
+    ###############################################################################
+    ## Atmosphere Server Virtualhost (Port 443)
+    ###############################################################################
+    <VirtualHost *:443>
+        # Rewrite
+        RewriteEngine On
+        RewriteCond %{HTTP:Authorization} ^(.*)
+        RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
+        # NOTE: The lines below are NOT suitable for sites whose hostnames end
+        # in .iplantcollaborative.org. In these cases, Comment the next two lines.
+        # -Steve
+        # Redirects .iplantcollaborative --> .iplantc
+        RewriteCond %{HTTP_HOST} ^$MYSHORTNAME.iplantcollaborative.org$
+        RewriteRule ^/(.*)$       https://$MYHOSTNAMEHERE/$1 [R,L]
 
-ProxyPass         /flower  https://MYHOSTNAMEHERE.iplantc.org:8443
-ProxyPassReverse  /flower  https://MYHOSTNAMEHERE.iplantc.org:8443
-ProxyPassReverse  /flower  https://MYHOSTNAMEHERE.iplantc.org/flower
+        # SSL Settings
+        SSLEngine on
+        SSLProtocol all -SSLv2
+        SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
+        SSLCertificateFile /etc/ssl/certs/$BASECERTHERE
+        SSLCertificateKeyFile /etc/ssl/private/$KEYHERE
+        SSLCertificateChainFile /etc/ssl/certs/$BUNDLECERTHERE
 
-<Proxy https://MYHOSTNAMEHERE.iplantc.org:8443/flower*>
-    Order deny,allow
-    Allow from all
-</Proxy>
-
-###############################################################################
-## Jenkins proxy redirection
-###############################################################################
-ProxyPass         /jenkins  http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins
-ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins
-ProxyPassReverse  /jenkins  http://MYHOSTNAMEHERE.iplantc.org/jenkins
-
-<Proxy http://MYHOSTNAMEHERE.iplantc.org:8080/jenkins*>
-    Order deny,allow
-    Allow from all
-</Proxy>
-
-###############################################################################
-## Atmosphere Server Virtualhost (Port 443)
-###############################################################################
-<VirtualHost *:443>
-    # Rewrite
-    RewriteEngine On
-    RewriteCond %{HTTP:Authorization} ^(.*)
-    RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
-    # for the old domain
-    RewriteCond %{HTTP_HOST} ^MYHOSTNAMEHERE.iplantcollaborative.org$
-    RewriteRule ^/(.*)$       https://MYHOSTNAMEHERE.iplantc.org/$1 [R,L]
-
-    # SSL Settings
-    SSLEngine on
-    SSLProtocol all -SSLv2
-    SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
-    SSLCertificateFile /etc/ssl/certs/BASECERTHERE
-    SSLCertificateKeyFile /etc/ssl/private/KEYHERE
-    SSLCertificateChainFile /etc/ssl/certs/BUNDLECERTHERE
-
-    <Files ~ "\.(cgi|shtml|phtml|php3?)$">
-        SSLOptions +StdEnvVars
-    </Files>
-    <Directory "/var/www/cgi-bin">
-        SSLOptions +StdEnvVars
-    </Directory>
-
-    SetEnvIf User-Agent ".*MSIE.*" \
-             nokeepalive ssl-unclean-shutdown \
-             downgrade-1.0 force-response-1.0
-
-    SetEnv DJANGO_SETTINGS_MODULE atmosphere.settings
-
-    # Logging
-    ErrorLog /var/log/apache2/ssl_error.log
-    TransferLog /var/log/apache2/ssl_access.log
-    LogLevel warn
-
-    # Catch static file paths
-    # favicon and robots are better served outside of WSGI
-    Alias /favicon.ico PATH_TO_ATMOSPHERE/static/images/favicon.ico
-    Alias /robots.txt PATH_TO_ATMOSPHERE/templates/robots.txt
-    #init_files && resources will auto-direct to the file
-    Alias /init_files PATH_TO_ATMOSPHERE/init_files
-    Alias /resources PATH_TO_ATMOSPHERE/resources
-    #Assing WSGI to any other folder
-    WSGIScriptAlias / PATH_TO_ATMOSPHERE/atmosphere/wsgi.py
-
-    # Shell
-    <Location /shell>
-        AuthType CAS
-        AuthName "CAS"
-        require valid-user
-        CASScope /
-        Order allow,deny
-        Allow from all
-    </Location>
-
-    Alias /static/rest_framework PATH_TO_ATMOSPHERE/static/rest_framework
-
-    # The following URLs are proxied to Troposphere:
-    # /, /static, /applicaiton, /login, /logout, /cas/service
-    Alias /assets PATH_TO_TROPOSPHERE/troposphere/assets
-    ProxyPass /application http://localhost:5000/application
-    ProxyPassReverse /application http://localhost:5000/application
-    ProxyPass /login http://localhost:5000/login
-    ProxyPassReverse /login http://localhost:5000/login
-    ProxyPass /logout http://localhost:5000/logout
-    ProxyPassReverse /logout http://localhost:5000/logout
-    ProxyPass /cas/oauth2.0 http://localhost:5000/cas/oauth2.0
-    ProxyPassReverse /cas/oauth2.0 http://localhost:5000/cas/oauth2.0
-    ProxyPass /cas/service http://localhost:5000/cas/service
-    ProxyPassReverse /cas/service http://localhost:5000/cas/service
-    ProxyPass /forbidden http://localhost:5000/forbidden
-    ProxyPassReverse /forbidden http://localhost:5000/forbidden
-    ProxyPass /version http://localhost:5000/version
-    ProxyPassReverse /version http://localhost:5000/version
-    ProxyPass /cf2 http://localhost:5000/cf2
-    ProxyPassReverse /cf2 http://localhost:5000/cf2
-
-    ProxyPassMatch ^/emulate http://localhost:5000
-    ProxyPassReverse /emulate http://localhost:5000
-    ProxyPassMatch ^/$ http://localhost:5000
-    ProxyPassReverse / http://localhost:5000
-
-</VirtualHost>
-
-###############################################################################
-## Troposphere Server Virtualhost (Port 5000)
-###############################################################################
-Listen 5000
-<VirtualHost *:5000>
-    SetEnv DJANGO_SETTINGS_MODULE troposphere.settings
-    WSGIScriptAlias / PATH_TO_TROPOSPHERE/troposphere/wsgi.py
-
-    # Logging
-    ErrorLog /var/log/apache2/ssl_error.log
-    TransferLog /var/log/apache2/ssl_access.log
-    LogLevel warn
-
-    <Directory PATH_TO_TROPOSPHERE/trosposphere>
-        <Files wsgi.py>
-        Order deny,allow
-        Require all granted
+        <Files ~ "\.(cgi|shtml|phtml|php3?)$">
+            SSLOptions +StdEnvVars
         </Files>
-    </Directory>
-</VirtualHost>
+        <Directory "/var/www/cgi-bin">
+            SSLOptions +StdEnvVars
+        </Directory>
+
+        SetEnvIf User-Agent ".*MSIE.*" \
+                 nokeepalive ssl-unclean-shutdown \
+                 downgrade-1.0 force-response-1.0
+        ###############################################################################
+        ## Celery-Flower proxy redirection
+        ###############################################################################
+        ProxyRequests Off
+        ProxyPreserveHost On
+        SSLProxyEngine On
+        AllowEncodedSlashes NoDecode
+
+        ProxyPass         /flower  https://$MYHOSTNAMEHERE:8443
+        ProxyPassReverse  /flower  https://$MYHOSTNAMEHERE:8443
+        ProxyPassReverse  /flower  https://$MYHOSTNAMEHERE/flower
+
+        <Proxy https://$MYHOSTNAMEHERE:8443/flower*>
+            Order deny,allow
+            Allow from all
+        </Proxy>
+
+        ###############################################################################
+        ## Jenkins proxy redirection
+        ###############################################################################
+        <Proxy /jenkins*>
+          Order deny,allow
+          Allow from all
+        </Proxy>
+        
+        ProxyPass         /jenkins  http://localhost:8080/jenkins nocanon
+        ProxyPassReverse  /jenkins  http://localhost:8080/jenkins
+        ProxyPassReverse  /jenkins  https://$MYHOSTNAMEHERE/jenkins
+        RequestHeader set X-Forwarded-Proto "https"
+        RequestHeader set X-Forwarded-Port "443"
+
+        ###############################################################################
+        ## Atmosphere Server VirtualHost (Port 443)
+        ###############################################################################
+
+
+        SetEnv DJANGO_SETTINGS_MODULE atmosphere.settings
+
+        # Logging
+        ErrorLog /var/log/apache2/ssl_error.log
+        TransferLog /var/log/apache2/ssl_access.log
+        LogLevel warn
+
+        # Catch static file paths
+        # favicon and robots are better served outside of WSGI
+        Alias /favicon.ico $PATH_TO_ATMOSPHERE/static/images/favicon.ico
+        Alias /robots.txt $PATH_TO_ATMOSPHERE/templates/robots.txt
+        #init_files && resources will auto-direct to the file
+        Alias /init_files $PATH_TO_ATMOSPHERE/init_files
+        Alias /resources $PATH_TO_ATMOSPHERE/resources
+        #Assing WSGI to any other folder
+        WSGIScriptAlias / $PATH_TO_ATMOSPHERE/atmosphere/wsgi.py
+
+        # Shell
+        <Location /shell>
+            AuthType CAS
+            AuthName "CAS"
+            require valid-user
+            CASScope /
+            Order allow,deny
+            Allow from all
+        </Location>
+
+        Alias /static/rest_framework $PATH_TO_ATMOSPHERE/static/rest_framework
+
+        # The following URLs are proxied to Troposphere:
+        # /, /static, /applicaiton, /login, /logout, /cas/service
+        Alias /assets $PATH_TO_TROPOSPHERE/troposphere/assets
+        ProxyPass /application http://localhost:5000/application
+        ProxyPassReverse /application http://localhost:5000/application
+        ProxyPass /login http://localhost:5000/login
+        ProxyPassReverse /login http://localhost:5000/login
+        ProxyPass /logout http://localhost:5000/logout
+        ProxyPassReverse /logout http://localhost:5000/logout
+        ProxyPass /cas/oauth2.0 http://localhost:5000/cas/oauth2.0
+        ProxyPassReverse /cas/oauth2.0 http://localhost:5000/cas/oauth2.0
+        ProxyPass /cas/service http://localhost:5000/cas/service
+        ProxyPassReverse /cas/service http://localhost:5000/cas/service
+        ProxyPass /forbidden http://localhost:5000/forbidden
+        ProxyPassReverse /forbidden http://localhost:5000/forbidden
+        ProxyPass /version http://localhost:5000/version
+        ProxyPassReverse /version http://localhost:5000/version
+        ProxyPass /cf2 http://localhost:5000/cf2
+        ProxyPassReverse /cf2 http://localhost:5000/cf2
+
+        ProxyPassMatch ^/emulate http://localhost:5000
+        ProxyPassReverse /emulate http://localhost:5000
+        ProxyPassMatch ^/$ http://localhost:5000
+        ProxyPassReverse / http://localhost:5000
+
+    </VirtualHost>
+
+    ###############################################################################
+    ## Troposphere Server Virtualhost (Port 5000)
+    ###############################################################################
+    Listen 5000
+    <VirtualHost *:5000>
+        SetEnv DJANGO_SETTINGS_MODULE troposphere.settings
+        WSGIScriptAlias / $PATH_TO_TROPOSPHERE/troposphere/wsgi.py
+
+        # Logging
+        ErrorLog /var/log/apache2/ssl_error.log
+        TransferLog /var/log/apache2/ssl_access.log
+        LogLevel warn
+
+        <Directory $PATH_TO_TROPOSPHERE/trosposphere>
+            <Files wsgi.py>
+            Order deny,allow
+            Require all granted
+            </Files>
+        </Directory>
+    </VirtualHost>
+</Macro>
+##Add your line below, it should look something like this:
+##Use Atmosphere vm.iplantc[ollaborative].org /opt/dev/atmosphere /opt/dev/troposphere [name_of_ssl_cert.crt] [name_of_ssl_key.key] [name_of_ssl_bundle.crt]

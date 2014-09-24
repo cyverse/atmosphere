@@ -22,4 +22,4 @@ See LICENSE.txt for license information
 + **Andre Mercer <amercer@iplantcollaborative.org>**
 + **Jason Hansen <jchansen@iplantcollaborative.org>**
 
-Where cloud lives!
+Where the cloud lives!

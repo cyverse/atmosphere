@@ -21,7 +21,6 @@ def create_volume(esh_driver, identity_id, name, size,
     success, esh_volume = esh_driver.create_volume(
         size=size,
         name=name,
-        description=description,
         metadata=metadata,
         snapshot=snapshot,
         image=image)

@@ -21,6 +21,7 @@ from core.models.instance import convert_esh_instance
 from core.models.instance import Instance as CoreInstance
 from core.models.provider import AccountProvider
 from core.models.size import convert_esh_size
+from core.models.tag import Tag as CoreTag
 from core.models.volume import convert_esh_volume
 
 from service import task
@@ -30,7 +31,8 @@ from service.instance import redeploy_init, reboot_instance,\
     launch_instance, resize_instance, confirm_resize,\
     start_instance, resume_instance,\
     stop_instance, suspend_instance,\
-    update_instance_metadata
+    update_instance_metadata, _check_volume_attachment
+
 from service.quota import check_over_quota
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
@@ -44,7 +46,34 @@ from api.serializers import InstanceSerializer, PaginatedInstanceSerializer
 from api.serializers import InstanceHistorySerializer,\
     PaginatedInstanceHistorySerializer
 from api.serializers import VolumeSerializer
+from api.serializers import TagSerializer
 
+def get_core_instance(request, provider_id, identity_id, instance_id):
+    user = request.user
+    esh_driver = prepare_driver(request, provider_id, identity_id)
+    esh_instance = get_esh_instance(request, provider_id, identity_id, instance_id)
+    core_instance = convert_esh_instance(esh_driver, esh_instance,
+                                         provider_id, identity_id, user)
+    return core_instance
+
+def get_esh_instance(request, provider_id, identity_id, instance_id):
+    esh_driver = prepare_driver(request, provider_id, identity_id)
+    if not esh_driver:
+        raise InvalidCredsError(
+                "Provider_id && identity_id "
+                "did not produce a valid combination")
+    esh_instance = esh_driver.get_instance(instance_id)
+    if not esh_instance:
+        try:
+            core_inst = CoreInstance.objects.get(
+                provider_alias=instance_id,
+                provider_machine__provider__id=provider_id,
+                created_by_identity__id=identity_id)
+            core_inst.end_date_all()
+        except CoreInstance.DoesNotExist:
+            pass
+        return esh_instance
+    return esh_instance
 
 class InstanceList(APIView):
     """
@@ -387,16 +416,6 @@ class InstanceAction(APIView):
         esh_driver = prepare_driver(request, provider_id, identity_id)
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
-        instance_list_method = esh_driver.list_instances
-        if AccountProvider.objects.filter(identity__id=identity_id):
-            # Instance list method changes when using the OPENSTACK provider
-            instance_list_method = esh_driver.list_all_instances
-        try:
-            esh_instance_list = instance_list_method()
-        except ConnectionFailure:
-            return connection_failure(provider_id, identity_id)
-        except InvalidCredsError:
-            return invalid_creds(provider_id, identity_id)
 
         esh_instance = esh_driver.get_instance(instance_id)
         if not esh_instance:
@@ -621,6 +640,8 @@ class Instance(APIView):
             esh_instance = esh_driver.get_instance(instance_id)
             if not esh_instance:
                 return instance_not_found(instance_id)
+            #Test that there is not an attached volume BEFORE we destroy
+            _check_volume_attachment(esh_driver, esh_instance)
             task.destroy_instance_task(esh_instance, identity_id)
             existing_instance = esh_driver.get_instance(instance_id)
             if existing_instance:
@@ -648,6 +669,100 @@ class Instance(APIView):
             return connection_failure(provider_id, identity_id)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
+
+
+
+class InstanceTagList(APIView):
+    """
+        Tags are a easy way to allow users to group several images as similar
+        based on a feature/program of the application.
+    """
+    permission_classes = (ApiAuthRequired,)
+    
+    def get(self, request, provider_id, identity_id, instance_id, *args, **kwargs):
+        """
+        List all public tags.
+        """
+        core_instance = get_core_instance(request, provider_id, identity_id, instance_id)
+        if not core_instance:
+            instance_not_found(instance_id)
+        tags = core_instance.tags.all()
+        serializer = TagSerializer(tags, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, provider_id, identity_id, instance_id,  *args, **kwargs):
+        """Create a new tag resource
+        Params:name -- Name of the new Tag
+        Returns: 
+        Status Code: 201 Body: A new Tag object
+        Status Code: 400 Body: Errors (Duplicate/Invalid Name)
+        """
+        user = request.user
+        data = request.DATA.copy()
+        if 'name' not in data:
+            return Response("Missing 'name' in POST data",
+                    status=status.HTTP_400_BAD_REQUEST)
+
+        core_instance = get_core_instance(request, provider_id, identity_id, instance_id)
+        if not core_instance:
+            instance_not_found(instance_id)
+
+        created = False
+        same_name_tags = CoreTag.objects.filter(name__iexact=data['name'])
+        if same_name_tags:
+            add_tag = same_name_tags[0]
+        else:
+            data['user'] = user.username
+            data['name'] = data['name'].lower()
+            #description is optional
+            serializer = TagSerializer(data=data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            serializer.save()
+            add_tag = serializer.object
+            created = True
+        core_instance.tags.add(add_tag)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class InstanceTagDetail(APIView):
+    """
+        Tags are a easy way to allow users to group several images as similar
+        based on a feature/program of the application.
+
+        This API resource allows you to Retrieve, Update, or Delete your Tag.
+    """
+    permission_classes = (ApiAuthRequired,)
+    
+    def delete(self, request, provider_id, identity_id, instance_id,  tag_slug, *args, **kwargs):
+        """
+        Remove the tag, if it is no longer in use.
+        """
+        core_instance = get_core_instance(request, provider_id, identity_id, instance_id)
+        if not core_instance:
+            instance_not_found(instance_id)
+        try:
+            tag = core_instance.tags.get(name__iexact=tag_slug)
+        except CoreTag.DoesNotExist:
+            return failure_response(status.HTTP_404_NOT_FOUND, 
+                                    'Tag %s not found on instance' % tag_slug)
+        core_instance.tags.remove(tag)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get(self, request, provider_id, identity_id, instance_id,  tag_slug, *args, **kwargs):
+        """
+        Return the credential information for this tag
+        """
+        core_instance = get_core_instance(request, provider_id, identity_id, instance_id)
+        if not core_instance:
+            instance_not_found(instance_id)
+        try:
+            tag = core_instance.tags.get(name__iexact=tag_slug)
+        except CoreTag.DoesNotExist:
+            return Response(['Tag does not exist'],
+                            status=status.HTTP_404_NOT_FOUND)
+        serializer = TagSerializer(tag)
+        return Response(serializer.data)
 
 
 def valid_post_data(data):
