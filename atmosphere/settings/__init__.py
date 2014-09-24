@@ -70,7 +70,6 @@ INSTALLED_APPS = (
 
     #3rd party apps
     'rest_framework',
-    'rest_framework_swagger',
 
     'south',
     'djcelery',
@@ -313,24 +312,7 @@ REST_FRAMEWORK = {
     )
 }
 LOGIN_REDIRECT_URL="/api/v1"
-#REST_FRAMEWORK_SWAGGER
-SWAGGER_SETTINGS = {
-    "exclude_namespaces": [
-        "private_root_urls",
-        "private_apis",
-    ],  # List URL namespaces to ignore
-    "api_version": '0.1',  # Specify your API's version
-    "api_path": "/",  # Specify the path to your API not a root level
-    "enabled_methods": [  # Specify which methods to enable in Swagger UI
-        'get',
-        'post',
-        'patch',
-        'delete'
-    ],
-    "api_key": '',  # An API key
-    "is_authenticated": False,  # Set to True to enforce user authentication,
-    "is_superuser": False,  # Set to True to enforce admin only access
-}
+
 
 ##CASLIB
 SERVER_URL = SERVER_URL + REDIRECT_URL
