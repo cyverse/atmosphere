@@ -229,7 +229,7 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
 
 class MachineRequestAdmin(admin.ModelAdmin):
     search_fields = ["new_machine_owner__username", "new_machine_name", "instance__provider_alias"]
-    list_display = ["new_machine_name", "new_machine_owner",
+    list_display = ["new_machine_name", "new_machine_owner", "old_provider",
                     "new_machine_provider",  "start_date",
                     "end_date", "status", "opt_parent_machine", "opt_machine_visibility", 
                     "opt_new_machine"]

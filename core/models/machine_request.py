@@ -67,6 +67,30 @@ class MachineRequest(models.Model):
             self.start_date.strftime('%m%d%Y_%H%M%S'))
         return meta_name
 
+    def fix_metadata(self, im):
+        if not mr.new_machine:
+            raise Exception("New machine missing from machine request. Cannot Fix.")
+        (orig_managerCls, orig_creds,
+         dest_managerCls, dest_creds) = self.prepare_manager()
+        im = dest_managerCls(**dest_creds)
+        old_mach_id = mr.instance.provider_machine.identifier
+        new_mach_id = mr.new_machine.identifier
+        old_mach = im.get_image(old_mach_id)
+        if not old_mach:
+            raise Exception("Could not find old machine.. Cannot Fix.")
+        new_mach = im.get_image(new_mach_id)
+        if not old_mach:
+            raise Exception("Could not find new machine.. Cannot Fix.")
+        properties = new_mach.properties
+        previous_kernel = old_mach.properties.get('kernel_id')
+        previous_ramdisk = old_mach.properties.get('ramdisk_id')
+        if not previous_kernel or previous_ramdisk:
+            raise Exception("Kernel/Ramdisk information MISSING from previous machine. Fix NOT required")
+        properties.update({'kernel_id': previous_kernel, 'ramdisk_id': previous_ramdisk})
+        im.update_image(new_mach, properties=properties)
+
+    def old_provider(self):
+        return self.instance.provider_machine.provider
     def new_machine_id(self):
         return 'zzz%s' % self.new_machine.identifier if self.new_machine else None
 
