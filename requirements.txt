@@ -29,6 +29,12 @@ ipython==1.1
 ipdb==0.8
 flake8==2.1.0
 pep8==1.4.6
+#Hardcoded OpenStack requirements
+python-glanceclient==0.13.1
+python-keystoneclient==0.9.0
+python-neutronclient==2.3.5
+python-novaclient==2.18.1
+python-swiftclient==2.2.0
 # The github repos:
 # These repos will install the master/latest branch each time pip install
 # --upgrade is executed
@@ -41,7 +47,7 @@ git+git://github.com/iPlantCollaborativeOpenSource/django-rest-swagger.git#egg=r
 git+git://github.com/jmatt/threepio.git#egg=threepio
 git+git://github.com/iPlantCollaborativeOpenSource/chromogenic.git#egg=chromogenic-0.0.7
 git+git://github.com/mher/flower
-git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient
-git+git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient
-git+git://github.com/openstack/python-neutronclient.git#egg=python-neutronclient
-git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient
+#git+git://github.com/openstack/python-glanceclient.git#egg=python-glanceclient
+#git+git://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient
+#git+git://github.com/openstack/python-neutronclient.git#egg=python-neutronclient
+#git+git://github.com/openstack/python-novaclient.git#egg=python-novaclient

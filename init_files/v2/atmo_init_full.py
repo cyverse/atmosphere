@@ -837,9 +837,9 @@ def install_irods(distro):
                       '/etc/motd',
                       match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
         download_file('http://www.iplantcollaborative.org/sites/default/files/'
-                      + 'irods/irodsFs_v32.rhel5.x86_64',
+                      + 'irods/irodsFs_v33.centos5.x86_64',
                       '/usr/local/bin/irodsFs.x86_64',
-                      match_hash='b286ca61aaaa16fe7a0a2a3afc209ba7bbac5128')
+                      match_hash='d5832b2d541a0bddc60dc01cf2e24869b53239bc')
         run_command(['/etc/init.d/iptables', 'stop'])
         run_command(['/usr/bin/yum', '-qy',
                      'install', 'emacs', 'mosh', 'patch'])
@@ -850,9 +850,9 @@ def install_irods(distro):
                       '/etc/motd.tail',
                       match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
         download_file('http://www.iplantcollaborative.org/sites/default/files/'
-                      + 'irods/irodsFs_v32.ubuntu12.x86_64',
+                      + 'irods/irodsFs_v33.ubuntu12.x86_64',
                       '/usr/local/bin/irodsFs.x86_64',
-                      match_hash='59b55aa0dbc44ff5b73dfc912405ff817002284f')
+                      match_hash='5bba98c4e87a7c04b7e317e02bf96150e2edc028')
         run_command(['/usr/bin/apt-get', 'update'])
         run_command(['/usr/bin/apt-get', '-qy',
                      'install', 'vim', 'mosh', 'patch'])
@@ -863,14 +863,14 @@ def install_icommands(distro):
     icommands_file = "icommands.x86_64.tar.bz2"
     if is_rhel(distro):
         download_file('http://www.iplantcollaborative.org/sites/default/files/'
-                      + 'irods/icommands_v32.rhel5.x86_64.tar.bz2',
+                      + 'irods/icommands_v331.centos.x86_64.tar.bz2',
                       os.path.join('/opt', icommands_file),
-                      match_hash='3dd3c7712ebe3548fe1e9e1f09167b5c7d925d45')
+                      match_hash='78c88999c10331076b2cff3596926968bdd6545b')
     else:
         download_file('http://www.iplantcollaborative.org/sites/default/files/'
-                      + 'irods/icommands_v32.ubuntu12.x86_64.tar.bz2',
+                      + 'irods/icommands_v331.ubuntu.x86_64.tar.bz2',
                       os.path.join('/opt', icommands_file),
-                      match_hash='eb66547ed5ea159dc50f051cf399a55952b32625')
+                      match_hash='de8a1749c6bbda883b1bae515a56f42cf00dacdf')
 
     run_command(["/bin/mkdir", "-p", "/opt/icommands/bin"])
     run_command(["/bin/tar", "--strip-components", "1", "-C",
@@ -918,7 +918,8 @@ def update_sshkeys(metadata):
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCZl557abm+BvoEn6WMpUJYZV+TWe1Gc3ApQbMcf+3kItRhDBvbe5hTijiex7HFnxqRGkMkzpr2vazNrGO1SFXbqGnXOeoxkJKFAslr/+9o8uKo4XO+Hq35cuJ99Wm4E6tIgzEN5sMPkUfD8YY7IOuii4covKSDXrBiCcLoxjbb8ViH2BFaeaMQhiLV8/GqzKYOZYWkVkdew1CcvGRJGF0dFE7ibwNp+M8La/r3//mJp9+foksei2BxL4mQp22w1Z0FvLeV70iQ09vJO5NN2T9RJH/hhtYNZfrXRjEG+trJNvLktj2h3WxcDHRlB9vnEKAykT2LSblDPTMhRl4d0Lff root@dalloway",
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFE/lyzLdFYZF3mxYwzrTITgov1NqtLuS5IY0fgjpdiVpHjWBUdXspTafKORbbM+t0ERTOqcSt24Vj5B8XUXImpzw2OAsl//AiKvHGRUenk7qY6/9IEUcay5mGAoiRpjLzDIDdtiQUAAEMKvkzanUBQOBJWVyO4Gq2aFUr4zweVLfvjejOspf2cZll/ojcPYmI9cKMq7fOgKSmRH2zUg+ORFlP1rQYugoETcGkcQg0IBsSMLT8gnYt3UWTW8S8ugtb4aaWVrId14Nc3sk+yDzPBaRX7iM3CQ5uKXPwjeID59RLMjQUFlHjqDSdZBOjXCFRHZbrbZZjS42o4OJAoLvF sgregory@mickey",
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDQNBua13LVIG61LNztP9b7k7T+Qg8t22Drhpy17WVwbBH1CPYdn5NR2rXUmfiOa3RhC5Pz6uXsYUJ4xexOUJaFKY3S8h9VaeaPxMyeA8oj9ssZC6tNLqNxqGzKJbHfSzQXofKwBH87e+du34mzqzm2apOMT2JVzxWmTwrl3JWnd2HG0odeVKMNsXLuQFN6jzCeJdLxHpu+dJOL6gJTW5t9AwoJ8jxmwO8xgUbk+7s38VATSuaV/RiIfXfGFv34CT7AY1gRxm1og9jjP6qkFMyZiO6M+lwrJIlHKTOKxw+xc15w/tIssUkeflzAcrkkNGzT8sBL39BoQOo9RTrMD2QL weather-balloon@wesley.iplantcollaborative.org",
-        "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAo/O1gw1hn7I8sDgKGsIY/704O4/89JFO2AG2Quy9LCS5dO5HL40igFOUBmVkqy9ANPEMslaA5VwzPuP+ojKmDhTzoWc4wmvnCGjnZqaTW/+M+QfPSOKoyAaevKC4/Y2dxevS7eRdbeY5Pvweu5rf/eoCXF4DnGMWJ4C6IPVHy7gYpfZrdeiaYzxus53DvFNr4Dee9Y2jvY8wuS3EvL37DU1AGsv1UAN2IoOKZ9Itxwmhf/ZfnFyqMdebggceWRmpK/U2FuXewKMjoJ+HMWgzESR2Rit+9jGniiIVV3K5JeNmHqfWxu2BLpXDYEalX6l28opaiEbDevirwWmvoaAbDw== dboss"
+        "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAo/O1gw1hn7I8sDgKGsIY/704O4/89JFO2AG2Quy9LCS5dO5HL40igFOUBmVkqy9ANPEMslaA5VwzPuP+ojKmDhTzoWc4wmvnCGjnZqaTW/+M+QfPSOKoyAaevKC4/Y2dxevS7eRdbeY5Pvweu5rf/eoCXF4DnGMWJ4C6IPVHy7gYpfZrdeiaYzxus53DvFNr4Dee9Y2jvY8wuS3EvL37DU1AGsv1UAN2IoOKZ9Itxwmhf/ZfnFyqMdebggceWRmpK/U2FuXewKMjoJ+HMWgzESR2Rit+9jGniiIVV3K5JeNmHqfWxu2BLpXDYEalX6l28opaiEbDevirwWmvoaAbDw== dboss",
+        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDiAFmfG+7QP4WK6EwiKo+v34bG9DywF6f0eXym5FJkc6NQPDeG13F/kZSayFqB4IhD40nEofuawaMsPHsjJpjUAXwwgfuPUgnLjiPiFzrxdynnaevsCEzen8TXgOfvhUMgZTz9WiU7SGzSz5Sum8FncjKVjk0uVxbX6K/0FlVCm554uCEkY1l7yP59GpFDVGrDtDDUxmf+MM9862zoMWo5v8ekiFOlnILQONS0DojAoCWCb9TGmI833kKqJtVNh1ZbDdTjL/iR2o1bEbBXN+2CoPA1ZDaE25O+BOGAKY0wAL+Yc8pzeKWV7N34KK4L91XfcGPPQWggZ7O0BgHg57Ez root@lofn ansible"
     ]
     more_keys = get_metadata_keys(metadata)
     sshkeys.extend(more_keys)

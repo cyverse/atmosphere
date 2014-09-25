@@ -101,7 +101,7 @@ USE_I18N = True
 USE_TZ = True
 
 #Atmosphere Time Allocation settings
-FIXED_WINDOW=relativedelta(day=15, months=1)
+FIXED_WINDOW=relativedelta(day=1, months=1)
 
 # Absolute path to the directory that holds media.
 # Example: '/home/media/media.lawrence.com/'
@@ -384,12 +384,12 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 10*60, "time_limit":2*60,
                     "queue": "celery_periodic"}
     },
-    "monitor_instances": {
-        "task": "monitor_instances",
-        "schedule" : timedelta(minutes=15),
-        "options": {"expires":10*60, "time_limit":10*60,
-                    "queue":"celery_periodic"}
-    },
+#    "monitor_instances": {
+#        "task": "monitor_instances",
+#        "schedule" : timedelta(minutes=15),
+#        "options": {"expires":10*60, "time_limit":10*60,
+#                    "queue":"celery_periodic"}
+#    },
     "clear_empty_ips": {
         "task": "clear_empty_ips",
         "schedule": timedelta(minutes=20), # crontab(hour="0", minute="0", day_of_week="*"),

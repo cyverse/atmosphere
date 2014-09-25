@@ -11,7 +11,7 @@ failed_imaes = [
 "emi-BA292148", "emi-654625E1", 
 ]
 image_these = [
-"emi-FA752928"
+"emi-898F23E9"
 ]
 def start(images):
     print 'Initializing account drivers'

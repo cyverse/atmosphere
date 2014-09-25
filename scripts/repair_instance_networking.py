@@ -61,18 +61,31 @@ def main():
         print 'Waiting 5 minutes to allow instance to resume (Ctrl+C to cancel): %s' % instance.id
         time.sleep(5*60)
         print 'Rebuilding instance network and adding port: %s' % instance.id
-        repair_instance(accounts, admin, instance, provider)
+        repair_instance(accounts, admin, instance, provider, new_fixed_ip)
     else:
-        repair_instance(accounts, admin, instance, provider)
+        repair_instance(accounts, admin, instance, provider, new_fixed_ip)
 
-def repair_instance(accounts, admin, instance, provider):
+def get_next_ip(ports):
+    max_ip = -1
+    for port in ports:
+         fixed_ip = port['fixed_ips']
+         if not fixed_ip:
+             continue
+         fixed_ip = fixed_ip[0]['ip_address']
+         max_ip = max(max_ip, ip2long(fixed_ip))
+    if max_ip <= 0:
+        raise Exception("Next IP address could not be determined"
+                        " (You have no existing Fixed IPs!)")
+    new_fixed_ip = long2ip(max_ip + 1)
+    return new_fixed_ip
+
+def repair_instance(accounts, admin, instance, provider, new_fixed_ip=None):
     tenant_id = instance.extra['tenantId']
     tenant = accounts.user_manager.get_project_by_id(tenant_id)
     tenant_name = tenant.name
     identity = Identity.objects.get(
             created_by__username=tenant_name,
             provider__id=provider.id)
-    #Ensure the network,subnet exist
     network_init(identity)
     network_resources = accounts.network_manager.find_tenant_resources(tenant_id)
     network = network_resources['networks']
@@ -81,8 +94,12 @@ def repair_instance(accounts, admin, instance, provider):
     else:
         network = network[0]
         subnet = network_resources['subnets'][0]
+
+    #Ensure the network,subnet exist
+    if not new_fixed_ip:
+        new_fixed_ip = get_next_ip(network_resources['ports'])
+
     user_driver = get_esh_driver(identity)
-    max_ip = -1
     port = accounts.network_manager.create_port(instance.id, network['id'],
             subnet['id'], new_fixed_ip, tenant_id)
     print "Created new port: %s" % port
