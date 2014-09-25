@@ -100,7 +100,7 @@ USE_I18N = True
 USE_TZ = True
 
 #Atmosphere Time Allocation settings
-FIXED_WINDOW = relativedelta(day=15, months=1)
+FIXED_WINDOW=relativedelta(day=1, months=1)
 
 # Absolute path to the directory that holds media.
 # Example: '/home/media/media.lawrence.com/'

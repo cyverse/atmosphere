@@ -8,7 +8,7 @@ from threepio import logger
 
 import service
 
-from service.exceptions import DeviceBusyException
+from service.exceptions import DeviceBusyException, VolumeMountConflict
 
 from service.tasks.driver import deploy_to, deploy_init_to, add_floating_ip
 from service.tasks.driver import destroy_instance
@@ -71,17 +71,20 @@ def attach_volume_task(driver, instance_id, volume_id, device=None,
                        mount_location=None, *args, **kwargs):
     logger.info("P_device - %s" % device)
     logger.info("P_mount_location - %s" % mount_location)
-    attach_task.delay(
-        driver.__class__, driver.provider, driver.identity,
-        instance_id, volume_id, device).get()
-    if not hasattr(driver, 'deploy_to'):
-        #Do not attempt to mount if we don't have sh access
-        return
+    try:
+        attach_task.delay(
+            driver.__class__, driver.provider, driver.identity,
+            instance_id, volume_id, device).get()
+        if not hasattr(driver, 'deploy_to'):
+            #Do not attempt to mount if we don't have sh access
+            return
 
-    check_volume_task.delay(
-        driver.__class__, driver.provider, driver.identity,
-        instance_id, volume_id).get()
-    mount_task.delay(
-        driver.__class__, driver.provider, driver.identity,
-        instance_id, volume_id, mount_location).get()
+        check_volume_task.delay(
+            driver.__class__, driver.provider, driver.identity,
+            instance_id, volume_id).get()
+        mount_task.delay(
+            driver.__class__, driver.provider, driver.identity,
+            instance_id, volume_id, mount_location).get()
+    except Exception, e:
+        raise VolumeMountConflict(instance_id, volume_id)
     return mount_location

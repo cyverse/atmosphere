@@ -85,3 +85,15 @@ class VolumeAttachConflict(Exception):
 
     def __str__(self):
         return "%s" % (self.message, )
+
+class VolumeMountConflict(Exception):
+
+    def __init__(self, instance_id, volume_id):
+        self.message = "Volume %s could not be auto-mounted to %s."\
+                " See Available Volumes -> Mounting a Volume "\
+                " to learn how to mount the device manually"\
+                % (volume_id, instance_id)
+        super(VolumeMountConflict, self).__init__()
+
+    def __str__(self):
+        return "%s" % (self.message, )

@@ -41,7 +41,9 @@ def _get_imaging_task(orig_managerCls, orig_creds,
         return image_task
 
 def _recover_from_error(status_name):
-    if 'exception' in status_name:
+    if not status_name:
+        return False, status_name
+    if 'exception' in status_name.lower():
         return True, status_name[status_name.find("(")+1:status_name.find(")")]
     return False, status_name
 
