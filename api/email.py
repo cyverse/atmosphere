@@ -12,6 +12,7 @@ from threepio import logger
 from authentication.protocol.ldap import lookupEmail
 
 from core.email import email_admin
+from web.emails import feedback_email, quota_request_email
 from core.models.group import IdentityMembership
 from core.models.user import AtmosphereUser as User
 
@@ -46,21 +47,7 @@ class Feedback(APIView):
 
         Returns a response.
         """
-        subject = "Subject: Atmosphere Client Feedback from %s" % username
-        message = "---\nFeedback: %s\n---" % message
-        email_success = email_admin(request, subject, message)
-        if email_success:
-            resp = {"result":
-                    {"code": "success",
-                     "meta": "",
-                     "value": "Thank you for your feedback! "
-                     + "Support has been notified."}}
-        else:
-            resp = {"result":
-                    {"code": "failed",
-                     "meta": "",
-                     "value": "Failed to send feedback!"}}
-        return resp
+        return feedback_email(request, username, user_email, message)
 
 
 class QuotaEmail(APIView):
@@ -91,24 +78,7 @@ class QuotaEmail(APIView):
 
         Returns a response.
         """
-        user = User.objects.get(username=username)
-        membership = IdentityMembership.objects.get(
-            identity=user.select_identity(),
-            member__in=user.group_set.all())
-        admin_url = urlresolvers.reverse(
-            "admin:core_identitymembership_change",
-            args=(membership.id,))
-        message = """
-        Username : %s
-        Quota Requested: %s
-        Reason for Quota Increase: %s
-        URL for Quota Increase:%s
-        """ % (username, new_quota, reason,
-               request.build_absolute_uri(admin_url))
-        subject = "Atmosphere Quota Request - %s" % username
-        logger.info(message)
-        email_success = email_admin(request, subject, message, cc_user=False)
-        return {"email_sent": email_success}
+        return quota_request_email(request, username, new_quota, reason)
 
 
 class SupportEmail(APIView):
