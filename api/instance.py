@@ -36,7 +36,7 @@ from service.instance import redeploy_init, reboot_instance,\
 from service.quota import check_over_quota
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
-    VolumeAttachConflict
+    VolumeAttachConflict, VolumeMountConflict
 
 from api import failure_response, prepare_driver,\
         invalid_creds, connection_failure
@@ -516,6 +516,8 @@ class InstanceAction(APIView):
             return connection_failure(provider_id, identity_id)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
+        except VolumeMountConflict, vmc:
+            return mount_failed(vmc)
         except NotImplemented, ne:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
@@ -806,6 +808,11 @@ def over_quota(quota_exception):
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
         quota_exception.message)
 
+
+def mount_failed(exception):
+    return failure_response(
+        status.HTTP_409_CONFLICT,
+        exception.message)
 
 def over_allocation(allocation_exception):
     return failure_response(
