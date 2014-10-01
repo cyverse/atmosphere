@@ -11,7 +11,7 @@ Atmo.Collections.Maintenances = Atmo.Collections.Base.extend({
         this.each(function(m) {
           var m_provider_id = m.get("provider_id");
           if ( m.get('disable') ||
-                  (m_provider_id == null || m_provider_id == provider_id)) {
+                  ( m_provider_id == provider_id)) {
               result = true;
           }
         });
