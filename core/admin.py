@@ -216,7 +216,7 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
     search_fields = ["identity__created_by__username", ]
     list_display = ["_identity_user", "_identity_provider",
                     "quota", "allocation"]
-    list_filter = ["identity__provider__location"]
+    list_filter = ["identity__provider__location", "allocation"]
 
     def _identity_provider(self, obj):
         return obj.identity.provider.location
