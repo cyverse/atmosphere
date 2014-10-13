@@ -14,8 +14,9 @@ from rest_framework.reverse import reverse
 
 from threepio import logger
 
+from service.driver import prepare_driver
 
-from api import failure_response, prepare_driver, invalid_creds
+from api import failure_response, invalid_creds
 from api.permissions import InMaintenance, ApiAuthRequired
 
 

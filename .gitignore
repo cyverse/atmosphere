@@ -11,13 +11,13 @@ nohup.out
 *.out
 *.pot
 *.json
+*.org
 .*
 #*#
 #*.*#
 atmosphere/settings/local.py
 atmosphere/settings/secrets.py
 atmosphere/settings/secret_key.py
-docs/*.org
 logs/*
 static/*
 extras/euca/*

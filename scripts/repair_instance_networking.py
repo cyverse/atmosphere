@@ -3,15 +3,17 @@ import argparse
 import subprocess
 import logging
 
-from service.instance import network_init
-from service.accounts.openstack import AccountDriver as OSAccountDriver
-from api import get_esh_driver
-from core.models import Provider, Identity
-
 try:
     from iptools.ipv4 import ip2long, long2ip
 except ImportError:
     raise Exception("For this script, we need iptools. pip install iptools")
+
+from core.models import Provider, Identity
+
+from service.accounts.openstack import AccountDriver as OSAccountDriver
+from service.driver import get_esh_driver
+from service.instance import network_init
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -65,6 +67,7 @@ def main():
     else:
         repair_instance(accounts, admin, instance, provider)
 
+
 def repair_instance(accounts, admin, instance, provider):
     tenant_id = instance.extra['tenantId']
     tenant = accounts.user_manager.get_project_by_id(tenant_id)
@@ -88,6 +91,7 @@ def repair_instance(accounts, admin, instance, provider):
     print "Created new port: %s" % port
     attached_intf = user_driver._connection.ex_attach_interface(instance.id, port['id'])
     print "Attached port to driver: %s" % attached_intf
+
 
 def suspended_repair_instance(accounts, admin, instance, provider):
     try:
@@ -123,6 +127,7 @@ def suspended_release_instance(accounts, admin, instance, provider, port_id):
         "qemu+tcp://%s/system" % (compute_node,), "iface-unbridge", port_id])
     print 'Out: %s' % out
     print 'Err: %s' % err
+
 
 def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 stdin=None, dry_run=False, shell=False, bash_wrap=False,

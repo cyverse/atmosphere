@@ -48,7 +48,6 @@ def _filter_applications(applications, user, params):
                 return []
             bookmarked_apps = [bm.application for bm in user.bookmarks.all()]
             applications = [a for a in applications if a in bookmarked_apps]
-
     return applications
 
 
