@@ -28,6 +28,7 @@ jwt.py==0.1.0
 
 # Dev requirements
 flower==0.7.2 # for celery
+newrelic==2.34.0.29 # newrelic investigation.
 ipython
 ipdb
 flake8

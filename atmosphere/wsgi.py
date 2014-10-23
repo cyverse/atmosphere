@@ -22,6 +22,11 @@ sys.path.insert(0, '/opt/env/atmo/lib/python2.7/site-packages/')
 sys.path.insert(0, '/opt/env/atmo/lib/python2.7/site-packages/')
 sys.path.insert(1, root_dir)
 
+import newrelic.agent
+newrelic.agent.initialize(
+    os.path.join(root_dir, "extras/newrelic/atmosphere_newrelic.ini"),
+    "development")
+
 os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
 #LIBCLOUD_DEBUG = os.path.abspath(os.path.join(
 #    root_dir,
