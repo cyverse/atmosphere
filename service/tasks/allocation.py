@@ -1,6 +1,4 @@
 import time
-
-from api import get_esh_driver
 from datetime import timedelta
 
 from django.utils import timezone
@@ -229,7 +227,7 @@ def enforce_allocation(identity, user, time_used):
         return False
     logger.info("%s is OVER their allowed allocation by %s" %
                 (user.username, time_diff))
-    driver = get_esh_driver(identity)
+    driver = get_cached_driver(identity=identity)
     esh_instances = driver.list_instances()
     for instance in esh_instances:
         try:

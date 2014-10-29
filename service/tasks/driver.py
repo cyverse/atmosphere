@@ -29,7 +29,7 @@ from core.models.identity import Identity
 from core.models.profile import UserProfile
 
 from service.deploy import init, check_process
-from service.driver import get_driver
+from service.driver import get_driver, get_esh_driver
 from service.instance import update_instance_metadata
 from service.instance import _create_and_attach_port
 from service.networking import _generate_ssh_kwargs
@@ -240,7 +240,6 @@ def clear_empty_ips():
     logger.debug("clear_empty_ips task started at %s." % datetime.now())
     from service import instance as instance_service
     from rtwo.driver import OSDriver
-    from api import get_esh_driver
     from service.accounts.openstack import AccountDriver as\
         OSAccountDriver
 
@@ -505,7 +504,6 @@ def get_deploy_chain(driverCls, provider, identity, instance,
 def destroy_instance(instance_alias, core_identity_id):
     from service import instance as instance_service
     from rtwo.driver import OSDriver
-    from api import get_esh_driver
     try:
         logger.debug("destroy_instance task started at %s." % datetime.now())
         node_destroyed = instance_service.destroy_instance(

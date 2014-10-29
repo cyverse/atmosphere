@@ -1,4 +1,4 @@
-import pickle  #  cPickle as pickle
+import cPickle as pickle
 from django.conf import settings
 from django.utils import timezone
 
@@ -6,12 +6,19 @@ import redis
 
 from threepio import logger
 
-from api import get_esh_driver
+from service.driver import get_esh_driver, get_admin_driver
 
-from service.driver import get_admin_driver
 
 admin_drivers = {}
 drivers = {}
+connection = None
+
+INSTANCES_KEY_PROVIDER = "instances.{0}"
+INSTANCES_KEY_IDENTITY = "instances.{0}.{1}"
+VOLUMES_KEY_PROVIDER = "volumes.{0}"
+VOLUMES_KEY_IDENTITY = "volumes.{0}.{1}"
+MACHINES_KEY_PROVIDER = "machines.{0}"
+MACHINES_KEY_IDENTITY = "machines.{0}.{1}"
 
 
 def _get_cached_admin_driver(provider, force=True):
@@ -28,15 +35,29 @@ def _get_cached_driver(provider=None, identity=None, force=True):
     return drivers[identity]
 
 
-def _get_cached(key, data_method, scrub_method, force=False):
-    r = redis.StrictRedis()
-    if force:
+def redis_connection():
+    global connection
+    if not connection:
+        connection = redis.StrictRedis()
+    return connection
+
+
+def _invalidate(key):
+    r = redis_connection()
+    if key:
         r.delete(key)
+
+
+def _get_cached(key, data_method, scrub_method, force=False):
+    r = redis_connection()
+    if force:
+        _invalidate(key)
     data = r.get(key)
     if not data:
         data = data_method()
         scrub_method(data)
-        logger.debug("Updated redis({0}) using {1} and {2}".format(key, data_method, scrub_method))
+        logger.debug("Updated redis({0}) using {1} and {2}".format(
+            key, data_method, scrub_method))
         r.set(key, pickle.dumps(data))
         r.expire(key, 30)
         return data
@@ -71,43 +92,72 @@ def get_cached_instances(provider=None, identity=None, force=False):
     _validate_parameters(provider, identity)
     cached_driver = _get_cached_driver(provider=provider, identity=identity,
                                        force=force)
-    all_instances_method = cached_driver.list_all_instances
+    instances_method = cached_driver.list_all_instances
     if provider:
-        key = "instances.{0}".format(provider.id)
+        key = INSTANCES_KEY_PROVIDER.format(provider.id)
     else:
-        key = "instances.{0}.{1}".format(identity.created_by.username, identity.id)
+        key = INSTANCES_KEY_IDENTITY.format(identity.created_by.username,
+                                           identity.id)
     return _get_cached(key,
-                       all_instances_method,
+                       instances_method,
                        _scrub,
                        force=force)
+
+
+def invalidate_cached_instances(provider=None, identity=None):
+    if provider:
+        key = INSTANCES_KEY_PROVIDER.format(provider.id)
+    else:
+        key = INSTANCES_KEY_IDENTITY.format(identity.created_by.username,
+                                           identity.id)
+    _invalidate(key)
 
 
 def get_cached_volumes(provider=None, identity=None, force=False):
     _validate_parameters(provider, identity)
     cached_driver = _get_cached_driver(provider=provider, identity=identity,
                                        force=force)
-    all_volumes_method = cached_driver.list_all_volumes
+    volumes_method = cached_driver.list_all_volumes
     if provider:
-        key = "volumes.{0}".format(provider.id)
+        key = VOLUMES_KEY_PROVIDER.format(provider.id)
     else:
-        key = "volumes.{0}.{1}".format(identity.created_by.username, identity.id)
+        key = VOLUMES_KEY_IDENTITY.format(identity.created_by.username,
+                                          identity.id)
     return _get_cached(key,
-                       all_volumes_method,
+                       volumes_method,
                        _scrub,
                        force=force)
 
+
+def invalidate_cached_volumes(provider=None, identity=None):
+    if provider:
+        key = VOLUMES_KEY_PROVIDER.format(provider.id)
+    else:
+        key = VOLUMES_KEY_IDENTITY.format(identity.created_by.username,
+                                          identity.id)
+    _invalidate(key)
 
 
 def get_cached_machines(provider=None, identity=None, force=False):
     _validate_parameters(provider, identity)
     cached_driver = _get_cached_driver(provider=provider, identity=identity,
                                        force=force)
-    all_machines_method = cached_driver.list_machines
+    machines_method = cached_driver.list_machines
     if provider:
-        key = "machines.{0}".format(provider.id)
+        key = MACHINES_KEY_PROVIDER.format(provider.id)
     else:
-        key = "machines.{0}.{1}".format(identity.created_by.username, identity.id)
+        key = MACHINES_KEY_IDENTITY.format(identity.created_by.username,
+                                           identity.id)
     return _get_cached(key,
-                       all_machines_method,
+                       machines_method,
                        _scrub,
                        force=force)
+
+
+def invalidate_cached_machines(provider=None, identity=None):
+    if provider:
+        key = MACHINES_KEY_PROVIDER.format(provider.id)
+    else:
+        key = MACHINES_KEY_IDENTITY.format(identity.created_by.username,
+                                           identity.id)
+    _invalidate(key)

@@ -16,16 +16,16 @@ from email.MIMEText import MIMEText
 from email.Utils import COMMASPACE, formatdate
 from email import Encoders
 
-def _get_admin_driver():
 
+def _get_admin_driver():
     from core.models import Credential
-    from api import get_esh_driver
+    from service.driver import get_esh_driver
     identity = Credential.objects.get(value=secrets.EUCA_ADMIN_SECRET).identity
     driver = get_esh_driver(identity, identity.created_by)
     return driver
 
-def _get_config_driver():
 
+def _get_config_driver():
     key = secrets.EUCA_ADMIN_KEY
     secret = secrets.EUCA_ADMIN_SECRET
     ec2_url = secrets.EUCA_EC2_URL
@@ -37,6 +37,7 @@ def _get_config_driver():
                    port=parsed_url.port, path='/services/Configuration')
     config.APIVersion = 'eucalyptus'
     return config
+
 
 def _build_node_maps():
     driver = _get_config_driver()
@@ -56,9 +57,11 @@ def _build_node_maps():
             nodes[last_node] = [instance_id]
     return nodes
 
+
 def _test_ssh(ip_addr):
     retcode = subprocess.call(["nc","-w","10",ip_addr,"22"], stderr=open('/dev/null','w'), stdout=open('/dev/null','w'))
     return retcode == 0
+
 
 def _check_instance(args):
         (node, instances, instance_id) = args
@@ -86,6 +89,7 @@ def _check_instance(args):
             })
         return instance_info
 
+
 def instance_report():
     node_map = _build_node_maps()
     admin_driver = _get_admin_driver()
@@ -96,6 +100,7 @@ def instance_report():
         node_report = map(_check_instance, args_list)
         report.append(node_report)
     return report
+
 
 def csv_report():
     report = instance_report()
@@ -113,6 +118,7 @@ def csv_report():
                             instance.get('launch_date'),
                             ))
     return csv_list
+
 
 def xls_report(filename):
     import xlwt
@@ -144,6 +150,7 @@ def xls_report(filename):
     workbook.save(filename)
     return workbook
 
+
 def send_mail(sendfrom,sendto,subject,text,files=[],server="localhost"):
     assert type(sendto)==list
     assert type(files)==list
@@ -164,6 +171,7 @@ def send_mail(sendfrom,sendto,subject,text,files=[],server="localhost"):
     smtp.sendmail(sendfrom, sendto, msg.as_string())
     smtp.close()
 
+
 def email_report(*args, **kwargs):
     email_addr = args[0]
     if type(email_addr) is not list:
@@ -174,6 +182,7 @@ def email_report(*args, **kwargs):
     os.remove('/tmp/instance_report.xls')
     return True
 
+
 def usage():
     print """Eucalyptus Instance Report Generator:
 
@@ -182,6 +191,7 @@ Eucalyptus Instance Report Generator sends a Microsoft Excel spreadsheet with ea
 To send an email:
   $ %s test1@email.com test2@email.com ...
 """ % sys.argv[0]
+
 
 if __name__ == '__main__':
     if len(sys.argv) <= 1:

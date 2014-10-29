@@ -12,28 +12,27 @@ from datetime import datetime, timedelta
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth import authenticate as django_authenticate
 from django.contrib.auth import logout as django_logout
-from core.models import AtmosphereUser as DjangoUser
-
+from django.shortcuts import render_to_response
 from django.template import RequestContext
-
-# django template library
-from django.template import Context
 from django.template.loader import get_template
 
 import caslib
 
 from threepio import logger
 
+from core.models import AtmosphereUser as DjangoUser
+
 # atmosphere libraries
 from atmosphere import settings
 
 from authentication.protocol.oauth import \
-        get_cas_oauth_client
+    get_cas_oauth_client
 from authentication.protocol.oauth import obtainOAuthToken
 from authentication import cas_loginRedirect, cas_logoutRedirect,\
-        saml_loginRedirect
+    saml_loginRedirect
 from authentication.models import Token as AuthToken
-from authentication.decorators import atmo_login_required, atmo_valid_token_required
+from authentication.decorators import atmo_login_required,\
+    atmo_valid_token_required
 
 from core.models.maintenance import MaintenanceRecord
 from core.models.instance import Instance
@@ -58,42 +57,38 @@ def redirectApp(request):
                              settings.REDIRECT_URL+'/application/',
                              gateway=True)
 
+
 def o_login_redirect(request):
     oauth_client = get_cas_oauth_client()
     url = oauth_client.authorize_url()
     return HttpResponseRedirect(url)
+
 
 def o_callback_authorize(request):
     if 'code' not in request.GET:
         logger.info(request.__dict__)
         #TODO - Maybe: Redirect into a login
         return HttpResponse("")
-
     oauth_client = get_cas_oauth_client()
     oauth_code = request.GET['code']
-
     #Exchange code for ticket
     access_token, expiry_date = oauth_client.get_access_token(oauth_code)
-
     if not access_token:
         logger.info("The Code %s is invalid/expired. Attempting another login."
                     % oauth_code)
         return o_login_redirect(request)
-
     #Exchange token for profile
     user_profile = oauth_client.get_profile(access_token)
-
     if not user_profile or "id" not in user_profile:
-        logger.error("AccessToken is producing an INVALID profile! "
-                     "Check the CAS server and caslib.py for more information.")
+        logger.error("AccessToken is producing an INVALID profile!"
+                     " Check the CAS server and caslib.py for more"
+                     " information.")
         #NOTE: Make sure this redirects the user OUT of the loop!
         return login(request)
-
     #ASSERT: A valid OAuth token gave us the Users Profile.
     # Now create an AuthToken and return it
     username = user_profile["id"]
     auth_token = obtainOAuthToken(username, access_token, expiry_date)
-
     #Set the username to the user to be emulated
     #to whom the token also belongs
     request.session['username'] = username
@@ -103,6 +98,7 @@ def o_callback_authorize(request):
     logger.info(request.session.__dict__)
     logger.info(request.user)
     return HttpResponseRedirect(settings.REDIRECT_URL+"/application/")
+
 
 def s_login(request):
     """
@@ -116,6 +112,7 @@ def s_login(request):
         if record.disable_login:
             disable_login = True
     return saml_loginRedirect(request)
+
 
 def login(request):
     """
@@ -165,9 +162,11 @@ def cas_validateTicket(request):
 
 
 def logout(request):
+    logger.debug(request)
     django_logout(request)
-    if request.POST.get('cas',False):
+    if request.POST.get('cas', False):
         return cas_logoutRedirect()
+    RequestContext(request)
     return HttpResponseRedirect(settings.REDIRECT_URL+'/login')
 
 
@@ -176,20 +175,22 @@ def app(request):
     try:
         if MaintenanceRecord.disable_login_access(request):
             return HttpResponseRedirect('/login/')
-        template = get_template("cf2/index.html")
-        context = RequestContext(request, {
+#        template = get_template("cf2/index.html")
+#        output = template.render(context)
+        logger.debug("render to response.")
+        return render_to_response("cf2/index.html", {
             'site_root': settings.REDIRECT_URL,
             'debug': settings.DEBUG,
-            'year': datetime.now().year
-        })
-        output = template.render(context)
-        return HttpResponse(output)
+            'year': datetime.now().year},
+            context_instance=RequestContext(request))
+#HttpResponse(output)
     except KeyError, e:
         logger.debug("User not logged in.. Redirecting to CAS login")
         return cas_loginRedirect(request, settings.REDIRECT_URL+'/application')
     except Exception, e:
         logger.exception(e)
         return cas_loginRedirect(request, settings.REDIRECT_URL+'/application')
+
 
 def app_beta(request):
     logger.debug("APP BETA")
@@ -218,8 +219,11 @@ def partial(request, path, return_string=False):
         logger.info(
             "init_data.js has yet to be implemented with the new service")
     elif path == 'templates.js':
-        template_path = os.path.join(settings.root_dir, 'resources', 'js', 'cf2', 'templates')
-        output = compile_templates('cf2/partials/cloudfront2.js', template_path)
+        template_path = os.path.join(settings.root_dir,
+                                     'resources', 'js',
+                                     'cf2', 'templates')
+        output = compile_templates('cf2/partials/cloudfront2.js',
+                                   template_path)
 
     response = HttpResponse(output, 'text/javascript')
     response['Cache-Control'] = 'no-cache'
@@ -256,6 +260,7 @@ def compile_templates(template_path, js_files_path):
     output = template.render(context)
     return output
 
+
 @atmo_login_required
 def application(request):
     try:
@@ -268,56 +273,17 @@ def application(request):
     except Exception, e:
         logger.exception(e)
         return HttpResponseRedirect(settings.REDIRECT_URL+'/login')
-
     variables = RequestContext(request, {})
     output = template.render(variables)
     return HttpResponse(output)
 
+
 @atmo_login_required
-def emulate_request(request, username=None):
-    try:
-        logger.info("Emulate attempt: %s wants to be %s"
-                    % (request.user, username))
-        logger.info(request.session.__dict__)
-        if not username and 'emulated_by' in request.session:
-            logger.info("Clearing emulation attributes from user")
-            request.session['username'] = request.session['emulated_by']
-            del request.session['emulated_by']
-            #Allow user to fall through on line below
-
-        try:
-            user = DjangoUser.objects.get(username=username)
-        except DjangoUser.DoesNotExist:
-            logger.info("Emulate attempt failed. User <%s> does not exist"
-                        % username)
-            return HttpResponseRedirect(settings.REDIRECT_URL+"/application")
-
-        logger.info("Emulate success, creating tokens for %s" % username)
-        token = AuthToken(
-            user=user,
-            key=str(uuid.uuid4()),
-            issuedTime=datetime.now(),
-            remote_ip=request.META['REMOTE_ADDR'],
-            api_server_url=settings.API_SERVER_URL
-        )
-        token.save()
-        #Keep original emulator if it exists, or use the last known username
-        original_emulator = request.session.get(
-            'emulated_by', request.session['username'])
-        request.session['emulated_by'] = original_emulator
-        #Set the username to the user to be emulated
-        #to whom the token also belongs
-        request.session['username'] = username
-        request.session['token'] = token.key
-        logger.info("Returning emulated user - %s - to application "
-                    % username)
-        logger.info(request.session.__dict__)
-        logger.info(request.user)
-        return HttpResponseRedirect(settings.REDIRECT_URL+"/application/")
-    except Exception, e:
-        logger.warn("Emulate request failed")
-        logger.exception(e)
-        return HttpResponseRedirect(settings.REDIRECT_URL+"/application/")
+def emulate_redirect(request, username=None):
+    path = setting.REDIRECT_URL + "/application/emulate"
+    if username:
+        path += username
+    return HttpResponseRedirect(path)
 
 
 def ip_request(req):

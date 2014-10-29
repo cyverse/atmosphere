@@ -12,15 +12,18 @@ from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
 
+from core.models.identity import Identity
 from core.models.instance import convert_esh_instance
 from core.models.provider import AccountProvider
 from core.models.volume import convert_esh_volume
 from core.models.volume import Volume as CoreVolume
 
-from service.volume import create_volume, boot_volume
+from service.cache import get_cached_volumes
+from service.driver import prepare_driver
 from service.exceptions import OverQuotaError
+from service.volume import create_volume, boot_volume
 
-from api import prepare_driver, failure_response, invalid_creds, connection_failure
+from api import failure_response, invalid_creds, connection_failure
 from api.permissions import ApiAuthRequired
 from api.serializers import VolumeSerializer, InstanceSerializer
 
