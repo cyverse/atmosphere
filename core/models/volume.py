@@ -29,6 +29,12 @@ class Volume(models.Model):
         db_table = "volume"
         app_label = "core"
 
+    def end_date_all(self):
+        if not self.end_date:
+            self.end_date = timezone.datetime.now()
+            self.save()
+
+
     def update(self, *args, **kwargs):
         """
         Allows for partial updating of the model

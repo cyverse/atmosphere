@@ -346,8 +346,7 @@ class Volume(APIView):
                                          identity_id, user)
         #Delete the object, update the DB
         esh_driver.destroy_volume(esh_volume)
-        core_volume.end_date = datetime.now()
-        core_volume.save()
+        core_volume.end_date_all()
         #Return the object
         serialized_data = VolumeSerializer(core_volume,
                                            context={'request': request}).data
