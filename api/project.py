@@ -15,6 +15,7 @@ from threepio import logger
 from api import failure_response
 from api.serializers import ProjectSerializer, InstanceSerializer,\
         VolumeSerializer, ApplicationSerializer
+from core.models.application import Application
 from core.models.project import Project
 from core.models.group import Group, get_user_group
 from api.permissions import InMaintenance, ApiAuthRequired,\
@@ -44,13 +45,23 @@ class ProjectApplicationExchange(APIView):
         if not project:
             return Response("Project with ID=%s does not exist" % project_id,
                             status=status.HTTP_400_BAD_REQUEST)
-        application = user.application_set.filter(uuid=application_uuid)
+        project = project[0]
+
+        application = Application.objects.filter(uuid=application_uuid)
         if not application:
-            return Response("application with ID=%s not found in the database"
+            return Response("application with UUID=%s not found in the database"
                             % (application_uuid,),
                             status=status.HTTP_400_BAD_REQUEST)
-        project = project[0]
         application = application[0]
+        if application.private == True:
+            #If the application is private, the user must be a member to have
+            # access to the application inside their project.
+            application = user.application_set.filter(provider_alias=instance_id)
+            if not application:
+                return Response("Private Application with UUID=%s not accessible to user:%s"
+                                % (application_uuid,user.username),
+                                status=status.HTTP_400_BAD_REQUEST)
+            application = application[0]
 
         project.add_object(application)
 
