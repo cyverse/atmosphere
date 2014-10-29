@@ -376,9 +376,9 @@ CELERYBEAT_SCHEDULE = {
     },
     "monitor_instances": {
         "task": "monitor_instances",
-        "schedule": timedelta(minutes=15),
-        "options": {"expires": 10*60, "time_limit": 10*60,
-                    "queue": "celery_periodic"}
+        "schedule" : timedelta(minutes=30),
+        "options": {"expires":10*60, "time_limit":10*60,
+                    "queue":"celery_periodic"}
     },
     "clear_empty_ips": {
         "task": "clear_empty_ips",
