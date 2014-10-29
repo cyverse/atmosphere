@@ -1,0 +1,53 @@
+#!/usr/bin/env python
+import argparse
+import subprocess
+import logging
+
+from service.accounts.openstack import AccountDriver as OSAccountDriver
+from core.models import Provider, Identity, MachineRequest
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--provider", type=int,
+                        help="Atmosphere provider ID"
+                        " to use.")
+    parser.add_argument("image-ids",
+                        help="Image ID(s) to be repaired. (Comma-Separated)")
+    args = parser.parse_args()
+
+    if not args.provider:
+        provider = Provider.objects.get(location='iPlant Cloud - Tucson')
+    else:
+        provider = Provider.objects.get(id=args.provider)
+
+    images = args.image_ids.split(",")
+
+    accounts = OSAccountDriver(provider)
+    for image_id in images:
+        mr = MachineRequest.objects.get(new_machine__identifier=image_id)
+        glance_image = accounts.image_manager.get_image(image_id)
+        if not glance_image.properties.has_key('kernel_id')\
+                or not glance_image.properties.has_key('ramdisk_id'):
+            print "Image %s is missing kernel and/or ramdisk ..." % (image_id,),
+            fix_image(accounts, glance_image, mr)
+
+def fix_image(accounts, glance_image, mr):
+    old_machine_id = mr.instance.provider_machine.identifier
+    old_glance_image = accounts.image_manager.get_image(old_machine_id)
+    if not old_glance_image.properties.has_key('kernel_id')\
+            or not old_glance_image.properties.has_key('ramdisk_id'):
+        print "Parent image %s is also missing kernel/ramdisk. OK!"\
+                % old_machine_id
+        return
+    old_kernel = old_glance_image.properties['kernel_id']
+    old_ramdisk = old_glance_image.properties['ramdisk_id']
+    img_properties = glance_image.properties
+    img_properties.update({
+        'kernel_id':old_kernel,
+        'ramdisk_id':old_ramdisk})
+    accounts.image_manager.update_image(glance_image, properties=img_properties)
+    print "Fixed"
+
+
+if __name__ == "__main__":
+    main()
