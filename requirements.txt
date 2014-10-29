@@ -22,16 +22,17 @@ Pillow==2.5.3
 
 ## ours
 threepio==0.2.0
-rtwo==0.2.0
+rtwo==0.2.1
 caslib.py==2.1.0
 chromogenic==0.1.2
 jwt.py==0.1.0
 
 ## dev
-flower==0.7.2
-ipython==2.2.0
-ipdb==0.8.0
-flake8==2.2.3
-pep8==1.5.7
-wheel==0.24.0
-pip-tools==0.3.5
+flower==0.7.2 #TODO: Do we need a specific version here? -steve
+pip-tools==0.3.5 #TODO: Do we need a specific version here? -steve
+newrelic==2.34.0.29 # newrelic investigation.
+ipython
+ipdb
+flake8
+pep8
+wheel

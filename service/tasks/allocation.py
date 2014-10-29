@@ -214,16 +214,20 @@ def enforce_allocation(identity, user, time_used):
     #im = identity.identitymembership_set.get(member=group)
     allocation = get_allocation(user.username, identity.id)
     if not allocation:
+        logger.info("%s has NO allocation. Returning.." %
+                (user.username, ))
         return False
     max_time_allowed = timedelta(minutes=allocation.threshold)
     time_diff = max_time_allowed - time_used
     over_allocated = time_diff.total_seconds() <= 0
     if not over_allocated:
+        logger.info("%s is NOT OVER their allocation. Returning.." %
+                (user.username, ))
         return False
     if not settings.ENFORCING:
         logger.info('Settings dictate allocations are NOT enforced')
         return False
-    logger.info("%s is OVER their allowed quota by %s" %
+    logger.info("%s is OVER their allowed allocation by %s" %
                 (user.username, time_diff))
     driver = get_esh_driver(identity)
     esh_instances = driver.list_instances()
