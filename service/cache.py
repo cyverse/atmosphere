@@ -14,13 +14,13 @@ admin_drivers = {}
 drivers = {}
 
 
-def _get_cached_admin_driver(provider, force=False):
+def _get_cached_admin_driver(provider, force=True):
     if not admin_drivers.get(provider) or force:
         admin_drivers[provider] = get_admin_driver(provider)
     return admin_drivers[provider]
 
 
-def _get_cached_driver(provider=None, identity=None, force=False):
+def _get_cached_driver(provider=None, identity=None, force=True):
     if provider:
         return _get_cached_admin_driver(provider, force)
     if not drivers.get(identity) or force:

@@ -21,7 +21,7 @@ from core.models.step import Step
 from core.models.tag import Tag, find_or_create_tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
-from core.query import only_active
+from core.query import only_current
 
 from rest_framework import serializers
 
@@ -639,13 +639,13 @@ class NoProjectSerializer(serializers.ModelSerializer):
         return [ApplicationSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            atmo_user.application_set.filter(only_active(), projects=None)]
+            atmo_user.application_set.filter(only_current(), projects=None)]
 
     def get_user_instances(self, atmo_user):
         return [InstanceSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            atmo_user.instance_set.filter(only_active(),
+            atmo_user.instance_set.filter(only_current(),
                 provider_machine__provider__active=True,
                 projects=None)]
 
@@ -653,7 +653,7 @@ class NoProjectSerializer(serializers.ModelSerializer):
         return [VolumeSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            atmo_user.volume_set.filter(only_active(), 
+            atmo_user.volume_set.filter(only_current(), 
                 provider__active=True, projects=None)]
     class Meta:
         model = AtmosphereUser
@@ -671,13 +671,13 @@ class ProjectSerializer(serializers.ModelSerializer):
         return [ApplicationSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            project.applications.filter(only_active())]
+            project.applications.filter(only_current())]
 
     def get_user_instances(self, project):
         return [InstanceSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            project.instances.filter(only_active(),
+            project.instances.filter(only_current(),
                 provider_machine__provider__active=True
                 )]
 
@@ -685,7 +685,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         return [VolumeSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            project.volumes.filter(only_active(), provider__active=True)]
+            project.volumes.filter(only_current(), provider__active=True)]
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)
