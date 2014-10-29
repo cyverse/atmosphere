@@ -15,7 +15,7 @@ from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import MachineRequestSerializer
 from core.models.machine_request import share_with_admins, share_with_self
 from core.models.machine_request import MachineRequest as CoreMachineRequest
-
+from core.models import Provider
 from web.emails import requestImaging
 from service.tasks.machine import start_machine_imaging
 
@@ -62,6 +62,14 @@ class MachineRequestList(APIView):
             #Add parent machine to request
             machine_request = serializer.object
             machine_request.parent_machine = machine_request.instance.provider_machine
+            #NOTE: THIS IS A HACK -- While we enforce all images to go to iPlant Cloud - Tucson.
+            # THIS CODE SHOULD BE REMOVED 
+            try:
+                tucson_provider = Provider.objects.get(location='iPlant Cloud - Tucson')
+                if machine_request.new_machine_provider.location != tucson_provider.location:
+                    machine_request.new_machine_provider = tucson_provider
+            except:
+                pass
             serializer.save()
             #Object now has an ID for links..
             machine_request_id = serializer.object.id
