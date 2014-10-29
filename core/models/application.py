@@ -10,7 +10,7 @@ from threepio import logger
 
 from atmosphere import settings
 
-from core.query import only_active
+from core.query import only_current
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
 from core.metadata import _get_admin_owner
@@ -42,12 +42,13 @@ class Application(models.Model):
         pms = self.providermachine_set.filter(
             Q(provider__end_date=None)
             | Q(provider__end_date__gt=timezone.now()),
-            only_active())
+            only_current(),
+            provider__active=True)
         return pms
 
     def get_projects(self, user):
         projects = self.projects.filter(
-            only_active(),
+            only_current(),
             owner=user)
         return projects
 

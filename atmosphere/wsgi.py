@@ -25,7 +25,7 @@ sys.path.insert(1, root_dir)
 import newrelic.agent
 newrelic.agent.initialize(
     os.path.join(root_dir, "extras/newrelic/atmosphere_newrelic.ini"),
-    "development")
+    "staging")
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
 #LIBCLOUD_DEBUG = os.path.abspath(os.path.join(
