@@ -11,7 +11,7 @@ def main():
     parser.add_argument("--provider", type=int,
                         help="Atmosphere provider ID"
                         " to use.")
-    parser.add_argument("image-ids",
+    parser.add_argument("image_ids",
                         help="Image ID(s) to be repaired. (Comma-Separated)")
     args = parser.parse_args()
 
@@ -19,7 +19,6 @@ def main():
         provider = Provider.objects.get(location='iPlant Cloud - Tucson')
     else:
         provider = Provider.objects.get(id=args.provider)
-
     images = args.image_ids.split(",")
 
     accounts = OSAccountDriver(provider)

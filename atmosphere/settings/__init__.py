@@ -384,12 +384,12 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 10*60, "time_limit":2*60,
                     "queue": "celery_periodic"}
     },
-#    "monitor_instances": {
-#        "task": "monitor_instances",
-#        "schedule" : timedelta(minutes=15),
-#        "options": {"expires":10*60, "time_limit":10*60,
-#                    "queue":"celery_periodic"}
-#    },
+    "monitor_instances": {
+        "task": "monitor_instances",
+        "schedule" : timedelta(minutes=30),
+        "options": {"expires":10*60, "time_limit":10*60,
+                    "queue":"celery_periodic"}
+    },
     "clear_empty_ips": {
         "task": "clear_empty_ips",
         "schedule": timedelta(minutes=20), # crontab(hour="0", minute="0", day_of_week="*"),

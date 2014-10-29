@@ -66,7 +66,6 @@ def main():
         users = get_members('atmo-user')
     else:
         users = args.users.split(",")
-    print "Creating a new identity for %s users" % len(users)
     for user in users:
         # Then add the Openstack Identity
         try:
