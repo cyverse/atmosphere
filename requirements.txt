@@ -21,13 +21,14 @@ python-ldap==2.4.13
 Pillow==2.5.3
 
 threepio==0.2.0
-rtwo==0.2.0
+rtwo==0.2.1
 caslib.py==2.1.0
 chromogenic==0.1.2
 jwt.py==0.1.0
 
 # Dev requirements
 flower==0.7.2 # for celery
+newrelic==2.34.0.29 # newrelic investigation.
 ipython
 ipdb
 flake8
