@@ -47,6 +47,8 @@ class MachineRequest(models.Model):
     new_machine_tags = models.TextField(default='', blank=True)
     new_machine_version = VersionNumberField(default=int(VersionNumber(1,)))
     new_machine_forked = models.BooleanField(default=False)
+    new_machine_memory_min = models.IntegerField(default=0)
+    new_machine_storage_min = models.IntegerField(default=0)
     #Date time stamps
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
@@ -55,7 +57,33 @@ class MachineRequest(models.Model):
     new_machine = models.ForeignKey("ProviderMachine",
                                     null=True, blank=True,
                                     related_name="created_machine")
+    def new_machine_threshold(self):
+        return {'memory': self.new_machine_memory_min,
+                'disk': self.new_machine_storage_min }
+    def get_app(self):
+        if self.new_machine:
+            return self.new_machine.application
+        #Return the parent application if the new machine has not been created.
+        return self.parent_machine.application
 
+    def update_threshold(self):
+        application = self.get_app()
+        existing_threshold = ApplicationThreshold.objects.filter(
+                application=application)
+
+        if existing_threshold:
+            threshold = existing_threshold[0]
+        else:
+            threshold = ApplicationThreshold(application=application)
+
+        threshold.memory_min=machine_request.new_machine_memory_min
+        threshold.storage_min=machine_request.new_machine_storage_min
+        threshold.save()
+        return threshold
+
+    def has_threshold(self):
+        return self.new_machine_memory_min > 0\
+                or self.new_machine_storage_min > 0
 
     def _get_meta_name(self):
         """
@@ -296,9 +324,9 @@ def process_machine_request(machine_request, new_image_id):
     else:
         tags = []
 
-    #if machine_request.new_machine_forked:
     #NOTE: Swap these lines when application forking/versioning is supported in the UI
-    if True:
+    #if True:
+    if machine_request.new_machine_forked:
         # This is a brand new app and a brand new providermachine
         new_app = create_application(
                 new_image_id,
@@ -322,11 +350,12 @@ def process_machine_request(machine_request, new_image_id):
             description = parent_app.description
         else:
             description = machine_request.new_machine_description
-        app.private = not machine_request.is_public()
-
-        app.tags = tags
-        app.description = description
-        app.save()
+        #If this machine request has new tags, descriptions, or privacy, update
+        # it now.
+        app_to_use.private = not machine_request.is_public()
+        app_to_use.tags = tags
+        app_to_use.description = description
+        app_to_use.save()
     #Set application data to an existing/new providermachine
     try:
         new_machine = ProviderMachine.objects.get(identifier=new_image_id, provider=new_provider)
@@ -341,18 +370,26 @@ def process_machine_request(machine_request, new_image_id):
             machine_request.new_machine_provider_id, app_to_use,
             {'version' : machine_request.new_machine_version})
 
+    if machine_request.has_threshold():
+        machine_request.update_threshold()
     #Be sure to write all this data to openstack metadata
     #So that it can continue to be the 'authoritative source'
     if not machine_request.is_public():
         upload_privacy_data(machine_request, new_machine)
+
     #TODO: Lookup tenant name when we move away from
     # the usergroup model
     tenant_name = user.username
+
     update_owner(new_machine, tenant_name)
+
     save_app_data(new_machine.application)
+
     add_to_cache(new_machine)
+
     machine_request.new_machine = new_machine
     machine_request.end_date = timezone.now()
+
     #After processing, validate the image.
     machine_request.status = 'validating'
     machine_request.save()

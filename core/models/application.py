@@ -50,6 +50,12 @@ class Application(models.Model):
             provider__active=True)
         return pms
 
+    def get_threshold(self):
+        try:
+            return self.threshold
+        except ApplicationThreshold.DoesNotExist, no_threshold:
+            return None
+
     def get_projects(self, user):
         projects = self.projects.filter(
             only_current(),
@@ -365,7 +371,7 @@ class ApplicationThreshold(models.Model):
     storage_min = models.IntegerField(default=0)
 
     def __unicode__(self):
-        return "%s requires >%sMB memory, >%s GB disk" % (self.application,
+        return "%s requires >%s MB memory, >%s GB disk" % (self.application,
                                                           self.memory_min,
                                                           self.storage_min)
 
