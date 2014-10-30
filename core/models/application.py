@@ -38,6 +38,10 @@ class Application(models.Model):
     def _current_machines(self):
         """
         Return a list of current provider machines.
+        NOTE: Defined as:
+                * Provider is still listed as active
+                * Provider has not exceeded its end_date
+                * The ProviderMachine has not exceeded its end_date
         """
         pms = self.providermachine_set.filter(
             Q(provider__end_date=None)
@@ -51,6 +55,28 @@ class Application(models.Model):
             only_current(),
             owner=user)
         return projects
+
+    def update_images(self, **updates):
+        from service.driver import get_account_driver
+        for pm in self._current_machines():
+            pm.update_image(**updates)
+
+    def update_owners(self, owners_list):
+        """
+        Update the list of people allowed to view the image
+        """
+        pass
+
+    def update_privacy(self, is_private):
+        """
+        Applications deal with 'private' as being true,
+        NOTE: Images commonly use the 'is_public' field,
+        so the value must be flipped internally.
+        """
+        is_public = not is_private
+        self.update_images(is_public=is_public)
+        self.private = is_private
+        self.save()
 
     def featured(self):
         return True if self.tags.filter(name__iexact='featured') else False
@@ -104,25 +130,6 @@ class Application(models.Model):
         #TODO: if changes were made..
         #TODO: Call out to OpenStack, Admin(Email), Groupy Hooks..
         #self.update_images()
-
-    def update_images():
-        from service.accounts.openstack import AccountDriver as OSAccounts
-        for pm in self._current_machines():
-            if pm.provider.get_type_name().lower() != 'openstack':
-                continue
-            image_id = pm.identifier
-            provider = pm.provider
-            try:
-                accounts = OSAccounts(pm.provider)
-                image = accounts.image_manager.get_image(image_id)
-                self.diff_updates(pm, image)
-                accounts.image_manager.update_image(image, **updates)
-            except Exception as ex:
-                logger.warn("Image Update Failed for %s on Provider %s"
-                            % (image_id, provider))
-
-    def diff_updates(self, provider_machine, image):
-        pass
 
     def update(self, *args, **kwargs):
         """
