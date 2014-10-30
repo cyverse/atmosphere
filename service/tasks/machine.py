@@ -15,7 +15,7 @@ from core.email import \
 from core.models.machine_request import MachineRequest, process_machine_request
 from core.models.identity import Identity
 
-from service.driver import get_admin_driver
+from service.driver import get_admin_driver, get_esh_driver
 from service.deploy import freeze_instance, sync_instance
 from service.tasks.driver import deploy_to, wait_for_instance, destroy_instance
 
@@ -236,7 +236,6 @@ def invalidate_machine_cache(machine_request):
     The new image won't populate in the machine list unless
     the list is cleared.
     """
-    from api import get_esh_driver
     provider = machine_request.instance.\
         provider_machine.provider
     driver = get_admin_driver(provider)
@@ -247,7 +246,6 @@ def invalidate_machine_cache(machine_request):
 
 @task(name='freeze_instance_task', ignore_result=False, queue="imaging")
 def freeze_instance_task(identity_id, instance_id, **celery_task_args):
-    from api import get_esh_driver
     identity = Identity.objects.get(id=identity_id)
     driver = get_esh_driver(identity)
     kwargs = {}

@@ -136,7 +136,6 @@ def current_instance_time(user, instances, identity_id, delta_time):
     Converts all running instances to core, 
     so that the database is up to date before calling 'core_instance_time'
     """
-    from api import get_esh_driver
     ident = Identity.objects.get(id=identity_id)
     driver = get_cached_driver(identity=ident)
     core_instance_list = [

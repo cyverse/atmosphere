@@ -23,7 +23,6 @@ def test_all_instance_links():
 
 def get_all_instances():
     from core.models import Identity, Provider
-    from api import get_esh_driver
     from service.driver import get_admin_driver
     all_instances = []
     for provider in Provider.objects.all():

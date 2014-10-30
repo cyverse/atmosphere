@@ -5,11 +5,10 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from api import prepare_driver, invalid_creds
+from api import invalid_creds
 from api.permissions import InMaintenance, ApiAuthOptional, ApiAuthRequired
 from core.models import Provider
-from service.driver import get_admin_driver
-
+from service.driver import prepare_driver, get_admin_driver
 
 
 class HypervisorList(APIView):
@@ -65,4 +64,3 @@ class HypervisorDetail(APIView):
             hypervisor['cpu_info'] = json.loads(hypervisor['cpu_info'])
         response = Response(hypervisor)
         return response
-

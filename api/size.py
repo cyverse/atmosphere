@@ -8,12 +8,15 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from api import prepare_driver, invalid_creds
+from core.models.size import convert_esh_size
+
+from service.driver import prepare_driver
+
+from api import invalid_creds
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProviderSizeSerializer
 
 
-from core.models.size import convert_esh_size
 
 
 class SizeList(APIView):

@@ -6,23 +6,23 @@ import time
 from hashlib import sha1
 from urlparse import urlparse
 
-from core.models import AtmosphereUser as User
 from django.db.models import Max
 
 from novaclient.v1_1 import client as nova_client
 from novaclient.exceptions import OverLimit
 from neutronclient.common.exceptions import NeutronClientException
+from requests.exceptions import ConnectionError
 
 from threepio import logger
-from requests.exceptions import ConnectionError
 from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.drivers.openstack_user import UserManager
+from chromogenic.drivers.openstack import ImageManager
 
+from atmosphere import settings
+
+from core.models import AtmosphereUser as User
 from core.ldap import get_uid_number
 from core.models.identity import Identity
-
-from chromogenic.drivers.openstack import ImageManager
-from atmosphere import settings
 
 
 class AccountDriver():
@@ -77,7 +77,7 @@ class AccountDriver():
     ]
 
     def _init_by_provider(self, provider, *args, **kwargs):
-        from api import get_esh_driver
+        from service.driver import get_esh_driver
 
         self.core_provider = provider
 
