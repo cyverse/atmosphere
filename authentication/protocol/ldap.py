@@ -8,7 +8,7 @@ from django.core.handlers.wsgi import WSGIRequest
 
 import ldap as ldap_driver
 
-from threepio import logger
+from threepio import auth_logger as logger
 
 from atmosphere.settings import secrets
 
