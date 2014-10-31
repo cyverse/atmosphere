@@ -15,7 +15,7 @@ from core.models import AtmosphereUser as User
 
 from caslib import CASClient, SAMLClient
 
-from threepio import logger
+from threepio import auth_logger as logger
 
 from atmosphere import settings
 

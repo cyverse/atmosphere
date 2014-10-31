@@ -6,7 +6,7 @@ from django.http import HttpResponseRedirect, HttpResponseForbidden
 from rest_framework.response import Response
 from rest_framework import status
 
-from threepio import logger
+from threepio import auth_logger as logger
 
 # atmosphere libraries
 from atmosphere import settings
