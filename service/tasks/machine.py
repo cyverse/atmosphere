@@ -19,12 +19,6 @@ from service.driver import get_admin_driver
 from service.deploy import freeze_instance, sync_instance
 from service.tasks.driver import deploy_to, wait_for_instance, destroy_instance
 
-# For development
-try:
-    import ipdb
-except ImportError:
-    ipdb = False
-    pass
 
 def _get_imaging_task(orig_managerCls, orig_creds,
                       dest_managerCls, dest_creds, imaging_args): 
@@ -172,8 +166,6 @@ def machine_request_error(task_uuid, machine_request_id):
 
 @task(name='imaging_complete', queue="imaging", ignore_result=False)
 def imaging_complete(machine_request_id):
-    #if ipdb:
-    #    ipdb.set_trace()
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.status = 'completed'
     machine_request.save()
