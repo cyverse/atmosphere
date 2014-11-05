@@ -4,7 +4,7 @@ from django.utils import timezone
 
 from rest_framework.authentication import BaseAuthentication
 
-from threepio import logger
+from threepio import auth_logger as logger
 
 from authentication.exceptions import Unauthorized
 from authentication.models import Token as AuthToken

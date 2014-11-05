@@ -235,45 +235,104 @@ AUTH_SERVER_URL = SERVER_URL + REDIRECT_URL + '/auth'
 INIT_SCRIPT_PREFIX = '/init_files/'
 DEPLOY_SERVER_URL = SERVER_URL.replace("https", "http")
 
+# Stops 500 errors when logs are missing.
+#NOTE: If the permissions are wrong, this won't help
+def check_and_touch(file_path):
+    if os.path.exists(file_path):
+        return
+    parent_dir = os.path.dirname(file_path)
+    if not os.path.isdir(parent_dir):
+        os.makedirs(parent_dir)
+    #'touch' the file.
+    with open(file_path, 'a'):
+        os.utime(file_path, None)
+    return
+
 ## logging
 LOGGING_LEVEL = logging.DEBUG
 DEP_LOGGING_LEVEL = logging.INFO  # Logging level for dependencies.
+
+## Filenames
 LOG_FILENAME = os.path.abspath(os.path.join(
     os.path.dirname(atmosphere.__file__),
     '..',
     'logs/atmosphere.log'))
-
-threepio.initialize("atmosphere",
-                    log_filename=LOG_FILENAME,
-                    app_logging_level=LOGGING_LEVEL,
-                    dep_logging_level=DEP_LOGGING_LEVEL)
-## NOTE: The format for status_logger
-# timestamp, user, instance_alias, machine_alias, size_alias, status_update
-
+API_LOG_FILENAME = os.path.abspath(os.path.join(
+    os.path.dirname(atmosphere.__file__),
+    '..',
+    'logs/atmosphere_api.log'))
+AUTH_LOG_FILENAME = os.path.abspath(os.path.join(
+    os.path.dirname(atmosphere.__file__),
+    '..',
+    'logs/atmosphere_auth.log'))
+EMAIL_LOG_FILENAME = os.path.abspath(os.path.join(
+    os.path.dirname(atmosphere.__file__),
+    '..',
+    'logs/atmosphere_email.log'))
 STATUS_LOG_FILENAME = os.path.abspath(os.path.join(
     os.path.dirname(atmosphere.__file__),
     '..',
     'logs/atmosphere_status.log'))
-fh = logging.FileHandler(STATUS_LOG_FILENAME)
+
+check_and_touch(LOG_FILENAME)
+check_and_touch(API_LOG_FILENAME)
+check_and_touch(AUTH_LOG_FILENAME)
+check_and_touch(EMAIL_LOG_FILENAME)
+check_and_touch(STATUS_LOG_FILENAME)
+
+#####
+# FileHandler
+#####
+#Default filehandler will use 'LOG_FILENAME'
+#fh = logging.FileHandler(LOG_FILENAME)
+api_fh = logging.FileHandler(API_LOG_FILENAME)
+auth_fh = logging.FileHandler(AUTH_LOG_FILENAME)
+email_fh = logging.FileHandler(EMAIL_LOG_FILENAME)
+status_fh = logging.FileHandler(STATUS_LOG_FILENAME)
+
+####
+# Formatters
+####
+#Logger initialization
+## NOTE: The format for status_logger is defined in the message ONLY!
+# timestamp, user, instance_alias, machine_alias, size_alias, status_update
 # create formatter and add it to the handlers
 base_format = '%(message)s'
 formatter = logging.Formatter(base_format)
-fh.setFormatter(formatter)
+status_fh.setFormatter(formatter)
+
+####
+# Logger Initialization
+####
+threepio.initialize("atmosphere",
+                    log_filename=LOG_FILENAME,
+                    app_logging_level=LOGGING_LEVEL,
+                    dep_logging_level=DEP_LOGGING_LEVEL)
+#Add handler to the remaining loggers
 threepio.status_logger = threepio\
         .initialize("atmosphere_status",
-                    handlers=[fh],
+                    handlers=[status_fh],
                     app_logging_level=LOGGING_LEVEL,
                     dep_logging_level=DEP_LOGGING_LEVEL,
                     global_logger=False,
                     format=base_format)
 threepio.email_logger = threepio\
         .initialize("atmosphere_email",
+                    handlers=[email_fh],
                     log_filename=LOG_FILENAME,
                     app_logging_level=LOGGING_LEVEL,
                     dep_logging_level=DEP_LOGGING_LEVEL,
                     global_logger=False)
 threepio.api_logger = threepio\
         .initialize("atmosphere_api",
+                    handlers=[api_fh],
+                    log_filename=LOG_FILENAME,
+                    app_logging_level=LOGGING_LEVEL,
+                    dep_logging_level=DEP_LOGGING_LEVEL,
+                    global_logger=False)
+threepio.auth_logger = threepio\
+        .initialize("atmosphere_auth",
+                    handlers=[auth_fh],
                     log_filename=LOG_FILENAME,
                     app_logging_level=LOGGING_LEVEL,
                     dep_logging_level=DEP_LOGGING_LEVEL,
@@ -411,7 +470,6 @@ CELERY_ROUTES += ({
 
 import djcelery
 djcelery.setup_loader()
-
 
 """
 Import local settings specific to the server, and secrets not checked into Git.

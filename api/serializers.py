@@ -268,11 +268,14 @@ class ApplicationSerializer(serializers.ModelSerializer):
                                      required=False, read_only=True)
     private = serializers.BooleanField(source='private')
     featured = serializers.BooleanField(source='featured')
-    machines = serializers.RelatedField(source='get_provider_machines',
-                                        read_only=True)
+    machines = serializers.SerializerMethodField('get_machines')
     is_bookmarked = AppBookmarkField(source="bookmarks.all")
     threshold = serializers.RelatedField(read_only=True, source="threshold")
     projects = ProjectsField()
+
+    def get_machines(self, application):
+        return application._current_machines(request_user=self.request_user)
+
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)

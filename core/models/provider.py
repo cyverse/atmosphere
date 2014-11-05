@@ -83,7 +83,7 @@ class Provider(models.Model):
     Start date and end date are recorded for logging purposes
     """
     location = models.CharField(max_length=256)
-    description = models.TextField()
+    description = models.TextField(blank=True)
     type = models.ForeignKey(ProviderType)
     virtualization = models.ForeignKey(PlatformType)
     active = models.BooleanField(default=True)
