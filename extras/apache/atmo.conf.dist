@@ -122,6 +122,8 @@
         Alias /init_files $PATH_TO_ATMOSPHERE/init_files
         Alias /resources $PATH_TO_ATMOSPHERE/resources
         #Assing WSGI to any other folder
+	WSGIDaemonProcess atmosphere_api processes=2 threads=15 display-name=%{GROUP}
+	WSGIProcessGroup atmosphere_api
         WSGIScriptAlias / $PATH_TO_ATMOSPHERE/atmosphere/wsgi.py
 
         # Shell
@@ -169,6 +171,8 @@
     Listen 5000
     <VirtualHost *:5000>
         SetEnv DJANGO_SETTINGS_MODULE troposphere.settings
+	WSGIDaemonProcess troposphere processes=2 threads=15 display-name=%{GROUP}
+	WSGIProcessGroup troposphere
         WSGIScriptAlias / $PATH_TO_TROPOSPHERE/troposphere/wsgi.py
 
         # Logging
