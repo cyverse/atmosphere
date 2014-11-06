@@ -13,7 +13,7 @@ from threepio import logger
 
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProfileSerializer, AtmoUserSerializer
-
+from core.models.profile import UserProfile
 
 class Profile(APIView):
     """Profile can be thought of as the 'entry-point' to the Atmosphere APIs.
@@ -29,7 +29,10 @@ class Profile(APIView):
         #logger.info(request.user)
         user = request.user
         #logger.debug(user.get_profile())
-        profile = user.get_profile() 
+        try:
+            profile = UserProfile.objects.get(user=user)
+        except UserProfile.DoesNotExist:
+            profile = None
         serialized_data = ProfileSerializer(profile).data
         identity = user.select_identity()
         identity_id = identity.id

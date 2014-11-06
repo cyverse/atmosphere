@@ -60,7 +60,7 @@ def _validate_parameters(provider, identity):
         raise Exception("Use either provider or identity but not both.")
 
 
-def get_cached_driver(provider=None, identity=None, force=False):
+def get_cached_driver(provider=None, identity=None, force=True):
     _validate_parameters(provider, identity)
     return _get_cached_driver(provider=provider,
                               identity=identity,
