@@ -429,7 +429,7 @@ CELERY_DEFAULT_QUEUE = 'default'
 CELERYBEAT_SCHEDULE = {
     "check_image_membership": {
         "task": "check_image_membership",
-        "schedule": timedelta(minutes=15),
+        "schedule": timedelta(minutes=60),
         "options": {"expires": 10*60, "time_limit": 2*60,
                     "queue": "celery_periodic"}
     },
@@ -448,6 +448,7 @@ CELERYBEAT_SCHEDULE = {
     },
     "remove_empty_networks": {
         "task": "remove_empty_networks",
+        #Every two hours.. midnight/2am/4am/...
         "schedule": crontab(hour="*/2", minute="0", day_of_week="*"),
         "options": {"expires": 5*60, "time_limit": 5*60,
                     "queue": "celery_periodic"}

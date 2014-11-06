@@ -226,7 +226,7 @@ def clear_empty_ips_for(core_identity_id):
     core_identity = Identity.objects.get(id=core_identity_id)
     driver = get_esh_driver(core_identity)
     if not isinstance(driver, OSDriver):
-        continue
+        return (0, False)
     os_acct_driver = get_account_driver(core_identity.provider)
     logger.info("Initialized account driver")
     # Get useful info
@@ -846,13 +846,13 @@ def check_image_membership():
 def update_membership_for(provider_id):
     provider = Provider.objects.get(id=provider_id)
     if not provider.is_active():
-        return []
+        return
     if provider.type.name.lower() == 'openstack':
         acct_driver = get_account_driver(provider)
     else:
         logger.warn("Encountered unknown ProviderType:%s, expected"
                     " [Openstack] " % (provider.type.name,))
-        continue
+        return
     images = acct_driver.list_all_images()
     changes = 0
     for img in images:
@@ -861,7 +861,7 @@ def update_membership_for(provider_id):
         if not pm or len(pm) > 1:
             logger.debug("pm filter is bad!")
             logger.debug(pm)
-            continue
+            return
         else:
             pm = pm[0]
         app_manager = pm.application.applicationmembership_set
