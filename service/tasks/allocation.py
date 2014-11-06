@@ -56,7 +56,7 @@ def monitor_instances():
     Update instances for each active provider.
     """
     for p in Provider.get_active():
-        monitor_instances_for(p)
+        monitor_instances_for.delay(p.id)
 
 
 def get_instance_owner_map(provider, users=None):
@@ -77,11 +77,13 @@ def get_instance_owner_map(provider, users=None):
     return identity_map
 
 
-def monitor_instances_for(provider, users=None, print_logs=False):
+@task(name="monitor_instances_for")
+def monitor_instances_for(provider_id, users=None, print_logs=False):
     """
     Update instances for provider.
     """
     #For now, lets just ignore everything that isn't openstack.
+    provider = Provider.objects.get(id=provider_id)
     if 'openstack' not in provider.type.name.lower():
         return
 

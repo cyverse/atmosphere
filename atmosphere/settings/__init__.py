@@ -463,6 +463,14 @@ CELERY_ROUTES += ({
     {"queue": "imaging", "routing_key": "imaging.prepare"},
     "service.tasks.machine.process_request":
     {"queue": "imaging", "routing_key": "imaging.complete"},
+    "service.tasks.accounts.monitor_instances_for":
+    {"queue": "celery_periodic", "routing_key": "periodic.maintenance"},
+    "service.tasks.accounts.remove_empty_networks_for":
+    {"queue": "celery_periodic", "routing_key": "periodic.maintenance"},
+    "service.tasks.driver.update_membership_for":
+    {"queue": "celery_periodic", "routing_key": "periodic.maintenance"},
+    "service.tasks.driver.clear_empty_ips_for":
+    {"queue": "celery_periodic", "routing_key": "periodic.maintenance"},
 },)
 #     # Django-Celery Development settings
 # CELERY_ALWAYS_EAGER = True

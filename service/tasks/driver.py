@@ -29,7 +29,7 @@ from core.models.identity import Identity
 from core.models.profile import UserProfile
 
 from service.deploy import init, check_process
-from service.driver import get_driver
+from service.driver import get_driver, get_account_driver
 from service.instance import update_instance_metadata
 from service.instance import _create_and_attach_port
 from service.networking import _generate_ssh_kwargs
@@ -77,64 +77,6 @@ def complete_resize(driverCls, provider, identity, instance_alias,
         logger.exception(exc)
         complete_resize.retry(exc=exc)
 
-#@task(name="instance_watcher", max_retries=1, default_retry_delay=15)
-#def instance_watcher(driverCls, provider, identity,
-#                     instance_alias, **task_kwargs):
-#    """
-#    """
-#    attempts = 0
-#    FINAL_STATES = ["active", "suspended"]
-#    current_status = ""
-#    logger.debug("instance_watcher task started for %s at %s." %
-#            (instance_alias, datetime.now()))
-#    while True:
-#        #Give up after 50 min cumulative.
-#        attempts += 1
-#        if attempts > 200:
-#            break
-#        try:
-#            driver = get_driver(driverCls, provider, identity)
-#            instance = driver.get_instance(instance_alias)
-#            if not instance:
-#                logger.debug("Instance has been teminated: %s." %
-#                        instance_alias)
-#                now_time = datetime.now()
-#                status_logger.debug("%s,%s,%s,%s,%s"
-#                         % (now_time, "<unknown>",
-#                            instance_alias, "<unknown>",
-#                            "terminated"))
-#                break
-#            i_user = instance._node.extra['metadata']['creator']
-#            i_status = instance._node.extra['status'].lower()
-#            i_size = instance._node.extra['flavorId']
-#            i_task = instance._node.extra['task']
-#            i_tmp_task = instance._node.extra['metadata']['tmp_status']
-#            if not i_task:
-#                i_task = i_tmp_task
-#            new_status = i_status if not i_task else "%s - %s" %
-#                (i_status, i_task)
-#            now_time = datetime.now()
-#            if i_status not in FINAL_STATES or i_task:
-#                if new_status != current_status:
-#                    current_status = new_status
-#                    status_logger.debug("%s,%s,%s,%s,%s"
-#                                        % (now_time, i_user, instance.id,
-#                                           i_size, new_status))
-#                time.sleep(15)
-#                continue
-#            status_logger.debug("%s,%s,%s,%s,%s"
-#                         % (now_time,
-#                            i_user, instance.id,
-#                            i_size, new_status))
-#            break
-#        except Exception as exc:
-#            logger.exception("Encountered exception while"
-#                             " watching instance %s"
-#                             % instance_alias)
-#            time.sleep(15)
-#    logger.debug("instance_watcher task finished for %s at %s." %
-#            (instance_alias, datetime.now()))
-#    return attempts
 
 
 @task(name="wait_for_instance", max_retries=250, default_retry_delay=15)
@@ -233,17 +175,7 @@ def add_fixed_ip(driverCls, provider, identity, instance_id, core_identity_id=No
             # Ignore 'normal' errors.
             logger.exception(exc)
         add_fixed_ip.retry(exc=exc)
-
-
-@task(name="clear_empty_ips")
-def clear_empty_ips():
-    logger.debug("clear_empty_ips task started at %s." % datetime.now())
-    from service import instance as instance_service
-    from rtwo.driver import OSDriver
-    from api import get_esh_driver
-    from service.accounts.openstack import AccountDriver as\
-        OSAccountDriver
-
+def current_openstack_identities():
     identities = Identity.objects.filter(
         provider__type__name__iexact='openstack',
         provider__active=True)
@@ -253,67 +185,97 @@ def clear_empty_ips():
     identities = sorted(
         identities,
         key=key_sorter)
-    os_acct_driver = None
-    total = len(identities)
-    num_removed = 0
-    nets_removed = 0
-    for idx, core_identity in enumerate(identities):
+    return identities
+
+def _remove_extra_floating_ips(driver, tenant_name):
+    num_ips_removed = driver._clean_floating_ip()
+    if num_ips_removed:
+        logger.debug("Removed %s ips from OpenStack Tenant %s"
+                     % (num_ips_removed, tenant_name))
+    return num_ips_removed
+
+def _remove_ips_from_inactive_instances(driver, instances):
+    for instance in instances:
+        #DOUBLE-CHECK:
+        if driver._is_inactive_instance(instance) and instance.ip:
+            # If an inactive instance has floating/fixed IPs.. Remove them!
+            instance_service.remove_ips(driver, instance)
+    return True
+
+def _remove_network(os_acct_driver, remove_network=False):
+    """
+    """
+    if not remove_network:
+        return
+    logger.info("Removing project network for %s" % tenant_name)
+    #Sec. group can't be deleted if instances are suspended
+    # when instances are suspended we pass remove_network=False
+    os_acct_driver.delete_security_group(core_identity)
+    os_acct_driver.delete_network(
+        core_identity,
+        remove_network=remove_network)
+    return True
+
+
+@task(name="clear_empty_ips_for")
+def clear_empty_ips_for(core_identity_id):
+    """
+    RETURN: (number_ips_removed, delete_network_called)
+    """
+    #Initialize the drivers
+    core_identity = Identity.objects.get(id=core_identity_id)
+    driver = get_esh_driver(core_identity)
+    if not isinstance(driver, OSDriver):
+        continue
+    os_acct_driver = get_account_driver(core_identity.provider)
+    logger.info("Initialized account driver")
+    # Get useful info
+    creds = core_identity.get_credentials()
+    tenant_name = creds['ex_tenant_name']
+    logger.info("Checking Identity %s" % tenant_name)
+    # Attempt to clean floating IPs
+    num_ips_removed = _remove_extra_floating_ips(driver, tenant_name)
+    #Test for active/inactive instances
+    instances = driver.list_instances()
+    #Active IFF ANY instance is 'active'
+    active = any(driver._is_active_instance(inst)
+                 for inst in instances)
+    #Inactive IFF ALL instances are suspended/stopped
+    inactive = all(driver._is_inactive_instance(inst)
+                   for inst in instances)
+    _remove_ips_from_inactive_instances(driver, instances)
+    if active and not inactive:
+        #User has >1 active instances AND not all instances inactive
+        return (num_ips_removed, False)
+    network_id = os_acct_driver.network_manager.get_network_id(
+            os_acct_driver.network_manager.neutron,
+            '%s-net' % tenant_name)
+    if network_id:
+        #User has 0 active instances OR all instances are inactive
+        #Network exists, attempt to dismantle as much as possible
+        # Remove network=False IFF inactive=True..
+        remove_network = not inactive
+        if remove_network:
+            _remove_network(os_acct_driver, remove_network=True)
+            return (num_ips_removed, True)
+        return (num_ips_removed, False)
+    else:
+        logger.info("No Network found. Skipping %s" % tenant_name)
+        return (num_ips_removed, False)
+
+@task(name="clear_empty_ips")
+def clear_empty_ips():
+    logger.debug("clear_empty_ips task started at %s." % datetime.now())
+    from service import instance as instance_service
+    from rtwo.driver import OSDriver
+    from api import get_esh_driver
+    identity_ids = current_openstack_identities()
+    for core_identity_id in identity_ids:
         try:
-            #Initialize the drivers
-            driver = get_esh_driver(core_identity)
-            if not isinstance(driver, OSDriver):
-                continue
-            if not os_acct_driver or\
-                    os_acct_driver.core_provider != core_identity.provider:
-                os_acct_driver = OSAccountDriver(core_identity.provider)
-                logger.info("Initialized account driver")
-            # Get useful info
-            creds = core_identity.get_credentials()
-            tenant_name = creds['ex_tenant_name']
-            logger.info("Checking Identity %s/%s - %s"
-                        % (idx+1, total, tenant_name))
-            # Attempt to clean floating IPs
-            num_ips_removed = driver._clean_floating_ip()
-            if num_ips_removed:
-                logger.debug("Removed %s ips from OpenStack Tenant %s"
-                             % (num_ips_removed, tenant_name))
-                num_removed += num_ips_removed
-            #Test for active/inactive instances
-            instances = driver.list_instances()
-            active = any(driver._is_active_instance(inst)
-                         for inst in instances)
-            inactive = all(driver._is_inactive_instance(inst)
-                           for inst in instances)
-            for instance in instances:
-                if driver._is_inactive_instance(instance) and instance.ip:
-                    # If an inactive instance has floating/fixed IPs.. Remove them!
-                    instance_service.remove_ips(driver, instance)
-            if active and not inactive:
-                #User has >1 active instances AND not all instances inactive
-                pass
-            elif os_acct_driver.network_manager.get_network_id(
-                    os_acct_driver.network_manager.neutron,
-                    '%s-net' % tenant_name):
-                #User has 0 active instances OR all instances are inactive
-                #Network exists, attempt to dismantle as much as possible
-                remove_network = not inactive
-                logger.info("Removing project network %s for %s"
-                            % (remove_network, tenant_name))
-                if remove_network:
-                    #Sec. group can't be deleted if instances are suspended
-                    # when instances are suspended we pass remove_network=False
-                    os_acct_driver.delete_security_group(core_identity)
-                    os_acct_driver.delete_network(
-                        core_identity,
-                        remove_network=remove_network)
-                    nets_removed += 1
-            else:
-                #logger.info("No Network found. Skipping %s" % tenant_name)
-                pass
+            clear_empty_ips_for.delay(core_identity_id)
         except Exception as exc:
             logger.exception(exc)
     logger.debug("clear_empty_ips task finished at %s." % datetime.now())
-    return (num_removed, nets_removed)
 
 
 @task(name="_send_instance_email",
@@ -812,8 +774,7 @@ def add_os_project_network(core_identity, *args, **kwargs):
     try:
         logger.debug("add_os_project_network task started at %s." %
                      datetime.now())
-        from rtwo.accounts.openstack import AccountDriver as OSAccountDriver
-        account_driver = OSAccountDriver(core_identity.provider)
+        account_driver = get_account_driver(core_identity.provider)
         account_driver.create_network(core_identity)
         logger.debug("add_os_project_network task finished at %s." %
                      datetime.now())
@@ -840,21 +801,19 @@ def remove_empty_network(
         core_identity = Identity.objects.get(id=core_identity_id)
         driver = get_driver(driverCls, provider, identity)
         instances = driver.list_instances()
-        active_instances = False
-        #TODO: Replace with any()
-        for instance in instances:
-            if driver._is_active_instance(instance):
-                active_instances = True
-                break
+        active_instances = any(
+                driver._is_active_instance(instance) for
+                instance in instances)
+        #If instances are active, we are done..
         if not active_instances:
-            inactive_instances = all(driver._is_inactive_instance(
-                instance) for instance in instances)
+            inactive_instances = all(
+                    driver._is_inactive_instance(
+                    instance) for instance in instances)
+            #Inactive instances: An instance that is 'stopped' or 'suspended'
             #Inactive instances, True: Remove network, False
             remove_network = not inactive_instances
             #Check for project network
-            from service.accounts.openstack import AccountDriver as\
-                OSAccountDriver
-            os_acct_driver = OSAccountDriver(core_identity.provider)
+            os_acct_driver = get_account_driver(core_identity.provider)
             logger.info("No active instances. Removing project network"
                         "from %s" % core_identity)
             os_acct_driver.delete_network(core_identity,
@@ -868,8 +827,7 @@ def remove_empty_network(
                      datetime.now())
         return False
     except Exception as exc:
-        logger.exception("Failed to check if project network is empty")
-        remove_empty_network.retry(exc=exc)
+        logger.exception("Exception occurred project network is empty")
 
 
 @task(name="check_image_membership")
@@ -884,50 +842,52 @@ def check_image_membership():
         logger.exception('Error during check_image_membership task')
         check_image_membership.retry(exc=exc)
 
+@task(name="update_membership_for")
+def update_membership_for(provider_id):
+    provider = Provider.objects.get(id=provider_id)
+    if not provider.is_active():
+        return []
+    if provider.type.name.lower() == 'openstack':
+        acct_driver = get_account_driver(provider)
+    else:
+        logger.warn("Encountered unknown ProviderType:%s, expected"
+                    " [Openstack] " % (provider.type.name,))
+        continue
+    images = acct_driver.list_all_images()
+    changes = 0
+    for img in images:
+        pm = ProviderMachine.objects.filter(identifier=img.id,
+                                            provider=provider)
+        if not pm or len(pm) > 1:
+            logger.debug("pm filter is bad!")
+            logger.debug(pm)
+            continue
+        else:
+            pm = pm[0]
+        app_manager = pm.application.applicationmembership_set
+        if not img.is_public:
+            #Lookup members
+            image_members = acct_driver.image_manager.shared_images_for(
+                image_id=img.id)
+            #add machine to each member
+            #(Who owns the cred:ex_project_name) in MachineMembership
+            #for member in image_members:
+        else:
+            members = app_manager.all()
+            #if MachineMembership exists, remove it (No longer private)
+            if members:
+                logger.info("Application for PM:%s used to be private."
+                            " %s Users membership has been revoked. "
+                            % (img.id, len(members)))
+                changes += len(members)
+                members.delete()
+    logger.info("Total Updates to machine membership:%s" % changes)
 
 def update_membership():
     from core.models import ApplicationMembership, Provider, ProviderMachine
-    from service.accounts.openstack import AccountDriver as OSAcctDriver
     from service.accounts.eucalyptus import AccountDriver as EucaAcctDriver
     for provider in Provider.objects.all():
-        if not provider.is_active():
-            return []
-        if provider.type.name.lower() == 'openstack':
-            driver = OSAcctDriver(provider)
-        else:
-            logger.warn("Encountered unknown ProviderType:%s, expected"
-                        " [Openstack] " % (provider.type.name,))
-            continue
-        images = driver.list_all_images()
-        changes = 0
-        for img in images:
-            pm = ProviderMachine.objects.filter(identifier=img.id,
-                                                provider=provider)
-            if not pm or len(pm) > 1:
-                logger.debug("pm filter is bad!")
-                logger.debug(pm)
-                continue
-            else:
-                pm = pm[0]
-            app_manager = pm.application.applicationmembership_set
-            if not img.is_public:
-                #Lookup members
-                image_members = accts.image_manager.shared_images_for(
-                    image_id=img.id)
-                #add machine to each member
-                #(Who owns the cred:ex_project_name) in MachineMembership
-                #for member in image_members:
-            else:
-                members = app_manager.all()
-                if members:
-                    logger.info("Application for PM:%s used to be private."
-                                " %s Users membership has been revoked. "
-                                % (img.id, len(members)))
-                    changes += len(members)
-                    members.delete()
-                #if MachineMembership exists, remove it (No longer private)
-    logger.info("Total Updates to machine membership:%s" % changes)
-    return changes
+        update_membership_for.delay(provider_id)
 
 
 def active_instances(instances):
