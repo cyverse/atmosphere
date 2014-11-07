@@ -11,7 +11,7 @@ from core.models import Provider
 
 from service.driver import get_account_driver
 
-@task(name="remove_empty_networks_for")
+@task(name="remove_empty_networks_for", queue="celery_periodic")
 def remove_empty_networks_for(provider_id):
     provider = Provider.objects.get(id=provider_id)
     os_driver = get_account_driver(provider)
@@ -41,7 +41,7 @@ def remove_empty_networks():
     logger.debug("remove_empty_networks task started at %s." %
                  datetime.now())
     for provider in Provider.get_active(type_name='openstack'):
-        remove_empty_networks_for.delay(provider.id)
+        remove_empty_networks_for.apply_async(args=[provider.id])
             
 
 

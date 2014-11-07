@@ -195,6 +195,7 @@ def _remove_extra_floating_ips(driver, tenant_name):
     return num_ips_removed
 
 def _remove_ips_from_inactive_instances(driver, instances):
+    from service import instance as instance_service
     for instance in instances:
         #DOUBLE-CHECK:
         if driver._is_inactive_instance(instance) and instance.ip:
@@ -202,7 +203,7 @@ def _remove_ips_from_inactive_instances(driver, instances):
             instance_service.remove_ips(driver, instance)
     return True
 
-def _remove_network(os_acct_driver, remove_network=False):
+def _remove_network(os_acct_driver, core_identity, tenant_name, remove_network=False):
     """
     """
     if not remove_network:
@@ -217,11 +218,13 @@ def _remove_network(os_acct_driver, remove_network=False):
     return True
 
 
-@task(name="clear_empty_ips_for")
-def clear_empty_ips_for(core_identity_id):
+@task(name="clear_empty_ips_for", queue="celery_periodic")
+def clear_empty_ips_for(core_identity_id, username=None):
     """
     RETURN: (number_ips_removed, delete_network_called)
     """
+    from api import get_esh_driver
+    from rtwo.driver import OSDriver
     #Initialize the drivers
     core_identity = Identity.objects.get(id=core_identity_id)
     driver = get_esh_driver(core_identity)
@@ -256,7 +259,7 @@ def clear_empty_ips_for(core_identity_id):
         # Remove network=False IFF inactive=True..
         remove_network = not inactive
         if remove_network:
-            _remove_network(os_acct_driver, remove_network=True)
+            _remove_network(os_acct_driver, core_identity, tenant_name, remove_network=True)
             return (num_ips_removed, True)
         return (num_ips_removed, False)
     else:
@@ -266,13 +269,12 @@ def clear_empty_ips_for(core_identity_id):
 @task(name="clear_empty_ips")
 def clear_empty_ips():
     logger.debug("clear_empty_ips task started at %s." % datetime.now())
-    from service import instance as instance_service
-    from rtwo.driver import OSDriver
-    from api import get_esh_driver
-    identity_ids = current_openstack_identities()
-    for core_identity_id in identity_ids:
+    identities = current_openstack_identities()
+    for core_identity in identities:
         try:
-            clear_empty_ips_for.delay(core_identity_id)
+            #TODO: Add some 
+            clear_empty_ips_for.apply_async(args=[core_identity.id,
+                                      core_identity.created_by])
         except Exception as exc:
             logger.exception(exc)
     logger.debug("clear_empty_ips task finished at %s." % datetime.now())
@@ -842,8 +844,9 @@ def check_image_membership():
         logger.exception('Error during check_image_membership task')
         check_image_membership.retry(exc=exc)
 
-@task(name="update_membership_for")
+@task(name="update_membership_for", queue="celery_periodic")
 def update_membership_for(provider_id):
+    from core.models import Provider, ProviderMachine
     provider = Provider.objects.get(id=provider_id)
     if not provider.is_active():
         return
@@ -883,11 +886,11 @@ def update_membership_for(provider_id):
                 members.delete()
     logger.info("Total Updates to machine membership:%s" % changes)
 
+@task(name="update_membership")
 def update_membership():
-    from core.models import ApplicationMembership, Provider, ProviderMachine
     from service.accounts.eucalyptus import AccountDriver as EucaAcctDriver
     for provider in Provider.objects.all():
-        update_membership_for.delay(provider_id)
+        update_membership_for.apply_async( args=[provider.id])
 
 
 def active_instances(instances):

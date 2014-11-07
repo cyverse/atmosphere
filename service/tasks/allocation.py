@@ -56,7 +56,7 @@ def monitor_instances():
     Update instances for each active provider.
     """
     for p in Provider.get_active():
-        monitor_instances_for.delay(p.id)
+        monitor_instances_for.apply_async(args=[p.id])
 
 
 def get_instance_owner_map(provider, users=None):
@@ -77,7 +77,7 @@ def get_instance_owner_map(provider, users=None):
     return identity_map
 
 
-@task(name="monitor_instances_for")
+@task(name="monitor_instances_for", queue="celery_periodic")
 def monitor_instances_for(provider_id, users=None, print_logs=False):
     """
     Update instances for provider.

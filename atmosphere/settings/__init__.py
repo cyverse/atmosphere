@@ -441,10 +441,10 @@ CELERYBEAT_SCHEDULE = {
     },
     "clear_empty_ips": {
         "task": "clear_empty_ips",
-        "schedule": timedelta(minutes=20),
+        "schedule": timedelta(minutes=120),
         #"schedule": crontab(hour="0", minute="0", day_of_week="*"),
         "options": {"expires": 60*60,
-                "queue": "celery_periodic"}
+                    "queue": "celery_periodic"}
     },
     "remove_empty_networks": {
         "task": "remove_empty_networks",
@@ -464,14 +464,15 @@ CELERY_ROUTES += ({
     {"queue": "imaging", "routing_key": "imaging.prepare"},
     "service.tasks.machine.process_request":
     {"queue": "imaging", "routing_key": "imaging.complete"},
-    "service.tasks.accounts.monitor_instances_for":
-    {"queue": "celery_periodic", "routing_key": "periodic.maintenance"},
-    "service.tasks.accounts.remove_empty_networks_for":
-    {"queue": "celery_periodic", "routing_key": "periodic.maintenance"},
-    "service.tasks.driver.update_membership_for":
-    {"queue": "celery_periodic", "routing_key": "periodic.maintenance"},
-    "service.tasks.driver.clear_empty_ips_for":
-    {"queue": "celery_periodic", "routing_key": "periodic.maintenance"},
+
+    #"service.tasks.allocation.monitor_instances_for":
+    #{"queue": "celery_periodic", "routing_key": "periodic.provider_maintenance"},
+    #"service.tasks.accounts.remove_empty_networks_for":
+    #{"queue": "celery_periodic", "routing_key": "periodic.provider_maintenance"},
+    #"service.tasks.driver.update_membership_for":
+    #{"queue": "celery_periodic", "routing_key": "periodic.provider_maintenance"},
+    #"service.tasks.driver.clear_empty_ips_for":
+    #{"queue": "celery_periodic", "routing_key": "periodic.identity_maintenance"},
 },)
 #     # Django-Celery Development settings
 # CELERY_ALWAYS_EAGER = True
