@@ -103,6 +103,7 @@ class AuthTests(TestCase):
         #euca_accounts = EucaAccounts(self.euca_provider)
         #euca_user = euca_accounts.get_user(settings.TEST_RUNNER_USER)
         #self.euca_id = euca_accounts.create_account(euca_user)
+        pass
 
     def tearDown(self):
         pass
