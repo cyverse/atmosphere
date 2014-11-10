@@ -58,9 +58,9 @@ class MachineTests(TestCase):
                                args=[self.os_id.provider.id,
                                      self.os_id.id])
         self.os_machine_url = urljoin(settings.SERVER_URL, reverse_link)
-        reverse_link = reverse('api:public_apis:machine-list',
-                              args=[self.euca_id.provider.id,
-                                    self.euca_id.id])
+        #reverse_link = reverse('api:public_apis:machine-list',
+        #                      args=[self.euca_id.provider.id,
+        #                            self.euca_id.id])
         #self.euca_machine_url = urljoin(settings.SERVER_URL, reverse_link)
         
 
