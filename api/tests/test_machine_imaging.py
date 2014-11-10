@@ -39,14 +39,16 @@ class MachineRequestTests(TestCase):
 
     def setUp(self):
         #Initialize core DB
-        self.euca_admin_id = create_euca_provider()
-        self.euca_provider = self.euca_admin_id.provider
+        #Ensure there is an account created/ready to go
+
+        #self.euca_admin_id = create_euca_provider()
+        #self.euca_provider = self.euca_admin_id.provider
+        #euca_accounts = EucaAccounts(self.euca_provider)
+        #euca_user = euca_accounts.get_user(settings.TEST_RUNNER_USER)
+        #self.euca_id = euca_accounts.create_account(euca_user, max_quota=True)
+
         self.os_admin_id = create_os_provider()
         self.os_provider = self.os_admin_id.provider
-        #Ensure there is an account created/ready to go
-        euca_accounts = EucaAccounts(self.euca_provider)
-        euca_user = euca_accounts.get_user(settings.TEST_RUNNER_USER)
-        self.euca_id = euca_accounts.create_account(euca_user, max_quota=True)
         os_accounts = OSAccounts(self.os_provider)
         self.os_id = os_accounts.create_account(
                 settings.TEST_RUNNER_USER, 
@@ -64,18 +66,18 @@ class MachineRequestTests(TestCase):
                                args=[self.os_id.provider.id,
                                      self.os_id.id])
         self.os_instance_url = urljoin(settings.SERVER_URL, reverse_link)
-        reverse_link = reverse('api:public_apis:instance-list',
-                              args=[self.euca_id.provider.id,
-                                    self.euca_id.id])
-        self.euca_instance_url = urljoin(settings.SERVER_URL, reverse_link)
         reverse_link = reverse('api:public_apis:machine-request-list',
                                args=[self.os_id.provider.id,
                                      self.os_id.id])
         self.os_request_url = urljoin(settings.SERVER_URL, reverse_link)
-        reverse_link = reverse('api:public_apis:machine-request-list',
-                              args=[self.euca_id.provider.id,
-                                    self.euca_id.id])
-        self.euca_request_url = urljoin(settings.SERVER_URL, reverse_link)
+        #reverse_link = reverse('api:public_apis:instance-list',
+        #                      args=[self.euca_id.provider.id,
+        #                            self.euca_id.id])
+        #self.euca_instance_url = urljoin(settings.SERVER_URL, reverse_link)
+        #reverse_link = reverse('api:public_apis:machine-request-list',
+        #                      args=[self.euca_id.provider.id,
+        #                            self.euca_id.id])
+        #self.euca_request_url = urljoin(settings.SERVER_URL, reverse_link)
         
     def openstack_mach_and_size(self):
         reverse_link = reverse('api:public_apis:machine-list',

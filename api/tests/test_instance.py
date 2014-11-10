@@ -10,6 +10,7 @@ from threepio import logger
 from urlparse import urljoin
 
 from atmosphere import settings
+#from core.tests import create_euca_provider
 from core.tests import create_euca_provider, create_os_provider
 from api.tests import verify_expected_output, standup_instance
 from api.tests.test_auth import TokenAPIClient
@@ -22,7 +23,7 @@ os_base_instance_url = ""
 #Special method run once per testcase
 def setUpModule():
     setUp_openstack()
-    setUp_euca()
+    #setUp_euca()
 
 def setUp_euca():
     euca_admin_id = create_euca_provider()

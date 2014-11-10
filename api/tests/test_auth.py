@@ -12,9 +12,10 @@ from atmosphere import settings
 from atmosphere.settings import secrets
 from api.tests import verify_expected_output
 from authentication.protocol.oauth import generate_access_token
-from core.tests import create_euca_provider, create_os_provider
+from core.tests import create_os_provider
+#from core.tests import create_euca_provider
 from service.accounts.openstack import AccountDriver as OSAccounts
-from service.accounts.eucalyptus import AccountDriver as EucaAccounts
+#from service.accounts.eucalyptus import AccountDriver as EucaAccounts
 
 
 class OAuthTokenAPIClient(APIClient):
@@ -97,11 +98,11 @@ class AuthTests(TestCase):
 
     def setUp(self):
         #Initialize API
-        self.euca_admin_id = create_euca_provider()
-        self.euca_provider = self.euca_admin_id.provider
-        euca_accounts = EucaAccounts(self.euca_provider)
-        euca_user = euca_accounts.get_user(settings.TEST_RUNNER_USER)
-        self.euca_id = euca_accounts.create_account(euca_user)
+        #self.euca_admin_id = create_euca_provider()
+        #self.euca_provider = self.euca_admin_id.provider
+        #euca_accounts = EucaAccounts(self.euca_provider)
+        #euca_user = euca_accounts.get_user(settings.TEST_RUNNER_USER)
+        #self.euca_id = euca_accounts.create_account(euca_user)
 
     def tearDown(self):
         pass
