@@ -274,7 +274,12 @@ class ApplicationSerializer(serializers.ModelSerializer):
     projects = ProjectsField()
 
     def get_machines(self, application):
-        return application._current_machines(request_user=self.request_user)
+        machines = application._current_machines(request_user=self.request_user)
+        return [{"start_date": pm.start_date,
+                 "end_date": pm.end_date,
+                 "alias": pm.identifier,
+                 "version": pm.version,
+                 "provider": pm.provider.id} for pm in machines]
 
 
     def __init__(self, *args, **kwargs):
