@@ -101,7 +101,7 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
             device = None
         if not device:
             logger.warn("Device never attached. Nothing to mount")
-            return
+            return None
 
         private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
         kwargs.update({'ssh_key': private_key})
@@ -115,7 +115,7 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         if device in cm_script.stdout:
             logger.warn("Device already mounted. Mount output:%s" % cm_script.stdout)
             #Device has already been mounted. Move along..
-            return
+            return mount_location
 
         #Step 3. Find a suitable location to mount the volume
         logger.info("Original mount location - %s" % mount_location)
@@ -134,8 +134,6 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         mv_script = mount_volume(device, mount_location)
         kwargs.update({'deploy': mv_script})
         driver.deploy_to(instance, **kwargs)
-        #TODO: Update metadata to include volume mount
-        # so this data can persist on the UI?
         logger.debug("mount task finished at %s." % datetime.now())
         return mount_location
     except Exception as exc:
@@ -217,7 +215,6 @@ def umount_task(driverCls, provider, identity, instance_id,
       max_retries=1)
 def attach_task(driverCls, provider, identity, instance_id, volume_id,
                 device_choice=None, *args, **kwargs):
-    #TODO: chain task attach THEN mount for more robust-ness
     try:
         logger.debug("attach_task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
@@ -326,6 +323,30 @@ def detach_task(driverCls, provider, identity,
         logger.exception(exc)
         detach_task.retry(exc=exc)
 
+@task(name="update_mount_location", max_retries=2, default_retry_delay=15)
+def update_mount_location(new_mount_location, 
+        driverCls, provider, identity,
+        volume_alias):
+    """
+    """
+    try:
+        logger.debug("update_mount_location task started at %s." % datetime.now())
+        driver = get_driver(driverCls, provider, identity)
+        volume = driver.get_volume(volume_alias)
+        if not volume:
+            return
+        if not new_mount_location:
+            return
+        volume_metadata = volume.extra['metadata']
+        return volume_service.update_volume_metadata(
+            driver, volume,
+            metadata={'mount_location':new_mount_location})
+        logger.debug("update_mount_location task finished at %s." % datetime.now())
+    except Exception as exc:
+        logger.exception(exc)
+        update_mount_location.retry(exc=exc)
+
+
 @task(name="update_volume_metadata", max_retries=2, default_retry_delay=15)
 def update_volume_metadata(driverCls, provider,
         identity, volume_alias,
@@ -349,7 +370,7 @@ def update_volume_metadata(driverCls, provider,
 # Deploy and Destroy tasks
 @task(name="mount_failed")
 def mount_failed(task_uuid, driverCls, provider, identity, volume_id,
-                  **celery_task_args):
+        unmount=False, **celery_task_args):
     try:
         logger.debug("mount_failed task started at %s." % datetime.now())
         logger.info("task_uuid=%s" % task_uuid)
@@ -360,9 +381,13 @@ def mount_failed(task_uuid, driverCls, provider, identity, volume_id,
         logger.error(err_str)
         driver = get_driver(driverCls, provider, identity)
         volume = driver.get_volume(volume_id)
+        if unmount:
+            tmp_status = 'umount_error'
+        else:
+            tmp_status = 'mount_error'
         return volume_service.update_volume_metadata(
             driver, volume,
-            metadata={'tmp_status': 'mount_error'})
+            metadata={'tmp_status': tmp_status})
         logger.debug("mount_failed task finished at %s." % datetime.now())
     except Exception as exc:
         logger.warn(exc)

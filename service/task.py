@@ -13,8 +13,9 @@ from service.exceptions import DeviceBusyException, VolumeMountConflict
 from service.tasks.driver import deploy_to, deploy_init_to, add_floating_ip
 from service.tasks.driver import destroy_instance
 from service.tasks.volume import attach_task, mount_task, check_volume_task
-from service.tasks.volume import detach_task, umount_task, mount_failed
-from service.tasks.volume import update_volume_metadata
+from service.tasks.volume import detach_task, umount_task,\
+        mount_failed
+from service.tasks.volume import update_volume_metadata, update_mount_location
 
 
 def deploy_init_task(driver, instance,
@@ -53,19 +54,19 @@ def destroy_instance_task(instance, identity_id, *args, **kwargs):
 
 
 def detach_volume_task(driver, instance_id, volume_id, *args, **kwargs):
-    #TODO: Handle the DeviceBusyException
     try:
-        if hasattr(driver, 'deploy_to'):
-            #Only attempt to umount if we have sh access
-            umount_task.delay(
-                driver.__class__, driver.provider, driver.identity,
-                instance_id, volume_id).get()
-        detach_task.delay(
+        detach_volume = detach_task.si(
             driver.__class__, driver.provider, driver.identity,
-            instance_id, volume_id).get()
+            instance_id, volume_id)
+        if not hasattr(driver, 'deploy_to'):
+            detach_volume.apply_async()
+            return (True, None)
+        #Only attempt to umount if we have sh access
+        umount_chain = _get_umount_chain(driver, instance_id, volume_id, detach_volume)
+        umount_chain.apply_async()
         return (True, None)
-    except DeviceBusyException, dbe:
-        return (False, dbe.message)
+    except Exception, exc:
+        return (False, exc.message)
 
 
 def attach_volume_task(driver, instance_id, volume_id, device=None,
@@ -93,6 +94,36 @@ def attach_volume_task(driver, instance_id, volume_id, device=None,
     except Exception, e:
         raise VolumeMountConflict(instance_id, volume_id)
     return mount_location
+
+def _get_umount_chain(driver, instance_id, volume_id, detach_task):
+    driverCls = driver.__class__
+    provider = driver.provider
+    identity = driver.identity
+    pre_umount_status = update_volume_metadata.si(
+            driverCls, provider, identity,
+            volume_id, {'tmp_status':'unmounting'})
+    umount= umount_task.si(
+            driver.__class__, driver.provider, driver.identity,
+            instance_id, volume_id)
+    post_umount_status = update_volume_metadata.si(
+            driverCls, provider, identity,
+            volume_id, {'tmp_status':'',
+                        'mount_location':''})
+
+    pre_umount_status.link_error(
+        mount_failed.s(
+            driverCls, provider, identity, volume_id, True))
+    umount.link_error(
+        mount_failed.s(
+            driverCls, provider, identity, volume_id, True))
+    post_umount_status.link_error(
+        mount_failed.s(
+            driverCls, provider, identity, volume_id, True))
+    pre_umount_status.link(umount)
+    umount.link(post_umount_status)
+    post_umount_status.link(detach_task)
+    return pre_umount_status
+
 def _get_mount_chain(driver, instance_id, volume_id, device, mount_location):
     driverCls = driver.__class__
     provider = driver.provider
@@ -104,9 +135,12 @@ def _get_mount_chain(driver, instance_id, volume_id, device, mount_location):
     pre_mount = check_volume_task.si(
         driverCls, provider, identity,
         instance_id, volume_id)
-    mount = mount_task.si(
+    mount = mount_task.s(
             driverCls, provider, identity,
             instance_id, volume_id, device, mount_location)
+    post_mount = update_mount_location.si(
+            driverCls, provider, identity,
+            instance_id, volume_id)
     post_mount_status = update_volume_metadata.si(
             driverCls, provider, identity,
             volume_id, {'tmp_status':''})
@@ -120,13 +154,17 @@ def _get_mount_chain(driver, instance_id, volume_id, device, mount_location):
     mount.link_error(
         mount_failed.s(
             driverCls, provider, identity, volume_id))
+    post_mount.link_error(
+        mount_failed.s(
+            driverCls, provider, identity, volume_id))
     post_mount_status.link_error(
         mount_failed.s(
             driverCls, provider, identity, volume_id))
     # Make a chain with link
     pre_mount_status.link(pre_mount)
     pre_mount.link(mount)
-    mount.link(post_mount_status)
+    mount.link(post_mount)
+    post_mount.link(post_mount_status)
     #Return the head node
     return pre_mount_status
 
