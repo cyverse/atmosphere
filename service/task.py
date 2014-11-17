@@ -13,7 +13,8 @@ from service.exceptions import DeviceBusyException, VolumeMountConflict
 from service.tasks.driver import deploy_to, deploy_init_to, add_floating_ip
 from service.tasks.driver import destroy_instance
 from service.tasks.volume import attach_task, mount_task, check_volume_task
-from service.tasks.volume import detach_task, umount_task
+from service.tasks.volume import detach_task, umount_task, mount_failed
+from service.tasks.volume import update_volume_metadata
 
 
 def deploy_init_task(driver, instance,
@@ -69,22 +70,63 @@ def detach_volume_task(driver, instance_id, volume_id, *args, **kwargs):
 
 def attach_volume_task(driver, instance_id, volume_id, device=None,
                        mount_location=None, *args, **kwargs):
-    logger.info("P_device - %s" % device)
-    logger.info("P_mount_location - %s" % mount_location)
+    """
+    Attach (And mount, if possible) volume to instance
+    Device and mount_location assumed if empty
+    """
+    logger.info("Attach: %s --> %s" % (volume_id,instance_id))
+    logger.info("device_location:%s, mount_location: %s"
+            % (device, mount_location))
     try:
-        attach_task.delay(
+        attach_volume = attach_task.si(
             driver.__class__, driver.provider, driver.identity,
-            instance_id, volume_id, device).get()
+            instance_id, volume_id, device)
         if not hasattr(driver, 'deploy_to'):
             #Do not attempt to mount if we don't have sh access
-            return
-
-        check_volume_task.delay(
-            driver.__class__, driver.provider, driver.identity,
-            instance_id, volume_id).get()
-        mount_task.delay(
-            driver.__class__, driver.provider, driver.identity,
-            instance_id, volume_id, mount_location).get()
+            attach_volume.apply_async()
+            #No mount location, return None
+            return None
+        mount_chain = _get_mount_chain(driver, instance_id, volume_id,
+                device, mount_location)
+        attach_volume.link(mount_chain)
+        attach_volume.apply_async()
     except Exception, e:
         raise VolumeMountConflict(instance_id, volume_id)
     return mount_location
+def _get_mount_chain(driver, instance_id, volume_id, device, mount_location):
+    driverCls = driver.__class__
+    provider = driver.provider
+    identity = driver.identity
+
+    pre_mount_status = update_volume_metadata.si(
+            driverCls, provider, identity,
+            volume_id, {'tmp_status':'mounting'})
+    pre_mount = check_volume_task.si(
+        driverCls, provider, identity,
+        instance_id, volume_id)
+    mount = mount_task.si(
+            driverCls, provider, identity,
+            instance_id, volume_id, device, mount_location)
+    post_mount_status = update_volume_metadata.si(
+            driverCls, provider, identity,
+            volume_id, {'tmp_status':''})
+    #Error Links
+    pre_mount_status.link_error(
+        mount_failed.s(
+            driverCls, provider, identity, volume_id))
+    pre_mount.link_error(
+        mount_failed.s(
+            driverCls, provider, identity, volume_id))
+    mount.link_error(
+        mount_failed.s(
+            driverCls, provider, identity, volume_id))
+    post_mount_status.link_error(
+        mount_failed.s(
+            driverCls, provider, identity, volume_id))
+    # Make a chain with link
+    pre_mount_status.link(pre_mount)
+    pre_mount.link(mount)
+    mount.link(post_mount_status)
+    #Return the head node
+    return pre_mount_status
+

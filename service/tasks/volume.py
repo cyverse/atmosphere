@@ -6,6 +6,8 @@ import time
 
 from datetime import datetime
 
+from atmosphere.celery import app
+from celery.result import allow_join_result
 from celery.decorators import task
 from celery import chain
 
@@ -18,6 +20,7 @@ from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
 from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
 from service.instance import update_instance_metadata
+from service import volume as volume_service
 
 from service.driver import get_driver
 from service.deploy import mount_volume, check_volume, mkfs_volume,\
@@ -80,7 +83,7 @@ def check_volume_task(driverCls, provider, identity,
       default_retry_delay=20,
       ignore_result=False)
 def mount_task(driverCls, provider, identity, instance_id, volume_id,
-               mount_location=None, *args, **kwargs):
+               device=None, mount_location=None, *args, **kwargs):
     try:
         logger.debug("mount task started at %s." % datetime.now())
         logger.debug("mount_location: %s" % (mount_location, ))
@@ -90,7 +93,8 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         logger.debug(volume)
         try:
             attach_data = volume.extra['attachments'][0]
-            device = attach_data['device']
+            if not device:
+                device = attach_data['device']
         except KeyError, IndexError:
             logger.warn("Volume %s missing attachments in Extra"
                         % (volume,))
@@ -321,3 +325,45 @@ def detach_task(driverCls, provider, identity,
             return
         logger.exception(exc)
         detach_task.retry(exc=exc)
+
+@task(name="update_volume_metadata", max_retries=2, default_retry_delay=15)
+def update_volume_metadata(driverCls, provider,
+        identity, volume_alias,
+        metadata):
+    """
+    """
+    try:
+        logger.debug("update_volume_metadata task started at %s." % datetime.now())
+        driver = get_driver(driverCls, provider, identity)
+        volume = driver.get_volume(volume_alias)
+        if not volume:
+            return
+        return volume_service.update_volume_metadata(
+            driver, volume,
+            metadata=metadata)
+        logger.debug("volume_metadata task finished at %s." % datetime.now())
+    except Exception as exc:
+        logger.exception(exc)
+        update_volume_metadata.retry(exc=exc)
+
+# Deploy and Destroy tasks
+@task(name="mount_failed")
+def mount_failed(task_uuid, driverCls, provider, identity, volume_id,
+                  **celery_task_args):
+    try:
+        logger.debug("mount_failed task started at %s." % datetime.now())
+        logger.info("task_uuid=%s" % task_uuid)
+        result = app.AsyncResult(task_uuid)
+        with allow_join_result():
+            exc = result.get(propagate=False)
+        err_str = "Mount Error Traceback:%s" % (result.traceback,)
+        logger.error(err_str)
+        driver = get_driver(driverCls, provider, identity)
+        volume = driver.get_volume(volume_id)
+        return volume_service.update_volume_metadata(
+            driver, volume,
+            metadata={'tmp_status': 'mount_error'})
+        logger.debug("mount_failed task finished at %s." % datetime.now())
+    except Exception as exc:
+        logger.warn(exc)
+        mount_failed.retry(exc=exc)

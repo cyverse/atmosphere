@@ -647,6 +647,7 @@ def check_process_task(driverCls, provider, identity,
         check_process_task.retry(exc=exc)
 
 
+
 @task(name="update_metadata", max_retries=250, default_retry_delay=15)
 def update_metadata(driverCls, provider, identity, instance_alias, metadata,
         replace_metadata=False):
@@ -661,9 +662,6 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata,
         instance = driver.get_instance(instance_alias)
         if not instance:
             return
-        #NOTE: This task will only be executed in TEST mode
-        if app.conf.CELERY_ALWAYS_EAGER:
-            eager_update_metadata(driver, instance, metadata)
         return update_instance_metadata(
             driver, instance, data=metadata, replace=replace_metadata)
         logger.debug("update_metadata task finished at %s." % datetime.now())

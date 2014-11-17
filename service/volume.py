@@ -5,6 +5,36 @@ from service.instance import network_init
 from service.exceptions import OverQuotaError
 from core.models.identity import Identity
 
+def update_volume_metadata(esh_driver, esh_volume,
+        metadata={}):
+    """
+    NOTE: This will NOT WORK for TAGS until openstack
+    allows JSONArrays as values for metadata!
+    NOTE: This will NOT replace missing metadata tags..
+    ex:
+    Start: ('a':'value','c':'value')
+    passed: c=5
+    End: ('a':'value', 'c':5)
+    """
+    wait_time = 1
+    if not esh_volume:
+        return {}
+    volume_id = esh_volume.id
+
+    if not hasattr(esh_driver._connection, 'ex_update_volume_metadata'):
+        logger.warn("EshDriver %s does not have function 'ex_update_volume_metadata'"
+                    % esh_driver._connection.__class__)
+        return {}
+    data = esh_volume.extra.get('metadata',{})
+    data.update(metadata)
+    try:
+        return esh_driver._connection.ex_update_volume_metadata(esh_volume, data)
+    except Exception, e:
+        logger.exception("Error updating the metadata")
+        if 'incapable of performing the request' in e.message:
+            return {}
+        else:
+            raise
 
 def create_volume(esh_driver, identity_id, name, size,
                   description=None, metadata=None, snapshot=None, image=None):
