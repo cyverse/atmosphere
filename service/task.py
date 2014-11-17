@@ -135,12 +135,11 @@ def _get_mount_chain(driver, instance_id, volume_id, device, mount_location):
     pre_mount = check_volume_task.si(
         driverCls, provider, identity,
         instance_id, volume_id)
-    mount = mount_task.s(
+    mount = mount_task.si(
             driverCls, provider, identity,
             instance_id, volume_id, device, mount_location)
-    post_mount = update_mount_location.si(
-            driverCls, provider, identity,
-            instance_id, volume_id)
+    post_mount = update_mount_location.s(
+            driverCls, provider, identity, volume_id)
     post_mount_status = update_volume_metadata.si(
             driverCls, provider, identity,
             volume_id, {'tmp_status':''})
