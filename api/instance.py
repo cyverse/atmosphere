@@ -427,15 +427,21 @@ class InstanceAction(APIView):
         try:
             if 'volume' in action:
                 volume_id = action_params.get('volume_id')
+                mount_location = action_params.get('mount_location', None)
+                device = action_params.get('device', None)
                 if 'attach_volume' == action:
-                    mount_location = action_params.get('mount_location', None)
                     if mount_location == 'null' or mount_location == 'None':
                         mount_location = None
-                    device = action_params.get('device', None)
                     if device == 'null' or device == 'None':
                         device = None
                     task.attach_volume_task(esh_driver, esh_instance.alias,
                                             volume_id, device, mount_location)
+                elif 'mount_volume' == action:
+                    task.mount_volume_task(esh_driver, esh_instance.alias,
+                            volume_id, device, mount_location)
+                elif 'unmount_volume' == action:
+                    task.unmount_volume_task(esh_driver, esh_instance.alias,
+                            volume_id, device, mount_location)
                 elif 'detach_volume' == action:
                     (result, error_msg) = task.detach_volume_task(
                         esh_driver,

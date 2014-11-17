@@ -11,6 +11,7 @@ from threepio import logger
 from atmosphere import settings
 
 from core.query import only_current
+from core.models.provider import Provider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
 from core.metadata import _get_admin_owner
@@ -35,7 +36,7 @@ class Application(models.Model):
     created_by = models.ForeignKey('AtmosphereUser')
     created_by_identity = models.ForeignKey(Identity, null=True)
 
-    def _current_machines(self):
+    def _current_machines(self, request_user=None):
         """
         Return a list of current provider machines.
         NOTE: Defined as:
@@ -48,6 +49,13 @@ class Application(models.Model):
             | Q(provider__end_date__gt=timezone.now()),
             only_current(),
             provider__active=True)
+        if request_user:
+            if type(request_user) == AnonymousUser:
+                providers = Provider.objects.filter(public=True)
+            else:
+                providers = [identity.provider for identity in
+                             request_user.identity_set.all()]
+            pms = pms.filter(provider__in=providers)
         return pms
 
     def get_threshold(self):

@@ -13,7 +13,7 @@ from threepio import logger
 
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProfileSerializer, AtmoUserSerializer
-
+from core.models.profile import UserProfile
 
 class Profile(APIView):
     """Profile can be thought of as the 'entry-point' to the Atmosphere APIs.
