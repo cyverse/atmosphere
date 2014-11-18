@@ -894,8 +894,9 @@ def update_membership_for(provider_id):
 
 @task(name="update_membership")
 def update_membership():
+    from core.models.provider import Provider as CoreProvider
     from service.accounts.eucalyptus import AccountDriver as EucaAcctDriver
-    for provider in Provider.objects.all():
+    for provider in CoreProvider.objects.all():
         update_membership_for.apply_async( args=[provider.id])
 
 
