@@ -103,6 +103,11 @@ def mount_volume_task(driver, instance_id, volume_id, device=None,
             #Do not attempt to mount if we don't have sh access
             return None
         vol = driver.get_volume(volume_id)
+        existing_mount = vol.extra.get('metadata',{}).get('mount_location')
+        if existing_mount:
+            raise VolumeMountConflict(instance_id, volume_id,
+            "Volume already mounted at %s. Run 'unmount_volume' first!" %
+            existing_mount)
         if not driver._connection.ex_volume_attached_to_instance(vol, instance_id):
             raise VolumeMountConflict(instance_id, volume_id, "Cannot mount volume %s "
                     "-- Not attached to instance %s" % (volume_id, instance_id))
