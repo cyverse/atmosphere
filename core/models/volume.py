@@ -83,6 +83,12 @@ class Volume(models.Model):
         if attach_data and attach_data.get("instance_alias"):
             return attach_data["instance_alias"]
 
+    def get_metadata(self):
+        metadata = None
+        if self.esh and self.esh.extra:
+            metadata = self.esh.extra.get('metadata', {})
+        return metadata
+
     def get_attach_data(self):
         if self.esh and self.esh.extra:
             attach_data = self.esh.extra.get('attachments', {})
@@ -101,6 +107,12 @@ class Volume(models.Model):
                     or last_history.status.name == VolumeStatus.ATTACHING):
                 return last_history.get_attach_data()
         return None
+
+    def esh_metadata(self):
+        """
+        TODO: Refactor and use get_metadata.
+        """
+        return self.get_metadata()
 
     def esh_attach_data(self):
         """

@@ -643,6 +643,7 @@ class GroupSerializer(serializers.ModelSerializer):
 class VolumeSerializer(serializers.ModelSerializer):
     status = serializers.CharField(read_only=True, source='esh_status')
     attach_data = serializers.Field(source='esh_attach_data')
+    metadata = serializers.Field(source='esh_metadata')
     identity = CleanedIdentitySerializer(source="created_by_identity")
     projects = ProjectsField()
 

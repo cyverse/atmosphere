@@ -377,6 +377,18 @@ class InstanceAction(APIView):
                      "device":"optional",
                      "mount_location":"optional"},
                  "description":"Attaches the volume <id> to instance"},
+                {"action":"mount_volume",
+                 "action_params":{
+                     "volume_id":"required",
+                     "device":"optional",
+                     "mount_location":"optional"
+                     },
+                 "description":"Unmount the volume <id> from instance"},
+                {"action":"unmount_volume",
+                 "action_params":{
+                     "volume_id":"required",
+                     },
+                 "description":"Mount the volume <id> to instance"},
                 {"action":"detach_volume",
                  "action_params":{"volume_id":"required"},
                  "description":"Detaches the volume <id> to instance"},
@@ -434,13 +446,13 @@ class InstanceAction(APIView):
                         mount_location = None
                     if device == 'null' or device == 'None':
                         device = None
-                    task.attach_volume_task(esh_driver, esh_instance.alias,
+                    future_mount_location = task.attach_volume_task(esh_driver, esh_instance.alias,
                                             volume_id, device, mount_location)
                 elif 'mount_volume' == action:
-                    task.mount_volume_task(esh_driver, esh_instance.alias,
+                    future_mount_location = task.mount_volume_task(esh_driver, esh_instance.alias,
                             volume_id, device, mount_location)
                 elif 'unmount_volume' == action:
-                    task.unmount_volume_task(esh_driver, esh_instance.alias,
+                    (result, error_msg) = task.unmount_volume_task(esh_driver, esh_instance.alias,
                             volume_id, device, mount_location)
                 elif 'detach_volume' == action:
                     (result, error_msg) = task.detach_volume_task(
@@ -531,6 +543,7 @@ class InstanceAction(APIView):
                 "The requested action %s is not available on this provider"
                 % action_params['action'])
         except Exception, exc:
+            logger.exception("Exception occurred processing InstanceAction")
             message = exc.message
             if message.startswith('409 Conflict'):
                 return failure_response(

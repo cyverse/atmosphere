@@ -76,7 +76,22 @@ def check_volume_task(driverCls, provider, identity,
     except Exception as exc:
         logger.warn(exc)
         check_volume_task.retry(exc=exc)
-
+def _parse_mount_location(mount_output, device_location):
+    """
+    GENERAL ASSUMPTION:
+    Mount output is ALWAYS the same, and it looks like this:
+    <DEV_LOCATION> on <MOUNT_LOCATION> type (Disk Specs ...)
+    By splitting ' on '     AND      ' type '
+    we can always retrieve <MOUNT_LOCATION>
+    """
+    for line in mount_output.split("\n"):
+        if device_location not in line:
+            continue
+        before_text_idx = line.find(" on ")+4
+        after_text_idx = line.find(" type ")
+        if before_text_idx == -1 or after_text_idx == -1:
+            return ""
+        return line[before_text_idx:after_text_idx]
 
 @task(name="mount_task",
       max_retries=0,
@@ -113,6 +128,11 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         driver.deploy_to(instance, **kwargs)
 
         if device in cm_script.stdout:
+            mount_location = _parse_mount_location(cm_script.stdout, device)
+            if not mount_location:
+                raise Exception("Device already mounted, "
+                "but mount location could not be determined!"
+                "Check _parse_mount_location()!")
             logger.warn("Device already mounted. Mount output:%s" % cm_script.stdout)
             #Device has already been mounted. Move along..
             return mount_location
