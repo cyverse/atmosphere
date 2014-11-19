@@ -542,6 +542,7 @@ class InstanceAction(APIView):
                 "The requested action %s is not available on this provider"
                 % action_params['action'])
         except Exception, exc:
+            logger.exception("Exception occurred processing InstanceAction")
             message = exc.message
             if message.startswith('409 Conflict'):
                 return failure_response(
