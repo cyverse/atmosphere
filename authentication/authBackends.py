@@ -138,11 +138,11 @@ class AuthTokenLoginBackend(ModelBackend):
             return None
         if valid_token.is_expired():
             logger.debug(
-                    "[AUTHTOKEN] Token %s is expired. (User:%s)" 
+                    "[AUTHTOKEN] Token %s is expired. (User:%s)"
                     % (valid_token.key, valid_token.user))
             return None
         logger.debug(
-                "[AUTHTOKEN] Valid Token %s (User:%s)" 
+                "[AUTHTOKEN] Valid Token %s (User:%s)"
                 % (valid_token.key, valid_token.user))
         valid_user = valid_token.user
         return get_or_create_user(valid_user, None)

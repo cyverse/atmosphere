@@ -209,7 +209,7 @@ def cas_validateTicket(request):
 
     try:
         user = User.objects.get(
-                username=saml_response.user)
+                username=cas_response.user)
     except User.DoesNotExist:
         return HttpResponseRedirect(no_user_url)
     auth_token = create_session_token(None, user, request)
