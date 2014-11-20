@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from core.models import Identity
-from api import get_esh_driver
+from service.driver import get_esh_driver
 
 def main():
     for ident in Identity.objects.filter(provider__id=1):

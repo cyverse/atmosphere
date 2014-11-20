@@ -9,8 +9,9 @@ from core.models.size import convert_esh_size
 
 from api.serializers import ProviderSizeSerializer
 
-from api import prepare_driver, invalid_creds
+from api import invalid_creds
 from api.permissions import InMaintenance, ApiAuthRequired
+from service.driver import prepare_driver
 
 
 class FlowList(APIView):

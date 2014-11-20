@@ -10,7 +10,8 @@ from threepio import logger
 
 from atmosphere import settings
 
-from core.query import only_active
+from core.query import only_current
+from core.models.provider import Provider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
 from core.metadata import _get_admin_owner
@@ -35,21 +36,61 @@ class Application(models.Model):
     created_by = models.ForeignKey('AtmosphereUser')
     created_by_identity = models.ForeignKey(Identity, null=True)
 
-    def _current_machines(self):
+    def _current_machines(self, request_user=None):
         """
         Return a list of current provider machines.
+        NOTE: Defined as:
+                * Provider is still listed as active
+                * Provider has not exceeded its end_date
+                * The ProviderMachine has not exceeded its end_date
         """
         pms = self.providermachine_set.filter(
             Q(provider__end_date=None)
             | Q(provider__end_date__gt=timezone.now()),
-            only_active())
+            only_current(),
+            provider__active=True)
+        if request_user:
+            if type(request_user) == AnonymousUser:
+                providers = Provider.objects.filter(public=True)
+            else:
+                providers = [identity.provider for identity in
+                             request_user.identity_set.all()]
+            pms = pms.filter(provider__in=providers)
         return pms
+
+    def get_threshold(self):
+        try:
+            return self.threshold
+        except ApplicationThreshold.DoesNotExist, no_threshold:
+            return None
 
     def get_projects(self, user):
         projects = self.projects.filter(
-            only_active(),
+            only_current(),
             owner=user)
         return projects
+
+    def update_images(self, **updates):
+        from service.driver import get_account_driver
+        for pm in self._current_machines():
+            pm.update_image(**updates)
+
+    def update_owners(self, owners_list):
+        """
+        Update the list of people allowed to view the image
+        """
+        pass
+
+    def update_privacy(self, is_private):
+        """
+        Applications deal with 'private' as being true,
+        NOTE: Images commonly use the 'is_public' field,
+        so the value must be flipped internally.
+        """
+        is_public = not is_private
+        self.update_images(is_public=is_public)
+        self.private = is_private
+        self.save()
 
     def featured(self):
         return True if self.tags.filter(name__iexact='featured') else False
@@ -103,25 +144,6 @@ class Application(models.Model):
         #TODO: if changes were made..
         #TODO: Call out to OpenStack, Admin(Email), Groupy Hooks..
         #self.update_images()
-
-    def update_images():
-        from service.accounts.openstack import AccountDriver as OSAccounts
-        for pm in self._current_machines():
-            if pm.provider.get_type_name().lower() != 'openstack':
-                continue
-            image_id = pm.identifier
-            provider = pm.provider
-            try:
-                accounts = OSAccounts(pm.provider)
-                image = accounts.image_manager.get_image(image_id)
-                self.diff_updates(pm, image)
-                accounts.image_manager.update_image(image, **updates)
-            except Exception as ex:
-                logger.warn("Image Update Failed for %s on Provider %s"
-                            % (image_id, provider))
-
-    def diff_updates(self, provider_machine, image):
-        pass
 
     def update(self, *args, **kwargs):
         """
@@ -357,7 +379,7 @@ class ApplicationThreshold(models.Model):
     storage_min = models.IntegerField(default=0)
 
     def __unicode__(self):
-        return "%s requires >%sMB memory, >%s GB disk" % (self.application,
+        return "%s requires >%s MB memory, >%s GB disk" % (self.application,
                                                           self.memory_min,
                                                           self.storage_min)
 

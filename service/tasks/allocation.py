@@ -1,6 +1,4 @@
 import time
-
-from api import get_esh_driver
 from datetime import timedelta
 
 from django.utils import timezone
@@ -56,7 +54,7 @@ def monitor_instances():
     Update instances for each active provider.
     """
     for p in Provider.get_active():
-        monitor_instances_for(p)
+        monitor_instances_for.apply_async(args=[p.id])
 
 
 def get_instance_owner_map(provider, users=None):
@@ -77,11 +75,13 @@ def get_instance_owner_map(provider, users=None):
     return identity_map
 
 
-def monitor_instances_for(provider, users=None, print_logs=False):
+@task(name="monitor_instances_for", queue="celery_periodic")
+def monitor_instances_for(provider_id, users=None, print_logs=False):
     """
     Update instances for provider.
     """
     #For now, lets just ignore everything that isn't openstack.
+    provider = Provider.objects.get(id=provider_id)
     if 'openstack' not in provider.type.name.lower():
         return
 
@@ -229,7 +229,7 @@ def enforce_allocation(identity, user, time_used):
         return False
     logger.info("%s is OVER their allowed allocation by %s" %
                 (user.username, time_diff))
-    driver = get_esh_driver(identity)
+    driver = get_cached_driver(identity=identity)
     esh_instances = driver.list_instances()
     for instance in esh_instances:
         try:

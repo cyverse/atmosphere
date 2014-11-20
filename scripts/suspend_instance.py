@@ -3,7 +3,7 @@ import argparse
 import sys
 from traceback import print_exc
 
-from api import get_esh_driver
+from service.driver import get_esh_driver
 
 from core.models import Provider, Identity
 

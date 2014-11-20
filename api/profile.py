@@ -13,30 +13,27 @@ from threepio import logger
 
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProfileSerializer, AtmoUserSerializer
-
+from core.models.profile import UserProfile
 
 class Profile(APIView):
     """Profile can be thought of as the 'entry-point' to the Atmosphere APIs.
     Once authentiated, a user can find their default provider and identity.
-    The IDs for provider and Identity can be used to navigate the rest of the API.
+    The IDs for provider and Identity can be used to navigate the rest of
+    the API.
     """
 
-
     permission_classes = (ApiAuthRequired,)
-    
+
     def get(self, request, provider_id=None, identity_id=None):
         """Authentication Required, retrieve the users profile."""
         #logger.info(request.user)
         user = request.user
         #logger.debug(user.get_profile())
-        profile = user.get_profile() 
+        profile = user.get_profile()
         serialized_data = ProfileSerializer(profile).data
         identity = user.select_identity()
         identity_id = identity.id
         provider_id = identity.provider.id
-        serialized_data.update({
-
-        })
         response = Response(serialized_data)
         return response
 
@@ -49,9 +46,9 @@ class Profile(APIView):
         user = request.user
         profile = user.get_profile()
         mutable_data = request.DATA.copy()
-
-        if mutable_data.has_key('selected_identity'):
-            user_data = {'selected_identity':mutable_data.pop('selected_identity')}
+        if "selected_identity" in mutable_data:
+            user_data = {"selected_identity":
+                         mutable_data.pop("selected_identity")}
             serializer = AtmoUserSerializer(user,
                                             data=user_data,
                                             partial=True)

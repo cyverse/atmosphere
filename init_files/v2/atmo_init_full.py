@@ -121,15 +121,23 @@ def set_hostname(hostname, distro):
     #And set a dhcp exithook to keep things running on suspend/stop
     if is_rhel(distro):
         run_command(['/usr/bin/yum', '-qy', 'install', 'dhcp'])
-        download_file(
-            '%s/%s/centos_hostname-exit-hook.sh'
-            % (ATMO_INIT_FILES, SCRIPT_VERSION),
-            "/etc/dhclient-exit-hooks",
-            match_hash='')
-        run_command(['/bin/chmod', 'a+x', "/etc/dhclient-exit-hooks"])
+        if os.path.exists("/etc/dhcp"):
+            download_file(
+                '%s/%s/hostname-exit-hook.sh'
+                % (ATMO_INIT_FILES, SCRIPT_VERSION),
+                "/etc/dhcp/dhclient-exit-hooks",
+                match_hash='')
+            run_command(['/bin/chmod', 'a+x', "/etc/dhcp/dhclient-exit-hooks"])
+        else:
+            download_file(
+                '%s/%s/hostname-exit-hook.sh'
+                % (ATMO_INIT_FILES, SCRIPT_VERSION),
+                "/etc/dhclient-exit-hooks",
+                match_hash='')
+            run_command(['/bin/chmod', 'a+x', "/etc/dhclient-exit-hooks"])
     else:
         download_file(
-            '%s/%s/ubuntu_hostname-exit-hook.sh'
+            '%s/%s/hostname-exit-hook.sh'
             % (ATMO_INIT_FILES, SCRIPT_VERSION),
             "/etc/dhcp/dhclient-exit-hooks.d/hostname",
             match_hash='')
@@ -172,6 +180,18 @@ def _get_hostname_by_socket(public_ip):
     fqdn = socket.getfqdn(public_ip)
     return fqdn
 
+# this is necessary because tacc ips do not have a reverse lookup
+def tacc_ip2hostname(ip):
+
+    # let's split the ip first
+    octets = ip.split(".")
+
+    # simple check to verify ip number and last octet
+    if ip.startswith("129.114.5.") and octets[3].isdigit():
+       return "austin5-" + octets[3] + ".cloud.bio.ci"
+    else:
+       return None
+
 def get_hostname(instance_metadata, public_ip_hint=None):
     """
     Attempts multiple ways to establish the public IP and hostname.
@@ -183,7 +203,9 @@ def get_hostname(instance_metadata, public_ip_hint=None):
     if not instance_metadata:
         instance_metadata = {}
     if 'public-ipv4' in instance_metadata:
-        public_hostname = _get_hostname_by_socket(instance_metadata['public-ipv4'])
+        public_hostname = tacc_ip2hostname(instance_metadata['public-ipv4'])
+        if not public_hostname:
+            public_hostname = _get_hostname_by_socket(instance_metadata['public-ipv4'])
         result = _test_hostname(public_hostname)
         if result:
             return public_hostname
@@ -196,12 +218,16 @@ def get_hostname(instance_metadata, public_ip_hint=None):
         if result:
             return public_hostname
     if defined_metadata.get('public-ip'):
-        public_hostname = _get_hostname_by_socket(defined_metadata['public-ip'])
+        public_hostname = tacc_ip2hostname(defined_metadata['public-ip'])
+        if not public_hostname:
+            public_hostname = _get_hostname_by_socket(defined_metadata['public-ip'])
         result = _test_hostname(public_hostname)
         if result:
             return public_hostname
     if public_ip_hint:
-        public_hostname = _get_hostname_by_socket(public_ip_hint)
+        public_hostname = tacc_ip2hostname(public_ip_hint)
+        if not public_hostname:
+            public_hostname = _get_hostname_by_socket(public_ip_hint)
         result = _test_hostname(public_hostname)
         if result:
             return public_hostname
@@ -372,13 +398,8 @@ def ssh_config(distro):
 
 def get_metadata_keys(metadata):
     keys = []
-    #Eucalyptus/Openstack key (Traditional metadata API)
-    euca_key = _make_request('%s%s' % (eucalyptus_meta_server,
-                                       "public-keys/0/openssh-key/"))
     os_key = _make_request('%s%s' % (openstack_meta_server,
                                      "public-keys/0/openssh-key/"))
-    if euca_key:
-        keys.append(euca_key)
     if os_key:
         keys.append(os_key)
     #JSON metadata API
@@ -391,11 +412,8 @@ def get_metadata_keys(metadata):
 def get_metadata():
     openstack_json_metadata = 'http://169.254.169.254/openstack/'\
                               'latest/meta_data.json'
-    metadata = collect_metadata(eucalyptus_meta_server)
-    if not metadata:
-        metadata = collect_metadata(openstack_meta_server)
-        metadata.update(
-            collect_json_metadata(openstack_json_metadata))
+    metadata = collect_metadata(openstack_meta_server)
+    metadata.update(collect_json_metadata(openstack_json_metadata))
     return metadata
 
 
@@ -1062,8 +1080,6 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password,
                      vnclicense, public_ip_hint):
     distro = get_distro()
     logging.debug("Distro - %s" % distro)
-    hostname = get_hostname(instance_metadata)
-    set_hostname(hostname, distro)
     linuxuser = user
     linuxpass = ""
     public_ip = get_public_ip(instance_metadata)

@@ -33,14 +33,14 @@ class VolumeTests(TestCase):
 
     def setUp(self):
         #Initialize core DB
-        self.euca_admin_id = create_euca_provider()
-        self.euca_provider = self.euca_admin_id.provider
+        #self.euca_admin_id = create_euca_provider()
+        #self.euca_provider = self.euca_admin_id.provider
         self.os_admin_id = create_os_provider()
         self.os_provider = self.os_admin_id.provider
         #Ensure there is an account created/ready to go
-        euca_accounts = EucaAccounts(self.euca_provider)
-        euca_user = euca_accounts.get_user(settings.TEST_RUNNER_USER)
-        self.euca_id = euca_accounts.create_account(euca_user, max_quota=True)
+        #euca_accounts = EucaAccounts(self.euca_provider)
+        #euca_user = euca_accounts.get_user(settings.TEST_RUNNER_USER)
+        #self.euca_id = euca_accounts.create_account(euca_user, max_quota=True)
         os_accounts = OSAccounts(self.os_provider)
         self.os_id = os_accounts.create_account(
                 settings.TEST_RUNNER_USER, 
@@ -73,22 +73,22 @@ class VolumeTests(TestCase):
                 self, self.os_instance_url, **instance_data)
 
         #Prepare Eucalyptus
-        reverse_link = reverse('api:public_apis:volume-list',
-                              args=[self.euca_id.provider.id,
-                                    self.euca_id.id])
-        self.euca_volume_url = urljoin(settings.SERVER_URL, reverse_link)
-        reverse_link = reverse('api:public_apis:instance-list',
-                              args=[self.euca_id.provider.id,
-                                    self.euca_id.id])
-        self.euca_instance_url = urljoin(settings.SERVER_URL, reverse_link)
-        instance_data = {
-                "size_alias":"m1.small",
-                "machine_alias":"emi-E7F8300F",
-                "name":"test volume attachment",
-                "delete_before":False
-            }
-        (self.euca_instance_id, self.euca_instance_ip) = standup_instance(
-                self, self.euca_instance_url, **instance_data)
+        #reverse_link = reverse('api:public_apis:volume-list',
+        #                      args=[self.euca_id.provider.id,
+        #                            self.euca_id.id])
+        #self.euca_volume_url = urljoin(settings.SERVER_URL, reverse_link)
+        #reverse_link = reverse('api:public_apis:instance-list',
+        #                      args=[self.euca_id.provider.id,
+        #                            self.euca_id.id])
+        #self.euca_instance_url = urljoin(settings.SERVER_URL, reverse_link)
+        #instance_data = {
+        #        "size_alias":"m1.small",
+        #        "machine_alias":"emi-E7F8300F",
+        #        "name":"test volume attachment",
+        #        "delete_before":False
+        #    }
+        #(self.euca_instance_id, self.euca_instance_ip) = standup_instance(
+        #        self, self.euca_instance_url, **instance_data)
         
 
     def tearDown(self):

@@ -17,10 +17,10 @@ from core.models.instance import convert_esh_instance
 from core.models.size import convert_esh_size
 from core.models.provider import AccountProvider, Provider
 
-from api import get_esh_driver
-
 from atmosphere import settings
 from atmosphere.settings import secrets
+
+from service.cache import get_cached_driver, invalidate_cached_instances
 from service.quota import check_over_quota
 from service.allocation import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
@@ -28,6 +28,7 @@ from service.exceptions import OverAllocationError, OverQuotaError,\
     VolumeAttachConflict
 from service.accounts.openstack import AccountDriver as OSAccountDriver
                 
+
 def reboot_instance(esh_driver, esh_instance, reboot_type="SOFT"):
     """
     Default to a soft reboot, but allow option for hard reboot.
@@ -35,6 +36,7 @@ def reboot_instance(esh_driver, esh_instance, reboot_type="SOFT"):
     esh_driver.reboot_instance(esh_instance, reboot_type=reboot_type)
     #reboots take very little time..
     redeploy_init(esh_driver, esh_instance, countdown=5)
+
 
 def resize_instance(esh_driver, esh_instance, size_alias,
                     provider_id, identity_id, user):
@@ -45,10 +47,12 @@ def resize_instance(esh_driver, esh_instance, size_alias,
     #Write build state for new size
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
 
+
 def confirm_resize(esh_driver, esh_instance, provider_id, identity_id, user):
     esh_driver.confirm_resize_instance(esh_instance)
     #Double-Check we are counting on new size
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
+
 
 # Networking specific
 def remove_ips(esh_driver, esh_instance, update_meta=True):
@@ -77,6 +81,7 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
         return (True, True)
     return (True, False)
 
+
 def detach_port(esh_driver, esh_instance):
     instance_ports = network_manager.list_ports(device_id=esh_instance.id)
     if instance_ports:
@@ -98,6 +103,7 @@ def restore_network(esh_driver, esh_instance, identity_id):
     network = network_init(core_identity)
     return network
 
+
 def restore_instance_port(esh_driver, esh_instance):
     """
     This can be ignored when we move to vxlan
@@ -112,6 +118,7 @@ def restore_instance_port(esh_driver, esh_instance):
             "/virtualenv/lib/python2.7/site-packages\n")
     conn = libvirt.openReadOnly()
 
+
 def _extract_network_metadata(network_manager, esh_instance, node_network):
     try:
         network_name = node_network.keys()[0]
@@ -124,6 +131,7 @@ def _extract_network_metadata(network_manager, esh_instance, node_network):
             "Non-standard 'addresses' metadata. "
             "Cannot extract network_id" % esh_instance)
         return None
+
 
 def _get_network_id(esh_driver, esh_instance):
     """
@@ -238,6 +246,8 @@ def stop_instance(esh_driver, esh_instance, provider_id, identity_id, user,
     if reclaim_ip:
         remove_network(esh_driver, identity_id)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
+    invalidate_cached_instances(
+        identity=CoreIdentity.objects.get(id=identity_id))
 
 
 def start_instance(esh_driver, esh_instance,
@@ -264,6 +274,7 @@ def start_instance(esh_driver, esh_instance,
     if restore_ip:
         deploy_task.apply_async(countdown=10)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
+    invalidate_cached_instances(identity=CoreIdentity.objects.get(id=identity_id))
 
 
 def suspend_instance(esh_driver, esh_instance,
@@ -279,7 +290,9 @@ def suspend_instance(esh_driver, esh_instance,
     if reclaim_ip:
         remove_network(esh_driver, identity_id)
     update_status(esh_driver, esh_instance.id, provider_id, identity_id, user)
+    invalidate_cached_instances(identity=CoreIdentity.objects.get(id=identity_id))
     return suspended
+
 
 def admin_capacity_check(provider_id, instance_id):
     from service.driver import get_admin_driver
@@ -300,6 +313,7 @@ def admin_capacity_check(provider_id, instance_id):
     hypervisor_stats = admin_driver._connection.ex_detail_hypervisor_node(
             hypervisor_hostname)
     return test_capacity(hypervisor_hostname, instance, hypervisor_stats)
+
 
 def test_capacity(hypervisor_hostname, instance, hypervisor_stats):
     """
@@ -341,7 +355,6 @@ def resume_instance(esh_driver, esh_instance,
                     user, restore_ip=True,
                     update_meta=True):
     """
-
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
     from service.tasks.driver import update_metadata, _update_status_log
@@ -399,7 +412,7 @@ def update_status(esh_driver, instance_id, provider_id, identity_id, user):
 
 def get_core_instances(identity_id):
     identity = CoreIdentity.objects.get(id=identity_id)
-    driver = get_esh_driver(identity)
+    driver = get_cached_driver(identity=identity)
     instances = driver.list_instances()
     core_instances = [convert_esh_instance(driver,
                                            esh_instance,
@@ -411,8 +424,8 @@ def get_core_instances(identity_id):
 
 
 def destroy_instance(identity_id, instance_alias):
-    core_identity = CoreIdentity.objects.get(id=identity_id)
-    esh_driver = get_esh_driver(core_identity)
+    identity = CoreIdentity.objects.get(id=identity_id)
+    esh_driver = get_cached_driver(identity=identity)
     instance = esh_driver.get_instance(instance_alias)
     #Bail if instance doesnt exist
     if not instance:
@@ -452,8 +465,7 @@ def launch_instance(user, provider_id, identity_id,
                  % (now_time, user, "No Instance", alias, size_alias,
                     "Request Received"))
     core_identity = CoreIdentity.objects.get(id=identity_id)
-
-    esh_driver = get_esh_driver(core_identity, user)
+    esh_driver = get_cached_driver(identity=core_identity)
     size = esh_driver.get_size(size_alias)
 
     #May raise SizeNotAvailable
@@ -478,7 +490,7 @@ def launch_instance(user, provider_id, identity_id,
         core_instance.esh.extra.get('task') or
         core_instance.esh.extra.get('metadata', {}).get('tmp_status'),
         first_update=True)
-
+    invalidate_cached_instances(identity=core_identity)
     return core_instance
 
 
