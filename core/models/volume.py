@@ -66,7 +66,11 @@ class Volume(models.Model):
 
     def get_status(self):
         if self.esh and self.esh.extra:
-            return self.esh.extra["status"]
+            status = self.esh.extra["status"]
+            tmp_status = self.esh.extra.get('tmp_status','')
+            if tmp_status:
+                return "%s - %s" % (status, tmp_status)
+            return status
         last_history = self._get_last_history()
         if last_history:
             return last_history.status.name
@@ -82,12 +86,6 @@ class Volume(models.Model):
         attach_data = self.get_attach_data()
         if attach_data and attach_data.get("instance_alias"):
             return attach_data["instance_alias"]
-
-    def get_metadata(self):
-        metadata = None
-        if self.esh and self.esh.extra:
-            metadata = self.esh.extra.get('metadata', {})
-        return metadata
 
     def get_attach_data(self):
         if self.esh and self.esh.extra:
@@ -108,11 +106,14 @@ class Volume(models.Model):
                 return last_history.get_attach_data()
         return None
 
-    def esh_metadata(self):
+    def mount_location(self):
         """
         TODO: Refactor and use get_metadata.
         """
-        return self.get_metadata()
+        metadata = None
+        if self.esh and self.esh.extra:
+            metadata = self.esh.extra.get('metadata', {})
+        return metadata.get('mount_location',None)
 
     def esh_attach_data(self):
         """

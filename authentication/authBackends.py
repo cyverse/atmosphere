@@ -17,6 +17,14 @@ from authentication.protocol.oauth import lookupUser as oauth_lookupUser
 
 
 
+class YESBackend(ModelBackend):
+    """
+    Implemting an AuthenticationBackend
+    (Used by Django for logging in to admin, storing session info)
+    """
+    def authenticate(self, username=None, password=None, request=None):
+        return get_or_create_user(username, None )
+
 class SAMLLoginBackend(ModelBackend):
     """
     Implemting an AuthenticationBackend
