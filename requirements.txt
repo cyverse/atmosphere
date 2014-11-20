@@ -22,7 +22,7 @@ Pillow==2.5.3
 
 ## ours
 threepio==0.2.0
-rtwo==0.2.5
+rtwo==0.2.6
 caslib.py==2.1.0
 chromogenic==0.1.2
 jwt.py==0.1.0

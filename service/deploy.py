@@ -97,10 +97,15 @@ def freeze_instance(sleep_time=45):
         name="./deploy_freeze_instance.sh")
 
 
-def mount_volume(device, mount_location):
-    return ScriptDeployment("mkdir -p %s\n" % (mount_location)
-                            + "mount %s %s" % (device, mount_location),
-                            name="./deploy_mount_volume.sh")
+def mount_volume(device, mount_location, username=None, group=None):
+    mount_script = "mkdir -p %s; " % (mount_location,)
+    mount_script += "mount %s %s; " % (device, mount_location)
+    if username and group:
+        mount_script += "chown -R %s:%s %s" % (username, group, mount_location)
+    #NOTE: Fails to recognize mount_script as a str
+    # Removing this line will cause 'celery' to fail
+    # to execute this particular ScriptDeployment
+    return ScriptDeployment(str(mount_script), name="./deploy_mount_volume.sh")
 
 
 def check_mount():

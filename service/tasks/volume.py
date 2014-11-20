@@ -105,6 +105,13 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         volume = driver.get_volume(volume_id)
+
+        username = identity.get_username()
+        #DEV NOTE: Set as 'users' because this is a GUARANTEED group
+        # and we know our 'user' will exist (if atmo_init_full was executed)
+        # in case the VM does NOT rely on iPlant LDAP
+        groupname = "users"
+
         logger.debug(volume)
         try:
             attach_data = volume.extra['attachments'][0]
@@ -151,7 +158,7 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         logger.info("Device location - %s" % device)
         logger.info("New mount location - %s" % mount_location)
 
-        mv_script = mount_volume(device, mount_location)
+        mv_script = mount_volume(device, mount_location, username, groupname)
         kwargs.update({'deploy': mv_script})
         driver.deploy_to(instance, **kwargs)
         logger.debug("mount task finished at %s." % datetime.now())
