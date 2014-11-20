@@ -203,8 +203,8 @@ AUTH_USER_MODULE = 'core.AtmosphereUser'
 AUTH_PROFILE_MODULE = 'core.UserProfile'
 
 AUTHENTICATION_BACKENDS = (
-    # For always-access
-    'authentication.authBackends.YESBackend',
+    # For Token-Access
+    'authentication.authBackends.AuthTokenLoginBackend',
     # For Web-Access
     'authentication.authBackends.CASLoginBackend',
     'authentication.authBackends.SAMLLoginBackend',

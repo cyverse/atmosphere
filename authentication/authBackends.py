@@ -8,6 +8,7 @@ from core.models import AtmosphereUser as DjangoUser
 from threepio import auth_logger as logger
 
 from authentication import get_or_create_user
+from authentication.models import Token
 from authentication.protocol.ldap import ldap_validate, ldap_formatAttrs
 from authentication.protocol.ldap import lookupUser as ldap_lookupUser
 from authentication.protocol.cas import cas_validateUser
@@ -16,14 +17,6 @@ from authentication.protocol.oauth import lookupUser as oauth_lookupUser
 
 
 
-
-class YESBackend(ModelBackend):
-    """
-    Implemting an AuthenticationBackend
-    (Used by Django for logging in to admin, storing session info)
-    """
-    def authenticate(self, username=None, password=None, request=None):
-        return get_or_create_user(username, None )
 
 class SAMLLoginBackend(ModelBackend):
     """
@@ -98,7 +91,7 @@ class OAuthLoginBackend(ModelBackend):
     """
     def authenticate(self, username=None, password=None, request=None):
         """
-        Return user if validated by LDAP.
+        Return user if validated by OAuth.
         Return None otherwise.
         """
         #First argument, username, should hold the OAuth Token, no password.
@@ -128,3 +121,28 @@ class OAuthLoginBackend(ModelBackend):
         attributes = oauth_formatAttrs(oauth_attrs)
         logger.debug("[OAUTH] Authentication Success - " + valid_user)
         return get_or_create_user(valid_user, attributes)
+
+class AuthTokenLoginBackend(ModelBackend):
+    """
+    AuthenticationBackend for OAuth authorizations
+    (Authorize user from Third party (web) clients via OAuth)
+    """
+    def authenticate(self, username=None, password=None, auth_token=None, request=None):
+        """
+        Return user if validated by their auth_token
+        Return None otherwise.
+        """
+        try:
+            valid_token = Token.objects.get(key=auth_token)
+        except Token.DoesNotExist:
+            return None
+        if valid_token.is_expired():
+            logger.debug(
+                    "[AUTHTOKEN] Token %s is expired. (User:%s)" 
+                    % (valid_token.key, valid_token.user))
+            return None
+        logger.debug(
+                "[AUTHTOKEN] Valid Token %s (User:%s)" 
+                % (valid_token.key, valid_token.user))
+        valid_user = valid_token.user
+        return get_or_create_user(valid_user, None)
