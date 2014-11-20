@@ -76,7 +76,7 @@ class CoreApplicationSearch(BaseSearchProvider):
                 #Providermachine's provider is active
                 providermachine__provider__in=active_providers)
         # AND query matches on:
-        return base_apps.filter(
+        query_match = base_apps.filter(
             # app tag name
             Q(tags__name__icontains=query)
             # OR app tag desc
@@ -86,3 +86,4 @@ class CoreApplicationSearch(BaseSearchProvider):
             # OR app desc
             | Q(description__icontains=query),
             only_current())
+        return query_match.distinct()
