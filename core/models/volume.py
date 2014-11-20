@@ -110,7 +110,7 @@ class Volume(models.Model):
         """
         TODO: Refactor and use get_metadata.
         """
-        metadata = None
+        metadata = {}
         if self.esh and self.esh.extra:
             metadata = self.esh.extra.get('metadata', {})
         return metadata.get('mount_location',None)
