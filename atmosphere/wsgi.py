@@ -19,7 +19,6 @@ import sys
 #Adds the directory above wsgi.py to system path
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, '/opt/env/atmo/lib/python2.7/site-packages/')
-sys.path.insert(0, '/opt/env/atmo/lib/python2.7/site-packages/')
 sys.path.insert(1, root_dir)
 
 try:
@@ -29,6 +28,9 @@ try:
         "staging")
 except ImportError:
     print "Warning: newrelic not installed.."
+except Exception, e:
+    print "Warning: newrelic threw an exception.."
+    print e
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
 #LIBCLOUD_DEBUG = os.path.abspath(os.path.join(

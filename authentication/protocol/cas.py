@@ -86,11 +86,6 @@ def updateUserProxy(user, pgtIou, max_try=3):
     return False
 
 
-def createSessionToken(request, auth_token):
-    request.session['username'] = auth_token.user.username
-    request.session['token'] = auth_token.key
-
-
 """
 CAS is an optional way to login to Atmosphere
 This code integrates caslib into the Auth system
@@ -142,13 +137,14 @@ def saml_validateTicket(request):
         return HttpResponseRedirect(redirect_logout_url)
 
     try:
-        auth_token = createAuthToken(saml_response.user)
+        user = User.objects.get(
+                username=saml_response.user)
     except User.DoesNotExist:
         return HttpResponseRedirect(no_user_url)
+    auth_token = create_session_token(None, user, request)
     if auth_token is None:
         logger.info("Failed to create AuthToken")
         HttpResponseRedirect(redirect_logout_url)
-    createSessionToken(request, auth_token)
     return_to = request.GET.get('sendback')
     if not return_to:
         return HttpResponse(saml_response.response,
@@ -212,13 +208,14 @@ def cas_validateTicket(request):
     logger.info("Updated proxy for <%s> -- Auth success!" % cas_response.user)
 
     try:
-        auth_token = createAuthToken(cas_response.user)
+        user = User.objects.get(
+                username=cas_response.user)
     except User.DoesNotExist:
         return HttpResponseRedirect(no_user_url)
+    auth_token = create_session_token(None, user, request)
     if auth_token is None:
         logger.info("Failed to create AuthToken")
         HttpResponseRedirect(redirect_logout_url)
-    createSessionToken(request, auth_token)
     return_to = request.GET['sendback']
     logger.info("Session token created, return to: %s" % return_to)
     return HttpResponseRedirect(return_to)
