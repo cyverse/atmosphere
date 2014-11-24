@@ -335,6 +335,9 @@ def deploy_failed(task_uuid, driverCls, provider, identity, instance_id,
         update_instance_metadata(driver, instance,
                                  data={'tmp_status': 'deploy_error'},
                                  replace=False)
+        #Send deploy email
+        core_instance = Instance.objects.get(provider_alias=instance_id)
+        send_deploy_failed_email(core_instance, err_str)
         logger.debug("deploy_failed task finished at %s." % datetime.now())
     except Exception as exc:
         logger.warn(exc)
