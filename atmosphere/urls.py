@@ -56,7 +56,7 @@ urlpatterns = patterns(
     url(r'^admin/emulate/(?P<username>(%s))$' % user_match, 'web.views.emulate_request'),
     # DB Admin Panel for admin users
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^cas_admin/', 'web.views.redirectAdmin'),
+    url(r'^admin_login/', 'web.views.redirectAdmin'),
 
     #v2 api auth by token
     url(r'^auth$', 'authentication.views.token_auth', name='token-auth'),
