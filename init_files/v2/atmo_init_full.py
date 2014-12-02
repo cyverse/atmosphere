@@ -855,9 +855,9 @@ def install_irods(distro):
                       '/etc/motd',
                       match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
         download_file('http://www.iplantcollaborative.org/sites/default/files/'
-                      + 'irods/irodsFs_v33.centos5.x86_64',
+                      + 'irods/irodsFs_v32.rhel5.x86_64',
                       '/usr/local/bin/irodsFs.x86_64',
-                      match_hash='d5832b2d541a0bddc60dc01cf2e24869b53239bc')
+                      match_hash='b286ca61aaaa16fe7a0a2a3afc209ba7bbac5128')
         run_command(['/etc/init.d/iptables', 'stop'])
         run_command(['/usr/bin/yum', '-qy',
                      'install', 'emacs', 'mosh', 'patch'])
@@ -868,9 +868,9 @@ def install_irods(distro):
                       '/etc/motd.tail',
                       match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
         download_file('http://www.iplantcollaborative.org/sites/default/files/'
-                      + 'irods/irodsFs_v33.ubuntu12.x86_64',
+                      + 'irods/irodsFs_v32.ubuntu12.x86_64',
                       '/usr/local/bin/irodsFs.x86_64',
-                      match_hash='5bba98c4e87a7c04b7e317e02bf96150e2edc028')
+                      match_hash='59b55aa0dbc44ff5b73dfc912405ff817002284f')
         run_command(['/usr/bin/apt-get', 'update'])
         run_command(['/usr/bin/apt-get', '-qy',
                      'install', 'vim', 'mosh', 'patch'])
