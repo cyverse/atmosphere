@@ -56,7 +56,7 @@ def redirectAdmin(request):
     """
     return cas_loginRedirect(request,
                              settings.REDIRECT_URL+'/admin/')
-                             
+
 
 
 def redirectApp(request):
