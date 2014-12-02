@@ -7,6 +7,7 @@ Contact:        Steven Gregory <sgregory@iplantcollaborative.org>
 """
 from datetime import timedelta
 import time
+from django.contrib.auth import authenticate, login as django_login
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from django.http import HttpResponse
@@ -153,8 +154,8 @@ def saml_validateTicket(request):
     if not return_to:
         return HttpResponse(saml_response.response,
                             content_type="text/xml; charset=utf-8")
-    logger.info("Session token created, return to: %s" % return_to)
     return_to += "?token=%s" % auth_token
+    logger.info("Session token created, return to: %s" % return_to)
     return HttpResponseRedirect(return_to)
 
 
@@ -189,8 +190,8 @@ def cas_validateTicket(request):
     cas_response = caslib.cas_serviceValidate(ticket)
     if not cas_response.success:
         logger.debug("CAS Server did NOT validate ticket:%s"
-                     " and included this response:%s"
-                     % (ticket, cas_response.object))
+                " and included this response:%s (Err:%s)"
+                     % (ticket, cas_response.object, cas_response.error_str))
         return HttpResponseRedirect(redirect_logout_url)
     if not cas_response.user:
         logger.debug("User attribute missing from cas response!"
@@ -219,8 +220,12 @@ def cas_validateTicket(request):
         logger.info("Failed to create AuthToken")
         HttpResponseRedirect(redirect_logout_url)
     createSessionToken(request, auth_token)
+    #Authenticate and login this user.
+    if not request.user.is_authenticated():
+        user = authenticate(username=auth_token.user.username, password="", request=request)
+        django_login(request, user)
     return_to = request.GET['sendback']
-    logger.info("Session token created, return to: %s" % return_to)
+    logger.info("Session token created, User logged in, return to: %s" % return_to)
     return HttpResponseRedirect(return_to)
 
 

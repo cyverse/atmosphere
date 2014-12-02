@@ -179,6 +179,7 @@ MIDDLEWARE_CLASSES = (
     'corsheaders.middleware.CorsMiddleware',
     # corsheaders.middleware.CorsMiddleware Must be ahead of
     # configuration CommonMiddleware for an edge case.
+
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.gzip.GZipMiddleware',

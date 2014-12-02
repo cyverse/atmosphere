@@ -28,6 +28,8 @@ try:
         "staging")
 except ImportError:
     print "Warning: newrelic not installed.."
+except Exception:
+    print "Warning: newrelic not initialized.."
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
 #LIBCLOUD_DEBUG = os.path.abspath(os.path.join(
