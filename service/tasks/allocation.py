@@ -78,7 +78,8 @@ def get_instance_owner_map(provider, users=None):
 
 
 @task(name="monitor_instances_for", queue="celery_periodic")
-def monitor_instances_for(provider_id, users=None, print_logs=False):
+def monitor_instances_for(provider_id, users=None,
+                          print_logs=False, end_date=None):
     """
     Update instances for provider.
     """
@@ -100,14 +101,15 @@ def monitor_instances_for(provider_id, users=None, print_logs=False):
         print_table_header()
     for username in sorted(instance_map.keys()):
         instances = instance_map[username]
-        monitor_instances_for_user(provider, username, instances, print_logs)
+        monitor_instances_for_user(provider, username, instances,
+                                    print_logs, end_date)
     logger.info("Monitoring completed")
     if print_logs:
         logger.removeHandler(consolehandler)
 
 
 def monitor_instances_for_user(provider, username, instances,
-                               print_logs=False):
+                               print_logs=False, end_date=None):
     """
     """
     from core.models import IdentityMembership
@@ -128,15 +130,18 @@ def monitor_instances_for_user(provider, username, instances,
             #given delta, including the instances listed currently.
             time_period = settings.FIXED_WINDOW
             allocation = get_allocation(username, identity_id)
-            delta_time = get_delta(allocation, time_period)
+            delta_time = get_delta(allocation, time_period, end_date)
             time_used, instance_status_map = current_instance_time(
                 user, instances,
-                identity_id, delta_time)
+                identity_id, delta_time, end_date)
+            import ipdb;ipdb.set_trace()
             if print_logs:
                 print_table_row(instance_status_map, user,
                                 allocation, time_used)
                 return
-            enforce_allocation(identity, user, time_used)
+            over_allocation = enforce_allocation(identity, user, time_used)
+            if over_allocation:
+                print_instances(instance_status_map, user, allocation, time_used)
         except IdentityMembership.DoesNotExist:
             pass
             #if instances:
@@ -153,6 +158,22 @@ def print_table_header():
           "Instance,Status,Size (name),Size (CPUs),Start_Time,"\
           "End_Time,Active_Time,Cpu_Time"
 
+def print_instances(instance_status_map, user, allocation, time_used):
+    max_time_allowed = timedelta(minutes=allocation.threshold)
+    print "Username:%s Time allowed: %s Time Used: %s"\
+          % (user.username,
+             strfdelta(max_time_allowed),
+             strfdelta(time_used))
+    print 'Instances that counted against %s:' % (user.username,)
+    for instance, status_list in instance_status_map.items():
+        for history in status_list:
+            if history.cpu_time > timedelta(0):
+                print "Instance %s, Size %s (%s CPU), Start:%s, End:%s,"\
+                      " Active time:%s CPU time:%s" %\
+                  (instance.provider_alias,
+                   history.size.name, history.size.cpu,
+                   strfdate(history.start_count), strfdate(history.end_count),
+                   strfdelta(history.active_time), strfdelta(history.cpu_time))
 
 def print_table_row(instance_status_map, user, allocation, time_used):
     max_time_allowed = timedelta(minutes=allocation.threshold)
@@ -166,7 +187,7 @@ def print_table_row(instance_status_map, user, allocation, time_used):
                   (instance.provider_alias,
                    history.status.name,
                    history.size.name, history.size.cpu,
-                   strfdate(history.start_date), strfdate(history.end_date),
+                   strfdate(history.start_count), strfdate(history.end_count),
                    strfdelta(history.active_time), strfdelta(history.cpu_time))
 
 

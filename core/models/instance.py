@@ -267,12 +267,14 @@ class Instance(models.Model):
 
         total_time = timedelta()
         accounting_list = []
-        last_history = self.get_last_history()
         active_history = self.recent_history(earliest_time, latest_time)
 
         for state in active_history:
-            active_time = state.get_active_time(earliest_time, latest_time)
+            (active_time, start_count, end_count) = state.get_active_time(
+                    earliest_time, latest_time)
             state.active_time = active_time
+            state.start_count = start_count
+            state.end_count = end_count
             state.cpu_time = active_time * state.size.cpu
             accounting_list.append(state)
         return accounting_list
@@ -448,9 +450,6 @@ class InstanceStatusHistory(models.Model):
         A set of filters used to determine the amount of 'active time'
         earliest_time and latest_time are taken into account, if provided.
         """
-        # Inactive states are not counted against you.
-        if not self.is_active():
-            return timedelta()
 
         # When to start counting
         if earliest_time and self.start_date <= earliest_time:
@@ -467,14 +466,22 @@ class InstanceStatusHistory(models.Model):
             else:
                 final_time = self.end_date
         elif self.end_date:
+            #Final time is end date, because NOW is being used
+            # as the 'counter'
             final_time = self.end_date
         else:
             #This is the current status, so stop counting now..
             final_time = timezone.now()
 
+        #Sanity checks are important.
+        # Inactive states are not counted against you.
+        if not self.is_active():
+            return (timedelta(), start_time, final_time)
+        if self.start_date > final_time:
+            return (timedelta(), start_time, final_time)
         #Active time is easy now!
         active_time = final_time - start_time
-        return active_time
+        return (active_time, start_time, final_time)
     
 
     @classmethod
