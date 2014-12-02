@@ -134,7 +134,6 @@ def monitor_instances_for_user(provider, username, instances,
             time_used, instance_status_map = current_instance_time(
                 user, instances,
                 identity_id, delta_time, end_date)
-            import ipdb;ipdb.set_trace()
             if print_logs:
                 print_table_row(instance_status_map, user,
                                 allocation, time_used)
