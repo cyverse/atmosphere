@@ -25,7 +25,7 @@ try:
     import newrelic.agent
     newrelic.agent.initialize(
         os.path.join(root_dir, "extras/newrelic/atmosphere_newrelic.ini"),
-        "staging")
+        "production")
 except ImportError:
     print "Warning: newrelic not installed.."
 

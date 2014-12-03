@@ -131,7 +131,7 @@ def _is_instance_ready(driverCls, provider, identity,
     driver = get_driver(driverCls, provider, identity)
     instance = driver.get_instance(instance_alias)
     if not instance:
-        logger.debug("Instance has been terminated: %s." % instance.id)
+        logger.debug("Instance has been terminated: %s." % instance_alias)
         if return_id:
             return None
         return False

@@ -435,7 +435,7 @@ CELERYBEAT_SCHEDULE = {
     },
     "monitor_instances": {
         "task": "monitor_instances",
-        "schedule" : timedelta(minutes=30),
+        "schedule" : timedelta(minutes=15),
         "options": {"expires":10*60, "time_limit":10*60,
                     "queue":"celery_periodic"}
     },
