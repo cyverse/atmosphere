@@ -179,6 +179,7 @@ MIDDLEWARE_CLASSES = (
     'corsheaders.middleware.CorsMiddleware',
     # corsheaders.middleware.CorsMiddleware Must be ahead of
     # configuration CommonMiddleware for an edge case.
+
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.gzip.GZipMiddleware',
@@ -437,7 +438,7 @@ CELERYBEAT_SCHEDULE = {
     },
     "monitor_instances": {
         "task": "monitor_instances",
-        "schedule" : timedelta(minutes=30),
+        "schedule" : timedelta(minutes=15),
         "options": {"expires":10*60, "time_limit":10*60,
                     "queue":"celery_periodic"}
     },

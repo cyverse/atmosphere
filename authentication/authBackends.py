@@ -28,6 +28,7 @@ class SAMLLoginBackend(ModelBackend):
         Return user if validated by CAS
         Return None otherwise.
         """
+        #logger.debug("SAMLBackend-- U:%s P:%s R:%s" % (username, password, request))
         #logger.debug("U:%s P:%s R:%s" % (username, password, request))
         if not request:
             logger.debug("SAML Authentication skipped - No request.")
@@ -51,7 +52,7 @@ class CASLoginBackend(ModelBackend):
         Return user if validated by CAS
         Return None otherwise.
         """
-        #logger.debug("U:%s P:%s R:%s" % (username, password, request))
+        #logger.debug("CASBackend -- U:%s P:%s R:%s" % (username, password, request))
         if not username:
             logger.debug("CAS Authentication skipped - No Username.")
             return None
@@ -75,6 +76,7 @@ class LDAPLoginBackend(ModelBackend):
         Return user if validated by LDAP.
         Return None otherwise.
         """
+        #logger.debug("LDAPBackend-- U:%s P:%s R:%s" % (username, password, request))
         if not ldap_validate(username, password):
             logger.debug("LDAP Authentication failed - "+username)
             return None
@@ -94,6 +96,7 @@ class OAuthLoginBackend(ModelBackend):
         Return user if validated by OAuth.
         Return None otherwise.
         """
+        #logger.debug("OAUTHBackend- U:%s P:%s R:%s" % (username, password, request))
         #First argument, username, should hold the OAuth Token, no password.
         # if 'username' in username, the authentication is meant for CAS
         # if username and password, the authentication is meant for LDAP

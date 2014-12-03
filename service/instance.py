@@ -33,6 +33,10 @@ def reboot_instance(esh_driver, esh_instance, reboot_type="SOFT"):
     """
     Default to a soft reboot, but allow option for hard reboot.
     """
+    #NOTE: We need to check the quota as if the instance were rebooting,
+    #      Because in some cases, a reboot is required to get out of the
+    #      suspended state..
+    check_quota(user.username, identity_id, size, resuming=True)
     esh_driver.reboot_instance(esh_instance, reboot_type=reboot_type)
     #reboots take very little time..
     redeploy_init(esh_driver, esh_instance, countdown=5)
@@ -507,13 +511,13 @@ def check_quota(username, identity_id, esh_size, resuming=False):
      requested, used, allowed) = check_over_quota(username,
                                                   identity_id,
                                                   esh_size, resuming=resuming)
-    if over_quota:
+    if over_quota and settings.ENFORCING:
         raise OverQuotaError(resource, requested, used, allowed)
     (over_allocation, time_diff) =\
         check_over_allocation(username,
                               identity_id,
                               time_period=settings.FIXED_WINDOW)
-    if over_allocation and not settings.DEBUG:
+    if over_allocation and settings.ENFORCING:
         raise OverAllocationError(time_diff)
 
 
