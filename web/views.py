@@ -50,6 +50,15 @@ def no_user_redirect(request):
     return HttpResponse(output)
 
 
+def redirectAdmin(request):
+    """
+    Redirects to /application if user is authorized, otherwise forces a login
+    """
+    return cas_loginRedirect(request,
+                             settings.REDIRECT_URL+'/admin/')
+
+
+
 def redirectApp(request):
     """
     Redirects to /application if user is authorized, otherwise forces a login

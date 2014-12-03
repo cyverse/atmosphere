@@ -50,10 +50,10 @@ def get_allocation(username, identity_id):
     return membership.allocation
 
 
-def get_delta(allocation, time_period):
+def get_delta(allocation, time_period, end_date=None):
     # Monthly Time Allocation
     if time_period and time_period.months == 1:
-        now = timezone.now()
+        now = end_date if end_date else timezone.now()
         if time_period.day <= now.day:
             allocation_time = timezone.datetime(year=now.year,
                                                 month=now.month,
@@ -67,6 +67,7 @@ def get_delta(allocation, time_period):
                                                 tzinfo=timezone.utc)
         return now - allocation_time
     else:
+        #Use allocation's delta value because no time period is set.
         return timedelta(minutes=allocation.delta)
 
 
@@ -131,7 +132,8 @@ def get_cpu_count(user, identity_id):
     return cpu_total
 
 
-def current_instance_time(user, instances, identity_id, delta_time):
+def current_instance_time(user, instances, identity_id, delta_time,
+                            end_date=None):
     """
     Converts all running instances to core, 
     so that the database is up to date before calling 'core_instance_time'
@@ -145,7 +147,8 @@ def current_instance_time(user, instances, identity_id, delta_time):
         for inst in instances]
     #All instances that don't have an end-date should be
     #included, even if all of their time is not.
-    time_used = core_instance_time(user, ident.id, delta_time, running=core_instance_list)
+    time_used = core_instance_time(user, ident.id, delta_time,
+            running=core_instance_list, now_time=end_date)
     return time_used
 
 
@@ -166,8 +169,10 @@ def core_instance_time(user, identity_id, delta, running=[], now_time=None):
     if not now_time:
         now_time = timezone.now() 
     past_time = now_time - delta
+    #DevNote: If delta represents 'settings.FIXED_WINDOW' this value is
+    #         the first of the month, UTC.
 
-    #Calculate only the specific users time allocation..
+    #Calculate only the specific users time allocation.. UP to the now_time.
     instances = Instance.objects.filter(
             Q(end_date=None) | Q(end_date__gt=past_time),
             created_by=user, created_by_identity__id=identity_id)
