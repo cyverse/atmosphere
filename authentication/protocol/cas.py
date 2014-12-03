@@ -20,7 +20,7 @@ from threepio import auth_logger as logger
 
 from atmosphere import settings
 
-from authentication import createAuthToken
+from authentication import create_session_token
 from authentication.models import UserProxy
 
 from django.core.urlresolvers import reverse
