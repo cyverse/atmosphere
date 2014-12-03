@@ -2,6 +2,7 @@
 Tasks for driver operations.
 """
 from operator import attrgetter
+import sys
 import re
 import time
 
@@ -573,6 +574,8 @@ def deploy_script(driverCls, provider, identity, instance_id,
 def _deploy_init_to(driverCls, provider, identity, instance_id,
                     username=None, password=None, token=None, redeploy=False,
                     **celery_task_args):
+    #Note: Splitting preperation (Of the MultiScriptDeployment) and execution
+    # This makes it easier to output scripts for debugging of users.
     try:
         logger.debug("_deploy_init_to task started at %s." % datetime.now())
         #Check if instance still exists
@@ -581,7 +584,6 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         if not instance:
             logger.debug("Instance has been teminated: %s." % instance_id)
             return
-
         #NOTE: This is required to use ssh to connect.
         #TODO: Is this still necessary? What about times when we want to use
         # the adminPass? --Steve
@@ -589,6 +591,10 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         instance._node.extra['password'] = None
         msd = init(instance, identity.user.username, password, token, redeploy)
 
+    except Exception as exc:
+        logger.exception(exc)
+        _deploy_init_to.retry(exc=exc)
+    try:
         kwargs = _generate_ssh_kwargs()
         kwargs.update({'deploy': msd})
         driver.deploy_to(instance, **kwargs)
@@ -596,10 +602,14 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
     except DeploymentError as exc:
         logger.exception(exc)
+        full_deploy_output = _parse_steps_output(msd)
         if isinstance(exc.value, NonZeroDeploymentException):
             #The deployment was successful, but the return code on one or more
             # steps is bad. Log the exception and do NOT try again!
-            raise exc.value
+            raise NonZeroDeploymentException,\
+                  "One or more Script(s) reported a NonZeroDeployment:%s"\
+                          % full_deploy_output,\
+                  sys.exc_info()[2]
         #TODO: Check if all exceptions thrown at this time
         #fall in this category, and possibly don't retry if
         #you hit the Exception block below this.
@@ -611,7 +621,15 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         logger.exception(exc)
         _deploy_init_to.retry(exc=exc)
 
-
+def _parse_steps_output(msd):
+    output = ""
+    length = len(msd.steps)
+    for idx, step in enumerate(msd.steps):
+        output += "Step %d/%d: SCRIPT:%s "\
+                "ExitCode:%s Output:%s Error:%s" %\
+                (idx, length, step.script,
+                        step.exit_status, step.stdout, step.stderr)
+    return output
 @task(name="check_process_task",
       max_retries=2,
       default_retry_delay=15)
