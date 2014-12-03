@@ -26,11 +26,12 @@ try:
     newrelic.agent.initialize(
         os.path.join(root_dir, "extras/newrelic/atmosphere_newrelic.ini"),
         "staging")
-except ImportError:
-    print "Warning: newrelic not installed.."
-except Exception, e:
-    print "Warning: newrelic threw an exception.."
-    print e
+except ImportError, bad_import:
+    print "[A]Warning: newrelic not installed.."
+    print bad_import
+except Exception, bad_config:
+    print "[A]Warning: newrelic not initialized.."
+    print bad_config
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
 #LIBCLOUD_DEBUG = os.path.abspath(os.path.join(
