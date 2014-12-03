@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AnonymousUser
 
 from core.models.application import Application, ApplicationScore,\
-    ApplicationBookmark
+    ApplicationBookmark, ApplicationThreshold
 from core.models.credential import Credential
 from core.models.group import get_user_group
 from core.models.group import Group
@@ -21,7 +21,7 @@ from core.models.step import Step
 from core.models.tag import Tag, find_or_create_tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
-from core.query import only_active
+from core.query import only_current
 
 from rest_framework import serializers
 
@@ -119,6 +119,21 @@ class ProjectsField(serializers.WritableField):
         # Modifications to how 'project' should be displayed here:
         into[field_name] = new_projects
 
+class NewThresholdField(serializers.WritableField):
+
+    def to_native(self, threshold_dict):
+        return threshold_dict
+
+    def field_from_native(self, data, files, field_name, into):
+        value = data.get(field_name)
+        if value is None:
+            return
+        memory = value.get('memory',0)
+        disk = value.get('disk',0)
+        machine_request = self.root.object
+        machine_request.new_machine_memory_min = memory
+        machine_request.new_machine_storage_min = disk
+        into[field_name] = value
 
 class AppBookmarkField(serializers.WritableField):
 
@@ -207,6 +222,8 @@ class InstanceRelatedField(serializers.RelatedField):
             into[field_name] = None
 
 
+
+
 # Serializers
 class AccountSerializer(serializers.Serializer):
     pass
@@ -268,11 +285,19 @@ class ApplicationSerializer(serializers.ModelSerializer):
                                      required=False, read_only=True)
     private = serializers.BooleanField(source='private')
     featured = serializers.BooleanField(source='featured')
-    machines = serializers.RelatedField(source='get_provider_machines',
-                                        read_only=True)
+    machines = serializers.SerializerMethodField('get_machines')
     is_bookmarked = AppBookmarkField(source="bookmarks.all")
     threshold = serializers.RelatedField(read_only=True, source="threshold")
     projects = ProjectsField()
+
+    def get_machines(self, application):
+        machines = application._current_machines(request_user=self.request_user)
+        return [{"start_date": pm.start_date,
+                 "end_date": pm.end_date,
+                 "alias": pm.identifier,
+                 "version": pm.version,
+                 "provider": pm.provider.id} for pm in machines]
+
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)
@@ -465,13 +490,14 @@ class MachineRequestSerializer(serializers.ModelSerializer):
     description = serializers.CharField(source='new_machine_description',
                                         required=False)
     tags = serializers.CharField(source='new_machine_tags', required=False)
+    threshold = NewThresholdField(source='new_machine_threshold')
     new_machine = serializers.SlugRelatedField(slug_field='identifier',
                                                required=False)
 
     class Meta:
         model = MachineRequest
         fields = ('id', 'instance', 'status', 'name', 'owner', 'provider',
-                  'vis', 'description', 'tags', 'sys', 'software',
+                  'vis', 'description', 'tags', 'sys', 'software', 'threshold',
                   'shared_with', 'new_machine')
 
 
@@ -617,6 +643,8 @@ class GroupSerializer(serializers.ModelSerializer):
 class VolumeSerializer(serializers.ModelSerializer):
     status = serializers.CharField(read_only=True, source='esh_status')
     attach_data = serializers.Field(source='esh_attach_data')
+    #metadata = serializers.Field(source='esh_metadata')
+    mount_location = serializers.Field(source='mount_location')
     identity = CleanedIdentitySerializer(source="created_by_identity")
     projects = ProjectsField()
 
@@ -639,13 +667,13 @@ class NoProjectSerializer(serializers.ModelSerializer):
         return [ApplicationSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            atmo_user.application_set.filter(only_active(), projects=None)]
+            atmo_user.application_set.filter(only_current(), projects=None)]
 
     def get_user_instances(self, atmo_user):
         return [InstanceSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            atmo_user.instance_set.filter(only_active(),
+            atmo_user.instance_set.filter(only_current(),
                 provider_machine__provider__active=True,
                 projects=None)]
 
@@ -653,7 +681,7 @@ class NoProjectSerializer(serializers.ModelSerializer):
         return [VolumeSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            atmo_user.volume_set.filter(only_active(), 
+            atmo_user.volume_set.filter(only_current(), 
                 provider__active=True, projects=None)]
     class Meta:
         model = AtmosphereUser
@@ -671,13 +699,13 @@ class ProjectSerializer(serializers.ModelSerializer):
         return [ApplicationSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            project.applications.filter(only_active())]
+            project.applications.filter(only_current())]
 
     def get_user_instances(self, project):
         return [InstanceSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            project.instances.filter(only_active(),
+            project.instances.filter(only_current(),
                 provider_machine__provider__active=True
                 )]
 
@@ -685,7 +713,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         return [VolumeSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            project.volumes.filter(only_active(), provider__active=True)]
+            project.volumes.filter(only_current(), provider__active=True)]
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)

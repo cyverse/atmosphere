@@ -52,10 +52,11 @@ urlpatterns = patterns(
 
     # ADMIN Section:
     # Emulation controls for admin users
-    url(r'^admin/emulate$', 'web.views.emulate_request'),
-    url(r'^admin/emulate/(?P<username>(%s))$' % user_match, 'web.views.emulate_request'),
+    url(r'^api/emulate$', 'web.views.emulate_request'),
+    url(r'^api/emulate/(?P<username>(%s))$' % user_match, 'web.views.emulate_request'),
     # DB Admin Panel for admin users
     url(r'^admin/', include(admin.site.urls)),
+    url(r'^admin_login/', 'web.views.redirectAdmin'),
 
     #v2 api auth by token
     url(r'^auth$', 'authentication.views.token_auth', name='token-auth'),

@@ -1,5 +1,17 @@
 from threepio import logger
 
+import rtwo.compute  # Necessary to initialize Meta classes
+from rtwo.provider import AWSProvider, AWSUSEastProvider,\
+    AWSUSWestProvider, EucaProvider,\
+    OSProvider, OSValhallaProvider
+from rtwo.identity import AWSIdentity, EucaIdentity,\
+    OSIdentity
+from rtwo.driver import AWSDriver, EucaDriver, OSDriver
+
+from core.ldap import get_uid_number
+from core.models import AtmosphereUser as User
+from core.models.identity import Identity as CoreIdentity
+
 
 def get_hypervisor_statistics(admin_driver):
     if hasattr(admin_driver._connection, "ex_hypervisor_statistics"):
@@ -14,8 +26,6 @@ def get_driver(driverCls, provider, identity, **provider_credentials):
     """
     Create a driver object from a class, provider and identity.
     """
-    from rtwo import compute
-    compute.initialize()
     if not provider_credentials:
         provider_credentials = provider.options
     driver = driverCls(provider, identity, **provider_credentials)
@@ -28,8 +38,7 @@ def get_admin_driver(provider):
     Create an admin driver for a given provider.
     """
     try:
-        from api import get_esh_driver
-        return get_esh_driver(provider.accountprovider_set.all()[0].identity)
+        return get_esh_driver(provider.accountprovider_set.all().first().identity)
     except:
         logger.info("Admin driver for provider %s not found." %
                     (provider.location))
@@ -55,43 +64,90 @@ def get_account_driver(provider):
                     (provider.location))
         return None
 
-class DriverManager(object):
 
-    _instance = None
+ESH_MAP = {
+    'openstack': {
+        'provider': OSProvider,
+        'identity': OSIdentity,
+        'driver': OSDriver
+    },
+    'eucalyptus':  {
+        'provider': EucaProvider,
+        'identity': EucaIdentity,
+        'driver': EucaDriver
+    },
+    'ec2_us_east':  {
+        'provider': AWSUSEastProvider,
+        'identity': AWSIdentity,
+        'driver': AWSDriver
+    },
+    'ec2_us_west':  {
+        'provider': AWSUSWestProvider,
+        'identity': AWSIdentity,
+        'driver': AWSDriver
+    },
+}
 
-    def __new__(cls, *args, **kwargs):
-        """
-        Create a new instance if it doesnt exist already
-        """
-        if not cls._instance:
-            cls._instance = super(DriverManager, cls).__new__(
-                cls, *args, **kwargs)
-            cls._instance.driver_map = {}
-        return cls._instance
 
-    def get_driver(self, core_identity):
-        from api import get_esh_driver
-        #No Cache model
-        driver = get_esh_driver(core_identity)
+def get_esh_map(core_provider):
+    """
+    Based on the type of cloud: (OStack, Euca, AWS)
+    initialize the provider/identity/driver from 'the map'
+    """
+    try:
+        provider_name = core_provider.type.name.lower()
+        return ESH_MAP[provider_name]
+    except Exception, e:
+        logger.exception(e)
+        return None
+
+
+def get_esh_provider(core_provider, username=None):
+    try:
+        if username:
+            identifier="%s+%s" % (core_provider.location, username)
+        else:
+            identifier="%s" % core_provider.location
+        esh_map = get_esh_map(core_provider)
+        provider = esh_map['provider'](identifier=identifier)
+        return provider
+    except Exception, e:
+        logger.exception(e)
+        raise
+
+
+def get_esh_driver(core_identity, username=None):
+    try:
+        core_provider = core_identity.provider
+        esh_map = get_esh_map(core_provider)
+        if not username:
+            user = core_identity.created_by
+        else:
+            user = User.objects.get(username=username)
+        provider = get_esh_provider(core_provider, username=user.username)
+        provider_creds = core_identity.provider.get_esh_credentials(provider)
+        identity_creds = core_identity.get_credentials()
+        identity = esh_map['identity'](provider, user=user, **identity_creds)
+        driver = esh_map['driver'](provider, identity, **provider_creds)
         return driver
-        #Cached model
-        if not self.driver_map.get(core_identity):
-            driver = get_esh_driver(core_identity)
-            self.driver_map[core_identity] = driver
-            logger.info("Driver created for identity %s : %s"
-                        % (core_identity, driver))
-            return driver
-        driver = self.driver_map[core_identity]
-        logger.info("Driver found for identity %s: %s"
-                    % (core_identity, driver))
-        return driver
+    except Exception, e:
+        logger.exception(e)
+        raise
 
-    def release_all_drivers(self):
-        """
-        Sometimes we need to release the entire pool..
-        """
-        self.driver_map = {}
 
-    def release_driver(self, core_identity):
-        if self.driver_map.get(core_identity):
-            del self.driver_map[core_identity]
+def prepare_driver(request, provider_id, identity_id):
+    """
+    Return an rtwo.EshDriver for the given provider_id
+    and identity_id.
+
+    If invalid credentials, provider_id or identity_id is
+    used return None.
+    """
+    try:
+        core_identity = CoreIdentity.objects.get(provider__id=provider_id,
+                                                 id=identity_id)
+        if core_identity in request.user.identity_set.all():
+            return get_esh_driver(core_identity=core_identity)
+    except ObjectDoesNotExist:
+        logger.exception("Unable to prepare driver.")
+        pass

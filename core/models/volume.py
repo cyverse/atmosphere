@@ -29,6 +29,12 @@ class Volume(models.Model):
         db_table = "volume"
         app_label = "core"
 
+    def end_date_all(self):
+        if not self.end_date:
+            self.end_date = timezone.datetime.now()
+            self.save()
+
+
     def update(self, *args, **kwargs):
         """
         Allows for partial updating of the model
@@ -60,7 +66,11 @@ class Volume(models.Model):
 
     def get_status(self):
         if self.esh and self.esh.extra:
-            return self.esh.extra["status"]
+            status = self.esh.extra["status"]
+            tmp_status = self.esh.extra.get('tmp_status','')
+            if tmp_status:
+                return "%s - %s" % (status, tmp_status)
+            return status
         last_history = self._get_last_history()
         if last_history:
             return last_history.status.name
@@ -95,6 +105,15 @@ class Volume(models.Model):
                     or last_history.status.name == VolumeStatus.ATTACHING):
                 return last_history.get_attach_data()
         return None
+
+    def mount_location(self):
+        """
+        TODO: Refactor and use get_metadata.
+        """
+        metadata = {}
+        if self.esh and self.esh.extra:
+            metadata = self.esh.extra.get('metadata', {})
+        return metadata.get('mount_location',None)
 
     def esh_attach_data(self):
         """

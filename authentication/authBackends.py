@@ -5,9 +5,10 @@ Authentication Backends and validation methods
 from django.contrib.auth.backends import ModelBackend
 from core.models import AtmosphereUser as DjangoUser
 
-from threepio import logger
+from threepio import auth_logger as logger
 
 from authentication import get_or_create_user
+from authentication.models import Token
 from authentication.protocol.ldap import ldap_validate, ldap_formatAttrs
 from authentication.protocol.ldap import lookupUser as ldap_lookupUser
 from authentication.protocol.cas import cas_validateUser
@@ -27,6 +28,7 @@ class SAMLLoginBackend(ModelBackend):
         Return user if validated by CAS
         Return None otherwise.
         """
+        #logger.debug("SAMLBackend-- U:%s P:%s R:%s" % (username, password, request))
         #logger.debug("U:%s P:%s R:%s" % (username, password, request))
         if not request:
             logger.debug("SAML Authentication skipped - No request.")
@@ -50,7 +52,7 @@ class CASLoginBackend(ModelBackend):
         Return user if validated by CAS
         Return None otherwise.
         """
-        #logger.debug("U:%s P:%s R:%s" % (username, password, request))
+        #logger.debug("CASBackend -- U:%s P:%s R:%s" % (username, password, request))
         if not username:
             logger.debug("CAS Authentication skipped - No Username.")
             return None
@@ -74,6 +76,7 @@ class LDAPLoginBackend(ModelBackend):
         Return user if validated by LDAP.
         Return None otherwise.
         """
+        #logger.debug("LDAPBackend-- U:%s P:%s R:%s" % (username, password, request))
         if not ldap_validate(username, password):
             logger.debug("LDAP Authentication failed - "+username)
             return None
@@ -90,9 +93,10 @@ class OAuthLoginBackend(ModelBackend):
     """
     def authenticate(self, username=None, password=None, request=None):
         """
-        Return user if validated by LDAP.
+        Return user if validated by OAuth.
         Return None otherwise.
         """
+        #logger.debug("OAUTHBackend- U:%s P:%s R:%s" % (username, password, request))
         #First argument, username, should hold the OAuth Token, no password.
         # if 'username' in username, the authentication is meant for CAS
         # if username and password, the authentication is meant for LDAP
@@ -120,3 +124,28 @@ class OAuthLoginBackend(ModelBackend):
         attributes = oauth_formatAttrs(oauth_attrs)
         logger.debug("[OAUTH] Authentication Success - " + valid_user)
         return get_or_create_user(valid_user, attributes)
+
+class AuthTokenLoginBackend(ModelBackend):
+    """
+    AuthenticationBackend for OAuth authorizations
+    (Authorize user from Third party (web) clients via OAuth)
+    """
+    def authenticate(self, username=None, password=None, auth_token=None, request=None):
+        """
+        Return user if validated by their auth_token
+        Return None otherwise.
+        """
+        try:
+            valid_token = Token.objects.get(key=auth_token)
+        except Token.DoesNotExist:
+            return None
+        if valid_token.is_expired():
+            logger.debug(
+                    "[AUTHTOKEN] Token %s is expired. (User:%s)"
+                    % (valid_token.key, valid_token.user))
+            return None
+        logger.debug(
+                "[AUTHTOKEN] Valid Token %s (User:%s)"
+                % (valid_token.key, valid_token.user))
+        valid_user = valid_token.user
+        return get_or_create_user(valid_user, None)

@@ -40,9 +40,33 @@ class ProviderMachine(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
     version = VersionNumberField(default=int(VersionNumber(1,)))
 
+    def update_image(self, **image_updates):
+        """
+        The acceptable values for image_updates are specific to the image 
+        and image_manager, but here are some common examples for an OpenStack
+        cloud:
+        * name="My New Name"
+        * owner=<project_id//tenant_id>
+        * min_ram=<RAM_in_MB>
+        * min_disk=<Storage_in_GB>
+        * is_public=True/False
+        * properties={'metadata_key':'metadata_value',...}
+          (NOTE: Updating properties WILL replace EVERYTHING!)
+        
+        (More Documentation on this inside the image_manager, chromogenic)
+        """
+        try:
+            accounts = get_account_driver(self.provider)
+            image = accounts.image_manager.get_image(self.identifier)
+            accounts.image_manager.update_image(image, **updates)
+        except Exception as ex:
+            logger.warn("Image Update Failed for %s on Provider %s"
+                        % (image_id, provider))
+
     
     def icon_url(self):
         return self.application.icon.url if self.application.icon else None
+
 
     def save(self, *args, **kwargs):
         #Update values on the application

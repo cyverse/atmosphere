@@ -1,41 +1,10 @@
-/var/log/apache2/* {
-    daily
-    #maxsize=500k
-    missingok
-    rotate 5
-    compress
-    delaycompress
-    notifempty
-    create 666 root adm
-    sharedscripts
-    postrotate
-        /etc/init.d/apache2 reload > /dev/null
-    endscript
-    prerotate
-        if [ -d /etc/logrotate.d/httpd-prerotate ]; then \
-            run-parts /etc/logrotate.d/httpd-prerotate; \
-        fi; \
-    endscript
-}
-/var/log/celery/* {
-    daily
-    #maxsize=500k
-    missingok
-    rotate 5
-    compress
-    delaycompress
-    notifempty
-    create 666 root adm
-    sharedscripts
-}
+# Note: for apache2 and celery, use the packaged version of logrotate
 /opt/dev/atmosphere/logs/* {
     daily
-    #maxsize=500k
     missingok
-    rotate 5
+    rotate 30
     compress
     delaycompress
     notifempty
-    create 666 root adm
-    sharedscripts
+    copytruncate
 }

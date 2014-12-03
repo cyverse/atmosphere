@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 from core.models.machine import filter_core_machine, create_application
 from core.models import Identity, Provider
-from api import get_esh_driver
 from core.models import Application
+
+from service.driver import get_esh_driver
+
 
 def main():
     driver = get_esh_driver(Identity.objects.get(provider__id=4, created_by__username='sgregory'))
@@ -20,6 +22,7 @@ def main():
                      pm.application = new_app
                      pm.save()
                      print 'New app created:%s' % new_app.name
+
 
 if __name__ == "__main__":
     main()

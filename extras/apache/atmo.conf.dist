@@ -16,6 +16,22 @@
     SetEnv proxy-initial-not-pooled 1
     SetEnv proxy-nokeepalive 0
 
+    ###
+    ## Uncomment these lines to enable '/server-status'
+    ## This can be useful for debugging Apache + MOD_WSGI
+    ###
+    #<Location /server-status>
+    #SetHandler server-status
+    #AuthType CAS
+    #AuthName "CAS"
+    #CASScope /
+
+    #require valid-user
+    #Order allow,deny
+    #Allow from 127.0.0.1
+    #Satisfy any
+    #</Location>
+    #ExtendedStatus On
 
     ###############################################################################
     ## HTTP Virtual Host Context (Forwards requests to HTTPS @ MYHOSTNAMEHERE)
@@ -122,6 +138,8 @@
         Alias /init_files $PATH_TO_ATMOSPHERE/init_files
         Alias /resources $PATH_TO_ATMOSPHERE/resources
         #Assing WSGI to any other folder
+	WSGIDaemonProcess atmosphere_api processes=8 threads=7 inactivity-timeout=120 display-name=%{GROUP}
+	WSGIProcessGroup atmosphere_api
         WSGIScriptAlias / $PATH_TO_ATMOSPHERE/atmosphere/wsgi.py
 
         # Shell
@@ -169,6 +187,8 @@
     Listen 5000
     <VirtualHost *:5000>
         SetEnv DJANGO_SETTINGS_MODULE troposphere.settings
+	WSGIDaemonProcess troposphere processes=4 threads=7 inactivity-timeout=60 display-name=%{GROUP}
+	WSGIProcessGroup troposphere
         WSGIScriptAlias / $PATH_TO_TROPOSPHERE/troposphere/wsgi.py
 
         # Logging

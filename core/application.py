@@ -99,13 +99,13 @@ def save_app_data(application, **extras):
         return
     for provider_machine in all_pms:
         try:
-            write_app_data(provider_machine, **extras)
+            write_app_data(application, provider_machine, **extras)
         except AttributeError:
             logging.exception("Error writing app data to %s."
                               "HINT: Does it still exist?"
                               % provider_machine)
 
-def write_app_data(provider_machine, **extras):
+def write_app_data(application, provider_machine, **extras):
     image_kwargs= {}
     image_id = provider_machine.identifier
     #These calls are better served connecting to chromogenic Image Manager
@@ -120,17 +120,16 @@ def write_app_data(provider_machine, **extras):
                         % (provider_machine.provider,image_id))
         return
     img_properties = image.properties
-    image_manager = accounts.image_manager
     properties = {
         # Specific to the provider machine
         "application_version": str(provider_machine.version),
         # Specific to the application
-        "application_uuid": provider_machine.application.uuid,
-        "application_name": provider_machine.application.name,
-        "application_owner": provider_machine.application.created_by.username,
+        "application_uuid": application.uuid,
+        "application_name": application.name,
+        "application_owner": application.created_by.username,
         "application_tags": json.dumps(
-            [tag.name for tag in provider_machine.application.tags.all()]),
-        "application_description": provider_machine.application.description,
+            [tag.name for tag in application.tags.all()]),
+        "application_description": application.description,
     }
 
     properties.update(extras)
@@ -144,10 +143,17 @@ def write_app_data(provider_machine, **extras):
     #Set the owner explicitly if necessary
     if 'owner' in extras:
         image_kwargs['owner'] = extras['owner']
+    #Set the 'min_ram' and 'min_disk' values explicitly.
+    app_threshold = application.get_threshold()
+    if app_threshold:
+        image_kwargs['min_ram'] = app_threshold.memory_min
+        image_kwargs['min_disk'] = app_threshold.storage_min
+        logger.info("Including App Threshold: %s" % (app_threshold,))
+
+    image_manager = accounts.image_manager
     # Using Glance:
     #image = image_manager.get_image(image_id)
     #image_manager.update_image(image, **image_kwargs)
-
     # Using rtwo/libcloud:
     esh_driver = image_manager.admin_driver
     esh_machine = esh_driver.get_machine(image_id)

@@ -1,6 +1,6 @@
 import requests
 import jwt
-from threepio import logger
+from threepio import auth_logger as logger
 from atmosphere.settings import secrets
 from atmosphere import settings
 from authentication import get_or_create_user

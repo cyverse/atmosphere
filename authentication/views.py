@@ -11,7 +11,7 @@ from django.contrib.auth import authenticate, login
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 
-from threepio import logger
+from threepio import auth_logger as logger
 
 from atmosphere import settings
 from atmosphere.settings import secrets

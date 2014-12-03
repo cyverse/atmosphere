@@ -121,15 +121,23 @@ def set_hostname(hostname, distro):
     #And set a dhcp exithook to keep things running on suspend/stop
     if is_rhel(distro):
         run_command(['/usr/bin/yum', '-qy', 'install', 'dhcp'])
-        download_file(
-            '%s/%s/centos_hostname-exit-hook.sh'
-            % (ATMO_INIT_FILES, SCRIPT_VERSION),
-            "/etc/dhclient-exit-hooks",
-            match_hash='')
-        run_command(['/bin/chmod', 'a+x', "/etc/dhclient-exit-hooks"])
+        if os.path.exists("/etc/dhcp"):
+            download_file(
+                '%s/%s/hostname-exit-hook.sh'
+                % (ATMO_INIT_FILES, SCRIPT_VERSION),
+                "/etc/dhcp/dhclient-exit-hooks",
+                match_hash='')
+            run_command(['/bin/chmod', 'a+x', "/etc/dhcp/dhclient-exit-hooks"])
+        else:
+            download_file(
+                '%s/%s/hostname-exit-hook.sh'
+                % (ATMO_INIT_FILES, SCRIPT_VERSION),
+                "/etc/dhclient-exit-hooks",
+                match_hash='')
+            run_command(['/bin/chmod', 'a+x', "/etc/dhclient-exit-hooks"])
     else:
         download_file(
-            '%s/%s/ubuntu_hostname-exit-hook.sh'
+            '%s/%s/hostname-exit-hook.sh'
             % (ATMO_INIT_FILES, SCRIPT_VERSION),
             "/etc/dhcp/dhclient-exit-hooks.d/hostname",
             match_hash='')
@@ -172,6 +180,18 @@ def _get_hostname_by_socket(public_ip):
     fqdn = socket.getfqdn(public_ip)
     return fqdn
 
+# this is necessary because tacc ips do not have a reverse lookup
+def tacc_ip2hostname(ip):
+
+    # let's split the ip first
+    octets = ip.split(".")
+
+    # simple check to verify ip number and last octet
+    if ip.startswith("129.114.5.") and octets[3].isdigit():
+       return "austin5-" + octets[3] + ".cloud.bio.ci"
+    else:
+       return None
+
 def get_hostname(instance_metadata, public_ip_hint=None):
     """
     Attempts multiple ways to establish the public IP and hostname.
@@ -183,7 +203,9 @@ def get_hostname(instance_metadata, public_ip_hint=None):
     if not instance_metadata:
         instance_metadata = {}
     if 'public-ipv4' in instance_metadata:
-        public_hostname = _get_hostname_by_socket(instance_metadata['public-ipv4'])
+        public_hostname = tacc_ip2hostname(instance_metadata['public-ipv4'])
+        if not public_hostname:
+            public_hostname = _get_hostname_by_socket(instance_metadata['public-ipv4'])
         result = _test_hostname(public_hostname)
         if result:
             return public_hostname
@@ -196,12 +218,16 @@ def get_hostname(instance_metadata, public_ip_hint=None):
         if result:
             return public_hostname
     if defined_metadata.get('public-ip'):
-        public_hostname = _get_hostname_by_socket(defined_metadata['public-ip'])
+        public_hostname = tacc_ip2hostname(defined_metadata['public-ip'])
+        if not public_hostname:
+            public_hostname = _get_hostname_by_socket(defined_metadata['public-ip'])
         result = _test_hostname(public_hostname)
         if result:
             return public_hostname
     if public_ip_hint:
-        public_hostname = _get_hostname_by_socket(public_ip_hint)
+        public_hostname = tacc_ip2hostname(public_ip_hint)
+        if not public_hostname:
+            public_hostname = _get_hostname_by_socket(public_ip_hint)
         result = _test_hostname(public_hostname)
         if result:
             return public_hostname
@@ -372,13 +398,8 @@ def ssh_config(distro):
 
 def get_metadata_keys(metadata):
     keys = []
-    #Eucalyptus/Openstack key (Traditional metadata API)
-    euca_key = _make_request('%s%s' % (eucalyptus_meta_server,
-                                       "public-keys/0/openssh-key/"))
     os_key = _make_request('%s%s' % (openstack_meta_server,
                                      "public-keys/0/openssh-key/"))
-    if euca_key:
-        keys.append(euca_key)
     if os_key:
         keys.append(os_key)
     #JSON metadata API
@@ -391,11 +412,8 @@ def get_metadata_keys(metadata):
 def get_metadata():
     openstack_json_metadata = 'http://169.254.169.254/openstack/'\
                               'latest/meta_data.json'
-    metadata = collect_metadata(eucalyptus_meta_server)
-    if not metadata:
-        metadata = collect_metadata(openstack_meta_server)
-        metadata.update(
-            collect_json_metadata(openstack_json_metadata))
+    metadata = collect_metadata(openstack_meta_server)
+    metadata.update(collect_json_metadata(openstack_json_metadata))
     return metadata
 
 
@@ -837,9 +855,9 @@ def install_irods(distro):
                       '/etc/motd',
                       match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
         download_file('http://www.iplantcollaborative.org/sites/default/files/'
-                      + 'irods/irodsFs_v33.centos5.x86_64',
+                      + 'irods/irodsFs_v32.rhel5.x86_64',
                       '/usr/local/bin/irodsFs.x86_64',
-                      match_hash='d5832b2d541a0bddc60dc01cf2e24869b53239bc')
+                      match_hash='b286ca61aaaa16fe7a0a2a3afc209ba7bbac5128')
         run_command(['/etc/init.d/iptables', 'stop'])
         run_command(['/usr/bin/yum', '-qy',
                      'install', 'emacs', 'mosh', 'patch'])
@@ -850,9 +868,9 @@ def install_irods(distro):
                       '/etc/motd.tail',
                       match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
         download_file('http://www.iplantcollaborative.org/sites/default/files/'
-                      + 'irods/irodsFs_v33.ubuntu12.x86_64',
+                      + 'irods/irodsFs_v32.ubuntu12.x86_64',
                       '/usr/local/bin/irodsFs.x86_64',
-                      match_hash='5bba98c4e87a7c04b7e317e02bf96150e2edc028')
+                      match_hash='59b55aa0dbc44ff5b73dfc912405ff817002284f')
         run_command(['/usr/bin/apt-get', 'update'])
         run_command(['/usr/bin/apt-get', '-qy',
                      'install', 'vim', 'mosh', 'patch'])
@@ -912,6 +930,8 @@ def update_sshkeys(metadata):
     sshkeys = [
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDGjaoIl/h8IcgqK7U9i0EVYMPFad6NdgSV8gsrNLQF93+hkWEciqpX9TLn6TAcHOaL0xz7ilBetG3yaLSZBHaoKNmVCBaziHoCJ9wEwraR6Vw87iv3Lhfg/emaQiJIZF3YnPKcDDB1/He9Cnz//Y+cjQbYxLeJWdVi/irZKEWhkotb3xyfrf4o05FvLEzvaMbmf3XS1J0Rtu7BqPOvNl+U0ZqS57tNoqG2C6Cf10E340iqQGTgXzOrDmd+Rof2G1IkyKlW60okAa2N+Z8BCRB27hHY5bcS1vvnO6lo8VzWxbU3Z2MCbk1So9wHV8pAXyF1+MnVc6aJUs1xc/Lni1Xbp5USs6kOvyew3HaN3UDnoC1FSMDguAriwxho882NM/LRpGJFui2i/H3GYgQ1KQwBRqLTWEY9H8Qvy5RuOG36cy4jWJMxh6YoxOyDpZP6UlONiyuwwqrVCjUeHwIDHdBq1RGBJIEBsYhGFCYEP3UotGwEvGo7vGfb3eAebbPMsj8TAP3eR/XCd7aIeK6ES9zfNJfD2mjJqGHMUeFgbiDmTPfjGOxZ53bZssEjb0BbXNvFPezj8JetfbHZE4VUjDAUcOrLp6NT9yG6hbWFdGQxyqIbKSeMabDu8gxAcqFJvi2yFMV5j0F3qQiAPUwrigr98c4+aLvKqwsRvHxWUETBOw== idle time daemon",
         "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAvTEkREh5kmUAgx61pB0ikyH0swoXRId6yhGwIdm8KQgjErWSF8X4MED8t+7Pau98/mzxuvA23aiIn7MQWSQWQVQBFGZqj4losf+oEBS+ZQGJf2ocx3DP3NStgnixKgiDId6wjPTF1s9/YLntNb4ZNGvBSDg0bxzDJWoQ9ghOpHXmqFDWHxE9jr1qLHZzqQ0Pt1ATCW+OJ/b2staqVDPSa1SwMI89Cuw7iiSWfNHML1cf0wbYU3Bg+jT5GlwCojWP/yHqDCF1t3XL0xZQlWdKt7fM6bKUonv1CGcRZO22npZwX5Uv3U5OlskSFJnr8oZZV6V6kn99gwNzZnmiK32QQQ== edwins@iplant",
+        "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAyKSEZEFIZw9IaJAzSVM0qCfyDunTandlvLFq/VR/uyMvCRvpZC1RxwZ5BjQPNA5ARAcH54v7Mx3/W2616h5qDcyrQrXVl2pulQUMiq/YeNBQMhYEt+AGn38gsBrsRjH9bdHkpugTtuM6LyYhLwVDk8cM+xNshKT8IdAIyZQA5iBYeUiQaDsKVfRH9Tl+muA3One3ASzKKwySePB5SFydeDxWJoYJktBAaR0C5sab1DIFOHmkQBHOuBkIKeRqkwx0BbbyJORRMYDIGazTMhyF6F3hEtrDKDc6wy72e45BKh4VHeaJCGfwiyODA+le4RBgrVN7srRvMlWZDeSiNraF3w== edwin@acat.iplantcollaborative.org",
+        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQD34d6kx8MNcJzxNu04xzv+d85MF6orj7m3d7XYuYixZJSg2osgXXsGthgwupB3jQz894PK3fADurvWGjEpfJ0VBVMjcH2YZtdGJvjs7jPSAo0cbjFXT5C4+CmsVEAfPuzU28I465ltiMt8AywkDMYNUIAZ9Ckbxub5qT7BMj0bYGcGW1OCDkhBB75SqceO891/chbSkmyx/SS3Ngr2Hnb0tnzfkiaUqSvXf54wV7v/Re4hr0B96qUcUmVwfsJUb0lCiVznlBTDeyOXvJ6Hi4ouDxcfVhxZHwEJ4U8jfJ9CCEVRCFvVwKskV8eQZ1UqWXPs75Wl8UPhdWbemZpRs8+aUFrTJi6q3bdtlot3ll1ysDdLYgQo7qv/R/+Wa9b3/Ujuvv3Qaf4GebdSQHXhJ0NVOg+f0Kp0t36QXpKjQCL8RKvXX/D8OII9OK62Vt4yNB4QfkibjI96T2A5vUAaWuVmC8qpndN7swEo4y9dXxMvHprJXbVGdE2hS7cS/R5wOjscuURCw5k4vsbo3ifTu77OMApxB+AyiSBEtMkxQ3mT3rS6/zF8wLWYt/kSuwuyTt1wWEXIr9vjaBMuONsb1OxDYfG8bCQ9peZQyWCqpwLix7akP2lDuoDQSfjtynguXFByiP3AojTiZF9xhhACuNKyhgD+lzCsCmyEYiO5uTbzaQ== edwin@rose",
         "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAxB+KLO6pTeZ9ye/GuT2i74LBl4lvfJm7ESo4O9tNJtIf8fcAHqm9HMr2dQBixxdsLUYjVyZLZM8mZQdEtLLvdd4Fqlse74ci4RIPTgvlgwTz6dRJfABD9plTM5r5C2Rc6jLur8iVR40wbHmbgLgcilXoYnRny4bFoAhfAHt2vxiMY6wnhiL9ESSUA/i1LrcYcGj2QAvAPLf2yTJFtXSCwnlBIJBjMASQiPaIU2+xUyQisgSF99tBS3DZyu4NVGnSGYGmKl84CEFp+x57US4YAl9zuAnM9ckTp4mOjStEvIpyyPJA03tDbfObSi50Qh5zta9I1PIAGxOznT6dJbI1bw== aedmonds@iplant",
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDgvgRtXgkvM/+eCSEqVuTiUpZMjRfA9AnXfz0YWS93uKImoodE5oJ7wUZqjpOmgXyX0xUDI4O4bCGiWVmSyiRiQpqZrRrF7Lzs4j0Nf6WvbKblPQMwcmhMJuaI9CwU5aEbEqkV5DhBHcUe4bFEb28rOXuUW6WMLzr4GrdGUMd3Fex64Bmn3FU7s6Av0orsgzVHKmoaCbqK2t3ioGAt1ISmeJwH6GasxmrSOsLLW+L5F65WrYFe0AhvxMsRLKQsuAbGDtFclOzrOmBudKEBLkvwkblW8PKg06hOv9axNX7C9xlalzEFnlqNWSJDu1DzIa2NuOr8paW5jgKeM78yuywt jmatt@leia",
         "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA2TtX9DohsBaOEoLlm8MN+W+gVp40jyv752NbMP/PV/LAz5MnScJcvbResAJx2AusL1F6sRNvo9poNZiab6wpfErQPZLfKGanPZGYSdonsNAhTu/XI+4ERPQXUA/maQ2qZtL1b+bmZxg9n/5MsZFpA1HrXP3M2LzYafF2IzZYWfsPuuZPsO3m/cUi0G8n7n0IKXZ4XghjGP5y/kmh5Udy9I5qreaTvvFlNJtBE9OL39EfWtjOxNGllwlGIAdsljfRxkeOzlahgtCJcaoW7X2A7GcV52itUwMKfTIboAXnZriwh5n0o1aLHCCdUAGDGHBYmP7fO7/2gIQKgpLfRkDEiQ== sangeeta@iplant",
@@ -1062,8 +1082,6 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password,
                      vnclicense, public_ip_hint):
     distro = get_distro()
     logging.debug("Distro - %s" % distro)
-    hostname = get_hostname(instance_metadata)
-    set_hostname(hostname, distro)
     linuxuser = user
     linuxpass = ""
     public_ip = get_public_ip(instance_metadata)

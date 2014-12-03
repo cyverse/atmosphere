@@ -7,6 +7,7 @@ Contact:        Steven Gregory <sgregory@iplantcollaborative.org>
 """
 from datetime import timedelta
 import time
+from django.contrib.auth import authenticate, login as django_login
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from django.http import HttpResponse
@@ -15,11 +16,11 @@ from core.models import AtmosphereUser as User
 
 from caslib import CASClient, SAMLClient
 
-from threepio import logger
+from threepio import auth_logger as logger
 
 from atmosphere import settings
 
-from authentication import createAuthToken
+from authentication import create_session_token
 from authentication.models import UserProxy
 
 from django.core.urlresolvers import reverse
@@ -86,11 +87,6 @@ def updateUserProxy(user, pgtIou, max_try=3):
     return False
 
 
-def createSessionToken(request, auth_token):
-    request.session['username'] = auth_token.user.username
-    request.session['token'] = auth_token.key
-
-
 """
 CAS is an optional way to login to Atmosphere
 This code integrates caslib into the Auth system
@@ -142,19 +138,20 @@ def saml_validateTicket(request):
         return HttpResponseRedirect(redirect_logout_url)
 
     try:
-        auth_token = createAuthToken(saml_response.user)
+        user = User.objects.get(
+                username=saml_response.user)
     except User.DoesNotExist:
         return HttpResponseRedirect(no_user_url)
+    auth_token = create_session_token(None, user, request)
     if auth_token is None:
         logger.info("Failed to create AuthToken")
         HttpResponseRedirect(redirect_logout_url)
-    createSessionToken(request, auth_token)
     return_to = request.GET.get('sendback')
     if not return_to:
         return HttpResponse(saml_response.response,
                             content_type="text/xml; charset=utf-8")
-    logger.info("Session token created, return to: %s" % return_to)
     return_to += "?token=%s" % auth_token
+    logger.info("Session token created, return to: %s" % return_to)
     return HttpResponseRedirect(return_to)
 
 
@@ -189,8 +186,8 @@ def cas_validateTicket(request):
     cas_response = caslib.cas_serviceValidate(ticket)
     if not cas_response.success:
         logger.debug("CAS Server did NOT validate ticket:%s"
-                     " and included this response:%s"
-                     % (ticket, cas_response.object))
+                " and included this response:%s (Err:%s)"
+                     % (ticket, cas_response.object, cas_response.error_str))
         return HttpResponseRedirect(redirect_logout_url)
     if not cas_response.user:
         logger.debug("User attribute missing from cas response!"
@@ -212,15 +209,16 @@ def cas_validateTicket(request):
     logger.info("Updated proxy for <%s> -- Auth success!" % cas_response.user)
 
     try:
-        auth_token = createAuthToken(cas_response.user)
+        user = User.objects.get(
+                username=cas_response.user)
     except User.DoesNotExist:
         return HttpResponseRedirect(no_user_url)
+    auth_token = create_session_token(None, user, request)
     if auth_token is None:
         logger.info("Failed to create AuthToken")
         HttpResponseRedirect(redirect_logout_url)
-    createSessionToken(request, auth_token)
     return_to = request.GET['sendback']
-    logger.info("Session token created, return to: %s" % return_to)
+    logger.info("Session token created, User logged in, return to: %s" % return_to)
     return HttpResponseRedirect(return_to)
 
 

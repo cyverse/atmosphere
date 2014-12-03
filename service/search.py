@@ -11,7 +11,7 @@ from core.models.machine import compare_core_machines, filter_core_machine,\
     ProviderMachine
 from core.models.provider import Provider
 from core.models.application import Application
-from core.query import only_active
+from core.query import only_current
 
 def search(providers, identity, query):
     return reduce(operator.or_, [p.search(identity, query) for p in providers])
@@ -51,7 +51,7 @@ class CoreSearchProvider(BaseSearchProvider):
             | Q(application__tags__description__icontains=query)
             | Q(application__name__icontains=query)
             | Q(application__description__icontains=query),
-            only_active())
+            only_current())
 
 
 class CoreApplicationSearch(BaseSearchProvider):
@@ -76,7 +76,7 @@ class CoreApplicationSearch(BaseSearchProvider):
                 #Providermachine's provider is active
                 providermachine__provider__in=active_providers)
         # AND query matches on:
-        return base_apps.filter(
+        query_match = base_apps.filter(
             # app tag name
             Q(tags__name__icontains=query)
             # OR app tag desc
@@ -85,4 +85,5 @@ class CoreApplicationSearch(BaseSearchProvider):
             | Q(name__icontains=query)
             # OR app desc
             | Q(description__icontains=query),
-            only_active())
+            only_current())
+        return query_match.distinct()

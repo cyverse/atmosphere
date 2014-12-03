@@ -6,7 +6,7 @@ from django.http import HttpResponseRedirect, HttpResponseForbidden
 from rest_framework.response import Response
 from rest_framework import status
 
-from threepio import logger
+from threepio import auth_logger as logger
 
 # atmosphere libraries
 from atmosphere import settings
@@ -41,6 +41,7 @@ def atmo_login_required(func):
                     % request.session.get('username',
                                           '<Username not in session>'))
         username = request.session.get('username', None)
+        token = request.session.get('token', None)
         redirect = kwargs.get('redirect', request.get_full_path())
         emulator = request.session.get('emulated_by', None)
 
@@ -50,7 +51,7 @@ def atmo_login_required(func):
                         (emulator, username))
             logger.debug(request.session.__dict__)
             #Authenticate the user (Force a CAS test)
-            user = authenticate(username=emulator, password="", request=request)
+            user = authenticate(username=emulator, password="", auth_token=token, request=request)
             #AUTHORIZED STAFF ONLY
             if not user or not user.is_staff:
                 return HttpResponseRedirect(settings.SERVER_URL+"/logout/")
@@ -58,7 +59,7 @@ def atmo_login_required(func):
             django_login(request, user)
             return func(request, *args, **kwargs)
 
-        user = authenticate(username=username, password="", request=request)
+        user = authenticate(username=username, password="", auth_token=token, request=request)
         if not user:
             logger.info("Could not authenticate user %s" % username)
             #logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))

@@ -5,6 +5,7 @@ authentication helper methods.
 from django.http import HttpResponseRedirect
 
 from atmosphere import settings
+from django.contrib.auth.signals import user_logged_in
 
 from authentication.models import Token as AuthToken
 from core.models import AtmosphereUser as User
@@ -89,3 +90,17 @@ def userCanEmulate(username):
         return False
 
     return user.is_staff
+
+#Login Hooks here:
+def create_session_token(sender, user, request, **kwargs):
+    auth_token = AuthToken(
+        user=user,
+        api_server_url=settings.API_SERVER_URL
+    )
+    auth_token.update_expiration()
+    auth_token.save()
+    request.session['username'] = auth_token.user.username
+    request.session['token'] = auth_token.key
+    return auth_token
+#Instantiate the login hook here.
+user_logged_in.connect(create_session_token)

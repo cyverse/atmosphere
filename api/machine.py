@@ -23,9 +23,10 @@ from core.models.machine import compare_core_machines, filter_core_machine,\
     update_application_owner, convert_esh_machine, ProviderMachine
 from core.metadata import update_machine_metadata
 
+from service.driver import prepare_driver
 from service.search import search, CoreSearchProvider
 
-from api import prepare_driver, failure_response, invalid_creds
+from api import failure_response, invalid_creds
 from api.renderers import JPEGRenderer, PNGRenderer
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProviderMachineSerializer,\
@@ -38,7 +39,13 @@ def provider_filtered_machines(request, provider_id,
     Return all filtered machines. Uses the most common,
     default filtering method.
     """
-    esh_driver = prepare_driver(request, provider_id, identity_id)
+    try:
+        logger.debug(request)
+        logger.debug("Rahr 0.")
+        esh_driver = prepare_driver(request, provider_id, identity_id)
+    except:
+        logger.debug("Rahr.")
+    logger.debug(esh_driver)
     if not esh_driver:
         return invalid_creds(provider_id, identity_id)
     return list_filtered_machines(esh_driver, provider_id, request_user)
@@ -80,10 +87,12 @@ class MachineList(APIView):
         """
         try:
             request_user = request.user
+            logger.debug("filtered_machine_list")
             filtered_machine_list = provider_filtered_machines(request,
                                                                provider_id,
                                                                identity_id,
                                                                request_user)
+            logger.debug(filtered_machine_list)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
         except Exception as e:
@@ -91,6 +100,7 @@ class MachineList(APIView):
                              % request_user)
             return failure_response(status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     e.message)
+        logger.debug(filtered_machine_list)
         serialized_data = ProviderMachineSerializer(filtered_machine_list,
                                                     request_user=request.user,
                                                     many=True).data

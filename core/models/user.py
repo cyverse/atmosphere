@@ -4,6 +4,7 @@ from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
 
+
 from threepio import logger
 class AtmosphereUser(AbstractUser):
     selected_identity = models.ForeignKey('Identity', blank=True, null=True)

@@ -25,21 +25,21 @@ from core.models.tag import Tag as CoreTag
 from core.models.volume import convert_esh_volume
 
 from service import task
-from service.cache import get_cached_driver, get_cached_instances
+from service.cache import get_cached_instances,\
+    invalidate_cached_instances
 from service.deploy import build_script
+from service.driver import prepare_driver
 from service.instance import redeploy_init, reboot_instance,\
     launch_instance, resize_instance, confirm_resize,\
     start_instance, resume_instance,\
     stop_instance, suspend_instance,\
     update_instance_metadata, _check_volume_attachment
-
 from service.quota import check_over_quota
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
     VolumeAttachConflict, VolumeMountConflict
 
-from api import failure_response, prepare_driver,\
-        invalid_creds, connection_failure
+from api import failure_response, invalid_creds, connection_failure
 from api.permissions import ApiAuthRequired
 from api.serializers import InstanceStatusHistorySerializer
 from api.serializers import InstanceSerializer, PaginatedInstanceSerializer
@@ -132,11 +132,12 @@ class InstanceList(APIView):
         machine_alias = data.pop('machine_alias')
         hypervisor_name = data.pop('hypervisor',None)
         try:
+            logger.debug(data)
             core_instance = launch_instance(
-                    user, provider_id, identity_id,
-                    size_alias, machine_alias,
-                    ex_availability_zone=hypervisor_name,
-                    **data)
+                user, provider_id, identity_id,
+                size_alias, machine_alias,
+                ex_availability_zone=hypervisor_name,
+                **data)
         except OverQuotaError, oqe:
             return over_quota(oqe)
         except OverAllocationError, oae:
@@ -376,6 +377,18 @@ class InstanceAction(APIView):
                      "device":"optional",
                      "mount_location":"optional"},
                  "description":"Attaches the volume <id> to instance"},
+                {"action":"mount_volume",
+                 "action_params":{
+                     "volume_id":"required",
+                     "device":"optional",
+                     "mount_location":"optional"
+                     },
+                 "description":"Unmount the volume <id> from instance"},
+                {"action":"unmount_volume",
+                 "action_params":{
+                     "volume_id":"required",
+                     },
+                 "description":"Mount the volume <id> to instance"},
                 {"action":"detach_volume",
                  "action_params":{"volume_id":"required"},
                  "description":"Detaches the volume <id> to instance"},
@@ -426,15 +439,21 @@ class InstanceAction(APIView):
         try:
             if 'volume' in action:
                 volume_id = action_params.get('volume_id')
+                mount_location = action_params.get('mount_location', None)
+                device = action_params.get('device', None)
                 if 'attach_volume' == action:
-                    mount_location = action_params.get('mount_location', None)
                     if mount_location == 'null' or mount_location == 'None':
                         mount_location = None
-                    device = action_params.get('device', None)
                     if device == 'null' or device == 'None':
                         device = None
-                    task.attach_volume_task(esh_driver, esh_instance.alias,
+                    future_mount_location = task.attach_volume_task(esh_driver, esh_instance.alias,
                                             volume_id, device, mount_location)
+                elif 'mount_volume' == action:
+                    future_mount_location = task.mount_volume_task(esh_driver, esh_instance.alias,
+                            volume_id, device, mount_location)
+                elif 'unmount_volume' == action:
+                    (result, error_msg) = task.unmount_volume_task(esh_driver, esh_instance.alias,
+                            volume_id, device, mount_location)
                 elif 'detach_volume' == action:
                     (result, error_msg) = task.detach_volume_task(
                         esh_driver,
@@ -524,6 +543,7 @@ class InstanceAction(APIView):
                 "The requested action %s is not available on this provider"
                 % action_params['action'])
         except Exception, exc:
+            logger.exception("Exception occurred processing InstanceAction")
             message = exc.message
             if message.startswith('409 Conflict'):
                 return failure_response(
@@ -593,6 +613,7 @@ class Instance(APIView):
             update_instance_metadata(esh_driver, esh_instance, data,
                     replace=False)
             serializer.save()
+            invalidate_cached_instances(identity=Identity.objects.get(id=identity_id))
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
             response['Cache-Control'] = 'no-cache'
@@ -622,12 +643,14 @@ class Instance(APIView):
             logger.info('metadata = %s' % data)
             update_instance_metadata(esh_driver, esh_instance, data)
             serializer.save()
+            invalidate_cached_instances(identity=Identity.objects.get(id=identity_id))
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
             response['Cache-Control'] = 'no-cache'
             return response
         else:
-            return Response(serializer.errors, status=status.HTTP_400)
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, provider_id, identity_id, instance_id):
         """Authentication Required, TERMINATE the instance.
@@ -645,6 +668,7 @@ class Instance(APIView):
             #Test that there is not an attached volume BEFORE we destroy
             _check_volume_attachment(esh_driver, esh_instance)
             task.destroy_instance_task(esh_instance, identity_id)
+            invalidate_cached_instances(identity=Identity.objects.get(id=identity_id))
             existing_instance = esh_driver.get_instance(instance_id)
             if existing_instance:
                 #Instance will be deleted soon...
@@ -664,7 +688,10 @@ class Instance(APIView):
             response = Response(serialized_data, status=status.HTTP_200_OK)
             response['Cache-Control'] = 'no-cache'
             return response
-        except VolumeAttachConflict, exc:
+        except (Identity.DoesNotExist) as exc:
+            return failure_response(status.HTTP_400_BAD_REQUEST,
+                                    "Invalid provider_id or identity_id.")
+        except VolumeAttachConflict as exc:
             message = exc.message
             return failure_response(status.HTTP_409_CONFLICT, message)
         except ConnectionFailure:
@@ -685,14 +712,16 @@ class InstanceTagList(APIView):
         """
         List all public tags.
         """
-        core_instance = get_core_instance(request, provider_id, identity_id, instance_id)
+        core_instance = get_core_instance(request, provider_id,
+                                          identity_id, instance_id)
         if not core_instance:
             instance_not_found(instance_id)
         tags = core_instance.tags.all()
         serializer = TagSerializer(tags, many=True)
         return Response(serializer.data)
 
-    def post(self, request, provider_id, identity_id, instance_id,  *args, **kwargs):
+    def post(self, request, provider_id, identity_id, instance_id,
+             *args, **kwargs):
         """Create a new tag resource
         Params:name -- Name of the new Tag
         Returns: 

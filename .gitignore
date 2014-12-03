@@ -11,13 +11,13 @@ nohup.out
 *.out
 *.pot
 *.json
+*.org
 .*
 #*#
 #*.*#
 atmosphere/settings/local.py
 atmosphere/settings/secrets.py
 atmosphere/settings/secret_key.py
-docs/*.org
 logs/*
 static/*
 extras/euca/*
@@ -26,6 +26,7 @@ extras/init.d/celeryd.default
 extras/install-scripts/*
 extras/sql/*
 extras/ssh/*
+extras/newrelic/*
 extras/apache/atmo.conf
 tests/secrets
 n/service.log
