@@ -30,7 +30,7 @@ if hasattr(settings, "NEW_RELIC_ENVIRONMENT"):
         newrelic.agent.initialize(
             os.path.join(root_dir, "extras/newrelic/atmosphere_newrelic.ini"),
             "staging")
-        print "[A]Warning: newrelic not installed.."
+        print "[A]Plugin: New Relic initialized!"
     except ImportError, bad_import:
         print "[A]Warning: newrelic not installed.."
         print bad_import
