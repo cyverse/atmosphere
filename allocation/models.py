@@ -20,6 +20,87 @@ class TimeUnit:
 class Rule():
     name = None
 
+class FilterOutRule(Rule):
+    """
+    These rules determine what InstanceHistory status should 
+    be filtered out of calculation
+    """
+    instance_attr = None
+    value = None
+    pass
+class IgnoreStatusRule(FilterOutRule):
+    instance_attr = 'status'
+    def _validate_value(self, value):
+        if type(value) != str:
+            raise Exception("Expects a name to be matched on "
+            "InstanceStatusHistory.status")
+class IgnoreMachineRule(FilterOutRule):
+    instance_attr = 'machine'
+    def _validate_value(self, value):
+        if type(value) != str:
+            raise Exception("Expects a machine UUID to be matched on "
+            "Instance.machine.identifier")
+class IgnoreProviderRule(FilterOutRule):
+    instance_attr = 'provider'
+    def _validate_value(self, value):
+        if type(value) != str:
+            raise Exception("Expects a provider UUID to be matched on "
+            "Instance.provider.identifier")
+
+
+class InstanceCountingRule(Rule):
+    """
+    Each sub-class represents a way of 'counting time'.
+    Instance 
+    """
+    __metaclass__ = ABCMeta
+    pass
+
+
+class InstanceMultiplierRule(InstanceCountingRule):
+    """
+    Instance Multiplier Rules.. ALL rules of this type will be applied
+    MULTIPLICATIVELY to an instance.
+    """
+    multiplier = None
+
+
+class MultiplyBurnTime(InstanceMultiplierRule):
+    """
+    Ex: BurnTime(.5) + SizeCPU(1)
+    Instance 1 : 10 hours used * .5 Burn Time * (1 * )4 CPUs = 20 Hours
+    """
+    pass
+
+
+class MultiplySizeCPU(InstanceMultiplierRule):
+    """
+    Ex: BurnTime(.5) + SizeCPU(1)
+    Instance 1 : 10 hours used * .5 Burn Time * (1 * )4 CPUs = 20 Hours
+    """
+    pass
+
+
+class MultiplySizeDisk(InstanceMultiplierRule):
+    """
+    Units here are ALWAYS in GB
+    """
+    pass
+
+
+class MultiplySizeRAM(InstanceMultiplierRule):
+    """
+    Units here are ALWAYS in MB
+
+    Ex: SizeRAM(1GB)
+    Instance 1 : 10 hours used * 8GB = 80 Hours
+                 ( unit:(1/1024MB) * value:8*1024 MBs)
+    """
+    def _gb_to_mb(gb_size):
+        return gb_size*1024
+    def _mb_to_gb(mb_size):
+        return mb_size/1024.0
+
 
 class UnitAndAmountRule(Rule):
     """
@@ -31,41 +112,22 @@ class UnitAndAmountRule(Rule):
     unit = TimeUnit.second
 
 
-class InstanceCountingRule(Rule):
+class AllocationRecharge(UnitAndAmountRule):
     """
-    Each sub-class represents a way of 'counting time' 
+    AllocationRecharge represent the start of a new period of accounting.
+    1. Rules engine will evaluate this rule, and add to time_allowed, before
+       evaluating any InstanceCountingRule
+    2. For any time PRIOR to the recharge_date, time will NOT be counted.
+    3. For any allocation increase PRIOR to the recharge_date, time will NOT be counted.
     """
-    __metaclass__ = ABCMeta
+    recharge_date = None
     pass
 
 
-class InstanceMultiplierRule(InstanceCountingRule):
+class AllocationIncrease(UnitAndAmountRule):
     """
-    Instance Multiplier Rules.. All rules of this type will be applied
-    multiplicatively to an instance.
-    Ex: BurnTime(.5) + SizeCPU(1)
-    Instance 1 : 10 hours used * .5 Burn Time * (1 * )4 CPUs = 20 Hours
+    AllocationIncrease represents a one-time increase in time_allowed
     """
-    multiplier = None
-
-
-class MultiplyBurnTime(InstanceMultiplierRule):
-    pass
-
-
-class MultiplySizeCPU(InstanceMultiplierRule):
-    pass
-
-
-class MultiplySizeDisk(InstanceMultiplierRule):
-    pass
-
-
-class MultiplySizeRAM(InstanceMultiplierRule):
-    pass
-
-
-class IncreaseAllocation(UnitAndAmountRule):
     pass
 
 #################
