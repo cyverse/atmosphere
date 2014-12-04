@@ -15,25 +15,31 @@ framework.
 """
 import os
 import sys
+from django.conf import settings
 
 #Adds the directory above wsgi.py to system path
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, '/opt/env/atmo/lib/python2.7/site-packages/')
 sys.path.insert(1, root_dir)
 
-try:
-    import newrelic.agent
-    newrelic.agent.initialize(
-        os.path.join(root_dir, "extras/newrelic/atmosphere_newrelic.ini"),
-        "staging")
-except ImportError, bad_import:
-    print "[A]Warning: newrelic not installed.."
-    print bad_import
-except Exception, bad_config:
-    print "[A]Warning: newrelic not initialized.."
-    print bad_config
-
 os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
+
+if hasattr(settings, "NEW_RELIC_ENVIRONMENT"):
+    try:
+        import newrelic.agent
+        newrelic.agent.initialize(
+            os.path.join(root_dir, "extras/newrelic/atmosphere_newrelic.ini"),
+            "staging")
+        print "[A]Warning: newrelic not installed.."
+    except ImportError, bad_import:
+        print "[A]Warning: newrelic not installed.."
+        print bad_import
+    except Exception, bad_config:
+        print "[A]Warning: newrelic not initialized.."
+        print bad_config
+else:
+    print "[A]Plugin: Skipping New Relic setup. NEW_RELIC_ENVIRONMENT not defined in local.py"
+
 #LIBCLOUD_DEBUG = os.path.abspath(os.path.join(
 #    root_dir,
 #    'logs/libcloud.log'))
