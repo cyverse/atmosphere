@@ -4,7 +4,11 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-export ATMOSPHERE_HOME=/opt/dev/atmosphere
+if [ "$#" -ne 1 ]; then
+  export ATMOSPHERE_HOME="$1"
+else
+  export ATMOSPHERE_HOME=/opt/dev/atmosphere
+fi
 
 chmod -R g+w ${ATMOSPHERE_HOME}
 
