@@ -323,7 +323,8 @@ class AccountDriver():
         #Return the identity
         return identity
 
-    def rebuild_project_network(self, username, project_name):
+    def rebuild_project_network(self, username, project_name,
+                                dns_nameservers=[]):
         self.network_manager.delete_project_network(username, project_name)
         net_args = self._base_network_creds()
         self.network_manager.create_project_network(
@@ -331,6 +332,7 @@ class AccountDriver():
             self.hashpass(username),
             project_name,
             get_unique_number=get_uid_number,
+            dns_nameservers=dns_nameservers,
             **net_args)
         return True
 
@@ -362,6 +364,14 @@ class AccountDriver():
         username = identity_creds["username"]
         password = identity_creds["password"]
         project_name = identity_creds["tenant_name"]
+        use_google_DNS = identity.provider.has_trait('Google DNS')
+        use_iplant_DNS = identity.provider.has_trait('iPlant DNS')
+        if use_google_DNS:
+            dns_nameservers = ["8.8.8.8","8.8.4.4"]
+        elif use_iplant_DNS:
+            dns_nameservers = ['128.196.11.233', '128.196.11.234', '128.196.11.235']
+        else:
+            dns_nameservers = []
         # Convert from libcloud names to openstack client names
         net_args = self._base_network_creds()
         return self.network_manager.create_project_network(
@@ -369,6 +379,7 @@ class AccountDriver():
             password,
             project_name,
             get_unique_number=get_uid_number,
+            dns_nameservers=dns_nameservers,
             **net_args)
 
     # Useful methods called from above..
