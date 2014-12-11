@@ -8,7 +8,7 @@ class SecurityGroupNotCreated(Exception):
     def __init__(self):
         self.message = "Gateway Timeout! Security Group(s) could not be created. Please try again later"
         self.status_code = 504
-        super(SizeNotAvailable, self).__init__()
+        super(SecurityGroupNotCreated, self).__init__()
 
     def __str__(self):
         return "%s" % (self.message, )

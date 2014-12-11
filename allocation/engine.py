@@ -8,12 +8,17 @@ TODO: Refactor #1 - have one AllocationResult PER INSTANCE so that each can be i
 
     #TODO: Do we have rules that 'use time' that are NOT
     # directed at instances? (Global?)
+
+
+    #TODO: Include time to zero
 """
-from allocation.models import AllocationResult, InstanceResult
+from allocation.models import AllocationResult, InstanceResult, InstanceStatusResult
+from allocation.models import TimeUnit, AllocationRecharge,\
+        GlobalRule,InstanceRule
 from django.utils.timezone import timedelta, datetime
 import calendar, pytz
- 
-### Utils ###
+
+### Utils (IF we decide to use Warlock, we will need this... ###
 
 def _to_datestring(dt):
     return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -22,270 +27,184 @@ def _to_datetime(date_string):
     #TODO: Append UTC Timezone IF you decide to use this
     return datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%SZ")
 
-def _days_in_month(dt):
-    return calendar.monthrange(dt.year, dt.month)[1]
-
 def _get_zero_date_utc():
-    #January 1, 0001
-    return datetime(1,1,1).replace(tzinfo = pytz.utc)
+    #"Epoch Date" 1-1-1970 0:00:00 UTC
+    return datetime(1,1,1970).replace(tzinfo = pytz.utc)
 
 def _get_current_date_utc():
     return datetime.utcnow().replace(tzinfo = pytz.utc)
 
 ### Main ###
 def calculate_allocation(allocation):
-    start_counting_date = _get_zero_date_utc() if not allocation.start_date \
-            else allocation.start_date
-    stop_counting_date = _get_current_date_utc() if not allocation.end_date \
-            else allocation.end_date
-    current_result = AllocationResult(
-            total_allocation = 0,
-            used_allocation = 0,
-            remaining_allocation = 0,
-            burn_rate = 0,
-            time_to_zero="",
-            instance_results=[])
-    for instance in allocation.instances:
-        current_result.instance_results.append(
-                _calculate_instance_result(instance, allocation.rules,
-                    start_counting_date, stop_counting_date)
-            )
-        print current_result.patch
+    if not allocation.start_date:
+        window_start_date = _get_zero_date_utc()
+    else:
+        window_start_date = allocation.start_date
 
-def _calculate_instance_result(instance, rules, start_date, end_date):
-    """
-    time_used = 500 seconds
-    time_used * 2 CPU * 4GB RAM * 0 Burn Rate = 0 Seconds
-    """
-    burn_rate = time_used = timedelta(0)
-    one_second_prior = end_date - timedelta(seconds=1)
+    if not allocation.end_date:
+        window_end_date = _get_current_date_utc()
+    else:
+        window_end_date = allocation.end_date
 
-    print "History of instance:%s" % instance.identifier
+    #FYI: Calculates time periods based on allocation.credits
+    current_result = AllocationResult(allocation,
+            window_start_date, window_end_date,
+            force_interval_every=allocation.interval_delta)
+
+
+    print "New AllocationResult, Start On & (End On): %s (%s)"\
+            % (current_result.window_start,
+               current_result.window_end)
+    instance_rules = []
+    #First loop - Apply all global rules.
+    #             Collect instance rules seperately.
+    for rule in allocation.rules:
+        if issubclass(rule.__class__, GlobalRule):
+            rule.apply_global_rule(allocation, current_result)
+        elif issubclass(rule.__class__, InstanceRule):
+            #Non-global rules assumed to be applied at instance-level.
+            #Keeping them seperate for now..
+            instance_rules.append(rule)
+        else:
+            raise Exception("Unknown Type of Rule: %s" % rule)
+    time_forward = timedelta(0)
+    for current_period in current_result.time_periods:
+        if current_result.carry_forward and time_forward:
+            current_period.increase_credit(time_forward)
+
+        print "> New TimePeriodResult: %s" % current_period
+        #Second loop - Go through all the instances and apply
+        #              the specific rules (This loop relates to time USED)
+        instance_results = []
+
+        for instance in allocation.instances:
+            #print "> > Calculating Instance Status:%s" % instance.identifier
+            status_list = _calculate_instance_status_list(
+                instance, instance_rules,
+                current_period.start_counting_date,
+                current_period.stop_counting_date)
+            instance_result = InstanceResult(
+                    identifier=instance.identifier,
+                    status_list=status_list)
+            print "> > Instance Status Results:%s" % instance_result
+            instance_results.append(instance_result)
+
+        current_period.instance_results = instance_results
+
+        if current_result.carry_forward:
+            import ipdb;ipdb.set_trace()
+            time_forward = current_period.allocation_difference()
+    return current_result
+
+def _calculate_instance_status_list(instance, rules, start_date, end_date):
+    """
+    Given an instance and a set of 'InstanceRules'
+    Calculate the time used for every unique status name-change.
+    """
     # Calculate time used by applying rules to each history and keeping a
-    # running total
+    # running total for each status
+    status_map = {}
     for history in instance.history:
-        if history.status != 'active':
-            continue
-        time_used += _apply_rules(
-                history, rules,
-                start_date, end_date)
+        status_result = status_map.get(history.status)
+        if not status_result:
+            status_result = InstanceStatusResult(status_name=history.status)
+        #    print ">> Creating Status Result for: %s" % history.status
+        #else:
+        #    print ">> Updating %s" % status_result
+        total_time = _get_running_time(history, instance, rules, start_date, end_date)
+        status_result.total_time += total_time
+        # If the Instance History carries forward PAST the stop_counting_date
+        # Calculate the amount of time burned per second.
+        if _get_burn_rate_test(history, end_date):
+            burn_rate = _get_burn_rate(history, instance, rules, end_date)
+            status_result.burn_rate += burn_rate
+        #DEV NOTE: Clock time may not be necessary to carry forward, but we will leave it in for now..
+        clock_time = _get_clock_time(history, start_date, end_date, False)
+        status_result.clock_time += clock_time
+        #Save the current calculation for this status-type and
+        # re-use next time that we see it
+        #print ">> New Status Result: %s" % status_result
+        status_map[history.status] = status_result
 
-    # Calculate burn rate by applying rules to last history
-    # (given a one second delta) to determine how much time is burned/second
-    last_history = instance.history[-1]
-    burn_rate = _apply_rules(
-            last_history, rules,
-            one_second_prior, end_date)
-    return InstanceResult(
-            used_allocation=time_used.total_seconds(),
-            burn_rate=burn_rate.total_seconds())
+    #Keys aren't important, but the objects behind them are..
+    return status_map.values()
 
-#  def calculate_allocation(allocation):
-#      instance_results = _get_instance_results(allocation)
-#  
-#      seconds_used = burn_rate = 0
-#      for result in instance_results:
-#          seconds_used += result.used_allocation
-#          burn_rate += result.burn_rate
-#  
-#      time_allowed = _get_time_allowed(allocation)
-#      seconds_allowed = time_allowed.total_seconds()
-#  
-#      seconds_remaining = seconds_allowed-seconds_used
-#      end_date = _to_datetime(allocation.end_date)
-#      time_to_zero = _get_ttz(end_date, seconds_remaining, burn_rate)
-#  
-#      return AllocationResult(
-#              total_allocation = seconds_allowed,
-#              used_allocation = seconds_used,
-#              remaining_allocation = seconds_remaining,
-#              burn_rate=burn_rate,
-#              time_to_zero=_to_datestring(time_to_zero),
-#              instance_results=instance_results)
-#  
-#  def _get_instance_results(allocation):
-#      start_date = _to_datetime(allocation.start_date)
-#      end_date = _to_datetime(allocation.end_date)
-#      instance_results = []
-#      for instance in allocation.instances:
-#          instance_results.append(
-#                  _calculate_instance_result_cumulatively(
-#                      instance, allocation.rules, start_date, end_date))
-#      return instance_results
-#  
-#  def _calculate_instance_result_cumulatively(instance, rules, start_date, end_date):
-#      """
-#      time_used = 500 seconds
-#      time_used * 2 CPU * 4GB RAM * 0 Burn Rate = 0 Seconds
-#      """
-#      burn_rate = time_used = timedelta(0)
-#      one_second_prior = end_date - timedelta(seconds=1)
-#  
-#      print "History of instance:%s" % instance.identifier
-#      # Calculate time used by applying rules to each history and keeping a
-#      # running total
-#      for history in instance.history:
-#          if history.status != 'active':
-#              continue
-#          time_used += _apply_rules(
-#                  history, rules,
-#                  start_date, end_date)
-#  
-#      # Calculate burn rate by applying rules to last history
-#      # (given a one second delta) to determine how much time is burned/second
-#      last_history = instance.history[-1]
-#      burn_rate = _apply_rules(
-#              last_history, rules,
-#              one_second_prior, end_date)
-#      return InstanceResult(
-#              used_allocation=time_used.total_seconds(),
-#              burn_rate=burn_rate.total_seconds())
-#  
-#  def _apply_rules(history, rules, start_date, end_date):
-#      time_used = _calculate_time_used(history, start_date, end_date)
-#      for rule in rules:
-#          if rule.type == 'increase_allocation':
-#              continue
-#          multiplier = _get_multiplier(rule, history)
-#          time_used *= multiplier * rule.amount
-#      return time_used
-#  
-#  def _get_multiplier(rule, history):
-#      if rule.type == 'size_ram':
-#          multiplier = history.size.ram
-#      elif rule.type == 'size_cpu':
-#          multiplier = history.size.cpu
-#      elif rule.type == 'size_disk':
-#          multiplier = history.size.disk
-#      elif rule.type == 'burn_rate':
-#          multiplier = 1
-#      else:
-#          raise Exception("Cannot calcualte Rule. Unknown Type: %s " % rule.type)
-#      return multiplier
-#  
-#  
-#  
-#  ## Time Allowed ##
-#  def _get_time_allowed(allocation):
-#      time_allowed = timedelta(0)
-#      for rule in allocation.rules:
-#          if rule.type == "increase_allocation":
-#              time_increase = _increase_allocation(rule)
-#              time_allowed += time_increase
-#      return time_allowed
-#  
-#  def _increase_allocation(rule):
-#      return _increase_by_amount(rule.amount, rule.unit)
-#  
-#  def _increase_by_amount(amount, unit):
-#      second_amount = 0
-#      day_amount = 0
-#      if unit == 'month':
-#          curr_date = _get_current_date_utc()
-#          day_amount = _days_in_month(curr_date) * amount
-#      elif unit == 'week':
-#          day_amount = 7 * amount
-#      elif unit == 'day':
-#          day_amount = amount
-#      elif unit == 'hour':
-#          second_amount = amount * 3600
-#      elif unit == 'minute':
-#          second_amount = amount * 60
-#      elif unit == 'second':
-#          second_amount = amount
-#      else:
-#          raise Exception("Conversion failed: Invalid value '%s'" % unit)
-#      return timedelta(days=day_amount, seconds=second_amount)
-#  
-#  ## Time Used ##
-#  def _calculate_time_used(instance_history, start_date, end_date):
-#      instance_start_date = _to_datetime(instance_history.start_date)
-#      instance_end_date = _to_datetime(instance_history.end_date)
-#  
-#      # Expiry Check -- If this instance history 
-#      # ended prior to the beginning of
-#      # the 'check range' it should not be counted.
-#      if instance_end_date < start_date:
-#          return timedelta(0)
-#  
-#      if instance_start_date >= start_date:
-#          #Use instance start date IF later than beginning of range
-#          use_start = instance_start_date
-#      else:
-#          use_start = start_date
-#  
-#      if instance_end_date <= end_date:
-#          #Use instance end date IF earlier than end of range
-#          use_end = instance_end_date
-#      else:
-#          use_end = end_date
-#  
-#      time_used = use_end - use_start
-#      return time_used
-#  
-#  
-#  ## Burn Rate
-#  def _get_ttz(end_date, seconds_remaining, burned_per_second):
-#      if burned_per_second >= 1:
-#          #If the BurnRate is non-zero, we divide the amount burned per second by
-#          # the amount of seconds the user has left. The result is the # of
-#          # seconds from the end date until the user is OUT of allocation, with
-#          # all things remaining constant.
-#          remaining_time = seconds_remaining / burned_per_second
-#      elif seconds_remaining <= 0:
-#          #If the burn rate is zero and we are OUT of time we can still calculate
-#          # how long ago one ran out of allocation (When they should have been
-#          # stopped from using the machine).
-#          remaining_time = seconds_remaining
-#      else:
-#          #The burn rate is zero but there is remaining time to be used.
-#          # In these cases it is impossible to calculate a valid result
-#          # TODO: Return the epoch or some "NIL" date string instead?
-#          return None
-#      return end_date + timedelta(seconds=remaining_time)
-#  
-#  #######
-#  #OLD DO NOT USE .. FOR REFERENCE ONLY!
-#  #######
-#  
-#  def _calculate_instance_result_individually(instance, rules, start_date, end_date):
-#      """
-#      TODO: We may want to combine multipliers when we have more than 2 results..
-#      Example of when this matters:
-#  
-#      time_used = 500 seconds
-#      time_used * 0 BurnRate =    0 Seconds
-#      time_used * 2 CPU      = 1000 Seconds
-#      time_used * 4GB RAM    = 2000 Seconds
-#                               ============
-#                               3000 Seconds
-#      """
-#      burn_rate = time_used = timedelta(0)
-#      one_second_prior = end_date - timedelta(seconds=1)
-#  
-#      print "History of instance:%s" % instance.identifier
-#      for history in instance.history:
-#          for rule in rules:
-#              if rule.type == 'increase_allocation':
-#                  continue
-#              time_used += _calculate_rule(rule, history, start_date, end_date)
-#              #Using ONLY the last history object, looking at one second before
-#              # end date of the history, run over all rules to determine if 
-#              # the instance is still 'burning' time.
-#              if history == instance.history[-1]:
-#                  burn_rate += _calculate_rule(rule, history, one_second_prior, end_date)
-#      return InstanceResult(
-#              used_allocation=time_used.total_seconds(),
-#              burn_rate=burn_rate.total_seconds())
-#  
-#  def _calculate_rule(rule, history, start_date, end_date):
-#      if history.status != 'active':
-#          return timedelta(0)
-#  
-#      time_used = _calculate_time_used(history, start_date, end_date)
-#      multiplier = _get_multiplier(rule, history)
-#      result = time_used * multiplier * rule.amount
-#      print "%s * %s(%s) * %s = %s  | FROM:%s TO:%s"\
-#              % (time_used, multiplier,
-#                 rule.type, rule.amount, result, start_date, end_date)
-#      return result
+def _get_burn_rate_test(history, end_date):
+    if history.start_date > end_date:
+        return False
+    if not history.end_date or history.end_date >= end_date:
+        return True
+    return False
+
+def _get_clock_time(instance_history, start_date, end_date, print_logs=True):
+    """
+    Based on the current instance history, how much time 'on the clock'
+    was used between 'start_date' and 'end_date'?
+    """
+    instance_start_date = instance_history.start_date
+    instance_end_date = instance_history.end_date
+    # Expiry (Sanity) Check -- If this instance history
+    # ended PRIOR TO the beginning of date range
+    # return 0 Time used.
+    if instance_end_date and instance_end_date < start_date:
+        return timedelta(0)
+    # Prior (Sanity) Check -- If this instance history
+    # began AFTER the end of the date range
+    # return 0 Time used. (No negative time in the real world!)
+    if instance_start_date and instance_start_date > end_date:
+        return timedelta(0)
+
+    #When to start the clock:
+    if instance_start_date >= start_date:
+        #Start at beginning of the history if later than start_date.
+        use_start = instance_start_date
+    else:
+        #IGNORE The history that existed prior to the time we started counting
+        use_start = start_date
+
+    #When to stop the clock:
+    if instance_end_date and instance_end_date <= end_date:
+        #Stop at the end of the history if earlier than end_date.
+        use_end = instance_end_date
+    else:
+        #IGNORE The history that existed AFTER the time we stopped counting
+        use_end = end_date
+
+    clock_time = use_end - use_start
+    if print_logs:
+        print ">> Counted time: %s - %s = %s" % (use_end, use_start, clock_time)
+    return clock_time
+
+def _get_burn_rate(history, instance, rules, end_date):
+    """
+    The burn rate is a special kind of running time, it applies to the last 'known' second.
+    """
+    one_second_prior = end_date - timedelta(seconds=1)
+    burn_rate = _get_running_time(
+            history, instance, rules,
+            one_second_prior, end_date, False)
+    return burn_rate
+
+def _get_running_time(history, instance, rules, start_date, end_date, print_logs=False):
+    """
+    Given a SPECIFIC history, an instance, a list of rules, and specified
+    start&end date,
+    calculate the time used (AKA Clock time)
+    return the "running time" after applying all instance rules.
+    """
+    #Initially (Without any rules executed)
+    # The running_time == clock_time
+    running_time = _get_clock_time(history, start_date, end_date, print_logs=print_logs)
+
+    #Short-Circuit Test
+    if running_time == timedelta(0):
+        #TODO: Remove this If we have a rule that DOESN'T use multipliers..
+        return running_time
+
+    for rule in rules:
+        #Each rule is given the previous running_time, and returns it as a result
+        running_time = rule.apply_rule(instance, history, running_time,
+                                       print_logs=print_logs)
+
+    #After applying all the rules, the running time has been calculated.
+    return running_time
