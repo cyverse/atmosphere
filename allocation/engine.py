@@ -17,7 +17,7 @@ from allocation.models import TimeUnit, AllocationRecharge,\
         GlobalRule,InstanceRule
 from django.utils.timezone import timedelta, datetime
 import calendar, pytz
-
+from threepio import logger
 ### Utils (IF we decide to use Warlock, we will need this... ###
 
 def _get_zero_date_utc():
@@ -28,7 +28,7 @@ def _get_current_date_utc():
     return datetime.utcnow().replace(tzinfo = pytz.utc)
 
 ### Main ###
-def calculate_allocation(allocation):
+def calculate_allocation(allocation, print_logs=False):
     if not allocation.start_date:
         window_start_date = _get_zero_date_utc()
     else:
@@ -45,9 +45,9 @@ def calculate_allocation(allocation):
             force_interval_every=allocation.interval_delta)
 
 
-    print "New AllocationResult, Start On & (End On): %s (%s)"\
+    logger.debug("New AllocationResult, Start On & (End On): %s (%s)"\
             % (current_result.window_start,
-               current_result.window_end)
+               current_result.window_end))
     instance_rules = []
     #First loop - Apply all global rules.
     #             Collect instance rules seperately.
@@ -65,39 +65,43 @@ def calculate_allocation(allocation):
         if current_result.carry_forward and time_forward:
             current_period.increase_credit(time_forward, carry_forward=True)
 
-        print "> New TimePeriodResult: %s" % current_period
+        logger.debug("> New TimePeriodResult: %s" % current_period)
         if current_period.total_credit > timedelta(0):
-            print "> > Allocation Increased: %s" %\
-                    current_period.total_credit
+            logger.debug("> > Allocation Increased: %s" %\
+                    current_period.total_credit)
         #Second loop - Go through all the instances and apply
         #              the specific rules (This loop relates to time USED)
         instance_results = []
 
         for instance in allocation.instances:
-            #print "> > Calculating Instance Status:%s" % instance.identifier
+            #"Chatty" Warning - Uncomment at your own risk 
+            #logger.debug("> > Calculating Instance Status:%s"
+            #             % instance.identifier)
             status_list = _calculate_instance_status_list(
                 instance, instance_rules,
                 current_period.start_counting_date,
-                current_period.stop_counting_date)
+                current_period.stop_counting_date,
+                print_logs=print_logs)
             instance_result = InstanceResult(
                     identifier=instance.identifier,
                     status_list=status_list)
             instance_results.append(instance_result)
 
-        print "> > Instance Status Results:"
+        logger.debug("> > Instance Status Results:")
         for instance_result in instance_results:
-            print "> > %s" % instance_result
+            logger.debug("> > %s" % instance_result)
         current_period.instance_results = instance_results
 
-        print "> > %s - %s = %s" %\
+        logger.debug("> > %s - %s = %s" %\
                 (current_period.total_credit,
                 current_period.total_instance_runtime(),
-                current_period.allocation_difference())
+                current_period.allocation_difference()))
         if current_result.carry_forward:
             time_forward = current_period.allocation_difference()
     return current_result
 
-def _calculate_instance_status_list(instance, rules, start_date, end_date):
+def _calculate_instance_status_list(instance, rules, start_date, end_date,
+        print_logs=False):
     """
     Given an instance and a set of 'InstanceRules'
     Calculate the time used for every unique status name-change.
@@ -109,10 +113,8 @@ def _calculate_instance_status_list(instance, rules, start_date, end_date):
         status_result = status_map.get(history.status)
         if not status_result:
             status_result = InstanceStatusResult(status_name=history.status)
-        #    print ">> Creating Status Result for: %s" % history.status
-        #else:
-        #    print ">> Updating %s" % status_result
-        total_time = _get_running_time(history, instance, rules, start_date, end_date)
+        total_time = _get_running_time(history, instance, rules, start_date,
+                end_date, print_logs=print_logs)
         status_result.total_time += total_time
         # If the Instance History carries forward PAST the stop_counting_date
         # Calculate the amount of time burned per second.
@@ -124,7 +126,6 @@ def _calculate_instance_status_list(instance, rules, start_date, end_date):
         status_result.clock_time += clock_time
         #Save the current calculation for this status-type and
         # re-use next time that we see it
-        #print ">> New Status Result: %s" % status_result
         status_map[history.status] = status_result
 
     #Keys aren't important, but the objects behind them are..
@@ -173,7 +174,8 @@ def _get_clock_time(instance_history, start_date, end_date, print_logs=True):
 
     clock_time = use_end - use_start
     if print_logs:
-        print ">> Counted time: %s - %s = %s" % (use_end, use_start, clock_time)
+        logger.debug(">> Counted time: %s - %s = %s"
+                     % (use_end, use_start, clock_time))
     return clock_time
 
 def _get_burn_rate(history, instance, rules, end_date):

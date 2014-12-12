@@ -98,7 +98,6 @@ def monitor_instances_for_user(provider, username, instances,
     * Calculate allocation from START of month to END of month
     * Create a "TEST" For enforce_allocation
     """
-    #Find the matching credential
     try:
         #NOTE: I could see this being a problem when 'user1' and 'user2' use
         #      ex_project_name == 'shared_group'
@@ -116,6 +115,7 @@ def monitor_instances_for_user(provider, username, instances,
     #Attempt to run through the allocation engine
     try:
         identity = credential.identity
+        user = identity.created_by
         allocation = get_allocation(username, identity.id)
         if not allocation:
             logger.warn("User:%s Identity:%s does not have an allocation" % (username, identity))
@@ -144,8 +144,10 @@ def monitor_instances_for_user(provider, username, instances,
                 username, allocation, core_instances, start_date, end_date, delta_time)
 
         #Wow, so easy, I'm sure nothing is behind this curtain...
-        allocation_result = calculate_allocation(allocation_input)
-        logger.debug(allocation_result)
+        allocation_result = calculate_allocation(allocation_input,
+                print_logs=print_logs)
+        logger.debug("Result for Username %s: %s"
+                % (username, allocation_result))
         #Make some enforcement decision based on the results output.
         if not allocation:
             logger.info(
@@ -155,7 +157,6 @@ def monitor_instances_for_user(provider, username, instances,
         if not settings.ENFORCING:
             logger.info('Settings dictate allocations are NOT enforced')
             return allocation_result
-        import ipdb;ipdb.set_trace()
         #Enforce allocation if overboard.
         if allocation_result.over_allocation():
             logger.info("%s is OVER allocation. %s - %s = %s"
@@ -191,6 +192,8 @@ def enforce_allocation(identity, user):
                     identity.id,
                     user)
         except Exception, e:
+            #Raise ANY exception that doesn't say
+            #'This instance is already suspended'
             if 'in vm_state suspended' not in e.message:
                 raise
     return True  # User was over_allocation
