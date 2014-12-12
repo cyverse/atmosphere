@@ -73,15 +73,6 @@ class Instance():
     machine = None
     identifier = None
     history = []
-
-    def __repr__(self):
-        return self.__unicode__()
-    def __unicode__(self):
-        return "<Instance: %s Provider:%s Machine:%s History:%s>"\
-                % (self.identifier,
-                   self.provider.identifier,
-                   self.machine.identifier,
-                   self.history)
     @classmethod
     def from_core(cls, core_instance, start_date=None):
         pm = core_instance.provider_machine
@@ -110,6 +101,15 @@ class Instance():
         self.machine = machine
         self.history = history
 
+    def __repr__(self):
+        return self.__unicode__()
+    def __unicode__(self):
+        return "<Instance: %s Provider:%s Machine:%s History:%s>"\
+                % (self.identifier,
+                   self.provider.identifier,
+                   self.machine.identifier,
+                   self.history)
+
 
 class InstanceHistory():
     start_date = None
@@ -126,6 +126,13 @@ class InstanceHistory():
                 start_date=core_history.start_date,
                 end_date=core_history.end_date)
 
+    def __init__(self, status, size, start_date, end_date):
+        self._validate_input(start_date,end_date)
+        self.status = status
+        self.size = size
+        self.start_date = start_date
+        self.end_date = end_date
+
     def __repr__(self):
         return self.__unicode__()
     def __unicode__(self):
@@ -137,13 +144,6 @@ class InstanceHistory():
             raise Exception("Invalid Start Date: %s Reason: Missing Timezone.")
         if end_date and not end_date.tzinfo:
             raise Exception("Invalid End Date: %s Reason: Missing Timezone.")
-
-    def __init__(self, status, size, start_date, end_date):
-        self._validate_input(start_date,end_date)
-        self.status = status
-        self.size = size
-        self.start_date = start_date
-        self.end_date = end_date
 
 class TimeUnit:
     #TODO: If using enums:

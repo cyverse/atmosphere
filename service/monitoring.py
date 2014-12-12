@@ -109,7 +109,7 @@ def _create_allocation_input(username, core_allocation, instances, window_start,
         initial_recharge = AllocationUnlimited(window_start)
     #Noteably MISSING: 'active', 'running'
     multiply_by_cpu = MultiplySizeCPU(name="Multiply TimeUsed by CPU", multiplier=1)
-    ignore_inactive = IgnoreStatusRule("Ignore Inactive Status", value=["build", "pending",
+    ignore_inactive = IgnoreStatusRule("Ignore Inactive StatusHistory", value=["build", "pending",
         "hard_reboot", "reboot",
          "migrating", "rescue",
          "resize", "verify_resize",

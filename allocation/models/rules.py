@@ -6,6 +6,9 @@ GlobalRules:
 InstanceRules:
 * Each rule will be applied individually on a specific instance history
 * In adition to the history and the current running_time
+
+TODO: We have 'Ignore*Rule', it might be nice to have a 'Match*Rule' class
+      to define what you DO want counted.. rather than what you don't...
 """
 from abc import ABCMeta, abstractmethod
 from django.utils.timezone import timedelta, datetime

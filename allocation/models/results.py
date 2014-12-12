@@ -15,13 +15,6 @@ class InstanceStatusResult():
     total_time = None
 
 
-    def __repr__(self):
-        return self.__unicode__()
-    def __unicode__(self):
-        return "<Status:%s Clock Time:%s Total Time:%s Burn Rate:%s/0:00:01>"\
-                % (self.status_name, self.clock_time,
-                   self.total_time, self.burn_rate)
-
     def __init__(self, status_name,
             clock_time=None, total_time=None, burn_rate=None):
         if not clock_time:
@@ -34,6 +27,13 @@ class InstanceStatusResult():
         self.clock_time = clock_time
         self.total_time = total_time
         self.burn_rate = burn_rate
+
+    def __repr__(self):
+        return self.__unicode__()
+    def __unicode__(self):
+        return "<Status:%s Clock Time:%s Total Time:%s Burn Rate:%s/0:00:01>"\
+                % (self.status_name, self.clock_time,
+                   self.total_time, self.burn_rate)
 
 class InstanceResult():
     identifier = None
@@ -59,8 +59,10 @@ class TimePeriodResult():
     start_counting_date = None
     stop_counting_date = None
     #Required
-    allocation_credit = None
+    total_credit = None
     instance_results = []
+    #Hidden
+    _allocation_credit = None
 
     def over_allocation(self):
         """
@@ -74,15 +76,17 @@ class TimePeriodResult():
         Difference between allocation_credit (Given) and total_runtime (Used)
         """
         total_runtime = self.total_instance_runtime()
-        return self.allocation_credit - total_runtime
+        return self.total_credit - total_runtime
 
-    def increase_credit(self, credit_amount):
+    def increase_credit(self, credit_amount, carry_forward=False):
         """
         Increase the current allocation credit by the credit amount.
         Return the new allocation credit total
         """
-        self.allocation_credit += credit_amount
-        return self.allocation_credit
+        if not carry_forward:
+            self._allocation_credit += credit_amount
+        self.total_credit += credit_amount
+        return self.total_credit
 
     def total_instance_runtime(self):
         """
@@ -104,31 +108,39 @@ class TimePeriodResult():
             allocation_credit=timedelta(0),
             instance_results=[]):
         self._validate_input(start_date, end_date)
-        self.allocation_credit = allocation_credit
+        self._allocation_credit = allocation_credit
+        self.total_credit = allocation_credit
         self.instance_results = instance_results
         self.start_counting_date = start_date
         self.stop_counting_date = end_date
 
     def __repr__(self):
         return self.__unicode__()
+    def _carry_str(self):
+        if self.total_credit != self._allocation_credit:
+            return " (From Rule: %s, From Carry Over: %s)"\
+                    % (self._allocation_credit,
+                       self.total_credit-self._allocation_credit)
+        return ""
 
     def __unicode__(self):
         return "<TimePeriodResult: Starting From: %s To: %s"\
-                "Allocation Credit:%s Instance Results:%s>"\
+                "Allocation Credit:%s%s Instance Results:%s>"\
                 % (self.start_counting_date, self.stop_counting_date,
-                   self.allocation_credit, self.instance_results
+                   self.total_credit, self._carry_str(), self.instance_results
                    )
 
 class AllocationResult():
     """
-    Purpose: Generalize current method from 'one-month glance' to calculate
-    allocations over several months
+    "The Result". This class contains 'all the things'
     """
     allocation = None
     window_start = None
     window_end = None
     time_periods = []
+    #POLICY decisions that affect the engine
     carry_forward = False
+
     def __init__(self, allocation, window_start, window_end, time_periods=[],
                  force_interval_every=None, carry_forward=False):
         if not allocation:
@@ -153,14 +165,28 @@ class AllocationResult():
             runtime += period.total_instance_runtime() 
         return runtime
 
+    def first_period(self):
+        if len(self.time_periods) == 0:
+            raise Exception("Cannot retrieve first period"
+            " -- No time periods exist")
+        return self.time_periods[-1]
+
+    def last_period(self):
+        if len(self.time_periods) == 0:
+            raise Exception("Cannot retrieve last period"
+            " -- No time periods exist")
+        return self.time_periods[-1]
+
     def total_credit(self):
         runtime = timedelta(0)
         for period in self.time_periods:
-            runtime += period.allocation_credit
+            runtime += period._allocation_credit
         return runtime
 
 
     def total_difference(self):
+        if self.carry_forward:
+            return self.last_period().allocation_difference()
         difference = timedelta(0)
         for period in self.time_periods:
             difference += period.allocation_difference() 

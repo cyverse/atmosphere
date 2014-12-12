@@ -20,13 +20,6 @@ import calendar, pytz
 
 ### Utils (IF we decide to use Warlock, we will need this... ###
 
-def _to_datestring(dt):
-    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-def _to_datetime(date_string):
-    #TODO: Append UTC Timezone IF you decide to use this
-    return datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%SZ")
-
 def _get_zero_date_utc():
     #"Epoch Date" 1-1-1970 0:00:00 UTC
     return datetime(1,1,1970).replace(tzinfo = pytz.utc)
@@ -70,12 +63,12 @@ def calculate_allocation(allocation):
     time_forward = timedelta(0)
     for current_period in current_result.time_periods:
         if current_result.carry_forward and time_forward:
-            current_period.increase_credit(time_forward)
+            current_period.increase_credit(time_forward, carry_forward=True)
 
         print "> New TimePeriodResult: %s" % current_period
-        if current_period.allocation_credit > timedelta(0):
+        if current_period.total_credit > timedelta(0):
             print "> > Allocation Increased: %s" %\
-                    current_period.allocation_credit
+                    current_period.total_credit
         #Second loop - Go through all the instances and apply
         #              the specific rules (This loop relates to time USED)
         instance_results = []
@@ -97,7 +90,7 @@ def calculate_allocation(allocation):
         current_period.instance_results = instance_results
 
         print "> > %s - %s = %s" %\
-                (current_period.allocation_credit,
+                (current_period.total_credit,
                 current_period.total_instance_runtime(),
                 current_period.allocation_difference())
         if current_result.carry_forward:

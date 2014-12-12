@@ -12,6 +12,8 @@ from dateutil.relativedelta import relativedelta
 import pytz
 
 #For testing..
+
+#Input Placeholders
 openstack = Provider(
         name="iPlant Cloud - Tucson",
         identifier="4")
@@ -28,9 +30,6 @@ tiny_size = Size(name='Kids Fry', identifier='test.tiny', cpu=1, ram=1024*2, dis
 small_size = Size(name='Small Fry', identifier='test.small', cpu=2, ram=1024*4, disk=60)
 medium_size = Size(name='Medium Fry', identifier='test.medium', cpu=4, ram=1024*16, disk=120)
 large_size = Size(name='Large Fry', identifier='test.large', cpu=8, ram=1024*32, disk=240)
-
-
-
 # Rules
 carry_forward = CarryForwardTime()
 
@@ -51,10 +50,18 @@ half_usage_by_disk = MultiplySizeDisk(
         name="Multiply TimeUsed by 50% of Disk",
         multiplier=.5)
 
-zero_burn_rate = MultiplyBurnTime(name="Stop all Total Time Used", multiplier=0.5)
+zero_burn_rate = MultiplyBurnTime(name="Stop all Total Time Used", multiplier=0.0)
 half_burn_rate = MultiplyBurnTime(name="Half-Off Total Time Used", multiplier=0.5)
 double_burn_rate = MultiplyBurnTime(name="Double Total Time Used", multiplier=2.0)
 
+ignore_inactive = IgnoreStatusRule("Ignore Inactive Instances", value=["build", "pending",
+    "hard_reboot", "reboot",
+     "migrating", "rescue",
+     "resize", "verify_resize",
+    "shutoff", "shutting-down",
+    "suspended", "terminated",
+    "deleted", "error", "unknown","N/A",
+    ])
 ignore_suspended = IgnoreStatusRule("Ignore Suspended Instances", "suspended")
 ignore_build = IgnoreStatusRule("Ignore 'Build' Instances", "build")
 
@@ -70,6 +77,27 @@ def test_instances(instance_ids, window_start, window_stop, credits=[], rules=[]
     return test_allocation(credits, rules, instance_list,
             window_start, window_stop, interval_delta=None)
 #Helper Tests
+def create_allocation_test(
+        window_start, window_stop,
+        history_start, history_stop, 
+        credits, rules, 
+        swap_days=None, count=None, interval_date=None):
+    """
+    Create your own allocation test!
+    Define a window (two datetimes)!
+    Create a (Lot of) instance(s) and history!
+    PASS IN your rules and credits!
+    Swap between inactive/active status (If you want)!
+    Create >1 instance with count!
+    Set your own TimePeriod interval!
+    """
+    instances = instance_swap_status_test(
+            history_start, history_stop, swap_days,
+            size=medium_size, count=count)
+    result = test_allocation(credits, rules, instances,
+            window_start, window_stop, interval_date)
+    return result
+
 def test_allocation(credits, rules, instances,
                     window_start, window_stop, interval_delta=None):
     allocation_input = Allocation(
@@ -83,52 +111,78 @@ def test_allocation(credits, rules, instances,
     return allocation_result
 
 def instance_swap_status_test(history_start, history_stop, swap_days,
-                              size=None, count=1):
+                              provider=None, machine=None, size=None, count=1):
     """
     Instance swaps from active/suspended every swap_days,
     Starting 'active' on history_start
     """
-    history_list = []
-    is_active = True
-    history_next = history_start + swap_days
-
-    #For ease of testing
-    if not size:
-        size = tiny_size
-
-    while history_next < history_stop:
-        new_history = InstanceHistory(
-             status="active" if is_active else "suspended",
-             size=size,
-             start_date=history_start,
-             end_date=history_start+swap_days)
-        history_list.append(new_history)
-        #Toggle/Update..
-        is_active = not is_active
-        history_start = history_next
-        history_next += timedelta(days=3)
-
+    history_list = _build_history_list(history_start, history_stop,
+            ["active","suspended"], tiny_size, timedelta(3))
+    if not provider:
+        provider = openstack
+    if not machine:
+        machine = random_machine
     instances = []
     for idx in xrange(1,count+1):#IDX 1
         instance = Instance(
             identifier="Test-Instance-%s" % idx,
-            provider=openstack, machine=random_machine,
+            provider=provider, machine=machine,
             history=history_list)
         instances.append(instance)
     return instances
 
+def _build_history_list(history_start, history_stop, status_choices=[],
+        size=None,  swap_days=None):
+    history_list = []
+
+    #Good defaults:
+    if not status_choices:
+        status_choices = ["active","suspended"]
+    if not size:
+        size = tiny_size
+    if not swap_days:
+        #Will be 'active' status, full history on defaults.
+        new_history = InstanceHistory(
+             status=status_choices[0], size=size,
+             start_date=history_start,
+             end_date=history_start+swap_days)
+        return new_history
+
+    history_next = history_start + swap_days
+    next_idx = 0
+    status_len = len(status_choices)
+    while history_next < history_stop:
+        status_choice = status_choices[next_idx]
+        next_idx = (next_idx + 1) % status_len
+        new_history = InstanceHistory(
+             status=status_choice, size=size,
+             start_date=history_start,
+             end_date=history_start+swap_days)
+        history_list.append(new_history)
+        #Toggle/Update..
+        history_start = history_next
+        history_next += swap_days
+    return history_list
+
 
 #Static tests
-def run_test1():
+def run_test_1():
     """
     Test 1:
     Window set at 5 months (7/1/14 - 12/1/14)
     One-time credit of 10,000 AU (7/1)
+    One instance running for ~5 months (Not quite because of 3-day offset)
+    Assertions:
+    When Dividing time into three different intervals:
+    (Cumulative, Monthly+Rollover, n-days+Rollover)
+    * allocation_credit, total_runtime(), and total_difference() are IDENTICAL.
+      (NO TIME LOSS)
     """
     #Allocation Window
     window_start = datetime(2014,7,1, tzinfo=pytz.utc)
     window_stop = datetime(2014,12,1, tzinfo=pytz.utc)
     #Instances
+    count = 1
     swap_days = timedelta(3)
     history_start = datetime(2014,7,4,hour=12, tzinfo=pytz.utc)
     history_stop = datetime(2014,12,4,hour=12, tzinfo=pytz.utc)
@@ -137,69 +191,62 @@ def run_test1():
             name="Add 10,000 Hours ",
             unit=TimeUnit.hour, amount=10000,
             increase_date=window_start)
+    credits = [achieve_greatness]
 
-    instances = instance_swap_status_test(
-            history_start, history_stop, swap_days,
-            size=medium_size, count=1)
-    credits=[achieve_greatness]
-    rules=[multiply_by_cpu, ignore_suspended, ignore_build]
-    result = test_allocation(credits, rules, instances, window_start, window_stop)
-    return result
+    rules = [multiply_by_cpu, ignore_suspended, ignore_build, carry_forward]
+
+    interval_days = None
+    print "Running Cumulative Test"
+    result_1 = create_allocation_test(window_start, window_stop, history_start,
+            history_stop, credits, rules, swap_days, count, interval_days)
+
+    print "Running timedelta Test"
+    interval_days = timedelta(21)
+    result_2 = create_allocation_test(window_start, window_stop, history_start,
+            history_stop, credits, rules, swap_days, count, interval_days)
+
+    print "Running relativedelta Test"
+    interval_days = relativedelta(day=1, months=1)
+    result_3 = create_allocation_test(window_start, window_stop, history_start,
+            history_stop, credits, rules, swap_days, count, interval_days)
+
+    test_1 = result_1.over_allocation()
+    test_2 = result_2.over_allocation()
+    test_3 = result_3.over_allocation()
+    if test_1 != test_2 != test_3:
+        raise Exception("Mismatch on Over-Allocation Result: "
+                "Cumulative:%s Timedelta:%s Relativedelta:%s"
+                % (test_1, test_2, test_3))
+
+    test_1 = result_1.total_runtime()
+    test_2 = result_2.total_runtime()
+    test_3 = result_3.total_runtime()
+    if test_1 != test_2 != test_3:
+        raise Exception("Mismatch on Total Runtime: "
+                "Cumulative:%s Timedelta:%s Relativedelta:%s"
+                % (test_1, test_2, test_3))
+
+    test_1 = result_1.total_credit()
+    test_2 = result_2.total_credit()
+    test_3 = result_3.total_credit()
+    if test_1 != test_2 != test_3:
+        raise Exception("Mismatch on Total Allocation Credit Received: "
+                "Cumulative:%s Timedelta:%s Relativedelta:%s"
+                % (test_1, test_2, test_3))
+
+    test_1 = result_1.total_difference()
+    test_2 = result_2.total_difference()
+    test_3 = result_3.total_difference()
+    if test_1 != test_2 != test_3:
+        raise Exception("Mismatch on Total Allocation: "
+                "Cumulative:%s Timedelta:%s Relativedelta:%s"
+                % (test_1, test_2, test_3))
+    return True
+
 def run_test2():
     """
-    Test 2:
-
-    NEW FEATURE: INTERVAL 21 days + CarryForwardTime rule added
-
-    Window set at 5 months (7/1/14 - 12/1/14)
-    One-time credit of 10,000 AU (7/1)
-    Instance swaps from active/suspended
-     every 3 days for 5 months starting (7/4/14 @ 12:00)
-    Real world answer:
-    * 153 days between 12/1 and 7/1
-    * Each history_interval is 3 days long (153/3 = 51 status changes)
-    * Starting with active, that means 75 days of 'clock time'
-    * Using a CPURule && 4CPU Size on 75 days == 300 days total usage
+    TODO: Setup some new constraints here..
     """
-    interval_days = timedelta(21)
-    #Allocation Window
-    window_start = datetime(2014,7,1, tzinfo=pytz.utc)
-    window_stop = datetime(2014,12,1, tzinfo=pytz.utc)
-    #Instances
-    swap_days = timedelta(3)
-    history_start = datetime(2014,7,4,hour=12, tzinfo=pytz.utc)
-    history_stop = datetime(2014,12,4,hour=12, tzinfo=pytz.utc)
-    #Allocation Credits
-    achieve_greatness = AllocationIncrease(
-            name="Add 10,000 Hours ",
-            unit=TimeUnit.hour, amount=10000,
-            increase_date=window_start)
-
-    instances = instance_swap_status_test(
-            history_start, history_stop, swap_days,
-            size=medium_size, count=1)
-    credits=[achieve_greatness]
-    rules=[multiply_by_cpu, ignore_suspended, ignore_build]
-    result = test_allocation(credits, rules, instances,
-            window_start, window_stop, interval_days)
-    return result
-
-def run_test3():
-    """
-    Test 3:
-    NEW FEATURE: Relativedelta ( Monthly, 1st day of month)
-
-    Window set at 5 months (7/1/14 - 12/1/14)
-    One-time credit of 10,000 AU (7/1)
-    Instance swaps from active/suspended
-     every 3 days for 5 months starting (7/4/14 @ 12:00)
-    Real world answer:
-    * 153 days between 12/1 and 7/1
-    * Each history_interval is 3 days long (153/3 = 51 status changes)
-    * Starting with active, that means 75 days of 'clock time'
-    * Using a CPURule && 4CPU Size on 75 days == 300 days total usage
-    """
-    interval_days = relativedelta(day=1, months=1)
     #Allocation Window
     window_start = datetime(2014,7,1, tzinfo=pytz.utc)
     window_stop = datetime(2014,12,1, tzinfo=pytz.utc)
