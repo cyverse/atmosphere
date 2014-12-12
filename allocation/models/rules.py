@@ -13,7 +13,7 @@ TODO: We have 'Ignore*Rule', it might be nice to have a 'Match*Rule' class
 from abc import ABCMeta, abstractmethod
 from django.utils.timezone import timedelta, datetime
 import calendar, pytz
-import warlock
+from threepio import logger
 
 #Utils
 
@@ -130,8 +130,8 @@ class IgnoreStatusRule(FilterOutRule):
         if found_match:
             running_time *= 0
             if print_logs:
-                print ">> Ignore Instance Status '%s'. Set Runtime to 0"\
-                % (history.status)
+                logger.debug(">> Ignore Instance Status '%s'. Set Runtime to 0"\
+                % (history.status))
         #All misses.
         return running_time
 
@@ -163,8 +163,8 @@ class IgnoreMachineRule(FilterOutRule):
         if found_match:
             running_time *= 0
             if print_logs:
-                print ">> Ignore Machine identifier '%s'. Set Runtime to 0"\
-                    % (history.status)
+                logger.debug(">> Ignore Machine identifier '%s'. Set Runtime to 0"\
+                    % (history.status))
         return running_time
 
 
@@ -187,8 +187,8 @@ class IgnoreProviderRule(FilterOutRule):
         if found_match:
             running_time *= 0
             if print_logs:
-                print ">> Ignore Provider identifier '%s'. Set Runtime to 0"\
-                    % (history.status)
+                logger.debug(">> Ignore Provider identifier '%s'. Set Runtime to 0"\
+                    % (history.status))
         return running_time
 
     def __init__(self, name, value):
@@ -206,9 +206,9 @@ class MultiplyBurnTime(InstanceMultiplierRule):
         time.
         """
         if print_logs:
-            print ">> %s Current Running Time:%s * Multiplier:%s = %s"\
+            logger.debug(">> %s Current Running Time:%s * Multiplier:%s = %s"\
                 % ( history.status, running_time, self.multiplier,
-                    running_time * self.multiplier)
+                    running_time * self.multiplier))
         running_time *= self.multiplier
         return running_time
 
@@ -223,9 +223,9 @@ class MultiplySizeCPU(InstanceMultiplierRule):
         Multiply the running_time by size of CPU * (multiplier)
         """
         if print_logs:
-            print ">> %s Current Running Time:%s * CPU:%s * Multiplier:%s = %s"\
+            logger.debug(">> %s Current Running Time:%s * CPU:%s * Multiplier:%s = %s"\
                 % ( history.status, running_time, history.size.cpu, self.multiplier,
-                    running_time * history.size.cpu * self.multiplier)
+                    running_time * history.size.cpu * self.multiplier))
         running_time *= self.multiplier * history.size.cpu
         return running_time
 
@@ -243,9 +243,9 @@ class MultiplySizeDisk(InstanceMultiplierRule):
         Multiply the running_time by size of Disk (GB) * (multiplier)
         """
         if print_logs:
-            print ">> %s Current Running Time:%s * Disk:%s * Multiplier:%s = %s"\
+            logger.debug(">> %s Current Running Time:%s * Disk:%s * Multiplier:%s = %s"\
                 % ( history.status, running_time, history.size.disk, self.multiplier,
-                        running_time * history.size.disk * self.multiplier)
+                        running_time * history.size.disk * self.multiplier))
         running_time *= self.multiplier * history.size.disk
         return running_time
 
@@ -275,9 +275,9 @@ class MultiplySizeRAM(InstanceMultiplierRule):
         NOTE: To calculate in GB, set self.multiplier = 1/1024
         """
         if print_logs:
-            print ">> %s Current Running Time:%s * RAM:%s * Multiplier:%s = %s"\
+            logger.debug(">> %s Current Running Time:%s * RAM:%s * Multiplier:%s = %s"\
                 % ( history.status, running_time, history.size.disk, self.multiplier,
-                        running_time * history.size.disk * self.multiplier)
+                        running_time * history.size.disk * self.multiplier))
         running_time *= self.multiplier * history.size.ram
         return running_time
 
