@@ -12,6 +12,16 @@ from django.utils.timezone import timedelta, datetime
 import calendar, pytz
 import warlock
 
+#Utils
+
+def _needle_in_haystack(haystack, needle):
+    for value in haystack:
+        if value == needle:
+            return True
+    return False
+
+
+
 #Level 1
 class Rule():
     __metaclass__ = ABCMeta
@@ -109,19 +119,23 @@ class IgnoreStatusRule(FilterOutRule):
         If a match is found between Status History and the 'needle'
         Then the running_time should be ZEROed.
         """
-        if self.value == history.status:
-            if print_logs:
-                print ">> Matching InstanceStatus named %s FOUND."\
-                    "\n>> %s Current Running Time:%s * 0 = 0"\
-                    % (history.status, self.value, running_time)
+        if type(self.value) != list:
+            values = [self.value]
+        else:
+            values = self.value
+        found_match = _needle_in_haystack(values, history.status)
+        if found_match:
             running_time *= 0
+            if print_logs:
+                print ">> Ignore Instance Status '%s'. Set Runtime to 0"\
+                % (history.status)
+        #All misses.
         return running_time
 
     def _validate_value(self, value):
         if type(value) != str:
             raise Exception("Expects a name to be matched on "
             "InstanceStatusHistory.status")
-
 
 class IgnoreMachineRule(FilterOutRule):
     def __init__(self, name, value):
@@ -138,12 +152,16 @@ class IgnoreMachineRule(FilterOutRule):
         If a match is found between Machine UUID and the 'needle'
         Then the running_time should be ZEROed.
         """
-        if self.value == instance.machine.identifier:
-            if print_logs:
-                print ">> Matching Machine with Identifier %s FOUND."\
-                    "\n>> %s Current Running Time:%s * 0 = 0"\
-                    % (history.status, self.value, running_time)
+        if type(self.value) != list:
+            values = [self.value]
+        else:
+            values = self.value
+        found_match = _needle_in_haystack(values, instance.machine.identifier)
+        if found_match:
             running_time *= 0
+            if print_logs:
+                print ">> Ignore Machine identifier '%s'. Set Runtime to 0"\
+                    % (history.status)
         return running_time
 
 
@@ -158,12 +176,16 @@ class IgnoreProviderRule(FilterOutRule):
         If a match is found between Provider ID and the 'needle'
         Then the running_time should be ZEROed.
         """
-        if self.value == instance.provider.identifier:
-            if print_logs:
-                print ">> Matching Provider with Identifier %s FOUND."\
-                    "\n>> %s Current Running Time:%s * 0 = 0"\
-                    % (history.status, self.value,running_time)
+        if type(self.value) != list:
+            values = [self.value]
+        else:
+            values = self.value
+        found_match = _needle_in_haystack(values, instance.provider.identifier)
+        if found_match:
             running_time *= 0
+            if print_logs:
+                print ">> Ignore Provider identifier '%s'. Set Runtime to 0"\
+                    % (history.status)
         return running_time
 
     def __init__(self, name, value):

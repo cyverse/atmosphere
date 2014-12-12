@@ -73,6 +73,9 @@ def calculate_allocation(allocation):
             current_period.increase_credit(time_forward)
 
         print "> New TimePeriodResult: %s" % current_period
+        if current_period.allocation_credit > timedelta(0):
+            print "> > Allocation Increased: %s" %\
+                    current_period.allocation_credit
         #Second loop - Go through all the instances and apply
         #              the specific rules (This loop relates to time USED)
         instance_results = []
@@ -86,13 +89,18 @@ def calculate_allocation(allocation):
             instance_result = InstanceResult(
                     identifier=instance.identifier,
                     status_list=status_list)
-            print "> > Instance Status Results:%s" % instance_result
             instance_results.append(instance_result)
 
+        print "> > Instance Status Results:"
+        for instance_result in instance_results:
+            print "> > %s" % instance_result
         current_period.instance_results = instance_results
 
+        print "> > %s - %s = %s" %\
+                (current_period.allocation_credit,
+                current_period.total_instance_runtime(),
+                current_period.allocation_difference())
         if current_result.carry_forward:
-            import ipdb;ipdb.set_trace()
             time_forward = current_period.allocation_difference()
     return current_result
 

@@ -154,7 +154,7 @@ class IdentityMembership(models.Model):
             return {}
         #Don't move it up. Circular reference.
         from django.conf import settings
-        from service.allocation import core_instance_time, get_burn_time,\
+        from service.monitoring import core_instance_time, get_burn_time,\
             delta_to_minutes, delta_to_hours, get_delta
         delta = get_delta(self, time_period=settings.FIXED_WINDOW)
         #Keeps the times on these calculations consistent!

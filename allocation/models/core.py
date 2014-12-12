@@ -6,6 +6,7 @@ TODO: 'Duck-Type' to pull all required attributes from a
       To make initializing these models 100x easier!
 """
 from django.utils.timezone import timedelta, datetime
+from django.db.models import Q
 import calendar, pytz
 import warlock
 
@@ -82,14 +83,20 @@ class Instance():
                    self.machine.identifier,
                    self.history)
     @classmethod
-    def from_core(cls, core_instance):
+    def from_core(cls, core_instance, start_date=None):
         pm = core_instance.provider_machine
         prov = Provider.from_core(pm.provider)
         mach = Machine.from_core(pm)
         size_map = {}
         instance_history = []
-        for history in core_instance.instancestatushistory_set.\
-                order_by('start_date'):
+        if not start_date:
+            #Full list
+            history_list = core_instance.instancestatushistory_set.all()
+        else:
+            #Shorter list
+            history_list = core_instance.instancestatushistory_set.filter(
+                    Q(end_date=None) | Q(end_date__gt=start_date))
+        for history in history_list.order_by('start_date'):
             alloc_history = InstanceHistory.from_core(history)
             instance_history.append(alloc_history)
 
@@ -117,12 +124,12 @@ class InstanceHistory():
 
         return InstanceHistory(status=core_history.status.name, size=size,
                 start_date=core_history.start_date,
-                end_date=core_history.start_date)
+                end_date=core_history.end_date)
 
     def __repr__(self):
         return self.__unicode__()
     def __unicode__(self):
-        return "<History: Status:%s Size:%s Starting:%s Ended:%s>"\
+        return "<InstanceHistory: Status:%s Size:%s Starting:%s Ended:%s>"\
                 % (self.status, self.size, self.start_date, self.end_date)
 
     def _validate_input(self, start_date, end_date):
@@ -149,6 +156,7 @@ class TimeUnit:
     week = 4
     month = 5
     year = 6
+    infinite = 999
 
 
 class AllocationIncrease(object):
@@ -164,13 +172,15 @@ class AllocationIncrease(object):
         if amount <= 0:
             raise ValueError("Bad amount:%s Value must be positive." % amount)
         if not increase_date:
-            raise ValueError("Increase_date is required")
+            raise ValueError("Increase_date is required "
+            "to know how it fits in a timeperiod")
 
     def __init__(self, name, unit, amount, increase_date=None):
         self.name = name
         self.unit = unit
         self.amount = amount
-        self._validate_input(unit, amount, increase_date)
+        if unit != TimeUnit.infinite:
+            self._validate_input(unit, amount, increase_date)
         self.increase_date = increase_date
     def __repr__(self):
         return self.__unicode__()
@@ -209,6 +219,8 @@ class AllocationIncrease(object):
             #NOTE: For now we assume they want N of the 'current month', but we
             #      could make that a variable to avoid any ambiguity..
             day_amount = self._days_in_month(self.increase_date) * self.amount
+        elif self.unit == TimeUnit.infinite:
+            return timedelta.max
         else:
             raise Exception("Conversion failed: Invalid value '%s'" % self.unit)
         return timedelta(
@@ -218,6 +230,13 @@ class AllocationIncrease(object):
     pass
 
 
+class AllocationUnlimited(AllocationIncrease):
+    def __init__(self, increase_date=None):
+        if not increase_date:
+            increase_date = self._get_current_date_utc()
+        super(AllocationUnlimited, self).__init__(
+                "Unlimited Allocation",
+                TimeUnit.infinite, 1, increase_date)
 class AllocationRecharge(AllocationIncrease):
     """
     AllocationRecharge represent the start of a new period of accounting.

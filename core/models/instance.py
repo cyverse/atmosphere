@@ -176,13 +176,13 @@ class Instance(models.Model):
 
     def get_active_hours(self, delta):
         #Don't move it up. Circular reference.
-        from service.allocation import delta_to_hours
+        from service.monitoring import delta_to_hours
         total_time = self._calculate_active_time(delta)
         return delta_to_hours(total_time)
 
-    def get_active_time(self, delta=None):
-        total_time = self._calculate_active_time(delta)
-        return total_time
+    #def get_active_time(self, delta=None):
+    #    total_time = self._calculate_active_time(delta)
+    #    return total_time
 
     def _calculate_active_time(self, delta=None):
         if not delta:
@@ -226,7 +226,7 @@ class Instance(models.Model):
 
     def get_active_hours(self, delta):
         #Don't move it up. Circular reference.
-        from service.allocation import delta_to_hours
+        from service.monitoring import delta_to_hours
         total_time = self._calculate_active_time(delta)
         return delta_to_hours(total_time)
 

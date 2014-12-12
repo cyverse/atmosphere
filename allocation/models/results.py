@@ -2,7 +2,7 @@
 Models for the Results (Output) after running allocation
 through the engine.
 """
-from django.utils.timezone import timedelta
+from django.utils.timezone import timedelta, datetime, now
 from allocation.models.core import AllocationIncrease, AllocationRecharge
 
 class InstanceStatusResult():
@@ -42,11 +42,17 @@ class InstanceResult():
         self.identifier = identifier
         self.status_list = status_list
 
+    def total_runtime(self):
+        runtime = timedelta(0)
+        for status in self.status_list:
+            runtime += status.total_time
+        return runtime
+
     def __repr__(self):
         return self.__unicode__()
     def __unicode__(self):
-        return "<InstanceResult: %s Status List:%s>"\
-                % (self.identifier,self.status_list)
+        return "<InstanceResult: %s Total Runtime:%s>"\
+                % (self.identifier,self.total_runtime())
 
 class TimePeriodResult():
     #Datekeeping
@@ -130,6 +136,8 @@ class AllocationResult():
 
         self.allocation = allocation
         self.window_start = window_start
+        if not window_end:
+            window_end = now()
         self.window_end = window_end
         self.carry_forward = carry_forward
         if time_periods:
@@ -139,6 +147,28 @@ class AllocationResult():
         else:
             self.time_periods = self._time_periods_by_allocation()
 
+    def total_runtime(self):
+        runtime = timedelta(0)
+        for period in self.time_periods:
+            runtime += period.total_instance_runtime() 
+        return runtime
+
+    def total_credit(self):
+        runtime = timedelta(0)
+        for period in self.time_periods:
+            runtime += period.allocation_credit
+        return runtime
+
+
+    def total_difference(self):
+        difference = timedelta(0)
+        for period in self.time_periods:
+            difference += period.allocation_difference() 
+        return difference
+
+    def over_allocation(self):
+        return any(period.over_allocation() for period in self.time_periods)
+
     def _time_periods_by_interval(self, tdelta):
         """
         Given a timedelta, evenly divide up your TimePeriod
@@ -146,7 +176,7 @@ class AllocationResult():
         time_periods = []
         time_period = TimePeriodResult(self.window_start, None)
         current_date = self.window_start + tdelta
-        while current_date <= self.window_end:
+        while current_date < self.window_end:
             #Finish this interval
             time_period.stop_counting_date = current_date
             time_periods.append(time_period)

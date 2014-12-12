@@ -11,9 +11,159 @@ from core.models import AtmosphereUser as User
 from core.models import IdentityMembership, Identity
 from core.models.instance import Instance, convert_esh_instance
 
-from service.cache import get_cached_driver
+from service.cache import get_cached_instances, get_cached_driver
+from allocation.models import AllocationIncrease,\
+        AllocationRecharge, AllocationUnlimited,\
+        IgnoreStatusRule, MultiplySizeCPU,\
+        Allocation, TimeUnit
+from allocation.models import Instance as AllocInstance
 
 
+
+
+##Print functions from OLD allocation
+def print_table_header():
+    print "Username,Allocation allowed (min),Allocation Used (min),"\
+          "Instance,Status,Size (name),Size (CPUs),Start_Time,"\
+          "End_Time,Active_Time,Cpu_Time"
+
+def print_instances(instance_status_map, user, allocation, time_used):
+    max_time_allowed = timedelta(minutes=allocation.threshold)
+    print "Username:%s Time allowed: %s Time Used: %s"\
+          % (user.username,
+             strfdelta(max_time_allowed),
+             strfdelta(time_used))
+    print 'Instances that counted against %s:' % (user.username,)
+    for instance, status_list in instance_status_map.items():
+        for history in status_list:
+            if history.cpu_time > timedelta(0):
+                print "Instance %s, Size %s (%s CPU), Start:%s, End:%s,"\
+                      " Active time:%s CPU time:%s" %\
+                  (instance.provider_alias,
+                   history.size.name, history.size.cpu,
+                   strfdate(history.start_count), strfdate(history.end_count),
+                   strfdelta(history.active_time), strfdelta(history.cpu_time))
+
+def print_table_row(instance_status_map, user, allocation, time_used):
+    max_time_allowed = timedelta(minutes=allocation.threshold)
+    print "%s,%s,%s,,,,,,,,,,"\
+          % (user.username,
+             strfdelta(max_time_allowed),
+             strfdelta(time_used))
+    for instance, status_list in instance_status_map.items():
+        for history in status_list:
+            print ",,,%s,%s,%s,%s,%s,%s,%s,%s" %\
+                  (instance.provider_alias,
+                   history.status.name,
+                   history.size.name, history.size.cpu,
+                   strfdate(history.start_count), strfdate(history.end_count),
+                   strfdelta(history.active_time), strfdelta(history.cpu_time))
+
+## Deps Used in monitoring.py
+def _include_all_idents(identities, owner_map):
+    #Include all identities with 0 instances to the monitoring
+    identity_owners = [ident.get_credential('ex_tenant_name')
+                       for ident in identities]
+    owners_w_instances = owner_map.keys()
+    for user in identity_owners:
+        if user not in owners_w_instances:
+            owner_map[user] = []
+    return owner_map
+def _make_instance_owner_map(instances, users=None):
+    owner_map = {}
+
+    for i in instances:
+        if users and i.owner not in users:
+            continue
+        key = i.owner
+        instance_list = owner_map.get(key, [])
+        instance_list.append(i)
+        owner_map[key] = instance_list
+    return owner_map
+
+def _select_identities(provider, users=None):
+    if users:
+        return provider.identity_set.filter(created_by__username__in=users)
+    return provider.identity_set.all()
+
+
+def _convert_tenant_id_to_names(instances, tenants):
+    for i in instances:
+        for tenant in tenants:
+            if tenant['id'] == i.owner:
+                i.owner = tenant['name']
+    return instances
+
+## Used in monitoring.py
+def _create_allocation_input(username, core_allocation, instances, window_start, window_stop, delta=None):
+    """
+    This function is meant to create an allocation input that
+    is identical in functionality to that of the ORIGINAL allocation system.
+    """
+    if core_allocation:
+        initial_recharge = AllocationRecharge(
+                name="%s Assigned allocation" % username,
+                unit=TimeUnit.minute, amount=core_allocation.threshold,
+                recharge_date=window_start)
+    else:
+        initial_recharge = AllocationUnlimited(window_start)
+    #Noteably MISSING: 'active', 'running'
+    multiply_by_cpu = MultiplySizeCPU(name="Multiply TimeUsed by CPU", multiplier=1)
+    ignore_inactive = IgnoreStatusRule("Ignore Inactive Status", value=["build", "pending",
+        "hard_reboot", "reboot",
+         "migrating", "rescue",
+         "resize", "verify_resize",
+        "shutoff", "shutting-down",
+        "suspended", "terminated",
+        "deleted", "error", "unknown","N/A",
+        ])
+    alloc_instances = [AllocInstance.from_core(inst, window_start) for inst in instances]
+    return Allocation(
+            credits=[initial_recharge],
+            rules=[multiply_by_cpu, ignore_inactive], instances=alloc_instances,
+            start_date=window_start, end_date=window_stop,
+            interval_delta=delta)
+
+    
+def _cleanup_instances(core_instances, core_running_instances):
+    """
+    Cleans up the DB InstanceStatusHistory when you know what instances are
+    active...
+
+    core_instances - List of 'ALL' core instances
+    core_running_instances - Reference list of KNOWN active instances
+    """
+    instances = []
+    for inst in core_instances:
+        if not core_running_instances or inst not in core_running_instances:
+            inst.end_date_all()
+        #Gather the updated values..
+        instances.append(inst)
+    #Return the updated list
+    return instances
+def get_instance_owner_map(provider, users=None):
+    """
+    All keys == All identities
+    Values = List of identities / username
+    NOTE: This is KEYSTONE && NOVA specific. the 'instance owner' here is the
+          username // ex_tenant_name
+    """
+    admin_driver = get_cached_driver(provider=provider)
+    all_identities = _select_identities(provider, users)
+    all_instances = get_cached_instances(provider=provider)
+    all_tenants = admin_driver._connection._keystone_list_tenants()
+    #Convert instance.owner from tenant-id to tenant-name all at once
+    all_instances = _convert_tenant_id_to_names(all_instances, all_tenants)
+    #Make a mapping of owner-to-instance
+    instance_map = _make_instance_owner_map(all_instances, users=users)
+    logger.info("Instance owner map created")
+    identity_map = _include_all_idents(all_identities, instance_map)
+    logger.info("Identity map created")
+    return identity_map
+
+
+
+## Used in OLD allocation
 def check_over_allocation(username, identity_id,
                           time_period=None):
     """

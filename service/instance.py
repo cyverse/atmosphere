@@ -22,7 +22,7 @@ from atmosphere.settings import secrets
 
 from service.cache import get_cached_driver, invalidate_cached_instances
 from service.quota import check_over_quota
-from service.allocation import check_over_allocation
+from service.monitoring import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
     VolumeAttachConflict
