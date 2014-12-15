@@ -195,8 +195,14 @@ def check_over_allocation(username, identity_id,
 
 
 def get_allocation(username, identity_id):
+    user = User.objects.get(username=username)
     membership = IdentityMembership.objects.get(identity__id=identity_id,
-                                                member__name=username)
+                                                member=user)
+    if not user.is_staff and not membership.allocation:
+        default_allocation = Allocation.default_allocation()
+        logger.warn("%s is MISSING an allocation. Default Allocation"
+                    " assigned:%s" % (user,default_allocation))
+        return default_allocation
     return membership.allocation
 
 
