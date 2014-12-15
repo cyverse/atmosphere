@@ -169,29 +169,24 @@ def check_over_allocation(username, identity_id,
     """
     Check if an identity is over allocation.
 
-    If time_period is timedelta(month=1) then delta_time is from the
-    beginning of the month to now otherwise delta_time is allocation.delta.
-    Get all instance histories created between now and delta_time. Check
-    that cumulative time of instances do not exceed threshold.
-
     True if allocation has been exceeded, otherwise False.
     """
-    allocation = get_allocation(username, identity_id)
-    if not allocation:
-        return (False, timedelta(0))
-    delta_time = get_delta(allocation, time_period)
-    max_time_allowed = timedelta(minutes=allocation.threshold)
-    logger.debug("%s Allocation: %s Time allowed"
-                 % (username, max_time_allowed))
-    total_time_used, _ = core_instance_time(username, identity_id, delta_time)
-    logger.debug("%s Time Used: %s"
-                 % (username, total_time_used))
-    time_diff = max_time_allowed - total_time_used
-    if time_diff.total_seconds() <= 0:
-        logger.debug("%s is OVER their allowed quota by %s" %
-                     (username, time_diff))
-        return (True, time_diff)
-    return (False, time_diff)
+    #allocation = get_allocation(username, identity_id)
+    #if not allocation:
+    #    return (False, timedelta(0))
+    #delta_time = get_delta(allocation, time_period)
+    #max_time_allowed = timedelta(minutes=allocation.threshold)
+    #logger.debug("%s Allocation: %s Time allowed"
+    #             % (username, max_time_allowed))
+    #total_time_used, _ = core_instance_time(username, identity_id, delta_time)
+    #logger.debug("%s Time Used: %s"
+    #             % (username, total_time_used))
+    #time_diff = max_time_allowed - total_time_used
+    #if time_diff.total_seconds() <= 0:
+    #    logger.debug("%s is OVER their allowed quota by %s" %
+    #                 (username, time_diff))
+    #    return (True, time_diff)
+    #return (False, time_diff)
 
 
 def get_allocation(username, identity_id):
@@ -199,7 +194,8 @@ def get_allocation(username, identity_id):
     membership = IdentityMembership.objects.get(identity__id=identity_id,
                                                 member=user)
     if not user.is_staff and not membership.allocation:
-        default_allocation = Allocation.default_allocation()
+        default_allocation = Allocation.default_allocation(
+                membership.identity.provider)
         logger.warn("%s is MISSING an allocation. Default Allocation"
                     " assigned:%s" % (user,default_allocation))
         return default_allocation

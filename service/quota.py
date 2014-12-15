@@ -5,13 +5,22 @@ from core.models import IdentityMembership, Identity, Provider
 from service.accounts.openstack import AccountDriver
 from service.cache import get_cached_driver
 
-def set_provider_quota(identity_id):
+def _get_hard_limits(provider):
+    """
+    At some point this will be a DIRECT relationship to the provider. But for
+    now its hard-coded
+    """
+    return {"ram": 500, "cpu":64}
+
+def set_provider_quota(identity_id, limit_dict=None):
     """
     """
     identity = Identity.objects.get(id=identity_id)
     if not identity.credential_set.all():
         #Can't update quota if credentials arent set
         return
+    if not limit_dict:
+        limit_dict = _get_hard_limits(identity.provider)
     if identity.provider.get_type_name().lower() == 'openstack':
         driver = get_cached_driver(identity=identity)
         username = identity.created_by.username
@@ -21,6 +30,12 @@ def set_provider_quota(identity_id):
                                                     member__name=username)
         user_quota = membership.quota
         if user_quota:
+            #Don't go above the hard-set limits per provider.
+            if user_quota.cpu > limit_dict['cpu']:
+                user_quota.cpu = limit_dict['cpu']
+            if user_quota.memory > limit_dict['ram']:
+                user_quota.memory = limit_dict['ram']
+            #Use THESE values...
             values = {'cores': user_quota.cpu,
                       'ram': user_quota.memory * 1024}
             logger.info("Updating quota for %s to %s" % (username, values))

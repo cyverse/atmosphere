@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
+
 if [[ $EUID -ne 0 ]]; then
     echo "You must be a root user to set these permissions"
     exit 1
 fi
 
-if [ "$#" -ne 1 ]; then
+if [ "$#" -ge 1 ]; then
   export ATMOSPHERE_HOME="$1"
 else
   export ATMOSPHERE_HOME=/opt/dev/atmosphere
 fi
+echo "Using Atmo HOME: $ATMOSPHERE_HOME"
 
 chmod -R g+w ${ATMOSPHERE_HOME}
 
