@@ -22,13 +22,17 @@ sys.path.insert(0, '/opt/env/atmo/lib/python2.7/site-packages/')
 sys.path.insert(1, root_dir)
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
+#NOTE: DO NOT MOVE ABOVE THIS LINE! Django will fail to import settings without knowing
+# what settings module ('atmosphere.settings') to use!
+# Failure to do so will result in 500 error, exception output in the apache logs.
+from django.conf import settings
 
 if hasattr(settings, "NEW_RELIC_ENVIRONMENT"):
     try:
         import newrelic.agent
         newrelic.agent.initialize(
             os.path.join(root_dir, "extras/newrelic/atmosphere_newrelic.ini"),
-            "staging")
+            settings.NEW_RELIC_ENVIRONMENT)
         print "[A]Plugin: New Relic initialized!"
     except ImportError, bad_import:
         print "[A]Warning: newrelic not installed.."
