@@ -504,7 +504,8 @@ class InstanceAction(APIView):
                 result_obj = esh_driver._connection.ex_vnc_console(esh_instance)
             elif 'reboot' == action:
                 reboot_type = action_params.get('reboot_type', 'SOFT')
-                reboot_instance(esh_driver, esh_instance, reboot_type)
+                reboot_instance(esh_driver, esh_instance,
+                        identity_id, user, reboot_type)
             elif 'rebuild' == action:
                 machine_alias = action_params.get('machine_alias', '')
                 machine = esh_driver.get_machine(machine_alias)

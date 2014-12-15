@@ -11,6 +11,7 @@ from rtwo.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
     OSProvider, OSValhallaProvider
 from rtwo.driver import OSDriver
+from rtwo.size import MockSize
 
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import convert_esh_instance
@@ -27,15 +28,23 @@ from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
     VolumeAttachConflict
 from service.accounts.openstack import AccountDriver as OSAccountDriver
-                
 
-def reboot_instance(esh_driver, esh_instance, reboot_type="SOFT"):
+def _get_size(esh_driver, esh_instance):
+    if type(esh_instance.size) == MockSize:
+        size = esh_driver.get_size(esh_instance.size.id)
+    else:
+        size = esh_instance.size
+    return size
+
+
+def reboot_instance(esh_driver, esh_instance, identity_id, user, reboot_type="SOFT"):
     """
     Default to a soft reboot, but allow option for hard reboot.
     """
     #NOTE: We need to check the quota as if the instance were rebooting,
     #      Because in some cases, a reboot is required to get out of the
     #      suspended state..
+    size = _get_size(esh_driver, esh_instance)
     check_quota(user.username, identity_id, size, resuming=True)
     esh_driver.reboot_instance(esh_instance, reboot_type=reboot_type)
     #reboots take very little time..
@@ -363,7 +372,7 @@ def resume_instance(esh_driver, esh_instance,
     """
     from service.tasks.driver import update_metadata, _update_status_log
     _update_status_log(esh_instance, "Resuming Instance")
-    size = esh_driver.get_size(esh_instance.size.id)
+    size = _get_size(esh_driver, esh_instance)
     check_quota(user.username, identity_id, size, resuming=True)
     #admin_capacity_check(provider_id, esh_instance.id)
     if restore_ip:
@@ -485,7 +494,7 @@ def launch_instance(user, provider_id, identity_id,
     core_instance = convert_esh_instance(
         esh_driver, esh_instance, provider_id, identity_id,
         user, token, password)
-    esh_size = esh_driver.get_size(esh_instance.size.id)
+    esh_size = _get_size(esh_driver, esh_instance)
     core_size = convert_esh_size(esh_size, provider_id)
     core_instance.update_history(
         core_instance.esh.extra['status'],

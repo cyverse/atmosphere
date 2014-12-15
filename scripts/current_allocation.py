@@ -7,6 +7,8 @@ from core.models import Provider
 def _local_date_str_to_utc_date(end_date_str, timezone="America/Phoenix"):
         import pytz
         from datetime import datetime
+        if not end_date_str:
+            return None
         local = pytz.timezone(timezone)
         naive_end_date = datetime.strptime(end_date_str, "%Y-%m-%d %H:%M:%S")
         local_end_date = local.localize(naive_end_date, is_dst=None)
