@@ -12,52 +12,14 @@ from core.models import IdentityMembership, Identity
 from core.models.instance import Instance, convert_esh_instance
 
 from service.cache import get_cached_instances, get_cached_driver
+from allocation.engine import calculate_allocation
 from allocation.models import AllocationIncrease,\
         AllocationRecharge, AllocationUnlimited,\
         IgnoreStatusRule, MultiplySizeCPU,\
         Allocation, TimeUnit
 from allocation.models import Instance as AllocInstance
+from django.conf import settings
 
-
-
-
-##Print functions from OLD allocation
-def print_table_header():
-    print "Username,Allocation allowed (min),Allocation Used (min),"\
-          "Instance,Status,Size (name),Size (CPUs),Start_Time,"\
-          "End_Time,Active_Time,Cpu_Time"
-
-def print_instances(instance_status_map, user, allocation, time_used):
-    max_time_allowed = timedelta(minutes=allocation.threshold)
-    print "Username:%s Time allowed: %s Time Used: %s"\
-          % (user.username,
-             strfdelta(max_time_allowed),
-             strfdelta(time_used))
-    print 'Instances that counted against %s:' % (user.username,)
-    for instance, status_list in instance_status_map.items():
-        for history in status_list:
-            if history.cpu_time > timedelta(0):
-                print "Instance %s, Size %s (%s CPU), Start:%s, End:%s,"\
-                      " Active time:%s CPU time:%s" %\
-                  (instance.provider_alias,
-                   history.size.name, history.size.cpu,
-                   strfdate(history.start_count), strfdate(history.end_count),
-                   strfdelta(history.active_time), strfdelta(history.cpu_time))
-
-def print_table_row(instance_status_map, user, allocation, time_used):
-    max_time_allowed = timedelta(minutes=allocation.threshold)
-    print "%s,%s,%s,,,,,,,,,,"\
-          % (user.username,
-             strfdelta(max_time_allowed),
-             strfdelta(time_used))
-    for instance, status_list in instance_status_map.items():
-        for history in status_list:
-            print ",,,%s,%s,%s,%s,%s,%s,%s,%s" %\
-                  (instance.provider_alias,
-                   history.status.name,
-                   history.size.name, history.size.cpu,
-                   strfdate(history.start_count), strfdate(history.end_count),
-                   strfdelta(history.active_time), strfdelta(history.cpu_time))
 
 ## Deps Used in monitoring.py
 def _include_all_idents(identities, owner_map):
@@ -141,7 +103,7 @@ def _cleanup_instances(core_instances, core_running_instances):
         instances.append(inst)
     #Return the updated list
     return instances
-def get_instance_owner_map(provider, users=None):
+def _get_instance_owner_map(provider, users=None):
     """
     All keys == All identities
     Values = List of identities / username
@@ -171,22 +133,10 @@ def check_over_allocation(username, identity_id,
 
     True if allocation has been exceeded, otherwise False.
     """
-    #allocation = get_allocation(username, identity_id)
-    #if not allocation:
-    #    return (False, timedelta(0))
-    #delta_time = get_delta(allocation, time_period)
-    #max_time_allowed = timedelta(minutes=allocation.threshold)
-    #logger.debug("%s Allocation: %s Time allowed"
-    #             % (username, max_time_allowed))
-    #total_time_used, _ = core_instance_time(username, identity_id, delta_time)
-    #logger.debug("%s Time Used: %s"
-    #             % (username, total_time_used))
-    #time_diff = max_time_allowed - total_time_used
-    #if time_diff.total_seconds() <= 0:
-    #    logger.debug("%s is OVER their allowed quota by %s" %
-    #                 (username, time_diff))
-    #    return (True, time_diff)
-    #return (False, time_diff)
+    identity = Identity.objects.get(id=identity_id)
+    allocation_result = _get_allocation_result(identity)
+    return (allocation_result.over_allocation(), 
+            allocation_result.total_difference())
 
 
 def get_allocation(username, identity_id):
@@ -223,129 +173,48 @@ def get_delta(allocation, time_period, end_date=None):
         return timedelta(minutes=allocation.delta)
 
 
-def get_burn_time(user, identity_id, delta, threshold, now_time=None):
+def _get_allocation_result(identity, start_date=None, end_date=None,
+                           running_instances=[], print_logs=False):
     """
-    INPUT: Total time allowed, total time used (so far),
-    OUTPUT: delta representing time remaining (from now)
+    Given an identity (And, optionally, time frame + list of running instances)
+    Create an allocation input, run it against the engine and return the result
     """
-    #DONT MOVE -- Circ.Dep.
-    from service.instance import get_core_instances
-    #Allow for multiple 'types' to be sent in
-    if type(user) is not User:
-        #not user, so this is a str with username
-        user = User.objects.filter(username=user)
-    if type(delta) is not timedelta:
-        #not delta, so this is the int for minutes
-        delta = timedelta(minutes=delta)
-    if type(threshold) is not timedelta:
-        #not delta, so this is the int for minutes
-        delta = timedelta(minutes=threshold)
+    user = identity.created_by
+    allocation = get_allocation(user.username, identity.id)
+    if not allocation:
+        logger.warn("User:%s Identity:%s does not have an allocation" % (user.username, identity))
+    if not end_date:
+        end_date = timezone.now()
+    if not start_date:
+        delta_time = get_delta(allocation, settings.FIXED_WINDOW, end_date)
+        start_date = end_date - delta_time
+    else:
+        delta_time = end_date - start_date
+    #Guaranteed a range (IF BOTH are NONE: Starting @ FIXED_WINDOW until NOW)
+    #Convert running to esh..
+    if running_instances:
+        driver = get_cached_driver(identity=identity)
+        core_running_instances = [
+            convert_esh_instance(driver, inst,
+                identity.provider.id, identity.id,
+                identity.created_by.username) for inst in running_instances]
 
-    #Assume we are burned out.
-    burn_time = timedelta(0)
+    #Retrieve the 'remaining' core that could have an impact..
+    core_instances = Instance.objects.filter(
+                    Q(end_date=None) | Q(end_date__gt=start_date),
+                            created_by=identity.created_by,
+                            created_by_identity__id=identity.id)
 
-    #If we have no instances, burn-time does not apply
-    instances = get_core_instances(identity_id)
-    if not instances:
-        return burn_time
+    if running_instances:
+        #Since we know which instances are still active and which are not
+        #Why not end_date ones that 'think' they are still running?
+        #TODO: When this is a seperate maintenance task, we should seperate concerns.
+        core_instances = _cleanup_instances(core_instances, core_running_instances)
 
-    #Remaining time: What your allotted - What you used before now
-    time_used, _ = core_instance_time(
-            user, identity_id, delta,
-            now_time=now_time)
-    #delta = delta - delta
-    time_remaining = threshold - time_used
+    #Wow, so easy, I'm sure nothing is behind this curtain...
+    allocation_input = _create_allocation_input(
+            user.username, allocation, core_instances, start_date, end_date, delta_time)
+    allocation_result = calculate_allocation(allocation_input,
+            print_logs=print_logs)
+    return allocation_result
 
-    #If we used all of our allocation, we are burned out.
-    if time_remaining < timedelta(0):
-        return burn_time
-
-    cpu_cores = get_cpu_count(user, identity_id)
-    #If we have no active cores, burn-time does not apply
-    if cpu_cores == 0:
-        return burn_time
-    #Calculate burn time by dividing remaining time over running cores
-    #delta / int = delta (ex. 300 mins / 3 = 100 mins)
-    burn_time = time_remaining/cpu_cores
-    return burn_time
-
-
-def get_cpu_count(user, identity_id):
-    #Counting only running instances:
-    instances = Instance.objects.filter(
-            end_date=None, created_by=user,
-            created_by_identity__id=identity_id)
-    #Looking at only the last history
-    cpu_total = 0
-    for inst in instances:
-        last_history = inst.get_last_history()
-        if last_history and last_history.is_active():
-            cpu_total += last_history.size.cpu
-    return cpu_total
-
-
-def current_instance_time(user, instances, identity_id, delta_time,
-                            end_date=None):
-    """
-    Converts all running instances to core, 
-    so that the database is up to date before calling 'core_instance_time'
-    """
-    ident = Identity.objects.get(id=identity_id)
-    driver = get_cached_driver(identity=ident)
-    core_instance_list = [
-        convert_esh_instance(driver, inst,
-                             ident.provider.id, ident.id, user)
-        for inst in instances]
-    #All instances that don't have an end-date should be
-    #included, even if all of their time is not.
-    time_used = core_instance_time(user, ident.id, delta_time,
-            running=core_instance_list, now_time=end_date)
-    return time_used
-
-
-def core_instance_time(user, identity_id, delta, running=[], now_time=None):
-    """
-    Called 'core_instance' time because it relies on the data
-    in core to be relevant. 
-    
-    If you (potentially) have new instances on the
-    driver, you should be using current_instance_time
-    """
-    if type(user) is not User:
-        user = User.objects.filter(username=user)[0]
-    if type(delta) is not timedelta:
-        delta = timedelta(minutes=delta)
-
-    total_time = timedelta(0)
-    if not now_time:
-        now_time = timezone.now() 
-    past_time = now_time - delta
-    #DevNote: If delta represents 'settings.FIXED_WINDOW' this value is
-    #         the first of the month, UTC.
-
-    #Calculate only the specific users time allocation.. UP to the now_time.
-    instances = Instance.objects.filter(
-            Q(end_date=None) | Q(end_date__gt=past_time),
-            created_by=user, created_by_identity__id=identity_id)
-    instance_status_map = {}
-    for idx, i in enumerate(instances):
-        #If we know what instances are running, and this isn't one of them,
-        # it missed end-dating. Lets do something about it
-        if running and i not in running:
-            i.end_date_all()
-        active_time, status_list = i.get_active_time(past_time, now_time)
-        instance_status_map[i] = status_list
-        new_total = active_time + total_time
-        total_time = new_total
-    return total_time, instance_status_map
-
-def delta_to_minutes(tdelta):
-    total_seconds = tdelta.days*86400 + tdelta.seconds
-    total_mins = total_seconds / 60
-    return total_mins
-
-
-def delta_to_hours(tdelta):
-    total_mins = delta_to_minutes(tdelta)
-    hours = total_mins / 60
-    return hours

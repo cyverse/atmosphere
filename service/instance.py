@@ -524,8 +524,7 @@ def check_quota(username, identity_id, esh_size, resuming=False):
         raise OverQuotaError(resource, requested, used, allowed)
     (over_allocation, time_diff) =\
         check_over_allocation(username,
-                              identity_id,
-                              time_period=settings.FIXED_WINDOW)
+                              identity_id)
     if over_allocation and settings.ENFORCING:
         raise OverAllocationError(time_diff)
 

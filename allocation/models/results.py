@@ -2,7 +2,7 @@
 Models for the Results (Output) after running allocation
 through the engine.
 """
-from django.utils.timezone import timedelta, datetime, now
+from django.utils.timezone import timedelta, datetime, now, utc
 from allocation.models.core import AllocationIncrease, AllocationRecharge
 
 class InstanceStatusResult():
@@ -42,6 +42,12 @@ class InstanceResult():
         self.identifier = identifier
         self.status_list = status_list
 
+    def get_burn_rate(self):
+        burnrate = timedelta(0)
+        for status in self.status_list:
+            burnrate += status.burn_rate
+        return burnrate
+
     def total_runtime(self):
         runtime = timedelta(0)
         for status in self.status_list:
@@ -63,6 +69,43 @@ class TimePeriodResult():
     instance_results = []
     #Hidden
     _allocation_credit = None
+
+    def time_to_zero(self):
+        """
+        Knowing the 'burn_rate', the total credit, and the stop_counting_date,
+        give the 'time until zero' if current conditions continue..
+        ASSUMPTION #1: We do not take into account the 'next' monthly recharge, etc.
+        * This avoids having an "Inifinite" or "N/A" ttz due to recharge
+        """
+        current_difference = self.allocation_difference() # As of 'end_date'
+        if current_difference < timedelta(0):
+            # TTZ == end_date (Its already over)
+            return self.stop_counting_date
+
+        # Looking Into the future
+        current_rate = self.get_burn_rate()
+        if current_rate == timedelta(0):
+            return datetime.max.replace(tzinfo=utc)
+        # To move from rate to date
+        #divide (seconds remaining) over (seconds per second)
+        #To get remaining seconds in the future
+        ttz_in_secs = current_difference.total_seconds() / current_rate.total_seconds()
+        ttz_delta = timedelta(seconds=ttz_in_secs)
+        #NOTE: If we use datetime.max for our allocation credit
+        #      then our adding of values causes an OverflowError.
+        #      In this case, return timedelta.max to represent 'infinite'
+        try:
+            ttz_datetime = self.stop_counting_date + ttz_delta
+        except OverflowError:
+            return datetime.max.replace(tzinfo=utc)
+        #Add delta to stop-time to get future ttz.
+        return ttz_datetime
+
+    def get_burn_rate(self):
+        burnrate = timedelta(0)
+        for instance_result in self.instance_results:
+            burnrate += instance_result.get_burn_rate()
+        return burnrate
 
     def over_allocation(self):
         """
@@ -183,6 +226,12 @@ class AllocationResult():
             runtime += period._allocation_credit
         return runtime
 
+
+    def get_burn_rate(self):
+        return self.last_period().get_burn_rate()
+
+    def time_to_zero(self):
+        return self.last_period().time_to_zero()
 
     def total_difference(self):
         if self.carry_forward:

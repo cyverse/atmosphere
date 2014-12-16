@@ -154,30 +154,26 @@ class IdentityMembership(models.Model):
             return {}
         #Don't move it up. Circular reference.
         from django.conf import settings
-        from service.monitoring import core_instance_time, get_burn_time,\
-            delta_to_minutes, delta_to_hours, get_delta
+        from service.monitoring import get_delta, _get_allocation_result
         delta = get_delta(self, time_period=settings.FIXED_WINDOW)
-        #Keeps the times on these calculations consistent!
-        now_time = timezone.now()
-        time_used, _ = core_instance_time(self.identity.created_by,
-                             self.identity.id,
-                             delta,
-                             now_time=now_time)
-        hours_used = delta_to_hours(time_used)
+        allocation_result = _get_allocation_result(self.identity)
 
-        burn_time = get_burn_time(self.identity.created_by, self.identity.id,
-                                  delta,
-                                  timedelta(minutes=self.allocation.threshold),
-                                  now_time=now_time)
+        burn_time = allocation_result.get_burn_rate()
+        #Moving from seconds to hours
+        hourly_credit = int(allocation_result\
+                .total_credit().total_seconds()/3600.0)
+        hourly_runtime = int(allocation_result\
+                .total_runtime().total_seconds()/3600.0)
+        hourly_difference = int(allocation_result\
+                .total_difference().total_seconds()/3600.0)
 
-        zero_time = now_time + burn_time if burn_time else None
-        burned_per_hour = delta_to_hours(burn_time)
+        zero_time = allocation_result.time_to_zero()
 
         allocation_dict = {
-            "threshold": floor(self.allocation.threshold/60),
-            "current": hours_used,
+            "threshold": hourly_credit,
+            "current": hourly_runtime,
             "delta": ceil(delta.total_seconds()/60),
-            "burn": burned_per_hour,
+            "burn": hourly_difference,
             "ttz": zero_time,
         }
         return allocation_dict
