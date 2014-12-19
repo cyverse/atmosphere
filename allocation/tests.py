@@ -5,8 +5,9 @@ from allocation.models import Allocation,\
         MultiplySizeCPU, MultiplySizeRAM,\
         MultiplySizeDisk, MultiplyBurnTime,\
         AllocationIncrease, AllocationRecharge, TimeUnit,\
-        IgnoreStatusRule, CarryForwardTime
+        IgnoreStatusRule, CarryForwardTime, validate_interval
 from django.test import TestCase
+from django.utils import unittest
 from django.utils.timezone import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import pytz
@@ -163,6 +164,42 @@ def _build_history_list(history_start, history_stop, status_choices=[],
         history_start = history_next
         history_next += swap_days
     return history_list
+
+
+class TestValidateInterval(TestCase):
+    def setUp(self):
+        self.start_time = datetime(2014,7,1, tzinfo=pytz.utc)
+        self.end_time = datetime(2014,7,1, tzinfo=pytz.utc)
+        self.start_time_missing_timezone = datetime(2014,7,1)
+        self.end_time_missing_timezone = datetime(2014,12,1)
+
+    def test_valid_allocation_times(self):
+        """
+        Given valid date range return an Allocation
+        """
+        self.assertTrue(validate_interval(self.start_time, self.end_time))
+
+    def test_invalid_allocation_start_time(self):
+        """
+        When `start_time` has no timezone `raise` an Exception
+        """
+        params = (self.start_time_missing_timezone, self.end_time,)
+
+        with self.assertRaises(Exception):
+            validate_interval(*params)
+
+        self.assertFalse(validate_interval(*params, raise_exception=False))
+
+    def test_invalid_allocation_end_time(self):
+        """
+        When `end_time` has no timezone `raise` an Exception
+        """
+        params = (self.start_time, self.end_time_missing_timezone,)
+
+        with self.assertRaises(Exception):
+            validate_interval(*params)
+
+        self.assertFalse(validate_interval(*params, raise_exception=False))
 
 
 #Static tests

@@ -11,6 +11,23 @@ import calendar, pytz
 import warlock
 
 
+# Helpers
+def validate_interval(start_date, end_date, raise_exception=True):
+    if start_date and not start_date.tzinfo:
+        if raise_exception:
+            raise Exception("Invalid Start Date: %s Reason: Missing Timezone.")
+        else:
+            return False
+
+    if end_date and not end_date.tzinfo:
+        if raise_exception:
+            raise Exception("Invalid End Date: %s Reason: Missing Timezone.")
+        else:
+            return False
+
+    return True
+
+
 class Provider():
     name = None
     identifier = None
@@ -127,7 +144,7 @@ class InstanceHistory():
                 end_date=core_history.end_date)
 
     def __init__(self, status, size, start_date, end_date):
-        self._validate_input(start_date,end_date)
+        validate_interval(start_date,end_date)
         self.status = status
         self.size = size
         self.start_date = start_date
@@ -138,12 +155,6 @@ class InstanceHistory():
     def __unicode__(self):
         return "<InstanceHistory: Status:%s Size:%s Starting:%s Ended:%s>"\
                 % (self.status, self.size, self.start_date, self.end_date)
-
-    def _validate_input(self, start_date, end_date):
-        if start_date and not start_date.tzinfo:
-            raise Exception("Invalid Start Date: %s Reason: Missing Timezone.")
-        if end_date and not end_date.tzinfo:
-            raise Exception("Invalid End Date: %s Reason: Missing Timezone.")
 
 class TimeUnit:
     #TODO: If using enums:
@@ -270,15 +281,9 @@ class Allocation():
     start_date = None
     end_date = None
     interval_delta = None
-    def _validate_input(self, start_date, end_date):
-        if start_date and not start_date.tzinfo:
-            raise Exception("Invalid Start Date: %s Reason: Missing Timezone.")
-        if end_date and not end_date.tzinfo:
-            raise Exception("Invalid End Date: %s Reason: Missing Timezone.")
-
     def __init__(self, credits, rules, instances,
                  start_date, end_date, interval_delta=None):
-        self._validate_input(start_date,end_date)
+        validate_interval(start_date,end_date)
         #TODO: Sort so that Recharges happen PRIOR to Increases on EQUAL dates.
         self.credits = credits
         self.rules = rules
