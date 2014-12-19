@@ -1,4 +1,4 @@
-from allocation.engine import calculate_allocation
+from allocation import engine
 from allocation.models import Provider, Machine, Size, Instance, InstanceHistory
 from core.models import Instance as CoreInstance
 from allocation.models import Allocation,\
@@ -14,7 +14,7 @@ import pytz
 
 #For testing..
 
-#Input Placeholders
+
 openstack = Provider(
         name="iPlant Cloud - Tucson",
         identifier="4")
@@ -108,7 +108,7 @@ def test_allocation(credits, rules, instances,
         start_date=window_start, end_date=window_stop,
         interval_delta=interval_delta
     )
-    allocation_result = calculate_allocation(allocation_input)
+    allocation_result = engine.calculate_allocation(allocation_input)
     return allocation_result
 
 def instance_swap_status_test(history_start, history_stop, swap_days,
@@ -200,6 +200,24 @@ class TestValidateInterval(TestCase):
             validate_interval(*params)
 
         self.assertFalse(validate_interval(*params, raise_exception=False))
+
+
+class TestEngineHelpers(unittest.TestCase):
+
+    def test_get_zero_date_time_is_valid(self):
+        """
+        Assert that the date time is utc timezone
+        """
+        zero_datetime = engine._get_zero_date_utc()
+
+        # Validate that the time corresponds to the desired result
+        self.assertEqual(zero_datetime.tzinfo, pytz.UTC)
+        self.assertEqual(zero_datetime.year, 1970)
+        self.assertEqual(zero_datetime.month, 1)
+        self.assertEqual(zero_datetime.day, 1)
+        self.assertEqual(zero_datetime.hour, 0)
+        self.assertEqual(zero_datetime.minute, 0)
+        self.assertEqual(zero_datetime.second, 0)
 
 
 #Static tests
