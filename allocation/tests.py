@@ -1,15 +1,21 @@
-from allocation.engine import calculate_allocation
+from functools import wraps
+import pytz
+
+from dateutil.relativedelta import relativedelta
+
+from django.test import TestCase
+from django.utils import unittest
+from django.utils.timezone import datetime, timedelta
+
+from allocation import engine
 from allocation.models import Provider, Machine, Size, Instance, InstanceHistory
-from core.models import Instance as CoreInstance
 from allocation.models import Allocation,\
         MultiplySizeCPU, MultiplySizeRAM,\
         MultiplySizeDisk, MultiplyBurnTime,\
         AllocationIncrease, AllocationRecharge, TimeUnit,\
-        IgnoreStatusRule, CarryForwardTime
-from django.test import TestCase
-from django.utils.timezone import datetime, timedelta
-from dateutil.relativedelta import relativedelta
-import pytz
+        IgnoreStatusRule, CarryForwardTime, validate_interval
+
+from core.models import Instance as CoreInstance
 
 #For testing..
 
@@ -20,16 +26,42 @@ openstack = Provider(
 openstack_workshop = Provider(
         name="iPlant Cloud Workshop - Tucson",
         identifier="5")
+
 random_machine = Machine(
         name="Not real machine",
         identifier="12412515-1241-3fc8-bc13-10b03d616c54")
 random_machine_2 = Machine(
         name="Not real machine",
         identifier="39966e54-9282-4fc8-bc13-10b03d616c54")
+
+
 tiny_size = Size(name='Kids Fry', identifier='test.tiny', cpu=1, ram=1024*2, disk=0)
 small_size = Size(name='Small Fry', identifier='test.small', cpu=2, ram=1024*4, disk=60)
 medium_size = Size(name='Medium Fry', identifier='test.medium', cpu=4, ram=1024*16, disk=120)
 large_size = Size(name='Large Fry', identifier='test.large', cpu=8, ram=1024*32, disk=240)
+
+
+AVAILABLE_PROVIDERS = {
+    "openstack": openstack,
+    "workshop": openstack_workshop
+}
+
+
+AVAILABLE_MACHINES = {
+    "machine1": random_machine,
+    "machine2": random_machine_2,
+}
+
+
+AVAILABLE_SIZES = {
+    "test.tiny": tiny_size,
+    "test.small": small_size,
+    "test.medium": medium_size,
+    "test.large": large_size
+}
+
+STATUS_CHOICES = frozenset(["active", "suspended"])
+
 # Rules
 carry_forward = CarryForwardTime()
 
@@ -64,6 +96,135 @@ ignore_inactive = IgnoreStatusRule("Ignore Inactive Instances", value=["build", 
     ])
 ignore_suspended = IgnoreStatusRule("Ignore Suspended Instances", "suspended")
 ignore_build = IgnoreStatusRule("Ignore 'Build' Instances", "build")
+
+class InstanceHelper(object):
+    def __init__(self, provider="openstack", machine="machine1"):
+        if provider not in AVAILABLE_PROVIDERS:
+            raise Exception("The test provider specified is not a valid provider")
+
+        if machine not in AVAILABLE_MACHINES:
+            raise Exception("The test machine specified is not a valid machine")
+
+        self.provider = AVAILABLE_PROVIDERS[provider]
+        self.machine = AVAILABLE_MACHINES[machine]
+        self.history = []
+
+    def add_history_entry(self, start, end, size="test.small", status="active"):
+        """
+        Add a new history entry to the instance
+        """
+        if size not in AVAILABLE_SIZES:
+            raise Exception("The test size specified is not a valid size")
+
+        if status not in STATUS_CHOICES:
+            raise Exception("The test status specified is not a valid status")
+
+        new_history = InstanceHistory(
+            status=status,
+            size=AVAILABLE_SIZES[size],
+            start_date=start,
+            end_date=end)
+
+        self.history.append(new_history)
+
+    def to_instance(self, identifier):
+        """
+        Returns a new Instance
+        or `raises` an Exception if the instance has no history
+        """
+        if not self.history:
+            raise Exception("This instance requires at least one history entry.")
+
+        return Instance(
+            identifier=identifier,
+            provider=self.provider,
+            machine=self.machine,
+            history=self.history)
+
+def run_allocation(fn):
+    @wraps(fn)
+    def wrapper(self, *args, **kwargs):
+        allocation_input = Allocation(
+            credits=self.credits,
+            rules=self.rules,
+            instances=self.instances,
+            start_date=self.start_window,
+            end_date=self.end_window,
+            interval_delta=None
+        )
+
+        # Calculates the allocation and store the result
+        self.allocation_result = engine.calculate_allocation(allocation_input)
+
+        return fn(self, *args, **kwargs)
+
+    return wrapper
+
+class AllocationHelper():
+    def __init__(self, test_case, start_window, end_window, credit_hours=1000):
+        self.test_case = test_case
+        self.start_window = start_window
+        self.end_window = end_window
+        self.instances = []
+
+        # Add default credits
+        self.credits = [
+            AllocationIncrease(
+                name="Add %s Hours " % credit_hours,
+                unit=TimeUnit.hour,
+                amount=credit_hours,
+                increase_date=self.start_window)
+        ]
+
+        # Add a default set of rules
+        self.rules = [
+            multiply_by_cpu,
+            ignore_suspended,
+            ignore_build,
+            carry_forward
+        ]
+
+    def set_window(self, start_window, end_window):
+        self.start_window = start_window
+        self.end_window = end_window
+
+    def add_instance(self, instance):
+        if not isinstance(instance, Instance):
+            raise TypeError("Expected type Instance got %s", type(instance))
+
+        self.instances.append(instance)
+
+    def add_rule(self, rule):
+        if not isinstance(instance, Rule):
+            raise TypeError("Expected type Rule got %s", type(instance))
+
+        self.rules.append(rule)
+
+    def add_credit(self, credit):
+        if not isinstance(instance, AllocationIncrease):
+            raise TypeError("Expected type AllocationIncrease got %s", type(instance))
+
+        self.credits.append(credit)
+
+    @run_allocation
+    def assertOverAllocation(self):
+        self.test_case.assertTrue(self.allocation_result.over_allocation())
+        return self
+
+    @run_allocation
+    def assertCreditEquals(self, credit):
+        self.test_case.assertEqual(self.allocation_result.total_credit(), credit)
+        return self
+
+    @run_allocation
+    def assertTotalRuntimeEquals(self, total_runtime):
+        self.test_case.assertEqual(self.allocation_result.total_runtime(), total_runtime)
+        return self
+
+    @run_allocation
+    def assertDifferenceEquals(self, difference):
+        self.test_case.assertEquals(self.allocation_result, difference)
+        return self
 
 
 #Dynamic Tests
