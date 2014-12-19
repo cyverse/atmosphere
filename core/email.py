@@ -235,7 +235,7 @@ Exception: %s
        core_instance.ip_address,
        core_instance.provider_machine.identifier,
        exception_str)
-    subject = 'An Atmosphere Instance has failed to launch.'
+    subject = '(%s) Deploy Failed' % username
     return email_to_admin(subject, body, user.username, user_email,
                           cc_user=False)
 
