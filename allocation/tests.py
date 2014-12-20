@@ -142,7 +142,7 @@ class InstanceHelper(object):
             history=self.history)
 
 
-class AllocationHelper():
+class AllocationHelper(object):
     def __init__(self, start_window, end_window, credit_hours=1000):
         self.start_window = start_window
         self.end_window = end_window
@@ -154,7 +154,7 @@ class AllocationHelper():
                 name="Add %s Hours " % credit_hours,
                 unit=TimeUnit.hour,
                 amount=credit_hours,
-                increase_date=self.start_window)
+                increase_date=start_window)
         ]
 
         # Add a default set of rules
