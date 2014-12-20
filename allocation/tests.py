@@ -455,6 +455,54 @@ class TestEngineHelpers(unittest.TestCase):
         self.assertEquals(end, end_date)
 
 
+class TestAllocationEngine(AllocationTestCase):
+    def setUp(self):
+        # Set allocation window
+        increase_date = start_window = datetime(2014,7,1, tzinfo=pytz.utc)
+        stop_window = datetime(2014,12,1, tzinfo=pytz.utc)
+
+        # Initialize allocation helper
+        self.allocation_helper = AllocationHelper(start_window, stop_window, increase_date)
+
+        # Initialize instance helper
+        self.instance1_helper = InstanceHelper()
+
+    def test_over_allocation(self):
+        """
+        Returns True
+        When the total allocation time exceeds the total total runtime
+        """
+        history_start = datetime(2014,7,4,hour=12, tzinfo=pytz.utc)
+        history_stop = datetime(2014,12,4,hour=12, tzinfo=pytz.utc)
+        self.instance1_helper.add_history_entry(history_start, history_stop)
+        instance1 = self.instance1_helper.to_instance("Test instance 1")
+
+        self.allocation_helper.add_instance(instance1)
+        allocation = self.allocation_helper.to_allocation()
+        self.assertOverAllocation(allocation)
+
+    @unittest.skip("Finish writing test")
+    def test_over_allocation_boundary_condition(self):
+        """
+        Returns True
+        When the total allocation time is equal to the total runtime
+        """
+        start_window = datetime(2014, 5, 1, tzinfo=pytz.utc)
+        stop_window = datetime(2014, 5, 10, tzinfo=pytz.utc)
+
+        self.allocation_helper = AllocationHelper(
+            start_window, stop_window, credit_hours=240)
+
+    @unittest.skip("Finish writing test")
+    def test_under_allocation(self):
+        """
+        Returns False
+        When the total allocation time has not been exceeded.
+        """
+        history_start = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
+        history_stop = datetime(2014, 12, 4, hour=12, tzinfo=pytz.utc)
+
+
 #Static tests
 def run_test_1():
     """
@@ -471,11 +519,13 @@ def run_test_1():
     #Allocation Window
     window_start = datetime(2014,7,1, tzinfo=pytz.utc)
     window_stop = datetime(2014,12,1, tzinfo=pytz.utc)
+
     #Instances
     count = 1
     swap_days = timedelta(3)
     history_start = datetime(2014,7,4,hour=12, tzinfo=pytz.utc)
     history_stop = datetime(2014,12,4,hour=12, tzinfo=pytz.utc)
+
     #Allocation Credits
     achieve_greatness = AllocationIncrease(
             name="Add 10,000 Hours ",
@@ -540,10 +590,12 @@ def run_test2():
     #Allocation Window
     window_start = datetime(2014,7,1, tzinfo=pytz.utc)
     window_stop = datetime(2014,12,1, tzinfo=pytz.utc)
+
     #Instances
     swap_days = timedelta(3)
     history_start = datetime(2014,7,4,hour=12, tzinfo=pytz.utc)
     history_stop = datetime(2014,12,4,hour=12, tzinfo=pytz.utc)
+
     #Allocation Credits
     achieve_greatness = AllocationIncrease(
             name="Add 10,000 Hours ",
@@ -553,8 +605,11 @@ def run_test2():
     instances = instance_swap_status_test(
             history_start, history_stop, swap_days,
             size=medium_size, count=1)
+
     credits=[achieve_greatness]
+
     rules=[multiply_by_cpu, ignore_suspended, ignore_build]
+
     result = test_allocation(credits, rules, instances,
             window_start, window_stop, interval_days)
     return result
