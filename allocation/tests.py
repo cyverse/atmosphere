@@ -187,6 +187,18 @@ class AllocationHelper():
 
         self.credits.append(credit)
 
+    def to_allocation(self):
+        """
+        Returns a new allocation
+        """
+        return Allocation(
+            credits=self.credits,
+            rules=self.rules,
+            instances=self.instances,
+            start_date=self.start_window,
+            end_date=self.end_window,
+            interval_delta=None)
+
 
 class AllocationTestCase(unittest.TestCase):
     def _calculate_allocation(allocation):
