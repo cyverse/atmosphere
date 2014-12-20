@@ -239,6 +239,29 @@ class AllocationTestCase(unittest.TestCase):
         self.assertEquals(allocation_result, difference)
         return self
 
+def create_allocation(start_window=None, end_window=None):
+    """
+    Returns an allocation
+    Shortcut convience method to quickly create an allocation for testing.
+    """
+    # Initialize an allocation helper
+    allocation_helper = AllocationHelper(start_window, end_window)
+
+    # Initialize an instance helper
+    instance1_helper = InstanceHelper()
+
+    # Set instance history
+    history_start = datetime(2014,7,4,hour=12, tzinfo=pytz.utc)
+    history_stop = datetime(2014,12,4,hour=12, tzinfo=pytz.utc)
+    instance1_helper.add_history_entry(history_start, history_stop)
+
+    instance1 = instance1_helper.to_instance("Test instance 1")
+
+    allocation_helper.add_instance(instance1)
+
+    return allocation_helper.to_allocation()
+
+
 #Dynamic Tests
 def test_instances(instance_ids, window_start, window_stop, credits=[], rules=[]):
     """
