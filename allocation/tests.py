@@ -141,28 +141,9 @@ class InstanceHelper(object):
             machine=self.machine,
             history=self.history)
 
-def run_allocation(fn):
-    @wraps(fn)
-    def wrapper(self, *args, **kwargs):
-        allocation_input = Allocation(
-            credits=self.credits,
-            rules=self.rules,
-            instances=self.instances,
-            start_date=self.start_window,
-            end_date=self.end_window,
-            interval_delta=None
-        )
-
-        # Calculates the allocation and store the result
-        self.allocation_result = engine.calculate_allocation(allocation_input)
-
-        return fn(self, *args, **kwargs)
-
-    return wrapper
 
 class AllocationHelper():
-    def __init__(self, test_case, start_window, end_window, credit_hours=1000):
-        self.test_case = test_case
+    def __init__(self, start_window, end_window, credit_hours=1000):
         self.start_window = start_window
         self.end_window = end_window
         self.instances = []
@@ -206,26 +187,45 @@ class AllocationHelper():
 
         self.credits.append(credit)
 
-    @run_allocation
-    def assertOverAllocation(self):
-        self.test_case.assertTrue(self.allocation_result.over_allocation())
+
+class AllocationTestCase(unittest.TestCase):
+    def _calculate_allocation(allocation):
+        """
+        Returns the allocation result
+        """
+        return engine.calculate_allocation(allocation)
+
+    def assertOverAllocation(self, allocation):
+        """
+        Assert that the allocation is over allocation
+        """
+        allocation_result = self._calculate_allocation(allocation)
+        self.assertTrue(self.allocation_result.over_allocation())
         return self
 
-    @run_allocation
-    def assertCreditEquals(self, credit):
-        self.test_case.assertEqual(self.allocation_result.total_credit(), credit)
+    def assertCreditEquals(self, allocation, credit):
+        """
+        Assert that the remaining credit matches for the allocation
+        """
+        allocation_result = self._calculate_allocation(allocation)
+        self.assertEqual(allocation_result.total_credit(), credit)
         return self
 
-    @run_allocation
-    def assertTotalRuntimeEquals(self, total_runtime):
-        self.test_case.assertEqual(self.allocation_result.total_runtime(), total_runtime)
+    def assertTotalRuntimeEquals(self, allocation, total_runtime):
+        """
+        Assert that the total runtime matches the allocation
+        """
+        allocation_result = self._calculate_allocation(allocation)
+        self.assertEqual(allocation_result.total_runtime(), total_runtime)
         return self
 
-    @run_allocation
-    def assertDifferenceEquals(self, difference):
-        self.test_case.assertEquals(self.allocation_result, difference)
+    def assertDifferenceEquals(self, allocation, difference):
+        """
+        Assert that the difference and the allocation matches
+        """
+        allocation_result = self._calculate_allocation(allocation)
+        self.assertEquals(allocation_result, difference)
         return self
-
 
 #Dynamic Tests
 def test_instances(instance_ids, window_start, window_stop, credits=[], rules=[]):
