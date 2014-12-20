@@ -401,6 +401,12 @@ class TestValidateInterval(TestCase):
 
 class TestEngineHelpers(unittest.TestCase):
 
+    def setUp(self):
+        # Set allocation window
+        self.increase_date = datetime(2014, 7, 1, tzinfo=pytz.utc)
+        self.start_window = datetime(2014, 7, 1, tzinfo=pytz.utc)
+        self.end_window = datetime(2014, 12, 1, tzinfo=pytz.utc)
+
     def test_get_zero_date_time_is_valid(self):
         """
         Assert that the date time is utc timezone
@@ -415,6 +421,38 @@ class TestEngineHelpers(unittest.TestCase):
         self.assertEqual(zero_datetime.hour, 0)
         self.assertEqual(zero_datetime.minute, 0)
         self.assertEqual(zero_datetime.second, 0)
+
+    def test_window_start_date_matches_allocation(self):
+        """
+        Assert that the window start_date matches the allocation.start_date
+        """
+        # Create allocation with a specific start_date and no end_date
+        allocation = create_allocation(self.increase_date, start_window=self.start_window)
+        (start, end) = engine.get_allocation_window(allocation)
+        self.assertEqual(start, self.start_window)
+
+    def test_window_end_date_matches_allocation(self):
+        """
+        Assert that the window end_date matches the allocation.end_date
+        """
+        # Create allocation with no start_date and with a specific end date
+        allocation = create_allocation(self.increase_date, end_window=self.end_window)
+        (start, end) = engine.get_allocation_window(allocation)
+        self.assertEqual(end, self.end_window)
+
+    def test_window_matches_default_window(self):
+        """
+        Assert that the window matches the default window
+        """
+        # Create allocation with no start_date and no end_date
+        allocation = create_allocation(self.increase_date)
+        end_date = datetime(1990, 1, 1, tzinfo=pytz.utc)
+
+        # Override the default end date to a testable value
+        (start, end) = engine.get_allocation_window(allocation, default_end_date=end_date)
+
+        self.assertEquals(start, engine._get_zero_date_utc())
+        self.assertEquals(end, end_date)
 
 
 #Static tests
