@@ -13,7 +13,7 @@ from allocation.models import Allocation,\
         MultiplySizeCPU, MultiplySizeRAM,\
         MultiplySizeDisk, MultiplyBurnTime,\
         AllocationIncrease, AllocationRecharge, TimeUnit,\
-        IgnoreStatusRule, CarryForwardTime, validate_interval
+        IgnoreStatusRule, CarryForwardTime, Rule, validate_interval
 
 from core.models import Instance as CoreInstance
 
@@ -144,7 +144,7 @@ class InstanceHelper(object):
 
 
 class AllocationHelper(object):
-    def __init__(self, start_window, end_window, credit_hours=1000):
+    def __init__(self, start_window, end_window, increase_date, credit_hours=1000):
         self.start_window = start_window
         self.end_window = end_window
         self.instances = []
@@ -155,7 +155,7 @@ class AllocationHelper(object):
                 name="Add %s Hours " % credit_hours,
                 unit=TimeUnit.hour,
                 amount=credit_hours,
-                increase_date=start_window)
+                increase_date=increase_date)
         ]
 
         # Add a default set of rules
@@ -177,14 +177,14 @@ class AllocationHelper(object):
         self.instances.append(instance)
 
     def add_rule(self, rule):
-        if not isinstance(instance, Rule):
-            raise TypeError("Expected type Rule got %s", type(instance))
+        if not isinstance(rule, Rule):
+            raise TypeError("Expected type Rule got %s", type(rule))
 
         self.rules.append(rule)
 
     def add_credit(self, credit):
-        if not isinstance(instance, AllocationIncrease):
-            raise TypeError("Expected type AllocationIncrease got %s", type(instance))
+        if not isinstance(credit, AllocationIncrease):
+            raise TypeError("Expected type AllocationIncrease got %s", type(credit))
 
         self.credits.append(credit)
 
@@ -202,7 +202,7 @@ class AllocationHelper(object):
 
 
 class AllocationTestCase(unittest.TestCase):
-    def _calculate_allocation(allocation):
+    def _calculate_allocation(self, allocation):
         """
         Returns the allocation result
         """
@@ -213,7 +213,7 @@ class AllocationTestCase(unittest.TestCase):
         Assert that the allocation is over allocation
         """
         allocation_result = self._calculate_allocation(allocation)
-        self.assertTrue(self.allocation_result.over_allocation())
+        self.assertTrue(allocation_result.over_allocation())
         return self
 
     def assertCreditEquals(self, allocation, credit):
@@ -240,20 +240,22 @@ class AllocationTestCase(unittest.TestCase):
         self.assertEquals(allocation_result, difference)
         return self
 
-def create_allocation(start_window=None, end_window=None):
+
+def create_allocation(increase_date, start_window=None, end_window=None):
     """
     Returns an allocation
     Shortcut convience method to quickly create an allocation for testing.
     """
+
     # Initialize an allocation helper
-    allocation_helper = AllocationHelper(start_window, end_window)
+    allocation_helper = AllocationHelper(start_window, end_window, increase_date)
 
     # Initialize an instance helper
     instance1_helper = InstanceHelper()
 
     # Set instance history
-    history_start = datetime(2014,7,4,hour=12, tzinfo=pytz.utc)
-    history_stop = datetime(2014,12,4,hour=12, tzinfo=pytz.utc)
+    history_start = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
+    history_stop = datetime(2014, 12, 4, hour=12, tzinfo=pytz.utc)
     instance1_helper.add_history_entry(history_start, history_stop)
 
     instance1 = instance1_helper.to_instance("Test instance 1")
@@ -364,10 +366,10 @@ def _build_history_list(history_start, history_stop, status_choices=[],
 
 class TestValidateInterval(TestCase):
     def setUp(self):
-        self.start_time = datetime(2014,7,1, tzinfo=pytz.utc)
-        self.end_time = datetime(2014,7,1, tzinfo=pytz.utc)
-        self.start_time_missing_timezone = datetime(2014,7,1)
-        self.end_time_missing_timezone = datetime(2014,12,1)
+        self.start_time = datetime(2014, 7, 1, tzinfo=pytz.utc)
+        self.end_time = datetime(2014, 7, 1, tzinfo=pytz.utc)
+        self.start_time_missing_timezone = datetime(2014, 7, 1)
+        self.end_time_missing_timezone = datetime(2014, 12, 1)
 
     def test_valid_allocation_times(self):
         """
