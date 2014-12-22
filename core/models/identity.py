@@ -9,7 +9,7 @@ from datetime import timedelta
 from django.db import models
 
 from threepio import logger
-
+from uuid import uuid5, uuid4
 
 class Identity(models.Model):
     """
@@ -175,8 +175,17 @@ class Identity(models.Model):
 
             default_allocation = Allocation.default_allocation()
             #2. Create an Identity Membership
-            identity = Identity.objects.get_or_create(
-                created_by=user, provider=provider)[0]
+            #DEV NOTE: I have a feeling that THIS line will mean
+            #          creating a secondary identity for a user on a given
+            #          provider will be difficult. We need to find a better
+            #          workflow here..
+            try:
+                identity = Identity.objects.get(created_by=user,
+                                                provider=provider)
+            except Identity.DoesNotExist:
+                new_uuid = uuid4()
+                identity = Identity.objects.create(created_by=user,
+                        provider=provider, uuid=new_uuid)
             #Two-tuple, (Object, created)
             id_membership = IdentityMembership.objects.get_or_create(
                 identity=identity, member=group, allocation=default_allocation, quota=Quota.default_quota())
