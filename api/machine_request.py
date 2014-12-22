@@ -32,7 +32,7 @@ class MachineRequestList(APIView):
 
     permission_classes = (ApiAuthRequired,)
     
-    def get(self, request, provider_id, identity_id):
+    def get(self, request, provider_uuid, identity_uuid):
         """
         """
         all_user_reqs = CoreMachineRequest.objects.filter(
@@ -41,7 +41,7 @@ class MachineRequestList(APIView):
         response = Response(serialized_data)
         return response
 
-    def post(self, request, provider_id, identity_id):
+    def post(self, request, provider_uuid, identity_uuid):
         """
         Sends an e-mail to the admins to start
         the create_image process.
@@ -55,6 +55,7 @@ class MachineRequestList(APIView):
             share_with_admins(user_list, data.get('provider'))
             share_with_self(user_list, request.user.username)
             user_list = [user for user in user_list if user] # Skips blanks
+            #TODO: Remove duplicates as well..
             data['shared_with'] = user_list
         logger.info(data)
         serializer = MachineRequestSerializer(data=data)
@@ -188,7 +189,7 @@ class MachineRequest(APIView):
     """
     permission_classes = (ApiAuthRequired,)
     
-    def get(self, request, provider_id, identity_id, machine_request_id):
+    def get(self, request, provider_uuid, identity_uuid, machine_request_id):
         """
         Authentication Required, get information about a previous request.
         """
@@ -204,7 +205,7 @@ class MachineRequest(APIView):
         response = Response(serialized_data)
         return response
 
-    def patch(self, request, provider_id, identity_id, machine_request_id):
+    def patch(self, request, provider_uuid, identity_uuid, machine_request_id):
         """Authentication Required, update information on a pending request.
         """
         #Meta data changes in 'pending' are OK
@@ -228,7 +229,7 @@ class MachineRequest(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def put(self, request, provider_id, identity_id, machine_request_id):
+    def put(self, request, provider_uuid, identity_uuid, machine_request_id):
         """Authentication Required, update information on a pending request.
         """
         #Meta data changes in 'pending' are OK

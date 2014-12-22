@@ -205,8 +205,8 @@ class ApplicationSearch(APIView):
                 status.HTTP_400_BAD_REQUEST,
                 "Query not provided.")
 
-        identity_id = request.QUERY_PARAMS.get('identity')
-        identity = Identity.objects.filter(id=identity_id)
+        identity_uuid = request.QUERY_PARAMS.get('identity')
+        identity = Identity.objects.filter(uuid=identity_uuid)
         #Empty List or identity found..
         if identity:
             identity = identity[0]

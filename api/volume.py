@@ -34,12 +34,12 @@ class VolumeSnapshot(APIView):
     """
     permission_classes = (ApiAuthRequired,)
 
-    def get(self, request, provider_id, identity_id):
+    def get(self, request, provider_uuid, identity_uuid):
         """
         """
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         esh_snapshots = esh_driver._connection.ex_list_snapshots()
         snapshot_data = []
         for ss in esh_snapshots:
@@ -55,7 +55,7 @@ class VolumeSnapshot(APIView):
         response = Response(snapshot_data)
         return response
 
-    def post(self, request, provider_id, identity_id):
+    def post(self, request, provider_uuid, identity_uuid):
         """
         Updates DB values for volume
         """
@@ -75,9 +75,9 @@ class VolumeSnapshot(APIView):
         snapshot_id = data.get('snapshot_id')
 
         #STEP 0 - Existence tests
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         esh_volume = esh_driver.get_volume(volume_id)
         #TODO: Put quota tests at the TOP so we dont over-create resources!
         #STEP 1 - Reuse/Create snapshot
@@ -106,7 +106,7 @@ class VolumeSnapshot(APIView):
                     "Snapshot not created. Process aborted.")
         #STEP 2 - Create volume from snapshot
         try:
-            success, esh_volume = create_volume(esh_driver, identity_id,
+            success, esh_volume = create_volume(esh_driver, identity_uuid,
                                                 display_name, size,
                                                 description, metadata,
                                                 snapshot=snapshot)
@@ -115,8 +115,8 @@ class VolumeSnapshot(APIView):
                     status.HTTP_500_INTERNAL_SERVER_ERROR,
                     'Volume creation failed. Contact support')
             # Volume creation succeeded
-            core_volume = convert_esh_volume(esh_volume, provider_id,
-                                             identity_id, user)
+            core_volume = convert_esh_volume(esh_volume, provider_uuid,
+                                             identity_uuid, user)
             serialized_data = VolumeSerializer(
                 core_volume,
                 context={'request': request}).data
@@ -124,35 +124,35 @@ class VolumeSnapshot(APIView):
         except OverQuotaError, oqe:
             return over_quota(oqe)
         except ConnectionFailure:
-            return connection_failure(provider_id, identity_id)
+            return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
 
 
 class VolumeSnapshotDetail(APIView):
     """Details of specific volume on Identity."""
     permission_classes = (ApiAuthRequired,)
 
-    def get(self, request, provider_id, identity_id, snapshot_id):
+    def get(self, request, provider_uuid, identity_uuid, snapshot_id):
         """
         """
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         snapshot = esh_driver._connection.get_snapshot(snapshot_id)
         if not snapshot:
             return snapshot_not_found(snapshot_id)
         response = Response(snapshot)
         return response
 
-    def delete(self, request, provider_id, identity_id, snapshot_id):
+    def delete(self, request, provider_uuid, identity_uuid, snapshot_id):
         """
         Destroys the volume and updates the DB
         """
         #Ensure volume exists
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         snapshot = esh_driver._connection.get_snapshot(snapshot_id)
         if not snapshot:
             return snapshot_not_found(snapshot_id)
@@ -171,38 +171,38 @@ class VolumeList(APIView):
 
     permission_classes = (ApiAuthRequired,)
 
-    def get(self, request, provider_id, identity_id):
+    def get(self, request, provider_uuid, identity_uuid):
         """
         Retrieves list of volumes and updates the DB
         """
         user = request.user
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         volume_list_method = esh_driver.list_volumes
 
-        if AccountProvider.objects.filter(identity__id=identity_id):
+        if AccountProvider.objects.filter(identity__uuid=identity_uuid):
             # Instance list method changes when using the OPENSTACK provider
             volume_list_method = esh_driver.list_all_volumes
 
         esh_volume_list = volume_list_method()
 
-        core_volume_list = [convert_esh_volume(volume, provider_id,
-                                               identity_id, user)
+        core_volume_list = [convert_esh_volume(volume, provider_uuid,
+                                               identity_uuid, user)
                             for volume in esh_volume_list]
         serializer = VolumeSerializer(core_volume_list,
                                       context={'request': request}, many=True)
         response = Response(serializer.data)
         return response
 
-    def post(self, request, provider_id, identity_id):
+    def post(self, request, provider_uuid, identity_uuid):
         """
         Creates a new volume and adds it to the DB
         """
         user = request.user
-        driver = prepare_driver(request, provider_id, identity_id)
+        driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         data = request.DATA
         missing_keys = valid_create_data(data)
         if missing_keys:
@@ -230,22 +230,22 @@ class VolumeList(APIView):
         else:
             snapshot = None
         try:
-            success, esh_volume = create_volume(driver, identity_id,
+            success, esh_volume = create_volume(driver, identity_uuid,
                                                 name, size, description,
                                                 snapshot=snapshot, image=image)
         except OverQuotaError, oqe:
             return over_quota(oqe)
         except ConnectionFailure:
-            return connection_failure(provider_id, identity_id)
+            return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         if not success:
             return failure_response(
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
                 'Volume creation failed. Contact support')
         # Volume creation succeeded
-        core_volume = convert_esh_volume(esh_volume, provider_id,
-                                         identity_id, user)
+        core_volume = convert_esh_volume(esh_volume, provider_uuid,
+                                         identity_uuid, user)
         serialized_data = VolumeSerializer(core_volume,
                                            context={'request': request}).data
         return Response(serialized_data, status=status.HTTP_201_CREATED)
@@ -255,46 +255,46 @@ class Volume(APIView):
     """Details of specific volume on Identity."""
     permission_classes = (ApiAuthRequired,)
 
-    def get(self, request, provider_id, identity_id, volume_id):
+    def get(self, request, provider_uuid, identity_uuid, volume_id):
         """
         """
         user = request.user
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         esh_volume = esh_driver.get_volume(volume_id)
         if not esh_volume:
             try:
                 core_volume = CoreVolume.objects.get(
                     alias=volume_id,
-                    provider__id=provider_id)
+                    provider__uuid=provider_uuid)
                 core_volume.end_date = datetime.now()
                 core_volume.save()
             except CoreVolume.DoesNotExist:
                 pass
             return volume_not_found(volume_id)
-        core_volume = convert_esh_volume(esh_volume, provider_id,
-                                         identity_id, user)
+        core_volume = convert_esh_volume(esh_volume, provider_uuid,
+                                         identity_uuid, user)
         serialized_data = VolumeSerializer(core_volume,
                                            context={'request': request}).data
         response = Response(serialized_data)
         return response
 
-    def patch(self, request, provider_id, identity_id, volume_id):
+    def patch(self, request, provider_uuid, identity_uuid, volume_id):
         """
         Updates DB values for volume
         """
         user = request.user
         data = request.DATA
         #Ensure volume exists
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         esh_volume = esh_driver.get_volume(volume_id)
         if not esh_volume:
             return volume_not_found(volume_id)
-        core_volume = convert_esh_volume(esh_volume, provider_id,
-                                         identity_id, user)
+        core_volume = convert_esh_volume(esh_volume, provider_uuid,
+                                         identity_uuid, user)
         serializer = VolumeSerializer(core_volume, data=data,
                                       context={'request': request},
                                       partial=True)
@@ -307,21 +307,21 @@ class Volume(APIView):
                 status.HTTP_400_BAD_REQUEST,
                 serializer.errors)
 
-    def put(self, request, provider_id, identity_id, volume_id):
+    def put(self, request, provider_uuid, identity_uuid, volume_id):
         """
         Updates DB values for volume
         """
         user = request.user
         data = request.DATA
         #Ensure volume exists
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         esh_volume = esh_driver.get_volume(volume_id)
         if not esh_volume:
             return volume_not_found(volume_id)
-        core_volume = convert_esh_volume(esh_volume, provider_id,
-                                         identity_id, user)
+        core_volume = convert_esh_volume(esh_volume, provider_uuid,
+                                         identity_uuid, user)
         serializer = VolumeSerializer(core_volume, data=data,
                                       context={'request': request})
         if serializer.is_valid():
@@ -333,20 +333,20 @@ class Volume(APIView):
                 status.HTTP_400_BAD_REQUEST,
                 serializer.errors)
 
-    def delete(self, request, provider_id, identity_id, volume_id):
+    def delete(self, request, provider_uuid, identity_uuid, volume_id):
         """
         Destroys the volume and updates the DB
         """
         user = request.user
         #Ensure volume exists
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         esh_volume = esh_driver.get_volume(volume_id)
         if not esh_volume:
             return volume_not_found(volume_id)
-        core_volume = convert_esh_volume(esh_volume, provider_id,
-                                         identity_id, user)
+        core_volume = convert_esh_volume(esh_volume, provider_uuid,
+                                         identity_uuid, user)
         #Delete the object, update the DB
         esh_driver.destroy_volume(esh_volume)
         core_volume.end_date_all()
@@ -380,7 +380,7 @@ class BootVolume(APIView):
             get_source = esh_driver.get_volume
         return (source_type, get_source, source_id)
 
-    def post(self, request, provider_id, identity_id, volume_id=None):
+    def post(self, request, provider_uuid, identity_uuid, volume_id=None):
         user = request.user
         data = request.DATA
 
@@ -388,9 +388,9 @@ class BootVolume(APIView):
         if missing_keys:
             return keys_not_found(missing_keys)
 
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
 
         source = None
         name = data.pop('name')
@@ -416,10 +416,10 @@ class BootVolume(APIView):
                 "Size %s does not exist"
                 % (size_id,))
 
-        esh_instance = boot_volume(esh_driver, identity_id, name,
+        esh_instance = boot_volume(esh_driver, identity_uuid, name,
                                    size, source, source_type, **data)
         core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                             provider_id, identity_id, user)
+                                             provider_uuid, identity_uuid, user)
         serialized_data = InstanceSerializer(core_instance,
                                              context={'request': request}).data
         response = Response(serialized_data)

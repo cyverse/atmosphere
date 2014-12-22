@@ -36,10 +36,10 @@ def update_volume_metadata(esh_driver, esh_volume,
         else:
             raise
 
-def create_volume(esh_driver, identity_id, name, size,
+def create_volume(esh_driver, identity_uuid, name, size,
                   description=None, metadata=None, snapshot=None, image=None):
-    identity = Identity.objects.get(id=identity_id)
-    quota = get_quota(identity_id)
+    identity = Identity.objects.get(uuid=identity_uuid)
+    quota = get_quota(identity_uuid)
     if not has_storage_quota(esh_driver, quota, size):
         raise OverQuotaError(
                 message="Maximum total size of Storage Volumes Exceeded")

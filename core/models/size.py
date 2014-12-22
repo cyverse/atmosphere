@@ -79,12 +79,12 @@ class Size(models.Model):
             self.end_date)
 
 
-def convert_esh_size(esh_size, provider_id):
+def convert_esh_size(esh_size, provider_uuid):
     """
     """
     alias = esh_size.id
     try:
-        core_size = Size.objects.get(alias=alias, provider__id=provider_id)
+        core_size = Size.objects.get(alias=alias, provider__uuid=provider_uuid)
         new_esh_data = {
             'name': esh_size.name,
             'mem': esh_size.ram,

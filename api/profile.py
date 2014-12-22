@@ -24,7 +24,7 @@ class Profile(APIView):
 
     permission_classes = (ApiAuthRequired,)
 
-    def get(self, request, provider_id=None, identity_id=None):
+    def get(self, request, provider_uuid=None, identity_uuid=None):
         """Authentication Required, retrieve the users profile."""
         #logger.info(request.user)
         user = request.user
@@ -32,12 +32,12 @@ class Profile(APIView):
         profile = user.get_profile()
         serialized_data = ProfileSerializer(profile).data
         identity = user.select_identity()
-        identity_id = identity.id
-        provider_id = identity.provider.id
+        identity_uuid = identity.id
+        provider_uuid = identity.provider.id
         response = Response(serialized_data)
         return response
 
-    def patch(self, request, provider_id=None, identity_id=None):
+    def patch(self, request, provider_uuid=None, identity_uuid=None):
         """
         Authentication Required, Update the users profile.
         Returns: 203 - Success, no body.
@@ -64,7 +64,7 @@ class Profile(APIView):
         else:
             return Response(serializer.errors)
 
-    def put(self, request, provider_id=None, identity_id=None):
+    def put(self, request, provider_uuid=None, identity_uuid=None):
         """
         Authentication Required, Update the users profile.
         Returns: 203 - Success, no body.

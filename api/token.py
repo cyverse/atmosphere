@@ -17,7 +17,6 @@ from authentication import createAuthToken
 from service.accounts.eucalyptus import AccountDriver
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProfileSerializer
-from core.models.provider import Provider
 
 class TokenEmulate(APIView):
     """

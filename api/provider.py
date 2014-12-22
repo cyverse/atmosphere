@@ -44,14 +44,14 @@ class Provider(APIView):
     """
     permission_classes = (ApiAuthRequired,)
     
-    def get(self, request, provider_id):
+    def get(self, request, provider_uuid):
         """
         Authentication Required, return specific provider.
         """
         username = request.user.username
         group = Group.objects.get(name=username)
         try:
-            provider = group.providers.get(id=provider_id,
+            provider = group.providers.get(uuid=provider_uuid,
                                            active=True, end_date=None)
         except CoreProvider.DoesNotExist:
             return failure_response(

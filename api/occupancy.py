@@ -23,13 +23,13 @@ class Occupancy(APIView):
     """Returns occupancy data for the specific provider."""
     permission_classes = (ApiAuthRequired,)
     
-    def get(self, request, provider_id):
+    def get(self, request, provider_uuid):
         """
         Returns occupancy data for the specific provider.
         """
         #Get meta for provider to call occupancy
         try:
-            provider = Provider.get_active(provider_id)
+            provider = Provider.get_active(provider_uuid)
         except Provider.DoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
@@ -41,7 +41,7 @@ class Occupancy(APIView):
                 "The driver cannot be retrieved for this provider.")
         meta_driver = admin_driver.meta(admin_driver=admin_driver)
         esh_size_list = meta_driver.occupancy()
-        core_size_list = [convert_esh_size(size, provider_id)
+        core_size_list = [convert_esh_size(size, provider_uuid)
                           for size in esh_size_list]
         serialized_data = ProviderSizeSerializer(core_size_list,
                                                  many=True).data
@@ -53,9 +53,9 @@ class Hypervisor(APIView):
     """
     permission_classes = (ApiAuthRequired,)
     
-    def get(self, request, provider_id):
+    def get(self, request, provider_uuid):
         try:
-            provider = Provider.get_active(provider_id)
+            provider = Provider.get_active(provider_uuid)
         except Provider.DoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,

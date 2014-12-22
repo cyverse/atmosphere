@@ -26,7 +26,7 @@ class MachineExportList(APIView):
 
     permission_classes = (ApiAuthRequired,)
     
-    def get(self, request, provider_id, identity_id):
+    def get(self, request, provider_uuid, identity_uuid):
         """
         """
         all_user_reqs = CoreMachineExport.objects.filter(
@@ -35,7 +35,7 @@ class MachineExportList(APIView):
         response = Response(serialized_data)
         return response
 
-    def post(self, request, provider_id, identity_id):
+    def post(self, request, provider_uuid, identity_uuid):
         """
         Create a new object based on DATA
         Start the MachineExportThread if not running
@@ -67,7 +67,7 @@ class MachineExport(APIView):
     """
     permission_classes = (ApiAuthRequired,)
     
-    def get(self, request, provider_id, identity_id, machine_export_id):
+    def get(self, request, provider_uuid, identity_uuid, machine_export_id):
         """
         Lookup the machine information
         (Lookup using the given provider/identity)
@@ -84,7 +84,7 @@ class MachineExport(APIView):
         response = Response(serialized_data)
         return response
 
-    def patch(self, request, provider_id, identity_id, machine_export_id):
+    def patch(self, request, provider_uuid, identity_uuid, machine_export_id):
         """
         Meta data changes in 'pending' are OK
         Status change 'pending' --> 'cancel' are OK
@@ -106,7 +106,7 @@ class MachineExport(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def put(self, request, provider_id, identity_id, machine_export_id):
+    def put(self, request, provider_uuid, identity_uuid, machine_export_id):
         """
         Meta data changes in 'pending' are OK
         Status change 'pending' --> 'cancel' are OK

@@ -139,9 +139,9 @@ def check_over_allocation(username, identity_id,
             allocation_result.total_difference())
 
 
-def get_allocation(username, identity_id):
+def get_allocation(username, identity_uuid):
     user = User.objects.get(username=username)
-    membership = IdentityMembership.objects.get(identity__id=identity_id,
+    membership = IdentityMembership.objects.get(identity__uuid=identity_uuid,
                                                 member=user)
     if not user.is_staff and not membership.allocation:
         default_allocation = Allocation.default_allocation(
@@ -180,7 +180,7 @@ def _get_allocation_result(identity, start_date=None, end_date=None,
     Create an allocation input, run it against the engine and return the result
     """
     user = identity.created_by
-    allocation = get_allocation(user.username, identity.id)
+    allocation = get_allocation(user.username, identity.uuid)
     if not allocation:
         logger.warn("User:%s Identity:%s does not have an allocation" % (user.username, identity))
     if not end_date:
@@ -203,7 +203,7 @@ def _get_allocation_result(identity, start_date=None, end_date=None,
     core_instances = Instance.objects.filter(
                     Q(end_date=None) | Q(end_date__gt=start_date),
                             created_by=identity.created_by,
-                            created_by_identity__id=identity.id)
+                            created_by_identity__uuid=identity.uuid)
 
     if running_instances:
         #Since we know which instances are still active and which are not

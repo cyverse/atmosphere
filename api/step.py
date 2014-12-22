@@ -29,17 +29,17 @@ class StepList(APIView):
     """
     permission_classes = (ApiAuthRequired,)
     
-    def get(self, request, provider_id, identity_id):
+    def get(self, request, provider_uuid, identity_uuid):
         """
         Using provider and identity, getlist of machines
         TODO: Cache this request
         """
         step_list = [s for s in CoreStep.objects.filter(
-            created_by_identity__id=identity_id)]
+            created_by_identity__uuid=identity_uuid)]
         serialized_data = StepSerializer(step_list, many=True).data
         return Response(serialized_data)
 
-    def post(self, request, provider_id, identity_id):
+    def post(self, request, provider_uuid, identity_uuid):
         """
         Create a new step.
         """
@@ -58,7 +58,7 @@ class StepList(APIView):
             flow = CoreFlow.objects.get(alias=data["flow_alias"])
         else:
             flow = None
-        identity = CoreIdentity.objects.get(id=identity_id)
+        identity = CoreIdentity.objects.get(uuid=identity_uuid)
         step = CoreStep(alias=uuid1(),
                         name=data["name"],
                         script=data["script"],
@@ -82,13 +82,13 @@ class Step(APIView):
     """
     permission_classes = (ApiAuthRequired,)
     
-    def get(self, request, provider_id, identity_id, step_id):
+    def get(self, request, provider_uuid, identity_uuid, step_id):
         """
         Get details of a specific step.
         """
         serialized_data = []
         try:
-            step = fetch_step(identity_id, step_id)
+            step = fetch_step(identity_uuid, step_id)
         except CoreStep.DoesNotExist:
             return step_not_found(step_id)
         if not step:
@@ -96,7 +96,7 @@ class Step(APIView):
         serialized_data = StepSerializer(step).data
         return Response(serialized_data)
 
-    def put(self, request, provider_id, identity_id, step_id):
+    def put(self, request, provider_uuid, identity_uuid, step_id):
         """
         Update a specific step.
 
@@ -106,7 +106,7 @@ class Step(APIView):
         serialized_data = []
         data = request.DATA.copy()
         try:
-            step = fetch_step(identity_id, step_id)
+            step = fetch_step(identity_uuid, step_id)
         except CoreStep.DoesNotExist:
             return step_not_found(step_id)
         if not step:
@@ -125,7 +125,7 @@ class Step(APIView):
             serializer.errors)
 
 
-    def delete(self, request, provider_id, identity_id, step_id):
+    def delete(self, request, provider_uuid, identity_uuid, step_id):
         """
         Delete a specific step.
 
@@ -135,7 +135,7 @@ class Step(APIView):
         serialized_data = []
         data = request.DATA.copy()
         try:
-            step = fetch_step(identity_id, step_id)
+            step = fetch_step(identity_uuid, step_id)
         except CoreStep.DoesNotExist:
             return step_not_found(step_id)
         if not step:
@@ -168,7 +168,7 @@ def required_fields(data, step):
         data["script"] = step.script
 
 
-def fetch_step(identity_id, step_id):
+def fetch_step(identity_uuid, step_id):
     """
     Get a specific step core model object from the database.
 
@@ -176,7 +176,7 @@ def fetch_step(identity_id, step_id):
     implementation detail.
     """
     return CoreStep.objects.get(alias=step_id,
-                                created_by_identity__id=identity_id)
+                                created_by_identity__uuid=identity_uuid)
 
 
 def step_not_found(step_id):

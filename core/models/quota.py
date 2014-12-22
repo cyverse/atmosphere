@@ -141,8 +141,8 @@ def has_storage_count_quota(driver, quota, new_size=0):
     return num_vols <= quota.storage_count
 
 
-def get_quota(identity_id):
+def get_quota(identity_uuid):
     try:
-        return Quota.objects.get(identitymembership__identity__id=identity_id)
+        return Quota.objects.get(identitymembership__identity__uuid=identity_uuid)
     except Quota.DoesNotExist:
         return None

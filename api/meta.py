@@ -26,25 +26,25 @@ class Meta(APIView):
     """
     permission_classes = (ApiAuthRequired,)
 
-    def get(self, request, provider_id, identity_id):
+    def get(self, request, provider_uuid, identity_uuid):
         """
         Returns all available URLs based on the user profile.
         """
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
-        data = add_user_urls(request, provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
+        data = add_user_urls(request, provider_uuid, identity_uuid)
         if request.user.is_staff:
-            add_staff_urls(request, provider_id, identity_id)
+            add_staff_urls(request, provider_uuid, identity_uuid)
         return Response(data)
 
 
-def add_staff_urls(request, provider_id, identity_id):
+def add_staff_urls(request, provider_uuid, identity_uuid):
     data = {
             'request-image-list': reverse('api:private_apis:direct-machine-request-list',
                             request=request),
         }
-def add_user_urls(request, provider_id, identity_id):
+def add_user_urls(request, provider_uuid, identity_uuid):
     data = {
         'group-list': reverse('api:public_apis:group-list',
                             request=request),
@@ -53,34 +53,34 @@ def add_user_urls(request, provider_id, identity_id):
         'provider-list': reverse('api:public_apis:provider-list',
                             request=request),
         'occupancy': reverse('api:private_apis:occupancy',
-                            args=(provider_id,),
+                            args=(provider_uuid,),
                             request=request),
         'hypervisor': reverse('api:private_apis:hypervisor',
-                            args=(provider_id,),
+                            args=(provider_uuid,),
                             request=request),
         'identity-list': reverse('api:public_apis:identity-list',
-                            args=(provider_id,),
+                            args=(provider_uuid,),
                             request=request),
         'volume-list': reverse('api:public_apis:volume-list',
-                          args=(provider_id, identity_id),
+                          args=(provider_uuid, identity_uuid),
                           request=request),
         'meta': reverse('api:private_apis:meta-detail',
-                        args=(provider_id, identity_id),
+                        args=(provider_uuid, identity_uuid),
                         request=request),
         'machine-history-list': reverse('api:public_apis:machine-history',
-                            args=(provider_id, identity_id),
+                            args=(provider_uuid, identity_uuid),
                             request=request),
         'instance-history-list': reverse('api:public_apis:instance-history',
-                            args=(provider_id, identity_id),
+                            args=(provider_uuid, identity_uuid),
                             request=request),
         'instance-list': reverse('api:public_apis:instance-list',
-                            args=(provider_id, identity_id),
+                            args=(provider_uuid, identity_uuid),
                             request=request),
         'machine-list': reverse('api:public_apis:machine-list',
-                           args=(provider_id, identity_id),
+                           args=(provider_uuid, identity_uuid),
                            request=request),
         'size-list': reverse('api:public_apis:size-list',
-                        args=(provider_id, identity_id),
+                        args=(provider_uuid, identity_uuid),
                         request=request),
         'profile': reverse('api:public_apis:profile', request=request)
     }
@@ -92,7 +92,7 @@ class MetaAction(APIView):
     """
     permission_classes = (ApiAuthRequired,)
     
-    def get(self, request, provider_id, identity_id, action=None):
+    def get(self, request, provider_uuid, identity_uuid, action=None):
         """
         """
         if not action:
@@ -100,9 +100,9 @@ class MetaAction(APIView):
                 status.HTTP_400_BAD_REQUEST,
                 'Action is not supported.'
             )
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         esh_meta = esh_driver.meta()
         try:
             if 'test_links' in action:
@@ -110,7 +110,7 @@ class MetaAction(APIView):
                 return Response(test_links, status=status.HTTP_200_OK)
         except InvalidCredsError:
             logger.warn('Authentication Failed. Provider-id:%s Identity-id:%s'
-                        % (provider_id, identity_id))
+                        % (provider_uuid, identity_uuid))
             return failure_response(
                 status.HTTP_401_UNAUTHORIZED,
                 'Identity/Provider Authentication Failed')

@@ -197,7 +197,7 @@ class IdentityMembership(models.Model):
         super(IdentityMembership, self).save(*args, **kwargs)
         try:
             from service.quota import set_provider_quota
-            set_provider_quota(self.identity.id)
+            set_provider_quota(self.identity.uuid)
         except Exception as ex:
             logger.warn("Unable to update service.quota.set_provider_quota.")
             raise

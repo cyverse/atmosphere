@@ -20,13 +20,13 @@ class FlowList(APIView):
     """
     permission_classes = (ApiAuthRequired,)
 
-    def get(self, request, provider_id, identity_id):
+    def get(self, request, provider_uuid, identity_uuid):
         """
         """
         user = request.user
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         serialized_data = []
         response = Response(serialized_data)
         return response
@@ -38,13 +38,13 @@ class Flow(APIView):
     """
     permission_classes = (ApiAuthRequired,)
 
-    def get(self, request, provider_id, identity_id, flow_id):
+    def get(self, request, provider_uuid, identity_uuid, flow_id):
         """
         """
         user = request.user
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         esh_size = []
         serialized_data = []
         response = Response(serialized_data)

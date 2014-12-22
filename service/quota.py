@@ -12,10 +12,10 @@ def _get_hard_limits(provider):
     """
     return {"ram": 500, "cpu":64}
 
-def set_provider_quota(identity_id, limit_dict=None):
+def set_provider_quota(identity_uuid, limit_dict=None):
     """
     """
-    identity = Identity.objects.get(id=identity_id)
+    identity = Identity.objects.get(uuid=identity_uuid)
     if not identity.credential_set.all():
         #Can't update quota if credentials arent set
         return
@@ -26,7 +26,7 @@ def set_provider_quota(identity_id, limit_dict=None):
         username = identity.created_by.username
         user_id = driver._connection._get_user_id()
         tenant_id = driver._connection._get_tenant_id()
-        membership = IdentityMembership.objects.get(identity__id=identity_id,
+        membership = IdentityMembership.objects.get(identity__uuid=identity_uuid,
                                                     member__name=username)
         user_quota = membership.quota
         if user_quota:
@@ -47,9 +47,9 @@ def set_provider_quota(identity_id, limit_dict=None):
     return True
 
 
-def get_current_quota(identity_id):
+def get_current_quota(identity_uuid):
     driver = get_cached_driver(
-        identity=Identity.objects.get(id=identity_id))
+        identity=Identity.objects.get(uuid=identity_uuid))
     cpu = ram = disk = suspended = 0
     instances = driver.list_instances()
     for instance in instances:
@@ -64,7 +64,7 @@ def get_current_quota(identity_id):
     return {'cpu': cpu, 'ram': ram, 'disk': disk, 'suspended_count': suspended}
 
 
-def check_over_quota(username, identity_id, esh_size=None, resuming=False):
+def check_over_quota(username, identity_uuid, esh_size=None, resuming=False):
     """
     Checks quota based on current limits (and an instance of size, if passed).
 
@@ -74,11 +74,11 @@ def check_over_quota(username, identity_id, esh_size=None, resuming=False):
                      (int) number_used,
                      (int) number_allowed)
     """
-    membership = IdentityMembership.objects.get(identity__id=identity_id,
+    membership = IdentityMembership.objects.get(identity__uuid=identity_uuid,
                                                 member__name=username)
     user_quota = membership.quota
 
-    current = get_current_quota(identity_id)
+    current = get_current_quota(identity_uuid)
     logger.debug("Current Quota:%s" % current)
     cur_cpu = current['cpu']
     cur_ram = current['ram']

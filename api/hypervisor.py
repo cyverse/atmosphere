@@ -17,7 +17,7 @@ class HypervisorList(APIView):
     """
     permission_classes = (ApiAuthRequired,)
 
-    def get(self, request, provider_id, identity_id):
+    def get(self, request, provider_uuid, identity_uuid):
         """
         Using provider and identity, getlist of machines
         TODO: Cache this request
@@ -25,9 +25,9 @@ class HypervisorList(APIView):
         #TODO: Decide how we should pass this in (I.E. GET query string?)
         active = False
         user = request.user
-        provider = Provider.objects.filter(id=provider_id)
+        provider = Provider.objects.filter(uuid=provider_uuid)
         if not provider:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         esh_driver = get_admin_driver(provider[0])
         esh_hypervisor_list = []
         if hasattr(esh_driver._connection, 'ex_list_hypervisor_nodes'):
@@ -45,18 +45,18 @@ class HypervisorDetail(APIView):
     """
     permission_classes = (ApiAuthRequired,)
 
-    def get(self, request, provider_id, identity_id, hypervisor_id):
+    def get(self, request, provider_uuid, identity_uuid, hypervisor_id):
         """
         Lookup the Hypervisor information (Lookup using the given provider/identity)
         Update on server DB (If applicable)
         """
         user = request.user
-        provider = Provider.objects.filter(id=provider_id)
+        provider = Provider.objects.filter(uuid=provider_uuid)
         if not provider:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         esh_driver = get_admin_driver(provider[0])
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         hypervisor = {}
         if hasattr(esh_driver._connection, 'ex_detail_hypervisor_node'):
             hypervisor = esh_driver._connection\

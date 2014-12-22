@@ -72,7 +72,7 @@ def get_projects_for_obj(serializer, related_obj):
     if not serializer.request_user:
         return None
     projects = related_obj.get_projects(serializer.request_user)
-    return [p.id for p in projects]
+    return [p.uuid for p in projects]
 
 
 # Custom Fields
@@ -85,7 +85,7 @@ class ProjectsField(serializers.WritableField):
             group = get_user_group(request_user.username)
             projects = project_mgr.filter(owner=group)
             # Modifications to how 'project' should be displayed here:
-            return [p.id for p in projects]
+            return [p.uuid for p in projects]
         except Project.DoesNotExist:
             return None
 
@@ -189,9 +189,9 @@ class IdentityRelatedField(serializers.RelatedField):
     def to_native(self, identity):
         quota_dict = identity.get_quota_dict()
         return {
-            "id": identity.id,
+            "id": identity.uuid,
             "provider": identity.provider.location,
-            "provider_id": identity.provider.id,
+            "provider_id": identity.provider.uuid,
             "quota": quota_dict,
         }
 
@@ -234,33 +234,38 @@ class AccountSerializer(serializers.Serializer):
 class ProviderSerializer(serializers.ModelSerializer):
     type = serializers.SlugRelatedField(slug_field='name')
     location = serializers.CharField(source='get_location')
+    id = serializers.CharField(source='uuid')
     #membership = serializers.Field(source='get_membership')
 
     class Meta:
         model = Provider
-        exclude = ('active', 'start_date', 'end_date')
+        exclude = ('active', 'start_date', 'end_date', 'uuid')
 
 
 class CleanedIdentitySerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
     credentials = serializers.Field(source='get_credentials')
+    id = serializers.Field(source='uuid')
+    provider_id = serializers.Field(source='provider_uuid')
     quota = serializers.Field(source='get_quota_dict')
     membership = serializers.Field(source='get_membership')
 
     class Meta:
         model = Identity
-        fields = ('id', 'created_by', 'provider', )
+        fields = ('id', 'created_by', 'provider_id', )
 
 
 class IdentitySerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
     credentials = serializers.Field(source='get_credentials')
+    id = serializers.Field(source='uuid')
+    provider_id = serializers.Field(source='provider_uuid')
     quota = serializers.Field(source='get_quota_dict')
     membership = serializers.Field(source='get_membership')
 
     class Meta:
         model = Identity
-        fields = ('id', 'created_by', 'provider', 'credentials', 'quota',
+        fields = ('id', 'created_by', 'provider_id', 'credentials', 'quota',
                   'membership')
 
 
@@ -296,7 +301,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
                  "end_date": pm.end_date,
                  "alias": pm.identifier,
                  "version": pm.version,
-                 "provider": pm.provider.id} for pm in machines]
+                 "provider": pm.provider.uuid} for pm in machines]
 
 
     def __init__(self, *args, **kwargs):
@@ -502,7 +507,7 @@ class MachineRequestSerializer(serializers.ModelSerializer):
 
 
 class MaintenanceRecordSerializer(serializers.ModelSerializer):
-    provider_id = serializers.Field(source='provider.id')
+    provider_id = serializers.Field(source='provider.uuid')
 
     class Meta:
         model = MaintenanceRecord
@@ -512,7 +517,7 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
 class IdentityDetailSerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
     quota = serializers.Field(source='get_quota_dict')
-    provider_id = serializers.Field(source='provider.id')
+    provider_id = serializers.Field(source='provider.uuid')
 
     class Meta:
         model = Identity
@@ -636,7 +641,7 @@ class GroupSerializer(serializers.ModelSerializer):
     def get_identities(self, group):
         identities = group.identities.all()
         return map(lambda i:
-                   {"id": i.id, "provider_id": i.provider_id},
+                   {"id": i.uuid, "provider_id": i.provider.uuid},
                    identities)
 
 
@@ -688,6 +693,7 @@ class NoProjectSerializer(serializers.ModelSerializer):
         fields = ('applications', 'instances', 'volumes')
 
 class ProjectSerializer(serializers.ModelSerializer):
+    id = serializers.Field(source="uuid")
     #Edits to Writable fields..
     owner = serializers.SlugRelatedField(slug_field="name")
     # These fields are READ-ONLY!
@@ -721,6 +727,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
+        exclude = ('uuid', )
 
 
 class ProviderSizeSerializer(serializers.ModelSerializer):

@@ -19,7 +19,7 @@ class IdentityDetail(APIView):
 
     permission_classes = (ApiAuthRequired,)
 
-    def get(self, request, identity_id):
+    def get(self, request, identity_uuid):
         """
         Authentication Required, all identities available to the user
         """
@@ -31,14 +31,14 @@ class IdentityDetail(APIView):
         identity = None
         for p in providers:
             try:
-                identity = group.identities.get(provider=p, id=identity_id)
+                identity = group.identities.get(provider=p, uuid=identity_uuid)
             except CoreIdentity.DoesNotExist:
                 pass
         if not identity:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
                 "The requested Identity ID %s was not found on an active provider"
-                % identity_id)
+                % identity_uuid)
         serialized_data = IdentityDetailSerializer(identity).data
         return Response(serialized_data)
 
@@ -73,7 +73,7 @@ class IdentityList(APIView):
 
     permission_classes = (ApiAuthRequired,)
     
-    def get(self, request, provider_id, format=None):
+    def get(self, request, provider_uuid, format=None):
         """
         List of identities for the user on the selected provider.
         """
@@ -82,7 +82,7 @@ class IdentityList(APIView):
         #future 'shared' identitys
         username = request.user.username
         group = Group.objects.get(name=username)
-        provider = group.providers.get(id=provider_id,
+        provider = group.providers.get(uuid=provider_uuid,
                                        active=True, end_date=None)
 
         identities = group.identities.filter(provider=provider).order_by('id')
@@ -97,16 +97,16 @@ class Identity(APIView):
 
     permission_classes = (ApiAuthRequired,)
     
-    def get(self, request, provider_id, identity_id, format=None):
+    def get(self, request, provider_uuid, identity_uuid, format=None):
         """
         Authentication Required, Get details for a specific identity.
         """
         username = request.user.username
         group = Group.objects.get(name=username)
-        provider = group.providers.get(id=provider_id,
+        provider = group.providers.get(uuid=provider_uuid,
                                        active=True, end_date=None)
 
-        identity = group.identities.get(provider=provider, id=identity_id)
+        identity = group.identities.get(provider=provider, uuid=identity_uuid)
         serialized_data = IdentitySerializer(identity).data
         logger.debug(type(serialized_data))
         return Response(serialized_data)
