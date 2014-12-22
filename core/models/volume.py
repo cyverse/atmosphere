@@ -184,7 +184,7 @@ def convert_esh_volume(esh_volume, provider_uuid, identity_uuid, user):
 def create_volume(name, alias, size, provider_uuid, identity_uuid,
                   creator, description=None, created_on=None):
     provider = Provider.objects.get(uuid=provider_uuid)
-    identity = Identity.objects.get(uuid=identity_id)
+    identity = Identity.objects.get(uuid=identity_uuid)
     volume = Volume.objects.create(name=name, alias=alias,
                                    size=size, provider=provider,
                                    created_by=creator,
