@@ -14,19 +14,20 @@ class Migration(DataMigration):
         # Note: Don't use "from appname.models import ModelName". 
         # Use orm.ModelName to refer to models in this application,
         # and orm['appname.ModelName'] for models in other applications.
-        uuid_count = self.add_uuids_to(orm.Provider)
+        uuid_count = self.add_uuids_to(orm.Provider, seed="Provider ")
         print "Added %s UUIDs to Provider" % uuid_count
-        uuid_count = self.add_uuids_to(orm.Identity)
+        uuid_count = self.add_uuids_to(orm.Identity, seed="Identity ")
         print "Added %s UUIDs to Identity" % uuid_count
-        uuid_count = self.add_uuids_to(orm.Project)
+        uuid_count = self.add_uuids_to(orm.Project, seed="Project ")
         print "Added %s UUIDs to Project" % uuid_count
 
 
-    def add_uuids_to(self, ModelCls, model_key="id"):
+    def add_uuids_to(self, ModelCls, model_key="id", seed=""):
         for obj in ModelCls.objects.all():
-            model_value = getattr(obj, model_key)
+            model_value = "%s%s" % (seed, getattr(obj, model_key))
             new_uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID,
                     str(model_value))
+            print "%s --> %s" % (model_value, new_uuid)
             obj.uuid = new_uuid
             obj.save()
         return ModelCls.objects.count()

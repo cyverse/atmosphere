@@ -2,6 +2,7 @@ from core.tests.instance import *
 from atmosphere.settings import secrets
 from core.models import PlatformType, ProviderType, ProviderCredential,\
                         Provider, Identity
+from uuid import uuid4
 
 def create_euca_provider():
     provider_type = ProviderType.objects.get_or_create(name='Eucalyptus')[0]
@@ -40,10 +41,16 @@ def create_os_provider():
     identities = []
     #TODO: Make platform_type a variable when we encounter a NON-KVM OStack..
     for provider in secrets.TEST_PROVIDERS['openstack']:
-        os_provider = Provider.objects.get_or_create(
-            virtualization=platform_type,
-            type=provider_type,
-            location=provider['label'])[0]
+        try:
+            os_provider = Provider.objects.get(
+                virtualization=platform_type,
+                type=provider_type,
+                location=provider['label'])
+        except Provider.DoesNotExist:
+            os_provider = Provider.objects.create(
+                virtualization=platform_type,
+                type=provider_type, uuid=str(uuid4()),
+                location=provider['label'])
         ProviderCredential.objects.get_or_create(key='auth_url',
                 value=provider['auth_url'], provider=os_provider)
         ProviderCredential.objects.get_or_create(key='admin_url',
