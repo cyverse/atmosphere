@@ -82,6 +82,7 @@ class Provider(models.Model):
     Inactive providers are shown as "Offline" in the UI and API requests.
     Start date and end date are recorded for logging purposes
     """
+    uuid = models.CharField(max_length=36, unique=True)
     location = models.CharField(max_length=256)
     description = models.TextField(blank=True)
     type = models.ForeignKey(ProviderType)
@@ -93,7 +94,7 @@ class Provider(models.Model):
     traits = models.ManyToManyField(Trait, null=True, blank=True)
 
     @classmethod
-    def get_active(cls, provider_id=None, type_name=None):
+    def get_active(cls, provider_uuid=None, type_name=None):
         """
         Get the provider if it's active, otherwise raise
         Provider.DoesNotExist.
@@ -103,9 +104,9 @@ class Provider(models.Model):
             active=True)
         if type_name:
             active_providers = active_providers.filter(type__name__iexact=type_name)
-        if provider_id:
+        if provider_uuid:
             # no longer a list
-            active_providers = active_providers.get(id=provider_id)
+            active_providers = active_providers.get(uuid=provider_uuid)
         return active_providers
 
     def has_trait(self, trait_name):

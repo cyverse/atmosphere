@@ -20,7 +20,6 @@ from core.models.identity import Identity
 from core.models.instance import convert_esh_instance
 from core.models.instance import Instance as CoreInstance
 from core.models.provider import AccountProvider
-from core.models.size import convert_esh_size
 from core.models.tag import Tag as CoreTag
 from core.models.volume import convert_esh_volume
 
@@ -48,27 +47,27 @@ from api.serializers import InstanceHistorySerializer,\
 from api.serializers import VolumeSerializer
 from api.serializers import TagSerializer
 
-def get_core_instance(request, provider_id, identity_id, instance_id):
+def get_core_instance(request, provider_uuid, identity_uuid, instance_id):
     user = request.user
-    esh_driver = prepare_driver(request, provider_id, identity_id)
-    esh_instance = get_esh_instance(request, provider_id, identity_id, instance_id)
+    esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+    esh_instance = get_esh_instance(request, provider_uuid, identity_uuid, instance_id)
     core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                         provider_id, identity_id, user)
+                                         provider_uuid, identity_uuid, user)
     return core_instance
 
-def get_esh_instance(request, provider_id, identity_id, instance_id):
-    esh_driver = prepare_driver(request, provider_id, identity_id)
+def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
+    esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
     if not esh_driver:
         raise InvalidCredsError(
-                "Provider_id && identity_id "
+                "Provider_uuid && identity_uuid "
                 "did not produce a valid combination")
     esh_instance = esh_driver.get_instance(instance_id)
     if not esh_instance:
         try:
             core_inst = CoreInstance.objects.get(
                 provider_alias=instance_id,
-                provider_machine__provider__id=provider_id,
-                created_by_identity__id=identity_id)
+                provider_machine__provider__uuid=provider_uuid,
+                created_by_uuidentity__uuid=identity_uuid)
             core_inst.end_date_all()
         except CoreInstance.DoesNotExist:
             pass
@@ -84,20 +83,20 @@ class InstanceList(APIView):
 
     permission_classes = (ApiAuthRequired,)
     
-    def get(self, request, provider_id, identity_id):
+    def get(self, request, provider_uuid, identity_uuid):
         """
         Returns a list of all instances
         """
         user = request.user
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
-        identity = Identity.objects.get(id=identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
+        identity = Identity.objects.get(uuid=identity_uuid)
         esh_instance_list = get_cached_instances(identity=identity)
         core_instance_list = [convert_esh_instance(esh_driver,
                                                    inst,
-                                                   provider_id,
-                                                   identity_id,
+                                                   provider_uuid,
+                                                   identity_uuid,
                                                    user)
                               for inst in esh_instance_list]
         #TODO: Core/Auth checks for shared instances
@@ -108,7 +107,7 @@ class InstanceList(APIView):
         response['Cache-Control'] = 'no-cache'
         return response
 
-    def post(self, request, provider_id, identity_id, format=None):
+    def post(self, request, provider_uuid, identity_uuid, format=None):
         """
         Instance Class:
         Launches an instance based on the params
@@ -134,7 +133,7 @@ class InstanceList(APIView):
         try:
             logger.debug(data)
             core_instance = launch_instance(
-                user, provider_id, identity_id,
+                user, provider_uuid, identity_uuid,
                 size_alias, machine_alias,
                 ex_availability_zone=hypervisor_name,
                 **data)
@@ -145,11 +144,11 @@ class InstanceList(APIView):
         except SizeNotAvailable, snae:
             return size_not_availabe(snae)
         except SecurityGroupNotCreated:
-            return connection_failure(provider_id, identity_id)
+            return connection_failure(provider_uuid, identity_uuid)
         except ConnectionFailure:
-            return connection_failure(provider_id, identity_id)
+            return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
                              "Returning 409-CONFLICT")
@@ -368,29 +367,29 @@ class InstanceAction(APIView):
 
     permission_classes = (ApiAuthRequired,)
     
-    def get(self, request, provider_id, identity_id, instance_id):
+    def get(self, request, provider_uuid, identity_uuid, instance_id):
         """Authentication Required, List all available instance actions ,including necessary parameters.
         """
         actions = [{"action":"attach_volume",
                  "action_params":{
-                     "volume_id":"required",
+                     "volume_uuid":"required",
                      "device":"optional",
                      "mount_location":"optional"},
                  "description":"Attaches the volume <id> to instance"},
                 {"action":"mount_volume",
                  "action_params":{
-                     "volume_id":"required",
+                     "volume_uuid":"required",
                      "device":"optional",
                      "mount_location":"optional"
                      },
                  "description":"Unmount the volume <id> from instance"},
                 {"action":"unmount_volume",
                  "action_params":{
-                     "volume_id":"required",
+                     "volume_uuid":"required",
                      },
                  "description":"Mount the volume <id> to instance"},
                 {"action":"detach_volume",
-                 "action_params":{"volume_id":"required"},
+                 "action_params":{"volume_uuid":"required"},
                  "description":"Detaches the volume <id> to instance"},
                 {"action":"resize",
                  "action_params":{"size":"required"},
@@ -415,7 +414,7 @@ class InstanceAction(APIView):
         response = Response(actions, status=status.HTTP_200_OK)
         return response
 
-    def post(self, request, provider_id, identity_id, instance_id):
+    def post(self, request, provider_uuid, identity_uuid, instance_id):
         """Authentication Required, Attempt a specific instance action, including necessary parameters.
         """
         #Service-specific call to action
@@ -426,9 +425,9 @@ class InstanceAction(APIView):
                 'POST request to /action require a BODY with \'action\'.')
         result_obj = None
         user = request.user
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
 
         esh_instance = esh_driver.get_instance(instance_id)
         if not esh_instance:
@@ -438,7 +437,7 @@ class InstanceAction(APIView):
         action = action_params['action']
         try:
             if 'volume' in action:
-                volume_id = action_params.get('volume_id')
+                volume_uuid = action_params.get('volume_uuid')
                 mount_location = action_params.get('mount_location', None)
                 device = action_params.get('device', None)
                 if 'attach_volume' == action:
@@ -447,28 +446,28 @@ class InstanceAction(APIView):
                     if device == 'null' or device == 'None':
                         device = None
                     future_mount_location = task.attach_volume_task(esh_driver, esh_instance.alias,
-                                            volume_id, device, mount_location)
+                                            volume_uuid, device, mount_location)
                 elif 'mount_volume' == action:
                     future_mount_location = task.mount_volume_task(esh_driver, esh_instance.alias,
-                            volume_id, device, mount_location)
+                            volume_uuid, device, mount_location)
                 elif 'unmount_volume' == action:
                     (result, error_msg) = task.unmount_volume_task(esh_driver, esh_instance.alias,
-                            volume_id, device, mount_location)
+                            volume_uuid, device, mount_location)
                 elif 'detach_volume' == action:
                     (result, error_msg) = task.detach_volume_task(
                         esh_driver,
                         esh_instance.alias,
-                        volume_id)
+                        volume_uuid)
                     if not result and error_msg:
                         #Return reason for failed detachment
                         return failure_response(
                             status.HTTP_400_BAD_REQUEST,
                             error_msg)
                 #Task complete, convert the volume and return the object
-                esh_volume = esh_driver.get_volume(volume_id)
+                esh_volume = esh_driver.get_volume(volume_uuid)
                 core_volume = convert_esh_volume(esh_volume,
-                                                 provider_id,
-                                                 identity_id,
+                                                 provider_uuid,
+                                                 identity_uuid,
                                                  user)
                 result_obj = VolumeSerializer(core_volume,
                                               context={"request":request}
@@ -478,33 +477,34 @@ class InstanceAction(APIView):
                 if type(size_alias) == int:
                     size_alias = str(size_alias)
                 resize_instance(esh_driver, esh_instance, size_alias,
-                               provider_id, identity_id, user)
+                               provider_uuid, identity_uuid, user)
             elif 'confirm_resize' == action:
                 confirm_resize(esh_driver, esh_instance,
-                               provider_id, identity_id, user)
+                               provider_uuid, identity_uuid, user)
             elif 'revert_resize' == action:
                 esh_driver.revert_resize_instance(esh_instance)
             elif 'redeploy' == action:
                 redeploy_init(esh_driver, esh_instance, countdown=None)
             elif 'resume' == action:
                 resume_instance(esh_driver, esh_instance,
-                                provider_id, identity_id, user)
+                                provider_uuid, identity_uuid, user)
             elif 'suspend' == action:
                 suspend_instance(esh_driver, esh_instance,
-                                 provider_id, identity_id, user)
+                                 provider_uuid, identity_uuid, user)
             elif 'start' == action:
                 start_instance(esh_driver, esh_instance,
-                               provider_id, identity_id, user)
+                               provider_uuid, identity_uuid, user)
             elif 'stop' == action:
                 stop_instance(esh_driver, esh_instance,
-                              provider_id, identity_id, user)
+                              provider_uuid, identity_uuid, user)
             elif 'reset_network' == action:
                 esh_driver.reset_network(esh_instance)
             elif 'console' == action:
                 result_obj = esh_driver._connection.ex_vnc_console(esh_instance)
             elif 'reboot' == action:
                 reboot_type = action_params.get('reboot_type', 'SOFT')
-                reboot_instance(esh_driver, esh_instance, reboot_type)
+                reboot_instance(esh_driver, esh_instance,
+                        identity_uuid, user, reboot_type)
             elif 'rebuild' == action:
                 machine_alias = action_params.get('machine_alias', '')
                 machine = esh_driver.get_machine(machine_alias)
@@ -532,9 +532,9 @@ class InstanceAction(APIView):
         except SizeNotAvailable, snae:
             return size_not_availabe(snae)
         except ConnectionFailure:
-            return connection_failure(provider_id, identity_id)
+            return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         except VolumeMountConflict, vmc:
             return mount_failed(vmc)
         except NotImplemented, ne:
@@ -566,46 +566,46 @@ class Instance(APIView):
 
     permission_classes = (ApiAuthRequired,)
     
-    def get(self, request, provider_id, identity_id, instance_id):
+    def get(self, request, provider_uuid, identity_uuid, instance_id):
         """
         Authentication Required, get instance details.
         """
         user = request.user
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         esh_instance = esh_driver.get_instance(instance_id)
         if not esh_instance:
             try:
                 core_inst = CoreInstance.objects.get(
                     provider_alias=instance_id,
-                    provider_machine__provider__id=provider_id,
-                    created_by_identity__id=identity_id)
+                    provider_machine__provider__uuid=provider_uuid,
+                    created_by_uuidentity__uuid=identity_uuid)
                 core_inst.end_date_all()
             except CoreInstance.DoesNotExist:
                 pass
             return instance_not_found(instance_id)
         core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                             provider_id, identity_id, user)
+                                             provider_uuid, identity_uuid, user)
         serialized_data = InstanceSerializer(core_instance,
                                              context={"request":request}).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
 
-    def patch(self, request, provider_id, identity_id, instance_id):
+    def patch(self, request, provider_uuid, identity_uuid, instance_id):
         """Authentication Required, update metadata about the instance"""
         user = request.user
         data = request.DATA
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         esh_instance = esh_driver.get_instance(instance_id)
         if not esh_instance:
             return instance_not_found(instance_id)
         #Gather the DB related item and update
         core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                             provider_id, identity_id, user)
+                                             provider_uuid, identity_uuid, user)
         serializer = InstanceSerializer(core_instance, data=data,
                                         context={"request":request}, partial=True)
         if serializer.is_valid():
@@ -613,7 +613,7 @@ class Instance(APIView):
             update_instance_metadata(esh_driver, esh_instance, data,
                     replace=False)
             serializer.save()
-            invalidate_cached_instances(identity=Identity.objects.get(id=identity_id))
+            invalidate_cached_instances(identity=Identity.objects.get(uuid=identity_uuid))
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
             response['Cache-Control'] = 'no-cache'
@@ -623,27 +623,27 @@ class Instance(APIView):
                 serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST)
 
-    def put(self, request, provider_id, identity_id, instance_id):
+    def put(self, request, provider_uuid, identity_uuid, instance_id):
         """Authentication Required, update metadata about the instance"""
         user = request.user
         data = request.DATA
         #Ensure item exists on the server first
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         esh_instance = esh_driver.get_instance(instance_id)
         if not esh_instance:
             return instance_not_found(instance_id)
         #Gather the DB related item and update
         core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                             provider_id, identity_id, user)
+                                             provider_uuid, identity_uuid, user)
         serializer = InstanceSerializer(core_instance, data=data,
                                         context={"request":request})
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
             update_instance_metadata(esh_driver, esh_instance, data)
             serializer.save()
-            invalidate_cached_instances(identity=Identity.objects.get(id=identity_id))
+            invalidate_cached_instances(identity=Identity.objects.get(uuid=identity_uuid))
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
             response['Cache-Control'] = 'no-cache'
@@ -652,23 +652,23 @@ class Instance(APIView):
             return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, provider_id, identity_id, instance_id):
+    def delete(self, request, provider_uuid, identity_uuid, instance_id):
         """Authentication Required, TERMINATE the instance.
 
         Be careful, there is no going back once you've deleted an instance.
         """
         user = request.user
-        esh_driver = prepare_driver(request, provider_id, identity_id)
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
             if not esh_instance:
                 return instance_not_found(instance_id)
             #Test that there is not an attached volume BEFORE we destroy
             _check_volume_attachment(esh_driver, esh_instance)
-            task.destroy_instance_task(esh_instance, identity_id)
-            invalidate_cached_instances(identity=Identity.objects.get(id=identity_id))
+            task.destroy_instance_task(esh_instance, identity_uuid)
+            invalidate_cached_instances(identity=Identity.objects.get(uuid=identity_uuid))
             existing_instance = esh_driver.get_instance(instance_id)
             if existing_instance:
                 #Instance will be deleted soon...
@@ -677,7 +677,7 @@ class Instance(APIView):
                    and 'task' not in esh_instance.extra:
                     esh_instance.extra['task'] = 'queueing delete'
             core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                                 provider_id, identity_id,
+                                                 provider_uuid, identity_uuid,
                                                  user)
             if core_instance:
                 core_instance.end_date_all()
@@ -690,14 +690,14 @@ class Instance(APIView):
             return response
         except (Identity.DoesNotExist) as exc:
             return failure_response(status.HTTP_400_BAD_REQUEST,
-                                    "Invalid provider_id or identity_id.")
+                                    "Invalid provider_uuid or identity_uuid.")
         except VolumeAttachConflict as exc:
             message = exc.message
             return failure_response(status.HTTP_409_CONFLICT, message)
         except ConnectionFailure:
-            return connection_failure(provider_id, identity_id)
+            return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
 
 
 
@@ -708,19 +708,19 @@ class InstanceTagList(APIView):
     """
     permission_classes = (ApiAuthRequired,)
     
-    def get(self, request, provider_id, identity_id, instance_id, *args, **kwargs):
+    def get(self, request, provider_uuid, identity_uuid, instance_id, *args, **kwargs):
         """
         List all public tags.
         """
-        core_instance = get_core_instance(request, provider_id,
-                                          identity_id, instance_id)
+        core_instance = get_core_instance(request, provider_uuid,
+                                          identity_uuid, instance_id)
         if not core_instance:
             instance_not_found(instance_id)
         tags = core_instance.tags.all()
         serializer = TagSerializer(tags, many=True)
         return Response(serializer.data)
 
-    def post(self, request, provider_id, identity_id, instance_id,
+    def post(self, request, provider_uuid, identity_uuid, instance_id,
              *args, **kwargs):
         """Create a new tag resource
         Params:name -- Name of the new Tag
@@ -734,7 +734,7 @@ class InstanceTagList(APIView):
             return Response("Missing 'name' in POST data",
                     status=status.HTTP_400_BAD_REQUEST)
 
-        core_instance = get_core_instance(request, provider_id, identity_id, instance_id)
+        core_instance = get_core_instance(request, provider_uuid, identity_uuid, instance_id)
         if not core_instance:
             instance_not_found(instance_id)
 
@@ -765,11 +765,11 @@ class InstanceTagDetail(APIView):
     """
     permission_classes = (ApiAuthRequired,)
     
-    def delete(self, request, provider_id, identity_id, instance_id,  tag_slug, *args, **kwargs):
+    def delete(self, request, provider_uuid, identity_uuid, instance_id,  tag_slug, *args, **kwargs):
         """
         Remove the tag, if it is no longer in use.
         """
-        core_instance = get_core_instance(request, provider_id, identity_id, instance_id)
+        core_instance = get_core_instance(request, provider_uuid, identity_uuid, instance_id)
         if not core_instance:
             instance_not_found(instance_id)
         try:
@@ -780,11 +780,11 @@ class InstanceTagDetail(APIView):
         core_instance.tags.remove(tag)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def get(self, request, provider_id, identity_id, instance_id,  tag_slug, *args, **kwargs):
+    def get(self, request, provider_uuid, identity_uuid, instance_id,  tag_slug, *args, **kwargs):
         """
         Return the credential information for this tag
         """
-        core_instance = get_core_instance(request, provider_id, identity_id, instance_id)
+        core_instance = get_core_instance(request, provider_uuid, identity_uuid, instance_id)
         if not core_instance:
             instance_not_found(instance_id)
         try:

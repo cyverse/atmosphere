@@ -14,10 +14,9 @@ from core.models.user import AtmosphereUser
 from core.models.provider import Provider
 from core.models.credential import Credential
 
-from allocation.engine import calculate_allocation
-from service.monitoring import current_instance_time,\
-    get_delta, get_allocation, get_instance_owner_map,\
-    _create_allocation_input, _cleanup_instances
+from service.monitoring import get_delta, get_allocation,\
+    _get_instance_owner_map, _cleanup_instances,\
+    _create_allocation_input, _get_allocation_result
 from service.cache import get_cached_driver, get_cached_instances
 
 from threepio import logger
@@ -74,7 +73,7 @@ def monitor_instances_for(provider_id, users=None,
     if 'openstack' not in provider.type.name.lower():
         return
 
-    instance_map = get_instance_owner_map(provider, users=users)
+    instance_map = _get_instance_owner_map(provider, users=users)
 
     if print_logs:
         import logging
@@ -107,6 +106,7 @@ def monitor_instances_for_user(provider, username, instances,
                 key='ex_project_name', value=username,
                 identity__provider=provider,
                 identity__created_by__username=username)
+        identity = credential.identity
     except Credential.DoesNotExist, no_creds:
         if instances:
             logger.warn("WARNING: ex_tenant_name: %s has %s instances, but does not"
@@ -114,58 +114,11 @@ def monitor_instances_for_user(provider, username, instances,
         return
     #Attempt to run through the allocation engine
     try:
-        identity = credential.identity
-        user = identity.created_by
-        allocation = get_allocation(username, identity.id)
-        if not allocation:
-            logger.warn("User:%s Identity:%s does not have an allocation" % (username, identity))
-        if not end_date:
-            end_date = timezone.now()
-        if not start_date:
-            delta_time = get_delta(allocation, settings.FIXED_WINDOW, end_date)
-            start_date = end_date - delta_time
-        #Guaranteed a range (Starting @ FIXED_WINDOW until NOW)
-        #Convert running to esh..
-        driver = get_cached_driver(identity=identity)
-        core_running_instances = [
-            convert_esh_instance(driver, inst,
-                identity.provider.id, identity.id,
-                identity.created_by.username) for inst in instances]
-        #Retrieve the 'remaining' core that could have an impact..
-        core_instances = Instance.objects.filter(
-                        Q(end_date=None) | Q(end_date__gt=start_date),
-                                created_by=identity.created_by,
-                                created_by_identity__id=identity.id)
-        #Since we know which instances are still active and which are not
-        #Why not end_date ones that 'think' they are still running?
-        #TODO: When this is a seperate maintenance task, we should seperate concerns.
-        core_instances = _cleanup_instances(core_instances, core_running_instances)
-        allocation_input = _create_allocation_input(
-                username, allocation, core_instances, start_date, end_date, delta_time)
-
-        #Wow, so easy, I'm sure nothing is behind this curtain...
-        allocation_result = calculate_allocation(allocation_input,
+        allocation_result = _get_allocation_result(
+                identity, start_date, end_date, running_instances=instances,
                 print_logs=print_logs)
         logger.debug("Result for Username %s: %s"
                 % (username, allocation_result))
-        #Make some enforcement decision based on the results output.
-        if not allocation:
-            logger.info(
-                    "%s has NO allocation. Total Runtime: %s. Returning.." %
-                    (username, allocation_result.total_runtime()))
-            return allocation_result
-        if not settings.ENFORCING:
-            logger.info('Settings dictate allocations are NOT enforced')
-            return allocation_result
-        #Enforce allocation if overboard.
-        if allocation_result.over_allocation():
-            logger.info("%s is OVER allocation. %s - %s = %s"
-                    % (username, 
-                        allocation_result.total_credit(),
-                        allocation_result.total_runtime(),
-                        allocation_result.total_difference()))
-            enforce_allocation(identity, user)
-        return allocation_result
     except IdentityMembership.DoesNotExist:
         if instances:
             logger.warn(
@@ -175,6 +128,28 @@ def monitor_instances_for_user(provider, username, instances,
         logger.exception("Unable to monitor Identity:%s"
                          % (identity,))
         raise
+    #ASSERT: allocation_result has been retrieved successfully
+    #Make some enforcement decision based on the allocation_result's output.
+    if not allocation:
+        logger.info(
+                "%s has NO allocation. Total Runtime: %s. Returning.." %
+                (username, allocation_result.total_runtime()))
+        return allocation_result
+
+    if not settings.ENFORCING:
+        logger.debug('Settings dictate allocations are NOT enforced')
+        return allocation_result
+
+    #Enforce allocation if overboard.
+    if allocation_result.over_allocation():
+        logger.info("%s is OVER allocation. %s - %s = %s"
+                % (username, 
+                    allocation_result.total_credit(),
+                    allocation_result.total_runtime(),
+                    allocation_result.total_difference()))
+        enforce_allocation(identity, user)
+    return allocation_result
+
 def enforce_allocation(identity, user):
     driver = get_cached_driver(identity=identity)
     esh_instances = driver.list_instances()

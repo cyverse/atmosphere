@@ -25,7 +25,11 @@ class Allocation(models.Model):
             (self.threshold, self.delta)
 
     @classmethod
-    def default_allocation(self):
+    def default_allocation(self, provider=None):
+        """
+        TODO: Refactor so that a provider can define NEW default allocations,
+        rather than hard-coded
+        """
         return Allocation.objects.get_or_create(
                 **Allocation.default_dict())[0]
 

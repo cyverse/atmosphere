@@ -256,7 +256,7 @@ def get_application(identifier, app_uuid=None):
         logger.error(type(e))
 
 
-def create_application(identifier, provider_id, name=None,
+def create_application(identifier, provider_uuid, name=None,
                        owner=None, private=False, version=None,
                        description=None, tags=None, uuid=None):
     from core.models import AtmosphereUser
@@ -271,7 +271,7 @@ def create_application(identifier, provider_id, name=None,
     if not description:
         description = "New application - %s" % name
     if not owner:
-        owner = _get_admin_owner(provider_id)
+        owner = _get_admin_owner(provider_uuid)
     if not tags:
         tags = []
     new_app = Application.objects.create(name=name,

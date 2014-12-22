@@ -17,6 +17,7 @@ class Identity(models.Model):
     to authenticate against a single provider
     """
 
+    uuid = models.CharField(max_length=36, unique=True)
     created_by = models.ForeignKey("AtmosphereUser")
     provider = models.ForeignKey("Provider")
 
@@ -224,6 +225,9 @@ class Identity(models.Model):
         user.save()
         #Return the identity
         return id_membership.identity
+
+    def provider_uuid(self):
+        return self.provider.uuid
 
     def is_active(self):
         return self.provider.is_active()

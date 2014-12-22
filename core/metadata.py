@@ -44,25 +44,25 @@ def update_machine_metadata(esh_driver, esh_machine, data={}):
             raise
 
 
-def _get_admin_owner(provider_id):
-    admin = AccountProvider.objects.filter(provider__id=provider_id)
+def _get_admin_owner(provider_uuid):
+    admin = AccountProvider.objects.filter(provider__uuid=provider_uuid)
     if not admin:
         logger.warn("AccountProvider could not be found for provider %s."
                     " AccountProviders are necessary to claim ownership "
                     " for identities that do not yet exist in the DB."
-                    % Provider.objects.get(id=provider_id))
+                    % Provider.objects.get(uuid=provider_uuid))
         return None
     return admin[0].identity
 
 
-def _get_owner_identity(owner_name, provider_id):
+def _get_owner_identity(owner_name, provider_uuid):
     original_owner = Identity.objects.filter(
-            provider__id=provider_id,
+            provider__uuid=provider_uuid,
             created_by__username=owner_name)
     if original_owner:
         owner_identity = original_owner[0]
     else:
-        admin = _get_admin_owner(provider_id)
+        admin = _get_admin_owner(provider_uuid)
         if not admin:
             raise Exception(
                 "Original owner %s does not exist in DB and no "

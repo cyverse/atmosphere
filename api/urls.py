@@ -46,12 +46,16 @@ from api.volume import BootVolume, \
         VolumeList, Volume
 
 from authentication.decorators import atmo_valid_token_required
-#Paste This for provider: provider\/(?P<provider_id>\\d+)
-provider_specific = r"^provider/(?P<provider_id>\d+)"
-#Paste this for identity: 
-# /r'^provider\/(?P<provider_id>\\d+)\/identity\/(?P<identity_id>\
-identity_specific = provider_specific + r"/identity/(?P<identity_id>\d+)"
+# Regex matching you'll use everywhere..
+uuid_match = "[a-zA-Z0-9-]+"
 user_match = "[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*)"
+
+#Paste This for provider: provider\/(?P<provider_uuid>\\d+)
+provider_specific = r"^provider/(?P<provider_uuid>%s)" % uuid_match
+#Paste this for identity: 
+# /r'^provider\/(?P<provider_uuid>\\d+)\/identity\/(?P<identity_uuid>\
+identity_specific = provider_specific +\
+                    r"/identity/(?P<identity_uuid>%s)" % uuid_match
 
 private_apis = patterns('',
     # E-mail API
@@ -91,19 +95,22 @@ private_apis = patterns('',
     url(r'project/(?P<project_id>\d+)/application$',
         ProjectApplicationList.as_view(),
         name='project-application-list'),
-    url(r'project/(?P<project_id>\d+)/application/(?P<application_uuid>[a-zA-Z0-9-]+)$',
+    url(r'project/(?P<project_id>\d+)/application/(?P<application_uuid>%s)$'
+        % uuid_match,
         ProjectApplicationExchange.as_view(),
         name='project-application-exchange'),
     url(r'project/(?P<project_id>\d+)/instance$',
         ProjectInstanceList.as_view(),
         name='project-instance-list'),
-    url(r'project/(?P<project_id>\d+)/instance/(?P<instance_id>[a-zA-Z0-9-]+)$',
+    url(r'project/(?P<project_id>\d+)/instance/(?P<instance_id>%s)$'
+        % uuid_match,
         ProjectInstanceExchange.as_view(),
         name='project-instance-exchange'),
     url(r'project/(?P<project_id>\d+)/volume$',
         ProjectVolumeList.as_view(),
         name='project-volume-list'),
-    url(r'project/(?P<project_id>\d+)/volume/(?P<volume_id>[a-zA-Z0-9-]+)$',
+    url(r'project/(?P<project_id>\d+)/volume/(?P<volume_id>%s)$'
+        % uuid_match,
         ProjectVolumeExchange.as_view(),
         name='project-volume-exchange'),
 
@@ -132,7 +139,7 @@ private_apis = patterns('',
     url(r'^bookmark/application$',
         ApplicationBookmarkList.as_view(), name='bookmark-application-list'),
 
-    url(r'^bookmark/application/(?P<app_uuid>[a-zA-Z0-9-]+)$',
+    url(r'^bookmark/application/(?P<app_uuid>%s)$' % uuid_match,
         ApplicationBookmarkDetail.as_view(), name='bookmark-application'),
 
 
@@ -161,13 +168,13 @@ private_apis = patterns('',
 
     url(identity_specific + r'/step$',
         StepList.as_view(), name='step-list'),
-    url(identity_specific + r'/step/(?P<step_id>[a-zA-Z0-9-]+)$',
+    url(identity_specific + r'/step/(?P<step_id>%s)$' % uuid_match,
         Step.as_view(), name='step-detail'),
 
 
 
     #TODO: Uncomment when 'voting' feature is ready.
-    url(identity_specific + r'/machine/(?P<machine_id>[a-zA-Z0-9-]+)/vote$',
+    url(identity_specific + r'/machine/(?P<machine_id>%s)/vote$' % uuid_match,
         MachineVote.as_view(), name='machine-vote'),
 
     url(identity_specific + r'/meta$', Meta.as_view(), name='meta-detail'),
@@ -197,30 +204,30 @@ public_apis = format_suffix_patterns(patterns(
     url(r'^application/search$',
         ApplicationSearch.as_view(),
         name='application-search'),
-    url(r'^application/(?P<app_uuid>[a-zA-Z0-9-]+)$',
+    url(r'^application/(?P<app_uuid>%s)$' % uuid_match,
         Application.as_view(),
         name='application-detail'),
 
     url(r'^instance_history$', InstanceHistory.as_view(),
         name='instance-history'),
     url(r'^instance_history/'
-        '(?P<instance_id>[a-zA-Z0-9-]+)$', InstanceHistoryDetail.as_view(),
+        '(?P<instance_id>%s)$' % uuid_match, InstanceHistoryDetail.as_view(),
         name='instance-history'),
     url(r'^instance_history/'
-        '(?P<instance_id>[a-zA-Z0-9-]+)/'
-        'status_history$', InstanceStatusHistoryDetail.as_view(),
+        + '(?P<instance_id>%s)/' % uuid_match
+        + 'status_history$', InstanceStatusHistoryDetail.as_view(),
         name='instance-history'),
 
     url(identity_specific + r'/instance/'
-        + '(?P<instance_id>[a-za-z0-9-]+)/tag$',
+        + '(?P<instance_id>%s)/tag$' % uuid_match,
         InstanceTagList.as_view(), name='instance-tag-list'),
     url(identity_specific + r'/instance/'
-        + '(?P<instance_id>[a-zA-Z0-9-]+)/tag/(?P<tag_slug>.*)$',
+        + '(?P<instance_id>%s)/tag/(?P<tag_slug>.*)$' % uuid_match,
         InstanceTagDetail.as_view(), name='instance-tag-detail'),
     url(identity_specific + r'/instance/'
-        + '(?P<instance_id>[a-za-z0-9-]+)/action$',
+        + '(?P<instance_id>%s)/action$' % uuid_match,
         InstanceAction.as_view(), name='instance-action'),
-    url(identity_specific + r'/instance/(?P<instance_id>[a-zA-Z0-9-]+)$',
+    url(identity_specific + r'/instance/(?P<instance_id>%s)$' % uuid_match,
         Instance.as_view(), name='instance-detail'),
     url(identity_specific + r'/instance$',
         InstanceList.as_view(), name='instance-list'),
@@ -233,14 +240,14 @@ public_apis = format_suffix_patterns(patterns(
 
     url(identity_specific + r'/volume$',
         VolumeList.as_view(), name='volume-list'),
-    url(identity_specific + r'/volume/(?P<volume_id>[a-zA-Z0-9-]+)$',
+    url(identity_specific + r'/volume/(?P<volume_id>%s)$' % uuid_match,
         Volume.as_view(), name='volume-detail'),
-    url(identity_specific + r'/boot_volume(?P<volume_id>[a-zA-Z0-9-]+)?$',
+    url(identity_specific + r'/boot_volume(?P<volume_id>%s)?$' % uuid_match,
         BootVolume.as_view(), name='boot-volume'),
 
     url(identity_specific + r'/volume_snapshot$',
         VolumeSnapshot.as_view(), name='volume-snapshot'),
-    url(identity_specific + r'/volume_snapshot/(?P<snapshot_id>[a-zA-Z0-9-]+)$',
+    url(identity_specific + r'/volume_snapshot/(?P<snapshot_id>%s)$' % uuid_match,
         VolumeSnapshotDetail.as_view(), name='volume-snapshot-detail'),
 
     url(identity_specific + r'/machine$',
@@ -249,9 +256,9 @@ public_apis = format_suffix_patterns(patterns(
         MachineHistory.as_view(), name='machine-history'),
     url(identity_specific + r'/machine/search$',
         MachineSearch.as_view(), name='machine-search'),
-    url(identity_specific + r'/machine/(?P<machine_id>[a-zA-Z0-9-]+)$',
+    url(identity_specific + r'/machine/(?P<machine_id>%s)$' % uuid_match,
         Machine.as_view(), name='machine-detail'),
-    url(identity_specific + r'/machine/(?P<machine_id>[a-zA-Z0-9-]+)'
+    url(identity_specific + r'/machine/(?P<machine_id>%s)' % uuid_match
         + '/icon$', MachineIcon.as_view(), name='machine-icon'),
 
     url(provider_specific + r'/identity$', IdentityList.as_view(), name='identity-list'),
@@ -259,10 +266,10 @@ public_apis = format_suffix_patterns(patterns(
 
     url(r'^identity$', IdentityDetailList.as_view(),
         name='identity-detail-list'),
-    url(r'^identity/(?P<identity_id>\d+)$', IdentityDetail.as_view(),
+    url(r'^identity/(?P<identity_uuid>\d+)$', IdentityDetail.as_view(),
         name='identity-detail-list'),
     url(r'^provider$', ProviderList.as_view(), name='provider-list'),
-    url(r'^provider/(?P<provider_id>\d+)$',
+    url(r'^provider/(?P<provider_uuid>\d+)$',
         Provider.as_view(), name='provider-detail'),
 
 

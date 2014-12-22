@@ -162,7 +162,7 @@ class Volume(models.Model):
                                          "another transaction.")
 
 
-def convert_esh_volume(esh_volume, provider_id, identity_id, user):
+def convert_esh_volume(esh_volume, provider_uuid, identity_uuid, user):
     """
     Get or create the core representation of esh_volume
     Attach esh_volume to the object for further introspection..
@@ -172,19 +172,19 @@ def convert_esh_volume(esh_volume, provider_id, identity_id, user):
     size = esh_volume.size
     created_on = esh_volume.extra.get('createTime')
     try:
-        volume = Volume.objects.get(alias=alias, provider__id=provider_id)
+        volume = Volume.objects.get(alias=alias, provider__uuid=provider_uuid)
     except Volume.DoesNotExist:
-        volume = create_volume(name, alias, size, provider_id, identity_id,
+        volume = create_volume(name, alias, size, provider_uuid, identity_uuid,
                                user, created_on)
     volume.esh = esh_volume
     volume._update_history()
     return volume
 
 
-def create_volume(name, alias, size, provider_id, identity_id,
+def create_volume(name, alias, size, provider_uuid, identity_uuid,
                   creator, description=None, created_on=None):
-    provider = Provider.objects.get(id=provider_id)
-    identity = Identity.objects.get(id=identity_id)
+    provider = Provider.objects.get(uuid=provider_uuid)
+    identity = Identity.objects.get(uuid=identity_id)
     volume = Volume.objects.create(name=name, alias=alias,
                                    size=size, provider=provider,
                                    created_by=creator,

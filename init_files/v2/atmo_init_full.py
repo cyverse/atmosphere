@@ -809,7 +809,10 @@ def nagios():
 
 def distro_files(distro):
     install_motd(distro)
-    install_irods(distro)
+    try:
+        install_irods(distro)
+    except IOError, file_busy_err:
+        pass
     install_icommands(distro)
 
 

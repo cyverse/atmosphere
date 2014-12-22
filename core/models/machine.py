@@ -159,19 +159,19 @@ def get_cached_machine(provider_alias, provider_id):
     return cached_mach
 
 
-def load_provider_machine(provider_alias, machine_name, provider_id,
+def load_provider_machine(provider_alias, machine_name, provider_uuid,
                           app=None, metadata={}):
     """
     Returns ProviderMachine
     """
-    provider_machine = get_provider_machine(provider_alias, provider_id)
+    provider_machine = get_provider_machine(provider_alias, provider_uuid)
     if provider_machine:
         return provider_machine
     if not app:
         app = get_application(provider_alias, app_uuid=metadata.get('uuid'))
     if not app:
-        app = create_application(provider_alias, provider_id, machine_name)
-    return create_provider_machine(machine_name, provider_alias, provider_id, app=app, metadata=metadata)
+        app = create_application(provider_alias, provider_uuid, machine_name)
+    return create_provider_machine(machine_name, provider_alias, provider_uuid, app=app, metadata=metadata)
 
 def _extract_tenant_name(identity):
     tenant_name = identity.get_credential('ex_tenant_name')
@@ -210,14 +210,14 @@ def update_application_owner(application, identity):
         accounts.image_manager.unshare_image(image, old_tenant_name)
         print "Removed access to %s for %s" % (image_id, old_tenant_name)
 
-def create_provider_machine(machine_name, provider_alias, provider_id, app,
+def create_provider_machine(machine_name, provider_alias, provider_uuid, app,
                             metadata={}):
     #Attempt to match machine by provider alias
     #Admin identity used until the real owner can be identified.
-    provider = Provider.objects.get(id=provider_id)
+    provider = Provider.objects.get(uuid=provider_uuid)
 
     #TODO: Read admin owner from location IFF eucalyptus
-    machine_owner = _get_owner_identity(metadata.get('owner',''), provider_id)
+    machine_owner = _get_owner_identity(metadata.get('owner',''), provider_uuid)
 
     logger.debug("Provider %s" % provider)
     logger.debug("App %s" % app)
@@ -244,22 +244,22 @@ def add_to_cache(provider_machine):
     return provider_machine
 
 
-def get_provider_machine(identifier, provider_id):
+def get_provider_machine(identifier, provider_uuid):
     try:
-        machine = ProviderMachine.objects.get(provider__id=provider_id, identifier=identifier)
+        machine = ProviderMachine.objects.get(provider__uuid=provider_uuid, identifier=identifier)
         return machine
     except ProviderMachine.DoesNotExist:
         return None
 
 
-def convert_esh_machine(esh_driver, esh_machine, provider_id, user,
+def convert_esh_machine(esh_driver, esh_machine, provider_uuid, user,
                         image_id=None):
     """
     Takes as input an (rtwo) driver and machine, and a core provider id
     Returns as output a core ProviderMachine
     """
     if image_id and not esh_machine:
-        return _convert_from_instance(esh_driver, provider_id, image_id)
+        return _convert_from_instance(esh_driver, provider_uuid, image_id)
     elif not esh_machine:
         return None
     push_metadata = False
@@ -275,11 +275,11 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, user,
         # and may exist on this DB
         app = get_application(alias, metadata.get('application_uuid'))
         if not app:
-            app_kwargs = get_app_data(metadata, provider_id)
+            app_kwargs = get_app_data(metadata, provider_uuid)
             logger.debug("Creating Application for Image %s "
                          "(Based on Application data: %s)"
                          % (alias, app_kwargs))
-            app = create_application(alias, provider_id, **app_kwargs)
+            app = create_application(alias, provider_uuid, **app_kwargs)
     else:
         #USE CASE: Application data does NOT exist,
         # This machine is assumed to be its own application, so run the
@@ -292,8 +292,8 @@ def convert_esh_machine(esh_driver, esh_machine, provider_id, user,
         app = get_application(alias)
         if not app:
             logger.debug("Creating Application for Image %s" % (alias, ))
-            app = create_application(alias, provider_id, name)
-    provider_machine = load_provider_machine(alias, name, provider_id,
+            app = create_application(alias, provider_uuid, name)
+    provider_machine = load_provider_machine(alias, name, provider_uuid,
                                              app=app, metadata=metadata)
 
     #If names conflict between OpenStack and Database, choose OpenStack.
@@ -321,8 +321,9 @@ def _check_project(core_application, user):
     return core_projects
 
 
-def _convert_from_instance(esh_driver, provider_id, image_id):
-    provider_machine = load_provider_machine(image_id, 'Unknown Image', provider_id)
+def _convert_from_instance(esh_driver, provider_uuid, image_id):
+    provider_machine = load_provider_machine(image_id, 'Unknown Image',
+            provider_uuid)
     return provider_machine
 
 def compare_core_machines(mach_1, mach_2):

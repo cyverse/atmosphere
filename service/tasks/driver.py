@@ -58,7 +58,7 @@ def print_debug():
 
 @task(name="complete_resize", max_retries=2, default_retry_delay=15)
 def complete_resize(driverCls, provider, identity, instance_alias,
-                    core_provider_id, core_identity_id, user):
+                    core_provider_uuid, core_identity_uuid, user):
     """
     Confirm the resize of 'instance_alias'
     """
@@ -71,7 +71,7 @@ def complete_resize(driverCls, provider, identity, instance_alias,
             logger.debug("Instance has been teminated: %s." % instance_id)
             return False, None
         result = instance_service.confirm_resize(
-            driver, instance, core_provider_id, core_identity_id, user)
+            driver, instance, core_provider_uuid, core_identity_uuid, user)
         logger.debug("complete_resize task finished at %s." % datetime.now())
         return True, result
     except Exception as exc:
@@ -153,7 +153,7 @@ def _is_instance_ready(driverCls, provider, identity,
       ignore_result=True,
       default_retry_delay=15,
       max_retries=15)
-def add_fixed_ip(driverCls, provider, identity, instance_id, core_identity_id=None):
+def add_fixed_ip(driverCls, provider, identity, instance_id, core_identity_uuid=None):
     from service import instance as instance_service
     try:
         logger.debug("add_fixed_ip task started at %s." % datetime.now())
@@ -229,14 +229,14 @@ def _remove_network(os_acct_driver, core_identity, tenant_name, remove_network=F
 
 
 @task(name="clear_empty_ips_for", queue="celery_periodic")
-def clear_empty_ips_for(core_identity_id, username=None):
+def clear_empty_ips_for(core_identity_uuid, username=None):
     """
     RETURN: (number_ips_removed, delete_network_called)
     """
     from api import get_esh_driver
     from rtwo.driver import OSDriver
     #Initialize the drivers
-    core_identity = Identity.objects.get(id=core_identity_id)
+    core_identity = Identity.objects.get(uuid=core_identity_uuid)
     driver = get_esh_driver(core_identity)
     if not isinstance(driver, OSDriver):
         return (0, False)
@@ -479,14 +479,14 @@ def get_deploy_chain(driverCls, provider, identity, instance,
       default_retry_delay=15,
       ignore_result=True,
       max_retries=3)
-def destroy_instance(instance_alias, core_identity_id):
+def destroy_instance(instance_alias, core_identity_uuid):
     from service import instance as instance_service
     from rtwo.driver import OSDriver
     try:
         logger.debug("destroy_instance task started at %s." % datetime.now())
         node_destroyed = instance_service.destroy_instance(
-            core_identity_id, instance_alias)
-        core_identity = Identity.objects.get(id=core_identity_id)
+            core_identity_uuid, instance_alias)
+        core_identity = Identity.objects.get(uuid=core_identity_uuid)
         driver = get_esh_driver(core_identity)
         if isinstance(driver, OSDriver):
             #Spawn off the last two tasks
@@ -509,7 +509,7 @@ def destroy_instance(instance_alias, core_identity_id):
                         (driverCls, provider, identity),
                         immutable=True, countdown=5),
                     remove_empty_network.subtask(
-                        (driverCls, provider, identity, core_identity_id),
+                        (driverCls, provider, identity, core_identity_uuid),
                         immutable=True, countdown=60))
                 destroy_chain()
             else:
@@ -816,7 +816,7 @@ def add_os_project_network(core_identity, *args, **kwargs):
       max_retries=1)
 def remove_empty_network(
         driverCls, provider, identity,
-        core_identity_id,
+        core_identity_uuid,
         *args, **kwargs):
     try:
         #For testing ONLY.. Test cases ignore countdown..
@@ -826,8 +826,8 @@ def remove_empty_network(
         logger.debug("remove_empty_network task started at %s." %
                      datetime.now())
 
-        logger.debug("CoreIdentity(id=%s)" % core_identity_id)
-        core_identity = Identity.objects.get(id=core_identity_id)
+        logger.debug("CoreIdentity(uuid=%s)" % core_identity_uuid)
+        core_identity = Identity.objects.get(uuid=core_identity_uuid)
         driver = get_driver(driverCls, provider, identity)
         instances = driver.list_instances()
         active_instances = any(
@@ -872,9 +872,9 @@ def check_image_membership():
         check_image_membership.retry(exc=exc)
 
 @task(name="update_membership_for", queue="celery_periodic")
-def update_membership_for(provider_id):
+def update_membership_for(provider_uuid):
     from core.models import Provider, ProviderMachine
-    provider = Provider.objects.get(id=provider_id)
+    provider = Provider.objects.get(uuid=provider_uuid)
     if not provider.is_active():
         return
     if provider.type.name.lower() == 'openstack':
@@ -918,7 +918,7 @@ def update_membership():
     from core.models.provider import Provider as CoreProvider
     from service.accounts.eucalyptus import AccountDriver as EucaAcctDriver
     for provider in CoreProvider.objects.all():
-        update_membership_for.apply_async( args=[provider.id])
+        update_membership_for.apply_async( args=[provider.uuid])
 
 
 def active_instances(instances):

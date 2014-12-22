@@ -348,8 +348,8 @@ class Instance(models.Model):
     def esh_machine_name(self):
         return self.provider_machine.application.name
 
-    def provider_id(self):
-        return self.provider_machine.provider.id
+    def provider_uuid(self):
+        return self.provider_machine.provider.uuid
 
     def provider_name(self):
         return self.provider_machine.provider.location
@@ -520,15 +520,6 @@ class InstanceStatusHistory(models.Model):
 Useful utility methods for the Core Model..
 """
 
-def map_to_identity(core_instances):
-    instance_id_map = {}
-    for instance in core_instances:
-        identity_id = instance.created_by_identity_id
-        instance_list = instance_id_map.get(identity_id,[])
-        instance_list.append(instance)
-        instance_id_map[identity_id] = instance_list
-    return instance_id_map
-
 def find_instance(instance_id):
     core_instance = Instance.objects.filter(provider_alias=instance_id)
     if len(core_instance) > 1:
@@ -594,7 +585,7 @@ def _convert_timestamp(create_stamp):
     return start_date
 
 
-def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
+def convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
                          user, token=None, password=None):
     """
     """
@@ -614,10 +605,10 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
             esh_machine = esh_driver.get_machine(esh_machine.id)
         #Ensure that core Machine exists
         coreMachine = convert_esh_machine(esh_driver, esh_machine,
-                                          provider_id, user,
+                                          provider_uuid, user,
                                           image_id=esh_instance.image_id)
         #Use New/Existing core Machine to create core Instance
-        core_instance = create_instance(provider_id, identity_id, instance_id,
+        core_instance = create_instance(provider_uuid, identity_uuid, instance_id,
                                       coreMachine, ip_address,
                                       esh_instance.name, user,
                                       start_date, token, password)
@@ -633,7 +624,7 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
         #so a lookup on the size is required to get accurate
         #information.
         esh_size = esh_driver.get_size(esh_size.id)
-    core_size = convert_esh_size(esh_size, provider_id)
+    core_size = convert_esh_size(esh_size, provider_uuid)
     #TODO: You are the mole!
     core_instance.update_history(
         esh_instance.extra['status'],
@@ -679,12 +670,12 @@ def set_instance_from_metadata(esh_driver, core_instance):
     core_instance.esh = esh_instance
     return core_instance
 
-def create_instance(provider_id, identity_id, provider_alias, provider_machine,
+def create_instance(provider_uuid, identity_uuid, provider_alias, provider_machine,
                    ip_address, name, creator, create_stamp,
                    token=None, password=None):
     #TODO: Define a creator and their identity by the METADATA instead of
     # assuming its the person who 'found' the instance
-    identity = Identity.objects.get(id=identity_id)
+    identity = Identity.objects.get(uuid=identity_uuid)
     new_inst = Instance.objects.create(name=name,
                                        provider_alias=provider_alias,
                                        provider_machine=provider_machine,

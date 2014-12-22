@@ -135,17 +135,17 @@ def get_esh_driver(core_identity, username=None):
         raise
 
 
-def prepare_driver(request, provider_id, identity_id):
+def prepare_driver(request, provider_uuid, identity_uuid):
     """
-    Return an rtwo.EshDriver for the given provider_id
-    and identity_id.
+    Return an rtwo.EshDriver for the given provider_uuid
+    and identity_uuid.
 
-    If invalid credentials, provider_id or identity_id is
+    If invalid credentials, provider_uuid or identity_uuid is
     used return None.
     """
     try:
-        core_identity = CoreIdentity.objects.get(provider__id=provider_id,
-                                                 id=identity_id)
+        core_identity = CoreIdentity.objects.get(provider__uuid=provider_uuid,
+                                                 uuid=identity_uuid)
         if core_identity in request.user.identity_set.all():
             return get_esh_driver(core_identity=core_identity)
     except ObjectDoesNotExist:

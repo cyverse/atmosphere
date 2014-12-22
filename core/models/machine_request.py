@@ -419,7 +419,7 @@ def upload_privacy_data(machine_request, new_machine):
 
 
 
-def share_with_admins(private_userlist, provider_id):
+def share_with_admins(private_userlist, provider_uuid):
     """
     NOTE: This will always work, but the userlist could get long some day.
     Another option would be to create an 'admin' tenant that all of core
@@ -433,7 +433,7 @@ def share_with_admins(private_userlist, provider_id):
     from authentication.protocol.ldap import get_core_services
     core_services = get_core_services()
     admin_users = [ap.identity.created_by.username for ap in
-            AccountProvider.objects.filter(provider__id=provider_id)]
+            AccountProvider.objects.filter(provider__uuid=provider_uuid)]
     private_userlist.extend(core_services)
     private_userlist.extend(admin_users)
     return private_userlist

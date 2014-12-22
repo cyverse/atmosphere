@@ -26,12 +26,12 @@ from api.permissions import InMaintenance, ApiAuthOptional, ApiAuthRequired
 from api.serializers import AccountSerializer, IdentitySerializer
 
 
-def get_account_driver(provider_id):
+def get_account_driver(provider_uuid):
     try:
-        provider = Provider.objects.get(id=provider_id)
+        provider = Provider.objects.get(uuid=provider_uuid)
     except CoreProvider.DoesNotExist:
         return Response(
-            'No provider matching id %s' % provider_id,
+            'No provider matching id %s' % provider_uuid,
             status=status.HTTP_404_NOT_FOUND)
     #TODO: We need better logic here. maybe use provider name?
     provider_name = provider.location.lower()
@@ -51,16 +51,16 @@ def get_account_driver(provider_id):
 class AccountManagement(APIView):
     """
     This API is used to provide account management.
-    provider_id -- The id of the provider whose account you want to manage.
+    provider_uuid -- The id of the provider whose account you want to manage.
     """
     permission_classes = (InMaintenance,ApiAuthRequired)
 
-    def get(self, request, provider_id):
+    def get(self, request, provider_uuid):
         """
-        Return a list of ALL users found on provider_id
+        Return a list of ALL users found on provider_uuid
         """
         pass
-        #driver = get_account_driver(provider_id)
+        #driver = get_account_driver(provider_uuid)
         ##TODO: Maybe get_or_create identity on list_users?
         #users = driver.list_users()
         ##Maybe identities?
@@ -72,21 +72,21 @@ class AccountManagement(APIView):
 class Account(APIView):
     """
     This API is used to create/update/list/delete a specific user identity
-    provider_id -- The id of the provider whose account you want to manage.
+    provider_uuid -- The id of the provider whose account you want to manage.
     """
     permission_classes = (InMaintenance,ApiAuthRequired)
 
-    def get(self, request, provider_id, username):
+    def get(self, request, provider_uuid, username):
         """
         Detailed view of all identities for provider,user combination.
         username -- The username to match identities
         """
-        identities = CoreIdentity.objects.filter(provider__id=provider_id,
+        identities = CoreIdentity.objects.filter(provider__uuid=provider_uuid,
                                                  created_by__username=username)
         serialized_data = IdentitySerializer(identities, many=True).data
         return Response(serialized_data)
 
-    def post(self, request, provider_id, username):
+    def post(self, request, provider_uuid, username):
         """
         Create a new account on provider for this username
         POST data should have all credentials required for this provider
@@ -95,7 +95,7 @@ class Account(APIView):
         user = request.user
         data = request.DATA
 
-        driver = get_account_driver(provider_id)
+        driver = get_account_driver(provider_uuid)
         missing_args = driver.clean_credentials(data)
         if missing_args:
             raise Exception("Cannot create account. Missing credentials: %s"
