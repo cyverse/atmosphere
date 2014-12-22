@@ -142,7 +142,7 @@ def check_over_allocation(username, identity_uuid,
 def get_allocation(username, identity_uuid):
     user = User.objects.get(username=username)
     membership = IdentityMembership.objects.get(identity__uuid=identity_uuid,
-                                                member=user)
+                                                member__user=user)
     if not user.is_staff and not membership.allocation:
         default_allocation = Allocation.default_allocation(
                 membership.identity.provider)
