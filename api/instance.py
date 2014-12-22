@@ -372,24 +372,24 @@ class InstanceAction(APIView):
         """
         actions = [{"action":"attach_volume",
                  "action_params":{
-                     "volume_uuid":"required",
+                     "volume_id":"required",
                      "device":"optional",
                      "mount_location":"optional"},
                  "description":"Attaches the volume <id> to instance"},
                 {"action":"mount_volume",
                  "action_params":{
-                     "volume_uuid":"required",
+                     "volume_id":"required",
                      "device":"optional",
                      "mount_location":"optional"
                      },
                  "description":"Unmount the volume <id> from instance"},
                 {"action":"unmount_volume",
                  "action_params":{
-                     "volume_uuid":"required",
+                     "volume_id":"required",
                      },
                  "description":"Mount the volume <id> to instance"},
                 {"action":"detach_volume",
-                 "action_params":{"volume_uuid":"required"},
+                 "action_params":{"volume_id":"required"},
                  "description":"Detaches the volume <id> to instance"},
                 {"action":"resize",
                  "action_params":{"size":"required"},
@@ -437,7 +437,7 @@ class InstanceAction(APIView):
         action = action_params['action']
         try:
             if 'volume' in action:
-                volume_uuid = action_params.get('volume_uuid')
+                volume_id = action_params.get('volume_id')
                 mount_location = action_params.get('mount_location', None)
                 device = action_params.get('device', None)
                 if 'attach_volume' == action:
@@ -446,25 +446,25 @@ class InstanceAction(APIView):
                     if device == 'null' or device == 'None':
                         device = None
                     future_mount_location = task.attach_volume_task(esh_driver, esh_instance.alias,
-                                            volume_uuid, device, mount_location)
+                                            volume_id, device, mount_location)
                 elif 'mount_volume' == action:
                     future_mount_location = task.mount_volume_task(esh_driver, esh_instance.alias,
-                            volume_uuid, device, mount_location)
+                            volume_id, device, mount_location)
                 elif 'unmount_volume' == action:
                     (result, error_msg) = task.unmount_volume_task(esh_driver, esh_instance.alias,
-                            volume_uuid, device, mount_location)
+                            volume_id, device, mount_location)
                 elif 'detach_volume' == action:
                     (result, error_msg) = task.detach_volume_task(
                         esh_driver,
                         esh_instance.alias,
-                        volume_uuid)
+                        volume_id)
                     if not result and error_msg:
                         #Return reason for failed detachment
                         return failure_response(
                             status.HTTP_400_BAD_REQUEST,
                             error_msg)
                 #Task complete, convert the volume and return the object
-                esh_volume = esh_driver.get_volume(volume_uuid)
+                esh_volume = esh_driver.get_volume(volume_id)
                 core_volume = convert_esh_volume(esh_volume,
                                                  provider_uuid,
                                                  identity_uuid,
