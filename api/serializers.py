@@ -518,10 +518,11 @@ class IdentityDetailSerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
     quota = serializers.Field(source='get_quota_dict')
     provider_id = serializers.Field(source='provider.uuid')
+    id = serializers.Field(source="uuid")
 
     class Meta:
         model = Identity
-        exclude = ('credentials', 'created_by', 'provider')
+        exclude = ('credentials', 'created_by', 'provider', 'uuid')
 
 
 class AtmoUserSerializer(serializers.ModelSerializer):
