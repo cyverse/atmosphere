@@ -144,7 +144,8 @@ class InstanceHelper(object):
 
 
 class AllocationHelper(object):
-    def __init__(self, start_window, end_window, increase_date, credit_hours=1000):
+    def __init__(self, start_window, end_window, increase_date,
+                 credit_hours=1000):
         self.start_window = start_window
         self.end_window = end_window
         self.instances = []
@@ -172,19 +173,20 @@ class AllocationHelper(object):
 
     def add_instance(self, instance):
         if not isinstance(instance, Instance):
-            raise TypeError("Expected type Instance got %s", type(instance))
+            raise TypeError("Expected type Instance got %s" % type(instance))
 
         self.instances.append(instance)
 
     def add_rule(self, rule):
         if not isinstance(rule, Rule):
-            raise TypeError("Expected type Rule got %s", type(rule))
+            raise TypeError("Expected type Rule got %s" % type(rule))
 
         self.rules.append(rule)
 
     def add_credit(self, credit):
         if not isinstance(credit, AllocationIncrease):
-            raise TypeError("Expected type AllocationIncrease got %s", type(credit))
+            raise TypeError(
+                "Expected type AllocationIncrease got %s" % type(credit))
 
         self.credits.append(credit)
 
@@ -459,12 +461,12 @@ class TestEngineHelpers(unittest.TestCase):
 class TestAllocationEngine(AllocationTestCase):
     def setUp(self):
         # Set allocation window
-        increase_date = start_window = datetime(2014,7,1, tzinfo=pytz.utc)
-        stop_window = datetime(2014,12,1, tzinfo=pytz.utc)
+        increase_date = start_window = datetime(2014, 7, 1, tzinfo=pytz.utc)
+        stop_window = datetime(2014, 12, 1, tzinfo=pytz.utc)
 
         # Initialize allocation helper
-        self.allocation_helper = AllocationHelper(start_window, stop_window, increase_date)
-
+        self.allocation_helper = AllocationHelper(start_window, stop_window,
+                                                  increase_date)
         # Initialize instance helper
         self.instance1_helper = InstanceHelper()
 
@@ -473,8 +475,8 @@ class TestAllocationEngine(AllocationTestCase):
         Returns True
         When the total allocation time exceeds the total total runtime
         """
-        history_start = datetime(2014,7,4,hour=12, tzinfo=pytz.utc)
-        history_stop = datetime(2014,12,4,hour=12, tzinfo=pytz.utc)
+        history_start = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
+        history_stop = datetime(2014, 12, 4, hour=12, tzinfo=pytz.utc)
         self.instance1_helper.add_history_entry(history_start, history_stop)
         instance1 = self.instance1_helper.to_instance("Test instance 1")
 
