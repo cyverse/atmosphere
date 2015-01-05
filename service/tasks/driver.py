@@ -625,10 +625,9 @@ def _parse_steps_output(msd):
     output = ""
     length = len(msd.steps)
     for idx, step in enumerate(msd.steps):
-        output += "Step %d/%d: SCRIPT:%s "\
+        output += "\nStep %d/%d: "\
                 "ExitCode:%s Output:%s Error:%s" %\
-                (idx, length, step.script,
-                        step.exit_status, step.stdout, step.stderr)
+                (idx+1, length, step.exit_status, step.stdout, step.stderr)
     return output
 @task(name="check_process_task",
       max_retries=2,
