@@ -11,8 +11,9 @@ from rest_framework.response import Response
 from core.models.size import convert_esh_size
 
 from service.driver import prepare_driver
+from libcloud.common.types import MalformedResponseError
 
-from api import invalid_creds
+from api import invalid_creds, malformed_response
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProviderSizeSerializer
 
@@ -34,7 +35,12 @@ class SizeList(APIView):
         esh_driver = prepare_driver(request, provider_id, identity_id)
         if not esh_driver:
             return invalid_creds(provider_id, identity_id)
-        esh_size_list = esh_driver.list_sizes()
+        try:
+            esh_size_list = esh_driver.list_sizes()
+        except MalformedResponseError:
+            return malformed_response(provider_id, identity_id)
+        except InvalidCredsError:
+            return invalid_creds(provider_id, identity_id)
         all_size_list = [convert_esh_size(size, provider_id)
                          for size in esh_size_list]
         if active:

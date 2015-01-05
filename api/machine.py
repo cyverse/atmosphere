@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from libcloud.common.types import InvalidCredsError
+from libcloud.common.types import InvalidCredsError, MalformedResponseError
 
 from threepio import logger
 
@@ -26,7 +26,7 @@ from core.metadata import update_machine_metadata
 from service.driver import prepare_driver
 from service.search import search, CoreSearchProvider
 
-from api import failure_response, invalid_creds
+from api import failure_response, invalid_creds, malformed_response
 from api.renderers import JPEGRenderer, PNGRenderer
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProviderMachineSerializer,\
@@ -95,6 +95,8 @@ class MachineList(APIView):
             logger.debug(filtered_machine_list)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
+        except MalformedResponseError:
+            return malformed_response(provider_id, identity_id)
         except Exception as e:
             logger.exception("Unexpected exception for user:%s"
                              % request_user)
