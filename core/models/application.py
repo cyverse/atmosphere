@@ -1,4 +1,4 @@
-from uuid import uuid5, UUID
+from uuid import uuid4, uuid5, UUID
 from hashlib import md5
 
 from django.db import models
@@ -24,7 +24,7 @@ class Application(models.Model):
     sequence of versions. The created_by field here is used for logging only;
     do not rely on it for permissions; use ApplicationMembership instead.
     """
-    uuid = models.CharField(max_length=36, unique=True)
+    uuid = models.CharField(max_length=36, unique=True, default=uuid4)
     name = models.CharField(max_length=256)
     description = models.TextField(null=True, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)

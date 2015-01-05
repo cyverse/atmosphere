@@ -1,6 +1,6 @@
+from uuid import uuid4
 from django.db import models
 from django.utils import timezone
-
 from core.models.application import Application
 from core.models.instance import Instance
 from core.models.group import Group
@@ -16,7 +16,7 @@ class Project(models.Model):
       * Instance
       * Volume
     """
-    uuid = models.CharField(max_length=36, unique=True)
+    uuid = models.CharField(max_length=36, unique=True, default=uuid4)
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True)
     start_date = models.DateTimeField(default=timezone.now)

@@ -1,8 +1,39 @@
 # Note: for apache2 and celery, use the packaged version of logrotate
-/opt/dev/atmosphere/logs/* {
+/opt/dev/atmosphere/logs/atmosphere.log {
     daily
     missingok
-    rotate 30
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+}
+/opt/dev/atmosphere/logs/atmosphere_api.log {
+    daily
+    missingok
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+}
+/opt/dev/atmosphere/logs/atmosphere_auth.log {
+    daily
+    missingok
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+}
+/opt/dev/atmosphere/logs/atmosphere_email.log {
+    daily
+    missingok
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+}
+/opt/dev/atmosphere/logs/atmosphere_status.log {
+    daily
+    missingok
     compress
     delaycompress
     notifempty

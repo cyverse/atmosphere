@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from rtwo.exceptions import ConnectionFailure
-from libcloud.common.types import InvalidCredsError
+from libcloud.common.types import InvalidCredsError, MalformedResponseError
 
 from threepio import logger
 
@@ -23,7 +23,8 @@ from service.driver import prepare_driver
 from service.exceptions import OverQuotaError
 from service.volume import create_volume, boot_volume
 
-from api import failure_response, invalid_creds, connection_failure
+from api import failure_response, invalid_creds, connection_failure,\
+                malformed_response
 from api.permissions import ApiAuthRequired
 from api.serializers import VolumeSerializer, InstanceSerializer
 
@@ -40,7 +41,12 @@ class VolumeSnapshot(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_snapshots = esh_driver._connection.ex_list_snapshots()
+        try:
+            esh_snapshots = esh_driver._connection.ex_list_snapshots()
+        except MalformedResponseError:
+            return malformed_response(provider_uuid, identity_uuid)
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
         snapshot_data = []
         for ss in esh_snapshots:
             snapshot_data.append({
@@ -184,8 +190,12 @@ class VolumeList(APIView):
         if AccountProvider.objects.filter(identity__uuid=identity_uuid):
             # Instance list method changes when using the OPENSTACK provider
             volume_list_method = esh_driver.list_all_volumes
-
-        esh_volume_list = volume_list_method()
+        try:
+            esh_volume_list = volume_list_method()
+        except MalformedResponseError:
+            return malformed_response(provider_id, identity_id)
+        except InvalidCredsError:
+            return invalid_creds(provider_id, identity_id)
 
         core_volume_list = [convert_esh_volume(volume, provider_uuid,
                                                identity_uuid, user)
@@ -237,6 +247,8 @@ class VolumeList(APIView):
             return over_quota(oqe)
         except ConnectionFailure:
             return connection_failure(provider_uuid, identity_uuid)
+        except MalformedResponseError:
+            return malformed_response(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         if not success:
