@@ -108,7 +108,7 @@ class InstanceHelper(object):
         self.machine = AVAILABLE_MACHINES[machine]
         self.history = []
 
-    def add_history_entry(self, start, end, size="test.small",
+    def add_history_entry(self, start, end, size="test.tiny",
                           status="active"):
         """
         Add a new history entry to the instance
@@ -523,11 +523,58 @@ class TestAllocationEngine(AllocationTestCase):
         Returns False
         When the total allocation time has not been exceeded.
         """
-        history_start = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
-        history_stop = datetime(2014, 12, 4, hour=12, tzinfo=pytz.utc)
+        #history_start = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
+        #history_stop = datetime(2014, 12, 4, hour=12, tzinfo=pytz.utc)
 
+    def test_allocation_for_multiple_instances(self):
+        """
+        Checks that the sum of allocations meets the expected value
+        """
+        current_time = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
 
-#Static tests
+        # Create 10 instances of uniform size
+        for idx in range(0, 10):
+            start_time = current_time
+            current_time = end_time = current_time + timedelta(days=3)
+
+            helper = InstanceHelper()
+
+            # Add 3 days of active
+            helper.add_history_entry(start_time, end_time)
+
+            # Add 3 days of suspended following active time
+            helper.add_history_entry(end_time, end_time + timedelta(days=3),
+                                     status="suspended")
+
+            self.allocation_helper.add_instance(
+                helper.to_instance("Instance %s" % idx))
+
+        allocation = self.allocation_helper.to_allocation()
+        self.assertTotalRuntimeEquals(allocation, timedelta(days=30))
+
+    def test_allocation_for_multiple_instance_sizes(self):
+        start_time = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
+        end_time = start_time + timedelta(days=3)
+        sizes = ["test.tiny", "test.small", "test.medium", "test.large"]
+
+        for size in sizes:
+            helper = InstanceHelper()
+
+            # Add 3 days of active
+            helper.add_history_entry(start_time, end_time, size=size)
+
+            # Add 3 days of suspended following active time
+            helper.add_history_entry(
+                end_time, end_time + timedelta(days=3),
+                status="suspended", size=size)
+
+            self.allocation_helper.add_instance(
+                helper.to_instance("Instance %s" % size))
+
+        allocation = self.allocation_helper.to_allocation()
+        self.assertTotalRuntimeEquals(allocation, timedelta(days=45))
+
+# Static tests
 def run_test_1():
     """
     Test 1:
