@@ -22,22 +22,34 @@ from threepio import logger
 
 def _get_zero_date_utc():
     #"Epoch Date" 1-1-1970 0:00:00 UTC
-    return datetime(1,1,1970).replace(tzinfo = pytz.utc)
+    return datetime(1970,1,1).replace(tzinfo = pytz.utc)
 
 def _get_current_date_utc():
     return datetime.utcnow().replace(tzinfo = pytz.utc)
 
-### Main ###
-def calculate_allocation(allocation, print_logs=False):
+
+def get_allocation_window(allocation,
+        default_start_date=_get_zero_date_utc(),
+        default_end_date=_get_current_date_utc()):
+    """
+    Returns a tuple containing the allocation windows start and end date
+    """
     if not allocation.start_date:
-        window_start_date = _get_zero_date_utc()
+        window_start_date = default_start_date
     else:
         window_start_date = allocation.start_date
 
     if not allocation.end_date:
-        window_end_date = _get_current_date_utc()
+        window_end_date = default_end_date
     else:
         window_end_date = allocation.end_date
+
+    return window_start_date, window_end_date
+
+
+### Main ###
+def calculate_allocation(allocation, print_logs=False):
+    (window_start_date, window_end_date) = get_allocation_window(allocation)
 
     #FYI: Calculates time periods based on allocation.credits
     current_result = AllocationResult(allocation,
