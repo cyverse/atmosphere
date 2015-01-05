@@ -470,6 +470,13 @@ class TestAllocationEngine(AllocationTestCase):
         # Initialize instance helper
         self.instance1_helper = InstanceHelper()
 
+    def test_total_credit_matches(self):
+        """
+        Allocation should have 10,000 credit hours
+        """
+        allocation = self.allocation_helper.to_allocation()
+        self.assertCreditEquals(allocation, timedelta(hours=1000))
+
     def test_over_allocation(self):
         """
         Returns True
