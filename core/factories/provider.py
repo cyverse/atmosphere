@@ -39,13 +39,13 @@ class ProviderFactory(DjangoModelFactory):
     class Meta:
         model = models.Provider
 
-    uuid = uuid4()
+    uuid = str(uuid4())
     location = "Tucson, AZ"
     description = "Provider used in testing"
     active = True
     public = True
     start_date = datetime(2015, 1, 1, tzinfo=pytz.UTC)
-    end_date = datetime(2015, 1, 3, tzinfo=pytz.UTC)
+    end_date = None
 
     # forward dependencies
     type = factory.SubFactory(ProviderTypeFactory)
