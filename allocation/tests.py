@@ -1,44 +1,42 @@
-from functools import wraps
-import pytz
-
 from dateutil.relativedelta import relativedelta
+import pytz
 
 from django.test import TestCase
 from django.utils import unittest
 from django.utils.timezone import datetime, timedelta
 
 from allocation import engine
-from allocation.models import Provider, Machine, Size, Instance, InstanceHistory
+from allocation.models import Provider, Machine, Size, Instance, \
+    InstanceHistory
 from allocation.models import Allocation,\
-        MultiplySizeCPU, MultiplySizeRAM,\
-        MultiplySizeDisk, MultiplyBurnTime,\
-        AllocationIncrease, AllocationRecharge, TimeUnit,\
-        IgnoreStatusRule, CarryForwardTime, Rule, validate_interval
+    MultiplySizeCPU, MultiplySizeRAM,\
+    MultiplySizeDisk, MultiplyBurnTime,\
+    AllocationIncrease, TimeUnit,\
+    IgnoreStatusRule, CarryForwardTime, Rule, validate_interval
 
 from core.models import Instance as CoreInstance
 
-#For testing..
-
-#Input Placeholders
+# For testing..
 openstack = Provider(
-        name="iPlant Cloud - Tucson",
-        identifier="4")
+    name="iPlant Cloud - Tucson", identifier="4")
 openstack_workshop = Provider(
-        name="iPlant Cloud Workshop - Tucson",
-        identifier="5")
+    name="iPlant Cloud Workshop - Tucson", identifier="5")
 
 random_machine = Machine(
-        name="Not real machine",
-        identifier="12412515-1241-3fc8-bc13-10b03d616c54")
+    name="Not real machine",
+    identifier="12412515-1241-3fc8-bc13-10b03d616c54")
 random_machine_2 = Machine(
-        name="Not real machine",
-        identifier="39966e54-9282-4fc8-bc13-10b03d616c54")
+    name="Not real machine", identifier="39966e54-9282-4fc8-bc13-10b03d616c54")
 
 
-tiny_size = Size(name='Kids Fry', identifier='test.tiny', cpu=1, ram=1024*2, disk=0)
-small_size = Size(name='Small Fry', identifier='test.small', cpu=2, ram=1024*4, disk=60)
-medium_size = Size(name='Medium Fry', identifier='test.medium', cpu=4, ram=1024*16, disk=120)
-large_size = Size(name='Large Fry', identifier='test.large', cpu=8, ram=1024*32, disk=240)
+tiny_size = Size(
+    name='Kids Fry', identifier='test.tiny', cpu=1, ram=1024*2, disk=0)
+small_size = Size(
+    name='Small Fry', identifier='test.small', cpu=2, ram=1024*4, disk=60)
+medium_size = Size(
+    name='Medium Fry', identifier='test.medium', cpu=4, ram=1024*16, disk=120)
+large_size = Size(
+    name='Large Fry', identifier='test.large', cpu=8, ram=1024*32, disk=240)
 
 
 AVAILABLE_PROVIDERS = {
@@ -66,50 +64,52 @@ STATUS_CHOICES = frozenset(["active", "suspended"])
 carry_forward = CarryForwardTime()
 
 multiply_by_ram = MultiplySizeRAM(
-        name="Multiply TimeUsed by Ram (*1GB)", multiplier=(1/1024))
+    name="Multiply TimeUsed by Ram (*1GB)", multiplier=(1/1024))
 multiply_by_cpu = MultiplySizeCPU(
-        name="Multiply TimeUsed by CPU", multiplier=1)
+    name="Multiply TimeUsed by CPU", multiplier=1)
 multiply_by_disk = MultiplySizeDisk(
-        name="Multiply TimeUsed by Disk", multiplier=1)
+    name="Multiply TimeUsed by Disk", multiplier=1)
 
 half_usage_by_ram = MultiplySizeRAM(
-        name="Multiply TimeUsed by 50% of Ram (GB)",
-        multiplier=.5*(1/1024) )
-half_usage_by_cpu =  MultiplySizeCPU(
-        name="Multiply TimeUsed by 50% of CPU",
-        multiplier=.5)
+    name="Multiply TimeUsed by 50% of Ram (GB)", multiplier=.5*(1/1024))
+half_usage_by_cpu = MultiplySizeCPU(
+    name="Multiply TimeUsed by 50% of CPU", multiplier=.5)
 half_usage_by_disk = MultiplySizeDisk(
-        name="Multiply TimeUsed by 50% of Disk",
-        multiplier=.5)
+    name="Multiply TimeUsed by 50% of Disk", multiplier=.5)
 
-zero_burn_rate = MultiplyBurnTime(name="Stop all Total Time Used", multiplier=0.0)
-half_burn_rate = MultiplyBurnTime(name="Half-Off Total Time Used", multiplier=0.5)
-double_burn_rate = MultiplyBurnTime(name="Double Total Time Used", multiplier=2.0)
+zero_burn_rate = MultiplyBurnTime(
+    name="Stop all Total Time Used", multiplier=0.0)
+half_burn_rate = MultiplyBurnTime(
+    name="Half-Off Total Time Used", multiplier=0.5)
+double_burn_rate = MultiplyBurnTime(
+    name="Double Total Time Used", multiplier=2.0)
 
-ignore_inactive = IgnoreStatusRule("Ignore Inactive Instances", value=["build", "pending",
-    "hard_reboot", "reboot",
-     "migrating", "rescue",
-     "resize", "verify_resize",
-    "shutoff", "shutting-down",
-    "suspended", "terminated",
-    "deleted", "error", "unknown","N/A",
-    ])
+ignore_inactive = IgnoreStatusRule(
+    "Ignore Inactive Instances",
+    value=["build", "pending", "hard_reboot", "reboot", "migrating", "rescue",
+           "resize", "verify_resize", "shutoff", "shutting-down", "suspended",
+           "terminated", "deleted", "error", "unknown", "N/A", ])
+
 ignore_suspended = IgnoreStatusRule("Ignore Suspended Instances", "suspended")
 ignore_build = IgnoreStatusRule("Ignore 'Build' Instances", "build")
+
 
 class InstanceHelper(object):
     def __init__(self, provider="openstack", machine="machine1"):
         if provider not in AVAILABLE_PROVIDERS:
-            raise Exception("The test provider specified is not a valid provider")
+            raise Exception(
+                "The test provider specified is not a valid provider")
 
         if machine not in AVAILABLE_MACHINES:
-            raise Exception("The test machine specified is not a valid machine")
+            raise Exception(
+                "The test machine specified is not a valid machine")
 
         self.provider = AVAILABLE_PROVIDERS[provider]
         self.machine = AVAILABLE_MACHINES[machine]
         self.history = []
 
-    def add_history_entry(self, start, end, size="test.small", status="active"):
+    def add_history_entry(self, start, end, size="test.small",
+                          status="active"):
         """
         Add a new history entry to the instance
         """
@@ -133,7 +133,8 @@ class InstanceHelper(object):
         or `raises` an Exception if the instance has no history
         """
         if not self.history:
-            raise Exception("This instance requires at least one history entry.")
+            raise Exception(
+                "This instance requires at least one history entry.")
 
         return Instance(
             identifier=identifier,
@@ -249,7 +250,8 @@ def create_allocation(increase_date, start_window=None, end_window=None):
     """
 
     # Initialize an allocation helper
-    allocation_helper = AllocationHelper(start_window, end_window, increase_date)
+    allocation_helper = AllocationHelper(start_window, end_window,
+                                         increase_date)
 
     # Initialize an instance helper
     instance1_helper = InstanceHelper()
@@ -266,21 +268,24 @@ def create_allocation(increase_date, start_window=None, end_window=None):
     return allocation_helper.to_allocation()
 
 
-#Dynamic Tests
-def test_instances(instance_ids, window_start, window_stop, credits=[], rules=[]):
+# Dynamic Tests
+def test_instances(instance_ids, window_start, window_stop, credits=[],
+                   rules=[]):
     """
     """
     instance_list = []
     for instance_id in instance_ids:
         core_instance = CoreInstance.objects.get(provider_alias=instance_id)
         instance_list.append(Instance.from_core(core_instance))
-    return test_allocation(credits, rules, instance_list,
-            window_start, window_stop, interval_delta=None)
-#Helper Tests
+    return test_allocation(credits, rules, instance_list, window_start,
+                           window_stop, interval_delta=None)
+
+
+# Helper Tests
 def create_allocation_test(
         window_start, window_stop,
-        history_start, history_stop, 
-        credits, rules, 
+        history_start, history_stop,
+        credits, rules,
         swap_days=None, count=None, interval_date=None):
     """
     Create your own allocation test!
@@ -292,11 +297,12 @@ def create_allocation_test(
     Set your own TimePeriod interval!
     """
     instances = instance_swap_status_test(
-            history_start, history_stop, swap_days,
-            size=medium_size, count=count)
+        history_start, history_stop, swap_days,
+        size=medium_size, count=count)
     result = test_allocation(credits, rules, instances,
-            window_start, window_stop, interval_date)
+                             window_start, window_stop, interval_date)
     return result
+
 
 def test_allocation(credits, rules, instances,
                     window_start, window_stop, interval_delta=None):
@@ -310,20 +316,25 @@ def test_allocation(credits, rules, instances,
     allocation_result = calculate_allocation(allocation_input)
     return allocation_result
 
+
 def instance_swap_status_test(history_start, history_stop, swap_days,
                               provider=None, machine=None, size=None, count=1):
     """
     Instance swaps from active/suspended every swap_days,
     Starting 'active' on history_start
     """
-    history_list = _build_history_list(history_start, history_stop,
-            ["active","suspended"], tiny_size, timedelta(3))
+    history_list = _build_history_list(
+        history_start, history_stop,
+        ["active", "suspended"], tiny_size, timedelta(3))
+
     if not provider:
         provider = openstack
     if not machine:
         machine = random_machine
     instances = []
-    for idx in xrange(1,count+1):#IDX 1
+
+    # IDX 1
+    for idx in xrange(1, count + 1):
         instance = Instance(
             identifier="Test-Instance-%s" % idx,
             provider=provider, machine=machine,
@@ -331,21 +342,22 @@ def instance_swap_status_test(history_start, history_stop, swap_days,
         instances.append(instance)
     return instances
 
+
 def _build_history_list(history_start, history_stop, status_choices=[],
-        size=None,  swap_days=None):
+                        size=None,  swap_days=None):
     history_list = []
 
     #Good defaults:
     if not status_choices:
-        status_choices = ["active","suspended"]
+        status_choices = ["active", "suspended"]
     if not size:
         size = tiny_size
     if not swap_days:
-        #Will be 'active' status, full history on defaults.
+        # Will be 'active' status, full history on defaults.
         new_history = InstanceHistory(
-             status=status_choices[0], size=size,
-             start_date=history_start,
-             end_date=history_start+swap_days)
+            status=status_choices[0], size=size,
+            start_date=history_start,
+            end_date=history_start+swap_days)
         return new_history
 
     history_next = history_start + swap_days
@@ -355,9 +367,9 @@ def _build_history_list(history_start, history_stop, status_choices=[],
         status_choice = status_choices[next_idx]
         next_idx = (next_idx + 1) % status_len
         new_history = InstanceHistory(
-             status=status_choice, size=size,
-             start_date=history_start,
-             end_date=history_start+swap_days)
+            status=status_choice, size=size,
+            start_date=history_start,
+            end_date=history_start+swap_days)
         history_list.append(new_history)
         #Toggle/Update..
         history_start = history_next
@@ -429,7 +441,8 @@ class TestEngineHelpers(unittest.TestCase):
         Assert that the window start_date matches the allocation.start_date
         """
         # Create allocation with a specific start_date and no end_date
-        allocation = create_allocation(self.increase_date, start_window=self.start_window)
+        allocation = create_allocation(
+            self.increase_date, start_window=self.start_window)
         (start, end) = engine.get_allocation_window(allocation)
         self.assertEqual(start, self.start_window)
 
@@ -438,7 +451,8 @@ class TestEngineHelpers(unittest.TestCase):
         Assert that the window end_date matches the allocation.end_date
         """
         # Create allocation with no start_date and with a specific end date
-        allocation = create_allocation(self.increase_date, end_window=self.end_window)
+        allocation = create_allocation(
+            self.increase_date, end_window=self.end_window)
         (start, end) = engine.get_allocation_window(allocation)
         self.assertEqual(end, self.end_window)
 
@@ -451,7 +465,8 @@ class TestEngineHelpers(unittest.TestCase):
         end_date = datetime(1990, 1, 1, tzinfo=pytz.utc)
 
         # Override the default end date to a testable value
-        (start, end) = engine.get_allocation_window(allocation, default_end_date=end_date)
+        (start, end) = engine.get_allocation_window(
+            allocation, default_end_date=end_date)
 
         self.assertEquals(start, engine._get_zero_date_utc())
         self.assertEquals(end, end_date)
@@ -525,102 +540,106 @@ def run_test_1():
     * allocation_credit, total_runtime(), and total_difference() are IDENTICAL.
       (NO TIME LOSS)
     """
-    #Allocation Window
-    window_start = datetime(2014,7,1, tzinfo=pytz.utc)
-    window_stop = datetime(2014,12,1, tzinfo=pytz.utc)
+    # Allocation Window
+    window_start = datetime(2014, 7, 1, tzinfo=pytz.utc)
+    window_stop = datetime(2014, 12, 1, tzinfo=pytz.utc)
 
-    #Instances
+    # Instances
     count = 1
     swap_days = timedelta(3)
-    history_start = datetime(2014,7,4,hour=12, tzinfo=pytz.utc)
-    history_stop = datetime(2014,12,4,hour=12, tzinfo=pytz.utc)
+    history_start = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
+    history_stop = datetime(2014, 12, 4, hour=12, tzinfo=pytz.utc)
 
-    #Allocation Credits
+    # Allocation Credits
     achieve_greatness = AllocationIncrease(
-            name="Add 10,000 Hours ",
-            unit=TimeUnit.hour, amount=10000,
-            increase_date=window_start)
+        name="Add 10,000 Hours ",
+        unit=TimeUnit.hour, amount=10000,
+        increase_date=window_start)
     credits = [achieve_greatness]
 
     rules = [multiply_by_cpu, ignore_suspended, ignore_build, carry_forward]
 
     interval_days = None
     print "Running Cumulative Test"
-    result_1 = create_allocation_test(window_start, window_stop, history_start,
-            history_stop, credits, rules, swap_days, count, interval_days)
+    result_1 = create_allocation_test(
+        window_start, window_stop, history_start,
+        history_stop, credits, rules, swap_days, count, interval_days)
 
     print "Running timedelta Test"
     interval_days = timedelta(21)
-    result_2 = create_allocation_test(window_start, window_stop, history_start,
-            history_stop, credits, rules, swap_days, count, interval_days)
+    result_2 = create_allocation_test(
+        window_start, window_stop, history_start,
+        history_stop, credits, rules, swap_days, count, interval_days)
 
     print "Running relativedelta Test"
     interval_days = relativedelta(day=1, months=1)
-    result_3 = create_allocation_test(window_start, window_stop, history_start,
-            history_stop, credits, rules, swap_days, count, interval_days)
+    result_3 = create_allocation_test(
+        window_start, window_stop, history_start,
+        history_stop, credits, rules, swap_days, count, interval_days)
 
     test_1 = result_1.over_allocation()
     test_2 = result_2.over_allocation()
     test_3 = result_3.over_allocation()
     if test_1 != test_2 != test_3:
         raise Exception("Mismatch on Over-Allocation Result: "
-                "Cumulative:%s Timedelta:%s Relativedelta:%s"
-                % (test_1, test_2, test_3))
+                        "Cumulative:%s Timedelta:%s Relativedelta:%s"
+                        % (test_1, test_2, test_3))
 
     test_1 = result_1.total_runtime()
     test_2 = result_2.total_runtime()
     test_3 = result_3.total_runtime()
     if test_1 != test_2 != test_3:
         raise Exception("Mismatch on Total Runtime: "
-                "Cumulative:%s Timedelta:%s Relativedelta:%s"
-                % (test_1, test_2, test_3))
+                        "Cumulative:%s Timedelta:%s Relativedelta:%s"
+                        % (test_1, test_2, test_3))
 
     test_1 = result_1.total_credit()
     test_2 = result_2.total_credit()
     test_3 = result_3.total_credit()
     if test_1 != test_2 != test_3:
         raise Exception("Mismatch on Total Allocation Credit Received: "
-                "Cumulative:%s Timedelta:%s Relativedelta:%s"
-                % (test_1, test_2, test_3))
+                        "Cumulative:%s Timedelta:%s Relativedelta:%s"
+                        % (test_1, test_2, test_3))
 
     test_1 = result_1.total_difference()
     test_2 = result_2.total_difference()
     test_3 = result_3.total_difference()
     if test_1 != test_2 != test_3:
         raise Exception("Mismatch on Total Allocation: "
-                "Cumulative:%s Timedelta:%s Relativedelta:%s"
-                % (test_1, test_2, test_3))
+                        "Cumulative:%s Timedelta:%s Relativedelta:%s"
+                        % (test_1, test_2, test_3))
     return True
+
 
 def run_test2():
     """
     TODO: Setup some new constraints here..
     """
-    #Allocation Window
-    window_start = datetime(2014,7,1, tzinfo=pytz.utc)
-    window_stop = datetime(2014,12,1, tzinfo=pytz.utc)
+    # Allocation Window
+    window_start = datetime(2014, 7, 1, tzinfo=pytz.utc)
+    window_stop = datetime(2014, 12, 1, tzinfo=pytz.utc)
 
-    #Instances
+    # Instances
     swap_days = timedelta(3)
-    history_start = datetime(2014,7,4,hour=12, tzinfo=pytz.utc)
-    history_stop = datetime(2014,12,4,hour=12, tzinfo=pytz.utc)
+    history_start = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
+    history_stop = datetime(2014, 12, 4, hour=12, tzinfo=pytz.utc)
 
-    #Allocation Credits
+    # Allocation Credits
     achieve_greatness = AllocationIncrease(
-            name="Add 10,000 Hours ",
-            unit=TimeUnit.hour, amount=10000,
-            increase_date=window_start)
+        name="Add 10,000 Hours ",
+        unit=TimeUnit.hour, amount=10000,
+        increase_date=window_start)
 
     instances = instance_swap_status_test(
-            history_start, history_stop, swap_days,
-            size=medium_size, count=1)
+        history_start, history_stop, swap_days,
+        size=medium_size, count=1)
 
-    credits=[achieve_greatness]
+    credits = [achieve_greatness]
 
-    rules=[multiply_by_cpu, ignore_suspended, ignore_build]
+    rules = [multiply_by_cpu, ignore_suspended, ignore_build]
 
     result = test_allocation(credits, rules, instances,
-            window_start, window_stop, interval_days)
+                             window_start, window_stop, None)
     return result
 
 """
