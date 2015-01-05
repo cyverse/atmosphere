@@ -9,6 +9,7 @@ from django.utils import timezone
 from rtwo.provider import AWSProvider, EucaProvider, OSProvider
 from rtwo.provider import Provider as EshProvider
 from threepio import logger
+from uuid import uuid4
 
 class Trait(models.Model):
     """
@@ -82,7 +83,7 @@ class Provider(models.Model):
     Inactive providers are shown as "Offline" in the UI and API requests.
     Start date and end date are recorded for logging purposes
     """
-    uuid = models.CharField(max_length=36, unique=True)
+    uuid = models.CharField(max_length=36, unique=True, default=uuid4)
     location = models.CharField(max_length=256)
     description = models.TextField(blank=True)
     type = models.ForeignKey(ProviderType)
