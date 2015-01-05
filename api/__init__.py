@@ -27,6 +27,14 @@ def failure_response(status, message):
                     status=status)
 
 
+def malformed_response(provider_id, identity_id):
+    logger.warn('Server provided bad response. Provider-id:%s Identity-id:%s'
+                % (provider_id, identity_id))
+    return failure_response(
+        status.HTTP_500_INTERNAL_SERVER_ERROR,
+        "Cloud Communications Error --"
+        " Contact your Cloud Administrator OR try again later!")
+
 def invalid_creds(provider_id, identity_id):
     logger.warn('Authentication Failed. Provider-id:%s Identity-id:%s'
                 % (provider_id, identity_id))

@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from rtwo.exceptions import ConnectionFailure
-from libcloud.common.types import InvalidCredsError
+from libcloud.common.types import InvalidCredsError, MalformedResponseError
 
 from threepio import logger
 
@@ -38,7 +38,8 @@ from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
     VolumeAttachConflict, VolumeMountConflict
 
-from api import failure_response, invalid_creds, connection_failure
+from api import failure_response, invalid_creds,\
+                connection_failure, malformed_response
 from api.permissions import ApiAuthRequired
 from api.serializers import InstanceStatusHistorySerializer
 from api.serializers import InstanceSerializer, PaginatedInstanceSerializer
@@ -92,7 +93,12 @@ class InstanceList(APIView):
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         identity = Identity.objects.get(uuid=identity_uuid)
-        esh_instance_list = get_cached_instances(identity=identity)
+        try:
+            esh_instance_list = get_cached_instances(identity=identity)
+        except MalformedResponseError:
+            return malformed_response(provider_uuid, identity_uuid)
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
         core_instance_list = [convert_esh_instance(esh_driver,
                                                    inst,
                                                    provider_uuid,
