@@ -1,3 +1,19 @@
+"""
+Examples I think will break things:
+    1. start_date = 1/1, end_date = 1/31
+    2. Instances use 7 days of allocation from 1/1 to 1/8
+    3. User has his monthly allocation on 1/8 (14 days)
+    4. Instances use 7 days of allocation from 1/8 to 1/15
+Questions:
+    2. What "AllocationIncreases" are valid if the dates occur PRIOR to the
+    recharge_date?
+       * I think they should be ignored, and given a new AllocationIncrease
+       * with the remainder value (The amount of that increase used in the
+       * month PRIOR).
+    # Should step 2 be allowed in the engine, should invalid time periods flag
+    # in some way??
+"""
+
 from dateutil.relativedelta import relativedelta
 import pytz
 
@@ -688,19 +704,3 @@ def run_test2():
     result = test_allocation(credits, rules, instances,
                              window_start, window_stop, None)
     return result
-
-"""
-Examples I think will break things:
-    1. start_date = 1/1, end_date = 1/31
-    2. Instances use 7 days of allocation from 1/1 to 1/8
-    3. User has his monthly allocation on 1/8 (14 days)
-    4. Instances use 7 days of allocation from 1/8 to 1/15
-Questions:
-    2. What "AllocationIncreases" are valid if the dates occur PRIOR to the
-    recharge_date?
-       * I think they should be ignored, and given a new AllocationIncrease
-       * with the remainder value (The amount of that increase used in the
-       * month PRIOR).
-    # Should step 2 be allowed in the engine, should invalid time periods flag
-    # in some way??
-"""
