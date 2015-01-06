@@ -57,24 +57,36 @@ class InstanceResult(object):
         return "<InstanceResult: %s Total Runtime:%s>"\
             % (self.identifier, self.total_runtime())
 
-class TimePeriodResult():
-    #Datekeeping
-    start_counting_date = None
-    stop_counting_date = None
-    #Required
-    total_credit = None
-    instance_results = []
-    #Hidden
-    _allocation_credit = None
+
+class TimePeriodResult(object):
+    def __init__(self, start_date=None, end_date=None,
+                 allocation_credit=timedelta(0), instance_results=None):
+        validate_interval(start_date, end_date)
+        self._allocation_credit = allocation_credit
+        # Required
+        self.total_credit = allocation_credit
+
+        if not instance_results:
+            self.instance_results = []
+        else:
+            self.instance_results = instance_results
+
+        # Datekeeping
+        self.start_counting_date = start_date
+        self.stop_counting_date = end_date
 
     def time_to_zero(self):
         """
         Knowing the 'burn_rate', the total credit, and the stop_counting_date,
         give the 'time until zero' if current conditions continue..
-        ASSUMPTION #1: We do not take into account the 'next' monthly recharge, etc.
+        ASSUMPTION #1: We do not take into account the 'next' monthly recharge,
+        etc.
+
         * This avoids having an "Inifinite" or "N/A" ttz due to recharge
         """
-        current_difference = self.allocation_difference() # As of 'end_date'
+        # As of 'end_date'
+        current_difference = self.allocation_difference()
+
         if current_difference < timedelta(0):
             # TTZ == end_date (Its already over)
             return self.stop_counting_date
@@ -84,18 +96,21 @@ class TimePeriodResult():
         if current_rate == timedelta(0):
             return datetime.max.replace(tzinfo=utc)
         # To move from rate to date
-        #divide (seconds remaining) over (seconds per second)
-        #To get remaining seconds in the future
-        ttz_in_secs = current_difference.total_seconds() / current_rate.total_seconds()
+        # divide (seconds remaining) over (seconds per second)
+        # To get remaining seconds in the future
+        difference = current_difference.total_seconds()
+        rate = current_rate.total_seconds()
+        ttz_in_secs = difference / rate
+
         ttz_delta = timedelta(seconds=ttz_in_secs)
-        #NOTE: If we use datetime.max for our allocation credit
+        # NOTE: If we use datetime.max for our allocation credit
         #      then our adding of values causes an OverflowError.
         #      In this case, return timedelta.max to represent 'infinite'
         try:
             ttz_datetime = self.stop_counting_date + ttz_delta
         except OverflowError:
             return datetime.max.replace(tzinfo=utc)
-        #Add delta to stop-time to get future ttz.
+        # Add delta to stop-time to get future ttz.
         return ttz_datetime
 
     def get_burn_rate(self):
@@ -138,31 +153,22 @@ class TimePeriodResult():
                 total_runtime += status_result.total_time
         return total_runtime
 
-    def __init__(self, start_date=None, end_date=None,
-            allocation_credit=timedelta(0),
-            instance_results=[]):
-        validate_interval(start_date, end_date)
-        self._allocation_credit = allocation_credit
-        self.total_credit = allocation_credit
-        self.instance_results = instance_results
-        self.start_counting_date = start_date
-        self.stop_counting_date = end_date
-
     def __repr__(self):
         return self.__unicode__()
+
     def _carry_str(self):
         if self.total_credit != self._allocation_credit:
             return " (From Rule: %s, From Carry Over: %s)"\
-                    % (self._allocation_credit,
-                       self.total_credit-self._allocation_credit)
+                % (self._allocation_credit,
+                   self.total_credit-self._allocation_credit)
         return ""
 
     def __unicode__(self):
         return "<TimePeriodResult: Starting From: %s To: %s"\
-                "Allocation Credit:%s%s Instance Results:%s>"\
-                % (self.start_counting_date, self.stop_counting_date,
-                   self.total_credit, self._carry_str(), self.instance_results
-                   )
+               "Allocation Credit:%s%s Instance Results:%s>"\
+            % (self.start_counting_date, self.stop_counting_date,
+               self.total_credit, self._carry_str(), self.instance_results)
+
 
 class AllocationResult():
     """
