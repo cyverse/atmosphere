@@ -5,35 +5,31 @@ through the engine.
 from django.utils.timezone import timedelta, datetime, now, utc
 from allocation.models.core import AllocationIncrease, AllocationRecharge
 
-class InstanceStatusResult():
-    status_name = None
-    #Burn rate == Time used (After rules applied) per second
-    burn_rate = None
-    #Clock time == 'Total'Time used (Without rules applied)
-    clock_time = None
-    #Total time == 'Total'Time used (After rules applied)
-    total_time = None
 
-
+class InstanceStatusResult(object):
     def __init__(self, status_name,
-            clock_time=None, total_time=None, burn_rate=None):
-        if not clock_time:
-            clock_time = timedelta(0)
-        if not total_time:
-            total_time = timedelta(0)
-        if not burn_rate:
-            burn_rate = timedelta(0)
+                 clock_time=timedelta(0),
+                 total_time=timedelta(0),
+                 burn_rate=timedelta(0)):
+
         self.status_name = status_name
+
+        # Clock time == 'Total'Time used (Without rules applied)
         self.clock_time = clock_time
+
+        # Total time == 'Total'Time used (After rules applied)
         self.total_time = total_time
+
+        # Burn rate == Time used (After rules applied) per second
         self.burn_rate = burn_rate
 
     def __repr__(self):
         return self.__unicode__()
+
     def __unicode__(self):
         return "<Status:%s Clock Time:%s Total Time:%s Burn Rate:%s/0:00:01>"\
-                % (self.status_name, self.clock_time,
-                   self.total_time, self.burn_rate)
+            % (self.status_name, self.clock_time,
+               self.total_time, self.burn_rate)
 
 
 class InstanceResult(object):
