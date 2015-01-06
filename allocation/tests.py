@@ -498,6 +498,10 @@ class TestAllocationEngine(AllocationTestCase):
             relativedelta(days=1)
         ]
 
+        start_time = self.allocation_helper.start_window
+        end_date  = start_time + relativedelta(days=+35)
+        self.allocation_helper.set_window(start_time, end_date)
+
         # Create 10 instances of uniform size
         for idx in range(0, 10):
             start_time = current_time
