@@ -520,3 +520,20 @@ class TestAllocationEngine(AllocationTestCase):
             self.assertTotalRuntimeEquals(allocation, timedelta(days=30))
 
 
+    @unittest.skip("Incomplete test")
+    def test_realistic_resize(self):
+        """
+        Combination of 1 and 2 for a "Realistic Resize" testing
+        With a 'Start size' and an 'end size'
+        for interval 1day to 30day:
+        new AllocationResult with interval=interval
+        for instance 1 to n:
+        add instance to allocation result
+        instance history starts in 'build' == 0
+        instance history is in 'active' for 3 days (configurable, or some other value)
+        result shows 3 more days added to time
+        instance history shows 'resize' == 0
+        instance history shows 'active' with new size (Difference is ratio between start and end size)
+        instance runs at that active size for 3 more days
+        result shows 3 more days (x RATIO) added to time
+        """
