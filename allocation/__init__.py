@@ -9,7 +9,7 @@ def validate_interval(start_date, end_date, raise_exception=True):
     If raise_exception=True then validate_interval will `raise`
     an exception if the interval is invalid.
 
-    Otherwise, validate_interval will return Flase
+    Otherwise, validate_interval will return False
     """
     if start_date and not start_date.tzinfo:
         if raise_exception:
