@@ -35,9 +35,8 @@ class InstanceStatusResult():
                 % (self.status_name, self.clock_time,
                    self.total_time, self.burn_rate)
 
-class InstanceResult():
-    identifier = None
-    status_list = []
+
+class InstanceResult(object):
     def __init__(self, identifier, status_list):
         self.identifier = identifier
         self.status_list = status_list
@@ -56,9 +55,10 @@ class InstanceResult():
 
     def __repr__(self):
         return self.__unicode__()
+
     def __unicode__(self):
         return "<InstanceResult: %s Total Runtime:%s>"\
-                % (self.identifier,self.total_runtime())
+            % (self.identifier, self.total_runtime())
 
 class TimePeriodResult():
     #Datekeeping
