@@ -279,7 +279,7 @@ class AllocationResult():
     @classmethod
     def _sort_credit_type(cls, credit):
         """
-        A comparision method which compares wehther the credit is a recharge
+        A comparision method which compares whether the credit is a recharge
         or not
         """
         if credit.__class__ == AllocationRecharge:
