@@ -301,8 +301,10 @@ class AllocationResult():
                 "PRIOR to the start of accounting [%s]" %
                 (allocation_credit, self.window_start))
             elif allocation_credit.increase_date > self.window_end:
-                raise ValueError("Bad Allocation Credit:%s requests an increase"
-                "AFTER the end of accounting" % (allocation_credit, self.window_end))
+                raise ValueError(
+                    "Bad Allocation Credit:%s requests an increase"
+                    "AFTER the end of accounting [%s]"
+                    % (allocation_credit, self.window_end))
 
             #When NOT to create a new time period:
             if allocation_credit.__class__ == AllocationIncrease:
