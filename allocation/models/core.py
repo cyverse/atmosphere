@@ -13,22 +13,7 @@ import warlock
 from django.db.models import Q
 from django.utils.timezone import timedelta, datetime
 
-
-# Helpers
-def validate_interval(start_date, end_date, raise_exception=True):
-    if start_date and not start_date.tzinfo:
-        if raise_exception:
-            raise Exception("Invalid Start Date: %s Reason: Missing Timezone.")
-        else:
-            return False
-
-    if end_date and not end_date.tzinfo:
-        if raise_exception:
-            raise Exception("Invalid End Date: %s Reason: Missing Timezone.")
-        else:
-            return False
-
-    return True
+from allocation import validate_interval
 
 
 class TimeUnit:
