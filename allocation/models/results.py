@@ -2,8 +2,9 @@
 Models for the Results (Output) after running allocation
 through the engine.
 """
-from allocation import validate_interval
 from django.utils.timezone import timedelta, datetime, now, utc
+
+from allocation import validate_interval
 from allocation.models.core import AllocationIncrease, AllocationRecharge
 
 
@@ -178,7 +179,7 @@ class AllocationResult():
     window_start = None
     window_end = None
     time_periods = []
-    #POLICY decisions that affect the engine
+    # POLICY decisions that affect the engine
     carry_forward = False
 
     def __init__(self, allocation, window_start, window_end, time_periods=[],
@@ -195,26 +196,27 @@ class AllocationResult():
         if time_periods:
             self.time_periods = time_periods
         elif force_interval_every:
-            self.time_periods = self._time_periods_by_interval(force_interval_every)
+            self.time_periods = self._time_periods_by_interval(
+                force_interval_every)
         else:
             self.time_periods = self._time_periods_by_allocation()
 
     def total_runtime(self):
         runtime = timedelta(0)
         for period in self.time_periods:
-            runtime += period.total_instance_runtime() 
+            runtime += period.total_instance_runtime()
         return runtime
 
     def first_period(self):
         if len(self.time_periods) == 0:
             raise Exception("Cannot retrieve first period"
-            " -- No time periods exist")
+                            " -- No time periods exist")
         return self.time_periods[-1]
 
     def last_period(self):
         if len(self.time_periods) == 0:
             raise Exception("Cannot retrieve last period"
-            " -- No time periods exist")
+                            " -- No time periods exist")
         return self.time_periods[-1]
 
     def total_credit(self):
@@ -234,7 +236,7 @@ class AllocationResult():
             return self.last_period().allocation_difference()
         difference = timedelta(0)
         for period in self.time_periods:
-            difference += period.allocation_difference() 
+            difference += period.allocation_difference()
         return difference
 
     def over_allocation(self):
@@ -248,10 +250,10 @@ class AllocationResult():
         time_period = TimePeriodResult(self.window_start, None)
         current_date = self.window_start + tdelta
         while current_date < self.window_end:
-            #Finish this interval
+            # Finish this interval
             time_period.stop_counting_date = current_date
             time_periods.append(time_period)
-            #Start next interval
+            # Start next interval
             time_period = TimePeriodResult(current_date, None)
             current_date += tdelta
         time_period.stop_counting_date = self.window_end
@@ -264,21 +266,26 @@ class AllocationResult():
         When we create a list by interval, we still need to go through and
         check where AllocationRecharge//AllocationIncrease credits will go.
         """
-        #NOTE: This is sorted! We can guarantee order!
+        # NOTE: This is sorted! We can guarantee order!
         for current_period in time_periods:
             for allocation_credit in sorted(self.allocation.credits,
-                key=lambda credit: credit.increase_date):
+                                            key=lambda c: c.increase_date):
                 inc_date = allocation_credit.increase_date
-                #Ignore credits that happened PRIOR to or AT/AFTER
+                # Ignore credits that happened PRIOR to or AT/AFTER
                 # your counting dates.
                 if inc_date < current_period.start_counting_date or\
                    inc_date >= current_period.stop_counting_date:
                     continue
-                #Increase the credit and move along
+                # Increase the credit and move along
                 current_period.increase_credit(allocation_credit.get_credit())
         return time_periods
+
     @classmethod
     def _sort_credit_type(cls, credit):
+        """
+        A comparision method which compares wehther the credit is a recharge
+        or not
+        """
         if credit.__class__ == AllocationRecharge:
             return 0
         else:
@@ -291,43 +298,45 @@ class AllocationResult():
         time_periods = []
         current_period = TimePeriodResult(self.window_start, None)
 
-        #NOTE: This is sorted! We can guarantee order!
-        for allocation_credit in sorted(self.allocation.credits,
-                key=lambda credit: (credit.increase_date,
-                                    AllocationResult._sort_credit_type(credit))):
-            #Sanity Checks..
+        key_fn = lambda credit: (credit.increase_date,
+                                 AllocationResult._sort_credit_type(credit))
+
+        # NOTE: This is sorted! We can guarantee order!
+        for allocation_credit in sorted(self.allocation.credits, key=key_fn):
+            # Sanity Checks..
             if allocation_credit.increase_date < self.window_start:
-                raise ValueError("Bad Allocation Credit:%s requests an increase"
-                "PRIOR to the start of accounting [%s]" %
-                (allocation_credit, self.window_start))
+                raise ValueError(
+                    "Bad Allocation Credit:%s requests an increase"
+                    "PRIOR to the start of accounting [%s]"
+                    % (allocation_credit, self.window_start))
             elif allocation_credit.increase_date > self.window_end:
                 raise ValueError(
                     "Bad Allocation Credit:%s requests an increase"
                     "AFTER the end of accounting [%s]"
                     % (allocation_credit, self.window_end))
 
-            #When NOT to create a new time period:
+            # When NOT to create a new time period:
             if allocation_credit.__class__ == AllocationIncrease:
-                #AllocationIncrease at any stage, add it to the current period
+                # AllocationIncrease at any stage, add it to the current period
                 current_period.increase_credit(allocation_credit.get_credit())
                 continue
             elif allocation_credit.__class__ != AllocationRecharge:
                 raise ValueError("Invalid Object:%s passed in credits"
                                  % allocation_credit)
-            #NOTE: ASSERT: Past this line we deal with AllocationRecharge
+            # NOTE: ASSERT: Past this line we deal with AllocationRecharge
 
             if allocation_credit.recharge_date == self.window_start:
-                #the increase date conveniently matches the time that we are accounting.
-                # Increase time only and move along.
+                # the increase date conveniently matches the time that we are
+                # accounting. Increase time only and move along.
                 current_period.increase_credit(allocation_credit.get_credit())
                 continue
-            #End & start the 'current_period'
+            # End & start the 'current_period'
             current_period.stop_counting_date = allocation_credit.recharge_date
             time_periods.append(current_period)
             current_period = TimePeriodResult(
-                    allocation_credit.recharge_date, None,
-                    allocation_credit.get_credit())
-        #End the 'final' current_period and return
+                allocation_credit.recharge_date, None,
+                allocation_credit.get_credit())
+        # End the 'final' current_period and return
         current_period.stop_counting_date = self.window_end
         time_periods.append(current_period)
         return time_periods
@@ -337,6 +346,4 @@ class AllocationResult():
 
     def __unicode__(self):
         return "<AllocationResult: Time Periods: %s "\
-                % (self.time_periods)
-    pass
-
+            % (self.time_periods)
