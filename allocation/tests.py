@@ -161,9 +161,10 @@ class InstanceHelper(object):
 
 class AllocationHelper(object):
     def __init__(self, start_window, end_window, increase_date,
-                 credit_hours=1000):
+                 credit_hours=1000, interval_delta=None):
         self.start_window = start_window
         self.end_window = end_window
+        self.interval_delta = interval_delta
         self.instances = []
 
         # Add default credits
@@ -182,6 +183,9 @@ class AllocationHelper(object):
             ignore_build,
             carry_forward
         ]
+
+    def set_interval(self, interval_delta):
+        self.interval_delta = interval_delta
 
     def set_window(self, start_window, end_window):
         self.start_window = start_window
@@ -216,7 +220,7 @@ class AllocationHelper(object):
             instances=self.instances,
             start_date=self.start_window,
             end_date=self.end_window,
-            interval_delta=None)
+            interval_delta=self.interval_delta)
 
 
 class AllocationTestCase(unittest.TestCase):
