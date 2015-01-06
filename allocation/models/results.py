@@ -40,16 +40,12 @@ class InstanceResult(object):
         self.status_list = status_list
 
     def get_burn_rate(self):
-        burnrate = timedelta(0)
-        for status in self.status_list:
-            burnrate += status.burn_rate
-        return burnrate
+        burn_rates = (status.burn_rate for status in self.status_list)
+        return sum(burn_rates, timedelta(0))
 
     def total_runtime(self):
-        runtime = timedelta(0)
-        for status in self.status_list:
-            runtime += status.total_time
-        return runtime
+        total_times = (status.total_time for status in self.status_list)
+        return sum(total_times, timedelta(0))
 
     def __repr__(self):
         return self.__unicode__()
