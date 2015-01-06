@@ -595,6 +595,41 @@ class TestAllocationEngine(AllocationTestCase):
         allocation = self.allocation_helper.to_allocation()
         self.assertTotalRuntimeEquals(allocation, timedelta(days=45))
 
+    def test_allocation_intervals_match(self):
+        """
+        Test that allocation result intervals match
+        """
+        current_time = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
+        intervals = [
+            None,
+            relativedelta(minutes=1),
+            relativedelta(minutes=30),
+            relativedelta(days=1)
+        ]
+
+        # Create 10 instances of uniform size
+        for idx in range(0, 10):
+            start_time = current_time
+            current_time = end_time = current_time + timedelta(days=3)
+
+            helper = InstanceHelper()
+
+            # Add 3 days of active
+            helper.add_history_entry(start_time, end_time)
+
+            # Add 3 days of suspended following active time
+            helper.add_history_entry(end_time, end_time + timedelta(days=3),
+                                     status="suspended")
+
+            self.allocation_helper.add_instance(
+                helper.to_instance("Instance %s" % idx))
+
+        for delta in intervals:
+            self.allocation_helper.set_interval(delta)
+            allocation = self.allocation_helper.to_allocation()
+            self.assertTotalRuntimeEquals(allocation, timedelta(days=30))
+
+
 # Static tests
 def run_test_1():
     """
