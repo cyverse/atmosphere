@@ -93,7 +93,11 @@ def get_burn_time(user, identity_id, delta, threshold, now_time=None):
     burn_time = timedelta(0)
 
     #If we have no instances, burn-time does not apply
-    instances = get_core_instances(identity_id)
+    try:
+        instances = get_core_instances(identity_id)
+    except Exception:
+        instances = []
+
     if not instances:
         return burn_time
 
