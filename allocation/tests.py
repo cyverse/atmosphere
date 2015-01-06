@@ -21,14 +21,14 @@ from django.test import TestCase
 from django.utils import unittest
 from django.utils.timezone import datetime, timedelta
 
-from allocation import engine
+from allocation import engine, validate_interval
 from allocation.models import Provider, Machine, Size, Instance, \
     InstanceHistory
 from allocation.models import Allocation,\
     MultiplySizeCPU, MultiplySizeRAM,\
     MultiplySizeDisk, MultiplyBurnTime,\
     AllocationIncrease, TimeUnit,\
-    IgnoreStatusRule, CarryForwardTime, Rule, validate_interval
+    IgnoreStatusRule, CarryForwardTime, Rule
 
 from core.models import Instance as CoreInstance
 

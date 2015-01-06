@@ -2,6 +2,7 @@
 Models for the Results (Output) after running allocation
 through the engine.
 """
+from allocation import validate_interval
 from django.utils.timezone import timedelta, datetime, now, utc
 from allocation.models.core import AllocationIncrease, AllocationRecharge
 
@@ -137,16 +138,10 @@ class TimePeriodResult():
                 total_runtime += status_result.total_time
         return total_runtime
 
-    def _validate_input(self, start_date, end_date):
-        if start_date and not start_date.tzinfo:
-            raise Exception("Invalid Start Date: %s Reason: Missing Timezone.")
-        if end_date and not end_date.tzinfo:
-            raise Exception("Invalid End Date: %s Reason: Missing Timezone.")
-
     def __init__(self, start_date=None, end_date=None,
             allocation_credit=timedelta(0),
             instance_results=[]):
-        self._validate_input(start_date, end_date)
+        validate_interval(start_date, end_date)
         self._allocation_credit = allocation_credit
         self.total_credit = allocation_credit
         self.instance_results = instance_results
@@ -221,7 +216,6 @@ class AllocationResult():
         for period in self.time_periods:
             runtime += period._allocation_credit
         return runtime
-
 
     def get_burn_rate(self):
         return self.last_period().get_burn_rate()
