@@ -14,6 +14,7 @@ from core.models.identity import Identity
 from core.models.instance import Instance, InstanceStatusHistory
 from core.models.machine import ProviderMachine, ProviderMachineMembership
 from core.models.machine_request import MachineRequest
+from core.models.machine_export import MachineExport
 from core.models.maintenance import MaintenanceRecord
 from core.models.node import NodeController
 from core.models.profile import UserProfile
@@ -226,6 +227,14 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
         return obj.identity.created_by.username
     _identity_user.short_description = 'Username'
 
+class MachineExportAdmin(admin.ModelAdmin):
+    list_display = ["export_name", "export_owner_username",
+    "instance_provider", "start_date", "end_date", "status",
+    "export_file"]
+    def export_owner_username(self, machine_export):
+        return machine_export.export_owner.username
+    def instance_provider(self, machine_export):
+        return machine_export.instance.provider_machine.provider
 
 class MachineRequestAdmin(admin.ModelAdmin):
     search_fields = ["new_machine_owner__username", "new_machine_name", "instance__provider_alias"]
@@ -289,6 +298,7 @@ admin.site.register(IdentityMembership, IdentityMembershipAdmin)
 admin.site.register(Instance, InstanceAdmin)
 admin.site.register(InstanceStatusHistory, InstanceStatusHistoryAdmin)
 admin.site.register(MachineRequest, MachineRequestAdmin)
+admin.site.register(MachineExport, MachineExportAdmin)
 admin.site.register(MaintenanceRecord, MaintenanceAdmin)
 admin.site.register(NodeController, NodeControllerAdmin)
 admin.site.register(Provider, ProviderAdmin)

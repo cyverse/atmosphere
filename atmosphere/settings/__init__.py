@@ -384,6 +384,8 @@ SERVICE_URL = SERVER_URL + '/CAS_serviceValidater?sendback='\
 PROXY_URL = SERVER_URL + '/CAS_proxyUrl'
 PROXY_CALLBACK_URL = SERVER_URL + '/CAS_proxyCallback'
 
+#Chromogenic
+LOCAL_STORAGE="/storage"
 
 #pyes secrets
 ELASTICSEARCH_HOST = SERVER_URL
