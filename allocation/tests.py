@@ -248,6 +248,34 @@ def create_allocation(increase_date, start_window=None, end_window=None):
     return allocation_helper.to_allocation()
 
 
+def create_interval_range(
+        start=1, stop=31, step=5,
+        include_minutes=True, include_hours=True, include_days=True):
+    """
+    Creates a range of intervals
+    """
+    intervals = [None]
+    minute_intervals = []
+    hour_intervals = []
+    day_intervals = []
+
+    for i in xrange(start, stop, step):
+        minute_intervals.append(relativedelta(minutes=i))
+        hour_intervals.append(relativedelta(hours=i))
+        day_intervals.append(relativedelta(days=i))
+
+    if include_minutes:
+        intervals.extend(minute_intervals)
+
+    if include_hours:
+        intervals.extend(hour_intervals)
+
+    if include_days:
+        intervals.extend(day_intervals)
+
+    return intervals
+
+
 class AllocationTestCase(unittest.TestCase):
     def _calculate_allocation(self, allocation):
         """
@@ -490,19 +518,10 @@ class TestAllocationEngine(AllocationTestCase):
         Test that allocation result intervals match
         """
         current_time = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
-        minute_intervals = []
-        hour_intervals = []
-        day_intervals = []
-        for i in xrange(1,31,5):
-            minute_intervals.append(relativedelta(minutes=i))
-            hour_intervals.append(relativedelta(hours=i))
-            day_intervals.append(relativedelta(days=i))
-        intervals = [None]
-        intervals.extend(minute_intervals)
-        intervals.extend(hour_intervals)
-        intervals.extend(day_intervals)
+        intervals = create_interval_range(start=1, stop=31, step=5)
+
         start_time = self.allocation_helper.start_window
-        end_date  = start_time + relativedelta(days=+35)
+        end_date = start_time + relativedelta(days=+35)
         self.allocation_helper.set_window(start_time, end_date)
 
         # Create 10 instances of uniform size
@@ -545,3 +564,4 @@ class TestAllocationEngine(AllocationTestCase):
         instance runs at that active size for 3 more days
         result shows 3 more days (x RATIO) added to time
         """
+        intervals = create_interval_range()
