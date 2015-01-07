@@ -75,7 +75,7 @@ AVAILABLE_SIZES = {
     "test.large": large_size
 }
 
-STATUS_CHOICES = frozenset(["active", "suspended"])
+STATUS_CHOICES = frozenset(["active", "suspended", "build", "resize"])
 
 # Rules
 carry_forward = CarryForwardTime()
@@ -224,6 +224,59 @@ class AllocationHelper(object):
             interval_delta=self.interval_delta)
 
 
+def create_allocation(increase_date, start_window=None, end_window=None):
+    """
+    Returns an allocation
+    Shortcut convience method to quickly create an allocation for testing.
+    """
+
+    # Initialize an allocation helper
+    allocation_helper = AllocationHelper(start_window, end_window,
+                                         increase_date)
+
+    # Initialize an instance helper
+    instance1_helper = InstanceHelper()
+
+    # Set instance history
+    history_start = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
+    history_stop = datetime(2014, 12, 4, hour=12, tzinfo=pytz.utc)
+    instance1_helper.add_history_entry(history_start, history_stop)
+
+    instance1 = instance1_helper.to_instance("Test instance 1")
+
+    allocation_helper.add_instance(instance1)
+
+    return allocation_helper.to_allocation()
+
+
+def create_interval_range(
+        start=1, stop=31, step=5,
+        include_minutes=True, include_hours=True, include_days=True):
+    """
+    Creates a range of intervals
+    """
+    intervals = [None]
+    minute_intervals = []
+    hour_intervals = []
+    day_intervals = []
+
+    for i in xrange(start, stop, step):
+        minute_intervals.append(relativedelta(minutes=i))
+        hour_intervals.append(relativedelta(hours=i))
+        day_intervals.append(relativedelta(days=i))
+
+    if include_minutes:
+        intervals.extend(minute_intervals)
+
+    if include_hours:
+        intervals.extend(hour_intervals)
+
+    if include_days:
+        intervals.extend(day_intervals)
+
+    return intervals
+
+
 class AllocationTestCase(unittest.TestCase):
 
     def _calculate_allocation(self, allocation):
@@ -261,33 +314,8 @@ class AllocationTestCase(unittest.TestCase):
         Assert that the difference and the allocation matches
         """
         allocation_result = self._calculate_allocation(allocation)
-        self.assertEquals(allocation_result, difference)
+        self.assertEquals(allocation_result.total_difference(), difference)
         return self
-
-
-def create_allocation(increase_date, start_window=None, end_window=None):
-    """
-    Returns an allocation
-    Shortcut convience method to quickly create an allocation for testing.
-    """
-
-    # Initialize an allocation helper
-    allocation_helper = AllocationHelper(start_window, end_window,
-                                         increase_date)
-
-    # Initialize an instance helper
-    instance1_helper = InstanceHelper()
-
-    # Set instance history
-    history_start = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
-    history_stop = datetime(2014, 12, 4, hour=12, tzinfo=pytz.utc)
-    instance1_helper.add_history_entry(history_start, history_stop)
-
-    instance1 = instance1_helper.to_instance("Test instance 1")
-
-    allocation_helper.add_instance(instance1)
-
-    return allocation_helper.to_allocation()
 
 
 class TestValidateInterval(TestCase):
@@ -493,19 +521,10 @@ class TestAllocationEngine(AllocationTestCase):
         Test that allocation result intervals match
         """
         current_time = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
-        minute_intervals = []
-        hour_intervals = []
-        day_intervals = []
-        for i in xrange(1,31,5):
-            minute_intervals.append(relativedelta(minutes=i))
-            hour_intervals.append(relativedelta(hours=i))
-            day_intervals.append(relativedelta(days=i))
-        intervals = [None]
-        intervals.extend(minute_intervals)
-        intervals.extend(hour_intervals)
-        intervals.extend(day_intervals)
+        intervals = create_interval_range(start=1, stop=31, step=5)
+
         start_time = self.allocation_helper.start_window
-        end_date  = start_time + relativedelta(days=+35)
+        end_date = start_time + relativedelta(days=+35)
         self.allocation_helper.set_window(start_time, end_date)
 
         # Create 10 instances of uniform size
@@ -530,8 +549,6 @@ class TestAllocationEngine(AllocationTestCase):
             allocation = self.allocation_helper.to_allocation()
             self.assertTotalRuntimeEquals(allocation, timedelta(days=30))
 
-
-    @unittest.skip("Incomplete test")
     def test_realistic_resize(self):
         """
         Combination of 1 and 2 for a "Realistic Resize" testing
@@ -548,6 +565,41 @@ class TestAllocationEngine(AllocationTestCase):
         instance runs at that active size for 3 more days
         result shows 3 more days (x RATIO) added to time
         """
+        current_time = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
+        intervals = create_interval_range()
+
+        # Create 10 instances that are resized
+        for idx in range(0, 10):
+            start_time = current_time
+            current_time = end_time = current_time + timedelta(days=3)
+
+            helper = InstanceHelper()
+
+            # Add 1 day of build
+            end = start_time + timedelta(days=1)
+            helper.add_history_entry(start_time, end, status="build")
+
+            # Add 3 days of active at tiny size
+            start, end = end, end + timedelta(days=3)
+            helper.add_history_entry(start, end, size="test.tiny")
+
+            # Add 1 day of resize
+            start, end = end, end + timedelta(days=1)
+            helper.add_history_entry(start, end,
+                                     status="resize", size="test.small")
+
+            # Add 3 days of active at small size
+            start, end = end, end + timedelta(days=3)
+            helper.add_history_entry(start_time, end_time, size="test.small")
+
+            self.allocation_helper.add_instance(
+                helper.to_instance("Instance %s" % idx))
+
+        for delta in intervals:
+            self.allocation_helper.set_interval(delta)
+            allocation = self.allocation_helper.to_allocation()
+            self.assertTotalRuntimeEquals(allocation, timedelta(days=110))
+
 #From the REPL
 def repl_profile_test_1():
     """
@@ -613,3 +665,4 @@ def repl_profile_test_1():
 def repl_calculate_allocation(allocation):
     result = engine.calculate_allocation(allocation)
     return allocation, result
+=======
