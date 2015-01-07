@@ -654,4 +654,3 @@ def repl_profile_test_1():
 def repl_calculate_allocation(allocation):
     result = engine.calculate_allocation(allocation)
     return allocation, result
-=======
