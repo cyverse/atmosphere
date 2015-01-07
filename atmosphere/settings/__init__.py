@@ -81,6 +81,7 @@ INSTALLED_APPS = (
     'rtwo',
 
     #atmosphere apps
+    'api',
     'authentication',
     'service',
     'web',
