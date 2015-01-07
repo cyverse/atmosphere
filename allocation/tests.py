@@ -312,7 +312,7 @@ class AllocationTestCase(unittest.TestCase):
         Assert that the difference and the allocation matches
         """
         allocation_result = self._calculate_allocation(allocation)
-        self.assertEquals(allocation_result, difference)
+        self.assertEquals(allocation_result.total_difference(), difference)
         return self
 
 
