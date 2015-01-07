@@ -490,13 +490,17 @@ class TestAllocationEngine(AllocationTestCase):
         Test that allocation result intervals match
         """
         current_time = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
-        intervals = [
-            None,
-            relativedelta(minutes=1),
-            relativedelta(minutes=30),
-            relativedelta(days=1)
-        ]
-
+        minute_intervals = []
+        hour_intervals = []
+        day_intervals = []
+        for i in xrange(1,31,5):
+            minute_intervals.append(relativedelta(minutes=i))
+            hour_intervals.append(relativedelta(hours=i))
+            day_intervals.append(relativedelta(days=i))
+        intervals = [None]
+        intervals.extend(minute_intervals)
+        intervals.extend(hour_intervals)
+        intervals.extend(day_intervals)
         start_time = self.allocation_helper.start_window
         end_date  = start_time + relativedelta(days=+35)
         self.allocation_helper.set_window(start_time, end_date)

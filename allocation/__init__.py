@@ -5,6 +5,7 @@
 def validate_interval(start_date, end_date, raise_exception=True):
     """
     Returns whether the interval is valid.
+    #NOTE: Should this also test if start_date <= end_date? -SG
 
     If raise_exception=True then validate_interval will `raise`
     an exception if the interval is invalid.
