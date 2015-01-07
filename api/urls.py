@@ -269,7 +269,7 @@ public_apis = format_suffix_patterns(patterns(
     url(r'^identity/(?P<identity_uuid>\d+)$', IdentityDetail.as_view(),
         name='identity-detail-list'),
     url(r'^provider$', ProviderList.as_view(), name='provider-list'),
-    url(r'^provider/(?P<provider_uuid>\d+)$',
+    url(r'^provider/(?P<provider_uuid>%s)$' % uuid_match,
         Provider.as_view(), name='provider-detail'),
 
 
