@@ -57,7 +57,8 @@ def calculate_allocation(allocation, print_logs=False):
             force_interval_every=allocation.interval_delta)
 
 
-    logger.debug("New AllocationResult, Start On & (End On): %s (%s)"\
+    if print_logs:
+        logger.debug("New AllocationResult, Start On & (End On): %s (%s)"\
             % (current_result.window_start,
                current_result.window_end))
     instance_rules = []
@@ -77,10 +78,11 @@ def calculate_allocation(allocation, print_logs=False):
         if current_result.carry_forward and time_forward:
             current_period.increase_credit(time_forward, carry_forward=True)
 
-        logger.debug("> New TimePeriodResult: %s" % current_period)
-        if current_period.total_credit > timedelta(0):
-            logger.debug("> > Allocation Increased: %s" %\
-                    current_period.total_credit)
+        if print_logs:
+            logger.debug("> New TimePeriodResult: %s" % current_period)
+            if current_period.total_credit > timedelta(0):
+                logger.debug("> > Allocation Increased: %s" %\
+                        current_period.total_credit)
         #Second loop - Go through all the instances and apply
         #              the specific rules (This loop relates to time USED)
         instance_results = []
@@ -99,12 +101,14 @@ def calculate_allocation(allocation, print_logs=False):
                     status_list=status_list)
             instance_results.append(instance_result)
 
-        logger.debug("> > Instance Status Results:")
-        for instance_result in instance_results:
-            logger.debug("> > %s" % instance_result)
+        if print_logs:
+            logger.debug("> > Instance Status Results:")
+            for instance_result in instance_results:
+                logger.debug("> > %s" % instance_result)
         current_period.instance_results = instance_results
 
-        logger.debug("> > %s - %s = %s" %\
+        if print_logs:
+            logger.debug("> > %s - %s = %s" %\
                 (current_period.total_credit,
                 current_period.total_instance_runtime(),
                 current_period.allocation_difference()))
