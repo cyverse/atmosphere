@@ -547,8 +547,6 @@ class TestAllocationEngine(AllocationTestCase):
             allocation = self.allocation_helper.to_allocation()
             self.assertTotalRuntimeEquals(allocation, timedelta(days=30))
 
-
-    @unittest.skip("Incomplete test")
     def test_realistic_resize(self):
         """
         Combination of 1 and 2 for a "Realistic Resize" testing
@@ -565,4 +563,37 @@ class TestAllocationEngine(AllocationTestCase):
         instance runs at that active size for 3 more days
         result shows 3 more days (x RATIO) added to time
         """
+        current_time = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
         intervals = create_interval_range()
+
+        # Create 10 instances that are resized
+        for idx in range(0, 10):
+            start_time = current_time
+            current_time = end_time = current_time + timedelta(days=3)
+
+            helper = InstanceHelper()
+
+            # Add 1 day of build
+            end = start_time + timedelta(days=1)
+            helper.add_history_entry(start_time, end, status="build")
+
+            # Add 3 days of active at tiny size
+            start, end = end, end + timedelta(days=3)
+            helper.add_history_entry(start, end, size="test.tiny")
+
+            # Add 1 day of resize
+            start, end = end, end + timedelta(days=1)
+            helper.add_history_entry(start, end,
+                                     status="resize", size="test.small")
+
+            # Add 3 days of active at small size
+            start, end = end, end + timedelta(days=3)
+            helper.add_history_entry(start_time, end_time, size="test.small")
+
+            self.allocation_helper.add_instance(
+                helper.to_instance("Instance %s" % idx))
+
+        for delta in intervals:
+            self.allocation_helper.set_interval(delta)
+            allocation = self.allocation_helper.to_allocation()
+            self.assertTotalRuntimeEquals(allocation, timedelta(days=110))
