@@ -75,7 +75,7 @@ AVAILABLE_SIZES = {
     "test.large": large_size
 }
 
-STATUS_CHOICES = frozenset(["active", "suspended"])
+STATUS_CHOICES = frozenset(["active", "suspended", "build", "resize"])
 
 # Rules
 carry_forward = CarryForwardTime()
