@@ -225,6 +225,7 @@ class AllocationHelper(object):
 
 
 class AllocationTestCase(unittest.TestCase):
+
     def _calculate_allocation(self, allocation):
         """
         Returns the allocation result
@@ -385,6 +386,7 @@ class TestEngineHelpers(unittest.TestCase):
 
 
 class TestAllocationEngine(AllocationTestCase):
+
     def setUp(self):
         # Set allocation window
         increase_date = start_window = datetime(2014, 7, 1, tzinfo=pytz.utc)
@@ -546,3 +548,68 @@ class TestAllocationEngine(AllocationTestCase):
         instance runs at that active size for 3 more days
         result shows 3 more days (x RATIO) added to time
         """
+#From the REPL
+def repl_profile_test_1():
+    """
+    Allocation: 12 month window, 31*45 day increase, 7 day interval w/ CarryForward
+    Instance(s):
+    1.  Active/Suspended, 2 CPU,  1/1 - 2/1  (31 CPUDays active)
+    2.  Active/Suspended, 2 CPU,  1/8 - 2/8  (31 CPUDays active)
+    3.  Active/Suspended, 2 CPU, 1/15 - 2/15 (31 CPUDays active)
+    4.  Active/Suspended, 2 CPU, 1/22 - 2/22 (31 CPUDays active)
+    5.  Active/Suspended, 2 CPU, 1/29 - 3/1  (31 CPUDays active)
+    6.  Active/Suspended, 2 CPU,  2/5 - 3/8  (31 CPUDays active)
+    7.  Active/Suspended, 2 CPU, 2/12 - 3/15 (31 CPUDays active)
+    8.  Active/Suspended, 2 CPU, 2/19 - 3/22 (31 CPUDays active)
+    9.  Active/Suspended, 2 CPU, 2/26 - 3/29 (31 CPUDays active)
+    10. Active/Suspended, 2 CPU,  3/5 - 4/5  (31 CPUDays active)
+    ...
+    45. Active/Suspended, 2 CPU,11/12 - 12/13 (31 CPUDays active)
+    Result:
+    1 hour remaining
+    """
+    instance_count = 45
+    credit_hours = 24*31*instance_count + 1
+
+    increase_date = start_window = datetime(2015, 1, 1, tzinfo=pytz.utc)
+    stop_window = datetime(2015, 12, 1, tzinfo=pytz.utc)
+    interval = relativedelta(days=1)
+
+    history_start = datetime(2015, 1, 1, hour=12, tzinfo=pytz.utc)
+    history_swap_every = relativedelta(hours=1) #Change history every
+    instance_offset = relativedelta(days=7) #Create NEW instance every
+    terminate_offset = relativedelta(days=31) #Terminate NEW instance after
+    test_size = 'test.small'  # Small == 2 CPU
+
+
+    allocation_helper = AllocationHelper(
+            start_window, stop_window, increase_date,
+            credit_hours=credit_hours, interval_delta=interval)
+    #Instance(s) Setup
+    instance_start = history_start
+    for number in xrange(1,instance_count+1):
+        instance_helper = InstanceHelper()
+        instance_stop = instance_start + terminate_offset
+        #History Setup -- Starting with 'launch' of instance
+        start_history = instance_start
+        #Update AFTER first run
+        instance_start = instance_start + instance_offset
+        suspended = False
+        while start_history < instance_stop:
+            end_history = start_history + history_swap_every
+            instance_helper.add_history_entry(
+                start_history, end_history, size=test_size,
+                status='suspended' if suspended else 'active')
+            #Prepare for New history change!
+            suspended = not suspended
+            start_history = end_history
+        instance = instance_helper.to_instance("Test instance %s" % number)
+        allocation_helper.add_instance(instance)
+
+    allocation = allocation_helper.to_allocation()
+    result = engine.calculate_allocation(allocation)
+    return allocation, result
+
+def repl_calculate_allocation(allocation):
+    result = engine.calculate_allocation(allocation)
+    return allocation, result

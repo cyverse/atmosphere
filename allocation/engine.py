@@ -96,6 +96,8 @@ def calculate_allocation(allocation, print_logs=False):
                 current_period.start_counting_date,
                 current_period.stop_counting_date,
                 print_logs=print_logs)
+            if not status_list:
+                continue
             instance_result = InstanceResult(
                     identifier=instance.identifier,
                     status_list=status_list)
@@ -126,6 +128,9 @@ def _calculate_instance_status_list(instance, rules, start_date, end_date,
     # running total for each status
     status_map = {}
     for history in instance.history:
+        #Sanity check, dont add unnecessary status information.
+        if history.end_date < start_date:
+            continue
         status_result = status_map.get(history.status)
         if not status_result:
             status_result = InstanceStatusResult(status_name=history.status)
