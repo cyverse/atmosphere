@@ -31,7 +31,7 @@ jwt.py==0.1.0
 flower==0.7.2 #TODO: Do we need a specific version here? -steve
 pip-tools==0.3.5 #TODO: Do we need a specific version here? -steve
 newrelic==2.34.0.29 # newrelic investigation.
-factory-boy=2.4.1
+factory-boy==2.4.1
 ipython
 ipdb
 flake8
