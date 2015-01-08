@@ -22,22 +22,34 @@ from threepio import logger
 
 def _get_zero_date_utc():
     #"Epoch Date" 1-1-1970 0:00:00 UTC
-    return datetime(1,1,1970).replace(tzinfo = pytz.utc)
+    return datetime(1970,1,1).replace(tzinfo = pytz.utc)
 
 def _get_current_date_utc():
     return datetime.utcnow().replace(tzinfo = pytz.utc)
 
-### Main ###
-def calculate_allocation(allocation, print_logs=False):
+
+def get_allocation_window(allocation,
+        default_start_date=_get_zero_date_utc(),
+        default_end_date=_get_current_date_utc()):
+    """
+    Returns a tuple containing the allocation windows start and end date
+    """
     if not allocation.start_date:
-        window_start_date = _get_zero_date_utc()
+        window_start_date = default_start_date
     else:
         window_start_date = allocation.start_date
 
     if not allocation.end_date:
-        window_end_date = _get_current_date_utc()
+        window_end_date = default_end_date
     else:
         window_end_date = allocation.end_date
+
+    return window_start_date, window_end_date
+
+
+### Main ###
+def calculate_allocation(allocation, print_logs=False):
+    (window_start_date, window_end_date) = get_allocation_window(allocation)
 
     #FYI: Calculates time periods based on allocation.credits
     current_result = AllocationResult(allocation,
@@ -45,7 +57,8 @@ def calculate_allocation(allocation, print_logs=False):
             force_interval_every=allocation.interval_delta)
 
 
-    logger.debug("New AllocationResult, Start On & (End On): %s (%s)"\
+    if print_logs:
+        logger.debug("New AllocationResult, Start On & (End On): %s (%s)"\
             % (current_result.window_start,
                current_result.window_end))
     instance_rules = []
@@ -65,10 +78,11 @@ def calculate_allocation(allocation, print_logs=False):
         if current_result.carry_forward and time_forward:
             current_period.increase_credit(time_forward, carry_forward=True)
 
-        logger.debug("> New TimePeriodResult: %s" % current_period)
-        if current_period.total_credit > timedelta(0):
-            logger.debug("> > Allocation Increased: %s" %\
-                    current_period.total_credit)
+        if print_logs:
+            logger.debug("> New TimePeriodResult: %s" % current_period)
+            if current_period.total_credit > timedelta(0):
+                logger.debug("> > Allocation Increased: %s" %\
+                        current_period.total_credit)
         #Second loop - Go through all the instances and apply
         #              the specific rules (This loop relates to time USED)
         instance_results = []
@@ -82,17 +96,21 @@ def calculate_allocation(allocation, print_logs=False):
                 current_period.start_counting_date,
                 current_period.stop_counting_date,
                 print_logs=print_logs)
+            if not status_list:
+                continue
             instance_result = InstanceResult(
                     identifier=instance.identifier,
                     status_list=status_list)
             instance_results.append(instance_result)
 
-        logger.debug("> > Instance Status Results:")
-        for instance_result in instance_results:
-            logger.debug("> > %s" % instance_result)
+        if print_logs:
+            logger.debug("> > Instance Status Results:")
+            for instance_result in instance_results:
+                logger.debug("> > %s" % instance_result)
         current_period.instance_results = instance_results
 
-        logger.debug("> > %s - %s = %s" %\
+        if print_logs:
+            logger.debug("> > %s - %s = %s" %\
                 (current_period.total_credit,
                 current_period.total_instance_runtime(),
                 current_period.allocation_difference()))
@@ -110,6 +128,9 @@ def _calculate_instance_status_list(instance, rules, start_date, end_date,
     # running total for each status
     status_map = {}
     for history in instance.history:
+        #Sanity check, dont add unnecessary status information.
+        if history.end_date < start_date:
+            continue
         status_result = status_map.get(history.status)
         if not status_result:
             status_result = InstanceStatusResult(status_name=history.status)
