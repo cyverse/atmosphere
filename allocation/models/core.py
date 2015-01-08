@@ -290,7 +290,6 @@ class Allocation(object):
                  start_date, end_date, interval_delta=None):
         validate_interval(start_date, end_date)
         # TODO: Sort so that Recharges happen PRIOR to Increases on EQUAL dates.
->>>>>>> c6ea5fe... cleanup formatting and ordering
         self.credits = credits
         self.rules = rules
         self.instances = instances

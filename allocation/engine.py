@@ -22,7 +22,7 @@ from threepio import logger
 
 def _get_zero_date_utc():
     #"Epoch Date" 1-1-1970 0:00:00 UTC
-    return datetime(1,1,1970).replace(tzinfo = pytz.utc)
+    return datetime(1970,1,1).replace(tzinfo = pytz.utc)
 
 def _get_current_date_utc():
     return datetime.utcnow().replace(tzinfo = pytz.utc)
