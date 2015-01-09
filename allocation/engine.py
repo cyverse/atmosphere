@@ -129,7 +129,7 @@ def _calculate_instance_status_list(instance, rules, start_date, end_date,
     status_map = {}
     for history in instance.history:
         #Sanity check, dont add unnecessary status information.
-        if history.end_date < start_date:
+        if history.end_date and history.end_date < start_date:
             continue
         status_result = status_map.get(history.status)
         if not status_result:
