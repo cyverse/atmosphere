@@ -12,9 +12,12 @@ from core.models.size import convert_esh_size
 from core.models.instance import convert_esh_instance, Instance
 from core.models.user import AtmosphereUser
 from core.models.provider import Provider
-from core.models.credential import Credential
 
-from service.monitoring import _get_instance_owner_map, monitor_instances_for_user
+from service.monitoring import\
+        _cleanup_missing_instances,\
+        _get_instance_owner_map, \
+        _get_identity_from_tenant_name
+from service.monitoring import user_over_allocation_enforcement
 from service.cache import get_cached_driver, get_cached_instances
 
 from threepio import logger
@@ -63,7 +66,10 @@ def monitor_instances():
 def monitor_instances_for(provider_id, users=None,
                           print_logs=False, start_date=None, end_date=None):
     """
-    Update instances for provider.
+    Run the set of tasks related to monitoring instances for a provider.
+    Optionally, provide a list of usernames to monitor
+    While debugging, print_logs=True can be very helpful.
+    start_date and end_date allow you to search a 'non-standard' window of time.
     """
     provider = Provider.objects.get(id=provider_id)
 
@@ -80,10 +86,25 @@ def monitor_instances_for(provider_id, users=None,
         consolehandler.setLevel(logging.DEBUG)
         logger.addHandler(consolehandler)
 
+    #DEVNOTE: Potential slowdown running multiple functions
+    #Break this out when instance-caching is enabled
     for username in sorted(instance_map.keys()):
-        instances = instance_map[username]
-        monitor_instances_for_user(provider, username, instances,
-                                    print_logs, start_date, end_date)
+        running_instances = instance_map[username]
+        identity = _get_identity_from_tenant_name(provider, username)
+        if identity and running_instances:
+            driver = get_cached_driver(identity=identity)
+            core_running_instances = [
+                convert_esh_instance(driver, inst,
+                    identity.provider.id, identity.id,
+                    identity.created_by) for inst in running_instances]
+        else:
+            #No running instances.
+            core_running_instances = []
+        #Using the 'known' list of running instances, cleanup the DB
+        core_instances = _cleanup_missing_instances(identity, core_running_instances)
+        allocation_result = user_over_allocation_enforcement(
+                provider, username,
+                print_logs, start_date, end_date)
     if print_logs:
         logger.removeHandler(consolehandler)
 
