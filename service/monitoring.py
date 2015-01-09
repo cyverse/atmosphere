@@ -1,4 +1,4 @@
-import sys
+import sys, pytz
 
 from datetime import timedelta
 
@@ -8,15 +8,18 @@ from django.utils import timezone
 from threepio import logger
 
 from core.models import AtmosphereUser as User
-from core.models import IdentityMembership, Identity
-from core.models.instance import Instance, convert_esh_instance
+from core.models.credential import Credential
+from core.models import IdentityMembership, Identity, InstanceStatusHistory
+from core.models.instance import Instance as CoreInstance
+from core.models.instance import convert_esh_instance,\
+        _esh_instance_size_to_core
 
 from service.cache import get_cached_instances, get_cached_driver
 from allocation.engine import calculate_allocation
 from allocation.models import AllocationIncrease,\
         AllocationRecharge, AllocationUnlimited,\
         IgnoreStatusRule, MultiplySizeCPU,\
-        Allocation, TimeUnit
+        Allocation, TimeUnit, AllocationResult
 from allocation.models import Instance as AllocInstance
 from django.conf import settings
 
@@ -43,6 +46,19 @@ def _make_instance_owner_map(instances, users=None):
         owner_map[key] = instance_list
     return owner_map
 
+def _core_instances_for(identity, start_date=None):
+    if not start_date:
+        #Can't use 'None' as a query value
+        start_date = timezone.datetime(1970,1,1).replace(tzinfo = pytz.utc)
+    return CoreInstance.objects.filter(
+            Q(instancestatushistory__end_date=None) |
+            Q(instancestatushistory__end_date__gt=start_date) |
+            Q(end_date=None) | Q(end_date__gt=start_date),
+            #NOTE: May need to remove this created_by line
+            #      down-the-road as we share user/tenants.
+                            created_by=identity.created_by,
+                            created_by_identity=identity).distinct()
+
 def _select_identities(provider, users=None):
     if users:
         return provider.identity_set.filter(created_by__username__in=users)
@@ -55,16 +71,8 @@ def _convert_tenant_id_to_names(instances, tenants):
             if tenant['id'] == i.owner:
                 i.owner = tenant['name']
     return instances
-## Core Monitoring methods
-def get_allocation_result_for(provider, username, instances,
-                               print_logs=False, start_date=None, end_date=None):
-    """
-    Given provider, username and instances:
-    * Find the correct identity for the user
-    * Convert all 'Esh' instances to core representation
-    * Create 'Allocation' using core representation
-    * Calculate the 'AllocationResult' and return both
-    """
+
+def _get_identity_from_tenant_name(provider, username):
     try:
         #NOTE: I could see this being a problem when 'user1' and 'user2' use
         #      ex_project_name == 'shared_group'
@@ -75,39 +83,68 @@ def get_allocation_result_for(provider, username, instances,
                 identity__provider=provider,
                 identity__created_by__username=username)
         identity = credential.identity
+        return identity
+    except Credential.MultipleObjectsReturned, mo_creds:
+        logger.warn("%s has >1 Credentials on Provider %s"
+                % (username, provider))
+        credential = Credential.objects.filter(            
+                key='ex_project_name', value=username,  
+                identity__provider=provider,            
+                identity__created_by__username=username)[0]
+        identity = credential.identity
+        return identity
     except Credential.DoesNotExist, no_creds:
-        if instances:
-            logger.warn("WARNING: ex_tenant_name: %s has %s instances, but does not"
-                        "exist on this database." % (username, len(instances)))
-        return
+        return None
+
+## Core Monitoring methods
+def get_allocation_result_for(provider, username,
+                               print_logs=False, start_date=None, end_date=None):
+    """
+    Given provider and username:
+    * Find the correct identity for the user
+    * Create 'Allocation' using core representation
+    * Calculate the 'AllocationResult' and return both
+    """
+    identity = _get_identity_from_tenant_name(provider, username)
     #Attempt to run through the allocation engine
     try:
         allocation_result = _get_allocation_result(
-                identity, start_date, end_date, running_instances=instances,
+                identity, start_date, end_date, 
                 print_logs=print_logs)
         logger.debug("Result for Username %s: %s"
                 % (username, allocation_result))
+        return allocation_result
     except IdentityMembership.DoesNotExist:
-        if instances:
-            logger.warn(
-                "WARNING: User %s has %s instances, but does not"
-                "have IdentityMembership on this database" % (username, len(instances)))
+        logger.warn(
+            "WARNING: User %s does not"
+            "have IdentityMembership on this database" % (username, ))
+        return _empty_allocation_result()
     except:
         logger.exception("Unable to monitor Identity:%s"
                          % (identity,))
         raise
-    return allocation_result
 
-def monitor_instances_for_user(provider, username, instances,
+def user_over_allocation_enforcement(provider, username,
                                print_logs=False, start_date=None, end_date=None):
     """
     Begin monitoring 'username' on 'provider'.
-    All active 'esh' instances are passed in.
     * Calculate allocation from START of month to END of month
-    * Create a "TEST" For enforce_allocation
+    * If user is deemed OverAllocation, apply enforce_allocation_policy
     """
+    identity = _get_identity_from_tenant_name(provider, username)
+    allocation_result = get_allocation_result_for(
+            provider, username,
+            print_logs, start_date, end_date)
     #ASSERT: allocation_result has been retrieved successfully
     #Make some enforcement decision based on the allocation_result's output.
+
+    if not identity:
+        logger.warn(
+                "%s has NO identity. Total Runtime could NOT be calculated. Returning.." %
+                (username, ))
+        return allocation_result
+    user = User.objects.get(username=username)
+    allocation = get_allocation(username, identity.id)
     if not allocation:
         logger.info(
                 "%s has NO allocation. Total Runtime: %s. Returning.." %
@@ -125,16 +162,20 @@ def monitor_instances_for_user(provider, username, instances,
                     allocation_result.total_credit(),
                     allocation_result.total_runtime(),
                     allocation_result.total_difference()))
-        enforce_allocation(identity, user)
+        enforce_allocation_policy(identity, user)
     return allocation_result
 
 
 
-def enforce_allocation(identity, user):
+def enforce_allocation_policy(identity, user):
     """
     Add additional logic here to determine the proper 'action to take'
     when THIS identity/user combination is given
+    #Possible combinations:
+    1. Check the 'rules' for this provider
+    2. Notify the 'ProviderAdministrator' that a user has exceeded their allocation, but that NO action has been taken.
     """
+    #Option1 - Suspend all instances.
     return suspend_all_instances_for(identity, user)
 
 def suspend_all_instances_for(identity, user):
@@ -191,7 +232,7 @@ def update_instances(driver, identity, esh_list, core_list):
 
 ## Used in monitoring.py
 
-def _create_monthly_window_input(identity, core_allocation, running_instances,
+def _create_monthly_window_input(identity, core_allocation, 
         start_date, end_date, interval_delta=None):
     """
     This function is meant to create an allocation input that
@@ -215,26 +256,10 @@ def _create_monthly_window_input(identity, core_allocation, running_instances,
                 recharge_date=start_date)
     else:
         initial_recharge = AllocationUnlimited(start_date)
-    if running_instances:
-        #Convert running to esh..
-        driver = get_cached_driver(identity=identity)
-        core_running_instances = [
-            convert_esh_instance(driver, inst,
-                identity.provider.id, identity.id,
-                identity.created_by.username) for inst in running_instances]
+    #Retrieve the core that could have an impact..
+    core_instances = _core_instances_for(identity, start_date)
 
-    #Retrieve the 'remaining' core that could have an impact..
-    core_instances = Instance.objects.filter(
-                    Q(end_date=None) | Q(end_date__gt=start_date),
-                            created_by=identity.created_by,
-                            created_by_identity__uuid=identity.uuid)
 
-    #TODO: We should seperate concerns. This should be a seperate maintenance
-    #      task..
-    if running_instances:
-        #Since we know which instances are still active and which are not
-        #Why not end_date ones that 'think' they are still running?
-        core_instances = _cleanup_instances(core_instances, core_running_instances)
 
     #Noteably MISSING: 'active', 'running'
     multiply_by_cpu = MultiplySizeCPU(name="Multiply TimeUsed by CPU", multiplier=1)
@@ -256,22 +281,80 @@ def _create_monthly_window_input(identity, core_allocation, running_instances,
             interval_delta=interval_delta)
 
     
-def _cleanup_instances(core_instances, core_running_instances):
+def _cleanup_missing_instances(
+        identity, core_running_instances, start_date=None):
     """
     Cleans up the DB InstanceStatusHistory when you know what instances are
     active...
 
-    core_instances - List of 'ALL' core instances
     core_running_instances - Reference list of KNOWN active instances
     """
     instances = []
+
+    if not identity:
+        return instances
+
+    core_instances = _core_instances_for(identity, start_date)
+    fixed_instances = []
     for inst in core_instances:
         if not core_running_instances or inst not in core_running_instances:
             inst.end_date_all()
+            fixed_instances.append(inst)
+        else:
+            #Instance IS in the list of running instances.. Further cleaning
+            #can be done at this level.
+            non_end_dated_history = inst.instancestatushistory_set.filter(
+                    end_date=None)
+            count = len(non_end_dated_history)
+            if count > 1:
+                history_names = [ish.status.name for ish in non_end_dated_history]
+                #Note: We have the 'wrong' instance, we want the one that
+                #      includes the ESH driver
+                core_running_inst = [i for i in core_running_instances if i == inst][0]
+                new_history = _resolve_history_conflict(identity, core_running_inst,
+                        non_end_dated_history)
+                fixed_instances.append(inst)
+                logger.warn("Instance %s contained %s "
+                        "NON END DATED history:%s. "
+                        " New History: %s" %
+                        (inst.provider_alias,
+                            count, history_names, new_history))
         #Gather the updated values..
         instances.append(inst)
     #Return the updated list
+    if fixed_instances:
+        logger.warn("Cleaned up %s instances for %s"\
+                % (len(fixed_instances),identity.created_by.username))
     return instances
+
+def _resolve_history_conflict(identity, core_running_instance,
+        bad_history, reset_time=None):
+    """
+    NOTE 1: This is a 'band-aid' fix until we are 100% that Transaction will not
+            create conflicting un-end-dated objects.
+
+    NOTE 2: It is EXPECTED that this instance has the 'esh' attribute
+            Failure to add the 'esh' attribute will generate a ValueError!
+    """
+    if not getattr(core_running_instance, 'esh'):
+        raise ValueError("Esh is missing from %s" % core_running_instance)
+    esh_instance = core_running_instance.esh
+    new_status = esh_instance.extra['status']
+    esh_driver = get_cached_driver(identity=identity)
+    new_size = _esh_instance_size_to_core(esh_driver,
+            esh_instance, identity.provider.id)
+    if not reset_time:
+        reset_time = timezone.now()
+    for history in bad_history:
+        history.end_date = reset_time
+        history.save()
+    new_history = InstanceStatusHistory.create_history(new_status, 
+            core_running_instance, new_size,
+            reset_time)
+    return new_history
+
+
+
 def _get_instance_owner_map(provider, users=None):
     """
     All keys == All identities
@@ -310,8 +393,14 @@ def check_over_allocation(username, identity_id,
 
 def get_allocation(username, identity_id):
     user = User.objects.get(username=username)
-    membership = IdentityMembership.objects.get(identity__id=identity_id,
+    try:
+        membership = IdentityMembership.objects.get(identity__id=identity_id,
                                                 member=user)
+    except IdentityMembership.DoesNotExist:
+        logger.warn(
+            "WARNING: User %s does not"
+            "have IdentityMembership on this database" % (username, ))
+        return None
     if not user.is_staff and not membership.allocation:
         default_allocation = Allocation.default_allocation(
                 membership.identity.provider)
@@ -341,24 +430,30 @@ def get_delta(allocation, time_period, end_date=None):
         #Use allocation's delta value because no time period is set.
         return timedelta(minutes=allocation.delta)
 
+def _empty_allocation_result():
+    """
+    """
+    return AllocationResult.no_allocation()
 
 def _get_allocation_result(identity, start_date=None, end_date=None,
-                           running_instances=[], print_logs=False):
+                           print_logs=False):
     """
-    Given an identity (And, optionally, time frame + list of instances):
+    Given an identity (And, optionally, time frame):
     * Provide defaults that are similar to the 'monthly window' conditions in
     Previous Versions
     * Create an allocation input, run it against the engine and return the result
     """
+    if not identity:
+        return _empty_allocation_result()
     username = identity.created_by.username
-    core_allocation = get_allocation(username, identity.uuid)
+    core_allocation = get_allocation(username, identity.id)
     if not core_allocation:
         logger.warn("User:%s Identity:%s does not have an allocation assigned"
                 % (username, identity))
     #TODO: Logic should be placed HERE when we decide to move away from
     #      'fixed monthly window' calculations.
-    allocation_input = _create_monthly_window_input(identity, core_allocation,
-            running_instances, start_date, end_date)
+    allocation_input = _create_monthly_window_input(
+            identity, core_allocation, start_date, end_date)
 
     allocation_result = calculate_allocation(allocation_input, print_logs=print_logs)
     return allocation_result

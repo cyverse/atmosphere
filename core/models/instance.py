@@ -626,16 +626,8 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
     #Add 'esh' object
     core_instance.esh = esh_instance
     #Update the InstanceStatusHistory
-    #NOTE: Querying for esh_size because esh_instance
-    #Only holds the alias, not all the values.
-    #As a bonus this is a cached-call
-    esh_size = esh_instance.size
-    if type(esh_size) == MockSize:
-        #MockSize includes only the Alias/ID information
-        #so a lookup on the size is required to get accurate
-        #information.
-        esh_size = esh_driver.get_size(esh_size.id)
-    core_size = convert_esh_size(esh_size, provider_id)
+    core_size = _esh_instance_size_to_core(esh_driver,
+            esh_instance, provider_id)
     #TODO: You are the mole!
     core_instance.update_history(
         esh_instance.extra['status'],
@@ -646,6 +638,18 @@ def convert_esh_instance(esh_driver, esh_instance, provider_id, identity_id,
     core_instance = set_instance_from_metadata(esh_driver, core_instance)
     return core_instance
 
+def _esh_instance_size_to_core(esh_driver, esh_instance, provider_id):
+    #NOTE: Querying for esh_size because esh_instance
+    #Only holds the alias, not all the values.
+    #As a bonus this is a cached-call
+    esh_size = esh_instance.size
+    if type(esh_size) == MockSize:
+        #MockSize includes only the Alias/ID information
+        #so a lookup on the size is required to get accurate
+        #information.
+        esh_size = esh_driver.get_size(esh_size.id)
+    core_size = convert_esh_size(esh_size, provider_id)
+    return core_size
 
 def set_instance_from_metadata(esh_driver, core_instance):
     #Fixes Dep. loop - Do not remove

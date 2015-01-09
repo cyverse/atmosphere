@@ -6,7 +6,7 @@ from django.utils.timezone import timedelta, datetime, now, utc
 
 from allocation import validate_interval
 from allocation.models.core import \
-        AllocationIncrease, AllocationRecharge, AllocationUnlimited
+        AllocationIncrease, AllocationRecharge, AllocationUnlimited, Allocation
 
 
 class InstanceStatusResult(object):
@@ -178,6 +178,11 @@ class AllocationResult():
     time_periods = []
     # POLICY decisions that affect the engine
     carry_forward = False
+
+    @classmethod
+    def no_allocation(cls):
+        zero_allocation = Allocation([], [], [], None, None)
+        return AllocationResult(zero_allocation, None, None)
 
     def __init__(self, allocation, window_start, window_end, time_periods=[],
                  force_interval_every=None, carry_forward=False):
