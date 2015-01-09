@@ -279,21 +279,21 @@ class Instance(models.Model):
             accounting_list.append(state)
         return accounting_list
 
-    def end_date_all(self):
+    def end_date_all(self, end_date=None):
         """
         Call this function to tie up loose ends when the instance is finished
         (Destroyed, terminated, no longer exists..)
         """
-        now_time = timezone.now()
-        ish_list = InstanceStatusHistory.objects.filter(instance=self)
+        if not end_date:
+            end_date = timezone.now()
+        ish_list = self.instancestatushistory_set.filter(end_date=None)
         for ish in ish_list:
-            if not ish.end_date:
-                # logger.info('Saving history:%s' % ish)
-                ish.end_date = now_time
-                ish.save()
+            # logger.info('Saving history:%s' % ish)
+            ish.end_date = end_date
+            ish.save()
         if not self.end_date:
             # logger.info("Saving Instance:%s" % self)
-            self.end_date = now_time
+            self.end_date = end_date
             self.save()
 
     def creator_name(self):
@@ -409,8 +409,10 @@ class InstanceStatusHistory(models.Model):
         try:
             with transaction.atomic():
                 if not last_history:
-                    last_history = instance.get_last_history()\
-                                           .select_for_update(nowait=True)
+                    #TODO: What does this do? is it still useful if we call it
+                    #      down here? Calling this fails when
+                    #      last_history == None
+                    last_history = instance.get_last_history()
                     if not last_history:
                         raise ValueError("A previous history is required "
                                          "to perform a transaction. Instance:%s"
