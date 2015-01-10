@@ -36,7 +36,8 @@ from service.instance import redeploy_init, reboot_instance,\
 from service.quota import check_over_quota
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
-    VolumeAttachConflict, VolumeMountConflict
+    VolumeAttachConflict, VolumeMountConflict,\
+        UnderThresholdError
 
 from api import failure_response, invalid_creds,\
                 connection_failure, malformed_response
@@ -143,6 +144,8 @@ class InstanceList(APIView):
                 size_alias, machine_alias,
                 ex_availability_zone=hypervisor_name,
                 **data)
+        except UnderThresholdError, ute:
+            return under_threshold(ute)
         except OverQuotaError, oqe:
             return over_quota(oqe)
         except OverAllocationError, oae:
@@ -836,6 +839,12 @@ def over_capacity(capacity_exception):
     return failure_response(
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
         capacity_exception.message)
+
+
+def under_threshold(threshold_exception):
+    return failure_response(
+        status.HTTP_400_BAD_REQUEST,
+        threshold_exception.message)
 
 
 def over_quota(quota_exception):

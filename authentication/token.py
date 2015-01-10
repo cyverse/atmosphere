@@ -113,7 +113,7 @@ def validate_token(token, request=None):
         logger.info("AuthToken Retrieved:%s Does not exist." % (token,))
         return False
     if auth_token.is_expired():
-        if request and request.META['REQUEST_METHOD'] == 'POST':
+        if request and request.META['REQUEST_METHOD'] != 'GET':
             #See if the user (Or the user who is emulating a user) can be re-authed.
             user_to_auth = request.session.get('emulated_by', user)
             if cas_validateUser(user_to_auth):

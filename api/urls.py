@@ -7,7 +7,8 @@ from django.conf.urls import patterns, url, include
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from api.accounts import Account
-from api.application import ApplicationSearch, ApplicationList, Application
+from api.application import ApplicationSearch, ApplicationList, Application,\
+                            ApplicationThresholdDetail
 from api.bookmark import  ApplicationBookmarkDetail, ApplicationBookmarkList
 from api.email import Feedback, QuotaEmail, SupportEmail
 from api.flow import Flow
@@ -143,6 +144,7 @@ private_apis = patterns('',
         ApplicationBookmarkDetail.as_view(), name='bookmark-application'),
 
 
+
     #Machine Requests (Staff view)
     url(r'^request_image$',
         MachineRequestStaffList.as_view(), name='direct-machine-request-list'),
@@ -207,6 +209,10 @@ public_apis = format_suffix_patterns(patterns(
     url(r'^application/(?P<app_uuid>%s)$' % uuid_match,
         Application.as_view(),
         name='application-detail'),
+    #ApplicationThreshold Related APIs
+    url(r'^application/(?P<app_uuid>%s)/threshold$' % uuid_match,
+        ApplicationThresholdDetail.as_view(),
+        name='threshold-detail'),
 
     url(r'^instance_history$', InstanceHistory.as_view(),
         name='instance-history'),

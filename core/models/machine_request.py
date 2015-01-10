@@ -325,7 +325,6 @@ def process_machine_request(machine_request, new_image_id):
         tags = []
 
     #NOTE: Swap these lines when application forking/versioning is supported in the UI
-    #if True:
     if machine_request.new_machine_forked:
         # This is a brand new app and a brand new providermachine
         new_app = create_application(

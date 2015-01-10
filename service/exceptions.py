@@ -3,6 +3,12 @@ Atmosphere service exceptions.
 """
 
 
+class UnderThresholdError(Exception):
+    def __init__(self, message):
+        self.message = message
+        self.status_code = 400
+        super(UnderThresholdError, self).__init__()
+
 class SecurityGroupNotCreated(Exception):
 
     def __init__(self):
