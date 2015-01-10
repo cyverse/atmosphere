@@ -268,10 +268,17 @@ class IdentitySerializer(serializers.ModelSerializer):
         fields = ('id', 'created_by', 'provider_id', 'credentials', 'quota',
                   'membership')
 
+class ApplicationThresholdSerializer(serializers.ModelSerializer):
+    """
+    """
+    min_ram= serializers.IntegerField(source="memory_min")
+    min_disk = serializers.IntegerField(source="storage_min")
+    class Meta:
+        model = ApplicationThreshold
+        exclude = ('id', 'application', 'memory_min', 'storage_min')
 
 class ApplicationSerializer(serializers.ModelSerializer):
     """
-    test maybe something
     """
     #Read-Only Fields
     uuid = serializers.CharField(read_only=True)
@@ -492,6 +499,8 @@ class MachineRequestSerializer(serializers.ModelSerializer):
     owner = serializers.SlugRelatedField(slug_field='username',
                                          source='new_machine_owner')
     vis = serializers.CharField(source='new_machine_visibility')
+    version = serializers.IntegerField(source='new_machine_version')
+    forked = serializers.IntegerField(source='new_machine_forked')
     description = serializers.CharField(source='new_machine_description',
                                         required=False)
     tags = serializers.CharField(source='new_machine_tags', required=False)
@@ -502,7 +511,8 @@ class MachineRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = MachineRequest
         fields = ('id', 'instance', 'status', 'name', 'owner', 'provider',
-                  'vis', 'description', 'tags', 'sys', 'software', 'threshold',
+                  'vis', 'description', 'tags', 'sys', 'software',
+                  'threshold', 'fork', 'version',
                   'shared_with', 'new_machine')
 
 

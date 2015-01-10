@@ -7,36 +7,7 @@ from django.conf.urls import patterns, url, include
 
 from rest_framework.urlpatterns import format_suffix_patterns
 
-from api.accounts import Account
-from api.application import ApplicationSearch, ApplicationList, Application
-from api.email import Feedback, QuotaEmail, SupportEmail
-from api.flow import Flow
-from api.group import GroupList, Group
-from api.identity_membership import IdentityMembershipList, IdentityMembership
-from api.identity import IdentityList, Identity, IdentityDetailList
-from api.instance import InstanceList, Instance,\
-    InstanceAction, InstanceHistory
-from api.machine import MachineList, Machine, MachineHistory,\
-    MachineSearch, MachineVote
-from api.machine_request import MachineRequestList, MachineRequest,\
-    MachineRequestStaffList, MachineRequestStaff
-from api.machine_export import MachineExportList, MachineExport
-from api.maintenance import MaintenanceRecordList, MaintenanceRecord
-from api.meta import Meta, MetaAction
-from api.notification import NotificationList
-from api.occupancy import Occupancy, Hypervisor
-from api.project import ProjectList, ProjectDetail
-from api.profile import Profile
-from api.provider import ProviderList, Provider
-from api.size import SizeList, Size
-from api.hypervisor import HypervisorList, HypervisorDetail
-from api.step import StepList, Step
-from api.tag import TagList, Tag
-from api.user import UserManagement, User
-from api.version import Version
-from api.volume import VolumeList, Volume
 
-from authentication.decorators import atmo_valid_token_required
 
 resources_path = os.path.join(os.path.dirname(__file__), 'resources')
 mobile = os.path.join(os.path.dirname(__file__), 'mobile')

@@ -13,6 +13,7 @@ from rtwo.provider import AWSProvider, AWSUSEastProvider,\
 from rtwo.driver import OSDriver
 from rtwo.size import MockSize
 
+from core.models.application import Application
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import convert_esh_instance
 from core.models.size import convert_esh_size
@@ -26,7 +27,7 @@ from service.quota import check_over_quota
 from service.monitoring import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
-    VolumeAttachConflict
+    VolumeAttachConflict, UnderThresholdError
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 
 def _get_size(esh_driver, esh_instance):
@@ -488,6 +489,9 @@ def launch_instance(user, provider_uuid, identity_uuid,
     #May raise OverQuotaError or OverAllocationError
     check_quota(user.username, identity_uuid, size)
 
+    #May raise OverQuotaError or OverAllocationError
+    check_application_threshold(user.username, identity_uuid, size, machine_alias)
+
     #May raise InvalidCredsError, SecurityGroupNotCreated
     (esh_instance, token, password) = launch_esh_instance(esh_driver,
             machine_alias, size_alias, core_identity, **kwargs)
@@ -514,6 +518,28 @@ def check_size(esh_size, provider_uuid):
             raise SizeNotAvailable()
     except:
         raise SizeNotAvailable()
+
+
+def check_application_threshold(username, identity_uuid, esh_size, machine_alias):
+    """
+    """
+    application = Application.objects.filter(
+            providermachine__identifier=machine_alias).distinct().get()
+    threshold = application.get_threshold()
+    if not threshold:
+        return
+    #NOTE: Should be MB to MB test
+    if esh_size.ram < threshold.memory_min:
+        raise UnderThresholdError("This application requires >=%s GB of RAM."
+                " Please re-launch with a larger size."
+                % int(threshold.memory_min/1024))
+    if esh_size.disk < threshold.storage_min:
+        raise UnderThresholdError("This application requires >=%s GB of Disk."
+                " Please re-launch with a larger size."
+                % threshold.storage_min)
+
+
+
 
 
 def check_quota(username, identity_uuid, esh_size, resuming=False):
