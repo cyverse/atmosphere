@@ -45,7 +45,7 @@ class MachineRequest(models.Model):
     new_machine_visibility = models.CharField(max_length=256)
     new_machine_description = models.TextField(default='', blank=True)
     new_machine_tags = models.TextField(default='', blank=True)
-    new_machine_version = VersionNumberField(default=int(VersionNumber(1,)))
+    new_machine_version = models.CharField(max_length=128, default='1.0.0')
     new_machine_forked = models.BooleanField(default=False)
     new_machine_memory_min = models.IntegerField(default=0)
     new_machine_storage_min = models.IntegerField(default=0)

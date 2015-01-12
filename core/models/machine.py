@@ -38,7 +38,7 @@ class ProviderMachine(models.Model):
     created_by_identity = models.ForeignKey(Identity, null=True)
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)
-    version = VersionNumberField(default=int(VersionNumber(1,)))
+    version = models.CharField(max_length=128, default='1.0.0')
 
     def update_image(self, **image_updates):
         """
@@ -227,8 +227,7 @@ def create_provider_machine(machine_name, provider_alias, provider_uuid, app,
         created_by = machine_owner.created_by,
         created_by_identity = machine_owner,
         identifier = provider_alias,
-        version = metadata.get('version',
-            VersionNumber.string_to_version('1.0')))
+        version = metadata.get('version',"1.0"))
     logger.info("New ProviderMachine created: %s" % provider_machine)
     add_to_cache(provider_machine)
     return provider_machine
