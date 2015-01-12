@@ -143,7 +143,7 @@ class Application(models.Model):
         super(Application, self).save(*args, **kwargs)
         #TODO: if changes were made..
         #TODO: Call out to OpenStack, Admin(Email), Groupy Hooks..
-        #self.update_images()
+        self.update_images()
 
     def update(self, *args, **kwargs):
         """

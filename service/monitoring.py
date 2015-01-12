@@ -394,7 +394,7 @@ def check_over_allocation(username, identity_uuid,
 def get_allocation(username, identity_uuid):
     user = User.objects.get(username=username)
     try:
-        membership = IdentityMembership.objects.get(identity__id=identity_id,
+        membership = IdentityMembership.objects.get(identity__id=identity_uuid,
                                                 member=user)
     except IdentityMembership.DoesNotExist:
         logger.warn(

@@ -26,7 +26,7 @@ from core.models.tag import Tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
 
-from core.application import save_app_data
+from core.application import save_app_to_metadata
 from threepio import logger
 
 def private_object(modeladmin, request, queryset):
@@ -165,7 +165,7 @@ class ApplicationAdmin(admin.ModelAdmin):
         form.save_m2m()
         if change:
             try:
-                save_app_data(application)
+                save_app_to_metadata(application)
             except Exception, e:
                 logger.exception("Could not update metadata for application %s"
                                  % application)

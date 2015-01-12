@@ -93,19 +93,19 @@ def _tenant_name_to_id(provider, tenant_name):
         raise Exception("Tenant named %s not found" % tenant_name)
     return tenant.id
 
-def save_app_data(application, **extras):
+def save_app_to_metadata(application, **extras):
     all_pms = application.providermachine_set.all()
     if not all_pms:
         return
     for provider_machine in all_pms:
         try:
-            write_app_data(application, provider_machine, **extras)
+            write_app_to_metadata(application, provider_machine, **extras)
         except AttributeError:
             logging.exception("Error writing app data to %s."
                               "HINT: Does it still exist?"
                               % provider_machine)
 
-def write_app_data(application, provider_machine, **extras):
+def write_app_to_metadata(application, provider_machine, **extras):
     image_kwargs= {}
     image_id = provider_machine.identifier
     #These calls are better served connecting to chromogenic Image Manager
@@ -163,7 +163,7 @@ def write_app_data(application, provider_machine, **extras):
     return
 
 
-def clear_app_data(provider_machine):
+def clear_app_metadata(provider_machine):
     esh_driver = get_app_driver(provider_machine)
     esh_machine = esh_driver.get_machine(provider_machine.identifier)
     mach_data = {
@@ -179,12 +179,12 @@ def clear_app_data(provider_machine):
     return update_machine_metadata(esh_driver, esh_machine, mach_data)
 
 
-def has_app_data(metadata):
+def has_app_metadata(metadata):
     return all([metadata.get('application_%s' % key) for key in
                 ["version", "uuid", "name", "owner", "tags", "description"]])
 
 
-def get_app_data(metadata, provider_id):
+def get_app_metadata(metadata, provider_id):
     create_app_kwargs = {}
     for key, val in metadata.items():
         if key.startswith('application_'):
