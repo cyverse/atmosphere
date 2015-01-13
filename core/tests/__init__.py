@@ -1,4 +1,5 @@
 from core.tests.instance import *
+from core.tests.machine_request import *
 from atmosphere.settings import secrets
 from core.models import PlatformType, ProviderType, ProviderCredential,\
                         Provider, Identity

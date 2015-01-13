@@ -357,7 +357,7 @@ def _create_new_provider_machine(machine_request, application, new_image_id):
             {'version' : machine_request.new_machine_version})
     return new_machine
 
-def process_machine_request(machine_request, new_image_id):
+def process_machine_request(machine_request, new_image_id, core_only=False):
     from core.models.machine import add_to_cache
     from core.application import update_owner
     from core.models.tag import Tag
@@ -395,9 +395,9 @@ def process_machine_request(machine_request, new_image_id):
     tenant_name = user.username
     update_owner(new_machine, tenant_name)
 
-    save_app_to_metadata(new_machine.application)
-
-    add_to_cache(new_machine)
+    if not core_only:
+        save_app_to_metadata(new_machine.application)
+        add_to_cache(new_machine)
 
     machine_request.end_date = timezone.now()
 

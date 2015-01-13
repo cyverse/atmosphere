@@ -62,6 +62,9 @@ class ProviderMachine(models.Model):
         except Exception as ex:
             logger.warn("Image Update Failed for %s on Provider %s"
                         % (image_id, provider))
+    def update_version(self, version):
+        self.version = version
+        self.save()
 
     
     def icon_url(self):
