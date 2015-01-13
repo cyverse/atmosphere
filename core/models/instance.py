@@ -285,15 +285,15 @@ class Instance(models.Model):
         (Destroyed, terminated, no longer exists..)
         """
         if not end_date:
-            end_date = timezone.now()
+            now_time = timezone.now()
         ish_list = self.instancestatushistory_set.filter(end_date=None)
         for ish in ish_list:
             # logger.info('Saving history:%s' % ish)
-            ish.end_date = end_date
+            ish.end_date = now_time
             ish.save()
         if not self.end_date:
             # logger.info("Saving Instance:%s" % self)
-            self.end_date = end_date
+            self.end_date = now_time
             self.save()
 
     def creator_name(self):
@@ -409,10 +409,9 @@ class InstanceStatusHistory(models.Model):
         try:
             with transaction.atomic():
                 if not last_history:
-                    #TODO: What does this do? is it still useful if we call it
-                    #      down here? Calling this fails when
-                    #      last_history == None
-                    last_history = instance.get_last_history()
+                    # Required to prevent race conditions.
+                    last_history = instance.get_last_history()\
+                                           .select_for_update(nowait=True)
                     if not last_history:
                         raise ValueError("A previous history is required "
                                          "to perform a transaction. Instance:%s"
