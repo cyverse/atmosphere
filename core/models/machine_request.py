@@ -307,6 +307,7 @@ class MachineRequest(models.Model):
 
 
 def _create_new_application(machine_request, new_image_id, tags=[]):
+    from core.models import Identity
     new_provider = machine_request.new_machine_provider
     user = machine_request.new_machine_owner
     owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
@@ -329,6 +330,8 @@ def _update_application(machine_request, new_image_id, tags=[]):
     tags.extend(parent_app.tags.all())
     #If this machine request has a description,
     # or if it has new tags, changes in privacy, update the app.
+    if machine_request.new_machine_name != parent_app.name:
+        parent_app.name = machine_request.new_machine_name
     if machine_request.new_machine_description:
         parent_app.description = description
     parent_app.private = not machine_request.is_public()
@@ -337,6 +340,11 @@ def _update_application(machine_request, new_image_id, tags=[]):
     return parent_app
 
 def _update_existing_machine(machine_request, application, provider_machine):
+    from core.models import Identity
+    new_provider = machine_request.new_machine_provider
+    user = machine_request.new_machine_owner
+    owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
+
     provider_machine.application = application
     provider_machine.version = machine_request.new_machine_version
     provider_machine.created_by = user
@@ -345,23 +353,25 @@ def _update_existing_machine(machine_request, application, provider_machine):
 
 def _create_new_provider_machine(machine_request, application, new_image_id):
     #Set application data to an existing/new providermachine
+    from core.models import ProviderMachine
     try:
         #In this case, we have 'found' the ProviderMachine via other methods
         #PRIOR to processing machine request
+        new_provider = machine_request.new_machine_provider
         new_machine = ProviderMachine.objects.get(identifier=new_image_id, provider=new_provider)
         _update_existing_machine(machine_request, application, new_machine)
     except ProviderMachine.DoesNotExist:
         new_machine = create_provider_machine(
             machine_request.new_machine_name, new_image_id,
-            machine_request.new_machine_provider_id, app_to_use,
-            {'version' : machine_request.new_machine_version})
+            machine_request.new_machine_provider.uuid, application, {
+                'owner':machine_request.new_machine_owner, 
+                'version' : machine_request.new_machine_version})
     return new_machine
 
-def process_machine_request(machine_request, new_image_id, core_only=False):
+def process_machine_request(machine_request, new_image_id, update_cloud=True):
     from core.models.machine import add_to_cache
     from core.application import update_owner
     from core.models.tag import Tag
-    from core.models import Identity, ProviderMachine
     #Get all the data you can from the machine request
     #TODO: This could select multiple, we should probably have a more
     #TODO: restrictive query here..
@@ -392,10 +402,11 @@ def process_machine_request(machine_request, new_image_id, core_only=False):
 
     #TODO: Lookup tenant name when we move away from
     # the usergroup model
+    user = machine_request.new_machine_owner
     tenant_name = user.username
-    update_owner(new_machine, tenant_name)
+    update_owner(new_machine, tenant_name, update_cloud)
 
-    if not core_only:
+    if update_cloud:
         save_app_to_metadata(new_machine.application)
         add_to_cache(new_machine)
 

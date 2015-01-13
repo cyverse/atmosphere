@@ -5,7 +5,8 @@ for Core objects
 from core.models import Allocation, Application, AtmosphereUser, Group,\
         Identity, IdentityMembership, \
         Instance, InstanceStatus, InstanceStatusHistory,\
-        Provider,ProviderType, PlatformType, ProviderMembership, \
+        MachineRequest, Provider, \
+        ProviderType, PlatformType, ProviderMembership, \
         ProviderMachine, Size, Quota
 from core.fields import VersionNumber
 from uuid import uuid4
@@ -28,17 +29,17 @@ def _new_providers():
         "workshop": openstack_workshop
     }
 
-def _new_mock_identity_member(username):
+def _new_mock_identity_member(username, provider):
     #Mock a user and an identity..
     mock_user = AtmosphereUser.objects.get_or_create(
             username=username)[0]
     mock_group = Group.objects.get_or_create(
             name=username)[0]
     mock_prov_member = ProviderMembership.objects.get_or_create(
-            provider=self.provider, member=mock_group)[0]
+            provider=provider, member=mock_group)[0]
     mock_identity = Identity.objects.get_or_create(
             created_by=mock_user,
-            provider=self.provider)[0]
+            provider=provider)[0]
     mock_allocation = Allocation.default_allocation()
     mock_quota = Quota.default_quota()
     mock_identity_member = IdentityMembership.objects.get_or_create(
@@ -130,7 +131,8 @@ class CoreInstanceHelper(object):
         self.AVAILABLE_PROVIDERS = _new_providers()
         self.set_provider(provider)
         #Mock the User, Identity, and dependencies..
-        identity_member = self._new_mock_identity_member(username)
+        identity_member = _new_mock_identity_member(
+                username, self.provider)
         self.identity = identity_member.identity
         self.user = self.identity.created_by
         self._init_provider_machines()
@@ -198,7 +200,7 @@ class CoreInstanceHelper(object):
 
 class CoreProviderMachineHelper(object):
 
-    def __init__(self, name, identifier, start_date, username='mock_user'):
+    def __init__(self, name, identifier, provider, start_date, username='mock_user'):
         self.name = name
         self.uuid = identifier
         #NOTE: Using 'identifier' as ProviderMachine and Application id's
@@ -206,11 +208,20 @@ class CoreProviderMachineHelper(object):
         self.start_date = start_date
         #Mock Provider and dependencies..
         self.AVAILABLE_PROVIDERS = _new_providers()
-        self.provider = self.AVAILABLE_PROVIDERS[provider]
+        self.set_provider(provider)
         #Mock the User, Identity, and dependencies..
-        identity_member = _new_mock_identity_member(username)
+        identity_member = _new_mock_identity_member(
+                username, self.provider)
         self.identity = identity_member.identity
         self.user = self.identity.created_by
+
+    def set_provider(self, provider):
+        if provider not in self.AVAILABLE_PROVIDERS:
+            raise ValueError(
+                "The test provider specified '%s' is not a valid provider"
+                % provider)
+        self.provider = self.AVAILABLE_PROVIDERS[provider]
+
 
     def to_core_machine(self):
         self.machine = _new_provider_machine(self.name, self.version,
@@ -220,17 +231,28 @@ class CoreProviderMachineHelper(object):
 class CoreMachineRequestHelper(object):
     def __init__(self, new_machine_name, start_date,
             new_machine_version='1.0', new_machine_forked=True,
-            instance=None, username='mock_user'):
-        identity_member = _new_mock_identity_member(username)
+            instance=None, provider='openstack', username='mock_user'):
+        self.AVAILABLE_PROVIDERS = _new_providers()
+        self.set_provider(provider)
+        identity_member = _new_mock_identity_member(
+                username, self.provider)
         self.identity = identity_member.identity
         self.user = self.identity.created_by
         self.forked = new_machine_forked
         if not instance:
-            instance = _new_core_instance("Mock Instance", uuid4(), start_date,
-                    self.identity, None)
+            instance = _new_core_instance(
+                    "Mock Instance", uuid4(), start_date, self.identity, None)
         self.new_machine_name = new_machine_name
+        self.new_machine_version = new_machine_version
         self.instance = instance
         self.start_date = start_date
+
+    def set_provider(self, provider):
+        if provider not in self.AVAILABLE_PROVIDERS:
+            raise ValueError(
+                "The test provider specified '%s' is not a valid provider"
+                % provider)
+        self.provider = self.AVAILABLE_PROVIDERS[provider]
 
     def to_core_machine_request(self):
         provider_machine = self.instance.provider_machine
@@ -240,5 +262,6 @@ class CoreMachineRequestHelper(object):
                 parent_machine = provider_machine,
                 new_machine_provider=provider_machine.provider,
                 new_machine_name=self.new_machine_name,
+                new_machine_version=self.new_machine_version,
                 new_machine_owner=self.user, new_machine_visibility='public',
                 new_machine_forked=self.forked, start_date=self.start_date)[0]

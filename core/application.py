@@ -27,12 +27,13 @@ def _fix_existing_machines():
             print "Exception = %s" % exc
 
 
-def update_owner(provider_machine, tenant_name):
+def update_owner(provider_machine, tenant_name, update_cloud=True):
     #TODO: If we switch from user-group model this will have to do some
     # lookup from username on provider to select specific tenant for
     # the _os_update portion..
     _db_update_owner(provider_machine.application, tenant_name)
-    _os_update_owner(provider_machine, tenant_name)
+    if update_cloud:
+        _os_update_owner(provider_machine, tenant_name)
 
 def _db_update_owner(application, username):
     from core.models.user import AtmosphereUser
