@@ -17,6 +17,7 @@ from core.models.post_boot import BootScript
 from core.models.profile import UserProfile
 from core.models.project import Project
 from core.models.provider import ProviderType, Provider
+from core.models.request import AllocationRequest, QuotaRequest
 from core.models.size import Size
 from core.models.step import Step
 from core.models.tag import Tag, find_or_create_tag
@@ -809,3 +810,28 @@ class InstanceStatusHistorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = InstanceStatusHistory
+
+
+class AllocationRequestSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True, source="uuid")
+    created_by = serializers.SlugRelatedField(
+        slug_field='username', source='created_by', read_only=True)
+    status = serializers.SlugRelatedField(
+        slug_field='name', source='status', read_only=True)
+
+    class Meta:
+        model = AllocationRequest
+        exclude = ('uuid', 'membership', 'current_allocation',
+                   'allocation_recieved')
+
+
+class QuotaRequestSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True, source="uuid")
+    created_by = serializers.SlugRelatedField(
+        slug_field='username', source='created_by', read_only=True)
+    status = serializers.SlugRelatedField(
+        slug_field='name', source='status', read_only=True)
+
+    class Meta:
+        model = QuotaRequest
+        exclude = ('uuid', 'membership', 'current_quota', 'quota_recieved')
