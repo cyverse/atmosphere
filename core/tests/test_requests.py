@@ -11,14 +11,14 @@ class TestAllocationRequest(TestCase):
         self.message = "Allocation admin message"
         self.request = "Allocation of size x"
         self.blank_request = AllocationRequest(
-            admin_message=self.message, allocation_requested_text=self.request,
+            admin_message=self.message, request=self.request,
             status=self.status)
 
     def test_blank_request(self):
         self.assertEquals(self.blank_request.admin_message, self.message)
         self.assertEquals(self.blank_request.status, self.status)
         self.assertEquals(
-            self.blank_request.allocation_requested_text, self.request)
+            self.blank_request.request, self.request)
 
 
 class TestQuotaRequest(TestCase):
@@ -27,11 +27,11 @@ class TestQuotaRequest(TestCase):
         self.message = "Quota admin message"
         self.request = "Quota x"
         self.blank_request = QuotaRequest(
-            admin_message=self.message, quota_requested_text=self.request,
+            admin_message=self.message, request=self.request,
             status=self.status)
 
     def test_blank_request(self):
         self.assertEquals(self.blank_request.admin_message, self.message)
         self.assertEquals(self.blank_request.status, self.status)
         self.assertEquals(
-            self.blank_request.quota_requested_text, self.request)
+            self.blank_request.request, self.request)

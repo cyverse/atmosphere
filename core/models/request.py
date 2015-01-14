@@ -32,6 +32,7 @@ class StatusType(models.Model):
 
 class BaseRequestMixin(models.Model):
     uuid = models.CharField(max_length=36, default=uuid4)
+    request = models.TextField()
     description = models.CharField(max_length=1024, default="", blank=True)
     status = models.ForeignKey(StatusType)
 
@@ -65,7 +66,6 @@ class AllocationRequest(BaseRequestMixin):
     # Resources requested
     current_allocation = models.ForeignKey(
         Allocation, related_name="current_allocation")
-    allocation_requested_text = models.TextField()
     allocation_recieved = models.ForeignKey(
         Allocation, null=True, blank=True, related_name="allocation_recieved")
 
@@ -79,7 +79,6 @@ class QuotaRequest(BaseRequestMixin):
     """
     # Resources requested
     current_quota = models.ForeignKey(Quota, related_name="current_quota")
-    quota_requested_text = models.TextField()
     quota_recieved = models.ForeignKey(
         Quota, null=True, blank=True, related_name="quota_recieved")
 
