@@ -6,8 +6,7 @@ from django.conf.urls import patterns, url, include
 
 
 from rest_framework.urlpatterns import format_suffix_patterns
-
-
+from api.auth import Authentication 
 
 resources_path = os.path.join(os.path.dirname(__file__), 'resources')
 mobile = os.path.join(os.path.dirname(__file__), 'mobile')
@@ -30,7 +29,8 @@ urlpatterns = patterns(
     url(r'^admin_login/', 'web.views.redirectAdmin'),
 
     #v2 api auth by token
-    url(r'^auth$', 'authentication.views.token_auth', name='token-auth'),
+    url(r'^auth$', Authentication.as_view(), name='token-auth'),
+    #url(r'^auth$', 'authentication.views.token_auth', name='token-auth'),
 
     #File Retrieval:
     # Systemwide
