@@ -18,6 +18,24 @@ from authentication.protocol.oauth import lookupUser as oauth_lookupUser
 
 
 
+class MockLoginBackend(ModelBackend):
+    """
+    AuthenticationBackend for Testing login
+    (Logging in from admin or Django REST framework login)
+    """
+    def authenticate(self, username=None, password=None, request=None):
+        """
+        Return user if Always
+        Return None Never.
+        """
+        return get_or_create_user(username, {
+            'firstName':"Mocky Mock",
+            'lastName':"MockDoodle",
+            'email': 'sparkles@iplantcollaborative.org'})
+
+
+
+
 class SAMLLoginBackend(ModelBackend):
     """
     Implemting an AuthenticationBackend
