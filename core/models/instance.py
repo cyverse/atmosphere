@@ -617,7 +617,7 @@ def convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
     core_instance.esh = esh_instance
     #Update the InstanceStatusHistory
     core_size = _esh_instance_size_to_core(esh_driver,
-            esh_instance, provider_id)
+            esh_instance, provider_uuid)
     #TODO: You are the mole!
     core_instance.update_history(
         esh_instance.extra['status'],
