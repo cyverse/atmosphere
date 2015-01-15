@@ -5,7 +5,8 @@ from core.models.application import Application, ApplicationScore,\
 from core.models.credential import Credential
 from core.models.group import get_user_group
 from core.models.group import Group
-from core.models.group import IdentityMembership
+from core.models.quota import Quota
+from core.models.allocation import Allocation
 from core.models.identity import Identity
 from core.models.instance import Instance
 from core.models.instance import InstanceStatusHistory
@@ -804,12 +805,20 @@ class TagSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Tag
+
+
 class InstanceStatusHistorySerializer(serializers.ModelSerializer):
     instance = serializers.SlugRelatedField(slug_field='provider_alias')
     size = serializers.SlugRelatedField(slug_field='alias')
 
     class Meta:
         model = InstanceStatusHistory
+
+
+class AllocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Allocation
+        exclude = ("id",)
 
 
 class AllocationRequestSerializer(serializers.ModelSerializer):
@@ -823,6 +832,12 @@ class AllocationRequestSerializer(serializers.ModelSerializer):
         model = AllocationRequest
         exclude = ('uuid', 'membership', 'current_allocation',
                    'allocation_recieved')
+
+
+class QuotaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Quota
+        exclude = ("id",)
 
 
 class QuotaRequestSerializer(serializers.ModelSerializer):
