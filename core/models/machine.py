@@ -329,8 +329,9 @@ def _create_machine_and_app(esh_machine, provider_uuid):
                                              app=app)
     return provider_machine
 
-def convert_esh_machine(esh_driver, esh_machine, provider_uuid, user,
-                        identifier=None):
+def convert_esh_machine(
+        esh_driver, esh_machine,
+        provider_uuid, user, identifier=None):
     """
     Takes as input an (rtwo) driver and machine, and a core provider id
     Returns as output a core ProviderMachine

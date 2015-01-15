@@ -19,6 +19,7 @@ from threepio import logger
 from core.models.abstract import InstanceSource
 from core.models.identity import Identity
 from core.models.machine import ProviderMachine, convert_esh_machine
+from core.models.volume import convert_esh_volume
 from core.models.size import convert_esh_size
 from core.models.tag import Tag
 
@@ -68,8 +69,7 @@ class Instance(models.Model):
     token = models.CharField(max_length=36, blank=True, null=True)
     tags = models.ManyToManyField(Tag, blank=True)
     # The specific machine & provider for which this instance exists
-    provider_machine = models.ForeignKey(ProviderMachine)
-    source = models.ForeignKey(InstanceSource, blank=True, null=True, related_name='source_type')
+    source = models.ForeignKey(InstanceSource, related_name='instances')
     provider_alias = models.CharField(max_length=256, unique=True)
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     created_by = models.ForeignKey('AtmosphereUser')
@@ -601,31 +601,48 @@ def _convert_timestamp(create_stamp):
     return start_date
 
 
+def convert_instance_source(esh_driver, esh_source, provider_uuid, identity_uuid, user):
+    """
+    Given the instance source, create the appropriate core REPR and return
+    """
+    from rtwo.volume import BaseVolume
+    from rtwo.machine import BaseMachine
+    #TODO: Future Release..
+    #if isinstance(esh_source, BaseSnapShot):
+    #    core_source = convert_esh_snapshot(esh_source, provider_uuid, identity_uuid, user)
+    if isinstance(esh_source, BaseVolume):
+        core_source = convert_esh_volume(esh_source, provider_uuid, identity_uuid, user)
+    elif isinstance(esh_source, BaseMachine):
+        if type(esh_source) == MockMachine:
+            #MockMachine includes only the Alias/ID information
+            #so a lookup on the machine is required to get accurate
+            #information.
+            esh_source = esh_driver.get_machine(esh_source.id)
+        core_source = convert_esh_machine(esh_driver, esh_machine,
+                                          provider_uuid, user)
+    elif not isinstance(esh_source, BaseMachine):
+        raise Exception ("Encountered unknown source %s" % esh_source)
+    return core_source
+
+
 def convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
                          user, token=None, password=None):
     """
     """
     instance_id = esh_instance.id
     ip_address = _find_esh_ip(esh_instance)
-    esh_machine = esh_instance.machine
+    source_obj = esh_instance.source
     core_instance = find_instance(instance_id)
     if core_instance:
         _update_core_instance(core_instance, ip_address, password)
     else:
         start_date = _find_esh_start_date(esh_instance)
         logger.debug("Instance: %s" % instance_id)
-        if type(esh_machine) == MockMachine:
-            #MockMachine includes only the Alias/ID information
-            #so a lookup on the machine is required to get accurate
-            #information.
-            esh_machine = esh_driver.get_machine(esh_machine.id)
-        #Ensure that core Machine exists
-        coreMachine = convert_esh_machine(esh_driver, esh_machine,
-                                          provider_uuid, user,
-                                          identifier=esh_instance.image_id)
+        core_source = convert_instance_source(esh_driver, source_obj,
+                provider_uuid, identity_uuid, user)
         #Use New/Existing core Machine to create core Instance
         core_instance = create_instance(provider_uuid, identity_uuid, instance_id,
-                                      coreMachine, ip_address,
+                                      core_source, ip_address,
                                       esh_instance.name, user,
                                       start_date, token, password)
     #Add 'esh' object
@@ -690,7 +707,7 @@ def set_instance_from_metadata(esh_driver, core_instance):
     core_instance.esh = esh_instance
     return core_instance
 
-def create_instance(provider_uuid, identity_uuid, provider_alias, provider_machine,
+def create_instance(provider_uuid, identity_uuid, provider_alias, instance_source,
                    ip_address, name, creator, create_stamp,
                    token=None, password=None):
     #TODO: Define a creator and their identity by the METADATA instead of
@@ -698,7 +715,7 @@ def create_instance(provider_uuid, identity_uuid, provider_alias, provider_machi
     identity = Identity.objects.get(uuid=identity_uuid)
     new_inst = Instance.objects.create(name=name,
                                        provider_alias=provider_alias,
-                                       provider_machine=provider_machine,
+                                       source=instance_source,
                                        ip_address=ip_address,
                                        created_by=creator,
                                        created_by_identity=identity,
