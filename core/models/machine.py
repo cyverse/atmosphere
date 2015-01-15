@@ -9,6 +9,7 @@ from django.utils import timezone
 from threepio import logger
 
 from atmosphere import settings
+from core.models.abstract import InstanceSource
 from core.models.application import Application
 from core.models.application import create_application, get_application
 from core.models.identity import Identity
@@ -20,25 +21,38 @@ from core.metadata import _get_owner_identity
 from core.application import get_os_account_driver, write_app_to_metadata,\
                              has_app_metadata, get_app_metadata
 
-class ProviderMachine(models.Model):
+
+class ProviderMachine(InstanceSource):
     """
     Machines are created by Providers, and multiple providers
     can implement a single machine (I.e. Ubuntu 12.04)
     However each provider will have a specific, unique identifier
     to represent that machine. (emi-12341234 vs ami-43214321)
     """
-    #Field is Filled out at runtime.. after converting an eshMachine
-    esh = None
-    cached_machines = None
-    provider = models.ForeignKey(Provider)
     application = models.ForeignKey(Application)
-
-    identifier = models.CharField(max_length=256)  # EMI-12341234
-    created_by = models.ForeignKey('AtmosphereUser', null=True)
-    created_by_identity = models.ForeignKey(Identity, null=True)
-    start_date = models.DateTimeField(default=timezone.now())
-    end_date = models.DateTimeField(null=True, blank=True)
     version = models.CharField(max_length=128, default='1.0.0')
+    def source_end_date(self):
+        return self.instancesource_ptr.end_date
+    def source_provider(self):
+        return self.instancesource_ptr.provider
+    def source_identifier(self):
+        return self.instancesource_ptr.identifier
+
+    class Meta:
+        db_table = "provider_machine"
+        app_label = "core"
+    #Field is Filled out at runtime.. after converting an eshMachine
+    #esh = None
+    #cached_machines = None
+    #provider = models.ForeignKey(Provider)
+    #application = models.ForeignKey(Application)
+
+    #identifier = models.CharField(max_length=256)  # EMI-12341234
+    #created_by = models.ForeignKey('AtmosphereUser', null=True)
+    #created_by_identity = models.ForeignKey(Identity, null=True)
+    #start_date = models.DateTimeField(default=timezone.now())
+    #end_date = models.DateTimeField(null=True, blank=True)
+    #version = models.CharField(max_length=128, default='1.0.0')
 
     def update_image(self, **image_updates):
         """
@@ -61,7 +75,7 @@ class ProviderMachine(models.Model):
             accounts.image_manager.update_image(image, **updates)
         except Exception as ex:
             logger.warn("Image Update Failed for %s on Provider %s"
-                        % (image_id, provider))
+                        % (self.identifier, provider))
     def update_version(self, version):
         self.version = version
         self.save()
@@ -110,10 +124,10 @@ class ProviderMachine(models.Model):
         return "%s (Provider:%s - App:%s) " %\
             (self.identifier, self.provider, self.application)
 
-    class Meta:
-        db_table = "provider_machine"
-        app_label = "core"
-        unique_together = ('provider', 'identifier')
+    #class Meta:
+    #    db_table = "provider_machine"
+    #    app_label = "core"
+    #    unique_together = ('provider', 'identifier')
 
 class ProviderMachineMembership(models.Model):
     """
@@ -162,19 +176,21 @@ def get_cached_machine(provider_alias, provider_id):
     return cached_mach
 
 
-def load_provider_machine(provider_alias, machine_name, provider_uuid,
+def load_provider_machine(image_id, machine_name, provider_uuid,
                           app=None, metadata={}):
     """
     Returns ProviderMachine
     """
-    provider_machine = get_provider_machine(provider_alias, provider_uuid)
+    provider_machine = get_provider_machine(image_id, provider_uuid)
     if provider_machine:
         return provider_machine
     if not app:
-        app = get_application(provider_alias, app_uuid=metadata.get('uuid'))
+        app = get_application(image_id, app_uuid=metadata.get('uuid'))
     if not app:
-        app = create_application(provider_alias, provider_uuid, machine_name)
-    return create_provider_machine(machine_name, provider_alias, provider_uuid, app=app, metadata=metadata)
+        app = create_application(image_id, provider_uuid, machine_name)
+    return create_provider_machine(
+            machine_name, image_id, provider_uuid,
+            app=app, metadata=metadata)
 
 def _extract_tenant_name(identity):
     tenant_name = identity.get_credential('ex_tenant_name')
@@ -213,7 +229,7 @@ def update_application_owner(application, identity):
         accounts.image_manager.unshare_image(image, old_tenant_name)
         print "Removed access to %s for %s" % (image_id, old_tenant_name)
 
-def create_provider_machine(machine_name, provider_alias, provider_uuid, app,
+def create_provider_machine(machine_name, image_id, provider_uuid, app,
                             metadata={}):
     #Attempt to match machine by provider alias
     #Admin identity used until the real owner can be identified.
@@ -226,11 +242,12 @@ def create_provider_machine(machine_name, provider_alias, provider_uuid, app,
     logger.debug("App %s" % app)
     provider_machine = ProviderMachine.objects.create(
         application = app,
-        provider = provider,
+        version = metadata.get('version',"1.0"),
+        identifier = image_id,
         created_by = machine_owner.created_by,
+        provider = provider,
         created_by_identity = machine_owner,
-        identifier = provider_alias,
-        version = metadata.get('version',"1.0"))
+        )
     logger.info("New ProviderMachine created: %s" % provider_machine)
     add_to_cache(provider_machine)
     return provider_machine
@@ -313,13 +330,13 @@ def _create_machine_and_app(esh_machine, provider_uuid):
     return provider_machine
 
 def convert_esh_machine(esh_driver, esh_machine, provider_uuid, user,
-                        image_id=None):
+                        identifier=None):
     """
     Takes as input an (rtwo) driver and machine, and a core provider id
     Returns as output a core ProviderMachine
     """
-    if image_id and not esh_machine:
-        return _convert_from_instance(esh_driver, provider_uuid, image_id)
+    if identifier and not esh_machine:
+        return _convert_from_instance(esh_driver, provider_uuid, identifier)
     elif not esh_machine:
         return None
 

@@ -16,6 +16,7 @@ from rtwo.size import MockSize
 
 from threepio import logger
 
+from core.models.abstract import InstanceSource
 from core.models.identity import Identity
 from core.models.machine import ProviderMachine, convert_esh_machine
 from core.models.size import convert_esh_size
@@ -68,6 +69,7 @@ class Instance(models.Model):
     tags = models.ManyToManyField(Tag, blank=True)
     # The specific machine & provider for which this instance exists
     provider_machine = models.ForeignKey(ProviderMachine)
+    source = models.ForeignKey(InstanceSource, blank=True, null=True, related_name='source_type')
     provider_alias = models.CharField(max_length=256, unique=True)
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     created_by = models.ForeignKey('AtmosphereUser')
@@ -345,17 +347,30 @@ class Instance(models.Model):
         else:
             return "Unknown"
 
-    def esh_machine_name(self):
-        return self.provider_machine.application.name
+    def esh_source_name(self):
+        try:
+            return self.source.providermachine.application.name
+        except ProviderMachine.DoesNotExist:
+            pass
+
+        try:
+            return self.source.volume.name
+        except Volume.DoesNotExist:
+            return "N/A"
+
+        #try:
+        #    return self.source.snapshot.name
+        #except SnapShot.DoesNotExist:
+        #    return "No Machine"
 
     def provider_uuid(self):
-        return self.provider_machine.provider.uuid
+        return self.source.provider.uuid
 
     def provider_name(self):
-        return self.provider_machine.provider.location
+        return self.souce.provider.location
 
-    def esh_machine(self):
-        return self.provider_machine.identifier
+    def esh_source(self):
+        return self.source.identifier
 
     def json(self):
         return {
@@ -607,7 +622,7 @@ def convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
         #Ensure that core Machine exists
         coreMachine = convert_esh_machine(esh_driver, esh_machine,
                                           provider_uuid, user,
-                                          image_id=esh_instance.image_id)
+                                          identifier=esh_instance.image_id)
         #Use New/Existing core Machine to create core Instance
         core_instance = create_instance(provider_uuid, identity_uuid, instance_id,
                                       coreMachine, ip_address,
@@ -617,7 +632,7 @@ def convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
     core_instance.esh = esh_instance
     #Update the InstanceStatusHistory
     core_size = _esh_instance_size_to_core(esh_driver,
-            esh_instance, provider_id)
+            esh_instance, provider_uuid)
     #TODO: You are the mole!
     core_instance.update_history(
         esh_instance.extra['status'],
@@ -628,7 +643,7 @@ def convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
     core_instance = set_instance_from_metadata(esh_driver, core_instance)
     return core_instance
 
-def _esh_instance_size_to_core(esh_driver, esh_instance, provider_id):
+def _esh_instance_size_to_core(esh_driver, esh_instance, provider_uuid):
     #NOTE: Querying for esh_size because esh_instance
     #Only holds the alias, not all the values.
     #As a bonus this is a cached-call
@@ -638,7 +653,7 @@ def _esh_instance_size_to_core(esh_driver, esh_instance, provider_id):
         #so a lookup on the size is required to get accurate
         #information.
         esh_size = esh_driver.get_size(esh_size.id)
-    core_size = convert_esh_size(esh_size, provider_id)
+    core_size = convert_esh_size(esh_size, provider_uuid)
     return core_size
 
 def set_instance_from_metadata(esh_driver, core_instance):

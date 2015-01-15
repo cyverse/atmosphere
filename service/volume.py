@@ -56,22 +56,3 @@ def create_volume(esh_driver, identity_uuid, name, size,
         image=image)
     return success, esh_volume
 
-def boot_volume(esh_driver, identity_uuid, name, size, source_obj=None, source_type=None, **kwargs):
-    """
-    If not image and volume: boot the volume, it already has na image on it
-    If image and not volume: boot a new volume with a copy of image on it
-    If image and volume: raise
-    """
-    #TODO: Prepare a network for the user
-    core_identity = Identity.objects.get(uuid=identity_uuid)
-    network = network_init(core_identity)
-    success, server_obj = esh_driver._connection.ex_boot_volume(
-            source_obj, source_type, name, size, network,
-            **kwargs)
-    if server_obj.has_key('server'):
-        instance_id = server_obj["server"]["id"]
-        instance = esh_driver.get_instance(instance_id)
-        return instance
-    else:
-        logger.info(server_obj)
-        return server_obj

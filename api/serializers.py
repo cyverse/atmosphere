@@ -387,9 +387,9 @@ class InstanceSerializer(serializers.ModelSerializer):
     status = serializers.CharField(read_only=True, source='esh_status')
     fault = serializers.Field(source='esh_fault')
     size_alias = serializers.CharField(read_only=True, source='esh_size')
-    machine_alias = serializers.CharField(read_only=True, source='esh_machine')
+    machine_alias = serializers.CharField(read_only=True, source='esh_source')
     machine_name = serializers.CharField(read_only=True,
-                                         source='esh_machine_name')
+                                         source='esh_source_name')
     machine_alias_hash = serializers.CharField(read_only=True,
                                                source='hash_machine_alias')
     ip_address = serializers.CharField(read_only=True)
