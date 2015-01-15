@@ -6,7 +6,7 @@ from django.conf.urls import patterns, url, include
 
 
 from rest_framework.urlpatterns import format_suffix_patterns
-
+from api.auth import Authentication 
 from api.accounts import Account
 from api.application import ApplicationSearch, ApplicationList, Application
 from api.email import Feedback, QuotaEmail, SupportEmail
@@ -59,7 +59,8 @@ urlpatterns = patterns(
     url(r'^admin_login/', 'web.views.redirectAdmin'),
 
     #v2 api auth by token
-    url(r'^auth$', 'authentication.views.token_auth', name='token-auth'),
+    url(r'^auth$', Authentication.as_view(), name='token-auth'),
+    #url(r'^auth$', 'authentication.views.token_auth', name='token-auth'),
 
     #File Retrieval:
     # Systemwide

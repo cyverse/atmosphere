@@ -204,6 +204,8 @@ AUTH_USER_MODULE = 'core.AtmosphereUser'
 AUTH_PROFILE_MODULE = 'core.UserProfile'
 
 AUTHENTICATION_BACKENDS = (
+    #For Always-OK Access
+    #'authentication.authBackends.MockLoginBackend',
     # For Token-Access
     'authentication.authBackends.AuthTokenLoginBackend',
     # For Web-Access
