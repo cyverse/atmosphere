@@ -16,7 +16,7 @@ from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import MachineRequestSerializer
 from core.models.machine_request import share_with_admins, share_with_self
 from core.models.machine_request import MachineRequest as CoreMachineRequest
-from core.models import Provider
+from core.models import Provider, ProviderMachine, Volume
 from web.emails import requestImaging
 from service.tasks.machine import start_machine_imaging
 
@@ -65,7 +65,7 @@ class MachineRequestList(APIView):
             machine_request = serializer.object
             try:
                 machine_request.parent_machine = machine_request.instance\
-                        .source.provider_machine
+                        .source.providermachine
             except ProviderMachine.DoesNotExist:
                 try:
                     machine_request.instance.source.volume

@@ -200,7 +200,7 @@ class IdentityRelatedField(serializers.RelatedField):
         if value is None:
             return
         try:
-            into[field_name] = Identity.objects.get(id=value)
+            into[field_name] = Identity.objects.get(uuid=value)
         except Identity.DoesNotExist:
             into[field_name] = None
 
@@ -497,13 +497,15 @@ class MachineRequestSerializer(serializers.ModelSerializer):
     shared_with = serializers.CharField(source="access_list", required=False)
 
     name = serializers.CharField(source='new_machine_name')
-    provider = serializers.PrimaryKeyRelatedField(
-        source='new_machine_provider')
+    provider = serializers.SlugRelatedField(
+        slug_field='uuid', source='new_machine_provider')
     owner = serializers.SlugRelatedField(slug_field='username',
                                          source='new_machine_owner')
     vis = serializers.CharField(source='new_machine_visibility')
-    version = serializers.IntegerField(source='new_machine_version')
-    forked = serializers.IntegerField(source='new_machine_forked')
+    version = serializers.CharField(source='new_machine_version',
+            required=False)
+    fork = serializers.BooleanField(source='new_machine_forked',
+            required=False)
     description = serializers.CharField(source='new_machine_description',
                                         required=False)
     tags = serializers.CharField(source='new_machine_tags', required=False)
@@ -556,6 +558,7 @@ class AtmoUserSerializer(serializers.ModelSerializer):
         selected_identity = attrs['selected_identity']
         logger.debug(selected_identity)
         groups = user.group_set.all()
+        import ipdb;ipdb.set_trace()
         for g in groups:
             for id_member in g.identitymembership_set.all():
                 if id_member.identity == selected_identity:
