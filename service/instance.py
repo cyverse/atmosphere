@@ -483,7 +483,7 @@ def launch_instance(user, provider_uuid, identity_uuid,
         raise Exception("Not enough data to launch: "
                         "volume_alias/machine_alias is missing")
     status_logger.debug("%s,%s,%s,%s,%s,%s"
-                 % (now_time, user, "No Instance", alias, size_alias,
+                 % (now_time, user, "No Instance", source_alias, size_alias,
                     "Request Received"))
     core_identity = CoreIdentity.objects.get(uuid=identity_uuid)
     esh_driver = get_cached_driver(identity=core_identity)
@@ -619,121 +619,6 @@ def _to_lc_network(driver, network, subnet):
     return lc_network
 
 
-def boot_volume(driver, core_identity_uuid,
-                name=None, size_alias=None,
-                #One of these values is required:
-                volume_alias=None, snapshot_alias=None, machine_alias=None,
-                #Depending on those values, these kwargs may/may not be used.
-                boot_index=0, shutdown=False, volume_size=None):
-    """
-    return CoreInstance
-    """
-    core_identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
-
-    esh_instance, token, instance_password = launch_bootable_volume(
-            driver, core_identity.uuid, size_alias=size_alias,
-            name=name,
-            volume_alias=volume_alias, snapshot_alias=snapshot_alias,
-            machine_alias=machine_alias, boot_index=boot_index,
-            shutdown=shutdown, volume_size=volume_size)
-    #Convert esh --> core
-    core_instance = convert_esh_instance(
-        driver, esh_instance, core_identity.provider.uuid, core_identity.uuid,
-        core_identity.created_by, token, instance_password)
-
-    esh_size = esh_driver.get_size(esh_instance.size.id)
-    core_size = convert_esh_size(esh_size, core_identity.provider.uuid)
-
-    core_instance.update_history(
-        core_instance.esh.extra['status'],
-        core_size,
-        #3rd arg is task OR tmp_status
-        core_instance.esh.extra.get('task') or
-        core_instance.esh.extra.get('metadata', {}).get('tmp_status'),
-        first_update=True)
-
-
-def launch_bootable_volume(driver, core_identity_uuid, size_alias,
-                name=None,
-                #One of these values is required:
-                volume_alias=None, snapshot_alias=None, machine_alias=None,
-                #Depending on those values, these kwargs may/may not be used.
-                boot_index=0, shutdown=False, volume_size=None):
-    """
-    return 3-tuple: (esh_instance, instance_token, instance_password)
-    """
-    from service import task
-
-    core_identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
-
-    size = driver.get_size(size_alias)
-    machine = None
-    snapshot = None
-    volume = None
-    if machine_alias:
-        #Gather the machine object
-        machine = driver.get_machine(machine_alias)
-        if not machine:
-            raise ValueError(
-                "Machine %s could not be located with this driver"
-                % machine_alias)
-    elif snapshot_alias:
-        #Gather the snapshot object
-        snapshot = driver.get_snapshot(snapshot_alias)
-        if not snapshot:
-            raise ValueError(
-                "Snapshot %s could not be located with this driver"
-                % snapshot_alias)
-    elif volume_alias:
-        #Gather the volume object
-        volume = driver.get_volume(volume_alias)
-        if not volume:
-            raise ValueError(
-                "Volume %s could not be located with this driver"
-                % volume_alias)
-    else:
-        raise ValueError("To boot a volume, you must select a source alias:"
-                " [machine_alias, volume_alias, snapshot_alias]")
-
-    try:
-        username = driver.identity.user.username
-    except Exception, no_username:
-        username = core_identity.created_by.username
-
-    instance_token = str(uuid.uuid4())
-    #create a unique one-time password for instance root user
-    instance_password = str(uuid.uuid4())
-
-    if isinstance(driver.provider, OSProvider):
-        security_group_init(core_identity)
-        network = network_init(core_identity)
-        keypair_init(core_identity)
-        credentials = core_identity.get_credentials()
-        tenant_name = credentials.get('ex_tenant_name')
-        ex_metadata = {'tmp_status': 'initializing',
-                       'tenant_name': tenant_name,
-                       'creator': '%s' % username}
-        ex_keyname = settings.ATMOSPHERE_KEYPAIR_NAME
-        boot_success, new_instance = driver.boot_volume(
-                name=name, image=machine, snapshot=snapshot, volume=volume,
-                boot_index=boot_index, shutdown=shutdown,
-                #destination_type=destination_type,
-                volume_size=volume_size, size=size, ex_metadata=ex_metadata,
-                ex_keyname=ex_keyname, networks=[network],
-                ex_admin_pass=instance_password)
-        #Used for testing.. Eager ignores countdown
-        if app.conf.CELERY_ALWAYS_EAGER:
-            logger.debug("Eager Task, wait 1 minute")
-            time.sleep(1*60)
-        # call async task to deploy to instance.
-        task.deploy_init_task(driver, new_instance, username,
-                              instance_password, instance_token)
-    else:
-        raise ValueError("The Provider: %s can't create bootable volumes"
-                         % driver.provider)
-    return (new_instance, instance_token, instance_password)
-
-
 
 
 def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
@@ -788,25 +673,16 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
                                  **kwargs)
         elif isinstance(driver.provider, OSProvider):
             deploy = True
-            if not using_admin:
-                security_group_init(core_identity)
-            network = network_init(core_identity)
-            keypair_init(core_identity)
-            credentials = core_identity.get_credentials()
-            tenant_name = credentials.get('ex_tenant_name')
-            ex_metadata = {'tmp_status': 'initializing',
-                           'tenant_name': tenant_name,
-                           'creator': '%s' % username}
-            ex_keyname = settings.ATMOSPHERE_KEYPAIR_NAME
+            #ex_metadata, ex_keyname
+            extra_args = _extra_openstack_args(core_identity)
+            kwargs.update(extra_args)
+            network = _provision_openstack_instance(core_identity)
             logger.debug("OS driver.create_instance kwargs: %s" % kwargs)
-            esh_instance = driver.create_instance(name=name, image=source_obj,
-                                                  size=size,
-                                                  token=instance_token,
-                                                  ex_metadata=ex_metadata,
-                                                  ex_keyname=ex_keyname,
-                                                  networks=[network],
-                                                  ex_admin_pass=instance_password,
-                                                  deploy=True, **kwargs)
+            esh_instance = driver.create_instance(
+                    name=name, image=source_obj, size=size,
+                    token=instance_token, 
+                    networks=[network], ex_admin_pass=instance_password,
+                    deploy=True, **kwargs)
             #Used for testing.. Eager ignores countdown
             if app.conf.CELERY_ALWAYS_EAGER:
                 logger.debug("Eager Task, wait 1 minute")
@@ -816,10 +692,10 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
                                   instance_password, instance_token)
         elif isinstance(driver.provider, AWSProvider):
             #TODO:Extra stuff needed for AWS provider here
-            esh_instance = driver.deploy_instance(name=name, image=source_obj,
-                                                  size=size, deploy=True,
-                                                  token=instance_token,
-                                                  **kwargs)
+            esh_instance = driver.deploy_instance(
+                    name=name, image=source_obj,
+                    size=size, deploy=True,
+                    token=instance_token, **kwargs)
         else:
             raise Exception("Unable to launch with this provider.")
         return (esh_instance, instance_token, instance_password)
@@ -827,6 +703,24 @@ def launch_esh_instance(driver, machine_alias, size_alias, core_identity,
         logger.exception(e)
         raise
 
+
+def _provision_openstack_instance(core_identity):
+    #TODO: AccountProviders setup logic here to dictate
+    #What we should do to provision an instance..
+    if not using_admin:
+        security_group_init(core_identity)
+    network = network_init(core_identity)
+    keypair_init(core_identity)
+    return network
+
+def _extra_openstack_args(core_identity):
+    credentials = core_identity.get_credentials()
+    tenant_name = credentials.get('ex_tenant_name')
+    ex_metadata = {'tmp_status': 'initializing',
+                   'tenant_name': tenant_name,
+                   'creator': '%s' % username}
+    ex_keyname = settings.ATMOSPHERE_KEYPAIR_NAME
+    return {"ex_metadata":ex_metadata, "ex_keyname":ex_keyname}
 
 def _get_init_script(instance_service_url, instance_token, instance_password,
                      instance_name, username, init_file_version="v1"):

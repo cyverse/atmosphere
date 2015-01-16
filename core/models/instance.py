@@ -311,9 +311,9 @@ class Instance(models.Model):
             return md5(self.esh._node.extra['imageId']).hexdigest()
         else:
             try:
-                if self.provider_machine:
-                    return md5(self.provider_machine.identifier).hexdigest()
-            except ProviderMachine.DoesNotExist as dne:
+                if self.source:
+                    return md5(self.source.identifier).hexdigest()
+            except InstanceSource.DoesNotExist as dne:
                 logger.exception("Unable to find provider_machine for %s." % self.provider_alias)
         return 'Unknown'
 
@@ -347,6 +347,12 @@ class Instance(models.Model):
         else:
             return "Unknown"
 
+    def application_uuid(self):
+        try:
+            return self.source.providermachine.application.uuid
+        except ProviderMachine.DoesNotExist:
+            return None
+
     def esh_source_name(self):
         try:
             return self.source.providermachine.application.name
@@ -357,7 +363,7 @@ class Instance(models.Model):
             return self.source.volume.name
         except Volume.DoesNotExist:
             return "N/A"
-
+        #TODO:Future Release.
         #try:
         #    return self.source.snapshot.name
         #except SnapShot.DoesNotExist:
@@ -367,7 +373,8 @@ class Instance(models.Model):
         return self.source.provider.uuid
 
     def provider_name(self):
-        return self.souce.provider.location
+        source_dict = self.source.__dict__
+        return self.source.provider.location
 
     def esh_source(self):
         return self.source.identifier
@@ -618,7 +625,7 @@ def convert_instance_source(esh_driver, esh_source, provider_uuid, identity_uuid
             #so a lookup on the machine is required to get accurate
             #information.
             esh_source = esh_driver.get_machine(esh_source.id)
-        core_source = convert_esh_machine(esh_driver, esh_machine,
+        core_source = convert_esh_machine(esh_driver, esh_source,
                                           provider_uuid, user)
     elif not isinstance(esh_source, BaseMachine):
         raise Exception ("Encountered unknown source %s" % esh_source)
@@ -640,6 +647,7 @@ def convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
         logger.debug("Instance: %s" % instance_id)
         core_source = convert_instance_source(esh_driver, source_obj,
                 provider_uuid, identity_uuid, user)
+        logger.debug("CoreSource: %s" % core_source)
         #Use New/Existing core Machine to create core Instance
         core_instance = create_instance(provider_uuid, identity_uuid, instance_id,
                                       core_source, ip_address,

@@ -216,7 +216,7 @@ class ProjectInstanceList(APIView):
         #TODO: Check that you have permission!
         projects = group.projects.get(id=project_id)
         instances = projects.instances.filter(only_current(),
-                provider_machine__provider__active=True)
+                source__provider_machine__provider__active=True)
         serialized_data = InstanceSerializer(instances, many=True,
                                             context={"request":request}).data
         response = Response(serialized_data)
@@ -280,7 +280,7 @@ class NoProjectInstanceList(APIView):
         """
         user = request.user
         instances = user.instance_set.filter(only_current(),
-                provider_machine__provider__active=True,
+                source__provider_machine__provider__active=True,
                 projects=None)
         serialized_data = InstanceSerializer(instances, many=True,
                                             context={"request":request}).data

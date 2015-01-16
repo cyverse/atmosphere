@@ -20,8 +20,8 @@ from core.models.volume import Volume as CoreVolume
 
 from service.cache import get_cached_volumes
 from service.driver import prepare_driver
-from service.volume import create_volume
-from service.instance import boot_volume
+from service.volume import create_volume,\
+                           boot_volume
 from service.exceptions import OverQuotaError
 from service.volume import create_volume
 

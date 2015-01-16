@@ -101,7 +101,7 @@ class MachineRequest(models.Model):
         (orig_managerCls, orig_creds,
          dest_managerCls, dest_creds) = self.prepare_manager()
         im = dest_managerCls(**dest_creds)
-        old_mach_id = mr.instance.provider_machine.identifier
+        old_mach_id = mr.instance.source.identifier
         new_mach_id = mr.new_machine.identifier
         old_mach = im.get_image(old_mach_id)
         if not old_mach:
@@ -118,7 +118,7 @@ class MachineRequest(models.Model):
         im.update_image(new_mach, properties=properties)
 
     def old_provider(self):
-        return self.instance.provider_machine.provider
+        return self.instance.source.provider
     def new_machine_id(self):
         return 'zzz%s' % self.new_machine.identifier if self.new_machine else None
 
@@ -325,7 +325,7 @@ def _create_new_application(machine_request, new_image_id, tags=[]):
     return new_app
 
 def _update_application(machine_request, new_image_id, tags=[]):
-    parent_app = machine_request.instance.provider_machine.application
+    parent_app = machine_request.instance.source.providermachine.application
     #Include your ancestors tags, description if necessary
     tags.extend(parent_app.tags.all())
     #If this machine request has a description,
@@ -369,6 +369,10 @@ def _create_new_provider_machine(machine_request, application, new_image_id):
     return new_machine
 
 def process_machine_request(machine_request, new_image_id, update_cloud=True):
+    """
+    NOTE: Current process accepts instance with source of 'Image' ONLY! 
+          VOLUMES CANNOT BE IMAGED until this function is updated!
+    """
     from core.models.machine import add_to_cache
     from core.application import update_owner
     from core.models.tag import Tag
@@ -390,6 +394,7 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
         #This is NOT a fork, the application to be used is that of your
         # ancestor, and the app owner should not be changed.
         app_to_use = _update_application(machine_request, new_image_id, tags)
+    #TODO: CANT 'update' an application if you used a bootable volume.. (for now)
     new_machine = _create_new_provider_machine(machine_request, app_to_use, new_image_id)
     machine_request.new_machine = new_machine
 

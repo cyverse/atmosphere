@@ -140,27 +140,61 @@ class IgnoreStatusRule(FilterOutRule):
             raise Exception("Expects a name to be matched on "
             "InstanceStatusHistory.status")
 
-class IgnoreMachineRule(FilterOutRule):
+class IgnoreVolumeRule(FilterOutRule):
     def __init__(self, name, value):
-        super(IgnoreMachineRule, self).__init__(name, value)
-        self.instance_attr = 'machine'
+        super(IgnoreVolumeRule, self).__init__(name, value)
+        self.instance_attr = 'source'
 
     def _validate_value(self, value):
         if type(value) != str:
-            raise Exception("Expects a machine UUID to be matched on "
-            "Instance.machine.identifier")
+            raise Exception("Expects a Volume UUID to be matched on "
+            "Instance.source.identifier")
 
     def apply_rule(self, instance, history, running_time, print_logs=False):
         """
-        If a match is found between Machine UUID and the 'needle'
+        If a match is found between source UUID and the 'needle'
+        && type of source == Volume
         Then the running_time should be ZEROed.
         """
         if type(self.value) != list:
             values = [self.value]
         else:
             values = self.value
-        found_match = _needle_in_haystack(values, instance.machine.identifier)
+        found_match = _needle_in_haystack(values, instance.source.identifier)
         if found_match:
+            if instance.source.source_type != 'Volume':
+                logger.warn(">> Matched on identifier %s"
+                        " but source != Volume. Skipping." %
+                        instance.source.identifier)
+            running_time *= 0
+            if print_logs:
+                logger.debug(">> Ignore Volume identifier '%s'. Set Runtime to 0"\
+                    % (history.status))
+        return running_time
+
+
+class IgnoreMachineRule(FilterOutRule):
+    def __init__(self, name, value):
+        super(IgnoreMachineRule, self).__init__(name, value)
+        self.instance_attr = 'source'
+
+    def _validate_value(self, value):
+        if type(value) != str:
+            raise Exception("Expects a machine UUID to be matched on "
+            "Instance.source.identifier")
+
+    def apply_rule(self, instance, history, running_time, print_logs=False):
+        """
+        If a match is found between source UUID and the 'needle'
+        && type of source == Machine
+        Then the running_time should be ZEROed.
+        """
+        if type(self.value) != list:
+            values = [self.value]
+        else:
+            values = self.value
+        found_match = _needle_in_haystack(values, instance.source.identifier)
+        if found_match and instance.source.source_type == 'Machine':
             running_time *= 0
             if print_logs:
                 logger.debug(">> Ignore Machine identifier '%s'. Set Runtime to 0"\

@@ -47,27 +47,47 @@ class Provider(object):
         return self.__unicode__()
 
     def __unicode__(self):
-        return "<Provider:%s %s>" % (machine.name, machine.identifier)
+        return "<Provider:%s %s>" % (self.name, self.identifier)
 
 
-class Machine(object):
+class BootSource(object):
+    source_type = None
     name = None
     identifier = None
 
     def __init__(self, name, identifier):
         self.name = name
         self.identifier = identifier
+        self.source_type = self.get_type()
+    def __repr__(self):
+        return self.__unicode__()
+    def __unicode__(self):
+        return "<%s:%s %s>" % (self.source_type, self.name, self.identifier)
+
+
+    @classmethod
+    def from_core(cls, core_source):
+        raise NotImplementedError("Should be implemented in the sub-class")
+    def get_type(self):
+        raise NotImplementedError("Should be implemented in the sub-class")
+
+class Volume(BootSource):
+
+    @classmethod
+    def from_core(cls, core_volume):
+        return cls(name=core_volume.name,
+                   identifier=core_volume.identifier)
+    def get_type(self):
+        raise "Volume"
+
+class Machine(BootSource):
 
     @classmethod
     def from_core(cls, core_pm):
         return cls(name=core_pm.application.name,
                    identifier=core_pm.identifier)
-
-    def __repr__(self):
-        return self.__unicode__()
-
-    def __unicode__(self):
-        return "<Machine:%s %s>" % (machine.name, machine.identifier)
+    def get_type(self):
+        raise "Machine"
 
 
 class Size(object):
@@ -100,21 +120,24 @@ class Size(object):
 
 class Instance(object):
     provider = None
-    machine = None
+    source = None
     identifier = None
     history = []
 
-    def __init__(self, identifier, provider=None, machine=None, history=[]):
+    def __init__(self, identifier, provider=None, source=None, history=[]):
         self.identifier = identifier
         self.provider = provider
-        self.machine = machine
+        self.source = source
         self.history = history
 
     @classmethod
     def from_core(cls, core_instance, start_date=None):
-        pm = core_instance.provider_machine
-        prov = Provider.from_core(pm.provider)
-        mach = Machine.from_core(pm)
+        source = core_instance.source
+        prov = Provider.from_core(source.provider)
+        if type(source) == Volume:
+            source = Volume.from_core(source)
+        elif type(source) == Machine:
+            source = Machine.from_core(source)
         size_map = {}
         instance_history = []
         if not start_date:
@@ -130,16 +153,17 @@ class Instance(object):
 
         # Create the Allocation.Instance object.
         return cls(core_instance.provider_alias,
-                prov, mach, instance_history)
+                prov, source, instance_history)
 
     def __repr__(self):
         return self.__unicode__()
 
     def __unicode__(self):
-        return "<Instance: %s Provider:%s Machine:%s History:%s>"\
+        return "<Instance: %s Provider:%s %s:%s History:%s>"\
                 % (self.identifier,
                    self.provider.identifier,
-                   self.machine.identifier,
+                   self.source.source_type,
+                   self.source.identifier,
                    self.history)
 
 
