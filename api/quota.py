@@ -101,3 +101,28 @@ class QuotaMembership(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class QuotaList(APIView):
+    """
+    """
+    permission_classes = (ApiAuthRequired,)
+
+    def get(self, request):
+        """
+        """
+        quotas = Quota.objects.all()
+        serialized_data = QuotaSerializer(quotas, many=True).data
+        return Response(serialized_data)
+
+    def post(self, request):
+        """
+        """
+        data = request.DATA
+        serializer = QuotaSerializer(data=data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
