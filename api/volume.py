@@ -20,12 +20,14 @@ from core.models.volume import Volume as CoreVolume
 
 from service.cache import get_cached_volumes
 from service.driver import prepare_driver
+from service.volume import create_volume,\
+                           boot_volume
 from service.exceptions import OverQuotaError
-from service.volume import create_volume, boot_volume
+from service.volume import create_volume
 
 from api import failure_response, invalid_creds, connection_failure,\
                 malformed_response
-from api.permissions import ApiAuthRequired
+from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import VolumeSerializer, InstanceSerializer
 
 
@@ -214,7 +216,7 @@ class VolumeList(APIView):
         if not driver:
             return invalid_creds(provider_uuid, identity_uuid)
         data = request.DATA
-        missing_keys = valid_create_data(data)
+        missing_keys = valid_volume_post_data(data)
         if missing_keys:
             return keys_not_found(missing_keys)
         #Pass arguments
@@ -312,6 +314,8 @@ class Volume(APIView):
                                       partial=True)
         if serializer.is_valid():
             serializer.save()
+            update_volume_metadata(
+                    esh_driver, esh_volume, data)
             response = Response(serializer.data)
             return response
         else:
@@ -325,6 +329,7 @@ class Volume(APIView):
         """
         user = request.user
         data = request.DATA
+
         #Ensure volume exists
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
@@ -338,6 +343,8 @@ class Volume(APIView):
                                       context={'request': request})
         if serializer.is_valid():
             serializer.save()
+            update_volume_metadata(
+                    esh_driver, esh_volume, data)
             response = Response(serializer.data)
             return response
         else:
@@ -460,7 +467,16 @@ def valid_snapshot_post_data(data):
             or (type(data[key]) == str and len(data[key]) > 0)]
 
 
-def valid_create_data(data):
+def valid_snapshot_post_data(data):
+    """
+    Return any missing required post key names.
+    """
+    required = ['display_name', 'volume_id', 'size']
+    return [key for key in required
+            #Key must exist and have a non-empty value.
+            if key not in data or (type(data[key]) == str and len(data[key]) > 0)]
+
+def valid_volume_post_data(data):
     """
     Return any missing required post key names.
     """

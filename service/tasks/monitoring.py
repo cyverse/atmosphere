@@ -95,7 +95,7 @@ def monitor_instances_for(provider_id, users=None,
             driver = get_cached_driver(identity=identity)
             core_running_instances = [
                 convert_esh_instance(driver, inst,
-                    identity.provider.id, identity.id,
+                    identity.provider.uuid, identity.uuid,
                     identity.created_by) for inst in running_instances]
         else:
             #No running instances.

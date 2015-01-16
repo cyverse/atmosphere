@@ -200,7 +200,7 @@ class IdentityRelatedField(serializers.RelatedField):
         if value is None:
             return
         try:
-            into[field_name] = Identity.objects.get(id=value)
+            into[field_name] = Identity.objects.get(uuid=value)
         except Identity.DoesNotExist:
             into[field_name] = None
 
@@ -377,9 +377,9 @@ class InstanceSerializer(serializers.ModelSerializer):
     alias = serializers.CharField(read_only=True, source='provider_alias')
     alias_hash = serializers.CharField(read_only=True, source='hash_alias')
     application_name = serializers.CharField(
-        read_only=True, source='provider_machine.application.name')
+        read_only=True, source='esh_source_name')
     application_uuid = serializers.CharField(
-        read_only=True, source='provider_machine.application.uuid')
+        read_only=True, source='application_uuid')
     #created_by = serializers.CharField(read_only=True, source='creator_name')
     created_by = serializers.SlugRelatedField(slug_field='username',
                                               source='created_by',
@@ -387,9 +387,9 @@ class InstanceSerializer(serializers.ModelSerializer):
     status = serializers.CharField(read_only=True, source='esh_status')
     fault = serializers.Field(source='esh_fault')
     size_alias = serializers.CharField(read_only=True, source='esh_size')
-    machine_alias = serializers.CharField(read_only=True, source='esh_machine')
+    machine_alias = serializers.CharField(read_only=True, source='esh_source')
     machine_name = serializers.CharField(read_only=True,
-                                         source='esh_machine_name')
+                                         source='esh_source_name')
     machine_alias_hash = serializers.CharField(read_only=True,
                                                source='hash_machine_alias')
     ip_address = serializers.CharField(read_only=True)
@@ -412,7 +412,7 @@ class InstanceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Instance
-        exclude = ('id', 'provider_machine', 'provider_alias',
+        exclude = ('id', 'source', 'provider_alias',
                    'shell', 'vnc', 'password', 'created_by_identity')
 
 
@@ -424,11 +424,14 @@ class InstanceHistorySerializer(serializers.ModelSerializer):
                                               source='created_by',
                                               read_only=True)
     size_alias = serializers.CharField(read_only=True, source='esh_size')
-    machine_alias = serializers.CharField(read_only=True, source='esh_machine')
+    #NOTE: Now that we have moved to 'source', this can be a bit of a
+    # misnomer.. New API should correct this representation.
+    machine_alias = serializers.CharField(read_only=True, source='esh_source')
     machine_name = serializers.CharField(read_only=True,
-                                         source='esh_machine_name')
+                                         source='esh_source_name')
     machine_alias_hash = serializers.CharField(read_only=True,
                                                source='hash_machine_alias')
+    #ENDNOTE
     ip_address = serializers.CharField(read_only=True)
     start_date = serializers.DateTimeField(read_only=True)
     end_date = serializers.DateTimeField(read_only=True)
@@ -439,7 +442,7 @@ class InstanceHistorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Instance
-        exclude = ('id', 'provider_machine', 'provider_alias',
+        exclude = ('id', 'source', 'provider_alias',
                    'shell', 'vnc', 'created_by_identity')
 
 
@@ -494,13 +497,15 @@ class MachineRequestSerializer(serializers.ModelSerializer):
     shared_with = serializers.CharField(source="access_list", required=False)
 
     name = serializers.CharField(source='new_machine_name')
-    provider = serializers.PrimaryKeyRelatedField(
-        source='new_machine_provider')
+    provider = serializers.SlugRelatedField(
+        slug_field='uuid', source='new_machine_provider')
     owner = serializers.SlugRelatedField(slug_field='username',
                                          source='new_machine_owner')
     vis = serializers.CharField(source='new_machine_visibility')
-    version = serializers.IntegerField(source='new_machine_version')
-    forked = serializers.IntegerField(source='new_machine_forked')
+    version = serializers.CharField(source='new_machine_version',
+            required=False)
+    fork = serializers.BooleanField(source='new_machine_forked',
+            required=False)
     description = serializers.CharField(source='new_machine_description',
                                         required=False)
     tags = serializers.CharField(source='new_machine_tags', required=False)
@@ -553,6 +558,7 @@ class AtmoUserSerializer(serializers.ModelSerializer):
         selected_identity = attrs['selected_identity']
         logger.debug(selected_identity)
         groups = user.group_set.all()
+        import ipdb;ipdb.set_trace()
         for g in groups:
             for id_member in g.identitymembership_set.all():
                 if id_member.identity == selected_identity:
@@ -690,7 +696,7 @@ class NoProjectSerializer(serializers.ModelSerializer):
             item,
             context={'request': self.context.get('request')}).data for item in
             atmo_user.instance_set.filter(only_current(),
-                provider_machine__provider__active=True,
+                source__provider__active=True,
                 projects=None)]
 
     def get_user_volumes(self, atmo_user):
@@ -723,7 +729,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             item,
             context={'request': self.context.get('request')}).data for item in
             project.instances.filter(only_current(),
-                provider_machine__provider__active=True
+                source__provider__active=True
                 )]
 
     def get_user_volumes(self, project):

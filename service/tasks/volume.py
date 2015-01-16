@@ -20,7 +20,6 @@ from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
 from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
 from service.instance import update_instance_metadata
-from service import volume as volume_service
 
 from service.driver import get_driver
 from service.deploy import mount_volume, check_volume, mkfs_volume,\
@@ -356,6 +355,7 @@ def update_mount_location(new_mount_location,
         volume_alias):
     """
     """
+    from service import volume as volume_service
     try:
         logger.debug("update_mount_location task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
@@ -380,6 +380,7 @@ def update_volume_metadata(driverCls, provider,
         metadata):
     """
     """
+    from service import volume as volume_service
     try:
         logger.debug("update_volume_metadata task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)

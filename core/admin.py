@@ -77,9 +77,11 @@ class AllocationAdmin(admin.ModelAdmin):
 class ProviderMachineAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     search_fields = ["application__name", "provider__location", "identifier"]
-    list_display = ["identifier", "provider", "application", "end_date"]
+    list_display = ["source_identifier",
+            "source_provider", "application",
+            "source_end_date"]
     list_filter = [
-        "provider__location",
+        "instancesource_ptr__provider__location",
         "application__private",
     ]
 
@@ -148,9 +150,10 @@ class TagAdmin(admin.ModelAdmin):
 
 class VolumeAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
-    search_fields = ["alias", "name", "provider__location"]
-    list_display = ["alias", "size", "provider", "start_date", "end_date"]
-    list_filter = ["provider__location"]
+    search_fields = ["source_identifier", "name", "source_location"]
+    list_display = ["source_identifier", "size", "source_provider",
+            "source_start_date", "source_end_date"]
+    list_filter = ["instancesource_ptr__provider__location"]
 
 
 class ApplicationAdmin(admin.ModelAdmin):
@@ -233,7 +236,7 @@ class MachineRequestAdmin(admin.ModelAdmin):
                     "new_machine_provider",  "start_date",
                     "end_date", "status", "opt_parent_machine", "opt_machine_visibility", 
                     "opt_new_machine"]
-    list_filter = ["instance__provider_machine__provider__location",
+    list_filter = ["instance__source__provider__location",
                    "new_machine_provider__location",
                    "new_machine_visibility",
                    "status"]
@@ -260,7 +263,7 @@ class InstanceStatusHistoryAdmin(admin.ModelAdmin):
     search_fields = ["instance__created_by__username",
             "instance__provider_alias", "status__name"]
     list_display = ["instance_alias", "status", "start_date", "end_date"]
-    list_filter = ["instance__provider_machine__provider__location",
+    list_filter = ["instance__source__provider__location",
                    "status__name"]
     ordering = ('-start_date',)
     def instance_alias(self, model):
@@ -270,7 +273,7 @@ class InstanceStatusHistoryAdmin(admin.ModelAdmin):
 class InstanceAdmin(admin.ModelAdmin):
     search_fields = ["created_by__username", "provider_alias", "ip_address"]
     list_display = ["provider_alias", "name", "created_by", "ip_address"]
-    list_filter = ["provider_machine__provider__location"]
+    list_filter = ["source__provider__location"]
 
 class SessionAdmin(admin.ModelAdmin):
     def _session_data(self, obj):
