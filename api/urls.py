@@ -37,7 +37,7 @@ from api.project import ProjectInstanceList, ProjectInstanceExchange,\
         ProjectVolumeList, ProjectVolumeExchange
 from api.profile import Profile
 from api.provider import ProviderList, Provider
-from api.quota import QuotaMembership, QuotaList
+from api.quota import QuotaDetail, QuotaMembership, QuotaList
 from api.size import SizeList, Size
 from api.hypervisor import HypervisorList, HypervisorDetail
 from api.step import StepList, Step
@@ -308,6 +308,8 @@ public_apis = format_suffix_patterns(patterns(
 
     url(r'^quota$',
         QuotaList.as_view(), name='quota-list'),
+    url(r'^quota/(?P<quota_id>\d+)$',
+        QuotaDetail.as_view(), name='quota-detail'),
 
 
     url(r'version$', Version.as_view()),
