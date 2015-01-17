@@ -38,7 +38,7 @@ from api.project import ProjectInstanceList, ProjectInstanceExchange,\
 from api.profile import Profile
 from api.provider import ProviderList, Provider
 from api.quota import QuotaDetail, QuotaMembership, QuotaList,\
-    QuotaRequestList
+    QuotaRequestDetail, QuotaRequestList
 from api.size import SizeList, Size
 from api.hypervisor import HypervisorList, HypervisorDetail
 from api.step import StepList, Step
@@ -308,6 +308,9 @@ public_apis = format_suffix_patterns(patterns(
         QuotaMembership.as_view(), name='quota'),
     url(identity_specific + r'/quota_request$',
         QuotaRequestList.as_view(), name='quota-request-list'),
+    url(identity_specific +
+        r'/quota_request/(?P<quota_request_uuid>%s)$' % uuid_match,
+        QuotaRequestDetail.as_view(), name='quota-request-detail'),
 
     url(r'^quota$',
         QuotaList.as_view(), name='quota-list'),
