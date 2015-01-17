@@ -18,7 +18,7 @@ from core.models.post_boot import BootScript
 from core.models.profile import UserProfile
 from core.models.project import Project
 from core.models.provider import ProviderType, Provider
-from core.models.request import AllocationRequest, QuotaRequest
+from core.models.request import AllocationRequest, QuotaRequest, StatusType
 from core.models.size import Size
 from core.models.step import Step
 from core.models.tag import Tag, find_or_create_tag
@@ -841,12 +841,17 @@ class QuotaSerializer(serializers.ModelSerializer):
 
 
 class QuotaRequestSerializer(serializers.ModelSerializer):
-    id = serializers.CharField(read_only=True, source="uuid")
+    id = serializers.CharField(read_only=True, source="uuid", required=False)
     created_by = serializers.SlugRelatedField(
-        slug_field='username', source='created_by', read_only=True)
+        slug_field='username', source='created_by',
+        queryset=AtmosphereUser.objects.all())
     status = serializers.SlugRelatedField(
-        slug_field='name', source='status', read_only=True)
+        slug_field='name', source='status',
+        queryset=StatusType.objects.all())
+
+    current_quota = QuotaSerializer()
+    quota_recieved = QuotaSerializer(required=False)
 
     class Meta:
         model = QuotaRequest
-        exclude = ('uuid', 'membership', 'current_quota', 'quota_recieved')
+        exclude = ('uuid', 'membership')
