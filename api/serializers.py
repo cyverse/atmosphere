@@ -13,6 +13,7 @@ from core.models.machine import ProviderMachine
 from core.models.machine_request import MachineRequest
 from core.models.machine_export import MachineExport
 from core.models.maintenance import MaintenanceRecord
+from core.models.post_boot import BootScript
 from core.models.profile import UserProfile
 from core.models.project import Project
 from core.models.provider import ProviderType, Provider
@@ -268,6 +269,14 @@ class IdentitySerializer(serializers.ModelSerializer):
         fields = ('id', 'created_by', 'provider_id', 'credentials', 'quota',
                   'membership')
 
+class BootScriptSerializer(serializers.ModelSerializer):
+    created_by = serializers.SlugRelatedField(slug_field='username')
+    script_type = serializers.SlugRelatedField(slug_field='name')
+    class Meta:
+        model = BootScript
+        exclude = ('instances', 'applications',)
+
+
 class ApplicationThresholdSerializer(serializers.ModelSerializer):
     """
     """
@@ -301,6 +310,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
     is_bookmarked = AppBookmarkField(source="bookmarks.all")
     threshold = serializers.RelatedField(read_only=True, source="threshold")
     projects = ProjectsField()
+    scripts = BootScriptSerializer(source='scripts', many=True)
 
     def get_machines(self, application):
         machines = application._current_machines(request_user=self.request_user)
@@ -404,6 +414,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', source='tags', many=True)
     projects = ProjectsField()
+    scripts = BootScriptSerializer(source='scripts', many=True)
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)

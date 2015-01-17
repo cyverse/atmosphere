@@ -12,6 +12,7 @@ from core.models.maintenance import MaintenanceRecord
 from core.models.instance import Instance, InstanceStatusHistory,\
     InstanceStatus
 from core.models.node import NodeController
+from core.models.post_boot import ScriptType, BootScript
 from core.models.size import Size
 from core.models.quota import Quota
 from core.models.t import T
