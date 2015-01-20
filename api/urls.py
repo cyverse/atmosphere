@@ -7,7 +7,8 @@ from django.conf.urls import patterns, url, include
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from api.accounts import Account
-from api.allocation import AllocationList, AllocationMembership
+from api.allocation import AllocationDetail, AllocationList,\
+    AllocationMembership
 from api.application import ApplicationSearch, ApplicationList, Application,\
                             ApplicationThresholdDetail
 from api.bookmark import  ApplicationBookmarkDetail, ApplicationBookmarkList
@@ -305,7 +306,8 @@ public_apis = format_suffix_patterns(patterns(
 
     url(r'^allocation$',
         AllocationList.as_view(), name='allocation-list'),
-
+    url(r'^allocation/(?P<quota_id>\d+)$',
+        AllocationDetail.as_view(), name='quota-detail'),
 
     url(identity_specific + r'/quota$',
         QuotaMembership.as_view(), name='quota'),
