@@ -54,6 +54,12 @@ def get_scripts_for_user(username):
 def get_scripts_for_application(application_uuid):
     return BootScript.objects.filter(
             applications__uuid=application_uuid)
-def get_scripts_for_instance(instance_id):
+def get_scripts_for_instance_id(instance_id):
     return BootScript.objects.filter(
-            instances__provider_alias=instance_id)
+            Q(instances__provider_alias=instance_id))
+def get_scripts_for_instance(instance):
+    return BootScript.objects.filter(
+        #Look for scripts on the specific instance
+            Q(instances__provider_alias=instance.provider_alias)
+        #Look for scripts on the application launched
+            | Q(applications__uuid=instance.provider_machine.application.uuid))

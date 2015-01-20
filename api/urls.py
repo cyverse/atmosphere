@@ -29,7 +29,7 @@ from api.notification import NotificationList
 from api.occupancy import Occupancy, Hypervisor
 from api.project import NoProjectList, NoProjectInstanceList,\
         NoProjectVolumeList, NoProjectApplicationList
-from api.post_boot import PostBootScriptList, PostBootScript
+from api.post_boot import BootScriptList, BootScript
 from api.project import ProjectList, ProjectDetail
 from api.project import ProjectInstanceList, ProjectInstanceExchange,\
         ProjectApplicationList, ProjectApplicationExchange,\
@@ -72,13 +72,13 @@ private_apis = patterns('',
     #File Retrieval:
     # static files
     url(r'^init_files/(?P<file_location>.*)$', 'web.views.get_resource'),
-    #post_boot Related APIs
-    url(r'post_boot$',
-        PostBootScriptList.as_view(),
-        name='post_boot_list'),
-    url(r'post_boot/(?P<script_id>\d+)$',
-        PostBootScript.as_view(),
-        name='post_boot'),
+    #boot_script Related APIs
+    url(r'boot_script$',
+        BootScriptList.as_view(),
+        name='boot_script_list'),
+    url(r'boot_script/(?P<script_id>\d+)$',
+        BootScript.as_view(),
+        name='boot_script'),
 
     #Project Related APIs
     url(r'project$',

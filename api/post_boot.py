@@ -15,16 +15,16 @@ from api.serializers import BootScriptSerializer
 from api.permissions import ApiAuthRequired
 
 
-class PostBootScriptList(APIView):
-    """PostBootScripts represent a script to be deployed on an instance and/or
+class BootScriptList(APIView):
+    """BootScripts represent a script to be deployed on an instance and/or
     application after Atmosphere has finished deploying the instance.
-    PostBootScripts can be of type URL, Raw Text.
+    BootScripts can be of type URL, Raw Text.
     """
     permission_classes = (ApiAuthRequired,)
     
     def get(self, request):
         """
-        Authentication Required, list of PostBootScripts on your account.
+        Authentication Required, list of BootScripts on your account.
         """
         username = request.user.username
         scripts = get_scripts_for_user(username)
@@ -33,7 +33,7 @@ class PostBootScriptList(APIView):
 
     def post(self, request):
         """
-        Authentication Required, list of PostBootScripts on your account.
+        Authentication Required, list of BootScripts on your account.
         """
         username = request.user.username
         data = request.DATA
@@ -46,24 +46,24 @@ class PostBootScriptList(APIView):
             serializer.errors)
 
 
-class PostBootScript(APIView):
-    """PostBootScripts represent the different Cloud configurations hosted on Atmosphere.
-    PostBootScripts can be of type AWS, Eucalyptus, OpenStack.
+class BootScript(APIView):
+    """BootScripts represent the different Cloud configurations hosted on Atmosphere.
+    BootScripts can be of type AWS, Eucalyptus, OpenStack.
     """
     permission_classes = (ApiAuthRequired,)
     
     def get(self, request, script_id):
         """
-        Authentication Required, return specific PostBootScript.
+        Authentication Required, return specific BootScript.
         """
         username = request.user.username
         scripts = get_scripts_for_user(username)
         try:
             script = scripts.get(id=script_id)
-        except BootScript.DoesNotExist:
+        except CoreBootScript.DoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                "PostBootScript of id %s does not exist." % script_id)
+                "BootScript of id %s does not exist." % script_id)
         serialized_data = BootScriptSerializer(script).data
         return Response(serialized_data)
     def patch(self, request, script_id):
@@ -79,10 +79,10 @@ class PostBootScript(APIView):
 
         try:
             script = scripts.get(id=script_id)
-        except BootScript.DoesNotExist:
+        except CoreBootScript.DoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                "PostBootScript of id %s does not exist." % script_id)
+                "BootScript of id %s does not exist." % script_id)
         serializer = BootScriptSerializer(script, data=data, partial=partial)
         if serializer.is_valid():
             serializer.save()
@@ -90,6 +90,3 @@ class PostBootScript(APIView):
         return failure_response(
             status.HTTP_400_BAD_REQUEST,
             serializer.errors)
-
-
-
