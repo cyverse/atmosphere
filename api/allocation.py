@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404
 
 from api import failure_response
 from api.permissions import ApiAuthRequired
-from api.serializers import AllocationSerializer
+from api.serializers import AllocationSerializer, AllocationRequestSerializer
 
 from core.models import Allocation, Identity, IdentityMembership
 
@@ -105,3 +105,28 @@ class AllocationMembership(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AllocationList(APIView):
+    """
+    """
+    permission_classes = (ApiAuthRequired,)
+
+    def get(self, request):
+        """
+        """
+        allocations = Allocation.objects.all()
+        serialized_data = AllocationSerializer(allocations, many=True).data
+        return Response(serialized_data)
+
+    def post(self, request):
+        """
+        """
+        data = request.DATA
+        serializer = AllocationSerializer(data=data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -818,8 +818,6 @@ class InstanceStatusHistorySerializer(serializers.ModelSerializer):
 class AllocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Allocation
-        exclude = ("id",)
-
 
 class AllocationRequestSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True, source="uuid")
