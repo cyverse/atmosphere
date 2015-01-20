@@ -1,13 +1,17 @@
-import requests
+from django.utils.timezone import datetime, timedelta
+
 import jwt
+import requests
+
+from caslib import OAuthClient
 from threepio import auth_logger as logger
+
 from atmosphere.settings import secrets
 from atmosphere import settings
 from authentication import get_or_create_user
 from authentication.models import Token as AuthToken
-from django.utils.timezone import datetime, timedelta
 from core.models.user import AtmosphereUser
-from caslib import OAuthClient
+
 
 # Requests auth class for access tokens
 class TokenAuth(requests.auth.AuthBase):
@@ -22,6 +26,7 @@ class TokenAuth(requests.auth.AuthBase):
         r.headers['Authorization'] = "Token %s" % self.access_token
         return r
 
+
 def obtainOAuthToken(username, token_key, token_expire=None):
     """
     returns a new token for username
@@ -33,23 +38,24 @@ def obtainOAuthToken(username, token_key, token_expire=None):
                     "OAuth token _NOT_ created" % username)
         return None
     auth_user_token, _ = AuthToken.objects.get_or_create(
-            key=token_key,
-            user=user,
-            api_server_url=settings.API_SERVER_URL)
+        key=token_key, user=user, api_server_url=settings.API_SERVER_URL)
     if token_expire:
         auth_user_token.update_expiration(token_expire)
     auth_user_token.save()
     return auth_user_token
 
-############################
-#METHODS SPECIFIC TO GROUPY!
-############################
 
+############################
+# METHODS SPECIFIC TO GROUPY!
+############################
 def create_user(username):
     oauth_attrs = lookupUser(username)
     attributes = oauth_formatAttrs(oauth_attrs)
+    # FIXME: valid user should actually be set
+    valid_user = None
     user = get_or_create_user(valid_user, attributes)
     return user
+
 
 def get_token_for_user(username):
     access_token, _ = generate_access_token(
@@ -57,10 +63,11 @@ def get_token_for_user(username):
         iss=secrets.OAUTH_ISSUE_USER,
         sub=username,
         scope=secrets.OAUTH_SCOPE)
-    #TODO: TokenAuth here
-    response = requests.get('%s/o/oauth2/tokeninfo?access_token=%s'
-            % (secrets.GROUPY_SERVER, access_token),
-            headers={'Authorization': 'Token %s' % access_token})
+    # TODO: TokenAuth here
+    response = requests.get(
+        '%s/o/oauth2/tokeninfo?access_token=%s'
+        % (secrets.GROUPY_SERVER, access_token),
+        headers={'Authorization': 'Token %s' % access_token})
     json_obj = response.json()
     if 'on_behalf' in json_obj:
         username = json_obj['on_behalf']
@@ -68,15 +75,17 @@ def get_token_for_user(username):
         return username, expires
     return None, None
 
+
 def get_user_for_token(test_token):
     access_token, _ = generate_access_token(
         open(secrets.OAUTH_PRIVATE_KEY).read(),
         iss=secrets.OAUTH_ISSUE_USER,
         scope=secrets.OAUTH_SCOPE)
-    #TODO: TokenAuth here
-    response = requests.get('%s/o/oauth2/tokeninfo?access_token=%s'
-            % (secrets.GROUPY_SERVER, test_token),
-            headers={'Authorization': 'Token %s' % access_token})
+    # TODO: TokenAuth here
+    response = requests.get(
+        '%s/o/oauth2/tokeninfo?access_token=%s'
+        % (secrets.GROUPY_SERVER, test_token),
+        headers={'Authorization': 'Token %s' % access_token})
     json_obj = response.json()
     logger.debug(json_obj)
     if 'on_behalf' in json_obj:
@@ -85,17 +94,19 @@ def get_user_for_token(test_token):
         return username, expires
     return None, None
 
+
 def get_atmo_users():
     access_token, _ = generate_access_token(
         open(secrets.OAUTH_PRIVATE_KEY).read(),
         iss=secrets.OAUTH_ISSUE_USER,
         scope=secrets.OAUTH_SCOPE)
-    response = requests.get('%s/api/groups/atmo-user/members'
-            % secrets.GROUPY_SERVER,
-            headers={'Authorization': 'Token %s' % access_token})
+    response = requests.get(
+        '%s/api/groups/atmo-user/members'
+        % secrets.GROUPY_SERVER,
+        headers={'Authorization': 'Token %s' % access_token})
     return response
-    #atmo_users = [user['name'] for user in response.json()]
-    #return atmo_users
+    # atmo_users = [user['name'] for user in response.json()]
+    # return atmo_users
 
 
 def lookupUser(username):
@@ -108,6 +119,7 @@ def lookupUser(username):
                                 username))
     user_data = response.json()
     return user_data
+
 
 def oauth_formatAttrs(oauth_attrs):
     """
@@ -122,6 +134,7 @@ def oauth_formatAttrs(oauth_attrs):
     except KeyError as nokey:
         logger.exception(nokey)
         return None
+
 
 def get_staff_users():
     access_token, _ = generate_access_token(
@@ -161,7 +174,7 @@ def generate_access_token(pem_id_key, iss='atmosphere',
     if not pem_id_key:
         raise Exception("Private key missing. "
                         "Key is required for JWT signature")
-    #1. Create and encode JWT (using our pem key)
+    # 1. Create and encode JWT (using our pem key)
     kwargs = {'iss': iss,
               'scope': scope}
     if sub:
@@ -169,8 +182,8 @@ def generate_access_token(pem_id_key, iss='atmosphere',
     jwt_object = jwt.create(**kwargs)
     encoded_sig = jwt.encode(jwt_object, pem_id_key)
 
-    #2. Pass JWT to gables and return access_token
-    #If theres a 'redirect_uri' then redirect the user
+    # 2. Pass JWT to gables and return access_token
+    # If theres a 'redirect_uri' then redirect the user
     response = requests\
         .post("%s/o/oauth2/token" % secrets.GROUPY_SERVER,
               data={
@@ -207,8 +220,9 @@ def generate_keys():
     pem_id_key = json_obj['private']
     return pem_id_key
 
+
 ###########################
-#CAS-SPECIFIC OAUTH METHODS
+# CAS-SPECIFIC OAUTH METHODS
 ###########################
 def get_cas_oauth_client():
     o_client = OAuthClient(settings.CAS_SERVER,
@@ -218,17 +232,19 @@ def get_cas_oauth_client():
                            auth_prefix=settings.CAS_AUTH_PREFIX)
     return o_client
 
+
 def cas_profile_contains(attrs, test_value):
-    #Two basic types of 'values'
-    #Lists: e.g. attrs['entitlement'] = ['group1','group2','group3']
-    #Objects: e.g. attrs['email'] = 'test@email.com'
+    # Two basic types of 'values'
+    # Lists: e.g. attrs['entitlement'] = ['group1','group2','group3']
+    # Objects: e.g. attrs['email'] = 'test@email.com'
     for attr in attrs:
-        for (key,value) in attr.items():
+        for (key, value) in attr.items():
             if type(value) == list and test_value in value:
                 return True
             elif value == test_value:
                 return True
     return False
+
 
 def cas_profile_for_token(access_token):
     oauth_client = get_cas_oauth_client()
