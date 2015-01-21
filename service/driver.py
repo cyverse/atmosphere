@@ -148,6 +148,6 @@ def prepare_driver(request, provider_uuid, identity_uuid):
                                                  uuid=identity_uuid)
         if core_identity in request.user.identity_set.all():
             return get_esh_driver(core_identity=core_identity)
-    except ObjectDoesNotExist:
+    except CoreIdentity.DoesNotExist:
         logger.exception("Unable to prepare driver.")
         pass

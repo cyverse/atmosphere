@@ -26,10 +26,11 @@ from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
 
 from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
+from core.models.post_boot import get_scripts_for_instance
 from core.models.identity import Identity
 from core.models.profile import UserProfile
 
-from service.deploy import init, check_process
+from service.deploy import init, check_process, wrap_script
 from service.driver import get_driver, get_esh_driver, get_account_driver
 from service.instance import update_instance_metadata
 from service.instance import _create_and_attach_port
@@ -408,6 +409,8 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
 
 def get_deploy_chain(driverCls, provider, identity, instance,
                      username=None, password=None, redeploy=False):
+    from core.models.instance import Instance
+
     instance_id = instance.id
     wait_active_task = wait_for_instance.s(
         instance_id, driverCls, provider, identity, "active")
@@ -436,7 +439,7 @@ def get_deploy_chain(driverCls, provider, identity, instance,
     check_vnc_task = check_process_task.si(
         driverCls, provider, identity, instance_id, "vnc")
 
-    #Then remove the tmp_status
+    #Then remove the tmp_status (and lingering suspend_fix metadata)
     if instance.extra['metadata'].get('iplant_suspend_fix'):
         replace = True
         final_update = instance.extra['metadata']
@@ -469,11 +472,137 @@ def get_deploy_chain(driverCls, provider, identity, instance,
     deploy_meta_task.link(deploy_task)
     deploy_task.link(check_shell_task)
     check_shell_task.link(check_vnc_task)
-    check_vnc_task.link(remove_status_task)
+    
+    #JUST before we finish, check for boot_scripts_chain
+    chain_start, chain_end = _get_boot_script_chain(
+            driverCls, provider, identity,instance_id)
+    if chain_start and chain_end:
+        check_vnc_task.link(chain_start)
+        chain_end.link(final_chain)
+    else:
+        check_vnc_task.link(final_chain)
+
     if not redeploy:
         remove_status_task.link(email_task)
     return start_chain
 
+@task(name="deploy_boot_script",
+      default_retry_delay=32,
+      time_limit=30*60,  # 30minute hard-set time limit.
+      max_retries=10)
+def deploy_boot_script(driverCls, provider, identity, instance_id,
+                    script_text, script_name, **celery_task_args):
+    #Note: Splitting preperation (Of the MultiScriptDeployment) and execution
+    # This makes it easier to output scripts for debugging of users.
+    try:
+        logger.debug("deploy_boot_script task started at %s." % datetime.now())
+        #Check if instance still exists
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_id)
+        if not instance:
+            logger.debug("Instance has been teminated: %s." % instance_id)
+            return
+        #NOTE: This is required to use ssh to connect.
+        #TODO: Is this still necessary? What about times when we want to use
+        # the adminPass? --Steve
+        logger.info(instance.extra)
+        instance._node.extra['password'] = None
+        new_script = wrap_script(script_text, script_name)
+    except Exception as exc:
+        logger.exception(exc)
+        deploy_boot_script.retry(exc=exc)
+    try:
+        kwargs = _generate_ssh_kwargs()
+        kwargs.update({'deploy': msd})
+        driver.deploy_to(instance, **kwargs)
+        _update_status_log(instance, "Deploy Finished")
+        logger.debug("deploy_boot_script task finished at %s." % datetime.now())
+    except DeploymentError as exc:
+        logger.exception(exc)
+        full_deploy_output = _parse_steps_output(msd)
+        if isinstance(exc.value, NonZeroDeploymentException):
+            #The deployment was successful, but the return code on one or more
+            # steps is bad. Log the exception and do NOT try again!
+            raise NonZeroDeploymentException,\
+                  "One or more Script(s) reported a NonZeroDeployment:%s"\
+                          % full_deploy_output,\
+                  sys.exc_info()[2]
+        #TODO: Check if all exceptions thrown at this time
+        #fall in this category, and possibly don't retry if
+        #you hit the Exception block below this.
+        deploy_boot_script.retry(exc=exc)
+    except SystemExit as bad_ssh:
+        logger.exception("ERROR: Someone has raised a SystemExit!")
+        deploy_boot_script.retry(exc=bad_ssh)
+    except Exception as exc:
+        logger.exception(exc)
+        deploy_boot_script.retry(exc=exc)
+@task(name="boot_script_failed")
+def boot_script_failed(task_uuid, driverCls, provider, identity, instance_id,
+                  **celery_task_args):
+    from core.models.instance import Instance
+    try:
+        logger.debug("boot_script_failed task started at %s." % datetime.now())
+        logger.info("task_uuid=%s" % task_uuid)
+        result = app.AsyncResult(task_uuid)
+        with allow_join_result():
+            exc = result.get(propagate=False)
+        err_str = "BOOT SCRIPT ERROR::%s" % (result.traceback,)
+        logger.error(err_str)
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_id)
+        update_instance_metadata(driver, instance,
+                                 data={'tmp_status': 'boot_script_error'},
+                                 replace=False)
+        #Send deploy email
+        core_instance = Instance.objects.get(provider_alias=instance_id)
+        logger.debug("boot_script_failed task finished at %s." % datetime.now())
+    except Exception as exc:
+        logger.warn(exc)
+        boot_script_failed.retry(exc=exc)
+
+def _get_boot_script_chain(driverCls, provider, identity, instance_id):
+    core_instance = Instance.objects.get(provider_alias=instance_id)
+    scripts = get_scripts_for_instance(core_instance)
+    first_task = end_task = None
+    if not scripts:
+        return first_task, end_task
+    total = len(scripts)
+    for idx, script in enumerate(scripts):
+        #Name the status
+        if total > 1:
+            script_text = "running_boot_script: #%s/%s" % (idx+1, total)
+        else:
+            script_text = "running_boot_script"
+        #Update the status
+        init_script_status_task = update_metadata.si(
+            driverCls, provider, identity, instance_id,
+            {'tmp_status': script_text})
+        if idx == 0:
+            first_task = init_script_status_task
+        if end_task:
+            end_task.link(init_script_status_task)
+        #Execute script
+        deploy_script_task = deploy_boot_script.si(
+            driverCls, provider, identity, instance_id,
+            script.get_text(), script.get_title_slug())
+        #Linking...
+        init_script_status_task.link(deploy_script_task)
+        init_script_status_task.link_error(
+            boot_script_failed.s(driverCls, provider, identity, instance_id))
+        deploy_script_task.link_error(
+            boot_script_failed.s(driverCls, provider, identity, instance_id))
+        if idx+1 == total:
+            clear_script_status_task = update_metadata.si(
+                    driverCls, provider, identity, instance_id,
+                    {'tmp_status': ''})
+            deploy_script_task.link(clear_script_status_task)
+            clear_script_status_task.link_error(
+                boot_script_failed.s(driverCls, provider, identity, instance_id))
+            end_task = clear_script_status_task
+        else:
+            end_task = deploy_script_task
+    return first_task, end_task
 
 @task(name="destroy_instance",
       default_retry_delay=15,

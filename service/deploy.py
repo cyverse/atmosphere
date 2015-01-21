@@ -320,3 +320,10 @@ def init(instance, username, password=None, token=None, redeploy=False,
         script_list.append(script_rm_scripts)
 
     return MultiStepDeployment(script_list)
+
+def wrap_script(script_text, script_name):
+    logfile = "/var/log/atmo/post_boot_deploy.log"
+    return LoggedScriptDeployment(
+        script_text,
+        name='./deploy_call_atmoinit.sh',
+        logfile=logfile)
