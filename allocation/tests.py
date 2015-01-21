@@ -156,7 +156,6 @@ class InstanceHelper(object):
         return Instance(
             identifier=identifier,
             provider=self.provider,
-            machine=self.machine,
             history=self.history)
 
 
