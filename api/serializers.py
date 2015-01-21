@@ -251,25 +251,13 @@ class CleanedIdentitySerializer(serializers.ModelSerializer):
     id = serializers.Field(source='uuid')
     provider_id = serializers.Field(source='provider_uuid')
     quota = serializers.Field(source='get_quota_dict')
+    allocation = serializers.Field(source='get_allocation_dict')
     membership = serializers.Field(source='get_membership')
 
     class Meta:
         model = Identity
         fields = ('id', 'created_by', 'provider_id', )
 
-
-class IdentitySerializer(serializers.ModelSerializer):
-    created_by = serializers.CharField(source='creator_name')
-    credentials = serializers.Field(source='get_credentials')
-    id = serializers.Field(source='uuid')
-    provider_id = serializers.Field(source='provider_uuid')
-    quota = serializers.Field(source='get_quota_dict')
-    membership = serializers.Field(source='get_membership')
-
-    class Meta:
-        model = Identity
-        fields = ('id', 'created_by', 'provider_id', 'credentials', 'quota',
-                  'membership')
 
 class BootScriptSerializer(serializers.ModelSerializer):
     created_by = serializers.SlugRelatedField(slug_field='username')
@@ -853,3 +841,18 @@ class QuotaRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuotaRequest
         exclude = ('uuid', 'membership')
+
+
+class IdentitySerializer(serializers.ModelSerializer):
+    created_by = serializers.CharField(source='creator_name')
+    credentials = serializers.Field(source='get_credentials')
+    id = serializers.Field(source='uuid')
+    provider_id = serializers.Field(source='provider_uuid')
+    quota = QuotaSerializer(source='get_quota')
+    allocation = AllocationSerializer(source='get_allocation')
+    membership = serializers.Field(source='get_membership')
+
+    class Meta:
+        model = Identity
+        fields = ('id', 'created_by', 'provider_id', 'credentials',
+                  'membership', 'quota', 'allocation')
