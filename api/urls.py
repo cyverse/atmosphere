@@ -7,8 +7,7 @@ from django.conf.urls import patterns, url, include
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from api.accounts import Account
-from api.allocation import AllocationDetail, AllocationList,\
-    AllocationMembership
+from api.allocation import AllocationDetail, AllocationList
 from api.application import ApplicationSearch, ApplicationList, Application,\
                             ApplicationThresholdDetail
 from api.bookmark import  ApplicationBookmarkDetail, ApplicationBookmarkList
@@ -300,9 +299,6 @@ public_apis = format_suffix_patterns(patterns(
 
     url(identity_specific + r'/profile$',
         Profile.as_view(), name='profile-detail'),
-
-    url(identity_specific + r'/allocation$',
-        AllocationMembership.as_view(), name='allocation'),
 
     url(r'^allocation$',
         AllocationList.as_view(), name='allocation-list'),
