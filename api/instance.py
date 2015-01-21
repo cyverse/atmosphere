@@ -19,6 +19,7 @@ from core.models import AtmosphereUser as User
 from core.models.identity import Identity
 from core.models.instance import convert_esh_instance
 from core.models.instance import Instance as CoreInstance
+from core.models.post_boot import _save_scripts_to_instance
 from core.models.provider import AccountProvider
 from core.models.tag import Tag as CoreTag
 from core.models.volume import convert_esh_volume
@@ -137,6 +138,7 @@ class InstanceList(APIView):
         size_alias = data.pop('size_alias')
         machine_alias = data.pop('machine_alias')
         hypervisor_name = data.pop('hypervisor',None)
+        boot_scripts = data.pop('boot_scripts', [])
         try:
             logger.debug(data)
             core_instance = launch_instance(
@@ -170,6 +172,8 @@ class InstanceList(APIView):
         #NEVER WRONG
         if serializer.is_valid():
             serializer.save()
+            if boot_scripts:
+                _save_scripts_to_instance(serializer.object, boot_scripts)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors,
@@ -622,6 +626,9 @@ class Instance(APIView):
             update_instance_metadata(esh_driver, esh_instance, data,
                     replace=False)
             serializer.save()
+            boot_scripts = data.pop('boot_scripts', [])
+            if boot_scripts:
+                _save_scripts_to_instance(serializer.object, boot_scripts)
             invalidate_cached_instances(identity=Identity.objects.get(uuid=identity_uuid))
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
@@ -652,6 +659,9 @@ class Instance(APIView):
             logger.info('metadata = %s' % data)
             update_instance_metadata(esh_driver, esh_instance, data)
             serializer.save()
+            boot_scripts = data.pop('boot_scripts', [])
+            if boot_scripts:
+                _save_scripts_to_instance(serializer.object, boot_scripts)
             invalidate_cached_instances(identity=Identity.objects.get(uuid=identity_uuid))
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
@@ -862,3 +872,4 @@ def over_allocation(allocation_exception):
     return failure_response(
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
         allocation_exception.message)
+

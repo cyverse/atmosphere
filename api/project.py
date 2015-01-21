@@ -31,11 +31,11 @@ from django.db.models import Q
 
 class ProjectApplicationExchange(APIView):
     permission_classes = (ApiAuthRequired,ProjectOwnerRequired)
-    def put(self, request, project_id, application_uuid):
+    def put(self, request, project_uuid, application_uuid):
         user = request.user
-        project = Project.objects.filter(id=project_id)
+        project = Project.objects.filter(id=project_uuid)
         if not project:
-            return Response("Project with ID=%s does not exist" % project_id,
+            return Response("Project with ID=%s does not exist" % project_uuid,
                             status=status.HTTP_400_BAD_REQUEST)
         project = project[0]
 
@@ -60,12 +60,12 @@ class ProjectApplicationExchange(APIView):
         response = Response(status=status.HTTP_204_NO_CONTENT)
         return response
 
-    def delete(self, request, project_id, application_uuid):
+    def delete(self, request, project_uuid, application_uuid):
         user = request.user
         group = get_user_group(user.username)
-        project = group.projects.filter(id=project_id)
+        project = group.projects.filter(id=project_uuid)
         if not project:
-            return Response("Project with ID=%s does not exist" % project_id,
+            return Response("Project with ID=%s does not exist" % project_uuid,
                             status=status.HTTP_400_BAD_REQUEST)
         project = project[0]
         application = project.applications.filter(provider_alias=application_uuid)
@@ -83,12 +83,12 @@ class ProjectInstanceExchange(APIView):
 
     permission_classes = (ApiAuthRequired,ProjectOwnerRequired)
 
-    def put(self, request, project_id, instance_id):
+    def put(self, request, project_uuid, instance_id):
         user = request.user
         group = get_user_group(user.username)
-        project = group.projects.filter(id=project_id)
+        project = group.projects.filter(id=project_uuid)
         if not project:
-            return Response("Project with ID=%s does not exist" % project_id,
+            return Response("Project with ID=%s does not exist" % project_uuid,
                             status=status.HTTP_400_BAD_REQUEST)
         project = project[0]
         instance = user.instance_set.filter(provider_alias=instance_id)
@@ -106,12 +106,12 @@ class ProjectInstanceExchange(APIView):
         response = Response(status=status.HTTP_204_NO_CONTENT)
         return response
 
-    def delete(self, request, project_id, instance_id):
+    def delete(self, request, project_uuid, instance_id):
         user = request.user
         group = get_user_group(user.username)
-        project = group.projects.filter(id=project_id)
+        project = group.projects.filter(id=project_uuid)
         if not project:
-            return Response("Project with ID=%s does not exist" % project_id,
+            return Response("Project with ID=%s does not exist" % project_uuid,
                             status=status.HTTP_400_BAD_REQUEST)
         project = project[0]
         instance = project.instances.filter(provider_alias=instance_id)
@@ -127,13 +127,13 @@ class ProjectInstanceExchange(APIView):
 
 class ProjectVolumeExchange(APIView):
     permission_classes = (ApiAuthRequired,ProjectOwnerRequired)
-    def put(self, request, project_id, volume_id):
+    def put(self, request, project_uuid, volume_id):
         user = request.user
-        project = Project.objects.filter(id=project_id)
+        project = Project.objects.filter(id=project_uuid)
         if not project:
-            return Response("Project with ID=%s does not exist" % project_id,
+            return Response("Project with ID=%s does not exist" % project_uuid,
                             status=status.HTTP_400_BAD_REQUEST)
-        volume = user.volume_set.filter(alias=volume_id)
+        volume = user.volume_set().filter(alias=volume_id)
         if not volume:
             return Response("volume with ID=%s not found in the database"
                             % (volume_id,),
@@ -149,12 +149,12 @@ class ProjectVolumeExchange(APIView):
         response = Response(status=status.HTTP_204_NO_CONTENT)
         return response
 
-    def delete(self, request, project_id, volume_id):
+    def delete(self, request, project_uuid, volume_id):
         user = request.user
         group = get_user_group(user.username)
-        project = group.projects.filter(id=project_id)
+        project = group.projects.filter(id=project_uuid)
         if not project:
-            return Response("Project with ID=%s does not exist" % project_id,
+            return Response("Project with ID=%s does not exist" % project_uuid,
                             status=status.HTTP_400_BAD_REQUEST)
         project = project[0]
         volume = project.volumes.filter(alias=volume_id)
@@ -172,13 +172,13 @@ class ProjectVolumeList(APIView):
     """
     permission_classes = (ApiAuthRequired,)
 
-    def get(self, request, project_id):
+    def get(self, request, project_uuid):
         """
         """
         user = request.user
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
-        projects = group.projects.get(id=project_id)
+        projects = group.projects.get(uuid=project_uuid)
         volumes = projects.volumes.filter(only_current(), provider__active=True)
         serialized_data = VolumeSerializer(volumes, many=True,
                                             context={"request":request}).data
@@ -190,13 +190,13 @@ class ProjectApplicationList(APIView):
     """
     permission_classes = (ApiAuthRequired,)
 
-    def get(self, request, project_id):
+    def get(self, request, project_uuid):
         """
         """
         user = request.user
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
-        projects = group.projects.get(id=project_id)
+        projects = group.projects.get(uuid=project_uuid)
         applications = projects.applications.filter(only_current())
         serialized_data = ApplicationSerializer(applications, many=True,
                                                 context={"request":request}).data
@@ -208,13 +208,13 @@ class ProjectInstanceList(APIView):
 
     permission_classes = (ApiAuthRequired,)
 
-    def get(self, request, project_id):
+    def get(self, request, project_uuid):
         """
         """
         user = request.user
         group = get_user_group(user.username)
         #TODO: Check that you have permission!
-        projects = group.projects.get(id=project_id)
+        projects = group.projects.get(uuid=project_uuid)
         instances = projects.instances.filter(only_current(),
                 source__provider_machine__provider__active=True)
         serialized_data = InstanceSerializer(instances, many=True,
@@ -247,7 +247,7 @@ class NoProjectVolumeList(APIView):
         """
         """
         user = request.user
-        volumes = user.volume_set.filter(only_current(), provider__active=True, projects=None)
+        volumes = user.volume_set().filter(only_current(), provider__active=True, projects=None)
         serialized_data = VolumeSerializer(volumes, many=True,
                                             context={"request":request}).data
         response = Response(serialized_data)
@@ -335,15 +335,15 @@ class ProjectDetail(APIView):
 
     permission_classes = (ApiAuthRequired,)
 
-    def patch(self, request, project_id):
+    def patch(self, request, project_uuid):
         """
         """
         user = request.user
         data = request.DATA
         group = get_user_group(user.username)
-        project = group.projects.filter(id=project_id)
+        project = group.projects.filter(uuid=project_uuid)
         if not project:
-            return Response("Project with ID=%s does not exist" % project_id,
+            return Response("Project with UUID=%s does not exist" % project_uuid,
                             status=status.HTTP_400_BAD_REQUEST)
         project = project[0]
         serializer = ProjectSerializer(project, data=data, partial=True,
@@ -358,15 +358,15 @@ class ProjectDetail(APIView):
             return Response(serializer.errors,
                     status=status.HTTP_400_BAD_REQUEST)
 
-    def put(self, request, project_id):
+    def put(self, request, project_uuid):
         """
         """
         user = request.user
         data = request.DATA
         group = get_user_group(user.username)
-        project = group.projects.filter(id=project_id)
+        project = group.projects.filter(uuid=project_uuid)
         if not project:
-            return Response("Project with ID=%s does not exist" % project_id,
+            return Response("Project with UUID=%s does not exist" % project_uuid,
                             status=status.HTTP_400_BAD_REQUEST)
         project = project[0]
         serializer = ProjectSerializer(project, data=data,
@@ -381,14 +381,14 @@ class ProjectDetail(APIView):
             return Response(serializer.errors,
                     status=status.HTTP_400_BAD_REQUEST)
 
-    def get(self, request, project_id):
+    def get(self, request, project_uuid):
         """
         """
         user = request.user
         group = get_user_group(user.username)
-        project = group.projects.filter(id=project_id)
+        project = group.projects.filter(uuid=project_uuid)
         if not project:
-            return Response("Project with ID=%s does not exist" % project_id,
+            return Response("Project with UUID=%s does not exist" % project_uuid,
                             status=status.HTTP_400_BAD_REQUEST)
         serialized_data = ProjectSerializer(project,
                                             context={"request":request}).data
@@ -396,14 +396,14 @@ class ProjectDetail(APIView):
         return response
 
 
-    def delete(self, request, project_id):
+    def delete(self, request, project_uuid):
         """
         """
         user = request.user
         group = get_user_group(user.username)
-        project = group.projects.filter(id=project_id)
+        project = group.projects.filter(uuid=project_uuid)
         if not project:
-            return Response("Project with ID=%s does not exist" % project_id,
+            return Response("Project with UUID=%s does not exist" % project_uuid,
                             status=status.HTTP_400_BAD_REQUEST)
         project = project[0]
         running_resources = project.has_running_resources()

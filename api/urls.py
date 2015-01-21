@@ -98,28 +98,29 @@ private_apis = patterns('',
         NoProjectVolumeList.as_view(),
         name='empty-project-volume-list'),
 
-    url(r'project/(?P<project_id>\d+)$',
+    url(r"project/(?P<project_uuid>%s)$" % uuid_match,
         ProjectDetail.as_view(),
         name='project-detail'),
-    url(r'project/(?P<project_id>\d+)/application$',
+    url(r"project/(?P<project_uuid>%s)/application$" % uuid_match,
         ProjectApplicationList.as_view(),
         name='project-application-list'),
-    url(r'project/(?P<project_id>\d+)/application/(?P<application_uuid>%s)$'
-        % uuid_match,
+    url(r'project/(?P<project_uuid>%s)'
+         '/application/(?P<application_uuid>%s)$'
+         % (uuid_match,uuid_match),
         ProjectApplicationExchange.as_view(),
         name='project-application-exchange'),
-    url(r'project/(?P<project_id>\d+)/instance$',
+    url(r'project/(?P<project_uuid>%s)/instance$' % (uuid_match,),
         ProjectInstanceList.as_view(),
         name='project-instance-list'),
-    url(r'project/(?P<project_id>\d+)/instance/(?P<instance_id>%s)$'
-        % uuid_match,
+    url(r'project/(?P<project_uuid>%s)/instance/(?P<instance_id>%s)$'
+        % (uuid_match,uuid_match),
         ProjectInstanceExchange.as_view(),
         name='project-instance-exchange'),
-    url(r'project/(?P<project_id>\d+)/volume$',
+    url(r'project/(?P<project_uuid>%s)/volume$' % (uuid_match,),
         ProjectVolumeList.as_view(),
         name='project-volume-list'),
-    url(r'project/(?P<project_id>\d+)/volume/(?P<volume_id>%s)$'
-        % uuid_match,
+    url(r'project/(?P<project_uuid>%s)/volume/(?P<volume_id>%s)$'
+        % (uuid_match,uuid_match),
         ProjectVolumeExchange.as_view(),
         name='project-volume-exchange'),
 

@@ -10,6 +10,7 @@ from threepio import logger
 
 from core.models import Application as CoreApplication
 from core.models import Identity, Group
+from core.models.post_boot import _save_scripts_to_application
 from core.models.machine import update_application_owner
 from core.models.application import visible_applications, public_applications
 
@@ -272,10 +273,12 @@ class Application(APIView):
             #TODO: Update application metadata on each machine?
             #update_machine_metadata(esh_driver, esh_machine, data)
             serializer.save()
-            if 'created_by_identity' in request.DATA:
+            if 'created_by_identity' in data:
                 identity = serializer.object.created_by_identity
                 update_application_owner(serializer.object, identity)
-            logger.info(serializer.data)
+            if 'boot_scripts' in data:
+                _save_scripts_to_application(serializer.object,
+                                             data.get('boot_scripts',[]))
             return Response(serializer.data)
         return failure_response(
             status.HTTP_400_BAD_REQUEST,
@@ -330,3 +333,4 @@ class ApplicationSearch(APIView):
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
+

@@ -328,6 +328,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Application
+        exclude = ("created_by_identity","id")
 
 
 class PaginatedApplicationSerializer(pagination.PaginationSerializer):
@@ -674,10 +675,14 @@ class GroupSerializer(serializers.ModelSerializer):
 
 
 class VolumeSerializer(serializers.ModelSerializer):
-    status = serializers.CharField(read_only=True, source='esh_status')
+    status = serializers.CharField(read_only=True, source='get_status')
     attach_data = serializers.Field(source='esh_attach_data')
     #metadata = serializers.Field(source='esh_metadata')
     mount_location = serializers.Field(source='mount_location')
+    created_by = serializers.SlugRelatedField(slug_field='username',
+                                              source='created_by',
+                                              read_only=True)
+    provider = serializers.Field(source="provider.uuid")
     identity = CleanedIdentitySerializer(source="created_by_identity")
     projects = ProjectsField()
 
@@ -714,7 +719,7 @@ class NoProjectSerializer(serializers.ModelSerializer):
         return [VolumeSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            atmo_user.volume_set.filter(only_current(), 
+            atmo_user.volume_set().filter(only_current(), 
                 provider__active=True, projects=None)]
     class Meta:
         model = AtmosphereUser
