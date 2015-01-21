@@ -78,7 +78,7 @@ class Volume(BootSource):
         return cls(name=core_volume.name,
                    identifier=core_volume.identifier)
     def get_type(self):
-        raise "Volume"
+        return "ExceptionVolume"
 
 class Machine(BootSource):
 
@@ -87,7 +87,7 @@ class Machine(BootSource):
         return cls(name=core_pm.application.name,
                    identifier=core_pm.identifier)
     def get_type(self):
-        raise "Machine"
+        return "Machine"
 
 
 class Size(object):
