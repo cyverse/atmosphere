@@ -1,27 +1,22 @@
 """
 authentication response views.
-
 """
-
 import json
-import uuid
 from datetime import datetime
+import uuid
 
-from django.contrib.auth import authenticate, login
+from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
-from django.http import HttpResponseRedirect
 
 from threepio import auth_logger as logger
 
-from atmosphere import settings
-from atmosphere.settings import secrets
-from authentication import createAuthToken, validateToken,\
-    userCanEmulate, cas_loginRedirect
-from authentication.models import Token as AuthToken
-from authentication.protocol.ldap import ldap_validate
-from authentication.protocol.cas import cas_validateUser
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework import status
+from atmosphere.authentication import createAuthToken, userCanEmulate,\
+    cas_loginRedirect
+from atmosphere.authentication.models import Token as AuthToken
+from atmosphere.authentication.protocol.cas import cas_validateUser
+from atmosphere.authentication.protocol.ldap import ldap_validate
+from atmosphere.settings import API_SERVER_URL
+from atmosphere.settings.secrets import TOKEN_EXPIRY_TIME
 
 
 @csrf_exempt
@@ -40,21 +35,21 @@ def token_auth(request):
     logger.info(request)
 
     token = request.POST.get('token', None)
-    emulate_user = request.POST.get('emulate_user', None)
 
     username = request.POST.get('username', None)
-    #CAS authenticated user already has session data
-    #without passing any parameters
+    # CAS authenticated user already has session data
+    # without passing any parameters
     if not username:
         username = request.session.get('username', None)
 
     password = request.POST.get('password', None)
-    #LDAP Authenticate if password provided.
+    # LDAP Authenticate if password provided.
     if username and password:
         if ldap_validate(username, password):
-            logger.info("LDAP User %s validated. Creating auth token" % username)
+            logger.info("LDAP User %s validated. Creating auth token"
+                        % username)
             token = createAuthToken(username)
-            expireTime = token.issuedTime + secrets.TOKEN_EXPIRY_TIME
+            expireTime = token.issuedTime + TOKEN_EXPIRY_TIME
             auth_json = {
                 'token': token.key,
                 'username': token.user.username,
@@ -62,19 +57,20 @@ def token_auth(request):
             }
             return HttpResponse(
                 content=json.dumps(auth_json),
-                status=status.HTTP_201_CREATED,
+                status=201,
                 content_type='application/json')
         else:
             logger.debug("[LDAP] Failed to validate %s" % username)
             return HttpResponse("LDAP login failed", status=401)
 
-    #if request.session and request.session.get('token'):
-    #    logger.info("User %s already authenticated, renewing token" % username)
+    # if request.session and request.session.get('token'):
+    #    logger.info("User %s already authenticated, renewing token"
+    #                % username)
     #    token = validateToken(username, request.session.get('token'))
 
-    #ASSERT: Token exists here
+    # ASSERT: Token exists here
     if token:
-        expireTime = token.issuedTime + secrets.TOKEN_EXPIRY_TIME
+        expireTime = token.issuedTime + TOKEN_EXPIRY_TIME
         auth_json = {
             'token': token.key,
             'username': token.user.username,
@@ -85,15 +81,15 @@ def token_auth(request):
             content_type='application/json')
 
     if not username and not password:
-        #The user and password were not found
-        #force user to login via CAS
+        # The user and password were not found
+        # force user to login via CAS
         return cas_loginRedirect(request, '/auth/')
 
-    #CAS Authenticate by Proxy (Password not necessary):
+    # CAS Authenticate by Proxy (Password not necessary):
     if cas_validateUser(username):
         logger.info("CAS User %s validated. Creating auth token" % username)
         token = createAuthToken(username)
-        expireTime = token.issuedTime + secrets.TOKEN_EXPIRY_TIME
+        expireTime = token.issuedTime + TOKEN_EXPIRY_TIME
         auth_json = {
             'token': token.key,
             'username': token.user.username,
@@ -153,8 +149,8 @@ def auth_response(request):
     the user is re-authenticated by CAS at expiry-time
     """
     logger.debug("Creating Auth Response")
-    api_server_url = settings.API_SERVER_URL
-    #login validation
+    api_server_url = API_SERVER_URL
+    # login validation
     response = HttpResponse()
 
     response['Access-Control-Allow-Origin'] = '*'
@@ -168,9 +164,9 @@ def auth_response(request):
     token = str(uuid.uuid4())
     username = request.META['HTTP_X_AUTH_USER']
     response['X-Auth-Token'] = token
-    #New code: If there is an 'emulate_user' parameter:
+    # New code: If there is an 'emulate_user' parameter:
     if 'HTTP_X_EMULATE_USER' in request.META:
-    # AND user has permission to emulate
+        # AND user has permission to emulate
         if userCanEmulate(username):
             logger.debug("EMULATION REQUEST:"
                          "Generating AuthToken for %s -- %s" %
@@ -178,7 +174,7 @@ def auth_response(request):
                           username))
             response['X-Auth-User'] = request.META['HTTP_X_EMULATE_USER']
             response['X-Emulated-By'] = username
-            #then this token is for the emulated user
+            # then this token is for the emulated user
             auth_user_token = AuthToken(
                 user=request.META['HTTP_X_EMULATE_USER'],
                 issuedTime=datetime.now(),
@@ -188,10 +184,11 @@ def auth_response(request):
         else:
             logger.warn("EMULATION REQUEST:User deemed Unauthorized : %s" %
                         (username,))
-            #This user is unauthorized to emulate users - Don't create a token!
+            # This user is unauthorized to emulate users - Don't create a
+            # token!
             return HttpResponse("401 UNAUTHORIZED TO EMULATE", status=401)
     else:
-        #Normal login, no user to emulate
+        # Normal login, no user to emulate
         response['X-Auth-User'] = username
         auth_user_token = AuthToken(
             user=username,

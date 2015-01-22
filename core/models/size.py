@@ -101,13 +101,13 @@ def convert_esh_size(esh_size, provider_uuid):
         disk = esh_size.disk
         root = esh_size.ephemeral
         cpu = esh_size.cpu
-        core_size = create_size(name, alias, cpu, ram, disk, root, provider_id)
+        core_size = create_size(name, alias, cpu, ram, disk, root, provider_uuid)
     core_size.esh = esh_size
     return core_size
 
 
-def create_size(name, alias, cpu, mem, disk, root, provider_id):
-    provider = Provider.objects.get(id=provider_id)
+def create_size(name, alias, cpu, mem, disk, root, provider_uuid):
+    provider = Provider.objects.get(uuid=provider_uuid)
     size = Size.objects.create(
         name=name,
         alias=alias,

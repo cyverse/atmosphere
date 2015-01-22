@@ -11,11 +11,12 @@ from rest_framework import status
 from threepio import logger
 
 
+from api import failure_response
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import MachineRequestSerializer
 from core.models.machine_request import share_with_admins, share_with_self
 from core.models.machine_request import MachineRequest as CoreMachineRequest
-from core.models import Provider
+from core.models import Provider, ProviderMachine, Volume
 from web.emails import requestImaging
 from service.tasks.machine import start_machine_imaging
 
@@ -62,7 +63,19 @@ class MachineRequestList(APIView):
         if serializer.is_valid():
             #Add parent machine to request
             machine_request = serializer.object
-            machine_request.parent_machine = machine_request.instance.provider_machine
+            try:
+                machine_request.parent_machine = machine_request.instance\
+                        .source.providermachine
+            except ProviderMachine.DoesNotExist:
+                try:
+                    machine_request.instance.source.volume
+                except Volume.DoesNotExist:
+                    return failure_response(status.HTTP_400_BAD_REQUEST,
+                            "Instance of booted volume can NOT be imaged."
+                            "Contact your Administrator for more information.")
+                return failure_response(status.HTTP_400_BAD_REQUEST,
+                        "Instance source type cannot be determined."
+                        "Contact your Administrator for more information.")
             #NOTE: THIS IS A HACK -- While we enforce all images to go to iPlant Cloud - Tucson.
             # THIS CODE SHOULD BE REMOVED 
             try:

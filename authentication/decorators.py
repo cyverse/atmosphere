@@ -1,16 +1,13 @@
-# django http libraries
-from django.contrib.auth import authenticate, login as django_login
 from django.http import HttpResponseRedirect, HttpResponseForbidden
 
-#rest framework libraries
+from django.contrib.auth import authenticate, login as django_login
+
 from rest_framework.response import Response
 from rest_framework import status
 
 from threepio import auth_logger as logger
 
-# atmosphere libraries
 from atmosphere import settings
-
 from authentication import cas_loginRedirect
 from authentication.token import validate_token
 
@@ -35,8 +32,8 @@ def atmo_login_required(func):
             logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
             return HttpResponseRedirect(settings.SERVER_URL+"/logout/")
 
-        #logger.info('atmo_login_required session info: %s'
-        #            % request.session.__dict__)
+        # logger.info('atmo_login_required session info: %s'
+        #             % request.session.__dict__)
         logger.info('atmo_login_required authentication: %s'
                     % request.session.get('username',
                                           '<Username not in session>'))
@@ -46,23 +43,25 @@ def atmo_login_required(func):
         emulator = request.session.get('emulated_by', None)
 
         if emulator:
-            #logger.info("%s\n%s\n%s" % (username, redirect, emulator))
+            # logger.info("%s\n%s\n%s" % (username, redirect, emulator))
             logger.info("Test emulator %s instead of %s" %
                         (emulator, username))
             logger.debug(request.session.__dict__)
-            #Authenticate the user (Force a CAS test)
-            user = authenticate(username=emulator, password="", auth_token=token, request=request)
-            #AUTHORIZED STAFF ONLY
+            # Authenticate the user (Force a CAS test)
+            user = authenticate(username=emulator, password="",
+                                auth_token=token, request=request)
+            # AUTHORIZED STAFF ONLY
             if not user or not user.is_staff:
                 return HttpResponseRedirect(settings.SERVER_URL+"/logout/")
             logger.info("Emulate success - Logging in %s" % user.username)
             django_login(request, user)
             return func(request, *args, **kwargs)
 
-        user = authenticate(username=username, password="", auth_token=token, request=request)
+        user = authenticate(username=username, password="", auth_token=token,
+                            request=request)
         if not user:
             logger.info("Could not authenticate user %s" % username)
-            #logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
+            # logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
             return cas_loginRedirect(request, redirect)
         django_login(request, user)
         return func(request, *args, **kwargs)
@@ -71,7 +70,7 @@ def atmo_login_required(func):
 
 def atmo_valid_token_required(func):
     def atmo_validate_token(request, *args, **kwargs):
-        #Used for requests that require a valid token
+        # Used for requests that require a valid token
         token_key = request.session.get('token')
         if validate_token(token_key, request):
             return func(request, *args, **kwargs)
@@ -80,9 +79,11 @@ def atmo_valid_token_required(func):
             return HttpResponseForbidden("403 Forbidden")
     return atmo_validate_token
 
+
 def validate_request_user(request):
     user = request.user
     return True if user and user.is_authenticated() else False
+
 
 def api_auth_token_required(func):
     def validate_auth_token(decorated_func, *args, **kwargs):
@@ -98,14 +99,17 @@ def api_auth_token_required(func):
         return func(request, *args, **kwargs)
     return validate_auth_token
 
+
 def api_auth_token_optional(func):
     def validate_auth_token(decorated_func, *args, **kwargs):
-        #Used for requests that require a valid token
-        #NOTE: Calling request.user for the first time will call 'authenticate'
-        #    in the auth.token.TokenAuthentication class
+        """
+        Used for requests that require a valid token
+        NOTE: Calling request.user for the first time will call `authenticate`
+        in the auth.token.TokenAuthentication class
+        """
         request = args[0]
-        #The result is irrelevant, but
-        # the func will be able to 
+        # The result is irrelevant, but
+        # the func will be able to
         # use the request.user variable
         request.user.is_authenticated()
         return func(request, *args, **kwargs)

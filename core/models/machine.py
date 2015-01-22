@@ -9,7 +9,7 @@ from django.utils import timezone
 from threepio import logger
 
 from atmosphere import settings
-from core.application import get_os_account_driver, write_app_data
+from core.models.abstract import InstanceSource
 from core.models.application import Application
 from core.models.application import create_application, get_application
 from core.models.identity import Identity
@@ -18,27 +18,41 @@ from core.models.tag import Tag, updateTags
 from core.fields import VersionNumberField, VersionNumber
 
 from core.metadata import _get_owner_identity
-from core.application import write_app_data, has_app_data, get_app_data
+from core.application import get_os_account_driver, write_app_to_metadata,\
+                             has_app_metadata, get_app_metadata
 
-class ProviderMachine(models.Model):
+
+class ProviderMachine(InstanceSource):
     """
     Machines are created by Providers, and multiple providers
     can implement a single machine (I.e. Ubuntu 12.04)
     However each provider will have a specific, unique identifier
     to represent that machine. (emi-12341234 vs ami-43214321)
     """
-    #Field is Filled out at runtime.. after converting an eshMachine
-    esh = None
-    cached_machines = None
-    provider = models.ForeignKey(Provider)
     application = models.ForeignKey(Application)
+    version = models.CharField(max_length=128, default='1.0.0')
+    def source_end_date(self):
+        return self.instancesource_ptr.end_date
+    def source_provider(self):
+        return self.instancesource_ptr.provider
+    def source_identifier(self):
+        return self.instancesource_ptr.identifier
 
-    identifier = models.CharField(max_length=256)  # EMI-12341234
-    created_by = models.ForeignKey('AtmosphereUser', null=True)
-    created_by_identity = models.ForeignKey(Identity, null=True)
-    start_date = models.DateTimeField(default=timezone.now())
-    end_date = models.DateTimeField(null=True, blank=True)
-    version = VersionNumberField(default=int(VersionNumber(1,)))
+    class Meta:
+        db_table = "provider_machine"
+        app_label = "core"
+    #Field is Filled out at runtime.. after converting an eshMachine
+    #esh = None
+    #cached_machines = None
+    #provider = models.ForeignKey(Provider)
+    #application = models.ForeignKey(Application)
+
+    #identifier = models.CharField(max_length=256)  # EMI-12341234
+    #created_by = models.ForeignKey('AtmosphereUser', null=True)
+    #created_by_identity = models.ForeignKey(Identity, null=True)
+    #start_date = models.DateTimeField(default=timezone.now())
+    #end_date = models.DateTimeField(null=True, blank=True)
+    #version = models.CharField(max_length=128, default='1.0.0')
 
     def update_image(self, **image_updates):
         """
@@ -50,8 +64,8 @@ class ProviderMachine(models.Model):
         * min_ram=<RAM_in_MB>
         * min_disk=<Storage_in_GB>
         * is_public=True/False
+        You can also REPLACE all values at once using the 'properties' kwarg
         * properties={'metadata_key':'metadata_value',...}
-          (NOTE: Updating properties WILL replace EVERYTHING!)
         
         (More Documentation on this inside the image_manager, chromogenic)
         """
@@ -61,7 +75,10 @@ class ProviderMachine(models.Model):
             accounts.image_manager.update_image(image, **updates)
         except Exception as ex:
             logger.warn("Image Update Failed for %s on Provider %s"
-                        % (image_id, provider))
+                        % (self.identifier, provider))
+    def update_version(self, version):
+        self.version = version
+        self.save()
 
     
     def icon_url(self):
@@ -107,10 +124,10 @@ class ProviderMachine(models.Model):
         return "%s (Provider:%s - App:%s) " %\
             (self.identifier, self.provider, self.application)
 
-    class Meta:
-        db_table = "provider_machine"
-        app_label = "core"
-        unique_together = ('provider', 'identifier')
+    #class Meta:
+    #    db_table = "provider_machine"
+    #    app_label = "core"
+    #    unique_together = ('provider', 'identifier')
 
 class ProviderMachineMembership(models.Model):
     """
@@ -159,19 +176,21 @@ def get_cached_machine(provider_alias, provider_id):
     return cached_mach
 
 
-def load_provider_machine(provider_alias, machine_name, provider_uuid,
+def load_provider_machine(image_id, machine_name, provider_uuid,
                           app=None, metadata={}):
     """
     Returns ProviderMachine
     """
-    provider_machine = get_provider_machine(provider_alias, provider_uuid)
+    provider_machine = get_provider_machine(image_id, provider_uuid)
     if provider_machine:
         return provider_machine
     if not app:
-        app = get_application(provider_alias, app_uuid=metadata.get('uuid'))
+        app = get_application(image_id, app_uuid=metadata.get('uuid'))
     if not app:
-        app = create_application(provider_alias, provider_uuid, machine_name)
-    return create_provider_machine(machine_name, provider_alias, provider_uuid, app=app, metadata=metadata)
+        app = create_application(image_id, provider_uuid, machine_name)
+    return create_provider_machine(
+            machine_name, image_id, provider_uuid,
+            app=app, metadata=metadata)
 
 def _extract_tenant_name(identity):
     tenant_name = identity.get_credential('ex_tenant_name')
@@ -203,14 +222,14 @@ def update_application_owner(application, identity):
         if not image:
             continue
         tenant_id = accounts.get_project(tenant_name).id
-        write_app_data(provider_machine, owner=tenant_id)
+        write_app_to_metadata(provider_machine, owner=tenant_id)
         print "App data saved for %s" % image_id
         accounts.image_manager.share_image(image, tenant_name)
         print "Shared access to %s with %s" % (image_id, tenant_name)
         accounts.image_manager.unshare_image(image, old_tenant_name)
         print "Removed access to %s for %s" % (image_id, old_tenant_name)
 
-def create_provider_machine(machine_name, provider_alias, provider_uuid, app,
+def create_provider_machine(machine_name, image_id, provider_uuid, app,
                             metadata={}):
     #Attempt to match machine by provider alias
     #Admin identity used until the real owner can be identified.
@@ -223,12 +242,12 @@ def create_provider_machine(machine_name, provider_alias, provider_uuid, app,
     logger.debug("App %s" % app)
     provider_machine = ProviderMachine.objects.create(
         application = app,
-        provider = provider,
+        version = metadata.get('version',"1.0"),
+        identifier = image_id,
         created_by = machine_owner.created_by,
+        provider = provider,
         created_by_identity = machine_owner,
-        identifier = provider_alias,
-        version = metadata.get('version',
-            VersionNumber.string_to_version('1.0')))
+        )
     logger.info("New ProviderMachine created: %s" % provider_machine)
     add_to_cache(provider_machine)
     return provider_machine
@@ -244,6 +263,54 @@ def add_to_cache(provider_machine):
     return provider_machine
 
 
+def _check_for_metadata_update(esh_machine, provider_uuid):
+    """
+    In this method, we look for specific metadata on an 'esh_machine'
+    IF we find the data we are looking for (like application_uuid)
+    and we assume that OpenStack is 'the Authority' on this information,
+    We can use that to Update/Bootstrap our DB values about the specific
+    application and provider machine version.
+    """
+    name = esh_machine.name
+    alias = esh_machine.alias
+    if not esh_machine._image:
+        metadata = {}
+    else:
+        metadata = esh_machine._image.extra.get('metadata',{})
+    #TODO: lookup the line below and find the 'real' test conditions.
+    if metadata and False and has_app_metadata(metadata):
+        #USE CASE: Application data exists on the image
+        # and may exist on this DB
+        app = get_application(alias, metadata.get('application_uuid'))
+        if not app:
+            app_kwargs = get_app_metadata(metadata, provider_uuid)
+            logger.debug("Creating Application for Image %s "
+                         "(Based on Application data: %s)"
+                         % (alias, app_kwargs))
+            app = create_application(alias, provider_uuid, **app_kwargs)
+        provider_machine = load_provider_machine(alias, name, provider_uuid,
+                                             app=app, metadata=metadata)
+        #If names conflict between OpenStack and Database, choose OpenStack.
+        if esh_machine._image and app.name != name:
+            logger.debug("Name Conflict! Machine %s named %s, Application named %s"
+                         % (alias, name, app.name))
+            app.name = name
+            app.save()
+    else:
+        #USE CASE: Application data does NOT exist,
+        # This machine is assumed to be its own application, so run the
+        # machine alias to retrieve any existing application.
+        # otherwise create a new application with the same name as the machine
+        provider_machine = _create_machine_and_app(
+                esh_machine, provider_uuid)
+    #TODO: some test to verify when we should be 'pushing back' to cloud
+    #push_metadata = True
+    #if push_metadata and hasattr(esh_driver._connection,
+    #                             'ex_set_image_metadata'):
+    #    logger.debug("Writing App data for Image %s:%s" % (alias, app.name))
+    #    write_app_to_metadata(esh_driver, provider_machine)
+    return provider_machine
+
 def get_provider_machine(identifier, provider_uuid):
     try:
         machine = ProviderMachine.objects.get(provider__uuid=provider_uuid, identifier=identifier)
@@ -251,62 +318,33 @@ def get_provider_machine(identifier, provider_uuid):
     except ProviderMachine.DoesNotExist:
         return None
 
+def _create_machine_and_app(esh_machine, provider_uuid):
+    app = get_application(esh_machine.alias)
+    if not app:
+        logger.debug("Creating Application for Image %s" % (esh_machine.alias, ))
+        app = create_application(esh_machine.alias, provider_uuid, esh_machine.name)
+    #Using what we know about our (possibly new) application
+    #and load (or possibly create) the provider machine
+    provider_machine = load_provider_machine(esh_machine.alias, esh_machine.name, provider_uuid,
+                                             app=app)
+    return provider_machine
 
-def convert_esh_machine(esh_driver, esh_machine, provider_uuid, user,
-                        image_id=None):
+def convert_esh_machine(
+        esh_driver, esh_machine,
+        provider_uuid, user, identifier=None):
     """
     Takes as input an (rtwo) driver and machine, and a core provider id
     Returns as output a core ProviderMachine
     """
-    if image_id and not esh_machine:
-        return _convert_from_instance(esh_driver, provider_uuid, image_id)
+    if identifier and not esh_machine:
+        return _convert_from_instance(esh_driver, provider_uuid, identifier)
     elif not esh_machine:
         return None
-    push_metadata = False
-    if not esh_machine._image:
-        metadata = {}
-    else:
-        metadata = esh_machine._image.extra.get('metadata',{})
-    name = esh_machine.name
-    alias = esh_machine.alias
 
-    if metadata and False and has_app_data(metadata):
-        #USE CASE: Application data exists on the image
-        # and may exist on this DB
-        app = get_application(alias, metadata.get('application_uuid'))
-        if not app:
-            app_kwargs = get_app_data(metadata, provider_uuid)
-            logger.debug("Creating Application for Image %s "
-                         "(Based on Application data: %s)"
-                         % (alias, app_kwargs))
-            app = create_application(alias, provider_uuid, **app_kwargs)
-    else:
-        #USE CASE: Application data does NOT exist,
-        # This machine is assumed to be its own application, so run the
-        # machine alias to retrieve any existing application.
-        # otherwise create a new application with the same name as the machine
-        # App assumes all default values
-        #logger.info("Image %s missing Application data" % (alias, ))
-        push_metadata = True
-        #TODO: Get application 'name' instead?
-        app = get_application(alias)
-        if not app:
-            logger.debug("Creating Application for Image %s" % (alias, ))
-            app = create_application(alias, provider_uuid, name)
-    provider_machine = load_provider_machine(alias, name, provider_uuid,
-                                             app=app, metadata=metadata)
+    #TODO: Work on metadata use cases and replace these lines..
+    #provider_machine = _check_for_metadata_update(esh_machine, provider_uuid)
+    provider_machine = _create_machine_and_app(esh_machine, provider_uuid)
 
-    #If names conflict between OpenStack and Database, choose OpenStack.
-    if esh_machine._image and app.name != name:
-        logger.debug("Name Conflict! Machine %s named %s, Application named %s"
-                     % (alias, name, app.name))
-        app.name = name
-        app.save()
-    _check_project(app, user)
-    #if push_metadata and hasattr(esh_driver._connection,
-    #                             'ex_set_image_metadata'):
-    #    logger.debug("Creating App data for Image %s:%s" % (alias, app.name))
-    #    write_app_data(esh_driver, provider_machine)
     provider_machine.esh = esh_machine
     return provider_machine
 
@@ -315,9 +353,9 @@ def _check_project(core_application, user):
     """
     Select a/multiple projects the application belongs to.
     NOTE: User (NOT Identity!!) Specific
+          Applications do NOT require auto-assigned, default project
     """
     core_projects = core_application.get_projects(user)
-    #NOTE: for Applications, do NOT auto-assign default project
     return core_projects
 
 

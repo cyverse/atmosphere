@@ -5,29 +5,30 @@ from django.db import models, transaction, DatabaseError
 from django.db.models import Q
 from django.utils import timezone
 
+from core.models.abstract import InstanceSource
 from core.models.provider import Provider
 from core.models.identity import Identity
 from threepio import logger
 
 
-class Volume(models.Model):
-    """
-    """
-    # esh field is filled out when converting an esh_volume
-    esh = None
-    alias = models.CharField(max_length=256)
-    provider = models.ForeignKey(Provider)
+class Volume(InstanceSource):
     size = models.IntegerField()
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
-    created_by = models.ForeignKey('AtmosphereUser', null=True)
-    created_by_identity = models.ForeignKey(Identity, null=True)
-    start_date = models.DateTimeField(default=lambda: datetime.now(pytz.utc))
-    end_date = models.DateTimeField(null=True, blank=True)
+    def source_start_date(self):
+        return self.instancesource_ptr.start_date
+    def source_end_date(self):
+        return self.instancesource_ptr.end_date
+    def source_provider(self):
+        return self.instancesource_ptr.provider
+    def source_identifier(self):
+        return self.instancesource_ptr.identifier
 
     class Meta:
         db_table = "volume"
         app_label = "core"
+
+
 
     def end_date_all(self):
         if not self.end_date:
@@ -62,7 +63,7 @@ class Volume(models.Model):
         return projects
 
     def __unicode__(self):
-        return "%s" % (self.alias,)
+        return "%s" % (self.source_identifier(),)
 
     def get_status(self):
         if self.esh and self.esh.extra:
@@ -167,29 +168,29 @@ def convert_esh_volume(esh_volume, provider_uuid, identity_uuid, user):
     Get or create the core representation of esh_volume
     Attach esh_volume to the object for further introspection..
     """
-    alias = esh_volume.id
+    identifier = esh_volume.id
     name = esh_volume.name
     size = esh_volume.size
     created_on = esh_volume.extra.get('createTime')
     try:
-        volume = Volume.objects.get(alias=alias, provider__uuid=provider_uuid)
+        volume = Volume.objects.get(identifier=identifier, provider__uuid=provider_uuid)
     except Volume.DoesNotExist:
-        volume = create_volume(name, alias, size, provider_uuid, identity_uuid,
+        volume = create_volume(name, identifier, size, provider_uuid, identity_uuid,
                                user, created_on)
     volume.esh = esh_volume
     volume._update_history()
     return volume
 
 
-def create_volume(name, alias, size, provider_uuid, identity_uuid,
+def create_volume(name, identifier, size, provider_uuid, identity_uuid,
                   creator, description=None, created_on=None):
     provider = Provider.objects.get(uuid=provider_uuid)
     identity = Identity.objects.get(uuid=identity_uuid)
-    volume = Volume.objects.create(name=name, alias=alias,
-                                   size=size, provider=provider,
-                                   created_by=creator,
-                                   created_by_identity=identity,
-                                   description="")
+    volume = Volume.objects.create(
+            name=name, description=description, size=size,
+            identifier=identifier, provider=provider,
+            created_by=creator, created_by_identity=identity)
+            
     if created_on:
         # Taking advantage of the ability to save string dates as datetime
         # but we need to get the actual date time after we are done..
@@ -258,7 +259,7 @@ class VolumeStatusHistory(models.Model):
         Get attach_data from this VolumeStatusHistory.
         """
         return {"device": self.device,
-                "id": self.volume.alias,
+                "id": self.volume.source_identifier(),
                 "instance_alias": self.instance_alias}
 
     class Meta:

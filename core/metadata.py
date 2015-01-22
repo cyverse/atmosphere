@@ -1,4 +1,4 @@
-from core.models.provider import AccountProvider
+from core.models.provider import AccountProvider, Provider
 from core.models.identity import Identity
 from threepio import logger
 

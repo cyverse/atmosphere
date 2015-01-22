@@ -1,13 +1,12 @@
 """
 Atmosphere authentication models..
 """
-
-import uuid
-import hashlib
 from datetime import timedelta
+import hashlib
+import uuid
 
-from django.utils import timezone
 from django.db import models
+from django.utils import timezone
 
 from core.models import AtmosphereUser as User
 

@@ -68,8 +68,8 @@ def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
         try:
             core_inst = CoreInstance.objects.get(
                 provider_alias=instance_id,
-                provider_machine__provider__uuid=provider_uuid,
-                created_by_uuidentity__uuid=identity_uuid)
+                source__provider__uuid=provider_uuid,
+                created_by_identity__uuid=identity_uuid)
             core_inst.end_date_all()
         except CoreInstance.DoesNotExist:
             pass
@@ -588,8 +588,8 @@ class Instance(APIView):
             try:
                 core_inst = CoreInstance.objects.get(
                     provider_alias=instance_id,
-                    provider_machine__provider__uuid=provider_uuid,
-                    created_by_uuidentity__uuid=identity_uuid)
+                    source__provider__uuid=provider_uuid,
+                    created_by_identity__uuid=identity_uuid)
                 core_inst.end_date_all()
             except CoreInstance.DoesNotExist:
                 pass

@@ -3,42 +3,39 @@ CAS authentication protocol
 
 Contact:        Steven Gregory <sgregory@iplantcollaborative.org>
                 J. Matt Peterson <jmatt@iplantcollaborative.org>
-
 """
 from datetime import timedelta
 import time
-from django.contrib.auth import authenticate, login as django_login
+
 from django.core.urlresolvers import reverse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import timezone
-from django.http import HttpResponse
-from django.http import HttpResponseRedirect
-from core.models import AtmosphereUser as User
 
 from caslib import CASClient, SAMLClient
 
 from threepio import auth_logger as logger
 
 from atmosphere import settings
-
 from authentication import create_session_token
 from authentication.models import UserProxy
+from core.models import AtmosphereUser as User
 
-from django.core.urlresolvers import reverse
-
-#TODO: Find out the actual proxy ticket expiration time, it varies by server
-#May be as short as 5min!
+# TODO: Find out the actual proxy ticket expiration time, it varies by server
+# May be as short as 5min!
 PROXY_TICKET_EXPIRY = timedelta(days=1)
+
 
 def get_cas_client():
     """
     This is how you initialize a CAS Client
     """
     return CASClient(settings.CAS_SERVER,
-            settings.SERVICE_URL,
-            proxy_url=settings.PROXY_URL,
-            proxy_callback=settings.PROXY_CALLBACK_URL,
-            auth_prefix=settings.CAS_AUTH_PREFIX,
-            self_signed_cert=settings.SELF_SIGNED_CERT)
+                     settings.SERVICE_URL,
+                     proxy_url=settings.PROXY_URL,
+                     proxy_callback=settings.PROXY_CALLBACK_URL,
+                     auth_prefix=settings.CAS_AUTH_PREFIX,
+                     self_signed_cert=settings.SELF_SIGNED_CERT)
+
 
 def cas_validateUser(username):
     """
@@ -60,7 +57,7 @@ def cas_validateUser(username):
         logger.debug("Valid User: %s Proxy response: %s"
                      % (validUser, cas_response))
         return (validUser, cas_response)
-    except Exception, e:
+    except Exception:
         logger.exception('Error validating user %s' % username)
         return (False, None)
 
@@ -69,8 +66,8 @@ def updateUserProxy(user, pgtIou, max_try=3):
     attempts = 0
     while attempts < max_try:
         try:
-            #If PGTIOU exists, a UserProxy object was created
-            #match the user to this ticket.
+            # If PGTIOU exists, a UserProxy object was created
+            # match the user to this ticket.
             userProxy = UserProxy.objects.get(proxyIOU=pgtIou)
             userProxy.username = user
             userProxy.expiresOn = timezone.now() + PROXY_TICKET_EXPIRY
@@ -92,17 +89,19 @@ CAS is an optional way to login to Atmosphere
 This code integrates caslib into the Auth system
 """
 
+
 def _set_redirect_url(sendback, request):
     absolute_url = request.build_absolute_uri(
-            reverse('cas-service-validate-link'))
+        reverse('cas-service-validate-link'))
     return "%s?sendback=%s" % (absolute_url, sendback)
 
 
 def get_saml_client():
     s_client = SAMLClient(settings.CAS_SERVER,
-            settings.SERVER_URL,
-            auth_prefix=settings.CAS_AUTH_PREFIX)
+                          settings.SERVER_URL,
+                          auth_prefix=settings.CAS_AUTH_PREFIX)
     return s_client
+
 
 def saml_validateTicket(request):
     """
@@ -117,7 +116,6 @@ def saml_validateTicket(request):
     no_user_url = settings.REDIRECT_URL + "/no_user/"
     logger.debug('GET Variables:%s' % request.GET)
     ticket = request.GET.get('ticket', None)
-    sendback = request.GET.get('sendback', None)
 
     if not ticket:
         logger.info("No Ticket received in GET string "
@@ -138,8 +136,7 @@ def saml_validateTicket(request):
         return HttpResponseRedirect(redirect_logout_url)
 
     try:
-        user = User.objects.get(
-                username=saml_response.user)
+        user = User.objects.get(username=saml_response.user)
     except User.DoesNotExist:
         return HttpResponseRedirect(no_user_url)
     auth_token = create_session_token(None, user, request)
@@ -186,7 +183,7 @@ def cas_validateTicket(request):
     cas_response = caslib.cas_serviceValidate(ticket)
     if not cas_response.success:
         logger.debug("CAS Server did NOT validate ticket:%s"
-                " and included this response:%s (Err:%s)"
+                     " and included this response:%s (Err:%s)"
                      % (ticket, cas_response.object, cas_response.error_str))
         return HttpResponseRedirect(redirect_logout_url)
     if not cas_response.user:
@@ -203,14 +200,14 @@ def cas_validateTicket(request):
               * /etc/host and hostname do not match machine.""")
         return HttpResponseRedirect(redirect_logout_url)
 
-    updated = updateUserProxy(cas_response.user, cas_response.proxy_granting_ticket)
+    updated = updateUserProxy(
+        cas_response.user, cas_response.proxy_granting_ticket)
     if not updated:
         return HttpResponseRedirect(redirect_logout_url)
     logger.info("Updated proxy for <%s> -- Auth success!" % cas_response.user)
 
     try:
-        user = User.objects.get(
-                username=cas_response.user)
+        user = User.objects.get(username=cas_response.user)
     except User.DoesNotExist:
         return HttpResponseRedirect(no_user_url)
     auth_token = create_session_token(None, user, request)
@@ -218,7 +215,8 @@ def cas_validateTicket(request):
         logger.info("Failed to create AuthToken")
         HttpResponseRedirect(redirect_logout_url)
     return_to = request.GET['sendback']
-    logger.info("Session token created, User logged in, return to: %s" % return_to)
+    logger.info("Session token created, User logged in, return to: %s"
+                % return_to)
     return HttpResponseRedirect(return_to)
 
 

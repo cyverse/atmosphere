@@ -144,7 +144,7 @@ def user_over_allocation_enforcement(provider, username,
                 (username, ))
         return allocation_result
     user = User.objects.get(username=username)
-    allocation = get_allocation(username, identity.id)
+    allocation = get_allocation(username, identity.uuid)
     if not allocation:
         logger.info(
                 "%s has NO allocation. Total Runtime: %s. Returning.." %
@@ -193,8 +193,8 @@ def suspend_all_instances_for(identity, user):
                 updated_esh = driver.get_instance(instance.id)
                 updated_core = convert_esh_instance(
                     driver, updated_esh,
-                    identity.provider.id,
-                    identity.id,
+                    identity.provider.uuid,
+                    identity.uuid,
                     user)
         except Exception, e:
             #Raise ANY exception that doesn't say
@@ -222,7 +222,7 @@ def update_instances(driver, identity, esh_list, core_list):
             continue
         esh_instance = esh_list[index]
         esh_size = driver.get_size(esh_instance.size.id)
-        core_size = convert_esh_size(esh_size, identity.provider.id)
+        core_size = convert_esh_size(esh_size, identity.provider.uuid)
         core_instance.update_history(
             esh_instance.extra['status'],
             core_size,
@@ -342,7 +342,7 @@ def _resolve_history_conflict(identity, core_running_instance,
     new_status = esh_instance.extra['status']
     esh_driver = get_cached_driver(identity=identity)
     new_size = _esh_instance_size_to_core(esh_driver,
-            esh_instance, identity.provider.id)
+            esh_instance, identity.provider.uuid)
     if not reset_time:
         reset_time = timezone.now()
     for history in bad_history:
@@ -394,7 +394,7 @@ def check_over_allocation(username, identity_uuid,
 def get_allocation(username, identity_uuid):
     user = User.objects.get(username=username)
     try:
-        membership = IdentityMembership.objects.get(identity__id=identity_id,
+        membership = IdentityMembership.objects.get(identity__uuid=identity_uuid,
                                                 member=user)
     except IdentityMembership.DoesNotExist:
         logger.warn(
@@ -446,7 +446,7 @@ def _get_allocation_result(identity, start_date=None, end_date=None,
     if not identity:
         return _empty_allocation_result()
     username = identity.created_by.username
-    core_allocation = get_allocation(username, identity.id)
+    core_allocation = get_allocation(username, identity.uuid)
     if not core_allocation:
         logger.warn("User:%s Identity:%s does not have an allocation assigned"
                 % (username, identity))
