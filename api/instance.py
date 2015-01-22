@@ -659,10 +659,15 @@ class Instance(APIView):
             logger.info('metadata = %s' % data)
             update_instance_metadata(esh_driver, esh_instance, data)
             serializer.save()
+            new_instance = serializer.object
             boot_scripts = data.pop('boot_scripts', [])
             if boot_scripts:
-                _save_scripts_to_instance(serializer.object, boot_scripts)
-            invalidate_cached_instances(identity=Identity.objects.get(uuid=identity_uuid))
+                new_instance = _save_scripts_to_instance(new_instance, boot_scripts)
+                serializer = InstanceSerializer(new_instance,
+                        context={"request":request})
+            invalidate_cached_instances(
+                    identity=Identity.objects.get(
+                        uuid=identity_uuid))
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
             response['Cache-Control'] = 'no-cache'

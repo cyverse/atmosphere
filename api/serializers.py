@@ -310,7 +310,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
     is_bookmarked = AppBookmarkField(source="bookmarks.all")
     threshold = serializers.RelatedField(read_only=True, source="threshold")
     projects = ProjectsField()
-    scripts = BootScriptSerializer(source='scripts', many=True)
+    scripts = BootScriptSerializer(source='scripts', many=True, required=False)
 
     def get_machines(self, application):
         machines = application._current_machines(request_user=self.request_user)
@@ -415,7 +415,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', source='tags', many=True)
     projects = ProjectsField()
-    scripts = BootScriptSerializer(source='scripts', many=True)
+    scripts = BootScriptSerializer(source='scripts', many=True, required=False)
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)

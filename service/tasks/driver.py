@@ -27,6 +27,7 @@ from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
 from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
 from core.models.post_boot import get_scripts_for_instance
+from core.models.instance import Instance
 from core.models.identity import Identity
 from core.models.profile import UserProfile
 
@@ -386,7 +387,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
             logger.debug("Instance has been teminated: %s." % instance_id)
             return
         image_metadata = driver._connection\
-                               .ex_get_image_metadata(instance.machine)
+                               .ex_get_image_metadata(instance.source)
         deploy_chain = get_deploy_chain(driverCls, provider, identity,
                                         instance, password, redeploy)
         logger.debug("Starting deploy chain for: %s." % instance_id)

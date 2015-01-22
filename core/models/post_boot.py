@@ -81,11 +81,15 @@ def get_scripts_for_instance_id(instance_id):
     return BootScript.objects.filter(
             Q(instances__provider_alias=instance_id))
 def get_scripts_for_instance(instance):
-    return BootScript.objects.filter(
-        #Look for scripts on the specific instance
-            Q(instances__provider_alias=instance.provider_alias)
-        #Look for scripts on the application launched
-            | Q(applications__uuid=instance.provider_machine.application.uuid))
+    query_kwargs = {}
+    #Look for scripts on the specific instance
+    #TODO: just converted to tuple but untested..
+    query_args = (Q(instances__provider_alias=instance.provider_alias),)
+    if instance.source.is_machine():
+        query_args = (query_args[0] |
+                Q(applications__uuid=instance.source.providermachine.application.uuid),)
+    return BootScript.objects.filter(*query_args, **query_kwargs)
+
 def _save_scripts_to_application(application, boot_script_list):
     #Empty when new, otherwise over-write all changes
     old_scripts = application.scripts.all()
