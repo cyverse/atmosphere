@@ -22,15 +22,11 @@ from django.utils import unittest
 from django.utils.timezone import datetime, timedelta
 
 from allocation import engine, validate_interval
-from allocation.models import Provider, Machine, Size, Instance, \
+from allocation.models import Provider, Machine, Size, Instance,\
     InstanceHistory
-from allocation.models import Allocation,\
-    MultiplySizeCPU, MultiplySizeRAM,\
-    MultiplySizeDisk, MultiplyBurnTime,\
-    AllocationIncrease, TimeUnit,\
+from allocation.models import Allocation, MultiplySizeCPU, MultiplySizeRAM,\
+    MultiplySizeDisk, MultiplyBurnTime, AllocationIncrease, TimeUnit,\
     IgnoreStatusRule, CarryForwardTime, Rule
-
-from core.models import Instance as CoreInstance
 
 
 # For testing..
@@ -464,8 +460,8 @@ class TestAllocationEngine(AllocationTestCase):
         Returns False
         When the total allocation time has not been exceeded.
         """
-        #history_start = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
-        #history_stop = datetime(2014, 12, 4, hour=12, tzinfo=pytz.utc)
+        # history_start = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
+        # history_stop = datetime(2014, 12, 4, hour=12, tzinfo=pytz.utc)
 
     def test_allocation_for_multiple_instances(self):
         """
@@ -588,10 +584,13 @@ class TestAllocationEngine(AllocationTestCase):
             allocation = self.allocation_helper.to_allocation()
             self.assertTotalRuntimeEquals(allocation, timedelta(days=110))
 
-#From the REPL
+
+# From the REPL
 def repl_profile_test_1():
     """
-    Allocation: 12 month window, 31*45 day increase, 7 day interval w/ CarryForward
+    Allocation: 12 month window, 31*45 day increase, 7 day interval
+    w/ CarryForward
+
     Instance(s):
     1.  Active/Suspended, 2 CPU,  1/1 - 2/1  (31 CPUDays active)
     2.  Active/Suspended, 2 CPU,  1/8 - 2/8  (31 CPUDays active)
@@ -616,23 +615,26 @@ def repl_profile_test_1():
     interval = relativedelta(days=1)
 
     history_start = datetime(2015, 1, 1, hour=12, tzinfo=pytz.utc)
-    history_swap_every = relativedelta(hours=1) #Change history every
-    instance_offset = relativedelta(days=7) #Create NEW instance every
-    terminate_offset = relativedelta(days=31) #Terminate NEW instance after
-    test_size = 'test.small'  # Small == 2 CPU
-
+    # Change history every
+    history_swap_every = relativedelta(hours=1)
+    # Create NEW instance every
+    instance_offset = relativedelta(days=7)
+    # Terminate NEW instance after
+    terminate_offset = relativedelta(days=31)
+    # Small == 2 CPU
+    test_size = 'test.small'
 
     allocation_helper = AllocationHelper(
-            start_window, stop_window, increase_date,
-            credit_hours=credit_hours, interval_delta=interval)
-    #Instance(s) Setup
+        start_window, stop_window, increase_date,
+        credit_hours=credit_hours, interval_delta=interval)
+    # Instance(s) Setup
     instance_start = history_start
-    for number in xrange(1,instance_count+1):
+    for number in xrange(1, instance_count+1):
         instance_helper = InstanceHelper()
         instance_stop = instance_start + terminate_offset
-        #History Setup -- Starting with 'launch' of instance
+        # History Setup -- Starting with 'launch' of instance
         start_history = instance_start
-        #Update AFTER first run
+        # Update AFTER first run
         instance_start = instance_start + instance_offset
         suspended = False
         while start_history < instance_stop:
@@ -640,7 +642,7 @@ def repl_profile_test_1():
             instance_helper.add_history_entry(
                 start_history, end_history, size=test_size,
                 status='suspended' if suspended else 'active')
-            #Prepare for New history change!
+            # Prepare for New history change!
             suspended = not suspended
             start_history = end_history
         instance = instance_helper.to_instance("Test instance %s" % number)
@@ -649,6 +651,7 @@ def repl_profile_test_1():
     allocation = allocation_helper.to_allocation()
     result = engine.calculate_allocation(allocation)
     return allocation, result
+
 
 def repl_calculate_allocation(allocation):
     result = engine.calculate_allocation(allocation)

@@ -6,7 +6,7 @@ from django.utils.timezone import timedelta, datetime, now, utc
 
 from allocation import validate_interval
 from allocation.models.core import \
-        AllocationIncrease, AllocationRecharge, AllocationUnlimited, Allocation
+    AllocationIncrease, AllocationRecharge, AllocationUnlimited, Allocation
 
 
 class InstanceStatusResult(object):
@@ -318,7 +318,8 @@ class AllocationResult():
                     % (allocation_credit, self.window_end))
 
             # When NOT to create a new time period:
-            if allocation_credit.__class__ in [AllocationIncrease, AllocationUnlimited]:
+            if allocation_credit.__class__ in [AllocationIncrease,
+                                               AllocationUnlimited]:
                 # AllocationIncrease at any stage, add it to the current period
                 current_period.increase_credit(allocation_credit.get_credit())
                 continue
