@@ -9,6 +9,7 @@ from rest_framework.urlpatterns import format_suffix_patterns
 from api.accounts import Account
 from api.allocation import AllocationDetail, AllocationList,\
     AllocationRequestList
+from api.allocation_request import AllocationRequestDetail
 from api.application import ApplicationSearch, ApplicationList, Application,\
                             ApplicationThresholdDetail
 from api.bookmark import  ApplicationBookmarkDetail, ApplicationBookmarkList
@@ -303,6 +304,9 @@ public_apis = format_suffix_patterns(patterns(
 
     url(identity_specific + r'/allocation_request$',
         AllocationRequestList.as_view(), name='allocation-request-list'),
+    url(identity_specific +
+        r'/allocation_request/(?P<allocation_request_uuid>%s)$' % uuid_match,
+        AllocationRequestDetail.as_view(), name='allocation-request-detail'),
 
     url(r'^allocation$',
         AllocationList.as_view(), name='allocation-list'),
