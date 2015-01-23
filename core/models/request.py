@@ -40,7 +40,7 @@ class BaseRequestMixin(models.Model):
     created_by = models.ForeignKey(User)
     membership = models.ForeignKey(IdentityMembership)
 
-    admin_message = models.CharField(max_length=1024, default="")
+    admin_message = models.CharField(max_length=1024, default="", blank=True)
 
     # Request Timeline
     start_date = models.DateTimeField(default=timezone.now())
@@ -63,12 +63,6 @@ class BaseRequestMixin(models.Model):
 class AllocationRequest(BaseRequestMixin):
     """
     """
-    # Resources requested
-    current_allocation = models.ForeignKey(
-        Allocation, related_name="current_allocation")
-    allocation_recieved = models.ForeignKey(
-        Allocation, null=True, blank=True, related_name="allocation_recieved")
-
     class Meta:
         db_table = "allocation_request"
         app_label = "core"
@@ -77,11 +71,6 @@ class AllocationRequest(BaseRequestMixin):
 class QuotaRequest(BaseRequestMixin):
     """
     """
-    # Resources requested
-    current_quota = models.ForeignKey(Quota, related_name="current_quota")
-    quota_recieved = models.ForeignKey(
-        Quota, null=True, blank=True, related_name="quota_recieved")
-
     class Meta:
         db_table = "quota_request"
         app_label = "core"

@@ -118,8 +118,7 @@ class QuotaRequestList(APIView):
         status_type = get_status_type()
 
         new_quota = QuotaRequest(
-            membership=membership, current_quota=membership.quota,
-            status=status_type, created_by=request.user)
+            membership=membership, created_by=request.user, status=status_type)
 
         serializer = QuotaRequestSerializer(new_quota, data=data, partial=True)
 
@@ -135,6 +134,11 @@ class QuotaRequestDetail(APIView):
     """
     permission_classes = (ApiAuthRequired,)
 
+    user_whitelist = ["description", "request"]
+
+    admin_whitelist = ["end_date", "status", "description", "request",
+                       "admin_message"]
+
     def get_object(self, identifier):
         return get_object_or_404(QuotaRequest, uuid=identifier)
 
@@ -148,13 +152,21 @@ class QuotaRequestDetail(APIView):
     def put(self, request, provider_uuid, identity_uuid, quota_request_uuid):
         """
         """
-        data = request.data
+        data = request.DATA
         quota_request = self.get_object(quota_request_uuid)
-        serializer = QuotaRequestSerializer(quota_request, data=data)
+
+        if request.user.is_staff or request.user.is_superuser:
+            whitelist = QuotaRequestDetail.admin_whitelist
+        else:
+            whitelist = QuotaRequestDetail.user_whitelist
+
+        #: Select fields that are in white list
+        fields = {field: data[field] for field in whitelist if field in data}
+        serializer = QuotaRequestSerializer(
+            quota_request, data=fields, partial=True)
 
         if serializer.is_valid():
-            status = data["status"]
-            self.check_status_and_update(serializer.validated_data)
+            serializer.save()
             return Response(serializer.data)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -164,8 +176,16 @@ class QuotaRequestDetail(APIView):
         """
         data = request.DATA
         quota_request = self.get_object(quota_request_uuid)
+
+        if request.user.is_staff or request.user.is_superuser:
+            whitelist = QuotaRequestDetail.admin_whitelist
+        else:
+            whitelist = QuotaRequestDetail.user_whitelist
+
+        #: Select fields that are in white list
+        fields = {field: data[field] for field in whitelist if field in data}
         serializer = QuotaRequestSerializer(
-            quota_request, data=data, partial=True)
+            quota_request, data=fields, partial=True)
 
         if serializer.is_valid():
             serializer.save()

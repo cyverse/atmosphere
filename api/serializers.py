@@ -807,6 +807,7 @@ class AllocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Allocation
 
+
 class AllocationRequestSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True, source="uuid")
     created_by = serializers.SlugRelatedField(
@@ -816,8 +817,7 @@ class AllocationRequestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AllocationRequest
-        exclude = ('uuid', 'membership', 'current_allocation',
-                   'allocation_recieved')
+        exclude = ('uuid', 'membership')
 
 
 class QuotaSerializer(serializers.ModelSerializer):
@@ -834,9 +834,6 @@ class QuotaRequestSerializer(serializers.ModelSerializer):
     status = serializers.SlugRelatedField(
         slug_field='name', source='status',
         queryset=StatusType.objects.all())
-
-    current_quota = QuotaSerializer()
-    quota_recieved = QuotaSerializer(required=False)
 
     class Meta:
         model = QuotaRequest

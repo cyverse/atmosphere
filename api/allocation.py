@@ -119,8 +119,7 @@ class AllocationRequestList(APIView):
         status_type = get_status_type()
 
         new_allocation = AllocationRequest(
-            membership=membership, current_allocation=membership.allocation,
-            status=status_type, created_by=request.user)
+            membership=membership, created_by=request.user, status=status_type)
 
         serializer = AllocationRequestSerializer(new_allocation,
                                                  data=data, partial=True)
