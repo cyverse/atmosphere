@@ -7,9 +7,9 @@ from django.conf.urls import patterns, url, include
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from api.accounts import Account
-from api.allocation import AllocationDetail, AllocationList,\
+from api.allocation import AllocationDetail, AllocationList
+from api.allocation_request import AllocationRequestDetail,\
     AllocationRequestList
-from api.allocation_request import AllocationRequestDetail
 from api.application import ApplicationSearch, ApplicationList, Application,\
                             ApplicationThresholdDetail
 from api.bookmark import  ApplicationBookmarkDetail, ApplicationBookmarkList
