@@ -23,6 +23,7 @@ from threepio import logger, status_logger
 
 from atmosphere.celery import app
 from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
+from django.conf import settings
 
 from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
@@ -479,9 +480,9 @@ def get_deploy_chain(driverCls, provider, identity, instance,
             driverCls, provider, identity,instance_id)
     if chain_start and chain_end:
         check_vnc_task.link(chain_start)
-        chain_end.link(final_chain)
+        chain_end.link(remove_status_task)
     else:
-        check_vnc_task.link(final_chain)
+        check_vnc_task.link(remove_status_task)
 
     if not redeploy:
         remove_status_task.link(email_task)
@@ -755,9 +756,11 @@ def _parse_steps_output(msd):
     output = ""
     length = len(msd.steps)
     for idx, step in enumerate(msd.steps):
+        if settings.DEBUG:
+            debug_out = "Script:%s" % step.script
         output += "\nStep %d/%d: "\
-                "ExitCode:%s Output:%s Error:%s" %\
-                (idx+1, length, step.exit_status, step.stdout, step.stderr)
+                "%sExitCode:%s Output:%s Error:%s" %\
+                (idx+1, length, debug_out if settings.DEBUG else "", step.exit_status, step.stdout, step.stderr)
     return output
 @task(name="check_process_task",
       max_retries=2,
