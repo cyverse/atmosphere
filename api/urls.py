@@ -39,8 +39,8 @@ from api.project import ProjectInstanceList, ProjectInstanceExchange,\
         ProjectVolumeList, ProjectVolumeExchange
 from api.profile import Profile
 from api.provider import ProviderList, Provider
-from api.quota import QuotaDetail, QuotaList, QuotaRequestDetail,\
-    QuotaRequestList
+from api.quota import QuotaDetail, QuotaList
+from api.quota_request import QuotaRequestDetail, QuotaRequestList
 from api.size import SizeList, Size
 from api.hypervisor import HypervisorList, HypervisorDetail
 from api.step import StepList, Step
