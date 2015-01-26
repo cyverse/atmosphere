@@ -15,11 +15,13 @@ from core.models import Quota
 
 class QuotaList(APIView):
     """
+    Lists or creates new Quotas
     """
     permission_classes = (ApiAuthRequired,)
 
     def get(self, request):
         """
+        Returns a list of all existing Quotas
         """
         quotas = Quota.objects.all()
         serialized_data = QuotaSerializer(quotas, many=True).data
@@ -27,6 +29,7 @@ class QuotaList(APIView):
 
     def post(self, request):
         """
+        Creates a new Quota
         """
         data = request.DATA
         serializer = QuotaSerializer(data=data)
@@ -40,11 +43,13 @@ class QuotaList(APIView):
 
 class QuotaDetail(APIView):
     """
+    Fetches or updates a Quota
     """
     permission_classes = (ApiAuthRequired,)
 
     def get(self, request, quota_id):
         """
+        Return the specified Quota
         """
         quota = get_object_or_404(Quota, id=quota_id)
         serialized_data = QuotaSerializer(quota).data
@@ -52,6 +57,7 @@ class QuotaDetail(APIView):
 
     def put(self, request, quota_id):
         """
+        Updates the specified Quota
         """
         data = request.DATA
         quota = get_object_or_404(Quota, id=quota_id)
@@ -65,6 +71,7 @@ class QuotaDetail(APIView):
 
     def patch(self, request, quota_id):
         """
+        Partially updates the specified Quota
         """
         data = request.DATA
         quota = get_object_or_404(Quota, id=quota_id)
