@@ -21,8 +21,9 @@ from api.identity import IdentityList, Identity, IdentityDetail, IdentityDetailL
 from api.instance import InstanceList, Instance,\
     InstanceAction, InstanceHistory, InstanceHistoryDetail,\
     InstanceStatusHistoryDetail, InstanceTagList, InstanceTagDetail
+from api.license import LicenseList, License
 from api.machine import MachineList, Machine, MachineHistory,\
-    MachineSearch, MachineVote, MachineIcon
+    MachineSearch, MachineVote, MachineIcon, MachineLicense
 from api.machine_request import MachineRequestList, MachineRequest,\
     MachineRequestStaffList, MachineRequestStaff
 from api.machine_export import MachineExportList, MachineExport
@@ -278,6 +279,8 @@ public_apis = format_suffix_patterns(patterns(
         MachineSearch.as_view(), name='machine-search'),
     url(identity_specific + r'/machine/(?P<machine_id>%s)$' % uuid_match,
         Machine.as_view(), name='machine-detail'),
+    url(identity_specific + r'/machine/(?P<machine_id>%s)/license$' % uuid_match,
+        MachineLicense.as_view(), name='machine-license'),
     url(identity_specific + r'/machine/(?P<machine_id>%s)' % uuid_match
         + '/icon$', MachineIcon.as_view(), name='machine-icon'),
 
@@ -329,6 +332,14 @@ public_apis = format_suffix_patterns(patterns(
     url(r'^maintenance$',
         MaintenanceRecordList.as_view(),
         name='maintenance-record-list'),
+
+    url(r'license$',
+        LicenseList.as_view(),
+        name='license-list'),
+
+    url(r"license/(?P<license_id>%s)$" % uuid_match,
+        License.as_view(),
+        name='license-detail'),
 
 ))
 urlpatterns = patterns('',

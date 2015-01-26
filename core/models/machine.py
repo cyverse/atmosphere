@@ -13,6 +13,7 @@ from core.models.abstract import InstanceSource
 from core.models.application import Application
 from core.models.application import create_application, get_application
 from core.models.identity import Identity
+from core.models.license import License
 from core.models.provider import Provider
 from core.models.tag import Tag, updateTags
 from core.fields import VersionNumberField, VersionNumber
@@ -31,6 +32,8 @@ class ProviderMachine(InstanceSource):
     """
     application = models.ForeignKey(Application)
     version = models.CharField(max_length=128, default='1.0.0')
+    licenses = models.ManyToManyField(License,
+            null=True, blank=True)
 
     def source_end_date(self):
         return self.instancesource_ptr.end_date
@@ -129,45 +132,6 @@ class ProviderMachine(InstanceSource):
     #    db_table = "provider_machine"
     #    app_label = "core"
     #    unique_together = ('provider', 'identifier')
-
-class LicenseType(models.Model):
-    """
-    LicenseType objects are created by developers,
-    they should NOT be added/removed unless there
-    are corresponding logic-choices in core code.
-    """
-    name = models.CharField(max_length=128)
-    description = models.TextField(null=True, blank=True)
-
-    class Meta:
-        db_table = 'license_type'
-        app_label = 'core'
-
-    def __unicode__(self):
-        return self.name
-
-class MachineLicense(models.Model):
-    """
-    Members of a specific image and provider combination.
-    Members can view & launch respective machines.
-    If the can_share flag is set, then members also have ownership--they can give
-    membership to other users.
-    The unique_together field ensures just one of those states is true.
-    """
-    title = models.CharField(max_length=256)
-    provider_machine = models.ForeignKey(ProviderMachine)
-    license_type = models.ForiegnKey(LicenseType)
-    license_text = models.TextField()
-    allow_reimaging = models.BooleanField(default=True)
-
-    def __unicode__(self):
-        return "(ProviderMachine:%s - License:%s) " %\
-            (self.provider_machine.identifier, self.title)
-
-    class Meta:
-        db_table = 'provider_machine_license'
-        app_label = 'core'
-
 
 class ProviderMachineMembership(models.Model):
     """

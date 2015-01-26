@@ -1,10 +1,10 @@
-
 from core.models.credential import Credential, ProviderCredential
 from core.models.identity import Identity
 from core.models.profile import UserProfile
 from core.models.project import Project
 from core.models.provider import AccountProvider, ProviderType, PlatformType,\
     Provider
+from core.models.license import LicenseType, License
 from core.models.machine import ProviderMachine, ProviderMachineMembership
 from core.models.machine_request import MachineRequest
 from core.models.machine_export import MachineExport

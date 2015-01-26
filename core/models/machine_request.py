@@ -13,9 +13,10 @@ from core.models.user import AtmosphereUser as User
 from core.application import save_app_to_metadata
 from core.fields import VersionNumberField, VersionNumber
 from core.models.application import get_application, create_application
-from core.models.provider import Provider, AccountProvider
+from core.models.license import License
 from core.models.machine import create_provider_machine
 from core.models.node import NodeController
+from core.models.provider import Provider, AccountProvider
 
 from atmosphere.settings import secrets
 from threepio import logger
@@ -49,6 +50,8 @@ class MachineRequest(models.Model):
     new_machine_forked = models.BooleanField(default=False)
     new_machine_memory_min = models.IntegerField(default=0)
     new_machine_storage_min = models.IntegerField(default=0)
+    new_machine_licenses = models.ManyToManyField(License,
+            null=True, blank=True)
     #Date time stamps
     start_date = models.DateTimeField(default=timezone.now())
     end_date = models.DateTimeField(null=True, blank=True)

@@ -10,6 +10,7 @@ from core.models.allocation import Allocation
 from core.models.identity import Identity
 from core.models.instance import Instance
 from core.models.instance import InstanceStatusHistory
+from core.models.license import License
 from core.models.machine import ProviderMachine
 from core.models.machine_request import MachineRequest
 from core.models.machine_export import MachineExport
@@ -237,6 +238,7 @@ class AccountSerializer(serializers.Serializer):
 class ProviderSerializer(serializers.ModelSerializer):
     type = serializers.SlugRelatedField(slug_field='name')
     location = serializers.CharField(source='get_location')
+    traits = serializers.RelatedField(source='traits.all', many=True)
     id = serializers.CharField(source='uuid')
     #membership = serializers.Field(source='get_membership')
 
@@ -481,6 +483,26 @@ class MachineExportSerializer(serializers.ModelSerializer):
         fields = ('id', 'instance', 'status', 'name',
                   'owner', 'disk_format', 'file')
 
+class LicenseSerializer(serializers.ModelSerializer):
+
+    created_by = serializers.SlugRelatedField(slug_field='username', read_only=True)
+    type = serializers.SlugRelatedField(source='license_type', slug_field='name')
+
+    #TODO: Rename THIS field if it makes more sense for API consumers
+    allow_imaging = serializers.BooleanField(source='allow_imaging',
+                                             read_only=True)
+
+    class Meta:
+        model = License
+        exclude = ("license_type",)
+
+class POST_LicenseSerializer(serializers.ModelSerializer):
+    created_by = serializers.SlugRelatedField(slug_field='username')
+    type = serializers.SlugRelatedField(source='license_type', slug_field='name')
+    class Meta:
+        model = License
+        exclude = ("license_type",)
+
 
 class MachineRequestSerializer(serializers.ModelSerializer):
     """
@@ -512,6 +534,9 @@ class MachineRequestSerializer(serializers.ModelSerializer):
                                         required=False)
     tags = serializers.CharField(source='new_machine_tags', required=False)
     threshold = NewThresholdField(source='new_machine_threshold')
+    #TODO: Convert to 'LicenseField' and allow POST of ID instead of
+    #      full-object. for additional support for the image creator
+    licenses = LicenseSerializer(source='new_machine_licenses.all', many=True)
     new_machine = serializers.SlugRelatedField(slug_field='identifier',
                                                required=False)
 
@@ -520,7 +545,7 @@ class MachineRequestSerializer(serializers.ModelSerializer):
         fields = ('id', 'instance', 'status', 'name', 'owner', 'provider',
                   'vis', 'description', 'tags', 'sys', 'software',
                   'threshold', 'fork', 'version',
-                  'shared_with', 'new_machine')
+                  'shared_with', 'licenses', 'new_machine')
 
 
 class MaintenanceRecordSerializer(serializers.ModelSerializer):
@@ -610,6 +635,7 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     #Writeable fields
     name = serializers.CharField(source='application.name')
     tags = serializers.CharField(source='application.tags.all')
+    licenses = LicenseSerializer(source='licenses.all', read_only=True)
     description = serializers.CharField(source='application.description')
     start_date = serializers.CharField(source='start_date')
     end_date = serializers.CharField(source='end_date',

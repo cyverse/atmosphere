@@ -63,6 +63,7 @@ class MachineRequestList(APIView):
         if serializer.is_valid():
             #Add parent machine to request
             machine_request = serializer.object
+            instance = machine_request.instance
             if instance.source.is_machine():
                 machine_request.parent_machine = machine_request.instance\
                         .source.providermachine

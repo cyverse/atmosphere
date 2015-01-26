@@ -93,7 +93,7 @@ class Instance(object):
 
     @classmethod
     def from_core(cls, core_instance, start_date=None):
-        pm = core_instance.provider_machine
+        pm = core_instance.source.providermachine
         prov = Provider.from_core(pm.provider)
         mach = Machine.from_core(pm)
         instance_history = []
