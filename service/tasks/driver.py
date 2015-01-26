@@ -513,21 +513,22 @@ def deploy_boot_script(driverCls, provider, identity, instance_id,
     except Exception as exc:
         logger.exception(exc)
         deploy_boot_script.retry(exc=exc)
+
     try:
         kwargs = _generate_ssh_kwargs()
-        kwargs.update({'deploy': msd})
+        kwargs.update({'deploy': new_script})
         driver.deploy_to(instance, **kwargs)
         _update_status_log(instance, "Deploy Finished")
         logger.debug("deploy_boot_script task finished at %s." % datetime.now())
     except DeploymentError as exc:
         logger.exception(exc)
-        full_deploy_output = _parse_steps_output(msd)
+        full_script_output = _parse_script_output(new_script)
         if isinstance(exc.value, NonZeroDeploymentException):
             #The deployment was successful, but the return code on one or more
             # steps is bad. Log the exception and do NOT try again!
             raise NonZeroDeploymentException,\
-                  "One or more Script(s) reported a NonZeroDeployment:%s"\
-                          % full_deploy_output,\
+                  "Boot Script reported a NonZeroDeployment:%s"\
+                          % full_script_output,\
                   sys.exc_info()[2]
         #TODO: Check if all exceptions thrown at this time
         #fall in this category, and possibly don't retry if
@@ -755,13 +756,18 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
 def _parse_steps_output(msd):
     output = ""
     length = len(msd.steps)
-    for idx, step in enumerate(msd.steps):
-        if settings.DEBUG:
-            debug_out = "Script:%s" % step.script
-        output += "\nStep %d/%d: "\
-                "%sExitCode:%s Output:%s Error:%s" %\
-                (idx+1, length, debug_out if settings.DEBUG else "", step.exit_status, step.stdout, step.stderr)
+    for idx, script in enumerate(msd.steps):
+        output += _parse_script_output(script, idx, length)
+
+def _parse_script_output(script, idx=1, length=1):
+    if settings.DEBUG:
+        debug_out = "Script:%s" % script.script
+    output = "\nBootScript %d/%d: "\
+            "%sExitCode:%s Output:%s Error:%s" %\
+            (idx+1, length, debug_out if settings.DEBUG else "",
+             script.exit_status, script.stdout, script.stderr)
     return output
+
 @task(name="check_process_task",
       max_retries=2,
       default_retry_delay=15)

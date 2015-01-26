@@ -462,7 +462,8 @@ def destroy_instance(identity_uuid, instance_alias):
         try:
             esh_driver._connection.ex_disassociate_floating_ip(instance)
         except Exception as exc:
-            if 'floating ip not found' not in exc.message:
+            if 'floating ip not found' not in exc.message\
+                    or 'is not associated with instance' not in exc.message:
                 raise
     node_destroyed = esh_driver._connection.destroy_node(instance)
     return node_destroyed
@@ -675,7 +676,7 @@ def _generate_userdata_content(name, username, token=None, password=None, init_f
 def _complete_launch_instance(driver, identity, instance, user, token, password):
     from service import task
     # call async task to deploy to instance.
-    task.deploy_init_task(driver, instance, user.username, password, token)
+    task.deploy_init_task(driver, instance, identity, user.username, password, token)
     #Create the Core/DB for instance
     core_instance = convert_esh_instance(
         driver, instance, identity.provider.uuid, identity.uuid,

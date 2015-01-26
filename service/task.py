@@ -28,7 +28,7 @@ def print_task_chain(start_link):
         next_link = next_link.options['link'][0]
         print "--> %s" % next_link.values()[0],
 
-def deploy_init_task(driver, instance,
+def deploy_init_task(driver, instance, identity,
                      username=None, password=None, token=None, redeploy=False,
                      *args, **kwargs):
     from service.tasks.driver import _update_status_log
