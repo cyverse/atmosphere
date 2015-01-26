@@ -348,26 +348,18 @@ class Instance(models.Model):
             return "Unknown"
 
     def application_uuid(self):
-        try:
+        if self.source.is_machine():
             return self.source.providermachine.application.uuid
-        except ProviderMachine.DoesNotExist:
+        else:
             return None
 
     def esh_source_name(self):
-        try:
+        if self.source.is_machine():
             return self.source.providermachine.application.name
-        except ProviderMachine.DoesNotExist:
-            pass
-
-        try:
+        elif self.source.is_volume():
             return self.source.volume.name
-        except Volume.DoesNotExist:
-            return "N/A"
-        #TODO:Future Release.
-        #try:
-        #    return self.source.snapshot.name
-        #except SnapShot.DoesNotExist:
-        #    return "No Machine"
+        else:
+            return "%s - Source Unknown" % self.source.identifier
 
     def provider_uuid(self):
         return self.source.provider.uuid

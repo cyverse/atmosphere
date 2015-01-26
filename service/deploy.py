@@ -320,3 +320,21 @@ def init(instance, username, password=None, token=None, redeploy=False,
         script_list.append(script_rm_scripts)
 
     return MultiStepDeployment(script_list)
+
+def wrap_script(script_text, script_name):
+    """
+    NOTE: In current implementation, the script can only be executed, and not
+    logged.
+
+    Implementation v2:
+    * Write to file
+    * Chmod the file
+    * Execute and redirect output to stdout/stderr to logfile.
+    """
+    logfile = "/var/log/atmo/post_boot_scripts.log"
+    #kludge: weirdness without the str cast...
+    script_text = str(script_text)
+    full_script_name = "./deploy_boot_script_%s.sh"
+    return ScriptDeployment(
+        script_text, name=full_script_name)
+

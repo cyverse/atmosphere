@@ -148,6 +148,28 @@ def prepare_driver(request, provider_uuid, identity_uuid):
                                                  uuid=identity_uuid)
         if core_identity in request.user.identity_set.all():
             return get_esh_driver(core_identity=core_identity)
-    except ObjectDoesNotExist:
+    except CoreIdentity.DoesNotExist:
         logger.exception("Unable to prepare driver.")
         pass
+
+
+def _retrieve_source(esh_driver, new_source_alias, source_hint):
+    source = None
+    if not source_hint or source_hint == "machine":
+        source = esh_driver.get_machine(new_source_alias)
+    if source:
+        return source
+    if not source_hint or source_hint == "volume":
+        source = esh_driver.get_volume(new_source_alias)
+    if source:
+        return source
+    if not source_hint or source_hint == "snapshot":
+        source = esh_driver._connection.ex_get_snapshot(new_source_alias)
+    if source:
+        return source
+    if source_hint:
+        raise Exception("Source %s Identifier %s was Not Found and/or"
+                " Does Not Exist" % (source_hint, new_source_alias))
+    else:
+        raise Exception("No Source found for Identifier %s"
+                % (source_hint, ))
