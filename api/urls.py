@@ -7,6 +7,9 @@ from django.conf.urls import patterns, url, include
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from api.accounts import Account
+from api.allocation import AllocationDetail, AllocationList
+from api.allocation_request import AllocationRequestDetail,\
+    AllocationRequestList
 from api.application import ApplicationSearch, ApplicationList, Application,\
                             ApplicationThresholdDetail
 from api.bookmark import  ApplicationBookmarkDetail, ApplicationBookmarkList
@@ -36,6 +39,8 @@ from api.project import ProjectInstanceList, ProjectInstanceExchange,\
         ProjectVolumeList, ProjectVolumeExchange
 from api.profile import Profile
 from api.provider import ProviderList, Provider
+from api.quota import QuotaDetail, QuotaList
+from api.quota_request import QuotaRequestDetail, QuotaRequestList
 from api.size import SizeList, Size
 from api.hypervisor import HypervisorList, HypervisorDetail
 from api.step import StepList, Step
@@ -296,6 +301,29 @@ public_apis = format_suffix_patterns(patterns(
 
     url(identity_specific + r'/profile$',
         Profile.as_view(), name='profile-detail'),
+
+    url(identity_specific + r'/allocation_request$',
+        AllocationRequestList.as_view(), name='allocation-request-list'),
+    url(identity_specific +
+        r'/allocation_request/(?P<allocation_request_uuid>%s)$' % uuid_match,
+        AllocationRequestDetail.as_view(), name='allocation-request-detail'),
+
+    url(r'^allocation$',
+        AllocationList.as_view(), name='allocation-list'),
+    url(r'^allocation/(?P<quota_id>\d+)$',
+        AllocationDetail.as_view(), name='quota-detail'),
+
+    url(identity_specific + r'/quota_request$',
+        QuotaRequestList.as_view(), name='quota-request-list'),
+    url(identity_specific +
+        r'/quota_request/(?P<quota_request_uuid>%s)$' % uuid_match,
+        QuotaRequestDetail.as_view(), name='quota-request-detail'),
+
+    url(r'^quota$',
+        QuotaList.as_view(), name='quota-list'),
+    url(r'^quota/(?P<quota_id>\d+)$',
+        QuotaDetail.as_view(), name='quota-detail'),
+
 
     url(r'version$', Version.as_view()),
     url(r'^maintenance$',

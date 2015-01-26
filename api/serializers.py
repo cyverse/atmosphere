@@ -5,7 +5,8 @@ from core.models.application import Application, ApplicationScore,\
 from core.models.credential import Credential
 from core.models.group import get_user_group
 from core.models.group import Group
-from core.models.group import IdentityMembership
+from core.models.quota import Quota
+from core.models.allocation import Allocation
 from core.models.identity import Identity
 from core.models.instance import Instance
 from core.models.instance import InstanceStatusHistory
@@ -17,6 +18,7 @@ from core.models.post_boot import BootScript
 from core.models.profile import UserProfile
 from core.models.project import Project
 from core.models.provider import ProviderType, Provider
+from core.models.request import AllocationRequest, QuotaRequest, StatusType
 from core.models.size import Size
 from core.models.step import Step
 from core.models.tag import Tag, find_or_create_tag
@@ -249,25 +251,13 @@ class CleanedIdentitySerializer(serializers.ModelSerializer):
     id = serializers.Field(source='uuid')
     provider_id = serializers.Field(source='provider_uuid')
     quota = serializers.Field(source='get_quota_dict')
+    allocation = serializers.Field(source='get_allocation_dict')
     membership = serializers.Field(source='get_membership')
 
     class Meta:
         model = Identity
         fields = ('id', 'created_by', 'provider_id', )
 
-
-class IdentitySerializer(serializers.ModelSerializer):
-    created_by = serializers.CharField(source='creator_name')
-    credentials = serializers.Field(source='get_credentials')
-    id = serializers.Field(source='uuid')
-    provider_id = serializers.Field(source='provider_uuid')
-    quota = serializers.Field(source='get_quota_dict')
-    membership = serializers.Field(source='get_membership')
-
-    class Meta:
-        model = Identity
-        fields = ('id', 'created_by', 'provider_id', 'credentials', 'quota',
-                  'membership')
 
 class BootScriptSerializer(serializers.ModelSerializer):
     created_by = serializers.SlugRelatedField(slug_field='username')
@@ -803,9 +793,63 @@ class TagSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Tag
+
+
 class InstanceStatusHistorySerializer(serializers.ModelSerializer):
     instance = serializers.SlugRelatedField(slug_field='provider_alias')
     size = serializers.SlugRelatedField(slug_field='alias')
 
     class Meta:
         model = InstanceStatusHistory
+
+
+class AllocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Allocation
+
+
+class AllocationRequestSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True, source="uuid")
+    created_by = serializers.SlugRelatedField(
+        slug_field='username', source='created_by', read_only=True)
+    status = serializers.SlugRelatedField(
+        slug_field='name', source='status', read_only=True)
+
+    class Meta:
+        model = AllocationRequest
+        exclude = ('uuid', 'membership')
+
+
+class QuotaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Quota
+        exclude = ("id",)
+
+
+class QuotaRequestSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True, source="uuid", required=False)
+    created_by = serializers.SlugRelatedField(
+        slug_field='username', source='created_by',
+        queryset=AtmosphereUser.objects.all())
+    status = serializers.SlugRelatedField(
+        slug_field='name', source='status',
+        queryset=StatusType.objects.all())
+
+    class Meta:
+        model = QuotaRequest
+        exclude = ('uuid', 'membership')
+
+
+class IdentitySerializer(serializers.ModelSerializer):
+    created_by = serializers.CharField(source='creator_name')
+    credentials = serializers.Field(source='get_credentials')
+    id = serializers.Field(source='uuid')
+    provider_id = serializers.Field(source='provider_uuid')
+    quota = QuotaSerializer(source='get_quota')
+    allocation = AllocationSerializer(source='get_allocation')
+    membership = serializers.Field(source='get_membership')
+
+    class Meta:
+        model = Identity
+        fields = ('id', 'created_by', 'provider_id', 'credentials',
+                  'membership', 'quota', 'allocation')
