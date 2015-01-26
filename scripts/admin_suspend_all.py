@@ -5,7 +5,7 @@ import time
 from collections import OrderedDict
 from core.models import Provider, Identity
 from service.driver import get_admin_driver, get_esh_driver
-from service.instance import suspend_instance
+from service.instance import suspend_instance, stop_instance
 SLEEP_MIN=30
 SLEEP_MAX=2*60
 
@@ -94,7 +94,7 @@ def _execute_stop(ident, inst, status, sleep_time, dry_run=False):
         print "Attempt to Stop Instance %s in state %s" % (inst.id, status)
         try:
             if not dry_run:
-                suspend_instance(driver, inst, ident.provider.id, ident.id, ident.created_by)
+                stop_instance(driver, inst, ident.provider.id, ident.id, ident.created_by)
             print "Shutoff Instance %s.. Sleep %s seconds" % (inst.id,sleep_time)
             time.sleep(sleep_time)
         except Exception, err:
