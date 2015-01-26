@@ -15,11 +15,13 @@ from core.models import Allocation
 
 class AllocationList(APIView):
     """
+    Lists or creates new Allocations
     """
     permission_classes = (ApiAuthRequired,)
 
     def get(self, request):
         """
+        Returns a list of all existing Allocations
         """
         quotas = Allocation.objects.all()
         serialized_data = AllocationSerializer(quotas, many=True).data
@@ -27,6 +29,7 @@ class AllocationList(APIView):
 
     def post(self, request):
         """
+        Creates a new Allocation
         """
         data = request.DATA
         serializer = AllocationSerializer(data=data)
@@ -40,11 +43,13 @@ class AllocationList(APIView):
 
 class AllocationDetail(APIView):
     """
+    Fetches or updates an Allocation
     """
     permission_classes = (ApiAuthRequired,)
 
     def get(self, request, allocation_id):
         """
+        Fetch the specified Allocation
         """
         allocation = get_object_or_404(Allocation, id=allocation_id)
         serialized_data = AllocationSerializer(allocation).data
@@ -52,6 +57,7 @@ class AllocationDetail(APIView):
 
     def put(self, request, quota_id):
         """
+        Updates the specified Allocation
         """
         data = request.DATA
         allocation = get_object_or_404(Allocation, id=quota_id)
@@ -65,6 +71,7 @@ class AllocationDetail(APIView):
 
     def patch(self, request, quota_id):
         """
+        Partially updates the specified Allocation
         """
         data = request.DATA
         allocation = get_object_or_404(Allocation, id=quota_id)

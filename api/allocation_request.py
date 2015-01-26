@@ -17,10 +17,14 @@ from core.models.request import get_status_type
 
 class AllocationRequestList(APIView):
     """
+    Lists or Creates a AllocationRequest
     """
     permission_classes = (ApiAuthRequired,)
 
     def get(self, request, provider_uuid, identity_uuid):
+        """
+        Fetches all AllocationRequests for a specific identity
+        """
         try:
             identity = Identity.objects.get(uuid=identity_uuid)
             membership = IdentityMembership.objects.get(identity=identity)
@@ -38,6 +42,7 @@ class AllocationRequestList(APIView):
 
     def post(self, request, provider_uuid, identity_uuid):
         """
+        Creates a new AllocationRequest for a specific identity
         """
         try:
             identity = Identity.objects.get(uuid=identity_uuid)
@@ -67,6 +72,7 @@ class AllocationRequestList(APIView):
 
 class AllocationRequestDetail(APIView):
     """
+    Fetches or updates a specific AllocatinRequest
     """
     permission_classes = (ApiAuthRequired,)
 
@@ -78,15 +84,25 @@ class AllocationRequestDetail(APIView):
     def get_object(self, identifier):
         return get_object_or_404(AllocationRequest, uuid=identifier)
 
-    def get(self, request, provider_uuid, identity_uuid, allocation_request_uuid):
+    def get(self, request, provider_uuid, identity_uuid,
+            allocation_request_uuid):
         """
+        Returns an AllocationRequest with the matching uuid
         """
         allocation_request = self.get_object(allocation_request_uuid)
         serialized_data = AllocationRequestSerializer(allocation_request).data
         return Response(serialized_data)
 
-    def put(self, request, provider_uuid, identity_uuid, allocation_request_uuid):
+    def put(self, request, provider_uuid, identity_uuid,
+            allocation_request_uuid):
         """
+        Updates the AllocationRequest
+
+        Users are only allowed to update description or request, all other
+        fields will be ignored.
+
+        A super user or staff user can end date or close out a request and
+        provide an admin message.
         """
         data = request.DATA
         allocation_request = self.get_object(allocation_request_uuid)
@@ -107,8 +123,16 @@ class AllocationRequestDetail(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def patch(self, request, provider_uuid, identity_uuid, allocation_request_uuid):
+    def patch(self, request, provider_uuid, identity_uuid,
+              allocation_request_uuid):
         """
+        Paritally update the AllocationRequest
+
+        Users are only allowed to update description or request, all other
+        fields will be ignored.
+
+        A super user or staff user can end date or close out a request and
+        provide an admin message.
         """
         data = request.DATA
         allocation_request = self.get_object(allocation_request_uuid)

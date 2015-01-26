@@ -17,10 +17,14 @@ from core.models.request import get_status_type
 
 class QuotaRequestList(APIView):
     """
+    Lists or Creates a QuotaRequest
     """
     permission_classes = (ApiAuthRequired,)
 
     def get(self, request, provider_uuid, identity_uuid):
+        """
+        Fetches all QuotaRequest for a specific identity
+        """
         membership = None
 
         try:
@@ -39,6 +43,7 @@ class QuotaRequestList(APIView):
 
     def post(self, request, provider_uuid, identity_uuid):
         """
+        Creates a new QuotaRequest for the specific
         """
         try:
             identity = Identity.objects.get(uuid=identity_uuid)
@@ -67,6 +72,7 @@ class QuotaRequestList(APIView):
 
 class QuotaRequestDetail(APIView):
     """
+    Fetches or updates a specific QuotaRequest
     """
     permission_classes = (ApiAuthRequired,)
 
@@ -80,6 +86,7 @@ class QuotaRequestDetail(APIView):
 
     def get(self, request, provider_uuid, identity_uuid, quota_request_uuid):
         """
+        Fetch the specified QuotaRequest
         """
         quota_request = self.get_object(quota_request_uuid)
         serialized_data = QuotaRequestSerializer(quota_request).data
@@ -87,6 +94,13 @@ class QuotaRequestDetail(APIView):
 
     def put(self, request, provider_uuid, identity_uuid, quota_request_uuid):
         """
+        Updates the QuotaRequest
+
+        Users are only allowed to update description or request, all other
+        fields will be ignored.
+
+        A super user or staff user can end date or close out a request and
+        provide an admin message.
         """
         data = request.DATA
         quota_request = self.get_object(quota_request_uuid)
@@ -109,6 +123,13 @@ class QuotaRequestDetail(APIView):
 
     def patch(self, request, provider_uuid, identity_uuid, quota_request_uuid):
         """
+        Partially update the QuotaRequest
+
+        Users are only allowed to update description or request, all other
+        fields will be ignored.
+
+        A super user or staff user can end date or close out a request and
+        provide an admin message.
         """
         data = request.DATA
         quota_request = self.get_object(quota_request_uuid)

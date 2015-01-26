@@ -6,16 +6,24 @@ from uuid import uuid4
 from django.db import models
 from django.utils import timezone
 
-from core.models import Allocation, AtmosphereUser as User, \
-    IdentityMembership, Quota
+from core.models import AtmosphereUser as User, IdentityMembership
 
 
 def get_status_type(status="pending"):
+    """
+    Fetches a StatusType by the given name
+
+    Creates a new StatusType if a name does not exist
+    for the give `status`.
+    """
     (status_type, _) = StatusType.objects.get_or_create(name=status)
     return status_type
 
 
 class StatusType(models.Model):
+    """
+    States that a Request can transition through
+    """
     name = models.CharField(max_length=32)
     description = models.CharField(max_length=256, default="", blank=True)
     start_date = models.DateTimeField(default=timezone.now())
@@ -31,6 +39,9 @@ class StatusType(models.Model):
 
 
 class BaseRequestMixin(models.Model):
+    """
+    Base model which represents a request object
+    """
     uuid = models.CharField(max_length=36, default=uuid4)
     request = models.TextField()
     description = models.CharField(max_length=1024, default="", blank=True)
@@ -62,6 +73,7 @@ class BaseRequestMixin(models.Model):
 
 class AllocationRequest(BaseRequestMixin):
     """
+    Tracks requests made by users to change their current Allocation
     """
     class Meta:
         db_table = "allocation_request"
@@ -70,6 +82,7 @@ class AllocationRequest(BaseRequestMixin):
 
 class QuotaRequest(BaseRequestMixin):
     """
+    Tracks requests made by users to change their current Quota
     """
     class Meta:
         db_table = "quota_request"
