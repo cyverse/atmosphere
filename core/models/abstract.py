@@ -11,6 +11,32 @@ from core.models.provider import Provider
 from core.models.identity import Identity
 from core.models.user import AtmosphereUser
 
+
+class BaseHistory(models.Model):
+    """
+    Base model which is used to track changes in another model
+    """
+    CREATE = "CREATE"
+    UPDATE = "UPDATE"
+    DELETE = "DELETED"
+
+    OPERATIONS = (
+        (CREATE, "The field has been created."),
+        (UPDATE, "The field has been updated."),
+        (DELETE, "The field has been deleted."),
+    )
+
+    field_name = models.CharField(max_length=255)
+    operation = models.CharField(max_length=255,
+                                 choices=OPERATIONS, default=UPDATE)
+    new_value = models.TextField()
+    previous_value = models.TextField()
+    created_on = models.DateTimeField(default=timezone.now())
+
+    class Meta:
+        abstract = True
+
+
 class InstanceSource(models.Model):
     """
     An InstanceSource can be:
