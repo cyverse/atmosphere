@@ -1,4 +1,4 @@
-import sys, pytz
+import sys, pytz, time, random
 
 from datetime import timedelta
 
@@ -189,7 +189,8 @@ def suspend_all_instances_for(identity, user):
                 #NOTE: Intentionally added to allow time for 
                 #      the Cloud to begin 'suspend' operation 
                 #      before querying for the instance again.
-                time.sleep(3)
+                time = random.uniform(2,6)
+                time.sleep(time)
                 updated_esh = driver.get_instance(instance.id)
                 updated_core = convert_esh_instance(
                     driver, updated_esh,
