@@ -17,8 +17,18 @@ from service.tasks.volume import detach_task, umount_task,\
         mount_failed
 from service.tasks.volume import update_volume_metadata, update_mount_location
 
+def print_task_chain(start_link):
+    """
+    Prints a chain of 'link' methods.. Useful for debugging!
+    """
+    next_link = start_link
+    while next_link.options.get('link'):
+        if start_link == next_link:
+            print next_link.values()[0],
+        next_link = next_link.options['link'][0]
+        print "--> %s" % next_link.values()[0],
 
-def deploy_init_task(driver, instance,
+def deploy_init_task(driver, instance, identity,
                      username=None, password=None, token=None, redeploy=False,
                      *args, **kwargs):
     from service.tasks.driver import _update_status_log

@@ -233,7 +233,7 @@ Exception: %s
 """ % (core_instance.provider_alias,
        user, user_name, user_email,
        core_instance.ip_address,
-       core_instance.provider_machine.identifier,
+       core_instance.source.providermachine.identifier,
        exception_str)
     from_name, from_email = admin_address()
     subject = '(%s) Deploy Failed' % username

@@ -63,16 +63,15 @@ class MachineRequestList(APIView):
         if serializer.is_valid():
             #Add parent machine to request
             machine_request = serializer.object
-            try:
+            instance = machine_request.instance
+            if instance.source.is_machine():
                 machine_request.parent_machine = machine_request.instance\
                         .source.providermachine
-            except ProviderMachine.DoesNotExist:
-                try:
-                    machine_request.instance.source.volume
-                except Volume.DoesNotExist:
-                    return failure_response(status.HTTP_400_BAD_REQUEST,
-                            "Instance of booted volume can NOT be imaged."
-                            "Contact your Administrator for more information.")
+            elif instance.source.is_volume():
+                return failure_response(status.HTTP_400_BAD_REQUEST,
+                        "Instance of booted volume can NOT be imaged."
+                        "Contact your Administrator for more information.")
+            else:
                 return failure_response(status.HTTP_400_BAD_REQUEST,
                         "Instance source type cannot be determined."
                         "Contact your Administrator for more information.")

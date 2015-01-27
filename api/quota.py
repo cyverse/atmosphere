@@ -1,5 +1,5 @@
 """
-Atmosphere allocation rest api.
+Atmosphere quota rest api.
 """
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -8,31 +8,31 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 
 from api.permissions import ApiAuthRequired
-from api.serializers import AllocationSerializer
+from api.serializers import QuotaSerializer
 
-from core.models import Allocation
+from core.models import Quota
 
 
-class AllocationList(APIView):
+class QuotaList(APIView):
     """
-    Lists or creates new Allocations
+    Lists or creates new Quotas
     """
     permission_classes = (ApiAuthRequired,)
 
     def get(self, request):
         """
-        Returns a list of all existing Allocations
+        Returns a list of all existing Quotas
         """
-        quotas = Allocation.objects.all()
-        serialized_data = AllocationSerializer(quotas, many=True).data
+        quotas = Quota.objects.all()
+        serialized_data = QuotaSerializer(quotas, many=True).data
         return Response(serialized_data)
 
     def post(self, request):
         """
-        Creates a new Allocation
+        Creates a new Quota
         """
         data = request.DATA
-        serializer = AllocationSerializer(data=data)
+        serializer = QuotaSerializer(data=data)
 
         if serializer.is_valid():
             serializer.save()
@@ -41,27 +41,27 @@ class AllocationList(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class AllocationDetail(APIView):
+class QuotaDetail(APIView):
     """
-    Fetches or updates an Allocation
+    Fetches or updates a Quota
     """
     permission_classes = (ApiAuthRequired,)
 
-    def get(self, request, allocation_id):
+    def get(self, request, quota_id):
         """
-        Fetch the specified Allocation
+        Return the specified Quota
         """
-        allocation = get_object_or_404(Allocation, id=allocation_id)
-        serialized_data = AllocationSerializer(allocation).data
+        quota = get_object_or_404(Quota, id=quota_id)
+        serialized_data = QuotaSerializer(quota).data
         return Response(serialized_data)
 
     def put(self, request, quota_id):
         """
-        Updates the specified Allocation
+        Updates the specified Quota
         """
         data = request.DATA
-        allocation = get_object_or_404(Allocation, id=quota_id)
-        serializer = AllocationSerializer(allocation, data=data)
+        quota = get_object_or_404(Quota, id=quota_id)
+        serializer = QuotaSerializer(quota, data=data)
 
         if serializer.is_valid():
             serializer.save()
@@ -71,11 +71,11 @@ class AllocationDetail(APIView):
 
     def patch(self, request, quota_id):
         """
-        Partially updates the specified Allocation
+        Partially updates the specified Quota
         """
         data = request.DATA
-        allocation = get_object_or_404(Allocation, id=quota_id)
-        serializer = AllocationSerializer(allocation, data=data, partial=True)
+        quota = get_object_or_404(Quota, id=quota_id)
+        serializer = QuotaSerializer(quota, data=data, partial=True)
 
         if serializer.is_valid():
             serializer.save()

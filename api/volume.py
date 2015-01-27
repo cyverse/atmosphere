@@ -21,7 +21,7 @@ from core.models.volume import Volume as CoreVolume
 from service.cache import get_cached_volumes
 from service.driver import prepare_driver
 from service.volume import create_volume,\
-                           boot_volume
+                           create_bootable_volume
 from service.exceptions import OverQuotaError
 from service.volume import create_volume
 
@@ -380,24 +380,16 @@ class BootVolume(APIView):
     """Launch an instance using this volume as the source"""
     permission_classes = (ApiAuthRequired,)
 
-    def _select_source(self, esh_driver, data):
-        source_id = source_type = get_source = None
+    def _select_source_key(self, data):
         if 'image_id' in data:
-            source_type = "image"
-            source_id = data.pop('image_id')
-            get_source = esh_driver.get_machine
+            return "image_id"
         elif 'snapshot_id' in data:
-            source_type = "snapshot"
-            source_id = data.pop('snapshot_id')
-            get_source = esh_driver._connection.ex_get_snapshot
+            return "snapshot_id"
         elif 'volume_id' in data:
-            source_type = "volume"
-            source_id = data.pop('volume_id')
+            return "volume_id"
         else:
-            source_type = "volume"
-            source_id = data.pop('volume_id')
-            get_source = esh_driver.get_volume
-        return (source_type, get_source, source_id)
+            return None
+
 
     def post(self, request, provider_uuid, identity_uuid, volume_id=None):
         user = request.user
@@ -406,39 +398,26 @@ class BootVolume(APIView):
         missing_keys = valid_launch_data(data)
         if missing_keys:
             return keys_not_found(missing_keys)
-
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
-        if not esh_driver:
-            return invalid_creds(provider_uuid, identity_uuid)
-
         source = None
         name = data.pop('name')
         size_id = data.pop('size')
-
-        (source_type, get_source, source_id) = self._select_source(esh_driver,
-                                                                   data)
-        if not get_source:
+        key_name = self._select_source_key(data)
+        if not key_name:
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
                 'Source could not be acquired. Did you send: ['
                 'snapshot_id/volume_id/image_id] ?')
-        source = get_source(source_id)
-        if not source:
+        try:
+            core_instance = create_bootable_volume(
+                request.user, provider_uuid, identity_uuid,
+                name, size_id, source_alias, source_hint=key_name,
+                **data)
+        except Exception, exc:
+            message = exc.message
             return failure_response(
-                status.HTTP_404_NOT_FOUND,
-                "%s %s does not exist"
-                % (source_type.title(), source_id))
-        size = esh_driver.get_size(size_id)
-        if not size:
-            return failure_response(
-                status.HTTP_404_NOT_FOUND,
-                "Size %s does not exist"
-                % (size_id,))
+                status.HTTP_409_CONFLICT,
+                message)
 
-        esh_instance = boot_volume(esh_driver, identity_uuid, name,
-                                   size, source, source_type, **data)
-        core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                             provider_uuid, identity_uuid, user)
         serialized_data = InstanceSerializer(core_instance,
                                              context={'request': request}).data
         response = Response(serialized_data)

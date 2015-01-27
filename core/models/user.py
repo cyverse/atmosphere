@@ -4,8 +4,8 @@ from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
 
-
 from threepio import logger
+
 class AtmosphereUser(AbstractUser):
     selected_identity = models.ForeignKey('Identity', blank=True, null=True)
 
@@ -39,6 +39,12 @@ class AtmosphereUser(AbstractUser):
                 logger.debug("Selected Identity:%s" % self.selected_identity)
                 self.save()
                 return self.selected_identity
+
+    def volume_set(self):
+        from core.models import Volume
+        volume_db_ids = [source.volume.id for source in
+                         self.source_set.filter(volume__isnull=False)]
+        return Volume.objects.filter(id__in=volume_db_ids)
 
     def email_hash(self):
         m = md5()

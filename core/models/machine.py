@@ -13,6 +13,7 @@ from core.models.abstract import InstanceSource
 from core.models.application import Application
 from core.models.application import create_application, get_application
 from core.models.identity import Identity
+from core.models.license import License
 from core.models.provider import Provider
 from core.models.tag import Tag, updateTags
 from core.fields import VersionNumberField, VersionNumber
@@ -31,6 +32,9 @@ class ProviderMachine(InstanceSource):
     """
     application = models.ForeignKey(Application)
     version = models.CharField(max_length=128, default='1.0.0')
+    licenses = models.ManyToManyField(License,
+            null=True, blank=True)
+
     def source_end_date(self):
         return self.instancesource_ptr.end_date
     def source_provider(self):

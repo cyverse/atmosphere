@@ -7,6 +7,9 @@ from django.conf.urls import patterns, url, include
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from api.accounts import Account
+from api.allocation import AllocationDetail, AllocationList
+from api.allocation_request import AllocationRequestDetail,\
+    AllocationRequestList
 from api.application import ApplicationSearch, ApplicationList, Application,\
                             ApplicationThresholdDetail
 from api.bookmark import  ApplicationBookmarkDetail, ApplicationBookmarkList
@@ -18,8 +21,9 @@ from api.identity import IdentityList, Identity, IdentityDetail, IdentityDetailL
 from api.instance import InstanceList, Instance,\
     InstanceAction, InstanceHistory, InstanceHistoryDetail,\
     InstanceStatusHistoryDetail, InstanceTagList, InstanceTagDetail
+from api.license import LicenseList, License
 from api.machine import MachineList, Machine, MachineHistory,\
-    MachineSearch, MachineVote, MachineIcon
+    MachineSearch, MachineVote, MachineIcon, MachineLicense
 from api.machine_request import MachineRequestList, MachineRequest,\
     MachineRequestStaffList, MachineRequestStaff
 from api.machine_export import MachineExportList, MachineExport
@@ -29,13 +33,15 @@ from api.notification import NotificationList
 from api.occupancy import Occupancy, Hypervisor
 from api.project import NoProjectList, NoProjectInstanceList,\
         NoProjectVolumeList, NoProjectApplicationList
-from api.post_boot import PostBootScriptList, PostBootScript
+from api.post_boot import BootScriptList, BootScript
 from api.project import ProjectList, ProjectDetail
 from api.project import ProjectInstanceList, ProjectInstanceExchange,\
         ProjectApplicationList, ProjectApplicationExchange,\
         ProjectVolumeList, ProjectVolumeExchange
 from api.profile import Profile
 from api.provider import ProviderList, Provider
+from api.quota import QuotaDetail, QuotaList
+from api.quota_request import QuotaRequestDetail, QuotaRequestList
 from api.size import SizeList, Size
 from api.hypervisor import HypervisorList, HypervisorDetail
 from api.step import StepList, Step
@@ -72,13 +78,13 @@ private_apis = patterns('',
     #File Retrieval:
     # static files
     url(r'^init_files/(?P<file_location>.*)$', 'web.views.get_resource'),
-    #post_boot Related APIs
-    url(r'post_boot$',
-        PostBootScriptList.as_view(),
-        name='post_boot_list'),
-    url(r'post_boot/(?P<script_id>\d+)$',
-        PostBootScript.as_view(),
-        name='post_boot'),
+    #boot_script Related APIs
+    url(r'boot_script$',
+        BootScriptList.as_view(),
+        name='boot_script_list'),
+    url(r'boot_script/(?P<script_id>\d+)$',
+        BootScript.as_view(),
+        name='boot_script'),
 
     #Project Related APIs
     url(r'project$',
@@ -98,28 +104,29 @@ private_apis = patterns('',
         NoProjectVolumeList.as_view(),
         name='empty-project-volume-list'),
 
-    url(r'project/(?P<project_id>\d+)$',
+    url(r"project/(?P<project_uuid>%s)$" % uuid_match,
         ProjectDetail.as_view(),
         name='project-detail'),
-    url(r'project/(?P<project_id>\d+)/application$',
+    url(r"project/(?P<project_uuid>%s)/application$" % uuid_match,
         ProjectApplicationList.as_view(),
         name='project-application-list'),
-    url(r'project/(?P<project_id>\d+)/application/(?P<application_uuid>%s)$'
-        % uuid_match,
+    url(r'project/(?P<project_uuid>%s)'
+         '/application/(?P<application_uuid>%s)$'
+         % (uuid_match,uuid_match),
         ProjectApplicationExchange.as_view(),
         name='project-application-exchange'),
-    url(r'project/(?P<project_id>\d+)/instance$',
+    url(r'project/(?P<project_uuid>%s)/instance$' % (uuid_match,),
         ProjectInstanceList.as_view(),
         name='project-instance-list'),
-    url(r'project/(?P<project_id>\d+)/instance/(?P<instance_id>%s)$'
-        % uuid_match,
+    url(r'project/(?P<project_uuid>%s)/instance/(?P<instance_id>%s)$'
+        % (uuid_match,uuid_match),
         ProjectInstanceExchange.as_view(),
         name='project-instance-exchange'),
-    url(r'project/(?P<project_id>\d+)/volume$',
+    url(r'project/(?P<project_uuid>%s)/volume$' % (uuid_match,),
         ProjectVolumeList.as_view(),
         name='project-volume-list'),
-    url(r'project/(?P<project_id>\d+)/volume/(?P<volume_id>%s)$'
-        % uuid_match,
+    url(r'project/(?P<project_uuid>%s)/volume/(?P<volume_id>%s)$'
+        % (uuid_match,uuid_match),
         ProjectVolumeExchange.as_view(),
         name='project-volume-exchange'),
 
@@ -272,6 +279,8 @@ public_apis = format_suffix_patterns(patterns(
         MachineSearch.as_view(), name='machine-search'),
     url(identity_specific + r'/machine/(?P<machine_id>%s)$' % uuid_match,
         Machine.as_view(), name='machine-detail'),
+    url(identity_specific + r'/machine/(?P<machine_id>%s)/license$' % uuid_match,
+        MachineLicense.as_view(), name='machine-license'),
     url(identity_specific + r'/machine/(?P<machine_id>%s)' % uuid_match
         + '/icon$', MachineIcon.as_view(), name='machine-icon'),
 
@@ -296,10 +305,41 @@ public_apis = format_suffix_patterns(patterns(
     url(identity_specific + r'/profile$',
         Profile.as_view(), name='profile-detail'),
 
+    url(identity_specific + r'/allocation_request$',
+        AllocationRequestList.as_view(), name='allocation-request-list'),
+    url(identity_specific +
+        r'/allocation_request/(?P<allocation_request_uuid>%s)$' % uuid_match,
+        AllocationRequestDetail.as_view(), name='allocation-request-detail'),
+
+    url(r'^allocation$',
+        AllocationList.as_view(), name='allocation-list'),
+    url(r'^allocation/(?P<quota_id>\d+)$',
+        AllocationDetail.as_view(), name='quota-detail'),
+
+    url(identity_specific + r'/quota_request$',
+        QuotaRequestList.as_view(), name='quota-request-list'),
+    url(identity_specific +
+        r'/quota_request/(?P<quota_request_uuid>%s)$' % uuid_match,
+        QuotaRequestDetail.as_view(), name='quota-request-detail'),
+
+    url(r'^quota$',
+        QuotaList.as_view(), name='quota-list'),
+    url(r'^quota/(?P<quota_id>\d+)$',
+        QuotaDetail.as_view(), name='quota-detail'),
+
+
     url(r'version$', Version.as_view()),
     url(r'^maintenance$',
         MaintenanceRecordList.as_view(),
         name='maintenance-record-list'),
+
+    url(r'license$',
+        LicenseList.as_view(),
+        name='license-list'),
+
+    url(r"license/(?P<license_id>%s)$" % uuid_match,
+        License.as_view(),
+        name='license-detail'),
 
 ))
 urlpatterns = patterns('',

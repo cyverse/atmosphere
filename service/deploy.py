@@ -4,6 +4,7 @@ Deploy methods for Atmosphere
 from os.path import basename
 import time
 
+from libcloud.compute.deployment import Deployment
 from libcloud.compute.deployment import ScriptDeployment
 from libcloud.compute.deployment import MultiStepDeployment
 
@@ -18,6 +19,23 @@ from authentication.protocol import ldap
 #
 # Deployment Classes
 #
+
+class WriteFileDeployment(Deployment):
+    def __init__(self, full_text, target):
+        """
+        :type target: ``str``
+        :keyword target: Path to install file on node
+
+        :type full_text: ``str``
+        :keyword full_text: Text to install file on node
+        """
+        self.full_text = full_text
+        self.target = target
+
+    def run(self, node, client):
+        client.put(self.target,  contents=self.full_text, mode='w')
+        return node
+
 class LoggedScriptDeployment(ScriptDeployment):
     def __init__(self, script, name=None, delete=False, logfile=None,
                  attempts=1):
@@ -320,3 +338,21 @@ def init(instance, username, password=None, token=None, redeploy=False,
         script_list.append(script_rm_scripts)
 
     return MultiStepDeployment(script_list)
+
+def wrap_script(script_text, script_name):
+    """
+    NOTE: In current implementation, the script can only be executed, and not
+    logged.
+
+    Implementation v2:
+    * Write to file
+    * Chmod the file
+    * Execute and redirect output to stdout/stderr to logfile.
+    """
+    logfile = "/var/log/atmo/post_boot_scripts.log"
+    #kludge: weirdness without the str cast...
+    script_text = str(script_text)
+    full_script_name = "./deploy_boot_script_%s.sh"
+    return ScriptDeployment(
+        script_text, name=full_script_name)
+

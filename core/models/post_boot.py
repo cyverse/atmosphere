@@ -1,13 +1,14 @@
 """
   Post Boot script model for atmosphere.
 """
-import time
+import time, requests
 from hashlib import md5
 import pytz
 
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.text import slugify
 
 from threepio import logger
 from uuid import uuid4
@@ -44,6 +45,28 @@ class BootScript(models.Model):
     applications = models.ManyToManyField(Application, related_name='scripts')
     instances = models.ManyToManyField(Instance, related_name='scripts')
 
+    def get_title_slug(self):
+        """
+        Return a slug,
+        But replace all hyphens(-) with underscores(_)
+        """
+        return slugify(self.title).replace('-','_')
+
+    def get_text(self):
+        if self.script_type.name == 'Raw Text':
+            return self.script_text
+        elif self.script_type.name == 'URL':
+            return self._text_from_url()
+
+    def _text_from_url(self):
+        """
+        """
+        req = requests.get(self.script_text)
+        content = req.content
+        return content
+
+
+
     class Meta:
         db_table = 'boot_script'
         app_label = 'core'
@@ -54,6 +77,37 @@ def get_scripts_for_user(username):
 def get_scripts_for_application(application_uuid):
     return BootScript.objects.filter(
             applications__uuid=application_uuid)
-def get_scripts_for_instance(instance_id):
+def get_scripts_for_instance_id(instance_id):
     return BootScript.objects.filter(
-            instances__provider_alias=instance_id)
+            Q(instances__provider_alias=instance_id))
+def get_scripts_for_instance(instance):
+    query_kwargs = {}
+    #Look for scripts on the specific instance
+    #TODO: just converted to tuple but untested..
+    query_args = (Q(instances__provider_alias=instance.provider_alias),)
+    if instance.source.is_machine():
+        query_args = (query_args[0] |
+                Q(applications__uuid=instance.source.providermachine.application.uuid),)
+    return BootScript.objects.filter(*query_args, **query_kwargs)
+
+def _save_scripts_to_application(application, boot_script_list):
+    #Empty when new, otherwise over-write all changes
+    old_scripts = application.scripts.all()
+    if old_scripts:
+        for old_script in old_scripts:
+            application.scripts.remove(old_script)
+    #Add all new scripts
+    for script_id in boot_script_list:
+        script = BootScript.objects.get(id=script_id)
+        script.applications.add(application)
+def _save_scripts_to_instance(instance, boot_script_list):
+    #Empty when new, otherwise over-write all changes
+    old_scripts = instance.scripts.all()
+    if old_scripts:
+        for old_script in old_scripts:
+            instance.scripts.remove(old_script)
+    #Add all new scripts
+    for script_id in boot_script_list:
+        script = BootScript.objects.get(id=script_id)
+        script.instances.add(instance)
+

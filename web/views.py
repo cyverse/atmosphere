@@ -74,6 +74,7 @@ def o_login_redirect(request):
 
 
 def o_callback_authorize(request):
+    logger.info(request.__dict__)
     if 'code' not in request.GET:
         logger.info(request.__dict__)
         #TODO - Maybe: Redirect into a login
