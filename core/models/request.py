@@ -38,7 +38,7 @@ class StatusType(models.Model):
         return StatusType(name="pending")
 
 
-class BaseRequestMixin(models.Model):
+class BaseRequest(models.Model):
     """
     Base model which represents a request object
     """
@@ -71,7 +71,7 @@ class BaseRequestMixin(models.Model):
             user=user, provider=provider, status=status).count() > 0
 
 
-class AllocationRequest(BaseRequestMixin):
+class AllocationRequest(BaseRequest):
     """
     Tracks requests made by users to change their current Allocation
     """
@@ -80,7 +80,7 @@ class AllocationRequest(BaseRequestMixin):
         app_label = "core"
 
 
-class QuotaRequest(BaseRequestMixin):
+class QuotaRequest(BaseRequest):
     """
     Tracks requests made by users to change their current Quota
     """
