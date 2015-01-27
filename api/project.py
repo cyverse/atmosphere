@@ -26,9 +26,9 @@ from api.serializers import NoProjectSerializer
 from django.utils import timezone
 from django.db.models import Q
 
-def get_group_project(group, project_id)
+def get_group_project(group, project_id):
     try:
-        return group.projects.get(group, project_id)
+        return group.projects.get(id=project_id)
     except Project.DoesNotExist:
         return None
 
