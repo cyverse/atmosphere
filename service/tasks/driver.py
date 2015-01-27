@@ -504,14 +504,13 @@ def destroy_instance(instance_alias, core_identity_id):
                 if app.conf.CELERY_ALWAYS_EAGER:
                     logger.debug("Eager task waiting 1 minute")
                     time.sleep(60)
-                destroy_chain = chain(
-                    clean_empty_ips.subtask(
-                        (driverCls, provider, identity),
-                        immutable=True, countdown=5),
-                    remove_empty_network.subtask(
-                        (driverCls, provider, identity, core_identity_id),
-                        immutable=True, countdown=60))
-                destroy_chain()
+                clean_task = clean_empty_ips.si(driverCls, provider, identity,
+                        immutable=True, countdown=5)
+                remove_task = remove_empty_network.si(
+                        driverCls, provider, identity, core_identity_id,
+                        immutable=True, countdown=60)
+                clean_task.join(remove_task)
+                clean_task.apply_async()
             else:
                 logger.debug("Driver shows %s of %s instances are active"
                              % (len(active), len(instances)))
@@ -519,10 +518,10 @@ def destroy_instance(instance_alias, core_identity_id):
                 if app.conf.CELERY_ALWAYS_EAGER:
                     logger.debug("Eager task waiting 15 seconds")
                     time.sleep(15)
-                destroy_chain = \
-                    clean_empty_ips.subtask(
-                        (driverCls, provider, identity),
-                        immutable=True, countdown=5).apply_async()
+                destroy_chain = clean_empty_ips.si(
+                        driverCls, provider, identity,
+                        immutable=True, countdown=5)
+                destroy_chain.apply_async()
         logger.debug("destroy_instance task finished at %s." % datetime.now())
         return node_destroyed
     except Exception as exc:
