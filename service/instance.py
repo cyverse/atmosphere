@@ -462,8 +462,8 @@ def destroy_instance(identity_uuid, instance_alias):
         try:
             esh_driver._connection.ex_disassociate_floating_ip(instance)
         except Exception as exc:
-            if 'floating ip not found' not in exc.message\
-                    or 'is not associated with instance' not in exc.message:
+            if not ("floating ip not found" in exc.message
+                    or "422 Unprocessable Entity Floating ip" in exc.message):
                 raise
     node_destroyed = esh_driver._connection.destroy_node(instance)
     return node_destroyed
