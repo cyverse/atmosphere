@@ -71,7 +71,6 @@ INSTALLED_APPS = (
     #3rd party apps
     'rest_framework',
 
-    'south',
     'djcelery',
     'django_jenkins',
     'pipeline',
