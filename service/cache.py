@@ -49,10 +49,15 @@ def _invalidate(key):
 
 
 def _get_cached(key, data_method, scrub_method, force=False):
-    r = redis_connection()
-    if force:
-        _invalidate(key)
-    data = r.get(key)
+    try:
+        r = redis_connection()
+        if force:
+            _invalidate(key)
+        data = r.get(key)
+    except redis.exceptions.ConnectionError:
+        logger.error("EXTERNAL SERVICE redis-server IS NOT RUNNING! "
+                     "Somebody should turn it on!")
+        data = None
     if not data:
         data = data_method()
         scrub_method(data)
