@@ -2,8 +2,6 @@
 from __future__ import unicode_literals
 
 from django.db import models, migrations
-import datetime
-from django.utils.timezone import utc
 import django.utils.timezone
 from django.conf import settings
 import django.core.validators
@@ -67,7 +65,7 @@ class Migration(migrations.Migration):
                 ('request', models.TextField()),
                 ('description', models.CharField(default=b'', max_length=1024, blank=True)),
                 ('admin_message', models.CharField(default=b'', max_length=1024, blank=True)),
-                ('start_date', models.DateTimeField(default=datetime.datetime(2015, 1, 28, 20, 28, 52, 540784, tzinfo=utc))),
+                ('start_date', models.DateTimeField(default=django.utils.timezone.now)),
                 ('end_date', models.DateTimeField(null=True, blank=True)),
             ],
             options={
@@ -175,7 +173,7 @@ class Migration(migrations.Migration):
                 ('alias', models.CharField(max_length=36)),
                 ('name', models.CharField(max_length=1024, blank=True)),
                 ('status', models.IntegerField(null=True, blank=True)),
-                ('start_date', models.DateTimeField(default=datetime.datetime(2015, 1, 28, 20, 28, 52, 537493, tzinfo=utc))),
+                ('start_date', models.DateTimeField(default=django.utils.timezone.now)),
                 ('end_date', models.DateTimeField(null=True, blank=True)),
             ],
             options={
@@ -188,7 +186,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('name', models.CharField(max_length=256, blank=True)),
-                ('start_date', models.DateTimeField(default=datetime.datetime(2015, 1, 28, 20, 28, 52, 536660, tzinfo=utc))),
+                ('start_date', models.DateTimeField(default=django.utils.timezone.now)),
                 ('end_date', models.DateTimeField(null=True, blank=True)),
             ],
             options={
@@ -291,7 +289,7 @@ class Migration(migrations.Migration):
             name='InstanceStatusHistory',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('start_date', models.DateTimeField(default=datetime.datetime(2015, 1, 28, 20, 28, 52, 507318, tzinfo=utc))),
+                ('start_date', models.DateTimeField(default=django.utils.timezone.now)),
                 ('end_date', models.DateTimeField(null=True, blank=True)),
                 ('instance', models.ForeignKey(to='core.Instance')),
             ],
@@ -344,7 +342,7 @@ class Migration(migrations.Migration):
                 ('export_name', models.CharField(max_length=256)),
                 ('export_format', models.CharField(max_length=256)),
                 ('export_file', models.CharField(max_length=256, null=True, blank=True)),
-                ('start_date', models.DateTimeField(default=datetime.datetime(2015, 1, 28, 20, 28, 52, 528638, tzinfo=utc))),
+                ('start_date', models.DateTimeField(default=django.utils.timezone.now)),
                 ('end_date', models.DateTimeField(null=True, blank=True)),
             ],
             options={
@@ -369,7 +367,7 @@ class Migration(migrations.Migration):
                 ('new_machine_forked', models.BooleanField(default=False)),
                 ('new_machine_memory_min', models.IntegerField(default=0)),
                 ('new_machine_storage_min', models.IntegerField(default=0)),
-                ('start_date', models.DateTimeField(default=datetime.datetime(2015, 1, 28, 20, 28, 52, 526405, tzinfo=utc))),
+                ('start_date', models.DateTimeField(default=django.utils.timezone.now)),
                 ('end_date', models.DateTimeField(null=True, blank=True)),
                 ('instance', models.ForeignKey(to='core.Instance')),
             ],
@@ -401,7 +399,7 @@ class Migration(migrations.Migration):
                 ('hostname', models.CharField(max_length=256)),
                 ('port', models.IntegerField(default=22)),
                 ('private_ssh_key', models.TextField()),
-                ('start_date', models.DateTimeField(default=datetime.datetime(2015, 1, 28, 20, 28, 52, 525259, tzinfo=utc))),
+                ('start_date', models.DateTimeField(default=django.utils.timezone.now)),
                 ('end_date', models.DateTimeField(null=True, blank=True)),
             ],
             options={
@@ -544,7 +542,7 @@ class Migration(migrations.Migration):
                 ('request', models.TextField()),
                 ('description', models.CharField(default=b'', max_length=1024, blank=True)),
                 ('admin_message', models.CharField(default=b'', max_length=1024, blank=True)),
-                ('start_date', models.DateTimeField(default=datetime.datetime(2015, 1, 28, 20, 28, 52, 540784, tzinfo=utc))),
+                ('start_date', models.DateTimeField(default=django.utils.timezone.now)),
                 ('end_date', models.DateTimeField(null=True, blank=True)),
             ],
             options={
@@ -574,7 +572,7 @@ class Migration(migrations.Migration):
                 ('disk', models.IntegerField()),
                 ('root', models.IntegerField()),
                 ('mem', models.IntegerField()),
-                ('start_date', models.DateTimeField(default=datetime.datetime(2015, 1, 28, 20, 28, 52, 504115, tzinfo=utc))),
+                ('start_date', models.DateTimeField(default=django.utils.timezone.now)),
                 ('end_date', models.DateTimeField(null=True, blank=True)),
                 ('provider', models.ForeignKey(to='core.Provider')),
             ],
@@ -589,7 +587,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('name', models.CharField(max_length=32)),
                 ('description', models.CharField(default=b'', max_length=256, blank=True)),
-                ('start_date', models.DateTimeField(default=datetime.datetime(2015, 1, 28, 20, 28, 52, 540092, tzinfo=utc))),
+                ('start_date', models.DateTimeField(default=django.utils.timezone.now)),
                 ('end_date', models.DateTimeField(null=True, blank=True)),
             ],
             options={
@@ -605,7 +603,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=1024, blank=True)),
                 ('script', models.TextField()),
                 ('exit_code', models.IntegerField(null=True, blank=True)),
-                ('start_date', models.DateTimeField(default=datetime.datetime(2015, 1, 28, 20, 28, 52, 538498, tzinfo=utc))),
+                ('start_date', models.DateTimeField(default=django.utils.timezone.now)),
                 ('end_date', models.DateTimeField(null=True, blank=True)),
             ],
             options={
@@ -618,7 +616,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('V', models.CharField(max_length=36)),
-                ('start_date', models.DateTimeField(default=datetime.datetime(2015, 1, 28, 20, 28, 52, 534991, tzinfo=utc))),
+                ('start_date', models.DateTimeField(default=django.utils.timezone.now)),
                 ('end_date', models.DateTimeField(null=True)),
             ],
             options={
@@ -696,7 +694,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('device', models.CharField(max_length=128, null=True, blank=True)),
                 ('instance_alias', models.CharField(max_length=36, null=True, blank=True)),
-                ('start_date', models.DateTimeField(default=datetime.datetime(2015, 1, 28, 20, 28, 52, 502465, tzinfo=utc))),
+                ('start_date', models.DateTimeField(default=django.utils.timezone.now)),
                 ('end_date', models.DateTimeField(null=True, blank=True)),
                 ('status', models.ForeignKey(to='core.VolumeStatus')),
                 ('volume', models.ForeignKey(to='core.Volume')),
