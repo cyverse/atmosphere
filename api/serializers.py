@@ -692,7 +692,7 @@ class GroupSerializer(serializers.ModelSerializer):
 
 class VolumeSerializer(serializers.ModelSerializer):
     status = serializers.CharField(read_only=True, source='get_status')
-    alias = serializers.Field(source='identifer')
+    alias = serializers.Field(source='identifier')
     attach_data = serializers.Field(source='esh_attach_data')
     #metadata = serializers.Field(source='esh_metadata')
     mount_location = serializers.Field(source='mount_location')
