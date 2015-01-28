@@ -28,7 +28,7 @@ from django.db.models import Q
 
 def get_group_project(group, project_uuid):
     try:
-        return group.projects.get(id=project_uuid)
+        return group.projects.get(uuid=project_uuid)
     except Project.DoesNotExist:
         return None
 
