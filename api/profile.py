@@ -28,8 +28,8 @@ class Profile(APIView):
         """Authentication Required, retrieve the users profile."""
         #logger.info(request.user)
         user = request.user
-        #logger.debug(user.get_profile())
-        profile = user.get_profile()
+        #logger.debug(user.userprofile)
+        profile = user.userprofile
         serialized_data = ProfileSerializer(profile).data
         identity = user.select_identity()
         identity_uuid = identity.id
@@ -44,7 +44,7 @@ class Profile(APIView):
         400 - Bad key/value on update, errors in body.
         """
         user = request.user
-        profile = user.get_profile()
+        profile = user.userprofile
         mutable_data = request.DATA.copy()
         if "selected_identity" in mutable_data:
             user_data = {"selected_identity":
@@ -71,7 +71,7 @@ class Profile(APIView):
         400 - Bad key/value on update, errors in body.
         """
         user = request.user
-        profile = user.get_profile()
+        profile = user.userprofile
         serializer = ProfileSerializer(profile, data=request.DATA)
         if serializer.is_valid():
             serializer.save()

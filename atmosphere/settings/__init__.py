@@ -202,7 +202,6 @@ TEMPLATE_DIRS = (
 
 AUTH_USER_MODEL = 'core.AtmosphereUser'
 AUTH_USER_MODULE = 'core.AtmosphereUser'
-AUTH_PROFILE_MODULE = 'core.UserProfile'
 
 AUTHENTICATION_BACKENDS = (
     #For Always-OK Access
