@@ -53,7 +53,7 @@ class MachineRequest(models.Model):
     new_machine_licenses = models.ManyToManyField(License,
             null=True, blank=True)
     #Date time stamps
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     # Filled in when completed.

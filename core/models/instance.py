@@ -77,7 +77,8 @@ class Instance(models.Model):
     shell = models.BooleanField(default=False)
     vnc = models.BooleanField(default=False)
     password = models.CharField(max_length=64, blank=True, null=True)
-    start_date = models.DateTimeField() # Problems when setting a default.
+    # FIXME  Problems when setting a default.
+    start_date = models.DateTimeField()
     end_date = models.DateTimeField(null=True)
 
     def get_projects(self, user):
@@ -414,7 +415,7 @@ class InstanceStatusHistory(models.Model):
     instance = models.ForeignKey(Instance)
     size = models.ForeignKey("Size", null=True, blank=True)
     status = models.ForeignKey(InstanceStatus)
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     @classmethod
