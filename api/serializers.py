@@ -27,14 +27,6 @@ from threepio import logger
 
 
 # Serializers
-class POST_LicenseSerializer(serializers.ModelSerializer):
-    created_by = serializers.SlugRelatedField(slug_field='username')
-    type = serializers.SlugRelatedField(source='license_type', slug_field='name')
-    class Meta:
-        model = License
-        exclude = ("license_type",)
-
-
 class MachineRequestSerializer(serializers.ModelSerializer):
     """
     """
