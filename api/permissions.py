@@ -10,13 +10,13 @@ from threepio import logger
 class ProjectOwnerRequired(permissions.BasePermission):
     def has_permission(self, request, view):
         auth_user = request.user
-        project_id = view.kwargs.get('project_id')
-        if not project_id:
-            logger.warn("Could not find kwarg:'project_id'")
+        project_uuid = view.kwargs.get('project_uuid')
+        if not project_uuid:
+            logger.warn("Could not find kwarg:'project_uuid'")
             return False
         return any(
             group for group in auth_user.group_set.all()
-            if group.projects.filter(id=project_id))
+            if group.projects.filter(uuid=project_uuid))
 
 
 class ApiAuthRequired(permissions.BasePermission):
