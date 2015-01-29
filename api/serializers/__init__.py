@@ -21,3 +21,4 @@ from .instance_history_serializer import InstanceHistorySerializer
 from .paginated_instance_history_serializer import PaginatedInstanceHistorySerializer
 from .paginated_instance_serializer import PaginatedInstanceSerializer
 from .machine_export_serializer import MachineExportSerializer
+from .license_serializer import LicenseSerializer

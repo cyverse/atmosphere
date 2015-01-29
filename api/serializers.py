@@ -7,7 +7,6 @@ from core.models.instance import InstanceStatusHistory
 from core.models.license import License
 from core.models.machine import ProviderMachine
 from core.models.machine_request import MachineRequest
-from core.models.machine_export import MachineExport
 from core.models.maintenance import MaintenanceRecord
 from core.models.profile import UserProfile
 from core.models.project import Project
@@ -28,19 +27,6 @@ from threepio import logger
 
 
 # Serializers
-class LicenseSerializer(serializers.ModelSerializer):
-
-    created_by = serializers.SlugRelatedField(slug_field='username', read_only=True)
-    type = serializers.SlugRelatedField(source='license_type', slug_field='name')
-
-    #TODO: Rename THIS field if it makes more sense for API consumers
-    allow_imaging = serializers.BooleanField(source='allow_imaging',
-                                             read_only=True)
-
-    class Meta:
-        model = License
-        exclude = ("license_type",)
-
 class POST_LicenseSerializer(serializers.ModelSerializer):
     created_by = serializers.SlugRelatedField(slug_field='username')
     type = serializers.SlugRelatedField(source='license_type', slug_field='name')
