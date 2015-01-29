@@ -42,3 +42,4 @@ from .instance_status_history_serializer import InstanceStatusHistorySerializer
 from .allocation_serializer import AllocationSerializer
 from .allocation_request_serializer import AllocationRequestSerializer
 from .quota_serializer import QuotaSerializer
+from .quota_request_serializer import QuotaRequestSerializer

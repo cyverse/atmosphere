@@ -6,20 +6,6 @@ from rest_framework import serializers
 
 
 # Serializers
-class QuotaRequestSerializer(serializers.ModelSerializer):
-    id = serializers.CharField(read_only=True, source="uuid", required=False)
-    created_by = serializers.SlugRelatedField(
-        slug_field='username', source='created_by',
-        queryset=AtmosphereUser.objects.all())
-    status = serializers.SlugRelatedField(
-        slug_field='name', source='status',
-        queryset=StatusType.objects.all())
-
-    class Meta:
-        model = QuotaRequest
-        exclude = ('uuid', 'membership')
-
-
 class IdentitySerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
     credentials = serializers.Field(source='get_credentials')
