@@ -12,14 +12,6 @@ from rest_framework import serializers
 
 
 # Serializers
-class TagSerializer(serializers.ModelSerializer):
-    user = serializers.SlugRelatedField(slug_field='username')
-    description = serializers.CharField(required=False)
-
-    class Meta:
-        model = Tag
-
-
 class InstanceStatusHistorySerializer(serializers.ModelSerializer):
     instance = serializers.SlugRelatedField(slug_field='provider_alias')
     size = serializers.SlugRelatedField(slug_field='alias')

@@ -37,3 +37,4 @@ from .project_serializer import ProjectSerializer
 from .provider_size_serializer import ProviderSizeSerializer
 from .step_serializer import StepSerializer
 from .provider_type_serializer import ProviderTypeSerializer
+from .tag_serializer import TagSerializer
