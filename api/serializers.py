@@ -4,10 +4,7 @@ from core.models.quota import Quota
 from core.models.allocation import Allocation
 from core.models.identity import Identity
 from core.models.instance import InstanceStatusHistory
-from core.models.license import License
 from core.models.machine import ProviderMachine
-from core.models.machine_request import MachineRequest
-from core.models.maintenance import MaintenanceRecord
 from core.models.profile import UserProfile
 from core.models.project import Project
 from core.models.provider import ProviderType
@@ -27,14 +24,6 @@ from threepio import logger
 
 
 # Serializers
-class MaintenanceRecordSerializer(serializers.ModelSerializer):
-    provider_id = serializers.Field(source='provider.uuid')
-
-    class Meta:
-        model = MaintenanceRecord
-        exclude = ('provider',)
-
-
 class IdentityDetailSerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
     quota = serializers.Field(source='get_quota_dict')
