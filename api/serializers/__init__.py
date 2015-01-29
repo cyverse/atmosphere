@@ -17,3 +17,4 @@ from .application_bookmark_serializer import ApplicationBookmarkSerializer
 from .application_score_serializer import ApplicationScoreSerializer
 from .credential_serializer import CredentialSerializer
 from .instance_serializer import InstanceSerializer
+from .instance_history_serializer import InstanceHistorySerializer
