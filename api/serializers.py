@@ -3,7 +3,6 @@ from core.models.group import Group
 from core.models.quota import Quota
 from core.models.allocation import Allocation
 from core.models.identity import Identity
-from core.models.instance import Instance
 from core.models.instance import InstanceStatusHistory
 from core.models.license import License
 from core.models.machine import ProviderMachine
@@ -29,14 +28,6 @@ from threepio import logger
 
 
 # Serializers
-class PaginatedInstanceHistorySerializer(pagination.PaginationSerializer):
-    """
-    Serializes page objects of Instance querysets.
-    """
-    class Meta:
-        object_serializer_class = InstanceHistorySerializer
-
-
 class PaginatedInstanceSerializer(pagination.PaginationSerializer):
     """
     Serializes page objects of Instance querysets.
