@@ -1,4 +1,3 @@
-from core.models.group import Group
 from core.models.quota import Quota
 from core.models.allocation import Allocation
 from core.models.identity import Identity
@@ -17,20 +16,6 @@ from rest_framework import serializers
 
 
 # Serializers
-class GroupSerializer(serializers.ModelSerializer):
-    identities = serializers.SerializerMethodField('get_identities')
-
-    class Meta:
-        model = Group
-        exclude = ('id', 'providers')
-
-    def get_identities(self, group):
-        identities = group.identities.all()
-        return map(lambda i:
-                   {"id": i.uuid, "provider_id": i.provider.uuid},
-                   identities)
-
-
 class VolumeSerializer(serializers.ModelSerializer):
     status = serializers.CharField(read_only=True, source='get_status')
     attach_data = serializers.Field(source='esh_attach_data')
