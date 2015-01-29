@@ -16,28 +16,6 @@ from rest_framework import serializers
 
 
 # Serializers
-class VolumeSerializer(serializers.ModelSerializer):
-    status = serializers.CharField(read_only=True, source='get_status')
-    attach_data = serializers.Field(source='esh_attach_data')
-    #metadata = serializers.Field(source='esh_metadata')
-    mount_location = serializers.Field(source='mount_location')
-    created_by = serializers.SlugRelatedField(slug_field='username',
-                                              source='created_by',
-                                              read_only=True)
-    provider = serializers.Field(source="provider.uuid")
-    identity = CleanedIdentitySerializer(source="created_by_identity")
-    projects = ProjectsField()
-
-    def __init__(self, *args, **kwargs):
-        user = get_context_user(self, kwargs)
-        self.request_user = user
-        super(VolumeSerializer, self).__init__(*args, **kwargs)
-
-    class Meta:
-        model = Volume
-        exclude = ('id', 'created_by_identity', 'end_date')
-
-
 class NoProjectSerializer(serializers.ModelSerializer):
     applications = serializers.SerializerMethodField('get_user_applications')
     instances = serializers.SerializerMethodField('get_user_instances')

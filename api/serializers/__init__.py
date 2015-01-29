@@ -31,3 +31,4 @@ from .profile_serializer import ProfileSerializer
 from .provider_machine_serializer import ProviderMachineSerializer
 from .paginated_provider_machine_serializer import PaginatedProviderMachineSerializer
 from .group_serializer import GroupSerializer
+from .volume_serializer import VolumeSerializer
