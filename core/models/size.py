@@ -15,7 +15,7 @@ class Size(models.Model):
     disk = models.IntegerField()
     root = models.IntegerField()
     mem = models.IntegerField()
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     class Meta:

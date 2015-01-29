@@ -13,7 +13,7 @@ class T(models.Model):
 
     # A unique UUID (V)alue for the transaction.
     V = models.CharField(max_length=36)
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True)
 
     @classmethod

@@ -1,5 +1,4 @@
-Django==1.6.7
-South==1.0.0
+Django==1.7.4
 django-cors-headers==0.12.0
 django-jenkins==0.16.2
 coverage==3.7.1
@@ -10,8 +9,8 @@ psycopg2==2.5.2
 redis==2.10.3
 hiredis==0.1.4
 
-celery==3.1.15
-django-celery==3.1.15
+celery==3.1.17
+django-celery==3.1.16
 
 apache-libcloud==0.15.1
 requests==2.2

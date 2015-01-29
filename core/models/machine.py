@@ -54,7 +54,7 @@ class ProviderMachine(InstanceSource):
     #identifier = models.CharField(max_length=256)  # EMI-12341234
     #created_by = models.ForeignKey('AtmosphereUser', null=True)
     #created_by_identity = models.ForeignKey(Identity, null=True)
-    #start_date = models.DateTimeField(default=timezone.now())
+    #start_date = models.DateTimeField(default=timezone.now)
     #end_date = models.DateTimeField(null=True, blank=True)
     #version = models.CharField(max_length=128, default='1.0.0')
 

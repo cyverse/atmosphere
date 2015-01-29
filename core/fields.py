@@ -1,7 +1,5 @@
 import struct
 from django.db import models
-from south.modelsinspector import add_introspection_rules
-add_introspection_rules([], ["^core\.fields\.VersionNumberField"])
 
 class VersionNumber(object):
 

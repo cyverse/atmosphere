@@ -35,6 +35,23 @@ def malformed_response(provider_id, identity_id):
         "Cloud Communications Error --"
         " Contact your Cloud Administrator OR try again later!")
 
+def invalid_provider(provider_id):
+    log_message = 'Provider %s is inactive, disabled, or does not exist.'\
+                % (provider_id, )
+    logger.warn(log_message)
+    return failure_response(
+        status.HTTP_401_UNAUTHORIZED,
+        log_message)
+
+def invalid_provider_identity(provider_id, identity_id):
+    log_message = 'Identity %s is inactive, disabled, '\
+            'or does not exist on Provider %s'\
+                % (identity_id, provider_id)
+    logger.warn(log_message)
+    return failure_response(
+        status.HTTP_401_UNAUTHORIZED,
+        log_message)
+
 def invalid_creds(provider_id, identity_id):
     logger.warn('Authentication Failed. Provider-id:%s Identity-id:%s'
                 % (provider_id, identity_id))
