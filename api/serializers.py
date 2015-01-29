@@ -12,11 +12,6 @@ from rest_framework import serializers
 
 
 # Serializers
-class ProviderTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProviderType
-
-
 class TagSerializer(serializers.ModelSerializer):
     user = serializers.SlugRelatedField(slug_field='username')
     description = serializers.CharField(required=False)
