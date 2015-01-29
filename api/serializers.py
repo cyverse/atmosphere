@@ -12,24 +12,6 @@ from rest_framework import serializers
 
 
 # Serializers
-class StepSerializer(serializers.ModelSerializer):
-    alias = serializers.CharField(read_only=True, source='alias')
-    name = serializers.CharField()
-    script = serializers.CharField()
-    exit_code = serializers.IntegerField(read_only=True,
-                                         source='exit_code')
-    instance_alias = InstanceRelatedField(source='instance.provider_alias')
-    created_by = serializers.SlugRelatedField(slug_field='username',
-                                              source='created_by',
-                                              read_only=True)
-    start_date = serializers.DateTimeField(read_only=True)
-    end_date = serializers.DateTimeField(read_only=True)
-
-    class Meta:
-        model = Step
-        exclude = ('id', 'instance', 'created_by_identity')
-
-
 class ProviderTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProviderType

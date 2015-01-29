@@ -35,3 +35,4 @@ from .volume_serializer import VolumeSerializer
 from .no_project_serializer import NoProjectSerializer
 from .project_serializer import ProjectSerializer
 from .provider_size_serializer import ProviderSizeSerializer
+from .step_serializer import StepSerializer
