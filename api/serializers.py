@@ -8,11 +8,6 @@ from rest_framework import serializers
 
 
 # Serializers
-class AllocationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Allocation
-
-
 class AllocationRequestSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True, source="uuid")
     created_by = serializers.SlugRelatedField(

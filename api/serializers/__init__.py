@@ -39,3 +39,4 @@ from .step_serializer import StepSerializer
 from .provider_type_serializer import ProviderTypeSerializer
 from .tag_serializer import TagSerializer
 from .instance_status_history_serializer import InstanceStatusHistorySerializer
+from .allocation_serializer import AllocationSerializer
