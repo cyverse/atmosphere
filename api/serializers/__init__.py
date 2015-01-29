@@ -28,3 +28,4 @@ from .maintenance_record_serializer import MaintenanceRecordSerializer
 from .identity_detail_serializer import IdentityDetailSerializer
 from .atmo_user_serializer import AtmoUserSerializer
 from .profile_serializer import ProfileSerializer
+from .provider_machine_serializer import ProviderMachineSerializer
