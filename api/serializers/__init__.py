@@ -25,3 +25,4 @@ from .license_serializer import LicenseSerializer
 from .post_license_serializer import POST_LicenseSerializer
 from .machine_request_serializer import MachineRequestSerializer
 from .maintenance_record_serializer import MaintenanceRecordSerializer
+from .identity_detail_serializer import IdentityDetailSerializer
