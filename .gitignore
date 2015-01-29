@@ -35,3 +35,4 @@ config.yaml
 local_settings.py
 settings.py
 djcelery.schedulers.DatabaseScheduler
+/env
