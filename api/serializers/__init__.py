@@ -11,3 +11,4 @@ from .provider_serializer import ProviderSerializer
 from .cleaned_identity_serializer import CleanedIdentitySerializer
 from .boot_script_serializer import BootScriptSerializer
 from .application_threshold_serializer import ApplicationThresholdSerializer
+from .application_serializer import ApplicationSerializer
