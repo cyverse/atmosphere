@@ -29,3 +29,4 @@ from .identity_detail_serializer import IdentityDetailSerializer
 from .atmo_user_serializer import AtmoUserSerializer
 from .profile_serializer import ProfileSerializer
 from .provider_machine_serializer import ProviderMachineSerializer
+from .paginated_provider_machine_serializer import PaginatedProviderMachineSerializer

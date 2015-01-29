@@ -1,10 +1,8 @@
-from core.models.application import ApplicationScore
 from core.models.group import Group
 from core.models.quota import Quota
 from core.models.allocation import Allocation
 from core.models.identity import Identity
 from core.models.instance import InstanceStatusHistory
-from core.models.machine import ProviderMachine
 from core.models.project import Project
 from core.models.provider import ProviderType
 from core.models.request import AllocationRequest, QuotaRequest, StatusType
@@ -17,18 +15,8 @@ from core.query import only_current
 
 from rest_framework import serializers
 
-from rest_framework import pagination
-
 
 # Serializers
-class PaginatedProviderMachineSerializer(pagination.PaginationSerializer):
-    """
-    Serializes page objects of ProviderMachine querysets.
-    """
-    class Meta:
-        object_serializer_class = ProviderMachineSerializer
-
-
 class GroupSerializer(serializers.ModelSerializer):
     identities = serializers.SerializerMethodField('get_identities')
 
