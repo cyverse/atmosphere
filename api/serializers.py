@@ -2,31 +2,16 @@ from core.models.quota import Quota
 from core.models.allocation import Allocation
 from core.models.identity import Identity
 from core.models.instance import InstanceStatusHistory
-from core.models.project import Project
 from core.models.provider import ProviderType
 from core.models.request import AllocationRequest, QuotaRequest, StatusType
-from core.models.size import Size
 from core.models.step import Step
 from core.models.tag import Tag
 from core.models.user import AtmosphereUser
-from core.models.volume import Volume
-from core.query import only_current
 
 from rest_framework import serializers
 
 
 # Serializers
-class ProviderSizeSerializer(serializers.ModelSerializer):
-    occupancy = serializers.CharField(read_only=True, source='esh_occupancy')
-    total = serializers.CharField(read_only=True, source='esh_total')
-    remaining = serializers.CharField(read_only=True, source='esh_remaining')
-    active = serializers.BooleanField(read_only=True, source="active")
-
-    class Meta:
-        model = Size
-        exclude = ('id', 'start_date', 'end_date')
-
-
 class StepSerializer(serializers.ModelSerializer):
     alias = serializers.CharField(read_only=True, source='alias')
     name = serializers.CharField()
