@@ -6,3 +6,4 @@ from .app_bookmark_field import AppBookmarkField
 from .tag_related_field import TagRelatedField
 from .identity_related_field import IdentityRelatedField
 from .instance_related_field import InstanceRelatedField
+from .account_serializer import AccountSerializer

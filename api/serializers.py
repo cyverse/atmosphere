@@ -31,12 +31,6 @@ from threepio import logger
 
 
 # Serializers
-class AccountSerializer(serializers.Serializer):
-    pass
-    #Define fields here
-    #TODO: Define a spec that we expect from list_users across all providers
-
-
 class ProviderSerializer(serializers.ModelSerializer):
     type = serializers.SlugRelatedField(slug_field='name')
     location = serializers.CharField(source='get_location')
