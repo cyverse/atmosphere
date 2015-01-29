@@ -33,3 +33,4 @@ from .paginated_provider_machine_serializer import PaginatedProviderMachineSeria
 from .group_serializer import GroupSerializer
 from .volume_serializer import VolumeSerializer
 from .no_project_serializer import NoProjectSerializer
+from .project_serializer import ProjectSerializer
