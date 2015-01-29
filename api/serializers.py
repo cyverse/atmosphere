@@ -29,51 +29,6 @@ from threepio import logger
 
 
 # Serializers
-class InstanceSerializer(serializers.ModelSerializer):
-    #R/O Fields first!
-    alias = serializers.CharField(read_only=True, source='provider_alias')
-    alias_hash = serializers.CharField(read_only=True, source='hash_alias')
-    application_name = serializers.CharField(
-        read_only=True, source='esh_source_name')
-    application_uuid = serializers.CharField(
-        read_only=True, source='application_uuid')
-    #created_by = serializers.CharField(read_only=True, source='creator_name')
-    created_by = serializers.SlugRelatedField(slug_field='username',
-                                              source='created_by',
-                                              read_only=True)
-    status = serializers.CharField(read_only=True, source='esh_status')
-    fault = serializers.Field(source='esh_fault')
-    size_alias = serializers.CharField(read_only=True, source='esh_size')
-    machine_alias = serializers.CharField(read_only=True, source='esh_source')
-    machine_name = serializers.CharField(read_only=True,
-                                         source='esh_source_name')
-    machine_alias_hash = serializers.CharField(read_only=True,
-                                               source='hash_machine_alias')
-    ip_address = serializers.CharField(read_only=True)
-    start_date = serializers.DateTimeField(read_only=True)
-    end_date = serializers.DateTimeField(read_only=True)
-    token = serializers.CharField(read_only=True)
-    has_shell = serializers.BooleanField(read_only=True, source='shell')
-    has_vnc = serializers.BooleanField(read_only=True, source='vnc')
-    identity = CleanedIdentitySerializer(source="created_by_identity",
-                                         read_only=True)
-    #Writeable fields
-    name = serializers.CharField()
-    tags = TagRelatedField(slug_field='name', source='tags', many=True)
-    projects = ProjectsField()
-    scripts = BootScriptSerializer(source='scripts', many=True, required=False)
-
-    def __init__(self, *args, **kwargs):
-        user = get_context_user(self, kwargs)
-        self.request_user = user
-        super(InstanceSerializer, self).__init__(*args, **kwargs)
-
-    class Meta:
-        model = Instance
-        exclude = ('id', 'source', 'provider_alias',
-                   'shell', 'vnc', 'password', 'created_by_identity')
-
-
 class InstanceHistorySerializer(serializers.ModelSerializer):
     #R/O Fields first!
     alias = serializers.CharField(read_only=True, source='provider_alias')
