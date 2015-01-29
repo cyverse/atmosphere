@@ -1,4 +1,3 @@
-from core.models.quota import Quota
 from core.models.identity import Identity
 from core.models.request import QuotaRequest, StatusType
 from core.models.user import AtmosphereUser
@@ -7,12 +6,6 @@ from rest_framework import serializers
 
 
 # Serializers
-class QuotaSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Quota
-        exclude = ("id",)
-
-
 class QuotaRequestSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True, source="uuid", required=False)
     created_by = serializers.SlugRelatedField(
