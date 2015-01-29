@@ -31,18 +31,6 @@ from threepio import logger
 
 
 # Serializers
-class ProviderSerializer(serializers.ModelSerializer):
-    type = serializers.SlugRelatedField(slug_field='name')
-    location = serializers.CharField(source='get_location')
-    traits = serializers.RelatedField(source='traits.all', many=True)
-    id = serializers.CharField(source='uuid')
-    #membership = serializers.Field(source='get_membership')
-
-    class Meta:
-        model = Provider
-        exclude = ('active', 'start_date', 'end_date', 'uuid')
-
-
 class CleanedIdentitySerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
     credentials = serializers.Field(source='get_credentials')

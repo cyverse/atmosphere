@@ -7,3 +7,4 @@ from .tag_related_field import TagRelatedField
 from .identity_related_field import IdentityRelatedField
 from .instance_related_field import InstanceRelatedField
 from .account_serializer import AccountSerializer
+from .provider_serializer import ProviderSerializer
