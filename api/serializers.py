@@ -1,25 +1,13 @@
 from core.models.quota import Quota
 from core.models.allocation import Allocation
 from core.models.identity import Identity
-from core.models.instance import InstanceStatusHistory
-from core.models.provider import ProviderType
 from core.models.request import AllocationRequest, QuotaRequest, StatusType
-from core.models.step import Step
-from core.models.tag import Tag
 from core.models.user import AtmosphereUser
 
 from rest_framework import serializers
 
 
 # Serializers
-class InstanceStatusHistorySerializer(serializers.ModelSerializer):
-    instance = serializers.SlugRelatedField(slug_field='provider_alias')
-    size = serializers.SlugRelatedField(slug_field='alias')
-
-    class Meta:
-        model = InstanceStatusHistory
-
-
 class AllocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Allocation
