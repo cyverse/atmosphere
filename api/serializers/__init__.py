@@ -8,3 +8,4 @@ from .identity_related_field import IdentityRelatedField
 from .instance_related_field import InstanceRelatedField
 from .account_serializer import AccountSerializer
 from .provider_serializer import ProviderSerializer
+from .cleaned_identity_serializer import CleanedIdentitySerializer

@@ -14,7 +14,7 @@ from core.models.maintenance import MaintenanceRecord
 from core.models.post_boot import BootScript
 from core.models.profile import UserProfile
 from core.models.project import Project
-from core.models.provider import ProviderType, Provider
+from core.models.provider import ProviderType
 from core.models.request import AllocationRequest, QuotaRequest, StatusType
 from core.models.size import Size
 from core.models.step import Step
@@ -31,20 +31,6 @@ from threepio import logger
 
 
 # Serializers
-class CleanedIdentitySerializer(serializers.ModelSerializer):
-    created_by = serializers.CharField(source='creator_name')
-    credentials = serializers.Field(source='get_credentials')
-    id = serializers.Field(source='uuid')
-    provider_id = serializers.Field(source='provider_uuid')
-    quota = serializers.Field(source='get_quota_dict')
-    allocation = serializers.Field(source='get_allocation_dict')
-    membership = serializers.Field(source='get_membership')
-
-    class Meta:
-        model = Identity
-        fields = ('id', 'created_by', 'provider_id', )
-
-
 class BootScriptSerializer(serializers.ModelSerializer):
     created_by = serializers.SlugRelatedField(slug_field='username')
     script_type = serializers.SlugRelatedField(slug_field='name')
