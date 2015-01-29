@@ -3,7 +3,6 @@ from django.contrib.auth.models import AnonymousUser
 from core.models.application import Application, ApplicationScore,\
     ApplicationBookmark, ApplicationThreshold
 from core.models.credential import Credential
-from core.models.group import get_user_group
 from core.models.group import Group
 from core.models.quota import Quota
 from core.models.allocation import Allocation
@@ -35,22 +34,6 @@ from threepio import logger
 
 
 # Custom Fields
-class NewThresholdField(serializers.WritableField):
-
-    def to_native(self, threshold_dict):
-        return threshold_dict
-
-    def field_from_native(self, data, files, field_name, into):
-        value = data.get(field_name)
-        if value is None:
-            return
-        memory = value.get('memory',0)
-        disk = value.get('disk',0)
-        machine_request = self.root.object
-        machine_request.new_machine_memory_min = memory
-        machine_request.new_machine_storage_min = disk
-        into[field_name] = value
-
 class AppBookmarkField(serializers.WritableField):
 
     def to_native(self, bookmark_mgr):
