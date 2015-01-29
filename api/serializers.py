@@ -1,5 +1,4 @@
 from core.models.application import ApplicationScore
-from core.models.credential import Credential
 from core.models.group import Group
 from core.models.quota import Quota
 from core.models.allocation import Allocation
@@ -30,26 +29,6 @@ from threepio import logger
 
 
 # Serializers
-class ApplicationScoreSerializer(serializers.ModelSerializer):
-    """
-    """
-    #TODO:Need to validate provider/identity membership on id change
-    username = serializers.CharField(read_only=True, source='user.username')
-    application = serializers.CharField(read_only=True,
-                                        source='application.name')
-    vote = serializers.CharField(read_only=True, source='get_vote_name')
-
-    class Meta:
-        model = ApplicationScore
-        fields = ('username', "application", "vote")
-
-
-class CredentialSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Credential
-        exclude = ('identity',)
-
-
 class InstanceSerializer(serializers.ModelSerializer):
     #R/O Fields first!
     alias = serializers.CharField(read_only=True, source='provider_alias')

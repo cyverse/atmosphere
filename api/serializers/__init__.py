@@ -14,3 +14,5 @@ from .application_threshold_serializer import ApplicationThresholdSerializer
 from .application_serializer import ApplicationSerializer
 from .paginated_application_serializer import PaginatedApplicationSerializer
 from .application_bookmark_serializer import ApplicationBookmarkSerializer
+from .application_score_serializer import ApplicationScoreSerializer
+from .credential_serializer import CredentialSerializer
