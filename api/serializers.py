@@ -18,7 +18,7 @@ from core.models.provider import ProviderType, Provider
 from core.models.request import AllocationRequest, QuotaRequest, StatusType
 from core.models.size import Size
 from core.models.step import Step
-from core.models.tag import Tag, find_or_create_tag
+from core.models.tag import Tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
 from core.query import only_current
@@ -28,26 +28,6 @@ from rest_framework import serializers
 from rest_framework import pagination
 
 from threepio import logger
-
-
-# Custom Fields
-class InstanceRelatedField(serializers.RelatedField):
-    def to_native(self, instance_alias):
-        instance = Instance.objects.get(provider_alias=instance_alias)
-        return instance.provider_alias
-
-    def field_from_native(self, data, files, field_name, into):
-        value = data.get(field_name)
-        if value is None:
-            return
-        try:
-            into["instance"] = Instance.objects.get(provider_alias=value)
-            into[field_name] = Instance.objects.get(
-                provider_alias=value).provider_alias
-        except Instance.DoesNotExist:
-            into[field_name] = None
-
-
 
 
 # Serializers
