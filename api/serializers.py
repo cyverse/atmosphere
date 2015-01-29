@@ -11,7 +11,6 @@ from core.models.machine import ProviderMachine
 from core.models.machine_request import MachineRequest
 from core.models.machine_export import MachineExport
 from core.models.maintenance import MaintenanceRecord
-from core.models.post_boot import BootScript
 from core.models.profile import UserProfile
 from core.models.project import Project
 from core.models.provider import ProviderType
@@ -31,14 +30,6 @@ from threepio import logger
 
 
 # Serializers
-class BootScriptSerializer(serializers.ModelSerializer):
-    created_by = serializers.SlugRelatedField(slug_field='username')
-    script_type = serializers.SlugRelatedField(slug_field='name')
-    class Meta:
-        model = BootScript
-        exclude = ('instances', 'applications',)
-
-
 class ApplicationThresholdSerializer(serializers.ModelSerializer):
     """
     """
