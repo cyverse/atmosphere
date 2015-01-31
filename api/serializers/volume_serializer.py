@@ -14,7 +14,8 @@ class VolumeSerializer(serializers.ModelSerializer):
                                               read_only=True)
     provider = serializers.ReadOnlyField(source="provider.uuid")
     identity = CleanedIdentitySerializer(source="created_by_identity")
-    # projects = ProjectsField()
+    alias = serializers.ReadOnlyField(source='identifier')
+    projects = ProjectsField()
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)
