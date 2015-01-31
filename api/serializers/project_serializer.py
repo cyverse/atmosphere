@@ -1,4 +1,4 @@
-from core.models.project import Project
+from core.models.project import Project, Group
 from core.query import only_current
 from rest_framework import serializers
 from .application_serializer import ApplicationSerializer
@@ -8,9 +8,9 @@ from .get_context_user import get_context_user
 
 
 class ProjectSerializer(serializers.ModelSerializer):
-    id = serializers.Field(source="uuid")
+    id = serializers.ReadOnlyField(source='uuid')
     #Edits to Writable fields..
-    owner = serializers.SlugRelatedField(slug_field="name")
+    owner = serializers.SlugRelatedField(slug_field='name', queryset=Group.objects.all())
     # These fields are READ-ONLY!
     applications = serializers.SerializerMethodField('get_user_applications')
     instances = serializers.SerializerMethodField('get_user_instances')
