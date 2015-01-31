@@ -2,11 +2,11 @@ import django_filters
 from rest_framework import viewsets
 from rest_framework.decorators import detail_route
 from core.models import Tag, Project, Application as Image, Provider, Identity, Quota, Allocation, Volume, \
-    Instance, InstanceAction, VolumeAction, ProviderType, PlatformType
+    Instance, InstanceAction, VolumeAction, ProviderType, PlatformType, ProviderMachine
 from core.models.user import AtmosphereUser
 from .serializers import TagSerializer, UserSerializer, ProjectSerializer, ImageSerializer, ProviderSerializer, \
     IdentitySerializer, QuotaSerializer, AllocationSerializer, VolumeSerializer, InstanceSerializer, \
-    InstanceActionSerializer, VolumeActionSerializer, ProviderTypeSerializer, PlatformTypeSerializer
+    InstanceActionSerializer, VolumeActionSerializer, ProviderTypeSerializer, PlatformTypeSerializer, ProviderMachineSerializer
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -147,3 +147,11 @@ class PlatformTypeViewSet(viewsets.ModelViewSet):
     """
     queryset = PlatformType.objects.all()
     serializer_class = PlatformTypeSerializer
+
+
+class ProviderMachineViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows instance actions to be viewed or edited.
+    """
+    queryset = ProviderMachine.objects.all()
+    serializer_class = ProviderMachineSerializer
