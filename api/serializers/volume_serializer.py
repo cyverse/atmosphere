@@ -9,13 +9,12 @@ class VolumeSerializer(serializers.ModelSerializer):
     status = serializers.CharField(read_only=True, source='get_status')
     attach_data = serializers.Field(source='esh_attach_data')
     #metadata = serializers.Field(source='esh_metadata')
-    mount_location = serializers.Field(source='mount_location')
+    mount_location = serializers.Field()
     created_by = serializers.SlugRelatedField(slug_field='username',
-                                              source='created_by',
                                               read_only=True)
-    provider = serializers.Field(source="provider.uuid")
+    provider = serializers.ReadOnlyField(source="provider.uuid")
     identity = CleanedIdentitySerializer(source="created_by_identity")
-    projects = ProjectsField()
+    # projects = ProjectsField()
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)
