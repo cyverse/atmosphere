@@ -36,7 +36,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     #Writeable fields
     name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', many=True, queryset=Tag.objects.all())
-    # projects = ProjectsField()
+    projects = ProjectsField()
     scripts = BootScriptSerializer(many=True, required=False)
 
     def __init__(self, *args, **kwargs):
