@@ -36,3 +36,5 @@ ipdb
 flake8
 pep8
 wheel
+
+django-filter==0.9.1
