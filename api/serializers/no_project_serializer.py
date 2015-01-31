@@ -31,6 +31,7 @@ class NoProjectSerializer(serializers.ModelSerializer):
             context={'request': self.context.get('request')}).data for item in
             atmo_user.volume_set().filter(only_current(),
                 provider__active=True, projects=None)]
+
     class Meta:
         model = AtmosphereUser
         fields = ('applications', 'instances', 'volumes')
