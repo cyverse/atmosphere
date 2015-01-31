@@ -9,7 +9,7 @@ class StepSerializer(serializers.ModelSerializer):
     script = serializers.CharField()
     exit_code = serializers.IntegerField(read_only=True,
                                          source='exit_code')
-    instance_alias = InstanceRelatedField(source='instance.provider_alias')
+    # instance_alias = InstanceRelatedField(source='instance.provider_alias', read_only=True)
     created_by = serializers.SlugRelatedField(slug_field='username',
                                               source='created_by',
                                               read_only=True)
@@ -18,4 +18,4 @@ class StepSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Step
-        exclude = ('id', 'instance', 'created_by_identity')
+        exclude = ('id', 'instance', 'created_by_identity', 'instance_alias')
