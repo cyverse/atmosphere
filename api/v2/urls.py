@@ -16,6 +16,7 @@ router.register(r'instances', views.InstanceViewSet)
 router.register(r'instance_actions', views.InstanceActionViewSet)
 router.register(r'volume_actions', views.VolumeActionViewSet)
 router.register(r'provider_types', views.ProviderTypeViewSet)
+router.register(r'platform_types', views.PlatformTypeViewSet)
 
 urlpatterns = patterns('',
                        url(r'^', include(router.urls)),

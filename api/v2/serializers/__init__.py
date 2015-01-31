@@ -13,3 +13,4 @@ from .allocation_serializer import AllocationSerializer
 from .instance_action_serializer import InstanceActionSerializer
 from .volume_action_serializer import VolumeActionSerializer
 from .provider_type_serializer import ProviderTypeSerializer
+from .platform_type_serializer import PlatformTypeSerializer
