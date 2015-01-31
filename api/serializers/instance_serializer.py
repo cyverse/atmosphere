@@ -1,4 +1,5 @@
 from core.models.instance import Instance
+from core.models import Tag
 from rest_framework import serializers
 from .cleaned_identity_serializer import CleanedIdentitySerializer
 from .tag_related_field import TagRelatedField
@@ -13,14 +14,11 @@ class InstanceSerializer(serializers.ModelSerializer):
     alias_hash = serializers.CharField(read_only=True, source='hash_alias')
     application_name = serializers.CharField(
         read_only=True, source='esh_source_name')
-    application_uuid = serializers.CharField(
-        read_only=True, source='application_uuid')
+    application_uuid = serializers.CharField(read_only=True)
     #created_by = serializers.CharField(read_only=True, source='creator_name')
-    created_by = serializers.SlugRelatedField(slug_field='username',
-                                              source='created_by',
-                                              read_only=True)
+    created_by = serializers.SlugRelatedField(slug_field='username', read_only=True)
     status = serializers.CharField(read_only=True, source='esh_status')
-    fault = serializers.Field(source='esh_fault')
+    fault = serializers.ReadOnlyField(source='esh_fault')
     size_alias = serializers.CharField(read_only=True, source='esh_size')
     machine_alias = serializers.CharField(read_only=True, source='esh_source')
     machine_name = serializers.CharField(read_only=True,
@@ -37,9 +35,9 @@ class InstanceSerializer(serializers.ModelSerializer):
                                          read_only=True)
     #Writeable fields
     name = serializers.CharField()
-    tags = TagRelatedField(slug_field='name', source='tags', many=True)
-    projects = ProjectsField()
-    scripts = BootScriptSerializer(source='scripts', many=True, required=False)
+    tags = TagRelatedField(slug_field='name', many=True, queryset=Tag.objects.all())
+    # projects = ProjectsField()
+    scripts = BootScriptSerializer(many=True, required=False)
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)

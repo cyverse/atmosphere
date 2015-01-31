@@ -703,8 +703,7 @@ def set_instance_from_metadata(esh_driver, core_instance):
         logger.warn("Encountered errors serializing metadata:%s"
                     % serializer.errors)
         return core_instance
-    serializer.save()
-    core_instance = serializer.object
+    core_instance = serializer.save()
     core_instance.esh = esh_instance
     return core_instance
 
