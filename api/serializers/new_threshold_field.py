@@ -1,12 +1,12 @@
 from rest_framework import serializers
 
 
-class NewThresholdField(serializers.WritableField):
+class NewThresholdField(serializers.Field):
 
-    def to_native(self, threshold_dict):
+    def to_representation(self, threshold_dict):
         return threshold_dict
 
-    def field_from_native(self, data, files, field_name, into):
+    def to_internal_value(self, data, files, field_name, into):
         value = data.get(field_name)
         if value is None:
             return
