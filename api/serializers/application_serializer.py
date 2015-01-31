@@ -13,24 +13,22 @@ class ApplicationSerializer(serializers.ModelSerializer):
     uuid = serializers.CharField(read_only=True)
     icon = serializers.CharField(read_only=True, source='icon_url')
     created_by = serializers.SlugRelatedField(slug_field='username',
-                                              source='created_by',
                                               read_only=True)
     #scores = serializers.Field(source='get_scores')
     uuid_hash = serializers.CharField(read_only=True, source='hash_uuid')
     #Writeable Fields
-    name = serializers.CharField(source='name')
+    name = serializers.CharField()
     tags = serializers.CharField(source='tags.all')
-    description = serializers.CharField(source='description')
-    start_date = serializers.CharField(source='start_date')
-    end_date = serializers.CharField(source='end_date',
-                                     required=False, read_only=True)
-    private = serializers.BooleanField(source='private')
-    featured = serializers.BooleanField(source='featured')
-    machines = serializers.SerializerMethodField('get_machines')
+    description = serializers.CharField()
+    start_date = serializers.CharField()
+    end_date = serializers.CharField(required=False, read_only=True)
+    private = serializers.BooleanField()
+    featured = serializers.BooleanField()
+    machines = serializers.SerializerMethodField()
     is_bookmarked = AppBookmarkField(source="bookmarks.all")
-    threshold = serializers.RelatedField(read_only=True, source="threshold")
-    projects = ProjectsField()
-    scripts = BootScriptSerializer(source='scripts', many=True, required=False)
+    threshold = serializers.RelatedField(read_only=True)
+    # projects = ProjectsField()
+    scripts = BootScriptSerializer(many=True, required=False)
 
     def get_machines(self, application):
         machines = application._current_machines(request_user=self.request_user)
@@ -39,7 +37,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
                  "alias": pm.identifier,
                  "version": pm.version,
                  "provider": pm.provider.uuid} for pm in machines]
-
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)
