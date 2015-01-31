@@ -1,7 +1,9 @@
 from core.models.application import ApplicationScore
 from core.models.machine import ProviderMachine
+from core.models import Tag
 from rest_framework import serializers
 from .license_serializer import LicenseSerializer
+from .tag_related_field import TagRelatedField
 
 
 class ProviderMachineSerializer(serializers.ModelSerializer):
@@ -20,7 +22,8 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     scores = serializers.SerializerMethodField()
     #Writeable fields
     name = serializers.CharField(source='application.name')
-    tags = serializers.CharField(source='application.tags.all')
+    # tags = serializers.CharField(source='application.tags.all')
+    tags = TagRelatedField(slug_field='name', source='application.tags.all', many=True, queryset=Tag.objects.all())
     # licenses = LicenseSerializer(source='licenses.all', read_only=True)
     description = serializers.CharField(source='application.description')
     start_date = serializers.CharField()
@@ -50,4 +53,4 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProviderMachine
-        exclude=('licenses',)
+        exclude = ('id', 'provider', 'application', 'licenses',)
