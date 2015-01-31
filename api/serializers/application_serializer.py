@@ -1,9 +1,11 @@
 from core.models.application import Application
+from core.models import Tag
 from rest_framework import serializers
 from .app_bookmark_field import AppBookmarkField
 from .projects_field import ProjectsField
 from .boot_script_serializer import BootScriptSerializer
 from .get_context_user import get_context_user
+from .tag_related_field import TagRelatedField
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
@@ -18,7 +20,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
     uuid_hash = serializers.CharField(read_only=True, source='hash_uuid')
     #Writeable Fields
     name = serializers.CharField()
-    tags = serializers.CharField(source='tags.all')
+    tags = TagRelatedField(slug_field='name', many=True, queryset=Tag.objects.all())
     description = serializers.CharField()
     start_date = serializers.CharField()
     end_date = serializers.CharField(required=False, read_only=True)
