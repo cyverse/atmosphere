@@ -1,4 +1,5 @@
-from core.models.request import QuotaRequest, StatusType
+from core.models.request import QuotaRequest
+from core.models.status_type import StatusType
 from core.models.user import AtmosphereUser
 from rest_framework import serializers
 
