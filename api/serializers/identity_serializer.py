@@ -5,7 +5,7 @@ from .allocation_serializer import AllocationSerializer
 
 
 class IdentitySerializer(serializers.ModelSerializer):
-    created_by = serializers.CharField(source='creator_name')
+    created_by = serializers.ReadOnlyField(source='creator_name')
     credentials = serializers.ReadOnlyField(source='get_credentials')
     id = serializers.ReadOnlyField(source='uuid')
     provider_id = serializers.ReadOnlyField(source='provider_uuid')
