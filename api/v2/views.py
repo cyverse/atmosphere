@@ -1,5 +1,6 @@
 import django_filters
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.decorators import detail_route
 from core.models import Tag, Project, Application as Image, Provider, Identity, Quota, Allocation, Volume, \
     Instance, InstanceAction, VolumeAction, ProviderType, PlatformType, ProviderMachine
@@ -15,6 +16,7 @@ class TagViewSet(viewsets.ModelViewSet):
     """
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
 
 class UserViewSet(viewsets.ModelViewSet):
