@@ -2,7 +2,8 @@
 """
 from django.test import TestCase
 
-from core.models.request import AllocationRequest, QuotaRequest, StatusType
+from core.models.request import AllocationRequest, QuotaRequest
+from core.models.status_type import StatusType
 
 
 class TestAllocationRequest(TestCase):
