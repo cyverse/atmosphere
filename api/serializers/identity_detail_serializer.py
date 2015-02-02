@@ -3,11 +3,11 @@ from rest_framework import serializers
 
 
 class IdentityDetailSerializer(serializers.ModelSerializer):
-    created_by = serializers.CharField(source='creator_name')
-    quota = serializers.Field(source='get_quota_dict')
-    provider_id = serializers.Field(source='provider.uuid')
-    id = serializers.Field(source="uuid")
+    # created_by = serializers.CharField(source='creator_name')
+    quota = serializers.ReadOnlyField(source='get_quota_dict')
+    provider_id = serializers.ReadOnlyField(source='provider.uuid')
+    id = serializers.ReadOnlyField(source="uuid")
 
     class Meta:
         model = Identity
-        exclude = ('credentials', 'created_by', 'provider', 'uuid')
+        fields = ('id', 'provider_id', 'quota')

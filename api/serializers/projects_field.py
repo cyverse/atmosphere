@@ -1,16 +1,12 @@
 from django.contrib.auth.models import AnonymousUser
-
-from core.models.application import Application, ApplicationScore,\
-    ApplicationBookmark, ApplicationThreshold
-from core.models.credential import Credential
 from core.models.group import get_user_group
 from core.models.project import Project
 from rest_framework import serializers
 
 
-class ProjectsField(serializers.WritableField):
-    def to_native(self, project_mgr):
-        request_user = self.root.request_user
+class ProjectsField(serializers.Field):
+    def to_representation(self, project_mgr):
+        request_user = self.parent.request_user
         if type(request_user) == AnonymousUser:
             return None
         try:
@@ -21,12 +17,12 @@ class ProjectsField(serializers.WritableField):
         except Project.DoesNotExist:
             return None
 
-    def field_from_native(self, data, files, field_name, into):
+    def to_internal_value(self, data, files, field_name, into):
         value = data.get(field_name)
         if value is None:
             return
-        related_obj = self.root.object
-        user = self.root.request_user
+        related_obj = self.parent.instance
+        user = self.parent.request_user
         group = get_user_group(user.username)
         # Retrieve the New Project(s)
         if type(value) == list:

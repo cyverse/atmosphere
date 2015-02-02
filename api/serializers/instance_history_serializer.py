@@ -1,4 +1,5 @@
 from core.models.instance import Instance
+from core.models import Tag
 from rest_framework import serializers
 from .tag_related_field import TagRelatedField
 
@@ -8,7 +9,6 @@ class InstanceHistorySerializer(serializers.ModelSerializer):
     alias = serializers.CharField(read_only=True, source='provider_alias')
     alias_hash = serializers.CharField(read_only=True, source='hash_alias')
     created_by = serializers.SlugRelatedField(slug_field='username',
-                                              source='created_by',
                                               read_only=True)
     size_alias = serializers.CharField(read_only=True, source='esh_size')
     #NOTE: Now that we have moved to 'source', this can be a bit of a
@@ -25,7 +25,7 @@ class InstanceHistorySerializer(serializers.ModelSerializer):
     provider = serializers.CharField(read_only=True, source='provider_name')
     #Writeable fields
     name = serializers.CharField()
-    tags = TagRelatedField(slug_field='name', source='tags', many=True)
+    tags = TagRelatedField(slug_field='name', many=True, queryset=Tag.objects.all())
 
     class Meta:
         model = Instance

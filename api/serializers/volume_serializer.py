@@ -7,14 +7,14 @@ from .get_context_user import get_context_user
 
 class VolumeSerializer(serializers.ModelSerializer):
     status = serializers.CharField(read_only=True, source='get_status')
-    attach_data = serializers.Field(source='esh_attach_data')
+    attach_data = serializers.ReadOnlyField(source='esh_attach_data')
     #metadata = serializers.Field(source='esh_metadata')
-    mount_location = serializers.Field(source='mount_location')
+    mount_location = serializers.ReadOnlyField()
     created_by = serializers.SlugRelatedField(slug_field='username',
-                                              source='created_by',
                                               read_only=True)
-    provider = serializers.Field(source="provider.uuid")
+    provider = serializers.ReadOnlyField(source="provider.uuid")
     identity = CleanedIdentitySerializer(source="created_by_identity")
+    alias = serializers.ReadOnlyField(source='identifier')
     projects = ProjectsField()
 
     def __init__(self, *args, **kwargs):
