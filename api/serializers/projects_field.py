@@ -6,7 +6,7 @@ from rest_framework import serializers
 
 class ProjectsField(serializers.Field):
     def to_representation(self, project_mgr):
-        request_user = self.root.request_user
+        request_user = self.parent.request_user
         if type(request_user) == AnonymousUser:
             return None
         try:
@@ -21,8 +21,8 @@ class ProjectsField(serializers.Field):
         value = data.get(field_name)
         if value is None:
             return
-        related_obj = self.root.object
-        user = self.root.request_user
+        related_obj = self.parent.instance
+        user = self.parent.request_user
         group = get_user_group(user.username)
         # Retrieve the New Project(s)
         if type(value) == list:
