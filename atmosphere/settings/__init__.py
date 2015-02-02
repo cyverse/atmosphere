@@ -85,6 +85,9 @@ INSTALLED_APPS = (
     'service',
     'web',
     'core',
+
+    #debug
+    # 'debug_toolbar'
 )
 PROJECT_APPS = ["authentication","service","core"]
 DATABASE_ROUTERS = ['atmosphere.routers.Service']
@@ -183,6 +186,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.gzip.GZipMiddleware',
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
     'pipeline.middleware.MinifyHTMLMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -371,7 +375,17 @@ REST_FRAMEWORK = {
         'authentication.token.OAuthTokenAuthentication',
         'authentication.token.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
-
+    ),
+    'PAGINATE_BY': 20,                 # Default to 20
+    'PAGINATE_BY_PARAM': 'page_size',  # Allow client to override, using `?page_size=xxx`.
+    'MAX_PAGINATE_BY': 100,             # Maximum limit allowed when using `?page_size=xxx`.
+    'DEFAULT_FILTER_BACKENDS': (
+        # 'rest_framework.filters.DjangoFilterBackend',
+        'rest_framework_filters.backends.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter'
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
     )
 }
 LOGIN_REDIRECT_URL="/api/v1"
