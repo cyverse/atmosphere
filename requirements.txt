@@ -38,3 +38,4 @@ pep8
 wheel
 
 django-filter==0.9.1
+django-debug-toolbar==1.2.2
