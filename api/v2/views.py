@@ -126,6 +126,13 @@ class InstanceViewSet(viewsets.ModelViewSet):
     serializer_class = InstanceSerializer
     filter_fields = ('created_by__id',)
 
+    def get_queryset(self):
+        """
+        Filter projects by current user
+        """
+        user = self.request.user
+        return Instance.objects.filter(only_current(), created_by=user)
+
 
 class InstanceActionViewSet(viewsets.ModelViewSet):
     """
