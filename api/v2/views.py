@@ -35,6 +35,13 @@ class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
 
+    def get_queryset(self):
+        """
+        Filter projects by current user
+        """
+        user = self.request.user
+        return Project.objects.filter(owner__name=user.username)
+
     @detail_route()
     def instances(self, *args, **kwargs):
         project = self.get_object()
