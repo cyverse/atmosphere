@@ -77,6 +77,13 @@ class ProviderViewSet(viewsets.ModelViewSet):
     queryset = Provider.objects.all()
     serializer_class = ProviderSerializer
 
+    def get_queryset(self):
+        """
+        Filter projects by current user
+        """
+        user = self.request.user
+        return Provider.objects.filter(only_current(), active=True)
+
 
 class IdentityViewSet(viewsets.ModelViewSet):
     """
