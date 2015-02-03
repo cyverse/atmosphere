@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.decorators import detail_route
 from core.models import Tag, Project, Application as Image, Provider, Identity, Quota, Allocation, Volume, \
     Instance, InstanceAction, VolumeAction, ProviderType, PlatformType, ProviderMachine, \
-    ApplicationBookmark as ImageBookmark
+    ApplicationBookmark as ImageBookmark, Group
 from core.models.user import AtmosphereUser
 from .serializers import TagSerializer, UserSerializer, ProjectSerializer, ImageSerializer, ProviderSerializer, \
     IdentitySerializer, QuotaSerializer, AllocationSerializer, VolumeSerializer, InstanceSerializer, \
@@ -82,7 +82,8 @@ class ProviderViewSet(viewsets.ModelViewSet):
         Filter projects by current user
         """
         user = self.request.user
-        return Provider.objects.filter(only_current(), active=True)
+        group = Group.objects.get(name=user.username)
+        return group.providers.filter(only_current(), active=True)
 
 
 class IdentityViewSet(viewsets.ModelViewSet):
