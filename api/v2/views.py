@@ -117,6 +117,13 @@ class VolumeViewSet(viewsets.ModelViewSet):
     serializer_class = VolumeSerializer
     filter_class = VolumeFilter
 
+    def get_queryset(self):
+        """
+        Filter projects by current user
+        """
+        user = self.request.user
+        return Volume.objects.filter(only_current(), created_by=user)
+
 
 class InstanceViewSet(viewsets.ModelViewSet):
     """
