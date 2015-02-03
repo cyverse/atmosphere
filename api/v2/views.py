@@ -189,3 +189,10 @@ class ImageBookmarkViewSet(viewsets.ModelViewSet):
     """
     queryset = ImageBookmark.objects.all()
     serializer_class = ImageBookmarkSerializer
+
+    def get_queryset(self):
+        """
+        Filter projects by current user
+        """
+        user = self.request.user
+        return ImageBookmark.objects.filter(user=user)
