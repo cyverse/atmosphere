@@ -33,7 +33,7 @@ class BaseRequest(models.Model):
     admin_message = models.CharField(max_length=1024, default="", blank=True)
 
     # Request Timeline
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     class Meta:

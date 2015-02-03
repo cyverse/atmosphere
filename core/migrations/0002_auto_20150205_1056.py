@@ -31,19 +31,19 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='allocationrequest',
             name='start_date',
-            field=models.DateTimeField(default=datetime.datetime(2015, 2, 5, 17, 56, 15, 517279, tzinfo=utc)),
+            field=models.DateTimeField(default=django.utils.timezone.now),
             preserve_default=True,
         ),
         migrations.AlterField(
             model_name='quotarequest',
             name='start_date',
-            field=models.DateTimeField(default=datetime.datetime(2015, 2, 5, 17, 56, 15, 517279, tzinfo=utc)),
+            field=models.DateTimeField(default=django.utils.timezone.now),
             preserve_default=True,
         ),
         migrations.AlterField(
             model_name='statustype',
             name='start_date',
-            field=models.DateTimeField(default=datetime.datetime(2015, 2, 5, 17, 56, 15, 516445, tzinfo=utc)),
+            field=models.DateTimeField(default=django.utils.timezone.now),
             preserve_default=True,
         ),
     ]
