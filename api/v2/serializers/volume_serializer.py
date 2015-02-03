@@ -1,10 +1,10 @@
 from core.models import Volume
 from rest_framework import serializers
-from .provider_serializer import ProviderSerializer
+from .provider_summary_serializer import ProviderSummarySerializer
 
 
 class VolumeSerializer(serializers.ModelSerializer):
-    provider = ProviderSerializer()
+    provider = ProviderSummarySerializer()
 
     class Meta:
         model = Volume
