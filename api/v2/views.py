@@ -8,6 +8,7 @@ from core.models.user import AtmosphereUser
 from .serializers import TagSerializer, UserSerializer, ProjectSerializer, ImageSerializer, ProviderSerializer, \
     IdentitySerializer, QuotaSerializer, AllocationSerializer, VolumeSerializer, InstanceSerializer, \
     InstanceActionSerializer, VolumeActionSerializer, ProviderTypeSerializer, PlatformTypeSerializer, ProviderMachineSerializer
+from core.query import only_current
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -40,7 +41,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         Filter projects by current user
         """
         user = self.request.user
-        return Project.objects.filter(owner__name=user.username)
+        return Project.objects.filter(only_current(), owner__name=user.username)
 
     @detail_route()
     def instances(self, *args, **kwargs):
