@@ -5,11 +5,20 @@ from django.db import models, transaction, DatabaseError
 from django.db.models import Q
 from django.utils import timezone
 
-from core.models.abstract import InstanceSource
+from core.models.instance_source import InstanceSource, InstanceSourceTmp
 from core.models.provider import Provider
 from core.models.identity import Identity
 from threepio import logger
 
+class VolumeTmp(models.Model):
+    size = models.IntegerField()
+    name = models.CharField(max_length=256)
+    description = models.TextField(blank=True, null=True)
+    instance_source = models.OneToOneField(InstanceSourceTmp)
+
+    class Meta:
+        db_table = "volume_tmp"
+        app_label = "core"
 
 class Volume(InstanceSource):
     size = models.IntegerField()
@@ -227,6 +236,7 @@ class VolumeStatusHistory(models.Model):
     Used to keep track of each change in volume status.
     """
     volume = models.ForeignKey(Volume)
+    volume_tmp = models.ForeignKey(VolumeTmp, null=True)
     status = models.ForeignKey(VolumeStatus)
     device = models.CharField(max_length=128, null=True, blank=True)
     instance_alias = models.CharField(max_length=36, null=True, blank=True)

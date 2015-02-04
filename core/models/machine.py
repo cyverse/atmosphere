@@ -9,7 +9,7 @@ from django.utils import timezone
 from threepio import logger
 
 from atmosphere import settings
-from core.models.abstract import InstanceSource
+from core.models.instance_source import InstanceSource, InstanceSourceTmp
 from core.models.application import Application
 from core.models.application import create_application, get_application
 from core.models.identity import Identity
@@ -22,6 +22,16 @@ from core.metadata import _get_owner_identity
 from core.application import get_os_account_driver, write_app_to_metadata,\
                              has_app_metadata, get_app_metadata
 
+class ProviderMachineTmp(models.Model):
+    application = models.ForeignKey(Application)
+    version = models.CharField(max_length=128, default='1.0.0')
+    licenses = models.ManyToManyField(License,
+            null=True, blank=True)
+    instance_source = models.OneToOneField(InstanceSourceTmp)
+
+    class Meta:
+        db_table = "provider_machine_tmp"
+        app_label = "core"
 
 class ProviderMachine(InstanceSource):
     """
@@ -142,6 +152,7 @@ class ProviderMachineMembership(models.Model):
     The unique_together field ensures just one of those states is true.
     """
     provider_machine = models.ForeignKey(ProviderMachine)
+    provider_machine_tmp = models.ForeignKey(ProviderMachineTmp, null=True)
     group = models.ForeignKey('Group')
     can_share = models.BooleanField(default=False)
 

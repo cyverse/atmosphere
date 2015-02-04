@@ -41,6 +41,10 @@ class Group(DjangoGroup):
                                           related_name='members',
                                           through='ProviderMachineMembership',
                                           blank=True)
+    provider_machines_tmp = models.ManyToManyField('ProviderMachineTmp',
+                                          related_name='members',
+                                          through='ProviderMachineMembership',
+                                          blank=True, null=True)
 
     @classmethod
     def check_membership(cls, test_user, membership_groups):

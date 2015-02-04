@@ -18,7 +18,7 @@ from rtwo.volume import Volume
 
 
 from core.query import only_current
-from core.models.abstract import InstanceSource
+from core.models.instance_source import InstanceSource
 from core.models.application import Application
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import convert_esh_instance
