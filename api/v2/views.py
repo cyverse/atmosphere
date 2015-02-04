@@ -103,6 +103,15 @@ class IdentityViewSet(viewsets.ModelViewSet):
     queryset = Identity.objects.all()
     serializer_class = IdentitySerializer
 
+    def get_queryset(self):
+        """
+        Filter identities by current user
+        """
+        user = self.request.user
+        group = Group.objects.get(name=user.username)
+        providers = group.providers.filter(only_current(), active=True)
+        return user.identity_set.filter(provider__in=providers)
+
 
 class QuotaViewSet(viewsets.ModelViewSet):
     """
