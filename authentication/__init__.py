@@ -41,7 +41,13 @@ def get_or_create_user(username=None, attributes=None):
     """
     if not username:
         return None
+
+    # NOTE: REMOVE this when it is no longer true!
+    # Force any username lookup to be in lowercase
+    username = username.lower()
+
     try:
+        # Look for the username "EXACT MATCH"
         user = User.objects.get(username=username)
     except User.DoesNotExist:
         user = User.objects.create_user(username, "")
