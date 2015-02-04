@@ -19,7 +19,8 @@ from core.models.post_boot import BootScript
 from core.models.profile import UserProfile
 from core.models.project import Project
 from core.models.provider import ProviderType, Provider
-from core.models.request import AllocationRequest, QuotaRequest, StatusType
+from core.models.request import AllocationRequest, QuotaRequest
+from core.models.status_type import StatusType
 from core.models.size import Size
 from core.models.step import Step
 from core.models.tag import Tag, find_or_create_tag
