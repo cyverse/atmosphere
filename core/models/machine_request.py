@@ -125,6 +125,9 @@ class MachineRequest(models.Model):
     def new_machine_id(self):
         return 'zzz%s' % self.new_machine.identifier if self.new_machine else None
 
+    def instance_alias(self):
+        return self.instance.provider_alias
+
     def is_public(self):
         return "public" in self.new_machine_visibility.lower()
 

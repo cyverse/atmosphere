@@ -43,7 +43,13 @@ def get_or_create_user(username=None, attributes=None):
     """
     if not username:
         return None
+
+    # NOTE: REMOVE this when it is no longer true!
+    # Force any username lookup to be in lowercase
+    username = username.lower()
+
     try:
+        # Look for the username "EXACT MATCH"
         user = User.objects.get(username=username)
     except User.DoesNotExist:
         user = User.objects.create_user(username, "")
@@ -59,6 +65,12 @@ def createAuthToken(username):
     """
     returns a new token for username
     """
+    # NOTE: REMOVE this when it is no longer true!
+    # Force any username lookup to be in lowercase
+    if not username:
+        return None
+    username = username.lower()
+
     user = User.objects.get(username=username)
     auth_user_token = AuthToken(
         user=user,

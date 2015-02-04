@@ -288,15 +288,15 @@ class Instance(models.Model):
         (Destroyed, terminated, no longer exists..)
         """
         if not end_date:
-            now_time = timezone.now()
+            end_date = timezone.now()
         ish_list = self.instancestatushistory_set.filter(end_date=None)
         for ish in ish_list:
             # logger.info('Saving history:%s' % ish)
-            ish.end_date = now_time
+            ish.end_date = end_date
             ish.save()
         if not self.end_date:
             # logger.info("Saving Instance:%s" % self)
-            self.end_date = now_time
+            self.end_date = end_date
             self.save()
 
     def creator_name(self):
