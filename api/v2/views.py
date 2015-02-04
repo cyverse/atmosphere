@@ -212,3 +212,12 @@ class SizeViewSet(viewsets.ModelViewSet):
     """
     queryset = Size.objects.all()
     serializer_class = SizeSerializer
+
+    def get_queryset(self):
+        """
+        Filter projects by current user
+        """
+        user = self.request.user
+        group = Group.objects.get(name=user.username)
+        providers = group.providers.filter(only_current(), active=True)
+        return Size.objects.filter(only_current(), provider__in=providers)

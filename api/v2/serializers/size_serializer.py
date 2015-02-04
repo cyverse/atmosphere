@@ -8,4 +8,4 @@ class SizeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Size
-        # fields = ('id', 'name', 'description', 'public', 'active', 'start_date', 'end_date', )
+        fields = ('id', 'alias', 'name', 'cpu', 'disk', 'mem', 'active', 'provider', 'start_date', 'end_date')
