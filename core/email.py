@@ -143,6 +143,8 @@ def email_to_admin(subject, body, username=None,
     if not username and not user_email:
         username, user_email = sendto, sendto_email
     elif not user_email:  # Username provided
+        if type(username) == User:
+            username = username.username
         user_email = lookupEmail(username)
     elif not username:  # user_email provided
         username = 'Unknown'

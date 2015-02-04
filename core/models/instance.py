@@ -279,12 +279,13 @@ class Instance(models.Model):
             accounting_list.append(state)
         return accounting_list
 
-    def end_date_all(self):
+    def end_date_all(self, now_time=None):
         """
         Call this function to tie up loose ends when the instance is finished
         (Destroyed, terminated, no longer exists..)
         """
-        now_time = timezone.now()
+        if not now_time:
+            now_time = timezone.now()
         ish_list = InstanceStatusHistory.objects.filter(instance=self)
         for ish in ish_list:
             if not ish.end_date:

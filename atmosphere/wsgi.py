@@ -55,8 +55,8 @@ from django.core.wsgi import get_wsgi_application
 try:
     application = get_wsgi_application()
 except Exception, e:
-    e.msg = os.path.dirname(__file__)
-    raise e
+    #e.msg = os.path.dirname(__file__)
+    raise
 
 #from helloworld.wsgi import HelloWorldApplication
 #application = HelloWorldApplication(application)
