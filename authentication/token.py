@@ -76,10 +76,17 @@ def validate_oauth_token(token, request=None):
         logger.info("Invalid Profile:%s does not have username/attributes"
                     % user_profile)
         return False
-    # TEST 1 : Must be in the group 'atmo-user'
-    # NOTE: Test 1 will be IGNORED until we can verify it returns 'entitlement'
-    #  EVERY TIME!
-    # if not cas_profile_contains(attrs, 'atmo-user'):
+
+    # NOTE: REMOVE this when it is no longer true!
+    # Force any username lookup to be in lowercase
+    if not username:
+        return None
+    username = username.lower()
+
+    #TEST 1 : Must be in the group 'atmo-user'
+    #NOTE: Test 1 will be IGNORED until we can verify it returns 'entitlement'
+    # EVERY TIME!
+    #if not cas_profile_contains(attrs, 'atmo-user'):
     #    raise Unauthorized("User %s is not a member of group 'atmo-user'"
     #                       % username)
     # TODO: TEST 2 : Must have an identity (?)
