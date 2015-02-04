@@ -188,6 +188,7 @@ def core_instance_time(user, identity_id, delta, running=[], now_time=None):
             i.end_date_all()
         active_time, status_list = i.get_active_time(past_time, now_time)
         instance_status_map[i] = status_list
+        i.active_time = active_time
         new_total = active_time + total_time
         total_time = new_total
     return total_time, instance_status_map
