@@ -1,4 +1,8 @@
 from core.models.machine_request import MachineRequest
+from core.models.user import AtmosphereUser
+from core.models.instance import Instance
+from core.models.provider import Provider
+from core.models.machine import ProviderMachine
 from rest_framework import serializers
 from .new_threshold_field import NewThresholdField
 from .license_serializer import LicenseSerializer
@@ -7,7 +11,7 @@ from .license_serializer import LicenseSerializer
 class MachineRequestSerializer(serializers.ModelSerializer):
     """
     """
-    instance = serializers.SlugRelatedField(slug_field='provider_alias')
+    instance = serializers.SlugRelatedField(slug_field='provider_alias', queryset=Instance.objects.all())
     status = serializers.CharField(default="pending")
     parent_machine = serializers.SlugRelatedField(slug_field='identifier',
                                                   read_only=True)
@@ -22,14 +26,18 @@ class MachineRequestSerializer(serializers.ModelSerializer):
 
     name = serializers.CharField(source='new_machine_name')
     provider = serializers.SlugRelatedField(
-        slug_field='uuid', source='new_machine_provider')
+        slug_field='uuid', source='new_machine_provider',
+        queryset=Provider.objects.all()
+    )
     owner = serializers.SlugRelatedField(slug_field='username',
-                                         source='new_machine_owner')
+                                         source='new_machine_owner',
+                                         queryset=AtmosphereUser.objects.all()
+    )
     vis = serializers.CharField(source='new_machine_visibility')
     version = serializers.CharField(source='new_machine_version',
-            required=False)
+        required=False)
     fork = serializers.BooleanField(source='new_machine_forked',
-            required=False)
+        required=False)
     description = serializers.CharField(source='new_machine_description',
                                         required=False)
     tags = serializers.CharField(source='new_machine_tags', required=False)
@@ -38,7 +46,9 @@ class MachineRequestSerializer(serializers.ModelSerializer):
     #      full-object. for additional support for the image creator
     licenses = LicenseSerializer(source='new_machine_licenses.all', many=True)
     new_machine = serializers.SlugRelatedField(slug_field='identifier',
-                                               required=False)
+                                               required=False,
+                                               queryset=ProviderMachine.objects.all()
+    )
 
     class Meta:
         model = MachineRequest

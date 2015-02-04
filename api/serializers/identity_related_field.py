@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 class IdentityRelatedField(serializers.RelatedField):
 
-    def to_native(self, identity):
+    def to_representation(self, identity):
         quota_dict = identity.get_quota_dict()
         return {
             "id": identity.uuid,
@@ -13,7 +13,7 @@ class IdentityRelatedField(serializers.RelatedField):
             "quota": quota_dict,
         }
 
-    def field_from_native(self, data, files, field_name, into):
+    def to_internal_value(self, data, files, field_name, into):
         value = data.get(field_name)
         if value is None:
             return

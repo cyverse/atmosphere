@@ -1,7 +1,9 @@
 from core.models.application import ApplicationScore
 from core.models.machine import ProviderMachine
+from core.models import Tag
 from rest_framework import serializers
 from .license_serializer import LicenseSerializer
+from .tag_related_field import TagRelatedField
 
 
 class ProviderMachineSerializer(serializers.ModelSerializer):
@@ -17,17 +19,17 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
                                          source='esh_architecture')
     ownerid = serializers.CharField(read_only=True, source='esh_ownerid')
     state = serializers.CharField(read_only=True, source='esh_state')
-    scores = serializers.SerializerMethodField('get_scores')
+    scores = serializers.SerializerMethodField()
     #Writeable fields
     name = serializers.CharField(source='application.name')
-    tags = serializers.CharField(source='application.tags.all')
-    licenses = LicenseSerializer(source='licenses.all', read_only=True)
+    # tags = serializers.CharField(source='application.tags.all')
+    tags = TagRelatedField(slug_field='name', source='application.tags.all', many=True, queryset=Tag.objects.all())
+    # licenses = LicenseSerializer(source='licenses.all', read_only=True)
     description = serializers.CharField(source='application.description')
-    start_date = serializers.CharField(source='start_date')
-    end_date = serializers.CharField(source='end_date',
-                                     required=False, read_only=True)
+    start_date = serializers.CharField()
+    end_date = serializers.CharField(required=False, read_only=True)
     featured = serializers.BooleanField(source='application.featured')
-    version = serializers.CharField(source='version')
+    version = serializers.CharField()
 
     def __init__(self, *args, **kwargs):
         self.request_user = kwargs.pop('request_user', None)
@@ -51,4 +53,4 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProviderMachine
-        exclude = ('id', 'provider', 'application', 'identity')
+        exclude = ('id', 'provider', 'application', 'licenses',)

@@ -3,9 +3,9 @@ from core.models.application import ApplicationBookmark
 from rest_framework import serializers
 
 
-class AppBookmarkField(serializers.WritableField):
+class AppBookmarkField(serializers.Field):
 
-    def to_native(self, bookmark_mgr):
+    def to_representation(self, bookmark_mgr):
         request_user = self.root.request_user
         if type(request_user) == AnonymousUser:
             return False
@@ -15,7 +15,7 @@ class AppBookmarkField(serializers.WritableField):
         except ApplicationBookmark.DoesNotExist:
             return False
 
-    def field_from_native(self, data, files, field_name, into):
+    def to_internal_value(self, data, files, field_name, into):
         value = data.get(field_name)
         if value is None:
             return

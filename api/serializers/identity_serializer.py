@@ -5,15 +5,14 @@ from .allocation_serializer import AllocationSerializer
 
 
 class IdentitySerializer(serializers.ModelSerializer):
-    created_by = serializers.CharField(source='creator_name')
-    credentials = serializers.Field(source='get_credentials')
-    id = serializers.Field(source='uuid')
-    provider_id = serializers.Field(source='provider_uuid')
+    created_by = serializers.ReadOnlyField(source='creator_name')
+    credentials = serializers.ReadOnlyField(source='get_credentials')
+    id = serializers.ReadOnlyField(source='uuid')
+    provider_id = serializers.ReadOnlyField(source='provider_uuid')
     quota = QuotaSerializer(source='get_quota')
     allocation = AllocationSerializer(source='get_allocation')
-    membership = serializers.Field(source='get_membership')
+    # membership = serializers.ReadOnlyField(source='get_membership')
 
     class Meta:
         model = Identity
-        fields = ('id', 'created_by', 'provider_id', 'credentials',
-                  'membership', 'quota', 'allocation')
+        fields = ('id', 'created_by', 'provider_id', 'credentials', 'quota', 'allocation')

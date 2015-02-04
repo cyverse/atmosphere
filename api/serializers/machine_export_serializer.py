@@ -1,4 +1,6 @@
 from core.models.machine_export import MachineExport
+from core.models.user import AtmosphereUser
+from core.models.instance import Instance
 from rest_framework import serializers
 
 
@@ -6,11 +8,16 @@ class MachineExportSerializer(serializers.ModelSerializer):
     """
     """
     name = serializers.CharField(source='export_name')
-    instance = serializers.SlugRelatedField(slug_field='provider_alias')
+    instance = serializers.SlugRelatedField(
+        slug_field='provider_alias',
+        queryset=Instance.objects.all()
+    )
     status = serializers.CharField(default="pending")
     disk_format = serializers.CharField(source='export_format')
     owner = serializers.SlugRelatedField(slug_field='username',
-                                         source='export_owner')
+                                         source='export_owner',
+                                         queryset=AtmosphereUser.objects.all()
+    )
     file = serializers.CharField(read_only=True, default="",
                                  required=False, source='export_file')
 
