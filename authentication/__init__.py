@@ -62,6 +62,12 @@ def createAuthToken(username):
     """
     returns a new token for username
     """
+    # NOTE: REMOVE this when it is no longer true!
+    # Force any username lookup to be in lowercase
+    if not username:
+        return None
+    username = username.lower()
+
     user = User.objects.get(username=username)
     auth_user_token = AuthToken(
         user=user,
