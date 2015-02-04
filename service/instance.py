@@ -104,11 +104,12 @@ def detach_port(esh_driver, esh_instance):
         logger.info("Detached Port: %s - Result:%s" % (fixed_ip_port, result))
     return result
 
-def remove_network(esh_driver, identity_id):
+def remove_network(esh_driver, identity_id, remove_network=False):
     from service.tasks.driver import remove_empty_network
     remove_empty_network.s(esh_driver.__class__, esh_driver.provider,
                            esh_driver.identity, identity_id,
-                           remove_network=False).apply_async(countdown=20)
+                           remove_network=remove_network
+                          ).apply_async(countdown=20)
 
 
 def restore_network(esh_driver, esh_instance, identity_id):
@@ -742,11 +743,12 @@ def _create_and_attach_port(provider, driver, instance, core_identity):
     tenant_id = instance.extra['tenantId']
     network_resources = accounts.network_manager.find_tenant_resources(tenant_id)
     network = network_resources['networks']
-    if not network:
+    subnet = network_resources['subnets']
+    if not network or not subnet:
         network, subnet = accounts.create_network(core_identity)
     else:
         network = network[0]
-        subnet = network_resources['subnets'][0]
+        subnet = subnet[0]
     #new_fixed_ip = _get_next_fixed_ip(network_resources['ports'])
     #admin = accounts.admin_driver
     #port = accounts.network_manager.create_port(
@@ -812,8 +814,8 @@ def _repair_instance_networking(esh_driver, esh_instance, provider_id, identity_
             esh_driver.identity, esh_instance.id))
 
     final_update = esh_instance.extra['metadata']
-    final_update.pop('tmp_status')
-    final_update.pop('iplant_suspend_fix')
+    final_update.pop('tmp_status',None)
+    final_update.pop('iplant_suspend_fix',None)
     remove_status_task = update_metadata.si(
             esh_driver.__class__, esh_driver.provider, esh_driver.identity,
             esh_instance.id, final_update, replace_metadata=True)

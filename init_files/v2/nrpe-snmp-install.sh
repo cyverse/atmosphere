@@ -93,7 +93,7 @@ fi
 # install check_snmp_mem.pl plugin
 /bin/rm -f $PLUGINS_DIR/check_snmp_mem.pl
 /usr/bin/wget -O $PLUGINS_DIR/check_snmp_mem.pl $PLUGINS_HOME/check_snmp_mem.pl
-/bin/sed -i "21cuse lib \"$PLUGINS_DIR\";" $PLUGINS_DIR/check_snmp_mem.pl
+/bin/sed -i "use lib \"$PLUGINS_DIR\";" $PLUGINS_DIR/check_snmp_mem.pl
 /bin/chmod +x $PLUGINS_DIR/check_snmp_mem.pl
 
 # install check_connections plugin
