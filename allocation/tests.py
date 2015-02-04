@@ -656,3 +656,32 @@ def repl_profile_test_1():
 def repl_calculate_allocation(allocation):
     result = engine.calculate_allocation(allocation)
     return allocation, result
+
+
+def repl_counting_behaviors():
+    from dateutil.relativedelta import relativedelta
+    from allocation.models.strategy import \
+        FixedStartSlidingWindow, FixedEndSlidingWindow, FixedWindow
+    first_of_year = datetime(2015, 1, 1, tzinfo=pytz.utc)
+    first_of_month = datetime(2015, 2, 1, tzinfo=pytz.utc)
+    end_of_year = datetime(2015, 12, 31, tzinfo=pytz.utc)
+    end_of_month = datetime(2015, 2, 28, tzinfo=pytz.utc)
+    counting_behaviors = [
+        # None == Now
+        FixedEndSlidingWindow(None, relativedelta(hours=1)),
+        FixedEndSlidingWindow(None, relativedelta(days=2)),
+        FixedEndSlidingWindow(None, relativedelta(days=28)),
+        FixedEndSlidingWindow(None, relativedelta(months=1)),
+        FixedEndSlidingWindow(None, relativedelta(months=3)),
+        FixedEndSlidingWindow(None, relativedelta(months=6)),
+        FixedEndSlidingWindow(None, relativedelta(years=1)),
+        FixedStartSlidingWindow(first_of_year, relativedelta(years=1)),
+        FixedStartSlidingWindow(first_of_month, relativedelta(years=1)),
+        FixedWindow(first_of_month, end_of_month),
+        FixedWindow(first_of_year, end_of_year),
+    ]
+    return counting_behaviors
+
+
+def repl_refresh_behaviors():
+    pass

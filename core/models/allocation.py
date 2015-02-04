@@ -14,7 +14,7 @@ class Allocation(models.Model):
     # One week
     threshold = models.IntegerField(null=True,
                                     blank=True,
-                                    default=7*24*60)# In Minutes
+                                    default=7*24*60)  # In Minutes
     # Over One year
     delta = models.IntegerField(null=True,
                                 blank=True,
@@ -31,7 +31,7 @@ class Allocation(models.Model):
         rather than hard-coded
         """
         return Allocation.objects.get_or_create(
-                **Allocation.default_dict())[0]
+            **Allocation.default_dict())[0]
 
     @classmethod
     def default_dict(self):
