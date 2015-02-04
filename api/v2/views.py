@@ -9,7 +9,7 @@ from core.models.user import AtmosphereUser
 from .serializers import TagSerializer, UserSerializer, ProjectSerializer, ImageSerializer, ProviderSerializer, \
     IdentitySerializer, QuotaSerializer, AllocationSerializer, VolumeSerializer, InstanceSerializer, \
     InstanceActionSerializer, VolumeActionSerializer, ProviderTypeSerializer, PlatformTypeSerializer, \
-    ProviderMachineSerializer, ImageBookmarkSerializer, SizeSerializer
+    ProviderMachineSerializer, ImageBookmarkSerializer, SizeSerializer, SizeSummarySerializer
 from core.query import only_current
 
 
@@ -84,6 +84,14 @@ class ProviderViewSet(viewsets.ModelViewSet):
         user = self.request.user
         group = Group.objects.get(name=user.username)
         return group.providers.filter(only_current(), active=True)
+
+    @detail_route()
+    def sizes(self, *args, **kwargs):
+        provider = self.get_object()
+        self.get_queryset = super(viewsets.ModelViewSet, self).get_queryset
+        self.queryset = provider.size_set.get_queryset()
+        self.serializer_class = SizeSummarySerializer
+        return self.list(self, *args, **kwargs)
 
 
 class IdentityViewSet(viewsets.ModelViewSet):

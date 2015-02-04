@@ -17,3 +17,5 @@ from .platform_type_serializer import PlatformTypeSerializer
 from .provider_machine_serializer import ProviderMachineSerializer
 from .image_bookmark_serializer import ImageBookmarkSerializer
 from .size_serializer import SizeSerializer
+from .provider_summary_serializer import ProviderSummarySerializer
+from .size_summary_serializer import SizeSummarySerializer
