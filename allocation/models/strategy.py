@@ -120,24 +120,24 @@ class MonthlyAllocation(AllocationStrategy):
 class RefreshBehavior(object):
     """
     Define a set of rules that explain when/how a user should be refreshed.
-    IF: start_date = 1/1/2015, end_date = 1/31/2015 AND seconds=3600
+    IF: start_increase = 1/1/2015, stop_increase = 1/31/2015 AND interval_delta=3600
     Credits == [1/hr*24hr/day*31 days == 744 credits]
     """
-    start_date = None
-    end_date = None
-    credit_amount = None
+    start_increase = None
+    interval_delta = None
+    stop_increase = None
 
-    def __init__(self, start_date, end_date, credit_seconds):
+    def __init__(self, start_date, end_date, interval_delta):
         self.start_date = start_date
         self.end_date = end_date
-        self.credit_seconds = credit_seconds
+        self.interval_delta = interval_delta
 
     def __repr__(self):
         return self.__unicode__()
 
     def __unicode__(self):
-        return "Grant Credit every %s seconds. Start on %s, End on %s"\
-            % (self.credit_seconds, self.start_date, self.end_date)
+        return "Grant Credit every %s. Starting with refresh on %s, Stop on/before %s"\
+            % (self.interval_delta, self.start_date, self.end_date)
 
     def generate_credits(self):
         next_value = self._get_next_value(self.start_date)
