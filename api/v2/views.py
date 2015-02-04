@@ -48,6 +48,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     @detail_route()
     def instances(self, *args, **kwargs):
         project = self.get_object()
+        self.get_queryset = super(viewsets.ModelViewSet, self).get_queryset
         self.queryset = project.instances.get_queryset()
         self.serializer_class = InstanceSerializer
         return self.list(self, *args, **kwargs)
@@ -55,6 +56,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     @detail_route()
     def volumes(self, *args, **kwargs):
         project = self.get_object()
+        self.get_queryset = super(viewsets.ModelViewSet, self).get_queryset
         self.queryset = project.volumes.get_queryset()
         self.serializer_class = VolumeSerializer
         return self.list(self, *args, **kwargs)
