@@ -53,7 +53,7 @@ class MachineRequest(models.Model):
     new_machine_licenses = models.ManyToManyField(License,
             null=True, blank=True)
     #Date time stamps
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     # Filled in when completed.
@@ -124,6 +124,9 @@ class MachineRequest(models.Model):
         return self.instance.source.provider
     def new_machine_id(self):
         return 'zzz%s' % self.new_machine.identifier if self.new_machine else None
+
+    def instance_alias(self):
+        return self.instance.provider_alias
 
     def is_public(self):
         return "public" in self.new_machine_visibility.lower()

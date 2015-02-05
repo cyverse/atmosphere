@@ -20,7 +20,7 @@ class Step(models.Model):
     instance = models.ForeignKey(Instance, null=True, blank=True)
     created_by = models.ForeignKey(User)
     created_by_identity = models.ForeignKey(Identity, null=True)
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     class Meta:

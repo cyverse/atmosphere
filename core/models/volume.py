@@ -230,7 +230,7 @@ class VolumeStatusHistory(models.Model):
     status = models.ForeignKey(VolumeStatus)
     device = models.CharField(max_length=128, null=True, blank=True)
     instance_alias = models.CharField(max_length=36, null=True, blank=True)
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     @classmethod

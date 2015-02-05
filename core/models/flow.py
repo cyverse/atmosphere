@@ -16,7 +16,7 @@ class FlowType(models.Model):
     A group FlowType groups step(s) that are run in parallel.
     """
     name = models.CharField(max_length=256, blank=True)
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -38,7 +38,7 @@ class Flow(models.Model):
     instance = models.ForeignKey(Instance, null=True, blank=True)
     created_by = models.ForeignKey(User)
     created_by_identity = models.ForeignKey(Identity, null=True)
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     class Meta:
