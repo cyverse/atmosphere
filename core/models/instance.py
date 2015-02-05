@@ -16,9 +16,9 @@ from rtwo.size import MockSize
 
 from threepio import logger
 
-from core.models.instance_source import InstanceSource, InstanceSourceTmp
+from core.models.instance_source import InstanceSource
 from core.models.identity import Identity
-from core.models.machine import ProviderMachine, ProviderMachineTmp, convert_esh_machine
+from core.models.machine import ProviderMachine, ProviderMachine, convert_esh_machine
 from core.models.volume import convert_esh_volume
 from core.models.size import convert_esh_size
 from core.models.tag import Tag
@@ -70,7 +70,6 @@ class Instance(models.Model):
     tags = models.ManyToManyField(Tag, blank=True)
     # The specific machine & provider for which this instance exists
     source = models.ForeignKey(InstanceSource, related_name='instances')
-    source_tmp = models.ForeignKey(InstanceSourceTmp, related_name='instances', null=True)
     provider_alias = models.CharField(max_length=256, unique=True)
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     created_by = models.ForeignKey('AtmosphereUser')

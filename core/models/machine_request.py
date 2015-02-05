@@ -34,8 +34,6 @@ class MachineRequest(models.Model):
     parent_machine = models.ForeignKey("ProviderMachine",
                                        related_name="ancestor_machine")
 
-    parent_machine_tmp = models.ForeignKey("ProviderMachineTmp",
-                                       related_name="ancestor_machine_tmp", null=True)
     # Specifics for machine imaging.
     iplant_sys_files = models.TextField(default='', blank=True)
     installed_software = models.TextField(default='', blank=True)
@@ -64,9 +62,6 @@ class MachineRequest(models.Model):
                                     null=True, blank=True,
                                     related_name="created_machine")
 
-    new_machine_tmp = models.ForeignKey("ProviderMachineTmp",
-                                    null=True, blank=True,
-                                    related_name="created_machine_tmp")
     def new_machine_threshold(self):
         return {'memory': self.new_machine_memory_min,
                 'disk': self.new_machine_storage_min }

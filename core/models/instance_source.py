@@ -8,19 +8,6 @@ from core.models.provider import Provider
 from core.models.user import AtmosphereUser as User
 
 
-class InstanceSourceTmp(models.Model):
-    provider = models.ForeignKey(Provider)
-    identifier = models.CharField(max_length=256)
-    created_by = models.ForeignKey(User, blank=True, null=True,
-            related_name="source_set_tmp")
-    created_by_identity = models.ForeignKey(Identity, blank=True, null=True)
-    start_date = models.DateTimeField(default=timezone.now)
-    end_date = models.DateTimeField(null=True, blank=True)
-    class Meta:
-        db_table = "instance_source_tmp"
-        app_label = "core"
-        unique_together = ('provider', 'identifier')
-
 class InstanceSource(models.Model):
     """
     An InstanceSource can be:

@@ -82,7 +82,7 @@ class ProviderMachineAdmin(admin.ModelAdmin):
             "source_provider", "application",
             "source_end_date"]
     list_filter = [
-        "instancesource_ptr__provider__location",
+        "instance_source__provider__location",
         "application__private",
     ]
 
@@ -90,8 +90,8 @@ class ProviderMachineMembershipAdmin(admin.ModelAdmin):
     list_display = ["id", "_pm_provider", "_pm_identifier", "_pm_name",
                     "_pm_private", "group"]
     list_filter = [
-            "provider_machine__provider__location",
-            "provider_machine__identifier",
+            "provider_machine__instance_source__provider__location",
+            "provider_machine__instance_source__identifier",
             "group__name"
             ]
     def _pm_provider(self, obj):
@@ -154,7 +154,7 @@ class VolumeAdmin(admin.ModelAdmin):
     search_fields = ["source_identifier", "name", "source_location"]
     list_display = ["source_identifier", "size", "source_provider",
             "source_start_date", "source_end_date"]
-    list_filter = ["instancesource_ptr__provider__location"]
+    list_filter = ["instance_source__provider__location"]
 
 
 class ApplicationAdmin(admin.ModelAdmin):

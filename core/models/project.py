@@ -4,7 +4,7 @@ from django.utils import timezone
 from core.models.application import Application
 from core.models.instance import Instance
 from core.models.group import Group
-from core.models.volume import Volume, VolumeTmp
+from core.models.volume import Volume
 
 from threepio import logger
 
@@ -27,8 +27,6 @@ class Project(models.Model):
     instances = models.ManyToManyField(Instance, related_name="projects",
                                        null=True, blank=True)
     volumes = models.ManyToManyField(Volume, related_name="projects",
-                                     null=True, blank=True)
-    volumes_tmp = models.ManyToManyField(VolumeTmp, related_name="projects",
                                      null=True, blank=True)
 
     def __unicode__(self):
