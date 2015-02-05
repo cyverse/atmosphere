@@ -19,7 +19,7 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
                                          source='esh_architecture')
     ownerid = serializers.CharField(read_only=True, source='esh_ownerid')
     state = serializers.CharField(read_only=True, source='esh_state')
-    scores = serializers.SerializerMethodField()
+    scores = serializers.SerializerMethodField('get_scores')
     #Writeable fields
     name = serializers.CharField(source='application.name')
     # tags = serializers.CharField(source='application.tags.all')

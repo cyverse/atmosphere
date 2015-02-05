@@ -4,6 +4,9 @@ from rest_framework import serializers
 
 class IdentityRelatedField(serializers.RelatedField):
 
+    def to_native(self, identity):
+        return self.to_representation(identity)
+
     def to_representation(self, identity):
         quota_dict = identity.get_quota_dict()
         return {

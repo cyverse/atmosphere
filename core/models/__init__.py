@@ -1,4 +1,5 @@
 from core.models.credential import Credential, ProviderCredential
+from core.models.cloud_admin import CloudAdministrator
 from core.models.identity import Identity
 from core.models.profile import UserProfile
 from core.models.project import Project
@@ -88,3 +89,11 @@ def _get_or_create_provider_machine(provider, image_alias, created_by):
             created_by,
             "Created to support instanceModel")
     return provider_machine
+
+def represent():
+    from api.serializers import ProfileSerializer
+    from core.models import UserProfile
+    profile = UserProfile.objects.get(user__username='sgregory')
+    ps = ProfileSerializer(profile)
+    import ipdb;ipdb.set_trace()
+    return ps.data

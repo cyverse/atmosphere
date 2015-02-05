@@ -132,16 +132,16 @@ class OAuthLoginBackend(ModelBackend):
             return None
         logger.debug("[OAUTH] OAuth Token - %s " % oauth_token)
 
-        valid_user, _ = get_user_for_token(oauth_token)
-        if not valid_user:
+        valid_username, _ = get_user_for_token(oauth_token)
+        if not valid_username:
             logger.debug("[OAUTH] Token %s invalid, no user found."
                          % oauth_token)
             return None
-        logger.debug("[OAUTH] Authorized user %s" % valid_user)
-        oauth_attrs = oauth_lookupUser(valid_user)
+        logger.debug("[OAUTH] Authorized user %s" % valid_username)
+        oauth_attrs = oauth_lookupUser(valid_username)
         attributes = oauth_formatAttrs(oauth_attrs)
-        logger.debug("[OAUTH] Authentication Success - " + valid_user)
-        return get_or_create_user(valid_user, attributes)
+        logger.debug("[OAUTH] Authentication Success - " + valid_username)
+        return get_or_create_user(valid_username, attributes)
 
 
 class AuthTokenLoginBackend(ModelBackend):
@@ -168,4 +168,4 @@ class AuthTokenLoginBackend(ModelBackend):
             "[AUTHTOKEN] Valid Token %s (User:%s)"
             % (valid_token.key, valid_token.user))
         valid_user = valid_token.user
-        return get_or_create_user(valid_user, None)
+        return get_or_create_user(valid_user.username, None)
