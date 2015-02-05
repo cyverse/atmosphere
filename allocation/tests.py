@@ -27,7 +27,9 @@ from allocation.models import Provider, Machine, Size, Instance,\
 from allocation.models import Allocation, MultiplySizeCPU, MultiplySizeRAM,\
     MultiplySizeDisk, MultiplyBurnTime, AllocationIncrease, TimeUnit,\
     IgnoreStatusRule, CarryForwardTime, Rule
-
+from allocation.models.strategy import \
+    FixedStartSlidingWindow, FixedEndSlidingWindow, FixedWindow,\
+    AllocationStrategy, RecurringRefresh, OneTimeRefresh
 
 # For testing..
 openstack = Provider(
@@ -659,9 +661,6 @@ def repl_calculate_allocation(allocation):
 
 
 def repl_counting_behaviors():
-    from dateutil.relativedelta import relativedelta
-    from allocation.models.strategy import \
-        FixedStartSlidingWindow, FixedEndSlidingWindow, FixedWindow
     first_of_year = datetime(2015, 1, 1, tzinfo=pytz.utc)
     first_of_month = datetime(2015, 2, 1, tzinfo=pytz.utc)
     end_of_year = datetime(2015, 12, 31, tzinfo=pytz.utc)
@@ -675,13 +674,78 @@ def repl_counting_behaviors():
         FixedEndSlidingWindow(None, relativedelta(months=3)),
         FixedEndSlidingWindow(None, relativedelta(months=6)),
         FixedEndSlidingWindow(None, relativedelta(years=1)),
+        FixedEndSlidingWindow(None, relativedelta(years=1),
+                              relativedelta(months=1)),
         FixedStartSlidingWindow(first_of_year, relativedelta(years=1)),
         FixedStartSlidingWindow(first_of_month, relativedelta(years=1)),
+        FixedStartSlidingWindow(first_of_month, relativedelta(years=1),
+                                relativedelta(months=1)),
         FixedWindow(first_of_month, end_of_month),
         FixedWindow(first_of_year, end_of_year),
+        FixedWindow(first_of_year, end_of_year, relativedelta(months=1)),
     ]
     return counting_behaviors
 
 
 def repl_refresh_behaviors():
-    pass
+    every_15_min = relativedelta(
+        minutes=15)
+    every_6_hours = relativedelta(
+        hours=6)
+    every_1_day = relativedelta(
+        days=1)
+    every_1_week = relativedelta(
+        weeks=1)
+    every_1_month = relativedelta(
+        months=1)
+    every_1_year = relativedelta(
+        years=1)
+    first_of_year = datetime(2015, 1, 1, tzinfo=pytz.utc)
+    first_of_month = datetime(2015, 2, 1, tzinfo=pytz.utc)
+    second_of_month = datetime(2015, 2, 2, tzinfo=pytz.utc)
+    end_of_year = datetime(2015, 12, 31, tzinfo=pytz.utc)
+    end_of_month = datetime(2015, 2, 28, tzinfo=pytz.utc)
+    refresh_behaviors = [
+        # One Time Refresh
+        OneTimeRefresh(first_of_year),
+        OneTimeRefresh(first_of_month),
+        OneTimeRefresh(end_of_month),
+        OneTimeRefresh(end_of_year),
+        # Recurring Refresh requires an "End" and an "interval"
+        RecurringRefresh(first_of_year, end_of_year, every_1_year),
+        RecurringRefresh(first_of_year, end_of_year, every_1_month),
+        RecurringRefresh(first_of_year, end_of_month, every_1_month),
+        RecurringRefresh(first_of_month, end_of_month, every_1_month),
+        RecurringRefresh(first_of_month, end_of_month, every_1_week),
+        RecurringRefresh(first_of_month, second_of_month, every_6_hours),
+        RecurringRefresh(first_of_month, second_of_month, every_15_min),
+        # Recurring refresh could be a "One Time" Refresh
+        RecurringRefresh(first_of_year, first_of_year, None),
+        # Recurring refresh could run until 'now' or 'future-forever'
+        RecurringRefresh(first_of_year, None, every_1_day),
+    ]
+    return refresh_behaviors
+
+
+def repl_test_strategy():
+    """
+    Create an AllocationStrategy by instantiating
+    Refresh, Counting, (and Rules?) behaviors
+    """
+    first_of_feb = datetime(2015, 2, 1, tzinfo=pytz.utc)
+    first_of_march = datetime(2015, 3, 1, tzinfo=pytz.utc)
+    every_1_month = relativedelta(months=1)
+
+    refresh_behavior = RecurringRefresh(first_of_feb, first_of_march,
+                                        every_1_month)
+    counting_behavior = FixedWindow(first_of_feb, first_of_march)
+    strategy = AllocationStrategy(counting_behavior, [refresh_behavior])
+    return strategy
+
+
+def repl_apply_strategy(identity):
+    from service.monitoring import get_allocation
+    allocation = get_allocation(identity.created_by.username,
+                                identity.uuid)
+    strategy = repl_test_strategy()
+    return strategy.apply(identity, allocation)

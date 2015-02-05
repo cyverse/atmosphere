@@ -2,15 +2,11 @@ from dateutil.relativedelta import relativedelta
 
 from django.utils import timezone
 
-# Imports Atmosphere Specific Settings
-from django.conf import settings
 
 from allocation.models import \
-    AllocationRecharge, AllocationUnlimited,\
-    IgnoreStatusRule, MultiplySizeCPU,\
+    AllocationRecharge, IgnoreStatusRule, MultiplySizeCPU,\
     Allocation, TimeUnit
 from allocation.models import Instance as AllocInstance
-from service.monitoring import _core_instances_for, get_delta
 
 
 class AllocationStrategy(object):
@@ -25,81 +21,13 @@ class AllocationStrategy(object):
     * Rules Behavior
     * ???
     """
-    def __init__(self, identity, core_allocation,
-                 start_date, end_date, interval_delta=None):
-        self.identity = identity
-        self.allocation = core_allocation
-        # Guaranteed a range
-        # NOTE:IF BOTH are NONE: Starting @ FIXED_WINDOW until NOW
-        self.counting_behavior(start_date, end_date, interval_delta)
+    def __init__(self, counting_behavior,
+                 recharge_behaviors=[], rule_behaviors=[]):
+        self.counting_behavior = counting_behavior
+        self.recharge_behaviors = recharge_behaviors
+        self.rule_behaviors = rule_behaviors
 
-        instances = self.get_instance_list()
-        credits = self.recharge_behavior()
-        rules = self.rules_behavior()
-
-        self.allocation = Allocation(
-            credits=credits, rules=rules,
-            instances=instances,
-            start_date=self.start_date, end_date=self.end_date,
-            interval_delta=self.interval_delta)
-
-    def __repr__(self):
-        return self.__unicode__()
-
-    def __unicode__(self):
-        return "Strategy Result:%s " % self.allocation
-
-    def counting_behavior(self, start_date, end_date, interval_delta):
-        if not end_date:
-            end_date = timezone.now()
-
-        if not start_date:
-            delta_time = get_delta(self.core_allocation,
-                                   settings.FIXED_WINDOW, end_date)
-            start_date = end_date - delta_time
-        elif not interval_delta:
-            delta_time = end_date - start_date
-        else:
-            delta_time = interval_delta
-
-        self.start_date = start_date
-        self.end_date = end_date
-        self.interval_delta = delta_time
-
-    def get_instance_list(self):
-        # Retrieve the core that could have an impact..
-        core_instances = _core_instances_for(self.identity, self.start_date)
-        # Convert Core Models --> Allocation/core Models
-        alloc_instances = [AllocInstance.from_core(inst, self.start_date)
-                           for inst in core_instances]
-        return alloc_instances
-
-    def recharge_behavior(self):
-        raise NotImplementedError("No Free Lunch")
-
-    def rules_behavior(self):
-        raise NotImplementedError("No Free Lunch")
-
-
-class MonthlyAllocation(AllocationStrategy):
-    """
-    The 'MonthlyAllocation' strategy takes Core Identity and Allocation objects
-    The GOAL is to maintain functionality parity
-    to that of the ORIGINAL allocation system.
-    """
-
-    def recharge_behavior(self):
-        if self.core_allocation:
-            initial_credit = AllocationRecharge(
-                name="%s Assigned allocation"
-                     % self.identity.created_by.username,
-                unit=TimeUnit.minute, amount=self.core_allocation.threshold,
-                recharge_date=self.start_date)
-        else:
-            initial_credit = AllocationUnlimited(self.start_date)
-        return [initial_credit]
-
-    def rules_behavior(self):
+    def default_rules(self):
         multiply_by_cpu = MultiplySizeCPU(
             name="Multiply TimeUsed by CPU",
             multiplier=1)
@@ -116,45 +44,125 @@ class MonthlyAllocation(AllocationStrategy):
                    ])
         return [multiply_by_cpu, ignore_inactive]
 
+    def get_instance_list(self, identity):
+        from service.monitoring import _core_instances_for
+        # Retrieve the core that could have an impact..
+        core_instances = _core_instances_for(
+            identity,
+            self.counting_behavior.start_date)
+        # Convert Core Models --> Allocation/core Models
+        alloc_instances = [AllocInstance.from_core(
+            inst, self.counting_behavior.start_date)
+            for inst in core_instances]
+        return alloc_instances
+
+    def apply(self, identity, core_allocation):
+        instances = self.get_instance_list(identity)
+
+        credits = []
+        for behavior in self.recharge_behaviors:
+            if core_allocation:
+                credits.extend(
+                    behavior.get_allocation_credits(
+                        unit=TimeUnit.minute,
+                        amount=core_allocation.threshold))
+            else:
+                # Unlimited for 'no allocation'
+                credits.extend(
+                    behavior.get_allocation_credits(
+                        unit=TimeUnit.infinite,
+                        amount=1))
+
+        # TODO: Write code for this behavior?
+        rules = self.default_rules()
+        for behavior in self.rule_behaviors:
+            rules.extend(
+                behavior.get_rules(identity)
+            )
+
+        return Allocation(
+            credits=credits, rules=rules,
+            instances=instances,
+            start_date=self.counting_behavior.start_date,
+            end_date=self.counting_behavior.end_date,
+            interval_delta=self.counting_behavior.interval_delta)
+
+    def __repr__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return "Strategy Result:%s " % self.allocation
+
+
+class RulesBehavior(object):
+    """
+    The Rules Behavior
+    """
+    pass
+
 
 class RefreshBehavior(object):
     """
     Define a set of rules that explain when/how a user should be refreshed.
-    IF: start_increase = 1/1/2015, stop_increase = 1/31/2015 AND interval_delta=3600
-    Credits == [1/hr*24hr/day*31 days == 744 credits]
+    IF: start_increase = 1/1/2015, end_increase = 1/31/2015
+        AND interval_delta=3600
+    Credits: [1/hr*24hr/day*31 days == 744 credits]
     """
     start_increase = None
     interval_delta = None
-    stop_increase = None
+    end_increase = None
 
-    def __init__(self, start_date, end_date, interval_delta):
-        self.start_date = start_date
-        self.end_date = end_date
+    def __init__(self, start_increase, end_increase, interval_delta):
+        raise NotImplementedError(
+            "Cannot be directly instantiated. "
+            "Use a subclass of CountingBehavior to continue.")
+
+    def set_dates(self, start_increase, end_increase, interval_delta):
+        """
+        Use this method to instantiate the dates on a RefreshBehavior
+        """
+        self.start_increase = start_increase
+        self.end_increase = end_increase
         self.interval_delta = interval_delta
 
     def __repr__(self):
         return self.__unicode__()
 
     def __unicode__(self):
-        return "Grant Credit every %s. Starting with refresh on %s, Stop on/before %s"\
-            % (self.interval_delta, self.start_date, self.end_date)
+        print_str = "Refresh On %s." % self.start_increase
+        if self.interval_delta:
+            print_str += " New Refresh every %s." % self.interval_delta
+        if self.end_increase:
+            print_str += " Stop Refresh On/Before %s." % self.start_increase
+        return print_str
 
-    def generate_credits(self):
-        next_value = self._get_next_value(self.start_date)
-        end_at = self.end_date
+    def get_allocation_credits(self, unit, amount):
+        """
+        Returns a list of Credits from 1 < n
+        Amount of credits determinant on 'end_increase' and 'interval_delta'
+        Unit and Amount expected to create the Recharge
+        """
+        recharge_date = self.start_increase
+
+        if self.end_increase:
+            stop_refresh = self.end_increase
+        elif self.interval_delta:
+            stop_refresh = timezone.now()
+        else:
+            stop_refresh = self.start_increase
+
         credits_list = []
-        while next_value < end_at:
+        while recharge_date <= stop_refresh:
             credits_list.append(
                 AllocationRecharge(
-                    name="Increase by %s seconds" % self.credit_seconds,
-                    unit=TimeUnit.second,
-                    amount=self.credit_seconds,
-                    recharge_date=next_value)
+                    name="Increase by %s %s" % (amount, unit),
+                    unit=unit,
+                    amount=amount,
+                    recharge_date=recharge_date)
                 )
-            new_next = self._get_next_value(next_value)
-            if new_next == next_value:
-                raise Exception("Infinite loop detected!")
-            next_value = new_next
+            if not self.interval_delta:
+                break
+            recharge_date = recharge_date + self.interval_delta
         return credits_list
 
     def _get_next_value(self, next_value):
@@ -163,16 +171,12 @@ class RefreshBehavior(object):
 
 class OneTimeRefresh(RefreshBehavior):
     """
-      Accepts:
-      datetime time stamp
-      AND
-      Credit Amount (In seconds)
+    A One Time Refresh is granted ONCE on the start date,
+    It has no End date and no Interval
     """
 
-    def __init__(self, start_date, end_date, credit_seconds, timestamp):
-        super(OneTimeRefresh, self).__init__(
-            start_date, end_date, credit_seconds)
-        self.timestamp = timestamp
+    def __init__(self, start_increase):
+        self.set_dates(start_increase, None, None)
 
     def __repr__(self):
         return self.__unicode__()
@@ -180,46 +184,45 @@ class OneTimeRefresh(RefreshBehavior):
     def __unicode__(self):
         return super(OneTimeRefresh, self).__unicode__()
 
-    def _get_next_value(self, next_value):
-        return self.timestamp
 
-
-class IntervalRefresh(RefreshBehavior):
+class RecurringRefresh(RefreshBehavior):
     """
       Accepts:
-      RELATIVE delta or TIME delta
-      AND
-      Credit Amount (In seconds)
+      A time to Start refreshing,
+      A RELATIVE delta or TIME delta that
+      represents when to grant the NEXT refresh
+      A time to Stop refreshing
     """
-    def __init__(self, start_date, end_date, credit_seconds, interval_date):
-        super(IntervalRefresh, self).__init__(
-            start_date, end_date, credit_seconds)
-        self.interval = interval_date
+
+    def __init__(self, start_increase, end_increase, interval_delta):
+        self.set_dates(start_increase, end_increase, interval_delta)
 
     def __repr__(self):
         return self.__unicode__()
 
     def __unicode__(self):
-        return super(IntervalRefresh, self).__unicode__()
-
-    def _get_next_value(self, next_value):
-        return next_value + self.interval
+        return super(RecurringRefresh, self).__unicode__()
 
 
 class CountingBehavior(object):
     start_date = None
     end_date = None
+    interval_delta = None
 
     @classmethod
-    def _validate(cls, start_date, end_date):
+    def _validate(cls, start_date, end_date, interval_delta):
         if not start_date:
             start_date = timezone.now()
         if not end_date:
             end_date = timezone.now()
+        if interval_delta and\
+                not isinstance(interval_delta,
+                               (timezone.timedelta, relativedelta)):
+            raise TypeError("window_delta REQUIRES a timedelta/relativedelta")
         if end_date < start_date:
             raise ValueError("End date (%s) is GREATER than start date (%s)"
                              % (end_date, start_date))
-        return (start_date, end_date)
+        return (start_date, end_date, interval_delta)
 
     def __init__(self, start_date, end_date):
         """
@@ -234,23 +237,48 @@ class CountingBehavior(object):
         return self.__unicode__()
 
     def __unicode__(self):
-        return "Count from %s to %s"\
-            % (self.start_date, self.end_date)
+        next_start = self.start_date
 
-    def set_dates(self, start_date, end_date):
-        CountingBehavior._validate(start_date, end_date)
+        print_list = []
+        while next_start <= self.end_date:
+            # Set the 'end' based on interval or end date
+            if self.interval_delta:
+                next_stop = next_start + self.interval_delta
+            else:
+                next_stop = self.end_date
+            # If next_stop is at/ahead of the end date,
+            # Stop at the end date
+            if next_stop >= self.end_date:
+                next_stop = self.end_date
+            print_str = "Count from %s to %s"\
+                        % (next_start, next_stop)
+            print_list.append(
+                print_str
+            )
+            # BASE CASE - We are ahead of 'end date' STOP!
+            if next_stop >= self.end_date:
+                break
+            next_start = next_stop
+        # Guaranteed >1 element in print_list
+        return "\n".join(print_list)
+
+    def set_dates(self, start_date, end_date, interval_delta=None):
+        CountingBehavior._validate(start_date, end_date, interval_delta)
         self.start_date = start_date
         self.end_date = end_date
+        self.interval_delta = interval_delta
 
 
 class FixedWindow(CountingBehavior):
     """
+    A fixed window gives complete control over how to 'Count time'
+    window_start - When to begin counting time
+    window_end - When to stop counting time
+    interval_delta - Split ALL time up between 'window_start' and 'window_end'
     """
-    window_start = None
-    window_end = None
 
-    def __init__(self, window_start, window_end):
-        self.set_dates(window_start, window_end)
+    def __init__(self, window_start, window_end, interval_delta=None):
+        self.set_dates(window_start, window_end, interval_delta)
 
     def __repr__(self):
         return self.__unicode__()
@@ -261,13 +289,13 @@ class FixedWindow(CountingBehavior):
 
 class FixedStartSlidingWindow(CountingBehavior):
     """
-    The 'delta' can be RELATIVEdelta or TIMEdelta
+    window_delta - can be RELATIVEdelta or TIMEdelta
     """
     window_start = None
     window_delta = None
 
     @classmethod
-    def _validate(cls, window_start, window_delta):
+    def _validate(cls, window_start, window_delta, interval_delta=None):
         if not window_start:
             window_start = timezone.now()
         if not window_delta or \
@@ -277,12 +305,13 @@ class FixedStartSlidingWindow(CountingBehavior):
 
         start_date = window_start
         end_date = window_start + window_delta
-        return (start_date, end_date)
+        return (start_date, end_date, interval_delta)
 
-    def __init__(self, window_start, window_delta):
-        start_date, end_date = FixedStartSlidingWindow._validate(
-            window_start, window_delta)
-        self.set_dates(start_date, end_date)
+    def __init__(self, window_start, window_delta, interval_delta=None):
+        (start_date, end_date, interval_delta) =\
+            FixedStartSlidingWindow._validate(
+                window_start, window_delta)
+        self.set_dates(start_date, end_date, interval_delta)
         self.window_delta = window_delta
 
     def __repr__(self):
@@ -302,21 +331,23 @@ class FixedEndSlidingWindow(CountingBehavior):
     window_delta = None
 
     @classmethod
-    def _validate(cls, window_end, window_delta):
+    def _validate(cls, window_end, window_delta, interval_delta=None):
         if not window_end:
             window_end = timezone.now()
         if not window_delta or \
                 not isinstance(window_delta,
                                (timezone.timedelta, relativedelta)):
             raise Exception("window_delta REQUIRES a timedelta/relativedelta")
+
         start_date = window_end - window_delta
         end_date = window_end
-        return (start_date, end_date)
+        return (start_date, end_date, interval_delta)
 
-    def __init__(self, window_end, window_delta):
-        start_date, end_date = FixedEndSlidingWindow._validate(
-            window_end, window_delta)
-        self.set_dates(start_date, end_date)
+    def __init__(self, window_end, window_delta, interval_delta=None):
+        (start_date, end_date, interval_delta) =\
+            FixedEndSlidingWindow._validate(
+            window_end, window_delta, interval_delta)
+        self.set_dates(start_date, end_date, interval_delta)
         self.window_delta = window_delta
 
     def __repr__(self):
