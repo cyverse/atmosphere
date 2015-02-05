@@ -28,22 +28,4 @@ class Migration(migrations.Migration):
             },
             bases=(models.Model,),
         ),
-        migrations.AlterField(
-            model_name='allocationrequest',
-            name='start_date',
-            field=models.DateTimeField(default=django.utils.timezone.now),
-            preserve_default=True,
-        ),
-        migrations.AlterField(
-            model_name='quotarequest',
-            name='start_date',
-            field=models.DateTimeField(default=django.utils.timezone.now),
-            preserve_default=True,
-        ),
-        migrations.AlterField(
-            model_name='statustype',
-            name='start_date',
-            field=models.DateTimeField(default=django.utils.timezone.now),
-            preserve_default=True,
-        ),
     ]
