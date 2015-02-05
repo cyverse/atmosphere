@@ -8,7 +8,7 @@ from .get_context_user import get_context_user
 
 
 class ProjectSerializer(serializers.ModelSerializer):
-    id = serializers.ReadOnlyField(source='uuid')
+    id = serializers.Field(source='uuid')
     #Edits to Writable fields..
     owner = serializers.SlugRelatedField(slug_field='name', queryset=Group.objects.all())
     # These fields are READ-ONLY!

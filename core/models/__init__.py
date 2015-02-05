@@ -89,3 +89,11 @@ def _get_or_create_provider_machine(provider, image_alias, created_by):
             created_by,
             "Created to support instanceModel")
     return provider_machine
+
+def represent():
+    from api.serializers import ProfileSerializer
+    from core.models import UserProfile
+    profile = UserProfile.objects.get(user__username='sgregory')
+    ps = ProfileSerializer(profile)
+    import ipdb;ipdb.set_trace()
+    return ps.data

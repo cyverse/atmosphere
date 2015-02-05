@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 
 class MaintenanceRecordSerializer(serializers.ModelSerializer):
-    provider_id = serializers.ReadOnlyField(source='provider.uuid')
+    provider_id = serializers.Field(source='provider.uuid')
 
     class Meta:
         model = MaintenanceRecord

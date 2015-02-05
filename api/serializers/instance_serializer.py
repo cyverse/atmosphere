@@ -18,7 +18,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     #created_by = serializers.CharField(read_only=True, source='creator_name')
     created_by = serializers.SlugRelatedField(slug_field='username', read_only=True)
     status = serializers.CharField(read_only=True, source='esh_status')
-    fault = serializers.ReadOnlyField(source='esh_fault')
+    fault = serializers.Field(source='esh_fault')
     size_alias = serializers.CharField(read_only=True, source='esh_size')
     machine_alias = serializers.CharField(read_only=True, source='esh_source')
     machine_name = serializers.CharField(read_only=True,
