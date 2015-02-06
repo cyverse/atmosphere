@@ -13,6 +13,8 @@ from core.models import Provider
 
 from service.accounts.openstack import AccountDriver
 
+import django
+django.setup()
 
 def main():
     """

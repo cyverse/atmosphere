@@ -3,6 +3,8 @@ import libcloud.security
 
 from core.models import Provider, PlatformType, ProviderType, Identity, Group,\
     ProviderMembership, IdentityMembership, AccountProvider, Quota
+import django
+django.setup()
 
 libcloud.security.VERIFY_SSL_CERT = False
 libcloud.security.VERIFY_SSL_CERT_STRICT = False

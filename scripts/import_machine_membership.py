@@ -10,6 +10,8 @@ from api.machine import list_filtered_machines
 from django.db.models import Q
 from django.utils import timezone
 import json
+import django
+django.setup()
 
 def write_membership(group, pm):
     obj, created = ProviderMachineMembership.objects.get_or_create(

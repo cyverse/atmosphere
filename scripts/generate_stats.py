@@ -2,6 +2,8 @@
 import requests
 from django.utils import timezone
 from datetime import timedelta, datetime
+import django
+django.setup()
 
 def main():
     now = timezone.now()
