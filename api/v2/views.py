@@ -22,10 +22,6 @@ class TagViewSet(viewsets.ModelViewSet):
     serializer_class = TagSerializer
     permission_classes = (IsAuthenticatedOrReadOnly,)
 
-    # def create(self, request, *args, **kwargs):
-    #     request.DATA['user'] = request.user.id
-    #     return super(viewsets.ModelViewSet, self).create(request, *args, **kwargs)
-
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
@@ -87,20 +83,21 @@ class ImageViewSet(viewsets.ModelViewSet):
     search_fields = ('name', 'description')
 
 
-class ProviderViewSet(viewsets.ModelViewSet):
+class ProviderViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint that allows providers to be viewed or edited.
     """
     queryset = Provider.objects.all()
     serializer_class = ProviderSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+    permission_classes = (IsAuthenticated,)
+    http_method_names = ['get', 'head', 'options', 'trace']
 
     def get_permissions(self):
         method = self.request.method
         if method == 'DELETE' or method == 'PUT':
             self.permission_classes = (IsAdminUser,)
 
-        return super(viewsets.ModelViewSet, self).get_permissions()
+        return super(viewsets.GenericViewSet, self).get_permissions()
 
     def get_queryset(self):
         """

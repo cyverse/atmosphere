@@ -3,6 +3,7 @@ from api.v2.views import ProviderViewSet
 from .factories import ProviderFactory, UserFactory, AnonymousUserFactory, GroupFactory, ProviderMembershipFactory
 from django.core.urlresolvers import reverse
 from core.models import Provider
+from rest_framework.authtoken.models import Token
 
 
 class GetProviderListTests(APITestCase):
@@ -148,4 +149,19 @@ class DeleteProviderTests(APITestCase):
         force_authenticate(self.request, user=self.staff_user)
         response = self.view(self.request, pk=self.provider.id)
         self.assertEquals(response.status_code, 204)
+
+
+class CreateProviderTests(APITestCase):
+    def test_endpoint_does_not_exist(self):
+        self.assertTrue('post' not in ProviderViewSet.http_method_names)
+
+
+class UpdateProviderTests(APITestCase):
+    def test_endpoint_does_not_exist(self):
+        self.assertTrue('put' not in ProviderViewSet.http_method_names)
+
+
+class DeleteProviderTests(APITestCase):
+    def test_endpoint_does_not_exist(self):
+        self.assertTrue('delete' not in ProviderViewSet.http_method_names)
 
