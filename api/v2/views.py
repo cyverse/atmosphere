@@ -31,13 +31,6 @@ class TagViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         method = self.request.method
-        # if method == 'CREATE' or method == 'UPDATE':
-        #     self.permission_classes = (IsAuthenticated,)
-        # elif method == 'DELETE':
-        #     self.permission_classes = (IsAdminUser,)
-        # else:
-        #     self.permission_classes = (IsAuthenticatedOrReadOnly,)
-
         if method == 'DELETE' or method == 'PUT':
             self.permission_classes = (IsAdminUser,)
 
@@ -100,6 +93,14 @@ class ProviderViewSet(viewsets.ModelViewSet):
     """
     queryset = Provider.objects.all()
     serializer_class = ProviderSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,)
+
+    def get_permissions(self):
+        method = self.request.method
+        if method == 'DELETE' or method == 'PUT':
+            self.permission_classes = (IsAdminUser,)
+
+        return super(viewsets.ModelViewSet, self).get_permissions()
 
     def get_queryset(self):
         """
