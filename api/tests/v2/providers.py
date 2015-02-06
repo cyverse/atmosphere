@@ -113,44 +113,6 @@ class GetProviderDetailTests(APITestCase):
         self.assertIn('end_date', provider_data)
 
 
-class DeleteProviderTests(APITestCase):
-    def setUp(self):
-        self.providers = ProviderFactory.create_batch(2)
-        self.view = ProviderViewSet.as_view({'delete': 'destroy'})
-        self.anonymous_user = AnonymousUserFactory()
-        self.user = UserFactory.create()
-        self.staff_user = UserFactory.create(is_staff=True)
-
-        group = GroupFactory.create(name=self.staff_user.username)
-        self.provider = self.providers[0]
-        ProviderMembershipFactory.create(member=group, provider=self.provider)
-        self.no_provider = self.providers[1]
-
-        factory = APIRequestFactory()
-        url = reverse('api_v2:provider-detail', args=(self.provider.id,))
-        self.request = factory.delete(url)
-
-    def test_anonymous_user_cannot_delete_provider(self):
-        force_authenticate(self.request, user=self.anonymous_user)
-        response = self.view(self.request, pk=self.provider.id)
-        self.assertEquals(response.status_code, 403)
-
-    def test_non_staff_user_cannot_delete_provider(self):
-        force_authenticate(self.request, user=self.user)
-        response = self.view(self.request, pk=self.provider.id)
-        self.assertEquals(response.status_code, 403)
-
-    def test_staff_user_cannot_delete_provider_they_cannot_see(self):
-        force_authenticate(self.request, user=self.staff_user)
-        response = self.view(self.request, pk=self.no_provider.id)
-        self.assertEquals(response.status_code, 404)
-
-    def test_staff_user_can_delete_provider_they_can_see(self):
-        force_authenticate(self.request, user=self.staff_user)
-        response = self.view(self.request, pk=self.provider.id)
-        self.assertEquals(response.status_code, 204)
-
-
 class CreateProviderTests(APITestCase):
     def test_endpoint_does_not_exist(self):
         self.assertTrue('post' not in ProviderViewSet.http_method_names)
