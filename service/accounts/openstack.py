@@ -32,7 +32,7 @@ class AccountDriver():
     core_provider = None
 
     MASTER_RULES_LIST = [
-        ("ICMP", -1, 255),
+        ("ICMP", 0, 255),
         #FTP Access
         ("UDP", 20, 20),  # FTP data transfer
         ("TCP", 20, 21),  # FTP control
@@ -105,7 +105,6 @@ class AccountDriver():
         self.net_creds = self._build_network_creds(all_creds)
 
         #Initialize managers with respective credentials
-        logger.info(self.user_creds)
         self.user_manager = UserManager(**self.user_creds)
         self.image_manager = ImageManager(**self.image_creds)
         self.network_manager = NetworkManager(**self.net_creds)
@@ -544,6 +543,7 @@ class AccountDriver():
         #Ignored:
         net_args["auth_url"] = net_args.pop("admin_url").replace("/tokens", "")
         net_args.pop("location", None)
+        net_args.pop("ex_project_name", None)
 
         return net_args
 
