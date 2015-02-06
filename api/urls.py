@@ -26,8 +26,7 @@ from api.instance import InstanceList, Instance,\
 from api.license import LicenseList, License
 from api.machine import MachineList, Machine, MachineHistory,\
     MachineSearch, MachineVote, MachineIcon, MachineLicense
-from api.machine_request import MachineRequestList, MachineRequest,\
-    MachineRequestStaffList, MachineRequestStaff
+from api.machine_request import MachineRequestList, MachineRequest
 from api.machine_export import MachineExportList, MachineExport
 from api.maintenance import MaintenanceRecordList, MaintenanceRecord
 from api.meta import Meta, MetaAction
