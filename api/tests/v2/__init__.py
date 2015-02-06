@@ -1,0 +1,1 @@
+from .tags import GetTagListTests, GetTagDetailTests, CreateTagTests, UpdateTagTests, DeleteTagTests

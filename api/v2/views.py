@@ -1,6 +1,6 @@
 import django_filters
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, IsAdminUser
 from rest_framework.decorators import detail_route
 from core.models import Tag, Project, Application as Image, Provider, Identity, Quota, Allocation, Volume, \
     Instance, InstanceAction, VolumeAction, ProviderType, PlatformType, ProviderMachine, \
@@ -11,6 +11,7 @@ from .serializers import TagSerializer, UserSerializer, ProjectSerializer, Image
     InstanceActionSerializer, VolumeActionSerializer, ProviderTypeSerializer, PlatformTypeSerializer, \
     ProviderMachineSerializer, ImageBookmarkSerializer, SizeSerializer, SizeSummarySerializer
 from core.query import only_current
+from rest_framework import permissions
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -20,6 +21,27 @@ class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = (IsAuthenticatedOrReadOnly,)
+
+    # def create(self, request, *args, **kwargs):
+    #     request.DATA['user'] = request.user.id
+    #     return super(viewsets.ModelViewSet, self).create(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def get_permissions(self):
+        method = self.request.method
+        # if method == 'CREATE' or method == 'UPDATE':
+        #     self.permission_classes = (IsAuthenticated,)
+        # elif method == 'DELETE':
+        #     self.permission_classes = (IsAdminUser,)
+        # else:
+        #     self.permission_classes = (IsAuthenticatedOrReadOnly,)
+
+        if method == 'DELETE' or method == 'PUT':
+            self.permission_classes = (IsAdminUser,)
+
+        return super(viewsets.ModelViewSet, self).get_permissions()
 
 
 class UserViewSet(viewsets.ModelViewSet):
