@@ -73,8 +73,8 @@ def list_filtered_machines(esh_driver, provider_uuid, request_user=None):
 
 def all_filtered_machines():
     return ProviderMachine.objects.exclude(
-        Q(identifier__startswith="eki-")
-        | Q(identifier__startswith="eri")).order_by("-application__start_date")
+        Q(instance_source__identifier__startswith="eki-")
+        | Q(instance_source__identifier__startswith="eri")).order_by("-application__start_date")
 
 
 class MachineList(APIView):
