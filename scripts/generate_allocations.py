@@ -2,6 +2,8 @@
 import argparse
 from core.models import Provider, Identity
 from service.monitoring import _get_allocation_result
+import django
+django.setup()
 
 def main():
     """

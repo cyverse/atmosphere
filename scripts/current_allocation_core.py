@@ -4,6 +4,8 @@ from django.conf import settings
 from service.allocation import core_instance_time, get_delta, get_allocation
 from django.utils import timezone
 from core.models import Provider, Identity
+import django
+django.setup()
 
 def check_usernames(provider_id, usernames):
     for username in usernames:

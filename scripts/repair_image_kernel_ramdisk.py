@@ -5,6 +5,8 @@ import logging
 
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 from core.models import Provider, Identity, MachineRequest
+import django
+django.setup()
 
 def main():
     parser = argparse.ArgumentParser()

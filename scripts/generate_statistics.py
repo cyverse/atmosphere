@@ -1,5 +1,7 @@
 from core.models import Instance
 from django.utils import timezone
+import django
+django.setup()
 
 def top_launches(count, instance_set):
     identity_set = instance_set.values('created_by_identity').distinct()

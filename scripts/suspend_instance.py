@@ -8,6 +8,8 @@ from service.driver import get_esh_driver
 from core.models import Provider, Identity
 
 from service.instance import suspend_instance, resume_instance
+import django
+django.setup()
 
 
 def main():

@@ -9,6 +9,8 @@ from core.models import AtmosphereUser as User
 from pytz import timezone
 
 from core.models import IdentityMembership, Quota, Provider
+import django
+django.setup()
 
 def get_unique_quota(old_list):
     d = {}

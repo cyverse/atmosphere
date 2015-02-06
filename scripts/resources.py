@@ -6,6 +6,8 @@ import libcloud.security
 from core.models import Provider
 
 from service.driver import get_admin_driver
+import django
+django.setup()
 
 libcloud.security.VERIFY_SSL_CERT = False
 libcloud.security.VERIFY_SSL_CERT_STRICT = False

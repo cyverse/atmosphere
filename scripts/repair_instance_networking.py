@@ -14,6 +14,8 @@ from service.accounts.openstack import AccountDriver as OSAccountDriver
 from service.driver import get_esh_driver
 from service.instance import network_init
 
+import django
+django.setup()
 
 def get_next_ip(ports):
     max_ip = -1

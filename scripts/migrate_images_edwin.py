@@ -3,6 +3,8 @@ from chromogenic.migrate import migrate_image
 from core.models import Provider, Identity, ProviderMachine
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
+import django
+django.setup()
 
 failed_imaes = [
 # NOTE: Fails to complete when 'yum' is running

@@ -2,6 +2,8 @@
 from core.models import Identity
 from service.driver import get_esh_driver
 
+import django
+django.setup()
 def main():
     for ident in Identity.objects.filter(provider__id=1):
         driver = get_esh_driver(ident)

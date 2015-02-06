@@ -8,6 +8,8 @@ from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 from core.models import AtmosphereUser as User
 from core.models import Provider, Quota
+import django
+django.setup()
 
 def main():
     """

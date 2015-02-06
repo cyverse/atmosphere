@@ -4,6 +4,8 @@ import logging
 from optparse import OptionParser
 
 from service_old.models import Instance
+import django
+django.setup()
 
 def export_instance_tags():
   instance_tags = []

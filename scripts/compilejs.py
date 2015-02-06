@@ -4,6 +4,8 @@ import os
 from atmosphere import settings
 from web.views import compile_js
 
+import django
+django.setup()
 def main():
     output_file_path = os.path.join(settings.root_dir, 'resources', 'js', 'cf2.min.js')
     output_file = open(output_file_path, 'w')
