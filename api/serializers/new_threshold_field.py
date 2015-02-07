@@ -3,9 +3,6 @@ from rest_framework import serializers
 
 class NewThresholdField(serializers.Field):
 
-    def to_native(self, threshold_dict):
-        return self.to_representation(threshold_dict)
-
     def to_representation(self, threshold_dict):
         return threshold_dict
 
