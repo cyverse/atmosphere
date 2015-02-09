@@ -11,3 +11,4 @@ from .quota_factory import QuotaFactory
 from .allocation_factory import AllocationFactory
 from .instance_action_factory import InstanceActionFactory
 from .volume_action_factory import VolumeActionFactory
+from .provider_type_factory import ProviderTypeFactory
