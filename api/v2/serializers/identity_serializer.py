@@ -6,7 +6,7 @@ from .user_serializer import UserSerializer
 
 
 class IdentitySerializer(serializers.HyperlinkedModelSerializer):
-    quota = QuotaSerializer(source='get_quota.__dict__')
+    quota = QuotaSerializer(source='get_quota')
     allocation = AllocationSerializer(source='get_allocation')
     user = UserSerializer(source='created_by')
 
