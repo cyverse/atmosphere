@@ -237,6 +237,7 @@ class PlatformTypeViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = PlatformType.objects.all()
     serializer_class = PlatformTypeSerializer
+    http_method_names = ['get', 'head', 'options', 'trace']
 
 
 class ProviderMachineViewSet(viewsets.ReadOnlyModelViewSet):
