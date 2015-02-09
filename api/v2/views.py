@@ -90,6 +90,8 @@ class ImageViewSet(viewsets.ModelViewSet):
     serializer_class = ImageSerializer
     filter_fields = ('created_by__username', 'tags__name')
     search_fields = ('name', 'description')
+    permission_classes = (IsAuthenticatedOrReadOnly,)
+    http_method_names = ['get', 'head', 'options', 'trace']
 
 
 class ProviderViewSet(viewsets.ReadOnlyModelViewSet):
