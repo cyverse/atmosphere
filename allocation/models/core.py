@@ -54,13 +54,13 @@ class Machine(object):
     @classmethod
     def from_core(cls, core_pm):
         return cls(name=core_pm.application.name,
-                   identifier=core_pm.identifier)
+                   identifier=core_pm.instance_source.identifier)
 
     def __repr__(self):
         return self.__unicode__()
 
     def __unicode__(self):
-        return "<Machine:%s %s>" % (self.name, self.identifier)
+        return "<Machine:%s %s>" % (self.name, self.instance_source.identifier)
 
 
 class Size(object):
@@ -94,7 +94,7 @@ class Instance(object):
     @classmethod
     def from_core(cls, core_instance, start_date=None):
         pm = core_instance.source.providermachine
-        prov = Provider.from_core(pm.provider)
+        prov = Provider.from_core(pm.instance_source.provider)
         mach = Machine.from_core(pm)
         instance_history = []
         if not start_date:

@@ -1,6 +1,7 @@
 from core.models.application import ApplicationScore
 from core.models.machine import ProviderMachine
 from core.models import Tag
+from core.models.instance_source import InstanceSource
 from rest_framework import serializers
 from .license_serializer import LicenseSerializer
 from .tag_related_field import TagRelatedField
@@ -8,7 +9,7 @@ from .tag_related_field import TagRelatedField
 
 class ProviderMachineSerializer(serializers.ModelSerializer):
     #R/O Fields first!
-    alias = serializers.CharField(read_only=True, source='identifier')
+    alias = serializers.ReadOnlyField(source='instance_source.identifier')
     alias_hash = serializers.CharField(read_only=True, source='hash_alias')
     created_by = serializers.CharField(
         read_only=True, source='application.created_by.username')
@@ -26,8 +27,8 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     tags = TagRelatedField(slug_field='name', source='application.tags.all', many=True, queryset=Tag.objects.all())
     # licenses = LicenseSerializer(source='licenses.all', read_only=True)
     description = serializers.CharField(source='application.description')
-    start_date = serializers.CharField()
-    end_date = serializers.CharField(required=False, read_only=True)
+    start_date = serializers.ReadOnlyField(source='instance_source.start_date')
+    end_date = serializers.ReadOnlyField(source='instance_source.end_date')
     featured = serializers.BooleanField(source='application.featured')
     version = serializers.CharField()
 
@@ -53,4 +54,4 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProviderMachine
-        exclude = ('id', 'provider', 'application', 'licenses',)
+        exclude = ('id', 'instance_source', 'application', 'licenses',)

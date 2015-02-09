@@ -10,7 +10,7 @@ from threepio import logger
 
 from atmosphere import settings
 
-from core.query import only_current
+from core.query import only_current, only_current_source
 from core.models.provider import Provider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
@@ -45,17 +45,15 @@ class Application(models.Model):
                 * The ProviderMachine has not exceeded its end_date
         """
         pms = self.providermachine_set.filter(
-            Q(provider__end_date=None)
-            | Q(provider__end_date__gt=timezone.now()),
-            only_current(),
-            provider__active=True)
+            only_current_source(),
+            instance_source__provider__active=True)
         if request_user:
             if type(request_user) == AnonymousUser:
                 providers = Provider.objects.filter(public=True)
             else:
                 providers = [identity.provider for identity in
                              request_user.identity_set.all()]
-            pms = pms.filter(provider__in=providers)
+            pms = pms.filter(instance_source__provider__in=providers)
         return pms
 
     def get_threshold(self):
@@ -127,11 +125,7 @@ class Application(models.Model):
 
     def get_provider_machines(self):
         pms = self._current_machines()
-        return [{"start_date": pm.start_date,
-                 "end_date": pm.end_date,
-                 "alias": pm.identifier,
-                 "version": pm.version,
-                 "provider": pm.provider.id} for pm in pms]
+        return [pm.to_dict() for pm in pms]
 
     def save(self, *args, **kwargs):
         """
@@ -197,17 +191,25 @@ class ApplicationMembership(models.Model):
         unique_together = ('application', 'group')
 
 
+def _has_active_provider(app):
+    machines = app.providermachine_set.filter(
+        Q(instance_source__end_date=None) |
+        Q(instance_source__end_date__gt=timezone.now())
+    )
+    providers =(pm.instance_source.provider for pm in machines)
+    return any(p.is_active() for p in providers)
+
 def public_applications():
-    apps = []
-    for app in Application.objects.filter(
-            Q(end_date=None) | Q(end_date__gt=timezone.now()),
-            private=False):
-        if any(pm.provider.is_active()
-               for pm in
-               app.providermachine_set.filter(
-                   Q(end_date=None) | Q(end_date__gt=timezone.now()))):
-            _add_app(apps, app)
-    return apps
+    public_apps = []
+    applications = Application.objects.filter(
+        Q(end_date=None) |
+        Q(end_date__gt=timezone.now()),
+        private=False)
+
+    for app in applications:
+        if _has_active_provider(app):
+            _add_app(public_apps, app)
+    return public_apps
 
 
 def visible_applications(user):
@@ -218,14 +220,11 @@ def visible_applications(user):
     active_providers = Provider.get_active()
     now_time = timezone.now()
     #Look only for 'Active' private applications
-    for app in Application.objects.filter(
-            Q(end_date=None) | Q(end_date__gt=now_time),
-            private=True):
+    for app in Application.objects.filter(only_current(), private=True):
         #Retrieve the machines associated with this app
-        machine_set = app.providermachine_set.filter(
-            Q(end_date=None) | Q(end_date__gt=now_time))
+        machine_set = app.providermachine_set.filter(only_current_source())
         #Skip app if all their machines are on inactive providers.
-        if all(not pm.provider.is_active() for pm in machine_set):
+        if all(not pm.instance_source.provider.is_active() for pm in machine_set):
             continue
         #Add the application if 'user' is a member of the application or PM
         if app.members.filter(user=user):

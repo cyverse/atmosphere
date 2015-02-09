@@ -747,7 +747,7 @@ def check_application_threshold(username, identity_uuid, esh_size, machine_alias
     """
     """
     application = Application.objects.filter(
-            providermachine__identifier=machine_alias).distinct().get()
+        providermachine__instance_source__identifier=machine_alias).distinct().get()
     threshold = application.get_threshold()
     if not threshold:
         return

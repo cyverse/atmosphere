@@ -1,6 +1,6 @@
 """
-  Abstract models for atmosphere. 
-  NOTE: These models should NEVER be created directly. 
+  Abstract models for atmosphere.
+  NOTE: These models should NEVER be created directly.
   See the respective sub-classes for complete implementation details.
 """
 from uuid import uuid4

@@ -1,5 +1,5 @@
 from core.models.project import Project, Group
-from core.query import only_current
+from core.query import only_current, only_current_source
 from rest_framework import serializers
 from .application_serializer import ApplicationSerializer
 from .instance_serializer import InstanceSerializer
@@ -34,7 +34,8 @@ class ProjectSerializer(serializers.ModelSerializer):
         return [VolumeSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            project.volumes.filter(only_current(), provider__active=True)]
+            project.volumes.filter(only_current_source(),
+                                   instance_source__provider__active=True)]
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)

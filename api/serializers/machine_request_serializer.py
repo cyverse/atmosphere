@@ -1,6 +1,7 @@
 from core.models.machine_request import MachineRequest
 from core.models.user import AtmosphereUser
 from core.models.instance import Instance
+from core.models.instance_source import InstanceSource
 from core.models.provider import Provider
 from core.models.machine import ProviderMachine
 from rest_framework import serializers
@@ -13,8 +14,8 @@ class MachineRequestSerializer(serializers.ModelSerializer):
     """
     instance = serializers.SlugRelatedField(slug_field='provider_alias', queryset=Instance.objects.all())
     status = serializers.CharField(default="pending")
-    parent_machine = serializers.SlugRelatedField(slug_field='identifier',
-                                                  read_only=True)
+    parent_machine = serializers.ReadOnlyField(
+        source="instance_source.identifier")
 
     sys = serializers.CharField(default="", source='iplant_sys_files',
                                 required=False)
@@ -45,9 +46,9 @@ class MachineRequestSerializer(serializers.ModelSerializer):
     #TODO: Convert to 'LicenseField' and allow POST of ID instead of
     #      full-object. for additional support for the image creator
     licenses = LicenseSerializer(source='new_machine_licenses.all', many=True)
-    new_machine = serializers.SlugRelatedField(slug_field='identifier',
-                                               required=False,
-                                               queryset=ProviderMachine.objects.all()
+    new_machine = serializers.SlugRelatedField(
+        slug_field='identifier', required=False,
+        queryset=InstanceSource.objects.all()
     )
 
     class Meta:
