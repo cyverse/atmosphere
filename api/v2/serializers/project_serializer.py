@@ -14,18 +14,20 @@ class UserRelatedField(serializers.RelatedField):
     def to_representation(self, value):
         username = value.__str__()
         user = AtmosphereUser.objects.get(username=username)
-        serializer = UserSerializer(user)
+        # serializer = UserSerializer(user, context={'request': self.context['request']})
+        serializer = UserSerializer(user, context=self.context)
         return serializer.data
 
 
-class ProjectSerializer(serializers.ModelSerializer):
+class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     instances = InstanceSummarySerializer(many=True, read_only=True)
     volumes = VolumeSummarySerializer(many=True, read_only=True)
     # note: both of these requests become a single DB query, but I'm choosing the
-    # owner.name rate so the API doesn't break when we start adding users to groups
+    # owner.name route so the API doesn't break when we start adding users to groups
     # owner = UserSerializer(source='owner.user_set.first')
     owner = UserRelatedField(source='owner.name')
 
     class Meta:
         model = Project
-        fields = ('id', 'name', 'description', 'owner', 'instances', 'volumes', 'start_date', 'end_date')
+        view_name = 'api_v2:project-detail'
+        fields = ('id', 'url', 'name', 'description', 'owner', 'instances', 'volumes', 'start_date', 'end_date')
