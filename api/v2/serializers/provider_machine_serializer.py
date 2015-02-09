@@ -5,11 +5,12 @@ from .provider_summary_serializer import ProviderSummarySerializer
 from .user_serializer import UserSerializer
 
 
-class ProviderMachineSerializer(serializers.ModelSerializer):
+class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
     image = ImageSummarySerializer(source='application')
     provider = ProviderSummarySerializer()
     created_by = UserSerializer()
 
     class Meta:
         model = ProviderMachine
-        fields = ('id', 'image', 'provider', 'created_by', 'start_date', 'end_date')
+        view_name = 'api_v2:providermachine-detail'
+        fields = ('id', 'url', 'image', 'provider', 'created_by', 'start_date', 'end_date')
