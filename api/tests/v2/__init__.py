@@ -46,7 +46,15 @@
 #     DeleteTests
 # )
 
-from .quotas import (
+# from .quotas import (
+#     GetListTests,
+#     GetDetailTests,
+#     CreateTests,
+#     UpdateTests,
+#     DeleteTests
+# )
+
+from .allocations import (
     GetListTests,
     GetDetailTests,
     CreateTests,

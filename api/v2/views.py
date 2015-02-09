@@ -160,6 +160,7 @@ class AllocationViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Allocation.objects.all()
     serializer_class = AllocationSerializer
+    http_method_names = ['get', 'head', 'options', 'trace']
 
 
 class VolumeFilter(django_filters.FilterSet):
