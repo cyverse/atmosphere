@@ -4,8 +4,9 @@ from .user_serializer import UserSerializer
 from .tag_serializer import TagSerializer
 
 
-class ImageSummarySerializer(serializers.ModelSerializer):
+class ImageSummarySerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Image
-        fields = ('id', 'uuid', 'name', 'description', 'icon', 'start_date', 'end_date')
+        view_name = 'api_v2:application-detail'
+        fields = ('id', 'url', 'uuid', 'name', 'description', 'icon', 'start_date', 'end_date')
