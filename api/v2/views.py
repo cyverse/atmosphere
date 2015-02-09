@@ -133,6 +133,7 @@ class IdentityViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Identity.objects.all()
     serializer_class = IdentitySerializer
+    http_method_names = ['get', 'head', 'options', 'trace']
 
     def get_queryset(self):
         """

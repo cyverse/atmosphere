@@ -30,10 +30,18 @@
 #     DeleteTests
 # )
 
-from .images import (
-    GetListTests,
+# from .images import (
+#     GetListTests,
+#     GetDetailTests,
+#     CreateTests,
+#     UpdateTests,
+#     DeleteTests
+# )
+
+from .identities import (
+    # GetListTests,
     GetDetailTests,
-    CreateTests,
-    UpdateTests,
-    DeleteTests
+    # CreateTests,
+    # UpdateTests,
+    # DeleteTests
 )

@@ -5,3 +5,7 @@ from .group_factory import GroupFactory
 from .provider_membership_factory import ProviderMembershipFactory
 from .project_factory import ProjectFactory
 from .image_factory import ImageFactory
+from .identity_factory import IdentityFactory
+from .identity_membership_factory import IdentityMembershipFactory
+from .quota_factory import QuotaFactory
+from .allocation_factory import AllocationFactory
