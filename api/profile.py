@@ -72,7 +72,7 @@ class Profile(APIView):
         """
         user = request.user
         profile = user.userprofile
-        serializer = ProfileSerializer(profile, data=request.DATA)
+        serializer = ProfileSerializer(profile, data=request.data)
         if serializer.is_valid():
             serializer.save()
             response = Response(serializer.data)

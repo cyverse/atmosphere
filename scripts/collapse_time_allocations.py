@@ -5,6 +5,8 @@ This script serves a very specific purpose:
 """
 
 from core.models import Provider, Instance, InstanceStatusHistory
+import django
+django.setup()
 provs = Provider.get_active()
 for instance in Instance.objects.filter(
         provider_machine__provider__in=provs).order_by('created_by'):

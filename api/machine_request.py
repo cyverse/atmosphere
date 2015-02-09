@@ -5,18 +5,17 @@ Atmosphere service machine rest api.
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.exceptions import NotAuthenticated
 from rest_framework import status
 
 from threepio import logger
 
 
 from api import failure_response
-from api.permissions import InMaintenance, ApiAuthRequired
+from api.permissions import ApiAuthRequired
 from api.serializers import MachineRequestSerializer
 from core.models.machine_request import share_with_admins, share_with_self
 from core.models.machine_request import MachineRequest as CoreMachineRequest
-from core.models import Provider, ProviderMachine, Volume
+from core.models import Provider
 from web.emails import requestImaging
 from service.tasks.machine import start_machine_imaging
 
@@ -98,97 +97,6 @@ class MachineRequestList(APIView):
             return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
 
-class MachineRequestStaffList(APIView):
-    """
-    """
-
-    permission_classes = (ApiAuthRequired,)
-    
-    def get(self, request):
-        """
-        """
-        if not request.user.is_staff:
-            raise NotAuthenticated("Must be a staff user to view requests "
-                                   "directly")
-
-        machine_requests = CoreMachineRequest.objects.all()
-
-        serializer = MachineRequestSerializer(machine_requests, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class MachineRequestStaff(APIView):
-    """
-    This is the staff portal for machine requests
-    A staff member can view any machine request by its ID
-    """
-
-    permission_classes = (ApiAuthRequired,)
-    
-    def get(self, request, machine_request_id, action=None):
-        """
-        OPT 1 for approval: via GET with /approve or /deny
-        This is a convenient way to approve requests remotely
-        """
-        if not request.user.is_staff:
-            raise NotAuthenticated("Must be a staff user to view requests "
-                                   "directly")
-
-        try:
-            machine_request = CoreMachineRequest.objects.get(
-                id=machine_request_id)
-        except CoreMachineRequest.DoesNotExist:
-            return Response('No machine request with id %s'
-                            % machine_request_id,
-                            status=status.HTTP_404_NOT_FOUND)
-
-        serializer = MachineRequestSerializer(machine_request)
-        if not action:
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        machine_request = serializer.object
-        #Don't update the request unless its pending
-        if machine_request.status in ['error','pending']:
-            machine_request.status = action
-            machine_request.save()
-
-        #Only run task if status is 'approve'
-        if machine_request.status == 'approve':
-            start_machine_imaging(machine_request)
-
-        serializer = MachineRequestSerializer(machine_request)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def patch(self, request, machine_request_id, action=None):
-        """
-        OPT2 for approval: sending a PATCH to the machine request with
-          {"status":"approve/deny"}
-        
-        Modfiy attributes on a machine request
-        """
-        if not request.user.is_staff:
-            raise NotAuthenticated("Must be a staff user to view requests "
-                                   "directly")
-
-        try:
-            machine_request = CoreMachineRequest.objects.get(
-                id=machine_request_id)
-        except CoreMachineRequest.DoesNotExist:
-            return Response('No machine request with id %s'
-                            % machine_request_id,
-                            status=status.HTTP_404_NOT_FOUND)
-
-        data = request.DATA
-        serializer = MachineRequestSerializer(machine_request, data=data,
-                partial=True)
-        if serializer.is_valid():
-            #Only run task if status is 'approve'
-            if machine_request.status == 'approve':
-                start_machine_imaging(machine_request)
-            machine_request.save()
-        #Object may have changed
-        serializer = MachineRequestSerializer(machine_request)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class MachineRequest(APIView):

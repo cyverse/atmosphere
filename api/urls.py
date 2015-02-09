@@ -12,7 +12,9 @@ from api.allocation_request import AllocationRequestDetail,\
     AllocationRequestList
 from api.application import ApplicationSearch, ApplicationList, Application,\
                             ApplicationThresholdDetail
-from api.bookmark import  ApplicationBookmarkDetail, ApplicationBookmarkList
+from api.bookmark import ApplicationBookmarkDetail, ApplicationBookmarkList
+from api.cloud_admin import CloudAdmin, CloudAdminActionsList,\
+    CloudAdminImagingRequestList, CloudAdminImagingRequest
 from api.email import Feedback, QuotaEmail, SupportEmail
 from api.flow import Flow
 from api.group import GroupList, Group
@@ -24,8 +26,7 @@ from api.instance import InstanceList, Instance,\
 from api.license import LicenseList, License
 from api.machine import MachineList, Machine, MachineHistory,\
     MachineSearch, MachineVote, MachineIcon, MachineLicense
-from api.machine_request import MachineRequestList, MachineRequest,\
-    MachineRequestStaffList, MachineRequestStaff
+from api.machine_request import MachineRequestList, MachineRequest
 from api.machine_export import MachineExportList, MachineExport
 from api.maintenance import MaintenanceRecordList, MaintenanceRecord
 from api.meta import Meta, MetaAction
@@ -55,6 +56,7 @@ from api.volume import BootVolume, \
 
 from authentication.decorators import atmo_valid_token_required
 # Regex matching you'll use everywhere..
+id_match = "\d+"
 uuid_match = "[a-zA-Z0-9-]+"
 user_match = "[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*)"
 
@@ -160,13 +162,6 @@ private_apis = patterns('',
 
 
 
-    #Machine Requests (Staff view)
-    url(r'^request_image$',
-        MachineRequestStaffList.as_view(), name='direct-machine-request-list'),
-    url(r'^request_image/(?P<machine_request_id>\d+)$',
-        MachineRequestStaff.as_view(), name='direct-machine-request-detail'),
-    url(r'^request_image/(?P<machine_request_id>\d+)/(?P<action>.*)$',
-        MachineRequestStaff.as_view(), name='direct-machine-request-action'),
 
 
     url(provider_specific + r'/account/(?P<username>([A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*))$',
@@ -341,10 +336,36 @@ public_apis = format_suffix_patterns(patterns(
         License.as_view(),
         name='license-detail'),
 
+    url(r'cloud_admin$',
+        CloudAdmin.as_view(),
+        name='cloud-admin-list'),
+
+    url(r"cloud_admin/(?P<cloud_admin_uuid>%s)/$" % uuid_match,
+        CloudAdminActionsList.as_view(),
+        name='cloud-admin-detail'),
+
+    # Machine Requests (Cloud Admin Views)
+    url(r"cloud_admin/(?P<cloud_admin_uuid>%s)"
+        "/imaging_request$"
+        % (uuid_match,),
+        CloudAdminImagingRequestList.as_view(),
+        name='cloud-admin-imaging-request-list'),
+
+    url(r"cloud_admin/(?P<cloud_admin_uuid>%s)"
+        "/imaging_request/(?P<machine_request_id>%s)$"
+        % (uuid_match, id_match),
+        CloudAdminImagingRequest.as_view(),
+        name='cloud-admin-imaging-request-detail'),
+    url(r"cloud_admin/(?P<cloud_admin_uuid>%s)"
+        "/imaging_request/(?P<machine_request_id>%s)/(?P<action>\w)$"
+        % (uuid_match, id_match),
+        CloudAdminImagingRequest.as_view(),
+        name='cloud-admin-imaging-request-detail'),
+
 ))
-urlpatterns = patterns('',
-        url(r'^', include(private_apis,namespace="private_apis")))
-urlpatterns += patterns('',
-        url(r'^', include(public_apis,namespace="public_apis")))
+urlpatterns = patterns(
+    '', url(r'^', include(private_apis, namespace="private_apis")))
+urlpatterns += patterns(
+    '',  url(r'^', include(public_apis, namespace="public_apis")))
 
 

@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.models import User as DjangoUser
 from django.contrib.auth.models import Group as DjangoGroup
+from django.contrib.auth.forms import UserChangeForm
 from django.contrib.sessions.models import Session as DjangoSession
 from django.utils import timezone
 
@@ -202,9 +203,11 @@ class UserProfileInline(admin.StackedInline):
     extra = 0
     verbose_name_plural = 'profile'
 
-
 class UserAdmin(AuthUserAdmin):
     inlines = [UserProfileInline]
+    fieldsets = AuthUserAdmin.fieldsets + (
+        (None, {'fields': ('selected_identity', )}),
+    )
 
 #admin.site.unregister(DjangoUser)
 admin.site.register(AtmosphereUser, UserAdmin)

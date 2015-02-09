@@ -7,6 +7,8 @@ from core.models import Provider, Identity, Instance, InstanceStatusHistory
 from service.driver import get_admin_driver
 from service.instance import suspend_instance
 
+import django
+django.setup()
 
 def main():
     parser = argparse.ArgumentParser()

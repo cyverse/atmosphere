@@ -10,6 +10,9 @@ from core.models import Provider, Identity
 
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 
+import django
+django.setup()
+
 
 libcloud.security.VERIFY_SSL_CERT = False
 #TODO: Remove this and use 'get_members' in authentication/protocols/ldap.py

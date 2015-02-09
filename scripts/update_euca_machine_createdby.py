@@ -1,6 +1,8 @@
 from core.models import Provider, ProviderMachine, Identity, UserProfile
 import re
 
+import django
+django.setup()
 def retrieve_euca_owners(self, orm):
     print 'Parsing existing eucalyptus machines for owners'
     euca_providers = Provider.objects.filter(location='EUCALYPTUS')

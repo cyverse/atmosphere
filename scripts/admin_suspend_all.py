@@ -6,6 +6,8 @@ from collections import OrderedDict
 from core.models import Provider, Identity
 from service.driver import get_admin_driver, get_esh_driver
 from service.instance import suspend_instance, stop_instance
+import django
+django.setup()
 SLEEP_MIN=30
 SLEEP_MAX=2*60
 

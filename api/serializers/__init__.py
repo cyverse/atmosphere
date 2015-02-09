@@ -27,6 +27,7 @@ from .machine_request_serializer import MachineRequestSerializer
 from .maintenance_record_serializer import MaintenanceRecordSerializer
 from .identity_detail_serializer import IdentityDetailSerializer
 from .atmo_user_serializer import AtmoUserSerializer
+from .cloud_admin_serializer import CloudAdminSerializer, CloudAdminActionListSerializer
 from .profile_serializer import ProfileSerializer
 from .provider_machine_serializer import ProviderMachineSerializer
 from .paginated_provider_machine_serializer import PaginatedProviderMachineSerializer

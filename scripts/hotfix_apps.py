@@ -5,6 +5,8 @@ from core.models import Application
 
 from service.driver import get_esh_driver
 
+import django
+django.setup()
 
 def main():
     driver = get_esh_driver(Identity.objects.get(provider__id=4, created_by__username='sgregory'))
