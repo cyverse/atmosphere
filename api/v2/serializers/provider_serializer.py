@@ -5,7 +5,7 @@ from .platform_type_serializer import PlatformTypeSerializer
 from .size_summary_serializer import SizeSummarySerializer
 
 
-class ProviderSerializer(serializers.ModelSerializer):
+class ProviderSerializer(serializers.HyperlinkedModelSerializer):
     name = serializers.CharField(source='location')
     type = ProviderTypeSerializer()
     virtualization = PlatformTypeSerializer()
@@ -13,4 +13,5 @@ class ProviderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Provider
-        fields = ('id', 'name', 'description', 'public', 'active', 'type', 'virtualization', 'sizes', 'start_date', 'end_date', )
+        view_name='api_v2:provider-detail'
+        fields = ('id', 'url', 'name', 'description', 'public', 'active', 'type', 'virtualization', 'sizes', 'start_date', 'end_date', )
