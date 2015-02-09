@@ -5,11 +5,12 @@ from rest_framework.decorators import detail_route
 from core.models import Tag, Project, Application as Image, Provider, Identity, Quota, Allocation, Volume, \
     Instance, InstanceAction, VolumeAction, ProviderType, PlatformType, ProviderMachine, \
     ApplicationBookmark as ImageBookmark, Group, Size
+from core.models.application_tag import ApplicationTag as ImageTag
 from core.models.user import AtmosphereUser
 from .serializers import TagSerializer, UserSerializer, ProjectSerializer, ImageSerializer, ProviderSerializer, \
     IdentitySerializer, QuotaSerializer, AllocationSerializer, VolumeSerializer, InstanceSerializer, \
     InstanceActionSerializer, VolumeActionSerializer, ProviderTypeSerializer, PlatformTypeSerializer, \
-    ProviderMachineSerializer, ImageBookmarkSerializer, SizeSerializer, SizeSummarySerializer
+    ProviderMachineSerializer, ImageBookmarkSerializer, SizeSerializer, SizeSummarySerializer, ImageTagSerializer
 from core.query import only_current
 from rest_framework import permissions
 
@@ -265,3 +266,11 @@ class SizeViewSet(viewsets.ModelViewSet):
         group = Group.objects.get(name=user.username)
         providers = group.providers.filter(only_current(), active=True)
         return Size.objects.filter(only_current(), provider__in=providers)
+
+
+class ImageTagViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows instance tags to be viewed or edited.
+    """
+    queryset = ImageTag.objects.all()
+    serializer_class = ImageTagSerializer

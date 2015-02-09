@@ -20,6 +20,7 @@ router.register(r'platform_types', views.PlatformTypeViewSet)
 router.register(r'provider_machines', views.ProviderMachineViewSet)
 router.register(r'image_bookmarks', views.ImageBookmarkViewSet)
 router.register(r'sizes', views.SizeViewSet)
+router.register(r'image_tags', views.ImageTagViewSet)
 
 urlpatterns = patterns('',
                        url(r'^', include(router.urls)),

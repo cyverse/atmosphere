@@ -19,3 +19,4 @@ from .image_bookmark_serializer import ImageBookmarkSerializer
 from .size_serializer import SizeSerializer
 from .provider_summary_serializer import ProviderSummarySerializer
 from .size_summary_serializer import SizeSummarySerializer
+from .image_tag_serializer import ImageTagSerializer
