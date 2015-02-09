@@ -113,13 +113,40 @@ class OAuthLoginBackend(ModelBackend):
             return None
         logger.debug("[OAUTH] OAuth Token - %s " % oauth_token)
 
-        valid_user, _ = get_user_for_token(oauth_token)
-        if not valid_user:
+        valid_username, _ = get_user_for_token(oauth_token)
+        if not valid_username:
             logger.debug("[OAUTH] Token %s invalid, no user found."
                          % oauth_token)
             return None
-        logger.debug("[OAUTH] Authorized user %s" % valid_user)
-        oauth_attrs = oauth_lookupUser(valid_user)
+        logger.debug("[OAUTH] Authorized user %s" % valid_username)
+        oauth_attrs = oauth_lookupUser(valid_username)
         attributes = oauth_formatAttrs(oauth_attrs)
-        logger.debug("[OAUTH] Authentication Success - " + valid_user)
-        return get_or_create_user(valid_user, attributes)
+        logger.debug("[OAUTH] Authentication Success - " + valid_username)
+        return get_or_create_user(valid_username, attributes)
+
+# Merged ahead of time.. Ignore the man behind the mask
+#class AuthTokenLoginBackend(ModelBackend):
+#    """
+#    AuthenticationBackend for OAuth authorizations
+#    (Authorize user from Third party (web) clients via OAuth)
+#    """
+#    def authenticate(self, username=None, password=None, auth_token=None,
+#                     request=None):
+#        """
+#        Return user if validated by their auth_token
+#        Return None otherwise.
+#        """
+#        try:
+#            valid_token = Token.objects.get(key=auth_token)
+#        except Token.DoesNotExist:
+#            return None
+#        if valid_token.is_expired():
+#            logger.debug(
+#                "[AUTHTOKEN] Token %s is expired. (User:%s)"
+#                % (valid_token.key, valid_token.user))
+#            return None
+#        logger.debug(
+#            "[AUTHTOKEN] Valid Token %s (User:%s)"
+#            % (valid_token.key, valid_token.user))
+#        valid_user = valid_token.user
+#        return get_or_create_user(valid_user.username, None)
