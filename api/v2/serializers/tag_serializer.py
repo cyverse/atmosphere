@@ -3,9 +3,10 @@ from rest_framework import serializers
 from .user_serializer import UserSerializer
 
 
-class TagSerializer(serializers.ModelSerializer):
+class TagSerializer(serializers.HyperlinkedModelSerializer):
     user = UserSerializer(read_only=True)
 
     class Meta:
         model = Tag
-        fields = ('id', 'name', 'description', 'user')
+        view_name = 'api_v2:tag-detail'
+        fields = ('id', 'url', 'name', 'description', 'user')
