@@ -26,7 +26,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
     end_date = serializers.CharField(required=False, read_only=True)
     private = serializers.BooleanField()
     featured = serializers.BooleanField()
-    machines = serializers.SerializerMethodField('get_machines')
+    machines = serializers.SerializerMethodField()
     is_bookmarked = AppBookmarkField(source="bookmarks.all")
     threshold = serializers.RelatedField(read_only=True)
     # projects = ProjectsField()

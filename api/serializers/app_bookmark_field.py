@@ -5,9 +5,6 @@ from rest_framework import serializers
 
 class AppBookmarkField(serializers.Field):
 
-    def to_native(self, bookmark_mgr):
-        return self.to_representation(bookmark_mgr)
-
     def to_representation(self, bookmark_mgr):
         request_user = self.root.request_user
         if type(request_user) == AnonymousUser:

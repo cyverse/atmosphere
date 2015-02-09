@@ -17,4 +17,3 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ('username', 'email', 'groups', 'is_staff', 'is_superuser', 'selected_identity')
