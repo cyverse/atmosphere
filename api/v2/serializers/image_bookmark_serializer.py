@@ -4,10 +4,11 @@ from .user_serializer import UserSerializer
 from .image_summary_serializer import ImageSummarySerializer
 
 
-class ImageBookmarkSerializer(serializers.ModelSerializer):
+class ImageBookmarkSerializer(serializers.HyperlinkedModelSerializer):
     image = ImageSummarySerializer(source='application')
     user = UserSerializer()
 
     class Meta:
         model = ImageBookmark
-        fields = ('id', 'image', 'user')
+        view_name = 'api_v2:applicationbookmark-detail'
+        fields = ('id', 'url', 'image', 'user')
