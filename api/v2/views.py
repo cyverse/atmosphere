@@ -36,7 +36,7 @@ class TagViewSet(viewsets.ModelViewSet):
         return super(viewsets.ModelViewSet, self).get_permissions()
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
@@ -124,7 +124,7 @@ class ProviderViewSet(viewsets.ReadOnlyModelViewSet):
         return self.list(self, *args, **kwargs)
 
 
-class IdentityViewSet(viewsets.ModelViewSet):
+class IdentityViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint that allows providers to be viewed or edited.
     """
@@ -141,7 +141,7 @@ class IdentityViewSet(viewsets.ModelViewSet):
         return user.identity_set.filter(provider__in=providers)
 
 
-class QuotaViewSet(viewsets.ModelViewSet):
+class QuotaViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint that allows providers to be viewed or edited.
     """
@@ -149,7 +149,7 @@ class QuotaViewSet(viewsets.ModelViewSet):
     serializer_class = QuotaSerializer
 
 
-class AllocationViewSet(viewsets.ModelViewSet):
+class AllocationViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint that allows providers to be viewed or edited.
     """
@@ -198,7 +198,7 @@ class InstanceViewSet(viewsets.ModelViewSet):
         return Instance.objects.filter(only_current(), created_by=user)
 
 
-class InstanceActionViewSet(viewsets.ModelViewSet):
+class InstanceActionViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
@@ -206,7 +206,7 @@ class InstanceActionViewSet(viewsets.ModelViewSet):
     serializer_class = InstanceActionSerializer
 
 
-class VolumeActionViewSet(viewsets.ModelViewSet):
+class VolumeActionViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
@@ -214,7 +214,7 @@ class VolumeActionViewSet(viewsets.ModelViewSet):
     serializer_class = VolumeActionSerializer
 
 
-class ProviderTypeViewSet(viewsets.ModelViewSet):
+class ProviderTypeViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
@@ -222,7 +222,7 @@ class ProviderTypeViewSet(viewsets.ModelViewSet):
     serializer_class = ProviderTypeSerializer
 
 
-class PlatformTypeViewSet(viewsets.ModelViewSet):
+class PlatformTypeViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
@@ -230,7 +230,7 @@ class PlatformTypeViewSet(viewsets.ModelViewSet):
     serializer_class = PlatformTypeSerializer
 
 
-class ProviderMachineViewSet(viewsets.ModelViewSet):
+class ProviderMachineViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
@@ -244,6 +244,7 @@ class ImageBookmarkViewSet(viewsets.ModelViewSet):
     """
     queryset = ImageBookmark.objects.all()
     serializer_class = ImageBookmarkSerializer
+    http_method_names = ['get', 'post', 'delete', 'head', 'options', 'trace']
 
     def get_queryset(self):
         """
@@ -253,7 +254,7 @@ class ImageBookmarkViewSet(viewsets.ModelViewSet):
         return ImageBookmark.objects.filter(user=user)
 
 
-class SizeViewSet(viewsets.ModelViewSet):
+class SizeViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
@@ -276,6 +277,7 @@ class ImageTagViewSet(viewsets.ModelViewSet):
     """
     queryset = ImageTag.objects.all()
     serializer_class = ImageTagSerializer
+    http_method_names = ['get', 'post', 'delete', 'head', 'options', 'trace']
 
 
 class InstanceTagViewSet(viewsets.ModelViewSet):
@@ -284,3 +286,4 @@ class InstanceTagViewSet(viewsets.ModelViewSet):
     """
     queryset = InstanceTag.objects.all()
     serializer_class = InstanceTagSerializer
+    http_method_names = ['get', 'post', 'delete', 'head', 'options', 'trace']
