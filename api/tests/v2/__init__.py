@@ -13,3 +13,11 @@ from .providers import (
     UpdateProviderTests,
     DeleteProviderTests
 )
+
+from .projects import (
+    GetProjectListTests,
+    GetProjectDetailTests,
+    CreateProjectTests,
+    UpdateProjectTests,
+    DeleteProjectTests
+)
