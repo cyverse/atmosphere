@@ -54,7 +54,15 @@
 #     DeleteTests
 # )
 
-from .allocations import (
+# from .allocations import (
+#     GetListTests,
+#     GetDetailTests,
+#     CreateTests,
+#     UpdateTests,
+#     DeleteTests
+# )
+
+from .instance_actions import (
     GetListTests,
     GetDetailTests,
     CreateTests,

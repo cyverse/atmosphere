@@ -210,6 +210,7 @@ class InstanceActionViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = InstanceAction.objects.all()
     serializer_class = InstanceActionSerializer
+    http_method_names = ['get', 'head', 'options', 'trace']
 
 
 class VolumeActionViewSet(viewsets.ReadOnlyModelViewSet):
@@ -218,6 +219,7 @@ class VolumeActionViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = VolumeAction.objects.all()
     serializer_class = VolumeActionSerializer
+    http_method_names = ['get', 'head', 'options', 'trace']
 
 
 class ProviderTypeViewSet(viewsets.ReadOnlyModelViewSet):
