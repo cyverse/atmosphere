@@ -21,3 +21,11 @@ from .projects import (
     UpdateProjectTests,
     DeleteProjectTests
 )
+
+from .users import (
+    GetListTests,
+    GetDetailTests,
+    CreateTests,
+    UpdateTests,
+    DeleteTests
+)

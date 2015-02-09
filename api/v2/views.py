@@ -43,6 +43,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AtmosphereUser.objects.all()
     serializer_class = UserSerializer
     filter_fields = ('email',)
+    http_method_names = ['get', 'head', 'options', 'trace']
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
