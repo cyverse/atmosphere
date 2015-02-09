@@ -20,7 +20,7 @@ from django.utils.timezone import timedelta, datetime
 from threepio import logger
 
 from allocation.models import AllocationResult, GlobalRule, InstanceResult,\
-    InstanceRule, InstanceStatusResult
+    InstanceRule, InstanceHistoryResult
 
 
 def _get_zero_date_utc():
@@ -92,21 +92,21 @@ def calculate_allocation(allocation, print_logs=False):
 
         for instance in allocation.instances:
             # "Chatty" Warning - Uncomment at your own risk
-            # logger.debug("> > Calculating Instance Status:%s"
+            # logger.debug("> > Calculating Instance history:%s"
             #             % instance.identifier)
-            status_list = _calculate_instance_status_list(
+            history_list = _calculate_instance_history_list(
                 instance, instance_rules,
                 current_period.start_counting_date,
                 current_period.stop_counting_date,
                 print_logs=print_logs)
-            if not status_list:
+            if not history_list:
                 continue
             instance_result = InstanceResult(
-                identifier=instance.identifier, status_list=status_list)
+                identifier=instance.identifier, history_list=history_list)
             instance_results.append(instance_result)
 
         if print_logs:
-            logger.debug("> > Instance Status Results:")
+            logger.debug("> > Instance history Results:")
             for instance_result in instance_results:
                 logger.debug("> > %s" % instance_result)
         current_period.instance_results = instance_results
@@ -121,40 +121,46 @@ def calculate_allocation(allocation, print_logs=False):
     return current_result
 
 
-def _calculate_instance_status_list(instance, rules, start_date, end_date,
+def _calculate_instance_history_list(instance, rules, start_date, end_date,
                                     print_logs=False):
     """
     Given an instance and a set of 'InstanceRules'
-    Calculate the time used for every unique status name-change.
+    Calculate the time used for every history
     """
     # Calculate time used by applying rules to each history and keeping a
     # running total for each status
-    status_map = {}
+    history_list = []
     for history in instance.history:
         # Sanity check, dont add unnecessary status information.
         if history.end_date and history.end_date < start_date:
             continue
-        status_result = status_map.get(history.status)
-        if not status_result:
-            status_result = InstanceStatusResult(status_name=history.status)
-        total_time = _get_running_time(history, instance, rules, start_date,
-                                       end_date, print_logs=print_logs)
-        status_result.total_time += total_time
+        history_result = InstanceHistoryResult(status_name=history.status)
+
+        # "Old Way" of doing it
+        # total_time = _get_running_time(
+        #     history, instance, rules, start_date,
+        #     end_date, print_logs=print_logs)
+        time_per_second, total_time = _get_running_time(
+            history, instance, rules, start_date,
+            end_date, print_logs=print_logs)
+        history_result.total_time += total_time
         # If the Instance History carries forward PAST the stop_counting_date
         # Calculate the amount of time burned per second.
         if _get_burn_rate_test(history, end_date):
-            burn_rate = _get_burn_rate(history, instance, rules, end_date)
-            status_result.burn_rate += burn_rate
+            # Used when the optimization of 'time_per_sec' is on.
+            burn_rate = time_per_second
+            # "Old Way" of doing it
+            # burn_rate = _get_burn_rate(history, instance, rules, end_date)
+            history_result.burn_rate += burn_rate
         # DEV NOTE: Clock time may not be necessary to carry forward,
         # but we will leave it in for now..
         clock_time = _get_clock_time(history, start_date, end_date, False)
-        status_result.clock_time += clock_time
+        history_result.clock_time += clock_time
         # Save the current calculation for this status-type and
         # re-use next time that we see it
-        status_map[history.status] = status_result
+        history_list.append(history_result)
 
-    # Keys aren't important, but the objects behind them are..
-    return status_map.values()
+    return history_list
 
 
 def _get_burn_rate_test(history, end_date):
@@ -201,7 +207,7 @@ def _get_clock_time(instance_history, start_date, end_date, print_logs=True):
 
     clock_time = use_end - use_start
     if print_logs:
-        logger.debug(">> Counted time: %s - %s = %s"
+        logger.debug(">> Clock time: %s - %s = %s"
                      % (use_end, use_start, clock_time))
     return clock_time
 
@@ -215,6 +221,15 @@ def _get_burn_rate(history, instance, rules, end_date):
     burn_rate = _get_running_time(
         history, instance, rules, one_second_prior, end_date, False)
     return burn_rate
+
+
+def _running_time_per_second(history, instance, rules):
+    running_time = timedelta(seconds=1)
+    for rule in rules:
+        # Each rule is given the previous running_time, and
+        # returns it as a result
+        running_time = rule.apply_rule(instance, history, running_time)
+    return running_time
 
 
 def _get_running_time(history, instance, rules, start_date, end_date,
@@ -233,13 +248,17 @@ def _get_running_time(history, instance, rules, start_date, end_date,
     # Short-Circuit Test
     if running_time == timedelta(0):
         # TODO: Remove this If we have a rule that DOESN'T use multipliers..
-        return running_time
+        return running_time, running_time
+    # Optional 'optimization' to be profiled
+    time_per_second = _running_time_per_second(history, instance, rules)
+    running_time = int(running_time.total_seconds()) * time_per_second  # 30-sec Clock * 5 Seconds/second = 150sec used
+    return time_per_second, running_time
+    # # Current method of applying rules (Better for logging)
+    # for rule in rules:
+    #     # Each rule is given the previous running_time, and
+    #     # returns it as a result
+    #     running_time = rule.apply_rule(instance, history, running_time,
+    #                                    print_logs=print_logs)
 
-    for rule in rules:
-        # Each rule is given the previous running_time, and
-        # returns it as a result
-        running_time = rule.apply_rule(instance, history, running_time,
-                                       print_logs=print_logs)
-
-    # After applying all the rules, the running time has been calculated.
-    return running_time
+    # # After applying all the rules, the running time has been calculated.
+    # return running_time

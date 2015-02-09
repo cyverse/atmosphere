@@ -77,7 +77,7 @@ class AllocationStrategy(object):
         rules = self.default_rules()
         for behavior in self.rule_behaviors:
             rules.extend(
-                behavior.get_rules(identity)
+                behavior.apply_rules(identity, core_allocation)
             )
 
         return Allocation(
@@ -97,8 +97,49 @@ class AllocationStrategy(object):
 class RulesBehavior(object):
     """
     The Rules Behavior
+    All 'RulesBehavior' objects define a set of rules to be applied
+    When/How the rules are applied is dependent on the behavior
     """
+    def __init__(self, rules=[]):
+        self.rules = rules
+    def apply_rules(self, identity, core_allocation):
+        """
+        Logic used to apply rules goes here.
+        """
+        raise NotImplementedError("To be applied by the implementing class")
     pass
+
+
+class GlobalRules(RulesBehavior):
+    """
+    The Global Rules behavior will ALWAYS apply
+    """
+    def apply_rules(self, identity, core_application):
+        return self.rules
+
+
+class NewUserRules(RulesBehavior):
+    """
+    The StaffRules behavior will only apply if the identity is aenoted as staff
+    """
+    def __init__(self, rules, cutoff_date):
+        return super(NewUserRules, self).__init__(rules)
+        self.cutoff_date = cutoff_date
+
+    def apply_rules(self, identity, core_application):
+        if identity.created_by.date_joined > self.cutoff_date:
+            return self.rules
+        return []
+
+
+class StaffRules(RulesBehavior):
+    """
+    The StaffRules behavior will only apply if the identity is denoted as staff
+    """
+    def apply_rules(self, identity, core_application):
+        if identity.created_by.is_staff:
+            return self.rules
+        return []
 
 
 class RefreshBehavior(object):
