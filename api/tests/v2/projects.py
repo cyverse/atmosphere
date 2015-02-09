@@ -85,3 +85,44 @@ class GetProjectDetailTests(APITestCase):
         self.assertIn('volumes', data)
         self.assertIn('start_date', data)
         self.assertIn('end_date', data)
+
+
+class CreateProjectTests(APITestCase):
+    def setUp(self):
+        self.anonymous_user = AnonymousUserFactory()
+        self.user = UserFactory.create()
+        self.group = GroupFactory.create(name=self.user.username)
+        self.project = ProjectFactory.build(owner=self.group)
+
+        self.view = ProjectViewSet.as_view({'post': 'create'})
+        self.factory = APIRequestFactory()
+        self.url = reverse('api_v2:project-list')
+        self.request = self.factory.post(self.url, {
+            'name': self.project.name,
+            'description': self.project.description
+        })
+
+    def test_anonymous_user_cannot_create_project(self):
+        force_authenticate(self.request, user=self.anonymous_user)
+        response = self.view(self.request)
+        self.assertEquals(response.status_code, 403)
+
+    def test_required_fields(self):
+        bad_request = self.factory.post(self.url)
+        force_authenticate(bad_request, user=self.user)
+        response = self.view(bad_request)
+        data = response.data
+
+        self.assertEquals(response.status_code, 400)
+        self.assertEquals(len(data), 1)
+        self.assertIn('name', data)
+
+    def test_authenticated_user_can_create_project(self):
+        self.assertEquals(Project.objects.count(), 0)
+        force_authenticate(self.request, user=self.user)
+        response = self.view(self.request)
+        self.assertEquals(response.status_code, 201)
+        self.assertEquals(Project.objects.count(), 1)
+        project = Project.objects.first()
+        self.assertEquals(project.owner, self.group)
+

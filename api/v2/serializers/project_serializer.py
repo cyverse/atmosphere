@@ -19,8 +19,8 @@ class UserRelatedField(serializers.RelatedField):
 
 
 class ProjectSerializer(serializers.ModelSerializer):
-    instances = InstanceSummarySerializer(many=True)
-    volumes = VolumeSummarySerializer(many=True)
+    instances = InstanceSummarySerializer(many=True, read_only=True)
+    volumes = VolumeSummarySerializer(many=True, read_only=True)
     # note: both of these requests become a single DB query, but I'm choosing the
     # owner.name rate so the API doesn't break when we start adding users to groups
     # owner = UserSerializer(source='owner.user_set.first')

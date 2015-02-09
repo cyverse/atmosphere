@@ -49,6 +49,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
 
+    def perform_create(self, serializer):
+        user = self.request.user
+        group = Group.objects.get(name=user.username)
+        serializer.save(owner=group)
+
     def get_queryset(self):
         """
         Filter projects by current user
