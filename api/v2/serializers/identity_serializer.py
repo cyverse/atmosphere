@@ -5,11 +5,12 @@ from .allocation_serializer import AllocationSerializer
 from .user_serializer import UserSerializer
 
 
-class IdentitySerializer(serializers.ModelSerializer):
+class IdentitySerializer(serializers.HyperlinkedModelSerializer):
     quota = QuotaSerializer(source='get_quota.__dict__')
-    allocation = AllocationSerializer(source='get_allocation.__dict__')
+    allocation = AllocationSerializer(source='get_allocation')
     user = UserSerializer(source='created_by')
 
     class Meta:
         model = Identity
-        fields = ('id', 'quota', 'allocation', 'user')
+        view_name = 'api_v2:identity-detail'
+        fields = ('id', 'url', 'quota', 'allocation', 'user')
