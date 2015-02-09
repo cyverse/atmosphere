@@ -126,3 +126,49 @@ class CreateProjectTests(APITestCase):
         project = Project.objects.first()
         self.assertEquals(project.owner, self.group)
 
+
+class UpdateProjectTests(APITestCase):
+    def setUp(self):
+        self.anonymous_user = AnonymousUserFactory()
+        self.user = UserFactory.create()
+        self.group = GroupFactory.create(name=self.user.username)
+        self.project = ProjectFactory.create(owner=self.group)
+
+        self.not_user = UserFactory.create()
+        self.not_group = GroupFactory.create(name=self.not_user.username)
+        self.not_project = ProjectFactory.create(owner=self.not_group)
+
+        self.updated_project_data = {
+            'name': 'updated name',
+            'description': 'updated description'
+        }
+
+        self.factory = APIRequestFactory()
+        self.url = reverse('api_v2:project-detail', args=(self.project.id,))
+        self.request = self.factory.put(self.url, {
+            'name': self.updated_project_data['name'],
+            'description': self.updated_project_data['description']
+        })
+
+        self.view = ProjectViewSet.as_view({'put': 'update'})
+
+    def test_anonymous_user_cannot_update_project(self):
+        force_authenticate(self.request, user=self.anonymous_user)
+        response = self.view(self.request)
+        self.assertEquals(response.status_code, 403)
+
+    def test_authenticated_user_cannot_update_project_they_do_not_own(self):
+        force_authenticate(self.request, user=self.user)
+        response = self.view(self.request, pk=self.not_project.id)
+        self.assertEquals(response.status_code, 404)
+
+    def test_user_can_update_project(self):
+        self.assertEquals(Project.objects.count(), 2)
+        force_authenticate(self.request, user=self.user)
+        response = self.view(self.request, pk=self.project.id)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(Project.objects.count(), 2)
+        project = Project.objects.first()
+        self.assertEquals(project.name, self.updated_project_data['name'])
+        self.assertEquals(project.description, self.updated_project_data['description'])
+
