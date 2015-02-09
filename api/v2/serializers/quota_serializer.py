@@ -6,4 +6,4 @@ class QuotaSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Quota
         view_name = 'api_v2:quota-detail'
-        # fields = ('id', 'quota')
+        fields = ('id', 'url', 'cpu', 'memory', 'storage', 'storage_count', 'suspended_count')

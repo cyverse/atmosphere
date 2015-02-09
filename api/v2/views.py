@@ -151,6 +151,7 @@ class QuotaViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Quota.objects.all()
     serializer_class = QuotaSerializer
+    http_method_names = ['get', 'head', 'options', 'trace']
 
 
 class AllocationViewSet(viewsets.ReadOnlyModelViewSet):
