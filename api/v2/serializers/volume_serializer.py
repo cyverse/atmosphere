@@ -3,9 +3,10 @@ from rest_framework import serializers
 from .provider_summary_serializer import ProviderSummarySerializer
 
 
-class VolumeSerializer(serializers.ModelSerializer):
+class VolumeSerializer(serializers.HyperlinkedModelSerializer):
     provider = ProviderSummarySerializer()
 
     class Meta:
         model = Volume
-        fields = ('id', 'size', 'name', 'start_date', 'provider')
+        view_name = 'api_v2:volume-detail'
+        fields = ('id', 'url', 'size', 'name', 'start_date', 'provider')
