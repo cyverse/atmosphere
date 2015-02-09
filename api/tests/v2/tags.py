@@ -29,14 +29,14 @@ class GetTagListTests(APITestCase):
     def test_response_contains_expected_fields(self):
         force_authenticate(self.request, user=self.anonymous_user)
         response = self.view(self.request)
-        tag_data = response.data.get('results')[0]
-        expected_data = {
-            'id': self.tags[0].id,
-            'name': self.tags[0].name,
-            'description': self.tags[0].description,
-            'user': None,
-        }
-        self.assertEquals(tag_data, expected_data)
+        data = response.data.get('results')[0]
+
+        self.assertEquals(len(data), 5)
+        self.assertEquals(data['id'], self.tags[0].id)
+        self.assertIn('url', data)
+        self.assertEquals(data['name'], self.tags[0].name)
+        self.assertEquals(data['description'], self.tags[0].description)
+        self.assertIn('user', data)
 
 
 class GetTagDetailTests(APITestCase):
@@ -56,13 +56,14 @@ class GetTagDetailTests(APITestCase):
     def test_response_contains_expected_fields(self):
         force_authenticate(self.request, user=self.anonymous_user)
         response = self.view(self.request, pk=self.tag.id)
-        expected_data = {
-            'id': self.tag.id,
-            'name': self.tag.name,
-            'description': self.tag.description,
-            'user': None,
-        }
-        self.assertEquals(response.data, expected_data)
+        data = response.data
+
+        self.assertEquals(len(data), 5)
+        self.assertEquals(data['id'], self.tag.id)
+        self.assertIn('url', data)
+        self.assertEquals(data['name'], self.tag.name)
+        self.assertEquals(data['description'], self.tag.description)
+        self.assertIn('user', data)
 
 
 class DeleteTagTests(APITestCase):

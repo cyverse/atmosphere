@@ -48,19 +48,20 @@ class GetProviderListTests(APITestCase):
     def test_response_contains_expected_fields(self):
         force_authenticate(self.request, user=self.user)
         response = self.view(self.request)
-        provider_data = response.data.get('results')[0]
+        data = response.data.get('results')[0]
 
-        self.assertEquals(len(provider_data), 10)
-        self.assertIn('id', provider_data)
-        self.assertIn('name', provider_data)
-        self.assertIn('description', provider_data)
-        self.assertIn('public', provider_data)
-        self.assertIn('active', provider_data)
-        self.assertIn('type', provider_data)
-        self.assertIn('virtualization', provider_data)
-        self.assertIn('sizes', provider_data)
-        self.assertIn('start_date', provider_data)
-        self.assertIn('end_date', provider_data)
+        self.assertEquals(len(data), 11)
+        self.assertIn('id', data)
+        self.assertIn('url', data)
+        self.assertIn('name', data)
+        self.assertIn('description', data)
+        self.assertIn('public', data)
+        self.assertIn('active', data)
+        self.assertIn('type', data)
+        self.assertIn('virtualization', data)
+        self.assertIn('sizes', data)
+        self.assertIn('start_date', data)
+        self.assertIn('end_date', data)
 
 
 class GetProviderDetailTests(APITestCase):
@@ -98,19 +99,20 @@ class GetProviderDetailTests(APITestCase):
     def test_response_contains_expected_fields(self):
         force_authenticate(self.request, user=self.user)
         response = self.view(self.request, pk=self.yes_provider.id)
-        provider_data = response.data
+        data = response.data
 
-        self.assertEquals(len(provider_data), 10)
-        self.assertIn('id', provider_data)
-        self.assertIn('name', provider_data)
-        self.assertIn('description', provider_data)
-        self.assertIn('public', provider_data)
-        self.assertIn('active', provider_data)
-        self.assertIn('type', provider_data)
-        self.assertIn('virtualization', provider_data)
-        self.assertIn('sizes', provider_data)
-        self.assertIn('start_date', provider_data)
-        self.assertIn('end_date', provider_data)
+        self.assertEquals(len(data), 11)
+        self.assertIn('id', data)
+        self.assertIn('url', data)
+        self.assertIn('name', data)
+        self.assertIn('description', data)
+        self.assertIn('public', data)
+        self.assertIn('active', data)
+        self.assertIn('type', data)
+        self.assertIn('virtualization', data)
+        self.assertIn('sizes', data)
+        self.assertIn('start_date', data)
+        self.assertIn('end_date', data)
 
 
 class CreateProviderTests(APITestCase):

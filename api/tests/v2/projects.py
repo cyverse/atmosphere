@@ -38,8 +38,9 @@ class GetProjectListTests(APITestCase):
         data = response.data.get('results')[0]
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(data), 8)
+        self.assertEquals(len(data), 9)
         self.assertEquals(data['id'], self.project.id)
+        self.assertIn('url', data)
         self.assertEquals(data['name'], self.project.name)
         self.assertEquals(data['description'], self.project.description)
         self.assertIn('owner', data)
@@ -76,8 +77,9 @@ class GetProjectDetailTests(APITestCase):
         data = response.data
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(data), 8)
+        self.assertEquals(len(data), 9)
         self.assertEquals(data['id'], self.project.id)
+        self.assertIn('url', data)
         self.assertEquals(data['name'], self.project.name)
         self.assertEquals(data['description'], self.project.description)
         self.assertIn('owner', data)
