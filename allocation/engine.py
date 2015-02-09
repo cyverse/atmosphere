@@ -122,7 +122,7 @@ def calculate_allocation(allocation, print_logs=False):
 
 
 def _calculate_instance_history_list(instance, rules, start_date, end_date,
-                                    print_logs=False):
+                                     print_logs=False):
     """
     Given an instance and a set of 'InstanceRules'
     Calculate the time used for every history
@@ -131,39 +131,43 @@ def _calculate_instance_history_list(instance, rules, start_date, end_date,
     # running total for each status
     history_list = []
     for history in instance.history:
-        # Sanity check, dont add unnecessary status information.
-        if history.end_date and history.end_date < start_date:
-            continue
         history_result = InstanceHistoryResult(status_name=history.status)
+        if history.end_date and history.end_date < start_date:
+            history_result.clock_time = timedelta(0)
+            history_list.append(history_result)
+            continue
 
-        # "Old Way" of doing it
-        # total_time = _get_running_time(
-        #     history, instance, rules, start_date,
-        #     end_date, print_logs=print_logs)
-        time_per_second, total_time = _get_running_time(
-            history, instance, rules, start_date,
-            end_date, print_logs=print_logs)
-        history_result.total_time += total_time
-        # If the Instance History carries forward PAST the stop_counting_date
-        # Calculate the amount of time burned per second.
+        clock_time = _get_clock_time(history, start_date, end_date,
+                                     print_logs=print_logs)
+
+        if clock_time == timedelta(0):
+            history_result.clock_time = clock_time
+            history_list.append(history_result)
+            continue
+
+        if clock_time < timedelta(seconds=1):
+            raise ValueError("Clock time is %s < 1 second." % clock_time)
+
+        # NOTE: There are some limitations to an implementation like this
+        #       Ex: A rule that starts 'halfway' between start and end date
+        #          (Is that a thing?)
+        time_per_second = _running_time_per_second(history, instance, rules)
+        running_time = int(clock_time.total_seconds()) * time_per_second
+
+        history_result.total_time += running_time
+
         if _get_burn_rate_test(history, end_date):
-            # Used when the optimization of 'time_per_sec' is on.
-            burn_rate = time_per_second
-            # "Old Way" of doing it
-            # burn_rate = _get_burn_rate(history, instance, rules, end_date)
-            history_result.burn_rate += burn_rate
-        # DEV NOTE: Clock time may not be necessary to carry forward,
-        # but we will leave it in for now..
-        clock_time = _get_clock_time(history, start_date, end_date, False)
-        history_result.clock_time += clock_time
-        # Save the current calculation for this status-type and
-        # re-use next time that we see it
+            history_result.burn_rate += time_per_second
         history_list.append(history_result)
 
     return history_list
 
 
 def _get_burn_rate_test(history, end_date):
+    """
+    If the Instance History carries forward PAST the stop_counting_date
+    Calculate the amount of time burned per second.
+    """
     if history.start_date > end_date:
         return False
     if not history.end_date or history.end_date >= end_date:
@@ -212,17 +216,6 @@ def _get_clock_time(instance_history, start_date, end_date, print_logs=True):
     return clock_time
 
 
-def _get_burn_rate(history, instance, rules, end_date):
-    """
-    The burn rate is a special kind of running time,
-    it applies to the last 'known' second.
-    """
-    one_second_prior = end_date - timedelta(seconds=1)
-    burn_rate = _get_running_time(
-        history, instance, rules, one_second_prior, end_date, False)
-    return burn_rate
-
-
 def _running_time_per_second(history, instance, rules):
     running_time = timedelta(seconds=1)
     for rule in rules:
@@ -230,35 +223,3 @@ def _running_time_per_second(history, instance, rules):
         # returns it as a result
         running_time = rule.apply_rule(instance, history, running_time)
     return running_time
-
-
-def _get_running_time(history, instance, rules, start_date, end_date,
-                      print_logs=False):
-    """
-    Given a SPECIFIC history, an instance, a list of rules, and specified
-    start&end date,
-    calculate the time used (AKA Clock time)
-    return the "running time" after applying all instance rules.
-    """
-    # Initially (Without any rules executed)
-    # The running_time == clock_time
-    running_time = _get_clock_time(history, start_date, end_date,
-                                   print_logs=print_logs)
-
-    # Short-Circuit Test
-    if running_time == timedelta(0):
-        # TODO: Remove this If we have a rule that DOESN'T use multipliers..
-        return running_time, running_time
-    # Optional 'optimization' to be profiled
-    time_per_second = _running_time_per_second(history, instance, rules)
-    running_time = int(running_time.total_seconds()) * time_per_second  # 30-sec Clock * 5 Seconds/second = 150sec used
-    return time_per_second, running_time
-    # # Current method of applying rules (Better for logging)
-    # for rule in rules:
-    #     # Each rule is given the previous running_time, and
-    #     # returns it as a result
-    #     running_time = rule.apply_rule(instance, history, running_time,
-    #                                    print_logs=print_logs)
-
-    # # After applying all the rules, the running time has been calculated.
-    # return running_time
