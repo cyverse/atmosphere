@@ -2,7 +2,8 @@ from core.models import Quota
 from rest_framework import serializers
 
 
-class QuotaSerializer(serializers.ModelSerializer):
+class QuotaSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Quota
+        view_name = 'api_v2:quota-detail'
         # fields = ('id', 'quota')
