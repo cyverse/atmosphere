@@ -12,11 +12,11 @@ class MachineProviderRelatedField(serializers.RelatedField):
         super(MachineProviderRelatedField, self).__init__(**kwargs)
 
     def to_representation(self, value):
-        serializer = ProviderMachineSummarySerializer(value)
+        serializer = ProviderMachineSummarySerializer(value, context=self.context)
         return serializer.data
 
 
-class ImageSerializer(serializers.ModelSerializer):
+class ImageSerializer(serializers.HyperlinkedModelSerializer):
     # todo: add created by field w/ user
     # todo: add tags
     created_by = UserSerializer()
@@ -33,4 +33,5 @@ class ImageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Image
-        fields = ('id', 'uuid', 'name', 'description', 'icon', 'created_by', 'tags', 'start_date', 'end_date', 'provider_images', 'machine_count')
+        view_name = 'api_v2:application-detail'
+        fields = ('id', 'url', 'uuid', 'name', 'description', 'icon', 'created_by', 'tags', 'start_date', 'end_date', 'provider_images', 'machine_count')
