@@ -3,9 +3,10 @@ from rest_framework import serializers
 from .provider_summary_serializer import ProviderSummarySerializer
 
 
-class SizeSerializer(serializers.ModelSerializer):
+class SizeSerializer(serializers.HyperlinkedModelSerializer):
     provider = ProviderSummarySerializer()
 
     class Meta:
         model = Size
-        fields = ('id', 'alias', 'name', 'cpu', 'disk', 'mem', 'active', 'provider', 'start_date', 'end_date')
+        view_name = 'api_v2:size-detail'
+        fields = ('id', 'url', 'alias', 'name', 'cpu', 'disk', 'mem', 'active', 'provider', 'start_date', 'end_date')
