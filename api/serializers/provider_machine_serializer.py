@@ -3,6 +3,7 @@ from core.models.machine import ProviderMachine
 from core.models import Tag
 from core.models.instance_source import InstanceSource
 from rest_framework import serializers
+from .cleaned_identity_serializer import CleanedIdentitySerializer
 from .license_serializer import LicenseSerializer
 from .tag_related_field import TagRelatedField
 
@@ -13,6 +14,8 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     alias_hash = serializers.SerializerMethodField()
     created_by = serializers.CharField(
         read_only=True, source='application.created_by.username')
+    created_by_identity = CleanedIdentitySerializer(
+        source='instance_source.created_by_identity')
     icon = serializers.CharField(read_only=True, source='icon_url')
     private = serializers.CharField(
         read_only=True, source='application.private')
