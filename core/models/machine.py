@@ -99,7 +99,7 @@ class ProviderMachine(models.Model):
             return "Unknown"
 
     def hash_alias(self):
-        return md5(self.identifier).hexdigest()
+        return md5(self.instance_source.identifier).hexdigest()
 
     def find_machine_owner(self):
         if self.provider.location == 'EUCALYPTUS':

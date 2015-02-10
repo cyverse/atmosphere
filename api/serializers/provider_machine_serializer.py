@@ -10,7 +10,7 @@ from .tag_related_field import TagRelatedField
 class ProviderMachineSerializer(serializers.ModelSerializer):
     #R/O Fields first!
     alias = serializers.ReadOnlyField(source='instance_source.identifier')
-    alias_hash = serializers.CharField(read_only=True, source='hash_alias')
+    alias_hash = serializers.SerializerMethodField()
     created_by = serializers.CharField(
         read_only=True, source='application.created_by.username')
     icon = serializers.CharField(read_only=True, source='icon_url')
@@ -35,6 +35,9 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         self.request_user = kwargs.pop('request_user', None)
         super(ProviderMachineSerializer, self).__init__(*args, **kwargs)
+
+    def get_alias_hash(self, pm):
+        return pm.hash_alias()
 
     def get_scores(self, pm):
         app = pm.application
