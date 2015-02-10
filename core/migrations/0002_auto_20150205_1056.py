@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
             name='CloudAdministrator',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('uuid', models.CharField(default=uuid.uuid4, unique=True, max_length=32, editable=False)),
+                ('uuid', models.CharField(default=uuid.uuid4, unique=True, max_length=36, editable=False)),
                 ('provider', models.ForeignKey(to='core.Provider')),
                 ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],

@@ -9,6 +9,7 @@ from django.contrib.sessions.models import Session as DjangoSession
 from django.utils import timezone
 
 from core.models.application import Application
+from core.models.cloud_admin import CloudAdministrator
 from core.models.credential import Credential, ProviderCredential
 from core.models.group import Group, IdentityMembership, ProviderMembership
 from core.models.identity import Identity
@@ -18,7 +19,7 @@ from core.models.machine_request import MachineRequest
 from core.models.maintenance import MaintenanceRecord
 from core.models.node import NodeController
 from core.models.profile import UserProfile
-from core.models.provider import Provider, ProviderType
+from core.models.provider import Provider, ProviderType, AccountProvider
 from core.models.quota import Quota
 from core.models.allocation import Allocation
 from core.models.size import Size
@@ -284,12 +285,25 @@ class SessionAdmin(admin.ModelAdmin):
     list_display = ['session_key', '_session_data', 'expire_date']
     search_fields = ["session_key", ]
 
+
+class AccountProviderAdmin(admin.ModelAdmin):
+    model = AccountProvider
+
+
+class CloudAdminAdmin(admin.ModelAdmin):
+    readonly_fields = ('uuid',)
+    list_display = ["user", "provider", "uuid"]
+    model = CloudAdministrator
+
+
 admin.site.register(DjangoSession, SessionAdmin)
 admin.site.register(Credential)
 admin.site.unregister(DjangoGroup)
 admin.site.register(Group)
 admin.site.register(Application, ApplicationAdmin)
 admin.site.register(Allocation, AllocationAdmin)
+admin.site.register(CloudAdministrator, CloudAdminAdmin)
+admin.site.register(AccountProvider, AccountProviderAdmin)
 admin.site.register(Identity, IdentityAdmin)
 admin.site.register(IdentityMembership, IdentityMembershipAdmin)
 admin.site.register(Instance, InstanceAdmin)

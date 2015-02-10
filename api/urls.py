@@ -132,10 +132,6 @@ private_apis = patterns('',
         ProjectVolumeExchange.as_view(),
         name='project-volume-exchange'),
 
-
-
-
-
     url(r'^maintenance/(?P<record_id>\d+)$',
         MaintenanceRecord.as_view(),
         name='maintenance-record'),
@@ -160,10 +156,6 @@ private_apis = patterns('',
     url(r'^bookmark/application/(?P<app_uuid>%s)$' % uuid_match,
         ApplicationBookmarkDetail.as_view(), name='bookmark-application'),
 
-
-
-
-
     url(provider_specific + r'/account/(?P<username>([A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*))$',
         Account.as_view(), name='account-management'),
 
@@ -184,8 +176,6 @@ private_apis = patterns('',
         Step.as_view(), name='step-detail'),
 
 
-
-    #TODO: Uncomment when 'voting' feature is ready.
     url(identity_specific + r'/machine/(?P<machine_id>%s)/vote$' % uuid_match,
         MachineVote.as_view(), name='machine-vote'),
 

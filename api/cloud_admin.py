@@ -56,7 +56,8 @@ class CloudAdminActionsList(APIView):
                 "accessible to user:%s"
                 % (cloud_admin_uuid, user.username),
                 status=status.HTTP_400_BAD_REQUEST)
-        serializer = CloudAdminActionListSerializer(admin, many=True)
+        serializer = CloudAdminActionListSerializer(
+            admin, context={'request': request})
         return Response(serializer.data)
 
 
