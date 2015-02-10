@@ -280,7 +280,7 @@ class Volume(APIView):
         if not esh_volume:
             try:
                 core_volume = CoreVolume.objects.get(
-                    alias=volume_id,
+                    identifier=volume_id,
                     provider__uuid=provider_uuid)
                 core_volume.end_date = datetime.now()
                 core_volume.save()

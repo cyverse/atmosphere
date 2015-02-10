@@ -12,7 +12,7 @@ from api.permissions import ApiAuthRequired
 from api.serializers import QuotaRequestSerializer
 
 from core.models import Identity, IdentityMembership, QuotaRequest
-from core.models.request import get_status_type
+from core.models.status_type import get_status_type
 
 
 class QuotaRequestList(APIView):

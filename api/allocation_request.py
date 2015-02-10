@@ -12,7 +12,7 @@ from api.permissions import ApiAuthRequired
 from api.serializers import AllocationRequestSerializer
 
 from core.models import AllocationRequest, Identity, IdentityMembership
-from core.models.request import get_status_type
+from core.models.status_type import get_status_type
 
 
 class AllocationRequestList(APIView):

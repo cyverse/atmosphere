@@ -251,26 +251,26 @@ def clear_empty_ips_for(core_identity_uuid, username=None):
     logger.info("Checking Identity %s" % tenant_name)
     # Attempt to clean floating IPs
     num_ips_removed = _remove_extra_floating_ips(driver, tenant_name)
-    #Test for active/inactive instances
+    #Test for active/inactive_instances instances
     instances = driver.list_instances()
-    #Active IFF ANY instance is 'active'
-    active = any(driver._is_active_instance(inst)
+    #Active True IFF ANY instance is 'active'
+    active_instances = any(driver._is_active_instance(inst)
                  for inst in instances)
-    #Inactive IFF ALL instances are suspended/stopped
-    inactive = all(driver._is_inactive_instance(inst)
+    #Inactive True IFF ALL instances are suspended/stopped
+    inactive_instances = all(driver._is_inactive_instance(inst)
                    for inst in instances)
     _remove_ips_from_inactive_instances(driver, instances)
-    if active and not inactive:
-        #User has >1 active instances AND not all instances inactive
+    if active_instances and not inactive_instances:
+        #User has >1 active instances AND not all instances inactive_instances
         return (num_ips_removed, False)
     network_id = os_acct_driver.network_manager.get_network_id(
             os_acct_driver.network_manager.neutron,
             '%s-net' % tenant_name)
     if network_id:
-        #User has 0 active instances OR all instances are inactive
+        #User has 0 active instances OR all instances are inactive_instances
         #Network exists, attempt to dismantle as much as possible
-        # Remove network=False IFF inactive=True..
-        remove_network = not inactive
+        # Remove network=False IFF inactive_instances=True..
+        remove_network = not inactive_instances
         if remove_network:
             _remove_network(os_acct_driver, core_identity, tenant_name, remove_network=True)
             return (num_ips_removed, True)
@@ -636,14 +636,13 @@ def destroy_instance(instance_alias, core_identity_uuid):
                 if app.conf.CELERY_ALWAYS_EAGER:
                     logger.debug("Eager task waiting 1 minute")
                     time.sleep(60)
-                destroy_chain = chain(
-                    clean_empty_ips.subtask(
-                        (driverCls, provider, identity),
-                        immutable=True, countdown=5),
-                    remove_empty_network.subtask(
-                        (driverCls, provider, identity, core_identity_uuid),
-                        immutable=True, countdown=60))
-                destroy_chain()
+                clean_task = clean_empty_ips.si(driverCls, provider, identity,
+                        immutable=True, countdown=5)
+                remove_task = remove_empty_network.si(
+                        driverCls, provider, identity, core_identity_uuid,
+                        immutable=True, countdown=60)
+                clean_task.join(remove_task)
+                clean_task.apply_async()
             else:
                 logger.debug("Driver shows %s of %s instances are active"
                              % (len(active), len(instances)))
@@ -651,10 +650,10 @@ def destroy_instance(instance_alias, core_identity_uuid):
                 if app.conf.CELERY_ALWAYS_EAGER:
                     logger.debug("Eager task waiting 15 seconds")
                     time.sleep(15)
-                destroy_chain = \
-                    clean_empty_ips.subtask(
-                        (driverCls, provider, identity),
-                        immutable=True, countdown=5).apply_async()
+                destroy_chain = clean_empty_ips.si(
+                        driverCls, provider, identity,
+                        immutable=True, countdown=5)
+                destroy_chain.apply_async()
         logger.debug("destroy_instance task finished at %s." % datetime.now())
         return node_destroyed
     except Exception as exc:
@@ -978,7 +977,7 @@ def remove_empty_network(
                     instance) for instance in instances)
             #Inactive instances: An instance that is 'stopped' or 'suspended'
             #Inactive instances, True: Remove network, False
-            remove_network = not inactive_instances
+            remove_network = not inactive_instances or kwargs.get('remove_network',False)
             #Check for project network
             os_acct_driver = get_account_driver(core_identity.provider)
             logger.info("No active instances. Removing project network"

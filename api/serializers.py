@@ -19,7 +19,8 @@ from core.models.post_boot import BootScript
 from core.models.profile import UserProfile
 from core.models.project import Project
 from core.models.provider import ProviderType, Provider
-from core.models.request import AllocationRequest, QuotaRequest, StatusType
+from core.models.request import AllocationRequest, QuotaRequest
+from core.models.status_type import StatusType
 from core.models.size import Size
 from core.models.step import Step
 from core.models.tag import Tag, find_or_create_tag
@@ -251,14 +252,14 @@ class CleanedIdentitySerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
     credentials = serializers.Field(source='get_credentials')
     id = serializers.Field(source='uuid')
-    provider_id = serializers.Field(source='provider_uuid')
+    provider = serializers.Field(source='provider_uuid')
     quota = serializers.Field(source='get_quota_dict')
     allocation = serializers.Field(source='get_allocation_dict')
     membership = serializers.Field(source='get_membership')
 
     class Meta:
         model = Identity
-        fields = ('id', 'created_by', 'provider_id', )
+        fields = ('id', 'created_by', 'provider', )
 
 
 class BootScriptSerializer(serializers.ModelSerializer):
@@ -692,6 +693,7 @@ class GroupSerializer(serializers.ModelSerializer):
 
 class VolumeSerializer(serializers.ModelSerializer):
     status = serializers.CharField(read_only=True, source='get_status')
+    alias = serializers.Field(source='identifier')
     attach_data = serializers.Field(source='esh_attach_data')
     #metadata = serializers.Field(source='esh_metadata')
     mount_location = serializers.Field(source='mount_location')
@@ -870,12 +872,12 @@ class IdentitySerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source='creator_name')
     credentials = serializers.Field(source='get_credentials')
     id = serializers.Field(source='uuid')
-    provider_id = serializers.Field(source='provider_uuid')
+    provider = serializers.Field(source='provider_uuid')
     quota = QuotaSerializer(source='get_quota')
     allocation = AllocationSerializer(source='get_allocation')
     membership = serializers.Field(source='get_membership')
 
     class Meta:
         model = Identity
-        fields = ('id', 'created_by', 'provider_id', 'credentials',
+        fields = ('id', 'created_by', 'provider', 'credentials',
                   'membership', 'quota', 'allocation')
