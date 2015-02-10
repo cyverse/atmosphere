@@ -54,5 +54,5 @@ class MachineRequestSerializer(serializers.ModelSerializer):
         model = MachineRequest
         fields = ('id', 'instance', 'status', 'name', 'owner', 'provider',
                   'vis', 'description', 'tags', 'sys', 'software',
-                  'threshold', 'fork', 'version',
-                  'shared_with', 'licenses', 'new_machine')
+                  'threshold', 'fork', 'version', 'parent_machine',
+                  'exclude_files', 'shared_with', 'licenses', 'new_machine')
