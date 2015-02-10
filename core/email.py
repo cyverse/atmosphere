@@ -36,6 +36,12 @@ def admin_address():
     return (settings.ADMINS[0][0], settings.ADMINS[0][1])
 
 
+def atmo_daemon_address():
+    """ Return the daemon email address.                                                                                             
+    """
+    return (settings.ATMO_DAEMON[0][0], settings.ATMO_DAEMON[0][1])
+
+
 def lookup_user(request):
     """ Return the username and email given a django request object.
     """
@@ -235,7 +241,7 @@ Exception: %s
        core_instance.ip_address,
        core_instance.source.providermachine.identifier,
        exception_str)
-    from_name, from_email = admin_address()
+    from_name, from_email = atmo_daemon_address()
     subject = '(%s) Deploy Failed' % username
     return email_to_admin(subject, body, from_name, from_email,
                           cc_user=False)
