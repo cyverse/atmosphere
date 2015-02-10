@@ -6,7 +6,6 @@ CELERY_APP="atmosphere"
 ## Extra arguments to pass to celeryd
 # CELERYD_OPTS="--concurrency=8"
 
-
 # Atmosphere setup with an exclusive queue for imaging.. Uncomment these lines.
 # 2 Celery Queues, First is 'default', concurrency 8 and the second is 'imaging', concurrency 1
 CELERYD_NODES="atmosphere-node_1 imaging celery_periodic"
@@ -50,6 +49,11 @@ CELERY_CREATE_DIRS=1
 # Atmosphere Celery user *MUST* be root for imaging
 CELERYD_USER="root"
 CELERYD_GROUP="root"
+
+###
+# Additional Celeryd settings
+###
+CELERYD_MAX_TASKS_PER_CHILD="1"
 ###
 #
 # Additional celery flower settings
