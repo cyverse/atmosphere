@@ -17,6 +17,7 @@ from core.models.instance import convert_esh_instance
 from core.models.provider import AccountProvider
 from core.models.volume import convert_esh_volume
 from core.models.volume import Volume as CoreVolume
+from core.models.instance_source import InstanceSource
 
 from service.cache import get_cached_volumes
 from service.driver import prepare_driver
@@ -279,9 +280,10 @@ class Volume(APIView):
         esh_volume = esh_driver.get_volume(volume_id)
         if not esh_volume:
             try:
-                core_volume = CoreVolume.objects.get(
+                source = InstanceSource.objects.get(
                     identifier=volume_id,
                     provider__uuid=provider_uuid)
+                core_volume = source.volume
                 core_volume.end_date = datetime.now()
                 core_volume.save()
             except CoreVolume.DoesNotExist:

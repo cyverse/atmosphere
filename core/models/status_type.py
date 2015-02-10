@@ -22,7 +22,7 @@ class StatusType(models.Model):
     """
     name = models.CharField(max_length=32)
     description = models.CharField(max_length=256, default="", blank=True)
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     class Meta:

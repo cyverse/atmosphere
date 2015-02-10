@@ -136,7 +136,7 @@ class ProjectVolumeExchange(APIView):
         if not project:
             return Response("Project with ID=%s does not exist" % project_uuid,
                             status=status.HTTP_400_BAD_REQUEST)
-        volume = user.volume_set().filter(identifier=volume_id)
+        volume = user.volume_set().filter(instance_source__identifier=volume_id)
         if not volume:
             return Response("volume with ID=%s not found in the database"
                             % (volume_id,),

@@ -18,7 +18,7 @@ from rtwo.volume import Volume
 
 
 from core.query import only_current
-from core.models.abstract import InstanceSource
+from core.models.instance_source import InstanceSource
 from core.models.application import Application
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import convert_esh_instance
@@ -747,7 +747,7 @@ def check_application_threshold(username, identity_uuid, esh_size, machine_alias
     """
     """
     application = Application.objects.filter(
-            providermachine__identifier=machine_alias).distinct().get()
+        providermachine__instance_source__identifier=machine_alias).distinct().get()
     threshold = application.get_threshold()
     if not threshold:
         return

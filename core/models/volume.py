@@ -5,24 +5,26 @@ from django.db import models, transaction, DatabaseError
 from django.db.models import Q
 from django.utils import timezone
 
-from core.models.abstract import InstanceSource
+from core.models.instance_source import InstanceSource
 from core.models.provider import Provider
 from core.models.identity import Identity
 from threepio import logger
 
 
-class Volume(InstanceSource):
+class Volume(models.Model):
     size = models.IntegerField()
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
+    instance_source = models.OneToOneField(InstanceSource)
+
     def source_start_date(self):
-        return self.instancesource_ptr.start_date
+        return self.instance_source.start_date
     def source_end_date(self):
-        return self.instancesource_ptr.end_date
+        return self.instance_source.end_date
     def source_provider(self):
-        return self.instancesource_ptr.provider
+        return self.instance_source.provider
     def source_identifier(self):
-        return self.instancesource_ptr.identifier
+        return self.instance_source.identifier
 
     class Meta:
         db_table = "volume"
@@ -173,8 +175,10 @@ def convert_esh_volume(esh_volume, provider_uuid, identity_uuid, user):
     size = esh_volume.size
     created_on = esh_volume.extra.get('createTime')
     try:
-        volume = Volume.objects.get(identifier=identifier, provider__uuid=provider_uuid)
-    except Volume.DoesNotExist:
+        source = InstanceSource.objects.get(
+            identifier=identifier, provider__uuid=provider_uuid)
+        volume = source.volume
+    except InstanceSource.DoesNotExist:
         volume = create_volume(name, identifier, size, provider_uuid, identity_uuid,
                                user, created_on)
     volume.esh = esh_volume
@@ -186,11 +190,14 @@ def create_volume(name, identifier, size, provider_uuid, identity_uuid,
                   creator, description=None, created_on=None):
     provider = Provider.objects.get(uuid=provider_uuid)
     identity = Identity.objects.get(uuid=identity_uuid)
+
+    source = InstanceSource.objects.create(
+        identifier=identifier, provider=provider,
+        created_by=creator, created_by_identity=identity)
+
     volume = Volume.objects.create(
-            name=name, description=description, size=size,
-            identifier=identifier, provider=provider,
-            created_by=creator, created_by_identity=identity)
-            
+        name=name, description=description, size=size, instance_source=source)
+
     if created_on:
         # Taking advantage of the ability to save string dates as datetime
         # but we need to get the actual date time after we are done..
