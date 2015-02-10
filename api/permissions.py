@@ -1,6 +1,8 @@
 """
 Atmosphere API's extension of DRF permissions.
 """
+from core.models import CloudAdministrator
+
 from rest_framework import permissions
 
 from threepio import logger
@@ -25,14 +27,32 @@ class ApiAuthRequired(permissions.BasePermission):
         return auth_user
 
 
+def _get_administrator_accounts(user):
+    try:
+        return CloudAdministrator.objects.filter(user=user)
+    except CloudAdministrator.DoesNotExist:
+        return CloudAdministrator.objects.empty()
+def _get_administrator_account(user, admin_uuid):
+    try:
+        return _get_administrator_accounts(user).get(uuid=admin_uuid)
+    except CloudAdministrator.DoesNotExist:
+        return None
+
+
 class CloudAdminRequired(permissions.BasePermission):
     def has_permission(self, request, view):
         user = request.user
-
+        kwargs = request.parser_context.get('kwargs', {})
+        admin_uuid = kwargs.get('cloud_admin_uuid')
+        if admin_uuid:
+            admin = _get_administrator_account(
+                request.user, admin_uuid)
+        else:
+            admin = _get_administrator_accounts(request.user).exists()
         if not user.is_authenticated():
             return False
 
-        return user.is_staff or user.is_superuser
+        return True if admin else False
 
 
 class ApiAuthOptional(permissions.BasePermission):

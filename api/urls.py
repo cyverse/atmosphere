@@ -6,7 +6,6 @@ from django.conf.urls import patterns, url, include
 
 from rest_framework.urlpatterns import format_suffix_patterns
 
-from api.accounts import Account
 from api.allocation import AllocationDetail, AllocationList
 from api.allocation_request import AllocationRequestDetail,\
     AllocationRequestList
@@ -14,7 +13,8 @@ from api.application import ApplicationSearch, ApplicationList, Application,\
                             ApplicationThresholdDetail
 from api.bookmark import ApplicationBookmarkDetail, ApplicationBookmarkList
 from api.cloud_admin import CloudAdmin, CloudAdminActionsList,\
-    CloudAdminImagingRequestList, CloudAdminImagingRequest
+    CloudAdminImagingRequestList, CloudAdminImagingRequest,\
+    CloudAdminAccountList, CloudAdminAccountEnable
 from api.email import Feedback, QuotaEmail, SupportEmail
 from api.flow import Flow
 from api.group import GroupList, Group
@@ -58,7 +58,7 @@ from authentication.decorators import atmo_valid_token_required
 # Regex matching you'll use everywhere..
 id_match = "\d+"
 uuid_match = "[a-zA-Z0-9-]+"
-user_match = "[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*)"
+user_match = "[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*"
 
 #Paste This for provider: provider\/(?P<provider_uuid>\\d+)
 provider_specific = r"^provider/(?P<provider_uuid>%s)" % uuid_match
@@ -66,6 +66,7 @@ provider_specific = r"^provider/(?P<provider_uuid>%s)" % uuid_match
 # /r'^provider\/(?P<provider_uuid>\\d+)\/identity\/(?P<identity_uuid>\
 identity_specific = provider_specific +\
                     r"/identity/(?P<identity_uuid>%s)" % uuid_match
+admin_specific = r"^cloud_admin/(?P<cloud_admin_uuid>%s)" % uuid_match
 
 private_apis = patterns('',
     # E-mail API
@@ -156,10 +157,6 @@ private_apis = patterns('',
     url(r'^bookmark/application/(?P<app_uuid>%s)$' % uuid_match,
         ApplicationBookmarkDetail.as_view(), name='bookmark-application'),
 
-    url(provider_specific + r'/account/(?P<username>([A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*))$',
-        Account.as_view(), name='account-management'),
-
-
     url(identity_specific + r'/image_export$',
         MachineExportList.as_view(), name='machine-export-list'),
     url(identity_specific + r'/image_export/(?P<machine_request_id>\d+)$',
@@ -185,7 +182,7 @@ private_apis = patterns('',
 
     url(identity_specific + r'/members$',
         IdentityMembershipList.as_view(), name='identity-membership-list'),
-    url(identity_specific + r'/members/(?P<group_name>(%s)$' % user_match,
+    url(identity_specific + r'/members/(?P<group_name>%s)$' % user_match,
         IdentityMembership.as_view(), name='identity-membership-detail'),
 )
 
@@ -326,31 +323,64 @@ public_apis = format_suffix_patterns(patterns(
         License.as_view(),
         name='license-detail'),
 
-    url(r'cloud_admin$',
+    url(r'^cloud_admin$',
         CloudAdmin.as_view(),
         name='cloud-admin-list'),
 
-    url(r"cloud_admin/(?P<cloud_admin_uuid>%s)/$" % uuid_match,
+    url(admin_specific + r'/$',
         CloudAdminActionsList.as_view(),
         name='cloud-admin-detail'),
 
     # Machine Requests (Cloud Admin Views)
-    url(r"cloud_admin/(?P<cloud_admin_uuid>%s)"
-        "/imaging_request$"
-        % (uuid_match,),
+    url(admin_specific + r"/imaging_request$",
         CloudAdminImagingRequestList.as_view(),
         name='cloud-admin-imaging-request-list'),
+    url(admin_specific + r"/imaging_request/(?P<machine_request_id>%s)$"
+        % (id_match,),
+        CloudAdminImagingRequest.as_view(),
+        name='cloud-admin-imaging-request-detail'),
+    url(admin_specific +
+        r"/imaging_request/(?P<machine_request_id>%s)/(?P<action>\w)$"
+        % (id_match,),
+        CloudAdminImagingRequest.as_view(),
+        name='cloud-admin-imaging-request-detail'),
+    # User Accounts (Cloud Admin Views)
+    url(admin_specific + r"/account_list/$",
+        CloudAdminAccountList.as_view(),
+        name='cloud-admin-account-list'),
+    url(admin_specific + r"/account_list/(?P<username>%s)/enable$"
+        % (user_match,),
+        CloudAdminAccountEnable.as_view(),
+        name='cloud-admin-account-enable'),
 
-    url(r"cloud_admin/(?P<cloud_admin_uuid>%s)"
-        "/imaging_request/(?P<machine_request_id>%s)$"
-        % (uuid_match, id_match),
-        CloudAdminImagingRequest.as_view(),
-        name='cloud-admin-imaging-request-detail'),
-    url(r"cloud_admin/(?P<cloud_admin_uuid>%s)"
-        "/imaging_request/(?P<machine_request_id>%s)/(?P<action>\w)$"
-        % (uuid_match, id_match),
-        CloudAdminImagingRequest.as_view(),
-        name='cloud-admin-imaging-request-detail'),
+
+    url(identity_specific + r'/image_export$',
+        MachineExportList.as_view(), name='machine-export-list'),
+    url(identity_specific + r'/image_export/(?P<machine_request_id>\d+)$',
+        MachineExport.as_view(), name='machine-export'),
+
+    url(identity_specific + r'/hypervisor$',
+        HypervisorList.as_view(), name='hypervisor-list'),
+    url(identity_specific + r'/hypervisor/(?P<hypervisor_id>\d+)$',
+        HypervisorDetail.as_view(), name='hypervisor-detail'),
+
+    url(identity_specific + r'/step$',
+        StepList.as_view(), name='step-list'),
+    url(identity_specific + r'/step/(?P<step_id>%s)$' % uuid_match,
+        Step.as_view(), name='step-detail'),
+
+
+    url(identity_specific + r'/machine/(?P<machine_id>%s)/vote$' % uuid_match,
+        MachineVote.as_view(), name='machine-vote'),
+
+    url(identity_specific + r'/meta$', Meta.as_view(), name='meta-detail'),
+    url(identity_specific + r'/meta/(?P<action>.*)$',
+        MetaAction.as_view(), name='meta-action'),
+
+    url(identity_specific + r'/members$',
+        IdentityMembershipList.as_view(), name='identity-membership-list'),
+    url(identity_specific + r'/members/(?P<group_name>%s)$' % user_match,
+        IdentityMembership.as_view(), name='identity-membership-detail'),
 
 ))
 urlpatterns = patterns(

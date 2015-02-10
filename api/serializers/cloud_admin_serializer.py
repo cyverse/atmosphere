@@ -18,6 +18,12 @@ class CloudAdminSerializer(serializers.ModelSerializer):
 
 
 class CloudAdminActionListSerializer(serializers.ModelSerializer):
+    user_list = serializers.HyperlinkedIdentityField(
+        view_name='api:public_apis:cloud-admin-account-list',
+        lookup_field='uuid', lookup_url_kwarg="cloud_admin_uuid")
+    #user_enable = serializers.HyperlinkedIdentityField(
+    #    view_name='api:public_apis:cloud-admin-account-enable',
+    #    lookup_field='uuid', lookup_url_kwarg="cloud_admin_uuid")
     imaging_request = serializers.HyperlinkedIdentityField(
         view_name='api:public_apis:cloud-admin-imaging-request-list',
         lookup_field='uuid', lookup_url_kwarg="cloud_admin_uuid")
@@ -28,9 +34,9 @@ class CloudAdminActionListSerializer(serializers.ModelSerializer):
             # 'provider_status',
             # 'provider_disable',
             # 'provider_enable',
-            # # Represented as user -- Actually an identity!
-            # 'user_list',
-            # 'user_disable',
+            # Represented to admin as 'user'
+            # But is  Actually an identity!
+            'user_list',
             # 'user_enable',
             # # Additional admin functionality
             # 'create_account',
