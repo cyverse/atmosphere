@@ -73,8 +73,8 @@ def list_filtered_machines(esh_driver, provider_uuid, request_user=None):
 
 def all_filtered_machines():
     return ProviderMachine.objects.exclude(
-        Q(identifier__startswith="eki-")
-        | Q(identifier__startswith="eri")).order_by("-application__start_date")
+        Q(instance_source__identifier__startswith="eki-")
+        | Q(instance_source__identifier__startswith="eri")).order_by("-application__start_date")
 
 
 class MachineList(APIView):
@@ -423,7 +423,7 @@ class MachineLicense(APIView):
                 "Machine id %s does not exist" % machine_id)
 
         core_machine = core_machine.get()
-        if core_machine.created_by == request.user:
+        if core_machine.instance_source.created_by == request.user:
             return failure_response(
                     status.HTTP_400_BAD_REQUEST,
                     "You are NOT the owner of Machine id=%s " % machine_id)

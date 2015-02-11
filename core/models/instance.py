@@ -16,9 +16,9 @@ from rtwo.size import MockSize
 
 from threepio import logger
 
-from core.models.abstract import InstanceSource
+from core.models.instance_source import InstanceSource
 from core.models.identity import Identity
-from core.models.machine import ProviderMachine, convert_esh_machine
+from core.models.machine import ProviderMachine, ProviderMachine, convert_esh_machine
 from core.models.volume import convert_esh_volume
 from core.models.size import convert_esh_size
 from core.models.tag import Tag
@@ -643,7 +643,7 @@ def convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
         logger.debug("CoreSource: %s" % core_source)
         #Use New/Existing core Machine to create core Instance
         core_instance = create_instance(provider_uuid, identity_uuid, instance_id,
-                                      core_source, ip_address,
+                                      core_source.instance_source, ip_address,
                                       esh_instance.name, user,
                                       start_date, token, password)
     #Add 'esh' object

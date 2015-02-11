@@ -9,7 +9,7 @@ from django.utils import timezone
 from threepio import logger
 
 from atmosphere import settings
-from core.models.abstract import InstanceSource
+from core.models.instance_source import InstanceSource
 from core.models.application import Application
 from core.models.application import create_application, get_application
 from core.models.identity import Identity
@@ -23,7 +23,7 @@ from core.application import get_os_account_driver, write_app_to_metadata,\
                              has_app_metadata, get_app_metadata
 
 
-class ProviderMachine(InstanceSource):
+class ProviderMachine(models.Model):
     """
     Machines are created by Providers, and multiple providers
     can implement a single machine (I.e. Ubuntu 12.04)
@@ -34,29 +34,27 @@ class ProviderMachine(InstanceSource):
     version = models.CharField(max_length=128, default='1.0.0')
     licenses = models.ManyToManyField(License,
             null=True, blank=True)
-
-    def source_end_date(self):
-        return self.instancesource_ptr.end_date
-    def source_provider(self):
-        return self.instancesource_ptr.provider
-    def source_identifier(self):
-        return self.instancesource_ptr.identifier
+    instance_source = models.OneToOneField(InstanceSource)
 
     class Meta:
         db_table = "provider_machine"
         app_label = "core"
-    #Field is Filled out at runtime.. after converting an eshMachine
-    #esh = None
-    #cached_machines = None
-    #provider = models.ForeignKey(Provider)
-    #application = models.ForeignKey(Application)
 
-    #identifier = models.CharField(max_length=256)  # EMI-12341234
-    #created_by = models.ForeignKey('AtmosphereUser', null=True)
-    #created_by_identity = models.ForeignKey(Identity, null=True)
-    #start_date = models.DateTimeField(default=timezone.now)
-    #end_date = models.DateTimeField(null=True, blank=True)
-    #version = models.CharField(max_length=128, default='1.0.0')
+    def source_end_date(self):
+        return self.instance_source.start_date
+    def source_provider(self):
+        return self.instance_source.provider
+    def source_identifier(self):
+        return self.instance_source.identifier
+
+    def to_dict(self):
+        return {
+            "start_date": self.instance_source.start_date,
+            "end_date": self.instance_source.end_date,
+            "alias": self.instance_source.identifier,
+            "version": self.version,
+            "provider": self.instance_source.provider.uuid
+        }
 
     def update_image(self, **image_updates):
         """
@@ -101,7 +99,7 @@ class ProviderMachine(InstanceSource):
             return "Unknown"
 
     def hash_alias(self):
-        return md5(self.identifier).hexdigest()
+        return md5(self.instance_source.identifier).hexdigest()
 
     def find_machine_owner(self):
         if self.provider.location == 'EUCALYPTUS':
@@ -125,13 +123,10 @@ class ProviderMachine(InstanceSource):
             return self.esh._image.extra['state']
 
     def __unicode__(self):
+        identifier = self.instance_source.identifier
+        provider = self.instance_source.provider
         return "%s (Provider:%s - App:%s) " %\
-            (self.identifier, self.provider, self.application)
-
-    #class Meta:
-    #    db_table = "provider_machine"
-    #    app_label = "core"
-    #    unique_together = ('provider', 'identifier')
+            (identifier, provider, self.application)
 
 class ProviderMachineMembership(models.Model):
     """
@@ -221,7 +216,7 @@ def update_application_owner(application, identity):
     print "Updating %s machines.." % len(all_pms)
     for provider_machine in all_pms:
         accounts = get_os_account_driver(provider_machine.provider)
-        image_id = provider_machine.identifier
+        image_id = provider_machine.instance_source.identifier
         image = accounts.image_manager.get_image(image_id)
         if not image:
             continue
@@ -232,6 +227,7 @@ def update_application_owner(application, identity):
         print "Shared access to %s with %s" % (image_id, tenant_name)
         accounts.image_manager.unshare_image(image, old_tenant_name)
         print "Removed access to %s for %s" % (image_id, old_tenant_name)
+
 
 def create_provider_machine(machine_name, image_id, provider_uuid, app,
                             metadata={}):
@@ -244,14 +240,19 @@ def create_provider_machine(machine_name, image_id, provider_uuid, app,
 
     logger.debug("Provider %s" % provider)
     logger.debug("App %s" % app)
+
+    source = InstanceSource.objects.create(
+        identifier=image_id,
+        created_by=machine_owner.created_by,
+        provider=provider,
+        created_by_identity=machine_owner,
+    )
+
     provider_machine = ProviderMachine.objects.create(
-        application = app,
-        version = metadata.get('version',"1.0"),
-        identifier = image_id,
-        created_by = machine_owner.created_by,
-        provider = provider,
-        created_by_identity = machine_owner,
-        )
+        application=app,
+        version=metadata.get('version', "1.0"),
+        instance_source=source
+    )
     logger.info("New ProviderMachine created: %s" % provider_machine)
     add_to_cache(provider_machine)
     return provider_machine
@@ -317,9 +318,10 @@ def _check_for_metadata_update(esh_machine, provider_uuid):
 
 def get_provider_machine(identifier, provider_uuid):
     try:
-        machine = ProviderMachine.objects.get(provider__uuid=provider_uuid, identifier=identifier)
-        return machine
-    except ProviderMachine.DoesNotExist:
+        source = InstanceSource.objects.get(
+            provider__uuid=provider_uuid, identifier=identifier)
+        return source.providermachine
+    except InstanceSource.DoesNotExist:
         return None
 
 def _create_machine_and_app(esh_machine, provider_uuid):
@@ -382,7 +384,7 @@ def compare_core_machines(mach_1, mach_2):
     elif mach_1.application.start_date < mach_2.application.start_date:
         return 1
     else:
-        return cmp(mach_1.identifier, mach_2.identifier)
+        return cmp(mach_1.instance_source.identifier, mach_2.instance_source.identifier)
 
 def filter_core_machine(provider_machine):
     """
@@ -392,10 +394,10 @@ def filter_core_machine(provider_machine):
     """
     now = timezone.now()
     #Ignore end dated providers
-    if provider_machine.end_date or\
+    if provider_machine.instance_source.end_date or\
        provider_machine.application.end_date:
-        if provider_machine.end_date:
-            return not(provider_machine.end_date < now)
+        if provider_machine.instance_source.end_date:
+            return not(provider_machine.instance_source.end_date < now)
         if provider_machine.application.end_date:
             return not(provider_machine.application.end_date < now)
     return True

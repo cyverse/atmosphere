@@ -10,11 +10,11 @@ class VolumeSerializer(serializers.ModelSerializer):
     attach_data = serializers.ReadOnlyField(source='esh_attach_data')
     #metadata = serializers.Field(source='esh_metadata')
     mount_location = serializers.ReadOnlyField()
-    created_by = serializers.SlugRelatedField(slug_field='username',
-                                              read_only=True)
-    provider = serializers.ReadOnlyField(source="provider.uuid")
-    identity = CleanedIdentitySerializer(source="created_by_identity")
-    alias = serializers.ReadOnlyField(source='identifier')
+    created_by = serializers.ReadOnlyField(
+        source="instance_source.created_by.username")
+    provider = serializers.ReadOnlyField(source="instance_source.provider.uuid")
+    identity = CleanedIdentitySerializer(source="instance_source.created_by_identity")
+    alias = serializers.ReadOnlyField(source='instance_source.identifier')
     projects = ProjectsField()
 
     def __init__(self, *args, **kwargs):
@@ -24,4 +24,4 @@ class VolumeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Volume
-        exclude = ('id', 'created_by_identity', 'end_date')
+        exclude = ("instance_source",)

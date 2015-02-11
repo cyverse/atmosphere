@@ -17,7 +17,7 @@ class ProviderTest(APITestCase):
         self.group = GroupWithDataFactory.create(name="test")
         user = self.group.leaders.first()
         self.providers = self.group.providers.all()
-        self.provider_data = ProviderSerializer(self.providers).data
+        self.provider_data = ProviderSerializer(self.providers, many=True).data
         self.client = APIClient()
         self.client.force_authenticate(user=user)
 

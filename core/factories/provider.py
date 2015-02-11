@@ -39,7 +39,7 @@ class ProviderFactory(DjangoModelFactory):
     class Meta:
         model = models.Provider
 
-    uuid = str(uuid4())
+    uuid = uuid4()
     location = "Tucson, AZ"
     description = "Provider used in testing"
     active = True
