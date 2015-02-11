@@ -10,7 +10,6 @@ from django.db.models import Q
 from django.utils import timezone
 
 from core.query import only_current
-from core.models.group import IdentityMembership
 from core.models.identity import Identity
 from core.models.provider import Provider
 from core.models.status_type import StatusType
@@ -28,7 +27,7 @@ class BaseRequest(models.Model):
 
     # Associated creator and identity
     created_by = models.ForeignKey(User)
-    membership = models.ForeignKey(IdentityMembership)
+    membership = models.ForeignKey("IdentityMembership")
 
     admin_message = models.CharField(max_length=1024, default="", blank=True)
 
@@ -77,9 +76,9 @@ class BaseHistory(models.Model):
     field_name = models.CharField(max_length=255)
     operation = models.CharField(max_length=255,
                                  choices=OPERATIONS, default=UPDATE)
-    new_value = models.TextField()
+    current_value = models.TextField()
     previous_value = models.TextField()
-    created_on = models.DateTimeField(default=timezone.now())
+    timestamp = models.DateTimeField(default=timezone.now)
 
     class Meta:
         abstract = True
