@@ -107,6 +107,9 @@ class AllocationRequestDetail(APIView):
         data = request.DATA
         allocation_request = self.get_object(allocation_request_uuid)
 
+        if not allocation_request.can_modify(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         if request.user.is_staff or request.user.is_superuser:
             whitelist = AllocationRequestDetail.admin_whitelist
         else:
@@ -137,6 +140,9 @@ class AllocationRequestDetail(APIView):
         data = request.DATA
         allocation_request = self.get_object(allocation_request_uuid)
 
+        if not allocation_request.can_modify(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         if request.user.is_staff or request.user.is_superuser:
             whitelist = AllocationRequestDetail.admin_whitelist
         else:
@@ -152,3 +158,20 @@ class AllocationRequestDetail(APIView):
             return Response(serializer.data)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, provider_uuid, identity_uuid,
+               allocation_request_uuid):
+        """
+        Deletes the AllocationRequest
+
+        The request can be deleted by the owner when it still has a pending
+        status.
+        """
+        allocation_request = self.get_object(allocation_request_uuid)
+
+        # Check if the user own this request
+        if allocation_request.can_modify(request.user):
+            allocation_request.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(status=status.HTTP_403_FORBIDDEN)

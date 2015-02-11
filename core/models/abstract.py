@@ -49,6 +49,16 @@ class BaseRequest(models.Model):
         return cls.objects.filter(
             user=user, provider=provider, status=status).count() > 0
 
+    def can_modify(self, user):
+        """
+        Returns whether the user can modify the request
+        """
+        # Only pending requests can be modified by the owner
+        if self.created_by.username == user.username:
+            return self.status.name == "pending"
+
+        return user.is_staff or user.is_superuser
+
 
 class InstanceSource(models.Model):
     """
