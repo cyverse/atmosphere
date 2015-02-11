@@ -1,7 +1,7 @@
 """
 Atmosphere API's extension of DRF permissions.
 """
-from core.models import CloudAdministrator
+from core.models.cloud_admin import CloudAdministrator
 
 from rest_framework import permissions
 
@@ -32,6 +32,8 @@ def _get_administrator_accounts(user):
         return CloudAdministrator.objects.filter(user=user)
     except CloudAdministrator.DoesNotExist:
         return CloudAdministrator.objects.empty()
+
+
 def _get_administrator_account(user, admin_uuid):
     try:
         return _get_administrator_accounts(user).get(uuid=admin_uuid)
