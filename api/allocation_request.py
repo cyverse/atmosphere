@@ -54,6 +54,10 @@ class AllocationRequestList(APIView):
             return failure_response(status.HTTP_400_BAD_REQUEST,
                                     "IdentityMembership not found.")
 
+        # Determine if the user is a member of the identity
+        if not membership.is_member(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         data = request.DATA
         status_type = get_status_type()
 
