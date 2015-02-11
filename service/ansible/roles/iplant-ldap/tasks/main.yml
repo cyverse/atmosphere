@@ -1,0 +1,30 @@
+# This role will add ldap
+# Note: the fact ldap_conf_path should be setup in the specific distro
+#       yml file
+
+- include: centos5-setup.yml
+  when: ansible_distribution == "CentOS" and {{ ansible_distribution_major_version | version_compare('6', '<') }}
+
+- include: centos-setup.yml
+  when: ansible_distribution == "CentOS"  and {{ ansible_distribution_major_version | version_compare('6', '>=') }}
+
+- include: ubuntu-setup.yml
+  when: ansible_distribution == "Ubuntu"
+
+#- name: add the pam_mkhomedir.so to /etc/pam.d/common-session
+#  lineinfile: dest=/etc/pam.d/common-session state=present  line="session required pam_mkhomedir.so skel=/etc/skel/ umask=0077" insertafter="session\s+required\s+pam_unix.so"
+#
+#- name: add the passwd line in /etc/nsswitch.conf
+#  lineinfile: dest=/etc/nsswitch.conf state=present line="passwd:\t\tcompat ldap" regexp="passwd:\s+compat$" backrefs=yes
+#
+#- name: add the group line in /etc/nsswitch.conf
+#  lineinfile: dest=/etc/nsswitch.conf state=present line="group:\t\tcompat ldap" regexp="group:\s+compat$" backrefs=yes
+#
+#- name: add the base to ldap.conf
+#  lineinfile: dest="{{ ldap_conf_path }}" state=present line="base ou=People,dc=iplantcollaborative,dc=org" regexp="^base\s+" backup=yes
+#
+#- name: add the nss_base_group to ldap.conf
+#  lineinfile: dest="{{ ldap_conf_path }}" state=present line="nss_base_group ou=Groups,dc=iplantcollaborative,dc=org" regexp="^nss_base_group\s+" backup=yes
+#
+#- name: add the uri to ldap.conf
+#  lineinfile: dest="{{ ldap_conf_path }}" state=present line="uri ldap://ldap.iplantcollaborative.org" regexp="^uri\s+" backup=yes
