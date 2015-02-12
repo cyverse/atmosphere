@@ -1,8 +1,8 @@
 from core.models import Instance
 from rest_framework import serializers
-from .identity_summary_serializer import IdentitySummarySerializer
+from .identity import IdentitySummarySerializer
 from .user_serializer import UserSerializer
-from .provider_summary_serializer import ProviderSummarySerializer
+from .provider import ProviderSummarySerializer
 
 
 class InstanceSerializer(serializers.HyperlinkedModelSerializer):
@@ -14,3 +14,10 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
         model = Instance
         view_name = 'api_v2:instance-detail'
         fields = ('id', 'url', 'name', 'ip_address', 'shell', 'vnc', 'start_date', 'end_date', 'identity', 'user', 'provider')
+
+
+class InstanceSummarySerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Instance
+        view_name = 'api_v2:instance-detail'
+        fields = ('id', 'url', 'name', 'provider_alias', 'ip_address', 'shell', 'vnc', 'start_date')
