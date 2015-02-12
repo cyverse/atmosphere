@@ -458,12 +458,16 @@ def destroy_instance(identity_uuid, instance_alias):
         return None
     _check_volume_attachment(esh_driver, instance)
     if isinstance(esh_driver, OSDriver):
-        #Openstack: Remove floating IP first
         try:
+            # Openstack: Remove floating IP first
             esh_driver._connection.ex_disassociate_floating_ip(instance)
         except Exception as exc:
+            # Ignore 'safe' errors related to
+            # no floating IP
+            # or no Volume capabilities.
             if not ("floating ip not found" in exc.message
-                    or "422 Unprocessable Entity Floating ip" in exc.message):
+                    or "422 Unprocessable Entity Floating ip" in exc.message
+                    or "500 Internal Server Error" in exc.message):
                 raise
     node_destroyed = esh_driver._connection.destroy_node(instance)
     return node_destroyed
@@ -1046,7 +1050,15 @@ def _repair_instance_networking(esh_driver, esh_instance, provider_uuid, identit
 
 
 def _check_volume_attachment(driver, instance):
-    volumes = driver.list_volumes()
+    try:
+        volumes = driver.list_volumes()
+    except Exception as exc:
+        # Ignore 'safe' errors related to
+        # no floating IP
+        # or no Volume capabilities.
+        if ("500 Internal Server Error" in exc.message):
+            return True
+        raise
     for vol in volumes:
         attachment_set = vol.extra.get('attachments',[])
         if not attachment_set:
