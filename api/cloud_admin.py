@@ -4,10 +4,13 @@ from rest_framework.response import Response
 
 from api.permissions import ApiAuthRequired, CloudAdminRequired
 from api.serializers import CloudAdminSerializer,\
-    CloudAdminActionListSerializer, MachineRequestSerializer, IdentitySerializer
+    CloudAdminActionListSerializer, MachineRequestSerializer,\
+    IdentitySerializer, AccountSerializer
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 from core.models.cloud_admin import CloudAdministrator
 from core.models.identity import Identity as CoreIdentity
+from core.models.group import IdentityMembership
+from service.driver import get_account_driver
 
 from service.tasks.machine import start_machine_imaging
 
@@ -191,32 +194,13 @@ class CloudAdminAccountList(APIView):
         """
         user = request.user
         admin = _get_administrator_account(user, cloud_admin_uuid)
+        # Query for identities, used to retrieve memberships.
         identity_list = admin.provider.identity_set.all()
-        serializer = IdentitySerializer(identity_list, many=True)
+        memberships = IdentityMembership.objects.filter(
+            identity__in=identity_list)
+        serializer = AccountSerializer(memberships, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
-    def post(self, request, cloud_admin_uuid, username):
-        """
-        Create a new account on provider for this username
-        POST data should have all credentials required for this provider
-        username -- The username who created the identity
-        """
-        user = request.user
-        data = request.DATA
-
-        driver = get_account_driver(provider_uuid)
-        missing_args = driver.clean_credentials(data)
-        if missing_args:
-            raise Exception("Cannot create account. Missing credentials: %s"
-                            % missing_args)
-        identity = driver.create_account(**data)
-        serializer = IdentityDetailSerializer(identity)
-        if serializer.is_valid():
-            #NEVER FAILS
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     def post(self, request, cloud_admin_uuid):
         """
         Passes in:
@@ -224,14 +208,31 @@ class CloudAdminAccountList(APIView):
         Credentials (Nested, will be applied to new identity)
 
         """
-        pass
-        #driver = get_account_driver(provider_uuid)
-        ##TODO: Maybe get_or_create identity on list_users?
-        #users = driver.list_users()
-        ##Maybe identities?
-        #serialized_data = AccountSerializer(users).data
-        #response = Response(serialized_data)
-        #return response
+        user = request.user
+        data = request.DATA
+
+        admin = _get_administrator_account(user, cloud_admin_uuid)
+        driver = get_account_driver(admin.provider.uuid)
+        missing_args = driver.clean_credentials(data)
+        if missing_args:
+            raise Exception("Cannot create account. Missing credentials: %s"
+                            % missing_args)
+        identity = driver.create_account(**data)
+        # Account serializer instead?
+        serializer = IdentityDetailSerializer(identity)
+        if serializer.is_valid():
+            # NEVER FAILS
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # driver = get_account_driver(provider_uuid)
+        # #TODO: Maybe get_or_create identity on list_users?
+        # users = driver.list_users()
+        # #Maybe identities?
+        # serialized_data = AccountSerializer(users).data
+        # response = Response(serialized_data)
+        # return response
 
 
 class CloudAdminAccountEnable(APIView):
