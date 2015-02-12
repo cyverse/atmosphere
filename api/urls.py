@@ -48,13 +48,11 @@ from api.hypervisor import HypervisorList, HypervisorDetail
 from api.step import StepList, Step
 from api.tag import TagList, Tag
 from api.token import TokenEmulate
-from api.user import UserManagement, User
 from api.version import Version
 from api.volume import BootVolume, \
         VolumeSnapshot, VolumeSnapshotDetail, \
         VolumeList, Volume
 
-from authentication.decorators import atmo_valid_token_required
 # Regex matching you'll use everywhere..
 id_match = "\d+"
 uuid_match = "[a-zA-Z0-9-]+"
@@ -139,8 +137,6 @@ private_apis = patterns('',
     url(r'^notification$', NotificationList.as_view()),
     url(r'^token_emulate/(?P<username>.*)$', TokenEmulate.as_view()),
 
-    #url(r'^user$', atmo_valid_token_required(UserManagement.as_view())),
-    #url(r'^user/(?P<username>.*)$', User.as_view()),
 
     url(provider_specific + r'/occupancy$',
         Occupancy.as_view(), name='occupancy'),
@@ -348,10 +344,10 @@ public_apis = format_suffix_patterns(patterns(
     url(admin_specific + r"/account_list/$",
         CloudAdminAccountList.as_view(),
         name='cloud-admin-account-list'),
-    url(admin_specific + r"/account_list/(?P<username>%s)/enable$"
-        % (user_match,),
-        CloudAdminAccountEnable.as_view(),
-        name='cloud-admin-account-enable'),
+    # url(admin_specific + r"/account_list/(?P<username>%s)/enable$"
+    #     % (user_match,),
+    #     CloudAdminAccountEnable.as_view(),
+    #     name='cloud-admin-account-enable'),
 
 
     url(identity_specific + r'/image_export$',

@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from api.permissions import ApiAuthRequired, CloudAdminRequired
+from api.permissions import CloudAdminRequired
 from api.serializers import CloudAdminSerializer,\
     CloudAdminActionListSerializer, MachineRequestSerializer,\
     IdentitySerializer, AccountSerializer
@@ -65,10 +65,6 @@ class CloudAdminActionsList(APIView):
         return Response(serializer.data)
 
 
-#class CloudAdminUserList(APIView):
-
-
-
 class CloudAdminImagingRequestList(APIView):
     """
     Cloud Administration API for handling Imaging Requests
@@ -82,7 +78,7 @@ class CloudAdminImagingRequestList(APIView):
         user = request.user
         admin = _get_administrator_account(user, cloud_admin_uuid)
         machine_reqs = CoreMachineRequest.objects.filter(
-            instance__source__provider=admin.provider)
+            instance__source__provider=admin.provider).order_by('-start_date')
         serializer = MachineRequestSerializer(machine_reqs, many=True)
         return Response(serializer.data)
 
@@ -134,7 +130,7 @@ class CloudAdminImagingRequest(APIView):
         """
         OPT2 for approval: sending a PATCH to the machine request with
           {"status":"approve/deny"}
-        
+
         Modfiy attributes on a machine request
         """
         admin = _get_administrator_account(request.user, cloud_admin_uuid)
@@ -167,7 +163,6 @@ class CloudAdminImagingRequest(APIView):
                     "Bad Status Value: %s. "
                     "Available choices for a status update are: "
                     "approve, continue, deny, skip")
-                
         serializer = MachineRequestSerializer(
             machine_request, data=data, partial=True)
         if not serializer.is_valid():
@@ -197,7 +192,7 @@ class CloudAdminAccountList(APIView):
         # Query for identities, used to retrieve memberships.
         identity_list = admin.provider.identity_set.all()
         memberships = IdentityMembership.objects.filter(
-            identity__in=identity_list)
+            identity__in=identity_list).order_by('member__name')
         serializer = AccountSerializer(memberships, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -218,21 +213,12 @@ class CloudAdminAccountList(APIView):
             raise Exception("Cannot create account. Missing credentials: %s"
                             % missing_args)
         identity = driver.create_account(**data)
-        # Account serializer instead?
-        serializer = IdentityDetailSerializer(identity)
-        if serializer.is_valid():
-            # NEVER FAILS
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer = IdentitySerializer(identity)
 
-        # driver = get_account_driver(provider_uuid)
-        # #TODO: Maybe get_or_create identity on list_users?
-        # users = driver.list_users()
-        # #Maybe identities?
-        # serialized_data = AccountSerializer(users).data
-        # response = Response(serialized_data)
-        # return response
+        # TODO: Account creation SHOULD return IdentityMembership NOT identity.
+        # membership = driver.create_account(**data)
+        # serializer = AccountSerializer(membership)
+        return Response(serializer.data)
 
 
 class CloudAdminAccountEnable(APIView):
@@ -246,8 +232,8 @@ class CloudAdminAccountEnable(APIView):
         Detailed view of all identities for provider,user combination.
         username -- The username to match identities
         """
-        #identities = CoreIdentity.objects.filter(provider__uuid=provider_uuid,
-        #                                         created_by__username=username)
-        #serialized_data = IdentitySerializer(identities, many=True).data
-        #return Response(serialized_data)
-        pass
+        return Response("Method has not yet been implemented..", status=status.HTTP_400_BAD_REQUEST)
+        # identities = CoreIdentity.objects.filter(provider__uuid=provider_uuid,
+        #                                          created_by__username=username)
+        # serialized_data = IdentitySerializer(identities, many=True).data
+        # return Response(serialized_data)
