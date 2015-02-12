@@ -7,7 +7,7 @@ from .volume_serializer import VolumeSerializer
 from .volume_summary_serializer import VolumeSummarySerializer
 from .image_serializer import ImageSerializer
 from .provider_serializer import ProviderSerializer
-from .identity_serializer import IdentitySerializer
+from .identity import IdentitySerializer, IdentitySummarySerializer
 from .quota_serializer import QuotaSerializer
 from .allocation_serializer import AllocationSerializer
 from .provider_type_serializer import ProviderTypeSerializer
