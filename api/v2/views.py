@@ -3,15 +3,13 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, IsAdminUser
 from rest_framework.decorators import detail_route
 from core.models import Tag, Project, Application as Image, Provider, Identity, Quota, Allocation, Volume, \
-    Instance, ProviderType, PlatformType, ProviderMachine, ApplicationBookmark as ImageBookmark, Group, Size
-from core.models.user import AtmosphereUser
+    Instance, ProviderType, PlatformType, ProviderMachine, ApplicationBookmark as ImageBookmark, Group, \
+    Size, AtmosphereUser
 from .serializers import TagSerializer, UserSerializer, ProjectSerializer, ImageSerializer, ProviderSerializer, \
     IdentitySerializer, QuotaSerializer, AllocationSerializer, VolumeSerializer, InstanceSerializer, \
-    ProviderTypeSerializer, PlatformTypeSerializer, \
-    ProviderMachineSerializer, ImageBookmarkSerializer, SizeSerializer, SizeSummarySerializer, ImageTagSerializer, \
-    InstanceTagSerializer
+    ProviderTypeSerializer, PlatformTypeSerializer, ProviderMachineSerializer, ImageBookmarkSerializer, \
+    SizeSerializer, SizeSummarySerializer
 from core.query import only_current
-from rest_framework import permissions
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -258,21 +256,3 @@ class SizeViewSet(viewsets.ReadOnlyModelViewSet):
         group = Group.objects.get(name=user.username)
         providers = group.providers.filter(only_current(), active=True)
         return Size.objects.filter(only_current(), provider__in=providers)
-
-
-class ImageTagViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows instance tags to be viewed or edited.
-    """
-    queryset = ImageTag.objects.all()
-    serializer_class = ImageTagSerializer
-    http_method_names = ['get', 'post', 'delete', 'head', 'options', 'trace']
-
-
-class InstanceTagViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows instance tags to be viewed or edited.
-    """
-    queryset = InstanceTag.objects.all()
-    serializer_class = InstanceTagSerializer
-    http_method_names = ['get', 'post', 'delete', 'head', 'options', 'trace']
