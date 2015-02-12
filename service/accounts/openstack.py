@@ -32,7 +32,7 @@ class AccountDriver():
     core_provider = None
 
     MASTER_RULES_LIST = [
-        ("ICMP", -1, 255),
+        ("ICMP", 0, 255),
         #FTP Access
         ("UDP", 20, 20),  # FTP data transfer
         ("TCP", 20, 21),  # FTP control
