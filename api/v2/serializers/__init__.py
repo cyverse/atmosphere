@@ -10,7 +10,6 @@ from .provider_serializer import ProviderSerializer
 from .identity_serializer import IdentitySerializer
 from .quota_serializer import QuotaSerializer
 from .allocation_serializer import AllocationSerializer
-from .volume_action_serializer import VolumeActionSerializer
 from .provider_type_serializer import ProviderTypeSerializer
 from .platform_type_serializer import PlatformTypeSerializer
 from .provider_machine_serializer import ProviderMachineSerializer
@@ -18,5 +17,3 @@ from .image_bookmark_serializer import ImageBookmarkSerializer
 from .size_serializer import SizeSerializer
 from .provider_summary_serializer import ProviderSummarySerializer
 from .size_summary_serializer import SizeSummarySerializer
-from .image_tag_serializer import ImageTagSerializer
-from .instance_tag_serializer import InstanceTagSerializer

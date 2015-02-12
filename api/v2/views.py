@@ -3,12 +3,11 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, IsAdminUser
 from rest_framework.decorators import detail_route
 from core.models import Tag, Project, Application as Image, Provider, Identity, Quota, Allocation, Volume, \
-    Instance, VolumeAction, ProviderType, PlatformType, ProviderMachine, \
-    ApplicationBookmark as ImageBookmark, Group, Size
+    Instance, ProviderType, PlatformType, ProviderMachine, ApplicationBookmark as ImageBookmark, Group, Size
 from core.models.user import AtmosphereUser
 from .serializers import TagSerializer, UserSerializer, ProjectSerializer, ImageSerializer, ProviderSerializer, \
     IdentitySerializer, QuotaSerializer, AllocationSerializer, VolumeSerializer, InstanceSerializer, \
-    VolumeActionSerializer, ProviderTypeSerializer, PlatformTypeSerializer, \
+    ProviderTypeSerializer, PlatformTypeSerializer, \
     ProviderMachineSerializer, ImageBookmarkSerializer, SizeSerializer, SizeSummarySerializer, ImageTagSerializer, \
     InstanceTagSerializer
 from core.query import only_current
@@ -200,15 +199,6 @@ class InstanceViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         return Instance.objects.filter(only_current(), created_by=user)
-
-
-class VolumeActionViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    API endpoint that allows instance actions to be viewed or edited.
-    """
-    queryset = VolumeAction.objects.all()
-    serializer_class = VolumeActionSerializer
-    http_method_names = ['get', 'head', 'options', 'trace']
 
 
 class ProviderTypeViewSet(viewsets.ReadOnlyModelViewSet):
