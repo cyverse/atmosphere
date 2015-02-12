@@ -26,8 +26,7 @@ from core.models.step import Step
 from core.models.request import AllocationRequest, QuotaRequest
 from core.models.application import Application, ApplicationMembership,\
     ApplicationScore, ApplicationBookmark
-from .instance_action import InstanceAction
-from .volume_action import VolumeAction
+
 
 def get_or_create(Model, *args, **kwargs):
     return Model.objects.get_or_create(*args, **kwargs)[0]

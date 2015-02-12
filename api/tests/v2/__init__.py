@@ -62,22 +62,6 @@ from .allocations import (
     DeleteTests
 )
 
-from .instance_actions import (
-    GetListTests,
-    GetDetailTests,
-    CreateTests,
-    UpdateTests,
-    DeleteTests
-)
-
-from .volume_actions import (
-    GetListTests,
-    GetDetailTests,
-    CreateTests,
-    UpdateTests,
-    DeleteTests
-)
-
 from .provider_types import (
     GetListTests,
     GetDetailTests,
