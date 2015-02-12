@@ -55,6 +55,10 @@ class QuotaRequestList(APIView):
             return failure_response(status.HTTP_400_BAD_REQUEST,
                                     "IdentityMembership not found.")
 
+        # Determine if the user is a member of the identity
+        if not membership.is_member(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         data = request.DATA
         status_type = get_status_type()
 
@@ -105,6 +109,9 @@ class QuotaRequestDetail(APIView):
         data = request.DATA
         quota_request = self.get_object(quota_request_uuid)
 
+        if not quota_request.can_modify(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         if request.user.is_staff or request.user.is_superuser:
             whitelist = QuotaRequestDetail.admin_whitelist
         else:
@@ -134,6 +141,9 @@ class QuotaRequestDetail(APIView):
         data = request.DATA
         quota_request = self.get_object(quota_request_uuid)
 
+        if not quota_request.can_modify(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         if request.user.is_staff or request.user.is_superuser:
             whitelist = QuotaRequestDetail.admin_whitelist
         else:
@@ -149,3 +159,20 @@ class QuotaRequestDetail(APIView):
             return Response(serializer.data)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, provider_uuid, identity_uuid,
+               quota_request_uuid):
+        """
+        Deletes the QuotaRequest
+
+        The request can be deleted by the owner when it still has a pending
+        status.
+        """
+        quota_request = self.get_object(quota_request_uuid)
+
+        # Check if the user own this request
+        if quota_request.can_modify(request.user):
+            quota_request.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(status=status.HTTP_403_FORBIDDEN)
