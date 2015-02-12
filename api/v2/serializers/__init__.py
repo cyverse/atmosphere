@@ -1,6 +1,6 @@
 from .tag_serializer import TagSerializer
 from .user_serializer import UserSerializer
-from .project_serializer import ProjectSerializer
+from .project import ProjectSerializer
 from .instance_serializer import InstanceSerializer
 from .instance_summary_serializer import InstanceSummarySerializer
 from .volume_serializer import VolumeSerializer
