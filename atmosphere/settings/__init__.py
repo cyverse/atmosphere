@@ -208,7 +208,7 @@ AUTH_USER_MODULE = 'core.AtmosphereUser'
 
 AUTHENTICATION_BACKENDS = (
     #For Always-OK Access
-    'authentication.authBackends.MockLoginBackend',
+    #'authentication.authBackends.MockLoginBackend',
     # For Token-Access
     'authentication.authBackends.AuthTokenLoginBackend',
     # For Web-Access
@@ -513,5 +513,3 @@ if DEBUG:
         from atmosphere.settings.testing import *
     except ImportError:
         pass
-
-TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
