@@ -456,14 +456,18 @@ def destroy_instance(identity_uuid, instance_alias):
     #Bail if instance doesnt exist
     if not instance:
         return None
-    _check_volume_attachment(esh_driver, instance)
     if isinstance(esh_driver, OSDriver):
-        #Openstack: Remove floating IP first
         try:
+            # Openstack: Remove floating IP first
+            _check_volume_attachment(esh_driver, instance)
             esh_driver._connection.ex_disassociate_floating_ip(instance)
         except Exception as exc:
+            # Ignore 'safe' errors related to
+            # no floating IP
+            # or no Volume capabilities.
             if not ("floating ip not found" in exc.message
-                    or "422 Unprocessable Entity Floating ip" in exc.message):
+                    or "422 Unprocessable Entity Floating ip" in exc.message
+                    or "500 Internal Server Error" in exc.message):
                 raise
     node_destroyed = esh_driver._connection.destroy_node(instance)
     return node_destroyed
