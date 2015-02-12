@@ -4,6 +4,8 @@ django-jenkins==0.16.2
 coverage==3.7.1
 django-pipeline==1.3.20
 djangorestframework==3.0.4
+django-filter==0.9.1
+djangorestframework-filters
 django-redis-cache==0.13.0
 psycopg2==2.5.2
 redis==2.10.3
@@ -36,8 +38,4 @@ ipdb
 flake8
 pep8
 wheel
-
-django-filter==0.9.1
-django-debug-toolbar==1.2.2
-djangorestframework-filters
 django-nose
