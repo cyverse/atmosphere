@@ -1,6 +1,6 @@
 """
-  Abstract models for atmosphere. 
-  NOTE: These models should NEVER be created directly. 
+  Abstract models for atmosphere.
+  NOTE: These models should NEVER be created directly.
   See the respective sub-classes for complete implementation details.
 """
 from uuid import uuid4
@@ -10,7 +10,6 @@ from django.db.models import Q
 from django.utils import timezone
 
 from core.query import only_current
-from core.models.group import IdentityMembership
 from core.models.identity import Identity
 from core.models.provider import Provider
 from core.models.status_type import StatusType
@@ -28,12 +27,12 @@ class BaseRequest(models.Model):
 
     # Associated creator and identity
     created_by = models.ForeignKey(User)
-    membership = models.ForeignKey(IdentityMembership)
+    membership = models.ForeignKey("IdentityMembership")
 
     admin_message = models.CharField(max_length=1024, default="", blank=True)
 
     # Request Timeline
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -49,6 +48,15 @@ class BaseRequest(models.Model):
         return cls.objects.filter(
             user=user, provider=provider, status=status).count() > 0
 
+    def can_modify(self, user):
+        """
+        Returns whether the user can modify the request
+        """
+        # Only pending requests can be modified by the owner
+        if self.created_by.username == user.username:
+            return self.status.name == "pending"
+
+        return user.is_staff or user.is_superuser
 
 
 class BaseHistory(models.Model):
@@ -68,81 +76,9 @@ class BaseHistory(models.Model):
     field_name = models.CharField(max_length=255)
     operation = models.CharField(max_length=255,
                                  choices=OPERATIONS, default=UPDATE)
-    new_value = models.TextField()
+    current_value = models.TextField()
     previous_value = models.TextField()
-    created_on = models.DateTimeField(default=timezone.now())
+    timestamp = models.DateTimeField(default=timezone.now)
 
     class Meta:
         abstract = True
-
-
-class InstanceSource(models.Model):
-    """
-    An InstanceSource can be:
-    * A bootable volume 
-    * A snapshot of a previous/existing Instance
-    * A ProviderMachine/Application
-    """
-    esh = None
-    provider = models.ForeignKey(Provider)
-    identifier = models.CharField(max_length=256)
-    created_by = models.ForeignKey(User, blank=True, null=True,
-            related_name="source_set")
-    created_by_identity = models.ForeignKey(Identity, blank=True, null=True)
-    start_date = models.DateTimeField(default=timezone.now)
-    end_date = models.DateTimeField(null=True, blank=True)
-
-    @classmethod
-    def _current_source_query_args(cls):
-        now_time = timezone.now()
-        query_args = (
-                #1. Provider non-end-dated
-                Q(provider__end_date=None)
-                | Q(provider__end_date__gt=now_time),
-                #2. Source non-end-dated
-                only_current(now_time),
-                #3. (Seperately) Provider is active
-                Q(provider__active=True))
-        return query_args
-    @classmethod
-    def current_sources(cls):
-        """
-        Return a list that contains sources that match ALL criteria:
-        1. NOT End dated (Or end dated later than NOW)
-        2. Provider is Active
-        3. Provider NOT End dated (Or end dated later than NOW)
-        """
-        now_time = timezone.now()
-        return InstanceSource.objects.filter(
-                *InstanceSource._current_source_query_args())
-        #return InstanceSource.objects.filter(
-        #    Q(provider__end_date=None)
-        #    | Q(provider__end_date__gt=now_time),
-        #    only_current(now_time), provider__active=True)
-
-    #Useful for querying/decision making w/o a Try/Except
-    def is_volume(self):
-        try:
-            volume = self.volume
-            return True
-        except Exception, not_volume:
-            return False
-
-    def is_machine(self):
-        try:
-            machine = self.providermachine
-            return True
-        except Exception, not_machine:
-            return False
-
-    #Useful for the admin fields
-    def source_end_date(self):
-        raise NotImplementedError("Implement this in the sub-class")
-    def source_provider(self):
-        raise NotImplementedError("Implement this in the sub-class")
-    def source_identifier(self):
-        raise NotImplementedError("Implement this in the sub-class")
-    class Meta:
-        db_table = "instance_source"
-        app_label = "core"
-        unique_together = ('provider', 'identifier')

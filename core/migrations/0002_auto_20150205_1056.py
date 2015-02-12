@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
             name='CloudAdministrator',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('uuid', models.CharField(default=uuid.uuid4, unique=True, max_length=32, editable=False)),
+                ('uuid', models.CharField(default=uuid.uuid4, unique=True, max_length=36, editable=False)),
                 ('provider', models.ForeignKey(to='core.Provider')),
                 ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
@@ -27,23 +27,5 @@ class Migration(migrations.Migration):
                 'db_table': 'cloud_administrator',
             },
             bases=(models.Model,),
-        ),
-        migrations.AlterField(
-            model_name='allocationrequest',
-            name='start_date',
-            field=models.DateTimeField(default=datetime.datetime(2015, 2, 5, 17, 56, 15, 517279, tzinfo=utc)),
-            preserve_default=True,
-        ),
-        migrations.AlterField(
-            model_name='quotarequest',
-            name='start_date',
-            field=models.DateTimeField(default=datetime.datetime(2015, 2, 5, 17, 56, 15, 517279, tzinfo=utc)),
-            preserve_default=True,
-        ),
-        migrations.AlterField(
-            model_name='statustype',
-            name='start_date',
-            field=models.DateTimeField(default=datetime.datetime(2015, 2, 5, 17, 56, 15, 516445, tzinfo=utc)),
-            preserve_default=True,
         ),
     ]

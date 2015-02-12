@@ -32,7 +32,7 @@ def token_auth(request):
     Use this to give out tokens to access the API
     """
     logger.info('Request to auth')
-    logger.info(request)
+    #logger.info(request)
 
     token = request.POST.get('token', None)
 

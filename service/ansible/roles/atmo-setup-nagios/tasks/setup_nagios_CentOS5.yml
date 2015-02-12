@@ -1,0 +1,102 @@
+- set_fact: ansible_python_interpreter=/usr/bin/python 
+
+- include_vars: centos_variables.yml
+
+- name: echo variable test
+  command: echo {{ PLUGINS_DIR }}
+
+- name: Install nagios
+  yum: state=present pkg={{ item }}
+  with_items:
+    - nagios
+    - nagios-plugins-all
+    - nagios-devel
+    - net-snmp 
+    - perl-Net-SNMP 
+    - nrpe 
+    - nagios-plugins 
+    - nagios-plugins-disk 
+    - nagios-plugins-load 
+    - nagios-plugins-perl 
+    - nagios-plugins-procs 
+    - nagios-plugins-users 
+    - perl-Nagios-Plugin 
+    - python-simplejson 
+    - python-httplib2
+  
+- name: add iplant nagios server to config file
+  lineinfile: dest=/etc/nagios/nrpe.cfg regexp=^allowed_hosts=  line=allowed_hosts={{ NAGIOS_SERVER }},127.0.0.1,150.135.78.230,128.196.172.195
+
+- name: delete atmo commands path
+  file: dest={{ ATMO_COMMANDS_PATH }} state=absent
+
+- name: transfer over atmo-command.cfg file
+  copy: src=centos_atmo-commands.cfg dest={{ ATMO_COMMANDS_PATH }}
+
+- name: delete /etc/snmp/snmpd.conf.bak file
+  file: dest=/etc/snmp/snmpd.conf.bak state=absent
+
+- name: stat /etc/snmp/snmpd.conf file
+  stat: path=/etc/snmp/snmpd.conf
+  register: foo_stat
+
+- name: move /etc/snmp/snmpd.conf to /etc/snmp/snmpd.conf.bak
+  command: mv /etc/snmp/snmpd.conf /etc/snmp/snmpd.conf.bak 
+  when: foo_stat.stat.exists
+
+- name: transer over snmpd.conf file
+  copy: src=snmpd.conf dest=/etc/snmp/snmpd.conf
+
+- name: touch snmpd.options file
+  file: path=/etc/sysconfig/snmpd.options state=touch
+
+- name: add line to snmpd.options
+  lineinfile: dest=/etc/sysconfig/snmpd.options line='OPTIONS="-Lsd -Lf /dev/null -p /var/run/snmpd.pid -a -x 127.0.0.1"'
+
+- name: copy over check_snmp_mem.pl plugin
+  copy: src=check_snmp_mem.pl dest={{ PLUGINS_DIR }} mode="u=rwx,g=rx,o=rx" 
+
+- name: add line to check_snmp_mem.pl
+  lineinfile: dest={{ PLUGINS_DIR }}/check_snmp_mem.pl regexp="^use lib" line='use lib "{{ PLUGINS_DIR }}";'
+
+- name: copy over check_connections.pl plugin
+  copy: src=check_connections.pl dest={{ PLUGINS_DIR }} mode="u=rwx,g=rx,o=rx"
+
+- name: add line to check_connections.pl
+  lineinfile: dest={{ PLUGINS_DIR }}/check_connections.pl regexp="^foreach " line='foreach my $entry (split("\\n", `$netstat -wtun | grep -v 127.0.0.1`)) {'
+
+- name: copy over check_atmo_idle.py plugin
+  copy: src=check_atmo_idle.py dest={{ PLUGINS_DIR }} mode="u=rwx,g=rx,o=rx"
+
+- name: copy over check_vmstat.py plugin
+  copy: src=check_vmstat.py dest={{ PLUGINS_DIR }} mode="u=rwx,g=rx,o=rx"
+
+
+- name: add nagios users to /etc/sudoers
+  lineinfile: dest=/etc/sudoers line="# Begin Nagios"
+
+- name: add user alias line
+  lineinfile: dest=/etc/sudoers line="User_Alias NAGIOS = {{ NRPE_USER }}"
+
+- name: add cmnd alias line
+  lineinfile: dest=/etc/sudoers line="Cmnd_Alias CHECK_ATMO_IDLE = {{ PLUGINS_DIR }}/check_atmo_idle.py"
+
+- name: add default nagios require tty line
+  lineinfile: dest=/etc/sudoers line="Defaults:NAGIOS !requiretty"
+
+- name: add nagios user permissions
+  lineinfile: "dest=/etc/sudoers line='NAGIOS    ALL=(ALL)    NOPASSWD: CHECK_ATMO_IDLE, /etc/nagios/, {{ PLUGINS_DIR }}'"
+
+- name: end nagios /etc/sudoers block
+  lineinfile: dest=/etc/sudoers line="# End Nagios"
+
+- name: restart nagios service
+  service: name={{ NRPE_DAEMON }} state=restarted
+
+- name: turn nrpe ckconfig on
+  command: /sbin/chkconfig --levels 2345 nrpe on
+
+- name: turn snmpd on
+  command: /sbin/chkconfig --levels 2345 snmpd on
+
+- set_fact: ansible_python_interpreter=/usr/bin/python26 

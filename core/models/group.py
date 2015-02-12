@@ -202,6 +202,12 @@ class IdentityMembership(models.Model):
             logger.warn("Unable to update service.quota.set_provider_quota.")
             raise
 
+    def is_member(self, user):
+        """
+        Return whether the given user a member of the identity
+        """
+        return self.member in user.group_set.all()
+
     def __unicode__(self):
         return "%s can use identity %s" % (self.member, self.identity)
 

@@ -1,0 +1,44 @@
+- name: make idrop folder
+  file: path=/opt/irodsidrop state=directory
+
+- name: copy idrop-latetest jar over
+  copy: src=idrop.jar dest=/opt/irodsidrop/idrop-latest.jar
+
+- name: download idroprun.sh.txt
+  get_url: url=http://www.iplantcollaborative.org/sites/default/files/idroprun.sh.txt dest=/opt/irodsidrop/idroprun.sh mode=0755
+
+- name: copy over idrop.tgz
+  copy: src=idrop.tgz dest=/opt/idrop.tgz
+
+- name: open idrop tar
+  unarchive: src=/opt/idrop.tgz dest=/opt/ copy=no
+
+- name: make desktop folder
+  file: path=/etc/skel/Desktop state=directory
+
+- name: copy over idrop.desktop
+  copy: src=idrop.desktop dest=/etc/skel/Desktop/idrop.desktop
+
+- name: find and replace old idrop.desktop files with new one
+  shell: find /home -name "idrop.desktop" -exec cp /etc/skel/Desktop/idrop.desktop {} \;
+
+- name: register each home directory
+  shell: ls -1 /home
+  register: contents
+
+- name: copy idrop.desktop
+  copy: src=idrop.desktop dest=/home/{{ item }}/idrop.desktop
+  with_items: contents.stdout_lines
+
+- name: delete some files
+  file: path=/opt/irodsidrop state=absent
+
+#- include: idrop_ubuntu.yml
+#  when: ansible_distribution == "Ubuntu"
+#
+#- include: idrop_CentOS5.yml
+#  when: ansible_distribution == "CentOS" and {{ ansible_distribution_major_version | version_compare('6', '<') }}
+#
+#- include: idrop_CentOS.yml
+#  when: ansible_distribution == "CentOS" and {{ ansible_distribution_major_version | version_compare('6', '>=') }}
+#

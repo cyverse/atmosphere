@@ -1,0 +1,9 @@
+- include: gateone_install_ubuntu.yml
+  when: ansible_distribution == "Ubuntu"
+
+- include: gateone_install_CentOS5.yml
+  when: ansible_distribution == "CentOS" and {{ ansible_distribution_major_version | version_compare('6', '<') }}
+
+- include: gateone_install_CentOS.yml
+  when: ansible_distribution == "CentOS" and {{ ansible_distribution_major_version | version_compare('6', '>=') }}
+

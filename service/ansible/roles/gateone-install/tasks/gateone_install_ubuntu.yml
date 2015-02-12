@@ -1,0 +1,12 @@
+- name: Copy over gateone debian package
+  copy: src=gateone_1.1-1_all.deb dest=/tmp/gateone_1.1-1_all.deb
+
+- name: install python tornado
+  apt: name=python-tornado state=present
+
+- name: install debian package
+  apt: deb=/tmp/gateone_1.1-1_all.deb
+
+- name: start gateone service
+  service: name=gateone state=restarted
+
