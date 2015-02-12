@@ -10,7 +10,7 @@ from .provider import ProviderSerializer, ProviderSummarySerializer, ProviderTyp
 from .identity import IdentitySerializer, IdentitySummarySerializer
 from .quota_serializer import QuotaSerializer
 from .allocation_serializer import AllocationSerializer
-from .provider_machine_serializer import ProviderMachineSerializer
+from .provider_machine import ProviderMachineSerializer, ProviderMachineSummarySerializer
 from .image_bookmark_serializer import ImageBookmarkSerializer
 from .size_serializer import SizeSerializer
 from .size_summary_serializer import SizeSummarySerializer
