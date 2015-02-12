@@ -1,6 +1,6 @@
 from core.models import Provider, ProviderType, PlatformType
 from rest_framework import serializers
-from .size_summary_serializer import SizeSummarySerializer
+from .size import SizeSummarySerializer
 
 
 class ProviderTypeSerializer(serializers.HyperlinkedModelSerializer):

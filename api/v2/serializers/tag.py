@@ -1,6 +1,6 @@
 from core.models import Tag
 from rest_framework import serializers
-from .user_serializer import UserSerializer
+from .user import UserSerializer
 
 
 class TagSerializer(serializers.HyperlinkedModelSerializer):

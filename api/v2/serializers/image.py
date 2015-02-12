@@ -1,7 +1,7 @@
 from core.models import Application as Image, ApplicationBookmark as ImageBookmark
 from rest_framework import serializers
-from .user_serializer import UserSerializer
-from .tag_serializer import TagSerializer
+from .user import UserSerializer
+from .tag import TagSerializer
 from .provider_machine import ProviderMachineSummarySerializer
 
 

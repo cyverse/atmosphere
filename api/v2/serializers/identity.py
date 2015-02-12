@@ -1,8 +1,8 @@
 from core.models import Identity
 from rest_framework import serializers
-from .quota_serializer import QuotaSerializer
-from .allocation_serializer import AllocationSerializer
-from .user_serializer import UserSerializer
+from .quota import QuotaSerializer
+from .allocation import AllocationSerializer
+from .user import UserSerializer
 
 
 class IdentitySerializer(serializers.HyperlinkedModelSerializer):

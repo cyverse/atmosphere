@@ -1,7 +1,7 @@
 from core.models import Instance
 from rest_framework import serializers
 from .identity import IdentitySummarySerializer
-from .user_serializer import UserSerializer
+from .user import UserSerializer
 from .provider import ProviderSummarySerializer
 
 

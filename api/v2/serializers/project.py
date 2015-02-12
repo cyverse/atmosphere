@@ -1,8 +1,8 @@
 from core.models import Project, AtmosphereUser
 from rest_framework import serializers
-from .instance_summary_serializer import InstanceSummarySerializer
-from .volume_summary_serializer import VolumeSummarySerializer
-from .user_serializer import UserSerializer
+from .instance import InstanceSummarySerializer
+from .volume import VolumeSummarySerializer
+from .user import UserSerializer
 
 
 class UserRelatedField(serializers.RelatedField):

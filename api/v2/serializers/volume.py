@@ -1,6 +1,6 @@
 from core.models import Volume
 from rest_framework import serializers
-from .provider_summary_serializer import ProviderSummarySerializer
+from .provider import ProviderSummarySerializer
 
 
 class VolumeSerializer(serializers.HyperlinkedModelSerializer):

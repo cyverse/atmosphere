@@ -1,8 +1,8 @@
 from core.models import ProviderMachine
 from rest_framework import serializers
-from .image_summary_serializer import ImageSummarySerializer
+from .image import ImageSummarySerializer
 from .provider import ProviderSummarySerializer
-from .user_serializer import UserSerializer
+from .user import UserSerializer
 
 
 class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
