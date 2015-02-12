@@ -1,0 +1,13 @@
+- name: check for the existence of post boot scripts directory
+  stat: path={{ post_script_dir }}
+  register: p
+  
+- include: user_boot_scripts_ubuntu.yml
+  when: ansible_distribution == "Ubuntu" and p.stat.isdir is defined and p.stat.isdir
+
+- include: user_boot_scripts_CentOS5.yml
+  when: ansible_distribution == "CentOS" and {{ ansible_distribution_major_version | version_compare('6', '<') }} and p.stat.isdir is defined and p.stat.isdir
+
+- include: user_boot_scripts_CentOS.yml
+  when: ansible_distribution == "CentOS" and {{ ansible_distribution_major_version | version_compare('6', '>=') }} and p.stat.isdir is defined and p.stat.isdir
+

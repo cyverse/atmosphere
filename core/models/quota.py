@@ -1,10 +1,26 @@
 """
 Service Quota model for atmosphere.
 """
-
 from django.db import models
 
-class Quota(models.Model):
+from core.mixins import ModelChangedMixin
+from core.models.history import QuotaHistory
+
+
+def get_history_changes(previous_fields, new_fields, quota):
+    entries = []
+
+    for field, value in new_fields.items():
+        old_value = previous_fields[field]
+        entry = QuotaHistory(
+            field_name=field, current_value=value, previous_value=old_value,
+            quota=quota)
+        entries.append(entry)
+
+    return entries
+
+
+class Quota(models.Model, ModelChangedMixin):
     """
     Quota limits the amount of resources that can be used for a User/Group
     Quotas are set at the Identity Level in IdentityMembership
@@ -21,6 +37,16 @@ class Quota(models.Model):
         return "CPU:%s, MEM:%s, DISK:%s DISK #:%s SUSPEND #:%s" %\
             (self.cpu, self.memory, self.storage,
              self.storage_count, self.suspended_count)
+
+    def model_changed(self, existing_fields, updated_fields, is_new):
+        if is_new:
+            QuotaHistory.objects.create(
+                operation=QuotaHistory.CREATE, field_name="id",
+                current_value=self.pk, quota=self)
+        else:
+            changes = get_history_changes(existing_fields, updated_fields,
+                                          self)
+            QuotaHistory.objects.bulk_create(changes)
 
     @classmethod
     def max_quota(self, by_type='cpu'):

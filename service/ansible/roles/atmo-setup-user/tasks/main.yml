@@ -1,0 +1,31 @@
+- name: add user to sudoers
+  lineinfile: dest=/etc/sudoers state=present line="{{ ATMOUSERNAME }} ALL=(ALL)ALL"
+
+- name: add admin to sudoers
+  lineinfile: dest=/etc/sudoers state=present line='%admin ALL=(ALL) ALL'
+
+- name: add core services
+  lineinfile: dest=/etc/sudoers state=present line='%core-services ALL=(ALL) ALL'
+
+- name: start setting up /etc/skel/.bashrc
+  lineinfile: dest=/etc/skel/.bashrc line='## Atmosphere System'
+
+- name: add irods home dir
+  lineinfile: dest=/etc/skel/.bashrc line='export IDS_HOME="/irods/data.iplantc.org/iplant/home/{{ATMOUSERNAME}}'
+
+- name: add ids_home varaible to skel .bashrc
+  lineinfile: dest=/etc/skel/.bashrc line='alias ids_home="cd $IDS_HOME"'
+
+- name: close setting up /etc/skel/.bashrc
+  lineinfile: dest=/etc/skel/.bashrc line='## End System'
+
+#
+#- include: setup_user_ubuntu.yml  
+#  when: ansible_distribution == "Ubuntu"
+#
+#- include: setup_user_CentOS5.yml
+#  when: ansible_distribution == "CentOS" and {{ ansible_distribution_major_version | version_compare('6', '<') }}
+#
+#- include: setup_user_CentOS.yml
+#  when: ansible_distribution == "CentOS" and {{ ansible_distribution_major_version | version_compare('6', '>=') }}
+#

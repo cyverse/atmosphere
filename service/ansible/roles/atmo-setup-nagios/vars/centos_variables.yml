@@ -1,0 +1,4 @@
+PLUGINS_DIR: /usr/lib64/nagios/plugins 
+ATMO_COMMANDS_PATH: /etc/nrpe.d/atmo-commands.cfg
+NRPE_DAEMON: nrpe
+NRPE_USER: nrpe

@@ -10,7 +10,6 @@ from django.db.models import Q
 from django.utils import timezone
 
 from core.query import only_current
-from core.models.group import IdentityMembership
 from core.models.identity import Identity
 from core.models.provider import Provider
 from core.models.status_type import StatusType
@@ -28,7 +27,7 @@ class BaseRequest(models.Model):
 
     # Associated creator and identity
     created_by = models.ForeignKey(User)
-    membership = models.ForeignKey(IdentityMembership)
+    membership = models.ForeignKey("IdentityMembership")
 
     admin_message = models.CharField(max_length=1024, default="", blank=True)
 
@@ -49,6 +48,16 @@ class BaseRequest(models.Model):
         return cls.objects.filter(
             user=user, provider=provider, status=status).count() > 0
 
+    def can_modify(self, user):
+        """
+        Returns whether the user can modify the request
+        """
+        # Only pending requests can be modified by the owner
+        if self.created_by.username == user.username:
+            return self.status.name == "pending"
+
+        return user.is_staff or user.is_superuser
+
 
 class BaseHistory(models.Model):
     """
@@ -67,9 +76,9 @@ class BaseHistory(models.Model):
     field_name = models.CharField(max_length=255)
     operation = models.CharField(max_length=255,
                                  choices=OPERATIONS, default=UPDATE)
-    new_value = models.TextField()
+    current_value = models.TextField()
     previous_value = models.TextField()
-    created_on = models.DateTimeField(default=timezone.now())
+    timestamp = models.DateTimeField(default=timezone.now)
 
     class Meta:
         abstract = True

@@ -1,0 +1,6 @@
+- set_fact: ansible_python_interpreter=/usr/bin/python 
+
+- name: Example 
+  command: echo "Hello World" 
+
+- set_fact: ansible_python_interpreter=/usr/bin/python26 
