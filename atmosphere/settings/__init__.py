@@ -46,6 +46,7 @@ ADMINS = (
 # Required to send RequestTracker emails
 # ("Atmosphere Support", "atmo-rt@iplantcollaborative.org")
 ATMO_SUPPORT = ADMINS
+ATMO_DAEMON = (("Atmosphere Daemon", "atmo-daemon@iplantcollaborative.org"))
 
 #Django uses this one..
 MANAGERS = ADMINS
