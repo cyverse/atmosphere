@@ -1,5 +1,5 @@
 from .tag import TagSerializer
-from .user_serializer import UserSerializer
+from .user import UserSerializer
 from .project import ProjectSerializer
 from .instance import InstanceSerializer, InstanceSummarySerializer
 from .volume import VolumeSerializer, VolumeSummarySerializer
