@@ -1,6 +1,5 @@
 from core.models.credential import Credential, ProviderCredential
 from core.models.cloud_admin import CloudAdministrator
-from core.models.quota import QuotaHistory
 from core.models.identity import Identity
 from core.models.profile import UserProfile
 from core.models.project import Project
