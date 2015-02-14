@@ -8,7 +8,7 @@ from core.models import Tag, Project, Application as Image, Provider, Identity, 
 from .serializers import TagSerializer, UserSerializer, ProjectSerializer, ImageSerializer, ProviderSerializer, \
     IdentitySerializer, QuotaSerializer, AllocationSerializer, VolumeSerializer, InstanceSerializer, \
     ProviderTypeSerializer, PlatformTypeSerializer, ProviderMachineSerializer, ImageBookmarkSerializer, \
-    SizeSerializer, SizeSummarySerializer
+    SizeSerializer, SizeSummarySerializer, TagSummarySerializer
 from core.query import only_current
 
 
@@ -17,7 +17,7 @@ class TagViewSet(viewsets.ModelViewSet):
     API endpoint that allows tags to be viewed or edited.
     """
     queryset = Tag.objects.all()
-    serializer_class = TagSerializer
+    serializer_class = TagSummarySerializer
     permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def perform_create(self, serializer):

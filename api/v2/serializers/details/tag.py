@@ -1,10 +1,10 @@
 from core.models import Tag
 from rest_framework import serializers
-from .user import UserSerializer
+from ..summaries import UserSummarySerializer
 
 
 class TagSerializer(serializers.HyperlinkedModelSerializer):
-    user = UserSerializer(read_only=True)
+    user = UserSummarySerializer(read_only=True)
 
     class Meta:
         model = Tag

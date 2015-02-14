@@ -1,22 +1,7 @@
-from core.models import Project, AtmosphereUser
+from core.models import Project
 from rest_framework import serializers
-from .instance import InstanceSummarySerializer
-from .volume import VolumeSummarySerializer
-from .user import UserSerializer
-
-
-class UserRelatedField(serializers.RelatedField):
-
-    def __init__(self, **kwargs):
-        kwargs['read_only'] = True
-        super(UserRelatedField, self).__init__(**kwargs)
-
-    def to_representation(self, value):
-        username = value.__str__()
-        user = AtmosphereUser.objects.get(username=username)
-        # serializer = UserSerializer(user, context={'request': self.context['request']})
-        serializer = UserSerializer(user, context=self.context)
-        return serializer.data
+from ..summaries import InstanceSummarySerializer, VolumeSummarySerializer
+from ..fields import UserRelatedField
 
 
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):
