@@ -164,7 +164,7 @@ class VolumeFilter(django_filters.FilterSet):
 
     class Meta:
         model = Volume
-        fields = ['provider__id', 'min_size', 'max_size']
+        fields = ['min_size', 'max_size']
 
 
 class VolumeViewSet(viewsets.ModelViewSet):
