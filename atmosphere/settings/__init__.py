@@ -508,5 +508,3 @@ if DEBUG:
         from atmosphere.settings.testing import *
     except ImportError:
         pass
-
-TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
