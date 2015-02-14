@@ -28,6 +28,7 @@ from core.models.request import AllocationRequest, QuotaRequest
 from core.models.application import Application, ApplicationMembership,\
     ApplicationScore, ApplicationBookmark
 
+
 def get_or_create(Model, *args, **kwargs):
     return Model.objects.get_or_create(*args, **kwargs)[0]
 
