@@ -31,12 +31,12 @@ class GetTagListTests(APITestCase):
         response = self.view(self.request)
         data = response.data.get('results')[0]
 
-        self.assertEquals(len(data), 5)
+        self.assertEquals(len(data), 4)
         self.assertEquals(data['id'], self.tags[0].id)
         self.assertIn('url', data)
         self.assertEquals(data['name'], self.tags[0].name)
         self.assertEquals(data['description'], self.tags[0].description)
-        self.assertIn('user', data)
+        # self.assertIn('user', data)
 
 
 class GetTagDetailTests(APITestCase):
@@ -58,12 +58,12 @@ class GetTagDetailTests(APITestCase):
         response = self.view(self.request, pk=self.tag.id)
         data = response.data
 
-        self.assertEquals(len(data), 5)
+        self.assertEquals(len(data), 4)
         self.assertEquals(data['id'], self.tag.id)
         self.assertIn('url', data)
         self.assertEquals(data['name'], self.tag.name)
         self.assertEquals(data['description'], self.tag.description)
-        self.assertIn('user', data)
+        # self.assertIn('user', data)
 
 
 class DeleteTagTests(APITestCase):
