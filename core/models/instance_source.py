@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+from core.exceptions import SourceNotFound
 from core.query import only_current
 from core.models.identity import Identity
 from core.models.provider import Provider
@@ -51,6 +52,15 @@ class InstanceSource(models.Model):
         #    Q(provider__end_date=None)
         #    | Q(provider__end_date__gt=now_time),
         #    only_current(now_time), provider__active=True)
+
+    @property
+    def current_source(self):
+        if 'volume' in self:
+            return self.volume
+        elif 'providermachine' in self:
+            return self.providermachine
+        else:
+            raise SourceNotFound("A source could not be found.")
 
     #Useful for querying/decision making w/o a Try/Except
     def is_volume(self):

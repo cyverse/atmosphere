@@ -9,6 +9,7 @@ from django.utils import timezone
 from threepio import logger
 
 from atmosphere import settings
+from core.models.abstract import BaseSource
 from core.models.instance_source import InstanceSource
 from core.models.application import Application
 from core.models.application import create_application, get_application
@@ -23,7 +24,7 @@ from core.application import get_os_account_driver, write_app_to_metadata,\
                              has_app_metadata, get_app_metadata
 
 
-class ProviderMachine(models.Model):
+class ProviderMachine(BaseSource):
     """
     Machines are created by Providers, and multiple providers
     can implement a single machine (I.e. Ubuntu 12.04)
@@ -34,27 +35,17 @@ class ProviderMachine(models.Model):
     version = models.CharField(max_length=128, default='1.0.0')
     licenses = models.ManyToManyField(License,
             null=True, blank=True)
-    instance_source = models.OneToOneField(InstanceSource)
 
     class Meta:
         db_table = "provider_machine"
         app_label = "core"
 
-    def source_end_date(self):
-        return self.instance_source.start_date
-    def source_provider(self):
-        return self.instance_source.provider
-    def source_identifier(self):
-        return self.instance_source.identifier
-
     def to_dict(self):
-        return {
-            "start_date": self.instance_source.start_date,
-            "end_date": self.instance_source.end_date,
-            "alias": self.instance_source.identifier,
+        machine = {
             "version": self.version,
-            "provider": self.instance_source.provider.uuid
         }
+        machine.update(super(ProviderMachine, self).to_dict())
+        return machine
 
     def update_image(self, **image_updates):
         """
