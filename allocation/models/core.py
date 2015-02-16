@@ -93,9 +93,9 @@ class Instance(object):
 
     @classmethod
     def from_core(cls, core_instance, start_date=None):
-        pm = core_instance.source.current_source
-        prov = Provider.from_core(pm.provider)
-        mach = Machine.from_core(pm)
+        source = core_instance.source.current_source
+        prov = Provider.from_core(source.provider)
+        mach = Machine.from_core(source)
         instance_history = []
         if not start_date:
             # Full list

@@ -31,14 +31,15 @@ class ProviderMachine(BaseSource):
     However each provider will have a specific, unique identifier
     to represent that machine. (emi-12341234 vs ami-43214321)
     """
+    esh = None
     application = models.ForeignKey(Application)
     version = models.CharField(max_length=128, default='1.0.0')
     licenses = models.ManyToManyField(License,
             null=True, blank=True)
 
-    class Meta:
-        db_table = "provider_machine"
-        app_label = "core"
+    @property
+    def name(self):
+        return self.application.name
 
     def to_dict(self):
         machine = {
@@ -69,14 +70,13 @@ class ProviderMachine(BaseSource):
         except Exception as ex:
             logger.warn("Image Update Failed for %s on Provider %s"
                         % (self.identifier, provider))
+
     def update_version(self, version):
         self.version = version
         self.save()
-
     
     def icon_url(self):
         return self.application.icon.url if self.application.icon else None
-
 
     def save(self, *args, **kwargs):
         #Update values on the application
@@ -119,6 +119,11 @@ class ProviderMachine(BaseSource):
         return "%s (Provider:%s - App:%s) " %\
             (identifier, provider, self.application)
 
+    class Meta:
+        db_table = "provider_machine"
+        app_label = "core"
+
+
 class ProviderMachineMembership(models.Model):
     """
     Members of a specific image and provider combination.
@@ -134,6 +139,7 @@ class ProviderMachineMembership(models.Model):
     def __unicode__(self):
         return "(ProviderMachine:%s - Member:%s) " %\
             (self.provider_machine.identifier, self.group.name)
+
     class Meta:
         db_table = 'provider_machine_membership'
         app_label = 'core'

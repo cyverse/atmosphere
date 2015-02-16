@@ -53,7 +53,7 @@ class Volume(BaseSource):
         return projects
 
     def __unicode__(self):
-        return "%s" % (self.source_identifier(),)
+        return "%s" % (self.instance_source.identifier)
 
     def get_status(self):
         if self.esh and self.esh.extra:
@@ -254,7 +254,7 @@ class VolumeStatusHistory(models.Model):
         Get attach_data from this VolumeStatusHistory.
         """
         return {"device": self.device,
-                "id": self.volume.source_identifier(),
+                "id": self.volume.instance_source.identifier,
                 "instance_alias": self.instance_alias}
 
     class Meta:
