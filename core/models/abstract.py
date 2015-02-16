@@ -22,8 +22,6 @@ class BaseRequest(models.Model):
     Base model which represents a request object
     """
     uuid = models.CharField(max_length=36, default=uuid4)
-    request = models.TextField()
-    description = models.CharField(max_length=1024, default="", blank=True)
     status = models.ForeignKey(StatusType)
 
     # Associated creator and identity
