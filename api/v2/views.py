@@ -9,7 +9,7 @@ from .serializers import TagSerializer, UserSerializer, ProjectSerializer, Image
     IdentitySerializer, QuotaSerializer, AllocationSerializer, VolumeSerializer, InstanceSerializer, \
     ProviderTypeSerializer, PlatformTypeSerializer, ProviderMachineSerializer, ImageBookmarkSerializer, \
     SizeSerializer, SizeSummarySerializer, TagSummarySerializer
-from core.query import only_current
+from core.query import only_current, only_current_source
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -180,7 +180,7 @@ class VolumeViewSet(viewsets.ModelViewSet):
         Filter projects by current user
         """
         user = self.request.user
-        return Volume.objects.filter(only_current(), created_by=user)
+        return Volume.objects.filter(only_current_source(), instance_source__created_by=user)
 
 
 class InstanceViewSet(viewsets.ModelViewSet):
