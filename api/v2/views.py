@@ -84,7 +84,7 @@ class ImageViewSet(viewsets.ModelViewSet):
     queryset = Image.objects.all()
     serializer_class = ImageSerializer
     filter_fields = ('created_by__username', 'tags__name')
-    search_fields = ('name', 'description')
+    search_fields = ('name', 'description', 'tags__name', 'tags__description')
     permission_classes = (IsAuthenticatedOrReadOnly,)
     http_method_names = ['get', 'head', 'options', 'trace']
 
