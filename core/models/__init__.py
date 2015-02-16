@@ -1,6 +1,5 @@
 from core.models.credential import Credential, ProviderCredential
 from core.models.cloud_admin import CloudAdministrator
-from core.models.quota import QuotaHistory
 from core.models.identity import Identity
 from core.models.profile import UserProfile
 from core.models.project import Project
@@ -28,6 +27,7 @@ from core.models.step import Step
 from core.models.request import AllocationRequest, QuotaRequest
 from core.models.application import Application, ApplicationMembership,\
     ApplicationScore, ApplicationBookmark
+
 
 def get_or_create(Model, *args, **kwargs):
     return Model.objects.get_or_create(*args, **kwargs)[0]
