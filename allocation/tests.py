@@ -27,9 +27,9 @@ from allocation.models import Provider, Machine, Size, Instance,\
 from allocation.models import Allocation, MultiplySizeCPU, MultiplySizeRAM,\
     MultiplySizeDisk, MultiplyBurnTime, AllocationIncrease, TimeUnit,\
     IgnoreStatusRule, CarryForwardTime, Rule
-from allocation.models.strategy import \
+from allocation.models import \
     FixedStartSlidingWindow, FixedEndSlidingWindow, FixedWindow,\
-    AllocationStrategy, RecurringRefresh, OneTimeRefresh
+    PythonAllocationStrategy, RecurringRefresh, OneTimeRefresh
 
 # For testing..
 openstack = Provider(
@@ -739,7 +739,7 @@ def repl_test_strategy():
     refresh_behavior = RecurringRefresh(first_of_feb, first_of_march,
                                         every_1_month)
     counting_behavior = FixedWindow(first_of_feb, first_of_march)
-    strategy = AllocationStrategy(counting_behavior, [refresh_behavior])
+    strategy = PythonAllocationStrategy(counting_behavior, [refresh_behavior])
     return strategy
 
 

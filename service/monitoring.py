@@ -9,6 +9,7 @@ from django.utils import timezone
 from threepio import logger
 
 from core.models import AtmosphereUser as User
+from core.models.allocation_strategy import Allocation as CoreAllocation
 from core.models.credential import Credential
 from core.models import IdentityMembership, Identity, InstanceStatusHistory
 from core.models.instance import Instance as CoreInstance
@@ -367,11 +368,11 @@ def get_allocation(username, identity_uuid):
             "have IdentityMembership on this database" % (username, ))
         return None
     if not user.is_staff and not membership.allocation:
-        default_allocation = Allocation.default_allocation(
+        def_allocation = CoreAllocation.default_allocation(
             membership.identity.provider)
         logger.warn("%s is MISSING an allocation. Default Allocation"
-                    " assigned:%s" % (user, default_allocation))
-        return default_allocation
+                    " assigned:%s" % (user, def_allocation))
+        return def_allocation
     return membership.allocation
 
 

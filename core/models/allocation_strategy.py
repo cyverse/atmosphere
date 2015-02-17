@@ -143,13 +143,14 @@ class AllocationStrategy(models.Model):
     def _first_of_month_window(self, now=None):
         if not now:
             now = timezone.now()
-        first_month = timezone.datetime(now.year, now.month, 1)
+        first_month = timezone.datetime(now.year, now.month, 1,
+                                        tzinfo=timezone.utc)
         next_month = first_month + relativedelta(months=1)
         return FixedWindow(first_month, next_month)
 
     def _parse_rules_behaviors(self):
         rule_behaviors = []
-        for rb in self.rules_behavior.all():
+        for rb in self.rules_behaviors.all():
             if rb.name == "Ignore non-active status":
                 rule_behaviors.append(IgnoreNonActiveStatus())
             elif rb.name == "Multiply by Size CPU":
@@ -162,7 +163,7 @@ class AllocationStrategy(models.Model):
         if not now:
             now = timezone.now()
         refresh_behaviors = []
-        for rb in self.refresh_behavior.all():
+        for rb in self.refresh_behaviors.all():
             if rb.name == "First of the Month":
                 refresh_behaviors.append(
                     self._first_of_month_refresh(now))
@@ -189,7 +190,8 @@ class AllocationStrategy(models.Model):
     def _first_of_month_refresh(self, now=None):
         if not now:
             now = timezone.now()
-        increase_date = timezone.datetime(now.year, now.month, 1)
+        increase_date = timezone.datetime(now.year, now.month, 1,
+                                          tzinfo=timezone.utc)
         return OneTimeRefresh(increase_date)
 
     def apply(self, identity, core_allocation):
