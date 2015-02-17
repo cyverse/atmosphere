@@ -405,13 +405,10 @@ def _empty_allocation_result():
 def _get_allocation_result(identity, start_date=None, end_date=None,
                            print_logs=False):
     """
-    Given an identity (And, optionally, time frame):
-    * Provide defaults that are similar to the 'monthly window' conditions in
-    Previous Versions
-    * Create an allocation input, run it against the engine
-      and return the result
+    Given an identity, retrieve the provider strategy and apply the strategy
+    to this identity.
     """
-    from allocation.models.strategy import MonthlyAllocation
+
     if not identity:
         return _empty_allocation_result()
     username = identity.created_by.username
@@ -419,12 +416,26 @@ def _get_allocation_result(identity, start_date=None, end_date=None,
     if not core_allocation:
         logger.warn("User:%s Identity:%s does not have an allocation assigned"
                     % (username, identity))
-    # TODO: Logic should be placed HERE when we decide to move away from
-    #      'fixed monthly window' calculations.
-    allocation_input = MonthlyAllocation(
-        identity, core_allocation, start_date, end_date).allocation
-
+    allocation_input = apply_strategy(identity, core_allocation)
     allocation_result = calculate_allocation(
         allocation_input,
         print_logs=print_logs)
     return allocation_result
+
+def apply_strategy(identity, core_allocation):
+    """
+    Given identity and core allocation, grab the ProviderStrategy
+    and apply it. Returns an "AllocationInput"
+    """
+    strategy = _get_strategy(identity)
+    if not strategy:
+        return Allocation()
+    return strategy.apply(identity, core_allocation)
+
+
+def _get_strategy(identity):
+    from core.models.strategy import AllocationStrategy
+    try:
+        return identity.provider.allocationstrategy
+    except AllocationStrategy.DoesNotExist:
+        return None

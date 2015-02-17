@@ -1,17 +1,18 @@
+"""
+Allocation Strategy represented as a Purely-Python object
+"""
 from dateutil.relativedelta import relativedelta
 
 from django.utils import timezone
-
-
 from allocation.models import \
     AllocationRecharge, IgnoreStatusRule, MultiplySizeCPU,\
     Allocation, TimeUnit
 from allocation.models import Instance as AllocInstance
 
 
-class AllocationStrategy(object):
+class PythonAllocationStrategy(object):
     """
-    AllocationStrategy is powered by CORE: Identity, Allocation
+    PythonAllocationStrategy is powered by CORE: Identity, Allocation
     Start date and End date REQUIRED
     Interval *may* be removed in a future release..
 
@@ -26,23 +27,6 @@ class AllocationStrategy(object):
         self.counting_behavior = counting_behavior
         self.recharge_behaviors = recharge_behaviors
         self.rule_behaviors = rule_behaviors
-
-    def default_rules(self):
-        multiply_by_cpu = MultiplySizeCPU(
-            name="Multiply TimeUsed by CPU",
-            multiplier=1)
-        # Noteably MISSING: 'active', 'running'
-        ignore_inactive = IgnoreStatusRule(
-            "Ignore Inactive StatusHistory",
-            value=["build", "pending",
-                   "hard_reboot", "reboot",
-                   "migrating", "rescue",
-                   "resize", "verify_resize",
-                   "shutoff", "shutting-down",
-                   "suspended", "terminated",
-                   "deleted", "error", "unknown", "N/A",
-                   ])
-        return [multiply_by_cpu, ignore_inactive]
 
     def get_instance_list(self, identity):
         from service.monitoring import _core_instances_for
@@ -73,8 +57,7 @@ class AllocationStrategy(object):
                         unit=TimeUnit.infinite,
                         amount=1))
 
-        # TODO: Write code for this behavior?
-        rules = self.default_rules()
+        rules = []
         for behavior in self.rule_behaviors:
             rules.extend(
                 behavior.apply_rules(identity, core_allocation)
@@ -91,17 +74,20 @@ class AllocationStrategy(object):
         return self.__unicode__()
 
     def __unicode__(self):
-        return "Strategy Result:%s " % self.allocation
+        return "Counting Behavior: %s, Refresh:%s Rules:%s "\
+            % (self.counting_behavior, self.recharge_behaviors,
+               self.rule_behaviors)
 
 
-class RulesBehavior(object):
+class PythonRulesBehavior(object):
     """
     The Rules Behavior
-    All 'RulesBehavior' objects define a set of rules to be applied
+    All 'PythonRulesBehavior' objects define a set of rules to be applied
     When/How the rules are applied is dependent on the behavior
     """
     def __init__(self, rules=[]):
         self.rules = rules
+
     def apply_rules(self, identity, core_allocation):
         """
         Logic used to apply rules goes here.
@@ -110,7 +96,7 @@ class RulesBehavior(object):
     pass
 
 
-class GlobalRules(RulesBehavior):
+class GlobalRules(PythonRulesBehavior):
     """
     The Global Rules behavior will ALWAYS apply
     """
@@ -118,12 +104,13 @@ class GlobalRules(RulesBehavior):
         return self.rules
 
 
-class NewUserRules(RulesBehavior):
+class NewUserRules(PythonRulesBehavior):
     """
     The StaffRules behavior will only apply if the identity is aenoted as staff
     """
+
     def __init__(self, rules, cutoff_date):
-        return super(NewUserRules, self).__init__(rules)
+        super(NewUserRules, self).__init__(rules)
         self.cutoff_date = cutoff_date
 
     def apply_rules(self, identity, core_application):
@@ -132,7 +119,7 @@ class NewUserRules(RulesBehavior):
         return []
 
 
-class StaffRules(RulesBehavior):
+class StaffRules(PythonRulesBehavior):
     """
     The StaffRules behavior will only apply if the identity is denoted as staff
     """
@@ -142,7 +129,32 @@ class StaffRules(RulesBehavior):
         return []
 
 
-class RefreshBehavior(object):
+class MultiplySizeCPURule(GlobalRules):
+
+    def __init__(self, rules=[]):
+        multiply_by_cpu = MultiplySizeCPU(
+            name="Multiply TimeUsed by CPU",
+            multiplier=1)
+        super(MultiplySizeCPURule, self).__init__([multiply_by_cpu])
+
+
+class IgnoreNonActiveStatus(GlobalRules):
+
+    def __init__(self, rules=[]):
+        ignore_inactive = IgnoreStatusRule(
+            "Ignore Inactive StatusHistory",
+            value=["build", "pending",
+                   "hard_reboot", "reboot",
+                   "migrating", "rescue",
+                   "resize", "verify_resize",
+                   "shutoff", "shutting-down",
+                   "suspended", "terminated",
+                   "deleted", "error", "unknown", "N/A",
+                   ])
+        super(IgnoreNonActiveStatus, self).__init__([ignore_inactive])
+
+
+class PythonRefreshBehavior(object):
     """
     Define a set of rules that explain when/how a user should be refreshed.
     IF: start_increase = 1/1/2015, end_increase = 1/31/2015
@@ -160,7 +172,7 @@ class RefreshBehavior(object):
 
     def set_dates(self, start_increase, end_increase, interval_delta):
         """
-        Use this method to instantiate the dates on a RefreshBehavior
+        Use this method to instantiate the dates on a PythonRefreshBehavior
         """
         self.start_increase = start_increase
         self.end_increase = end_increase
@@ -210,7 +222,7 @@ class RefreshBehavior(object):
         raise NotImplementedError("Implement _get_next_value")
 
 
-class OneTimeRefresh(RefreshBehavior):
+class OneTimeRefresh(PythonRefreshBehavior):
     """
     A One Time Refresh is granted ONCE on the start date,
     It has no End date and no Interval
@@ -226,7 +238,7 @@ class OneTimeRefresh(RefreshBehavior):
         return super(OneTimeRefresh, self).__unicode__()
 
 
-class RecurringRefresh(RefreshBehavior):
+class RecurringRefresh(PythonRefreshBehavior):
     """
       Accepts:
       A time to Start refreshing,
@@ -245,7 +257,7 @@ class RecurringRefresh(RefreshBehavior):
         return super(RecurringRefresh, self).__unicode__()
 
 
-class CountingBehavior(object):
+class PythonCountingBehavior(object):
     start_date = None
     end_date = None
     interval_delta = None
@@ -272,7 +284,7 @@ class CountingBehavior(object):
         """
         raise NotImplementedError(
             "Cannot be directly instantiated. "
-            "Use a subclass of CountingBehavior to continue.")
+            "Use a subclass of PythonCountingBehavior to continue.")
 
     def __repr__(self):
         return self.__unicode__()
@@ -304,13 +316,13 @@ class CountingBehavior(object):
         return "\n".join(print_list)
 
     def set_dates(self, start_date, end_date, interval_delta=None):
-        CountingBehavior._validate(start_date, end_date, interval_delta)
+        PythonCountingBehavior._validate(start_date, end_date, interval_delta)
         self.start_date = start_date
         self.end_date = end_date
         self.interval_delta = interval_delta
 
 
-class FixedWindow(CountingBehavior):
+class FixedWindow(PythonCountingBehavior):
     """
     A fixed window gives complete control over how to 'Count time'
     window_start - When to begin counting time
@@ -328,7 +340,7 @@ class FixedWindow(CountingBehavior):
         return super(FixedWindow, self).__unicode__()
 
 
-class FixedStartSlidingWindow(CountingBehavior):
+class FixedStartSlidingWindow(PythonCountingBehavior):
     """
     window_delta - can be RELATIVEdelta or TIMEdelta
     """
@@ -364,7 +376,7 @@ class FixedStartSlidingWindow(CountingBehavior):
             % (original_str, self.window_delta)
 
 
-class FixedEndSlidingWindow(CountingBehavior):
+class FixedEndSlidingWindow(PythonCountingBehavior):
     """
     The 'delta' can be RELATIVEdelta or TIMEdelta
     """

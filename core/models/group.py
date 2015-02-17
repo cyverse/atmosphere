@@ -13,7 +13,7 @@ from django.contrib.auth.models import Group as DjangoGroup
 
 from threepio import logger
 
-from core.models.allocation import Allocation
+from core.models.allocation_strategy import Allocation
 from core.models.application import Application
 from core.models.identity import Identity
 from core.models.provider import Provider

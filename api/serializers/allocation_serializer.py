@@ -1,4 +1,4 @@
-from core.models.allocation import Allocation
+from core.models.allocation_strategy import Allocation
 from rest_framework import serializers
 
 

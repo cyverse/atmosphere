@@ -21,7 +21,7 @@ from core.models.node import NodeController
 from core.models.profile import UserProfile
 from core.models.provider import Provider, ProviderType, AccountProvider
 from core.models.quota import Quota
-from core.models.allocation import Allocation
+from core.models.allocation_strategy import Allocation, AllocationStrategy
 from core.models.size import Size
 from core.models.step import Step
 from core.models.tag import Tag
@@ -55,6 +55,12 @@ class MaintenanceAdmin(admin.ModelAdmin):
 
 class QuotaAdmin(admin.ModelAdmin):
     list_display = ("__unicode__", "cpu", "memory", "storage", "storage_count", "suspended_count")
+
+
+class AllocationStrategyAdmin(admin.ModelAdmin):
+    pass
+
+
 
 
 class AllocationAdmin(admin.ModelAdmin):
@@ -302,6 +308,8 @@ admin.site.unregister(DjangoGroup)
 admin.site.register(Group)
 admin.site.register(Application, ApplicationAdmin)
 admin.site.register(Allocation, AllocationAdmin)
+admin.site.register(AllocationStrategy, AllocationStrategyAdmin)
+#admin.site.register(CountingBehavior, CountingBehaviorAdmin)
 admin.site.register(CloudAdministrator, CloudAdminAdmin)
 admin.site.register(AccountProvider, AccountProviderAdmin)
 admin.site.register(Identity, IdentityAdmin)
@@ -317,6 +325,8 @@ admin.site.register(ProviderMachineMembership, ProviderMachineMembershipAdmin)
 admin.site.register(ProviderMembership, ProviderMembershipAdmin)
 admin.site.register(ProviderType)
 admin.site.register(Quota, QuotaAdmin)
+#admin.site.register(RefreshBehavior, RefreshBehaviorAdmin)
+#admin.site.register(RulesBehavior, RulesBehaviorAdmin)
 admin.site.register(Size, SizeAdmin)
 admin.site.register(Step, StepAdmin)
 admin.site.register(Tag, TagAdmin)

@@ -5,7 +5,7 @@ through the engine.
 from django.utils.timezone import timedelta, datetime, now, utc
 
 from allocation import validate_interval
-from allocation.models.core import \
+from allocation.models.inputs import \
     AllocationIncrease, AllocationRecharge, AllocationUnlimited, Allocation
 
 
