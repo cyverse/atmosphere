@@ -5,38 +5,26 @@ from django.db import models, transaction, DatabaseError
 from django.db.models import Q
 from django.utils import timezone
 
+from core.models.abstract import BaseSource
 from core.models.instance_source import InstanceSource
 from core.models.provider import Provider
 from core.models.identity import Identity
 from threepio import logger
 
 
-class Volume(models.Model):
+class Volume(BaseSource):
     size = models.IntegerField()
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
-    instance_source = models.OneToOneField(InstanceSource)
-
-    def source_start_date(self):
-        return self.instance_source.start_date
-    def source_end_date(self):
-        return self.instance_source.end_date
-    def source_provider(self):
-        return self.instance_source.provider
-    def source_identifier(self):
-        return self.instance_source.identifier
 
     class Meta:
         db_table = "volume"
         app_label = "core"
 
-
-
     def end_date_all(self):
         if not self.end_date:
             self.end_date = timezone.datetime.now()
             self.save()
-
 
     def update(self, *args, **kwargs):
         """
@@ -65,7 +53,7 @@ class Volume(models.Model):
         return projects
 
     def __unicode__(self):
-        return "%s" % (self.source_identifier(),)
+        return "%s" % (self.instance_source.identifier)
 
     def get_status(self):
         if self.esh and self.esh.extra:
@@ -266,7 +254,7 @@ class VolumeStatusHistory(models.Model):
         Get attach_data from this VolumeStatusHistory.
         """
         return {"device": self.device,
-                "id": self.volume.source_identifier(),
+                "id": self.volume.instance_source.identifier,
                 "instance_alias": self.instance_alias}
 
     class Meta:

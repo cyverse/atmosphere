@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from core.query import only_current
 from core.models.identity import Identity
+from core.models.instance_source import InstanceSource
 from core.models.provider import Provider
 from core.models.status_type import StatusType
 from core.models.user import AtmosphereUser as User
@@ -21,8 +22,6 @@ class BaseRequest(models.Model):
     Base model which represents a request object
     """
     uuid = models.CharField(max_length=36, default=uuid4)
-    request = models.TextField()
-    description = models.CharField(max_length=1024, default="", blank=True)
     status = models.ForeignKey(StatusType)
 
     # Associated creator and identity
@@ -57,6 +56,40 @@ class BaseRequest(models.Model):
             return self.status.name == "pending"
 
         return user.is_staff or user.is_superuser
+
+
+class BaseSource(models.Model):
+    """
+    Source object which can be booted
+    """
+    instance_source = models.OneToOneField(InstanceSource)
+
+    class Meta:
+        abstract = True
+
+    @property
+    def start_date(self):
+        return self.instance_source.start_date
+
+    @property
+    def end_date(self):
+        return self.instance_source.end_date
+
+    @property
+    def provider(self):
+        return self.instance_source.provider
+
+    @property
+    def identifier(self):
+        return self.instance_source.identifier
+
+    def to_dict(self):
+        return {
+            "start_date": self.start_date,
+            "end_date": self.end_date,
+            "identifier": self.identifier,
+            "provider_uuid": self.provider.uuid
+        }
 
 
 class BaseHistory(models.Model):

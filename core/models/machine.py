@@ -9,6 +9,7 @@ from django.utils import timezone
 from threepio import logger
 
 from atmosphere import settings
+from core.models.abstract import BaseSource
 from core.models.instance_source import InstanceSource
 from core.models.application import Application
 from core.models.application import create_application, get_application
@@ -23,38 +24,29 @@ from core.application import get_os_account_driver, write_app_to_metadata,\
                              has_app_metadata, get_app_metadata
 
 
-class ProviderMachine(models.Model):
+class ProviderMachine(BaseSource):
     """
     Machines are created by Providers, and multiple providers
     can implement a single machine (I.e. Ubuntu 12.04)
     However each provider will have a specific, unique identifier
     to represent that machine. (emi-12341234 vs ami-43214321)
     """
+    esh = None
     application = models.ForeignKey(Application)
     version = models.CharField(max_length=128, default='1.0.0')
     licenses = models.ManyToManyField(License,
             null=True, blank=True)
-    instance_source = models.OneToOneField(InstanceSource)
 
-    class Meta:
-        db_table = "provider_machine"
-        app_label = "core"
-
-    def source_end_date(self):
-        return self.instance_source.start_date
-    def source_provider(self):
-        return self.instance_source.provider
-    def source_identifier(self):
-        return self.instance_source.identifier
+    @property
+    def name(self):
+        return self.application.name
 
     def to_dict(self):
-        return {
-            "start_date": self.instance_source.start_date,
-            "end_date": self.instance_source.end_date,
-            "alias": self.instance_source.identifier,
+        machine = {
             "version": self.version,
-            "provider": self.instance_source.provider.uuid
         }
+        machine.update(super(ProviderMachine, self).to_dict())
+        return machine
 
     def update_image(self, **image_updates):
         """
@@ -78,14 +70,13 @@ class ProviderMachine(models.Model):
         except Exception as ex:
             logger.warn("Image Update Failed for %s on Provider %s"
                         % (self.identifier, provider))
+
     def update_version(self, version):
         self.version = version
         self.save()
-
     
     def icon_url(self):
         return self.application.icon.url if self.application.icon else None
-
 
     def save(self, *args, **kwargs):
         #Update values on the application
@@ -128,6 +119,11 @@ class ProviderMachine(models.Model):
         return "%s (Provider:%s - App:%s) " %\
             (identifier, provider, self.application)
 
+    class Meta:
+        db_table = "provider_machine"
+        app_label = "core"
+
+
 class ProviderMachineMembership(models.Model):
     """
     Members of a specific image and provider combination.
@@ -143,6 +139,7 @@ class ProviderMachineMembership(models.Model):
     def __unicode__(self):
         return "(ProviderMachine:%s - Member:%s) " %\
             (self.provider_machine.identifier, self.group.name)
+
     class Meta:
         db_table = 'provider_machine_membership'
         app_label = 'core'

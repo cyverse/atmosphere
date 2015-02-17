@@ -85,9 +85,9 @@ class AllocationAdmin(admin.ModelAdmin):
 class ProviderMachineAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     search_fields = ["application__name", "provider__location", "identifier"]
-    list_display = ["source_identifier",
-            "source_provider", "application",
-            "source_end_date"]
+    list_display = ["identifier",
+            "provider", "application",
+            "end_date"]
     list_filter = [
         "instance_source__provider__location",
         "application__private",
@@ -158,9 +158,9 @@ class TagAdmin(admin.ModelAdmin):
 
 class VolumeAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
-    search_fields = ["source_identifier", "name", "source_location"]
-    list_display = ["source_identifier", "size", "source_provider",
-            "source_start_date", "source_end_date"]
+    search_fields = ["identifier", "name", "location"]
+    list_display = ["identifier", "size", "provider",
+            "start_date", "end_date"]
     list_filter = ["instance_source__provider__location"]
 
 

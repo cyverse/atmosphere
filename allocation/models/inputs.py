@@ -9,6 +9,7 @@ import calendar
 
 import pytz
 
+from django.db.models import Q
 from django.utils.timezone import timedelta, datetime
 
 from allocation import validate_interval
@@ -51,9 +52,9 @@ class Machine(object):
         self.identifier = identifier
 
     @classmethod
-    def from_core(cls, core_pm):
-        return cls(name=core_pm.application.name,
-                   identifier=core_pm.instance_source.identifier)
+    def from_core(cls, source):
+        return cls(name=source.name,
+                   identifier=source.identifier)
 
     def __repr__(self):
         return self.__unicode__()
@@ -92,10 +93,9 @@ class Instance(object):
 
     @classmethod
     def from_core(cls, core_instance, start_date=None):
-        from django.db.models import Q
-        pm = core_instance.source.providermachine
-        prov = Provider.from_core(pm.instance_source.provider)
-        mach = Machine.from_core(pm)
+        source = core_instance.source.current_source
+        prov = Provider.from_core(source.provider)
+        mach = Machine.from_core(source)
         instance_history = []
         if not start_date:
             # Full list
