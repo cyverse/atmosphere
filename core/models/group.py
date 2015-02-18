@@ -129,25 +129,31 @@ class IdentityMembership(models.Model):
 
     @classmethod
     def get_membership_for(cls, groupname):
-
-        from core.models import ProviderMembership, Group
         try:
             group = Group.objects.get(name=groupname)
         except Group.DoesNotExist:
             logger.warn("Group %s does not exist" % groupname)
-            return None
-        provider_members = ProviderMembership.objects.filter(
-            member__name=groupname)
-        if not provider_members:
-            logger.warn("%s is not a member of any provider" % groupname)
-        for pm in provider_members:
-            identities = IdentityMembership.objects.filter(
-                member=group,
-                identity__provider=pm.provider)
-            if identities:
-                return identities[0]
-        logger.warn("%s is not a member of any identities" % groupname)
-        return None
+        try:
+            return group.identitymembership_set.first()
+        except IdentityMembershipDoesNotExist:
+            logger.warn("%s is not a member of any identities" % groupname)
+
+        #.filter(
+        #                identity_provider_icontains=\
+        #                group.providermembership_set.all())
+
+        #provider_members = ProviderMembership.objects.filter(
+        #    member__name=groupname)
+        #if not provider_members:
+        #    logger.warn("%s is not a member of any provider" % groupname)
+        #for pm in provider_members:
+        #    identities = IdentityMembership.objects.filter(
+        #        member=group,
+        #        identity__provider=pm.provider)
+        #    if identities:
+        #        return identities[0]
+        
+        
 
     def get_allocation_dict(self):
         if not self.allocation:
@@ -196,8 +202,8 @@ class IdentityMembership(models.Model):
         """
         super(IdentityMembership, self).save(*args, **kwargs)
         try:
-            from service.quota import set_provider_quota
-            set_provider_quota(self.identity.uuid)
+            from service.tasks.admin import set_provider_quota
+            set_provider_quota.apply_async(args=[self.identity.uuid])
         except Exception as ex:
             logger.warn("Unable to update service.quota.set_provider_quota.")
             raise
