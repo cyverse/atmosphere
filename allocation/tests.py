@@ -748,4 +748,6 @@ def repl_apply_strategy(identity):
     allocation = get_allocation(identity.created_by.username,
                                 identity.uuid)
     strategy = repl_test_strategy()
-    return strategy.apply(identity, allocation)
+    alloc_input = strategy.apply(identity, allocation)
+    result = engine.calculate_allocation(alloc_input)
+    return result
