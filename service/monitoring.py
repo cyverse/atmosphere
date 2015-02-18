@@ -1,32 +1,29 @@
-import sys, pytz, time, random
-
+import random
 from datetime import timedelta
 
+import pytz
 from django.db.models import Q
 from django.utils import timezone
-
 from threepio import logger
-
 from core.models import AtmosphereUser as User
+from core.models.allocation_strategy import Allocation as CoreAllocation
+from core.models.allocation_strategy import AllocationStrategy as CoreAllocationStrategy
 from core.models.credential import Credential
 from core.models import IdentityMembership, Identity, InstanceStatusHistory
 from core.models.instance import Instance as CoreInstance
 from core.models.instance import convert_esh_instance,\
-        _esh_instance_size_to_core
-
+    _esh_instance_size_to_core
+from core.models.size import convert_esh_size
+from allocation.models import Allocation, AllocationResult
 from service.cache import get_cached_instances, get_cached_driver
 from allocation.engine import calculate_allocation
-from allocation.models import AllocationIncrease,\
-        AllocationRecharge, AllocationUnlimited,\
-        IgnoreStatusRule, MultiplySizeCPU,\
-        Allocation, TimeUnit, AllocationResult
-from allocation.models import Instance as AllocInstance
 from django.conf import settings
 
 
-## Private
+
+# Private
 def _include_all_idents(identities, owner_map):
-    #Include all identities with 0 instances to the monitoring
+    # Include all identities with 0 instances to the monitoring
     identity_owners = [ident.get_credential('ex_tenant_name')
                        for ident in identities]
     owners_w_instances = owner_map.keys()
@@ -34,6 +31,8 @@ def _include_all_idents(identities, owner_map):
         if user not in owners_w_instances:
             owner_map[user] = []
     return owner_map
+
+
 def _make_instance_owner_map(instances, users=None):
     owner_map = {}
 
@@ -46,18 +45,20 @@ def _make_instance_owner_map(instances, users=None):
         owner_map[key] = instance_list
     return owner_map
 
+
 def _core_instances_for(identity, start_date=None):
     if not start_date:
-        #Can't use 'None' as a query value
-        start_date = timezone.datetime(1970,1,1).replace(tzinfo = pytz.utc)
+        # Can't use 'None' as a query value
+        start_date = timezone.datetime(1970, 1, 1).replace(tzinfo=pytz.utc)
     return CoreInstance.objects.filter(
-            Q(instancestatushistory__end_date=None) |
-            Q(instancestatushistory__end_date__gt=start_date) |
-            Q(end_date=None) | Q(end_date__gt=start_date),
-            #NOTE: May need to remove this created_by line
-            #      down-the-road as we share user/tenants.
-                            created_by=identity.created_by,
-                            created_by_identity=identity).distinct()
+        Q(instancestatushistory__end_date=None) |
+        Q(instancestatushistory__end_date__gt=start_date) |
+        Q(end_date=None) | Q(end_date__gt=start_date),
+        # NOTE: May need to remove this created_by line
+        # down-the-road as we share user/tenants.
+        created_by=identity.created_by,
+        created_by_identity=identity).distinct()
+
 
 def _select_identities(provider, users=None):
     if users:
@@ -72,33 +73,36 @@ def _convert_tenant_id_to_names(instances, tenants):
                 i.owner = tenant['name']
     return instances
 
+
 def _get_identity_from_tenant_name(provider, username):
     try:
-        #NOTE: I could see this being a problem when 'user1' and 'user2' use
+        # NOTE: I could see this being a problem when 'user1' and 'user2' use
         #      ex_project_name == 'shared_group'
-        #TODO: Ideally we would be able to extract some more information
+        # TODO: Ideally we would be able to extract some more information
         #      when we move away from explicit user-groups.
         credential = Credential.objects.get(
-                key='ex_project_name', value=username,
-                identity__provider=provider,
-                identity__created_by__username=username)
+            key='ex_project_name', value=username,
+            identity__provider=provider,
+            identity__created_by__username=username)
         identity = credential.identity
         return identity
-    except Credential.MultipleObjectsReturned, mo_creds:
+    except Credential.MultipleObjectsReturned:
         logger.warn("%s has >1 Credentials on Provider %s"
-                % (username, provider))
-        credential = Credential.objects.filter(            
-                key='ex_project_name', value=username,  
-                identity__provider=provider,            
-                identity__created_by__username=username)[0]
+                    % (username, provider))
+        credential = Credential.objects.filter(
+            key='ex_project_name', value=username,
+            identity__provider=provider,
+            identity__created_by__username=username)[0]
         identity = credential.identity
         return identity
-    except Credential.DoesNotExist, no_creds:
+    except Credential.DoesNotExist:
         return None
 
-## Core Monitoring methods
-def get_allocation_result_for(provider, username,
-                               print_logs=False, start_date=None, end_date=None):
+# Core Monitoring methods
+
+
+def get_allocation_result_for(
+        provider, username, print_logs=False, start_date=None, end_date=None):
     """
     Given provider and username:
     * Find the correct identity for the user
@@ -106,13 +110,13 @@ def get_allocation_result_for(provider, username,
     * Calculate the 'AllocationResult' and return both
     """
     identity = _get_identity_from_tenant_name(provider, username)
-    #Attempt to run through the allocation engine
+    # Attempt to run through the allocation engine
     try:
         allocation_result = _get_allocation_result(
-                identity, start_date, end_date, 
-                print_logs=print_logs)
+            identity, start_date, end_date,
+            print_logs=print_logs)
         logger.debug("Result for Username %s: %s"
-                % (username, allocation_result))
+                     % (username, allocation_result))
         return allocation_result
     except IdentityMembership.DoesNotExist:
         logger.warn(
@@ -124,8 +128,9 @@ def get_allocation_result_for(provider, username,
                          % (identity,))
         raise
 
-def user_over_allocation_enforcement(provider, username,
-                               print_logs=False, start_date=None, end_date=None):
+
+def user_over_allocation_enforcement(
+        provider, username, print_logs=False, start_date=None, end_date=None):
     """
     Begin monitoring 'username' on 'provider'.
     * Calculate allocation from START of month to END of month
@@ -133,38 +138,39 @@ def user_over_allocation_enforcement(provider, username,
     """
     identity = _get_identity_from_tenant_name(provider, username)
     allocation_result = get_allocation_result_for(
-            provider, username,
-            print_logs, start_date, end_date)
-    #ASSERT: allocation_result has been retrieved successfully
-    #Make some enforcement decision based on the allocation_result's output.
+        provider, username,
+        print_logs, start_date, end_date)
+    # ASSERT: allocation_result has been retrieved successfully
+    # Make some enforcement decision based on the allocation_result's output.
 
     if not identity:
         logger.warn(
-                "%s has NO identity. Total Runtime could NOT be calculated. Returning.." %
-                (username, ))
+            "%s has NO identity. "
+            "Total Runtime could NOT be calculated. Returning.." %
+            (username, ))
         return allocation_result
     user = User.objects.get(username=username)
     allocation = get_allocation(username, identity.uuid)
     if not allocation:
         logger.info(
-                "%s has NO allocation. Total Runtime: %s. Returning.." %
-                (username, allocation_result.total_runtime()))
+            "%s has NO allocation. Total Runtime: %s. Returning.." %
+            (username, allocation_result.total_runtime()))
         return allocation_result
 
     if not settings.ENFORCING:
         logger.debug('Settings dictate allocations are NOT enforced')
         return allocation_result
 
-    #Enforce allocation if overboard.
+    # Enforce allocation if overboard.
     if allocation_result.over_allocation():
-        logger.info("%s is OVER allocation. %s - %s = %s"
-                % (username, 
-                    allocation_result.total_credit(),
-                    allocation_result.total_runtime(),
-                    allocation_result.total_difference()))
+        logger.info(
+            "%s is OVER allocation. %s - %s = %s"
+            % (username,
+               allocation_result.total_credit(),
+               allocation_result.total_runtime(),
+               allocation_result.total_difference()))
         enforce_allocation_policy(identity, user)
     return allocation_result
-
 
 
 def enforce_allocation_policy(identity, user):
@@ -173,10 +179,12 @@ def enforce_allocation_policy(identity, user):
     when THIS identity/user combination is given
     #Possible combinations:
     1. Check the 'rules' for this provider
-    2. Notify the 'ProviderAdministrator' that a user has exceeded their allocation, but that NO action has been taken.
+    2. Notify the 'ProviderAdministrator' that a user has exceeded
+       their allocation, but that NO action has been taken.
     """
-    #Option1 - Suspend all instances.
+    # Option1 - Suspend all instances.
     return suspend_all_instances_for(identity, user)
+
 
 def suspend_all_instances_for(identity, user):
     driver = get_cached_driver(identity=identity)
@@ -184,22 +192,22 @@ def suspend_all_instances_for(identity, user):
     for instance in esh_instances:
         try:
             if driver._is_active_instance(instance):
-                #Suspend active instances, update the task in the DB
+                # Suspend active instances, update the task in the DB
                 driver.suspend_instance(instance)
-                #NOTE: Intentionally added to allow time for 
-                #      the Cloud to begin 'suspend' operation 
+                # NOTE: Intentionally added to allow time for
+                #      the Cloud to begin 'suspend' operation
                 #      before querying for the instance again.
-                time = random.uniform(2,6)
+                time = random.uniform(2, 6)
                 time.sleep(time)
                 updated_esh = driver.get_instance(instance.id)
-                updated_core = convert_esh_instance(
+                convert_esh_instance(
                     driver, updated_esh,
                     identity.provider.uuid,
                     identity.uuid,
                     user)
         except Exception, e:
-            #Raise ANY exception that doesn't say
-            #'This instance is already suspended'
+            # Raise ANY exception that doesn't say
+            # 'This instance is already suspended'
             if 'in vm_state suspended' not in e.message:
                 raise
     return True  # User was over_allocation
@@ -211,7 +219,7 @@ def update_instances(driver, identity, esh_list, core_list):
     && Update the values of instances that do
     """
     esh_ids = [instance.id for instance in esh_list]
-    #logger.info('%s Instances for Identity %s: %s'
+    # logger.info('%s Instances for Identity %s: %s'
     #            % (len(esh_ids), identity, esh_ids))
     for core_instance in core_list:
         try:
@@ -231,57 +239,9 @@ def update_instances(driver, identity, esh_list, core_list):
             esh_instance.extra.get(
                 'metadata', {}).get('tmp_status'))
 
-## Used in monitoring.py
-
-def _create_monthly_window_input(identity, core_allocation, 
-        start_date, end_date, interval_delta=None):
-    """
-    This function is meant to create an allocation input that
-    is identical in functionality to that of the ORIGINAL allocation system.
-    """
-
-    if not end_date:
-        end_date = timezone.now()
-
-    if not start_date:
-        delta_time = get_delta(core_allocation, settings.FIXED_WINDOW, end_date)
-        start_date = end_date - delta_time
-    else:
-        delta_time = end_date - start_date
-    #TODO: I wanted delta_time.. why?
-    #Guaranteed a range (IF BOTH are NONE: Starting @ FIXED_WINDOW until NOW)
-    if core_allocation:
-        initial_recharge = AllocationRecharge(
-                name="%s Assigned allocation" % identity.created_by.username,
-                unit=TimeUnit.minute, amount=core_allocation.threshold,
-                recharge_date=start_date)
-    else:
-        initial_recharge = AllocationUnlimited(start_date)
-    #Retrieve the core that could have an impact..
-    core_instances = _core_instances_for(identity, start_date)
+# Used in monitoring.py
 
 
-
-    #Noteably MISSING: 'active', 'running'
-    multiply_by_cpu = MultiplySizeCPU(name="Multiply TimeUsed by CPU", multiplier=1)
-    ignore_inactive = IgnoreStatusRule("Ignore Inactive StatusHistory", value=["build", "pending",
-        "hard_reboot", "reboot",
-         "migrating", "rescue",
-         "resize", "verify_resize",
-        "shutoff", "shutting-down",
-        "suspended", "terminated",
-        "deleted", "error", "unknown","N/A",
-        ])
-    #Convert Core Models --> Allocation/core Models
-    alloc_instances = [AllocInstance.from_core(inst, start_date)
-                       for inst in core_instances]
-    return Allocation(
-            credits=[initial_recharge],
-            rules=[multiply_by_cpu, ignore_inactive], instances=alloc_instances,
-            start_date=start_date, end_date=end_date,
-            interval_delta=interval_delta)
-
-    
 def _cleanup_missing_instances(
         identity, core_running_instances, start_date=None):
     """
@@ -302,37 +262,42 @@ def _cleanup_missing_instances(
             inst.end_date_all()
             fixed_instances.append(inst)
         else:
-            #Instance IS in the list of running instances.. Further cleaning
-            #can be done at this level.
+            # Instance IS in the list of running instances.. Further cleaning
+            # can be done at this level.
             non_end_dated_history = inst.instancestatushistory_set.filter(
-                    end_date=None)
+                end_date=None)
             count = len(non_end_dated_history)
             if count > 1:
-                history_names = [ish.status.name for ish in non_end_dated_history]
-                #Note: We have the 'wrong' instance, we want the one that
-                #      includes the ESH driver
-                core_running_inst = [i for i in core_running_instances if i == inst][0]
-                new_history = _resolve_history_conflict(identity, core_running_inst,
-                        non_end_dated_history)
+                history_names = [ish.status.name for ish
+                                 in non_end_dated_history]
+                # Note: We have the 'wrong' instance, we want the one that
+                # includes the ESH driver
+                core_running_inst = [i for i in core_running_instances
+                                     if i == inst][0]
+                new_history = _resolve_history_conflict(
+                    identity, core_running_inst, non_end_dated_history)
                 fixed_instances.append(inst)
-                logger.warn("Instance %s contained %s "
-                        "NON END DATED history:%s. "
-                        " New History: %s" %
-                        (inst.provider_alias,
-                            count, history_names, new_history))
-        #Gather the updated values..
+                logger.warn(
+                    "Instance %s contained %s "
+                    "NON END DATED history:%s. "
+                    " New History: %s" %
+                    (inst.provider_alias,
+                     count, history_names, new_history))
+        # Gather the updated values..
         instances.append(inst)
-    #Return the updated list
+    # Return the updated list
     if fixed_instances:
-        logger.warn("Cleaned up %s instances for %s"\
-                % (len(fixed_instances),identity.created_by.username))
+        logger.warn("Cleaned up %s instances for %s"
+                    % (len(fixed_instances), identity.created_by.username))
     return instances
 
-def _resolve_history_conflict(identity, core_running_instance,
+
+def _resolve_history_conflict(
+        identity, core_running_instance,
         bad_history, reset_time=None):
     """
-    NOTE 1: This is a 'band-aid' fix until we are 100% that Transaction will not
-            create conflicting un-end-dated objects.
+    NOTE 1: This is a 'band-aid' fix until we are 100% that Transaction will
+            not create conflicting un-end-dated objects.
 
     NOTE 2: It is EXPECTED that this instance has the 'esh' attribute
             Failure to add the 'esh' attribute will generate a ValueError!
@@ -342,18 +307,18 @@ def _resolve_history_conflict(identity, core_running_instance,
     esh_instance = core_running_instance.esh
     new_status = esh_instance.extra['status']
     esh_driver = get_cached_driver(identity=identity)
-    new_size = _esh_instance_size_to_core(esh_driver,
-            esh_instance, identity.provider.uuid)
+    new_size = _esh_instance_size_to_core(
+        esh_driver, esh_instance, identity.provider.uuid)
     if not reset_time:
         reset_time = timezone.now()
     for history in bad_history:
         history.end_date = reset_time
         history.save()
-    new_history = InstanceStatusHistory.create_history(new_status, 
-            core_running_instance, new_size,
-            reset_time)
+    new_history = InstanceStatusHistory.create_history(
+        new_status,
+        core_running_instance, new_size,
+        reset_time)
     return new_history
-
 
 
 def _get_instance_owner_map(provider, users=None):
@@ -367,18 +332,17 @@ def _get_instance_owner_map(provider, users=None):
     all_identities = _select_identities(provider, users)
     all_instances = get_cached_instances(provider=provider)
     all_tenants = admin_driver._connection._keystone_list_tenants()
-    #Convert instance.owner from tenant-id to tenant-name all at once
+    # Convert instance.owner from tenant-id to tenant-name all at once
     all_instances = _convert_tenant_id_to_names(all_instances, all_tenants)
-    #Make a mapping of owner-to-instance
+    # Make a mapping of owner-to-instance
     instance_map = _make_instance_owner_map(all_instances, users=users)
     logger.info("Instance owner map created")
     identity_map = _include_all_idents(all_identities, instance_map)
     logger.info("Identity map created")
     return identity_map
+# Used in OLD allocation
 
 
-
-## Used in OLD allocation
 def check_over_allocation(username, identity_uuid,
                           time_period=None):
     """
@@ -388,26 +352,26 @@ def check_over_allocation(username, identity_uuid,
     """
     identity = Identity.objects.get(uuid=identity_uuid)
     allocation_result = _get_allocation_result(identity)
-    return (allocation_result.over_allocation(), 
+    return (allocation_result.over_allocation(),
             allocation_result.total_difference())
 
 
 def get_allocation(username, identity_uuid):
     user = User.objects.get(username=username)
     try:
-        membership = IdentityMembership.objects.get(identity__uuid=identity_uuid,
-                                                member=user)
+        membership = IdentityMembership.objects.get(
+            identity__uuid=identity_uuid, member=user)
     except IdentityMembership.DoesNotExist:
         logger.warn(
             "WARNING: User %s does not"
             "have IdentityMembership on this database" % (username, ))
         return None
     if not user.is_staff and not membership.allocation:
-        default_allocation = Allocation.default_allocation(
-                membership.identity.provider)
+        def_allocation = CoreAllocation.default_allocation(
+            membership.identity.provider)
         logger.warn("%s is MISSING an allocation. Default Allocation"
-                    " assigned:%s" % (user,default_allocation))
-        return default_allocation
+                    " assigned:%s" % (user, def_allocation))
+        return def_allocation
     return membership.allocation
 
 
@@ -428,34 +392,49 @@ def get_delta(allocation, time_period, end_date=None):
                                                 tzinfo=timezone.utc)
         return now - allocation_time
     else:
-        #Use allocation's delta value because no time period is set.
+        # Use allocation's delta value because no time period is set.
         return timedelta(minutes=allocation.delta)
+
 
 def _empty_allocation_result():
     """
     """
     return AllocationResult.no_allocation()
 
+
 def _get_allocation_result(identity, start_date=None, end_date=None,
                            print_logs=False):
     """
-    Given an identity (And, optionally, time frame):
-    * Provide defaults that are similar to the 'monthly window' conditions in
-    Previous Versions
-    * Create an allocation input, run it against the engine and return the result
+    Given an identity, retrieve the provider strategy and apply the strategy
+    to this identity.
     """
+
     if not identity:
         return _empty_allocation_result()
     username = identity.created_by.username
     core_allocation = get_allocation(username, identity.uuid)
     if not core_allocation:
         logger.warn("User:%s Identity:%s does not have an allocation assigned"
-                % (username, identity))
-    #TODO: Logic should be placed HERE when we decide to move away from
-    #      'fixed monthly window' calculations.
-    allocation_input = _create_monthly_window_input(
-            identity, core_allocation, start_date, end_date)
-
-    allocation_result = calculate_allocation(allocation_input, print_logs=print_logs)
+                    % (username, identity))
+    allocation_input = apply_strategy(identity, core_allocation)
+    allocation_result = calculate_allocation(
+        allocation_input,
+        print_logs=print_logs)
     return allocation_result
 
+def apply_strategy(identity, core_allocation):
+    """
+    Given identity and core allocation, grab the ProviderStrategy
+    and apply it. Returns an "AllocationInput"
+    """
+    strategy = _get_strategy(identity)
+    if not strategy:
+        return Allocation()
+    return strategy.apply(identity, core_allocation)
+
+
+def _get_strategy(identity):
+    try:
+        return identity.provider.allocationstrategy
+    except CoreAllocationStrategy.DoesNotExist:
+        return None

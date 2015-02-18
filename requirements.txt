@@ -7,10 +7,7 @@ djangorestframework==3.0.4
 django-filter==0.9.1
 djangorestframework-filters
 django-redis-cache==0.13.0
-uWSGI==2.0.9
-psycopg2==2.5.2
 redis==2.10.3
-hiredis==0.1.4
 
 celery==3.1.17
 django-celery==3.1.16
@@ -19,8 +16,18 @@ apache-libcloud==0.15.1
 requests==2.2
 python-dateutil==1.4.1
 pytz==2014.7
-python-ldap==2.4.13
 Pillow==2.5.3
+
+#Theirs (Could be Installed Manually on windows)
+psycopg2==2.5.4
+python-ldap==2.4.19
+#pycrypto (Dependency inside of rtwo/rfive)
+#paramiko (Dependency inside of rtwo/rfive)
+
+#Theirs (Could NOT be installed on windows)
+# Fortunately, these requirements can be ignored on windows.
+#hiredis==0.1.4
+uWSGI==2.0.9
 
 ## ours
 threepio==0.2.0

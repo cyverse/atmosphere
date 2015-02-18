@@ -5,11 +5,11 @@ through the engine.
 from django.utils.timezone import timedelta, datetime, now, utc
 
 from allocation import validate_interval
-from allocation.models.core import \
+from allocation.models.inputs import \
     AllocationIncrease, AllocationRecharge, AllocationUnlimited, Allocation
 
 
-class InstanceStatusResult(object):
+class InstanceHistoryResult(object):
     def __init__(self, status_name,
                  clock_time=timedelta(0),
                  total_time=timedelta(0),
@@ -30,22 +30,22 @@ class InstanceStatusResult(object):
         return self.__unicode__()
 
     def __unicode__(self):
-        return "<Status:%s Clock Time:%s Total Time:%s Burn Rate:%s/0:00:01>"\
+        return "<HistoryResult: Status:%s Clock Time:%s Total Time:%s Burn Rate:%s/0:00:01>"\
             % (self.status_name, self.clock_time,
                self.total_time, self.burn_rate)
 
 
 class InstanceResult(object):
-    def __init__(self, identifier, status_list):
+    def __init__(self, identifier, history_list):
         self.identifier = identifier
-        self.status_list = status_list
-
+        self.history_list = history_list
+    # Group into status results if necessary
     def get_burn_rate(self):
-        burn_rates = (status.burn_rate for status in self.status_list)
+        burn_rates = (status.burn_rate for status in self.history_list)
         return sum(burn_rates, timedelta(0))
 
     def total_runtime(self):
-        total_times = (status.total_time for status in self.status_list)
+        total_times = (status.total_time for status in self.history_list)
         return sum(total_times, timedelta(0))
 
     def __repr__(self):
@@ -147,7 +147,7 @@ class TimePeriodResult(object):
         """
         total_runtime = timedelta(0)
         for instance_result in self.instance_results:
-            for status_result in instance_result.status_list:
+            for status_result in instance_result.history_list:
                 total_runtime += status_result.total_time
         return total_runtime
 
