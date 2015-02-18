@@ -4,17 +4,17 @@ Settings for atmosphere project.
 """
 from __future__ import absolute_import
 from datetime import timedelta
-from dateutil.relativedelta import relativedelta
-from celery.schedules import crontab
 from uuid import UUID
 import logging
-import os
-import os.path
 import sys
 
+from dateutil.relativedelta import relativedelta
+from celery.schedules import crontab
+import os
+import os.path
 import threepio
-
 import atmosphere
+
 
 #Debug Mode
 DEBUG = True
@@ -205,8 +205,6 @@ AUTH_USER_MODEL = 'core.AtmosphereUser'
 AUTH_USER_MODULE = 'core.AtmosphereUser'
 
 AUTHENTICATION_BACKENDS = (
-    #For Always-OK Access
-    #'authentication.authBackends.MockLoginBackend',
     # For Token-Access
     'authentication.authBackends.AuthTokenLoginBackend',
     # For Web-Access

@@ -1,15 +1,13 @@
-import pytz
 import random
-
 from datetime import timedelta
 
+import pytz
 from django.db.models import Q
 from django.utils import timezone
-
 from threepio import logger
-
 from core.models import AtmosphereUser as User
 from core.models.allocation_strategy import Allocation as CoreAllocation
+from core.models.allocation_strategy import AllocationStrategy as CoreAllocationStrategy
 from core.models.credential import Credential
 from core.models import IdentityMembership, Identity, InstanceStatusHistory
 from core.models.instance import Instance as CoreInstance
@@ -20,6 +18,7 @@ from allocation.models import Allocation, AllocationResult
 from service.cache import get_cached_instances, get_cached_driver
 from allocation.engine import calculate_allocation
 from django.conf import settings
+
 
 
 # Private
@@ -435,8 +434,7 @@ def apply_strategy(identity, core_allocation):
 
 
 def _get_strategy(identity):
-    from core.models.strategy import AllocationStrategy
     try:
         return identity.provider.allocationstrategy
-    except AllocationStrategy.DoesNotExist:
+    except CoreAllocationStrategy.DoesNotExist:
         return None
