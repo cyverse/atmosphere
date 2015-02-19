@@ -12,9 +12,12 @@ from api.allocation_request import AllocationRequestDetail,\
 from api.application import ApplicationSearch, ApplicationList, Application,\
                             ApplicationThresholdDetail
 from api.bookmark import ApplicationBookmarkDetail, ApplicationBookmarkList
-from api.cloud_admin import CloudAdmin, CloudAdminActionsList,\
+
+from api.cloud_admin import \
     CloudAdminImagingRequestList, CloudAdminImagingRequest,\
-    CloudAdminAccountList, CloudAdminAccountEnable
+    CloudAdminAccountList, CloudAdminAccount,\
+    CloudAdminInstanceActionList, CloudAdminInstanceAction
+
 from api.email import Feedback, QuotaEmail, SupportEmail
 from api.flow import Flow
 from api.group import GroupList, Group
@@ -64,7 +67,6 @@ provider_specific = r"^provider/(?P<provider_uuid>%s)" % uuid_match
 # /r'^provider\/(?P<provider_uuid>\\d+)\/identity\/(?P<identity_uuid>\
 identity_specific = provider_specific +\
                     r"/identity/(?P<identity_uuid>%s)" % uuid_match
-admin_specific = r"^cloud_admin/(?P<cloud_admin_uuid>%s)" % uuid_match
 
 private_apis = patterns('',
     # E-mail API
@@ -319,35 +321,34 @@ public_apis = format_suffix_patterns(patterns(
         License.as_view(),
         name='license-detail'),
 
-    url(r'^cloud_admin$',
-        CloudAdmin.as_view(),
-        name='cloud-admin-list'),
+    # Cloud Admin Views -- Hidden on 'root' unless your a C.A 
 
-    url(admin_specific + r'/$',
-        CloudAdminActionsList.as_view(),
-        name='cloud-admin-detail'),
-
-    # Machine Requests (Cloud Admin Views)
-    url(admin_specific + r"/imaging_request$",
+    url(r"/cloud_admin_imaging_request$",
         CloudAdminImagingRequestList.as_view(),
         name='cloud-admin-imaging-request-list'),
-    url(admin_specific + r"/imaging_request/(?P<machine_request_id>%s)$"
+    url(r"/cloud_admin_imaging_request/(?P<machine_request_id>%s)$"
         % (id_match,),
         CloudAdminImagingRequest.as_view(),
         name='cloud-admin-imaging-request-detail'),
-    url(admin_specific +
-        r"/imaging_request/(?P<machine_request_id>%s)/(?P<action>\w)$"
+    url(r"/cloud_admin_imaging_request/(?P<machine_request_id>%s)/(?P<action>\w)$"
         % (id_match,),
         CloudAdminImagingRequest.as_view(),
         name='cloud-admin-imaging-request-detail'),
-    # User Accounts (Cloud Admin Views)
-    url(admin_specific + r"/account_list/$",
+
+    url(r"/cloud_admin_account_list/$",
         CloudAdminAccountList.as_view(),
         name='cloud-admin-account-list'),
-    # url(admin_specific + r"/account_list/(?P<username>%s)/enable$"
-    #     % (user_match,),
-    #     CloudAdminAccountEnable.as_view(),
-    #     name='cloud-admin-account-enable'),
+    url(r"/cloud_admin_account_list/(?P<username>%s)$"
+        % (user_match,),
+        CloudAdminAccount.as_view(),
+        name='cloud-admin-account-detail'),
+    url(r"/cloud_admin_instance_action/$",
+        CloudAdminInstanceActionList.as_view(),
+        name='cloud-admin-provider-action-list'),
+
+    url(r"/cloud_admin_instance_action/(?P<action_id>\d+)$",
+        CloudAdminInstanceAction.as_view(),
+        name='cloud-admin-instance-action-detail'),
 
 
     url(identity_specific + r'/image_export$',

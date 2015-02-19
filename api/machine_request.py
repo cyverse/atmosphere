@@ -86,7 +86,7 @@ class MachineRequestList(APIView):
             #Object now has an ID for links..
             machine_request_id = serializer.object.id
             active_provider = machine_request.active_provider()
-            auto_approve = active_provider.has_trait("Auto-Imaging")
+            auto_approve = active_provider.auto_imaging
             requestImaging(request, machine_request_id,
                            auto_approve=auto_approve)
             if auto_approve:

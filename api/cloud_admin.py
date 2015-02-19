@@ -3,9 +3,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from api.permissions import CloudAdminRequired
-from api.serializers import CloudAdminSerializer,\
-    CloudAdminActionListSerializer, MachineRequestSerializer,\
-    IdentitySerializer, AccountSerializer
+from api.serializers import MachineRequestSerializer,\
+    IdentitySerializer, AccountSerializer, InstanceActionSerializer
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 from core.models.cloud_admin import CloudAdministrator
 from core.models.identity import Identity as CoreIdentity
@@ -26,9 +25,9 @@ def _get_administrator_account(user, admin_uuid):
         return None
 
 
-class CloudAdmin(APIView):
+class CloudAdminImagingRequestList(APIView):
     """
-    Cloud Administration API
+    Cloud Administration API for handling Imaging Requests
     """
 
     permission_classes = (CloudAdminRequired,)
@@ -37,48 +36,8 @@ class CloudAdmin(APIView):
         """
         """
         user = request.user
-        admins = _get_administrator_accounts(user)
-        serializer = CloudAdminSerializer(admins, many=True)
-        return Response(serializer.data)
-
-
-class CloudAdminActionsList(APIView):
-    """
-    Cloud Administration API
-    """
-
-    permission_classes = (CloudAdminRequired,)
-
-    def get(self, request, cloud_admin_uuid):
-        """
-        """
-        user = request.user
-        admin = _get_administrator_account(user, cloud_admin_uuid)
-        if not admin:
-            return Response(
-                "Cloud Administrator with UUID=%s is not "
-                "accessible to user:%s"
-                % (cloud_admin_uuid, user.username),
-                status=status.HTTP_400_BAD_REQUEST)
-        serializer = CloudAdminActionListSerializer(
-            admin, context={'request': request})
-        return Response(serializer.data)
-
-
-class CloudAdminImagingRequestList(APIView):
-    """
-    Cloud Administration API for handling Imaging Requests
-    """
-
-    permission_classes = (CloudAdminRequired,)
-
-    def get(self, request, cloud_admin_uuid):
-        """
-        """
-        user = request.user
-        admin = _get_administrator_account(user, cloud_admin_uuid)
         machine_reqs = CoreMachineRequest.objects.filter(
-            instance__source__provider=admin.provider).order_by('-start_date')
+            instance__source__provider__cloudadministrator__user=user).order_by('-start_date')
         serializer = MachineRequestSerializer(machine_reqs, many=True)
         return Response(serializer.data)
 
@@ -92,16 +51,16 @@ class CloudAdminImagingRequest(APIView):
     permission_classes = (CloudAdminRequired,)
 
     def get(self, request,
-            cloud_admin_uuid, machine_request_id, action=None):
+            machine_request_id, action=None):
         """
         OPT 1 for approval: via GET with /approve or /deny
         This is a convenient way to approve requests remotely
         """
 
-        admin = _get_administrator_account(request.user, cloud_admin_uuid)
+        user = request.user
         try:
             machine_request = CoreMachineRequest.objects.get(
-                instance__source__provider=admin.provider,
+                instance__source__provider__cloudadministrator__user=user,
                 id=machine_request_id)
         except CoreMachineRequest.DoesNotExist:
             return Response('No machine request with id %s'
@@ -133,10 +92,10 @@ class CloudAdminImagingRequest(APIView):
 
         Modfiy attributes on a machine request
         """
-        admin = _get_administrator_account(request.user, cloud_admin_uuid)
+        user = request.user
         try:
             machine_request = CoreMachineRequest.objects.get(
-                instance__source__provider=admin.provider,
+                instance__source__provider__cloudadministrator__user=user,
                 id=machine_request_id)
         except CoreMachineRequest.DoesNotExist:
             return Response('No machine request with id %s'
@@ -183,16 +142,13 @@ class CloudAdminAccountList(APIView):
     """
     permission_classes = (CloudAdminRequired,)
 
-    def get(self, request, cloud_admin_uuid):
+    def get(self, request):
         """
-        Return a list of ALL users found on provider_uuid
+        Return a list of ALL IdentityMemberships found on provider_uuid
         """
         user = request.user
-        admin = _get_administrator_account(user, cloud_admin_uuid)
-        # Query for identities, used to retrieve memberships.
-        identity_list = admin.provider.identity_set.all()
         memberships = IdentityMembership.objects.filter(
-            identity__in=identity_list).order_by('member__name')
+            identity__provider__cloudadministrator__user=user).order_by('member__name')
         serializer = AccountSerializer(memberships, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -205,9 +161,21 @@ class CloudAdminAccountList(APIView):
         """
         user = request.user
         data = request.DATA
-
-        admin = _get_administrator_account(user, cloud_admin_uuid)
-        driver = get_account_driver(admin.provider.uuid)
+        try:
+            provider_uuid = data['provider']
+            provider = Provider.objects.get(
+                cloudadministrator__user=user,
+                uuid=provider_uuid)
+        except KeyError:
+            return Response(
+                "Missing 'provider' key, Expected UUID. Received no value.",
+                status=status.HTTP_409_conflict)
+        except Exception:
+            return Response(
+                "Provider with UUID %s does not exist" % provider_uuid,
+                status=status.HTTP_409_conflict)
+            raise Exception
+        driver = get_account_driver(provider)
         missing_args = driver.clean_credentials(data)
         if missing_args:
             raise Exception("Cannot create account. Missing credentials: %s"
@@ -221,19 +189,51 @@ class CloudAdminAccountList(APIView):
         return Response(serializer.data)
 
 
-class CloudAdminAccountEnable(APIView):
+class CloudAdminAccount(APIView):
     """
     This API is used to Enable/Disable a specific identity on your Cloud Provider.
     """
     permission_classes = (CloudAdminRequired,)
 
-    def get(self, request, cloud_admin_uuid, username):
+    def get(self, request, username):
         """
         Detailed view of all identities for provider,user combination.
         username -- The username to match identities
         """
-        return Response("Method has not yet been implemented..", status=status.HTTP_400_BAD_REQUEST)
-        # identities = CoreIdentity.objects.filter(provider__uuid=provider_uuid,
-        #                                          created_by__username=username)
-        # serialized_data = IdentitySerializer(identities, many=True).data
-        # return Response(serialized_data)
+        user = request.user
+        memberships = IdentityMembership.objects.filter(
+            identity__provider__cloudadministrator__user=user,
+            identity__created_by__username=username).order_by('member__name')
+        serializer = AccountSerializer(memberships, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CloudAdminInstanceActionList(APIView):
+    """
+    This API is used to provide account management.
+    provider_uuid -- The id of the provider whose account you want to manage.
+    """
+    permission_classes = (CloudAdminRequired,)
+
+    def get(self, request, cloud_admin_uuid):
+        """
+        Return a list of ALL users found on provider_uuid
+        """
+        instance_actions = InstanceAction.objects.all()
+        serializer = InstanceActionSerializer(instance_actions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class CloudAdminInstanceAction(APIView):
+    """
+    This API is used to provide account management.
+    provider_uuid -- The id of the provider whose account you want to manage.
+    """
+    permission_classes = (CloudAdminRequired,)
+
+    def get(self, request, action_id):
+        """
+        Return a list of ALL users found on provider_uuid
+        """
+        instance_actions = InstanceAction.objects.get(action_id)
+        serializer = InstanceActionSerializer(instance_action)
+        return Response(serializer.data, status=status.HTTP_200_OK)
