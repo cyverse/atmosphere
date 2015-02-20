@@ -4,14 +4,14 @@ from core.models.identity import Identity
 from core.models.profile import UserProfile
 from core.models.project import Project
 from core.models.provider import AccountProvider, ProviderType, PlatformType,\
-    Provider
+    Provider, ProviderInstanceAction, ProviderDNSServerIP
 from core.models.license import LicenseType, License
 from core.models.machine import ProviderMachine, ProviderMachineMembership
 from core.models.machine_request import MachineRequest
 from core.models.machine_export import MachineExport
 from core.models.maintenance import MaintenanceRecord
 from core.models.instance import Instance, InstanceStatusHistory,\
-    InstanceStatus
+    InstanceStatus, InstanceAction, InstanceSource
 from core.models.node import NodeController
 from core.models.post_boot import ScriptType, BootScript
 from core.models.size import Size
@@ -36,7 +36,7 @@ def get_or_create(Model, *args, **kwargs):
 def create_machine_model(name, provider, provider_alias,
                          created_by, description):
     name = _get_valid_name(name, provider_alias)
-    new_machine = get_or_create(Machine,
+    new_machine = get_or_create(Application,
                                 name=name,
                                 description=description,
                                 created_by=created_by)

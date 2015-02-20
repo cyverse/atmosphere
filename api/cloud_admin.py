@@ -4,10 +4,11 @@ from rest_framework.response import Response
 
 from api.permissions import CloudAdminRequired
 from api.serializers import MachineRequestSerializer,\
-    IdentitySerializer, AccountSerializer, InstanceActionSerializer
+    IdentitySerializer, AccountSerializer, \
+    PATCH_ProviderInstanceActionSerializer, POST_ProviderInstanceActionSerializer, ProviderInstanceActionSerializer
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 from core.models.cloud_admin import CloudAdministrator
-from core.models.identity import Identity as CoreIdentity
+from core.models.provider import Provider, ProviderInstanceAction
 from core.models.group import IdentityMembership
 from service.driver import get_account_driver
 
@@ -214,14 +215,26 @@ class CloudAdminInstanceActionList(APIView):
     provider_uuid -- The id of the provider whose account you want to manage.
     """
     permission_classes = (CloudAdminRequired,)
-
-    def get(self, request, cloud_admin_uuid):
+    def get(self, request):
         """
         Return a list of ALL users found on provider_uuid
         """
-        instance_actions = InstanceAction.objects.all()
-        serializer = InstanceActionSerializer(instance_actions, many=True)
+        p_instance_actions = ProviderInstanceAction.objects.filter(
+            provider__cloudadministrator__user=request.user,
+        )
+        serializer = ProviderInstanceActionSerializer(p_instance_actions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    def post(self, request):
+        """
+        Create a new "ProviderInstanceAction"
+        """
+        data = request.DATA
+        serializer = POST_ProviderInstanceActionSerializer(data=data)
+        if serializer.is_valid():
+            new_action = serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class CloudAdminInstanceAction(APIView):
     """
@@ -229,11 +242,20 @@ class CloudAdminInstanceAction(APIView):
     provider_uuid -- The id of the provider whose account you want to manage.
     """
     permission_classes = (CloudAdminRequired,)
-
-    def get(self, request, action_id):
+    def get(self, request, provider_instance_action_id):
         """
         Return a list of ALL users found on provider_uuid
         """
-        instance_actions = InstanceAction.objects.get(action_id)
-        serializer = InstanceActionSerializer(instance_action)
+        try:
+           p_instance_action = ProviderInstanceAction.objects.get(id=provider_instance_action_id)
+        except ProviderInstanceAction.DoesNotExist:
+            return Response("Bad ID", status=status.HTTP_400_BAD_REQUEST)
+        serializer = ProviderInstanceActionSerializer(p_instance_action)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    def patch(self, request, provider_instance_action_id):
+        """
+        Return a list of ALL users found on provider_uuid
+        """
+        data = request.DATA
+        serializer = PATCH_ProviderInstanceActionSerializer(data=data)
         return Response(serializer.data, status=status.HTTP_200_OK)

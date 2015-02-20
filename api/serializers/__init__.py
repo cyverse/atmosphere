@@ -7,7 +7,8 @@ from .tag_related_field import TagRelatedField
 from .identity_related_field import IdentityRelatedField
 from .instance_related_field import InstanceRelatedField
 from .account_serializer import AccountSerializer
-from .provider_serializer import ProviderSerializer
+from .provider_serializer import ProviderSerializer, ProviderInstanceActionSerializer,\
+    PATCH_ProviderInstanceActionSerializer, POST_ProviderInstanceActionSerializer
 from .cleaned_identity_serializer import CleanedIdentitySerializer
 from .boot_script_serializer import BootScriptSerializer
 from .application_threshold_serializer import ApplicationThresholdSerializer
@@ -16,7 +17,7 @@ from .paginated_application_serializer import PaginatedApplicationSerializer
 from .application_bookmark_serializer import ApplicationBookmarkSerializer
 from .application_score_serializer import ApplicationScoreSerializer
 from .credential_serializer import CredentialSerializer
-from .instance_serializer import InstanceSerializer
+from .instance_serializer import InstanceSerializer, InstanceActionSerializer
 from .instance_history_serializer import InstanceHistorySerializer
 from .paginated_instance_history_serializer import PaginatedInstanceHistorySerializer
 from .paginated_instance_serializer import PaginatedInstanceSerializer

@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 import argparse
 import json
-import os
 import sys
 
+import os
 import django
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
-
 import libcloud.security
+
 
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
@@ -16,7 +16,8 @@ sys.path.insert(1, root_dir)
 django.setup()
 
 from core.models import Provider, PlatformType, ProviderType, Identity, Group,\
-    ProviderMembership, IdentityMembership, AccountProvider, Quota
+    ProviderMembership, IdentityMembership, AccountProvider, Quota, ProviderInstanceAction
+from core.models import InstanceAction
 
 libcloud.security.VERIFY_SSL_CERT = False
 libcloud.security.VERIFY_SSL_CERT_STRICT = False
@@ -209,7 +210,13 @@ def create_provider(provider_info):
         location=provider_info["name"],
         virtualization=provider_info["platform"],
         type=provider_info["type"], public=False)
-
+    # 3b. Associate all InstanceActions
+    instance_actions = InstanceAction.objects.all()
+    for action in instance_actions:
+        ProviderInstanceAction.objects.get_or_create(
+            provider=new_provider,
+            instance_action=action,
+            enabled=True)
     # 4.  Create a new provider
     print "Created a new provider: %s" % (new_provider.location)
     return new_provider

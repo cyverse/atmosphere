@@ -25,7 +25,8 @@ def copy_data_to_new_models(apps, schema_editor):
     ProviderDNSServerIP = apps.get_model("core", "ProviderDNSServerIP")
 
     InstanceAction = apps.get_model("core", "InstanceAction")
-    add_instance_actions(InstanceAction)
+    ProviderInstanceAction = apps.get_model("core", "ProviderInstanceAction")
+    add_instance_actions(Provider, InstanceAction, ProviderInstanceAction)
 
     for provider in Provider.objects.all():
         for trait in provider.traits.all():
@@ -38,7 +39,7 @@ def copy_data_to_new_models(apps, schema_editor):
     return
 
 
-def add_instance_actions(InstanceAction):
+def add_instance_actions(Provider, InstanceAction, ProviderInstanceAction):
     InstanceAction.objects.get_or_create(name="Start", description="""Starts an instance when it is in the 'stopped' State""")
     InstanceAction.objects.get_or_create(name="Stop", description="""Stops an instance when it is in the 'active' State""")
     InstanceAction.objects.get_or_create(name="Resume", description="""Resumes an instance when it is in the 'suspended' State""")
@@ -47,6 +48,13 @@ def add_instance_actions(InstanceAction):
     InstanceAction.objects.get_or_create(name="Hard Reboot", description="""Hard Reboots an instance when it is in ANY State""")
     InstanceAction.objects.get_or_create(name="Resize", description="""Represents the Resize/Confirm_Resize/Revert_Resize operations""")
     InstanceAction.objects.get_or_create(name="Imaging", description="""Represents the ability to Image/Snapshot an instance""")
+
+    instance_actions = InstanceAction.objects.all()
+    for provider in Provider.objects.all():
+        for action in instance_actions:
+            ProviderInstanceAction.objects.get_or_create(
+                provider=provider,
+                instance_action=action)
 
 
 def add_auto_imaging(provider):

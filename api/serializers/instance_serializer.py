@@ -1,4 +1,4 @@
-from core.models.instance import Instance
+from core.models.instance import Instance, InstanceAction
 from core.models import Tag
 from rest_framework import serializers
 from .cleaned_identity_serializer import CleanedIdentitySerializer
@@ -48,3 +48,9 @@ class InstanceSerializer(serializers.ModelSerializer):
         model = Instance
         exclude = ('id', 'source', 'provider_alias',
                    'shell', 'vnc', 'password', 'created_by_identity')
+
+
+
+class InstanceActionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InstanceAction

@@ -1,7 +1,3 @@
-import os
-
-from django.contrib import admin
-from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf.urls import patterns, url, include
 
 from rest_framework.urlpatterns import format_suffix_patterns
@@ -19,13 +15,13 @@ from api.cloud_admin import \
     CloudAdminInstanceActionList, CloudAdminInstanceAction
 
 from api.email import Feedback, QuotaEmail, SupportEmail
-from api.flow import Flow
 from api.group import GroupList, Group
 from api.identity_membership import IdentityMembershipList, IdentityMembership
 from api.identity import IdentityList, Identity, IdentityDetail, IdentityDetailList
 from api.instance import InstanceList, Instance,\
     InstanceAction, InstanceHistory, InstanceHistoryDetail,\
     InstanceStatusHistoryDetail, InstanceTagList, InstanceTagDetail
+from api.instance_action import InstanceActionList, InstanceActionDetail
 from api.license import LicenseList, License
 from api.machine import MachineList, Machine, MachineHistory,\
     MachineSearch, MachineVote, MachineIcon, MachineLicense
@@ -233,6 +229,13 @@ public_apis = format_suffix_patterns(patterns(
     url(identity_specific + r'/instance$',
         InstanceList.as_view(), name='instance-list'),
 
+    url(r"instance_action/$",
+        InstanceActionList.as_view(),
+        name='instance-action-list'),
+    url(r"instance_action/(?P<action_id>\d+)$",
+        InstanceActionDetail.as_view(),
+        name='instance-action-detail'),
+
     url(identity_specific + r'/size$',
         SizeList.as_view(), name='size-list'),
     url(identity_specific + r'/size/(?P<size_id>\d+)$',
@@ -323,30 +326,30 @@ public_apis = format_suffix_patterns(patterns(
 
     # Cloud Admin Views -- Hidden on 'root' unless your a C.A 
 
-    url(r"/cloud_admin_imaging_request$",
+    url(r"cloud_admin_imaging_request$",
         CloudAdminImagingRequestList.as_view(),
         name='cloud-admin-imaging-request-list'),
-    url(r"/cloud_admin_imaging_request/(?P<machine_request_id>%s)$"
+    url(r"cloud_admin_imaging_request/(?P<machine_request_id>%s)$"
         % (id_match,),
         CloudAdminImagingRequest.as_view(),
         name='cloud-admin-imaging-request-detail'),
-    url(r"/cloud_admin_imaging_request/(?P<machine_request_id>%s)/(?P<action>\w)$"
+    url(r"cloud_admin_imaging_request/(?P<machine_request_id>%s)/(?P<action>\w)$"
         % (id_match,),
         CloudAdminImagingRequest.as_view(),
         name='cloud-admin-imaging-request-detail'),
 
-    url(r"/cloud_admin_account_list/$",
+    url(r"cloud_admin_account_list/$",
         CloudAdminAccountList.as_view(),
         name='cloud-admin-account-list'),
-    url(r"/cloud_admin_account_list/(?P<username>%s)$"
+    url(r"cloud_admin_account_list/(?P<username>%s)$"
         % (user_match,),
         CloudAdminAccount.as_view(),
         name='cloud-admin-account-detail'),
-    url(r"/cloud_admin_instance_action/$",
+    url(r"cloud_admin_instance_action/$",
         CloudAdminInstanceActionList.as_view(),
-        name='cloud-admin-provider-action-list'),
+        name='cloud-admin-instance-action-list'),
 
-    url(r"/cloud_admin_instance_action/(?P<action_id>\d+)$",
+    url(r"cloud_admin_instance_action/(?P<provider_instance_action_id>\d+)$",
         CloudAdminInstanceAction.as_view(),
         name='cloud-admin-instance-action-detail'),
 
