@@ -38,7 +38,7 @@ from service.quota import check_over_quota
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
     VolumeAttachConflict, VolumeMountConflict,\
-        UnderThresholdError
+    UnderThresholdError, ActionNotAllowed
 
 from api import failure_response, invalid_creds,\
                 connection_failure, malformed_response
@@ -554,6 +554,11 @@ class InstanceAction(APIView):
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
                 "The requested action %s is not available on this provider"
+                % action_params['action'])
+        except ActionNotAllowed, no_act:
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                "The requested action %s has been explicitly disabled on this provider"
                 % action_params['action'])
         except Exception, exc:
             logger.exception("Exception occurred processing InstanceAction")
