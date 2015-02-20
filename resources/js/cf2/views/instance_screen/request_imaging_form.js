@@ -73,8 +73,8 @@ Atmo.Views.RequestImagingForm = Backbone.View.extend({
             success: function() {
                 self.$el.find('.request_image_submit').val("Request Submitted!").attr("disabled", "disabled").click(function() { return false; });
             },
-			error: function() {
-				Atmo.Utils.notify("Could not submit request", 'If the problem persists, please email your request to <a href="mailto:support@iplantcollaborative.org">support@iplantcollaborative.org</a>', { no_timeout: true });
+			error: function(request, model, error) {
+				Atmo.Utils.notifyErrors(request, 'Could not submit imaging request for the following reason(s):');
 			},
             dataType: 'json'
         });
