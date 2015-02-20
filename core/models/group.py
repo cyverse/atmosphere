@@ -64,6 +64,8 @@ class Group(DjangoGroup):
 
     @classmethod
     def create_usergroup(cls, username):
+        #TODO: ENFORCEMENT of lowercase-only usernames until cleared by mgmt.
+        username = username.lower()
         user = AtmosphereUser.objects.get_or_create(username=username)[0]
         group = Group.objects.get_or_create(name=username)[0]
         if group not in user.groups.all():
