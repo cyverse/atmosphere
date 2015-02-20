@@ -13,7 +13,6 @@ from api.cloud_admin import \
     CloudAdminImagingRequestList, CloudAdminImagingRequest,\
     CloudAdminAccountList, CloudAdminAccount,\
     CloudAdminInstanceActionList, CloudAdminInstanceAction
-
 from api.email import Feedback, QuotaEmail, SupportEmail
 from api.group import GroupList, Group
 from api.identity_membership import IdentityMembershipList, IdentityMembership
@@ -53,16 +52,16 @@ from api.volume import BootVolume, \
         VolumeList, Volume
 
 # Regex matching you'll use everywhere..
-id_match = "\d+"
-uuid_match = "[a-zA-Z0-9-]+"
-user_match = "[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*"
+id_match = '\d+'
+uuid_match = '[a-zA-Z0-9-]+'
+user_match = '[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*'
 
 #Paste This for provider: provider\/(?P<provider_uuid>\\d+)
-provider_specific = r"^provider/(?P<provider_uuid>%s)" % uuid_match
+provider_specific = r'^provider/(?P<provider_uuid>%s)' % uuid_match
 #Paste this for identity: 
 # /r'^provider\/(?P<provider_uuid>\\d+)\/identity\/(?P<identity_uuid>\
 identity_specific = provider_specific +\
-                    r"/identity/(?P<identity_uuid>%s)" % uuid_match
+                    r'/identity/(?P<identity_uuid>%s)' % uuid_match
 
 private_apis = patterns('',
     # E-mail API
@@ -78,53 +77,53 @@ private_apis = patterns('',
     # static files
     url(r'^init_files/(?P<file_location>.*)$', 'web.views.get_resource'),
     #boot_script Related APIs
-    url(r'boot_script$',
+    url(r'^boot_script$',
         BootScriptList.as_view(),
         name='boot_script_list'),
-    url(r'boot_script/(?P<script_id>\d+)$',
+    url(r'^boot_script/(?P<script_id>\d+)$',
         BootScript.as_view(),
         name='boot_script'),
 
     #Project Related APIs
-    url(r'project$',
+    url(r'^project$',
         ProjectList.as_view(),
         name='project-list'),
 
-    url(r'project/null$',
+    url(r'^project/null$',
         NoProjectList.as_view(),
         name='empty-project-list'),
-    url(r'project/null/application$',
+    url(r'^project/null/application$',
         NoProjectApplicationList.as_view(),
         name='empty-project-application-list'),
-    url(r'project/null/instance$',
+    url(r'^project/null/instance$',
         NoProjectInstanceList.as_view(),
         name='empty-project-instance-list'),
-    url(r'project/null/volume$',
+    url(r'^project/null/volume$',
         NoProjectVolumeList.as_view(),
         name='empty-project-volume-list'),
 
-    url(r"project/(?P<project_uuid>%s)$" % uuid_match,
+    url(r'^project/(?P<project_uuid>%s)$' % uuid_match,
         ProjectDetail.as_view(),
         name='project-detail'),
-    url(r"project/(?P<project_uuid>%s)/application$" % uuid_match,
+    url(r'^project/(?P<project_uuid>%s)/application$' % uuid_match,
         ProjectApplicationList.as_view(),
         name='project-application-list'),
-    url(r'project/(?P<project_uuid>%s)'
+    url(r'^project/(?P<project_uuid>%s)'
          '/application/(?P<application_uuid>%s)$'
          % (uuid_match,uuid_match),
         ProjectApplicationExchange.as_view(),
         name='project-application-exchange'),
-    url(r'project/(?P<project_uuid>%s)/instance$' % (uuid_match,),
+    url(r'^project/(?P<project_uuid>%s)/instance$' % (uuid_match,),
         ProjectInstanceList.as_view(),
         name='project-instance-list'),
-    url(r'project/(?P<project_uuid>%s)/instance/(?P<instance_id>%s)$'
+    url(r'^project/(?P<project_uuid>%s)/instance/(?P<instance_id>%s)$'
         % (uuid_match,uuid_match),
         ProjectInstanceExchange.as_view(),
         name='project-instance-exchange'),
-    url(r'project/(?P<project_uuid>%s)/volume$' % (uuid_match,),
+    url(r'^project/(?P<project_uuid>%s)/volume$' % (uuid_match,),
         ProjectVolumeList.as_view(),
         name='project-volume-list'),
-    url(r'project/(?P<project_uuid>%s)/volume/(?P<volume_id>%s)$'
+    url(r'^project/(?P<project_uuid>%s)/volume/(?P<volume_id>%s)$'
         % (uuid_match,uuid_match),
         ProjectVolumeExchange.as_view(),
         name='project-volume-exchange'),
@@ -311,16 +310,16 @@ public_apis = format_suffix_patterns(patterns(
         QuotaDetail.as_view(), name='quota-detail'),
 
 
-    url(r'version$', Version.as_view()),
+    url(r'^version$', Version.as_view()),
     url(r'^maintenance$',
         MaintenanceRecordList.as_view(),
         name='maintenance-record-list'),
 
-    url(r'license$',
+    url(r'^license$',
         LicenseList.as_view(),
         name='license-list'),
 
-    url(r"license/(?P<license_id>%s)$" % uuid_match,
+    url(r'^license/(?P<license_id>%s)$' % uuid_match,
         License.as_view(),
         name='license-detail'),
 
@@ -384,8 +383,6 @@ public_apis = format_suffix_patterns(patterns(
 
 ))
 urlpatterns = patterns(
-    '', url(r'^', include(private_apis, namespace="private_apis")))
+    '', url(r'^', include(private_apis, namespace='private_apis')))
 urlpatterns += patterns(
-    '',  url(r'^', include(public_apis, namespace="public_apis")))
-
-
+    '',  url(r'^', include(public_apis, namespace='public_apis')))

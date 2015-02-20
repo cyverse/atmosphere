@@ -562,7 +562,8 @@ def _boot_volume(driver, identity, copy_source, size, name, userdata, network,
     if not isinstance(driver.provider, OSProvider):
         raise ValueError("The Provider: %s can't create bootable volumes"
                          % driver.provider)
-    extra_args = _extra_openstack_args(identity)
+    extra_args = _extra_openstack_args(
+        identity, ex_metadata={"bootable_volume":True})
     kwargs.update(extra_args)
     boot_success, new_instance = driver.boot_volume(
             name=name, image=None, snapshot=None, volume=volume,
@@ -892,14 +893,14 @@ def _provision_openstack_instance(core_identity, admin_user=False):
     keypair_init(core_identity)
     return network
 
-def _extra_openstack_args(core_identity):
+def _extra_openstack_args(core_identity, ex_metadata={}):
     credentials = core_identity.get_credentials()
     username = core_identity.created_by.username
     #username = credentials.get('key')
     tenant_name = credentials.get('ex_tenant_name')
-    ex_metadata = {'tmp_status': 'initializing',
+    ex_metadata.update({'tmp_status': 'initializing',
                    'tenant_name': tenant_name,
-                   'creator': '%s' % username}
+                   'creator': '%s' % username})
     ex_keyname = settings.ATMOSPHERE_KEYPAIR_NAME
     return {"ex_metadata":ex_metadata, "ex_keyname":ex_keyname}
 
