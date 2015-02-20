@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
+from django.core.exceptions import ObjectDoesNotExist
 
 from core.exceptions import SourceNotFound
 from core.query import only_current
@@ -59,14 +60,18 @@ class InstanceSource(models.Model):
     def is_volume(self):
         try:
             self.volume
+        except ObjectDoesNotExist:
+            return False
         except NameError:
             return False
-        else:            
+        else:
             return True
 
     def is_machine(self):
         try:
             self.providermachine
+        except ObjectDoesNotExist:
+            return False
         except NameError:
             return False
         else:
