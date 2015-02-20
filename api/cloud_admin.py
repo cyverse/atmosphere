@@ -257,5 +257,12 @@ class CloudAdminInstanceAction(APIView):
         Return a list of ALL users found on provider_uuid
         """
         data = request.DATA
-        serializer = PATCH_ProviderInstanceActionSerializer(data=data)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        try:
+           p_instance_action = ProviderInstanceAction.objects.get(id=provider_instance_action_id)
+        except ProviderInstanceAction.DoesNotExist:
+            return Response("Bad ID", status=status.HTTP_400_BAD_REQUEST)
+        serializer = PATCH_ProviderInstanceActionSerializer(p_instance_action, data=data, partial=True)
+        if serializer.is_valid():
+            p_instance_action = serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

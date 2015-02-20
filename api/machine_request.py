@@ -18,6 +18,7 @@ from core.models.machine_request import MachineRequest as CoreMachineRequest
 from core.models import Provider
 from web.emails import requestImaging
 from service.tasks.machine import start_machine_imaging
+from service.instance import _permission_to_act
 
 import copy
 import re
@@ -46,6 +47,7 @@ class MachineRequestList(APIView):
         Sends an e-mail to the admins to start
         the create_image process.
         """
+        _permission_to_act(identity_uuid, "Imaging")
         #request.DATA is r/o
         #Copy allows for editing
         data = copy.deepcopy(request.DATA)

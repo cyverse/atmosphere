@@ -21,10 +21,10 @@ from core.query import only_current
 from core.models.instance_source import InstanceSource
 from core.models.application import Application
 from core.models.identity import Identity as CoreIdentity
-from core.models.instance import convert_esh_instance
+from core.models.instance import convert_esh_instance, InstanceAction
 from core.models.size import convert_esh_size
 from core.models.machine import ProviderMachine
-from core.models.provider import AccountProvider, Provider
+from core.models.provider import AccountProvider, Provider, ProviderInstanceAction
 
 from atmosphere import settings
 from atmosphere.settings import secrets
@@ -35,7 +35,7 @@ from service.quota import check_over_quota
 from service.monitoring import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
-    VolumeAttachConflict, UnderThresholdError
+    VolumeAttachConflict, UnderThresholdError, ActionNotAllowed
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 
 def _get_size(esh_driver, esh_instance):
@@ -45,6 +45,24 @@ def _get_size(esh_driver, esh_instance):
         size = esh_instance.size
     return size
 
+def _permission_to_act(identity_uuid, action_name, raise_exception=True):
+    try:
+        core_identity = CoreIdentity.objects.get(uuid=identity_uuid)
+    except CoreIdentity.DoesNotExist:
+        logger.warn("Identity %s Does Not Exist!" % identity_uuid)
+        return False
+
+    try:
+        test = ProviderInstanceAction.objects.get(
+            instance_action__name=action_name,
+            provider=core_identity.provider)
+        if not test.enabled and raise_exception:
+            raise ActionNotAllowed("This Action is disabled:%s"
+                    % (action_name,))
+        return test.enabled
+    except ProviderInstanceAction.DoesNotExist:
+        logger.warn("Permission to execute Instance Action: %s not found for Provider: %s. Default Behavior is to allow!" % (action_name, core_identity.provider))
+        return True
 
 def reboot_instance(esh_driver, esh_instance, identity_uuid, user, reboot_type="SOFT"):
     """
@@ -53,6 +71,10 @@ def reboot_instance(esh_driver, esh_instance, identity_uuid, user, reboot_type="
     #NOTE: We need to check the quota as if the instance were rebooting,
     #      Because in some cases, a reboot is required to get out of the
     #      suspended state..
+    if reboot_type == "SOFT":
+        _permission_to_act(identity_uuid, "Reboot")
+    else:
+        _permission_to_act(identity_uuid, "Hard Reboot")
     size = _get_size(esh_driver, esh_instance)
     check_quota(user.username, identity_uuid, size, resuming=True)
     esh_driver.reboot_instance(esh_instance, reboot_type=reboot_type)
@@ -62,6 +84,7 @@ def reboot_instance(esh_driver, esh_instance, identity_uuid, user, reboot_type="
 
 def resize_instance(esh_driver, esh_instance, size_alias,
                     provider_uuid, identity_uuid, user):
+    _permission_to_act(identity_uuid, "Resize")
     size = esh_driver.get_size(size_alias)
     redeploy_task = resize_and_redeploy(esh_driver, esh_instance, identity_uuid)
     esh_driver.resize_instance(esh_instance, size)
@@ -71,6 +94,7 @@ def resize_instance(esh_driver, esh_instance, size_alias,
 
 
 def confirm_resize(esh_driver, esh_instance, provider_uuid, identity_uuid, user):
+    _permission_to_act(identity_uuid, "Resize")
     esh_driver.confirm_resize_instance(esh_instance)
     #Double-Check we are counting on new size
     update_status(esh_driver, esh_instance.id, provider_uuid, identity_uuid, user)
@@ -182,6 +206,8 @@ def _get_network_id(esh_driver, esh_instance):
 
 def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
     """
+    TODO: Remove this and use the 'deploy_init' tasks already written instead!
+          -Steve 2/2015
     Use this function to kick off the async task when you ONLY want to deploy
     (No add fixed, No add floating)
     """
@@ -209,7 +235,6 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
     task_one.link(task_two)
     task_two.link(task_three)
     task_three.link(task_four)
-    #TODO: Add an appropriate link_error and track/handle failures.
     return task_one
 
 
@@ -266,6 +291,7 @@ def stop_instance(esh_driver, esh_instance, provider_uuid, identity_uuid, user,
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
+    _permission_to_act(identity_uuid, "Stop")
     if reclaim_ip:
         remove_ips(esh_driver, esh_instance)
     stopped = esh_driver.stop_instance(esh_instance)
@@ -286,6 +312,7 @@ def start_instance(esh_driver, esh_instance,
     from service.tasks.driver import update_metadata
     #Don't check capacity because.. I think.. its already being counted.
     #admin_capacity_check(provider_uuid, esh_instance.id)
+    _permission_to_act(identity_uuid, "Start")
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
         deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True)
@@ -310,6 +337,7 @@ def suspend_instance(esh_driver, esh_instance,
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
+    _permission_to_act(identity_uuid, "Suspend")
     if reclaim_ip:
         remove_ips(esh_driver, esh_instance)
     suspended = esh_driver.suspend_instance(esh_instance)
@@ -384,6 +412,7 @@ def resume_instance(esh_driver, esh_instance,
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
     from service.tasks.driver import update_metadata, _update_status_log
+    _permission_to_act(identity_uuid, "Resume")
     _update_status_log(esh_instance, "Resuming Instance")
     size = _get_size(esh_driver, esh_instance)
     check_quota(user.username, identity_uuid, size, resuming=True)

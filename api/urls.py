@@ -228,10 +228,10 @@ public_apis = format_suffix_patterns(patterns(
     url(identity_specific + r'/instance$',
         InstanceList.as_view(), name='instance-list'),
 
-    url(r'instance_action/$',
+    url(r'^instance_action/$',
         InstanceActionList.as_view(),
         name='instance-action-list'),
-    url(r'instance_action/(?P<action_id>\d+)$',
+    url(r'^instance_action/(?P<action_id>\d+)$',
         InstanceActionDetail.as_view(),
         name='instance-action-detail'),
 

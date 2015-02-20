@@ -3,6 +3,12 @@ Atmosphere service exceptions.
 """
 
 
+class ActionNotAllowed(Exception):
+    def __init__(self, message):
+        self.message = message
+        self.status_code = 409
+        super(ActionNotAllowed, self).__init__()
+
 class UnderThresholdError(Exception):
     def __init__(self, message):
         self.message = message

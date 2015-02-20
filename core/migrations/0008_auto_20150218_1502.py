@@ -6,16 +6,16 @@ from django.db import models, migrations
 
 def go_back(apps, schema_editor):
     Provider = apps.get_model("core", "Provider")
-    ProviderTrait = apps.get_model("core", "ProviderTrait")
+    ProviderTrait = apps.get_model("core", "Trait")
     for provider in Provider.objects.all():
         if provider.dns_server_ips.filter(ip_address="8.8.8.8"):
-            trait = ProviderTrait.objects.get_or_create(name="Google DNS", description="Google DNS")
+            trait,_ = ProviderTrait.objects.get_or_create(name="Google DNS", description="Google DNS")
             provider.traits.add(trait)
         elif provider.dns_server_ips.filter(ip_address="128.196.11.234"):
-            trait = ProviderTrait.objects.get_or_create(name="iPlant DNS", description="iPlant DNS")
+            trait,_ = ProviderTrait.objects.get_or_create(name="iPlant DNS", description="iPlant DNS")
             provider.traits.add(trait)
         elif provider.auto_imaging:
-            trait = ProviderTrait.objects.get_or_create(name="Auto-Imaging", description="Auto-Imaging")
+            trait,_ = ProviderTrait.objects.get_or_create(name="Auto-Imaging", description="Auto-Imaging")
             provider.traits.add(trait)
     return
 

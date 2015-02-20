@@ -14,21 +14,17 @@ class ProviderSerializer(serializers.ModelSerializer):
         exclude = ('active', 'start_date', 'end_date', 'uuid')
 
 
-class PATCH_ProviderInstanceActionSerializer(serializers.ModelSerializer):
-    provider = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
-    instance_action = serializers.SlugRelatedField(slug_field="id", read_only=True)
-    enabled = serializers.BooleanField(required=True)
-    class Meta:
-        model = ProviderInstanceAction
-
-class POST_ProviderInstanceActionSerializer(serializers.ModelSerializer):
-    provider = serializers.SlugRelatedField(slug_field="uuid", queryset=Provider.objects.all())
-    instance_action = serializers.SlugRelatedField(slug_field="id", queryset=InstanceAction.objects.all())
-
-    class Meta:
-        model = ProviderInstanceAction
-
 class ProviderInstanceActionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProviderInstanceAction
+
+
+class PATCH_ProviderInstanceActionSerializer(ProviderInstanceActionSerializer):
+    def update(self, instance, validated_data):
+        instance.enabled = validated_data.get('enabled', instance.enabled)
+        return instance
+
+class POST_ProviderInstanceActionSerializer(ProviderInstanceActionSerializer):
+    provider = serializers.SlugRelatedField(slug_field="uuid", queryset=Provider.objects.all())
+    instance_action = serializers.SlugRelatedField(slug_field="id", queryset=InstanceAction.objects.all())
