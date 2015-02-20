@@ -228,10 +228,10 @@ public_apis = format_suffix_patterns(patterns(
     url(identity_specific + r'/instance$',
         InstanceList.as_view(), name='instance-list'),
 
-    url(r"instance_action/$",
+    url(r'instance_action/$',
         InstanceActionList.as_view(),
         name='instance-action-list'),
-    url(r"instance_action/(?P<action_id>\d+)$",
+    url(r'instance_action/(?P<action_id>\d+)$',
         InstanceActionDetail.as_view(),
         name='instance-action-detail'),
 
@@ -325,30 +325,30 @@ public_apis = format_suffix_patterns(patterns(
 
     # Cloud Admin Views -- Hidden on 'root' unless your a C.A 
 
-    url(r"cloud_admin_imaging_request$",
+    url(r'^cloud_admin_imaging_request$',
         CloudAdminImagingRequestList.as_view(),
         name='cloud-admin-imaging-request-list'),
-    url(r"cloud_admin_imaging_request/(?P<machine_request_id>%s)$"
+    url(r'^cloud_admin_imaging_request/(?P<machine_request_id>%s)$'
         % (id_match,),
         CloudAdminImagingRequest.as_view(),
         name='cloud-admin-imaging-request-detail'),
-    url(r"cloud_admin_imaging_request/(?P<machine_request_id>%s)/(?P<action>\w)$"
+    url(r'^cloud_admin_imaging_request/(?P<machine_request_id>%s)/(?P<action>\w)$'
         % (id_match,),
         CloudAdminImagingRequest.as_view(),
         name='cloud-admin-imaging-request-detail'),
 
-    url(r"cloud_admin_account_list/$",
+    url(r'^cloud_admin_account_list/$',
         CloudAdminAccountList.as_view(),
         name='cloud-admin-account-list'),
-    url(r"cloud_admin_account_list/(?P<username>%s)$"
+    url(r'^cloud_admin_account_list/(?P<username>%s)$'
         % (user_match,),
         CloudAdminAccount.as_view(),
         name='cloud-admin-account-detail'),
-    url(r"cloud_admin_instance_action/$",
+    url(r'^cloud_admin_instance_action/$',
         CloudAdminInstanceActionList.as_view(),
         name='cloud-admin-instance-action-list'),
 
-    url(r"cloud_admin_instance_action/(?P<provider_instance_action_id>\d+)$",
+    url(r'^cloud_admin_instance_action/(?P<provider_instance_action_id>\d+)$',
         CloudAdminInstanceAction.as_view(),
         name='cloud-admin-instance-action-detail'),
 
