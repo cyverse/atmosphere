@@ -552,13 +552,13 @@ class InstanceAction(APIView):
             return mount_failed(vmc)
         except NotImplemented, ne:
             return failure_response(
-                status.HTTP_404_NOT_FOUND,
-                "The requested action %s is not available on this provider"
+                status.HTTP_409_CONFLICT,
+                "The requested action %s is not available on this provider."
                 % action_params['action'])
         except ActionNotAllowed, no_act:
             return failure_response(
-                status.HTTP_404_NOT_FOUND,
-                "The requested action %s has been explicitly disabled on this provider"
+                status.HTTP_409_CONFLICT,
+                "The requested action %s has been explicitly disabled on this provider."
                 % action_params['action'])
         except Exception, exc:
             logger.exception("Exception occurred processing InstanceAction")

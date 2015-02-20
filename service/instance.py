@@ -46,7 +46,6 @@ def _get_size(esh_driver, esh_instance):
     return size
 
 def _permission_to_act(identity_uuid, action_name, raise_exception=True):
-    import ipdb;ipdb.set_trace()
     try:
         core_identity = CoreIdentity.objects.get(uuid=identity_uuid)
     except CoreIdentity.DoesNotExist:
