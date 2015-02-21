@@ -13,6 +13,7 @@ from core.models.group import Group, IdentityMembership, ProviderMembership
 from core.models.identity import Identity
 from core.models.instance import Instance, InstanceStatusHistory
 from core.models.machine import ProviderMachine, ProviderMachineMembership
+from core.models.machine_export import MachineExport
 from core.models.machine_request import MachineRequest
 from core.models.machine_export import MachineExport
 from core.models.maintenance import MaintenanceRecord
@@ -235,6 +236,9 @@ class MachineExportAdmin(admin.ModelAdmin):
         return machine_export.export_owner.username
     def instance_provider(self, machine_export):
         return machine_export.instance.provider_machine.provider
+
+class MachineExportAdmin(admin.ModelAdmin):
+    pass
 
 class MachineRequestAdmin(admin.ModelAdmin):
     search_fields = ["new_machine_owner__username", "new_machine_name", "instance__provider_alias"]

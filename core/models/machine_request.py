@@ -214,6 +214,22 @@ class MachineRequest(models.Model):
 
         return (origCls, orig_creds, destCls, dest_creds)
 
+    def _extract_file_location(self, download_dir):
+        id_owner = self.instance.created_by_identity
+        tenant_cred = id_owner.credential_set.filter(
+                key='ex_tenant_name')
+        if not tenant_cred:
+            tenant_cred = id_owner.credential_set.filter(
+                    key='ex_project_name')
+        if not tenant_cred:
+            raise Exception("You should not be here! Update the key "
+                    "used for openstack tenant names!")
+        tenant_cred = tenant_cred[0]
+        download_location = os.path.join(
+                download_dir, tenant_cred.value)
+        download_location = os.path.join(
+                download_location, '%s.qcow2' % self.new_machine_name)
+        return download_location
     def get_imaging_args(self):
         """
         Prepares the entire machine request for serialization to celery
@@ -233,46 +249,39 @@ class MachineRequest(models.Model):
             "image_name": self.new_machine_name,
             "download_dir" : download_dir}
         if issubclass(orig_managerCls, OSImageManager):
-            id_owner = self.instance.created_by_identity
-            tenant_cred = id_owner.credential_set.filter(
-                    key='ex_tenant_name')
-            if not tenant_cred:
-                tenant_cred = id_owner.credential_set.filter(
-                        key='ex_project_name')
-            if not tenant_cred:
-                raise Exception("You should not be here! Update the key "
-                        "used for openstack tenant names!")
-            tenant_cred = tenant_cred[0]
-            download_location = os.path.join(
-                    download_dir, tenant_cred.value)
-            download_location = os.path.join(
-                    download_location, '%s.qcow2' % self.new_machine_name)
+            download_location = self._extract_file_location(download_dir)
             imaging_args['download_location'] = download_location 
         elif issubclass(orig_managerCls, EucaImageManager):
-            meta_name = self._get_meta_name()
-            public_image = self.is_public()
-            #Splits the string by ", " OR " " OR "\n" to create the list
-            private_users = self.parse_access_list()
-            exclude = self.get_exclude_files()
-            #Create image on image manager
-            node_scp_info = self.get_euca_node_info(orig_managerCls, orig_creds)
-            imaging_args.update({
-                "public" : public_image,
-                "private_user_list" : private_users,
-                "exclude" : exclude,
-                "meta_name" : meta_name,
-                "node_scp_info" : node_scp_info,
-            })
+            euca_args = _prepare_euca_args()
+            imaging_args.update(euca_args)
+
         orig_provider = self.parent_machine.provider
         dest_provider = self.new_machine_provider
         orig_platform = orig_provider.get_platform_name().lower()
         dest_platform = dest_provider.get_platform_name().lower()
+
         if orig_platform != dest_platform:
             if orig_platform == 'kvm' and dest_platform == 'xen':
                 imaging_args['kvm_to_xen'] = True
             elif orig_platform == 'xen' and dest_platform == 'kvm':
                 imaging_args['xen_to_kvm'] = True
         return imaging_args
+
+    def _prepare_euca_args():
+        meta_name = self._get_meta_name()
+        public_image = self.is_public()
+        #Splits the string by ", " OR " " OR "\n" to create the list
+        private_users = self.parse_access_list()
+        exclude = self.get_exclude_files()
+        #Create image on image manager
+        node_scp_info = self.get_euca_node_info(orig_managerCls, orig_creds)
+        euca_args = {
+            "public" : public_image,
+            "private_user_list" : private_users,
+            "exclude" : exclude,
+            "meta_name" : meta_name,
+            "node_scp_info" : node_scp_info,
+        }
 
     def get_euca_node_info(self, euca_managerCls, euca_creds):
         node_dict = {
