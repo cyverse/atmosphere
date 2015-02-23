@@ -233,6 +233,9 @@ class ImageBookmarkViewSet(viewsets.ModelViewSet):
     serializer_class = ImageBookmarkSerializer
     http_method_names = ['get', 'post', 'delete', 'head', 'options', 'trace']
 
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
     def get_queryset(self):
         """
         Filter projects by current user
