@@ -254,6 +254,16 @@ class Identity(models.Model):
             cred_dict[cred.key] = cred.value
         return cred_dict
 
+    def get_all_credentials(self):
+        cred_dict = {}
+        for cred in self.provider.providercredential_set.all():
+            cred_dict[cred.key] = cred.value
+        #Allow overriding in the identity
+        for cred in self.credential_set.all():
+            cred_dict[cred.key] = cred.value
+        return cred_dict
+    def get_urls(self):
+        return []
     def get_allocation(self):
         id_member = self.identitymembership_set.all()[0]
         return id_member.allocation
