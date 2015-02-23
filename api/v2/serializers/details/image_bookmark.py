@@ -17,6 +17,18 @@ class ImageBookmarkSerializer(serializers.HyperlinkedModelSerializer):
     image = ImagePrimaryKeyRelatedField(source='application', queryset=Image.objects.all())
     user = UserSummarySerializer(read_only=True)
 
+    def validate_image(self, value):
+        """
+        Check that the image has not already been bookmarked
+        """
+        user = self.context['request'].user
+
+        try:
+            existing_image_bookmark = ImageBookmark.objects.get(application=value, user=user)
+            raise serializers.ValidationError("Image already bookmarked")
+        except ImageBookmark.DoesNotExist:
+            return value
+
     class Meta:
         model = ImageBookmark
         view_name = 'api_v2:applicationbookmark-detail'
