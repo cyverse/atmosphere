@@ -7,10 +7,10 @@ from rest_framework import serializers
 class QuotaRequestSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True, source="uuid", required=False)
     created_by = serializers.SlugRelatedField(
-        slug_field='username', source='created_by',
+        slug_field='username',
         queryset=AtmosphereUser.objects.all())
     status = serializers.SlugRelatedField(
-        slug_field='name', source='status',
+        slug_field='name',
         queryset=StatusType.objects.all())
 
     class Meta:
