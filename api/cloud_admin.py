@@ -304,7 +304,7 @@ class CloudAdminQuotaRequest(APIView, CloudAdminRequestDetailMixin):
         """
         membership = pending_request.membership
         membership.quota = pending_request.quota
-        membership.save()
+        membership.approve_quota(pending_request.uuid)
 
 
 class CloudAdminAccount(APIView):
