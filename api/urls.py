@@ -12,7 +12,8 @@ from api.bookmark import ApplicationBookmarkDetail, ApplicationBookmarkList
 from api.cloud_admin import \
     CloudAdminImagingRequestList, CloudAdminImagingRequest,\
     CloudAdminAccountList, CloudAdminAccount,\
-    CloudAdminInstanceActionList, CloudAdminInstanceAction
+    CloudAdminInstanceActionList, CloudAdminInstanceAction, \
+    CloudAdminQuotaRequest
 from api.credential import CredentialList, CredentialDetail
 from api.email import Feedback, QuotaEmail, SupportEmail
 from api.group import GroupList, Group
@@ -357,6 +358,10 @@ public_apis = format_suffix_patterns(patterns(
     url(r'^cloud_admin_instance_action/(?P<provider_instance_action_id>%s)$' % (id_match,),
         CloudAdminInstanceAction.as_view(),
         name='cloud-admin-instance-action-detail'),
+
+    url(r'^cloud_admin/quota/(?P<identifier>%s)$' % (uuid_match,),
+        CloudAdminQuotaRequest.as_view(),
+        name='cloud-admin-quota-detail'),
 
 
     url(identity_specific + r'/image_export$',
