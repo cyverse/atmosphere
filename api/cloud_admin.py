@@ -1,6 +1,7 @@
 from functools import wraps
 
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 from rest_framework import status
 from rest_framework.views import APIView
@@ -287,6 +288,7 @@ class CloudAdminRequestDetailMixin(object):
         Update the request for the specific identifier
         """
         pending_request = self.get_object(identifier)
+        request.data["end_date"] = timezone.now()
 
         serializer = self.serializer_class(pending_request, request.data)
         if not serializer.is_valid():
@@ -302,6 +304,7 @@ class CloudAdminRequestDetailMixin(object):
         """
         Partially update the request for the specific identifier
         """
+        request.data["end_date"] = timezone.now()
         pending_request = self.get_object(identifier)
         serializer = self.serializer_class(pending_request, request.data,
                                            partial=True)
