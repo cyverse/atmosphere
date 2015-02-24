@@ -48,7 +48,7 @@ class BaseRequest(models.Model):
             user=user, provider=provider, status=status).count() > 0
 
     def is_closed(self):
-        return self.status.name != "pending"
+        return self.status.name not in ["pending", "failed"]
 
     def is_approved(self):
         return self.status.name == "approved"
