@@ -47,6 +47,15 @@ class BaseRequest(models.Model):
         return cls.objects.filter(
             user=user, provider=provider, status=status).count() > 0
 
+    def is_closed(self):
+        return self.status.name != "pending"
+
+    def is_approved(self):
+        return self.status.name == "approved"
+
+    def is_denied(self):
+        return self.status.name == "denied"
+
     def can_modify(self, user):
         """
         Returns whether the user can modify the request
