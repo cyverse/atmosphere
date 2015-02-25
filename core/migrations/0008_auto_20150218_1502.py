@@ -20,6 +20,48 @@ def go_back(apps, schema_editor):
     return
 
 
+def remove_duplicate_apps(apps, schema_editor):
+    Application = apps.get_model("core", "Application")
+    for result in Application.objects.values('name').annotate(count=models.Count('name')).filter(count__gt=1):
+        name = result['name']
+        all_apps = Application.objects.filter(name=name).order_by('id')
+        merged_app = all_apps[0]
+        # Call to list forces out objects from the queryset
+        remaining_apps = list(all_apps[1:])
+        for app in remaining_apps:
+            merged_app = merge_applications(merged_app, app)
+            app.delete()
+    pass
+
+
+def merge_applications(merged_app, app):
+    for pm in app.providermachine_set.all():
+        merged_app.providermachine_set.add(pm)
+
+    if merged_app.start_date > app.start_date:
+        merged_app.start_date = app.start_date
+
+    if merged_app.end_date:
+        if app.end_date:
+            merged_app.end_date = app.end_date
+        else:
+            merged_app.end_date = None
+    elif app.end_date:
+        merged_app.end_date = app.end_date
+
+    if len(merged_app.description) < len(app.description):
+        merged_app.description = app.description
+    if not merged_app.icon and app.icon:
+        merged_app.icon = app.icon
+    if not merged_app.private and app.private:
+        merged_app.private = app.private
+    if not (merged_app.created_by_identity and merged_app.created_by_identity.provider.active)\
+            and (app.created_by_identity and app.created_by_identity.provider.active):
+        merged_app.created_by = app.created_by
+        merged_app.created_by_identity = app.created_by_identity
+    return merged_app
+
+
 def copy_data_to_new_models(apps, schema_editor):
     Provider = apps.get_model("core", "Provider")
     ProviderDNSServerIP = apps.get_model("core", "ProviderDNSServerIP")
@@ -44,6 +86,8 @@ def add_instance_actions(Provider, InstanceAction, ProviderInstanceAction):
     InstanceAction.objects.get_or_create(name="Stop", description="""Stops an instance when it is in the 'active' State""")
     InstanceAction.objects.get_or_create(name="Resume", description="""Resumes an instance when it is in the 'suspended' State""")
     InstanceAction.objects.get_or_create(name="Suspend", description="""Suspends an instance when it is in the 'active' State""")
+    InstanceAction.objects.get_or_create(name="Shelve", description="""Shelves an instance when it is in the 'active' State""")
+    InstanceAction.objects.get_or_create(name="Unshelve", description="""UnShelves an instance when it is in the 'shelved' State""")
     InstanceAction.objects.get_or_create(name="Reboot", description="""Reboots an instance when it is in ANY State""")
     InstanceAction.objects.get_or_create(name="Hard Reboot", description="""Hard Reboots an instance when it is in ANY State""")
     InstanceAction.objects.get_or_create(name="Resize", description="""Represents the Resize/Confirm_Resize/Revert_Resize operations""")
@@ -128,6 +172,7 @@ class Migration(migrations.Migration):
             preserve_default=True,
         ),
         migrations.RunPython(copy_data_to_new_models, go_back),
+        migrations.RunPython(remove_duplicate_apps, go_back),
         migrations.RemoveField(
             model_name='provider',
             name='traits',
