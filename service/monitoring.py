@@ -429,7 +429,8 @@ def apply_strategy(identity, core_allocation):
     """
     strategy = _get_strategy(identity)
     if not strategy:
-        return Allocation()
+        return Allocation(credits=[], rules=[], instances=[],
+                          start_date=None, end_date=None, interval_delta=None)
     return strategy.apply(identity, core_allocation)
 
 

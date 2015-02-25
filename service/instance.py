@@ -1099,3 +1099,54 @@ def _check_volume_attachment(driver, instance):
             if instance.alias == attachment['serverId']:
                 raise VolumeAttachConflict(instance.alias, vol.alias)
     return False
+
+
+def shelve_instance(esh_driver, esh_instance,
+                     provider_uuid, identity_uuid,
+                     user, reclaim_ip=True):
+    """
+
+    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    """
+    from service.tasks.driver import _update_status_log
+    _permission_to_act(identity_uuid, "Shelve")
+    _update_status_log(esh_instance, "Shelving Instance")
+    if reclaim_ip:
+        remove_ips(esh_driver, esh_instance)
+    shelved = esh_driver._connection.ex_shelve_instance(esh_instance)
+    if reclaim_ip:
+        remove_network(esh_driver, identity_uuid)
+    update_status(esh_driver, esh_instance.id, provider_uuid, identity_uuid, user)
+    invalidate_cached_instances(identity=CoreIdentity.objects.get(uuid=identity_uuid))
+    return shelved
+
+
+def unshelve_instance(esh_driver, esh_instance,
+                    provider_uuid, identity_uuid,
+                    user, restore_ip=True,
+                    update_meta=True):
+    """
+    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    """
+    from service.tasks.driver import _update_status_log
+    _permission_to_act(identity_uuid, "Unshelve")
+    _update_status_log(esh_instance, "Unshelving Instance")
+    size = _get_size(esh_driver, esh_instance)
+    check_quota(user.username, identity_uuid, size, resuming=True)
+    admin_capacity_check(provider_uuid, esh_instance.id)
+    if restore_ip:
+        restore_network(esh_driver, esh_instance, identity_uuid)
+        #restore_instance_port(esh_driver, esh_instance)
+        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True,
+                #NOTE: after removing FIXME, This parameter can be removed as well
+                core_identity_uuid=identity_uuid)
+
+    unshelved = esh_driver._connection.ex_unshelve_instance(esh_instance)
+    if restore_ip:
+        deploy_task.apply_async(countdown=10)
+    return unshelved
+
+
+def offload_instance(esh_driver, esh_instance):
+    offloaded = esh_driver._connection.ex_shelve_offload_instance(esh_instance)
+    return offloaded
