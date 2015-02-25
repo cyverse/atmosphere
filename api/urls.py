@@ -13,7 +13,7 @@ from api.cloud_admin import \
     CloudAdminImagingRequestList, CloudAdminImagingRequest,\
     CloudAdminAccountList, CloudAdminAccount,\
     CloudAdminInstanceActionList, CloudAdminInstanceAction, \
-    CloudAdminQuotaRequest
+    CloudAdminAllocationRequest, CloudAdminQuotaRequest
 from api.credential import CredentialList, CredentialDetail
 from api.email import Feedback, QuotaEmail, SupportEmail
 from api.group import GroupList, Group
@@ -363,6 +363,9 @@ public_apis = format_suffix_patterns(patterns(
         CloudAdminQuotaRequest.as_view(),
         name='cloud-admin-quota-detail'),
 
+    url(r'^admin/allocation/(?P<identifier>%s)$' % (uuid_match,),
+        CloudAdminAllocationRequest.as_view(),
+        name='cloud-admin-allocation-detail'),
 
     url(identity_specific + r'/image_export$',
         MachineExportList.as_view(), name='machine-export-list'),

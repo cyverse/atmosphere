@@ -9,13 +9,16 @@ from rest_framework.response import Response
 from api.permissions import CloudAdminRequired
 from api.serializers import MachineRequestSerializer,\
     IdentitySerializer, AccountSerializer, \
-    PATCH_ProviderInstanceActionSerializer, POST_ProviderInstanceActionSerializer, ProviderInstanceActionSerializer, ResolveQuotaRequestSerializer
+    PATCH_ProviderInstanceActionSerializer, \
+    POST_ProviderInstanceActionSerializer, \
+    ProviderInstanceActionSerializer, ResolveQuotaRequestSerializer, \
+    ResolveAllocationRequestSerializer
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 from core.models.cloud_admin import CloudAdministrator
 from core.models.provider import Provider, ProviderInstanceAction
 from core.models.group import IdentityMembership
 
-from core.models.request import QuotaRequest
+from core.models.request import AllocationRequest, QuotaRequest
 
 from service.driver import get_account_driver
 
@@ -300,11 +303,27 @@ class CloudAdminQuotaRequest(APIView, CloudAdminRequestDetailMixin):
 
     def approve(self, pending_request):
         """
-        Updates the allocation for the request
+        Updates the quota for the request
         """
         membership = pending_request.membership
         membership.quota = pending_request.quota
         membership.approve_quota(pending_request.uuid)
+
+
+class CloudAdminAllocationRequest(APIView, CloudAdminRequestDetailMixin):
+    """
+    Manage user allocation requests
+    """
+    model = AllocationRequest
+    serializer_class = ResolveAllocationRequestSerializer
+
+    def approve(self, pending_request):
+        """
+        Updates the allocation for the request
+        """
+        membership = pending_request.membership
+        membership.allocation = pending_request.allocation
+        membership.save()
 
 
 class CloudAdminAccount(APIView):
