@@ -16,6 +16,8 @@ from core.models.provider import Provider
 from core.models.status_type import StatusType
 from core.models.user import AtmosphereUser as User
 
+UNRESOLVED_STATES = ["pending", "failed"]
+
 
 class BaseRequest(models.Model):
     """
@@ -47,8 +49,15 @@ class BaseRequest(models.Model):
         return cls.objects.filter(
             user=user, provider=provider, status=status).count() > 0
 
+    @classmethod
+    def get_unresolved(cls):
+        """
+        Returns all requests that are currently in an unresolved state
+        """
+        return cls.objects.filter(status__name__in=UNRESOLVED_STATES)
+
     def is_closed(self):
-        return self.status.name not in ["pending", "failed"]
+        return self.status.name not in UNRESOLVED_STATES
 
     def is_approved(self):
         return self.status.name == "approved"
