@@ -12,6 +12,7 @@ class AllocationRequest(BaseRequest):
     """
     request = models.TextField()
     description = models.CharField(max_length=1024, default="", blank=True)
+    allocation = models.ForeignKey("Allocation", null=True)
 
     class Meta:
         db_table = "allocation_request"
@@ -24,6 +25,7 @@ class QuotaRequest(BaseRequest):
     """
     request = models.TextField()
     description = models.CharField(max_length=1024, default="", blank=True)
+    quota = models.ForeignKey("Quota", null=True)
 
     class Meta:
         db_table = "quota_request"

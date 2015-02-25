@@ -208,6 +208,21 @@ class IdentityMembership(models.Model):
             logger.warn("Unable to update service.quota.set_provider_quota.")
             raise
 
+    def approve_quota(self, request_id):
+        """
+        Approves the quota request and updates the request
+        """
+        super(IdentityMembership, self).save()
+        try:
+            from service.tasks.admin import set_provider_quota,\
+                set_quota_request_failed
+            set_provider_quota.apply_async(
+                args=[self.identity.uuid],
+                link_error=set_quota_request_failed.s(request_id))
+        except Exception as ex:
+            logger.warn("Unable to update service.quota.set_provider_quota.")
+            raise
+
     def is_member(self, user):
         """
         Return whether the given user a member of the identity
