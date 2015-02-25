@@ -207,11 +207,15 @@ class CloudAdminRequestListMixin(object):
     model = None
     serializer_class = None
 
-    def get_objects(self):
+    def get_objects(self, unresolved=False):
         """
-        Return a list of currently open requests
+        Return a list of requests
+
+        unresolved - when True only return unresolved requests
         """
-        return self.model.get_unresolved()
+        if unresolved:
+            return self.model.get_unresolved()
+        return self.model.objects.all()
 
     def get(self, request):
         """
