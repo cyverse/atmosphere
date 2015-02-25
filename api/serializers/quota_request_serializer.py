@@ -20,6 +20,8 @@ class QuotaRequestSerializer(serializers.ModelSerializer):
 
 
 class ResolveQuotaRequestSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True, source="uuid", required=False)
+
     status = serializers.SlugRelatedField(
         slug_field='name',
         queryset=StatusType.objects.all())
