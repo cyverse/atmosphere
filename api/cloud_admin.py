@@ -249,9 +249,9 @@ class CloudAdminRequestDetailMixin(object):
         kwargs = {self.identifier_key: identifier}
         return get_object_or_404(self.model, **kwargs)
 
-    def _pending_requests_only(fn):
+    def _unresolved_requests_only(fn):
         """
-        Only allow a request to be processed once
+        Only allow a unresolved request to be processed
         """
         @wraps(fn)
         def wrapper(self, request, identifier):
@@ -282,7 +282,7 @@ class CloudAdminRequestDetailMixin(object):
         data = self.serializer_class(pending_request).data
         return Response(data)
 
-    @_pending_requests_only
+    @_unresolved_requests_only
     def put(self, request, identifier):
         """
         Update the request for the specific identifier
@@ -299,7 +299,7 @@ class CloudAdminRequestDetailMixin(object):
         self._perform_update(pending_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @_pending_requests_only
+    @_unresolved_requests_only
     def patch(self, request, identifier):
         """
         Partially update the request for the specific identifier
