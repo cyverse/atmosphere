@@ -200,6 +200,27 @@ class CloudAdminAccountList(APIView):
         return Response(serializer.data)
 
 
+class CloudAdminRequestListMixin(object):
+    permission_classes = (CloudAdminRequired,)
+
+    model = None
+    serializer_class = None
+
+    def get_objects(self):
+        """
+        Return a list of currently open requests
+        """
+        return self.model.get_unresolved()
+
+    def get(self, request):
+        """
+        Return a list of A
+        """
+        objects = self.get_objects()
+        data = self.serializer_class(objects, many=True).data
+        return Response(data)
+
+
 class CloudAdminRequestDetailMixin(object):
     """
     Detail Mixin to manage a request
@@ -294,6 +315,11 @@ class CloudAdminRequestDetailMixin(object):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class CloudAdminQuotaList(APIView, CloudAdminRequestListMixin):
+    model = QuotaRequest
+    serializer_class = ResolveQuotaRequestSerializer
+
+
 class CloudAdminQuotaRequest(APIView, CloudAdminRequestDetailMixin):
     """
     Manage user quota requests
@@ -308,6 +334,11 @@ class CloudAdminQuotaRequest(APIView, CloudAdminRequestDetailMixin):
         membership = pending_request.membership
         membership.quota = pending_request.quota
         membership.approve_quota(pending_request.uuid)
+
+
+class CloudAdminAllocationList(APIView, CloudAdminRequestListMixin):
+    model = AllocationRequest
+    serializer_class = ResolveAllocationRequestSerializer
 
 
 class CloudAdminAllocationRequest(APIView, CloudAdminRequestDetailMixin):
