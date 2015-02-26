@@ -5,15 +5,15 @@ Atmosphere core email.
 
 from core.models import AtmosphereUser as User
 from django.utils import timezone as django_timezone
-from django.core.mail import EmailMessage
 
 from pytz import timezone as pytz_timezone
 
-from threepio import logger, email_logger
+from threepio import logger
 
 from atmosphere import settings
 
 from authentication.protocol.ldap import lookupEmail, lookupUser
+from service.tasks.email import send_email as send_email_task
 
 
 def email_address_str(name, email):
@@ -94,27 +94,17 @@ def request_info(request):
 
 def send_email(subject, body, from_email, to, cc=None,
                fail_silently=False, html=False):
-    """ Use django.core.mail.EmailMessage to send and log an Atmosphere email.
     """
-    try:
-        msg = EmailMessage(subject=subject, body=body,
-                           from_email=from_email,
-                           to=to,
-                           cc=cc)
-        if html:
-            msg.content_subtype = 'html'
-        msg.send(fail_silently=fail_silently)
-        email_logger.info("Email Sent."
-                          + "From:%s\nTo:%sCc:%s\nSubject:%s\nBody:\n%s" %
-                         (from_email,
-                          to,
-                          cc,
-                          subject,
-                          body))
-        return True
-    except Exception as e:
-        logger.error(e)
-        return False
+    Queue an email to be sent
+    """
+    args = (subject, body, from_email, to)
+    kwargs = {
+        "cc": cc,
+        "fail_silently": fail_silently,
+        "html": html
+    }
+    send_email_task.apply_async(args=args, kwargs=kwargs)
+    return True
 
 
 def email_admin(request, subject, message,
