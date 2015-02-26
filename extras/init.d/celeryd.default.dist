@@ -8,10 +8,11 @@ CELERY_APP="atmosphere"
 
 # Atmosphere setup with an exclusive queue for imaging.. Uncomment these lines.
 # 2 Celery Queues, First is 'default', concurrency 8 and the second is 'imaging', concurrency 1
-CELERYD_NODES="atmosphere-node_1 imaging celery_periodic"
+CELERYD_NODES="atmosphere-node_1 imaging email celery_periodic"
 # Extra arguments to pass to celeryd
 CELERYD_OPTS="-c:atmosphere-node_1 6 -O:atmosphere-node_1 fair"
 CELERYD_OPTS="$CELERYD_OPTS -Q:imaging imaging -c:imaging 1 -O:imaging fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:email email -c:email 3  -O:email fair"
 CELERYD_OPTS="$CELERYD_OPTS -Q:celery_periodic celery_periodic -c:celery_periodic 3 -O:celery_periodic fair"
 
 #Our celery requires root access for sudo/chroot/mount

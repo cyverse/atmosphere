@@ -477,6 +477,8 @@ CELERY_ROUTES += ({
     {"queue": "imaging", "routing_key": "imaging.prepare"},
     "service.tasks.machine.process_request":
     {"queue": "imaging", "routing_key": "imaging.complete"},
+    "service.tasks.email.send_email":
+    {"queue": "email", "routing_key": "email.sending"},
 
     #"service.tasks.allocation.monitor_instances_for":
     #{"queue": "celery_periodic", "routing_key": "periodic.provider_maintenance"},
