@@ -206,6 +206,11 @@ class AllocationStrategy(models.Model):
             counting_behavior, refresh_behaviors, rules_behaviors)
         return new_strategy.apply(identity, core_allocation)
 
+    def execute(self, identity, core_allocation):
+        from allocation.engine import calculate_allocation
+        allocation_input = self.apply(identity, core_allocation)
+        return calculate_allocation(allocation_input)
+
     def __unicode__(self):
         return "Provider:%s Counting:%s Refresh:%s Rules:%s"\
             % (self.provider, self.counting_behavior,

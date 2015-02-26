@@ -2,7 +2,7 @@ from django.conf.urls import patterns, url, include
 
 from rest_framework.urlpatterns import format_suffix_patterns
 
-from api.allocation import AllocationDetail, AllocationList
+from api.allocation import AllocationDetail, AllocationList, MonitoringList
 from api.allocation_request import AllocationRequestDetail,\
     AllocationRequestList
 from api.application import ApplicationSearch, ApplicationList, Application,\
@@ -331,7 +331,9 @@ public_apis = format_suffix_patterns(patterns(
         License.as_view(),
         name='license-detail'),
 
-    # Cloud Admin Views -- Hidden on 'root' unless your a C.A 
+    url(r'^monitoring$',
+        MonitoringList.as_view(),
+        name='monitoring-list'),
 
     url(r'^cloud_admin_imaging_request$',
         CloudAdminImagingRequestList.as_view(),

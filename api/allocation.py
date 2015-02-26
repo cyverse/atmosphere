@@ -8,10 +8,10 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 
 from api.permissions import ApiAuthRequired
-from api.serializers import AllocationSerializer
+from api.serializers import AllocationSerializer, AllocationResultSerializer
 
-from core.models import Allocation
-
+from core.models import Allocation, AllocationStrategy
+from core.query import _active_identity_membership
 
 class AllocationList(APIView):
     """
@@ -82,3 +82,24 @@ class AllocationDetail(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MonitoringList(APIView):
+    """
+    Runs the allocation engine and returns detailed monitoring information
+    """
+    permission_classes = (ApiAuthRequired,)
+
+    def get(self, request):
+        """
+        Fetch the specified Allocation
+        """
+        user = request.user
+        allocation_results = []
+        memberships = _active_identity_membership(user)
+        for membership in memberships:
+            strat = AllocationStrategy.objects.get(provider=membership.identity.provider)
+            allocation_result = strat.execute(membership.identity, membership.allocation)
+            allocation_results.append(allocation_result)
+        serialized_data = AllocationResultSerializer(allocation_results, many=True).data
+        return Response(serialized_data)
