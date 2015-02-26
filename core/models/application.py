@@ -241,18 +241,66 @@ def _add_app(app_list, app):
         app_list.append(app)
 
 
-def get_application(identifier, app_uuid=None):
+def _get_app_by_name(name):
+    """
+    Retrieve app by name
+
+    """
+    try:
+        app = Application.objects.get(name=name)
+        return app
+    except Application.DoesNotExist:
+        return None
+    except Application.MultipleObjectsReturned:
+        logger.warn(
+            "Possible Application Conflict: Multiple applications named:"
+            "%s. Check this query for more details" % name)
+        return None
+
+
+def _get_app_by_identifier(identifier):
+    """
+    Retrieve app by 'instance_source.identifier'
+
+    NOTE: Added '.distinct().get()' here to collapse the multiple
+    identical applications that will be 'matched'
+    when more than one cloud uses identical identifiers.
+    """
+    try:
+        # Attempt #1: to retrieve application based on identifier
+        app = Application.objects.filter(providermachine__instance_source__identifier=identifier).distinct().get()
+        return app
+    except Application.DoesNotExist:
+        return None
+    except Application.MultipleObjectsReturned:
+        logger.warn(
+            "Possible Application Conflict: Machines with Identifier:%s "
+            "are in more than one application. "
+            "Check this query for more details" % identifier)
+        return None
+
+def get_application(identifier, app_name, app_uuid=None):
+    application = _get_app_by_identifier(identifier)
+    if application:
+        return application
+    application = _get_app_by_name(app_name)
+    if application:
+        return application
+    return _get_app_by_uuid(identifier, app_uuid)
+
+def _get_app_by_uuid(identifier, app_uuid):
     if not app_uuid:
-        app_uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(identifier))
-        app_uuid = str(app_uuid)
+        app_uuid = uuid5(
+                settings.ATMOSPHERE_NAMESPACE_UUID,
+                str(identifier))
+    app_uuid = str(app_uuid)
     try:
         app = Application.objects.get(uuid=app_uuid)
         return app
     except Application.DoesNotExist:
         return None
     except Exception, e:
-        logger.error(e)
-        logger.error(type(e))
+        logger.exception(e)
 
 
 def create_application(identifier, provider_uuid, name=None,
@@ -262,9 +310,6 @@ def create_application(identifier, provider_uuid, name=None,
     if not uuid:
         uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(identifier))
         uuid = str(uuid)
-    exists = Application.objects.filter(uuid=uuid)
-    if exists:
-        return exists[0]
     if not name:
         name = "UnknownApp %s" % identifier
     if not description:
