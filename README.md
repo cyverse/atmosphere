@@ -21,5 +21,6 @@ See LICENSE.txt for license information
 + **Christopher James LaRose <cjlarose@iplantcollaborative.org>**
 + **Andre Mercer <amercer@iplantcollaborative.org>**
 + **Jason Hansen <jchansen@iplantcollaborative.org>**
++ **Evan Briones <evrick@iplantcollaborative.org>**
 
 Where the cloud lives!
