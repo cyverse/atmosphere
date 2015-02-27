@@ -41,6 +41,7 @@ ADMINS = (
     ('Atmosphere Admin', 'atmo@iplantcollaborative.org'),
     ('J. Matt Peterson', 'jmatt@iplantcollaborative.org'),
     ('Steven Gregory', 'esteve@iplantcollaborative.org'),
+    ('Atmosphere Alerts', 'atmo-alerts@iplantcollaborative.org'),
 )
 
 # Required to send RequestTracker emails
