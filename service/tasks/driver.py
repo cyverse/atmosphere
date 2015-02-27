@@ -7,7 +7,7 @@ import re
 import time
 
 from django.conf import settings
-from django.utils.timezone import datetime
+from django.utils.timezone import datetime, timedelta
 from celery import chain
 from celery.contrib import rdb
 from celery.decorators import task
@@ -32,7 +32,7 @@ from core.models.instance import Instance
 from core.models.identity import Identity
 from core.models.profile import UserProfile
 
-from service.deploy import init, check_process, wrap_script
+from service.deploy import init, check_process, wrap_script, echo_test_script
 from service.driver import get_driver, get_esh_driver, get_account_driver
 from service.instance import update_instance_metadata
 from service.instance import _create_and_attach_port
@@ -429,6 +429,12 @@ def get_deploy_chain(driverCls, provider, identity, instance,
     deploy_meta_task = update_metadata.si(
         driverCls, provider, identity, instance_id,
         {'tmp_status': 'deploying'})
+    deploy_ready_task = deploy_ready_test.si(
+        driverCls, provider, identity, instance_id)
+
+    #deploy_ready_task.link_error(
+    #    deploy_failed.s(driverCls, provider, identity, instance_id))
+
     deploy_task = _deploy_init_to.si(
         driverCls, provider, identity, instance_id,
         username, password, redeploy)
@@ -471,7 +477,8 @@ def get_deploy_chain(driverCls, provider, identity, instance,
         #Networking is ready, just deploy.
         wait_active_task.link(deploy_meta_task)
 
-    deploy_meta_task.link(deploy_task)
+    deploy_meta_task.link(deploy_ready_task)
+    deploy_ready_task.link(deploy_task)
     deploy_task.link(check_shell_task)
     check_shell_task.link(check_vnc_task)
     
@@ -696,6 +703,62 @@ def deploy_script(driverCls, provider, identity, instance_id,
     except Exception as exc:
         logger.exception(exc)
         deploy_script.retry(exc=exc)
+
+
+def _generate_stats(current_request, task_class):
+    num_retries = current_request.retries
+    remaining_retries = task_class.max_retries - num_retries
+    delta_time = timedelta(seconds=num_retries*task_class.default_retry_delay)
+    failure_eta = datetime.now()+delta_time
+    return "Attempts made: %s (over %s) "\
+        "Attempts Remaining: %s (ETA to Failure: %s)"\
+        % (num_retries, delta_time, remaining_retries, failure_eta)
+
+
+def _deploy_ready_failed_email_test(driver, instance_id, current_request, task_class):
+    from core.models.instance import Instance
+    from core.email import send_deploy_failed_email,\
+        send_preemptive_deploy_failed_email
+    core_instance = Instance.objects.get(provider_alias=instance_id)
+    num_retries = current_request.retries
+    message = _generate_stats(current_request, task_class)
+    if num_retries == int(task_class.max_retries/2):
+        # Halfway point. Send preemptive failure
+        send_preemptive_deploy_failed_email(core_instance, message)
+    elif num_retries == task_class.max_retries-1:
+        # This was the last attempt. The deploy failed.
+        send_deploy_failed_email(core_instance, message)
+        deploy_failed.apply_async(driverCls, provider, identity, instance_id))
+
+@task(name="deploy_ready_test",
+      default_retry_delay=32,
+      time_limit=16, # 16 second hard-set time limit.
+      max_retries=225 # Attempt up to two hours
+      )
+def deploy_ready_test(driverCls, provider, identity, instance_id,
+                      **celery_task_args):
+    logger.debug("deploy_ready_test task started at %s." % datetime.now())
+    try:
+        #Check if instance still exists
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_id)
+        if not instance:
+            logger.debug("Instance has been teminated: %s." % instance_id)
+            return False
+        echo_test = echo_test_script()
+        kwargs = _generate_ssh_kwargs()
+        kwargs.update({'deploy': echo_test})
+        driver.deploy_to(instance, **kwargs)
+        logger.debug("deploy_ready_test task finished at %s." % datetime.now())
+        return True
+    except DeploymentError as exc:
+        logger.exception(exc)
+    except Exception as exc:
+        logger.exception(exc)
+    #NOTE: This takes care of final 'deploy_error' task if this fails, is the
+    #      'Catch all' when deploy fails for any reason.
+    _deploy_ready_failed_email_test(driver, instance_id, current.request, task_class)
+    deploy_ready_test.retry(exc=exc)
 
 
 @task(name="_deploy_init_to",
