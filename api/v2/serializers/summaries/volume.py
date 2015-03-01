@@ -3,7 +3,11 @@ from rest_framework import serializers
 
 
 class VolumeSummarySerializer(serializers.HyperlinkedModelSerializer):
+    provider = serializers.PrimaryKeyRelatedField(source='instance_source.provider', read_only=True)
+    start_date = serializers.DateTimeField(source='instance_source.start_date')
+    end_date = serializers.DateTimeField(source='instance_source.end_date')
+
     class Meta:
         model = Volume
         view_name = 'api_v2:volume-detail'
-        fields = ('id', 'url', 'size', 'name', 'start_date', 'provider')
+        fields = ('id', 'url', 'name', 'size', 'provider', 'start_date', 'end_date')

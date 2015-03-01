@@ -17,6 +17,14 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         model = Project
         view_name = 'api_v2:project-detail'
         fields = (
-            'id', 'url', 'name', 'description', 'owner', 'instances',
-            'volumes', 'images', 'start_date', 'end_date'
+            'id',
+            'url',
+            'name',
+            'description',
+            'owner',
+            'instances',
+            'volumes',
+            'images',
+            'start_date',
+            'end_date'
         )

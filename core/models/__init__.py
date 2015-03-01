@@ -3,6 +3,7 @@ from core.models.cloud_admin import CloudAdministrator
 from core.models.identity import Identity
 from core.models.profile import UserProfile
 from core.models.project import Project
+from core.models.project_instance import ProjectInstance
 from core.models.provider import AccountProvider, ProviderType, PlatformType,\
     Provider
 from core.models.license import LicenseType, License
