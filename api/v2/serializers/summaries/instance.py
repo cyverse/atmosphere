@@ -1,6 +1,7 @@
-from core.models import Instance
+from core.models import Instance, Size
 from rest_framework import serializers
-from ..summaries import IdentitySummarySerializer
+from .identity import IdentitySummarySerializer
+from .size import SizeSummarySerializer
 
 
 class InstanceSummarySerializer(serializers.HyperlinkedModelSerializer):
@@ -8,6 +9,14 @@ class InstanceSummarySerializer(serializers.HyperlinkedModelSerializer):
     user = serializers.PrimaryKeyRelatedField(source='created_by', read_only=True)
     provider = serializers.PrimaryKeyRelatedField(source='created_by_identity.provider', read_only=True)
     status = serializers.CharField(source='esh_status', read_only=True)
+    size = serializers.SerializerMethodField()
+
+    def get_size(self, obj):
+        size_alias = obj.esh_size()
+        provider_id = obj.created_by_identity.provider_id
+        size = Size.objects.get(alias=size_alias, provider=provider_id)
+        serializer = SizeSummarySerializer(size, context=self.context)
+        return serializer.data
 
     class Meta:
         model = Instance
@@ -17,6 +26,7 @@ class InstanceSummarySerializer(serializers.HyperlinkedModelSerializer):
             'url',
             'name',
             'status',
+            'size',
             'ip_address',
             'shell',
             'vnc',
