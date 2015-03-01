@@ -83,6 +83,7 @@ class ProjectInstanceViewSet(viewsets.ModelViewSet):
     """
     queryset = ProjectInstance.objects.all()
     serializer_class = ProjectInstanceSerializer
+    filter_fields = ('project__id',)
     # http_method_names = ['get', 'post', 'delete', 'head', 'options', 'trace']
 
 
@@ -92,6 +93,7 @@ class ProjectVolumeViewSet(viewsets.ModelViewSet):
     """
     queryset = ProjectVolume.objects.all()
     serializer_class = ProjectVolumeSerializer
+    filter_fields = ('project__id',)
     # http_method_names = ['get', 'post', 'delete', 'head', 'options', 'trace']
 
 
