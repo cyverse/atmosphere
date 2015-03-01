@@ -4,8 +4,8 @@ from core.models.project import Project
 
 
 class ProjectInstance(models.Model):
-    project = models.ForeignKey(Project, related_name="project")
-    instance = models.ForeignKey(Instance, related_name="project")
+    project = models.ForeignKey(Project)
+    instance = models.ForeignKey(Instance)
 
     class Meta:
         db_table = 'project_instances'

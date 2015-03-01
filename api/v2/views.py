@@ -4,11 +4,11 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticate
 from rest_framework.decorators import detail_route
 from core.models import Tag, Project, Application as Image, Provider, Identity, Quota, Allocation, Volume, \
     Instance, ProviderType, PlatformType, ProviderMachine, ApplicationBookmark as ImageBookmark, Group, \
-    Size, AtmosphereUser, ProjectInstance
+    Size, AtmosphereUser, ProjectInstance, ProjectVolume
 from .serializers import TagSerializer, UserSerializer, ProjectSerializer, ImageSerializer, ProviderSerializer, \
     IdentitySerializer, QuotaSerializer, AllocationSerializer, VolumeSerializer, InstanceSerializer, \
     ProviderTypeSerializer, PlatformTypeSerializer, ProviderMachineSerializer, ImageBookmarkSerializer, \
-    SizeSerializer, SizeSummarySerializer, TagSummarySerializer, ProjectInstanceSerializer
+    SizeSerializer, SizeSummarySerializer, TagSummarySerializer, ProjectInstanceSerializer, ProjectVolumeSerializer
 from core.query import only_current, only_current_source
 
 
@@ -83,6 +83,15 @@ class ProjectInstanceViewSet(viewsets.ModelViewSet):
     """
     queryset = ProjectInstance.objects.all()
     serializer_class = ProjectInstanceSerializer
+    # http_method_names = ['get', 'post', 'delete', 'head', 'options', 'trace']
+
+
+class ProjectVolumeViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows instance actions to be viewed or edited.
+    """
+    queryset = ProjectVolume.objects.all()
+    serializer_class = ProjectVolumeSerializer
     # http_method_names = ['get', 'post', 'delete', 'head', 'options', 'trace']
 
 
