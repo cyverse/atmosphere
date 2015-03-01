@@ -8,6 +8,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
     user = UserSummarySerializer(source='created_by')
     provider = ProviderSummarySerializer(source='created_by_identity.provider')
     status = serializers.CharField(source='esh_status', read_only=True)
+    projects = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:
         model = Instance
@@ -23,6 +24,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
             'identity',
             'user',
             'provider',
+            'projects',
             'start_date',
-            'end_date',
+            'end_date'
         )

@@ -184,7 +184,7 @@ class VolumeFilter(django_filters.FilterSet):
 
     class Meta:
         model = Volume
-        fields = ['min_size', 'max_size']
+        fields = ['min_size', 'max_size', 'projects']
 
 
 class VolumeViewSet(viewsets.ModelViewSet):
@@ -209,7 +209,7 @@ class InstanceViewSet(viewsets.ModelViewSet):
     """
     queryset = Instance.objects.all()
     serializer_class = InstanceSerializer
-    filter_fields = ('created_by__id',)
+    filter_fields = ('created_by__id', 'projects')
 
     def get_queryset(self):
         """
