@@ -105,7 +105,6 @@ class AccountDriver():
         self.net_creds = self._build_network_creds(all_creds)
 
         #Initialize managers with respective credentials
-        logger.info(self.user_creds)
         self.user_manager = UserManager(**self.user_creds)
         self.image_manager = ImageManager(**self.image_creds)
         self.network_manager = NetworkManager(**self.net_creds)
