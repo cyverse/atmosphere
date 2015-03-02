@@ -244,25 +244,6 @@ class AllocationResult():
     def over_allocation(self):
         return any(period.over_allocation() for period in self.time_periods)
 
-    def _time_periods_by_interval(self, tdelta):
-        """
-        Given a timedelta, evenly divide up your TimePeriod
-        """
-        time_periods = []
-        time_period = TimePeriodResult(self.window_start, None)
-        current_date = self.window_start + tdelta
-        while current_date < self.window_end:
-            # Finish this interval
-            time_period.stop_counting_date = current_date
-            time_periods.append(time_period)
-            # Start next interval
-            time_period = TimePeriodResult(current_date, None)
-            current_date += tdelta
-        time_period.stop_counting_date = self.window_end
-        time_periods.append(time_period)
-        self._credit_by_interval(time_periods)
-        return time_periods
-
     def _credit_by_interval(self, time_periods):
         """
         When we create a list by interval, we still need to go through and
@@ -292,6 +273,26 @@ class AllocationResult():
             return 0
         else:
             return 1
+
+    def _time_periods_by_interval(self, tdelta):
+        """
+        Given a timedelta, evenly divide up your TimePeriod
+        """
+        time_periods = []
+        time_period = TimePeriodResult(self.window_start, None)
+        current_date = self.window_start + tdelta
+        while current_date < self.window_end:
+            # Finish this interval
+            time_period.stop_counting_date = current_date
+            time_periods.append(time_period)
+            # Start next interval
+            time_period = TimePeriodResult(current_date, None)
+            current_date += tdelta
+        time_period.stop_counting_date = self.window_end
+        time_periods.append(time_period)
+        self._credit_by_interval(time_periods)
+        return time_periods
+
 
     def _time_periods_by_allocation(self):
         """

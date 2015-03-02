@@ -121,6 +121,12 @@ def calculate_allocation(allocation, print_logs=False):
     return current_result
 
 
+def _multiply_time_delta(timedelta1, timedelta2):
+    time_seconds = timedelta1.total_seconds() *\
+        timedelta2.total_seconds()
+    return timedelta(seconds=time_seconds)
+
+
 def _calculate_instance_history_list(instance, rules, start_date, end_date,
                                      print_logs=False):
     """
@@ -145,15 +151,11 @@ def _calculate_instance_history_list(instance, rules, start_date, end_date,
             history_list.append(history_result)
             continue
 
-        if clock_time < timedelta(seconds=1):
-            raise ValueError("Clock time is %s < 1 second." % clock_time)
-
         # NOTE: There are some limitations to an implementation like this
         #       Ex: A rule that starts 'halfway' between start and end date
         #          (Is that a thing?)
         time_per_second = _running_time_per_second(history, instance, rules)
-        running_time = int(clock_time.total_seconds()) * time_per_second
-
+        running_time = _multiply_time_delta(clock_time, time_per_second)
         history_result.total_time += running_time
 
         if _get_burn_rate_test(history, end_date):
