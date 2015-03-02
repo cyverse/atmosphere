@@ -716,6 +716,12 @@ def _generate_stats(current_request, task_class):
 
 
 def _deploy_ready_failed_email_test(driver, instance_id, current_request, task_class):
+    """
+    Additional Acitons Include:
+    * 50% - Send an Email to atmosphere alerts to notify that there *may* be a problem
+    #100% - Send an Email to atmosphere to notify that a deployment failed
+    #       Terminate the current chain, and call 'deploy_failed' task out of band.
+    """
     from core.models.instance import Instance
     from core.email import send_deploy_failed_email,\
         send_preemptive_deploy_failed_email
@@ -726,17 +732,27 @@ def _deploy_ready_failed_email_test(driver, instance_id, current_request, task_c
         # Halfway point. Send preemptive failure
         send_preemptive_deploy_failed_email(core_instance, message)
     elif num_retries == task_class.max_retries-1:
-        # This was the last attempt. The deploy failed.
+        # Final attempt logic
+        # NOTE: This email is DIFFERENT from the email sent in 'deploy_failed',
+        #       but this may be seen as redundant 
         send_deploy_failed_email(core_instance, message)
-        deploy_failed.apply_async(driverCls, provider, identity, instance_id))
+        deploy_failed.apply_async(driver.__class__, driver.provider, driver.identity, instance_id)
 
 @task(name="deploy_ready_test",
       default_retry_delay=32,
-      time_limit=16, # 16 second hard-set time limit.
-      max_retries=225 # Attempt up to two hours
+      time_limit=16, # 16 second hard-set time limit. (NOTE:TOO LONG? -SG)
+      max_retries=3 # Attempt up to two hours
       )
 def deploy_ready_test(driverCls, provider, identity, instance_id,
                       **celery_task_args):
+    """
+    deploy_ready_test -
+    Sends an "echo script" via SSH to the instance. If the script fails to
+    deploy to the instance for any reason, log the exception and prepare to retry.
+
+    Before making call to retry, send _deploy_ready_failed_email_test the
+    current number of retries, max retries, etc. to see if additional action should be taken.
+    """
     logger.debug("deploy_ready_test task started at %s." % datetime.now())
     try:
         #Check if instance still exists
@@ -755,9 +771,8 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
         logger.exception(exc)
     except Exception as exc:
         logger.exception(exc)
-    #NOTE: This takes care of final 'deploy_error' task if this fails, is the
-    #      'Catch all' when deploy fails for any reason.
-    _deploy_ready_failed_email_test(driver, instance_id, current.request, task_class)
+    _deploy_ready_failed_email_test(
+        driver, instance_id, current.request, deploy_ready_test)
     deploy_ready_test.retry(exc=exc)
 
 
