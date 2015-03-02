@@ -487,7 +487,7 @@ def destroy_instance(identity_uuid, instance_alias):
     #Bail if instance doesnt exist
     if not instance:
         return None
-    _check_volume_attachment(esh_driver, instance)
+    #_check_volume_attachment(esh_driver, instance)
     if isinstance(esh_driver, OSDriver):
         try:
             # Openstack: Remove floating IP first
