@@ -270,6 +270,7 @@ class SizeViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Size.objects.all()
     serializer_class = SizeSerializer
+    filter_fields = ('provider__id',)
 
     def get_queryset(self):
         """
