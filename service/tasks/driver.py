@@ -324,7 +324,7 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
 
         logger.debug("_send_instance_email task finished at %s." %
                      datetime.now())
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.warn(exc)
         _send_instance_email.retry(exc=exc)
 
@@ -373,7 +373,7 @@ def deploy_to(driverCls, provider, identity, instance_id, *args, **kwargs):
         instance = driver.get_instance(instance_id)
         driver.deploy_to(instance, *args, **kwargs)
         logger.debug("deploy_to task finished at %s." % datetime.now())
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.warn(exc)
         deploy_to.retry(exc=exc)
 
@@ -409,7 +409,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         logger.error(str(non_zero))
         logger.error(non_zero.__dict__)
         raise
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.warn(exc)
         deploy_init_to.retry(exc=exc)
 
@@ -522,7 +522,7 @@ def deploy_boot_script(driverCls, provider, identity, instance_id,
         logger.info(instance.extra)
         instance._node.extra['password'] = None
         new_script = wrap_script(script_text, script_name)
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.exception(exc)
         deploy_boot_script.retry(exc=exc)
 
@@ -546,10 +546,7 @@ def deploy_boot_script(driverCls, provider, identity, instance_id,
         #fall in this category, and possibly don't retry if
         #you hit the Exception block below this.
         deploy_boot_script.retry(exc=exc)
-    except SystemExit as bad_ssh:
-        logger.exception("ERROR: Someone has raised a SystemExit!")
-        deploy_boot_script.retry(exc=bad_ssh)
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.exception(exc)
         deploy_boot_script.retry(exc=exc)
 @task(name="boot_script_failed")
@@ -572,7 +569,7 @@ def boot_script_failed(task_uuid, driverCls, provider, identity, instance_id,
         #Send deploy email
         core_instance = Instance.objects.get(provider_alias=instance_id)
         logger.debug("boot_script_failed task finished at %s." % datetime.now())
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.warn(exc)
         boot_script_failed.retry(exc=exc)
 
@@ -705,7 +702,7 @@ def deploy_script(driverCls, provider, identity, instance_id,
         #fall in this category, and possibly don't retry if
         #you hit the Exception block below this.
         deploy_script.retry(exc=exc)
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.exception(exc)
         deploy_script.retry(exc=exc)
 
@@ -771,7 +768,7 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
         driver.deploy_to(instance, **kwargs)
         logger.debug("deploy_ready_test task %s/%s finished at %s." % (current_count, total, datetime.now()))
         return True
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.exception(exc)
         _deploy_ready_failed_email_test(
             driver, instance_id, current.request, deploy_ready_test)
@@ -802,7 +799,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         instance._node.extra['password'] = None
         msd = init(instance, identity.user.username, password, token, redeploy)
 
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.exception(exc)
         _deploy_init_to.retry(exc=exc)
     try:
@@ -825,10 +822,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         #fall in this category, and possibly don't retry if
         #you hit the Exception block below this.
         _deploy_init_to.retry(exc=exc)
-    except SystemExit as bad_ssh:
-        logger.exception("ERROR: Someone has raised a SystemExit!")
-        _deploy_init_to.retry(exc=bad_ssh)
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.exception(exc)
         _deploy_init_to.retry(exc=exc)
 
@@ -888,7 +882,7 @@ def check_process_task(driverCls, provider, identity,
     except Instance.DoesNotExist:
         logger.warn("check_process_task failed: Instance %s no longer exists"
                     % instance_alias)
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.exception(exc)
         check_process_task.retry(exc=exc)
 
@@ -984,7 +978,7 @@ def add_floating_ip(driverCls, provider, identity,
         #End
         logger.debug("add_floating_ip task finished at %s." % datetime.now())
         return {"floating_ip": floating_ip, "hostname": hostname}
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.exception("Error occurred while assigning a floating IP")
         #Networking can take a LONG time when an instance first launches,
         #it can also be one of those things you 'just miss' by a few seconds..
