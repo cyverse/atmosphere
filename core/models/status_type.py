@@ -3,6 +3,7 @@ status_type - states which a request transitions through
 """
 from django.db import models
 from django.utils import timezone
+from django.utils.encoding import python_2_unicode_compatible
 
 
 def get_status_type(status="pending"):
@@ -16,6 +17,7 @@ def get_status_type(status="pending"):
     return status_type
 
 
+@python_2_unicode_compatible
 class StatusType(models.Model):
     """
     Representation of a State
@@ -32,3 +34,6 @@ class StatusType(models.Model):
     @classmethod
     def default(cls):
         return StatusType(name="pending")
+
+    def __str__(self):
+        return self.name
