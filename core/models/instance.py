@@ -288,6 +288,7 @@ class Instance(models.Model):
         """
         if not end_date:
             end_date = timezone.now()
+        logger.info("END DATING instance %s: %s" % (self.provider_alias, end_date))
         ish_list = self.instancestatushistory_set.filter(end_date=None)
         for ish in ish_list:
             # logger.info('Saving history:%s' % ish)

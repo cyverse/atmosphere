@@ -236,7 +236,7 @@ def clear_empty_ips_for(core_identity_uuid, username=None):
     """
     RETURN: (number_ips_removed, delete_network_called)
     """
-    from api import get_esh_driver
+    from service.driver import get_esh_driver
     from rtwo.driver import OSDriver
     #Initialize the drivers
     core_identity = Identity.objects.get(uuid=core_identity_uuid)

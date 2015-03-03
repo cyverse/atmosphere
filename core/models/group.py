@@ -57,6 +57,8 @@ class Group(DjangoGroup):
     @classmethod
     def check_access(cls, user, groupname):
         try:
+            if not isinstance(user, AtmosphereUser):
+                user = AtmosphereUser.objects.get(username=user.username)
             group = Group.objects.get(name=groupname)
             return user in group.user_set.all()
         except Group.DoesNotExist:

@@ -56,8 +56,17 @@ class Project(models.Model):
         Use this function to move A single object
         to Project X
         """
+        self._test_project_ownership(related_obj)
         return related_obj.projects.add(self)
 
+    def _test_project_ownership(self, related_obj):
+        user = related_obj.created_by
+        group = self.owner
+        if user in group.user_set.all():
+            return True
+        raise Exception("CANNOT add Resource:%s User:%s does NOT belong to Group:%s"
+                        % (related_obj, user, group))
+        
     def copy_objects(self, to_project):
         """
         Use this function to move ALL objects
