@@ -56,8 +56,9 @@ class Project(models.Model):
         Use this function to move A single object
         to Project X
         """
-        _test_project_ownership(related_obj)
+        self._test_project_ownership(related_obj)
         return related_obj.projects.add(self)
+
     def _test_project_ownership(self, related_obj):
         user = related_obj.created_by
         group = self.owner

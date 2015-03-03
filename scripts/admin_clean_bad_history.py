@@ -2,7 +2,7 @@
 import argparse
 import time
 
-from api import get_esh_driver
+from service.driver import get_esh_driver
 from core.models import Provider, Identity, Instance, InstanceStatusHistory
 from service.driver import get_admin_driver
 from service.instance import suspend_instance
