@@ -256,7 +256,7 @@ def init_script(filename, username, token, instance, password,
         settings.DEPLOY_SERVER_URL,
         username,
         token,
-        instance.name.replace('"', '\"'),  # Prevents single " from preventing calls to atmo_init_full
+        instance.name.replace('"', '\\\"'),  # Prevents single " from preventing calls to atmo_init_full
         " --redeploy" if redeploy else "",
         secrets.ATMOSPHERE_VNC_LICENSE)
     if password:
