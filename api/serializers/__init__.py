@@ -48,3 +48,4 @@ from .quota_serializer import QuotaSerializer
 from .quota_request_serializer import QuotaRequestSerializer, \
     ResolveQuotaRequestSerializer
 from .identity_serializer import IdentitySerializer
+from .token_serializer import TokenSerializer
