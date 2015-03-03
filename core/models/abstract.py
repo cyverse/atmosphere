@@ -40,14 +40,13 @@ class BaseRequest(models.Model):
         abstract = True
 
     @classmethod
-    def is_active(cls, provider, user):
+    def is_active(cls, identity_membership):
         """
-        Returns whether or not the resource request is currently active for the
-        given user and provider
+        Return if a request is active for the identity_membership
         """
-        status = StatusType.default()
         return cls.objects.filter(
-            user=user, provider=provider, status=status).count() > 0
+            membership=identity_membership,
+            status__name__in=UNRESOLVED_STATES).count() > 0
 
     @classmethod
     def get_unresolved(cls):

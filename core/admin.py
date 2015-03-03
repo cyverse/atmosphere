@@ -22,6 +22,7 @@ from core.models.profile import UserProfile
 from core.models.provider import Provider, ProviderType, AccountProvider
 from core.models.quota import Quota
 from core.models.allocation_strategy import Allocation, AllocationStrategy
+from core.models.request import AllocationRequest, QuotaRequest
 from core.models.size import Size
 from core.models.step import Step
 from core.models.tag import Tag
@@ -40,6 +41,27 @@ def end_date_object(modeladmin, request, queryset):
 end_date_object.short_description = 'Add end-date to objects'
 
 
+@admin.register(AllocationRequest)
+class AllocationRequestAdmin(admin.ModelAdmin):
+    readonly_fields = ('uuid', 'created_by', 'request', 'description',
+                       'start_date', 'end_date')
+    list_display = ("request", "status", "start_date", "end_date",
+                    "allocation")
+
+    list_filter = ["status", "membership__identity__provider__location"]
+    exclude = ("membership",)
+
+    def save_model(self, request, obj, form, changed):
+        obj.end_date = timezone.now()
+        obj.save()
+
+        if obj.is_approved():
+            membership = obj.membership
+            membership.allocation = obj.allocation
+            membership.save()
+
+
+@admin.register(NodeController)
 class NodeControllerAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     list_display = ("alias", "hostname",
@@ -47,22 +69,24 @@ class NodeControllerAdmin(admin.ModelAdmin):
                     "ssh_key_added")
 
 
+@admin.register(MaintenanceRecord)
 class MaintenanceAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     list_display = ("title", "provider", "start_date",
                     "end_date", "disable_login")
 
 
+@admin.register(Quota)
 class QuotaAdmin(admin.ModelAdmin):
     list_display = ("__unicode__", "cpu", "memory", "storage", "storage_count", "suspended_count")
 
 
+@admin.register(AllocationStrategy)
 class AllocationStrategyAdmin(admin.ModelAdmin):
     pass
 
 
-
-
+@admin.register(Allocation)
 class AllocationAdmin(admin.ModelAdmin):
 
     list_display = ("threshold_str", "delta_str")
@@ -82,6 +106,7 @@ class AllocationAdmin(admin.ModelAdmin):
     delta_str.short_description = 'Delta'
 
 
+@admin.register(ProviderMachine)
 class ProviderMachineAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     search_fields = ["application__name", "provider__location", "identifier"]
@@ -93,6 +118,8 @@ class ProviderMachineAdmin(admin.ModelAdmin):
         "application__private",
     ]
 
+
+@admin.register(ProviderMachineMembership)
 class ProviderMachineMembershipAdmin(admin.ModelAdmin):
     list_display = ["id", "_pm_provider", "_pm_identifier", "_pm_name",
                     "_pm_private", "group"]
@@ -117,6 +144,7 @@ class ProviderCredentialInline(admin.TabularInline):
     extra = 1
 
 
+@admin.register(Provider)
 class ProviderAdmin(admin.ModelAdmin):
     inlines = [ProviderCredentialInline, ]
     actions = [end_date_object, ]
@@ -137,6 +165,7 @@ class ProviderAdmin(admin.ModelAdmin):
         return None
 
 
+@admin.register(Size)
 class SizeAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     search_fields = ["name", "alias", "provider__location"]
@@ -145,17 +174,20 @@ class SizeAdmin(admin.ModelAdmin):
     list_filter = ["provider__location"]
 
 
+@admin.register(Step)
 class StepAdmin(admin.ModelAdmin):
     search_fields = ["name", "alias", "created_by__username",
                      "instance__provider_alias"]
     list_display = ["alias", "name", "start_date", "end_date"]
 
 
+@admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     search_fields = ["name"]
     list_display = ["name", "description"]
 
 
+@admin.register(Volume)
 class VolumeAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     search_fields = ["identifier", "name", "location"]
@@ -164,6 +196,7 @@ class VolumeAdmin(admin.ModelAdmin):
     list_filter = ["instance_source__provider__location"]
 
 
+@admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
     actions = [end_date_object, private_object]
     search_fields = ["name", "id"]
@@ -188,6 +221,7 @@ class CredentialInline(admin.TabularInline):
     extra = 1
 
 
+@admin.register(Identity)
 class IdentityAdmin(admin.ModelAdmin):
     inlines = [CredentialInline, ]
     list_display = ("created_by", "provider", "_credential_info")
@@ -210,21 +244,22 @@ class UserProfileInline(admin.StackedInline):
     extra = 0
     verbose_name_plural = 'profile'
 
+
+@admin.register(AtmosphereUser)
 class UserAdmin(AuthUserAdmin):
     inlines = [UserProfileInline]
     fieldsets = AuthUserAdmin.fieldsets + (
         (None, {'fields': ('selected_identity', )}),
     )
 
-#admin.site.unregister(DjangoUser)
-admin.site.register(AtmosphereUser, UserAdmin)
 
-
+@admin.register(ProviderMembership)
 class ProviderMembershipAdmin(admin.ModelAdmin):
     search_fields = ["member__name"]
     list_filter = ["provider__location"]
 
 
+@admin.register(IdentityMembership)
 class IdentityMembershipAdmin(admin.ModelAdmin):
     search_fields = ["identity__created_by__username", ]
     list_display = ["_identity_user", "_identity_provider",
@@ -240,6 +275,7 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
     _identity_user.short_description = 'Username'
 
 
+@admin.register(MachineRequest)
 class MachineRequestAdmin(admin.ModelAdmin):
     search_fields = ["new_machine_owner__username", "new_machine_name", "instance__provider_alias"]
     list_display = ["new_machine_name", "instance_alias", "new_machine_owner", "old_provider",
@@ -269,6 +305,7 @@ class MachineRequestAdmin(admin.ModelAdmin):
         return None
 
 
+@admin.register(InstanceStatusHistory)
 class InstanceStatusHistoryAdmin(admin.ModelAdmin):
     search_fields = ["instance__created_by__username",
             "instance__provider_alias", "status__name"]
@@ -280,11 +317,14 @@ class InstanceStatusHistoryAdmin(admin.ModelAdmin):
         return model.instance.provider_alias
 
 
+@admin.register(Instance)
 class InstanceAdmin(admin.ModelAdmin):
     search_fields = ["created_by__username", "provider_alias", "ip_address"]
     list_display = ["provider_alias", "name", "created_by", "ip_address"]
     list_filter = ["source__provider__location"]
 
+
+@admin.register(DjangoSession)
 class SessionAdmin(admin.ModelAdmin):
     def _session_data(self, obj):
         return obj.get_decoded()
@@ -292,42 +332,42 @@ class SessionAdmin(admin.ModelAdmin):
     search_fields = ["session_key", ]
 
 
+@admin.register(AccountProvider)
 class AccountProviderAdmin(admin.ModelAdmin):
-    model = AccountProvider
+    pass
 
 
+@admin.register(CloudAdministrator)
 class CloudAdminAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid',)
     list_display = ["user", "provider", "uuid"]
     model = CloudAdministrator
 
 
-admin.site.register(DjangoSession, SessionAdmin)
+@admin.register(QuotaRequest)
+class QuotaRequestAdmin(admin.ModelAdmin):
+    readonly_fields = ('uuid', 'created_by', 'request', 'description',
+                       'start_date', 'end_date')
+    list_display = ("request", "status", "start_date", "end_date",
+                    "quota")
+    exclude = ("membership",)
+    list_filter = ["status", "membership__identity__provider__location"]
+    order = ('-start_date',)
+
+    def save_model(self, request, obj, form, changed):
+        obj.end_date = timezone.now()
+        obj.save()
+
+        if obj.is_approved():
+            membership = obj.membership
+            membership.quota = obj.quota
+            membership.approve_quota(obj.uuid)
+
+
+# admin.site.register(CountingBehavior, CountingBehaviorAdmin)
 admin.site.register(Credential)
-admin.site.unregister(DjangoGroup)
 admin.site.register(Group)
-admin.site.register(Application, ApplicationAdmin)
-admin.site.register(Allocation, AllocationAdmin)
-admin.site.register(AllocationStrategy, AllocationStrategyAdmin)
-#admin.site.register(CountingBehavior, CountingBehaviorAdmin)
-admin.site.register(CloudAdministrator, CloudAdminAdmin)
-admin.site.register(AccountProvider, AccountProviderAdmin)
-admin.site.register(Identity, IdentityAdmin)
-admin.site.register(IdentityMembership, IdentityMembershipAdmin)
-admin.site.register(Instance, InstanceAdmin)
-admin.site.register(InstanceStatusHistory, InstanceStatusHistoryAdmin)
-admin.site.register(MachineRequest, MachineRequestAdmin)
-admin.site.register(MaintenanceRecord, MaintenanceAdmin)
-admin.site.register(NodeController, NodeControllerAdmin)
-admin.site.register(Provider, ProviderAdmin)
-admin.site.register(ProviderMachine, ProviderMachineAdmin)
-admin.site.register(ProviderMachineMembership, ProviderMachineMembershipAdmin)
-admin.site.register(ProviderMembership, ProviderMembershipAdmin)
 admin.site.register(ProviderType)
-admin.site.register(Quota, QuotaAdmin)
-#admin.site.register(RefreshBehavior, RefreshBehaviorAdmin)
-#admin.site.register(RulesBehavior, RulesBehaviorAdmin)
-admin.site.register(Size, SizeAdmin)
-admin.site.register(Step, StepAdmin)
-admin.site.register(Tag, TagAdmin)
-admin.site.register(Volume, VolumeAdmin)
+# admin.site.register(RefreshBehavior, RefreshBehaviorAdmin)
+# admin.site.register(RulesBehavior, RulesBehaviorAdmin)
+admin.site.unregister(DjangoGroup)

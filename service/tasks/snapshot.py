@@ -7,7 +7,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from threepio import logger
 
 from core.models import Identity
-from core.models.volume import convert_esh_volume, create_volume
+from core.models.volume import convert_esh_volume
 
 from service.cache import get_cached_driver
 
@@ -28,7 +28,7 @@ def create_volume_snapshot(identity_uuid, volume_id, name, description):
         esh_volume = driver._connection.ex_get_volume(volume_id)
 
         if not esh_volume:
-            raise Exception("No image found for id=%s." % volume_id)
+            raise Exception("No volume found for id=%s." % volume_id)
 
         snapshot = driver._connection.ex_create_snapshot(
             esh_volume, name, description)
