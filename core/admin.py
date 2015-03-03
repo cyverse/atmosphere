@@ -22,6 +22,7 @@ from core.models.profile import UserProfile
 from core.models.provider import Provider, ProviderType, AccountProvider
 from core.models.quota import Quota
 from core.models.allocation_strategy import Allocation, AllocationStrategy
+from core.models.request import AllocationRequest, QuotaRequest
 from core.models.size import Size
 from core.models.step import Step
 from core.models.tag import Tag
@@ -38,6 +39,26 @@ private_object.short_description = 'Make objects private True'
 def end_date_object(modeladmin, request, queryset):
         queryset.update(end_date=timezone.now())
 end_date_object.short_description = 'Add end-date to objects'
+
+
+@admin.register(AllocationRequest)
+class AllocationRequestAdmin(admin.ModelAdmin):
+    readonly_fields = ('uuid', 'created_by', 'request', 'description',
+                       'start_date', 'end_date')
+    list_display = ("request", "status", "start_date", "end_date",
+                    "allocation")
+
+    list_filter = ["status", "membership__identity__provider__location"]
+    exclude = ("membership",)
+
+    def save_model(self, request, obj, form, changed):
+        obj.end_date = timezone.now()
+        obj.save()
+
+        if obj.is_closed():
+            membership = obj.membership
+            membership.allocation = obj.allocation
+            membership.save()
 
 
 @admin.register(NodeController)
@@ -321,6 +342,26 @@ class CloudAdminAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid',)
     list_display = ["user", "provider", "uuid"]
     model = CloudAdministrator
+
+
+@admin.register(QuotaRequest)
+class QuotaRequestAdmin(admin.ModelAdmin):
+    readonly_fields = ('uuid', 'created_by', 'request', 'description',
+                       'start_date', 'end_date')
+    list_display = ("request", "status", "start_date", "end_date",
+                    "quota")
+    exclude = ("membership",)
+    list_filter = ["status", "membership__identity__provider__location"]
+    order = ('-start_date',)
+
+    def save_model(self, request, obj, form, changed):
+        obj.end_date = timezone.now()
+        obj.save()
+
+        if obj.is_closed():
+            membership = obj.membership
+            membership.quota = obj.quota
+            membership.approve_quota(obj.uuid)
 
 
 # admin.site.register(CountingBehavior, CountingBehaviorAdmin)
