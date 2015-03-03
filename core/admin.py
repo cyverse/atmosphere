@@ -55,7 +55,7 @@ class AllocationRequestAdmin(admin.ModelAdmin):
         obj.end_date = timezone.now()
         obj.save()
 
-        if obj.is_closed():
+        if obj.is_approved():
             membership = obj.membership
             membership.allocation = obj.allocation
             membership.save()
@@ -358,7 +358,7 @@ class QuotaRequestAdmin(admin.ModelAdmin):
         obj.end_date = timezone.now()
         obj.save()
 
-        if obj.is_closed():
+        if obj.is_approved():
             membership = obj.membership
             membership.quota = obj.quota
             membership.approve_quota(obj.uuid)
