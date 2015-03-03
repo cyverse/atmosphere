@@ -24,6 +24,9 @@ class Token(models.Model):
     issuedTime = models.DateTimeField(auto_now_add=True)
     expireTime = models.DateTimeField(null=True, blank=True)
 
+    def get_expired_time(self):
+        return self.expireTime.strftime("%b %d, %Y %H:%M:%S")
+
     def is_expired(self):
         """
         Returns True if token has expired, False if token is valid
