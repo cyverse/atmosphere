@@ -152,7 +152,7 @@ def prepare_driver(request, provider_uuid, identity_uuid):
             raise Exception("User %s is NOT the owner of Identity UUID: %s" % (request.user.username, core_identity.uuid))
     except CoreIdentity.DoesNotExist:
         logger.exception("Unable to prepare driver.")
-        raise
+        return None
 
 
 def _retrieve_source(esh_driver, new_source_alias, source_hint):
