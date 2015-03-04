@@ -1,7 +1,7 @@
 import django_filters
 from rest_framework import viewsets
 from core.models import Volume
-from ..serializers import VolumeSerializer
+from api.v2.serializers.details import VolumeSerializer
 from core.query import only_current_source
 
 

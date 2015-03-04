@@ -1,6 +1,6 @@
 from core.models import ProviderMachine
 from rest_framework import serializers
-from ..summaries import ProviderSummarySerializer
+from .provider import ProviderSummarySerializer
 
 
 class ProviderMachineSummarySerializer(serializers.HyperlinkedModelSerializer):

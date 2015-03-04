@@ -1,7 +1,7 @@
 from core.models import ProjectInstance, Project, Instance
 from rest_framework import serializers
-from ..details import InstanceSerializer
-from ..summaries import ProjectSummarySerializer
+from api.v2.serializers.summaries import ProjectSummarySerializer
+from .instance import InstanceSerializer
 
 
 class ProjectRelatedField(serializers.PrimaryKeyRelatedField):

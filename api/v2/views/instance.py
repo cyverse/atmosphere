@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from core.models import Instance
-from ..serializers import InstanceSerializer
+from api.v2.serializers.details import InstanceSerializer
 from core.query import only_current
 
 

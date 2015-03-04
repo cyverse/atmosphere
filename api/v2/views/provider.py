@@ -2,7 +2,8 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.decorators import detail_route
 from core.models import Provider, Group
-from ..serializers import ProviderSerializer, SizeSummarySerializer
+from api.v2.serializers.details import ProviderSerializer
+from api.v2.serializers.summaries import SizeSummarySerializer
 from core.query import only_current
 
 

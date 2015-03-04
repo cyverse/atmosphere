@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from core.models import ProjectInstance
-from ..serializers import ProjectInstanceSerializer
+from api.v2.serializers.details import ProjectInstanceSerializer
 
 
 class ProjectInstanceViewSet(viewsets.ModelViewSet):

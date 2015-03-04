@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.decorators import detail_route
 from core.models import Project, Group
-from ..serializers import ProjectSerializer, VolumeSerializer, InstanceSerializer
+from api.v2.serializers.details import ProjectSerializer, VolumeSerializer, InstanceSerializer
 from core.query import only_current
 
 

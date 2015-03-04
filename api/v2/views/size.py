@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from core.models import Group, Size
-from ..serializers import SizeSerializer
+from api.v2.serializers.details import SizeSerializer
 from core.query import only_current
 
 

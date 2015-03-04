@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from core.models import Application as Image
-from ..serializers import ImageSerializer
+from api.v2.serializers.details import ImageSerializer
 
 
 class ImageViewSet(viewsets.ModelViewSet):

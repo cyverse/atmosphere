@@ -1,7 +1,7 @@
 from core.models import Project
 from rest_framework import serializers
-from ..summaries import InstanceSummarySerializer, VolumeSummarySerializer, ImageSummarySerializer
-from ..fields import UserRelatedField
+from api.v2.serializers.summaries import InstanceSummarySerializer, VolumeSummarySerializer, ImageSummarySerializer
+from api.v2.serializers.fields import UserRelatedField
 
 
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):

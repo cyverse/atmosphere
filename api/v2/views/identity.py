@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from core.models import Identity, Group
-from ..serializers import IdentitySerializer
+from api.v2.serializers.details import IdentitySerializer
 from core.query import only_current
 
 

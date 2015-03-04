@@ -1,7 +1,12 @@
 from core.models import Instance, Size, Application as Image
 from rest_framework import serializers
-from ..summaries import IdentitySummarySerializer, UserSummarySerializer, ProviderSummarySerializer, \
-    SizeSummarySerializer, ImageSummarySerializer
+from api.v2.serializers.summaries import (
+    IdentitySummarySerializer,
+    UserSummarySerializer,
+    ProviderSummarySerializer,
+    SizeSummarySerializer,
+    ImageSummarySerializer
+)
 
 
 class InstanceSerializer(serializers.HyperlinkedModelSerializer):

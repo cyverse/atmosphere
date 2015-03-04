@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from core.models import ProjectVolume
-from ..serializers import ProjectVolumeSerializer
+from api.v2.serializers.details import ProjectVolumeSerializer
 
 
 class ProjectVolumeViewSet(viewsets.ModelViewSet):

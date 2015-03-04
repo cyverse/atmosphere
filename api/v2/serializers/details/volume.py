@@ -1,6 +1,10 @@
 from core.models import Volume
 from rest_framework import serializers
-from ..summaries import ProviderSummarySerializer, UserSummarySerializer, IdentitySummarySerializer
+from api.v2.serializers.summaries import (
+    ProviderSummarySerializer,
+    UserSummarySerializer,
+    IdentitySummarySerializer
+)
 
 
 class VolumeSerializer(serializers.HyperlinkedModelSerializer):

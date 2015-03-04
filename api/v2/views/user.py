@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from core.models import AtmosphereUser
-from ..serializers import UserSerializer
+from api.v2.serializers.details import UserSerializer
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):

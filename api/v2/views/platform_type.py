@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from core.models import PlatformType
-from ..serializers import PlatformTypeSerializer
+from api.v2.serializers.details import PlatformTypeSerializer
 
 
 class PlatformTypeViewSet(viewsets.ReadOnlyModelViewSet):

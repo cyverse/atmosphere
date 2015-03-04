@@ -1,7 +1,7 @@
 from core.models import ProjectVolume, Project, Volume
 from rest_framework import serializers
-from ..summaries import ProjectSummarySerializer
-from ..details import VolumeSerializer
+from api.v2.serializers.summaries import ProjectSummarySerializer
+from .volume import VolumeSerializer
 
 
 class ProjectRelatedField(serializers.PrimaryKeyRelatedField):
@@ -27,7 +27,7 @@ class VolumeRelatedField(serializers.PrimaryKeyRelatedField):
 
 
 class ProjectVolumeSerializer(serializers.HyperlinkedModelSerializer):
-    project = ProjectSummarySerializer(queryset=Project.objects.none())
+    project = ProjectRelatedField(queryset=Project.objects.none())
     volume = VolumeRelatedField(queryset=Volume.objects.none())
 
     class Meta:
