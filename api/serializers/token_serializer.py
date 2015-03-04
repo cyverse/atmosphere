@@ -1,4 +1,4 @@
-from authentication import Token
+from authentication.models import Token
 from rest_framework import serializers
 
 class TokenSerializer(serializers.ModelSerializer):
