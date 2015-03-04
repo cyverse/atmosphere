@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser
 from core.models import Tag
-from ..serializers import TagSummarySerializer
+from api.v2.serializers.summaries import TagSummarySerializer
 
 
 class TagViewSet(viewsets.ModelViewSet):

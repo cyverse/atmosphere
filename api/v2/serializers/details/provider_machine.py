@@ -1,6 +1,6 @@
 from core.models import ProviderMachine
 from rest_framework import serializers
-from ..summaries import ImageSummarySerializer, ProviderSummarySerializer, UserSummarySerializer
+from api.v2.serializers.summaries import ImageSummarySerializer, ProviderSummarySerializer, UserSummarySerializer
 
 
 class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):

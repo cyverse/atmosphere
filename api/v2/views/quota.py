@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from core.models import Quota
-from ..serializers import QuotaSerializer
+from api.v2.serializers.details import QuotaSerializer
 
 
 class QuotaViewSet(viewsets.ReadOnlyModelViewSet):

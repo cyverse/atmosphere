@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from core.models import ApplicationBookmark as ImageBookmark
-from ..serializers import ImageBookmarkSerializer
+from api.v2.serializers.details import ImageBookmarkSerializer
 
 
 class ImageBookmarkViewSet(viewsets.ModelViewSet):

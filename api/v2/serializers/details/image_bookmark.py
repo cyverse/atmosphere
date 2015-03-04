@@ -1,6 +1,6 @@
 from core.models import ApplicationBookmark as ImageBookmark, Application as Image
 from rest_framework import serializers
-from ..summaries import UserSummarySerializer, ImageSummarySerializer
+from api.v2.serializers.summaries import UserSummarySerializer, ImageSummarySerializer
 
 
 class ImagePrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):

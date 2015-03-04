@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from core.models import Allocation
-from ..serializers import AllocationSerializer
+from api.v2.serializers.details import AllocationSerializer
 
 
 class AllocationViewSet(viewsets.ReadOnlyModelViewSet):

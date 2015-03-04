@@ -1,7 +1,12 @@
 from core.models import Identity
 from rest_framework import serializers
-from ..summaries import QuotaSummarySerializer, AllocationSummarySerializer, UserSummarySerializer, \
+from api.v2.serializers.summaries import (
+    QuotaSummarySerializer,
+    AllocationSummarySerializer,
+    UserSummarySerializer,
     ProviderSummarySerializer
+)
+
 
 class IdentitySerializer(serializers.HyperlinkedModelSerializer):
     quota = QuotaSummarySerializer(source='get_quota')

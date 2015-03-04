@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from core.models import ProviderMachine
-from ..serializers import ProviderMachineSerializer
+from api.v2.serializers.details import ProviderMachineSerializer
 
 
 class ProviderMachineViewSet(viewsets.ReadOnlyModelViewSet):

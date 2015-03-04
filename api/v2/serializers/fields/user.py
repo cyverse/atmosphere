@@ -1,6 +1,6 @@
 from core.models import AtmosphereUser
 from rest_framework import serializers
-from ..summaries import UserSummarySerializer
+from api.v2.serializers.summaries import UserSummarySerializer
 
 
 class UserRelatedField(serializers.RelatedField):
