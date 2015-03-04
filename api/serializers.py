@@ -537,7 +537,7 @@ class MachineRequestSerializer(serializers.ModelSerializer):
     threshold = NewThresholdField(source='new_machine_threshold')
     #TODO: Convert to 'LicenseField' and allow POST of ID instead of
     #      full-object. for additional support for the image creator
-    licenses = LicenseSerializer(source='new_machine_licenses.all', many=True)
+    licenses = LicenseSerializer(source='new_machine_licenses.all', many=True, required=False)
     new_machine = serializers.SlugRelatedField(slug_field='identifier',
                                                required=False)
 
