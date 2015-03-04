@@ -45,8 +45,8 @@ end_date_object.short_description = 'Add end-date to objects'
 class AllocationRequestAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid', 'created_by', 'request', 'description',
                        'start_date', 'end_date')
-    list_display = ("request", "status", "start_date", "end_date",
-                    "allocation")
+    list_display = ("request", "status", "created_by", "start_date",
+                    "end_date", "allocation")
 
     list_filter = ["status", "membership__identity__provider__location"]
     exclude = ("membership",)
@@ -348,8 +348,8 @@ class CloudAdminAdmin(admin.ModelAdmin):
 class QuotaRequestAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid', 'created_by', 'request', 'description',
                        'start_date', 'end_date')
-    list_display = ("request", "status", "start_date", "end_date",
-                    "quota")
+    list_display = ("request", "status", "created_by", "start_date",
+                    "end_date", "quota")
     exclude = ("membership",)
     list_filter = ["status", "membership__identity__provider__location"]
     order = ('-start_date',)
