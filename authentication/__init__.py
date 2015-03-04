@@ -81,6 +81,17 @@ def createAuthToken(username):
     return auth_user_token
 
 
+def lookupSessionToken(request):
+    """
+    Retrieve an existing token from the request session.
+    """
+    token_key = request.session['token']
+    try:
+        return AuthToken.objects.get(user=request.user, key=token_key)
+    except:
+        return None
+
+
 def validateToken(username, token_key):
     """
     Verify the token belongs to username, and renew it

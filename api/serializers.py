@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AnonymousUser
+from authentication.models import Token
 
 from core.models.application import Application, ApplicationScore,\
     ApplicationBookmark, ApplicationThreshold
@@ -230,6 +231,15 @@ class InstanceRelatedField(serializers.RelatedField):
 
 
 # Serializers
+class TokenSerializer(serializers.ModelSerializer):
+    token = serializers.CharField(read_only=True, source='key')
+    username = serializers.CharField(read_only=True, source='user.username')
+    expires = serializers.CharField(read_only=True, source='get_expired_time')
+
+    class Meta:
+        model = Token
+        fields = ('token', 'username', 'expires')
+    pass
 class AccountSerializer(serializers.Serializer):
     pass
     #Define fields here
