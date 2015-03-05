@@ -22,7 +22,8 @@ from core.models.instance_source import InstanceSource
 from service.cache import get_cached_volumes
 from service.driver import prepare_driver
 from service.volume import create_volume,\
-                           create_bootable_volume
+                           create_bootable_volume,\
+                           update_volume_metadata
 from service.exceptions import OverQuotaError
 from service.volume import create_volume
 

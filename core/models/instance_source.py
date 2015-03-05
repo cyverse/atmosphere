@@ -1,7 +1,9 @@
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
+from django.core.exceptions import ObjectDoesNotExist
 
+from core.exceptions import SourceNotFound
 from core.query import only_current
 from core.models.identity import Identity
 from core.models.provider import Provider
@@ -15,7 +17,6 @@ class InstanceSource(models.Model):
     * A snapshot of a previous/existing Instance
     * A ProviderMachine/Application
     """
-    esh = None
     provider = models.ForeignKey(Provider)
     identifier = models.CharField(max_length=256)
     created_by = models.ForeignKey(User, blank=True, null=True,
@@ -36,6 +37,7 @@ class InstanceSource(models.Model):
                 #3. (Seperately) Provider is active
                 Q(provider__active=True))
         return query_args
+
     @classmethod
     def current_sources(cls):
         """
@@ -47,33 +49,34 @@ class InstanceSource(models.Model):
         now_time = timezone.now()
         return InstanceSource.objects.filter(
                 *InstanceSource._current_source_query_args())
-        #return InstanceSource.objects.filter(
-        #    Q(provider__end_date=None)
-        #    | Q(provider__end_date__gt=now_time),
-        #    only_current(now_time), provider__active=True)
 
-    #Useful for querying/decision making w/o a Try/Except
+    @property
+    def current_source(self):
+        source = getattr(self, "volume", getattr(self, "providermachine", None))
+        if not source:
+            raise SourceNotFound("A source could not be found for %s." % self)
+        return source
+
     def is_volume(self):
         try:
-            volume = self.volume
-            return True
-        except Exception, not_volume:
+            self.volume
+        except ObjectDoesNotExist:
             return False
+        except NameError:
+            return False
+        else:
+            return True
 
     def is_machine(self):
         try:
-            machine = self.providermachine
-            return True
-        except Exception, not_machine:
+            self.providermachine
+        except ObjectDoesNotExist:
             return False
+        except NameError:
+            return False
+        else:
+            return True
 
-    #Useful for the admin fields
-    def source_end_date(self):
-        raise NotImplementedError("Implement this in the sub-class")
-    def source_provider(self):
-        raise NotImplementedError("Implement this in the sub-class")
-    def source_identifier(self):
-        raise NotImplementedError("Implement this in the sub-class")
     class Meta:
         db_table = "instance_source"
         app_label = "core"

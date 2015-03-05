@@ -83,3 +83,15 @@ SERVICE_URL = SERVER_URL+"/CAS_serviceValidater?sendback="+REDIRECT_URL+"/applic
 PROXY_URL = SERVER_URL+"/CAS_proxyUrl"
 PROXY_CALLBACK_URL = SERVER_URL+"/CAS_proxyCallback"
 caslib.cas_init(CAS_SERVER, SERVICE_URL, PROXY_URL, PROXY_CALLBACK_URL, SELF_SIGNED_CERT)
+
+#Looking to do Localhost development? These settings come in handy:
+# AUTHENTICATION_BACKENDS = (
+#     #  For Always-OK Access
+#     'authentication.authBackends.MockLoginBackend',
+# ) + AUTHENTICATION_BACKENDS
+# INSTALLED_APPS += (
+#     "sslserver",
+# )
+# NOTE: This user will be authenticated indefinitely while active, Should only be activated for
+# development on a localhost.
+# ALWAYS_AUTH_USER = "test_user"

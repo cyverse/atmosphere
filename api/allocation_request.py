@@ -58,6 +58,12 @@ class AllocationRequestList(APIView):
         if not membership.is_member(request.user):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
+        # Only allow 1 active request at a time
+        if AllocationRequest.is_active(membership):
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                "An existing allocation request is already open.")
+
         data = request.DATA
         status_type = get_status_type()
 

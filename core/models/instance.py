@@ -52,6 +52,16 @@ def strfdate(datetime_o, fmt=None):
     return datetime_o.strftime(fmt)
 
 
+class InstanceAction(models.Model):
+    """
+    An InstanceAction is a 'Type' field that lists every available action for
+    a given instance on a 'generic' cloud.
+    see 'ProviderInstanceAction' to Enable/disable a specific instance action on a given cloud(Provider)
+    """
+    name = models.CharField(max_length=256)
+    description = models.TextField(blank=True, null=True)
+
+
 class Instance(models.Model):
     """
     When a user launches a machine, an Instance is created.
@@ -289,6 +299,7 @@ class Instance(models.Model):
         """
         if not end_date:
             end_date = timezone.now()
+        logger.info("END DATING instance %s: %s" % (self.provider_alias, end_date))
         ish_list = self.instancestatushistory_set.filter(end_date=None)
         for ish in ish_list:
             # logger.info('Saving history:%s' % ish)

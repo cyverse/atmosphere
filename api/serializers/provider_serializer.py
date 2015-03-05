@@ -1,14 +1,38 @@
-from core.models.provider import Provider, ProviderType, Trait
+from core.models.provider import Provider, ProviderType, ProviderInstanceAction
+from core.models.instance import InstanceAction
 from rest_framework import serializers
 
 
 class ProviderSerializer(serializers.ModelSerializer):
     type = serializers.SlugRelatedField(slug_field='name', queryset=ProviderType.objects.all())
     location = serializers.CharField(source='get_location')
-    # traits = serializers.RelatedField(source='traits.all', many=True, queryset=Trait.objects.all())
     id = serializers.CharField(source='uuid')
     #membership = serializers.Field(source='get_membership')
 
     class Meta:
         model = Provider
-        exclude = ('active', 'start_date', 'end_date', 'uuid', 'traits')
+        exclude = ('active', 'start_date', 'end_date', 'uuid')
+
+
+class ProviderInstanceActionSerializer(serializers.ModelSerializer):
+    provider = serializers.SlugRelatedField(slug_field="location", queryset=Provider.objects.all())
+    instance_action = serializers.SlugRelatedField(slug_field="name", queryset=InstanceAction.objects.all())
+
+    class Meta:
+        model = ProviderInstanceAction
+
+
+class PATCH_ProviderInstanceActionSerializer(ProviderInstanceActionSerializer):
+    def update(self, instance, validated_data):
+        instance.enabled = validated_data.get('enabled', instance.enabled)
+        instance.save()
+        return instance
+
+
+class POST_ProviderInstanceActionSerializer(ProviderInstanceActionSerializer):
+    """
+    Override create here..
+    """
+    provider = serializers.SlugRelatedField(slug_field="uuid", queryset=Provider.objects.all())
+    instance_action = serializers.SlugRelatedField(slug_field="id", queryset=InstanceAction.objects.all())
+    pass

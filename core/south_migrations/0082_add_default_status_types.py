@@ -5,6 +5,46 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import models
 
+def remove_duplicate_apps(orm):
+    for result in orm.Application.objects.values('name').annotate(count=models.Count('name')).filter(count__gt=1):
+        name = result['name']
+        all_apps = orm.Application.objects.filter(name=name).order_by('id')
+        merged_app = all_apps[0]
+        # Call to list forces out objects from the queryset
+        remaining_apps = list(all_apps[1:])
+        for app in remaining_apps:
+            merged_app = merge_applications(merged_app, app)
+            app.delete()
+    pass
+
+
+def merge_applications(merged_app, app):
+    for pm in app.providermachine_set.all():
+        merged_app.providermachine_set.add(pm)
+
+    if merged_app.start_date > app.start_date:
+        merged_app.start_date = app.start_date
+
+    if merged_app.end_date:
+        if app.end_date:
+            merged_app.end_date = app.end_date
+        else:
+            merged_app.end_date = None
+    elif app.end_date:
+        merged_app.end_date = app.end_date
+
+    if len(merged_app.description) < len(app.description):
+        merged_app.description = app.description
+    if not merged_app.icon and app.icon:
+        merged_app.icon = app.icon
+    if not merged_app.private and app.private:
+        merged_app.private = app.private
+    if not (merged_app.created_by_identity and merged_app.created_by_identity.provider.active)\
+            and (app.created_by_identity and app.created_by_identity.provider.active):
+        merged_app.created_by = app.created_by
+        merged_app.created_by_identity = app.created_by_identity
+    return merged_app
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
@@ -15,6 +55,7 @@ class Migration(DataMigration):
         orm.StatusType.objects.create(name="closed")
         orm.StatusType.objects.create(name="approved")
         orm.StatusType.objects.create(name="rejected")
+        remove_duplicate_apps(orm)
 
     def backwards(self, orm):
         pass

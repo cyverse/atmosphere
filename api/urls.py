@@ -1,28 +1,29 @@
-import os
-
-from django.contrib import admin
-from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf.urls import patterns, url, include
 
 from rest_framework.urlpatterns import format_suffix_patterns
 
-from api.allocation import AllocationDetail, AllocationList
+from api.allocation import AllocationDetail, AllocationList, MonitoringList
 from api.allocation_request import AllocationRequestDetail,\
     AllocationRequestList
 from api.application import ApplicationSearch, ApplicationList, Application,\
                             ApplicationThresholdDetail
 from api.bookmark import ApplicationBookmarkDetail, ApplicationBookmarkList
-from api.cloud_admin import CloudAdmin, CloudAdminActionsList,\
+
+from api.cloud_admin import \
     CloudAdminImagingRequestList, CloudAdminImagingRequest,\
-    CloudAdminAccountList, CloudAdminAccountEnable
+    CloudAdminAccountList, CloudAdminAccount,\
+    CloudAdminInstanceActionList, CloudAdminInstanceAction, \
+    CloudAdminAllocationRequest, CloudAdminQuotaRequest, \
+    CloudAdminAllocationList, CloudAdminQuotaList
+from api.credential import CredentialList, CredentialDetail
 from api.email import Feedback, QuotaEmail, SupportEmail
-from api.flow import Flow
 from api.group import GroupList, Group
 from api.identity_membership import IdentityMembershipList, IdentityMembership
 from api.identity import IdentityList, Identity, IdentityDetail, IdentityDetailList
 from api.instance import InstanceList, Instance,\
     InstanceAction, InstanceHistory, InstanceHistoryDetail,\
     InstanceStatusHistoryDetail, InstanceTagList, InstanceTagDetail
+from api.instance_action import InstanceActionList, InstanceActionDetail
 from api.license import LicenseList, License
 from api.machine import MachineList, Machine, MachineHistory,\
     MachineSearch, MachineVote, MachineIcon, MachineLicense
@@ -54,17 +55,16 @@ from api.volume import BootVolume, \
         VolumeList, Volume
 
 # Regex matching you'll use everywhere..
-id_match = "\d+"
-uuid_match = "[a-zA-Z0-9-]+"
-user_match = "[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*"
+id_match = '\d+'
+uuid_match = '[a-zA-Z0-9-]+'
+user_match = '[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*'
 
 #Paste This for provider: provider\/(?P<provider_uuid>\\d+)
-provider_specific = r"^provider/(?P<provider_uuid>%s)" % uuid_match
+provider_specific = r'^provider/(?P<provider_uuid>%s)' % uuid_match
 #Paste this for identity: 
 # /r'^provider\/(?P<provider_uuid>\\d+)\/identity\/(?P<identity_uuid>\
 identity_specific = provider_specific +\
-                    r"/identity/(?P<identity_uuid>%s)" % uuid_match
-admin_specific = r"^cloud_admin/(?P<cloud_admin_uuid>%s)" % uuid_match
+                    r'/identity/(?P<identity_uuid>%s)' % uuid_match
 
 private_apis = patterns('',
     # E-mail API
@@ -80,58 +80,58 @@ private_apis = patterns('',
     # static files
     url(r'^init_files/(?P<file_location>.*)$', 'web.views.get_resource'),
     #boot_script Related APIs
-    url(r'boot_script$',
+    url(r'^boot_script$',
         BootScriptList.as_view(),
         name='boot_script_list'),
-    url(r'boot_script/(?P<script_id>\d+)$',
+    url(r'^boot_script/(?P<script_id>%s)$' % (id_match,),
         BootScript.as_view(),
         name='boot_script'),
 
     #Project Related APIs
-    url(r'project$',
+    url(r'^project$',
         ProjectList.as_view(),
         name='project-list'),
 
-    url(r'project/null$',
+    url(r'^project/null$',
         NoProjectList.as_view(),
         name='empty-project-list'),
-    url(r'project/null/application$',
+    url(r'^project/null/application$',
         NoProjectApplicationList.as_view(),
         name='empty-project-application-list'),
-    url(r'project/null/instance$',
+    url(r'^project/null/instance$',
         NoProjectInstanceList.as_view(),
         name='empty-project-instance-list'),
-    url(r'project/null/volume$',
+    url(r'^project/null/volume$',
         NoProjectVolumeList.as_view(),
         name='empty-project-volume-list'),
 
-    url(r"project/(?P<project_uuid>%s)$" % uuid_match,
+    url(r'^project/(?P<project_uuid>%s)$' % uuid_match,
         ProjectDetail.as_view(),
         name='project-detail'),
-    url(r"project/(?P<project_uuid>%s)/application$" % uuid_match,
+    url(r'^project/(?P<project_uuid>%s)/application$' % uuid_match,
         ProjectApplicationList.as_view(),
         name='project-application-list'),
-    url(r'project/(?P<project_uuid>%s)'
+    url(r'^project/(?P<project_uuid>%s)'
          '/application/(?P<application_uuid>%s)$'
          % (uuid_match,uuid_match),
         ProjectApplicationExchange.as_view(),
         name='project-application-exchange'),
-    url(r'project/(?P<project_uuid>%s)/instance$' % (uuid_match,),
+    url(r'^project/(?P<project_uuid>%s)/instance$' % (uuid_match,),
         ProjectInstanceList.as_view(),
         name='project-instance-list'),
-    url(r'project/(?P<project_uuid>%s)/instance/(?P<instance_id>%s)$'
+    url(r'^project/(?P<project_uuid>%s)/instance/(?P<instance_id>%s)$'
         % (uuid_match,uuid_match),
         ProjectInstanceExchange.as_view(),
         name='project-instance-exchange'),
-    url(r'project/(?P<project_uuid>%s)/volume$' % (uuid_match,),
+    url(r'^project/(?P<project_uuid>%s)/volume$' % (uuid_match,),
         ProjectVolumeList.as_view(),
         name='project-volume-list'),
-    url(r'project/(?P<project_uuid>%s)/volume/(?P<volume_id>%s)$'
+    url(r'^project/(?P<project_uuid>%s)/volume/(?P<volume_id>%s)$'
         % (uuid_match,uuid_match),
         ProjectVolumeExchange.as_view(),
         name='project-volume-exchange'),
 
-    url(r'^maintenance/(?P<record_id>\d+)$',
+    url(r'^maintenance/(?P<record_id>%s)$' % (id_match,),
         MaintenanceRecord.as_view(),
         name='maintenance-record'),
     url(r'^notification$', NotificationList.as_view()),
@@ -155,12 +155,12 @@ private_apis = patterns('',
 
     url(identity_specific + r'/image_export$',
         MachineExportList.as_view(), name='machine-export-list'),
-    url(identity_specific + r'/image_export/(?P<machine_request_id>\d+)$',
+    url(identity_specific + r'/image_export/(?P<machine_request_id>%s)$' % (id_match,),
         MachineExport.as_view(), name='machine-export'),
 
     url(identity_specific + r'/hypervisor$',
         HypervisorList.as_view(), name='hypervisor-list'),
-    url(identity_specific + r'/hypervisor/(?P<hypervisor_id>\d+)$',
+    url(identity_specific + r'/hypervisor/(?P<hypervisor_id>%s)$' % (id_match,),
         HypervisorDetail.as_view(), name='hypervisor-detail'),
 
     url(identity_specific + r'/step$',
@@ -231,9 +231,16 @@ public_apis = format_suffix_patterns(patterns(
     url(identity_specific + r'/instance$',
         InstanceList.as_view(), name='instance-list'),
 
+    url(r'^instance_action/$',
+        InstanceActionList.as_view(),
+        name='instance-action-list'),
+    url(r'^instance_action/(?P<action_id>%s)$' % (id_match,),
+        InstanceActionDetail.as_view(),
+        name='instance-action-detail'),
+
     url(identity_specific + r'/size$',
         SizeList.as_view(), name='size-list'),
-    url(identity_specific + r'/size/(?P<size_id>\d+)$',
+    url(identity_specific + r'/size/(?P<size_id>%s)$' % (id_match,),
         Size.as_view(), name='size-detail'),
 
 
@@ -265,10 +272,15 @@ public_apis = format_suffix_patterns(patterns(
     url(provider_specific + r'/identity$', IdentityList.as_view(), name='identity-list'),
     url(identity_specific + r'$', Identity.as_view(), name='identity-detail'),
 
+    url(r'^credential$', CredentialList.as_view(),
+        name='credential-list'),
+    url(r'^credential/(?P<identity_uuid>%s)$' % (uuid_match,),
+        CredentialDetail.as_view(), name='credential-detail'),
+
     url(r'^identity$', IdentityDetailList.as_view(),
         name='identity-detail-list'),
-    url(r'^identity/(?P<identity_uuid>\d+)$', IdentityDetail.as_view(),
-        name='identity-detail-list'),
+    url(r'^identity/(?P<identity_uuid>%s)$' % (uuid_match,), IdentityDetail.as_view(),
+        name='identity-detail'),
     url(r'^provider$', ProviderList.as_view(), name='provider-list'),
     url(r'^provider/(?P<provider_uuid>%s)$' % uuid_match,
         Provider.as_view(), name='provider-detail'),
@@ -276,7 +288,7 @@ public_apis = format_suffix_patterns(patterns(
 
     url(identity_specific + r'/request_image$',
         MachineRequestList.as_view(), name='machine-request-list'),
-    url(identity_specific + r'/request_image/(?P<machine_request_id>\d+)$',
+    url(identity_specific + r'/request_image/(?P<machine_request_id>%s)$' % (uuid_match,),
         MachineRequest.as_view(), name='machine-request'),
 
 
@@ -291,7 +303,7 @@ public_apis = format_suffix_patterns(patterns(
 
     url(r'^allocation$',
         AllocationList.as_view(), name='allocation-list'),
-    url(r'^allocation/(?P<quota_id>\d+)$',
+    url(r'^allocation/(?P<quota_id>%s)$' % (id_match,),
         AllocationDetail.as_view(), name='quota-detail'),
 
     url(identity_specific + r'/quota_request$',
@@ -302,62 +314,76 @@ public_apis = format_suffix_patterns(patterns(
 
     url(r'^quota$',
         QuotaList.as_view(), name='quota-list'),
-    url(r'^quota/(?P<quota_id>\d+)$',
+    url(r'^quota/(?P<quota_id>%s)$' % (id_match,),
         QuotaDetail.as_view(), name='quota-detail'),
 
 
-    url(r'version$', Version.as_view()),
+    url(r'^version$', Version.as_view()),
     url(r'^maintenance$',
         MaintenanceRecordList.as_view(),
         name='maintenance-record-list'),
 
-    url(r'license$',
+    url(r'^license$',
         LicenseList.as_view(),
         name='license-list'),
 
-    url(r"license/(?P<license_id>%s)$" % uuid_match,
+    url(r'^license/(?P<license_id>%s)$' % uuid_match,
         License.as_view(),
         name='license-detail'),
 
-    url(r'^cloud_admin$',
-        CloudAdmin.as_view(),
-        name='cloud-admin-list'),
+    url(r'^monitoring$',
+        MonitoringList.as_view(),
+        name='monitoring-list'),
 
-    url(admin_specific + r'/$',
-        CloudAdminActionsList.as_view(),
-        name='cloud-admin-detail'),
-
-    # Machine Requests (Cloud Admin Views)
-    url(admin_specific + r"/imaging_request$",
+    url(r'^cloud_admin_imaging_request$',
         CloudAdminImagingRequestList.as_view(),
         name='cloud-admin-imaging-request-list'),
-    url(admin_specific + r"/imaging_request/(?P<machine_request_id>%s)$"
+    url(r'^cloud_admin_imaging_request/(?P<machine_request_id>%s)$'
         % (id_match,),
         CloudAdminImagingRequest.as_view(),
         name='cloud-admin-imaging-request-detail'),
-    url(admin_specific +
-        r"/imaging_request/(?P<machine_request_id>%s)/(?P<action>\w)$"
+    url(r'^cloud_admin_imaging_request/(?P<machine_request_id>%s)/(?P<action>\w)$'
         % (id_match,),
         CloudAdminImagingRequest.as_view(),
         name='cloud-admin-imaging-request-detail'),
-    # User Accounts (Cloud Admin Views)
-    url(admin_specific + r"/account_list/$",
+
+    url(r'^cloud_admin_account_list/$',
         CloudAdminAccountList.as_view(),
         name='cloud-admin-account-list'),
-    # url(admin_specific + r"/account_list/(?P<username>%s)/enable$"
-    #     % (user_match,),
-    #     CloudAdminAccountEnable.as_view(),
-    #     name='cloud-admin-account-enable'),
+    url(r'^cloud_admin_account_list/(?P<username>%s)$'
+        % (user_match,),
+        CloudAdminAccount.as_view(),
+        name='cloud-admin-account-detail'),
+    url(r'^cloud_admin_instance_action/$',
+        CloudAdminInstanceActionList.as_view(),
+        name='cloud-admin-instance-action-list'),
 
+    url(r'^cloud_admin_instance_action/(?P<provider_instance_action_id>%s)$' % (id_match,),
+        CloudAdminInstanceAction.as_view(),
+        name='cloud-admin-instance-action-detail'),
+
+    url(r'^admin/quota$',
+        CloudAdminQuotaList.as_view(),
+        name='cloud-admin-quota-list'),
+    url(r'^admin/quota/(?P<identifier>%s)$' % (uuid_match,),
+        CloudAdminQuotaRequest.as_view(),
+        name='cloud-admin-quota-detail'),
+
+    url(r'^admin/allocation$',
+        CloudAdminAllocationList.as_view(),
+        name='cloud-admin-allocation-list'),
+    url(r'^admin/allocation/(?P<identifier>%s)$' % (uuid_match,),
+        CloudAdminAllocationRequest.as_view(),
+        name='cloud-admin-allocation-detail'),
 
     url(identity_specific + r'/image_export$',
         MachineExportList.as_view(), name='machine-export-list'),
-    url(identity_specific + r'/image_export/(?P<machine_request_id>\d+)$',
+    url(identity_specific + r'/image_export/(?P<machine_request_id>%s)$' % (id_match,),
         MachineExport.as_view(), name='machine-export'),
 
     url(identity_specific + r'/hypervisor$',
         HypervisorList.as_view(), name='hypervisor-list'),
-    url(identity_specific + r'/hypervisor/(?P<hypervisor_id>\d+)$',
+    url(identity_specific + r'/hypervisor/(?P<hypervisor_id>%s)$' % (id_match,),
         HypervisorDetail.as_view(), name='hypervisor-detail'),
 
     url(identity_specific + r'/step$',
@@ -380,8 +406,6 @@ public_apis = format_suffix_patterns(patterns(
 
 ))
 urlpatterns = patterns(
-    '', url(r'^', include(private_apis, namespace="private_apis")))
+    '', url(r'^', include(private_apis, namespace='private_apis')))
 urlpatterns += patterns(
-    '',  url(r'^', include(public_apis, namespace="public_apis")))
-
-
+    '',  url(r'^', include(public_apis, namespace='public_apis')))

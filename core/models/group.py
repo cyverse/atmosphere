@@ -13,7 +13,7 @@ from django.contrib.auth.models import Group as DjangoGroup
 
 from threepio import logger
 
-from core.models.allocation import Allocation
+from core.models.allocation_strategy import Allocation
 from core.models.application import Application
 from core.models.identity import Identity
 from core.models.provider import Provider
@@ -57,6 +57,8 @@ class Group(DjangoGroup):
     @classmethod
     def check_access(cls, user, groupname):
         try:
+            if not isinstance(user, AtmosphereUser):
+                user = AtmosphereUser.objects.get(username=user.username)
             group = Group.objects.get(name=groupname)
             return user in group.user_set.all()
         except Group.DoesNotExist:
@@ -64,6 +66,8 @@ class Group(DjangoGroup):
 
     @classmethod
     def create_usergroup(cls, username):
+        #TODO: ENFORCEMENT of lowercase-only usernames until cleared by mgmt.
+        username = username.lower()
         user = AtmosphereUser.objects.get_or_create(username=username)[0]
         group = Group.objects.get_or_create(name=username)[0]
         if group not in user.groups.all():
@@ -129,25 +133,31 @@ class IdentityMembership(models.Model):
 
     @classmethod
     def get_membership_for(cls, groupname):
-
-        from core.models import ProviderMembership, Group
         try:
             group = Group.objects.get(name=groupname)
         except Group.DoesNotExist:
             logger.warn("Group %s does not exist" % groupname)
-            return None
-        provider_members = ProviderMembership.objects.filter(
-            member__name=groupname)
-        if not provider_members:
-            logger.warn("%s is not a member of any provider" % groupname)
-        for pm in provider_members:
-            identities = IdentityMembership.objects.filter(
-                member=group,
-                identity__provider=pm.provider)
-            if identities:
-                return identities[0]
-        logger.warn("%s is not a member of any identities" % groupname)
-        return None
+        try:
+            return group.identitymembership_set.first()
+        except IdentityMembershipDoesNotExist:
+            logger.warn("%s is not a member of any identities" % groupname)
+
+        #.filter(
+        #                identity_provider_icontains=\
+        #                group.providermembership_set.all())
+
+        #provider_members = ProviderMembership.objects.filter(
+        #    member__name=groupname)
+        #if not provider_members:
+        #    logger.warn("%s is not a member of any provider" % groupname)
+        #for pm in provider_members:
+        #    identities = IdentityMembership.objects.filter(
+        #        member=group,
+        #        identity__provider=pm.provider)
+        #    if identities:
+        #        return identities[0]
+        
+        
 
     def get_allocation_dict(self):
         if not self.allocation:
@@ -196,8 +206,23 @@ class IdentityMembership(models.Model):
         """
         super(IdentityMembership, self).save(*args, **kwargs)
         try:
-            from service.quota import set_provider_quota
-            set_provider_quota(self.identity.uuid)
+            from service.tasks.admin import set_provider_quota
+            set_provider_quota.apply_async(args=[self.identity.uuid])
+        except Exception as ex:
+            logger.warn("Unable to update service.quota.set_provider_quota.")
+            raise
+
+    def approve_quota(self, request_id):
+        """
+        Approves the quota request and updates the request
+        """
+        super(IdentityMembership, self).save()
+        try:
+            from service.tasks.admin import set_provider_quota,\
+                set_quota_request_failed
+            set_provider_quota.apply_async(
+                args=[self.identity.uuid],
+                link_error=set_quota_request_failed.s(request_id))
         except Exception as ex:
             logger.warn("Unable to update service.quota.set_provider_quota.")
             raise

@@ -33,12 +33,14 @@ from service.instance import redeploy_init, reboot_instance,\
     launch_instance, resize_instance, confirm_resize,\
     start_instance, resume_instance,\
     stop_instance, suspend_instance,\
-    update_instance_metadata, _check_volume_attachment
+    update_instance_metadata, _check_volume_attachment,\
+    shelve_instance, unshelve_instance, offload_instance
+
 from service.quota import check_over_quota
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
     VolumeAttachConflict, VolumeMountConflict,\
-        UnderThresholdError
+    UnderThresholdError, ActionNotAllowed
 
 from api import failure_response, invalid_creds,\
                 connection_failure, malformed_response
@@ -499,11 +501,19 @@ class InstanceAction(APIView):
             elif 'redeploy' == action:
                 redeploy_init(esh_driver, esh_instance, countdown=None)
             elif 'resume' == action:
-                resume_instance(esh_driver, esh_instance,
+                result_obj = resume_instance(esh_driver, esh_instance,
                                 provider_uuid, identity_uuid, user)
             elif 'suspend' == action:
-                suspend_instance(esh_driver, esh_instance,
+                result_obj = suspend_instance(esh_driver, esh_instance,
                                  provider_uuid, identity_uuid, user)
+            elif 'shelve' == action:
+                result_obj = shelve_instance(esh_driver, esh_instance,
+                               provider_uuid, identity_uuid, user)
+            elif 'unshelve' == action:
+                result_obj = unshelve_instance(esh_driver, esh_instance,
+                              provider_uuid, identity_uuid, user)
+            elif 'shelve_offload' == action:
+                result_obj = offload_instance(esh_driver, esh_instance)
             elif 'start' == action:
                 start_instance(esh_driver, esh_instance,
                                provider_uuid, identity_uuid, user)
@@ -552,8 +562,13 @@ class InstanceAction(APIView):
             return mount_failed(vmc)
         except NotImplemented, ne:
             return failure_response(
-                status.HTTP_404_NOT_FOUND,
-                "The requested action %s is not available on this provider"
+                status.HTTP_409_CONFLICT,
+                "The requested action %s is not available on this provider."
+                % action_params['action'])
+        except ActionNotAllowed, no_act:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                "The requested action %s has been explicitly disabled on this provider."
                 % action_params['action'])
         except Exception, exc:
             logger.exception("Exception occurred processing InstanceAction")

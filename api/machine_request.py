@@ -18,6 +18,8 @@ from core.models.machine_request import MachineRequest as CoreMachineRequest
 from core.models import Provider
 from web.emails import requestImaging
 from service.tasks.machine import start_machine_imaging
+from service.instance import _permission_to_act
+from service.exceptions import ActionNotAllowed
 
 import copy
 import re
@@ -46,6 +48,19 @@ class MachineRequestList(APIView):
         Sends an e-mail to the admins to start
         the create_image process.
         """
+        try:
+            return self._create_image(request, provider_uuid, identity_uuid)
+        except ActionNotAllowed:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                "Machine Imaging has been "
+                "explicitly disabled on this provider.")
+        except Exception, exc:
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST, exc.message)
+
+    def _create_image(self, request, provider_uuid, identity_uuid):
+        _permission_to_act(identity_uuid, "Imaging")
         #request.DATA is r/o
         #Copy allows for editing
         data = copy.deepcopy(request.DATA)
@@ -67,11 +82,11 @@ class MachineRequestList(APIView):
                 machine_request.parent_machine = machine_request.instance\
                         .source.providermachine
             elif instance.source.is_volume():
-                return failure_response(status.HTTP_400_BAD_REQUEST,
+                raise Exception(
                         "Instance of booted volume can NOT be imaged."
                         "Contact your Administrator for more information.")
             else:
-                return failure_response(status.HTTP_400_BAD_REQUEST,
+                raise Exception(
                         "Instance source type cannot be determined."
                         "Contact your Administrator for more information.")
             #NOTE: THIS IS A HACK -- While we enforce all images to go to iPlant Cloud - Tucson.
@@ -86,7 +101,7 @@ class MachineRequestList(APIView):
             #Object now has an ID for links..
             machine_request_id = serializer.object.id
             active_provider = machine_request.active_provider()
-            auto_approve = active_provider.has_trait("Auto-Imaging")
+            auto_approve = active_provider.auto_imaging
             requestImaging(request, machine_request_id,
                            auto_approve=auto_approve)
             if auto_approve:

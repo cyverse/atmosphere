@@ -4,17 +4,17 @@ Settings for atmosphere project.
 """
 from __future__ import absolute_import
 from datetime import timedelta
-from dateutil.relativedelta import relativedelta
-from celery.schedules import crontab
 from uuid import UUID
 import logging
-import os
-import os.path
 import sys
 
+from dateutil.relativedelta import relativedelta
+from celery.schedules import crontab
+import os
+import os.path
 import threepio
-
 import atmosphere
+
 
 #Debug Mode
 DEBUG = True
@@ -41,6 +41,7 @@ ADMINS = (
     ('Atmosphere Admin', 'atmo@iplantcollaborative.org'),
     ('J. Matt Peterson', 'jmatt@iplantcollaborative.org'),
     ('Steven Gregory', 'esteve@iplantcollaborative.org'),
+    ('Atmosphere Alerts', 'atmo-alerts@iplantcollaborative.org'),
 )
 
 # Required to send RequestTracker emails
@@ -82,12 +83,13 @@ INSTALLED_APPS = (
 
     #atmosphere apps
     'api',
+    'allocation',
     'authentication',
     'service',
     'web',
     'core',
 )
-PROJECT_APPS = ["authentication","service","core"]
+PROJECT_APPS = ["authentication","service","core","allocation"]
 DATABASE_ROUTERS = ['atmosphere.routers.Service']
 
 TIME_ZONE = 'America/Phoenix'
@@ -122,10 +124,6 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = (
     os.path.join(PROJECT_ROOT, "resources"),
 )
-
-# Make this unique, and don't share it with anybody.
-# NOTE: This value is not used, check local.py!
-SECRET_KEY = None
 
 # This key however should stay the same, and be shared with all Atmosphere
 ATMOSPHERE_NAMESPACE_UUID = UUID("40227dff-dedf-469c-a9f8-1953a7372ac1")
@@ -204,8 +202,6 @@ AUTH_USER_MODEL = 'core.AtmosphereUser'
 AUTH_USER_MODULE = 'core.AtmosphereUser'
 
 AUTHENTICATION_BACKENDS = (
-    #For Always-OK Access
-    #'authentication.authBackends.MockLoginBackend',
     # For Token-Access
     'authentication.authBackends.AuthTokenLoginBackend',
     # For Web-Access
@@ -410,6 +406,7 @@ BROKER_PASSWORD = ""
 REDIS_DB = 0
 REDIS_CONNECT_RETRY = True
 CELERY_ENABLE_UTC = True
+CELERYD_PREFETCH_MULTIPLIER = 1
 CELERY_TIMEZONE = "America/Phoenix"
 CELERY_SEND_EVENTS = True
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
@@ -478,6 +475,8 @@ CELERY_ROUTES += ({
     {"queue": "imaging", "routing_key": "imaging.prepare"},
     "service.tasks.machine.process_request":
     {"queue": "imaging", "routing_key": "imaging.complete"},
+    "service.tasks.email.send_email":
+    {"queue": "email", "routing_key": "email.sending"},
 
     #"service.tasks.allocation.monitor_instances_for":
     #{"queue": "celery_periodic", "routing_key": "periodic.provider_maintenance"},
@@ -494,6 +493,31 @@ CELERY_ROUTES += ({
 
 import djcelery
 djcelery.setup_loader()
+
+"""
+For generating a unique SECRET_KEY -- Used by Django in various ways.
+"""
+#This Method will generate SECRET_KEY and write it to file..
+def generate_secret_key(secret_key_path):
+    from django.utils.crypto import get_random_string
+    from datetime import datetime
+    chars = 'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)'
+    secret_value = get_random_string(50, chars)
+    comment_block = "\"\"\"\nThis file was Auto-Generated on %s\n\"\"\"\n" % datetime.now()
+    with open(secret_key_path,"w") as key_file:
+        key_file.write(comment_block)
+        key_file.write("SECRET_KEY=\"%s\"\n" % secret_value)
+
+#This import will Use an existing SECRET_KEY, or Generate your SECRET_KEY if it doesn't exist yet.
+try:
+    from .secret_key import SECRET_KEY
+except ImportError:
+    SETTINGS_DIR=os.path.abspath(os.path.dirname(__file__))
+    generate_secret_key(os.path.join(SETTINGS_DIR, 'secret_key.py'))
+    try:
+        from .secret_key import SECRET_KEY
+    except ImportError:
+        raise Exception("__init__.py could not generate a SECRET_KEY in secret_key.py")
 
 """
 Import local settings specific to the server, and secrets not checked into Git.

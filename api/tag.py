@@ -60,7 +60,7 @@ class Tag(APIView):
         This API resource allows you to Retrieve, Update, or Delete your Tag.
     """
     permission_classes = (ApiAuthRequired,)
-    
+
     def delete(self, request, tag_slug, *args, **kwargs):
         """
         Remove the tag, if it is no longer in use.
@@ -68,13 +68,13 @@ class Tag(APIView):
         try:
             tag = CoreTag.objects.get(name__iexact=tag_slug)
         except CoreTag.DoesNotExist:
-            return failure_response(status.HTTP_404_NOT_FOUND, 
+            return failure_response(status.HTTP_404_NOT_FOUND,
                                     'Tag %s does not exist' % tag_slug)
         if tag.in_use():
             instance_count = tag.instance_set.count()
             app_count = tag.application_set.count()
             return failure_response(
-                    status.HTTP_409_CONFLICT,                    
+                    status.HTTP_409_CONFLICT,
                     "Tag cannot be deleted while it is in use by"
                              "%s instances and %s applications. "
                              "To delete the tag, first remove "
@@ -96,9 +96,15 @@ class Tag(APIView):
         return Response(serializer.data)
 
     def put(self, request, tag_slug, *args, **kwargs):
+        return self.update_tag(request, tag_slug)
+
+    def patch(self, request, tag_slug, *args, **kwargs):
         """
         Return the credential information for this tag
         """
+        return self.update_tag(request, tag_slug, partial=True)
+
+    def update_tag(self, request, tag_slug, partial=False):
         user = request.user
         tag = CoreTag.objects.get(name__iexact=tag_slug)
         if not user.is_staff and user != tag.user:
@@ -107,16 +113,16 @@ class Tag(APIView):
                 + 'Contact support if you need to change '
                 + 'a tag that is not yours.'],
                 status=status.HTTP_400_BAD_REQUEST)
-        #Allowed to update tags..
+        # Allowed to update tags..
         data = request.DATA.copy()
         if tag.user:
-            data['user'] = tag.user.id
+            data['user'] = tag.user
         else:
-            data['user'] = user.id
+            data['user'] = user
 
         # Tag names are immutable
         data['name'] = tag.name
-        serializer = TagSerializer(tag, data=data)
+        serializer = TagSerializer(tag, data=data, partial=partial)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

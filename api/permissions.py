@@ -31,7 +31,7 @@ def _get_administrator_accounts(user):
     try:
         return CloudAdministrator.objects.filter(user=user)
     except CloudAdministrator.DoesNotExist:
-        return CloudAdministrator.objects.empty()
+        return CloudAdministrator.objects.none()
 
 
 def _get_administrator_account(user, admin_uuid):
@@ -44,6 +44,9 @@ def _get_administrator_account(user, admin_uuid):
 class CloudAdminRequired(permissions.BasePermission):
     def has_permission(self, request, view):
         user = request.user
+        if not user.is_authenticated():
+            return False
+
         kwargs = request.parser_context.get('kwargs', {})
         admin_uuid = kwargs.get('cloud_admin_uuid')
         if admin_uuid:
@@ -51,8 +54,6 @@ class CloudAdminRequired(permissions.BasePermission):
                 request.user, admin_uuid)
         else:
             admin = _get_administrator_accounts(request.user).exists()
-        if not user.is_authenticated():
-            return False
 
         return True if admin else False
 

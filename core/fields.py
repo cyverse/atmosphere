@@ -1,12 +1,17 @@
+"""
+For custom field types -- Related to the Django ORM
+"""
+
 import struct
+
 from django.db import models
+
 
 class VersionNumber(object):
 
     @classmethod
     def string_to_version(cls, version_str):
-
-          return VersionNumber(*version_str.split('.'))
+        return VersionNumber(*version_str.split('.'))
 
     def __init__(self, major, minor=0, patch=0, build=0):
         self.number = (int(major), int(minor), int(patch), int(build))
@@ -21,7 +26,7 @@ class VersionNumber(object):
         subtracting 2**31
         """
         major, minor, patch, build = self.number
-        num =  major << 24 | minor << 16 | patch << 8 | build
+        num = major << 24 | minor << 16 | patch << 8 | build
         return num - 2**31
 
     def __str__(self):
@@ -37,6 +42,7 @@ class VersionNumber(object):
 
     def __repr__(self):
         return "<VersionNumber(%d, %d, %d, %d)>" % self.number
+
 
 class VersionNumberField(models.Field):
     """
@@ -80,3 +86,5 @@ class VersionNumberField(models.Field):
     def value_to_string(self, obj):
         value = self._get_val_from_obj(obj)
         return self.get_prep_value(value)
+
+

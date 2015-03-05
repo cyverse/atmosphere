@@ -3,10 +3,12 @@ Atmosphere web views.
 
 """
 
-import os
 import json
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
+
+import os
+
 
 # django http libraries
 from django.http import HttpResponse, HttpResponseRedirect
@@ -28,8 +30,8 @@ from atmosphere import settings
 from authentication.protocol.oauth import \
     get_cas_oauth_client
 from authentication.protocol.oauth import obtainOAuthToken
-from authentication import cas_loginRedirect, cas_logoutRedirect,\
-    saml_loginRedirect
+from authentication import cas_logoutRedirect,\
+    saml_loginRedirect, auth_loginRedirect
 from authentication.models import Token as AuthToken
 from authentication.decorators import atmo_login_required,\
     atmo_valid_token_required
@@ -53,7 +55,7 @@ def redirectAdmin(request):
     """
     Redirects to /application if user is authorized, otherwise forces a login
     """
-    return cas_loginRedirect(request,
+    return auth_loginRedirect(request,
                              settings.REDIRECT_URL+'/admin/')
 
 
@@ -62,8 +64,8 @@ def redirectApp(request):
     """
     Redirects to /application if user is authorized, otherwise forces a login
     """
-    return cas_loginRedirect(request,
-                             settings.REDIRECT_URL+'/application/',
+    return auth_loginRedirect(request,
+                             settings.REDIRECT_URL+'/api/v1/profile',
                              gateway=True)
 
 
@@ -137,7 +139,7 @@ def login(request):
             disable_login = True
 
     if 'next' in request.POST:
-        return cas_loginRedirect(request,
+        return auth_loginRedirect(request,
                                  settings.REDIRECT_URL+'/application/')
     else:
         template = get_template('application/login.html')
@@ -196,10 +198,10 @@ def app(request):
 #HttpResponse(output)
     except KeyError, e:
         logger.debug("User not logged in.. Redirecting to CAS login")
-        return cas_loginRedirect(request, settings.REDIRECT_URL+'/application')
+        return auth_loginRedirect(request, settings.REDIRECT_URL+'/application')
     except Exception, e:
         logger.exception(e)
-        return cas_loginRedirect(request, settings.REDIRECT_URL+'/application')
+        return auth_loginRedirect(request, settings.REDIRECT_URL+'/application')
 
 
 def app_beta(request):
@@ -217,10 +219,10 @@ def app_beta(request):
         return HttpResponse(output)
     except KeyError, e:
         logger.debug("User not logged in.. Redirecting to CAS login")
-        return cas_loginRedirect(request, settings.REDIRECT_URL+'/beta')
+        return auth_loginRedirect(request, settings.REDIRECT_URL+'/beta')
     except Exception, e:
         logger.exception(e)
-        return cas_loginRedirect(request, settings.REDIRECT_URL+'/beta')
+        return auth_loginRedirect(request, settings.REDIRECT_URL+'/beta')
 
 
 @atmo_valid_token_required

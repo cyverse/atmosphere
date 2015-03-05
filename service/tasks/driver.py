@@ -7,7 +7,7 @@ import re
 import time
 
 from django.conf import settings
-from django.utils.timezone import datetime
+from django.utils.timezone import datetime, timedelta
 from celery import chain
 from celery.contrib import rdb
 from celery.decorators import task
@@ -32,7 +32,7 @@ from core.models.instance import Instance
 from core.models.identity import Identity
 from core.models.profile import UserProfile
 
-from service.deploy import init, check_process, wrap_script
+from service.deploy import init, check_process, wrap_script, echo_test_script
 from service.driver import get_driver, get_esh_driver, get_account_driver
 from service.instance import update_instance_metadata
 from service.instance import _create_and_attach_port
@@ -236,7 +236,7 @@ def clear_empty_ips_for(core_identity_uuid, username=None):
     """
     RETURN: (number_ips_removed, delete_network_called)
     """
-    from api import get_esh_driver
+    from service.driver import get_esh_driver
     from rtwo.driver import OSDriver
     #Initialize the drivers
     core_identity = Identity.objects.get(uuid=core_identity_uuid)
@@ -324,24 +324,29 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
 
         logger.debug("_send_instance_email task finished at %s." %
                      datetime.now())
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.warn(exc)
         _send_instance_email.retry(exc=exc)
 
 
 # Deploy and Destroy tasks
 @task(name="deploy_failed")
-def deploy_failed(task_uuid, driverCls, provider, identity, instance_id,
+def deploy_failed(task_uuid, driverCls, provider, identity, instance_id, message=None,
                   **celery_task_args):
     from core.models.instance import Instance
     from core.email import send_deploy_failed_email
     try:
         logger.debug("deploy_failed task started at %s." % datetime.now())
-        logger.info("task_uuid=%s" % task_uuid)
-        result = app.AsyncResult(task_uuid)
-        with allow_join_result():
-            exc = result.get(propagate=False)
-        err_str = "DEPLOYERROR::%s" % (result.traceback,)
+        if task_uuid:
+            logger.info("task_uuid=%s" % task_uuid)
+            result = app.AsyncResult(task_uuid)
+            with allow_join_result():
+                exc = result.get(propagate=False)
+            err_str = "DEPLOYERROR::%s" % (result.traceback,)
+        elif message:
+            err_str = message
+        else:
+            err_str = "Deploy failed called externally. No matching AsyncResult"
         logger.error(err_str)
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
@@ -368,7 +373,7 @@ def deploy_to(driverCls, provider, identity, instance_id, *args, **kwargs):
         instance = driver.get_instance(instance_id)
         driver.deploy_to(instance, *args, **kwargs)
         logger.debug("deploy_to task finished at %s." % datetime.now())
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.warn(exc)
         deploy_to.retry(exc=exc)
 
@@ -404,7 +409,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         logger.error(str(non_zero))
         logger.error(non_zero.__dict__)
         raise
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.warn(exc)
         deploy_init_to.retry(exc=exc)
 
@@ -423,12 +428,18 @@ def get_deploy_chain(driverCls, provider, identity, instance,
             driverCls, provider, identity, instance_id,
             {'tmp_status': 'networking'})
         floating_task = add_floating_ip.si(
-            driverCls, provider, identity, instance_id, delete_status=True)
+            driverCls, provider, identity, instance_id, delete_status=False)
 
     #Always deploy to the instance, but change what atmo-init does..
     deploy_meta_task = update_metadata.si(
         driverCls, provider, identity, instance_id,
         {'tmp_status': 'deploying'})
+    deploy_ready_task = deploy_ready_test.si(
+        driverCls, provider, identity, instance_id)
+
+    #deploy_ready_task.link_error(
+    #    deploy_failed.s(driverCls, provider, identity, instance_id))
+
     deploy_task = _deploy_init_to.si(
         driverCls, provider, identity, instance_id,
         username, password, redeploy)
@@ -471,7 +482,8 @@ def get_deploy_chain(driverCls, provider, identity, instance,
         #Networking is ready, just deploy.
         wait_active_task.link(deploy_meta_task)
 
-    deploy_meta_task.link(deploy_task)
+    deploy_meta_task.link(deploy_ready_task)
+    deploy_ready_task.link(deploy_task)
     deploy_task.link(check_shell_task)
     check_shell_task.link(check_vnc_task)
     
@@ -510,7 +522,7 @@ def deploy_boot_script(driverCls, provider, identity, instance_id,
         logger.info(instance.extra)
         instance._node.extra['password'] = None
         new_script = wrap_script(script_text, script_name)
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.exception(exc)
         deploy_boot_script.retry(exc=exc)
 
@@ -534,10 +546,7 @@ def deploy_boot_script(driverCls, provider, identity, instance_id,
         #fall in this category, and possibly don't retry if
         #you hit the Exception block below this.
         deploy_boot_script.retry(exc=exc)
-    except SystemExit as bad_ssh:
-        logger.exception("ERROR: Someone has raised a SystemExit!")
-        deploy_boot_script.retry(exc=bad_ssh)
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.exception(exc)
         deploy_boot_script.retry(exc=exc)
 @task(name="boot_script_failed")
@@ -560,7 +569,7 @@ def boot_script_failed(task_uuid, driverCls, provider, identity, instance_id,
         #Send deploy email
         core_instance = Instance.objects.get(provider_alias=instance_id)
         logger.debug("boot_script_failed task finished at %s." % datetime.now())
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.warn(exc)
         boot_script_failed.retry(exc=exc)
 
@@ -693,9 +702,77 @@ def deploy_script(driverCls, provider, identity, instance_id,
         #fall in this category, and possibly don't retry if
         #you hit the Exception block below this.
         deploy_script.retry(exc=exc)
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.exception(exc)
         deploy_script.retry(exc=exc)
+
+
+def _generate_stats(current_request, task_class):
+    num_retries = current_request.retries
+    remaining_retries = task_class.max_retries - num_retries
+    delta_time = timedelta(seconds=num_retries*task_class.default_retry_delay)
+    failure_eta = datetime.now()+delta_time
+    return "Attempts made: %s (over %s) "\
+        "Attempts Remaining: %s (ETA to Failure: %s)"\
+        % (num_retries, delta_time, remaining_retries, failure_eta)
+
+
+def _deploy_ready_failed_email_test(driver, instance_id, current_request, task_class):
+    """
+    Additional Acitons Include:
+    * 50% - Send an Email to atmosphere alerts to notify that there *may* be a problem
+    #100% - Send an Email to atmosphere to notify that a deployment failed
+    #       Terminate the current chain, and call 'deploy_failed' task out of band.
+    """
+    from core.models.instance import Instance
+    from core.email import send_preemptive_deploy_failed_email
+    core_instance = Instance.objects.get(provider_alias=instance_id)
+    num_retries = current_request.retries
+    message = _generate_stats(current_request, task_class)
+    if num_retries == int(task_class.max_retries/2):
+        # Halfway point. Send preemptive failure
+        send_preemptive_deploy_failed_email(core_instance, message)
+    elif num_retries == task_class.max_retries-1:
+        # Final attempt logic
+        failure_task = deploy_failed.s(None, driver.__class__, driver.provider, driver.identity, instance_id, message=message)
+        failure_task.apply_async()
+
+@task(name="deploy_ready_test",
+      default_retry_delay=32,
+      soft_time_limit=16,  # 16 second hard-set time limit. (NOTE:TOO LONG? -SG)
+      max_retries=225  # Attempt up to two hours
+      )
+def deploy_ready_test(driverCls, provider, identity, instance_id,
+                      **celery_task_args):
+    """
+    deploy_ready_test -
+    Sends an "echo script" via SSH to the instance. If the script fails to
+    deploy to the instance for any reason, log the exception and prepare to retry.
+
+    Before making call to retry, send _deploy_ready_failed_email_test the
+    current number of retries, max retries, etc. to see if additional action should be taken.
+    """
+    current_count = current.request.retries + 1
+    total = deploy_ready_test.max_retries
+    logger.debug("deploy_ready_test task %s/%s started at %s." % (current_count, total, datetime.now()))
+    try:
+        #Check if instance still exists
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_id)
+        if not instance:
+            logger.debug("Instance has been teminated: %s." % instance_id)
+            return False
+        echo_test = echo_test_script()
+        kwargs = _generate_ssh_kwargs()
+        kwargs.update({'deploy': echo_test})
+        driver.deploy_to(instance, **kwargs)
+        logger.debug("deploy_ready_test task %s/%s finished at %s." % (current_count, total, datetime.now()))
+        return True
+    except (BaseException, Exception) as exc:
+        logger.exception(exc)
+        _deploy_ready_failed_email_test(
+            driver, instance_id, current.request, deploy_ready_test)
+        deploy_ready_test.retry(exc=exc)
 
 
 @task(name="_deploy_init_to",
@@ -722,7 +799,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         instance._node.extra['password'] = None
         msd = init(instance, identity.user.username, password, token, redeploy)
 
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.exception(exc)
         _deploy_init_to.retry(exc=exc)
     try:
@@ -745,10 +822,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         #fall in this category, and possibly don't retry if
         #you hit the Exception block below this.
         _deploy_init_to.retry(exc=exc)
-    except SystemExit as bad_ssh:
-        logger.exception("ERROR: Someone has raised a SystemExit!")
-        _deploy_init_to.retry(exc=bad_ssh)
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.exception(exc)
         _deploy_init_to.retry(exc=exc)
 
@@ -808,7 +882,7 @@ def check_process_task(driverCls, provider, identity,
     except Instance.DoesNotExist:
         logger.warn("check_process_task failed: Instance %s no longer exists"
                     % instance_alias)
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.exception(exc)
         check_process_task.retry(exc=exc)
 
@@ -904,7 +978,7 @@ def add_floating_ip(driverCls, provider, identity,
         #End
         logger.debug("add_floating_ip task finished at %s." % datetime.now())
         return {"floating_ip": floating_ip, "hostname": hostname}
-    except Exception as exc:
+    except (BaseException, Exception) as exc:
         logger.exception("Error occurred while assigning a floating IP")
         #Networking can take a LONG time when an instance first launches,
         #it can also be one of those things you 'just miss' by a few seconds..

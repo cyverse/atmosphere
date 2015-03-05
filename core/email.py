@@ -5,15 +5,15 @@ Atmosphere core email.
 
 from core.models import AtmosphereUser as User
 from django.utils import timezone as django_timezone
-from django.core.mail import EmailMessage
 
 from pytz import timezone as pytz_timezone
 
-from threepio import logger, email_logger
+from threepio import logger
 
 from atmosphere import settings
 
 from authentication.protocol.ldap import lookupEmail, lookupUser
+from service.tasks.email import send_email as send_email_task
 
 
 def email_address_str(name, email):
@@ -29,10 +29,14 @@ def request_tracker_address():
     return (settings.ATMO_SUPPORT[0][0], settings.ATMO_SUPPORT[0][1])
 
 
-def admin_address():
+def admin_address(test_user=None):
     """ Return the admin name and admin email from
         django's settings.
     """
+    if test_user:
+        for admin_user, admin_email in settings.ADMINS:
+            if admin_user == test_user:
+                return admin_user, admin_email
     return (settings.ADMINS[0][0], settings.ADMINS[0][1])
 
 
@@ -94,27 +98,17 @@ def request_info(request):
 
 def send_email(subject, body, from_email, to, cc=None,
                fail_silently=False, html=False):
-    """ Use django.core.mail.EmailMessage to send and log an Atmosphere email.
     """
-    try:
-        msg = EmailMessage(subject=subject, body=body,
-                           from_email=from_email,
-                           to=to,
-                           cc=cc)
-        if html:
-            msg.content_subtype = 'html'
-        msg.send(fail_silently=fail_silently)
-        email_logger.info("Email Sent."
-                          + "From:%s\nTo:%sCc:%s\nSubject:%s\nBody:\n%s" %
-                         (from_email,
-                          to,
-                          cc,
-                          subject,
-                          body))
-        return True
-    except Exception as e:
-        logger.error(e)
-        return False
+    Queue an email to be sent
+    """
+    args = (subject, body, from_email, to)
+    kwargs = {
+        "cc": cc,
+        "fail_silently": fail_silently,
+        "html": html
+    }
+    send_email_task.apply_async(args=args, kwargs=kwargs)
+    return True
 
 
 def email_admin(request, subject, message,
@@ -136,12 +130,14 @@ def email_admin(request, subject, message,
 
 
 def email_to_admin(subject, body, username=None,
-                   user_email=None, cc_user=True, request_tracker=False):
+                   user_email=None, cc_user=True, admin_user=None, request_tracker=False):
     """
     Send a basic email to the admins. Nothing more than subject and message
     are required.
     """
-    if request_tracker:
+    if admin_user:
+        sendto, sendto_email = admin_address(admin_user)
+    elif request_tracker:
         sendto, sendto_email = request_tracker_address()
     else:
         sendto, sendto_email = admin_address()
@@ -220,6 +216,37 @@ Helpful links:
        .strftime('%b, %d %Y %H:%M:%S'))
     subject = 'Your Atmosphere Instance is Available'
     return email_from_admin(user, subject, body)
+
+
+def send_preemptive_deploy_failed_email(core_instance, message):
+    """
+    Sends an email to the admins, who will verify the reason for the error.
+    """
+    user = core_instance.created_by
+    username, user_email, user_name = user_email_info(user.username)
+    body = """ADMINS: Serveral attempts to contact the instance have failed!
+This system is put in place as an "Early Warning System" to help
+stem off or deal with these problems while the instances can still
+go through their normal deployment process.
+A final email will be sent when the last attempt has been made.
+---
+Failed Instance Details:
+  Alias: %s
+  Owner: %s (%s Email: %s)
+  IP Address: %s
+  Image ID: %s
+---
+Additional Details: %s
+""" % (core_instance.provider_alias,
+       user, user_name, user_email,
+       core_instance.ip_address,
+       core_instance.source.providermachine.identifier,
+       message)
+    from_name, from_email = atmo_daemon_address()
+    subject = '(%s) Preemptive Deploy Failure' % username
+    return email_to_admin(subject, body, from_name, from_email,
+                          admin_user='Atmosphere Alerts',
+                          cc_user=False)
 
 
 def send_deploy_failed_email(core_instance, exception_str):

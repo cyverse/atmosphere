@@ -4,6 +4,8 @@ Deploy methods for Atmosphere
 from os.path import basename
 import time
 
+from django.utils.timezone import datetime
+
 from libcloud.compute.deployment import Deployment
 from libcloud.compute.deployment import ScriptDeployment
 from libcloud.compute.deployment import MultiStepDeployment
@@ -254,7 +256,7 @@ def init_script(filename, username, token, instance, password,
         settings.DEPLOY_SERVER_URL,
         username,
         token,
-        instance.name,
+        instance.name.replace('"', '\\\"'),  # Prevents single " from preventing calls to atmo_init_full
         " --redeploy" if redeploy else "",
         secrets.ATMOSPHERE_VNC_LICENSE)
     if password:
@@ -273,6 +275,12 @@ def rm_scripts(logfile=None):
         "rm -rf ~/deploy_*",
         name='./deploy_remove_scripts.sh',
         logfile=logfile)
+
+
+def echo_test_script():
+    return ScriptDeployment(
+        'echo "Test deployment working @ %s"' % datetime.now(),
+        name="./deploy_echo.sh")
 
 
 def init_log():

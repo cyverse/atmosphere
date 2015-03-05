@@ -4,7 +4,7 @@ authentication helper methods.
 from django.http import HttpResponseRedirect
 
 from django.contrib.auth.signals import user_logged_in
-
+from django.contrib.auth import login, authenticate
 from atmosphere import settings
 from authentication.models import Token as AuthToken
 from core.models import AtmosphereUser as User
@@ -14,6 +14,24 @@ def cas_logoutRedirect():
     return HttpResponseRedirect(settings.CAS_SERVER +
                                 "/cas/logout?service="+settings.SERVER_URL)
 
+def auth_loginRedirect(request, redirect, gateway=False):
+    """
+    A general login redirection
+    :param request: The incoming request
+    :param redirect: The absolute/relative path to redirect the user after authentication
+    :param gateway: If true, all login attempts should be PASSIVE (that is, the user should not be prompted for a login)
+    :return: httpResponseRedirect: User selected area to be redirected
+    """
+    #TODO: The next step will be adding a 'Splash page' here for users to select their 'choice of Authentication Scheme'
+    #      and then makes the appropriate httpResponseRedirect that sends them to: 1) a login that returns auth information
+    if hasattr(settings, "ALWAYS_AUTH_USER"):
+        return always_auth(request, redirect)
+    return cas_loginRedirect(request, redirect, gateway)
+
+def always_auth(request, redirect):
+    user = authenticate(username=settings.ALWAYS_AUTH_USER,password=None,request=request)
+    login(request, user)
+    return HttpResponseRedirect("%s" % (redirect,))
 
 def saml_loginRedirect(request, redirect=None, gateway=False):
     login_url = "%s%s/login?service=%s/s_serviceValidater%s" %\
@@ -79,6 +97,17 @@ def createAuthToken(username):
     auth_user_token.update_expiration()
     auth_user_token.save()
     return auth_user_token
+
+
+def lookupSessionToken(request):
+    """
+    Retrieve an existing token from the request session.
+    """
+    token_key = request.session['token']
+    try:
+        return AuthToken.objects.get(user=request.user, key=token_key)
+    except:
+        return None
 
 
 def validateToken(username, token_key):

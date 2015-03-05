@@ -7,14 +7,14 @@ from core.models.project import Project
 from core.models.project_instance import ProjectInstance
 from core.models.project_volume import ProjectVolume
 from core.models.provider import AccountProvider, ProviderType, PlatformType,\
-    Provider
+    Provider, ProviderInstanceAction, ProviderDNSServerIP
 from core.models.license import LicenseType, License
 from core.models.machine import ProviderMachine, ProviderMachineMembership
 from core.models.machine_request import MachineRequest
 from core.models.machine_export import MachineExport
 from core.models.maintenance import MaintenanceRecord
 from core.models.instance import Instance, InstanceStatusHistory,\
-    InstanceStatus
+    InstanceStatus, InstanceAction, InstanceSource
 from core.models.node import NodeController
 from core.models.post_boot import ScriptType, BootScript
 from core.models.size import Size
@@ -25,7 +25,7 @@ from core.models.user import AtmosphereUser
 from core.models.volume import Volume
 from core.models.group import Group, ProviderMembership, IdentityMembership,\
     InstanceMembership
-from core.models.allocation import Allocation
+from core.models.allocation_strategy import Allocation, AllocationStrategy
 from core.models.step import Step
 from core.models.request import AllocationRequest, QuotaRequest
 from core.models.application import Application, ApplicationMembership,\
@@ -40,7 +40,7 @@ def get_or_create(Model, *args, **kwargs):
 def create_machine_model(name, provider, provider_alias,
                          created_by, description):
     name = _get_valid_name(name, provider_alias)
-    new_machine = get_or_create(Machine,
+    new_machine = get_or_create(Application,
                                 name=name,
                                 description=description,
                                 created_by=created_by)

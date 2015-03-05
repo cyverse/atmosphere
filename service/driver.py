@@ -148,9 +148,11 @@ def prepare_driver(request, provider_uuid, identity_uuid):
                                                  uuid=identity_uuid)
         if core_identity in request.user.identity_set.all():
             return get_esh_driver(core_identity=core_identity)
+        else:
+            raise Exception("User %s is NOT the owner of Identity UUID: %s" % (request.user.username, core_identity.uuid))
     except CoreIdentity.DoesNotExist:
         logger.exception("Unable to prepare driver.")
-        pass
+        return None
 
 
 def _retrieve_source(esh_driver, new_source_alias, source_hint):

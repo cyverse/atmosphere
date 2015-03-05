@@ -7,7 +7,8 @@ from .tag_related_field import TagRelatedField
 from .identity_related_field import IdentityRelatedField
 from .instance_related_field import InstanceRelatedField
 from .account_serializer import AccountSerializer
-from .provider_serializer import ProviderSerializer
+from .provider_serializer import ProviderSerializer, ProviderInstanceActionSerializer,\
+    PATCH_ProviderInstanceActionSerializer, POST_ProviderInstanceActionSerializer
 from .cleaned_identity_serializer import CleanedIdentitySerializer
 from .boot_script_serializer import BootScriptSerializer
 from .application_threshold_serializer import ApplicationThresholdSerializer
@@ -15,8 +16,8 @@ from .application_serializer import ApplicationSerializer
 from .paginated_application_serializer import PaginatedApplicationSerializer
 from .application_bookmark_serializer import ApplicationBookmarkSerializer
 from .application_score_serializer import ApplicationScoreSerializer
-from .credential_serializer import CredentialSerializer
-from .instance_serializer import InstanceSerializer
+from .credential_serializer import CredentialDetailSerializer
+from .instance_serializer import InstanceSerializer, InstanceActionSerializer
 from .instance_history_serializer import InstanceHistorySerializer
 from .paginated_instance_history_serializer import PaginatedInstanceHistorySerializer
 from .paginated_instance_serializer import PaginatedInstanceSerializer
@@ -40,8 +41,11 @@ from .step_serializer import StepSerializer
 from .provider_type_serializer import ProviderTypeSerializer
 from .tag_serializer import TagSerializer
 from .instance_status_history_serializer import InstanceStatusHistorySerializer
-from .allocation_serializer import AllocationSerializer
-from .allocation_request_serializer import AllocationRequestSerializer
+from .allocation_serializer import AllocationSerializer, AllocationResultSerializer
+from .allocation_request_serializer import AllocationRequestSerializer, ResolveAllocationRequestSerializer
+from core.models.user import AtmosphereUser
 from .quota_serializer import QuotaSerializer
-from .quota_request_serializer import QuotaRequestSerializer
+from .quota_request_serializer import QuotaRequestSerializer, \
+    ResolveQuotaRequestSerializer
 from .identity_serializer import IdentitySerializer
+from .token_serializer import TokenSerializer
