@@ -77,7 +77,7 @@ class Instance(models.Model):
     #TODO: Create custom Uuidfield?
     #token = Used for looking up the instance on deployment
     token = models.CharField(max_length=36, blank=True, null=True)
-    tags = models.ManyToManyField(Tag, blank=True)
+    tags = models.ManyToManyField(Tag, blank=True, through='InstanceTag')
     # The specific machine & provider for which this instance exists
     source = models.ForeignKey(InstanceSource, related_name='instances')
     provider_alias = models.CharField(max_length=256, unique=True)
