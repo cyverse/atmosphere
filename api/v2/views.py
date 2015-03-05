@@ -1,4 +1,3 @@
-import django_filters
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, IsAdminUser
 from rest_framework.decorators import detail_route
@@ -158,13 +157,13 @@ class AllocationViewSet(viewsets.ReadOnlyModelViewSet):
     http_method_names = ['get', 'head', 'options', 'trace']
 
 
-class VolumeFilter(django_filters.FilterSet):
-    min_size = django_filters.NumberFilter(name="size", lookup_type='gte')
-    max_size = django_filters.NumberFilter(name="size", lookup_type='lte')
-
-    class Meta:
-        model = Volume
-        fields = ['min_size', 'max_size']
+#class VolumeFilter(django_filters.FilterSet):
+#    min_size = django_filters.NumberFilter(name="size", lookup_type='gte')
+#    max_size = django_filters.NumberFilter(name="size", lookup_type='lte')
+#
+#    class Meta:
+#        model = Volume
+#        fields = ['min_size', 'max_size']
 
 
 class VolumeViewSet(viewsets.ModelViewSet):
@@ -173,7 +172,7 @@ class VolumeViewSet(viewsets.ModelViewSet):
     """
     queryset = Volume.objects.all()
     serializer_class = VolumeSerializer
-    filter_class = VolumeFilter
+    # filter_class = VolumeFilter
 
     def get_queryset(self):
         """
