@@ -3,6 +3,7 @@ from .identity import IdentityViewSet
 from .image import ImageViewSet
 from .image_bookmark import ImageBookmarkViewSet
 from .instance import InstanceViewSet
+from .instance_tag import InstanceTagViewSet
 from .platform_type import PlatformTypeViewSet
 from .project import ProjectViewSet
 from .project_instance import ProjectInstanceViewSet

@@ -2,6 +2,7 @@ from .allocation import AllocationSerializer
 from .identity import IdentitySerializer
 from .image import ImageSerializer
 from .image_bookmark import ImageBookmarkSerializer
+from .instance_tag import InstanceTagSerializer
 from .instance import InstanceSerializer
 from .project import ProjectSerializer
 from .project_instance import ProjectInstanceSerializer
