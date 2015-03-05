@@ -23,11 +23,11 @@ class Project(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
     owner = models.ForeignKey(Group, related_name="projects")
     applications = models.ManyToManyField(Application, related_name="projects",
-                                          null=True, blank=True)
+                                          blank=True)
     instances = models.ManyToManyField(Instance, related_name="projects",
-                                       null=True, blank=True)
+                                       blank=True)
     volumes = models.ManyToManyField(Volume, related_name="projects",
-                                     null=True, blank=True)
+                                     blank=True)
 
     def __unicode__(self):
         return "%s Owner:%s: Apps:%s Instances:%s Volumes:%s"\
