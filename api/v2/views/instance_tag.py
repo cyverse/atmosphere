@@ -15,4 +15,4 @@ class InstanceTagViewSet(viewsets.ModelViewSet):
         """
         Filter out tags for deleted instances
         """
-        return InstanceTag.objects.filter(instance__end_date__isnull=False,)
+        return InstanceTag.objects.filter(instance__end_date__isnull=True,)
