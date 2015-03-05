@@ -1,8 +1,11 @@
 from core.models.credential import Credential, ProviderCredential
 from core.models.cloud_admin import CloudAdministrator
 from core.models.identity import Identity
+from core.models.instance_tag import InstanceTag
 from core.models.profile import UserProfile
 from core.models.project import Project
+from core.models.project_instance import ProjectInstance
+from core.models.project_volume import ProjectVolume
 from core.models.provider import AccountProvider, ProviderType, PlatformType,\
     Provider, ProviderInstanceAction, ProviderDNSServerIP
 from core.models.license import LicenseType, License
@@ -27,6 +30,7 @@ from core.models.step import Step
 from core.models.request import AllocationRequest, QuotaRequest
 from core.models.application import Application, ApplicationMembership,\
     ApplicationScore, ApplicationBookmark
+from core.models.application_tag import ApplicationTag
 
 
 def get_or_create(Model, *args, **kwargs):
