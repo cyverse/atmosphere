@@ -291,6 +291,7 @@ def send_image_request_failed_email(machine_request, exception_str):
     Sends an email to the admins, who will verify the reason for the error,
     with an option to re-approve the request.
     """
+    user = machine_request.new_machine_owner
     username, user_email, user_name = user_email_info(user.username)
     approve_link = '%s/api/v1/request_image/%s/approve' \
         % (settings.SERVER_URL, machine_request.id)
@@ -305,7 +306,7 @@ Machine Request:
   Instance: %s
   IP Address: %s
 Exception: %s
-""" % (approve_link, machine_request.id, machine_request.new_machine_owner,
+""" % (approve_link, machine_request.id, user,
         user_name, user_email,
         machine_request.instance.provider_alias,
         machine_request.instance.ip_address,

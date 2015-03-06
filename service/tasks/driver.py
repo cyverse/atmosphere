@@ -286,7 +286,7 @@ def clear_empty_ips():
     for core_identity in identities:
         try:
             #TODO: Add some 
-            clear_empty_ips_for.apply_async(args=[core_identity.id,
+            clear_empty_ips_for.apply_async(args=[core_identity.uuid,
                                       core_identity.created_by])
         except Exception as exc:
             logger.exception(exc)
