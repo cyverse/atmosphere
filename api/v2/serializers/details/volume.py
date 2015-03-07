@@ -14,8 +14,9 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
     start_date = serializers.DateTimeField(source='instance_source.start_date')
     end_date = serializers.DateTimeField(source='instance_source.end_date')
     projects = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    uuid = serializers.CharField(source='instance_source.identifier')
 
     class Meta:
         model = Volume
         view_name = 'api_v2:volume-detail'
-        fields = ('id', 'url', 'name', 'size', 'user', 'provider', 'identity', 'projects', 'start_date', 'end_date')
+        fields = ('id', 'uuid', 'url', 'name', 'size', 'user', 'provider', 'identity', 'projects', 'start_date', 'end_date')

@@ -10,6 +10,7 @@ class IdentitySummarySerializer(serializers.HyperlinkedModelSerializer):
         view_name = 'api_v2:identity-detail'
         fields = (
             'id',
+            'uuid',
             'url',
             'provider',
         )
