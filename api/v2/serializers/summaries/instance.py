@@ -12,7 +12,7 @@ class InstanceSummarySerializer(serializers.HyperlinkedModelSerializer):
     status = serializers.CharField(source='esh_status', read_only=True)
     size = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
-    uuid = serializers.CharField(source='source.identifier')
+    uuid = serializers.CharField(source='provider_alias')
 
     def get_size(self, obj):
         size_alias = obj.esh_size()
@@ -53,7 +53,7 @@ class InstanceSuperSummarySerializer(serializers.HyperlinkedModelSerializer):
     user = serializers.PrimaryKeyRelatedField(source='created_by', read_only=True)
     provider = serializers.PrimaryKeyRelatedField(source='created_by_identity.provider', read_only=True)
     status = serializers.CharField(source='esh_status', read_only=True)
-    uuid = serializers.CharField(source='source.identifier')
+    uuid = serializers.CharField(source='provider_alias')
 
     class Meta:
         model = Instance

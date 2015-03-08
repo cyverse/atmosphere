@@ -17,7 +17,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
     projects = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     size = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
-    uuid = serializers.CharField(source='source.identifier')
+    uuid = serializers.CharField(source='provider_alias')
 
     def get_size(self, obj):
         size_alias = obj.esh_size()
