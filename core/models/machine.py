@@ -35,7 +35,7 @@ class ProviderMachine(BaseSource):
     application = models.ForeignKey(Application)
     version = models.CharField(max_length=128, default='1.0.0')
     licenses = models.ManyToManyField(License,
-            null=True, blank=True)
+            blank=True)
 
     @property
     def name(self):
@@ -44,6 +44,7 @@ class ProviderMachine(BaseSource):
     def to_dict(self):
         machine = {
             "version": self.version,
+            "provider": self.instance_source.provider.uuid
         }
         machine.update(super(ProviderMachine, self).to_dict())
         return machine

@@ -107,9 +107,9 @@ class AllocationStrategy(models.Model):
     provider = models.OneToOneField("Provider", unique=True)
     counting_behavior = models.ForeignKey(CountingBehavior)
     refresh_behaviors = models.ManyToManyField(
-        RefreshBehavior, null=True, blank=True)
+        RefreshBehavior, blank=True)
     rules_behaviors = models.ManyToManyField(
-        RulesBehavior, null=True, blank=True)
+        RulesBehavior, blank=True)
 
     def _parse_counting_behavior(self, identity, now=None):
         if not now:

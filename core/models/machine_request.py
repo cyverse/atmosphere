@@ -52,7 +52,7 @@ class MachineRequest(models.Model):
     new_machine_memory_min = models.IntegerField(default=0)
     new_machine_storage_min = models.IntegerField(default=0)
     new_machine_licenses = models.ManyToManyField(License,
-            null=True, blank=True)
+            blank=True)
     #Date time stamps
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)

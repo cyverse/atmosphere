@@ -27,7 +27,7 @@ class Application(models.Model):
     uuid = models.CharField(max_length=36, unique=True, default=uuid4)
     name = models.CharField(max_length=256)
     description = models.TextField(null=True, blank=True)
-    tags = models.ManyToManyField(Tag, blank=True)
+    tags = models.ManyToManyField(Tag, blank=True, through='ApplicationTag')
     icon = models.ImageField(upload_to="machine_images", null=True, blank=True)
     private = models.BooleanField(default=False)
     start_date = models.DateTimeField(default=timezone.now)
@@ -268,8 +268,7 @@ def _get_app_by_identifier(identifier):
     """
     try:
         # Attempt #1: to retrieve application based on identifier
-        # NOTE: Confused by this conflict? THIS IS THE WRONG ONE! DONT SAVE THIS ONE!
-        app = Application.objects.filter(providermachine__instancesource_ptr__identifier=identifier).distinct().get()
+        app = Application.objects.filter(providermachine__instance_source__identifier=identifier).distinct().get()
         return app
     except Application.DoesNotExist:
         return None
