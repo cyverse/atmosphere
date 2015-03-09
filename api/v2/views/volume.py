@@ -21,6 +21,7 @@ class VolumeViewSet(viewsets.ModelViewSet):
     queryset = Volume.objects.all()
     serializer_class = VolumeSerializer
     filter_class = VolumeFilter
+    http_method_names = ['get', 'put', 'patch', 'head', 'options', 'trace']
 
     def get_queryset(self):
         """
