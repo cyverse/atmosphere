@@ -96,9 +96,10 @@ def add_instance_actions(Provider, InstanceAction, ProviderInstanceAction):
     instance_actions = InstanceAction.objects.all()
     for provider in Provider.objects.all():
         for action in instance_actions:
+            #It's a feature not a bug. sure.
             ProviderInstanceAction.objects.get_or_create(
-                provider=provider,
-                instance_action=action)
+                provider_id=provider.id,
+                instance_action_id=action.id)
 
 
 def add_auto_imaging(provider):
