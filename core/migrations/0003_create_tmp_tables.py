@@ -6,9 +6,39 @@ import django.utils.timezone
 from django.conf import settings
 
 
-def copy_data_to_new_models(apps, schema_editor):
+def create_machine(apps, old_machine):
     InstanceSourceTmp = apps.get_model("core", "InstanceSourceTmp")
+    Instance = apps.get_model("core", "Instance")
     ProviderMachineTmp = apps.get_model("core", "ProviderMachineTmp")
+
+    old_source = old_machine.instancesource_ptr
+    source = InstanceSourceTmp.objects.create(
+        provider=old_source.provider,
+        identifier=old_source.identifier,
+        created_by=old_source.created_by,
+        created_by_identity=old_source.created_by_identity,
+        start_date=old_source.start_date,
+        end_date=old_source.end_date
+    )
+
+    # Update instance pointers
+    instances = Instance.objects.filter(
+        source_id=old_machine.instancesource_ptr_id)
+
+    for instance in instances:
+        instance.source_tmp = source
+        instance.save()
+
+    return ProviderMachineTmp.objects.create(
+        application_id=old_machine.application.id,
+        version=old_machine.version,
+        instance_source=source
+    )
+
+
+def copy_data_to_new_models(apps, schema_editor):
+    Instance = apps.get_model("core", "Instance")
+    InstanceSourceTmp = apps.get_model("core", "InstanceSourceTmp")
     ProviderMachine = apps.get_model("core", "ProviderMachine")
     VolumeTmp = apps.get_model("core", "VolumeTmp")
     Volume = apps.get_model("core", "Volume")
@@ -16,29 +46,14 @@ def copy_data_to_new_models(apps, schema_editor):
     volumes = Volume.objects.all()
     machines = ProviderMachine.objects.all()
 
+    machine_cache = {}
+
     for machine in machines:
-        old_source = machine.instancesource_ptr
-        source = InstanceSourceTmp.objects.create(
-            provider=old_source.provider,
-            identifier=old_source.identifier,
-            created_by=old_source.created_by,
-            created_by_identity=old_source.created_by_identity,
-            start_date=old_source.start_date,
-            end_date=old_source.end_date
-        )
-
-        # Update instance pointers
-        instances = machine.instances.all()
-
-        for instance in instances:
-            instance.source_tmp = source
-            instance.save()
-
-        new_machine = ProviderMachineTmp.objects.create(
-            application=machine.application,
-            version=machine.version,
-            instance_source=source
-        )
+        if machine.id not in machine_cache:
+            new_machine = create_machine(apps, machine)
+            machine_cache[machine.id] = new_machine
+        else:
+            new_machine = machine_cache[machine.id]
 
         new_machine.licenses = machine.licenses.all()
         new_machine.save()
@@ -51,10 +66,25 @@ def copy_data_to_new_models(apps, schema_editor):
             member.save()
 
         # Update machine requests
-        machine_requests = machine.ancestor_machine.all()
+        MachineRequest = apps.get_model("core", "MachineRequest")
+        machine_requests = MachineRequest.objects.filter(new_machine_id=machine.id)
 
         for machine_request in machine_requests:
-            machine_request.parent_machine_tmp = new_machine
+            machine_request.new_machine_tmp_id = new_machine.id
+            try:
+                parent = machine_request.parent_machine
+            except:
+                parent = None
+
+            if parent:
+                if parent.id not in machine_cache:
+                    new_parent = create_machine(apps, parent)
+                    machine_cache[parent.id] = new_parent
+                else:
+                    new_parent = machine_cache[parent.id]
+
+                machine_request.parent_machine_tmp_id = new_parent.id
+
             machine_request.save()
 
     for volume in volumes:
@@ -69,7 +99,7 @@ def copy_data_to_new_models(apps, schema_editor):
         )
 
         # Update instance pointers
-        instances = volume.instances.all()
+        instances = Instance.objects.filter(source_id=volume.instancesource_ptr_id)
 
         for instance in instances:
             instance.source_tmp = source
@@ -122,10 +152,6 @@ class Migration(migrations.Migration):
             },
             bases=(models.Model,),
         ),
-        migrations.AlterUniqueTogether(
-            name='instancesourcetmp',
-            unique_together=set([('provider', 'identifier')]),
-        ),
         migrations.CreateModel(
             name='ProviderMachineTmp',
             fields=[
@@ -155,12 +181,6 @@ class Migration(migrations.Migration):
             bases=(models.Model,),
         ),
         migrations.AddField(
-            model_name='group',
-            name='provider_machines_tmp',
-            field=models.ManyToManyField(related_name='members', through='core.ProviderMachineMembership', to='core.ProviderMachineTmp', blank=True),
-            preserve_default=True,
-        ),
-        migrations.AddField(
             model_name='instance',
             name='source_tmp',
             field=models.ForeignKey(related_name='instances', to='core.InstanceSourceTmp', null=True),
@@ -176,12 +196,6 @@ class Migration(migrations.Migration):
             model_name='machinerequest',
             name='parent_machine_tmp',
             field=models.ForeignKey(related_name='ancestor_machine', to='core.ProviderMachineTmp', null=True),
-            preserve_default=True,
-        ),
-        migrations.AddField(
-            model_name='project',
-            name='volumes_tmp',
-            field=models.ManyToManyField(related_name='projects', to='core.VolumeTmp', blank=True, null=True),
             preserve_default=True,
         ),
         migrations.AddField(
