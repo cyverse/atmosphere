@@ -750,8 +750,10 @@ def get_boot_source(username, identity_uuid, source_identifier):
 def check_application_threshold(username, identity_uuid, esh_size, machine_alias):
     """
     """
+    core_identity = CoreIdentity.objects.get(uuid=identity_uuid)
     application = Application.objects.filter(
-            providermachine__identifier=machine_alias).distinct().get()
+            providermachine__identifier=machine_alias,
+            providermachine__provider=core_identity.provider).distinct().get()
     threshold = application.get_threshold()
     if not threshold:
         return
