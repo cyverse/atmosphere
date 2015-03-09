@@ -45,6 +45,6 @@ factory-boy==2.4.1
 ipython
 ipdb
 flake8
-pep8
+pep8<1.6,>=1.5.7
 wheel
 django-nose
