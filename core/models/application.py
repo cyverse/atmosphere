@@ -268,8 +268,7 @@ def _get_app_by_identifier(identifier):
     """
     try:
         # Attempt #1: to retrieve application based on identifier
-        # NOTE: Confused by this conflict? THIS IS THE WRONG ONE! DONT SAVE THIS ONE!
-        app = Application.objects.filter(providermachine__instancesource_ptr__identifier=identifier).distinct().get()
+        app = Application.objects.filter(providermachine__instance_source__identifier=identifier).distinct().get()
         return app
     except Application.DoesNotExist:
         return None

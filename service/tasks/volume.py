@@ -399,6 +399,7 @@ def update_volume_metadata(driverCls, provider,
 @task(name="mount_failed")
 def mount_failed(task_uuid, driverCls, provider, identity, volume_id,
         unmount=False, **celery_task_args):
+    from service import volume as volume_service
     try:
         logger.debug("mount_failed task started at %s." % datetime.now())
         logger.info("task_uuid=%s" % task_uuid)
