@@ -11,6 +11,7 @@ class InstanceViewSet(viewsets.ModelViewSet):
     queryset = Instance.objects.all()
     serializer_class = InstanceSerializer
     filter_fields = ('created_by__id', 'projects')
+    http_method_names = ['get', 'put', 'patch', 'head', 'options', 'trace']
 
     def get_queryset(self):
         """
