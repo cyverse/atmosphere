@@ -4,6 +4,7 @@ from api.v2.serializers.summaries import ImageSummarySerializer, ProviderSummary
 
 
 class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
+    uuid = serializers.ReadOnlyField(source='instance_source.identifier')
     image = ImageSummarySerializer(source='application')
     provider = ProviderSummarySerializer(source='instance_source.provider')
     created_by = UserSummarySerializer(source='instance_source.created_by')
@@ -13,4 +14,4 @@ class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = ProviderMachine
         view_name = 'api_v2:providermachine-detail'
-        fields = ('id', 'url', 'image', 'provider', 'created_by', 'start_date', 'end_date')
+        fields = ('id', 'uuid', 'url', 'image', 'provider', 'created_by', 'start_date', 'end_date')
