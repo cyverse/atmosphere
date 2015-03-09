@@ -1,6 +1,6 @@
 from core.models import Provider, ProviderType, PlatformType
 from rest_framework import serializers
-from ..summaries import SizeSummarySerializer
+from api.v2.serializers.summaries import SizeSummarySerializer
 
 
 class ProviderTypeSerializer(serializers.HyperlinkedModelSerializer):
@@ -26,4 +26,4 @@ class ProviderSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Provider
         view_name='api_v2:provider-detail'
-        fields = ('id', 'url', 'name', 'description', 'public', 'active', 'type', 'virtualization', 'sizes', 'start_date', 'end_date', )
+        fields = ('id', 'uuid', 'url', 'name', 'description', 'public', 'active', 'type', 'virtualization', 'sizes', 'start_date', 'end_date', )

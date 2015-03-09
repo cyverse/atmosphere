@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ..summaries import ProviderMachineSummarySerializer
+from api.v2.serializers.summaries import ProviderMachineSummarySerializer
 
 
 class ProviderMachineRelatedField(serializers.RelatedField):

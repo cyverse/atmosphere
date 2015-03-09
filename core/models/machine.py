@@ -44,6 +44,7 @@ class ProviderMachine(BaseSource):
     def to_dict(self):
         machine = {
             "version": self.version,
+            "provider": self.instance_source.provider.uuid
         }
         machine.update(super(ProviderMachine, self).to_dict())
         return machine

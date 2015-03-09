@@ -1,6 +1,6 @@
 from core.models import Application as Image
 from rest_framework import serializers
-from ..summaries import TagSummarySerializer, UserSummarySerializer
+from api.v2.serializers.summaries import TagSummarySerializer, UserSummarySerializer
 from api.v2.serializers.fields import ProviderMachineRelatedField
 
 
