@@ -11,3 +11,9 @@ class ProjectVolumeViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectVolumeSerializer
     filter_fields = ('project__id',)
     # http_method_names = ['get', 'post', 'delete', 'head', 'options', 'trace']
+
+    def get_queryset(self):
+        """
+        Filter out tags for deleted volumes
+        """
+        return ProjectVolume.objects.filter(volume__end_date__isnull=True,)
