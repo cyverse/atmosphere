@@ -11,6 +11,7 @@ class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSummarySerializer
     permission_classes = (IsAuthenticatedOrReadOnly,)
+    max_paginate_by = 1000
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

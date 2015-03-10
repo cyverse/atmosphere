@@ -191,6 +191,7 @@
     Listen 5000
     <VirtualHost *:5000>
         # Set up alias for static files.
+        ProxyPass /assets !
         Alias /assets $PATH_TO_TROPOSPHERE/troposphere/assets
 
         # Logging
@@ -201,6 +202,11 @@
         # Pass to uwsgi.
         ProxyPass / uwsgi://127.0.0.1:5002/
         ProxyPassReverse / uwsgi://127.0.0.1:5002/
+
+        # Grant access
+        <Location /assets>
+            Require all granted
+        </Location>
     </VirtualHost>
 </Macro>
 ##Add your line below, it should look something like this:
