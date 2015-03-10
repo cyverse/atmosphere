@@ -15,6 +15,8 @@ class VolumeSerializer(serializers.ModelSerializer):
     provider = serializers.ReadOnlyField(source="instance_source.provider.uuid")
     identity = CleanedIdentitySerializer(source="instance_source.created_by_identity")
     alias = serializers.ReadOnlyField(source='instance_source.identifier')
+    start_date = serializers.ReadOnlyField(source='instance_source.start_date')
+    end_date = serializers.ReadOnlyField(source='instance_source.end_date')
     projects = ProjectsField()
 
     def __init__(self, *args, **kwargs):
@@ -24,4 +26,4 @@ class VolumeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Volume
-        exclude = ("instance_source",)
+        exclude = ("instance_source","id")
