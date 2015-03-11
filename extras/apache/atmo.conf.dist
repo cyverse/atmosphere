@@ -20,6 +20,7 @@
     ## Uncomment these lines to enable '/server-status'
     ## This can be useful for debugging Apache + MOD_WSGI
     ###
+    #ProxyPass /server-status !
     #<Location /server-status>
     #SetHandler server-status
     #AuthType CAS

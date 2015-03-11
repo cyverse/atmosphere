@@ -20,17 +20,18 @@
     ## Uncomment these lines to enable '/server-status'
     ## This can be useful for debugging Apache + MOD_WSGI
     ###
-    <Location /server-status>
-        SetHandler server-status
-        AuthType CAS
-        AuthName "CAS"
-        CASScope /
-        Require valid-user
-        Require all granted
-        Require host 127.0.0.1
-        Satisfy any
-    </Location>
-    ExtendedStatus On
+    #ProxyPass /server-status !
+    #<Location /server-status>
+    #    SetHandler server-status
+    #    AuthType CAS
+    #    AuthName "CAS"
+    #    CASScope /
+    #    Require valid-user
+    #    Require all granted
+    #    Require host 127.0.0.1
+    #    Satisfy any
+    #</Location>
+    #ExtendedStatus On
 
     ###############################################################################
     ## HTTP Virtual Host Context (Forwards requests to HTTPS @ MYHOSTNAMEHERE)
