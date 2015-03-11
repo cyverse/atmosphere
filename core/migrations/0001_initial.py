@@ -128,17 +128,6 @@ class Migration(migrations.Migration):
             bases=(models.Model,),
         ),
         migrations.CreateModel(
-            name='ApplicationTag',
-            fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('application', models.ForeignKey(to='core.Application')),
-            ],
-            options={
-                'db_table': 'application_tags',
-            },
-            bases=(models.Model,),
-        ),
-        migrations.CreateModel(
             name='ApplicationThreshold',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
@@ -310,17 +299,6 @@ class Migration(migrations.Migration):
             bases=(models.Model,),
         ),
         migrations.CreateModel(
-            name='InstanceTag',
-            fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('instance', models.ForeignKey(to='core.Instance')),
-            ],
-            options={
-                'db_table': 'instance_tags',
-            },
-            bases=(models.Model,),
-        ),
-        migrations.CreateModel(
             name='Leadership',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
@@ -452,33 +430,11 @@ class Migration(migrations.Migration):
                 ('start_date', models.DateTimeField(default=django.utils.timezone.now)),
                 ('end_date', models.DateTimeField(null=True, blank=True)),
                 ('applications', models.ManyToManyField(related_name='projects', null=True, to='core.Application', blank=True)),
+                ('instances', models.ManyToManyField(related_name='projects', null=True, to='core.Instance', blank=True)),
                 ('owner', models.ForeignKey(related_name='projects', to='core.Group')),
             ],
             options={
                 'db_table': 'project',
-            },
-            bases=(models.Model,),
-        ),
-        migrations.CreateModel(
-            name='ProjectInstance',
-            fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('instance', models.ForeignKey(to='core.Instance')),
-                ('project', models.ForeignKey(to='core.Project')),
-            ],
-            options={
-                'db_table': 'project_instances',
-            },
-            bases=(models.Model,),
-        ),
-        migrations.CreateModel(
-            name='ProjectVolume',
-            fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('project', models.ForeignKey(to='core.Project')),
-            ],
-            options={
-                'db_table': 'project_volumes',
             },
             bases=(models.Model,),
         ),
@@ -491,7 +447,6 @@ class Migration(migrations.Migration):
                 ('description', models.TextField(blank=True)),
                 ('active', models.BooleanField(default=True)),
                 ('public', models.BooleanField(default=False)),
-                ('auto_imaging', models.BooleanField(default=False)),
                 ('start_date', models.DateTimeField(auto_now_add=True)),
                 ('end_date', models.DateTimeField(null=True, blank=True)),
             ],
@@ -824,27 +779,9 @@ class Migration(migrations.Migration):
             preserve_default=True,
         ),
         migrations.AddField(
-            model_name='projectvolume',
-            name='volume',
-            field=models.ForeignKey(to='core.Volume'),
-            preserve_default=True,
-        ),
-        migrations.AddField(
-            model_name='project',
-            name='instances',
-            field=models.ManyToManyField(related_name='projects', null=True, through='core.ProjectInstance', to='core.Instance', blank=True),
-            preserve_default=True,
-        ),
-        #migrations.AddField(
-        #    model_name='project',
-        #    name='owner',
-        #    field=models.ForeignKey(related_name='projects', to='core.Group'),
-        #    preserve_default=True,
-        #),
-        migrations.AddField(
             model_name='project',
             name='volumes',
-            field=models.ManyToManyField(related_name='projects', null=True, through='core.ProjectVolume', to='core.Volume', blank=True),
+            field=models.ManyToManyField(related_name='projects', null=True, to='core.Volume', blank=True),
             preserve_default=True,
         ),
         migrations.AddField(
@@ -917,12 +854,6 @@ class Migration(migrations.Migration):
             model_name='leadership',
             name='user',
             field=models.ForeignKey(to=settings.AUTH_USER_MODEL),
-            preserve_default=True,
-        ),
-        migrations.AddField(
-            model_name='instancetag',
-            name='tag',
-            field=models.ForeignKey(to='core.Tag'),
             preserve_default=True,
         ),
         migrations.AddField(
@@ -1088,12 +1019,6 @@ class Migration(migrations.Migration):
             preserve_default=True,
         ),
         migrations.AddField(
-            model_name='applicationtag',
-            name='tag',
-            field=models.ForeignKey(to='core.Tag'),
-            preserve_default=True,
-        ),
-        migrations.AddField(
             model_name='applicationscore',
             name='user',
             field=models.ForeignKey(to=settings.AUTH_USER_MODEL),
@@ -1130,7 +1055,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='application',
             name='tags',
-            field=models.ManyToManyField(to='core.Tag', through='core.ApplicationTag', blank=True),
+            field=models.ManyToManyField(to='core.Tag', blank=True),
             preserve_default=True,
         ),
         migrations.AddField(
