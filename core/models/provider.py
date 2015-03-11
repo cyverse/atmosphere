@@ -211,7 +211,7 @@ class ProviderDNSServerIP(models.Model):
 
     def __unicode__(self):
         return "#%s Provider:%s ip_address:%s" % \
-                (self.order, self.instance_action, self.enabled)
+                (self.order, self.provider, self.ip_address)
     class Meta:
         db_table = 'provider_dns_server_ip'
         app_label = 'core'
