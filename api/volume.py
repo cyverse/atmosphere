@@ -284,9 +284,8 @@ class Volume(APIView):
                 source = InstanceSource.objects.get(
                     identifier=volume_id,
                     provider__uuid=provider_uuid)
-                core_volume = source.volume
-                core_volume.end_date = datetime.now()
-                core_volume.save()
+                source.end_date = datetime.now()
+                source.save()
             except CoreVolume.DoesNotExist:
                 pass
             return volume_not_found(volume_id)
@@ -371,7 +370,8 @@ class Volume(APIView):
                                          identity_uuid, user)
         #Delete the object, update the DB
         esh_driver.destroy_volume(esh_volume)
-        core_volume.end_date_all()
+        core_volume.end_date = timezone.now()
+        core_volume.save()
         #Return the object
         serialized_data = VolumeSerializer(core_volume,
                                            context={'request': request}).data
