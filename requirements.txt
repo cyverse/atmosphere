@@ -1,4 +1,4 @@
-Django==1.8b1
+Django==1.8b2
 django-cors-headers==0.12.0
 django-jenkins==0.16.2
 coverage==3.7.1
