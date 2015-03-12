@@ -35,6 +35,11 @@ class CloudAdminRequired(permissions.BasePermission):
         return user.is_staff or user.is_superuser
 
 
+class ApiAuthIgnore(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return True
+
+
 class ApiAuthOptional(permissions.BasePermission):
     def has_permission(self, request, view):
         # Allow access to GET/OPTIONS/HEAD operations.
