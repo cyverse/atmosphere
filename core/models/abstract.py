@@ -84,6 +84,13 @@ class BaseSource(models.Model):
     class Meta:
         abstract = True
 
+    def save(self, *args, **kwargs):
+        """
+        Save the instance_source then the model
+        """
+        self.instance_source.save()
+        super(BaseSource, self).save(*args, **kwargs)
+
     @property
     def start_date(self):
         return self.instance_source.start_date
@@ -91,6 +98,10 @@ class BaseSource(models.Model):
     @property
     def end_date(self):
         return self.instance_source.end_date
+
+    @end_date.setter
+    def end_date(self, value):
+        self.instance_source.end_date = value
 
     @property
     def provider(self):
