@@ -2,13 +2,13 @@ from django.contrib.auth import authenticate, login
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from api.permissions import ApiAuthOptional
+from api.permissions import ApiAuthIgnore
 from atmosphere.settings import secrets
 from authentication import createAuthToken, lookupSessionToken
 from api.serializers import TokenSerializer
 
 class Authentication(APIView):
-    #permission_classes = (ApiAuthOptional,)
+    permission_classes = (ApiAuthIgnore,)
 
     def get(self, request):
         user = request.user
