@@ -52,6 +52,18 @@ from api.serializers import InstanceHistorySerializer,\
 from api.serializers import VolumeSerializer
 from api.serializers import TagSerializer
 
+
+def _get_instance(esh_driver, instance_id):
+    """
+    Protect yourself against drivers that can't connect, old providers, old instances
+    """
+    try:
+        esh_instance = esh_driver.get_instance(instance_id)
+        return esh_instance
+    except Exception:
+        logger.exception("Error retrieving instance %s using driver %s" % (instance_id, esh_driver))
+        return None
+
 def get_core_instance(request, provider_uuid, identity_uuid, instance_id):
     user = request.user
     esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
@@ -66,7 +78,7 @@ def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
         raise InvalidCredsError(
                 "Provider_uuid && identity_uuid "
                 "did not produce a valid combination")
-    esh_instance = esh_driver.get_instance(instance_id)
+    esh_instance = _get_instance(esh_driver, instance_id)
     if not esh_instance:
         try:
             core_inst = CoreInstance.objects.get(
@@ -444,7 +456,7 @@ class InstanceAction(APIView):
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
 
-        esh_instance = esh_driver.get_instance(instance_id)
+        esh_instance = _get_instance(esh_driver, instance_id)
         if not esh_instance:
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
@@ -602,7 +614,7 @@ class Instance(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_instance = esh_driver.get_instance(instance_id)
+        esh_instance = _get_instance(esh_driver, instance_id)
         if not esh_instance:
             try:
                 core_inst = CoreInstance.objects.get(
@@ -628,7 +640,7 @@ class Instance(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_instance = esh_driver.get_instance(instance_id)
+        esh_instance = _get_instance(esh_driver, instance_id)
         if not esh_instance:
             return instance_not_found(instance_id)
         #Gather the DB related item and update
@@ -662,7 +674,7 @@ class Instance(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_instance = esh_driver.get_instance(instance_id)
+        esh_instance = _get_instance(esh_driver, instance_id)
         if not esh_instance:
             return instance_not_found(instance_id)
         #Gather the DB related item and update
@@ -701,14 +713,14 @@ class Instance(APIView):
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         try:
-            esh_instance = esh_driver.get_instance(instance_id)
+            esh_instance = _get_instance(esh_driver, instance_id)
             if not esh_instance:
                 return instance_not_found(instance_id)
             #Test that there is not an attached volume BEFORE we destroy
             #_check_volume_attachment(esh_driver, esh_instance)
             task.destroy_instance_task(esh_instance, identity_uuid)
             invalidate_cached_instances(identity=Identity.objects.get(uuid=identity_uuid))
-            existing_instance = esh_driver.get_instance(instance_id)
+            existing_instance = _get_instance(esh_driver, instance_id)
             if existing_instance:
                 #Instance will be deleted soon...
                 esh_instance = existing_instance
