@@ -121,7 +121,7 @@ def get_or_create_iplant_dns(ProviderDNSServerIP, provider):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0007_auto_20150216_1237'),
+        ('core', '0007_create_allocation_strategy_and_behaviors'),
     ]
 
     operations = [
