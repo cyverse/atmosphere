@@ -9,3 +9,4 @@ class ApplicationTag(models.Model):
 
     class Meta:
         db_table = 'application_tags'
+        managed = False

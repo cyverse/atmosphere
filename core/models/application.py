@@ -27,7 +27,7 @@ class Application(models.Model):
     uuid = models.CharField(max_length=36, unique=True, default=uuid4)
     name = models.CharField(max_length=256)
     description = models.TextField(null=True, blank=True)
-    tags = models.ManyToManyField(Tag, blank=True, through='ApplicationTag')
+    tags = models.ManyToManyField(Tag, blank=True)
     icon = models.ImageField(upload_to="machine_images", null=True, blank=True)
     private = models.BooleanField(default=False)
     start_date = models.DateTimeField(default=timezone.now)
