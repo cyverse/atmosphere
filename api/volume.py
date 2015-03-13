@@ -1,7 +1,7 @@
 """
 Atmosphere service volume
 """
-from django.utils.timezone import datetime
+from django.utils.timezone import datetime, now
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -380,7 +380,7 @@ class Volume(APIView):
                                          identity_uuid, user)
         #Delete the object, update the DB
         esh_driver.destroy_volume(esh_volume)
-        core_volume.end_date = timezone.now()
+        core_volume.end_date = now()
         core_volume.save()
         #Return the object
         serialized_data = VolumeSerializer(core_volume,

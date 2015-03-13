@@ -9,3 +9,4 @@ class ProjectInstance(models.Model):
 
     class Meta:
         db_table = 'project_instances'
+        managed = False
