@@ -33,8 +33,8 @@ class TokenAuthentication(BaseAuthentication):
             token_key = request.session['token']
         if validate_token(token_key):
             token = self.model.objects.get(key=token_key)
-            logger.info("AuthToken Obtained for %s:%s" %
-                        (token.user.username, token_key))
+            #logger.info("AuthToken Obtained for %s:%s" %
+            #            (token.user.username, token_key))
             if token.user.is_active:
                 return (token.user, token)
         return None
@@ -73,8 +73,8 @@ def validate_oauth_token(token, request=None):
     username = user_profile.get("id")
     attrs = user_profile.get("attributes")
     if not username or not attrs:
-        logger.info("Invalid Profile:%s does not have username/attributes"
-                    % user_profile)
+        #logger.info("Invalid Profile:%s does not have username/attributes"
+        #            % user_profile)
         return False
 
     # NOTE: REMOVE this when it is no longer true!
