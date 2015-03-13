@@ -132,7 +132,7 @@ def copy_data_to_old_model(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0002_auto_20150205_1056'),
+        ('core', '0002_add_cloud_administrator'),
     ]
 
     operations = [
