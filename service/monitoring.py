@@ -183,17 +183,31 @@ def enforce_allocation_policy(identity, user):
        their allocation, but that NO action has been taken.
     """
     # Option1 - Suspend all instances.
-    return suspend_all_instances_for(identity, user)
+    return provider_over_allocation_enforcement(identity, user)
 
 
-def suspend_all_instances_for(identity, user):
+def _execute_provider_action(provider, driver, instance):
+    action = provider.over_allocation_action.name
+    if action == 'Suspend':
+        driver.suspend_instance(instance)
+    elif action == 'Stop':
+        driver.stop_instance(instance)
+    elif action == 'Shelve':
+        driver._connection.ex_shelve_instance(instance)
+    elif action == 'Terminate':
+        driver.destroy_instance(instance)
+    else:
+        raise Exception("Encountered Unknown Action Named %s" % action)
+
+
+def provider_over_allocation_enforcement(identity, user):
     driver = get_cached_driver(identity=identity)
     esh_instances = driver.list_instances()
     for instance in esh_instances:
         try:
             if driver._is_active_instance(instance):
                 # Suspend active instances, update the task in the DB
-                driver.suspend_instance(instance)
+                _execute_provider_action(identity.provider, driver, instance)
                 # NOTE: Intentionally added to allow time for
                 #      the Cloud to begin 'suspend' operation
                 #      before querying for the instance again.

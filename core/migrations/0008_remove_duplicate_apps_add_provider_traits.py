@@ -92,6 +92,7 @@ def add_instance_actions(Provider, InstanceAction, ProviderInstanceAction):
     InstanceAction.objects.get_or_create(name="Hard Reboot", description="""Hard Reboots an instance when it is in ANY State""")
     InstanceAction.objects.get_or_create(name="Resize", description="""Represents the Resize/Confirm_Resize/Revert_Resize operations""")
     InstanceAction.objects.get_or_create(name="Imaging", description="""Represents the ability to Image/Snapshot an instance""")
+    InstanceAction.objects.get_or_create(name="Terminate", description="""Represents the ability to Shutdown an instance""")
 
     instance_actions = InstanceAction.objects.all()
     for provider in Provider.objects.all():

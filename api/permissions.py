@@ -34,6 +34,13 @@ def _get_administrator_accounts(user):
         return CloudAdministrator.objects.none()
 
 
+def _get_administrator_account_for(user, provider_uuid):
+    try:
+        return _get_administrator_accounts(user).get(provider__uuid=provider_uuid)
+    except CloudAdministrator.DoesNotExist:
+        return None
+
+
 def _get_administrator_account(user, admin_uuid):
     try:
         return _get_administrator_accounts(user).get(uuid=admin_uuid)
@@ -52,6 +59,27 @@ class CloudAdminRequired(permissions.BasePermission):
         if admin_uuid:
             admin = _get_administrator_account(
                 request.user, admin_uuid)
+        else:
+            admin = _get_administrator_accounts(request.user).exists()
+
+        return True if admin else False
+
+
+class CloudAdminUpdatingRequired(permissions.BasePermission):
+    def has_permission(self, request, view):
+        user = request.user
+        if request.method in permissions.SAFE_METHODS:
+            return user.is_authenticated()
+        # UPDATE requires a cloud administrator account
+        kwargs = request.parser_context.get('kwargs', {})
+        admin_uuid = kwargs.get('cloud_admin_uuid')
+        provider_uuid = kwargs.get('provider_uuid')
+        if admin_uuid:
+            admin = _get_administrator_account(
+                request.user, admin_uuid)
+        elif provider_uuid:
+            admin = _get_administrator_account_for(
+                request.user, provider_uuid)
         else:
             admin = _get_administrator_accounts(request.user).exists()
 
