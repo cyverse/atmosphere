@@ -32,7 +32,8 @@ from core.models.instance import Instance
 from core.models.identity import Identity
 from core.models.profile import UserProfile
 
-from service.deploy import init, check_process, wrap_script, echo_test_script
+from service.deploy import init, check_process, wrap_script, echo_test_script,\
+    deploy_to as ansible_deploy_to
 from service.driver import get_driver, get_esh_driver, get_account_driver
 from service.instance import update_instance_metadata
 from service.instance import _create_and_attach_port
@@ -447,8 +448,6 @@ def get_deploy_chain(driverCls, provider, identity, instance,
         deploy_failed.s(driverCls, provider, identity, instance_id))
 
     #Call additional Deployments
-    check_shell_task = check_process_task.si(
-        driverCls, provider, identity, instance_id, "shellinaboxd")
     check_vnc_task = check_process_task.si(
         driverCls, provider, identity, instance_id, "vnc")
 
@@ -484,8 +483,7 @@ def get_deploy_chain(driverCls, provider, identity, instance,
 
     deploy_meta_task.link(deploy_ready_task)
     deploy_ready_task.link(deploy_task)
-    deploy_task.link(check_shell_task)
-    check_shell_task.link(check_vnc_task)
+    deploy_task.link(check_vnc_task)
     
     #JUST before we finish, check for boot_scripts_chain
     chain_start, chain_end = _get_boot_script_chain(
@@ -797,16 +795,17 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         # the adminPass? --Steve
         logger.info(instance.extra)
         instance._node.extra['password'] = None
-        msd = init(instance, identity.user.username, password, token, redeploy)
+        #msd = init(instance, identity.user.username, password, token, redeploy)
 
     except (BaseException, Exception) as exc:
         logger.exception(exc)
         _deploy_init_to.retry(exc=exc)
     try:
-        kwargs = _generate_ssh_kwargs()
-        kwargs.update({'deploy': msd})
-        driver.deploy_to(instance, **kwargs)
-        _update_status_log(instance, "Deploy Finished")
+        #kwargs = _generate_ssh_kwargs()
+        #kwargs.update({'deploy': msd})
+        #driver.deploy_to(instance, **kwargs)
+        ansible_deploy_to(instance.ip)
+        _update_status_log(instance, "Ansible Finished for %s." % instance.ip)
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
     except DeploymentError as exc:
         logger.exception(exc)
@@ -826,11 +825,13 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         logger.exception(exc)
         _deploy_init_to.retry(exc=exc)
 
+
 def _parse_steps_output(msd):
     output = ""
     length = len(msd.steps)
     for idx, script in enumerate(msd.steps):
         output += _parse_script_output(script, idx, length)
+
 
 def _parse_script_output(script, idx=1, length=1):
     if settings.DEBUG:
@@ -840,6 +841,7 @@ def _parse_script_output(script, idx=1, length=1):
             (idx+1, length, debug_out if settings.DEBUG else "",
              script.exit_status, script.stdout, script.stderr)
     return output
+
 
 @task(name="check_process_task",
       max_retries=2,
@@ -872,9 +874,6 @@ def check_process_task(driverCls, provider, identity,
         core_instance = Instance.objects.get(provider_alias=instance_alias)
         if "vnc" in process_name:
             core_instance.vnc = result
-            core_instance.save()
-        elif "shellinaboxd" in process_name:
-            core_instance.shell = result
             core_instance.save()
         else:
             return result, script_out
@@ -1132,7 +1131,7 @@ def update_membership():
         update_membership_for.apply_async( args=[provider.uuid])
 
 
-def active_instances(instances):
+def test_active_instances(instances):
     tested_instances = {}
     for instance in instances:
         results = test_instance_links(instance.alias, instance.ip)
@@ -1142,37 +1141,23 @@ def active_instances(instances):
 
 def test_instance_links(alias, uri):
     from rtwo.linktest import test_link
-    if uri is None:
-        return {alias: {'vnc': False, 'shell': False}}
-    shell_address = '%s/shell/%s/' % (settings.SERVER_URL, uri)
-    try:
-        shell_success = test_link(shell_address)
-    except Exception, e:
-        logger.exception("Bad shell address: %s" % shell_address)
-        shell_success = False
     vnc_address = 'http://%s:5904' % uri
     try:
         vnc_success = test_link(vnc_address)
     except Exception, e:
         logger.exception("Bad vnc address: %s" % vnc_address)
         vnc_success = False
-    return {alias: {'vnc': vnc_success, 'shell': shell_success}}
+    return {alias: {'vnc': vnc_success}}
 
 
 def update_links(instances):
     from core.models import Instance
     updated = []
-    linktest_results = active_instances(instances)
+    linktest_results = test_active_instances(instances)
     for (instance_id, link_results) in linktest_results.items():
         try:
             update = False
             instance = Instance.objects.get(provider_alias=instance_id)
-            if link_results['shell'] != instance.shell:
-                logger.debug('Change Instance %s shell %s-->%s' %
-                             (instance, instance.shell,
-                              link_results['shell']))
-                instance.shell = link_results['shell']
-                update = True
             if link_results['vnc'] != instance.vnc:
                 logger.debug('Change Instance %s VNC %s-->%s' %
                              (instance, instance.vnc,
