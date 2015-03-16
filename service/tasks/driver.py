@@ -1096,7 +1096,7 @@ def update_membership_for(provider_uuid):
     images = acct_driver.list_all_images()
     changes = 0
     for img in images:
-        pm = ProviderMachine.objects.filter(identifier=img.id,
+        pm = ProviderMachine.objects.filter(instance_source__identifier=img.id,
                                             provider=provider)
         if not pm or len(pm) > 1:
             logger.debug("pm filter is bad!")
