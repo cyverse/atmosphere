@@ -73,7 +73,8 @@ class Provider(models.Model):
     active = models.BooleanField(default=True)
     public = models.BooleanField(default=False)
     auto_imaging = models.BooleanField(default=False)
-    over_allocation_action = models.ForeignKey("InstanceAction")
+    over_allocation_action = models.ForeignKey(
+        "InstanceAction", blank=True, null=True)
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
 

@@ -28,9 +28,4 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(blank=True, to='core.InstanceAction', null=True),
         ),
         migrations.RunPython(add_default_action, do_nothing),
-        migrations.AlterField(
-            model_name='provider',
-            name='over_allocation_action',
-            field=models.ForeignKey(to='core.InstanceAction', blank=True),
-        ),
     ]
