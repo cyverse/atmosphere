@@ -364,7 +364,9 @@ class AccountDriver():
         username = identity_creds["username"]
         password = identity_creds["password"]
         project_name = identity_creds["tenant_name"]
-        dns_nameservers = list(identity.provider.dns_server_ips.order_by('order'))
+        dns_nameservers = [
+            dns_server.ip_address for dns_server\
+            in identity.provider.dns_server_ips.order_by('order')]
         # Convert from libcloud names to openstack client names
         net_args = self._base_network_creds()
         return self.network_manager.create_project_network(
