@@ -61,6 +61,10 @@ class InstanceAction(models.Model):
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
 
+    def __unicode__(self):
+        return "%s" %\
+            (self.name,)
+
 
 class Instance(models.Model):
     """

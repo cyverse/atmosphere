@@ -63,7 +63,11 @@ class Provider(models.Model):
     Start date and end date are recorded for logging purposes
     """
     #CONSTANTS
-    ALLOWED_STATES = ["Suspend", "Stop", "Terminate", "Shelve"]
+    ALLOWED_STATES = [
+        "Suspend",
+        "Stop",
+        "Terminate",
+        "Shelve", "Shelve Offload"]
     #Fields
     uuid = models.CharField(max_length=36, unique=True, default=uuid4)
     location = models.CharField(max_length=256)

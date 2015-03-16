@@ -1,4 +1,4 @@
-import random
+import random, time
 from datetime import timedelta
 from django.core.exceptions import ObjectDoesNotExist
 import pytz
@@ -16,6 +16,7 @@ from core.models.instance import convert_esh_instance,\
 from core.models.size import convert_esh_size
 from allocation.models import Allocation, AllocationResult
 from service.cache import get_cached_instances, get_cached_driver
+from service.instance import suspend_instance, stop_instance, destroy_instance, shelve_instance, offload_instance
 from allocation.engine import calculate_allocation
 from django.conf import settings
 
@@ -185,17 +186,19 @@ def enforce_allocation_policy(identity, user):
     return provider_over_allocation_enforcement(identity, user)
 
 
-def _execute_provider_action(provider, driver, instance):
+def _execute_provider_action(provider, identity, user, driver, instance):
     try:
         action = provider.over_allocation_action.name
         if action == 'Suspend':
-            driver.suspend_instance(instance)
+            suspend_instance(driver, instance, provider.uuid, identity.uuid, user)
         elif action == 'Stop':
-            driver.stop_instance(instance)
+            stop_instance(driver, instance, provider.uuid, identity.uuid, user)
         elif action == 'Shelve':
-            driver._connection.ex_shelve_instance(instance)
+            shelve_instance(driver, instance, provider.uuid, identity.uuid, user)
+        elif action == 'Shelve Offload':
+            offload_instance(driver, instance, provider.uuid, identity.uuid, user)
         elif action == 'Terminate':
-            driver.destroy_instance(instance)
+            destroy_instance(identity.uuid, instance)
         else:
             raise Exception("Encountered Unknown Action Named %s" % action)
     except ObjectDoesNotExist:
@@ -211,13 +214,15 @@ def provider_over_allocation_enforcement(identity, user):
         try:
             if driver._is_active_instance(instance):
                 # Suspend active instances, update the task in the DB
-                _execute_provider_action(identity.provider, driver, instance)
+                # NOTE: identity.created_by COULD BE the Admin User, indicating that this action/InstanceHistory was
+                #       executed by the administrator.. Future Release Idea.
+                _execute_provider_action(identity.provider, identity, identity.created_by, driver, instance)
                 # NOTE: Intentionally added to allow time for
                 #      the Cloud to begin 'suspend' operation
                 #      before querying for the instance again.
                 #TODO: Instead: Add "wait_for" change from active to any terminal, non-active state?
-                time = random.uniform(2, 6)
-                time.sleep(time)
+                wait_time = random.uniform(2, 6)
+                time.sleep(wait_time)
                 updated_esh = driver.get_instance(instance.id)
                 convert_esh_instance(
                     driver, updated_esh,
