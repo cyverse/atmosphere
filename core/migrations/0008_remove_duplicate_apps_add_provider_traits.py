@@ -86,12 +86,15 @@ def add_instance_actions(Provider, InstanceAction, ProviderInstanceAction):
     InstanceAction.objects.get_or_create(name="Stop", description="""Stops an instance when it is in the 'active' State""")
     InstanceAction.objects.get_or_create(name="Resume", description="""Resumes an instance when it is in the 'suspended' State""")
     InstanceAction.objects.get_or_create(name="Suspend", description="""Suspends an instance when it is in the 'active' State""")
+    InstanceAction.objects.get_or_create(name="Terminate", description="""Destroys an in any non-error state. This is an irreversable action!""")
+    InstanceAction.objects.get_or_create(name="Shelve Offload", description="""Shelves an instance for long-term storage when it is in the 'active/shelved' State""")
     InstanceAction.objects.get_or_create(name="Shelve", description="""Shelves an instance when it is in the 'active' State""")
     InstanceAction.objects.get_or_create(name="Unshelve", description="""UnShelves an instance when it is in the 'shelved' State""")
     InstanceAction.objects.get_or_create(name="Reboot", description="""Reboots an instance when it is in ANY State""")
     InstanceAction.objects.get_or_create(name="Hard Reboot", description="""Hard Reboots an instance when it is in ANY State""")
     InstanceAction.objects.get_or_create(name="Resize", description="""Represents the Resize/Confirm_Resize/Revert_Resize operations""")
     InstanceAction.objects.get_or_create(name="Imaging", description="""Represents the ability to Image/Snapshot an instance""")
+    InstanceAction.objects.get_or_create(name="Terminate", description="""Represents the ability to Shutdown an instance""")
 
     instance_actions = InstanceAction.objects.all()
     for provider in Provider.objects.all():
