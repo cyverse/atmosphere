@@ -9,3 +9,4 @@ class ProjectVolume(models.Model):
 
     class Meta:
         db_table = 'project_volumes'
+        managed = False

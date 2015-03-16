@@ -5,6 +5,7 @@ Service Provider model for atmosphere.
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 from rtwo.provider import AWSProvider, EucaProvider, OSProvider
 from rtwo.provider import Provider as EshProvider
@@ -61,6 +62,13 @@ class Provider(models.Model):
     Inactive providers are shown as "Offline" in the UI and API requests.
     Start date and end date are recorded for logging purposes
     """
+    #CONSTANTS
+    ALLOWED_STATES = [
+        "Suspend",
+        "Stop",
+        "Terminate",
+        "Shelve", "Shelve Offload"]
+    #Fields
     uuid = models.CharField(max_length=36, unique=True, default=uuid4)
     location = models.CharField(max_length=256)
     description = models.TextField(blank=True)
@@ -69,8 +77,21 @@ class Provider(models.Model):
     active = models.BooleanField(default=True)
     public = models.BooleanField(default=False)
     auto_imaging = models.BooleanField(default=False)
+    over_allocation_action = models.ForeignKey(
+        "InstanceAction", blank=True, null=True)
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
+
+    def clean(self):
+        """
+        Don't allow 'non-terminal' InstanceAction
+        to be set as over_allocation_action
+        """
+        if self.over_allocation_action.name not in Provider.ALLOWED_STATES:
+            raise ValidationError(
+                "Instance action %s is not in ALLOWED_STATES for "
+                "Over allocation action. ALLOWED_STATES=%s" %
+                (self.over_allocation_action.name, Provider.ALLOWED_STATES))
 
     @classmethod
     def get_active(cls, provider_uuid=None, type_name=None):

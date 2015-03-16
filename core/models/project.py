@@ -25,9 +25,9 @@ class Project(models.Model):
     applications = models.ManyToManyField(Application, related_name="projects",
                                           blank=True)
     instances = models.ManyToManyField(Instance, related_name="projects",
-                                       blank=True, through='ProjectInstance')
+                                       blank=True)
     volumes = models.ManyToManyField(Volume, related_name="projects",
-                                     blank=True, through='ProjectVolume')
+                                     blank=True)
 
     def __unicode__(self):
         return "%s Owner:%s: Apps:%s Instances:%s Volumes:%s"\

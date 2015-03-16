@@ -1,6 +1,6 @@
-import random
+import random, time
 from datetime import timedelta
-
+from django.core.exceptions import ObjectDoesNotExist
 import pytz
 from django.db.models import Q
 from django.utils import timezone
@@ -16,6 +16,7 @@ from core.models.instance import convert_esh_instance,\
 from core.models.size import convert_esh_size
 from allocation.models import Allocation, AllocationResult
 from service.cache import get_cached_instances, get_cached_driver
+from service.instance import suspend_instance, stop_instance, destroy_instance, shelve_instance, offload_instance
 from allocation.engine import calculate_allocation
 from django.conf import settings
 
@@ -182,23 +183,46 @@ def enforce_allocation_policy(identity, user):
     2. Notify the 'ProviderAdministrator' that a user has exceeded
        their allocation, but that NO action has been taken.
     """
-    # Option1 - Suspend all instances.
-    return suspend_all_instances_for(identity, user)
+    return provider_over_allocation_enforcement(identity, user)
 
 
-def suspend_all_instances_for(identity, user):
+def _execute_provider_action(provider, identity, user, driver, instance):
+    try:
+        action = provider.over_allocation_action.name
+        if action == 'Suspend':
+            suspend_instance(driver, instance, provider.uuid, identity.uuid, user)
+        elif action == 'Stop':
+            stop_instance(driver, instance, provider.uuid, identity.uuid, user)
+        elif action == 'Shelve':
+            shelve_instance(driver, instance, provider.uuid, identity.uuid, user)
+        elif action == 'Shelve Offload':
+            offload_instance(driver, instance, provider.uuid, identity.uuid, user)
+        elif action == 'Terminate':
+            destroy_instance(identity.uuid, instance)
+        else:
+            raise Exception("Encountered Unknown Action Named %s" % action)
+    except ObjectDoesNotExist:
+        logger.debug("Provider %s - 'Do Nothing' for Over Allocation" % provider)
+        return
+
+
+def provider_over_allocation_enforcement(identity, user):
     driver = get_cached_driver(identity=identity)
     esh_instances = driver.list_instances()
+    #TODO: Parallelize this operation so you don't wait for larger instances to finish 'wait_for' task below..
     for instance in esh_instances:
         try:
             if driver._is_active_instance(instance):
                 # Suspend active instances, update the task in the DB
-                driver.suspend_instance(instance)
+                # NOTE: identity.created_by COULD BE the Admin User, indicating that this action/InstanceHistory was
+                #       executed by the administrator.. Future Release Idea.
+                _execute_provider_action(identity.provider, identity, identity.created_by, driver, instance)
                 # NOTE: Intentionally added to allow time for
                 #      the Cloud to begin 'suspend' operation
                 #      before querying for the instance again.
-                time = random.uniform(2, 6)
-                time.sleep(time)
+                #TODO: Instead: Add "wait_for" change from active to any terminal, non-active state?
+                wait_time = random.uniform(2, 6)
+                time.sleep(wait_time)
                 updated_esh = driver.get_instance(instance.id)
                 convert_esh_instance(
                     driver, updated_esh,
@@ -207,8 +231,9 @@ def suspend_all_instances_for(identity, user):
                     user)
         except Exception, e:
             # Raise ANY exception that doesn't say
-            # 'This instance is already suspended'
-            if 'in vm_state suspended' not in e.message:
+            # 'This instance is already in the requested VM state'
+            #NOTE: This is OpenStack specific
+            if 'in vm_state' not in e.message:
                 raise
     return True  # User was over_allocation
 

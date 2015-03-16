@@ -31,8 +31,6 @@ from atmosphere.settings import secrets
 
 from service.cache import get_cached_driver, invalidate_cached_instances
 from service.driver import _retrieve_source
-from service.quota import check_over_quota
-from service.monitoring import check_over_allocation
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
     VolumeAttachConflict, UnderThresholdError, ActionNotAllowed
@@ -100,6 +98,69 @@ def confirm_resize(esh_driver, esh_instance, provider_uuid, identity_uuid, user)
     esh_driver.confirm_resize_instance(esh_instance)
     #Double-Check we are counting on new size
     update_status(esh_driver, esh_instance.id, provider_uuid, identity_uuid, user)
+
+
+def stop_instance(esh_driver, esh_instance, provider_uuid, identity_uuid, user,
+                  reclaim_ip=True):
+    """
+
+    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    """
+    _permission_to_act(identity_uuid, "Stop")
+    if reclaim_ip:
+        remove_ips(esh_driver, esh_instance)
+    stopped = esh_driver.stop_instance(esh_instance)
+    if reclaim_ip:
+        remove_network(esh_driver, identity_uuid)
+    update_status(esh_driver, esh_instance.id, provider_uuid, identity_uuid, user)
+    invalidate_cached_instances(
+        identity=CoreIdentity.objects.get(uuid=identity_uuid))
+
+
+def start_instance(esh_driver, esh_instance,
+                    provider_uuid, identity_uuid, user,
+                   restore_ip=True, update_meta=True):
+    """
+
+    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    """
+    from service.tasks.driver import update_metadata
+    #Don't check capacity because.. I think.. its already being counted.
+    #admin_capacity_check(provider_uuid, esh_instance.id)
+    _permission_to_act(identity_uuid, "Start")
+    if restore_ip:
+        restore_network(esh_driver, esh_instance, identity_uuid)
+        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True)
+
+    needs_fixing = esh_instance.extra['metadata'].get('iplant_suspend_fix')
+    logger.info("Instance %s needs to hard reboot instead of start" %
+            esh_instance.id)
+    if needs_fixing:
+        return _repair_instance_networking(esh_driver, esh_instance, provider_uuid, identity_uuid)
+
+    esh_driver.start_instance(esh_instance)
+    if restore_ip:
+        deploy_task.apply_async(countdown=10)
+    update_status(esh_driver, esh_instance.id, provider_uuid, identity_uuid, user)
+    invalidate_cached_instances(identity=CoreIdentity.objects.get(uuid=identity_uuid))
+
+
+def suspend_instance(esh_driver, esh_instance,
+                     provider_uuid, identity_uuid,
+                     user, reclaim_ip=True):
+    """
+
+    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    """
+    _permission_to_act(identity_uuid, "Suspend")
+    if reclaim_ip:
+        remove_ips(esh_driver, esh_instance)
+    suspended = esh_driver.suspend_instance(esh_instance)
+    if reclaim_ip:
+        remove_network(esh_driver, identity_uuid)
+    update_status(esh_driver, esh_instance.id, provider_uuid, identity_uuid, user)
+    invalidate_cached_instances(identity=CoreIdentity.objects.get(uuid=identity_uuid))
+    return suspended
 
 
 # Networking specific
@@ -205,6 +266,7 @@ def _get_network_id(esh_driver, esh_instance):
                         "for node %s" % esh_instance)
     return network_id
 
+# Celery Chain-Starters and Tasks
 
 def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
     """
@@ -285,69 +347,6 @@ def restore_ip_chain(esh_driver, esh_instance, redeploy=False,
                           esh_instance.id)
         fixed_ip_task.link(floating_ip_task)
     return init_task
-
-
-def stop_instance(esh_driver, esh_instance, provider_uuid, identity_uuid, user,
-                  reclaim_ip=True):
-    """
-
-    raise OverQuotaError, OverAllocationError, InvalidCredsError
-    """
-    _permission_to_act(identity_uuid, "Stop")
-    if reclaim_ip:
-        remove_ips(esh_driver, esh_instance)
-    stopped = esh_driver.stop_instance(esh_instance)
-    if reclaim_ip:
-        remove_network(esh_driver, identity_uuid)
-    update_status(esh_driver, esh_instance.id, provider_uuid, identity_uuid, user)
-    invalidate_cached_instances(
-        identity=CoreIdentity.objects.get(uuid=identity_uuid))
-
-
-def start_instance(esh_driver, esh_instance,
-                    provider_uuid, identity_uuid, user,
-                   restore_ip=True, update_meta=True):
-    """
-
-    raise OverQuotaError, OverAllocationError, InvalidCredsError
-    """
-    from service.tasks.driver import update_metadata
-    #Don't check capacity because.. I think.. its already being counted.
-    #admin_capacity_check(provider_uuid, esh_instance.id)
-    _permission_to_act(identity_uuid, "Start")
-    if restore_ip:
-        restore_network(esh_driver, esh_instance, identity_uuid)
-        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True)
-
-    needs_fixing = esh_instance.extra['metadata'].get('iplant_suspend_fix')
-    logger.info("Instance %s needs to hard reboot instead of start" %
-            esh_instance.id)
-    if needs_fixing:
-        return _repair_instance_networking(esh_driver, esh_instance, provider_uuid, identity_uuid)
-
-    esh_driver.start_instance(esh_instance)
-    if restore_ip:
-        deploy_task.apply_async(countdown=10)
-    update_status(esh_driver, esh_instance.id, provider_uuid, identity_uuid, user)
-    invalidate_cached_instances(identity=CoreIdentity.objects.get(uuid=identity_uuid))
-
-
-def suspend_instance(esh_driver, esh_instance,
-                     provider_uuid, identity_uuid,
-                     user, reclaim_ip=True):
-    """
-
-    raise OverQuotaError, OverAllocationError, InvalidCredsError
-    """
-    _permission_to_act(identity_uuid, "Suspend")
-    if reclaim_ip:
-        remove_ips(esh_driver, esh_instance)
-    suspended = esh_driver.suspend_instance(esh_instance)
-    if reclaim_ip:
-        remove_network(esh_driver, identity_uuid)
-    update_status(esh_driver, esh_instance.id, provider_uuid, identity_uuid, user)
-    invalidate_cached_instances(identity=CoreIdentity.objects.get(uuid=identity_uuid))
-    return suspended
 
 
 def admin_capacity_check(provider_uuid, instance_id):
@@ -435,6 +434,98 @@ def resume_instance(esh_driver, esh_instance,
     if restore_ip:
         deploy_task.apply_async(countdown=10)
 
+
+def shelve_instance(esh_driver, esh_instance,
+                     provider_uuid, identity_uuid,
+                     user, reclaim_ip=True):
+    """
+
+    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    """
+    from service.tasks.driver import _update_status_log
+    _permission_to_act(identity_uuid, "Shelve")
+    _update_status_log(esh_instance, "Shelving Instance")
+    if reclaim_ip:
+        remove_ips(esh_driver, esh_instance)
+    shelved = esh_driver._connection.ex_shelve_instance(esh_instance)
+    if reclaim_ip:
+        remove_network(esh_driver, identity_uuid)
+    update_status(esh_driver, esh_instance.id, provider_uuid, identity_uuid, user)
+    invalidate_cached_instances(identity=CoreIdentity.objects.get(uuid=identity_uuid))
+    return shelved
+
+
+def unshelve_instance(esh_driver, esh_instance,
+                    provider_uuid, identity_uuid,
+                    user, restore_ip=True,
+                    update_meta=True):
+    """
+    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    """
+    from service.tasks.driver import _update_status_log
+    _permission_to_act(identity_uuid, "Unshelve")
+    _update_status_log(esh_instance, "Unshelving Instance")
+    size = _get_size(esh_driver, esh_instance)
+    check_quota(user.username, identity_uuid, size, resuming=True)
+    admin_capacity_check(provider_uuid, esh_instance.id)
+    if restore_ip:
+        restore_network(esh_driver, esh_instance, identity_uuid)
+        #restore_instance_port(esh_driver, esh_instance)
+        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True,
+                #NOTE: after removing FIXME, This parameter can be removed as well
+                core_identity_uuid=identity_uuid)
+
+    unshelved = esh_driver._connection.ex_unshelve_instance(esh_instance)
+    if restore_ip:
+        deploy_task.apply_async(countdown=10)
+    return unshelved
+
+
+def offload_instance(esh_driver, esh_instance,
+                     provider_uuid, identity_uuid,
+                     user, reclaim_ip=True):
+    """
+
+    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    """
+    from service.tasks.driver import _update_status_log
+    _permission_to_act(identity_uuid, "Shelve Offload")
+    _update_status_log(esh_instance, "Shelve-Offloading Instance")
+    if reclaim_ip:
+        remove_ips(esh_driver, esh_instance)
+    offloaded = esh_driver._connection.ex_shelve_offload_instance(esh_instance)
+    if reclaim_ip:
+        remove_network(esh_driver, identity_uuid)
+    update_status(esh_driver, esh_instance.id, provider_uuid, identity_uuid, user)
+    invalidate_cached_instances(identity=CoreIdentity.objects.get(uuid=identity_uuid))
+    return offloaded
+
+
+def destroy_instance(identity_uuid, instance_alias):
+    identity = CoreIdentity.objects.get(uuid=identity_uuid)
+    esh_driver = get_cached_driver(identity=identity)
+    instance = esh_driver.get_instance(instance_alias)
+    #Bail if instance doesnt exist
+    if not instance:
+        return None
+    #_check_volume_attachment(esh_driver, instance)
+    if isinstance(esh_driver, OSDriver):
+        try:
+            # Openstack: Remove floating IP first
+            esh_driver._connection.ex_disassociate_floating_ip(instance)
+        except Exception as exc:
+            # Ignore 'safe' errors related to
+            # no floating IP
+            # or no Volume capabilities.
+            if not ("floating ip not found" in exc.message
+                    or "422 Unprocessable Entity Floating ip" in exc.message
+                    or "500 Internal Server Error" in exc.message):
+                raise
+    node_destroyed = esh_driver._connection.destroy_node(instance)
+    return node_destroyed
+
+
+# Private methods and helpers
 def admin_get_instance(esh_driver, instance_id):
     instance_list = esh_driver.list_all_instances()
     esh_instance = [instance for instance in instance_list if
@@ -478,30 +569,6 @@ def get_core_instances(identity_uuid):
                                            identity.created_by)
                       for esh_instance in instances]
     return core_instances
-
-
-def destroy_instance(identity_uuid, instance_alias):
-    identity = CoreIdentity.objects.get(uuid=identity_uuid)
-    esh_driver = get_cached_driver(identity=identity)
-    instance = esh_driver.get_instance(instance_alias)
-    #Bail if instance doesnt exist
-    if not instance:
-        return None
-    #_check_volume_attachment(esh_driver, instance)
-    if isinstance(esh_driver, OSDriver):
-        try:
-            # Openstack: Remove floating IP first
-            esh_driver._connection.ex_disassociate_floating_ip(instance)
-        except Exception as exc:
-            # Ignore 'safe' errors related to
-            # no floating IP
-            # or no Volume capabilities.
-            if not ("floating ip not found" in exc.message
-                    or "422 Unprocessable Entity Floating ip" in exc.message
-                    or "500 Internal Server Error" in exc.message):
-                raise
-    node_destroyed = esh_driver._connection.destroy_node(instance)
-    return node_destroyed
 
 
 def launch_instance(user, provider_uuid, identity_uuid,
@@ -785,7 +852,7 @@ def check_application_threshold(username, identity_uuid, esh_size, machine_alias
     core_identity = CoreIdentity.objects.get(uuid=identity_uuid)
     application = Application.objects.filter(
         providermachine__instance_source__identifier=machine_alias,
-        providermachine__provider=core_identity.provider).distinct().get()
+        providermachine__instance_source__provider=core_identity.provider).distinct().get()
     threshold = application.get_threshold()
     if not threshold:
         return
@@ -804,6 +871,8 @@ def check_application_threshold(username, identity_uuid, esh_size, machine_alias
 
 
 def check_quota(username, identity_uuid, esh_size, resuming=False):
+    from service.monitoring import check_over_allocation
+    from service.quota import check_over_quota
     (over_quota, resource,
      requested, used, allowed) = check_over_quota(username,
                                                   identity_uuid,
@@ -873,45 +942,6 @@ def _to_lc_network(driver, network, subnet):
              "subnet": subnet})
     return lc_network
 
-
-
-
-#def launch_esh_instance(driver, source_alias, size_alias, core_identity,
-#        name=None, username=None, using_admin=False, *args, **kwargs):
-#
-#    """
-#    return 3-tuple: (esh_instance, instance_token, instance_password)
-#    """
-#    from service import task
-#    try:
-#        #create a reference to this attempted instance launch.
-#        instance_token = str(uuid.uuid4())
-#        #create a unique one-time password for instance root user
-#        instance_password = str(uuid.uuid4())
-#
-#        #TODO: Mock these for faster launch performance
-#
-#        #Gather the machine object
-#        boot_source = driver.get_machine(source_alias)
-#        if not boot_source:
-#            raise Exception(
-#                "Machine %s could not be located with this driver"
-#                % source_alias)
-#
-#        #Gather the size object
-#        size = driver.get_size(size_alias)
-#        if not size:
-#            raise Exception(
-#                "Size %s could not be located with this driver" % size_alias)
-#
-#        if not username:
-#            username = driver.identity.user.username
-#        if not name:
-#            name = 'Instance of %s' % boot_source.alias
-#
-#    except Exception as e:
-#        logger.exception(e)
-#        raise
 
 
 def _provision_openstack_instance(core_identity, admin_user=False):
@@ -1101,54 +1131,3 @@ def _check_volume_attachment(driver, instance):
             if instance.alias == attachment['serverId']:
                 raise VolumeAttachConflict(instance.alias, vol.alias)
     return False
-
-
-def shelve_instance(esh_driver, esh_instance,
-                     provider_uuid, identity_uuid,
-                     user, reclaim_ip=True):
-    """
-
-    raise OverQuotaError, OverAllocationError, InvalidCredsError
-    """
-    from service.tasks.driver import _update_status_log
-    _permission_to_act(identity_uuid, "Shelve")
-    _update_status_log(esh_instance, "Shelving Instance")
-    if reclaim_ip:
-        remove_ips(esh_driver, esh_instance)
-    shelved = esh_driver._connection.ex_shelve_instance(esh_instance)
-    if reclaim_ip:
-        remove_network(esh_driver, identity_uuid)
-    update_status(esh_driver, esh_instance.id, provider_uuid, identity_uuid, user)
-    invalidate_cached_instances(identity=CoreIdentity.objects.get(uuid=identity_uuid))
-    return shelved
-
-
-def unshelve_instance(esh_driver, esh_instance,
-                    provider_uuid, identity_uuid,
-                    user, restore_ip=True,
-                    update_meta=True):
-    """
-    raise OverQuotaError, OverAllocationError, InvalidCredsError
-    """
-    from service.tasks.driver import _update_status_log
-    _permission_to_act(identity_uuid, "Unshelve")
-    _update_status_log(esh_instance, "Unshelving Instance")
-    size = _get_size(esh_driver, esh_instance)
-    check_quota(user.username, identity_uuid, size, resuming=True)
-    admin_capacity_check(provider_uuid, esh_instance.id)
-    if restore_ip:
-        restore_network(esh_driver, esh_instance, identity_uuid)
-        #restore_instance_port(esh_driver, esh_instance)
-        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True,
-                #NOTE: after removing FIXME, This parameter can be removed as well
-                core_identity_uuid=identity_uuid)
-
-    unshelved = esh_driver._connection.ex_unshelve_instance(esh_instance)
-    if restore_ip:
-        deploy_task.apply_async(countdown=10)
-    return unshelved
-
-
-def offload_instance(esh_driver, esh_instance):
-    offloaded = esh_driver._connection.ex_shelve_offload_instance(esh_instance)
-    return offloaded
