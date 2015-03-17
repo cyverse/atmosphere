@@ -186,27 +186,36 @@ def enforce_allocation_policy(identity, user):
     return provider_over_allocation_enforcement(identity, user)
 
 
-def _execute_provider_action(provider, identity, user, driver, instance):
+def _execute_provider_action(identity, user, instance, action_name):
+    driver = get_cached_driver(identity=identity)
     try:
-        action = provider.over_allocation_action.name
-        if action == 'Suspend':
-            suspend_instance(driver, instance, provider.uuid, identity.uuid, user)
-        elif action == 'Stop':
-            stop_instance(driver, instance, provider.uuid, identity.uuid, user)
-        elif action == 'Shelve':
-            shelve_instance(driver, instance, provider.uuid, identity.uuid, user)
-        elif action == 'Shelve Offload':
-            offload_instance(driver, instance, provider.uuid, identity.uuid, user)
-        elif action == 'Terminate':
+        if not action_name:
+            logger.debug("No 'action_name' provided")
+            return
+        elif action_name == 'Suspend':
+            suspend_instance(driver, instance, identity.provider.uuid, identity.uuid, user)
+        elif action_name == 'Stop':
+            stop_instance(driver, instance, identity.provider.uuid, identity.uuid, user)
+        elif action_name == 'Shelve':
+            shelve_instance(driver, instance, identity.provider.uuid, identity.uuid, user)
+        elif action_name == 'Shelve Offload':
+            offload_instance(driver, instance, identity.provider.uuid, identity.uuid, user)
+        elif action_name == 'Terminate':
             destroy_instance(identity.uuid, instance)
         else:
             raise Exception("Encountered Unknown Action Named %s" % action)
     except ObjectDoesNotExist:
+        # This may be unreachable when null,blank = True
         logger.debug("Provider %s - 'Do Nothing' for Over Allocation" % provider)
         return
 
 
 def provider_over_allocation_enforcement(identity, user):
+    provider = identity.provider
+    action = provider.over_allocation_action
+    if not action:
+            logger.debug("No 'over_allocation_action' provided for %s" % provider)
+            return False
     driver = get_cached_driver(identity=identity)
     esh_instances = driver.list_instances()
     #TODO: Parallelize this operation so you don't wait for larger instances to finish 'wait_for' task below..
@@ -216,7 +225,7 @@ def provider_over_allocation_enforcement(identity, user):
                 # Suspend active instances, update the task in the DB
                 # NOTE: identity.created_by COULD BE the Admin User, indicating that this action/InstanceHistory was
                 #       executed by the administrator.. Future Release Idea.
-                _execute_provider_action(identity.provider, identity, identity.created_by, driver, instance)
+                _execute_provider_action(identity, identity.created_by, instance, action.name)
                 # NOTE: Intentionally added to allow time for
                 #      the Cloud to begin 'suspend' operation
                 #      before querying for the instance again.
