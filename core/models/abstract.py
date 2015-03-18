@@ -9,11 +9,12 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+from core.exceptions import InvalidMembership, ProviderLimitExceeded
 from core.query import only_current
 from core.models.identity import Identity
 from core.models.instance_source import InstanceSource
 from core.models.provider import Provider
-from core.models.status_type import StatusType
+from core.models.status_type import StatusType, get_status_type
 from core.models.user import AtmosphereUser as User
 
 UNRESOLVED_STATES = ["pending", "failed"]
@@ -24,7 +25,7 @@ class BaseRequest(models.Model):
     Base model which represents a request object
     """
     uuid = models.CharField(max_length=36, default=uuid4)
-    status = models.ForeignKey(StatusType)
+    status = models.ForeignKey(StatusType, default=get_status_type)
 
     # Associated creator and identity
     created_by = models.ForeignKey(User)
@@ -38,6 +39,19 @@ class BaseRequest(models.Model):
 
     class Meta:
         abstract = True
+
+    def save(self, *args, **kwargs):
+        """
+        Only allow one active request per provider
+        """
+        if not self.pk and self.is_active(self.membership):
+            raise ProviderLimitExceeded("The number of open requests has been exceeded.")
+
+        if not self.membership.is_member(self.created_by):
+            raise InvalidMembership("This membership does not belong to the user")
+
+        super(BaseRequest, self).save(*args, **kwargs)
+
 
     @classmethod
     def is_active(cls, identity_membership):
