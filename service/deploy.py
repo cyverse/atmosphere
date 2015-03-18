@@ -1,26 +1,28 @@
 """
 Deploy methods for Atmosphere
 """
+from functools import wraps
+import os
 from os.path import basename
+import sys
 import time
 
 from django.utils.timezone import datetime
+
+import subspace
 
 from libcloud.compute.deployment import Deployment
 from libcloud.compute.deployment import ScriptDeployment
 from libcloud.compute.deployment import MultiStepDeployment
 
 from threepio import logger
+from threepio import logging
+
+from authentication.protocol import ldap
 
 from atmosphere import settings
 from atmosphere.settings import secrets
 
-from authentication.protocol import ldap
-
-
-#
-# Deployment Classes
-#
 
 class WriteFileDeployment(Deployment):
     def __init__(self, full_text, target):
@@ -37,6 +39,7 @@ class WriteFileDeployment(Deployment):
     def run(self, node, client):
         client.put(self.target,  contents=self.full_text, mode='w')
         return node
+
 
 class LoggedScriptDeployment(ScriptDeployment):
     def __init__(self, script, name=None, delete=False, logfile=None,
@@ -81,9 +84,37 @@ class LoggedScriptDeployment(ScriptDeployment):
         return node
 
 
-#
-# Specific Deployments
-#
+def deploy_to(instance_ip):
+    """
+    Use service.ansible to deploy to an instance.
+    """
+    configure_ansible()
+    my_limit = {"hostname": build_host_name(instance_ip), "ip": instance_ip}
+    silverlinings_the_player=os.path.join(
+        settings.PROJECT_ROOT,
+        "service/ansible/playbooks/atmo_init_deploy.yml")
+    host_list=os.path.join(
+        settings.PROJECT_ROOT,
+        "service/ansible/hosts")
+    pb = subspace.PlayBook.factory(silverlinings_the_player,
+                                   host_list=host_list, limit=my_limit)
+    pb.run()
+    return pb
+
+
+def configure_ansible():
+    """
+    Configure ansible to work with service.ansible.
+    """
+    subspace.constants("HOST_KEY_CHECKING", False)
+    subspace.constants("DEFAULT_ROLES_PATH", "/opt/dev/atmosphere/service/ansible/roles")
+    subspace.use_logger(logger)
+
+
+def build_host_name(ip):
+    list_of_subnet = ip.split(".")
+    return "vm%s-%s" % (list_of_subnet[2], list_of_subnet[3])
+
 
 def sync_instance():
     return ScriptDeployment("sync", name="./deploy_sync_instance.sh")

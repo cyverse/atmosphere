@@ -801,9 +801,6 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         logger.exception(exc)
         _deploy_init_to.retry(exc=exc)
     try:
-        #kwargs = _generate_ssh_kwargs()
-        #kwargs.update({'deploy': msd})
-        #driver.deploy_to(instance, **kwargs)
         ansible_deploy_to(instance.ip)
         _update_status_log(instance, "Ansible Finished for %s." % instance.ip)
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
