@@ -26,7 +26,7 @@ def main():
     accounts = OSAccountDriver(provider)
     for image_id in images:
         mr = MachineRequest.objects.get(new_machine__identifier=image_id)
-        glance_image = accounts.image_manager.get_image(image_id)
+        glance_image = accounts.get_image(image_id)
         if not glance_image.properties.has_key('kernel_id')\
                 or not glance_image.properties.has_key('ramdisk_id'):
             print "Image %s is missing kernel and/or ramdisk ..." % (image_id,),
@@ -34,7 +34,7 @@ def main():
 
 def fix_image(accounts, glance_image, mr):
     old_machine_id = mr.instance.provider_machine.identifier
-    old_glance_image = accounts.image_manager.get_image(old_machine_id)
+    old_glance_image = accounts.get_image(old_machine_id)
     if not old_glance_image.properties.has_key('kernel_id')\
             or not old_glance_image.properties.has_key('ramdisk_id'):
         print "Parent image %s is also missing kernel/ramdisk. OK!"\

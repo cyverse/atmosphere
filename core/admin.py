@@ -29,7 +29,6 @@ from core.models.tag import Tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
 
-from core.application import save_app_to_metadata
 from threepio import logger
 
 def private_object(modeladmin, request, queryset):
@@ -202,18 +201,6 @@ class ApplicationAdmin(admin.ModelAdmin):
     search_fields = ["name", "id"]
     list_display = ["uuid", "_current_machines", "name", "private", "created_by", "start_date", "end_date" ]
     filter_vertical = ["tags",]
-    def save_model(self, request, obj, form, change):
-        user = request.user
-        application = form.save(commit=False)
-        application.save()
-        form.save_m2m()
-        if change:
-            try:
-                save_app_to_metadata(application)
-            except Exception, e:
-                logger.exception("Could not update metadata for application %s"
-                                 % application)
-        return application
 
 
 class CredentialInline(admin.TabularInline):

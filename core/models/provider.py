@@ -176,28 +176,19 @@ class Provider(models.Model):
         return cred_map
 
     def list_admins(self):
-        return [admin.identity for admin in self.accountprovider_set.all()]
+        #TODO: Can probably pull this using a smarter Django Query
+        return [adm.identity for adm in self.accountprovider_set.all()]
 
     def list_admin_names(self):
-        return [admin.identity.created_by.username for admin in self.accountprovider_set.all()]
+        #TODO: Can probably pull this using a smarter Django Query
+        return [adm.identity.created_by.username for adm in self.accountprovider_set.all()]
 
-    def get_admin_identity(self):
+    @property
+    def admin(self):
         provider_admins = self.list_admins()
         if provider_admins:
           return provider_admins[0]
-        #TODO: Rely on the account provider instead
-        #NOTE: Marked for removal
-        from core.models import Identity
-        from core.models import AtmosphereUser as User
-        from atmosphere.settings import secrets
-        if self.location.lower() == 'openstack':
-            admin = User.objects.get(username=secrets.OPENSTACK_ADMIN_KEY)
-        elif self.location.lower() == 'eucalyptus':
-            admin = User.objects.get(username='admin')
-        else:
-            raise Exception("Could not find admin user for provider %s" % self)
-
-        return Identity.objects.get(provider=self, created_by=admin)
+        return None
 
     def __unicode__(self):
         return "%s:%s" % (self.id, self.location)

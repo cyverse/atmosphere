@@ -20,8 +20,6 @@ from core.models.tag import Tag, updateTags
 from core.fields import VersionNumberField, VersionNumber
 
 from core.metadata import _get_owner_identity
-from core.application import get_os_account_driver, write_app_to_metadata,\
-                             has_app_metadata, get_app_metadata
 
 
 class ProviderMachine(BaseSource):
@@ -40,6 +38,13 @@ class ProviderMachine(BaseSource):
     @property
     def name(self):
         return self.application.name
+
+    @classmethod
+    def test_existence(cls, provider, identifier):
+        """
+        Fastest DB Query for existence testing
+        """
+        return ProviderMachine.objects.filter(identifier=identifier, provider=provider).count()
 
     def to_dict(self):
         machine = {
@@ -66,11 +71,11 @@ class ProviderMachine(BaseSource):
         """
         try:
             accounts = get_account_driver(self.provider)
-            image = accounts.image_manager.get_image(self.identifier)
-            accounts.image_manager.update_image(image, **updates)
+            image = accounts.get_image(self.identifier)
+            accounts.image_manager.update_image(image, **image_updates)
         except Exception as ex:
             logger.warn("Image Update Failed for %s on Provider %s"
-                        % (self.identifier, provider))
+                        % (self.identifier, self.instance_source.provider))
 
     def update_version(self, version):
         self.version = version
@@ -173,8 +178,8 @@ def get_cached_machine(provider_alias, provider_id):
     return cached_mach
 
 
-def get_or_create_provider_machine(image_id, machine_name, provider_uuid,
-                          app=None, metadata={}):
+def get_or_create_provider_machine(image_id, machine_name,
+                                   provider_uuid, app=None):
     """
     Guaranteed Return of ProviderMachine.
     1. Load provider machine from DB
@@ -188,15 +193,13 @@ def get_or_create_provider_machine(image_id, machine_name, provider_uuid,
     if provider_machine:
         return provider_machine
     if not app:
-        app = get_application(image_id, machine_name, app_uuid=metadata.get('uuid'))
+        app = get_application(provider_uuid, image_id, machine_name)
 
-    #ASSERT: If no application here, this is a new image
+    #ASSERT: If no application here, this is a new image (Found on an instance)
     # that was created on a seperate server. We need to make a new one.
     if not app:
-        app = create_application(image_id, provider_uuid, machine_name)
-    return create_provider_machine(
-            machine_name, image_id, provider_uuid,
-            app=app, metadata=metadata)
+        app = create_application(provider_uuid, image_id, machine_name)
+    return create_provider_machine(image_id, provider_uuid, app)
 
 def _extract_tenant_name(identity):
     tenant_name = identity.get_credential('ex_tenant_name')
@@ -224,7 +227,7 @@ def update_application_owner(application, identity):
     for provider_machine in all_pms:
         accounts = get_os_account_driver(provider_machine.provider)
         image_id = provider_machine.instance_source.identifier
-        image = accounts.image_manager.get_image(image_id)
+        image = accounts.get_image(image_id)
         if not image:
             continue
         tenant_id = accounts.get_project(tenant_name).id
@@ -236,33 +239,80 @@ def update_application_owner(application, identity):
         print "Removed access to %s for %s" % (image_id, old_tenant_name)
 
 
-def create_provider_machine(machine_name, image_id, provider_uuid, app,
-                            metadata={}):
-    #Attempt to match machine by provider alias
-    #Admin identity used until the real owner can be identified.
+def provider_machine_update_hook(new_machine, provider_uuid, identifier):
+    """
+    RULES:
+    #1. READ operations ONLY!
+    #2. FROM Cloud --> ProviderMachine ONLY!
+    """
+    from service.openstack import glance_update_machine
     provider = Provider.objects.get(uuid=provider_uuid)
+    if provider.get_type_name().lower() == 'openstack':
+        glance_update_machine(new_machine)
+    else:
+        logger.warn("machine data for %s is likely incomplete. Create a new hook for %s." % provider)
 
-    #TODO: Read admin owner from location IFF eucalyptus
-    machine_owner = _get_owner_identity(metadata.get('owner',''), provider_uuid)
 
-    logger.debug("Provider %s" % provider)
-    logger.debug("App %s" % app)
+def create_provider_machine(identifier, provider_uuid, app,
+                            created_by_identity=None, version="1.0"):
+    # Attempt to match machine by provider alias
+    # Admin identity used until the real owner can be identified.
+    provider = Provider.objects.get(uuid=provider_uuid)
+    if not created_by_identity:
+        created_by_identity = provider.admin
 
     source = InstanceSource.objects.create(
-        identifier=image_id,
-        created_by=machine_owner.created_by,
+        identifier=identifier,
+        created_by=created_by_identity.created_by,
         provider=provider,
-        created_by_identity=machine_owner,
+        created_by_identity=created_by_identity,
     )
-
     provider_machine = ProviderMachine.objects.create(
+        instance_source=source,
         application=app,
-        version=metadata.get('version', "1.0"),
-        instance_source=source
+        version=version,
     )
+    provider_machine_update_hook(provider_machine, provider_uuid, identifier)
     logger.info("New ProviderMachine created: %s" % provider_machine)
     add_to_cache(provider_machine)
     return provider_machine
+
+
+def _username_lookup(provider_uuid, username):
+    try:
+        return Identity.objects.get(
+            provider__uuid=provider_uuid,
+            created_by__username=username)
+    except Identity.DoesNotExist:
+        return None
+
+
+def update_provider_machine(provider_machine, new_created_by_identity=None, new_created_by=None, new_application=None, new_version=None):
+    if new_created_by:
+        provider_machine.created_by = new_created_by
+    if new_created_by_identity:
+        provider_machine.created_by_identity = new_created_by_identity
+    if new_application:
+        provider_machine.application = new_application
+    if new_version:
+        provider_machine.version = new_version
+    provider_machine.save()
+    #provider_machine_create_hook(provider_machine)
+
+
+def provider_machine_create_hook(provider_machine):
+    """
+    RULES:
+    #1. WRITE operations ONLY!
+    #2. FROM ProviderMachine --> Cloud ONLY!
+    """
+    from service.openstack import glance_write_machine
+    provider = provider_machine.instance_source.provider
+    if provider.get_type_name().lower() == 'openstack':
+        glance_write_machine(provider_machine)
+    else:
+        logger.warn("Create a new write hook for %s to keep cloud objects up to date." % provider)
+
 
 
 def add_to_cache(provider_machine):
@@ -275,54 +325,6 @@ def add_to_cache(provider_machine):
     return provider_machine
 
 
-def _check_for_metadata_update(esh_machine, provider_uuid):
-    """
-    In this method, we look for specific metadata on an 'esh_machine'
-    IF we find the data we are looking for (like application_uuid)
-    and we assume that OpenStack is 'the Authority' on this information,
-    We can use that to Update/Bootstrap our DB values about the specific
-    application and provider machine version.
-    """
-    name = esh_machine.name
-    alias = esh_machine.alias
-    if not esh_machine._image:
-        metadata = {}
-    else:
-        metadata = esh_machine._image.extra.get('metadata',{})
-    #TODO: lookup the line below and find the 'real' test conditions.
-    if metadata and False and has_app_metadata(metadata):
-        #USE CASE: Application data exists on the image
-        # and may exist on this DB
-        app = get_application(alias, name, metadata.get('application_uuid'))
-        if not app:
-            app_kwargs = get_app_metadata(metadata, provider_uuid)
-            logger.debug("Creating Application for Image %s "
-                         "(Based on Application data: %s)"
-                         % (alias, app_kwargs))
-            app = create_application(alias, provider_uuid, **app_kwargs)
-        provider_machine = get_or_create_provider_machine(alias, name, provider_uuid,
-                                             app=app, metadata=metadata)
-        #If names conflict between OpenStack and Database, choose OpenStack.
-        if esh_machine._image and app.name != name:
-            logger.debug("Name Conflict! Machine %s named %s, Application named %s"
-                         % (alias, name, app.name))
-            app.name = name
-            app.save()
-    else:
-        #USE CASE: Application data does NOT exist,
-        # This machine is assumed to be its own application, so run the
-        # machine alias to retrieve any existing application.
-        # otherwise create a new application with the same name as the machine
-        provider_machine = _load_machine(
-                esh_machine, provider_uuid)
-    #TODO: some test to verify when we should be 'pushing back' to cloud
-    #push_metadata = True
-    #if push_metadata and hasattr(esh_driver._connection,
-    #                             'ex_set_image_metadata'):
-    #    logger.debug("Writing App data for Image %s:%s" % (alias, app.name))
-    #    write_app_to_metadata(esh_driver, provider_machine)
-    return provider_machine
-
 def get_provider_machine(identifier, provider_uuid):
     try:
         source = InstanceSource.objects.get(
@@ -334,10 +336,10 @@ def get_provider_machine(identifier, provider_uuid):
 def _load_machine(esh_machine, provider_uuid):
     name = esh_machine.name
     alias = esh_machine.alias
-    app = get_application(alias, name)
+    app = get_application(provider_uuid, alias, name)
     if not app:
         logger.debug("Creating Application for Image %s" % (alias, ))
-        app = create_application(alias, provider_uuid, name)
+        app = create_application(provider_uuid, alias, name)
     #Using what we know about our (possibly new) application
     #and load (or possibly create) the provider machine
     provider_machine = get_or_create_provider_machine(
@@ -373,7 +375,7 @@ def _check_project(core_application, user):
 
 
 def _convert_from_instance(esh_driver, provider_uuid, image_id):
-    provider_machine = get_or_create_provider_machine(image_id, 'Unknown Image',
+    provider_machine = get_or_create_provider_machine(image_id, 'Imported Machine %s' % image_id,
             provider_uuid)
     return provider_machine
 

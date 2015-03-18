@@ -42,12 +42,10 @@ def provider_filtered_machines(request, provider_uuid,
     default filtering method.
     """
     try:
-        logger.debug(request)
-        logger.debug("Rahr 0.")
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        logger.debug(esh_driver)
     except:
-        logger.debug("Rahr.")
-    logger.debug(esh_driver)
+        esh_driver = None
     if not esh_driver:
         return invalid_creds(provider_uuid, identity_uuid)
     return list_filtered_machines(esh_driver, provider_uuid, request_user)
@@ -56,17 +54,23 @@ def provider_filtered_machines(request, provider_uuid,
 def list_filtered_machines(esh_driver, provider_uuid, request_user=None):
     esh_machine_list = esh_driver.list_machines()
     #logger.info("Total machines from esh:%s" % len(esh_machine_list))
+
+    #TODO: I hate this. Make this black_list on MACHINE TYPE ari/aki/eri/eki instead. - SG
     esh_machine_list = esh_driver.filter_machines(
         esh_machine_list,
-        black_list=['eki-', 'eri-'])
+        black_list=['eki-', 'eri-', 'aki-', 'ari-'])
+
     #logger.info("Filtered machines from esh:%s" % len(esh_machine_list))
+
     core_machine_list = [convert_esh_machine(esh_driver, mach,
                                              provider_uuid, request_user)
                          for mach in esh_machine_list]
     #logger.info("Core machines :%s" % len(core_machine_list))
+
     filtered_machine_list = [core_mach for core_mach in core_machine_list
                              if filter_core_machine(core_mach)]
     #logger.info("Filtered Core machines :%s" % len(filtered_machine_list))
+
     sorted_machine_list = sorted(filtered_machine_list,
                                  cmp=compare_core_machines)
     return sorted_machine_list

@@ -23,7 +23,6 @@ from core.models.volume import convert_esh_volume
 from core.models.size import convert_esh_size
 from core.models.tag import Tag
 
-
 def strfdelta(tdelta, fmt=None):
     from string import Formatter
     if not fmt:
@@ -604,22 +603,25 @@ def _find_esh_start_date(esh_instance):
         "should never happen. Don't cheat and assume it was created just "
         "now. Get the real launch time, bra.")
     start_date = _convert_timestamp(create_stamp)
-    return start_date
-
-
-def _convert_timestamp(create_stamp):
-    # create_stamp is an iso 8601 timestamp string
-    # that may or may not include microseconds.
-    # start_date is a timezone-aware datetime object
-    try:
-        start_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%S.%fZ')
-    except ValueError:
-        start_date = datetime.strptime(create_stamp, '%Y-%m-%dT%H:%M:%SZ')
-    #All Dates are UTC relative
-    start_date = start_date.replace(tzinfo=pytz.utc)
     logger.debug("Launched At: %s" % create_stamp)
     logger.debug("Started At: %s" % start_date)
     return start_date
+
+
+def _convert_timestamp(iso_8601_stamp):
+    if not iso_8601_stamp:
+        return None
+
+    try:
+        datetime_obj = datetime.strptime(iso_8601_stamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+    except ValueError:
+        try:
+            datetime_obj = datetime.strptime(iso_8601_stamp, '%Y-%m-%dT%H:%M:%SZ')
+        except ValueError:
+            raise ValueError("Expected ISO8601 Timestamp in Format: YYYY-MM-DDTHH:MM:SS[.ssss][Z]")
+    # All Dates are UTC relative
+    datetime_obj = datetime_obj.replace(tzinfo=pytz.utc)
+    return datetime_obj
 
 
 def convert_instance_source(esh_driver, esh_source, provider_uuid, identity_uuid, user):

@@ -16,7 +16,6 @@ from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
 from core.metadata import _get_admin_owner
 
-
 class Application(models.Model):
     """
     An application is a collection of providermachines, where each
@@ -56,6 +55,16 @@ class Application(models.Model):
             pms = pms.filter(instance_source__provider__in=providers)
         return pms
 
+    def first_machine(self):
+        #Out of all non-end dated machines in this application
+        first = self.providermachine_set.filter(only_current_source()).order_by('instance_source__start_date').first()
+        return first
+
+    def last_machine(self):
+        #Out of all non-end dated machines in this application
+        last = self.providermachine_set.filter(only_current_source()).order_by('instance_source__start_date').last()
+        return last
+
     def get_threshold(self):
         try:
             return self.threshold
@@ -69,7 +78,6 @@ class Application(models.Model):
         return projects
 
     def update_images(self, **updates):
-        from service.driver import get_account_driver
         for pm in self._current_machines():
             pm.update_image(**updates)
 
@@ -241,13 +249,15 @@ def _add_app(app_list, app):
         app_list.append(app)
 
 
-def _get_app_by_name(name):
+def _get_app_by_name(provider_uuid, name):
     """
     Retrieve app by name
 
     """
     try:
-        app = Application.objects.get(name=name)
+        app = Application.objects.get(
+            providermachine__instance_source__provider__uuid=provider_uuid,
+            name=name)
         return app
     except Application.DoesNotExist:
         return None
@@ -258,44 +268,42 @@ def _get_app_by_name(name):
         return None
 
 
-def _get_app_by_identifier(identifier):
+def _get_app_by_identifier(provider_uuid, identifier):
     """
     Retrieve app by 'instance_source.identifier'
-
-    NOTE: Added '.distinct().get()' here to collapse the multiple
-    identical applications that will be 'matched'
-    when more than one cloud uses identical identifiers.
+    This will retrieve the 'correct' app if a NEW application is choosen 
+    that does NOT match the UUID hash of the provider_machine
     """
     try:
         # Attempt #1: to retrieve application based on identifier
-        app = Application.objects.filter(providermachine__instance_source__identifier=identifier).distinct().get()
+        app = Application.objects.get(
+            providermachine__instance_source__provider__uuid=provider_uuid,
+            providermachine__instance_source__identifier=identifier)
         return app
     except Application.DoesNotExist:
         return None
-    except Application.MultipleObjectsReturned:
-        logger.warn(
-            "Possible Application Conflict: Machines with Identifier:%s "
-            "are in more than one application. "
-            "Check this query for more details" % identifier)
-        return None
 
-def get_application(identifier, app_name, app_uuid=None):
-    application = _get_app_by_identifier(identifier)
+def get_application(provider_uuid, identifier, app_name, app_uuid=None):
+    application = _get_app_by_identifier(provider_uuid, identifier)
     if application:
         return application
-    application = _get_app_by_name(app_name)
+    application = _get_app_by_name(provider_uuid, app_name)
     if application:
         return application
-    return _get_app_by_uuid(identifier, app_uuid)
+    return _get_app_by_uuid(provider_uuid, identifier, app_uuid)
 
-def _get_app_by_uuid(identifier, app_uuid):
+def _get_app_by_uuid(provider_uuid, identifier, app_uuid):
+    """
+    Last-ditch placement effort. Hash the identifier and use that as the lookup
+    """
     if not app_uuid:
         app_uuid = uuid5(
                 settings.ATMOSPHERE_NAMESPACE_UUID,
                 str(identifier))
     app_uuid = str(app_uuid)
     try:
-        app = Application.objects.get(uuid=app_uuid)
+        app = Application.objects.get(
+              uuid=app_uuid)
         return app
     except Application.DoesNotExist:
         return None
@@ -303,29 +311,56 @@ def _get_app_by_uuid(identifier, app_uuid):
         logger.exception(e)
 
 
-def create_application(identifier, provider_uuid, name=None,
-                       owner=None, private=False, version=None,
-                       description=None, tags=None, uuid=None):
+def _username_lookup(provider_uuid, username):
+    try:
+        return Identity.objects.get(
+            provider__uuid=provider_uuid,
+            created_by__username=username)
+    except Identity.DoesNotExist:
+        return None
+
+
+def update_application(application, new_name=None, new_tags=None,
+        new_description=None):
+    if new_name:
+        application.name = new_name
+    if new_description:
+        application.description = new_description
+    if new_tags:
+        application.tags = new_tags
+    application.save()
+    return application
+
+
+def create_application(provider_uuid, identifier, name=None,
+                       created_by_identity=None, created_by=None, description=None, private=False, tags=None, uuid=None):
     from core.models import AtmosphereUser
+    try:
+        glance_image = accounts.get_image(identifier)
+    except Exception:
+        glance_image = None
     if not uuid:
         uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(identifier))
         uuid = str(uuid)
     if not name:
-        name = "UnknownApp %s" % identifier
+        name = "Imported App: %s" % identifier
     if not description:
-        description = "New application - %s" % name
-    if not owner:
-        owner = _get_admin_owner(provider_uuid)
+        description = "Imported Application - %s" % name
+    if created_by:
+        created_by_identity = _username_lookup(provider_uuid, created_by.username)
+    if not created_by_identity:
+        created_by_identity = _get_admin_owner(provider_uuid)
     if not tags:
         tags = []
+
     new_app = Application.objects.create(name=name,
                                          description=description,
-                                         created_by=owner.created_by,
-                                         created_by_identity=owner,
+                                         created_by=created_by_identity.created_by,
+                                         created_by_identity=created_by_identity,
+                                         private=private,
                                          uuid=uuid)
     if tags:
-        updateTags(new_app, tags, owner.created_by)
-    return new_app
+        updateTags(new_app, tags, created_by_identity.created_by)
 
 
 class ApplicationScore(models.Model):
