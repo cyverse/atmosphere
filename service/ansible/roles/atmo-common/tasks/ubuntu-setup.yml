@@ -49,10 +49,10 @@
   copy: content={{my_timezone}} dest=/etc/timezone owner=root group=root mode=0644 backup=yes 
 
 - name: Remove old timezone link
-  file: dest=/etc/localtime state=absent
+  file: path=/etc/localtime state=absent
 
 - name: Update timezone
-  file: src=/usr/share/zoneinfo/US/Arizona dest=/etc/localtime owner=root group=root state=link
+  file: src=/usr/share/zoneinfo/US/Arizona dest=/etc/localtime owner=root group=root force=yes state=link
 
 - name: create denyhosts directory if it does not exist 
   file: path={{denyhosts_filepath}} state=directory
@@ -76,10 +76,10 @@
   when: rc_local_atmo_exists|failed
 
 - name: touch rc.local.atmo to ensure that it exists
-  file: path=/etc/rc.local.atmo state=touch  
+  file: path=/etc/rc.local.atmo state=touch mode="u=rw,g=r,o=r"
 
 - name: create rc.local.atmo
-  lineinfile: dest=/etc/rc.local.atmo line='#!/bin/sh -e\ndepmod -a\nmodprobe acpiphp\nhostname {{ ansible_hostname }}\n'
+  lineinfile: dest=/etc/rc.local.atmo create=yes line='#!/bin/sh -e\ndepmod -a\nmodprobe acpiphp\nhostname {{ ansible_hostname }}\n'
  
 - name: install motd
   copy: src=motd dest=/etc/motd.tail
