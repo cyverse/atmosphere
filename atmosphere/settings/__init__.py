@@ -75,7 +75,6 @@ INSTALLED_APPS = (
     'rest_framework',
 
     'djcelery',
-    'django_jenkins',
     'pipeline',
     'corsheaders',
 
