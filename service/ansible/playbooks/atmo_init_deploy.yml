@@ -1,17 +1,5 @@
 ---
 - name: Full Playbook to install everything for atmo. Near equivalent to atmo_init_full.py
-  hosts: andre-ldap-test
+  hosts: all
   roles:
     - atmo-common
-    - iplant-ldap
-    # Needs MOUNTNAME, MOUNTSOURCE, MOUNTTYPE
-    #- atmo-setup-mount-point
-    # Needs ATMOUSERNAME
-    - atmo-setup-user
-   
-    # Needs ATMOUSERNAME and VNCLICENSE 
-    - realvnc-server-v5  
-    - idrop
-    - atmo-setup-nagios
-    - gateone-install
-    - atmo-user-boot-scripts
