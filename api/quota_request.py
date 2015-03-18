@@ -9,8 +9,9 @@ from django.shortcuts import get_object_or_404
 
 from api import failure_response
 from api.permissions import ApiAuthRequired
-from api.serializers import QuotaRequestSerializer
+from api.serializers import QuotaRequestSerializer, UserQuotaRequestSerializer
 
+from core.exceptions import InvalidMembership, ProviderLimitExceeded
 from core.models import Identity, IdentityMembership, QuotaRequest
 from core.models.status_type import get_status_type
 
@@ -21,63 +22,53 @@ class QuotaRequestList(APIView):
     """
     permission_classes = (ApiAuthRequired,)
 
-    def get(self, request, provider_uuid, identity_uuid):
+    def get_objects(self, request):
+        memberships = []
+        identities = request.user.identity_set.all()
+
+        for identity in identities:
+            memberships.extend(identity.identitymembership_set.all())
+
+        if request.user.is_staff:
+            quota_requests = QuotaRequest.objects.all()
+        else:
+            quota_requests = QuotaRequest.objects.filter(
+                membership__in=memberships)
+
+        return quota_requests
+
+    def get(self, request):
         """
         Fetches all QuotaRequest for a specific identity
         """
-        membership = None
-
-        try:
-            identity = Identity.objects.get(uuid=identity_uuid)
-            membership = IdentityMembership.objects.get(identity=identity)
-        except Identity.DoesNotExist:
-            return failure_response(status.HTTP_400_BAD_REQUEST,
-                                    "Identity not found.")
-        except IdentityMembership.DoesNotExist:
-            return failure_response(status.HTTP_400_BAD_REQUEST,
-                                    "IdentityMembership not found.")
-
-        quota_requests = QuotaRequest.objects.filter(membership=membership)
+        quota_requests = self.get_objects(request)
         serializer = QuotaRequestSerializer(quota_requests, many=True)
         return Response(serializer.data)
 
-    def post(self, request, provider_uuid, identity_uuid):
+    def post(self, request):
         """
         Creates a new QuotaRequest for the specific
         """
+        data = request.DATA
+        data['created_by'] = request.user
+        serializer = QuotaRequestSerializer(data=data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            identity = Identity.objects.get(uuid=identity_uuid)
-            membership = IdentityMembership.objects.get(identity=identity)
-        except Identity.DoesNotExist:
-            return failure_response(status.HTTP_400_BAD_REQUEST,
-                                    "Identity not found.")
-        except IdentityMembership.DoesNotExist:
-            return failure_response(status.HTTP_400_BAD_REQUEST,
-                                    "IdentityMembership not found.")
-
-        # Determine if the user is a member of the identity
-        if not membership.is_member(request.user):
-            return Response(status=status.HTTP_403_FORBIDDEN)
-
-        # Only allow 1 active request at a time
-        if QuotaRequest.is_active(membership):
+            serializer.save()
+        except ProviderLimitExceeded:
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
                 "An existing quota request is already open.")
+        except InvalidMembership:
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Invalid membership provided for user.")
 
-        data = request.DATA
-        status_type = get_status_type()
-
-        new_quota = QuotaRequest(
-            membership=membership, created_by=request.user, status=status_type)
-
-        serializer = QuotaRequestSerializer(new_quota, data=data, partial=True)
-
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class QuotaRequestDetail(APIView):
@@ -86,15 +77,10 @@ class QuotaRequestDetail(APIView):
     """
     permission_classes = (ApiAuthRequired,)
 
-    user_whitelist = ["description", "request"]
-
-    admin_whitelist = ["end_date", "status", "description", "request",
-                       "admin_message"]
-
     def get_object(self, identifier):
         return get_object_or_404(QuotaRequest, uuid=identifier)
 
-    def get(self, request, provider_uuid, identity_uuid, quota_request_uuid):
+    def get(self, request, quota_request_uuid):
         """
         Fetch the specified QuotaRequest
         """
@@ -102,7 +88,7 @@ class QuotaRequestDetail(APIView):
         serialized_data = QuotaRequestSerializer(quota_request).data
         return Response(serialized_data)
 
-    def put(self, request, provider_uuid, identity_uuid, quota_request_uuid):
+    def put(self, request, quota_request_uuid):
         """
         Updates the QuotaRequest
 
@@ -118,23 +104,17 @@ class QuotaRequestDetail(APIView):
         if not quota_request.can_modify(request.user):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        if request.user.is_staff or request.user.is_superuser:
-            whitelist = QuotaRequestDetail.admin_whitelist
-        else:
-            whitelist = QuotaRequestDetail.user_whitelist
-
-        #: Select fields that are in white list
-        fields = {field: data[field] for field in whitelist if field in data}
-        serializer = QuotaRequestSerializer(
-            quota_request, data=fields, partial=True)
+        serializer = UserQuotaRequestSerializer(
+            quota_request, data=data)
 
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
+            quota_request = serializer.save()
+            serialized_data = UserQuotaRequestSerializer(quota_request).data
+            return Response(serialized_data)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def patch(self, request, provider_uuid, identity_uuid, quota_request_uuid):
+    def patch(self, request, quota_request_uuid):
         """
         Partially update the QuotaRequest
 
@@ -150,24 +130,17 @@ class QuotaRequestDetail(APIView):
         if not quota_request.can_modify(request.user):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        if request.user.is_staff or request.user.is_superuser:
-            whitelist = QuotaRequestDetail.admin_whitelist
-        else:
-            whitelist = QuotaRequestDetail.user_whitelist
-
-        #: Select fields that are in white list
-        fields = {field: data[field] for field in whitelist if field in data}
-        serializer = QuotaRequestSerializer(
-            quota_request, data=fields, partial=True)
+        serializer = UserQuotaRequestSerializer(
+            quota_request, data=data, partial=True)
 
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
+            quota_request = serializer.save()
+            serialized_data = QuotaRequestSerializer(quota_request).data
+            return Response(serialized_data)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, provider_uuid, identity_uuid,
-               quota_request_uuid):
+    def delete(self, request, quota_request_uuid):
         """
         Deletes the QuotaRequest
 
