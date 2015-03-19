@@ -10,12 +10,13 @@ from django.utils import timezone
 from core.models.user import AtmosphereUser as User
 
 
-from core.application import save_app_data
+from core.application import save_app_to_metadata
 from core.fields import VersionNumberField, VersionNumber
 from core.models.application import get_application, create_application
-from core.models.provider import Provider, AccountProvider
+from core.models.license import License
 from core.models.machine import create_provider_machine
 from core.models.node import NodeController
+from core.models.provider import Provider, AccountProvider
 
 from atmosphere.settings import secrets
 from threepio import logger
@@ -32,6 +33,7 @@ class MachineRequest(models.Model):
     status = models.TextField(default='', blank=True)
     parent_machine = models.ForeignKey("ProviderMachine",
                                        related_name="ancestor_machine")
+
     # Specifics for machine imaging.
     iplant_sys_files = models.TextField(default='', blank=True)
     installed_software = models.TextField(default='', blank=True)
@@ -45,18 +47,21 @@ class MachineRequest(models.Model):
     new_machine_visibility = models.CharField(max_length=256)
     new_machine_description = models.TextField(default='', blank=True)
     new_machine_tags = models.TextField(default='', blank=True)
-    new_machine_version = VersionNumberField(default=int(VersionNumber(1,)))
+    new_machine_version = models.CharField(max_length=128, default='1.0.0')
     new_machine_forked = models.BooleanField(default=False)
     new_machine_memory_min = models.IntegerField(default=0)
     new_machine_storage_min = models.IntegerField(default=0)
+    new_machine_licenses = models.ManyToManyField(License,
+            blank=True)
     #Date time stamps
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     # Filled in when completed.
     new_machine = models.ForeignKey("ProviderMachine",
                                     null=True, blank=True,
                                     related_name="created_machine")
+
     def new_machine_threshold(self):
         return {'memory': self.new_machine_memory_min,
                 'disk': self.new_machine_storage_min }
@@ -101,7 +106,7 @@ class MachineRequest(models.Model):
         (orig_managerCls, orig_creds,
          dest_managerCls, dest_creds) = self.prepare_manager()
         im = dest_managerCls(**dest_creds)
-        old_mach_id = mr.instance.provider_machine.identifier
+        old_mach_id = mr.instance.source.identifier
         new_mach_id = mr.new_machine.identifier
         old_mach = im.get_image(old_mach_id)
         if not old_mach:
@@ -118,9 +123,12 @@ class MachineRequest(models.Model):
         im.update_image(new_mach, properties=properties)
 
     def old_provider(self):
-        return self.instance.provider_machine.provider
+        return self.instance.source.provider
     def new_machine_id(self):
         return 'zzz%s' % self.new_machine.identifier if self.new_machine else None
+
+    def instance_alias(self):
+        return self.instance.provider_alias
 
     def is_public(self):
         return "public" in self.new_machine_visibility.lower()
@@ -314,17 +322,80 @@ class MachineRequest(models.Model):
         db_table = "machine_request"
         app_label = "core"
 
-def process_machine_request(machine_request, new_image_id):
+
+def _create_new_application(machine_request, new_image_id, tags=[]):
+    from core.models import Identity
+    new_provider = machine_request.new_machine_provider
+    user = machine_request.new_machine_owner
+    owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
+    # This is a brand new app and a brand new providermachine
+    new_app = create_application(
+            new_image_id,
+            new_provider.id,
+            machine_request.new_machine_name, 
+            owner_ident,
+            #new_app.Private = False when machine_request.is_public = True
+            not machine_request.is_public(),
+            machine_request.new_machine_version,
+            machine_request.new_machine_description,
+            tags)
+    return new_app
+
+def _update_application(machine_request, new_image_id, tags=[]):
+    parent_app = machine_request.instance.source.providermachine.application
+    #Include your ancestors tags, description if necessary
+    tags.extend(parent_app.tags.all())
+    #If this machine request has a description,
+    # or if it has new tags, changes in privacy, update the app.
+    if machine_request.new_machine_name != parent_app.name:
+        parent_app.name = machine_request.new_machine_name
+    if machine_request.new_machine_description:
+        parent_app.description = machine_request.new_machine_description
+    parent_app.private = not machine_request.is_public()
+    parent_app.tags = tags
+    parent_app.save()
+    return parent_app
+
+def _update_existing_machine(machine_request, application, provider_machine):
+    from core.models import Identity
+    new_provider = machine_request.new_machine_provider
+    user = machine_request.new_machine_owner
+    owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
+
+    provider_machine.application = application
+    provider_machine.version = machine_request.new_machine_version
+    provider_machine.created_by = user
+    provider_machine.created_by_identity = owner_ident
+    provider_machine.save()
+
+def _create_new_provider_machine(machine_request, application, new_image_id):
+    #Set application data to an existing/new providermachine
+    from core.models import ProviderMachine
+    try:
+        #In this case, we have 'found' the ProviderMachine via other methods
+        #PRIOR to processing machine request
+        new_provider = machine_request.new_machine_provider
+        new_machine = ProviderMachine.objects.get(identifier=new_image_id, provider=new_provider)
+        _update_existing_machine(machine_request, application, new_machine)
+    except ProviderMachine.DoesNotExist:
+        new_machine = create_provider_machine(
+            machine_request.new_machine_name, new_image_id,
+            machine_request.new_machine_provider.uuid, application, {
+                'owner':machine_request.new_machine_owner, 
+                'version' : machine_request.new_machine_version})
+    return new_machine
+
+def process_machine_request(machine_request, new_image_id, update_cloud=True):
+    """
+    NOTE: Current process accepts instance with source of 'Image' ONLY! 
+          VOLUMES CANNOT BE IMAGED until this function is updated!
+    """
     from core.models.machine import add_to_cache
     from core.application import update_owner
     from core.models.tag import Tag
-    from core.models import Identity, ProviderMachine
     #Get all the data you can from the machine request
-    new_provider = machine_request.new_machine_provider
     #TODO: This could select multiple, we should probably have a more
     #TODO: restrictive query here..
-    user = machine_request.new_machine_owner
-    owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
     parent_mach = machine_request.instance.provider_machine
     parent_app = machine_request.instance.provider_machine.application
     if machine_request.new_machine_tags:
@@ -334,50 +405,15 @@ def process_machine_request(machine_request, new_image_id):
         tags = []
 
     #NOTE: Swap these lines when application forking/versioning is supported in the UI
-    #if True:
     if machine_request.new_machine_forked:
-        # This is a brand new app and a brand new providermachine
-        new_app = create_application(
-                new_image_id,
-                new_provider.id,
-                machine_request.new_machine_name, 
-                owner_ident,
-                #new_app.Private = False when machine_request.is_public = True
-                not machine_request.is_public(),
-                machine_request.new_machine_version,
-                machine_request.new_machine_description,
-                tags)
-        app_to_use = new_app
-        description = machine_request.new_machine_description
+        app_to_use = _create_new_application(machine_request, new_image_id, tags)
     else:
         #This is NOT a fork, the application to be used is that of your
         # ancestor, and the app owner should not be changed.
-        app_to_use = parent_app
-        #Include your ancestors tags, description if necessary
-        tags.extend(parent_app.tags.all())
-        if not machine_request.new_machine_description:
-            description = parent_app.description
-        else:
-            description = machine_request.new_machine_description
-        #If this machine request has new tags, descriptions, or privacy, update
-        # it now.
-        app_to_use.private = not machine_request.is_public()
-        app_to_use.tags = tags
-        app_to_use.description = description
-        app_to_use.save()
-    #Set application data to an existing/new providermachine
-    try:
-        new_machine = ProviderMachine.objects.get(identifier=new_image_id, provider=new_provider)
-        new_machine.application = app_to_use
-        new_machine.version = machine_request.new_machine_version
-        new_machine.created_by = user
-        new_machine.created_by_identity = owner_ident
-        new_machine.save()
-    except ProviderMachine.DoesNotExist:
-        new_machine = create_provider_machine(
-            machine_request.new_machine_name, new_image_id,
-            machine_request.new_machine_provider_id, app_to_use,
-            {'version' : machine_request.new_machine_version})
+        app_to_use = _update_application(machine_request, new_image_id, tags)
+    #TODO: CANT 'update' an application if you used a bootable volume.. (for now)
+    new_machine = _create_new_provider_machine(machine_request, app_to_use, new_image_id)
+    machine_request.new_machine = new_machine
 
     if machine_request.has_threshold():
         machine_request.update_threshold()
@@ -388,15 +424,14 @@ def process_machine_request(machine_request, new_image_id):
 
     #TODO: Lookup tenant name when we move away from
     # the usergroup model
+    user = machine_request.new_machine_owner
     tenant_name = user.username
+    update_owner(new_machine, tenant_name, update_cloud)
 
-    update_owner(new_machine, tenant_name)
+    if update_cloud:
+        save_app_to_metadata(new_machine.application)
+        add_to_cache(new_machine)
 
-    save_app_data(new_machine.application)
-
-    add_to_cache(new_machine)
-
-    machine_request.new_machine = new_machine
     machine_request.end_date = timezone.now()
 
     #After processing, validate the image.

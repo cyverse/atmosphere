@@ -18,6 +18,7 @@ from threepio import logger
 
 from core.models import AtmosphereUser as User
 from core.models.application import ApplicationScore
+from core.models.license import License
 from core.models.identity import Identity
 from core.models.machine import compare_core_machines, filter_core_machine,\
     update_application_owner, convert_esh_machine, ProviderMachine
@@ -30,7 +31,8 @@ from api import failure_response, invalid_creds, malformed_response
 from api.renderers import JPEGRenderer, PNGRenderer
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProviderMachineSerializer,\
-    PaginatedProviderMachineSerializer, ApplicationScoreSerializer
+    PaginatedProviderMachineSerializer, ApplicationScoreSerializer,\
+    LicenseSerializer
 
 
 def provider_filtered_machines(request, provider_uuid,
@@ -71,8 +73,8 @@ def list_filtered_machines(esh_driver, provider_uuid, request_user=None):
 
 def all_filtered_machines():
     return ProviderMachine.objects.exclude(
-        Q(identifier__startswith="eki-")
-        | Q(identifier__startswith="eri")).order_by("-application__start_date")
+        Q(instance_source__identifier__startswith="eki-")
+        | Q(instance_source__identifier__startswith="eri")).order_by("-application__start_date")
 
 
 class MachineList(APIView):
@@ -348,7 +350,7 @@ class MachineVote(APIView):
         app = core_machine[0].application
         vote = ApplicationScore.last_vote(app, request.user)
         serialized_data = ApplicationScoreSerializer(vote).data
-        return Response(serialized_data, status=status.HTTP_201_CREATED)
+        return Response(serialized_data, status=status.HTTP_200_OK)
 
     def post(self, request, provider_uuid, identity_uuid, machine_id):
         """
@@ -381,3 +383,68 @@ class MachineVote(APIView):
 
         serialized_data = ApplicationScoreSerializer(vote).data
         return Response(serialized_data, status=status.HTTP_201_CREATED)
+
+class MachineLicense(APIView):
+    """Show list of all machine licenses applied"""
+
+    permission_classes = (ApiAuthRequired,)
+
+    def get(self, request, provider_uuid, identity_uuid, machine_id):
+        """
+        Lookup the machine information
+        (Lookup using the given provider/identity)
+        Update on server (If applicable)
+        """
+        core_machine = ProviderMachine.objects.filter(provider__uuid=provider_uuid,
+                                                      identifier=machine_id)
+        if not core_machine:
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Machine id %s does not exist" % machine_id)
+        core_machine = core_machine.get()
+        licenses = core_machine.licenses.all()
+        serialized_data = LicenseSerializer(licenses, many=True).data
+        return Response(serialized_data, status=status.HTTP_200_OK)
+
+    def post(self, request, provider_uuid, identity_uuid, machine_id):
+        """
+        TODO: Determine who is allowed to edit machines besides
+        core_machine.owner
+        """
+        user = request.user
+        data = request.DATA
+
+        logger.info('data = %s' % request.DATA)
+        core_machine = ProviderMachine.objects.filter(provider__uuid=provider_uuid,
+                                                      identifier=machine_id)
+        if not core_machine:
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Machine id %s does not exist" % machine_id)
+
+        core_machine = core_machine.get()
+        if core_machine.instance_source.created_by == request.user:
+            return failure_response(
+                    status.HTTP_400_BAD_REQUEST,
+                    "You are NOT the owner of Machine id=%s " % machine_id)
+
+        if 'licenses' not in data \
+                or type(data['licenses']) != list:
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Licenses missing from data. Expected a list of License IDs"
+                " ex:[1,2,3,]")
+
+        licenses = []
+        #Out with the old
+        core_machine.licenses.all().delete()
+        for license_id in data['licenses']:
+            license = License.objects.get(id=license_id)
+            #In with the new
+            core_machine.licenses.add(license)
+        #Return the new set.
+        licenses = core_machine.licenses.all()
+        logger.info('licenses = %s' % licenses)
+        serialized_data = LicenseSerializer(licenses, many=True).data
+        return Response(serialized_data, status=status.HTTP_202_ACCEPTED)
+

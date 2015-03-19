@@ -10,6 +10,7 @@ from threepio import logger
 
 from core.models import Application as CoreApplication
 from core.models import Identity, Group
+from core.models.post_boot import _save_scripts_to_application
 from core.models.machine import update_application_owner
 from core.models.application import visible_applications, public_applications
 
@@ -17,7 +18,7 @@ from service.search import search, CoreApplicationSearch
 
 from api import failure_response
 from api.permissions import InMaintenance, ApiAuthOptional
-from api.serializers import \
+from api.serializers import ApplicationThresholdSerializer,\
     ApplicationSerializer, PaginatedApplicationSerializer
 
 def _filter_applications(applications, user, params):
@@ -102,6 +103,101 @@ class ApplicationList(APIView):
         return response
 
 
+class ApplicationThresholdDetail(APIView):
+    """
+        Applications are a set of one or more images that can
+        be uniquely identified by a specific UUID, or more commonly, by Name,
+        Description, or Tag(s).
+    """
+
+    permission_classes = (ApiAuthOptional,)
+
+    def get(self, request, app_uuid, **kwargs):
+        """
+        Details of specific application's Threshold.
+        Params:app_uuid -- Unique ID of Application
+
+        """
+        app = CoreApplication.objects.filter(uuid=app_uuid)
+        if not app:
+            return failure_response(status.HTTP_404_NOT_FOUND,
+                                    "Application with uuid %s does not exist"
+                                    % app_uuid)
+        app = app[0]
+        serialized_data = ApplicationThresholdSerializer(
+            app.get_threshold(), context={'request': request}).data
+        response = Response(serialized_data)
+        return response
+
+    def put(self, request, app_uuid, **kwargs):
+        """
+        Update specific application
+
+        Params:app_uuid -- Unique ID of application
+        """
+        app = CoreApplication.objects.filter(uuid=app_uuid)
+        if not app:
+            return failure_response(status.HTTP_404_NOT_FOUND,
+                                    "Application with uuid %s does not exist"
+                                    % app_uuid)
+        app = app[0]
+        return self._update_threshold(request, app, **kwargs)
+
+    def patch(self, request, app_uuid, **kwargs):
+        """
+        Update specific application
+
+        Params:app_uuid -- Unique ID of application
+
+        """
+        app = CoreApplication.objects.filter(uuid=app_uuid)
+        if not app:
+            return failure_response(status.HTTP_404_NOT_FOUND,
+                                    "Application with uuid %s does not exist"
+                                    % app_uuid)
+        app = app[0]
+        return self._update_threshold(request, app, **kwargs)
+
+    def delete(self, request, app_uuid, **kwargs):
+        app = CoreApplication.objects.filter(uuid=app_uuid)
+        if not app:
+            return failure_response(status.HTTP_404_NOT_FOUND,
+                                    "Application with uuid %s does not exist"
+                                    % app_uuid)
+        app = app[0]
+        kwargs['delete'] = True
+        return self._update_threshold(request, app, **kwargs)
+
+    def _update_threshold(self, request, app, **kwargs):
+        user = request.user
+        data = request.DATA
+        app_owner = app.created_by
+        app_members = app.get_members()
+        if user != app_owner and not Group.check_membership(user, app_members):
+            return failure_response(status.HTTP_403_FORBIDDEN,
+                                    "You are not the Application owner. "
+                                    "This incident will be reported")
+            #Or it wont.. Up to operations..
+        if kwargs.get('delete'):
+            threshold = app.get_threshold()
+            if threshold:
+                threshold.delete()
+            serializer = ApplicationThresholdSerializer(
+                app.get_threshold())
+            return Response(serializer.data)
+        partial_update = True if request.method == 'PATCH' else False
+        serializer = ApplicationThresholdSerializer(
+            app.threshold, data=data, context={'request': request},
+            partial=partial_update)
+        if serializer.is_valid():
+            serializer.save()
+            logger.info(serializer.data)
+            return Response(serializer.data)
+        return failure_response(
+            status.HTTP_400_BAD_REQUEST,
+            serializer.errors)
+
+
 class Application(APIView):
     """
         Applications are a set of one or more images that can
@@ -113,7 +209,7 @@ class Application(APIView):
 
     def get(self, request, app_uuid, **kwargs):
         """
-        Details of specific application.
+        Details of specific application's Threshold.
         Params:app_uuid -- Unique ID of Application
 
         """
@@ -177,10 +273,12 @@ class Application(APIView):
             #TODO: Update application metadata on each machine?
             #update_machine_metadata(esh_driver, esh_machine, data)
             serializer.save()
-            if 'created_by_identity' in request.DATA:
+            if 'created_by_identity' in data:
                 identity = serializer.object.created_by_identity
                 update_application_owner(serializer.object, identity)
-            logger.info(serializer.data)
+            if 'boot_scripts' in data:
+                _save_scripts_to_application(serializer.object,
+                                             data.get('boot_scripts',[]))
             return Response(serializer.data)
         return failure_response(
             status.HTTP_400_BAD_REQUEST,
@@ -235,3 +333,4 @@ class ApplicationSearch(APIView):
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
+

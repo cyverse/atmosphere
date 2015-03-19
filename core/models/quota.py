@@ -1,8 +1,8 @@
 """
 Service Quota model for atmosphere.
 """
-
 from django.db import models
+
 
 class Quota(models.Model):
     """

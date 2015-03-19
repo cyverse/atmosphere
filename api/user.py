@@ -48,7 +48,7 @@ class UserManagement(APIView):
             user_keys = driver.get_key(username)
             driver.create_key(user_keys)
         #STEP3 Return the new users serialized profile
-        serialized_data = ProfileSerializer(user.get_profile()).data
+        serialized_data = ProfileSerializer(user.userprofile).data
         response = Response(serialized_data)
         return response
 
@@ -59,7 +59,7 @@ class UserManagement(APIView):
                             status=status.HTTP_401_UNAUTHORIZED)
 
         all_users = AuthUser.objects.order_by('username')
-        all_profiles = [u.get_profile() for u in all_users]
+        all_profiles = [u.userprofile for u in all_users]
         serialized_data = ProfileSerializer(all_profiles).data
         response = Response(serialized_data)
         return response
@@ -91,7 +91,7 @@ class User(APIView):
         logger.info(request.__dict__)
 
         user = AuthUser.objects.get(username=username)
-        serialized_data = ProfileSerializer(user.get_profile()).data
+        serialized_data = ProfileSerializer(user.userprofile).data
         response = Response(serialized_data)
         return response
 

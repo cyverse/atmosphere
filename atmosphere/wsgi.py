@@ -19,6 +19,7 @@ import sys
 #Adds the directory above wsgi.py to system path
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, '/opt/env/atmo/lib/python2.7/site-packages/')
+sys.path.insert(0, '/opt/env/atmo/lib/python2.7/site-packages/')
 sys.path.insert(1, root_dir)
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
@@ -56,8 +57,8 @@ from django.core.wsgi import get_wsgi_application
 try:
     application = get_wsgi_application()
 except Exception, e:
-    e.msg = os.path.dirname(__file__)
-    raise e
+    #e.msg = os.path.dirname(__file__)
+    raise
 
 #from helloworld.wsgi import HelloWorldApplication
 #application = HelloWorldApplication(application)

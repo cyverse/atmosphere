@@ -14,6 +14,8 @@ from core.models import Provider, Quota
 
 from service.driver import get_account_driver
 
+import django
+django.setup()
 
 libcloud.security.VERIFY_SSL_CERT = False
 

@@ -43,7 +43,7 @@ def getAllUsers():
                 user_list.append(user_attrs)
         return user_list
     except Exception as e:
-        logger.warn("Error occurred looking up user: %s" % userid)
+        logger.warn("Error occurred looking up all user")
         logger.exception(e)
         return None
 
@@ -95,7 +95,7 @@ def ldap_validate(username, password):
     If the connection succeeds, the credentials are authentic.
     """
     if not username or not password:
-        logger.warn("[LDAP] Skip Test - Username/Password combination missing ")
+        logger.warn("[LDAP] Skip Test - Username/Password combination missing")
         return
 
     try:
@@ -135,9 +135,8 @@ def get_members(groupname):
         ldap_group_dn = secrets.LDAP_SERVER_DN.replace(
             "ou=people", "ou=Groups")
         ldap_conn = ldap_driver.initialize(ldap_server)
-        group_users = ldap_conn.search_s(ldap_group_dn,
-                                        ldap_driver.SCOPE_SUBTREE,
-                                        '(cn=%s)' % groupname)
+        group_users = ldap_conn.search_s(
+            ldap_group_dn, ldap_driver.SCOPE_SUBTREE, '(cn=%s)' % groupname)
         return group_users[0][1]['memberUid']
     except Exception as e:
         logger.exception(e)
@@ -150,7 +149,8 @@ def is_staff(username):
     Using the username is in the atmo-user group return True
     otherwise False.
     """
-    return is_user_in_group(username,'staff')
+    return is_user_in_group(username, 'staff')
+
 
 def is_atmo_user(username):
     """
@@ -158,7 +158,8 @@ def is_atmo_user(username):
     Using the username is in the atmo-user group return True
     otherwise False.
     """
-    return is_user_in_group(username,'atmo-user')
+    return is_user_in_group(username, 'atmo-user')
+
 
 def is_user_in_group(username, groupname):
     members_list = get_members(groupname)
@@ -171,15 +172,16 @@ def get_atmo_users():
     members_list = get_members('atmo-user')
     return members_list
 
+
 def get_core_services():
     """
     """
     members_list = get_members('core-services')
     return members_list
 
+
 def get_staff_users():
     """
     """
     members_list = get_members('staff')
     return members_list
-

@@ -20,6 +20,7 @@
     ## Uncomment these lines to enable '/server-status'
     ## This can be useful for debugging Apache + MOD_WSGI
     ###
+    #ProxyPass /server-status !
     #<Location /server-status>
     #SetHandler server-status
     #AuthType CAS
@@ -134,9 +135,6 @@
         # favicon and robots are better served outside of WSGI
         Alias /favicon.ico $PATH_TO_ATMOSPHERE/static/images/favicon.ico
         Alias /robots.txt $PATH_TO_ATMOSPHERE/templates/robots.txt
-        #init_files && resources will auto-direct to the file
-        Alias /init_files $PATH_TO_ATMOSPHERE/init_files
-        Alias /resources $PATH_TO_ATMOSPHERE/resources
         #Assing WSGI to any other folder
 	WSGIDaemonProcess atmosphere_api processes=8 threads=7 inactivity-timeout=120 display-name=%{GROUP}
 	WSGIProcessGroup atmosphere_api
@@ -152,7 +150,10 @@
             Allow from all
         </Location>
 
-        Alias /static/rest_framework $PATH_TO_ATMOSPHERE/static/rest_framework
+        #static, init_files, && resources will auto-direct to the file
+        Alias /init_files $PATH_TO_ATMOSPHERE/init_files
+        Alias /resources $PATH_TO_ATMOSPHERE/resources
+        Alias /static $PATH_TO_ATMOSPHERE/static
 
         # The following URLs are proxied to Troposphere:
         # /, /static, /applicaiton, /login, /logout, /cas/service
@@ -171,8 +172,8 @@
         ProxyPassReverse /forbidden http://localhost:5000/forbidden
         ProxyPass /version http://localhost:5000/version
         ProxyPassReverse /version http://localhost:5000/version
-        ProxyPass /cf2 http://localhost:5000/cf2
-        ProxyPassReverse /cf2 http://localhost:5000/cf2
+        ProxyPass /maintenance http://localhost:5000/maintenance
+        ProxyPassReverse /maintenance http://localhost:5000/maintenance
 
         ProxyPassMatch ^/emulate http://localhost:5000
         ProxyPassReverse /emulate http://localhost:5000

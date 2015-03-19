@@ -3,6 +3,8 @@ import argparse, sys
 
 from service.tasks.allocation import monitor_instances_for
 from core.models import Provider
+import django
+django.setup()
 
 def _local_date_str_to_utc_date(end_date_str, timezone="America/Phoenix"):
         import pytz

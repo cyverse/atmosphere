@@ -13,6 +13,10 @@ Atmosphere addresses the growing needs for highly configurable and customized co
 
 See LICENSE.txt for license information
 
+## Lead
+
++ **Edwin Skidmore <edwin@iplantcollaborative.org>**
+
 ## Authors
 
 + **J. Matt Peterson <jmatt@iplantcollaborative.org>**
@@ -21,5 +25,6 @@ See LICENSE.txt for license information
 + **Christopher James LaRose <cjlarose@iplantcollaborative.org>**
 + **Andre Mercer <amercer@iplantcollaborative.org>**
 + **Jason Hansen <jchansen@iplantcollaborative.org>**
++ **Evan Briones <evrick@iplantcollaborative.org>**
 
 Where the cloud lives!

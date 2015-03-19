@@ -134,7 +134,7 @@ def start_machine_imaging(machine_request, delay=False):
 
     #Task 5 = Terminate the new instance on completion
     destroy_task = destroy_instance.s(
-            admin_ident.id)
+            admin_ident.uuid)
     wait_for_task.link(destroy_task)
     wait_for_task.link_error(imaging_error_task)
     #Task 6 - Finally, email the user that their image is ready!
@@ -257,7 +257,7 @@ def validate_new_image(image_id, machine_request_id):
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.status = 'validating'
     machine_request.save()
-    from service.instance import launch_esh_instance
+    from service.instance import launch_machine_instance
     admin_driver = machine_request.new_admin_driver()
     admin_ident = machine_request.new_admin_identity()
     if not admin_driver:
@@ -270,13 +270,11 @@ def validate_new_image(image_id, machine_request_id):
     admin_driver.identity.user = admin_ident.created_by
     machine = admin_driver.get_machine(image_id)
     small_size = admin_driver.list_sizes()[0]
-    (instance, token, password) = launch_esh_instance(
-            admin_driver,
-            machine.id,
-            small_size.id,
-            admin_ident,
+    instance = launch_machine_instance(
+            admin_driver, admin_ident,
+            machine, small_size,
             'Automated Image Verification - %s' % image_id,
-            'atmoadmin',
+            username='atmoadmin',
             using_admin=True)
     return instance.id
 

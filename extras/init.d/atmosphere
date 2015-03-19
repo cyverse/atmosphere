@@ -46,6 +46,8 @@ status)
     service redis-server status
     service celeryd status
     service celerybeat status
+    service uwsgi status atmo.uwsgi
+    service uwsgi status trop.uwsgi
 ;;
 full-start | start)
     printf "Starting $NAME...\n"
@@ -53,6 +55,8 @@ full-start | start)
         echo "You must be a root user to start atmosphere"
         exit 1
     fi
+    printf "Starting uwsgi..\n"
+    service uwsgi start
     printf "Starting $WEB_SERVICE\n"
     service $WEB_SERVICE start
     printf "Starting redis server..\n"
@@ -68,6 +72,8 @@ full-stop)
         echo "You must be a root user to stop atmosphere"
         exit 1
     fi
+    printf "Stopping uwsgi..\n"
+    service uwsgi stop
     printf "Stopping $WEB_SERVICE\n"
     service $WEB_SERVICE stop
     printf "Stopping Celery..\n"
@@ -94,7 +100,8 @@ restart)
         echo "You must be a root user to restart atmosphere"
         exit 1
     fi
-    echo "Restarting Atmosphere Web Service"
+    echo "Restarting Atmosphere Web Services"
+    service uwsgi restart
     service apache2 restart
 ;;
 
@@ -103,7 +110,8 @@ celery-restart)
         echo "You must be a root user to restart atmosphere"
         exit 1
     fi
-    echo "Restarting Atmosphere Web Service"
+    echo "Restarting Atmosphere Web Services"
+    service uwsgi restart
     service apache2 restart
     #echo "Force Killing All Celery Nodes"
     #service celeryd kill

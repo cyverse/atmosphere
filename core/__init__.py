@@ -3,7 +3,6 @@ Base classes.
 """
 
 from abc import ABCMeta, abstractmethod
-import core.tasks.instance
 
 # Base Classes
 class Persist():

@@ -1,0 +1,61 @@
+- name: install ldap and dependencies
+  yum: state=present pkg={{ item }}
+  with_items:
+   - nss-pam-ldapd 
+   - pam_ldap 
+   - openldap 
+   - openssl 
+   - openssl-devel 
+   - sssd 
+   - oddjob-mkhomedir
+
+- name: disable selinux
+  selinux: state=disabled
+
+- set_fact: ldap_conf_path=/etc/ldap/ldap.conf
+
+- name: run authconfig
+  command: authconfig --enableldap --enableldapauth --enablemkhomedir --ldapserver=ldap.iplantcollaborative.org --ldapbasedn="dc=iplantcollaborative,dc=org" --update
+
+- name: add/edit lines to authconfig 1
+  replace: dest=/etc/sysconfig/authconfig regexp='USEMKHOMEDIR='replace='USEMKHOMEDIR=yes' 
+
+- name: add/edit lines to authconfig 2
+  replace: dest=/etc/sysconfig/authconfig regexp='USESSSDAUTH=' replace='USESSSDAUTH=yes'
+
+- name: add/edit lines to authconfig 3
+  replace: dest=/etc/sysconfig/authconfig regexp="USESSSD=" replace="USESSSD=yes"
+
+- name: add/edit lines to ldap.conf 1
+  replace: dest=/etc/openldap/ldap.conf regexp="URI ldap://ldap.iplantcollaborative.org/" replace="URI ldaps://ldap.iplantcollaborative.org"
+
+- name: edit ssd.conf 1
+  replace: dest=/etc/sssd/sssd.conf regexp='ldap_id_use_start_tls = True" replace="ldap_id_use_start_tls = False'  
+
+- name: edit ssd.conf 2 
+  replace: dest=/etc/sssd/sssd.conf regexp='ldap_search_base = dc=iplantcollaborative,dc=org' replace='ldap_search_base = ou=People,dc=iplantcollaborative,dc=org'
+
+
+- name: edit ssd.conf 3
+  replace: dest=/etc/sssd/sssd.conf regexp='ldap_uri = ldap://ldap.iplantcollaborative.org/' replace='ldap_uri = ldaps://ldap.iplantcollaborative.org/'
+
+- name: edit nslcd.conf 1
+  replace: dest=/etc/nslcd.conf  regexp='uri ldap://ldap.iplantcollaborative.org' replace='uri ldaps://ldap.iplantcollaborative.org'
+
+- name: edit nslcd.conf 2
+  replace: dest=/etc/nslcd.conf regexp='base dc=iplantcollaborative,dc=org' replace='base ou=People,dc=iplantcollaborative,dc=org'
+
+- name: edit nslcd.conf 3
+  replace: dest=/etc/nslcd.conf regexp='ssl no' replace='ssl yes' 
+
+- name: edit pam_ldap.conf 1
+  lineinfile: dest=/etc/pam_ldap.conf insertbefore='ssl no' line="uri ldaps://ldap.iplantcollaborative.org/"
+
+- name: edit pam.d/system-auth 1
+  replace: dest=/etc/pam.d/system-auth regexp='session\s+optional\s+pam_oddjob_mkhomedir.so skel=/etc/skel umask=0022' replace='session     required      pam_oddjob_mkhomedir.so skel=/etc/skel umask=0022'
+
+- name: turn sssd chkconfig on
+  command: /sbin/chkconfig sssd on
+
+- name: turn oddjobd chkconfig on
+  command: /sbin/chkconfig oddjobd on

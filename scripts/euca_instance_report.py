@@ -16,6 +16,8 @@ from email.MIMEText import MIMEText
 from email.Utils import COMMASPACE, formatdate
 from email import Encoders
 
+import django
+django.setup()
 
 def _get_admin_driver():
     from core.models import Credential

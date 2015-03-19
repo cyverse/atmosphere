@@ -19,6 +19,7 @@ from core.models import AtmosphereUser as User
 from core.models.identity import Identity
 from core.models.instance import convert_esh_instance
 from core.models.instance import Instance as CoreInstance
+from core.models.post_boot import _save_scripts_to_instance
 from core.models.provider import AccountProvider
 from core.models.tag import Tag as CoreTag
 from core.models.volume import convert_esh_volume
@@ -32,11 +33,14 @@ from service.instance import redeploy_init, reboot_instance,\
     launch_instance, resize_instance, confirm_resize,\
     start_instance, resume_instance,\
     stop_instance, suspend_instance,\
-    update_instance_metadata, _check_volume_attachment
+    update_instance_metadata, _check_volume_attachment,\
+    shelve_instance, unshelve_instance, offload_instance
+
 from service.quota import check_over_quota
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
-    VolumeAttachConflict, VolumeMountConflict
+    VolumeAttachConflict, VolumeMountConflict,\
+    UnderThresholdError, ActionNotAllowed
 
 from api import failure_response, invalid_creds,\
                 connection_failure, malformed_response
@@ -47,6 +51,18 @@ from api.serializers import InstanceHistorySerializer,\
     PaginatedInstanceHistorySerializer
 from api.serializers import VolumeSerializer
 from api.serializers import TagSerializer
+
+
+def _get_instance(esh_driver, instance_id):
+    """
+    Protect yourself against drivers that can't connect, old providers, old instances
+    """
+    try:
+        esh_instance = esh_driver.get_instance(instance_id)
+        return esh_instance
+    except Exception:
+        logger.exception("Error retrieving instance %s using driver %s" % (instance_id, esh_driver))
+        return None
 
 def get_core_instance(request, provider_uuid, identity_uuid, instance_id):
     user = request.user
@@ -62,13 +78,13 @@ def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
         raise InvalidCredsError(
                 "Provider_uuid && identity_uuid "
                 "did not produce a valid combination")
-    esh_instance = esh_driver.get_instance(instance_id)
+    esh_instance = _get_instance(esh_driver, instance_id)
     if not esh_instance:
         try:
             core_inst = CoreInstance.objects.get(
                 provider_alias=instance_id,
-                provider_machine__provider__uuid=provider_uuid,
-                created_by_uuidentity__uuid=identity_uuid)
+                source__provider__uuid=provider_uuid,
+                created_by_identity__uuid=identity_uuid)
             core_inst.end_date_all()
         except CoreInstance.DoesNotExist:
             pass
@@ -136,6 +152,7 @@ class InstanceList(APIView):
         size_alias = data.pop('size_alias')
         machine_alias = data.pop('machine_alias')
         hypervisor_name = data.pop('hypervisor',None)
+        boot_scripts = data.pop('boot_scripts', [])
         try:
             logger.debug(data)
             core_instance = launch_instance(
@@ -143,6 +160,8 @@ class InstanceList(APIView):
                 size_alias, machine_alias,
                 ex_availability_zone=hypervisor_name,
                 **data)
+        except UnderThresholdError, ute:
+            return under_threshold(ute)
         except OverQuotaError, oqe:
             return over_quota(oqe)
         except OverAllocationError, oae:
@@ -167,6 +186,8 @@ class InstanceList(APIView):
         #NEVER WRONG
         if serializer.is_valid():
             serializer.save()
+            if boot_scripts:
+                _save_scripts_to_instance(serializer.object, boot_scripts)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors,
@@ -435,7 +456,7 @@ class InstanceAction(APIView):
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
 
-        esh_instance = esh_driver.get_instance(instance_id)
+        esh_instance = _get_instance(esh_driver, instance_id)
         if not esh_instance:
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
@@ -492,11 +513,19 @@ class InstanceAction(APIView):
             elif 'redeploy' == action:
                 redeploy_init(esh_driver, esh_instance, countdown=None)
             elif 'resume' == action:
-                resume_instance(esh_driver, esh_instance,
+                result_obj = resume_instance(esh_driver, esh_instance,
                                 provider_uuid, identity_uuid, user)
             elif 'suspend' == action:
-                suspend_instance(esh_driver, esh_instance,
+                result_obj = suspend_instance(esh_driver, esh_instance,
                                  provider_uuid, identity_uuid, user)
+            elif 'shelve' == action:
+                result_obj = shelve_instance(esh_driver, esh_instance,
+                               provider_uuid, identity_uuid, user)
+            elif 'unshelve' == action:
+                result_obj = unshelve_instance(esh_driver, esh_instance,
+                              provider_uuid, identity_uuid, user)
+            elif 'shelve_offload' == action:
+                result_obj = offload_instance(esh_driver, esh_instance)
             elif 'start' == action:
                 start_instance(esh_driver, esh_instance,
                                provider_uuid, identity_uuid, user)
@@ -545,8 +574,13 @@ class InstanceAction(APIView):
             return mount_failed(vmc)
         except NotImplemented, ne:
             return failure_response(
-                status.HTTP_404_NOT_FOUND,
-                "The requested action %s is not available on this provider"
+                status.HTTP_409_CONFLICT,
+                "The requested action %s is not available on this provider."
+                % action_params['action'])
+        except ActionNotAllowed, no_act:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                "The requested action %s has been explicitly disabled on this provider."
                 % action_params['action'])
         except Exception, exc:
             logger.exception("Exception occurred processing InstanceAction")
@@ -580,13 +614,13 @@ class Instance(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_instance = esh_driver.get_instance(instance_id)
+        esh_instance = _get_instance(esh_driver, instance_id)
         if not esh_instance:
             try:
                 core_inst = CoreInstance.objects.get(
                     provider_alias=instance_id,
-                    provider_machine__provider__uuid=provider_uuid,
-                    created_by_uuidentity__uuid=identity_uuid)
+                    source__provider__uuid=provider_uuid,
+                    created_by_identity__uuid=identity_uuid)
                 core_inst.end_date_all()
             except CoreInstance.DoesNotExist:
                 pass
@@ -606,7 +640,7 @@ class Instance(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_instance = esh_driver.get_instance(instance_id)
+        esh_instance = _get_instance(esh_driver, instance_id)
         if not esh_instance:
             return instance_not_found(instance_id)
         #Gather the DB related item and update
@@ -619,6 +653,9 @@ class Instance(APIView):
             update_instance_metadata(esh_driver, esh_instance, data,
                     replace=False)
             serializer.save()
+            boot_scripts = data.pop('boot_scripts', [])
+            if boot_scripts:
+                _save_scripts_to_instance(serializer.object, boot_scripts)
             invalidate_cached_instances(identity=Identity.objects.get(uuid=identity_uuid))
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
@@ -637,7 +674,7 @@ class Instance(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_instance = esh_driver.get_instance(instance_id)
+        esh_instance = _get_instance(esh_driver, instance_id)
         if not esh_instance:
             return instance_not_found(instance_id)
         #Gather the DB related item and update
@@ -649,7 +686,15 @@ class Instance(APIView):
             logger.info('metadata = %s' % data)
             update_instance_metadata(esh_driver, esh_instance, data)
             serializer.save()
-            invalidate_cached_instances(identity=Identity.objects.get(uuid=identity_uuid))
+            new_instance = serializer.object
+            boot_scripts = data.pop('boot_scripts', [])
+            if boot_scripts:
+                new_instance = _save_scripts_to_instance(new_instance, boot_scripts)
+                serializer = InstanceSerializer(new_instance,
+                        context={"request":request})
+            invalidate_cached_instances(
+                    identity=Identity.objects.get(
+                        uuid=identity_uuid))
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
             response['Cache-Control'] = 'no-cache'
@@ -668,14 +713,14 @@ class Instance(APIView):
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         try:
-            esh_instance = esh_driver.get_instance(instance_id)
+            esh_instance = _get_instance(esh_driver, instance_id)
             if not esh_instance:
                 return instance_not_found(instance_id)
             #Test that there is not an attached volume BEFORE we destroy
-            _check_volume_attachment(esh_driver, esh_instance)
+            #_check_volume_attachment(esh_driver, esh_instance)
             task.destroy_instance_task(esh_instance, identity_uuid)
             invalidate_cached_instances(identity=Identity.objects.get(uuid=identity_uuid))
-            existing_instance = esh_driver.get_instance(instance_id)
+            existing_instance = _get_instance(esh_driver, instance_id)
             if existing_instance:
                 #Instance will be deleted soon...
                 esh_instance = existing_instance
@@ -838,6 +883,12 @@ def over_capacity(capacity_exception):
         capacity_exception.message)
 
 
+def under_threshold(threshold_exception):
+    return failure_response(
+        status.HTTP_400_BAD_REQUEST,
+        threshold_exception.message)
+
+
 def over_quota(quota_exception):
     return failure_response(
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
@@ -853,3 +904,4 @@ def over_allocation(allocation_exception):
     return failure_response(
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
         allocation_exception.message)
+

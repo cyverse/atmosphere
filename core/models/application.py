@@ -10,7 +10,7 @@ from threepio import logger
 
 from atmosphere import settings
 
-from core.query import only_current
+from core.query import only_current, only_current_source
 from core.models.provider import Provider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
@@ -45,17 +45,15 @@ class Application(models.Model):
                 * The ProviderMachine has not exceeded its end_date
         """
         pms = self.providermachine_set.filter(
-            Q(provider__end_date=None)
-            | Q(provider__end_date__gt=timezone.now()),
-            only_current(),
-            provider__active=True)
+            only_current_source(),
+            instance_source__provider__active=True)
         if request_user:
             if type(request_user) == AnonymousUser:
                 providers = Provider.objects.filter(public=True)
             else:
                 providers = [identity.provider for identity in
                              request_user.identity_set.all()]
-            pms = pms.filter(provider__in=providers)
+            pms = pms.filter(instance_source__provider__in=providers)
         return pms
 
     def get_threshold(self):
@@ -127,11 +125,7 @@ class Application(models.Model):
 
     def get_provider_machines(self):
         pms = self._current_machines()
-        return [{"start_date": pm.start_date,
-                 "end_date": pm.end_date,
-                 "alias": pm.identifier,
-                 "version": pm.version,
-                 "provider": pm.provider.id} for pm in pms]
+        return [pm.to_dict() for pm in pms]
 
     def save(self, *args, **kwargs):
         """
@@ -197,17 +191,25 @@ class ApplicationMembership(models.Model):
         unique_together = ('application', 'group')
 
 
+def _has_active_provider(app):
+    machines = app.providermachine_set.filter(
+        Q(instance_source__end_date=None) |
+        Q(instance_source__end_date__gt=timezone.now())
+    )
+    providers =(pm.instance_source.provider for pm in machines)
+    return any(p.is_active() for p in providers)
+
 def public_applications():
-    apps = []
-    for app in Application.objects.filter(
-            Q(end_date=None) | Q(end_date__gt=timezone.now()),
-            private=False):
-        if any(pm.provider.is_active()
-               for pm in
-               app.providermachine_set.filter(
-                   Q(end_date=None) | Q(end_date__gt=timezone.now()))):
-            _add_app(apps, app)
-    return apps
+    public_apps = []
+    applications = Application.objects.filter(
+        Q(end_date=None) |
+        Q(end_date__gt=timezone.now()),
+        private=False)
+
+    for app in applications:
+        if _has_active_provider(app):
+            _add_app(public_apps, app)
+    return public_apps
 
 
 def visible_applications(user):
@@ -218,14 +220,11 @@ def visible_applications(user):
     active_providers = Provider.get_active()
     now_time = timezone.now()
     #Look only for 'Active' private applications
-    for app in Application.objects.filter(
-            Q(end_date=None) | Q(end_date__gt=now_time),
-            private=True):
+    for app in Application.objects.filter(only_current(), private=True):
         #Retrieve the machines associated with this app
-        machine_set = app.providermachine_set.filter(
-            Q(end_date=None) | Q(end_date__gt=now_time))
+        machine_set = app.providermachine_set.filter(only_current_source())
         #Skip app if all their machines are on inactive providers.
-        if all(not pm.provider.is_active() for pm in machine_set):
+        if all(not pm.instance_source.provider.is_active() for pm in machine_set):
             continue
         #Add the application if 'user' is a member of the application or PM
         if app.members.filter(user=user):
@@ -242,18 +241,66 @@ def _add_app(app_list, app):
         app_list.append(app)
 
 
-def get_application(identifier, app_uuid=None):
+def _get_app_by_name(name):
+    """
+    Retrieve app by name
+
+    """
+    try:
+        app = Application.objects.get(name=name)
+        return app
+    except Application.DoesNotExist:
+        return None
+    except Application.MultipleObjectsReturned:
+        logger.warn(
+            "Possible Application Conflict: Multiple applications named:"
+            "%s. Check this query for more details" % name)
+        return None
+
+
+def _get_app_by_identifier(identifier):
+    """
+    Retrieve app by 'instance_source.identifier'
+
+    NOTE: Added '.distinct().get()' here to collapse the multiple
+    identical applications that will be 'matched'
+    when more than one cloud uses identical identifiers.
+    """
+    try:
+        # Attempt #1: to retrieve application based on identifier
+        app = Application.objects.filter(providermachine__instance_source__identifier=identifier).distinct().get()
+        return app
+    except Application.DoesNotExist:
+        return None
+    except Application.MultipleObjectsReturned:
+        logger.warn(
+            "Possible Application Conflict: Machines with Identifier:%s "
+            "are in more than one application. "
+            "Check this query for more details" % identifier)
+        return None
+
+def get_application(identifier, app_name, app_uuid=None):
+    application = _get_app_by_identifier(identifier)
+    if application:
+        return application
+    application = _get_app_by_name(app_name)
+    if application:
+        return application
+    return _get_app_by_uuid(identifier, app_uuid)
+
+def _get_app_by_uuid(identifier, app_uuid):
     if not app_uuid:
-        app_uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(identifier))
-        app_uuid = str(app_uuid)
+        app_uuid = uuid5(
+                settings.ATMOSPHERE_NAMESPACE_UUID,
+                str(identifier))
+    app_uuid = str(app_uuid)
     try:
         app = Application.objects.get(uuid=app_uuid)
         return app
     except Application.DoesNotExist:
         return None
     except Exception, e:
-        logger.error(e)
-        logger.error(type(e))
+        logger.exception(e)
 
 
 def create_application(identifier, provider_uuid, name=None,
@@ -263,9 +310,6 @@ def create_application(identifier, provider_uuid, name=None,
     if not uuid:
         uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(identifier))
         uuid = str(uuid)
-    exists = Application.objects.filter(uuid=uuid)
-    if exists:
-        return exists[0]
     if not name:
         name = "UnknownApp %s" % identifier
     if not description:

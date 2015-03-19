@@ -18,7 +18,7 @@ class NodeController(models.Model):
     hostname = models.CharField(max_length=256)
     port = models.IntegerField(default=22)
     private_ssh_key = models.TextField()
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     def ssh_key_added(self):

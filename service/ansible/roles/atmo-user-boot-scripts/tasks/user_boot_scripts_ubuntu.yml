@@ -1,0 +1,11 @@
+- name: make directory for post script logs
+  file: path={{ post_script_log_dir }} state=directory
+
+- name: touch stdout log file
+  file: path={{ post_script_log_stdout }} state=touch
+
+- name: touch stderr log file
+  file: path={{ post_script_log_stderr }} state=touch 
+
+- name: run files in directory
+  shell: for file in {{post_script_dir_run}}; do . $file 2>> {{ post_script_log_stderr }}; done;

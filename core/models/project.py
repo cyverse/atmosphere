@@ -23,11 +23,11 @@ class Project(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
     owner = models.ForeignKey(Group, related_name="projects")
     applications = models.ManyToManyField(Application, related_name="projects",
-                                          null=True, blank=True)
+                                          blank=True)
     instances = models.ManyToManyField(Instance, related_name="projects",
-                                       null=True, blank=True)
+                                       blank=True)
     volumes = models.ManyToManyField(Volume, related_name="projects",
-                                     null=True, blank=True)
+                                     blank=True)
 
     def __unicode__(self):
         return "%s Owner:%s: Apps:%s Instances:%s Volumes:%s"\
@@ -56,8 +56,33 @@ class Project(models.Model):
         Use this function to move A single object
         to Project X
         """
-        return related_obj.projects.add(self)
+        from core.models import ProjectInstance, ProjectVolume
+        if isinstance(related_obj, Instance):
+            instance = related_obj
+            self._test_project_ownership(instance.created_by)
+            new_join = ProjectInstance(project=self, instance=instance)
+        elif isinstance(related_obj, Volume):
+            volume = related_obj
+            self._test_project_ownership(volume.instance_source.created_by)
+            new_join = ProjectVolume(project=self, volume=volume)
+        elif isinstance(related_obj, Application):
+            application = related_obj
+            self._test_project_ownership(application.created_by)
+            #TODO: Replace w/ new_join when 'through' is added
+            self.applications.add(related_obj)
+        else:
+            raise Exception ("Invalid type for Object %s: %s"
+                             % (related_obj, type(related_obj)))
+        new_join.save()
+        return new_join
 
+    def _test_project_ownership(self, user):
+        group = self.owner
+        if user in group.user_set.all():
+            return True
+        raise Exception("CANNOT add Resource:%s User:%s does NOT belong to Group:%s"
+                        % (related_obj, user, group))
+        
     def copy_objects(self, to_project):
         """
         Use this function to move ALL objects

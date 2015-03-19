@@ -5,33 +5,12 @@ Service Provider model for atmosphere.
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 from rtwo.provider import AWSProvider, EucaProvider, OSProvider
 from rtwo.provider import Provider as EshProvider
 from threepio import logger
 from uuid import uuid4
-
-class Trait(models.Model):
-    """
-    Trait objects are created by developers,
-    they should not be added to unless they will
-    be used as logic-choices in code.
-    """
-    name = models.CharField(max_length=256)
-    description = models.TextField(null=True, blank=True)
-
-    def json(self):
-        return {
-            'name': self.name,
-            'description': self.description
-        }
-
-    class Meta:
-        db_table = 'trait'
-        app_label = 'core'
-
-    def __unicode__(self):
-        return self.name
 
 class PlatformType(models.Model):
     """
@@ -83,6 +62,13 @@ class Provider(models.Model):
     Inactive providers are shown as "Offline" in the UI and API requests.
     Start date and end date are recorded for logging purposes
     """
+    #CONSTANTS
+    ALLOWED_STATES = [
+        "Suspend",
+        "Stop",
+        "Terminate",
+        "Shelve", "Shelve Offload"]
+    #Fields
     uuid = models.CharField(max_length=36, unique=True, default=uuid4)
     location = models.CharField(max_length=256)
     description = models.TextField(blank=True)
@@ -90,9 +76,22 @@ class Provider(models.Model):
     virtualization = models.ForeignKey(PlatformType)
     active = models.BooleanField(default=True)
     public = models.BooleanField(default=False)
+    auto_imaging = models.BooleanField(default=False)
+    over_allocation_action = models.ForeignKey(
+        "InstanceAction", blank=True, null=True)
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
-    traits = models.ManyToManyField(Trait, null=True, blank=True)
+
+    def clean(self):
+        """
+        Don't allow 'non-terminal' InstanceAction
+        to be set as over_allocation_action
+        """
+        if self.over_allocation_action.name not in Provider.ALLOWED_STATES:
+            raise ValidationError(
+                "Instance action %s is not in ALLOWED_STATES for "
+                "Over allocation action. ALLOWED_STATES=%s" %
+                (self.over_allocation_action.name, Provider.ALLOWED_STATES))
 
     @classmethod
     def get_active(cls, provider_uuid=None, type_name=None):
@@ -109,33 +108,6 @@ class Provider(models.Model):
             # no longer a list
             active_providers = active_providers.get(uuid=provider_uuid)
         return active_providers
-
-    def has_trait(self, trait_name):
-        """
-        """
-        return self.traits.filter(name=trait_name).count() != 0
-
-    def add_trait(self, trait_name):
-        """
-        """
-        trait = self.get_trait(trait_name)
-        return self.traits.add(trait)
-
-    def remove_trait(self, trait_name):
-        """
-        """
-        trait = self.get_trait(trait_name)
-        return self.traits.remove(trait)
-
-    def get_trait(self, trait_name):
-        try:
-            trait = trait.objects.get(name=trait_name)
-            return trait
-        except trait.DoesNotExist:
-            raise Exception("trait '%s' does not exist")
-
-    def get_traits(self):
-        return self.traits.all()
 
     def share(self, core_group):
         """
@@ -233,6 +205,40 @@ class Provider(models.Model):
     class Meta:
         db_table = 'provider'
         app_label = 'core'
+
+
+class ProviderInstanceAction(models.Model):
+    provider = models.ForeignKey(Provider)
+    instance_action = models.ForeignKey("InstanceAction")
+    enabled = models.BooleanField(default=True)
+
+    def __unicode__(self):
+        return "Provider:%s Action:%s Enabled:%s" % \
+                (self.provider, self.instance_action, self.enabled)
+    class Meta:
+        db_table = 'provider_instance_action'
+        app_label = 'core'
+
+
+
+class ProviderDNSServerIP(models.Model):
+    """
+    Used to describe all available
+    DNS servers (by IP, in order) for a given provider
+    """
+    provider = models.ForeignKey(Provider, related_name="dns_server_ips")
+    ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
+    order = models.IntegerField()
+
+    def __unicode__(self):
+        return "#%s Provider:%s ip_address:%s" % \
+                (self.order, self.provider, self.ip_address)
+    class Meta:
+        db_table = 'provider_dns_server_ip'
+        app_label = 'core'
+        unique_together = (("provider", "ip_address"),
+                           ("provider", "order"))
+
 
 class AccountProvider(models.Model):
     """

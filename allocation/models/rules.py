@@ -10,13 +10,12 @@ InstanceRules:
 TODO: We have 'Ignore*Rule', it might be nice to have a 'Match*Rule' class
       to define what you DO want counted.. rather than what you don't...
 """
-from abc import ABCMeta, abstractmethod
-from django.utils.timezone import timedelta, datetime
-import calendar, pytz
+from abc import ABCMeta
+
 from threepio import logger
 
-#Utils
 
+# Utils
 def _needle_in_haystack(haystack, needle):
     for value in haystack:
         if value == needle:
@@ -24,50 +23,48 @@ def _needle_in_haystack(haystack, needle):
     return False
 
 
-
-#Level 1
+# Level 1
 class Rule():
     __metaclass__ = ABCMeta
-    name = None
 
     def __init__(self, name):
         self.name = name
 
-#Level 2
 
+# Level 2
 class GlobalRule(Rule):
+    """
+    """
     def apply_global_rule(self, allocation, allocation_result):
         raise NotImplementedError("Should be implemented by subclass.")
 
-    pass
-
 
 class InstanceRule(Rule):
+    """
+    """
     def apply_rule(self, instance, history, running_time, print_logs=False):
         raise NotImplementedError("Should be implemented by subclass.")
 
-    pass
-
 
 class EngineRule(GlobalRule):
-    #def apply_rule(self, allocation, allocation_result):
-    #    raise NotImplementedError("Should be implemented by subclass.")
-    pass
+    """
+    """
+    # def apply_rule(self, allocation, allocation_result):
+    #     raise NotImplementedError("Should be implemented by subclass.")
 
-#Level 3
+
+# Level 3
 class CarryForwardTime(EngineRule):
     """
     When there is "leftover" time between TimePeriods, carry forward the time.
     """
     def apply_global_rule(self, allocation, allocation_result):
         allocation_result.carry_forward = True
-        pass
 
     def __init__(self, name=None):
         if not name:
             name = "Carry Forward between TimePeriodResults"
         super(CarryForwardTime, self).__init__(name)
-
 
 
 class FilterOutRule(InstanceRule):
@@ -82,7 +79,6 @@ class FilterOutRule(InstanceRule):
     def __init__(self, name, value):
         super(FilterOutRule, self).__init__(name)
         self.value = value
-    pass
 
 
 class InstanceCountingRule(InstanceRule):
@@ -94,7 +90,6 @@ class InstanceCountingRule(InstanceRule):
 
     def __init__(self, name):
         super(InstanceCountingRule, self).__init__(name)
-    pass
 
 
 class InstanceMultiplierRule(InstanceCountingRule):
@@ -110,7 +105,7 @@ class InstanceMultiplierRule(InstanceCountingRule):
         self.multiplier = multiplier
 
 
-#Types of 'FilterOutRule'
+# Types of 'FilterOutRule'
 class IgnoreStatusRule(FilterOutRule):
 
     def __init__(self, name, value):
@@ -130,15 +125,16 @@ class IgnoreStatusRule(FilterOutRule):
         if found_match:
             running_time *= 0
             if print_logs:
-                logger.debug(">> Ignore Instance Status '%s'. Set Runtime to 0"\
-                % (history.status))
-        #All misses.
+                logger.debug(">> Ignore Instance Status '%s'. Set Runtime to 0"
+                             % (history.status))
+        # All misses.
         return running_time
 
     def _validate_value(self, value):
         if type(value) != str:
             raise Exception("Expects a name to be matched on "
-            "InstanceStatusHistory.status")
+                            "InstanceStatusHistory.status")
+
 
 class IgnoreMachineRule(FilterOutRule):
     def __init__(self, name, value):
@@ -148,7 +144,7 @@ class IgnoreMachineRule(FilterOutRule):
     def _validate_value(self, value):
         if type(value) != str:
             raise Exception("Expects a machine UUID to be matched on "
-            "Instance.machine.identifier")
+                            "Instance.machine.identifier")
 
     def apply_rule(self, instance, history, running_time, print_logs=False):
         """
@@ -163,8 +159,8 @@ class IgnoreMachineRule(FilterOutRule):
         if found_match:
             running_time *= 0
             if print_logs:
-                logger.debug(">> Ignore Machine identifier '%s'. Set Runtime to 0"\
-                    % (history.status))
+                logger.debug(">> Ignore Machine identifier '%s'."
+                             "Set Runtime to 0" % (history.status))
         return running_time
 
 
@@ -172,7 +168,7 @@ class IgnoreProviderRule(FilterOutRule):
     def _validate_value(self, value):
         if type(value) != str:
             raise Exception("Expects a provider UUID to be matched on "
-            "Instance.provider.identifier")
+                            "Instance.provider.identifier")
 
     def apply_rule(self, instance, history, running_time, print_logs=False):
         """
@@ -187,18 +183,17 @@ class IgnoreProviderRule(FilterOutRule):
         if found_match:
             running_time *= 0
             if print_logs:
-                logger.debug(">> Ignore Provider identifier '%s'. Set Runtime to 0"\
-                    % (history.status))
+                logger.debug(">> Ignore Provider identifier '%s'."
+                             "Set Runtime to 0"
+                             % (history.status))
         return running_time
 
     def __init__(self, name, value):
         super(IgnoreProviderRule, self).__init__(name, value)
         self.instance_attr = 'provider'
-    pass
 
 
-
-#Types of 'InstanceCountingRule'
+# Types of 'InstanceCountingRule'
 class MultiplyBurnTime(InstanceMultiplierRule):
     def apply_rule(self, instance, history, running_time, print_logs=False):
         """
@@ -206,15 +201,14 @@ class MultiplyBurnTime(InstanceMultiplierRule):
         time.
         """
         if print_logs:
-            logger.debug(">> %s Current Running Time:%s * Multiplier:%s = %s"\
-                % ( history.status, running_time, self.multiplier,
-                    running_time * self.multiplier))
+            logger.debug(">> %s Current Running Time:%s * Multiplier:%s = %s"
+                         % (history.status, running_time, self.multiplier,
+                            running_time * self.multiplier))
         running_time *= self.multiplier
         return running_time
 
     def __init__(self, name, multiplier):
         super(MultiplyBurnTime, self).__init__(name, multiplier)
-    pass
 
 
 class MultiplySizeCPU(InstanceMultiplierRule):
@@ -223,15 +217,16 @@ class MultiplySizeCPU(InstanceMultiplierRule):
         Multiply the running_time by size of CPU * (multiplier)
         """
         if print_logs:
-            logger.debug(">> %s Current Running Time:%s * CPU:%s * Multiplier:%s = %s"\
-                % ( history.status, running_time, history.size.cpu, self.multiplier,
-                    running_time * history.size.cpu * self.multiplier))
+            logger.debug(
+                ">> %s Current Running Time:%s * CPU:%s * Multiplier:%s = %s"
+                % (history.status, running_time, history.size.cpu,
+                   self.multiplier,
+                   running_time * history.size.cpu * self.multiplier))
         running_time *= self.multiplier * history.size.cpu
         return running_time
 
     def __init__(self, name, multiplier):
         super(MultiplySizeCPU, self).__init__(name, multiplier)
-    pass
 
 
 class MultiplySizeDisk(InstanceMultiplierRule):
@@ -243,15 +238,16 @@ class MultiplySizeDisk(InstanceMultiplierRule):
         Multiply the running_time by size of Disk (GB) * (multiplier)
         """
         if print_logs:
-            logger.debug(">> %s Current Running Time:%s * Disk:%s * Multiplier:%s = %s"\
-                % ( history.status, running_time, history.size.disk, self.multiplier,
-                        running_time * history.size.disk * self.multiplier))
+            logger.debug(
+                ">> %s Current Running Time:%s * Disk:%s * Multiplier:%s = %s"
+                % (history.status, running_time, history.size.disk,
+                   self.multiplier,
+                   running_time * history.size.disk * self.multiplier))
         running_time *= self.multiplier * history.size.disk
         return running_time
 
     def __init__(self, name, multiplier):
         super(MultiplySizeDisk, self).__init__(name, multiplier)
-    pass
 
 
 class MultiplySizeRAM(InstanceMultiplierRule):
@@ -275,12 +271,13 @@ class MultiplySizeRAM(InstanceMultiplierRule):
         NOTE: To calculate in GB, set self.multiplier = 1/1024
         """
         if print_logs:
-            logger.debug(">> %s Current Running Time:%s * RAM:%s * Multiplier:%s = %s"\
-                % ( history.status, running_time, history.size.disk, self.multiplier,
-                        running_time * history.size.disk * self.multiplier))
+            logger.debug(
+                ">> %s Current Running Time:%s * RAM:%s * Multiplier:%s = %s"
+                % (history.status, running_time, history.size.disk,
+                   self.multiplier,
+                   running_time * history.size.disk * self.multiplier))
         running_time *= self.multiplier * history.size.ram
         return running_time
 
     def __init__(self, name, multiplier):
         super(MultiplySizeRAM, self).__init__(name, multiplier)
-    pass

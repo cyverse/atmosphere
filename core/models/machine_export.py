@@ -21,7 +21,7 @@ class MachineExport(models.Model):
     export_format = models.CharField(max_length=256)
     export_file = models.CharField(max_length=256, null=True, blank=True)
     #Request start to image exported
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
     #TODO: Perhaps a field for the MD5 Hash?
     def get_admin_provider(self):

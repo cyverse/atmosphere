@@ -16,8 +16,10 @@ from rtwo.size import MockSize
 
 from threepio import logger
 
+from core.models.instance_source import InstanceSource
 from core.models.identity import Identity
-from core.models.machine import ProviderMachine, convert_esh_machine
+from core.models.machine import ProviderMachine, ProviderMachine, convert_esh_machine
+from core.models.volume import convert_esh_volume
 from core.models.size import convert_esh_size
 from core.models.tag import Tag
 
@@ -50,6 +52,20 @@ def strfdate(datetime_o, fmt=None):
     return datetime_o.strftime(fmt)
 
 
+class InstanceAction(models.Model):
+    """
+    An InstanceAction is a 'Type' field that lists every available action for
+    a given instance on a 'generic' cloud.
+    see 'ProviderInstanceAction' to Enable/disable a specific instance action on a given cloud(Provider)
+    """
+    name = models.CharField(max_length=256)
+    description = models.TextField(blank=True, null=True)
+
+    def __unicode__(self):
+        return "%s" %\
+            (self.name,)
+
+
 class Instance(models.Model):
     """
     When a user launches a machine, an Instance is created.
@@ -67,7 +83,7 @@ class Instance(models.Model):
     token = models.CharField(max_length=36, blank=True, null=True)
     tags = models.ManyToManyField(Tag, blank=True)
     # The specific machine & provider for which this instance exists
-    provider_machine = models.ForeignKey(ProviderMachine)
+    source = models.ForeignKey(InstanceSource, related_name='instances')
     provider_alias = models.CharField(max_length=256, unique=True)
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     created_by = models.ForeignKey('AtmosphereUser')
@@ -75,7 +91,8 @@ class Instance(models.Model):
     shell = models.BooleanField(default=False)
     vnc = models.BooleanField(default=False)
     password = models.CharField(max_length=64, blank=True, null=True)
-    start_date = models.DateTimeField() # Problems when setting a default.
+    # FIXME  Problems when setting a default.
+    start_date = models.DateTimeField()
     end_date = models.DateTimeField(null=True)
 
     def get_projects(self, user):
@@ -279,21 +296,22 @@ class Instance(models.Model):
             accounting_list.append(state)
         return accounting_list
 
-    def end_date_all(self):
+    def end_date_all(self, end_date=None):
         """
         Call this function to tie up loose ends when the instance is finished
         (Destroyed, terminated, no longer exists..)
         """
-        now_time = timezone.now()
-        ish_list = InstanceStatusHistory.objects.filter(instance=self)
+        if not end_date:
+            end_date = timezone.now()
+        logger.info("END DATING instance %s: %s" % (self.provider_alias, end_date))
+        ish_list = self.instancestatushistory_set.filter(end_date=None)
         for ish in ish_list:
-            if not ish.end_date:
-                # logger.info('Saving history:%s' % ish)
-                ish.end_date = now_time
-                ish.save()
+            # logger.info('Saving history:%s' % ish)
+            ish.end_date = end_date
+            ish.save()
         if not self.end_date:
             # logger.info("Saving Instance:%s" % self)
-            self.end_date = now_time
+            self.end_date = end_date
             self.save()
 
     def creator_name(self):
@@ -309,9 +327,9 @@ class Instance(models.Model):
             return md5(self.esh._node.extra['imageId']).hexdigest()
         else:
             try:
-                if self.provider_machine:
-                    return md5(self.provider_machine.identifier).hexdigest()
-            except ProviderMachine.DoesNotExist as dne:
+                if self.source:
+                    return md5(self.source.identifier).hexdigest()
+            except InstanceSource.DoesNotExist as dne:
                 logger.exception("Unable to find provider_machine for %s." % self.provider_alias)
         return 'Unknown'
 
@@ -345,17 +363,35 @@ class Instance(models.Model):
         else:
             return "Unknown"
 
-    def esh_machine_name(self):
-        return self.provider_machine.application.name
+    def application_uuid(self):
+        if self.source.is_machine():
+            return self.source.providermachine.application.uuid
+        else:
+            return None
+
+    @property
+    def provider_machine(self):
+        if self.source.is_machine():
+            return self.source.providermachine
+        return None
+        
+    def esh_source_name(self):
+        if self.source.is_machine():
+            return self.source.providermachine.application.name
+        elif self.source.is_volume():
+            return self.source.volume.name
+        else:
+            return "%s - Source Unknown" % self.source.identifier
 
     def provider_uuid(self):
-        return self.provider_machine.provider.uuid
+        return self.source.provider.uuid
 
     def provider_name(self):
-        return self.provider_machine.provider.location
+        source_dict = self.source.__dict__
+        return self.source.provider.location
 
-    def esh_machine(self):
-        return self.provider_machine.identifier
+    def esh_source(self):
+        return self.source.identifier
 
     def json(self):
         return {
@@ -400,7 +436,7 @@ class InstanceStatusHistory(models.Model):
     instance = models.ForeignKey(Instance)
     size = models.ForeignKey("Size", null=True, blank=True)
     status = models.ForeignKey(InstanceStatus)
-    start_date = models.DateTimeField(default=timezone.now())
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     @classmethod
@@ -409,6 +445,7 @@ class InstanceStatusHistory(models.Model):
         try:
             with transaction.atomic():
                 if not last_history:
+                    # Required to prevent race conditions.
                     last_history = instance.get_last_history()\
                                            .select_for_update(nowait=True)
                     if not last_history:
@@ -585,46 +622,56 @@ def _convert_timestamp(create_stamp):
     return start_date
 
 
+def convert_instance_source(esh_driver, esh_source, provider_uuid, identity_uuid, user):
+    """
+    Given the instance source, create the appropriate core REPR and return
+    """
+    from rtwo.volume import BaseVolume
+    from rtwo.machine import BaseMachine
+    #TODO: Future Release..
+    #if isinstance(esh_source, BaseSnapShot):
+    #    core_source = convert_esh_snapshot(esh_source, provider_uuid, identity_uuid, user)
+    if isinstance(esh_source, BaseVolume):
+        core_source = convert_esh_volume(esh_source, provider_uuid, identity_uuid, user)
+    elif isinstance(esh_source, BaseMachine):
+        if type(esh_source) == MockMachine:
+            #MockMachine includes only the Alias/ID information
+            #so a lookup on the machine is required to get accurate
+            #information.
+            esh_source = esh_driver.get_machine(esh_source.id)
+        core_source = convert_esh_machine(esh_driver, esh_source,
+                                          provider_uuid, user)
+    elif not isinstance(esh_source, BaseMachine):
+        raise Exception ("Encountered unknown source %s" % esh_source)
+    return core_source
+
+
 def convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
                          user, token=None, password=None):
     """
     """
     instance_id = esh_instance.id
     ip_address = _find_esh_ip(esh_instance)
-    esh_machine = esh_instance.machine
+    source_obj = esh_instance.source
     core_instance = find_instance(instance_id)
     if core_instance:
         _update_core_instance(core_instance, ip_address, password)
     else:
         start_date = _find_esh_start_date(esh_instance)
         logger.debug("Instance: %s" % instance_id)
-        if type(esh_machine) == MockMachine:
-            #MockMachine includes only the Alias/ID information
-            #so a lookup on the machine is required to get accurate
-            #information.
-            esh_machine = esh_driver.get_machine(esh_machine.id)
-        #Ensure that core Machine exists
-        coreMachine = convert_esh_machine(esh_driver, esh_machine,
-                                          provider_uuid, user,
-                                          image_id=esh_instance.image_id)
+        core_source = convert_instance_source(esh_driver, source_obj,
+                provider_uuid, identity_uuid, user)
+        logger.debug("CoreSource: %s" % core_source)
         #Use New/Existing core Machine to create core Instance
         core_instance = create_instance(provider_uuid, identity_uuid, instance_id,
-                                      coreMachine, ip_address,
+                                      core_source.instance_source, ip_address,
                                       esh_instance.name, user,
                                       start_date, token, password)
     #Add 'esh' object
     core_instance.esh = esh_instance
     #Update the InstanceStatusHistory
-    #NOTE: Querying for esh_size because esh_instance
-    #Only holds the alias, not all the values.
-    #As a bonus this is a cached-call
-    esh_size = esh_instance.size
-    if type(esh_size) == MockSize:
-        #MockSize includes only the Alias/ID information
-        #so a lookup on the size is required to get accurate
-        #information.
-        esh_size = esh_driver.get_size(esh_size.id)
-    core_size = convert_esh_size(esh_size, provider_uuid)
+    core_size = _esh_instance_size_to_core(esh_driver,
+            esh_instance, provider_uuid)
     #TODO: You are the mole!
     core_instance.update_history(
         esh_instance.extra['status'],
@@ -635,6 +682,18 @@ def convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
     core_instance = set_instance_from_metadata(esh_driver, core_instance)
     return core_instance
 
+def _esh_instance_size_to_core(esh_driver, esh_instance, provider_uuid):
+    #NOTE: Querying for esh_size because esh_instance
+    #Only holds the alias, not all the values.
+    #As a bonus this is a cached-call
+    esh_size = esh_instance.size
+    if type(esh_size) == MockSize:
+        #MockSize includes only the Alias/ID information
+        #so a lookup on the size is required to get accurate
+        #information.
+        esh_size = esh_driver.get_size(esh_size.id)
+    core_size = convert_esh_size(esh_size, provider_uuid)
+    return core_size
 
 def set_instance_from_metadata(esh_driver, core_instance):
     #Fixes Dep. loop - Do not remove
@@ -665,12 +724,11 @@ def set_instance_from_metadata(esh_driver, core_instance):
         logger.warn("Encountered errors serializing metadata:%s"
                     % serializer.errors)
         return core_instance
-    serializer.save()
-    core_instance = serializer.object
+    core_instance = serializer.save()
     core_instance.esh = esh_instance
     return core_instance
 
-def create_instance(provider_uuid, identity_uuid, provider_alias, provider_machine,
+def create_instance(provider_uuid, identity_uuid, provider_alias, instance_source,
                    ip_address, name, creator, create_stamp,
                    token=None, password=None):
     #TODO: Define a creator and their identity by the METADATA instead of
@@ -678,7 +736,7 @@ def create_instance(provider_uuid, identity_uuid, provider_alias, provider_machi
     identity = Identity.objects.get(uuid=identity_uuid)
     new_inst = Instance.objects.create(name=name,
                                        provider_alias=provider_alias,
-                                       provider_machine=provider_machine,
+                                       source=instance_source,
                                        ip_address=ip_address,
                                        created_by=creator,
                                        created_by_identity=identity,

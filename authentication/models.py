@@ -1,13 +1,12 @@
 """
 Atmosphere authentication models..
 """
-
-import uuid
-import hashlib
 from datetime import timedelta
+import hashlib
+import uuid
 
-from django.utils import timezone
 from django.db import models
+from django.utils import timezone
 
 from core.models import AtmosphereUser as User
 
@@ -24,6 +23,9 @@ class Token(models.Model):
     user_agent = models.TextField(null=True, blank=True)
     issuedTime = models.DateTimeField(auto_now_add=True)
     expireTime = models.DateTimeField(null=True, blank=True)
+
+    def get_expired_time(self):
+        return self.expireTime.strftime("%b %d, %Y %H:%M:%S")
 
     def is_expired(self):
         """

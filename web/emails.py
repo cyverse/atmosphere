@@ -26,7 +26,9 @@ def requestImaging(request, machine_request_id, auto_approve=False):
     #machine_request.instance.created_by.username
     #And we could add another field 'new_image_owner'..
     machine_request = MachineRequest.objects.get(id=machine_request_id)
-    username = machine_request.new_machine_owner.username
+    user = machine_request.new_machine_owner
+    username = user.username
+    full_name = user.get_full_name()
 
     if auto_approve:
         message_header = "Your image request has been approved!"\
@@ -58,6 +60,7 @@ def requestImaging(request, machine_request_id, auto_approve=False):
     
     Your Image Request:
     Username : %s
+    Full Name: %s
     Instance ID:%s
     ---
     Installed software:%s
@@ -68,7 +71,8 @@ def requestImaging(request, machine_request_id, auto_approve=False):
     New Image name:%s
     New Image description:%s
     New Image tags:%s
-    """ % (username, 
+    """ % (username,
+           full_name,
            machine_request.instance.provider_alias,
            machine_request.installed_software,
            machine_request.iplant_sys_files,
@@ -94,16 +98,18 @@ def quota_request_email(request, username, new_quota, reason):
     Returns a response.
     """
     user = User.objects.get(username=username)
+    full_name = user.get_full_name()
     membership = IdentityMembership.objects.get(identity=user.select_identity(),
             member__in=user.group_set.all())
     admin_url = urlresolvers.reverse('admin:core_identitymembership_change',
                                      args=(membership.id,))
     message = """
     Username : %s
+    Full name: %s
     Quota Requested: %s
     Reason for Quota Increase: %s
     URL for Quota Increase:%s
-    """ % (username, new_quota, reason, 
+    """ % (username, full_name, new_quota, reason, 
            request.build_absolute_uri(admin_url))
     subject = "Atmosphere Quota Request - %s" % username
     logger.info(message)
@@ -117,8 +123,10 @@ def feedback_email(request, username, user_email, message):
 
     Returns a response.
     """
+    user = User.objects.get(username=username)
+    full_name = user.get_full_name()
     subject = 'Subject: Atmosphere Client Feedback from %s' % username
-    message = '---\nFeedback: %s\n---' % message
+    message = '---\nFull Name:%s\nFeedback: %s\n---' % (full_name, message)
     email_success = email_admin(request, subject, message, request_tracker=True)
     if email_success:
         resp = {'result':

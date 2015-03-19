@@ -1,5 +1,7 @@
 from core.models import IdentityMembership, Quota as NewQuota
 from service_old.models import Quota
+import django
+django.setup()
 old_quota = Quota.objects.all()
 for q in old_quota:
     username = q.userid

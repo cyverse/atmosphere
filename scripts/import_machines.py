@@ -9,6 +9,8 @@ from core.models import AtmosphereUser as User
 from pytz import timezone
 
 from core.models import Machine, Provider, ProviderMachine, Tag
+import django
+django.setup()
 
 
 #Tags are global, can be added to each machine

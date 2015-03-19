@@ -17,7 +17,7 @@ class Service(object):
             return model.connection_name
         return None
 
-    def allow_syncdb(self, db, model):
+    def allow_migrate(self, db, model):
         if hasattr(model, 'connection_name'):
             return model.connection_name == db
         return db == 'default'
