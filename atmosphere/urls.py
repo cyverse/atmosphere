@@ -7,6 +7,7 @@ from django.conf.urls import patterns, url, include
 
 from rest_framework.urlpatterns import format_suffix_patterns
 from api.auth import Authentication 
+from api.version import Version
 
 resources_path = os.path.join(os.path.dirname(__file__), 'resources')
 mobile = os.path.join(os.path.dirname(__file__), 'mobile')
@@ -76,6 +77,8 @@ urlpatterns = patterns(
     #Error Redirection
     url(r'^no_user$', 'web.views.no_user_redirect'),
     #API Layer
+
+    url(r'^api/version$', Version.as_view()),
     url(r'^api/v1/', include("api.urls", namespace="api")),
     url(r'^api/v2/', include("api.v2.urls", namespace="api_v2")),
 
