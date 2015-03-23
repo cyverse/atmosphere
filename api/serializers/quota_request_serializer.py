@@ -1,4 +1,4 @@
-from core.models import Quota
+from core.models import IdentityMembership, Quota
 from core.models.request import QuotaRequest
 from core.models.status_type import StatusType
 from core.models.user import AtmosphereUser
@@ -11,12 +11,16 @@ class QuotaRequestSerializer(serializers.ModelSerializer):
         slug_field='username',
         queryset=AtmosphereUser.objects.all())
     status = serializers.SlugRelatedField(
-        slug_field='name',
-        queryset=StatusType.objects.all())
+        read_only=True,
+        slug_field='name')
+    membership = serializers.PrimaryKeyRelatedField(
+        queryset=IdentityMembership.objects.all())
+
+    provider = serializers.CharField(read_only=True, source="membership__provider__location")
 
     class Meta:
         model = QuotaRequest
-        exclude = ('uuid', 'membership')
+        exclude = ('uuid',)
 
 
 class ResolveQuotaRequestSerializer(serializers.ModelSerializer):
@@ -37,3 +41,9 @@ class ResolveQuotaRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuotaRequest
         exclude = ('uuid', 'membership')
+
+
+class UserQuotaRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuotaRequest
+        fields = ("request", "description",)

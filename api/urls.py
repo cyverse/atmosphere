@@ -306,10 +306,9 @@ public_apis = format_suffix_patterns(patterns(
     url(r'^allocation/(?P<quota_id>%s)$' % (id_match,),
         AllocationDetail.as_view(), name='quota-detail'),
 
-    url(identity_specific + r'/quota_request$',
+    url(r'^quota_request$',
         QuotaRequestList.as_view(), name='quota-request-list'),
-    url(identity_specific +
-        r'/quota_request/(?P<quota_request_uuid>%s)$' % uuid_match,
+    url(r'^quota_request/(?P<quota_request_uuid>%s)$' % uuid_match,
         QuotaRequestDetail.as_view(), name='quota-request-detail'),
 
     url(r'^quota$',
