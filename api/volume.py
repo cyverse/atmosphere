@@ -32,10 +32,6 @@ from api import failure_response, invalid_creds, connection_failure,\
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import VolumeSerializer, InstanceSerializer
 
-def _get_volume(esh_driver, volume_id):
-    """
-    Protect yourself against drivers that can't connect, old providers, old volumes/instances
-    """
     try:
         esh_volume = esh_driver.get_volume(volume_id)
         return esh_volume
@@ -98,7 +94,17 @@ class VolumeSnapshot(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_volume = _get_volume(esh_driver, volume_id)
+        try:
+            esh_volume = esh_driver.get_volume(volume_id)
+        except ConnectionFailure:
+            return connection_failure(provider_uuid, identity_uuid)
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
+        except Exception as exc:
+            logger.exception("Encountered a generic exception. "
+                             "Returning 409-CONFLICT")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    str(exc.message))
         #TODO: Put quota tests at the TOP so we dont over-create resources!
         #STEP 1 - Reuse/Create snapshot
         if snapshot_id:
@@ -288,7 +294,17 @@ class Volume(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_volume = _get_volume(esh_driver, volume_id)
+        try:
+            esh_volume = esh_driver.get_volume(volume_id)
+        except ConnectionFailure:
+            return connection_failure(provider_uuid, identity_uuid)
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
+        except Exception as exc:
+            logger.exception("Encountered a generic exception. "
+                             "Returning 409-CONFLICT")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    str(exc.message))
         if not esh_volume:
             try:
                 source = InstanceSource.objects.get(
@@ -316,7 +332,17 @@ class Volume(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_volume = _get_volume(esh_driver, volume_id)
+        try:
+            esh_volume = esh_driver.get_volume(volume_id)
+        except ConnectionFailure:
+            return connection_failure(provider_uuid, identity_uuid)
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
+        except Exception as exc:
+            logger.exception("Encountered a generic exception. "
+                             "Returning 409-CONFLICT")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    str(exc.message))
         if not esh_volume:
             return volume_not_found(volume_id)
         core_volume = convert_esh_volume(esh_volume, provider_uuid,
@@ -346,7 +372,17 @@ class Volume(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_volume = _get_volume(esh_driver, volume_id)
+        try:
+            esh_volume = esh_driver.get_volume(volume_id)
+        except ConnectionFailure:
+            return connection_failure(provider_uuid, identity_uuid)
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
+        except Exception as exc:
+            logger.exception("Encountered a generic exception. "
+                             "Returning 409-CONFLICT")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    str(exc.message))
         if not esh_volume:
             return volume_not_found(volume_id)
         core_volume = convert_esh_volume(esh_volume, provider_uuid,
@@ -373,7 +409,17 @@ class Volume(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_volume = _get_volume(esh_driver, volume_id)
+        try:
+            esh_volume = esh_driver.get_volume(volume_id)
+        except ConnectionFailure:
+            return connection_failure(provider_uuid, identity_uuid)
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
+        except Exception as exc:
+            logger.exception("Encountered a generic exception. "
+                             "Returning 409-CONFLICT")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    str(exc.message))
         if not esh_volume:
             return volume_not_found(volume_id)
         core_volume = convert_esh_volume(esh_volume, provider_uuid,

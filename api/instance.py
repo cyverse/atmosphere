@@ -53,16 +53,6 @@ from api.serializers import VolumeSerializer
 from api.serializers import TagSerializer
 
 
-def _get_instance(esh_driver, instance_id):
-    """
-    Protect yourself against drivers that can't connect, old providers, old instances
-    """
-    try:
-        esh_instance = esh_driver.get_instance(instance_id)
-        return esh_instance
-    except Exception:
-        logger.exception("Error retrieving instance %s using driver %s" % (instance_id, esh_driver))
-        return None
 
 def get_core_instance(request, provider_uuid, identity_uuid, instance_id):
     user = request.user
@@ -78,8 +68,21 @@ def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
         raise InvalidCredsError(
                 "Provider_uuid && identity_uuid "
                 "did not produce a valid combination")
-    esh_instance = _get_instance(esh_driver, instance_id)
+    esh_instance = None
+    try:
+        esh_instance = esh_driver.get_instance(instance_id)
+    except ConnectionFailure:
+        return connection_failure(provider_uuid, identity_uuid)
+    except InvalidCredsError:
+        return invalid_creds(provider_uuid, identity_uuid)
+    except Exception as exc:
+        logger.exception("Encountered a generic exception. "
+                         "Returning 409-CONFLICT")
+        return failure_response(status.HTTP_409_CONFLICT,
+                                str(exc.message))
+
     if not esh_instance:
+        # End date everything
         try:
             core_inst = CoreInstance.objects.get(
                 provider_alias=instance_id,
@@ -88,7 +91,6 @@ def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
             core_inst.end_date_all()
         except CoreInstance.DoesNotExist:
             pass
-        return esh_instance
     return esh_instance
 
 class InstanceList(APIView):
@@ -456,7 +458,17 @@ class InstanceAction(APIView):
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
 
-        esh_instance = _get_instance(esh_driver, instance_id)
+        try:
+            esh_instance = esh_driver.get_instance(instance_id)
+        except ConnectionFailure:
+            return connection_failure(provider_uuid, identity_uuid)
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
+        except Exception as exc:
+            logger.exception("Encountered a generic exception. "
+                             "Returning 409-CONFLICT")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    str(exc.message))
         if not esh_instance:
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
@@ -614,7 +626,17 @@ class Instance(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_instance = _get_instance(esh_driver, instance_id)
+        try:
+            esh_instance = esh_driver.get_instance(instance_id)
+        except ConnectionFailure:
+            return connection_failure(provider_uuid, identity_uuid)
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
+        except Exception as exc:
+            logger.exception("Encountered a generic exception. "
+                             "Returning 409-CONFLICT")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    str(exc.message))
         if not esh_instance:
             try:
                 core_inst = CoreInstance.objects.get(
@@ -640,7 +662,17 @@ class Instance(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_instance = _get_instance(esh_driver, instance_id)
+        try:
+            esh_instance = esh_driver.get_instance(instance_id)
+        except ConnectionFailure:
+            return connection_failure(provider_uuid, identity_uuid)
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
+        except Exception as exc:
+            logger.exception("Encountered a generic exception. "
+                             "Returning 409-CONFLICT")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    str(exc.message))
         if not esh_instance:
             return instance_not_found(instance_id)
         #Gather the DB related item and update
@@ -674,7 +706,17 @@ class Instance(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_instance = _get_instance(esh_driver, instance_id)
+        try:
+            esh_instance = esh_driver.get_instance(instance_id)
+        except ConnectionFailure:
+            return connection_failure(provider_uuid, identity_uuid)
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
+        except Exception as exc:
+            logger.exception("Encountered a generic exception. "
+                             "Returning 409-CONFLICT")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    str(exc.message))
         if not esh_instance:
             return instance_not_found(instance_id)
         #Gather the DB related item and update
@@ -713,20 +755,45 @@ class Instance(APIView):
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         try:
-            esh_instance = _get_instance(esh_driver, instance_id)
-            if not esh_instance:
-                return instance_not_found(instance_id)
+            esh_instance = esh_driver.get_instance(instance_id)
+        except ConnectionFailure:
+            return connection_failure(provider_uuid, identity_uuid)
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
+        except Exception as exc:
+            logger.exception("Encountered a generic exception. "
+                             "Returning 409-CONFLICT")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    str(exc.message))
+        try:
             #Test that there is not an attached volume BEFORE we destroy
             #_check_volume_attachment(esh_driver, esh_instance)
+
             task.destroy_instance_task(esh_instance, identity_uuid)
+
             invalidate_cached_instances(identity=Identity.objects.get(uuid=identity_uuid))
-            existing_instance = _get_instance(esh_driver, instance_id)
+
+            existing_instance = esh_driver.get_instance(instance_id)
             if existing_instance:
                 #Instance will be deleted soon...
                 esh_instance = existing_instance
                 if esh_instance.extra\
                    and 'task' not in esh_instance.extra:
                     esh_instance.extra['task'] = 'queueing delete'
+        except VolumeAttachConflict as exc:
+            message = exc.message
+            return failure_response(status.HTTP_409_CONFLICT, message)
+        except ConnectionFailure:
+            return connection_failure(provider_uuid, identity_uuid)
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
+        except Exception as exc:
+            logger.exception("Encountered a generic exception. "
+                             "Returning 409-CONFLICT")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    str(exc.message))
+
+        try:
             core_instance = convert_esh_instance(esh_driver, esh_instance,
                                                  provider_uuid, identity_uuid,
                                                  user)
@@ -742,9 +809,6 @@ class Instance(APIView):
         except (Identity.DoesNotExist) as exc:
             return failure_response(status.HTTP_400_BAD_REQUEST,
                                     "Invalid provider_uuid or identity_uuid.")
-        except VolumeAttachConflict as exc:
-            message = exc.message
-            return failure_response(status.HTTP_409_CONFLICT, message)
         except ConnectionFailure:
             return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
