@@ -18,6 +18,8 @@ class InstanceHistorySerializer(serializers.ModelSerializer):
                                          source='esh_source_name')
     machine_alias_hash = serializers.CharField(read_only=True,
                                                source='hash_machine_alias')
+    application_uuid = serializers.CharField(read_only=True,)
+    application_id = serializers.IntegerField(read_only=True,)
     #ENDNOTE
     ip_address = serializers.CharField(read_only=True)
     start_date = serializers.DateTimeField(read_only=True)
