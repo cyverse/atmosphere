@@ -46,7 +46,7 @@ class InstanceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Instance
-        exclude = ('id', 'source', 'provider_alias',
+        exclude = ('source', 'provider_alias',
                    'shell', 'vnc', 'password', 'created_by_identity')
 
 
