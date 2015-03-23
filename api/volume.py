@@ -32,13 +32,6 @@ from api import failure_response, invalid_creds, connection_failure,\
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import VolumeSerializer, InstanceSerializer
 
-    try:
-        esh_volume = esh_driver.get_volume(volume_id)
-        return esh_volume
-    except Exception:
-        logger.exception("Error retrieving volume %s using driver %s" % (volume_id, esh_driver))
-        return None
-
 class VolumeSnapshot(APIView):
     """
     Initialize and view volume snapshots
