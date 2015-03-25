@@ -108,7 +108,7 @@ def configure_ansible():
     """
     subspace.constants("HOST_KEY_CHECKING", False)
     subspace.constants("DEFAULT_ROLES_PATH", os.path.join(
-        settings.PROJECT_ROOT, "service/ansible/roles")
+        settings.PROJECT_ROOT, "service/ansible/roles"))
     subspace.use_logger(logger)
 
 
