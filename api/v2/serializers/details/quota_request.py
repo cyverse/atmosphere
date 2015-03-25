@@ -62,7 +62,7 @@ class QuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
     user = UserSummarySerializer(source='membership.identity.created_by', read_only=True)
     identity = IdentityRelatedField(source='membership.identity', queryset=Identity.objects.none())
     provider = ProviderSummarySerializer(source='membership.identity.provider', read_only=True)
-    quota = QuotaRelatedField(queryset=Quota.objects.all())
+    quota = QuotaRelatedField(queryset=Quota.objects.all(), required=False)
     status = StatusTypeRelatedField(queryset=StatusType.objects.none(), required=False)
 
     class Meta:
