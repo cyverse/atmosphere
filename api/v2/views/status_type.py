@@ -3,7 +3,7 @@ from core.models.status_type import StatusType
 from api.v2.serializers.details import StatusTypeSerializer
 
 
-class StatusTypeViewSet(viewsets.ModelViewSet):
+class StatusTypeViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint that allows status types to be viewed.
     """
