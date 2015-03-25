@@ -290,11 +290,15 @@ def get_application(identifier, app_name, app_uuid=None):
         return application
     return _get_app_by_uuid(identifier, app_uuid)
 
+def _generate_app_uuid(identifier):
+    app_uuid = uuid5(
+            settings.ATMOSPHERE_NAMESPACE_UUID,
+            str(identifier))
+    return str(app_uuid)
+
 def _get_app_by_uuid(identifier, app_uuid):
     if not app_uuid:
-        app_uuid = uuid5(
-                settings.ATMOSPHERE_NAMESPACE_UUID,
-                str(identifier))
+        app_uuid = _generate_app_uuid(identifier)
     app_uuid = str(app_uuid)
     try:
         app = Application.objects.get(uuid=app_uuid)
@@ -310,8 +314,7 @@ def create_application(identifier, provider_uuid, name=None,
                        description=None, tags=None, uuid=None):
     from core.models import AtmosphereUser
     if not uuid:
-        uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(identifier))
-        uuid = str(uuid)
+        uuid = _generate_app_uuid(identifier)
     if not name:
         name = "UnknownApp %s" % identifier
     if not description:
