@@ -15,6 +15,7 @@ from .provider_type import ProviderTypeViewSet
 from .quota import QuotaViewSet
 from .quota_request import QuotaRequestViewSet
 from .size import SizeViewSet
+from .status_type import StatusTypeViewSet
 from .tag import TagViewSet
 from .user import UserViewSet
 from .volume import VolumeViewSet

@@ -13,6 +13,7 @@ from .provider_machine import ProviderMachineSerializer
 from .quota import QuotaSerializer
 from .quota_request import QuotaRequestSerializer
 from .size import SizeSerializer
+from .status_type import StatusTypeSerializer
 from .tag import TagSerializer
 from .user import UserSerializer
 from .volume import VolumeSerializer
