@@ -1,5 +1,5 @@
 ---
 - name: Full Playbook to install everything for atmo. Near equivalent to atmo_init_full.py
-  hosts: all
+  hosts: atmosphere
   roles:
     - atmo-common
