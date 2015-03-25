@@ -1,10 +1,12 @@
 from core.models import QuotaRequest, Quota, Identity, AtmosphereUser as User
+from core.models.status_type import StatusType
 from rest_framework import serializers
 from api.v2.serializers.summaries import (
     IdentitySummarySerializer,
     UserSummarySerializer,
     ProviderSummarySerializer,
-    QuotaSummarySerializer
+    QuotaSummarySerializer,
+    StatusTypeSummarySerializer
 )
 
 
@@ -43,6 +45,16 @@ class QuotaRelatedField(serializers.PrimaryKeyRelatedField):
         serializer = QuotaSummarySerializer(quota, context=self.context)
         return serializer.data
 
+class StatusTypeRelatedField(serializers.PrimaryKeyRelatedField):
+
+    def get_queryset(self):
+        return StatusType.objects.all()
+
+    def to_representation(self, value):
+        status_type = StatusType.objects.get(pk=value.pk)
+        serializer = StatusTypeSummarySerializer(status_type, context=self.context)
+        return serializer.data
+
 
 class QuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.CharField(read_only=True)
@@ -51,6 +63,7 @@ class QuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
     identity = IdentityRelatedField(source='membership.identity', queryset=Identity.objects.none())
     provider = ProviderSummarySerializer(source='membership.identity.provider', read_only=True)
     quota = QuotaRelatedField(queryset=Quota.objects.all())
+    status = StatusTypeRelatedField(queryset=StatusType.objects.none(), required=False)
 
     class Meta:
         model = QuotaRequest
@@ -59,12 +72,13 @@ class QuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
             'id',
             'uuid',
             'url',
-            'admin_message',
             'request',
             'description',
+            'status',
             'created_by',
             'user',
             'identity',
             'provider',
+            'admin_message',
             'quota'
         )
