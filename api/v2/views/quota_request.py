@@ -17,3 +17,10 @@ class QuotaRequestViewSet(viewsets.ModelViewSet):
             membership=membership,
             created_by=self.request.user
         )
+
+    def get_queryset(self):
+        """
+        Filter quota requests by current user
+        """
+        user = self.request.user
+        return QuotaRequest.objects.filter(created_by=user)
