@@ -11,6 +11,7 @@ from .project_volume import ProjectVolumeSerializer
 from .provider import ProviderSerializer, ProviderTypeSerializer, PlatformTypeSerializer
 from .provider_machine import ProviderMachineSerializer
 from .quota import QuotaSerializer
+from .quota_request import QuotaRequestSerializer
 from .size import SizeSerializer
 from .tag import TagSerializer
 from .user import UserSerializer

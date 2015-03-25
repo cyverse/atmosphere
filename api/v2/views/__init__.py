@@ -13,6 +13,7 @@ from .provider import ProviderViewSet
 from .provider_machine import ProviderMachineViewSet
 from .provider_type import ProviderTypeViewSet
 from .quota import QuotaViewSet
+from .quota_request import QuotaRequestViewSet
 from .size import SizeViewSet
 from .tag import TagViewSet
 from .user import UserViewSet
