@@ -6,8 +6,8 @@ class NewThresholdField(serializers.Field):
     def to_representation(self, threshold_dict):
         return threshold_dict
 
-    def to_internal_value(self, data, files, field_name, into):
-        value = data.get(field_name)
+    def to_internal_value(self, data):
+        value = data.get('threshold')
         if value is None:
             return
         memory = value.get('memory',0)
@@ -15,4 +15,7 @@ class NewThresholdField(serializers.Field):
         machine_request = self.root.object
         machine_request.new_machine_memory_min = memory
         machine_request.new_machine_storage_min = disk
-        into[field_name] = value
+        return {
+            'memory': memory,
+            'disk': disk
+        }

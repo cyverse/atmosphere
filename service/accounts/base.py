@@ -14,23 +14,22 @@ class CachedAccountDriver(object):
         self.namespace = namespace
         self.cache_driver = CacheDriver(self.namespace)
 
-    def _get_image(self, **kwargs):
+    def _get_image(self, *args, **kwargs):
         raise NotImplementedError("Implement this in the sub-class")
 
-    def _list_all_images(self, **kwargs):
+    def _list_all_images(self, *args, **kwargs):
         raise NotImplementedError("Implement this in the sub-class")
 
-    def list_images(self, force=False, **kwargs):
+    def list_images(self, force=False, *args, **kwargs):
         """
         """
-        import ipdb;ipdb.set_trace()
         list_namespace = self.namespace+"_images"
         get_namespace = self.namespace+"_image"
         return self.cache_driver.cache_resource_list(list_namespace, self._list_all_images, resource_prefix=get_namespace, force=force, **kwargs)
 
-    def get_image(self, identifier, force=False, **kwargs):
+    def get_image(self, identifier, force=False, *args, **kwargs):
         get_namespace = self.namespace + "_image_" + identifier
-        return self.cache_driver.cache_resource(get_namespace, self._get_image, force=force, **kwargs)
+        return self.cache_driver.cache_resource(identifier, get_namespace, self._get_image, force=force, *args, **kwargs)
 
 
 class CacheDriver():
@@ -44,16 +43,16 @@ class CacheDriver():
         if not redis_connection:
             redis_connection = redis.StrictRedis()
 
-    def cache_resource(self, keyname, get_method, force=False, **get_method_kwargs):
+    def cache_resource(self, identifier, keyname, get_method, force=False, *get_method_args, **get_method_kwargs):
         """
         ReCache resources on first call/cache miss/force=True
         Returned cached resources whenever possible.
         If 'resource_prefix' is set:
             set individual resources in the list.
         """
-        resource = self.get_object(keyname)
+        resource = None # self.get_object(keyname)
         if not resource or force:
-            resource = get_method(**get_method_kwargs)
+            resource = get_method(identifier, *get_method_args, **get_method_kwargs)
             self.set_object(keyname, resource)
         return resource
 
@@ -64,7 +63,7 @@ class CacheDriver():
         If 'resource_prefix' is set:
             set individual resources in the list.
         """
-        resources = self.get_object(list_namespace)
+        resources = None # self.get_object(list_namespace)
         if not resources or force:
             resources = list_method(**list_method_kwargs)
             #Also set every individual resource in cache

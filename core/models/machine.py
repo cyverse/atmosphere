@@ -297,10 +297,10 @@ def update_provider_machine(provider_machine, new_created_by_identity=None, new_
     if new_version:
         provider_machine.version = new_version
     provider_machine.save()
-    #provider_machine_create_hook(provider_machine)
+    provider_machine_write_hook(provider_machine)
 
 
-def provider_machine_create_hook(provider_machine):
+def provider_machine_write_hook(provider_machine):
     """
     RULES:
     #1. WRITE operations ONLY!

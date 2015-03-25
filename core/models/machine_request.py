@@ -362,6 +362,7 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
         pm = update_provider_machine(pm, new_created_by_identity=owner_identity, new_created_by=machine_request.new_machine_owner, new_application=app, new_version=machine_request.new_machine_version)
     else:
         pm = create_provider_machine(new_image_id, new_provider.uuid, app, owner_identity, machine_request.new_machine_version)
+        provider_machine_write_hook(pm)
 
     #Must be set in order to ask for threshold information
     machine_request.new_machine = pm
@@ -382,12 +383,11 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     return machine_request
 
 def upload_privacy_data(machine_request, new_machine):
-    from service.accounts.openstack import AccountDriver as OSAccounts
-    from service.driver import get_admin_driver
+    from service.driver import get_admin_driver, get_account_driver
     prov = new_machine.provider
-    accounts = OSAccounts(prov)
+    accounts = get_account_driver(prov)
     if not accounts:
-        print "Aborting import: Could not retrieve OSAccounts driver "\
+        print "Aborting import: Could not retrieve Account Driver "\
                 "for Provider %s" % prov
         return
     admin_driver = get_admin_driver(prov)

@@ -11,7 +11,14 @@ def glance_write_machine(provider_machine):
     """
     Using the provider_machine in the DB, save information to the Cloud.
     """
-    return
+    base_source = provider_machine.instance_source
+    base_app = provider_machine.application
+    identifier = base_source.identifier
+    g_image = glance_image_for(provider_uuid, identifier)
+    if not g_image:
+        return
+    #Do any updating that makes sense... Name.
+    g_image.update(name=base_app.name)
 
 def glance_update_machine(new_machine):
     """

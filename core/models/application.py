@@ -335,10 +335,6 @@ def update_application(application, new_name=None, new_tags=None,
 def create_application(provider_uuid, identifier, name=None,
                        created_by_identity=None, created_by=None, description=None, private=False, tags=None, uuid=None):
     from core.models import AtmosphereUser
-    try:
-        glance_image = accounts.get_image(identifier)
-    except Exception:
-        glance_image = None
     if not uuid:
         uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(identifier))
         uuid = str(uuid)
