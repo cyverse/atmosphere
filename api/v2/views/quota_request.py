@@ -11,6 +11,7 @@ class QuotaRequestViewSet(viewsets.ModelViewSet):
     queryset = QuotaRequest.objects.all()
     serializer_class = QuotaRequestSerializer
     permission_classes = (IsAuthenticated,)
+    filter_fields = ('status__id', 'status__name')
     http_method_names = ['get', 'post', 'put', 'patch', 'head', 'options', 'trace']
 
     def perform_create(self, serializer):
