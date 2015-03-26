@@ -1,2 +1,4 @@
 [atmosphere]
 vm64-[2:255] ansible_ssh_host=0.0.0.0 ansible_ssh_port=22
+vm65-[2:255] ansible_ssh_host=0.0.0.0 ansible_ssh_port=22
+128.196.[64:65].[2:255] ansible_ssh_host=0.0.0.0 ansible_ssh_port=22
