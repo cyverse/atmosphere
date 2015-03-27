@@ -42,27 +42,66 @@ def fix_requests(provider, requests=[]):
         except MachineRequest.DoesNotExist:
             print "Warn: MachineRequest by this ID could not be found: %s" % request_id
             continue
+
         if machine_request.new_machine_provider != provider:
             raise ValueError("MachineRequest ID:%s is for Provider:%s. Testing Provider is:%s" % (request_id, machine_request.new_machine_provider, provider))
-        try:
-            new_machine = ProviderMachine.objects.get(id=machine_request.new_machine_id)
-            if new_machine.provider == provider:
-                if not Force:
-                    print "OK: MachineRequest: %s 'new_machine' %s matches provider. use --force to continue fixing this request" % (machine_request, new_machine)
-                    continue
-            print "OK: This MachineRequest: %s has a BAD 'new_machine':%s" \
-                  "\tProvider should be %s." % (machine_request, new_machine, provider)
-        except ProviderMachine.DoesNotExist, no_match:
-            print "OK: This MachineRequest has a BAD 'new_machine' (DoesNotExist)"
-            new_machine = None
-        actual_image = _find_machine_by_request(machine_request)
-        actual_machine = ProviderMachine.objects.get(identifier=actual_image.id, provider=provider)
-        print "FIXED: Found correct 'new_machine': %s-->%s" % (new_machine, actual_machine)
-        machine_request.new_machine = actual_machine
-        machine_request.save()
-        if 'ramdisk_id' not in actual_image.properties or 'kernel_id' not in actual_image.properties:
-            print "WARN: Kernel/Ramdisk potentially missing. Run './scripts/repair_provider_machine.py --image_ids %s"\
-                % (actual_image.id)
+    fixed = False
+    try:
+        new_machine = ProviderMachine.objects.get(id=machine_request.new_machine_id)
+    except ProviderMachine.DoesNotExist, no_match:
+        print "OK: This MachineRequest has a BAD 'new_machine' (DoesNotExist)"
+        new_machine = None
+    if not fixed:
+        fixed = _fix_wrong_machine_on_request(machine_request, provider, new_machine)
+    if not fixed and new_machine:
+        _fix_new_machine_forked(machine_request, provider, new_machine)
+
+def _fix_new_machine_forked(machine_request, provider, new_machine):
+    app_uuid = _generate_app_uuid(new_machine.identifier)
+    if not machine_request.new_machine_forked:
+        return False
+    if Application.objects.filter(uuid=app_uuid).count():
+        return False
+    print "OK: This MachineRequest: %s has a BAD Application." \
+      "\tUUID should be %s." % (machine_request, app_uuid)
+    old_application = new_machine.application
+    original_application = _create_new_application(machine_request, new_machine.identifier)
+
+    remaining_machines = old_application._current_machines()
+    for machine in remaining_machines:
+        if machine.identifier == new_machine.identifier:
+            new_machine.application = original_application
+            new_machine.save()
+    # Pass #2 - If remaining, unmatched ids:
+    remaining_machines = old_application._current_machines()
+
+    acct_provider = machine_request.new_machine_provider
+    accounts = get_account_driver(acct_provider)
+
+    if remaining_machines:
+        print "Warn: These machines likely point to the wrong application.:%s" % remaining_machines
+        for machine in remaining_machines:
+            glance_image = accounts.image_manager.get_image(machine.identifier)
+            if glance_image:
+                original_request = MachineRequest.objects.filter(new_machine_name=glance_image.name)
+                print "Hint: Image_ID:%s Named:%s MachineRequest:%s" % (glance_image.id, glance_image.name, original_request)
+
+    return True
+
+def _fix_wrong_machine_on_request(machine_request, provider, new_machine):
+    if new_machine.provider == provider:
+        return False
+    print "OK: This MachineRequest: %s has a BAD 'new_machine':%s" \
+      "\tProvider should be %s." % (machine_request, new_machine, provider)
+
+    actual_image = _find_machine_by_request(machine_request)
+    actual_machine = ProviderMachine.objects.get(identifier=actual_image.id, provider=provider)
+    print "FIXED: Found correct 'new_machine': %s-->%s" % (new_machine, actual_machine)
+    machine_request.new_machine = actual_machine
+    machine_request.save()
+    if 'ramdisk_id' not in actual_image.properties or 'kernel_id' not in actual_image.properties:
+        print "WARN: Kernel/Ramdisk potentially missing. Run './scripts/repair_provider_machine.py --image_ids %s"\
+            % (actual_image.id)
 
 
 def _find_machine_by_request(machine_request):
