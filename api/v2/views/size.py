@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from core.models import Group, Size
 from api.v2.serializers.details import SizeSerializer
-from core.query import only_current
+from core.query import only_current, only_current_provider
 
 
 class SizeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -18,5 +18,5 @@ class SizeViewSet(viewsets.ReadOnlyModelViewSet):
         """
         user = self.request.user
         group = Group.objects.get(name=user.username)
-        providers = group.providers.filter(only_current(), active=True)
-        return Size.objects.filter(only_current(), provider__in=providers)
+        provider_ids = group.identities.filter(only_current_provider(), provider__active=True).values_list('provider', flat=True)
+        return Size.objects.filter(only_current(), provider__id__in=provider_ids)

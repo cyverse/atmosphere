@@ -546,6 +546,7 @@ class TestAllocationEngine(AllocationTestCase):
             allocation = self.allocation_helper.to_allocation()
             self.assertTotalRuntimeEquals(allocation, timedelta(days=30))
 
+    @unittest.skip("This test is too slow")
     def test_realistic_resize(self):
         """
         Run multiple instances and resizes the instances

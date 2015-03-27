@@ -6,7 +6,7 @@ from core.models import Allocation, Application, AtmosphereUser, Group,\
         Identity, IdentityMembership, \
         Instance, InstanceStatus, InstanceStatusHistory,\
         MachineRequest, Provider, \
-        ProviderType, PlatformType, ProviderMembership, \
+        ProviderType, PlatformType, \
         ProviderMachine, Size, Quota
 from core.fields import VersionNumber
 from uuid import uuid4
@@ -35,8 +35,6 @@ def _new_mock_identity_member(username, provider):
             username=username)[0]
     mock_group = Group.objects.get_or_create(
             name=username)[0]
-    mock_prov_member = ProviderMembership.objects.get_or_create(
-            provider=provider, member=mock_group)[0]
     mock_identity = Identity.objects.get_or_create(
             created_by=mock_user,
             provider=provider)[0]

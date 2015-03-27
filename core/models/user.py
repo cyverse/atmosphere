@@ -4,6 +4,7 @@ from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
 
+from core.query import only_current_provider
 from threepio import logger
 
 class AtmosphereUser(AbstractUser):
@@ -74,23 +75,20 @@ def get_default_provider(username):
     try:
         from core.models.group import get_user_group
         group = get_user_group(username)
-        provider = group.providers.filter(
-            Q(end_date=None) | Q(end_date__gt=timezone.now()),
-            active=True, type__name="OpenStack")
+        provider_ids = group.identities.filter(only_current_provider(), provider__active=True).values_list('provider', flat=True)
+        provider = Provider.objects.filter(id__in=provider_ids, type__name="OpenStack")
         if provider:
+            logger.debug("get_default_provider selected a new "
+                        "Provider for %s: %s" % (username, provider))
             provider = provider[0]
         else:
-            logger.error("get_default_provider could not find "
-                         "a valid Provider")
+            logger.error("get_default_provider could not find a new "
+                        "Provider for %s" % (username,))
             return None
-        logger.debug(
-            "default provider is %s " % provider)
         return provider
-    except IndexError:
-        logger.info("No provider found for %s" % username)
-        return None
     except Exception, e:
-        logger.exception(e)
+        logger.exception("get_default_provider encountered an error "
+                         "for %s" % (username,))
         return None
 
 

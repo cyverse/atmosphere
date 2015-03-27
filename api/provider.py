@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-
+from core.query import only_current_provider
 from core.models.group import Group
 from core.models.provider import Provider as CoreProvider
 
@@ -28,8 +28,8 @@ class ProviderList(APIView):
         username = request.user.username
         group = Group.objects.get(name=username)
         try:
-            providers = group.providers.filter(active=True,
-                                               end_date=None).order_by('id')
+            provider_ids = group.identities.filter(only_current_provider(), provider__active=True).values_list('provider', flat=True)
+            providers = CoreProvider.objects.filter(id__in=provider_ids).order_by('id')
         except CoreProvider.DoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
@@ -51,8 +51,9 @@ class Provider(APIView):
         username = request.user.username
         group = Group.objects.get(name=username)
         try:
-            provider = group.providers.get(uuid=provider_uuid,
-                                           active=True, end_date=None)
+            provider_ids = group.identities.filter(only_current_provider(), provider__active=True).values_list('provider', flat=True)
+            provider = CoreProvider.objects.get(uuid=provider_uuid,
+                                            id__in=provider_ids)
         except CoreProvider.DoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,

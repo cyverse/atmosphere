@@ -109,39 +109,6 @@ class Provider(models.Model):
             active_providers = active_providers.get(uuid=provider_uuid)
         return active_providers
 
-    def share(self, core_group):
-        """
-        """
-        from core.models import IdentityMembership, ProviderMembership
-        #Does this group already have membership?
-        existing_membership = ProviderMembership.objects.filter(
-                member=core_group, provider=self)
-        if existing_membership:
-            return existing_membership[0]
-        #Create new membership for this group
-        new_membership = ProviderMembership.objects.get_or_create(
-                member=core_group, provider=self)
-        return new_membership[0]
-
-    def unshare(self, core_group):
-        """
-        """
-        from core.models import IdentityMembership, ProviderMembership
-        identity_memberships = IdentityMembership.objects.filter(
-                member=core_group, identity__provider=self)
-        if identity_memberships:
-            raise Exception("Cannot unshare provider membership until all"
-                            " Identities on that provider have been removed")
-        existing_membership = ProviderMembership.objects.filter(member=core_group, provider=self)
-        if existing_membership:
-            existing_membership[0].delete()
-
-    def get_membership(self):
-        provider_members = self.providermembership_set.all()
-        group_names = [prov_member.member for prov_member in provider_members]
-        #TODO: Add 'rules' if we want to hide specific users (staff, etc.)
-        return group_names
-
     def get_esh_credentials(self, esh_provider):
         cred_map = self.get_credentials()
         if isinstance(esh_provider, OSProvider):

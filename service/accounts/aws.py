@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 
 from core.models.identity import Identity
-from core.models.group import Group, IdentityMembership, ProviderMembership
+from core.models.group import Group, IdentityMembership
 from core.models.provider import Provider
 from core.models.credential import Credential
 from core.models.quota import Quota
@@ -50,18 +50,13 @@ class AccountDriver():
         (user, group) = self.create_usergroup(username)
 
         try:
-            ProviderMembership.objects.get(
-                provider=self.aws_prov, member__name=username)
             id_member = IdentityMembership.objects.filter(
                 identity__provider=self.aws_prov,
                 member__name=username,
                 identity__credential__value__in=[
                     access_key, secret_key]).distinct()[0]
             return id_member.identity
-        except (IndexError, ProviderMembership.DoesNotExist):
-            #Add provider membership
-            ProviderMembership.objects.get_or_create(
-                provider=self.aws_prov, member=group)[0]
+        except (IndexError, IdentityMembership.DoesNotExist):
             #Remove the user line when quota model is fixed
             default_quota = Quota().defaults()
             quota = Quota.objects.filter(cpu=default_quota['cpu'],

@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 
 from threepio import logger
 
-
+from core.query import only_current_provider
 from core.models.group import Group
 from core.models import IdentityMembership as CoreIdentityMembership
 
@@ -31,8 +31,6 @@ class IdentityMembershipList(APIView):
             identity = Identity.objects.get(uuid=identity_uuid)
             group_name = data['group']
             group = Group.objects.get(name=group_name)
-            prov_member = identity.provider.share(group)
-            id_member = identity.share(group)
         except ObjectDoesNotExist as odne:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
@@ -45,6 +43,8 @@ class IdentityMembershipList(APIView):
                 "User %s cannot remove sharing from identity %s. "
                 + "This incident will be reported"
                 % (user, identity_uuid))
+
+        id_member = identity.share(group)
         serializer = IdentitySerializer(id_member.identity)
         serialized_data = serializer.data
         return Response(serialized_data)
@@ -59,11 +59,9 @@ class IdentityMembershipList(APIView):
         try:
             # User is a member of a group ( TODO: loop through all instead)
             group = user.group_set.get(name=user.username)
-            # Group has access to the active, running provider
-            provider = group.providers.get(uuid=provider_uuid,
-                                           active=True, end_date=None)
-            # Group has access to the identity on that provider
-            identity = group.identities.get(provider=provider, uuid=identity_uuid)
+            #NOTE: Provider_uuid no longer needed.
+            # Group has access to the identity on an active, currently-running provider
+            identity = group.identities.get(only_current_provider(), provider__active=True, uuid=identity_uuid)
             # All other members of the identity are visible
             id_members = CoreIdentityMembership.objects.filter(
                 identity__uuid=identity_uuid)

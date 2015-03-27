@@ -11,7 +11,7 @@ from django.utils import timezone
 from core.models.application import Application
 from core.models.cloud_admin import CloudAdministrator
 from core.models.credential import Credential, ProviderCredential
-from core.models.group import Group, IdentityMembership, ProviderMembership
+from core.models.group import Group, IdentityMembership
 from core.models.identity import Identity
 from core.models.instance import Instance, InstanceStatusHistory
 from core.models.machine import ProviderMachine, ProviderMachineMembership
@@ -253,12 +253,6 @@ class UserAdmin(AuthUserAdmin):
     )
 
 
-@admin.register(ProviderMembership)
-class ProviderMembershipAdmin(admin.ModelAdmin):
-    search_fields = ["member__name"]
-    list_filter = ["provider__location"]
-
-
 @admin.register(IdentityMembership)
 class IdentityMembershipAdmin(admin.ModelAdmin):
     search_fields = ["identity__created_by__username", ]
@@ -364,10 +358,13 @@ class QuotaRequestAdmin(admin.ModelAdmin):
             membership.approve_quota(obj.uuid)
 
 
-# admin.site.register(CountingBehavior, CountingBehaviorAdmin)
+#For adding 'new' registrations
 admin.site.register(Credential)
 admin.site.register(Group)
 admin.site.register(ProviderType)
+# admin.site.register(CountingBehavior, CountingBehaviorAdmin)
 # admin.site.register(RefreshBehavior, RefreshBehaviorAdmin)
 # admin.site.register(RulesBehavior, RulesBehaviorAdmin)
+
+#For removing 'standard' registrations
 admin.site.unregister(DjangoGroup)

@@ -4,7 +4,7 @@ from rest_framework.decorators import detail_route
 from core.models import Provider, Group
 from api.v2.serializers.details import ProviderSerializer
 from api.v2.serializers.summaries import SizeSummarySerializer
-from core.query import only_current
+from core.query import only_current_provider
 
 
 class ProviderViewSet(viewsets.ReadOnlyModelViewSet):
@@ -29,7 +29,8 @@ class ProviderViewSet(viewsets.ReadOnlyModelViewSet):
         """
         user = self.request.user
         group = Group.objects.get(name=user.username)
-        return group.providers.filter(only_current(), active=True)
+        provider_ids = group.identities.filter(only_current_provider(), provider__active=True).values_list('provider', flat=True)
+        return Provider.objects.filter(id__in=provider_ids)
 
     @detail_route()
     def sizes(self, *args, **kwargs):

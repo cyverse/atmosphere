@@ -26,7 +26,7 @@ class Identity(models.Model):
         #Do not move up. ImportError.
         from core.models import AtmosphereUser, Group, Credential, Quota,\
             Provider, AccountProvider,\
-            IdentityMembership, ProviderMembership
+            IdentityMembership
 
         provider = Provider.objects.get(location__iexact=provider_location)
         user = AtmosphereUser.objects.get(username=username)
@@ -82,18 +82,12 @@ class Identity(models.Model):
     def share(self, core_group, quota=None):
         """
         """
-        from core.models import IdentityMembership, ProviderMembership, Quota, Allocation
+        from core.models import IdentityMembership, Quota, Allocation
         existing_membership = IdentityMembership.objects.filter(
             member=core_group, identity=self)
         if existing_membership:
             return existing_membership[0]
 
-        #User does not already have membership - Check for provider membership
-        prov_membership = ProviderMembership.objects.filter(
-            member=core_group, provider=self.provider)
-        if not prov_membership:
-            raise Exception("Cannot share identity membership before the"
-                            " provider is shared")
 
         #Ready to create new membership for this group
         if not quota:
@@ -148,7 +142,7 @@ class Identity(models.Model):
         #Do not move up. ImportError.
         from core.models import Group, Credential, Quota,\
             Provider, AccountProvider, Allocation,\
-            IdentityMembership, ProviderMembership
+            IdentityMembership
 
         provider = Provider.objects.get(location__iexact=provider_location)
 
@@ -169,12 +163,8 @@ class Identity(models.Model):
             identity__provider=provider,
             identity__created_by__username=user.username)
         if not id_membership:
-            #1. Create a Provider Membership
-            p_membership = ProviderMembership.objects.get_or_create(
-                provider=provider, member=group)[0]
-
             default_allocation = Allocation.default_allocation()
-            #2. Create an Identity Membership
+            #1. Create an Identity Membership
             #DEV NOTE: I have a feeling that THIS line will mean
             #          creating a secondary identity for a user on a given
             #          provider will be difficult. We need to find a better
@@ -194,7 +184,7 @@ class Identity(models.Model):
 
         #ID_Membership exists.
 
-        #3. Make sure that all kwargs exist as credentials
+        #2. Make sure that all kwargs exist as credentials
         # NOTE: Because we assume only one identity per provider
         #       We can add new credentials to
         #       existing identities if missing..
@@ -215,7 +205,7 @@ class Identity(models.Model):
                 identity=id_membership.identity,
                 key=c_key,
                 value=c_value)[0]
-        #4. Assign a different quota, if requested
+        #3. Assign a different quota, if requested
         if quota:
             id_membership.quota = quota
             id_membership.allocation = None
