@@ -78,8 +78,8 @@ class ProviderMachine(InstanceSource):
             image = accounts.image_manager.get_image(self.identifier)
             accounts.image_manager.update_image(image, **updates)
         except Exception as ex:
-            logger.warn("Image Update Failed for %s on Provider %s"
-                        % (self.identifier, provider))
+            logger.exception("Image Update Failed for %s on Provider %s"
+                        % (self.identifier, self.provider))
     def update_version(self, version):
         self.version = version
         self.save()
