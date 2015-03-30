@@ -74,12 +74,13 @@ class ProviderMachine(InstanceSource):
         (More Documentation on this inside the image_manager, chromogenic)
         """
         try:
+            from service.driver import get_account_driver
             accounts = get_account_driver(self.provider)
             image = accounts.image_manager.get_image(self.identifier)
-            accounts.image_manager.update_image(image, **updates)
+            accounts.image_manager.update_image(image, **image_updates)
         except Exception as ex:
-            logger.warn("Image Update Failed for %s on Provider %s"
-                        % (self.identifier, provider))
+            logger.exception("Image Update Failed for %s on Provider %s"
+                        % (self.identifier, self.provider))
     def update_version(self, version):
         self.version = version
         self.save()

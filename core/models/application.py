@@ -71,9 +71,8 @@ class Application(models.Model):
         return projects
 
     def update_images(self, **updates):
-        from service.driver import get_account_driver
-        for pm in self._current_machines():
-            pm.update_image(**updates)
+        from core.application import save_app_to_metadata
+        return save_app_to_metadata(self, **updates)
 
     def update_owners(self, owners_list):
         """
