@@ -48,7 +48,7 @@ class MachineRequest(models.Model):
     new_machine_description = models.TextField(default='', blank=True)
     new_machine_tags = models.TextField(default='', blank=True)
     new_machine_version = models.CharField(max_length=128, default='1.0.0')
-    new_machine_forked = models.BooleanField(default=False)
+    new_machine_forked = models.BooleanField(default=True)
     new_machine_memory_min = models.IntegerField(default=0)
     new_machine_storage_min = models.IntegerField(default=0)
     new_machine_licenses = models.ManyToManyField(License,
@@ -332,6 +332,50 @@ def _get_owner(new_provider, user):
     except Identity.DoesNotExist:
         return new_provider.admin
 
+def _create_new_application(machine_request, new_image_id, tags=[]):
+    from core.models import Identity
+    new_provider = machine_request.new_machine_provider
+    user = machine_request.new_machine_owner
+    owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
+    # This is a brand new app and a brand new providermachine
+    new_app = create_application(
+            new_image_id,
+            new_provider.id,
+            machine_request.new_machine_name, 
+            owner_ident,
+            #new_app.Private = False when machine_request.is_public = True
+            not machine_request.is_public(),
+            machine_request.new_machine_version,
+            machine_request.new_machine_description,
+            tags)
+    return new_app
+
+def _update_parent_application(machine_request, new_image_id, tags=[]):
+    parent_app = machine_request.instance.source.providermachine.application
+    return _update_application(parent_app, machine_request, tags=tags)
+
+def _update_application(application, machine_request, tags=[]):
+    if application.name is not machine_request.new_machine_name:
+        application.name = machine_request.new_machine_name
+    if machine_request.new_machine_description:
+        application.description = machine_request.new_machine_description
+    application.private = not machine_request.is_public()
+    application.tags = tags
+    application.save()
+    return application
+
+def _update_existing_machine(machine_request, application, provider_machine):
+    from core.models import Identity
+    new_provider = machine_request.new_machine_provider
+    user = machine_request.new_machine_owner
+    owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
+
+    provider_machine.application = application
+    provider_machine.version = machine_request.new_machine_version
+    provider_machine.created_by = user
+    provider_machine.created_by_identity = owner_ident
+    provider_machine.save()
+
 def process_machine_request(machine_request, new_image_id, update_cloud=True):
     """
     NOTE: Current process accepts instance with source of 'Image' ONLY! 
@@ -374,7 +418,7 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
 
     #3. Add new *Memberships For new ProviderMachine//Application
     if not machine_request.is_public():
-        upload_privacy_data(machine_request, new_machine)
+        upload_privacy_data(machine_request, pm)
 
     #5. Advance the state of machine request
     machine_request.end_date = timezone.now()
@@ -420,7 +464,7 @@ def share_with_admins(private_userlist, provider_uuid):
     from authentication.protocol.ldap import get_core_services
     core_services = get_core_services()
     admin_users = [ap.identity.created_by.username for ap in
-            AccountProvider.objects.filter(provider__uuid=provider_uuid)]
+                   AccountProvider.objects.filter(provider__uuid=provider_uuid)]
     private_userlist.extend(core_services)
     private_userlist.extend(admin_users)
     return private_userlist

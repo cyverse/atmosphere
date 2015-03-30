@@ -196,6 +196,7 @@
 	    WSGIDaemonProcess troposphere processes=4 threads=7 inactivity-timeout=60 display-name=%{GROUP}
 	    WSGIProcessGroup troposphere
         WSGIScriptAlias / $PATH_TO_TROPOSPHERE/troposphere/wsgi.py
+        WSGIPassAuthorization On
 
         # Logging
         ErrorLog /var/log/apache2/ssl_error.log

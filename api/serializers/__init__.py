@@ -39,7 +39,7 @@ from .project_serializer import ProjectSerializer
 from .provider_size_serializer import ProviderSizeSerializer
 from .step_serializer import StepSerializer
 from .provider_type_serializer import ProviderTypeSerializer
-from .tag_serializer import TagSerializer
+from .tag_serializer import TagSerializer, TagSerializer_POST
 from .instance_status_history_serializer import InstanceStatusHistorySerializer
 from .allocation_serializer import AllocationSerializer, AllocationResultSerializer
 from .allocation_request_serializer import AllocationRequestSerializer, ResolveAllocationRequestSerializer

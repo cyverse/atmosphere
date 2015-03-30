@@ -18,5 +18,4 @@ class IdentityViewSet(viewsets.ReadOnlyModelViewSet):
         """
         user = self.request.user
         group = Group.objects.get(name=user.username)
-        providers = group.providers.filter(only_current(), active=True)
-        return user.identity_set.filter(provider__in=providers)
+        return group.identities.filter(provider__active=True)

@@ -1,7 +1,7 @@
 from django.db import models
-from django.db.models import Q
 from django.utils import timezone
 from core.models.provider import Provider
+
 
 class Size(models.Model):
     """
@@ -21,6 +21,7 @@ class Size(models.Model):
     class Meta:
         db_table = "size"
         app_label = "core"
+        # unique_together = ('alias', 'provider') # Uncomment when in EE
 
     def esh_total(self):
         try:
@@ -41,20 +42,6 @@ class Size(models.Model):
         remaining = self.esh_remaining()
         used = total - remaining
         return used * 100 / total
-
-    def update(self, *args, **kwargs):
-        """
-        Allows for partial updating of the model
-        """
-        #Upload args into kwargs
-        for arg in args:
-            for (key, value) in arg.items():
-                kwargs[key] = value
-        #Update the values
-        for key in kwargs.keys():
-            setattr(self, key, kwargs[key])
-        self.save()
-        return self
 
     def active(self):
         now = timezone.now()
@@ -85,24 +72,43 @@ def convert_esh_size(esh_size, provider_uuid):
     alias = esh_size.id
     try:
         core_size = Size.objects.get(alias=alias, provider__uuid=provider_uuid)
-        new_esh_data = {
-            'name': esh_size.name,
-            'mem': esh_size.ram,
-            'root': esh_size.disk,
-            'disk': esh_size.ephemeral,
-            'cpu': esh_size.cpu,
-        }
-        #Update changed values..
-        core_size.update(**new_esh_data)
+        core_size = _update_from_cloud_size(core_size, esh_size)
     except Size.DoesNotExist:
-        #Gather up the additional, necessary information to create a DB repr
-        name = esh_size.name
-        ram = esh_size.ram
-        disk = esh_size.disk
-        root = esh_size.ephemeral
-        cpu = esh_size.cpu
-        core_size = create_size(name, alias, cpu, ram, disk, root, provider_uuid)
+        # Gather up the additional, necessary information to create a DB repr
+        try:
+            provider = Provider.objects.get(uuid=provider_uuid)
+        except Provider.DoesNotExist:
+            raise Exception("Provider UUID: %s does not exist."
+                            % provider_uuid)
+        core_size = _create_from_cloud_size(esh_size, provider)
+    # Attach esh after the save!
     core_size.esh = esh_size
+    return core_size
+
+
+def _update_from_cloud_size(core_size, esh_size):
+    """
+    Full scope replacement based on cloud(rtwo) size
+    """
+    core_size.name = esh_size.name
+    core_size.disk = esh_size.disk
+    core_size.root = esh_size.ephemeral
+    core_size.cpu = esh_size.cpu
+    core_size.mem = esh_size.ram
+    core_size.save()
+    return core_size
+
+
+def _create_from_cloud_size(esh_size, provider):
+    core_size = Size.objects.create(
+        alias=esh_size.id,
+        provider=provider,
+        name=esh_size.name,
+        disk=esh_size.disk,
+        root=esh_size.ephemeral,
+        cpu=esh_size.cpu,
+        mem=esh_size.ram,
+    )
     return core_size
 
 
