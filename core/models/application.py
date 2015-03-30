@@ -311,8 +311,15 @@ def create_application(identifier, provider_uuid, name=None,
                        owner=None, private=False, version=None,
                        description=None, tags=None, uuid=None):
     from core.models import AtmosphereUser
+    new_app = None
+
     if not uuid:
         uuid = _generate_app_uuid(identifier)
+
+    existing_app = Application.objects.filter(uuid=uuid)
+    if existing_app.count():
+        new_app = existing_app[0]
+
     if not name:
         name = "UnknownApp %s" % identifier
     if not description:
@@ -321,7 +328,14 @@ def create_application(identifier, provider_uuid, name=None,
         owner = _get_admin_owner(provider_uuid)
     if not tags:
         tags = []
-    new_app = Application.objects.create(name=name,
+    if new_app:
+        new_app.name = name
+        new_app.description = description
+        new_app.created_by = owner.created_by
+        new_app.created_by_identity = owner
+        new_app.save()
+    else:
+        new_app = Application.objects.create(name=name,
                                          description=description,
                                          created_by=owner.created_by,
                                          created_by_identity=owner,

@@ -122,17 +122,16 @@ def write_app_to_metadata(application, provider_machine, **extras):
         return
     img_properties = image.properties
     # TODO: Remove this line when we move to a cloud that can accept newlines in metadata.
-    metadata_safe_description = _make_safe(application.description)
     properties = {
         # Specific to the provider machine
         "application_version": str(provider_machine.version),
         # Specific to the application
         "application_uuid": application.uuid,
-        "application_name": application.name,
+        "application_name": _make_safe(application.name),
         "application_owner": application.created_by.username,
         "application_tags": json.dumps(
             [tag.name for tag in application.tags.all()]),
-        "application_description": metadata_safe_description,
+        "application_description": _make_safe(application.description),
     }
 
     properties.update(extras)
@@ -199,9 +198,9 @@ def get_app_metadata(metadata, provider_id):
     return create_app_kwargs
 
 
-def _make_unsafe(description):
-    return description.replace("\\n","\n")
+def _make_unsafe(value):
+    return value.replace("-_-","\n")
 
 
-def _make_safe(description):
-    return description.replace("\r\n","\n").replace("\n","\\n")
+def _make_safe(value):
+    return value.replace("\r\n","\n").replace("\n","-_-")
