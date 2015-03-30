@@ -64,14 +64,3 @@ class UserWrapper():
                  and ident.provider == self.provider])
         return identity_list
 
-    def all_providers(self):
-        """
-        Probably a useless function.. TBD
-        """
-        groups = self.all_groups()
-        provider_list = []
-        for group in groups:
-            provider_list.extend(
-                [x for x in group.providers.all()
-                 if x not in provider_list])
-        return provider_list

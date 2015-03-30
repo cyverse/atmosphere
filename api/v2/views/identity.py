@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from core.models import Identity, Group
 from api.v2.serializers.details import IdentitySerializer
-from core.query import only_current
+from core.query import only_current_provider
 
 
 class IdentityViewSet(viewsets.ReadOnlyModelViewSet):
@@ -18,4 +18,5 @@ class IdentityViewSet(viewsets.ReadOnlyModelViewSet):
         """
         user = self.request.user
         group = Group.objects.get(name=user.username)
-        return group.identities.filter(provider__active=True)
+        identities = group.identities.filter(only_current_provider(), provider__active=True)
+        return identities

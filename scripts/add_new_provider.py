@@ -16,7 +16,7 @@ sys.path.insert(1, root_dir)
 django.setup()
 
 from core.models import Provider, PlatformType, ProviderType, Identity, Group,\
-    ProviderMembership, IdentityMembership, AccountProvider, Quota, ProviderInstanceAction
+    IdentityMembership, AccountProvider, Quota, ProviderInstanceAction
 from core.models import InstanceAction
 
 libcloud.security.VERIFY_SSL_CERT = False
@@ -173,13 +173,10 @@ def create_admin(provider, admin_info):
     new_identity.credential_set.get_or_create(key='ex_project_name',
                                               value=tenant)
 
-    ProviderMembership.objects.get_or_create(
-        provider=provider, member=group)
-
     quota = Quota.objects.filter(**Quota.default_dict()).first()
     if not quota:
         quota = Quota.default_quota()
-
+    #TODO: Test why we do this here and not AFTER creating AccountProvider/IdentityMembership -- Then label the rationale.
     # Necessary for save hooks -- Default project, select an identity
     user.save()
 

@@ -1,0 +1,5 @@
+---
+- name: Example of another Playbook. Currently it equivalent to atmo_init_deploy.
+  hosts: atmosphere
+  roles:
+    - atmo-common

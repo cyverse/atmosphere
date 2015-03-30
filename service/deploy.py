@@ -90,10 +90,10 @@ def deploy_to(instance_ip):
     """
     configure_ansible()
     my_limit = {"hostname": build_host_name(instance_ip), "ip": instance_ip}
-    silverlinings_the_player=os.path.join(
+    silverlinings_the_player = os.path.join(
         settings.PROJECT_ROOT,
         "service/ansible/playbooks/atmo_init_deploy.yml")
-    host_list=os.path.join(
+    host_list = os.path.join(
         settings.PROJECT_ROOT,
         "service/ansible/hosts")
     pb = subspace.PlayBook.factory(silverlinings_the_player,
@@ -107,7 +107,8 @@ def configure_ansible():
     Configure ansible to work with service.ansible.
     """
     subspace.constants("HOST_KEY_CHECKING", False)
-    subspace.constants("DEFAULT_ROLES_PATH", "/opt/dev/atmosphere/service/ansible/roles")
+    subspace.constants("DEFAULT_ROLES_PATH", os.path.join(
+        settings.PROJECT_ROOT, "service/ansible/roles"))
     subspace.use_logger(logger)
 
 
