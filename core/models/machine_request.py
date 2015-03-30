@@ -12,13 +12,14 @@ from core.models.user import AtmosphereUser as User
 
 from core.models.application import update_application, create_application, ApplicationMembership
 from core.models.license import License
-from core.models.machine import create_provider_machine, ProviderMachine, update_provider_machine
+from core.models.machine import create_provider_machine, ProviderMachine, update_provider_machine, provider_machine_write_hook
 from core.models.node import NodeController
 from core.models.provider import Provider, AccountProvider
 from core.models.identity import Identity
 
 from atmosphere.settings import secrets
 from threepio import logger
+
 
 class MachineRequest(models.Model):
     """

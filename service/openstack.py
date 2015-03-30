@@ -1,4 +1,4 @@
-import pytz
+import pytz, json
 
 from django.utils.timezone import datetime
 
@@ -17,8 +17,25 @@ def glance_write_machine(provider_machine):
     g_image = glance_image_for(provider_uuid, identifier)
     if not g_image:
         return
-    #Do any updating that makes sense... Name.
-    g_image.update(name=base_app.name)
+    props = g_image.properties
+    extras = {
+        "application_version": str(provider_machine.version),
+        "application_uuid": base_app.uuid,
+        "application_name": _make_safe(base_app.name),
+        "application_owner": base_app.created_by.username,
+        "application_tags": json.dumps([_make_safe(tag.name) for tag in base_app.tags.all()]),
+        "application_description": _make_safe(base_app.description)
+    }
+    props.update(extras)
+    #Do any updating that makes sense... Name. Metadata..
+    g_image.update(name=base_app.name, properties=props)
+
+
+def _make_safe(unsafe_str):
+    return unsafe_str.replace("\r\n", "\n").replace("\n", "_LINE_BREAK_")
+
+def _make_unsafe(safe_str):
+    return safe_str.replace("_LINE_BREAK_", "\n")
 
 def glance_update_machine(new_machine):
     """
