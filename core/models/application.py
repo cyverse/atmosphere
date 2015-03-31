@@ -374,6 +374,7 @@ def create_application(provider_uuid, identifier, name=None,
                                          uuid=uuid)
     if tags:
         updateTags(new_app, tags, created_by_identity.created_by)
+    return new_app
 
 
 class ApplicationScore(models.Model):

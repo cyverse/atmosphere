@@ -1,19 +1,22 @@
 #!/usr/bin/env python
 import argparse
 import time
-
+import django
+django.setup()
+from django.utils import timezone
 from service.driver import get_esh_driver
 from core.models import ProviderMachine, Provider, Identity, Application, MachineRequest
-from core.models.application import _generate_app_uuid
+from core.models.application import _generate_app_uuid, create_application
 from service.driver import get_admin_driver, get_account_driver
 from service.instance import suspend_instance
 
 #Ghetto cache ftw
-Force = True
-Images = []
+FORCE = False
+FIX_ALL = False
+IMAGES = []
 
 def main():
-    global Force, Images
+    global FORCE, IMAGES
     parser = argparse.ArgumentParser()
     parser.add_argument("--provider-list", action="store_true",
                         help="List of provider names and IDs")
@@ -22,6 +25,8 @@ def main():
                         " to use when importing users.")
     parser.add_argument("--identify", action="store_true",
                         help="Identify possible troublesome ProviderMachine/Application associations.")
+    parser.add_argument("--fix_all", action="store_true",
+                        help="Force a change-action on all images that require fixing.")
     parser.add_argument("--force", action="store_true",
                         help="Force a change-action regardless of state of the image.")
     parser.add_argument("--fix_list",
@@ -40,15 +45,15 @@ def main():
 
     provider = Provider.objects.get(id=args.provider_id)
     print "Provider Selected:%s" % provider
-
     accounts = get_account_driver(provider)
-    Images = accounts.image_manager.admin_list_images()
+    IMAGES = accounts.image_manager.admin_list_images()
     (deleted_list, incorrect_list, create_list, name_match_list, correct_list) = _identify_problem_apps(provider, accounts)
     image_lists = (deleted_list, incorrect_list, create_list, name_match_list, correct_list)
-    Force = True if args.force else False
+    FORCE = True if args.force else False
+    FIX_ALL = True if args.fix_all else False
 
     if args.identify:
-        print "Deleted Images\n---"
+        print "Deleted IMAGES\n---"
         for image in deleted_list:
             print "%s" % image
         print "\n\n"
@@ -60,71 +65,74 @@ def main():
         for image in name_match_list:
             print "%s" % image
         print "\n\n"
-        print "Create Images (Fix/Create if association is wrong!)\n---"
+        print "Create IMAGES (Fix/Create if association is wrong!)\n---"
         for image in create_list:
             print "%s" % image
         print "\n\n"
-        print "Incorrect Images (Fix if association is wrong!)\n---"
+        print "Incorrect IMAGES (Fix if association is wrong!)\n---"
         for image in incorrect_list:
             print "%s" % image
         print "\n\n"
 
     if args.fix_list:
-        images = args.fix_list.split(",")
-        for image_id in images:
-            if image_id in deleted_list:
-                print "FIXED: %s was deleted on this provider. Skipping" % image_id
-                continue
-            elif image_id in correct_list:
-                print "FIXED: %s is already pointing to the correct Application by UUID. Skipping" % image_id
-                continue
-            elif image_id in name_match_list:
-                if not Force:
-                    print "FIXED: %s is already pointing to the correct Application by Name. "\
-                        "To create a new Application by UUID pass the '--force' option."
-                    continue
-                # Falls through
-            elif image_id in create_list:
-                print "Fixing -- Creating a new application (by UUID) for providermachine."
-                # Falls through
-            elif image_id in incorrect_list:
-                print "Fixing -- Re-connecting providermachine to the application (with Matching UUID)."
-                # Falls through
+        image_ids = args.fix_list.split(",")
+        images = []
+        for image_id in image_ids:
+            try:
+                pm = ProviderMachine.objects.get(instance_source__provider=provider, instance_source__identifier=image_id)
+                images.append(pm)
+            except:
+                print "WARN: ProviderMachine %s does not exist on provider %s. Skipping." % (image_id, provider)
+    elif FIX_ALL:
+        images = list(deleted_list)
+        images.extend(incorrect_list)
+        images.extend(create_list)
+        if FORCE:
+            images.extend(name_match_list)
+    else:
+        images = []
+    import ipdb;ipdb.set_trace()
+    now_time = timezone.now()
+    for image in images:
+        if image in deleted_list:
+            if not image.end_date:
+                image.end_date = now_time
+                image.save()
+                print "FIXED: %s was not found & marked as deleted." % image
             else:
-                print "WARN: Image %s was not identified. Double-check you have the correct image ID _OR_ fix this script!" % image_id
+                print "FIXED: %s was deleted on this provider. Skipping" % image
+            continue
+        elif image in correct_list:
+            print "FIXED: %s is already pointing to the correct Application by UUID. Skipping" % image
+            continue
+        elif image in name_match_list:
+            if not FORCE:
+                print "FIXED: %s is already pointing to the correct Application by Name. "\
+                    "To create a new Application by UUID pass the '--force' option."
                 continue
-            # Now that we have made it through the logic, fix!
-            print "Fixing -- Creating a new application (by UUID) for providermachine."
-            _apply_fix(accounts, provider, image_id)
+            print "Fixing -- Creating a new application (by UUID) for %s." % image.identifier
+            # Falls through
+        elif image in create_list:
+            print "Fixing -- Creating a new application (by UUID) for %s." % image.identifier
+            # Falls through
+        elif image in incorrect_list:
+            print "Fixing -- Re-connecting %s to the application (with Matching UUID)." % image.identifier
+            # Falls through
+        else:
+            print "WARN: Image %s was not identified. Double-check you have the correct image ID _OR_ fix this script!" % image
+            continue
+        # Now that we have made it through the logic, fix!
+        _apply_fix(accounts, provider, image)
 
 def get_image(accounts, image_id):
-    global Images
-    if not Images:
-        Images = accounts.image_manager.admin_list_images()
-    found_images = [i for i in Images if i.id == image_id]
+    global IMAGES
+    if not IMAGES:
+        IMAGES = accounts.image_manager.admin_list_images()
+    found_images = [i for i in IMAGES if i.id == image_id]
     if found_images:
         return found_images[0]
     return None
 
-def _apply_fix(accounts, provider, image_id):
-    uuid = _generate_app_uuid(image_id)
-    g_img = get_image(accounts, image_id)
-    name = g_img.name
-
-    pm = ProviderMachine.objects.get(provider=provider, identifier=image_id)
-
-    apps = Application.objects.filter(uuid=uuid)
-    if not apps.count():
-        app = create_application(image_id, provider.id, name, not image.is_public, uuid=uuid)
-    else:
-        app = apps[0]
-
-    pm.application = app
-    pm.save()
-    print "Old properties: %s" % g_img.properties
-    app.update_images()
-    g_img = get_image(accounts, image_id)
-    print "New properties: %s" % g_img.properties
 
 def _identify_problem_apps(provider, accounts, print_log=True):
     """
@@ -135,17 +143,17 @@ def _identify_problem_apps(provider, accounts, print_log=True):
     correct_apps = []
     incorrect_apps = []
 
-    for pm in ProviderMachine.objects.filter(provider=provider):
+    for pm in ProviderMachine.objects.filter(instance_source__provider=provider):
         uuid = _generate_app_uuid(pm.identifier)
-        if print_log:
-            print "ProviderMachine: %s == UUID: %s" % (pm.identifier, uuid)
+        #if print_log:
+        #    print "ProviderMachine: %s == UUID: %s" % (pm.identifier, uuid)
         apps = Application.objects.filter(uuid=uuid)
         if not apps.count():
             # NO UUID Match on providermachine's identifier
             g_img = get_image(accounts, pm.identifier)
             if not g_img:
                 if print_log:
-                    print "DELETE: Image was deleted %s" % pm.identifier
+                    print "DELETE: Image <%s> DoesNotExist" % pm.identifier
                 not_real_apps.append(pm)
                 continue
             #Lookup by name
@@ -155,13 +163,13 @@ def _identify_problem_apps(provider, accounts, print_log=True):
                 apps_2 = Application.objects.filter(name=name)
                 if apps_2[0] == pm.application:
                     #Matched name is ProviderMachines application
-                    if print_log:
-                        print "OKAY: %s points to correct application by NAME: %s" % (pm.identifier, name)
+                    #if print_log:
+                    #    print "OKAY: %s points to correct application by NAME: %s" % (pm.identifier, name)
                     name_match.append(pm)
                 else:
                     #Matched name is NOT ProviderMachines application
                     if print_log or True:
-                        print "ProviderMachine: %s points to %s , doesnt match Name:%s OR UUID:%s" % (pm, pm.application, name, uuid)
+                        print "ProviderMachine: %s points to %s , doesnt match Image Name:%s OR UUID:%s" % (pm, pm.application, name, uuid)
                     incorrect_apps.append(pm)
             else:
                 # No matching named application.. Print original machine and application
@@ -171,14 +179,35 @@ def _identify_problem_apps(provider, accounts, print_log=True):
         else:
             # UUID Match on providermachine's identifier
             if apps[0] == pm.application:
-                if print_log:
-                    print "OKAY: %s points to correct application." % pm.identifier
+                #if print_log:
+                #    print "OKAY: %s points to correct application." % pm.identifier
                 correct_apps.append(pm)
             else:
                 if print_log or True:
                     print "Application for UUID:%s - %s exists but PM points to %s" % (uuid, apps[0], pm.application)
                 incorrect_apps.append(pm)
     return (not_real_apps, incorrect_apps, new_apps, name_match, correct_apps)
+
+
+def _apply_fix(accounts, provider, pm):
+    image_id = pm.identifier
+    uuid = _generate_app_uuid(image_id)
+    g_img = get_image(accounts, image_id)
+    name = g_img.name
+
+    apps = Application.objects.filter(uuid=uuid)
+    if not apps.count():
+        app = create_application(provider.uuid, image_id, name, private=(not g_img.is_public), uuid=uuid)
+    else:
+        app = apps[0]
+    
+    pm.application = app
+    pm.save()
+    print "\t\tOld properties: %s" % g_img.properties
+    app.update_images()
+    g_img = get_image(accounts, image_id)
+    print "\t\tNew properties: %s" % g_img.properties
+    print "Fixed: %s Now points to %s" % (pm, app)
 
 
 if __name__ == "__main__":

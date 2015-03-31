@@ -36,6 +36,10 @@ class ProviderMachine(BaseSource):
             blank=True)
 
     @property
+    def identifier(self):
+        return self.instance_source.identifier
+
+    @property
     def name(self):
         return self.application.name
 
@@ -44,7 +48,7 @@ class ProviderMachine(BaseSource):
         """
         Fastest DB Query for existence testing
         """
-        return ProviderMachine.objects.filter(identifier=identifier, provider=provider).count()
+        return ProviderMachine.objects.filter(instance_source__identifier=identifier, instance_source__provider=provider).count()
 
     def to_dict(self):
         machine = {
