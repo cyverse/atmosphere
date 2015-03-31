@@ -158,7 +158,7 @@ class VolumeAdmin(admin.ModelAdmin):
 
 class ApplicationAdmin(admin.ModelAdmin):
     actions = [end_date_object, private_object]
-    search_fields = ["name", "id"]
+    search_fields = ["name", "id", "providermachine__identifier"]
     list_display = ["uuid", "_current_machines", "name", "private", "created_by", "start_date", "end_date" ]
     filter_vertical = ["tags",]
     def save_model(self, request, obj, form, change):
