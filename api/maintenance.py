@@ -38,7 +38,7 @@ class MaintenanceRecordList(APIView):
         active_records = query.get('active','false').lower() == "true"
         if user and type(user) != AnonymousUser:
             groups = user.group_set.all()
-            for g in groups:
+            for group in groups:
                 provider_ids = group.identities.filter(only_current_provider(), provider__active=True).values_list('provider', flat=True)
                 providers = Provider.objects.filter(id__in=provider_ids)
                 for p in providers:
