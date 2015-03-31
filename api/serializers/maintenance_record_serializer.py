@@ -7,4 +7,3 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MaintenanceRecord
-        exclude = ('provider',)
