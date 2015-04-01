@@ -14,6 +14,7 @@ from threepio import logger
 
 from core.query import only_current_provider
 from core.models.maintenance import MaintenanceRecord as CoreMaintenanceRecord
+from core.models.provider import Provider
 
 from api.serializers import MaintenanceRecordSerializer
 from api.permissions import InMaintenance, ApiAuthRequired, ApiAuthOptional

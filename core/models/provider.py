@@ -142,13 +142,16 @@ class Provider(models.Model):
             cred_map[cred.key] = cred.value
         return cred_map
 
-    def list_admins(self):
-        #TODO: Can probably pull this using a smarter Django Query
-        return [adm.identity for adm in self.accountprovider_set.all()]
+    def list_users(self):
+        """
+        Get a list of users from the list of identities found in a provider.
+        """
+        from core.models.user import AtmosphereUser
+        users_on_provider = self.identity_set.values_list('created_by__username', flat=True)
+        return AtmosphereUser.objects.filter(username__in=users_on_provider)
 
     def list_admin_names(self):
-        #TODO: Can probably pull this using a smarter Django Query
-        return [adm.identity.created_by.username for adm in self.accountprovider_set.all()]
+        return self.accountprovider_set.values_list('identity__created_by__username',flat=True)
 
     @property
     def admin(self):

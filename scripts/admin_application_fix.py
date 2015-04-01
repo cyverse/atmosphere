@@ -2,7 +2,11 @@
 import argparse
 import time
 import django
+<<<<<<< HEAD
 django.setup()
+=======
+# django.setup() -- ADD BACK IN >DD
+>>>>>>> dinellis-doradito
 from django.utils import timezone
 from service.driver import get_esh_driver
 from core.models import ProviderMachine, Provider, Identity, Application, MachineRequest
@@ -14,9 +18,9 @@ from service.instance import suspend_instance
 FORCE = False
 FIX_ALL = False
 IMAGES = []
-
+NO_META = False
 def main():
-    global FORCE, IMAGES
+    global FORCE, IMAGES, NO_META
     parser = argparse.ArgumentParser()
     parser.add_argument("--provider-list", action="store_true",
                         help="List of provider names and IDs")
@@ -27,6 +31,8 @@ def main():
                         help="Identify possible troublesome ProviderMachine/Application associations.")
     parser.add_argument("--fix_all", action="store_true",
                         help="Force a change-action on all images that require fixing.")
+    parser.add_argument("--no_meta", action="store_true",
+                        help="Don't update the metadata.")
     parser.add_argument("--force", action="store_true",
                         help="Force a change-action regardless of state of the image.")
     parser.add_argument("--fix_list",
@@ -51,6 +57,7 @@ def main():
     image_lists = (deleted_list, incorrect_list, create_list, name_match_list, correct_list)
     FORCE = True if args.force else False
     FIX_ALL = True if args.fix_all else False
+    NO_META = True if args.no_meta else False
 
     if args.identify:
         print "Deleted IMAGES\n---"
@@ -203,11 +210,14 @@ def _apply_fix(accounts, provider, pm):
     
     pm.application = app
     pm.save()
-    print "\t\tOld properties: %s" % g_img.properties
+    if NO_META:
+        print "Fixed: %s Now points to %s" % (pm.identifier, app)
+        return
+    #print "\t\tOld properties: %s" % g_img.properties
     app.update_images()
     g_img = get_image(accounts, image_id)
-    print "\t\tNew properties: %s" % g_img.properties
-    print "Fixed: %s Now points to %s" % (pm, app)
+    #print "\t\tNew properties: %s" % g_img.properties
+    print "Updated: %s Now points to %s" % (pm.identifier, app)
 
 
 if __name__ == "__main__":
