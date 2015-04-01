@@ -7,6 +7,7 @@ from django.contrib.auth.models import Group as DjangoGroup
 from django.contrib.sessions.models import Session as DjangoSession
 from django.utils import timezone
 
+from core.models.abstract import InstanceSource
 from core.models.application import Application
 from core.models.credential import Credential, ProviderCredential
 from core.models.group import Group, IdentityMembership, ProviderMembership
@@ -84,6 +85,10 @@ class ProviderMachineAdmin(admin.ModelAdmin):
         "instancesource_ptr__provider__location",
         "application__private",
     ]
+    def render_change_form(self, request, context, *args, **kwargs):
+        pm = context['original']
+        context['adminform'].form.fields['instance_source'].queryset = InstanceSource.objects.filter(id=pm.instance_source.id)
+        return super(ProviderMachineAdmin, self).render_change_form(request, context, *args, **kwargs)
 
 class ProviderMachineMembershipAdmin(admin.ModelAdmin):
     list_display = ["id", "_pm_provider", "_pm_identifier", "_pm_name",
@@ -174,6 +179,10 @@ class ApplicationAdmin(admin.ModelAdmin):
                                  % application)
         return application
 
+    def render_change_form(self, request, context, *args, **kwargs):
+        application = context['original']
+        context['adminform'].form.fields['created_by_identity'].queryset = Identity.objects.filter(created_by=application.created_by)
+        return super(ApplicationAdmin, self).render_change_form(request, context, *args, **kwargs)
 
 class CredentialInline(admin.TabularInline):
     model = Credential
@@ -214,12 +223,24 @@ class ProviderMembershipAdmin(admin.ModelAdmin):
     search_fields = ["member__name"]
     list_filter = ["provider__location"]
 
+#class IdentityMembershipForm(forms.ModelForm):
+#    def __init__(self, instance, *args, **kwargs):
+#        super(IdentityMembershipForm, self).__init__(*args, **kwargs)
+#        self.fields['identity'].queryset =
 
 class IdentityMembershipAdmin(admin.ModelAdmin):
     search_fields = ["identity__created_by__username", ]
     list_display = ["_identity_user", "_identity_provider",
                     "quota", "allocation"]
     list_filter = ["identity__provider__location", "allocation"]
+
+    def render_change_form(self, request, context, *args, **kwargs):
+        identity_membership = context['original']
+        #TODO: Change when created_by is != the user who 'owns' this identity...
+        user = identity_membership.identity.created_by
+        context['adminform'].form.fields['identity'].queryset = user.identity_set.all()
+        context['adminform'].form.fields['member'].queryset = user.group_set.all()
+        return super(IdentityMembershipAdmin, self).render_change_form(request, context, *args, **kwargs)
 
     def _identity_provider(self, obj):
         return obj.identity.provider.location
@@ -240,6 +261,21 @@ class MachineRequestAdmin(admin.ModelAdmin):
                    "new_machine_provider__location",
                    "new_machine_visibility",
                    "status"]
+
+    #Overwrite
+    def render_change_form(self, request, context, *args, **kwargs):
+        machine_request = context['original']
+        #TODO: Change when created_by is != the user who 'owns' this identity...
+        instance = machine_request.instance
+        user = machine_request.new_machine_owner
+        provider = machine_request.new_machine_provider
+        context['adminform'].form.fields['new_machine_owner'].queryset = provider.list_users()
+        context['adminform'].form.fields['new_machine'].queryset = ProviderMachine.objects.filter(instancesource_ptr__provider=provider)
+        context['adminform'].form.fields['instance'].queryset = user.instance_set.all()
+        #NOTE: Can't reliably refine 'parent_machine' -- Since the parent could be from another provider.
+        context['adminform'].form.fields['parent_machine'].queryset = ProviderMachine.objects.filter(instancesource_ptr__identifier=instance.source.identifier)
+
+        return super(MachineRequestAdmin, self).render_change_form(request, context, *args, **kwargs)
 
     def opt_machine_visibility(self, machine_request):
         if machine_request.new_machine_visibility.lower() != 'public':
