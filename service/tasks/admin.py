@@ -14,6 +14,7 @@ def set_provider_quota(identity_uuid):
     try:
         spq(identity_uuid)
     except Exception as exc:
+        logger.exception("Encountered an exception trying to 'set_provider_quota' for Identity UUID:%s" % identity_uuid)
         set_provider_quota.retry(exc=exc)
 
 
