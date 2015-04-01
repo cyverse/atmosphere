@@ -4,7 +4,7 @@ from core.models import QuotaRequest
 from core.models.status_type import get_status_type
 
 from service.quota import set_provider_quota as spq
-
+from threepio import logger
 
 @task(name="set_provider_quota",
       default_retry_delay=5,
