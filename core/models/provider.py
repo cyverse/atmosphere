@@ -155,6 +155,17 @@ class Provider(models.Model):
 
     @property
     def admin(self):
+        all_admins = self.list_admins()
+        if all_admins.count():
+            return all_admins[0]
+        return None
+
+    def list_admins(self):
+        from core.models.identity import Identity
+        identity_ids = self.accountprovider_set.values_list('identity', flat=True)
+        return Identity.objects.filter(id__in=identity_ids)
+
+    def get_admin_identity(self):
         provider_admins = self.list_admins()
         if provider_admins:
           return provider_admins[0]
