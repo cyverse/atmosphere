@@ -316,10 +316,10 @@ class MachineRequestAdmin(admin.ModelAdmin):
         user = machine_request.new_machine_owner
         provider = machine_request.new_machine_provider
         context['adminform'].form.fields['new_machine_owner'].queryset = provider.list_users()
-        context['adminform'].form.fields['new_machine'].queryset = ProviderMachine.objects.filter(instancesource_ptr__provider=provider)
+        context['adminform'].form.fields['new_machine'].queryset = ProviderMachine.objects.filter(instance_source__provider=provider)
         context['adminform'].form.fields['instance'].queryset = user.instance_set.all()
         #NOTE: Can't reliably refine 'parent_machine' -- Since the parent could be from another provider.
-        context['adminform'].form.fields['parent_machine'].queryset = ProviderMachine.objects.filter(instancesource_ptr__identifier=instance.source.identifier)
+        context['adminform'].form.fields['parent_machine'].queryset = ProviderMachine.objects.filter(instance_source__identifier=instance.source.identifier)
 
         return super(MachineRequestAdmin, self).render_change_form(request, context, *args, **kwargs)
 
