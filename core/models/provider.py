@@ -212,8 +212,12 @@ class Provider(models.Model):
         return AtmosphereUser.objects.filter(username__in=users_on_provider)
 
     def list_admin_names(self):
-        from core.models.identity import Identity
         return self.accountprovider_set.values_list('identity__created_by__username',flat=True)
+
+    def list_admins(self):
+        from core.models.identity import Identity
+        identity_ids = self.accountprovider_set.values_list('identity', flat=True)
+        return Identity.objects.filter(id__in=identity_ids)
 
     def get_admin_identity(self):
         provider_admins = self.list_admins()
