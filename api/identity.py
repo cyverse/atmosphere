@@ -30,7 +30,7 @@ def get_provider(user, provider_uuid):
         provider_ids = group.identities.filter(
             only_current_provider(),
             provider__active=True).values_list('provider', flat=True)
-        provider = CoreProvider.objects.filter(
+        provider = Provider.objects.filter(
             id__in=provider_ids).get(uuid=provider_uuid)
         return provider
     except Provider.DoesNotExist:
