@@ -110,14 +110,18 @@ class AllocationAdmin(admin.ModelAdmin):
 @admin.register(ProviderMachine)
 class ProviderMachineAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
-    search_fields = ["application__name", "provider__location", "identifier"]
+    search_fields = ["application__name", "instance_source__provider__location", "instance_source__identifier"]
     list_display = ["identifier",
-            "provider", "application",
+            "_pm_provider", "application",
             "end_date"]
     list_filter = [
         "instance_source__provider__location",
         "application__private",
     ]
+
+    def _pm_provider(self, obj):
+        return obj.instance_source.provider.location
+
     def render_change_form(self, request, context, *args, **kwargs):
         pm = context['original']
         context['adminform'].form.fields['instance_source'].queryset = InstanceSource.objects.filter(id=pm.instance_source.id)
