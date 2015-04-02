@@ -147,12 +147,12 @@ def prepare_driver(request, provider_uuid, identity_uuid):
         core_identity = CoreIdentity.objects.get(provider__uuid=provider_uuid,
                                                  uuid=identity_uuid)
         if not core_identity.provider.is_active():
-            raise Exception("Provier %s is NOT active. Driver not created." % (core_identity.provider,))
+            raise ValueError("Provier %s is NOT active. Driver not created." % (core_identity.provider,))
         if core_identity in request.user.identity_set.all():
             return get_esh_driver(core_identity=core_identity)
         else:
             raise Exception("User %s is NOT the owner of Identity UUID: %s" % (request.user.username, core_identity.uuid))
-    except CoreIdentity.DoesNotExist:
+    except (CoreIdentity.DoesNotExist, ValueError):
         logger.exception("Unable to prepare driver.")
         return None
 
