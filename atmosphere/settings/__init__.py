@@ -449,6 +449,12 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 10*60, "time_limit": 2*60,
                     "queue": "celery_periodic"}
     },
+    "monitor_sizes": {
+        "task": "monitor_sizes",
+        "schedule" : timedelta(minutes=30),
+        "options": {"expires":10*60, "time_limit":10*60,
+                    "queue":"celery_periodic"}
+    },
     "monitor_instances": {
         "task": "monitor_instances",
         "schedule" : timedelta(minutes=15),

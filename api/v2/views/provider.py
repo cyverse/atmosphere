@@ -25,11 +25,12 @@ class ProviderViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         """
-        Filter projects by current user
+        Filter providers by current user
         """
         user = self.request.user
         group = Group.objects.get(name=user.username)
-        return group.providers.filter(only_current(), active=True)
+        identities = group.identities.filter(provider__active=True)
+        return Provider.objects.filter(identity__in=identities)
 
     @detail_route()
     def sizes(self, *args, **kwargs):
