@@ -10,16 +10,16 @@ from django.utils import timezone
 from core.models.user import AtmosphereUser as User
 
 
-from core.application import save_app_to_metadata
-from core.fields import VersionNumberField, VersionNumber
-from core.models.application import get_application, create_application
+from core.models.application import update_application, create_application, ApplicationMembership
 from core.models.license import License
-from core.models.machine import create_provider_machine
+from core.models.machine import create_provider_machine, ProviderMachine, update_provider_machine, provider_machine_write_hook
 from core.models.node import NodeController
 from core.models.provider import Provider, AccountProvider
+from core.models.identity import Identity
 
 from atmosphere.settings import secrets
 from threepio import logger
+
 
 class MachineRequest(models.Model):
     """
@@ -31,7 +31,7 @@ class MachineRequest(models.Model):
 
     # Machine imaging Metadata
     status = models.TextField(default='', blank=True)
-    parent_machine = models.ForeignKey("ProviderMachine",
+    parent_machine = models.ForeignKey(ProviderMachine,
                                        related_name="ancestor_machine")
 
     # Specifics for machine imaging.
@@ -58,7 +58,7 @@ class MachineRequest(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
 
     # Filled in when completed.
-    new_machine = models.ForeignKey("ProviderMachine",
+    new_machine = models.ForeignKey(ProviderMachine,
                                     null=True, blank=True,
                                     related_name="created_machine")
 
@@ -101,13 +101,13 @@ class MachineRequest(models.Model):
         return meta_name
 
     def fix_metadata(self, im):
-        if not mr.new_machine:
+        if not self.new_machine:
             raise Exception("New machine missing from machine request. Cannot Fix.")
         (orig_managerCls, orig_creds,
          dest_managerCls, dest_creds) = self.prepare_manager()
         im = dest_managerCls(**dest_creds)
-        old_mach_id = mr.instance.source.identifier
-        new_mach_id = mr.new_machine.identifier
+        old_mach_id = self.instance.source.identifier
+        new_mach_id = self.new_machine.identifier
         old_mach = im.get_image(old_mach_id)
         if not old_mach:
             raise Exception("Could not find old machine.. Cannot Fix.")
@@ -124,6 +124,7 @@ class MachineRequest(models.Model):
 
     def old_provider(self):
         return self.instance.source.provider
+
     def new_machine_id(self):
         return 'zzz%s' % self.new_machine.identifier if self.new_machine else None
 
@@ -323,6 +324,23 @@ class MachineRequest(models.Model):
         app_label = "core"
 
 
+def _match_tags_to_names(tag_names):
+    """
+    INPUT: tag1,tag2,tag3
+    OUTPUT: <Tag: tag1>, ..., <Tag: tag3>
+    NOTE: Tags NOT created BEFORE being added to new_machine_tags are ignored.
+    """
+    from core.models.tag import Tag
+    tags = [Tag.objects.filter(name__iexact=tag)[0] for tag in
+            tag_names.split(',')]
+    return tags
+
+def _get_owner(new_provider, user):
+    try:
+        return Identity.objects.get(provider=new_provider, created_by=user)
+    except Identity.DoesNotExist:
+        return new_provider.admin
+
 def _create_new_application(machine_request, new_image_id, tags=[]):
     from core.models import Identity
     new_provider = machine_request.new_machine_provider
@@ -367,85 +385,63 @@ def _update_existing_machine(machine_request, application, provider_machine):
     provider_machine.created_by_identity = owner_ident
     provider_machine.save()
 
-def _create_new_provider_machine(machine_request, application, new_image_id):
-    #Set application data to an existing/new providermachine
-    from core.models import ProviderMachine
-    try:
-        #In this case, we have 'found' the ProviderMachine via other methods
-        #PRIOR to processing machine request
-        new_provider = machine_request.new_machine_provider
-        new_machine = ProviderMachine.objects.get(identifier=new_image_id, provider=new_provider)
-        _update_existing_machine(machine_request, application, new_machine)
-    except ProviderMachine.DoesNotExist:
-        new_machine = create_provider_machine(
-            machine_request.new_machine_name, new_image_id,
-            machine_request.new_machine_provider.uuid, application, {
-                'owner':machine_request.new_machine_owner, 
-                'version' : machine_request.new_machine_version})
-    return new_machine
-
 def process_machine_request(machine_request, new_image_id, update_cloud=True):
     """
     NOTE: Current process accepts instance with source of 'Image' ONLY! 
           VOLUMES CANNOT BE IMAGED until this function is updated!
     """
-    from core.models.machine import add_to_cache
-    from core.application import update_owner
-    from core.models.tag import Tag
-    #Get all the data you can from the machine request
-    #TODO: This could select multiple, we should probably have a more
-    #TODO: restrictive query here..
     parent_mach = machine_request.instance.provider_machine
     parent_app = machine_request.instance.provider_machine.application
-    if machine_request.new_machine_tags:
-        tags = [Tag.objects.filter(name__iexact=tag)[0] for tag in
-                machine_request.new_machine_tags.split(',')]
-    else:
-        tags = []
+    new_provider = machine_request.new_machine_provider
+    new_owner = machine_request.new_machine_owner
+    owner_identity = _get_owner(new_provider, new_owner)
+    tags = _match_tags_to_names(machine_request.new_machine_tags)
 
-    #NOTE: Swap these lines when application forking/versioning is supported in the UI
     if machine_request.new_machine_forked:
-        app_to_use = _create_new_application(machine_request, new_image_id, tags)
+        app = create_application(
+            new_image_id,
+            new_provider.uuid,
+            machine_request.new_machine_name,
+            created_by_identity=owner_identity,
+            description=machine_request.new_machine_description,
+            private=not machine_request.is_public(),
+            tags=tags)
     else:
-        #This is NOT a fork, the application to be used is that of your
-        # ancestor, and the app owner should not be changed.
-        app_to_use = _update_parent_application(machine_request, new_image_id, tags)
-    #TODO: CANT 'update' an application if you used a bootable volume.. (for now)
-    new_machine = _create_new_provider_machine(machine_request, app_to_use, new_image_id)
-    logger.info("Setting MachineRequest %s new machine %s" % (machine_request, new_machine))
-    machine_request.new_machine = new_machine
+        parent_app = machine_request.instance.source.providermachine.application
+        app = update_application(parent_app, machine_request.new_machine_name, machine_request.new_machine_description, tags)
 
+    #2. Create the new InstanceSource and appropriate Object, relations, Memberships..
+    if ProviderMachine.test_existence(new_provider, new_image_id):
+        pm = ProviderMachine.objects.get(identifier=new_image_id, provider=new_provider)
+        pm = update_provider_machine(pm, new_created_by_identity=owner_identity, new_created_by=machine_request.new_machine_owner, new_application=app, new_version=machine_request.new_machine_version)
+    else:
+        pm = create_provider_machine(new_image_id, new_provider.uuid, app, owner_identity, machine_request.new_machine_version)
+        provider_machine_write_hook(pm)
+
+    #Must be set in order to ask for threshold information
+    machine_request.new_machine = pm
+
+    #3. Associate additional attributes to new application
     if machine_request.has_threshold():
         machine_request.update_threshold()
-    #Be sure to write all this data to openstack metadata
-    #So that it can continue to be the 'authoritative source'
+
+    #3. Add new *Memberships For new ProviderMachine//Application
     if not machine_request.is_public():
-        upload_privacy_data(machine_request, new_machine)
+        upload_privacy_data(machine_request, pm)
 
-    #TODO: Lookup tenant name when we move away from
-    # the usergroup model
-    user = machine_request.new_machine_owner
-    tenant_name = user.username
-    update_owner(new_machine, tenant_name, update_cloud)
-
-    if update_cloud:
-        save_app_to_metadata(new_machine.application)
-        add_to_cache(new_machine)
-
+    #5. Advance the state of machine request
     machine_request.end_date = timezone.now()
-
     #After processing, validate the image.
     machine_request.status = 'validating'
     machine_request.save()
     return machine_request
 
 def upload_privacy_data(machine_request, new_machine):
-    from service.accounts.openstack import AccountDriver as OSAccounts
-    from service.driver import get_admin_driver
+    from service.driver import get_admin_driver, get_account_driver
     prov = new_machine.provider
-    accounts = OSAccounts(prov)
+    accounts = get_account_driver(prov)
     if not accounts:
-        print "Aborting import: Could not retrieve OSAccounts driver "\
+        print "Aborting import: Could not retrieve Account Driver "\
                 "for Provider %s" % prov
         return
     admin_driver = get_admin_driver(prov)
@@ -453,7 +449,7 @@ def upload_privacy_data(machine_request, new_machine):
         print "Aborting import: Could not retrieve admin_driver "\
                 "for Provider %s" % prov
         return
-    img = accounts.image_manager.get_image(new_machine.identifier)
+    img = accounts.get_image(new_machine.identifier)
     tenant_list = machine_request.get_access_list()
     #All in the list will be added as 'sharing' the OStack img
     #All tenants already sharing the OStack img will be added to this list
@@ -477,7 +473,7 @@ def share_with_admins(private_userlist, provider_uuid):
     from authentication.protocol.ldap import get_core_services
     core_services = get_core_services()
     admin_users = [ap.identity.created_by.username for ap in
-            AccountProvider.objects.filter(provider__uuid=provider_uuid)]
+                   AccountProvider.objects.filter(provider__uuid=provider_uuid)]
     private_userlist.extend(core_services)
     private_userlist.extend(admin_users)
     return private_userlist
@@ -526,12 +522,22 @@ def make_private(image_manager, image, provider_machine, tenant_list=[]):
     owner = provider_machine.application.created_by
     group_list = owner.group_set.all()
     if tenant_list:
-        for tenant in tenant_list:
-            name = tenant.name
-            group = Group.objects.get(name=name)
-            obj, created = ProviderMachineMembership.objects.get_or_create(
-                    group=group, 
-                    provider_machine=provider_machine)
-            if created:
-                print "Created new ProviderMachineMembership: %s" \
-                    % (obj,)
+        #ASSERT: Groupnames == Usernames
+        tenant_list.extend([group.name for group in group_list])
+    else:
+        tenant_list = [group.name for group in group_list]
+    for tenant in tenant_list:
+        name = tenant.name
+        group = Group.objects.get(name=name)
+        obj, created = ApplicationMembership.objects.get_or_create(
+                group=group, 
+                application=provider_machine.application)
+        if created:
+            print "Created new ApplicationMembership: %s" \
+                % (obj,)
+        obj, created = ProviderMachineMembership.objects.get_or_create(
+                group=group,
+                provider_machine=provider_machine)
+        if created:
+            print "Created new ProviderMachineMembership: %s" \
+                % (obj,)

@@ -20,14 +20,6 @@ class LeadershipFactory(DjangoModelFactory):
     group = factory.SubFactory(GroupFactory)
 
 
-class ProviderMembershipFactory(DjangoModelFactory):
-    class Meta:
-        model = models.ProviderMembership
-
-    provider = factory.SubFactory("core.factories.provider.ProviderFactory")
-    member = factory.SubFactory(GroupFactory)
-
-
 #class IdentityMembershipFactory(DjangoModelFactory):
 #    class Meta:
 #        model = models.IdentityMembership
@@ -66,7 +58,6 @@ class ProviderMembershipFactory(DjangoModelFactory):
 
 class GroupWithDataFactory(GroupFactory):
     leaders = factory.RelatedFactory(LeadershipFactory, "group")
-    providers = factory.RelatedFactory(ProviderMembershipFactory, "member")
 #    identities = factory.RelatedFactory(IdentityMembershipFactory, "member")
 #    instances = factory.RelatedFactory(InstanceMembershipFactory, "owner")
 #    applications = factory.RelatedFactory(

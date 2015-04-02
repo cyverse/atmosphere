@@ -12,7 +12,7 @@ from core.models.abstract import InstanceSource
 from core.models.application import Application
 from core.models.cloud_admin import CloudAdministrator
 from core.models.credential import Credential, ProviderCredential
-from core.models.group import Group, IdentityMembership, ProviderMembership
+from core.models.group import Group, IdentityMembership
 from core.models.identity import Identity
 from core.models.instance import Instance, InstanceStatusHistory
 from core.models.machine import ProviderMachine, ProviderMachineMembership
@@ -32,7 +32,6 @@ from core.models.tag import Tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
 
-from core.application import save_app_to_metadata
 from threepio import logger
 
 def private_object(modeladmin, request, queryset):
@@ -213,18 +212,6 @@ class ApplicationAdmin(admin.ModelAdmin):
     search_fields = ["name", "id", "providermachine__identifier"]
     list_display = ["uuid", "_current_machines", "name", "private", "created_by", "start_date", "end_date" ]
     filter_vertical = ["tags",]
-    def save_model(self, request, obj, form, change):
-        user = request.user
-        application = form.save(commit=False)
-        application.save()
-        form.save_m2m()
-        if change:
-            try:
-                save_app_to_metadata(application)
-            except Exception, e:
-                logger.exception("Could not update metadata for application %s"
-                                 % application)
-        return application
 
     def render_change_form(self, request, context, *args, **kwargs):
         application = context['original']
@@ -267,16 +254,6 @@ class UserAdmin(AuthUserAdmin):
         (None, {'fields': ('selected_identity', )}),
     )
 
-
-@admin.register(ProviderMembership)
-class ProviderMembershipAdmin(admin.ModelAdmin):
-    search_fields = ["member__name"]
-    list_filter = ["provider__location"]
-
-#class IdentityMembershipForm(forms.ModelForm):
-#    def __init__(self, instance, *args, **kwargs):
-#        super(IdentityMembershipForm, self).__init__(*args, **kwargs)
-#        self.fields['identity'].queryset =
 
 @admin.register(IdentityMembership)
 class IdentityMembershipAdmin(admin.ModelAdmin):
@@ -417,10 +394,13 @@ class QuotaRequestAdmin(admin.ModelAdmin):
             membership.approve_quota(obj.uuid)
 
 
-# admin.site.register(CountingBehavior, CountingBehaviorAdmin)
+#For adding 'new' registrations
 admin.site.register(Credential)
 admin.site.register(Group)
 admin.site.register(ProviderType)
+# admin.site.register(CountingBehavior, CountingBehaviorAdmin)
 # admin.site.register(RefreshBehavior, RefreshBehaviorAdmin)
 # admin.site.register(RulesBehavior, RulesBehaviorAdmin)
+
+#For removing 'standard' registrations
 admin.site.unregister(DjangoGroup)

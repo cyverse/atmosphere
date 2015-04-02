@@ -12,6 +12,7 @@ from rest_framework import status
 
 from threepio import logger
 
+from core.query import only_current_provider
 from core.models.maintenance import MaintenanceRecord as CoreMaintenanceRecord
 from core.models.provider import Provider
 
@@ -27,7 +28,7 @@ class MaintenanceRecordList(APIView):
     """
 
     permission_classes = (ApiAuthOptional,)
-    
+
     def get(self, request):
         """
         """
@@ -38,8 +39,10 @@ class MaintenanceRecordList(APIView):
         active_records = query.get('active','false').lower() == "true"
         if user and type(user) != AnonymousUser:
             groups = user.group_set.all()
-            for g in groups:
-                for p in g.providers.all():
+            for group in groups:
+                provider_ids = group.identities.filter(only_current_provider(), provider__active=True).values_list('provider', flat=True)
+                providers = Provider.objects.filter(id__in=provider_ids)
+                for p in providers:
                     if active_records:
                         records |= CoreMaintenanceRecord.active(p)
                     else:

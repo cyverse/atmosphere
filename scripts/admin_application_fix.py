@@ -2,7 +2,11 @@
 import argparse
 import time
 import django
+<<<<<<< HEAD
+django.setup()
+=======
 # django.setup() -- ADD BACK IN >DD
+>>>>>>> dinellis-doradito
 from django.utils import timezone
 from service.driver import get_esh_driver
 from core.models import ProviderMachine, Provider, Identity, Application, MachineRequest
@@ -82,7 +86,7 @@ def main():
         images = []
         for image_id in image_ids:
             try:
-                pm = ProviderMachine.objects.get(provider=provider, identifier=image_id)
+                pm = ProviderMachine.objects.get(instance_source__provider=provider, instance_source__identifier=image_id)
                 images.append(pm)
             except:
                 print "WARN: ProviderMachine %s does not exist on provider %s. Skipping." % (image_id, provider)
@@ -146,7 +150,7 @@ def _identify_problem_apps(provider, accounts, print_log=True):
     correct_apps = []
     incorrect_apps = []
 
-    for pm in ProviderMachine.objects.filter(provider=provider):
+    for pm in ProviderMachine.objects.filter(instance_source__provider=provider):
         uuid = _generate_app_uuid(pm.identifier)
         #if print_log:
         #    print "ProviderMachine: %s == UUID: %s" % (pm.identifier, uuid)
@@ -200,8 +204,7 @@ def _apply_fix(accounts, provider, pm):
 
     apps = Application.objects.filter(uuid=uuid)
     if not apps.count():
-        # NOTE: The argument-order changes in >DD -- This is the WRONG one to keep!
-        app = create_application(image_id, provider.uuid, name, private=(not g_img.is_public), uuid=uuid)
+        app = create_application(provider.uuid, image_id, name, private=(not g_img.is_public), uuid=uuid)
     else:
         app = apps[0]
     

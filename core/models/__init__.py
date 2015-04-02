@@ -23,7 +23,7 @@ from core.models.t import T
 from core.models.tag import Tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
-from core.models.group import Group, ProviderMembership, IdentityMembership,\
+from core.models.group import Group, IdentityMembership,\
     InstanceMembership
 from core.models.allocation_strategy import Allocation, AllocationStrategy
 from core.models.step import Step

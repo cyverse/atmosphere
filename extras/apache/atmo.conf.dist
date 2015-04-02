@@ -20,19 +20,18 @@
     ## Uncomment these lines to enable '/server-status'
     ## This can be useful for debugging Apache + MOD_WSGI
     ###
-    #ProxyPass /server-status !
-    #<Location /server-status>
-    #SetHandler server-status
-    #AuthType CAS
-    #AuthName "CAS"
-    #CASScope /
-
-    #require valid-user
-    #Order allow,deny
-    #Allow from 127.0.0.1
-    #Satisfy any
-    #</Location>
-    #ExtendedStatus On
+    # ProxyPass /server-status !
+    # <Location /server-status>
+    #     SetHandler server-status
+    #     AuthType CAS
+    #     AuthName "CAS"
+    #     CASScope /
+    #     require valid-user
+    #     Order allow,deny
+    #     Allow from 127.0.0.1
+    #     Satisfy any
+    # </Location>
+    # ExtendedStatus On
 
     ###############################################################################
     ## HTTP Virtual Host Context (Forwards requests to HTTPS @ MYHOSTNAMEHERE)
@@ -48,6 +47,10 @@
         RewriteCond %{HTTPS} !=on
         RewriteCond %{REQUEST_URI} !^/init_files
         RewriteRule ^/?(.*) https://$MYHOSTNAMEHERE/$1 [R,L]
+
+        <Location />
+            Require all granted
+        </Location>
     </VirtualHost>
 
     ###############################################################################
@@ -88,6 +91,9 @@
         SetEnvIf User-Agent ".*MSIE.*" \
                  nokeepalive ssl-unclean-shutdown \
                  downgrade-1.0 force-response-1.0
+        <Location />
+            Require all granted
+        </Location>
         ###############################################################################
         ## Celery-Flower proxy redirection
         ###############################################################################
@@ -101,18 +107,16 @@
         ProxyPassReverse  /flower  https://$MYHOSTNAMEHERE/flower
 
         <Proxy https://$MYHOSTNAMEHERE:8443/flower*>
-            Order deny,allow
-            Allow from all
+            Require all granted
         </Proxy>
 
         ###############################################################################
         ## Jenkins proxy redirection
         ###############################################################################
         <Proxy /jenkins*>
-          Order deny,allow
-          Allow from all
+          Require all granted
         </Proxy>
-        
+
         ProxyPass         /jenkins  http://localhost:8080/jenkins nocanon
         ProxyPassReverse  /jenkins  http://localhost:8080/jenkins
         ProxyPassReverse  /jenkins  https://$MYHOSTNAMEHERE/jenkins
@@ -136,18 +140,16 @@
         Alias /favicon.ico $PATH_TO_ATMOSPHERE/static/images/favicon.ico
         Alias /robots.txt $PATH_TO_ATMOSPHERE/templates/robots.txt
         #Assing WSGI to any other folder
-	WSGIDaemonProcess atmosphere_api processes=8 threads=7 inactivity-timeout=120 display-name=%{GROUP}
-	WSGIProcessGroup atmosphere_api
+	    WSGIDaemonProcess atmosphere_api processes=8 threads=7 inactivity-timeout=120 display-name=%{GROUP}
+	    WSGIProcessGroup atmosphere_api
         WSGIScriptAlias / $PATH_TO_ATMOSPHERE/atmosphere/wsgi.py
-
         # Shell
         <Location /shell>
             AuthType CAS
             AuthName "CAS"
             require valid-user
             CASScope /
-            Order allow,deny
-            Allow from all
+            Require all granted
         </Location>
 
         #static, init_files, && resources will auto-direct to the file
@@ -187,9 +189,12 @@
     ###############################################################################
     Listen 5000
     <VirtualHost *:5000>
+        <Location />
+            Require all granted
+        </Location>
         SetEnv DJANGO_SETTINGS_MODULE troposphere.settings
-	WSGIDaemonProcess troposphere processes=4 threads=7 inactivity-timeout=60 display-name=%{GROUP}
-	WSGIProcessGroup troposphere
+	    WSGIDaemonProcess troposphere processes=4 threads=7 inactivity-timeout=60 display-name=%{GROUP}
+	    WSGIProcessGroup troposphere
         WSGIScriptAlias / $PATH_TO_TROPOSPHERE/troposphere/wsgi.py
         WSGIPassAuthorization On
 
@@ -200,8 +205,6 @@
 
         <Directory $PATH_TO_TROPOSPHERE/trosposphere>
             <Files wsgi.py>
-            Order deny,allow
-            Require all granted
             </Files>
         </Directory>
     </VirtualHost>

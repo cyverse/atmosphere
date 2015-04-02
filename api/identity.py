@@ -22,18 +22,20 @@ def get_provider(user, provider_uuid):
     """
     try:
         group = Group.objects.get(name=user.username)
-        provider = group.providers.get(
-                #Non-end dated provider
-                only_current(),
-                #Active provider
-                active=True,
-                uuid=provider_uuid)
-        return provider
     except Group.DoesNotExist:
         logger.warn("Group %s DoesNotExist" % user.username)
         return None
+
+    try:
+        provider_ids = group.identities.filter(
+            only_current_provider(),
+            provider__active=True).values_list('provider', flat=True)
+        provider = CoreProvider.objects.filter(
+            id__in=provider_ids).get(uuid=provider_uuid)
+        return provider
     except Provider.DoesNotExist:
-        logger.warn("Provider %s DoesNotExist" % provider_uuid)
+        logger.warn("Provider %s DoesNotExist for User:%s in Group:%s"
+            % (provider_uuid, user, group))
         return None
 
 def get_identity_list(user, provider=None):

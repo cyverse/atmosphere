@@ -1,4 +1,4 @@
-Django==1.8b2
+Django==1.8c1
 django-cors-headers==0.12.0
 django-pipeline==1.3.20
 djangorestframework==3.0.5
@@ -32,18 +32,19 @@ uWSGI==2.0.9
 threepio==0.2.0
 rtwo==0.2.10
 caslib.py==2.2.0
-chromogenic==0.1.2
+chromogenic==0.1.4
 jwt.py==0.1.0
+subspace==0.1.2
 
 ## dev
 #django-sslserver #NOTE: Debugs requests real-time.
-flower==0.7.2 #TODO: Do we need a specific version here? -steve
+flower==0.7.3 #TODO: Do we need a specific version here? -steve
 pip-tools==0.3.5 #TODO: Do we need a specific version here? -steve
 newrelic==2.34.0.29 # newrelic investigation.
 factory-boy==2.4.1
 ipython
 ipdb
 flake8
-pep8<1.6,>=1.5.7
+pep8
 wheel
 django-nose

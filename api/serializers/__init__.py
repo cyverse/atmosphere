@@ -46,6 +46,6 @@ from .allocation_request_serializer import AllocationRequestSerializer, ResolveA
 from core.models.user import AtmosphereUser
 from .quota_serializer import QuotaSerializer
 from .quota_request_serializer import QuotaRequestSerializer, \
-    ResolveQuotaRequestSerializer
+    ResolveQuotaRequestSerializer, UserQuotaRequestSerializer
 from .identity_serializer import IdentitySerializer
 from .token_serializer import TokenSerializer

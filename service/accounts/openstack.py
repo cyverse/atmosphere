@@ -24,8 +24,9 @@ from core.models import AtmosphereUser as User
 from core.ldap import get_uid_number
 from core.models.identity import Identity
 
+from service.accounts.base import CachedAccountDriver
 
-class AccountDriver():
+class AccountDriver(CachedAccountDriver):
     user_manager = None
     image_manager = None
     network_manager = None
@@ -83,7 +84,7 @@ class AccountDriver():
 
         provider_creds = provider.get_credentials()
         self.provider_creds = provider_creds
-        admin_identity = provider.get_admin_identity()
+        admin_identity = provider.admin
         admin_creds = admin_identity.get_credentials()
         self.admin_driver = get_esh_driver(admin_identity)
         admin_creds = self._libcloud_to_openstack(admin_creds)
@@ -93,12 +94,17 @@ class AccountDriver():
         return all_creds
 
     def __init__(self, provider=None, *args, **kwargs):
-
+        super(AccountDriver, self).__init__()
         if provider:
             all_creds = self._init_by_provider(provider, *args, **kwargs)
         else:
             all_creds = kwargs
-
+        if 'location' in all_creds:
+            self.namespace = "Atmosphere_OpenStack:%s" % all_creds['location']
+        else:
+            logger.info("Using default namespace.. Could cause conflicts if "
+                        "switching between providers. To avoid ambiguity, "
+                        "provide the kwarg: location='provider_prefix'")
         # Build credentials for each manager
         self.user_creds = self._build_user_creds(all_creds)
         self.image_creds = self._build_image_creds(all_creds)
@@ -432,8 +438,11 @@ class AccountDriver():
         """
         return username
 
-    def list_all_images(self, **kwargs):
-        return self.image_manager.list_images(**kwargs)
+    def _get_image(self, *args, **kwargs):
+        return self.image_manager.get_image(*args, **kwargs)
+
+    def _list_all_images(self, *args, **kwargs):
+        return self.image_manager.list_images(*args, **kwargs)
 
     def get_project_by_id(self, project_id):
         return self.user_manager.get_project_by_id(project_id)

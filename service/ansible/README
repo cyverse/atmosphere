@@ -1,3 +1,3 @@
-This directory should be renamed to /etc/ansible
+This directory contains Atmosphere's Ansible configuration.
 
-The inventory file, along with the host and group variables should be located in /etc/ansible_inventory
+To change some relevant Ansible configurations see the Django settings.

@@ -26,8 +26,6 @@ class Group(DjangoGroup):
     Extend the Django Group model to support 'membership'
     """
     leaders = models.ManyToManyField('AtmosphereUser', through='Leadership')
-    providers = models.ManyToManyField(Provider, through='ProviderMembership',
-                                       blank=True)
     identities = models.ManyToManyField(Identity, through='IdentityMembership',
                                         blank=True)
     instances = models.ManyToManyField('Instance',
@@ -102,28 +100,9 @@ def get_user_group(username):
     return groups[0]
 
 
-class ProviderMembership(models.Model):
-    """
-    ProviderMembership allows group 'discovery access'
-    to that provider in the API/Frontend.
-    IdentityMembership is still required to use the API/Frontend.
-    """
-    provider = models.ForeignKey(Provider)
-    member = models.ForeignKey(Group)
-
-    def __unicode__(self):
-        return "%s can use provider %s" % (self.member, self.provider)
-
-    class Meta:
-        db_table = 'provider_membership'
-        app_label = 'core'
-        unique_together = ('provider', 'member')
-
-
 class IdentityMembership(models.Model):
     """
     IdentityMembership allows group 'API access' to use a specific provider
-    ProviderMembership is still required to view a provider in the API/UI.
     The identity is given a quota on how many resources can be allocated
     """
     identity = models.ForeignKey(Identity)
@@ -141,22 +120,6 @@ class IdentityMembership(models.Model):
             return group.identitymembership_set.first()
         except IdentityMembershipDoesNotExist:
             logger.warn("%s is not a member of any identities" % groupname)
-
-        #.filter(
-        #                identity_provider_icontains=\
-        #                group.providermembership_set.all())
-
-        #provider_members = ProviderMembership.objects.filter(
-        #    member__name=groupname)
-        #if not provider_members:
-        #    logger.warn("%s is not a member of any provider" % groupname)
-        #for pm in provider_members:
-        #    identities = IdentityMembership.objects.filter(
-        #        member=group,
-        #        identity__provider=pm.provider)
-        #    if identities:
-        #        return identities[0]
-        
         
 
     def get_allocation_dict(self):
