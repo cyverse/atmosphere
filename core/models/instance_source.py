@@ -60,6 +60,29 @@ class InstanceSource(models.Model):
             raise SourceNotFound("A source could not be found for %s." % self)
         return source
 
+    @property
+    def source_type(self):
+        if self.is_machine():
+            return "machine"
+        elif self.is_volume():
+            return "volume"
+        elif self.is_snapshot():
+            return "snapshot"
+
+    def is_snapshot(self):
+        """
+        Coming soon!
+        """
+        try:
+            self.volume
+        except ObjectDoesNotExist:
+            return False
+        except AttributeError:
+            #TODO: Remove this case when we add to core.
+            return False
+        else:
+            return True
+
     def is_volume(self):
         try:
             self.volume

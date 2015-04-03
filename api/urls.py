@@ -28,7 +28,7 @@ from api.license import LicenseList, License
 from api.machine import MachineList, Machine, MachineHistory,\
     MachineSearch, MachineVote, MachineIcon, MachineLicense
 from api.machine_request import MachineRequestList, MachineRequest
-from api.machine_export import MachineExportList, MachineExport
+from api.export_request import ExportRequestList, ExportRequest
 from api.maintenance import MaintenanceRecordList, MaintenanceRecord
 from api.meta import Meta, MetaAction
 from api.notification import NotificationList
@@ -154,9 +154,9 @@ private_apis = patterns('',
         ApplicationBookmarkDetail.as_view(), name='bookmark-application'),
 
     url(identity_specific + r'/image_export$',
-        MachineExportList.as_view(), name='machine-export-list'),
+        ExportRequestList.as_view(), name='machine-export-list'),
     url(identity_specific + r'/image_export/(?P<machine_request_id>%s)$' % (id_match,),
-        MachineExport.as_view(), name='machine-export'),
+        ExportRequest.as_view(), name='machine-export'),
 
     url(identity_specific + r'/hypervisor$',
         HypervisorList.as_view(), name='hypervisor-list'),
@@ -375,10 +375,10 @@ public_apis = format_suffix_patterns(patterns(
         CloudAdminAllocationRequest.as_view(),
         name='cloud-admin-allocation-detail'),
 
-    url(identity_specific + r'/image_export$',
-        MachineExportList.as_view(), name='machine-export-list'),
-    url(identity_specific + r'/image_export/(?P<machine_request_id>%s)$' % (id_match,),
-        MachineExport.as_view(), name='machine-export'),
+    url(identity_specific + r'/export_request$',
+        ExportRequestList.as_view(), name='export-request-list'),
+    url(identity_specific + r'/export_request/(?P<export_request_id>%s)$' % (id_match,),
+        ExportRequest.as_view(), name='export-request'),
 
     url(identity_specific + r'/hypervisor$',
         HypervisorList.as_view(), name='hypervisor-list'),

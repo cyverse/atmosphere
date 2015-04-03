@@ -12,13 +12,12 @@ from core.models.abstract import InstanceSource
 from core.models.application import Application
 from core.models.cloud_admin import CloudAdministrator
 from core.models.credential import Credential, ProviderCredential
+from core.models.export_request import ExportRequest
 from core.models.group import Group, IdentityMembership
 from core.models.identity import Identity
 from core.models.instance import Instance, InstanceStatusHistory
 from core.models.machine import ProviderMachine, ProviderMachineMembership
-from core.models.machine_export import MachineExport
 from core.models.machine_request import MachineRequest
-from core.models.machine_export import MachineExport
 from core.models.maintenance import MaintenanceRecord
 from core.models.node import NodeController
 from core.models.profile import UserProfile
@@ -278,17 +277,17 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
         return obj.identity.created_by.username
     _identity_user.short_description = 'Username'
 
-class MachineExportAdmin(admin.ModelAdmin):
+@admin.register(ExportRequest)
+class ExportRequestAdmin(admin.ModelAdmin):
     list_display = ["export_name", "export_owner_username",
-    "instance_provider", "start_date", "end_date", "status",
+    "source_provider", "start_date", "end_date", "status",
     "export_file"]
-    def export_owner_username(self, machine_export):
-        return machine_export.export_owner.username
-    def instance_provider(self, machine_export):
-        return machine_export.instance.provider_machine.provider
 
-class MachineExportAdmin(admin.ModelAdmin):
-    pass
+    def export_owner_username(self, export_request):
+        return export_request.export_owner.username
+
+    def source_provider(self, export_request):
+        return export_request.source.provider
 
 @admin.register(MachineRequest)
 class MachineRequestAdmin(admin.ModelAdmin):

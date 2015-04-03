@@ -11,7 +11,7 @@ from core.models.provider import AccountProvider, ProviderType, PlatformType,\
 from core.models.license import LicenseType, License
 from core.models.machine import ProviderMachine, ProviderMachineMembership
 from core.models.machine_request import MachineRequest
-from core.models.machine_export import MachineExport
+from core.models.export_request import ExportRequest
 from core.models.maintenance import MaintenanceRecord
 from core.models.instance import Instance, InstanceStatusHistory,\
     InstanceStatus, InstanceAction, InstanceSource

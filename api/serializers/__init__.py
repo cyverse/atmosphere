@@ -21,7 +21,7 @@ from .instance_serializer import InstanceSerializer, InstanceActionSerializer
 from .instance_history_serializer import InstanceHistorySerializer
 from .paginated_instance_history_serializer import PaginatedInstanceHistorySerializer
 from .paginated_instance_serializer import PaginatedInstanceSerializer
-from .machine_export_serializer import MachineExportSerializer
+from .export_request_serializer import ExportRequestSerializer
 from .license_serializer import LicenseSerializer
 from .post_license_serializer import POST_LicenseSerializer
 from .machine_request_serializer import MachineRequestSerializer

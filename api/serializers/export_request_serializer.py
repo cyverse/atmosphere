@@ -1,10 +1,10 @@
-from core.models.machine_export import MachineExport
+from core.models.export_request import ExportRequest
 from core.models.user import AtmosphereUser
 from core.models.instance import Instance
 from rest_framework import serializers
 
 
-class MachineExportSerializer(serializers.ModelSerializer):
+class ExportRequestSerializer(serializers.ModelSerializer):
     """
     """
     name = serializers.CharField(source='export_name')
@@ -22,6 +22,6 @@ class MachineExportSerializer(serializers.ModelSerializer):
                                  required=False, source='export_file')
 
     class Meta:
-        model = MachineExport
+        model = ExportRequest
         fields = ('id', 'instance', 'status', 'name',
                   'owner', 'disk_format', 'file')

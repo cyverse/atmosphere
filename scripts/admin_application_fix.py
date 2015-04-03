@@ -2,11 +2,8 @@
 import argparse
 import time
 import django
-<<<<<<< HEAD
 django.setup()
-=======
-# django.setup() -- ADD BACK IN >DD
->>>>>>> dinellis-doradito
+
 from django.utils import timezone
 from service.driver import get_esh_driver
 from core.models import ProviderMachine, Provider, Identity, Application, MachineRequest

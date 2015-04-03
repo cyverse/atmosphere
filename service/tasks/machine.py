@@ -6,20 +6,20 @@ from threepio import logger
 from celery.decorators import task
 from celery.result import allow_join_result
 
+from chromogenic.export import export_source
 from chromogenic.tasks import machine_imaging_task, migrate_instance_task
 
-from atmosphere import settings
 from atmosphere.celery import app
 
 from core.email import \
         send_image_request_email, send_image_request_failed_email
 from core.models.machine_request import MachineRequest, process_machine_request
-from core.models.machine_export import MachineExport, process_machine_export
+from core.models.export_request import ExportRequest
 from core.models.identity import Identity
 
 from service.driver import get_admin_driver, get_esh_driver
 from service.deploy import freeze_instance, sync_instance
-from service.tasks.driver import deploy_to, wait_for_instance, destroy_instance
+from service.tasks.driver import wait_for_instance, destroy_instance
 
 
 def _get_imaging_task(orig_managerCls, orig_creds,
@@ -43,32 +43,45 @@ def _recover_from_error(status_name):
         return True, status_name[status_name.find("(")+1:status_name.find(")")]
     return False, status_name
 
-def start_machine_export(machine_export, delay=True):
-    """
-    Build up a machine export task using core.models.machine_export
-    """
-    machine_export.status = 'exporting'
-    machine_export.save()
 
-    (orig_managerCls, orig_creds, dest_managerCls) = \
-        machine_export.prepare_manager()
-    export_args = machine_export.get_export_args()
-    #export_task = migrate_instance_task.si(
-    #        orig_managerCls, orig_creds, dest_managerCls, orig_creds,
-    #        **export_args)
-    export_image_location = migrate_instance_task(orig_managerCls, orig_creds, dest_managerCls, orig_creds, **export_args)
-    process_export(export_image_location, machine_export.id)
+@task(name='export_request_task', queue="imaging", ignore_result=False)
+def export_request_task(export_request_id):
+    logger.info("export_request_task task started at %s." % timezone.now())
+    export_request = ExportRequest.objects.get(id=export_request_id)
+    export_request.status = 'processing'
+    export_request.save()
 
-    #export_error_task = machine_export_error.s(machine_export.id)
-    #export_task.link_error(export_error_task)
-    #process_task = process_export.s(machine_export.id)
-    #process_task.link_error(export_error_task)
-    #export_task.link(process_task)
-    ## Start the task.
-    #async = export_task.apply_async()
-    #if delay:
-    #    async.get()
-    #return async
+    (orig_managerCls, orig_creds) = export_request.prepare_manager()
+    default_kwargs = export_request.get_export_args()
+    file_loc = export_source(orig_managerCls, orig_creds, default_kwargs)
+
+    logger.info("export_request_task task finished at %s." % timezone.now())
+    return file_loc
+
+
+def start_export_request(export_request, delay=True):
+    """
+    Build up a machine export task using core.models.export_request
+    """
+    export_request.status = 'exporting'
+    export_request.save()
+
+    file_location = export_request_task(export_request.id)
+    file_location = process_export(file_location, export_request.id)
+    return file_location
+    # export_task = export_request_task.s(export_request.id)
+    # process_task = process_export.s(export_request.id)
+
+    # export_task.link(process_task)
+
+    # export_error_task = export_request_error.s(export_request.id)
+    # export_task.link_error(export_error_task)
+    # process_task.link_error(export_error_task)
+
+    # async = export_task.apply_async()
+    # if delay:
+    #     async.get()
+    # return async
 
 def start_machine_imaging(machine_request, delay=False):
     """
@@ -176,23 +189,17 @@ def set_machine_request_metadata(machine_request, image_id):
     return machine
 
 @task(name='process_export', queue="imaging", ignore_result=False)
-def process_export(export_file_path, machine_export_id):
-    #if ipdb:
-    #    ipdb.set_trace()
-    machine_export = MachineExport.objects.get(id=machine_export_id)
-    machine_export.status = 'completed'
-    machine_export.export_file = export_file_path
-    machine_export.end_date = timezone.now()
-    machine_export.save()
-
-    #send_image_export_email(machine_export.new_machine_owner,
-    #                         machine_export.new_machine,
-    #                         machine_export.new_machine_name)
+def process_export(export_file_path, export_request_id):
+    export_request = ExportRequest.objects.get(id=export_request_id)
+    export_request.complete_export(export_file_path)
+    #send_image_export_email(export_request.new_machine_owner,
+    #                         export_request.new_machine,
+    #                         export_request.new_machine_name)
     return export_file_path
 
-@task(name='machine_export_error')
-def machine_export_error(task_uuid, machine_export_id):
-    logger.info("machine_export_id=%s" % machine_export_id)
+@task(name='export_request_error')
+def export_request_error(task_uuid, export_request_id):
+    logger.info("export_request_id=%s" % export_request_id)
     logger.info("task_uuid=%s" % task_uuid)
 
     result = app.AsyncResult(task_uuid)
@@ -200,9 +207,9 @@ def machine_export_error(task_uuid, machine_export_id):
         exc = result.get(propagate=False)
     err_str = "ERROR - %r Exception:%r" % (result.result, result.traceback,)
     logger.error(err_str)
-    machine_export = MachineExport.objects.get(id=machine_export_id)
-    machine_export.status = err_str
-    machine_export.save()
+    export_request = ExportRequest.objects.get(id=export_request_id)
+    export_request.status = err_str
+    export_request.save()
 
 
 @task(name='machine_request_error')
