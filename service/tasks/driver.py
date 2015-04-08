@@ -132,6 +132,7 @@ def _eager_override(task_class, run_method, args, kwargs):
 def _is_instance_ready(driverCls, provider, identity,
                        instance_alias, status_query,
                        tasks_allowed=False, return_id=False):
+    #TODO: Refactor so that terminal states can be found. IE if waiting for 'active' and in status: Suspended - none - GIVE up!!
     driver = get_driver(driverCls, provider, identity)
     instance = driver.get_instance(instance_alias)
     if not instance:
@@ -844,9 +845,9 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
 
 
 @task(name="_deploy_init_to",
-      default_retry_delay=32,
-      time_limit=30*60,  # 30minute hard-set time limit.
-      max_retries=10)
+      default_retry_delay=124,
+      time_limit=120*60,  # 120 minute hard-set time limit.
+      max_retries=60)
 def _deploy_init_to(driverCls, provider, identity, instance_id,
                     username=None, password=None, token=None, redeploy=False,
                     **celery_task_args):
