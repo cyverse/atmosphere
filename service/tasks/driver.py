@@ -132,6 +132,7 @@ def _eager_override(task_class, run_method, args, kwargs):
 def _is_instance_ready(driverCls, provider, identity,
                        instance_alias, status_query,
                        tasks_allowed=False, return_id=False):
+    #TODO: Refactor so that terminal states can be found. IE if waiting for 'active' and in status: Suspended - none - GIVE up!!
     driver = get_driver(driverCls, provider, identity)
     instance = driver.get_instance(instance_alias)
     if not instance:

@@ -57,7 +57,7 @@ def reboot_instance(esh_driver, esh_instance, identity_uuid, user, reboot_type="
     check_quota(user.username, identity_uuid, size, resuming=True)
     esh_driver.reboot_instance(esh_instance, reboot_type=reboot_type)
     #reboots take very little time..
-    redeploy_init(esh_driver, esh_instance, countdown=5)
+    redeploy_init(esh_driver, esh_instance)
 
 
 def resize_instance(esh_driver, esh_instance, size_alias,
@@ -117,7 +117,7 @@ def remove_network(esh_driver, identity_uuid, remove_network=False):
     from service.tasks.driver import remove_empty_network
     remove_empty_network.s(esh_driver.__class__, esh_driver.provider,
                            esh_driver.identity, identity_uuid,
-                           remove_network=remove_network).apply_async(countdown=20)
+                           remove_network=remove_network).apply_async()
 
 
 def restore_network(esh_driver, esh_instance, identity_uuid):
@@ -213,7 +213,7 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
     return task_one
 
 
-def redeploy_init(esh_driver, esh_instance, countdown=None):
+def redeploy_init(esh_driver, esh_instance):
     """
     Use this function to kick off the async task when you ONLY want to deploy
     (No add fixed, No add floating)
@@ -222,7 +222,7 @@ def redeploy_init(esh_driver, esh_instance, countdown=None):
     logger.info("Add floating IP and Deploy")
     deploy_init_to.s(esh_driver.__class__, esh_driver.provider,
                      esh_driver.identity, esh_instance.id,
-                     redeploy=True).apply_async(countdown=countdown)
+                     redeploy=True).apply_async()
 
 
 def restore_ip_chain(esh_driver, esh_instance, redeploy=False,
@@ -298,7 +298,7 @@ def start_instance(esh_driver, esh_instance,
 
     esh_driver.start_instance(esh_instance)
     if restore_ip:
-        deploy_task.apply_async(countdown=10)
+        deploy_task.apply_async()
     update_status(esh_driver, esh_instance.id, provider_uuid, identity_uuid, user)
     invalidate_cached_instances(identity=CoreIdentity.objects.get(uuid=identity_uuid))
 
@@ -402,7 +402,7 @@ def resume_instance(esh_driver, esh_instance,
 
     esh_driver.resume_instance(esh_instance)
     if restore_ip:
-        deploy_task.apply_async(countdown=10)
+        deploy_task.apply_async()
 
 def admin_get_instance(esh_driver, instance_id):
     instance_list = esh_driver.list_all_instances()
