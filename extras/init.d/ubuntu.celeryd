@@ -386,6 +386,18 @@ case "$1" in
         start_flower
     ;;
 
+    safe-stop)
+        check_dev_null
+        check_paths
+        stop_workers
+    ;;
+
+    safe-start)
+        check_dev_null
+        check_paths
+        start_workers
+    ;;
+
     start)
         check_dev_null
         check_paths
@@ -413,8 +425,8 @@ case "$1" in
         check_dev_null
         check_paths
         restart_workers
-        kill_flower
-        start_flower
+        #kill_flower
+        #start_flower
     ;;
 
     graceful)
