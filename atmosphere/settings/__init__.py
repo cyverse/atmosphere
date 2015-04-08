@@ -79,7 +79,7 @@ INSTALLED_APPS = (
     'django_jenkins',
     'pipeline',
     'corsheaders',
-    'sslserver',
+    #'sslserver',
 
     #iPlant apps
     'rtwo',
