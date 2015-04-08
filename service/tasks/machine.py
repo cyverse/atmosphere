@@ -59,29 +59,30 @@ def export_request_task(export_request_id):
     return file_loc
 
 
-def start_export_request(export_request, delay=True):
+def start_export_request(export_request, delay=False):
     """
     Build up a machine export task using core.models.export_request
     """
     export_request.status = 'exporting'
     export_request.save()
+    if delay:
+        file_location = export_request_task(export_request.id)
+        file_location = process_export(file_location, export_request.id)
+        return file_location
 
-    file_location = export_request_task(export_request.id)
-    file_location = process_export(file_location, export_request.id)
-    return file_location
-    # export_task = export_request_task.s(export_request.id)
-    # process_task = process_export.s(export_request.id)
+    export_task = export_request_task.s(export_request.id)
+    process_task = process_export.s(export_request.id)
 
-    # export_task.link(process_task)
+    export_task.link(process_task)
 
-    # export_error_task = export_request_error.s(export_request.id)
-    # export_task.link_error(export_error_task)
-    # process_task.link_error(export_error_task)
+    export_error_task = export_request_error.s(export_request.id)
+    export_task.link_error(export_error_task)
+    process_task.link_error(export_error_task)
 
-    # async = export_task.apply_async()
-    # if delay:
-    #     async.get()
-    # return async
+    async = export_task.apply_async()
+    if delay:
+        async.get()
+    return async
 
 def start_machine_imaging(machine_request, delay=False):
     """
