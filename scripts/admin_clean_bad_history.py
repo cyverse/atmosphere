@@ -62,7 +62,7 @@ def _prune_history(bad_history_list):
 
 def get_user_instance_history(provider):
     user_instances = {}
-    all_history = InstanceStatusHistory.objects.filter(end_date__isnull=True, instance__provider_machine__provider=provider)
+    all_history = InstanceStatusHistory.objects.filter(end_date__isnull=True, instance__source__providermachine__provider=provider)
     for history in all_history:
         username = history.instance.created_by.username
         a_set = user_instances.get(username,set())

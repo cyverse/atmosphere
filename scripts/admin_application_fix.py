@@ -60,11 +60,11 @@ def main():
         for image in deleted_list:
             print "%s" % image
         print "\n\n"
-        print "Correct\n---"
-        for image in correct_list:
-            print "%s" % image
-        print "\n\n"
-        print "Names Match (Fix/Create if association is wrong!)\n---"
+        #print "Correct\n---"
+        #for image in correct_list:
+        #    print "%s" % image
+        #print "\n\n"
+        print "No UUID -- But Names Match (Fix/Create if association is wrong!)\n---"
         for image in name_match_list:
             print "%s" % image
         print "\n\n"

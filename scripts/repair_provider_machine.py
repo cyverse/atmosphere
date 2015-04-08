@@ -69,13 +69,14 @@ def fix_image_metadata(accounts, glance_image, application, machine_request):
     elif not glance_image:
         raise Exception("FATAL - No glance image!")
     #Start with ALL the information
+    image_id = glance_image.id
     updates = glance_image.properties
     # Look for kernel and ramdisk
     if not glance_image.properties.has_key('kernel_id')\
             or not glance_image.properties.has_key('ramdisk_id'):
         print "Image %s is missing kernel and/or ramdisk ..." % (image_id,),
         updates['kernel_id'], updates['ramdisk_id'] = find_kernel_ramdisk(
-            accounts, glance_image, application, machine_request)
+            accounts, machine_request)
         if not updates['kernel_id'] or not updates['ramdisk_id']:
             raise Exception("FATAL - no Kernel/Ramdisk found for image %s" % image_id)
     #Update the meta description (all other values should be fine)
@@ -87,15 +88,17 @@ def fix_image_metadata(accounts, glance_image, application, machine_request):
     glance_image.update(properties=updates)
 
 def find_kernel_ramdisk(accounts, machine_request):
-    print "Looking up Kernel/ramdisk for: %s" % machine_request.new_machine
     print "Pass #1. Does my ancestor have a kernel or ramdisk?",
     if not machine_request:
         print " FAIL! MachineRequest does not exist."
+        return None, None
     else:
+        print "Looking up Kernel/ramdisk for: %s" % machine_request.new_machine
         old_pm = machine_request.instance.provider_machine
         old_glance_image = accounts.image_manager.get_image(old_pm.identifier)
         if not old_glance_image:
             print " Fail! Old image:%s Did NOT exist in the cloud." % old_pm.identifier
+            return None, None
         elif 'kernel_id' in old_glance_image.properties and 'ramdisk_id' in old_glance_image.properties:
             kernel = old_glance_image.properties['kernel_id']
             ramdisk = old_glance_image.properties['ramdisk_id']

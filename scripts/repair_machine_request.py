@@ -65,13 +65,14 @@ def _fix_new_machine_forked(machine_request, provider, new_machine):
     print "OK: This MachineRequest: %s has a BAD Application." \
       "\tUUID should be %s." % (machine_request, app_uuid)
     old_application = new_machine.application
-    original_application = _create_new_application(machine_request, new_machine.identifier)
+    current_application = _create_new_application(machine_request, new_machine.identifier)
 
     remaining_machines = old_application._current_machines()
     for machine in remaining_machines:
         if machine.identifier == new_machine.identifier:
-            new_machine.application = original_application
+            new_machine.application = current_application
             new_machine.save()
+    current_application.save()
     # Pass #2 - If remaining, unmatched ids:
     remaining_machines = old_application._current_machines()
 
