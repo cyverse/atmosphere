@@ -1,11 +1,10 @@
 from datetime import timedelta
 
+from django.conf import settings
 from django.utils import timezone
-
 from rest_framework.authentication import BaseAuthentication
-
-from threepio import auth_logger as logger
-
+from threepio import logger
+from authentication import get_or_create_user
 from authentication.exceptions import Unauthorized
 from authentication.models import Token as AuthToken
 from authentication.protocol.cas import cas_validateUser
@@ -38,8 +37,6 @@ class TokenAuthentication(BaseAuthentication):
             if token.user.is_active:
                 return (token.user, token)
         return None
-
-
 class OAuthTokenAuthentication(TokenAuthentication):
     """
     OAuthTokenAuthentication:
@@ -47,10 +44,24 @@ class OAuthTokenAuthentication(TokenAuthentication):
     prepend with the string "Token ". For example:
         Authorization: Token 098f6bcd4621d373cade4e832627b4f6
     """
+    def _mock_oauth_login(self, oauth_token):
+        username = settings.ALWAYS_AUTH_USER
+        user = get_or_create_user(username, {
+            'firstName':"Mocky Mock",
+            'lastName':"MockDoodle",
+            'email': '%s@iplantcollaborative.org' % settings.ALWAYS_AUTH_USER,
+            'entitlement': []})
+        _, token = self.model.objects.get_or_create(key=oauth_token, user=user)
+        return user, token
+
     def authenticate(self, request):
+        all_backends = settings.AUTHENTICATION_BACKENDS
         auth = request.META.get('HTTP_AUTHORIZATION', '').split()
         if len(auth) == 2 and auth[0].lower() == "token":
             oauth_token = auth[1]
+            if 'authentication.authBackends.MockLoginBackend' in all_backends:
+                user, token = self._mock_oauth_login(oauth_token)
+                return (user, token)
             if validate_oauth_token(oauth_token):
                 try:
                     token = self.model.objects.get(key=oauth_token)
