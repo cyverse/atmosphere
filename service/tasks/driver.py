@@ -776,9 +776,9 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
 
 
 @task(name="_deploy_init_to",
-      default_retry_delay=32,
-      time_limit=30*60,  # 30minute hard-set time limit.
-      max_retries=10)
+      default_retry_delay=124,
+      time_limit=120*60,  # 120 minute hard-set time limit.
+      max_retries=60)
 def _deploy_init_to(driverCls, provider, identity, instance_id,
                     username=None, password=None, token=None, redeploy=False,
                     **celery_task_args):
