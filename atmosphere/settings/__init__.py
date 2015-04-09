@@ -14,6 +14,7 @@ import os
 import os.path
 import threepio
 import atmosphere
+from kombu import Exchange, Queue
 
 
 #Debug Mode
@@ -77,6 +78,7 @@ INSTALLED_APPS = (
     'djcelery',
     'pipeline',
     'corsheaders',
+    #'sslserver',
 
     #iPlant apps
     'rtwo',
@@ -402,12 +404,7 @@ ELASTICSEARCH_PORT = 9200
 
 #Django-Celery secrets
 BROKER_URL = 'redis://localhost:6379/0'
-BROKER_BACKEND = "redis"
-REDIS_PORT = 6379
-REDIS_HOST = "localhost"
-BROKER_USER = ""
-BROKER_PASSWORD = ""
-REDIS_DB = 0
+
 REDIS_CONNECT_RETRY = True
 CELERY_ENABLE_UTC = True
 CELERYD_PREFETCH_MULTIPLIER = 1
@@ -427,20 +424,7 @@ CELERYD_TASK_LOG_FORMAT = "[%(asctime)s: %(name)s-%(levelname)s"\
     "@ %(pathname)s on %(lineno)d] %(message)s"
 
 # Django-Celery Local Settings
-#CELERY_QUEUES = (
-#        Queue('imaging'), Exchange('imaging'), routing_key='imaging'),
-#    )
-CELERY_DEFAULT_QUEUE = 'default'
 
-#NOTE: Leave this block out until the 'bug' regarding CELERY_ROUTES is fixed
-#      See steve gregory for more details..
-
-#     #NOTE: This is a Tuple of dicts!
-#     from kombu import Queue
-#     CELERY_QUEUES = (
-#             Queue('default'),
-#             Queue('imaging', routing_key='imaging.#')
-#         )
 CELERYBEAT_SCHEDULE = {
     "check_image_membership": {
         "task": "check_image_membership",
@@ -475,27 +459,32 @@ CELERYBEAT_SCHEDULE = {
                     "queue": "celery_periodic"}
     },
 }
+#CELERY_QUEUES = (
+#        Queue('imaging'), Exchange('imaging'), routing_key='imaging'),
+#    )
+CELERY_DEFAULT_QUEUE = 'default'
+CELERY_DEFAULT_EXCHANGE = 'default'
+CELERY_DEFAULT_EXCHANGE_TYPE = "topic"
+CELERY_DEFAULT_ROUTING_KEY = "default.task"
 CELERY_ROUTES = ('atmosphere.route_logger.RouteLogger', )
+#CELERY_QUEUES = (
+#    Queue('imaging', Exchange('imaging', type='topic'), routing_key="imaging.#"),
+#    Queue('fast_queue', Exchange('fast_queue', type='topic'), routing_key="fast_queue.#"),
+#    Queue('long_queue', Exchange('long_queue', type='topic'), routing_key="long_queue.#"),
+#)
 CELERY_ROUTES += ({
     "chromogenic.tasks.migrate_instance_task":
     {"queue": "imaging", "routing_key": "imaging.execute"},
     "chromogenic.tasks.machine_imaging_task":
     {"queue": "imaging", "routing_key": "imaging.execute"},
+
     "service.tasks.machine.freeze_instance_task":
     {"queue": "imaging", "routing_key": "imaging.prepare"},
     "service.tasks.machine.process_request":
     {"queue": "imaging", "routing_key": "imaging.complete"},
+
     "service.tasks.email.send_email":
     {"queue": "email", "routing_key": "email.sending"},
-
-    #"service.tasks.allocation.monitor_instances_for":
-    #{"queue": "celery_periodic", "routing_key": "periodic.provider_maintenance"},
-    #"service.tasks.accounts.remove_empty_networks_for":
-    #{"queue": "celery_periodic", "routing_key": "periodic.provider_maintenance"},
-    #"service.tasks.driver.update_membership_for":
-    #{"queue": "celery_periodic", "routing_key": "periodic.provider_maintenance"},
-    #"service.tasks.driver.clear_empty_ips_for":
-    #{"queue": "celery_periodic", "routing_key": "periodic.identity_maintenance"},
 },)
 #     # Django-Celery Development settings
 # CELERY_ALWAYS_EAGER = True
