@@ -422,7 +422,7 @@ def get_deploy_chain(driverCls, provider, identity, instance,
     start_task = get_chain_from_build(driverCls, provider, identity, instance, username, password, redeploy)
     return start_task
 
-def start_idempotent_deploy_chain(driverCls, provider, identity, instance, username):
+def get_idempotent_deploy_chain(driverCls, provider, identity, instance, username):
     """
     Takes an instance in ANY 'tmp_status' (Just launched or long-launched and recently started)
     and attempts to redeploy and complete the process!
@@ -437,7 +437,7 @@ def start_idempotent_deploy_chain(driverCls, provider, identity, instance, usern
     tmp_status = metadata.get('tmp_status','').lower()
 
     if instance_status in ['suspended','stopped','paused',
-            'shut-off','shelved','shelve_offload', 'error']:
+            'shutoff','shelved','shelve_offload', 'error']:
         logger.info("Instance %s was contains an INACTIVE status: %s. Removing the tmp_status and allow 'traditional flows' to take place." % (instance.id,instance_status))
         start_task = get_remove_status_chain(driverCls, provider, identity, instance)
     elif tmp_status == 'initializing':
@@ -454,7 +454,7 @@ def start_idempotent_deploy_chain(driverCls, provider, identity, instance, usern
         start_task = get_chain_from_active_with_ip(driverCls, provider, identity, instance, username, redeploy=False)
     else:
         raise Exception("Instance has a tmp_status that is NOT: [initializing, networking, deploying] - %s" % tmp_status)
-    start_task.apply_async()
+    return start_task
 
 
 def get_remove_status_chain(driverCls, provider, identity, instance):
