@@ -399,14 +399,7 @@ ELASTICSEARCH_HOST = SERVER_URL
 ELASTICSEARCH_PORT = 9200
 
 #Django-Celery secrets
-#BROKER_URL = 'redis://localhost:6379/0'
-#BROKER_BACKEND = "redis"
-#REDIS_PORT = 6379
-#REDIS_HOST = "localhost"
-#BROKER_USER = ""
-#BROKER_PASSWORD = ""
-#REDIS_DB = 0
-BROKER_URL = 'amqp://atmosphere:atmo_pass@localhost:5672/atmosphere_rabbit'
+BROKER_URL = 'redis://localhost:6379/0'
 
 REDIS_CONNECT_RETRY = True
 CELERY_ENABLE_UTC = True
