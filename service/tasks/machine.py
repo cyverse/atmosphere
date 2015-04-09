@@ -8,7 +8,7 @@ from celery.result import allow_join_result
 from chromogenic.tasks import machine_imaging_task, migrate_instance_task
 
 from atmosphere import settings
-from atmosphere.celery import app
+from celery import current_app as app
 
 from core.email import \
         send_image_request_email, send_image_request_failed_email

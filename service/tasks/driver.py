@@ -21,7 +21,7 @@ from rtwo.exceptions import NonZeroDeploymentException
 
 from threepio import logger, status_logger
 
-from atmosphere.celery import app
+from celery import current_app as app
 from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
 from django.conf import settings
 
