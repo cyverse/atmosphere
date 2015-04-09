@@ -4,7 +4,7 @@ from core.models import QuotaRequest
 from core.models.status_type import get_status_type
 
 from service.quota import set_provider_quota as spq
-
+from threepio import logger
 
 @task(name="set_provider_quota",
       default_retry_delay=5,
@@ -14,6 +14,7 @@ def set_provider_quota(identity_uuid):
     try:
         spq(identity_uuid)
     except Exception as exc:
+        logger.exception("Encountered an exception trying to 'set_provider_quota' for Identity UUID:%s" % identity_uuid)
         set_provider_quota.retry(exc=exc)
 
 

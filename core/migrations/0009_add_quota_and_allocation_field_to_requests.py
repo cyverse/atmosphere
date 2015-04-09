@@ -7,7 +7,7 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0008_auto_20150218_1502'),
+        ('core', '0008_remove_duplicate_apps_add_provider_traits'),
     ]
 
     operations = [

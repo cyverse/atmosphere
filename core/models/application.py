@@ -27,7 +27,7 @@ class Application(models.Model):
     uuid = models.CharField(max_length=36, unique=True, default=uuid4)
     name = models.CharField(max_length=256)
     description = models.TextField(null=True, blank=True)
-    tags = models.ManyToManyField(Tag, blank=True, through='ApplicationTag')
+    tags = models.ManyToManyField(Tag, blank=True)
     icon = models.ImageField(upload_to="machine_images", null=True, blank=True)
     private = models.BooleanField(default=False)
     start_date = models.DateTimeField(default=timezone.now)
@@ -69,9 +69,8 @@ class Application(models.Model):
         return projects
 
     def update_images(self, **updates):
-        from service.driver import get_account_driver
-        for pm in self._current_machines():
-            pm.update_image(**updates)
+        from core.application import save_app_to_metadata
+        return save_app_to_metadata(self, **updates)
 
     def update_owners(self, owners_list):
         """
@@ -288,11 +287,15 @@ def get_application(identifier, app_name, app_uuid=None):
         return application
     return _get_app_by_uuid(identifier, app_uuid)
 
+def _generate_app_uuid(identifier):
+    app_uuid = uuid5(
+            settings.ATMOSPHERE_NAMESPACE_UUID,
+            str(identifier))
+    return str(app_uuid)
+
 def _get_app_by_uuid(identifier, app_uuid):
     if not app_uuid:
-        app_uuid = uuid5(
-                settings.ATMOSPHERE_NAMESPACE_UUID,
-                str(identifier))
+        app_uuid = _generate_app_uuid(identifier)
     app_uuid = str(app_uuid)
     try:
         app = Application.objects.get(uuid=app_uuid)
@@ -307,9 +310,15 @@ def create_application(identifier, provider_uuid, name=None,
                        owner=None, private=False, version=None,
                        description=None, tags=None, uuid=None):
     from core.models import AtmosphereUser
+    new_app = None
+
     if not uuid:
-        uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(identifier))
-        uuid = str(uuid)
+        uuid = _generate_app_uuid(identifier)
+
+    existing_app = Application.objects.filter(uuid=uuid)
+    if existing_app.count():
+        new_app = existing_app[0]
+
     if not name:
         name = "UnknownApp %s" % identifier
     if not description:
@@ -318,7 +327,14 @@ def create_application(identifier, provider_uuid, name=None,
         owner = _get_admin_owner(provider_uuid)
     if not tags:
         tags = []
-    new_app = Application.objects.create(name=name,
+    if new_app:
+        new_app.name = name
+        new_app.description = description
+        new_app.created_by = owner.created_by
+        new_app.created_by_identity = owner
+        new_app.save()
+    else:
+        new_app = Application.objects.create(name=name,
                                          description=description,
                                          created_by=owner.created_by,
                                          created_by_identity=owner,

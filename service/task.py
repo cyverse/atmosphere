@@ -39,7 +39,7 @@ def deploy_init_task(driver, instance, identity,
                                 instance.alias,
                                 token,
                                 redeploy),
-                               immutable=True, countdown=20)
+                               immutable=True)
 
 
 def deploy_to_task(driver, instance, *args, **kwargs):

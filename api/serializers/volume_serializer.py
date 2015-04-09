@@ -26,4 +26,4 @@ class VolumeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Volume
-        exclude = ("instance_source","id")
+        exclude = ("instance_source",)

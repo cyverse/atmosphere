@@ -7,8 +7,9 @@ from django.conf import settings
 
 from celery.decorators import task
 
+from core.query import only_current
 from core.models.group import Group, IdentityMembership
-from core.models.size import convert_esh_size
+from core.models.size import Size, convert_esh_size
 from core.models.instance import convert_esh_instance, Instance
 from core.models.user import AtmosphereUser
 from core.models.provider import Provider
@@ -108,3 +109,49 @@ def monitor_instances_for(provider_id, users=None,
     if print_logs:
         logger.removeHandler(consolehandler)
 
+
+@task(name="monitor_sizes")
+def monitor_sizes():
+    """
+    Update sizes for each active provider.
+    """
+    for p in Provider.get_active():
+        monitor_sizes_for.apply_async(args=[p.id])
+
+
+@task(name="monitor_sizes_for", queue="celery_periodic")
+def monitor_sizes_for(provider_id, print_logs=False):
+    """
+    Run the set of tasks related to monitoring sizes for a provider.
+    Optionally, provide a list of usernames to monitor
+    While debugging, print_logs=True can be very helpful.
+    start_date and end_date allow you to search a 'non-standard' window of time.
+    """
+    from service.driver import get_admin_driver
+
+    if print_logs:
+        import logging
+        import sys
+        consolehandler = logging.StreamHandler(sys.stdout)
+        consolehandler.setLevel(logging.DEBUG)
+        logger.addHandler(consolehandler)
+
+    provider = Provider.objects.get(id=provider_id)
+    admin_driver = get_admin_driver(provider)
+    # Non-End dated sizes on this provider
+    db_sizes = Size.objects.filter(only_current(), provider=provider)
+    all_sizes = admin_driver.list_sizes()
+    seen_sizes = []
+    for cloud_size in all_sizes:
+        core_size = convert_esh_size(cloud_size, provider.uuid)
+        seen_sizes.append(core_size)
+
+    now_time = timezone.now()
+    needs_end_date = [size for size in db_sizes if size not in seen_sizes]
+    for size in needs_end_date:
+        logger.debug("End dating inactive size: %s" % size)
+        size.end_date = now_time
+        size.save()
+
+    if print_logs:
+        logger.removeHandler(consolehandler)

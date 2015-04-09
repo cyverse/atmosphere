@@ -16,6 +16,15 @@ ATMO_SUPPORT = (
 PROJECT_ROOT = os.path.abspath(
     os.path.join(
         os.path.dirname(__file__), "../.."))
+
+
+#Local settings for celery
+#How to setup a 'RabbitMQ' Broker (Stable, Production-Recommended):
+BROKER_URL = 'amqp://username:password@localhost:5672/virutalhost_name'
+#How to setup a 'Redis' Broker (Stable, Fast, Development-Recommended)
+#BROKER_URL = 'redis://localhost:6379/0'
+#How to setup a 'MongoDB' Broker (Experimental)
+#BROKER_URL = "mongodb://userid:password@hostname:port/database_name"
 TEST_RUNNER='atmosphere.test_runner.CeleryDiscoverTestSuiteRunner'
 TEST_RUNNER_USER=''
 TEST_RUNNER_PASS=''

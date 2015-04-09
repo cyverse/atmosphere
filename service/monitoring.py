@@ -197,8 +197,8 @@ def suspend_all_instances_for(identity, user):
                 # NOTE: Intentionally added to allow time for
                 #      the Cloud to begin 'suspend' operation
                 #      before querying for the instance again.
-                time = random.uniform(2, 6)
-                time.sleep(time)
+                wait_time = random.uniform(2,6)
+                time.sleep(wait_time)
                 updated_esh = driver.get_instance(instance.id)
                 convert_esh_instance(
                     driver, updated_esh,

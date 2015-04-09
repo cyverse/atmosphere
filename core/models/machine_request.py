@@ -48,7 +48,7 @@ class MachineRequest(models.Model):
     new_machine_description = models.TextField(default='', blank=True)
     new_machine_tags = models.TextField(default='', blank=True)
     new_machine_version = models.CharField(max_length=128, default='1.0.0')
-    new_machine_forked = models.BooleanField(default=False)
+    new_machine_forked = models.BooleanField(default=True)
     new_machine_memory_min = models.IntegerField(default=0)
     new_machine_storage_min = models.IntegerField(default=0)
     new_machine_licenses = models.ManyToManyField(License,
@@ -332,20 +332,19 @@ def _create_new_application(machine_request, new_image_id, tags=[]):
             tags)
     return new_app
 
-def _update_application(machine_request, new_image_id, tags=[]):
+def _update_parent_application(machine_request, new_image_id, tags=[]):
     parent_app = machine_request.instance.source.providermachine.application
-    #Include your ancestors tags, description if necessary
-    tags.extend(parent_app.tags.all())
-    #If this machine request has a description,
-    # or if it has new tags, changes in privacy, update the app.
-    if machine_request.new_machine_name != parent_app.name:
-        parent_app.name = machine_request.new_machine_name
+    return _update_application(parent_app, machine_request, tags=tags)
+
+def _update_application(application, machine_request, tags=[]):
+    if application.name is not machine_request.new_machine_name:
+        application.name = machine_request.new_machine_name
     if machine_request.new_machine_description:
-        parent_app.description = machine_request.new_machine_description
-    parent_app.private = not machine_request.is_public()
-    parent_app.tags = tags
-    parent_app.save()
-    return parent_app
+        application.description = machine_request.new_machine_description
+    application.private = not machine_request.is_public()
+    application.tags = tags
+    application.save()
+    return application
 
 def _update_existing_machine(machine_request, application, provider_machine):
     from core.models import Identity
@@ -401,9 +400,10 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     else:
         #This is NOT a fork, the application to be used is that of your
         # ancestor, and the app owner should not be changed.
-        app_to_use = _update_application(machine_request, new_image_id, tags)
+        app_to_use = _update_parent_application(machine_request, new_image_id, tags)
     #TODO: CANT 'update' an application if you used a bootable volume.. (for now)
     new_machine = _create_new_provider_machine(machine_request, app_to_use, new_image_id)
+    logger.info("Setting MachineRequest %s new machine %s" % (machine_request, new_machine))
     machine_request.new_machine = new_machine
 
     if machine_request.has_threshold():

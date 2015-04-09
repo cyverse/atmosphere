@@ -54,7 +54,7 @@ CELERYD_GROUP="root"
 ###
 # Additional Celeryd settings
 ###
-CELERYD_MAX_TASKS_PER_CHILD="1"
+CELERYD_MAX_TASKS_PER_CHILD="100"
 ###
 #
 # Additional celery flower settings

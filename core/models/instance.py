@@ -365,6 +365,12 @@ class Instance(models.Model):
         else:
             return None
 
+    def application_id(self):
+        if self.source.is_machine():
+            return self.source.providermachine.application.id
+        else:
+            return None
+
     @property
     def provider_machine(self):
         if self.source.is_machine():

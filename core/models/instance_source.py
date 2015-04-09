@@ -25,6 +25,9 @@ class InstanceSource(models.Model):
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
+    def unicode(self):
+        return "%s Provider:%s Created_by:%s" % (self.identifier, self.provider, self.created_by)
+
     @classmethod
     def _current_source_query_args(cls):
         now_time = timezone.now()

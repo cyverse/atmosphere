@@ -10,7 +10,7 @@ from rest_framework import status
 
 from core.models import Tag as CoreTag
 from api import failure_response
-from api.serializers import TagSerializer
+from api.serializers import TagSerializer, TagSerializer_POST
 from api.permissions import InMaintenance, ApiAuthRequired, ApiAuthOptional
 
 
@@ -45,7 +45,7 @@ class TagList(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
         data['user'] = user.username
         data['name'] = data['name'].lower()
-        serializer = TagSerializer(data=data)
+        serializer = TagSerializer_POST(data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)

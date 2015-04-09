@@ -132,6 +132,7 @@ def _eager_override(task_class, run_method, args, kwargs):
 def _is_instance_ready(driverCls, provider, identity,
                        instance_alias, status_query,
                        tasks_allowed=False, return_id=False):
+    #TODO: Refactor so that terminal states can be found. IE if waiting for 'active' and in status: Suspended - none - GIVE up!!
     driver = get_driver(driverCls, provider, identity)
     instance = driver.get_instance(instance_alias)
     if not instance:
@@ -413,46 +414,50 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         logger.warn(exc)
         deploy_init_to.retry(exc=exc)
 
-
 def get_deploy_chain(driverCls, provider, identity, instance,
                      username=None, password=None, redeploy=False):
     from core.models.instance import Instance
 
     instance_id = instance.id
-    wait_active_task = wait_for_instance.s(
-        instance_id, driverCls, provider, identity, "active")
-    if not instance.ip:
-        #Init the networking
-        logger.debug("IP address missing -- add 'add floating IP' tasks..")
-        network_meta_task = update_metadata.si(
-            driverCls, provider, identity, instance_id,
-            {'tmp_status': 'networking'})
-        floating_task = add_floating_ip.si(
-            driverCls, provider, identity, instance_id, delete_status=False)
+    start_task = get_chain_from_build(driverCls, provider, identity, instance, username, password, redeploy)
+    return start_task
 
-    #Always deploy to the instance, but change what atmo-init does..
-    deploy_meta_task = update_metadata.si(
-        driverCls, provider, identity, instance_id,
-        {'tmp_status': 'deploying'})
-    deploy_ready_task = deploy_ready_test.si(
-        driverCls, provider, identity, instance_id)
+def start_idempotent_deploy_chain(driverCls, provider, identity, instance, username):
+    """
+    Takes an instance in ANY 'tmp_status' (Just launched or long-launched and recently started)
+    and attempts to redeploy and complete the process!
+    """
+    metadata = instance.extra.get('metadata',{})
+    instance_status = instance.extra.get('status','').lower()
+    start_task = None
 
-    #deploy_ready_task.link_error(
-    #    deploy_failed.s(driverCls, provider, identity, instance_id))
+    if not metadata or not instance_status:
+        raise Exception("This function cannot work without access to instance metadata AND status."
+                        " re-write this function to access the instance's metadata AND status!")
+    tmp_status = metadata.get('tmp_status','').lower()
 
-    deploy_task = _deploy_init_to.si(
-        driverCls, provider, identity, instance_id,
-        username, password, redeploy)
-    deploy_task.link_error(
-        deploy_failed.s(driverCls, provider, identity, instance_id))
+    if instance_status in ['suspended','stopped','paused',
+            'shut-off','shelved','shelve_offload', 'error']:
+        logger.info("Instance %s was contains an INACTIVE status: %s. Removing the tmp_status and allow 'traditional flows' to take place." % (instance.id,instance_status))
+        start_task = get_remove_status_chain(driverCls, provider, identity, instance)
+    elif tmp_status == 'initializing':
+        logger.info("Instance %s contains the 'initializing' metadata - Redeploy will include wait_for_active AND networking AND deploy." % instance.id)
+        start_task = get_chain_from_build(driverCls, provider, identity, instance, username=username, redeploy=False)
+    elif tmp_status == 'networking':
+        logger.info("Instance %s contains the 'networking' metadata - Redeploy will include networking AND deploy." % instance.id)
+        start_task = get_chain_from_active_no_ip(driverCls, provider, identity, instance, username=username, redeploy=False)
+    elif not instance.ip:
+        logger.info("Instance %s is missing an IP address. - Redeploy will include networking AND deploy." % instance.id)
+        start_task = get_chain_from_active_no_ip(driverCls, provider, identity, instance, username=username, redeploy=False)
+    elif tmp_status in ['deploying','deploy_error']:
+        logger.info("Instance %s contains the 'deploying' metadata - Redeploy will include deploy ONLY!." % instance.id)
+        start_task = get_chain_from_active_with_ip(driverCls, provider, identity, instance, username, redeploy=False)
+    else:
+        raise Exception("Instance has a tmp_status that is NOT: [initializing, networking, deploying] - %s" % tmp_status)
+    start_task.apply_async()
 
-    #Call additional Deployments
-    check_shell_task = check_process_task.si(
-        driverCls, provider, identity, instance_id, "shellinaboxd")
-    check_vnc_task = check_process_task.si(
-        driverCls, provider, identity, instance_id, "vnc")
 
-    #Then remove the tmp_status (and lingering suspend_fix metadata)
+def get_remove_status_chain(driverCls, provider, identity, instance):
     if instance.extra['metadata'].get('iplant_suspend_fix'):
         replace = True
         final_update = instance.extra['metadata']
@@ -462,42 +467,106 @@ def get_deploy_chain(driverCls, provider, identity, instance,
         final_update = {'tmp_status': ''}
         replace = False
     remove_status_task = update_metadata.si(
-        driverCls, provider, identity, instance_id,
+        driverCls, provider, identity, instance.id,
         final_update, replace)
+    start_chain = remove_status_task
+    return start_chain
 
-    #Finally email the user
-    if not redeploy:
-        email_task = _send_instance_email.si(
-            driverCls, provider, identity, instance_id)
-    ## Link the chain below this line.
-    ##
+
+
+
+def get_chain_from_build(driverCls, provider, identity, instance,
+                         username=None, password=None, redeploy=False):
+    """
+    Wait for instance to go to active.
+    THEN Initialize the networking for the instance
+    THEN deploy to the box.
+    """
+    wait_active_task = wait_for_instance.s(
+        instance.id, driverCls, provider, identity, "active")
     start_chain = wait_active_task
-    if not instance.ip:
-        # Task will start with networking
-        # link networking to deploy..
-        wait_active_task.link(network_meta_task)
-        network_meta_task.link(floating_task)
-        floating_task.link(deploy_meta_task)
-    else:
-        #Networking is ready, just deploy.
-        wait_active_task.link(deploy_meta_task)
+    network_start = get_chain_from_active_no_ip(driverCls, provider, identity, instance, username,password, redeploy)
+    start_chain.link(network_start)
+    return start_chain
 
-    deploy_meta_task.link(deploy_ready_task)
+def get_chain_from_active_no_ip(driverCls, provider, identity, instance,
+                                username=None, password=None, redeploy=False):
+    """
+    Initialize the networking for the instance
+    THEN deploy to the box.
+    """
+    start_chain = None
+    end_chain = None
+    #Init the networking
+    logger.debug("IP address missing -- add 'add floating IP' tasks..")
+    network_meta_task = update_metadata.si(
+        driverCls, provider, identity, instance.id,
+        {'tmp_status': 'networking'})
+    floating_task = add_floating_ip.si(
+        driverCls, provider, identity, instance.id, delete_status=False)
+
+    if instance.extra.get('metadata',{}).get('tmp_status','') == 'networking':
+        start_chain = floating_task
+    else:
+        start_chain = network_meta_task
+        start_chain.link(floating_task)
+    end_chain = floating_task
+    deploy_start = get_chain_from_active_with_ip(driverCls, provider, identity, instance, username,password, redeploy)
+    end_chain.link(deploy_start)
+    return start_chain
+
+def get_chain_from_active_with_ip(driverCls, provider, identity, instance,
+                                username=None, password=None, redeploy=False):
+    """
+    Deploy to the box (instance),
+    but change what atmo-init does based on redeploy
+    """
+    start_chain = None
+    deploy_meta_task = update_metadata.si(
+        driverCls, provider, identity, instance.id,
+        {'tmp_status': 'deploying'})
+
+    deploy_ready_task = deploy_ready_test.si(
+        driverCls, provider, identity, instance.id)
+
+    deploy_task = _deploy_init_to.si(
+        driverCls, provider, identity, instance.id,
+        username, password, redeploy)
+
+    #Call additional Deployments
+    check_shell_task = check_process_task.si(
+        driverCls, provider, identity, instance.id, "shellinaboxd")
+    check_vnc_task = check_process_task.si(
+        driverCls, provider, identity, instance.id, "vnc")
+    #ONLY if redeploy == False!
+    email_task = _send_instance_email.si(
+        driverCls, provider, identity, instance.id)
+
+    # (SUCCESS_)LINKS and ERROR_LINKS
+    deploy_task.link_error(
+        deploy_failed.s(driverCls, provider, identity, instance.id))
+
+    if instance.extra.get('metadata',{}).get('tmp_status','') == 'deploying':
+        start_chain = deploy_ready_task
+    else:
+        start_chain = deploy_meta_task
+        start_chain.link(deploy_ready_task)
+
     deploy_ready_task.link(deploy_task)
     deploy_task.link(check_shell_task)
     check_shell_task.link(check_vnc_task)
     
     #JUST before we finish, check for boot_scripts_chain
-    chain_start, chain_end = _get_boot_script_chain(
-            driverCls, provider, identity,instance_id)
-    if chain_start and chain_end:
-        check_vnc_task.link(chain_start)
-        chain_end.link(remove_status_task)
+    boot_chain_start, boot_chain_end = _get_boot_script_chain(
+            driverCls, provider, identity,instance.id)
+    if boot_chain_start and boot_chain_end:
+        end_chain = boot_chain_end
     else:
-        check_vnc_task.link(remove_status_task)
-
+        end_chain = check_vnc_task
+    remove_status_chain = get_remove_status_chain(driverCls, provider, identity, instance)
+    end_chain.link(remove_status_chain)
     if not redeploy:
-        remove_status_task.link(email_task)
+        remove_status_chain.link(email_task)
     return start_chain
 
 @task(name="deploy_boot_script",
@@ -650,7 +719,7 @@ def destroy_instance(instance_alias, core_identity_uuid):
                 remove_task = remove_empty_network.si(
                         driverCls, provider, identity, core_identity_uuid,
                         immutable=True, countdown=60)
-                clean_task.join(remove_task)
+                clean_task.link(remove_task)
                 clean_task.apply_async()
             else:
                 logger.debug("Driver shows %s of %s instances are active"
@@ -776,9 +845,9 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
 
 
 @task(name="_deploy_init_to",
-      default_retry_delay=32,
-      time_limit=30*60,  # 30minute hard-set time limit.
-      max_retries=10)
+      default_retry_delay=124,
+      time_limit=120*60,  # 120 minute hard-set time limit.
+      max_retries=60)
 def _deploy_init_to(driverCls, provider, identity, instance_id,
                     username=None, password=None, token=None, redeploy=False,
                     **celery_task_args):
@@ -1097,8 +1166,8 @@ def update_membership_for(provider_uuid):
     images = acct_driver.list_all_images()
     changes = 0
     for img in images:
-        pm = ProviderMachine.objects.filter(identifier=img.id,
-                                            provider=provider)
+        pm = ProviderMachine.objects.filter(instance_source__identifier=img.id,
+                                            instance_source__provider=provider)
         if not pm or len(pm) > 1:
             logger.debug("pm filter is bad!")
             logger.debug(pm)

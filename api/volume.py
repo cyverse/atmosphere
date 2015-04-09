@@ -1,7 +1,7 @@
 """
 Atmosphere service volume
 """
-from django.utils.timezone import datetime
+from django.utils.timezone import datetime, now
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -32,6 +32,16 @@ from api import failure_response, invalid_creds, connection_failure,\
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import VolumeSerializer, InstanceSerializer
 
+def _get_volume(esh_driver, volume_id):
+    """
+    Protect yourself against drivers that can't connect, old providers, old volumes/instances
+    """
+    try:
+        esh_volume = esh_driver.get_volume(volume_id)
+        return esh_volume
+    except Exception:
+        logger.exception("Error retrieving volume %s using driver %s" % (volume_id, esh_driver))
+        return None
 
 class VolumeSnapshot(APIView):
     """
@@ -88,7 +98,7 @@ class VolumeSnapshot(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_volume = esh_driver.get_volume(volume_id)
+        esh_volume = _get_volume(esh_driver, volume_id)
         #TODO: Put quota tests at the TOP so we dont over-create resources!
         #STEP 1 - Reuse/Create snapshot
         if snapshot_id:
@@ -278,7 +288,7 @@ class Volume(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_volume = esh_driver.get_volume(volume_id)
+        esh_volume = _get_volume(esh_driver, volume_id)
         if not esh_volume:
             try:
                 source = InstanceSource.objects.get(
@@ -306,7 +316,7 @@ class Volume(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_volume = esh_driver.get_volume(volume_id)
+        esh_volume = _get_volume(esh_driver, volume_id)
         if not esh_volume:
             return volume_not_found(volume_id)
         core_volume = convert_esh_volume(esh_volume, provider_uuid,
@@ -336,7 +346,7 @@ class Volume(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_volume = esh_driver.get_volume(volume_id)
+        esh_volume = _get_volume(esh_driver, volume_id)
         if not esh_volume:
             return volume_not_found(volume_id)
         core_volume = convert_esh_volume(esh_volume, provider_uuid,
@@ -363,14 +373,14 @@ class Volume(APIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        esh_volume = esh_driver.get_volume(volume_id)
+        esh_volume = _get_volume(esh_driver, volume_id)
         if not esh_volume:
             return volume_not_found(volume_id)
         core_volume = convert_esh_volume(esh_volume, provider_uuid,
                                          identity_uuid, user)
         #Delete the object, update the DB
         esh_driver.destroy_volume(esh_volume)
-        core_volume.end_date = timezone.now()
+        core_volume.end_date = now()
         core_volume.save()
         #Return the object
         serialized_data = VolumeSerializer(core_volume,

@@ -8,6 +8,7 @@ from django.contrib.auth.forms import UserChangeForm
 from django.contrib.sessions.models import Session as DjangoSession
 from django.utils import timezone
 
+from core.models.abstract import InstanceSource
 from core.models.application import Application
 from core.models.cloud_admin import CloudAdministrator
 from core.models.credential import Credential, ProviderCredential
@@ -109,14 +110,22 @@ class AllocationAdmin(admin.ModelAdmin):
 @admin.register(ProviderMachine)
 class ProviderMachineAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
-    search_fields = ["application__name", "provider__location", "identifier"]
+    search_fields = ["application__name", "instance_source__provider__location", "instance_source__identifier"]
     list_display = ["identifier",
-            "provider", "application",
+            "_pm_provider", "application",
             "end_date"]
     list_filter = [
         "instance_source__provider__location",
         "application__private",
     ]
+
+    def _pm_provider(self, obj):
+        return obj.instance_source.provider.location
+
+    def render_change_form(self, request, context, *args, **kwargs):
+        pm = context['original']
+        context['adminform'].form.fields['instance_source'].queryset = InstanceSource.objects.filter(id=pm.instance_source.id)
+        return super(ProviderMachineAdmin, self).render_change_form(request, context, *args, **kwargs)
 
 
 @admin.register(ProviderMachineMembership)
@@ -199,7 +208,7 @@ class VolumeAdmin(admin.ModelAdmin):
 @admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
     actions = [end_date_object, private_object]
-    search_fields = ["name", "id"]
+    search_fields = ["name", "id", "providermachine__identifier"]
     list_display = ["uuid", "_current_machines", "name", "private", "created_by", "start_date", "end_date" ]
     filter_vertical = ["tags",]
     def save_model(self, request, obj, form, change):
@@ -215,6 +224,10 @@ class ApplicationAdmin(admin.ModelAdmin):
                                  % application)
         return application
 
+    def render_change_form(self, request, context, *args, **kwargs):
+        application = context['original']
+        context['adminform'].form.fields['created_by_identity'].queryset = Identity.objects.filter(created_by=application.created_by)
+        return super(ApplicationAdmin, self).render_change_form(request, context, *args, **kwargs)
 
 class CredentialInline(admin.TabularInline):
     model = Credential
@@ -258,6 +271,10 @@ class ProviderMembershipAdmin(admin.ModelAdmin):
     search_fields = ["member__name"]
     list_filter = ["provider__location"]
 
+#class IdentityMembershipForm(forms.ModelForm):
+#    def __init__(self, instance, *args, **kwargs):
+#        super(IdentityMembershipForm, self).__init__(*args, **kwargs)
+#        self.fields['identity'].queryset =
 
 @admin.register(IdentityMembership)
 class IdentityMembershipAdmin(admin.ModelAdmin):
@@ -265,6 +282,14 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
     list_display = ["_identity_user", "_identity_provider",
                     "quota", "allocation"]
     list_filter = ["identity__provider__location", "allocation"]
+
+    def render_change_form(self, request, context, *args, **kwargs):
+        identity_membership = context['original']
+        #TODO: Change when created_by is != the user who 'owns' this identity...
+        user = identity_membership.identity.created_by
+        context['adminform'].form.fields['identity'].queryset = user.identity_set.all()
+        context['adminform'].form.fields['member'].queryset = user.group_set.all()
+        return super(IdentityMembershipAdmin, self).render_change_form(request, context, *args, **kwargs)
 
     def _identity_provider(self, obj):
         return obj.identity.provider.location
@@ -278,14 +303,28 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
 @admin.register(MachineRequest)
 class MachineRequestAdmin(admin.ModelAdmin):
     search_fields = ["new_machine_owner__username", "new_machine_name", "instance__provider_alias"]
-    list_display = ["new_machine_name", "instance_alias", "new_machine_owner", "old_provider",
+    list_display = ["new_machine_name", "instance_alias", "opt_new_machine", "new_machine_owner", "old_provider",
                     "new_machine_provider",  "start_date",
-                    "end_date", "status", "opt_parent_machine", "opt_machine_visibility", 
-                    "opt_new_machine"]
+                    "end_date", "status", "opt_parent_machine", "opt_machine_visibility"]
     list_filter = ["instance__source__provider__location",
                    "new_machine_provider__location",
                    "new_machine_visibility",
                    "status"]
+
+    #Overwrite
+    def render_change_form(self, request, context, *args, **kwargs):
+        machine_request = context['original']
+        #TODO: Change when created_by is != the user who 'owns' this identity...
+        instance = machine_request.instance
+        user = machine_request.new_machine_owner
+        provider = machine_request.new_machine_provider
+        context['adminform'].form.fields['new_machine_owner'].queryset = provider.list_users()
+        context['adminform'].form.fields['new_machine'].queryset = ProviderMachine.objects.filter(instance_source__provider=provider)
+        context['adminform'].form.fields['instance'].queryset = user.instance_set.all()
+        #NOTE: Can't reliably refine 'parent_machine' -- Since the parent could be from another provider.
+        context['adminform'].form.fields['parent_machine'].queryset = ProviderMachine.objects.filter(instance_source__identifier=instance.source.identifier)
+
+        return super(MachineRequestAdmin, self).render_change_form(request, context, *args, **kwargs)
 
     def opt_machine_visibility(self, machine_request):
         if machine_request.new_machine_visibility.lower() != 'public':
