@@ -7,8 +7,9 @@ from service.driver import get_esh_driver
 from service.driver import get_account_driver
 from core.models import Provider, Identity
 
-import django
-django.setup()
+#Returns in >DD
+#import django
+#django.setup()
 
 DO_NOTHING = False
 

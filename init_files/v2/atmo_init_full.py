@@ -67,14 +67,14 @@ def init_logs(log_file):
         filemode='a+')
 
 
-def download_file(url, fileLoc, retry=False, match_hash=None):
+def download_file(url, fileLoc, retry=True, match_hash=None):
     waitTime = 0
     attempts = 0
+    max_attempts = 20
     contents = None
-    logging.debug('Downloading file: %s' % url)
     while True:
         attempts += 1
-        logging.debug('Attempt: %s, Wait %s seconds' % (attempts, waitTime))
+        logging.debug('Download File:%s Attempt: %s, Wait %s seconds' % (url, attempts, waitTime))
         time.sleep(waitTime)
         #Exponential backoff * 10s = 20s,40s,80s,160s,320s...
         waitTime = 10 * 2**attempts
@@ -93,6 +93,9 @@ def download_file(url, fileLoc, retry=False, match_hash=None):
             break
         #EXIT condition #2: Don't want to try again
         if not retry:
+            break
+        if attempts >= max_attempts:
+            logging.debug("File could NOT be downloaded: %s Download attempted %s times." % (url, max_attempts))
             break
         #Retry condition: Retry is true && file is empty
     #Save file if hash matches
