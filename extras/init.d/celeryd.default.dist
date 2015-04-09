@@ -10,25 +10,25 @@ CELERY_APP="atmosphere"
 # 2 Celery Queues, First is 'default', concurrency 8 and the second is 'imaging', concurrency 1
 CELERYD_NODES="atmosphere-node_1 atmosphere-node_2 atmosphere-node_3 atmosphere-node_4 atmosphere-fast_1 atmosphere-fast_2 atmosphere-long_1 atmosphere-long_2 atmosphere-long_3 atmosphere-long_4 atmosphere-long_5 atmosphere-long_6 atmosphere-long_7 imaging celery_periodic"
 # Extra arguments to pass to celeryd
-CELERYD_OPTS="-c:atmosphere-node_1 5 -O:atmosphere-node_1 fair"
-CELERYD_OPTS="$CELERYD_OPTS -c:atmosphere-node_2 5 -O:atmosphere-node_2 fair"
-CELERYD_OPTS="$CELERYD_OPTS -c:atmosphere-node_3 5 -O:atmosphere-node_3 fair"
-CELERYD_OPTS="$CELERYD_OPTS -c:atmosphere-node_4 5 -O:atmosphere-node_4 fair"
+CELERYD_OPTS="-Q:atmosphere-node_1 default -c:atmosphere-node_1 5 -O:atmosphere-node_1 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-node_2 default -c:atmosphere-node_2 5 -O:atmosphere-node_2 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-node_3 default -c:atmosphere-node_3 5 -O:atmosphere-node_3 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-node_4 default -c:atmosphere-node_4 5 -O:atmosphere-node_4 fair"
 
-CELERYD_OPTS="$CELERYD_OPTS -c:atmosphere-fast_1 5 -O:atmosphere-fast_1 fair"
-CELERYD_OPTS="$CELERYD_OPTS -c:atmosphere-fast_2 5 -O:atmosphere-fast_2 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-fast_1 fast_deploy -c:atmosphere-fast_1 5 -O:atmosphere-fast_1 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-fast_2 fast_deploy -c:atmosphere-fast_2 5 -O:atmosphere-fast_2 fair"
 
-CELERYD_OPTS="$CELERYD_OPTS -c:atmosphere-long_1 5 -O:atmosphere-long_1 fair"
-CELERYD_OPTS="$CELERYD_OPTS -c:atmosphere-long_2 5 -O:atmosphere-long_2 fair"
-CELERYD_OPTS="$CELERYD_OPTS -c:atmosphere-long_3 5 -O:atmosphere-long_3 fair"
-CELERYD_OPTS="$CELERYD_OPTS -c:atmosphere-long_4 5 -O:atmosphere-long_4 fair"
-CELERYD_OPTS="$CELERYD_OPTS -c:atmosphere-long_5 5 -O:atmosphere-long_5 fair"
-CELERYD_OPTS="$CELERYD_OPTS -c:atmosphere-long_6 5 -O:atmosphere-long_6 fair"
-CELERYD_OPTS="$CELERYD_OPTS -c:atmosphere-long_7 5 -O:atmosphere-long_7 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-long_1 ssh_deploy -c:atmosphere-long_1 5 -O:atmosphere-long_1 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-long_2 ssh_deploy -c:atmosphere-long_2 5 -O:atmosphere-long_2 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-long_3 ssh_deploy -c:atmosphere-long_3 5 -O:atmosphere-long_3 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-long_4 ssh_deploy -c:atmosphere-long_4 5 -O:atmosphere-long_4 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-long_5 ssh_deploy -c:atmosphere-long_5 5 -O:atmosphere-long_5 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-long_6 ssh_deploy -c:atmosphere-long_6 5 -O:atmosphere-long_6 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-long_7 ssh_deploy -c:atmosphere-long_7 5 -O:atmosphere-long_7 fair"
 
 CELERYD_OPTS="$CELERYD_OPTS -Q:imaging imaging -c:imaging 1 -O:imaging fair"
 
-CELERYD_OPTS="$CELERYD_OPTS -Q:celery_periodic celery_periodic -c:celery_periodic 3 -O:celery_periodic fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:celery_periodic periodic -c:celery_periodic 3 -O:celery_periodic fair"
 
 #Our celery requires root access for sudo/chroot/mount
 C_FORCE_ROOT="True"
