@@ -730,8 +730,7 @@ def _first_update(driver, identity, core_instance, esh_instance):
     history = core_instance.update_history(
         core_instance.esh.extra['status'],
         core_size,
-        #3rd arg is task OR tmp_status
-        core_instance.esh.extra.get('task') or
+        core_instance.esh.extra.get('task'),
         core_instance.esh.extra.get('metadata', {}).get('tmp_status'),
         first_update=True)
     return history

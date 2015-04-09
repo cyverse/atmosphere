@@ -235,7 +235,7 @@ def update_instances(driver, identity, esh_list, core_list):
         core_instance.update_history(
             esh_instance.extra['status'],
             core_size,
-            esh_instance.extra.get('task') or
+            esh_instance.extra.get('task'),
             esh_instance.extra.get(
                 'metadata', {}).get('tmp_status'))
 
