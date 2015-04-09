@@ -7,6 +7,9 @@ from service.driver import get_esh_driver
 from service.driver import get_account_driver
 from core.models import Provider, Identity
 
+import django
+django.setup()
+
 DO_NOTHING = False
 
 def main():
@@ -59,7 +62,7 @@ def redeploy_users(provider, all_instances, tenant_id_map, users=[]):
        if not username:
            print "WARN: Instance %s Metadata MISSING a username AND tenantID!: %s" % (instance.id, metadata)
            continue
-       if tmp_status not in ['networking','deploying','initializing']:
+       if tmp_status not in ['deploy_error', 'networking','deploying','initializing']:
            continue
        if instance_status not in ['build','active']:
            continue
