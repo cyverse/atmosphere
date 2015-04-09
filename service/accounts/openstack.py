@@ -490,10 +490,9 @@ class AccountDriver():
         return self.user_manager.get_project(project_name)
 
     def _make_tenant_id_map(self):
-        all_projects = self.user_manager.list_projects()
+        all_projects = self.list_projects()
         tenant_id_map = {project.id: project.name for project in all_projects}
 	return tenant_id_map
-        
 
     def list_projects(self):
         return self.user_manager.list_projects()

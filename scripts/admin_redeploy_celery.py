@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import argparse
-import time
 
 from service.tasks.driver import get_idempotent_deploy_chain
 from service.driver import get_esh_driver
