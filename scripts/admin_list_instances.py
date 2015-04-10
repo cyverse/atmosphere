@@ -9,9 +9,12 @@ from core.models.instance import _get_status_name_for_provider, _convert_timesta
 import django
 django.setup()
 
-
+MATCH_ALL = False
 def main():
+    global MATCH_ALL
     parser = argparse.ArgumentParser()
+    parser.add_argument("--match-all", action="store_true",
+                        help="Everything in the status-list must match")
     parser.add_argument("--provider-list", action="store_true",
                         help="List of provider names and IDs")
     parser.add_argument("--provider-id", type=int,
@@ -22,6 +25,7 @@ def main():
     parser.add_argument("--users",
                         help="LDAP usernames to match on instances. (comma separated)")
     args = parser.parse_args()
+    MATCH_ALL = args.match_all
     if args.provider_list:
         print "ID\tName"
         for p in Provider.objects.all().order_by('id'):
@@ -44,7 +48,7 @@ def main():
 
 def print_instances(provider, users=[], status_list=[]):
     accounts = get_account_driver(provider)
-    tenant_instances_map = accounts.tenant_instances_map(status_list=status_list)
+    tenant_instances_map = accounts.tenant_instances_map(status_list=status_list, match_all=MATCH_ALL)
     for tenant, instance_list in tenant_instances_map.iteritems():
         username = tenant.name
         if users and username not in users:

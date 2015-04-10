@@ -4,7 +4,7 @@ import argparse
 from service.tasks.driver import get_idempotent_deploy_chain
 from service.driver import get_esh_driver
 from service.driver import get_account_driver
-from core.models import Provider, Identity
+from core.models import Provider, Identity, Instance
 
 import django
 django.setup()
@@ -58,11 +58,15 @@ def redeploy_users(provider, users=[]):
             print "Starting idempotent redeployment for %s - Instance: %s (%s - %s)" % (username, instance.id, instance_status, tmp_status)
             ident = Identity.objects.get(provider=provider, created_by__username=username)
             driver = get_esh_driver(ident)
-            start_task = get_idempotent_deploy_chain(driver.__class__, driver.provider, driver.identity, instance, username)
-            print "Starting idempotent redeployment: %s ..." % (start_task),
+            try:
+                start_task = get_idempotent_deploy_chain(driver.__class__, driver.provider, driver.identity, instance, username)
+                print "Starting idempotent redeployment: %s ..." % (start_task),
+                start_task.apply_async()
+            except Identity.DoesNotExist:
+                print "Identity does not exist in this DB. SKIPPED."
+                continue
             if DO_NOTHING:
                 continue
-            start_task.apply_async()
             print " Sent"
        
 

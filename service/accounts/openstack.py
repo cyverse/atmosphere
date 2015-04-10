@@ -432,11 +432,12 @@ class AccountDriver():
         """
         return username
 
-    def tenant_instances_map(self, status_list=[], include_empty=False):
+    def tenant_instances_map(self, status_list=[], match_all=False, include_empty=False):
         """
         Maps 'Tenant' objects to all the 'owned instances' as listed by the admin driver
         Optional fields:
         * status_list (list) - If provided, only include instance if it's status/tmp_status matches a value in the list.
+        * match_all (bool) - If True, instances must match ALL words in the list.
         * include_empty (bool) - If True, include ALL tenants in the map.
         """
         all_projects = self.list_projects()
@@ -456,10 +457,16 @@ class AccountDriver():
 
             metadata = instance._node.extra.get('metadata',{})
             instance_status = instance.extra.get('status')
+            task = instance.extra.get('task')
             tmp_status = metadata.get('tmp_status','')
-            if status_list and tmp_status not in status_list and instance_status not in status_list:
-                logger.info("Found an instance:%s for tenant:%s but skipped because NEITHER status could be found in the list: (%s - %s)" % (instance.id, project.name, instance_status,tmp_status))
-                continue
+            if status_list:
+                if match_all:
+                    truth = all(True if (status_name and status_name in [instance_status, task, tmp_status]) else False for status_name in status_list)
+                else:
+                    truth = any(True if (status_name and status_name in [instance_status, task, tmp_status]) else False for status_name in status_list)
+                if not truth:
+                    logger.info("Found an instance:%s for tenant:%s but skipped because %s could be found in the list: (%s - %s - %s)" % (instance.id, project.name, "none of the status_names" if not match_all else "not all of the status names", instance_status,task,tmp_status))
+                    continue
             instance_list = project_map.get(project, [])
             instance_list.append(instance)
             project_map[project] = instance_list
