@@ -409,7 +409,7 @@ CELERYD_PREFETCH_MULTIPLIER = 1
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_SEND_EVENTS = True
 CELERY_TASK_RESULT_EXPIRES = 3*60*60  # Store results for 3 hours
-CELERYD_MAX_TASKS_PER_CHILD = 127
+CELERYD_MAX_TASKS_PER_CHILD = 150
 CELERYD_LOG_FORMAT = "[%(asctime)s: %(name)s-%(levelname)s"\
     "/%(processName)s [PID:%(process)d]"\
     " @ %(pathname)s on %(lineno)d] %(message)s"
@@ -476,6 +476,39 @@ CELERYBEAT_SCHEDULE = {
                     "queue": "periodic"}
     },
 }
+<<<<<<< HEAD
+=======
+#CELERY_QUEUES = (
+#        Queue('imaging'), Exchange('imaging'), routing_key='imaging'),
+#)
+CELERY_QUEUES = (
+        Queue('default', Exchange('default'), routing_key='default'),
+        Queue('email', Exchange('default'), routing_key='email.sending'),
+        Queue('ssh_deploy', Exchange('deployment'), routing_key='long.deployment'),
+        Queue('fast_deploy', Exchange('deployment'), routing_key='short.deployment'),
+        Queue('imaging', Exchange('imaging'), routing_key='imaging'),
+        Queue('periodic', Exchange('periodic'), routing_key='periodic'),
+    )
+CELERY_DEFAULT_QUEUE = 'default'
+CELERY_ROUTES = ('atmosphere.route_logger.RouteLogger', )
+CELERY_ROUTES += ({
+    "chromogenic.tasks.migrate_instance_task":
+    {"queue": "imaging", "routing_key": "imaging.execute"},
+    "chromogenic.tasks.machine_imaging_task":
+    {"queue": "imaging", "routing_key": "imaging.execute"},
+
+    "service.tasks.machine.freeze_instance_task":
+    {"queue": "imaging", "routing_key": "imaging.prepare"},
+    "service.tasks.machine.process_request":
+    {"queue": "imaging", "routing_key": "imaging.complete"},
+    "service.tasks.email.send_email":
+    {"queue": "email", "routing_key": "email.sending"},
+},)
+#     # Django-Celery Development settings
+# CELERY_ALWAYS_EAGER = True
+# CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
+
+>>>>>>> california-condor
 import djcelery
 djcelery.setup_loader()
 

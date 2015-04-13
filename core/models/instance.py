@@ -23,7 +23,6 @@ from core.models.volume import convert_esh_volume
 from core.models.size import convert_esh_size
 from core.models.tag import Tag
 
-#TODO: These may have value outside of this area. Seek to put this into a better framework.
 OPENSTACK_TASK_STATUS_MAP = {
         #Terminate tasks
         #'deleting': 'active',
@@ -38,9 +37,9 @@ OPENSTACK_TASK_STATUS_MAP = {
         'scheduling':'build',
         'spawning':'build',
         #Atmosphere Task-specific lines
-        'networking':'build',
-        'deploying':'build',
-        'deploy_error':'build',
+        'networking':'networking',
+        'deploying':'deploying',
+        'deploy_error':'deploy_error',
 }
 OPENSTACK_ACTIVE_STATES = ['active']
 OPENSTACK_INACTIVE_STATES = ['build','suspended','shutoff']
@@ -162,7 +161,7 @@ class Instance(models.Model):
         #try:
         #    return self.instancestatushistory_set.latest('id')
         #except InstanceStatusHistory.DoesNotExist:
-        #    return None            
+        #    return None
         #TODO: Profile current choice
         last_history = self.instancestatushistory_set.all().order_by('-start_date')
         if not last_history:
@@ -188,7 +187,7 @@ class Instance(models.Model):
               return (True, new_history)
         """
         #1. Get status name
-        status_name= _get_status_name_for_provider(self.provider, status_name, task, tmp_status)
+        status_name= _get_status_name_for_provider(self.provider_machine.provider, status_name, task, tmp_status)
         #2. Get the last history (or Build a new one if no other exists)
         last_history = self.get_last_history()
         if not last_history:
@@ -707,7 +706,7 @@ def convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
         esh_instance.extra.get('task'),
         esh_instance.extra.get('metadata',{}).get('tmp_status'))
     #Update values in core with those found in metadata.
-    core_instance = set_instance_from_metadata(esh_driver, core_instance)
+    #core_instance = set_instance_from_metadata(esh_driver, core_instance)
     return core_instance
 
 def _esh_instance_size_to_core(esh_driver, esh_instance, provider_uuid):
@@ -719,11 +718,15 @@ def _esh_instance_size_to_core(esh_driver, esh_instance, provider_uuid):
         #MockSize includes only the Alias/ID information
         #so a lookup on the size is required to get accurate
         #information.
+        #TODO: Switch to 'get_cached_size!'
         esh_size = esh_driver.get_size(esh_size.id)
     core_size = convert_esh_size(esh_size, provider_uuid)
     return core_size
 
 def set_instance_from_metadata(esh_driver, core_instance):
+    """
+    NOT BEING USED ANYMORE.. DEPRECATED..
+    """
     #Fixes Dep. loop - Do not remove
     from api.serializers import InstanceSerializer
     #Breakout for drivers (Eucalyptus) that don't support metadata

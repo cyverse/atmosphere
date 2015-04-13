@@ -77,7 +77,7 @@ def download_file(url, fileLoc, retry=True, match_hash=None):
         logging.debug('Download File:%s Attempt: %s, Wait %s seconds' % (url, attempts, waitTime))
         time.sleep(waitTime)
         #Exponential backoff * 10s = 20s,40s,80s,160s,320s...
-        waitTime = 10 * 2**attempts
+        waitTime = max(10 * 2**attempts, 120)
         try:
             resp = urllib2.urlopen(url)
         except Exception, e:

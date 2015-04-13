@@ -1,6 +1,8 @@
 """
 Tasks for driver operations.
 """
+from celery.contrib import rdb
+
 from operator import attrgetter
 import sys
 import re
@@ -9,7 +11,6 @@ import time
 from django.conf import settings
 from django.utils.timezone import datetime, timedelta
 from celery import chain
-from celery.contrib import rdb
 from celery.decorators import task
 from celery.task import current
 from celery.result import allow_join_result
@@ -111,6 +112,7 @@ def wait_for_instance(instance_alias, driverCls, provider, identity, status_quer
         if "Not Ready" not in str(exc):
             # Ignore 'normal' errors.
             logger.exception(exc)
+
         wait_for_instance.retry(exc=exc)
 
 
@@ -356,7 +358,7 @@ def deploy_failed(task_uuid, driverCls, provider, identity, instance_id, message
                                  replace=False)
         #Send deploy email
         core_instance = Instance.objects.get(provider_alias=instance_id)
-        send_deploy_failed_email(core_instance, err_str)
+        #send_deploy_failed_email(core_instance, err_str)
         logger.debug("deploy_failed task finished at %s." % datetime.now())
     except Exception as exc:
         logger.warn(exc)
@@ -417,7 +419,6 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
 def get_deploy_chain(driverCls, provider, identity, instance,
                      username=None, password=None, redeploy=False):
     from core.models.instance import Instance
-
     instance_id = instance.id
     start_task = get_chain_from_build(driverCls, provider, identity, instance, username, password, redeploy)
     return start_task
@@ -489,6 +490,15 @@ def get_chain_from_build(driverCls, provider, identity, instance,
     start_chain.link(network_start)
     return start_chain
 
+def print_chain(start_task, idx=0):
+    print "%s%s -->" % (idx+1, start_task.task,),
+    if not start_task.options.get('link'):
+        print 'FINAL TASK'
+        return
+    next_tasks = start_task.options['link']
+    for task in next_tasks:
+        print_chain(task, idx+1)
+
 def get_chain_from_active_no_ip(driverCls, provider, identity, instance,
                                 username=None, password=None, redeploy=False):
     """
@@ -522,12 +532,15 @@ def get_chain_from_active_with_ip(driverCls, provider, identity, instance,
     but change what atmo-init does based on redeploy
     """
     start_chain = None
-    deploy_meta_task = update_metadata.si(
-        driverCls, provider, identity, instance.id,
-        {'tmp_status': 'deploying'})
+    #Guarantee 'networking' passes deploy_ready_test first!
 
     deploy_ready_task = deploy_ready_test.si(
         driverCls, provider, identity, instance.id)
+
+    #IMPORTANT NOTE: we are NOT updating to 'deploying' until actual deployment takes place (SSH established. Time spent from 'add_floating_ip' to SSH established is considered 'networking' time)
+    deploy_meta_task = update_metadata.si(
+        driverCls, provider, identity, instance.id,
+        {'tmp_status': 'deploying'})
 
     deploy_task = _deploy_init_to.si(
         driverCls, provider, identity, instance.id,
