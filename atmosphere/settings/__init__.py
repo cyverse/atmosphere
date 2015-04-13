@@ -403,7 +403,7 @@ CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_TASK_RESULT_EXPIRES = 3*60*60  # Store results for 3 hours
 #CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
 CELERYBEAT_CHDIR = PROJECT_ROOT
-CELERYD_MAX_TASKS_PER_CHILD = 50
+CELERYD_MAX_TASKS_PER_CHILD = 150
 CELERYD_LOG_FORMAT = "[%(asctime)s: %(name)s-%(levelname)s"\
     "/%(processName)s [PID:%(process)d]"\
     " @ %(pathname)s on %(lineno)d] %(message)s"
@@ -444,17 +444,17 @@ CELERYBEAT_SCHEDULE = {
 }
 #CELERY_QUEUES = (
 #        Queue('imaging'), Exchange('imaging'), routing_key='imaging'),
-#    )
-CELERY_DEFAULT_QUEUE = 'default'
-CELERY_DEFAULT_EXCHANGE = 'default'
-CELERY_DEFAULT_EXCHANGE_TYPE = "topic"
-CELERY_DEFAULT_ROUTING_KEY = "default.task"
-CELERY_ROUTES = ('atmosphere.route_logger.RouteLogger', )
-#CELERY_QUEUES = (
-#    Queue('imaging', Exchange('imaging', type='topic'), routing_key="imaging.#"),
-#    Queue('fast_queue', Exchange('fast_queue', type='topic'), routing_key="fast_queue.#"),
-#    Queue('long_queue', Exchange('long_queue', type='topic'), routing_key="long_queue.#"),
 #)
+CELERY_QUEUES = (
+        Queue('default', Exchange('default'), routing_key='default'),
+        Queue('email', Exchange('default'), routing_key='email.sending'),
+        Queue('ssh_deploy', Exchange('deployment'), routing_key='long.deployment'),
+        Queue('fast_deploy', Exchange('deployment'), routing_key='short.deployment'),
+        Queue('imaging', Exchange('imaging'), routing_key='imaging'),
+        Queue('periodic', Exchange('periodic'), routing_key='periodic'),
+    )
+CELERY_DEFAULT_QUEUE = 'default'
+CELERY_ROUTES = ('atmosphere.route_logger.RouteLogger', )
 CELERY_ROUTES += ({
     "chromogenic.tasks.migrate_instance_task":
     {"queue": "imaging", "routing_key": "imaging.execute"},
@@ -465,6 +465,8 @@ CELERY_ROUTES += ({
     {"queue": "imaging", "routing_key": "imaging.prepare"},
     "service.tasks.machine.process_request":
     {"queue": "imaging", "routing_key": "imaging.complete"},
+    "service.tasks.email.send_email":
+    {"queue": "email", "routing_key": "email.sending"},
 },)
 #     # Django-Celery Development settings
 # CELERY_ALWAYS_EAGER = True
