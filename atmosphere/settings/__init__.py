@@ -81,12 +81,13 @@ INSTALLED_APPS = (
     #'sslserver',
 
     #iPlant apps
+    'django-iplant-auth',
     'rtwo',
 
     #atmosphere apps
     'api',
     'allocation',
-    'authentication',
+    #'authentication',
     'service',
     'web',
     'core',
@@ -476,11 +477,6 @@ CELERYBEAT_SCHEDULE = {
                     "queue": "periodic"}
     },
 }
-<<<<<<< HEAD
-=======
-#CELERY_QUEUES = (
-#        Queue('imaging'), Exchange('imaging'), routing_key='imaging'),
-#)
 CELERY_QUEUES = (
         Queue('default', Exchange('default'), routing_key='default'),
         Queue('email', Exchange('default'), routing_key='email.sending'),
@@ -508,7 +504,6 @@ CELERY_ROUTES += ({
 # CELERY_ALWAYS_EAGER = True
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
->>>>>>> california-condor
 import djcelery
 djcelery.setup_loader()
 
