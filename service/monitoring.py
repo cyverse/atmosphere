@@ -265,6 +265,9 @@ def _create_monthly_window_input(identity, core_allocation,
     #Noteably MISSING: 'active', 'running'
     multiply_by_cpu = MultiplySizeCPU(name="Multiply TimeUsed by CPU", multiplier=1)
     ignore_inactive = IgnoreStatusRule("Ignore Inactive StatusHistory", value=["build", "pending",
+        # These CUSTOM atmosphere values considered 'part of the build process', but are tracked
+        # seperately..
+        "networking", "deploying", "deploy_error",
         "hard_reboot", "reboot",
          "migrating", "rescue",
          "resize", "verify_resize",
