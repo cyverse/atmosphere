@@ -81,13 +81,12 @@ INSTALLED_APPS = (
     #'sslserver',
 
     #iPlant apps
-    'django-iplant-auth',
     'rtwo',
 
     #atmosphere apps
     'api',
     'allocation',
-    #'authentication',
+    'authentication',
     'service',
     'web',
     'core',
