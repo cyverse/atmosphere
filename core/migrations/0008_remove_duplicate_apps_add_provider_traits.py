@@ -176,7 +176,7 @@ class Migration(migrations.Migration):
             preserve_default=True,
         ),
         migrations.RunPython(copy_data_to_new_models, go_back),
-        migrations.RunPython(remove_duplicate_apps, go_back),
+        #migrations.RunPython(remove_duplicate_apps, go_back),
         migrations.RemoveField(
             model_name='provider',
             name='traits',

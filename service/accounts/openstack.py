@@ -441,14 +441,66 @@ class AccountDriver(CachedAccountDriver):
     def _get_image(self, *args, **kwargs):
         return self.image_manager.get_image(*args, **kwargs)
 
+    #For one-time caching
     def _list_all_images(self, *args, **kwargs):
         return self.image_manager.list_images(*args, **kwargs)
+
+    def tenant_instances_map(self, status_list=[], match_all=False, include_empty=False):
+        """
+        Maps 'Tenant' objects to all the 'owned instances' as listed by the admin driver
+        Optional fields:
+        * status_list (list) - If provided, only include instance if it's status/tmp_status matches a value in the list.
+        * match_all (bool) - If True, instances must match ALL words in the list.
+        * include_empty (bool) - If True, include ALL tenants in the map.
+        """
+        all_projects = self.list_projects()
+        all_instances = self.list_all_instances()
+        if include_empty:
+            project_map = {proj:[] for proj in all_projects}
+        else:
+            project_map = {}
+        for instance in all_instances:
+            try:
+                # NOTE: will someday be 'projectId'
+                tenant_id = instance.extra['tenantId']
+
+                project = [p for p in all_projects if p.id == tenant_id][0]
+            except (ValueError, KeyError):
+                raise Exception("The implementaion for recovering a tenant id has changed. Update the code base above this line!")
+
+            metadata = instance._node.extra.get('metadata',{})
+            instance_status = instance.extra.get('status')
+            task = instance.extra.get('task')
+            tmp_status = metadata.get('tmp_status','')
+            if status_list:
+                if match_all:
+                    truth = all(True if (status_name and status_name in [instance_status, task, tmp_status]) else False for status_name in status_list)
+                else:
+                    truth = any(True if (status_name and status_name in [instance_status, task, tmp_status]) else False for status_name in status_list)
+                if not truth:
+                    logger.info("Found an instance:%s for tenant:%s but skipped because %s could be found in the list: (%s - %s - %s)" % (instance.id, project.name, "none of the status_names" if not match_all else "not all of the status names", instance_status,task,tmp_status))
+                    continue
+            instance_list = project_map.get(project, [])
+            instance_list.append(instance)
+            project_map[project] = instance_list
+        return project_map
+
+    def list_all_instances(self, **kwargs):
+        return self.admin_driver.list_all_instances(**kwargs)
+
+    def list_all_images(self, **kwargs):
+        return self.image_manager.list_images(**kwargs)
 
     def get_project_by_id(self, project_id):
         return self.user_manager.get_project_by_id(project_id)
 
     def get_project(self, project_name):
         return self.user_manager.get_project(project_name)
+
+    def _make_tenant_id_map(self):
+        all_projects = self.list_projects()
+        tenant_id_map = {project.id: project.name for project in all_projects}
+	return tenant_id_map
 
     def list_projects(self):
         return self.user_manager.list_projects()

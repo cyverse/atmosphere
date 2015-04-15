@@ -17,6 +17,10 @@ PROJECT_ROOT = os.path.abspath(
     os.path.join(
         os.path.dirname(__file__), "../.."))
 
+###
+# CELERY - These settings will vary between a production/development environment.
+# This dist will give you a few different options for how to setup a BROKER, and some 'good defaults' when running celery in atmosphere.
+###
 
 #Local settings for celery
 #How to setup a 'RabbitMQ' Broker (Stable, Production-Recommended):
@@ -25,6 +29,17 @@ BROKER_URL = 'amqp://username:password@localhost:5672/virutalhost_name'
 #BROKER_URL = 'redis://localhost:6379/0'
 #How to setup a 'MongoDB' Broker (Experimental)
 #BROKER_URL = "mongodb://userid:password@hostname:port/database_name"
+CELERYD_PREFETCH_MULTIPLIER = 1
+CELERY_RESULT_PERSISTENT = True
+CELERY_TASK_RESULT_EXPIRES = 18000  # 5 hours.
+
+
+#Django-Celery Development settings
+#CELERY_ALWAYS_EAGER = True
+##CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
+
+
+
 TEST_RUNNER='atmosphere.test_runner.CeleryDiscoverTestSuiteRunner'
 TEST_RUNNER_USER=''
 TEST_RUNNER_PASS=''

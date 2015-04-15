@@ -208,9 +208,22 @@ class VolumeAdmin(admin.ModelAdmin):
 @admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
     actions = [end_date_object, private_object]
-    search_fields = ["name", "id", "providermachine__identifier"]
+    search_fields = ["name", "id", "providermachine__instance_source__identifier"]
     list_display = ["uuid", "_current_machines", "name", "private", "created_by", "start_date", "end_date" ]
     filter_vertical = ["tags",]
+
+    def save_model(self, request, obj, form, change):
+        user = request.user
+        application = form.save(commit=False)
+        application.save()
+        form.save_m2m()
+        if change:
+            try:
+                save_app_to_metadata(application)
+            except Exception, e:
+                logger.exception("Could not update metadata for application %s"
+                                 % application)
+        return application
 
     def render_change_form(self, request, context, *args, **kwargs):
         application = context['original']

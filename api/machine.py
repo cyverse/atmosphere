@@ -43,11 +43,16 @@ def provider_filtered_machines(request, provider_uuid,
     """
     try:
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
-        logger.debug(esh_driver)
-    except:
+    except Exception:
+        #TODO: Observe the change of 'Fail loudly' here and clean up the noise, rather than hide it.
+        logger.exception("Driver could not be prepared - Provider: %s , Identity: %s" % (provider_uuid, identity_uuid))
         esh_driver = None
+
     if not esh_driver:
         return invalid_creds(provider_uuid, identity_uuid)
+
+    logger.debug(esh_driver)
+
     return list_filtered_machines(esh_driver, provider_uuid, request_user)
 
 
@@ -78,7 +83,7 @@ def list_filtered_machines(esh_driver, provider_uuid, request_user=None):
 def all_filtered_machines():
     return ProviderMachine.objects.exclude(
         Q(instance_source__identifier__startswith="eki-")
-        | Q(instance_source__identifier__startswith="eri")).order_by("-application__start_date")
+        | Q(instance_source__identifier__startswith="eri-")).order_by("-application__start_date")
 
 
 class MachineList(APIView):

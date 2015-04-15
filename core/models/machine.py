@@ -267,6 +267,9 @@ def create_provider_machine(identifier, provider_uuid, app,
     if not created_by_identity:
         created_by_identity = provider.admin
 
+    logger.debug("Provider %s" % provider)
+    logger.debug("App %s" % app)
+    #TODO: Reminder to re-evaluate these lines when you get to Django 1.8
     source = InstanceSource.objects.create(
         identifier=identifier,
         created_by=created_by_identity.created_by,
