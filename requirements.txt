@@ -33,7 +33,7 @@ uWSGI==2.0.9
 threepio==0.2.0
 rtwo==0.2.10
 caslib.py==2.2.0
-chromogenic==0.1.4
+chromogenic==0.1.5
 jwt.py==0.1.0
 subspace==0.1.2
 

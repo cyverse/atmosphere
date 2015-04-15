@@ -110,5 +110,5 @@ class ExportRequest(models.Model):
                    self.status)
 
     class Meta:
-        db_table = "machine_export"
+        db_table = "export_request"
         app_label = "core"
