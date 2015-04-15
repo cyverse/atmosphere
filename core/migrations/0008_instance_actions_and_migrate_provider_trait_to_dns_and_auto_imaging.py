@@ -20,20 +20,6 @@ def go_back(apps, schema_editor):
     return
 
 
-def remove_duplicate_apps(apps, schema_editor):
-    Application = apps.get_model("core", "Application")
-    for result in Application.objects.values('name').annotate(count=models.Count('name')).filter(count__gt=1):
-        name = result['name']
-        all_apps = Application.objects.filter(name=name).order_by('id')
-        merged_app = all_apps[0]
-        # Call to list forces out objects from the queryset
-        remaining_apps = list(all_apps[1:])
-        for app in remaining_apps:
-            merged_app = merge_applications(merged_app, app)
-            app.delete()
-    pass
-
-
 def merge_applications(merged_app, app):
     for pm in app.providermachine_set.all():
         merged_app.providermachine_set.add(pm)
@@ -120,7 +106,6 @@ def get_or_create_iplant_dns(ProviderDNSServerIP, provider):
     ProviderDNSServerIP.objects.get_or_create(provider=provider, ip_address="128.196.11.234", order=2)
     ProviderDNSServerIP.objects.get_or_create(provider=provider, ip_address="128.196.11.235", order=3)
 
-
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -176,7 +161,6 @@ class Migration(migrations.Migration):
             preserve_default=True,
         ),
         migrations.RunPython(copy_data_to_new_models, go_back),
-        #migrations.RunPython(remove_duplicate_apps, go_back),
         migrations.RemoveField(
             model_name='provider',
             name='traits',
