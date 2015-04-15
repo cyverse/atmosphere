@@ -47,6 +47,8 @@ def provider_filtered_machines(request, provider_uuid,
     except Exception:
         #TODO: Observe the change of 'Fail loudly' here and clean up the noise, rather than hide it.
         logger.exception("Driver could not be prepared - Provider: %s , Identity: %s" % (provider_uuid, identity_uuid))
+        esh_driver = None
+
     if not esh_driver:
         return invalid_creds(provider_uuid, identity_uuid)
     logger.debug(esh_driver)
