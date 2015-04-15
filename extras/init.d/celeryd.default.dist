@@ -1,15 +1,29 @@
 # App instance to use
 CELERY_APP="atmosphere"
 
-# BASIC setup for atmosphere, without imaging.. Uncomment these lines.
-#CELERYD_NODES="atmosphere-node_1"
-## Extra arguments to pass to celeryd
-# CELERYD_OPTS="--concurrency=8"
+# Atmosphere setup ALWAYS includes Queues/Workers for:
+#   * imaging
+#   * celery_periodic
+#   * email
 
-# Atmosphere setup with an exclusive queue for imaging.. Uncomment these lines.
+#############
+# Development Settings (Single-Node!)
+#############
+
+CELERYD_NODES="atmosphere-node_1"
+CELERYD_NODES="$CELERYD_NODES imaging celery_periodic email"
+CELERYD_OPTS="-Q:atmosphere-node_1 default,fast_deploy,ssh_deploy -c:atmosphere-node_1 13 -O:atmosphere-node_1 fair"
+
+
+#############
+# Production Settings (14 nodes!)
+#############
 # 2 Celery Queues, First is 'default', concurrency 8 and the second is 'imaging', concurrency 1
-CELERYD_NODES="atmosphere-node_1 atmosphere-node_2 atmosphere-node_3 atmosphere-node_4 atmosphere-fast_1 atmosphere-fast_2 atmosphere-long_1 atmosphere-long_2 atmosphere-long_3 atmosphere-long_4 atmosphere-long_5 atmosphere-long_6 atmosphere-long_7 imaging celery_periodic"
-# Extra arguments to pass to celeryd
+CELERYD_NODES="atmosphere-node_1 atmosphere-node_2 atmosphere-node_3 atmosphere-node_4"
+CELERYD_NODES="$CELERYD_NODES atmosphere-fast_1 atmosphere-fast_2"
+CELERYD_NODES="$CELERYD_NODES atmosphere-long_1 atmosphere-long_2 atmosphere-long_3 atmosphere-long_4 atmosphere-long_5 atmosphere-long_6 atmosphere-long_7"
+CELERYD_NODES="$CELERYD_NODES imaging celery_periodic"
+
 CELERYD_OPTS="-Q:atmosphere-node_1 default -c:atmosphere-node_1 5 -O:atmosphere-node_1 fair"
 CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-node_2 default -c:atmosphere-node_2 5 -O:atmosphere-node_2 fair"
 CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-node_3 default -c:atmosphere-node_3 5 -O:atmosphere-node_3 fair"

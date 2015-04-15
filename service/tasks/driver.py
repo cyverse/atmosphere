@@ -399,7 +399,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
                                .ex_get_image_metadata(instance.source)
         deploy_chain = get_deploy_chain(driverCls, provider, identity,
                                         instance, password, redeploy)
-        logger.debug("Starting deploy chain for: %s." % instance_id)
+        logger.debug("Starting deploy chain 'ROUTE' @ Task: %s for: %s." % (deploy_chain, instance_id))
         deploy_chain.apply_async()
         #Can be really useful when testing.
         #if kwargs.get('delay'):
