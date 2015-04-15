@@ -10,7 +10,7 @@ from rest_framework import status
 
 from threepio import logger
 
-from chromogenic.tasks import export_request_task
+from chromogenic.tasks import instance_export_task
 
 
 from core.models.export_request import ExportRequest as CoreExportRequest
@@ -55,7 +55,7 @@ class ExportRequestList(APIView):
         serializer = ExportRequestSerializer(data=data)
         if serializer.is_valid():
             export_request = serializer.save()
-            export_request_task.delay(export_request)
+            instance_export_task.delay(export_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
