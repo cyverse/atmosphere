@@ -8,20 +8,15 @@ class PredeclareRouter(object):
         if self.setup:
             return
         self.setup = True
-        from celery import current_app
-        from celery import VERSION as celery_version
+        from celery import app as current_app
         # will not connect anywhere when using the Django transport
         # because declarations happen in memory.
+        # Create queues on initialization
         with current_app.broker_connection() as conn:
             queues = current_app.amqp.queues
             channel = conn.default_channel
-            if celery_version >= (2, 6):
-                for queue in queues.itervalues():
-                    queue(channel).declare()
-            else:
-                from kombu.common import entry_to_queue
-                for name, opts in queues.iteritems():
-                    entry_to_queue(name, **opts)(channel).declare()
+            for queue in queues.itervalues():
+                queue(channel).declare()
 
 class CloudRouter(PredeclareRouter):
     """
@@ -29,7 +24,7 @@ class CloudRouter(PredeclareRouter):
     * Log routes for tasks as they are added to the system
     """
     def route(self, options, task, args=(), kwargs={}):
-        print "Route called"
+        print "ROUTE() called: %s - %s - %s" % (task, args, kwargs)
         return
 
     def route_for_task(self, task, *args, **kwargs):
