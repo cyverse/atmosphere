@@ -290,7 +290,7 @@ def get_application(provider_uuid, identifier, app_name, app_uuid=None):
     application = _get_app_by_name(provider_uuid, app_name)
     if application:
         return application
-    return _get_app_by_uuid(provider_uuid, identifier, app_uuid)
+    return _get_app_by_uuid(identifier, app_uuid)
 
 def _generate_app_uuid(identifier):
     app_uuid = uuid5(

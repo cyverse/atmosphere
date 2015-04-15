@@ -18,7 +18,7 @@ from threepio import logger
 
 from core.models.instance_source import InstanceSource
 from core.models.identity import Identity
-from core.models.machine import ProviderMachine, ProviderMachine, convert_esh_machine
+from core.models.machine import ProviderMachine, ProviderMachine, convert_esh_machine, get_or_create_provider_machine
 from core.models.volume import convert_esh_volume
 from core.models.size import convert_esh_size
 from core.models.tag import Tag
@@ -353,6 +353,8 @@ class Instance(models.Model):
         else:
             try:
                 if self.source:
+                    source = self.source
+                    identifier = source.identifier
                     return md5(self.source.identifier).hexdigest()
             except InstanceSource.DoesNotExist as dne:
                 logger.exception("Unable to find provider_machine for %s." % self.provider_alias)
@@ -656,7 +658,7 @@ def _convert_timestamp(iso_8601_stamp):
     return datetime_obj
 
 
-def convert_instance_source(esh_driver, esh_source, provider_uuid, identity_uuid, user):
+def convert_instance_source(esh_driver, esh_instance, esh_source, provider_uuid, identity_uuid, user):
     """
     Given the instance source, create the appropriate core REPR and return
     """
@@ -665,6 +667,7 @@ def convert_instance_source(esh_driver, esh_source, provider_uuid, identity_uuid
     #TODO: Future Release..
     #if isinstance(esh_source, BaseSnapShot):
     #    core_source = convert_esh_snapshot(esh_source, provider_uuid, identity_uuid, user)
+    new_source = None
     if isinstance(esh_source, BaseVolume):
         core_source = convert_esh_volume(esh_source, provider_uuid, identity_uuid, user)
     elif isinstance(esh_source, BaseMachine):
@@ -672,9 +675,12 @@ def convert_instance_source(esh_driver, esh_source, provider_uuid, identity_uuid
             #MockMachine includes only the Alias/ID information
             #so a lookup on the machine is required to get accurate
             #information.
-            esh_source = esh_driver.get_machine(esh_source.id)
-        core_source = convert_esh_machine(esh_driver, esh_source,
-                                          provider_uuid, user)
+            new_source = esh_driver.get_machine(esh_source.id)
+        if not new_source:
+            core_source = get_or_create_provider_machine(esh_source.id, "Inactive Machine for Instance %s" % esh_instance.id, provider_uuid)
+        else:
+            core_source = convert_esh_machine(esh_driver, new_source,
+                                              provider_uuid, user)
     elif not isinstance(esh_source, BaseMachine):
         raise Exception ("Encountered unknown source %s" % esh_source)
     return core_source
@@ -693,7 +699,7 @@ def convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
     else:
         start_date = _find_esh_start_date(esh_instance)
         logger.debug("Instance: %s" % instance_id)
-        core_source = convert_instance_source(esh_driver, source_obj,
+        core_source = convert_instance_source(esh_driver, esh_instance, source_obj,
                 provider_uuid, identity_uuid, user)
         logger.debug("CoreSource: %s" % core_source)
         #Use New/Existing core Machine to create core Instance

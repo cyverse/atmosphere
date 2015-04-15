@@ -344,7 +344,7 @@ def get_provider_machine(identifier, provider_uuid):
 
 def _load_machine(esh_machine, provider_uuid):
     name = esh_machine.name
-    alias = esh_machine.alias
+    alias = esh_machine.id
     app = get_application(provider_uuid, alias, name)
     if not app:
         logger.debug("Creating Application for Image %s" % (alias, ))
