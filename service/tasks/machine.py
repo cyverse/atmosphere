@@ -9,12 +9,7 @@ from celery.result import allow_join_result
 from chromogenic.export import export_source
 from chromogenic.tasks import machine_imaging_task, migrate_instance_task
 
-<<<<<<< HEAD
 from atmosphere.celery import app
-=======
-from atmosphere import settings
-from celery import current_app as app
->>>>>>> elegant-egret
 
 from core.email import \
         send_image_request_email, send_image_request_failed_email
