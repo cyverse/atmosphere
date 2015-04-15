@@ -38,6 +38,9 @@ class ProviderMachine(BaseSource):
             blank=True)
 
     @property
+    def identifier(self):
+        return self.instance_source.identifier
+    @property
     def name(self):
         return self.application.name
 
@@ -247,7 +250,7 @@ def create_provider_machine(machine_name, image_id, provider_uuid, app,
 
     logger.debug("Provider %s" % provider)
     logger.debug("App %s" % app)
-
+    #TODO: Reminder to re-evaluate these lines when you get to Django 1.8
     source = InstanceSource.objects.create(
         identifier=image_id,
         created_by=machine_owner.created_by,

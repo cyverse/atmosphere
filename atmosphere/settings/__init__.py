@@ -403,17 +403,16 @@ ELASTICSEARCH_PORT = 9200
 
 #Django-Celery secrets
 BROKER_URL = 'redis://localhost:6379/0'
-
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+#Related to Broker and ResultBackend
 REDIS_CONNECT_RETRY = True
+# General Celery Settings
 CELERY_ENABLE_UTC = True
 CELERYD_PREFETCH_MULTIPLIER = 1
-CELERY_TIMEZONE = "America/Phoenix"
+CELERY_TIMEZONE = TIME_ZONE
 CELERY_SEND_EVENTS = True
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_TASK_RESULT_EXPIRES = 3*60*60  # Store results for 3 hours
-#CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
-CELERYBEAT_CHDIR = PROJECT_ROOT
-CELERYD_MAX_TASKS_PER_CHILD = 50
+CELERYD_MAX_TASKS_PER_CHILD = 150
 CELERYD_LOG_FORMAT = "[%(asctime)s: %(name)s-%(levelname)s"\
     "/%(processName)s [PID:%(process)d]"\
     " @ %(pathname)s on %(lineno)d] %(message)s"
@@ -421,56 +420,75 @@ CELERYD_TASK_LOG_FORMAT = "[%(asctime)s: %(name)s-%(levelname)s"\
     "/%(processName)s [PID:%(process)d]"\
     " [%(task_name)s(%(task_id)s)] "\
     "@ %(pathname)s on %(lineno)d] %(message)s"
+# To use Manual Routing:
+# - 1. Create an Exchange,
+# - 2. Create a Queue,
+# - 3. Bind Queue to Exchange
+CELERY_QUEUES = (
+        Queue('default', Exchange('default'), routing_key='default'),
+        Queue('email', Exchange('default'), routing_key='email.sending'),
+        Queue('ssh_deploy', Exchange('deployment'), routing_key='long.deployment'),
+        Queue('fast_deploy', Exchange('deployment'), routing_key='short.deployment'),
+        Queue('imaging', Exchange('imaging'), routing_key='imaging'),
+        Queue('periodic', Exchange('periodic'), routing_key='periodic'),
+    )
+CELERY_DEFAULT_QUEUE = 'default'
+CELERY_DEFAULT_ROUTING_KEY = "default"
+CELERY_ROUTES = ('atmosphere.celery_router.CloudRouter', )
+# # Django-Celery Development settings
+# CELERY_ALWAYS_EAGER = True
+# CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
-# Django-Celery Local Settings
+
+
+#Related to Celerybeat
+CELERYBEAT_CHDIR = PROJECT_ROOT
+#CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
 
 CELERYBEAT_SCHEDULE = {
     "check_image_membership": {
         "task": "check_image_membership",
         "schedule": timedelta(minutes=60),
         "options": {"expires": 10*60, "time_limit": 2*60,
-                    "queue": "celery_periodic"}
+                    "queue": "periodic"}
     },
     "monitor_sizes": {
         "task": "monitor_sizes",
         "schedule" : timedelta(minutes=30),
         "options": {"expires":10*60, "time_limit":10*60,
-                    "queue":"celery_periodic"}
+                    "queue":"periodic"}
     },
     "monitor_instances": {
         "task": "monitor_instances",
         "schedule" : timedelta(minutes=15),
         "options": {"expires":10*60, "time_limit":10*60,
-                    "queue":"celery_periodic"}
+                    "queue":"periodic"}
     },
     "clear_empty_ips": {
         "task": "clear_empty_ips",
         "schedule": timedelta(minutes=120),
         #"schedule": crontab(hour="0", minute="0", day_of_week="*"),
         "options": {"expires": 60*60,
-                    "queue": "celery_periodic"}
+                    "queue": "periodic"}
     },
     "remove_empty_networks": {
         "task": "remove_empty_networks",
         #Every two hours.. midnight/2am/4am/...
         "schedule": crontab(hour="*/2", minute="0", day_of_week="*"),
         "options": {"expires": 5*60, "time_limit": 5*60,
-                    "queue": "celery_periodic"}
+                    "queue": "periodic"}
     },
 }
-#CELERY_QUEUES = (
-#        Queue('imaging'), Exchange('imaging'), routing_key='imaging'),
-#    )
+CELERY_QUEUES = (
+        Queue('default', Exchange('default'), routing_key='default'),
+        Queue('email', Exchange('default'), routing_key='email.sending'),
+        Queue('ssh_deploy', Exchange('deployment'), routing_key='long.deployment'),
+        Queue('fast_deploy', Exchange('deployment'), routing_key='short.deployment'),
+        Queue('imaging', Exchange('imaging'), routing_key='imaging'),
+        Queue('periodic', Exchange('periodic'), routing_key='periodic'),
+    )
 CELERY_DEFAULT_QUEUE = 'default'
-CELERY_DEFAULT_EXCHANGE = 'default'
-CELERY_DEFAULT_EXCHANGE_TYPE = "topic"
-CELERY_DEFAULT_ROUTING_KEY = "default.task"
-CELERY_ROUTES = ('atmosphere.route_logger.RouteLogger', )
-#CELERY_QUEUES = (
-#    Queue('imaging', Exchange('imaging', type='topic'), routing_key="imaging.#"),
-#    Queue('fast_queue', Exchange('fast_queue', type='topic'), routing_key="fast_queue.#"),
-#    Queue('long_queue', Exchange('long_queue', type='topic'), routing_key="long_queue.#"),
-#)
+CELERY_ROUTES = ('atmosphere.celery_router.CloudRouter', )
 CELERY_ROUTES += ({
     "chromogenic.tasks.migrate_instance_task":
     {"queue": "imaging", "routing_key": "imaging.execute"},
@@ -481,7 +499,6 @@ CELERY_ROUTES += ({
     {"queue": "imaging", "routing_key": "imaging.prepare"},
     "service.tasks.machine.process_request":
     {"queue": "imaging", "routing_key": "imaging.complete"},
-
     "service.tasks.email.send_email":
     {"queue": "email", "routing_key": "email.sending"},
 },)

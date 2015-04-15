@@ -6,7 +6,7 @@ import time
 
 from datetime import datetime
 
-from atmosphere.celery import app
+from celery import current_app as app
 from celery.result import allow_join_result
 from celery.decorators import task
 from celery import chain
