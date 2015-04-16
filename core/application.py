@@ -109,6 +109,11 @@ def save_app_to_metadata(application, **extras):
 def write_app_to_metadata(application, provider_machine, **extras):
     image_kwargs= {}
     image_id = provider_machine.identifier
+
+    #Skip this when moving off production
+    if provider_machine.provider.location != "iPlant Cloud - Tucson":
+        return
+
     #These calls are better served connecting to chromogenic Image Manager
     accounts = get_os_account_driver(provider_machine.provider)
     if not accounts:
