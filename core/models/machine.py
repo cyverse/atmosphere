@@ -33,7 +33,7 @@ class ProviderMachine(BaseSource):
     application = models.ForeignKey(Application)
     version = models.CharField(max_length=128, default='1.0.0')
     licenses = models.ManyToManyField(License,
-            blank=True)
+            blank=True, related_name='machines')
 
     @property
     def identifier(self):

@@ -607,10 +607,12 @@ def launch_instance(user, provider_uuid, identity_uuid,
         #      to CREATE a new bootable volume (from an existing volume/image/snapshot)
         #      use service/volume.py 'boot_volume'
         volume = _retrieve_source(esh_driver, boot_source.identifier, "volume")
+        #TODO: pull _pre_launch_instance up to here, and _complete_launch_instance at the end, rather than split both up?
         core_instance = launch_volume_instance(esh_driver, identity,
                 volume, size, **kwargs)
     elif boot_source.is_machine():
         machine = _retrieve_source(esh_driver, boot_source.identifier, "machine")
+        _test_for_licensing(machine, identity)
         core_instance = launch_machine_instance(esh_driver, identity,
                 machine, size, **kwargs)
     else:
@@ -864,10 +866,26 @@ def check_application_threshold(username, identity_uuid, esh_size, machine_alias
         raise UnderThresholdError("This application requires >=%s GB of Disk."
                 " Please re-launch with a larger size."
                 % threshold.storage_min)
+    return
 
 
-
-
+def _test_for_licensing(esh_machine, identity):
+    try:
+        core_machine = ProviderMachine.objects.get(
+            instance_source__identifier=esh_machine.id,
+            instance_source__provider=identity.provider)
+    except ProviderMachine.DoesNotExist:
+        raise Exception("Execution in workflow error! Trying to launch a provider machine, but it has not been added to the DB (convert_esh_machine is broken?)")
+    if not core_machine.licenses.count():
+        return True
+    for license in core_machine.licenses.all():
+        passed_test = _test_license(license, identity)
+        if passed_test:
+            return True
+    if identity.created_by.is_staff:
+        logger.warn("Identity %s would have failed, but we have mercy on our staff users" % identity.created_by.username)
+        return True
+    raise Exception("Identity %s did not meet the requirements of the associated license on Machine %s" % (identity.uuid, core_machine.instance_source.identifier))
 
 def check_quota(username, identity_uuid, esh_size, resuming=False):
     from service.monitoring import check_over_allocation

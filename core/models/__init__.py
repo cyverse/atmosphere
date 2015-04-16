@@ -10,6 +10,7 @@ from core.models.provider import AccountProvider, ProviderType, PlatformType,\
     Provider, ProviderInstanceAction, ProviderDNSServerIP
 from core.models.license import LicenseType, License
 from core.models.machine import ProviderMachine, ProviderMachineMembership
+from core.models.match import PatternMatch, MatchType
 from core.models.machine_request import MachineRequest
 from core.models.export_request import ExportRequest
 from core.models.maintenance import MaintenanceRecord

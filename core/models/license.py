@@ -1,6 +1,7 @@
 from django.db import models
 
 from core.models.user import AtmosphereUser
+from core.models.match import PatternMatch
 
 class LicenseType(models.Model):
     """
@@ -25,15 +26,16 @@ class License(models.Model):
     license_type = models.ForeignKey(LicenseType)
     license_text = models.TextField()
     allow_imaging = models.BooleanField(default=True)
+    access_list = models.ManyToManyField(PatternMatch, blank=True)
     created_by = models.ForeignKey(AtmosphereUser)
 
+    def allowed_access(self):
+        return self.access_list.all()
+
     def __unicode__(self):
-        return "%s - Re-Imaging Allowed:%s " %\
-            (self.title, self.allow_imaging)
+        return "%s - Re-Imaging Allowed:%s %s" %\
+            (self.title, self.allow_imaging, self.allowed_access())
 
     class Meta:
         db_table = 'license'
         app_label = 'core'
-
-
-
