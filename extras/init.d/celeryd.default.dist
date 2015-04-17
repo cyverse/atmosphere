@@ -43,6 +43,7 @@ CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-long_7 ssh_deploy -c:atmosphere-long_7
 CELERYD_OPTS="$CELERYD_OPTS -Q:imaging imaging -c:imaging 1 -O:imaging fair"
 
 CELERYD_OPTS="$CELERYD_OPTS -Q:celery_periodic periodic -c:celery_periodic 3 -O:celery_periodic fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:email email -c:email 1 -O:email fair"
 
 #Our celery requires root access for sudo/chroot/mount
 C_FORCE_ROOT="True"

@@ -31,6 +31,7 @@ from atmosphere.settings import secrets
 
 from service.cache import get_cached_driver, invalidate_cached_instances
 from service.driver import _retrieve_source
+from service.licensing import _test_license
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
     VolumeAttachConflict, UnderThresholdError, ActionNotAllowed
@@ -570,6 +571,20 @@ def get_core_instances(identity_uuid):
                       for esh_instance in instances]
     return core_instances
 
+def _pre_launch_validation(username, identity_uuid, size, boot_source):
+    """
+    Used
+    """
+    #May raise OverQuotaError or OverAllocationError
+    check_quota(username, identity_uuid, size)
+
+    #May raise UnderThresholdError
+    check_application_threshold(username, identity_uuid, size, boot_source)
+
+    if boot_source.is_machine():
+        machine = _retrieve_source(esh_driver, boot_source.identifier, "machine")
+        #may raise an exception if licensing doesnt match identity
+        _test_for_licensing(machine, identity)
 
 def launch_instance(user, provider_uuid, identity_uuid,
                     size_alias, source_alias, **kwargs):
@@ -591,28 +606,43 @@ def launch_instance(user, provider_uuid, identity_uuid,
     identity = CoreIdentity.objects.get(uuid=identity_uuid)
     esh_driver = get_cached_driver(identity=identity)
 
-    #May raise SizeNotAvailable
+    #May raise Exception("Size not available")
     size = check_size(esh_driver, size_alias, provider_uuid)
-
-    #May raise OverQuotaError or OverAllocationError
-    check_quota(user.username, identity_uuid, size)
-
-    #May raise UnderThresholdError
-    check_application_threshold(user.username, identity_uuid, size, source_alias)
 
     #May raise Exception("Volume/Machine not available")
     boot_source = get_boot_source(user.username, identity_uuid, source_alias)
+
+    #Raise any other exceptions before launching here
+    _pre_launch_validation(user.username, identity_uuid, size, boot_source)
+
+    core_instance = _select_and_launch_source(user, identity_uuid, esh_driver, boot_source)
+    return core_instance
+
+
+
+
+
+#NOTE: Harmonizing these four methods below would be nice..
+
+
+"""
+Actual Launch Methods
+"""
+def _select_and_launch_source(user, identity_uuid, esh_driver, boot_source):
+    """
+    Select launch route based on whether boot_source is-a machine/volume
+    """
     if boot_source.is_volume():
         #NOTE: THIS route works when launching an EXISTING volume ONLY
         #      to CREATE a new bootable volume (from an existing volume/image/snapshot)
         #      use service/volume.py 'boot_volume'
         volume = _retrieve_source(esh_driver, boot_source.identifier, "volume")
-        #TODO: pull _pre_launch_instance up to here, and _complete_launch_instance at the end, rather than split both up?
+
         core_instance = launch_volume_instance(esh_driver, identity,
                 volume, size, **kwargs)
     elif boot_source.is_machine():
         machine = _retrieve_source(esh_driver, boot_source.identifier, "machine")
-        _test_for_licensing(machine, identity)
+
         core_instance = launch_machine_instance(esh_driver, identity,
                 machine, size, **kwargs)
     else:
@@ -626,7 +656,7 @@ def boot_volume_instance(
         #Other kwargs passed for future needs
         **kwargs):
     """
-    boot_volume_instance : return CoreInstance
+    Create a new volume and launch it as an instance
     """
     kwargs, userdata, network = _pre_launch_instance(driver, identity, size, name, **kwargs)
     kwargs.update(prep_kwargs)
@@ -637,6 +667,9 @@ def boot_volume_instance(
             identity.created_by, token, password)
 
 def launch_volume_instance(driver, identity, volume, size, name, **kwargs):
+    """
+    Re-Launch an existing volume as an instance
+    """
     kwargs, userdata, network = _pre_launch_instance(driver, identity, size, name, **kwargs)
     kwargs.update(prep_kwargs)
     instance ,token, password = _launch_volume(
@@ -646,6 +679,9 @@ def launch_volume_instance(driver, identity, volume, size, name, **kwargs):
            identity.created_by, token, password)
 
 def launch_machine_instance(driver, identity, machine, size, name, **kwargs):
+    """
+    Launch an existing machine as an instance
+    """
     prep_kwargs,  userdata, network = _pre_launch_instance(driver, identity, size, name, **kwargs)
     kwargs.update(prep_kwargs)
     instance, token, password = _launch_machine(
@@ -847,12 +883,12 @@ def get_boot_source(username, identity_uuid, source_identifier):
 
 
 
-def check_application_threshold(username, identity_uuid, esh_size, machine_alias):
+def check_application_threshold(username, identity_uuid, esh_size, boot_source):
     """
     """
     core_identity = CoreIdentity.objects.get(uuid=identity_uuid)
     application = Application.objects.filter(
-        providermachine__instance_source__identifier=machine_alias,
+        providermachine__instance_source__identifier=boot_source.identifier,
         providermachine__instance_source__provider=core_identity.provider).distinct().get()
     threshold = application.get_threshold()
     if not threshold:
@@ -870,6 +906,10 @@ def check_application_threshold(username, identity_uuid, esh_size, machine_alias
 
 
 def _test_for_licensing(esh_machine, identity):
+    """
+    Used to determine whether or not an instance should launch
+    Returns True OR raise Exception with reason for failure
+    """
     try:
         core_machine = ProviderMachine.objects.get(
             instance_source__identifier=esh_machine.id,
@@ -882,10 +922,8 @@ def _test_for_licensing(esh_machine, identity):
         passed_test = _test_license(license, identity)
         if passed_test:
             return True
-    if identity.created_by.is_staff:
-        logger.warn("Identity %s would have failed, but we have mercy on our staff users" % identity.created_by.username)
-        return True
     raise Exception("Identity %s did not meet the requirements of the associated license on Machine %s" % (identity.uuid, core_machine.instance_source.identifier))
+
 
 def check_quota(username, identity_uuid, esh_size, resuming=False):
     from service.monitoring import check_over_allocation

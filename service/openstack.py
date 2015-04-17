@@ -50,7 +50,7 @@ def glance_update_machine(new_machine):
     identifier = base_source.identifier
     new_app = new_machine.application
     g_image = glance_image_for(provider_uuid, identifier)
-    owner = glance_image_owner(provider_uuid, identifier)
+    owner = glance_image_owner(provider_uuid, identifier, g_image)
     if owner:
         base_source.created_by = owner.created_by
         base_source.created_by_identity = owner
@@ -60,8 +60,7 @@ def glance_update_machine(new_machine):
         # Never set private=False if it's set True in the DB.
         if g_image.is_public is False:
             new_app.private = True
-
-        g_end_date = glance_timestamp(g_image.deleted_at)
+        g_end_date = glance_timestamp(g_image.deleted)
         g_start_date = glance_timestamp(g_image.created_at)
         if new_app.first_machine() is new_machine:
             logger.debug("Glance image represents App:%s" % new_app)
@@ -87,17 +86,25 @@ def glance_image_for(provider_uuid, identifier):
     return glance_image
 
 
-def glance_image_owner(provider_uuid, identifier):
+def glance_image_owner(provider_uuid, identifier, glance_image=None):
     try:
         prov = Provider.objects.get(uuid=provider_uuid)
         accounts = get_account_driver(prov)
-        glance_image = accounts.get_image(identifier)
+        if not glance_image:
+            glance_image = accounts.get_image(identifier)
         project = accounts.user_manager.get_project_by_id(glance_image.owner)
+    except Exception as e:
+        logger.exception(e)
+        project = None
+
+    if not project:
+        return None
+    try:
         image_owner = Identity.objects.get(
             provider__uuid=provider_uuid,
             created_by__username=project.name)
-    except Exception as e:
-        logger.exception(e)
+    except Identity.DoesNotExist:
+        logger.warn("Could not find a username %s on Provider %s" % (project.name, provider_uuid))
         image_owner = None
     return image_owner
 
