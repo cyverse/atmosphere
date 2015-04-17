@@ -8,9 +8,6 @@ class LicenseSerializer(serializers.ModelSerializer):
     type = serializers.SlugRelatedField(source='license_type', slug_field='name',
                                         queryset=LicenseType.objects.all())
 
-    #TODO: Rename THIS field if it makes more sense for API consumers
-    allow_imaging = serializers.BooleanField(source='allow_imaging',
-                                             read_only=True)
 
     class Meta:
         model = License

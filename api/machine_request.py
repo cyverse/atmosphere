@@ -59,6 +59,27 @@ class MachineRequestList(APIView):
             return failure_response(
                 status.HTTP_400_BAD_REQUEST, exc.message)
 
+    def _permission_to_image(self, machine_request, identity_uuid, instance):
+        """
+        Raises an exception when imaging has been disabled, OR if
+        user attempts to image an instance that is not 'machine' in source.
+        """
+        instance = machine_request.instance
+        if instance.source.is_machine():
+            machine = machine_request.instance.source.providermachine
+            if not machine.allow_imaging:
+                raise Exception(
+                    "The Image Author has disabled re-imaging of Machine %s."
+                    % machine.instance_source.identifier)
+        elif instance.source.is_volume():
+            raise Exception(
+                    "Instance of booted volume can NOT be imaged."
+                    "Contact your Administrator for more information.")
+        else:
+            raise Exception(
+                    "Instance source type cannot be determined."
+                    "Contact your Administrator for more information.")
+
     def _create_image(self, request, provider_uuid, identity_uuid):
         _permission_to_act(identity_uuid, "Imaging")
         #request.DATA is r/o
@@ -77,25 +98,16 @@ class MachineRequestList(APIView):
         if serializer.is_valid():
             #Add parent machine to request
             machine_request = serializer.object
+            self._permission_to_image(machine_request, identity_uuid)
             instance = machine_request.instance
-            if instance.source.is_machine():
-                machine_request.parent_machine = machine_request.instance\
-                        .source.providermachine
-            elif instance.source.is_volume():
-                raise Exception(
-                        "Instance of booted volume can NOT be imaged."
-                        "Contact your Administrator for more information.")
-            else:
-                raise Exception(
-                        "Instance source type cannot be determined."
-                        "Contact your Administrator for more information.")
+            machine = machine_request.instance.source.providermachine
             #NOTE: THIS IS A HACK -- While we enforce all images to go to iPlant Cloud - Tucson.
             # THIS CODE SHOULD BE REMOVED 
             try:
                 tucson_provider = Provider.objects.get(location='iPlant Cloud - Tucson')
                 if machine_request.new_machine_provider.location != tucson_provider.location:
                     machine_request.new_machine_provider = tucson_provider
-            except:
+            except: # Will skip this step if no provider is named iPlant Cloud - Tucson.
                 pass
             serializer.save()
             #Object now has an ID for links..

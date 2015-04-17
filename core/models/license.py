@@ -25,7 +25,6 @@ class License(models.Model):
     title = models.CharField(max_length=256)
     license_type = models.ForeignKey(LicenseType)
     license_text = models.TextField()
-    allow_imaging = models.BooleanField(default=True)
     access_list = models.ManyToManyField(PatternMatch, blank=True)
     created_by = models.ForeignKey(AtmosphereUser)
 

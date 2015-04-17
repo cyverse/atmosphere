@@ -31,6 +31,7 @@ class ProviderMachine(BaseSource):
     """
     esh = None
     application = models.ForeignKey(Application)
+    allow_imaging = models.BooleanField(default=True)
     version = models.CharField(max_length=128, default='1.0.0')
     licenses = models.ManyToManyField(License,
             blank=True, related_name='machines')
@@ -260,7 +261,7 @@ def provider_machine_update_hook(new_machine, provider_uuid, identifier):
 
 
 def create_provider_machine(identifier, provider_uuid, app,
-                            created_by_identity=None, version="1.0"):
+                            created_by_identity=None, version="1.0", allow_imaging=True):
     # Attempt to match machine by provider alias
     # Admin identity used until the real owner can be identified.
     provider = Provider.objects.get(uuid=provider_uuid)
@@ -280,6 +281,7 @@ def create_provider_machine(identifier, provider_uuid, app,
         instance_source=source,
         application=app,
         version=version,
+        allow_imaging=allow_imaging,
     )
     provider_machine_update_hook(provider_machine, provider_uuid, identifier)
     logger.info("New ProviderMachine created: %s" % provider_machine)
@@ -296,7 +298,7 @@ def _username_lookup(provider_uuid, username):
         return None
 
 
-def update_provider_machine(provider_machine, new_created_by_identity=None, new_created_by=None, new_application=None, new_version=None):
+def update_provider_machine(provider_machine, new_created_by_identity=None, new_created_by=None, new_application=None, new_version=None, allow_imaging=None):
     if new_created_by:
         provider_machine.created_by = new_created_by
     if new_created_by_identity:
@@ -305,6 +307,8 @@ def update_provider_machine(provider_machine, new_created_by_identity=None, new_
         provider_machine.application = new_application
     if new_version:
         provider_machine.version = new_version
+    if allow_imaging:
+        provider_machine.allow_imaging = allow_imaging
     provider_machine.save()
     provider_machine_write_hook(provider_machine)
 
