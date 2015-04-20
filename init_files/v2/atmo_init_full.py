@@ -27,6 +27,7 @@ import subprocess
 import sys
 import time
 import urllib2
+import pwd
 
 
 ATMOSERVER = ""
@@ -1118,6 +1119,7 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password,
     run_command(['/bin/cp', '-rp',
                  '/etc/skel/.',
                  '/home/%s' % linuxuser])
+    check_ldap(linuxuser)
     run_command(['/bin/chown', '-R',
                  '%s:iplant-everyone' % (linuxuser,),
                  '/home/%s' % linuxuser])
@@ -1172,6 +1174,24 @@ def run_boot_scripts():
 def add_zsh():
     if os.path.exists("/bin/zsh") and not os.path.exists("/usr/bin/zsh"):
         run_command(['ln', '-s', '/bin/zsh', '/usr/bin/zsh'])
+
+def check_ldap(user):
+        delay_time = 60 # in seconds
+        max_tries = 60
+        current_try = 0
+        found = None
+        while current_try < max_tries:
+
+                current_try += 1
+                try:
+                        found = pwd.getpwnam(user)
+                        break;
+                except KeyError, e:
+                        logging.debug('check_ldap: failed, attempt #%d, waiting %d seconds' % (current_try, delay_time))
+                        time.sleep(delay_time)
+
+        if not found:
+                raise Exception("Failed to contact ldap within %d seconds" % (delay_time * max_tries))
 
 
 def main(argv):

@@ -87,7 +87,7 @@ class ProviderMachineAdmin(admin.ModelAdmin):
     ]
     def render_change_form(self, request, context, *args, **kwargs):
         pm = context['original']
-        context['adminform'].form.fields['instance_source'].queryset = InstanceSource.objects.filter(id=pm.instance_source.id)
+        #context['adminform'].form.fields['instance_source'].queryset = InstanceSource.objects.filter(id=pm.instancesource_ptr.id)
         return super(ProviderMachineAdmin, self).render_change_form(request, context, *args, **kwargs)
 
 class ProviderMachineMembershipAdmin(admin.ModelAdmin):
