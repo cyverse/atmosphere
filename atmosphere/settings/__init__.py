@@ -256,26 +256,19 @@ LOGGING_LEVEL = logging.DEBUG
 DEP_LOGGING_LEVEL = logging.INFO  # Logging level for dependencies.
 
 ## Filenames
-LOG_FILENAME = os.path.abspath(os.path.join(
-    os.path.dirname(atmosphere.__file__),
-    '..',
-    'logs/atmosphere.log'))
-API_LOG_FILENAME = os.path.abspath(os.path.join(
-    os.path.dirname(atmosphere.__file__),
-    '..',
-    'logs/atmosphere_api.log'))
-AUTH_LOG_FILENAME = os.path.abspath(os.path.join(
-    os.path.dirname(atmosphere.__file__),
-    '..',
-    'logs/atmosphere_auth.log'))
-EMAIL_LOG_FILENAME = os.path.abspath(os.path.join(
-    os.path.dirname(atmosphere.__file__),
-    '..',
-    'logs/atmosphere_email.log'))
-STATUS_LOG_FILENAME = os.path.abspath(os.path.join(
-    os.path.dirname(atmosphere.__file__),
-    '..',
-    'logs/atmosphere_status.log'))
+def create_log_path(filename):
+  return os.path.abspath(
+          os.path.join(
+              os.path.dirname(atmosphere.__file__),
+              '..',
+              'logs',
+              filename))
+
+LOG_FILENAME  = create_log_path("atmosphere.log")
+API_LOG_FILENAME = create_log_path("atmosphere_api.log")
+AUTH_LOG_FILENAME = create_log_path('atmosphere_auth.log')
+EMAIL_LOG_FILENAME = create_log_path('atmosphere_email.log')
+STATUS_LOG_FILENAME = create_log_path('atmosphere_status.log')
 
 check_and_touch(LOG_FILENAME)
 check_and_touch(API_LOG_FILENAME)
