@@ -21,9 +21,56 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         db.rename_table('provider_machine', 'machine_source')
-        raise RuntimeError("No backward migration, provider_machine table deleted")
+
+        db.add_column('machine_source',
+            u'instancesource_ptr_id', self.gf('django.db.models.fields.related.OneToOneField')(to=orm['core.InstanceSource'], null=True, blank=True))
+
+
+        db.create_table('provider_machine', (
+            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('provider', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Provider'])),
+            ('identifier', self.gf('django.db.models.fields.CharField')(max_length=128)),
+            ('version', self.gf('django.db.models.fields.CharField')(default="1.0.0", max_length=128)),
+            ('application', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Application'])),
+            ('created_by', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.AtmosphereUser'], null=True)),
+            ('created_by_identity', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Identity'], null=True)),
+            ('start_date', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime(2013, 2, 18, 0, 0))),
+            ('end_date', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
+        ))
+        db.send_create_signal('core', ['ProviderMachine'])
+
+
         db.rename_table('volume', 'volume_source')
-        raise RuntimeError("No backward migration, volume table deleted")
+        db.create_table('volume', (
+            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('alias', self.gf('django.db.models.fields.CharField')(max_length=256)),
+            ('provider', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Provider'])),
+            ('size', self.gf('django.db.models.fields.IntegerField')()),
+            ('name', self.gf('django.db.models.fields.CharField')(max_length=256)),
+            ('description', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
+            ('start_date', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime(2013, 2, 18, 0, 0))),
+            ('end_date', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
+
+            ('created_by', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.AtmosphereUser'], null=True)),
+            ('created_by_identity', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Identity'], null=True)),
+        ))
+        db.send_create_signal('core', ['Volume'])
+
+        #Adding field 'MachineRequest.parent_machine' (was removed during rename)
+        db.add_column('machine_request', 'parent_machine_tmp',
+                      self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.ProviderMachine'], null=True, blank=True),
+                      keep_default=False)
+
+        #Adding field 'MachineRequest.new_machine' (was removed during rename)
+        db.add_column('machine_request', 'new_machine_tmp',
+                      self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.ProviderMachine'], null=True, blank=True),
+                      keep_default=False)
+
+        db.rename_column('machine_request', 'new_machine_id', 'new_machine_source_id')
+        db.rename_column('machine_request', 'parent_machine_id', 'parent_machine_source_id')
+        db.add_column('instance', 'provider_machine',
+                      self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.ProviderMachine'], blank=True, null=True),
+                      keep_default=False)
 
     models = {
         u'auth.group': {

@@ -31,26 +31,17 @@ class Migration(SchemaMigration):
         ## User chose to not deal with backwards NULL issues for 'ProviderMachine.id'
         #raise RuntimeError("Cannot reverse this migration. 'ProviderMachine.id' and its values cannot be restored.")
         #
-        ## The following code is provided here to aid in writing a correct migration        # Adding field 'ProviderMachine.id'
+        ## The following code is provided here to aid in writing a correct migration
+        # Adding field 'ProviderMachine.id'
         #db.add_column('provider_machine', u'id',
         #              self.gf('django.db.models.fields.AutoField')(primary_key=True),
         #              keep_default=False)
 
-        # Deleting field 'ProviderMachine.instancesource_ptr'
-        db.delete_column('provider_machine', u'instancesource_ptr_id')
+        db.alter_column('instance', 'source_id', self.gf('django.db.models.fields.related.ForeignKey')(blank=True, null=True, to=orm['core.InstanceSource']))
 
+        #NORMALLY you would see this here..  but its in 0075 because we 'renamed'
+        #db.add_column('instance', 'provider_machine', self.gf('django.db.models.fields.related.ForeignKey')(blank=True, null=True, to=orm['core.ProviderMachine']),
 
-        # User chose to not deal with backwards NULL issues for 'Instance.provider_machine'
-        raise RuntimeError("Cannot reverse this migration. 'Instance.provider_machine' and its values cannot be restored.")
-        
-        # The following code is provided here to aid in writing a correct migration        # Adding field 'Instance.provider_machine'
-        db.add_column('instance', 'provider_machine',
-                      self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.ProviderMachine']),
-                      keep_default=False)
-
-
-        # Changing field 'Instance.source'
-        db.alter_column('instance', 'source_id', self.gf('django.db.models.fields.related.ForeignKey')(null=True, to=orm['core.InstanceSource']))
 
     models = {
         u'auth.group': {
