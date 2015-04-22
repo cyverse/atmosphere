@@ -13,7 +13,6 @@ class Migration(SchemaMigration):
         db.rename_table('machine_source', 'provider_machine')
         db.delete_table('volume')
         db.rename_table('volume_source', 'volume')
-        import ipdb;ipdb.set_trace()
         db.delete_column('machine_request', 'new_machine_id')
         db.rename_column('machine_request', 'new_machine_source_id', 'new_machine_id')
         db.delete_column('machine_request', 'parent_machine_id')
