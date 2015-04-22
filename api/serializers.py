@@ -596,7 +596,6 @@ class AtmoUserSerializer(serializers.ModelSerializer):
         selected_identity = attrs['selected_identity']
         logger.debug(selected_identity)
         groups = user.group_set.all()
-        import ipdb;ipdb.set_trace()
         for g in groups:
             for id_member in g.identitymembership_set.all():
                 if id_member.identity == selected_identity:
