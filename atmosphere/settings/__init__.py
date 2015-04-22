@@ -453,7 +453,12 @@ CELERY_QUEUES = (
         Queue('imaging', Exchange('imaging'), routing_key='imaging'),
         Queue('periodic', Exchange('periodic'), routing_key='periodic'),
     )
+
 CELERY_DEFAULT_QUEUE = 'default'
+CELERY_DEFAULT_EXCHANGE = 'default'
+CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
+CELERY_DEFAULT_ROUTING_KEY = 'default'
+
 CELERY_ROUTES = ('atmosphere.route_logger.RouteLogger', )
 CELERY_ROUTES += ({
     "chromogenic.tasks.migrate_instance_task":

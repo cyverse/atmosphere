@@ -87,7 +87,7 @@ class ProviderMachineAdmin(admin.ModelAdmin):
     ]
     def render_change_form(self, request, context, *args, **kwargs):
         pm = context['original']
-        context['adminform'].form.fields['instance_source'].queryset = InstanceSource.objects.filter(id=pm.instance_source.id)
+        #context['adminform'].form.fields['instance_source'].queryset = InstanceSource.objects.filter(id=pm.instancesource_ptr.id)
         return super(ProviderMachineAdmin, self).render_change_form(request, context, *args, **kwargs)
 
 class ProviderMachineMembershipAdmin(admin.ModelAdmin):
@@ -253,12 +253,11 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
 
 class MachineRequestAdmin(admin.ModelAdmin):
     search_fields = ["new_machine_owner__username", "new_machine_name", "instance__provider_alias"]
-    list_display = ["new_machine_name", "instance_alias", "opt_new_machine", "new_machine_owner", "old_provider",
-                    "new_machine_provider",  "start_date",
-                    "end_date", "status", "opt_parent_machine", "opt_machine_visibility"]
-    list_filter = ["instance__source__provider__location",
-                   "new_machine_provider__location",
-                   "new_machine_visibility",
+    list_display = ["new_machine_name", "new_machine_owner", "instance_alias",
+                    "old_provider", "new_machine_provider", 
+		    "start_date", "end_date", "status",
+		    "opt_new_machine", "opt_parent_machine", "opt_machine_visibility"]
+    list_filter = ["new_machine_visibility",
                    "status"]
 
     #Overwrite
@@ -272,7 +271,7 @@ class MachineRequestAdmin(admin.ModelAdmin):
         context['adminform'].form.fields['new_machine'].queryset = ProviderMachine.objects.filter(instancesource_ptr__provider=provider)
         context['adminform'].form.fields['instance'].queryset = user.instance_set.all()
         #NOTE: Can't reliably refine 'parent_machine' -- Since the parent could be from another provider.
-        context['adminform'].form.fields['parent_machine'].queryset = ProviderMachine.objects.filter(instancesource_ptr__identifier=instance.source.identifier)
+        #context['adminform'].form.fields['parent_machine'].queryset = ProviderMachine.objects.filter(instancesource_ptr__identifier=instance.source.identifier)
 
         return super(MachineRequestAdmin, self).render_change_form(request, context, *args, **kwargs)
 
