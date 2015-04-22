@@ -7,6 +7,7 @@ from django.db import models, migrations
 def remove_null_entries(apps, schema_editor):
     ProviderMachineMembership = apps.get_model("core", "ProviderMachineMembership")
     MachineRequest = apps.get_model("core", "MachineRequest")
+    import ipdb;ipdb.set_trace()
 
     memberships = ProviderMachineMembership.objects.filter(provider_machine=None)
     requests = MachineRequest.objects.filter(parent_machine=None)
