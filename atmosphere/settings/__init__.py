@@ -188,6 +188,7 @@ MIDDLEWARE_CLASSES = (
     'pipeline.middleware.MinifyHTMLMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'atmosphere.maintenance_middleware.MaintenanceMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'atmosphere.slash_middleware.RemoveSlashMiddleware',
 )
