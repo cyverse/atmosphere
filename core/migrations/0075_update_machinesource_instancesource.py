@@ -9,6 +9,34 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
+        for pm in orm.ProviderMachine.objects.all():
+            orm.MachineSource.objects.get_or_create(
+                    provider=pm.provider,
+                    application=pm.application,
+                    identifier=pm.identifier,
+                    created_by=pm.created_by,
+                    created_by_identity=pm.created_by_identity,
+                    start_date=pm.start_date,
+                    end_date=pm.end_date,
+                    version=pm.version)
+        print "Mapped %s ProviderMachine to %s MachineSource" % (
+                orm.ProviderMachine.objects.count(),
+                orm.MachineSource.objects.count())
+
+        for instance in orm.Instance.objects.all():
+            instance.source = orm.MachineSource.objects.get(
+                    provider=instance.provider_machine.provider,
+                    identifier=instance.provider_machine.identifier)
+            instance.save()
+        print "Added %s new MachineSource to instance" %\
+        orm.Instance.objects.filter(source__isnull=False).count()
+
+        for mr in orm.MachineRequest.objects.all():
+            mr.parent_machine_source = orm.MachineSource.objects.get(provider=mr.parent_machine.provider, identifier=mr.parent_machine.identifier)
+            if mr.new_machine_id:
+                mr.new_machine_source = orm.MachineSource.objects.get(provider=mr.new_machine.provider, identifier=mr.new_machine.identifier)
+            mr.save()
+
         for volume in orm.Volume.objects.all():
             orm.VolumeSource.objects.get_or_create(
                     name=volume.name,
@@ -21,26 +49,6 @@ class Migration(DataMigration):
                     start_date=volume.start_date,
                     end_date=volume.end_date)
         print "Created %s new VolumeSource"% orm.VolumeSource.objects.count()
-
-        for pm in orm.ProviderMachine.objects.all():
-            orm.MachineSource.objects.get_or_create(
-                    provider=pm.provider,
-                    application=pm.application,
-                    identifier=pm.identifier,
-                    created_by=pm.created_by,
-                    created_by_identity=pm.created_by_identity,
-                    start_date=pm.start_date,
-                    end_date=pm.end_date,
-                    version=pm.version)
-        print "Created %s new MachineSource"% orm.MachineSource.objects.count()
-
-        for instance in orm.Instance.objects.all():
-            instance.source = orm.MachineSource.objects.get(
-                    provider=instance.provider_machine.provider,
-                    identifier=instance.provider_machine.identifier)
-            instance.save()
-        print "Added %s new MachineSource to instance" %\
-        orm.Instance.objects.filter(source__isnull=False).count()
 
     def backwards(self, orm):
         "Write your backwards methods here."
@@ -277,6 +285,8 @@ class Migration(DataMigration):
             'new_machine_version': ('django.db.models.fields.CharField', [], {'default': "'1.0.0'", 'max_length': '128'}),
             'new_machine_visibility': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'parent_machine': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'ancestor_machine'", 'to': "orm['core.ProviderMachine']"}),
+            'parent_machine_source': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.MachineSource']"}),
+            'new_machine_source': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.MachineSource']"}),
             'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2015, 1, 13, 0, 0)'}),
             'status': ('django.db.models.fields.TextField', [], {'default': "''", 'blank': 'True'})
         },

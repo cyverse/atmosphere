@@ -13,6 +13,11 @@ class Migration(SchemaMigration):
         db.rename_table('machine_source', 'provider_machine')
         db.delete_table('volume')
         db.rename_table('volume_source', 'volume')
+        import ipdb;ipdb.set_trace()
+        db.delete_column('machine_request', 'new_machine_id')
+        db.rename_column('machine_request', 'new_machine_source_id', 'new_machine_id')
+        db.delete_column('machine_request', 'parent_machine_id')
+        db.rename_column('machine_request', 'parent_machine_source_id', 'parent_machine_id')
         pass
 
     def backwards(self, orm):
@@ -253,6 +258,8 @@ class Migration(SchemaMigration):
             'new_machine_version': ('django.db.models.fields.CharField', [], {'default': "'1.0.0'", 'max_length': '128'}),
             'new_machine_visibility': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'parent_machine': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'ancestor_machine'", 'to': "orm['core.ProviderMachine']"}),
+            'parent_machine_source': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.MachineSource']"}),
+            'new_machine_source': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.MachineSource']"}),
             'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2015, 1, 13, 0, 0)'}),
             'status': ('django.db.models.fields.TextField', [], {'default': "''", 'blank': 'True'})
         },
