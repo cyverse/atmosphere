@@ -74,6 +74,7 @@ INSTALLED_APPS = (
 
     #3rd party apps
     'rest_framework',
+    'django_filters',
 
     'djcelery',
     'pipeline',
@@ -351,10 +352,10 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (
         # Included Renderers
         'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.JSONPRenderer',
+        'rest_framework_jsonp.renderers.JSONPRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
-        'rest_framework.renderers.YAMLRenderer',
-        'rest_framework.renderers.XMLRenderer',
+        'rest_framework_yaml.renderers.YAMLRenderer',
+        'rest_framework_xml.renderers.XMLRenderer',
         # Our Renderers
         'api.renderers.PNGRenderer',
         'api.renderers.JPEGRenderer',
@@ -364,6 +365,7 @@ REST_FRAMEWORK = {
         'authentication.token.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGINATE_BY': 20,                 # Default to 20
     'PAGINATE_BY_PARAM': 'page_size',  # Allow client to override, using `?page_size=xxx`.
     'MAX_PAGINATE_BY': 100,             # Maximum limit allowed when using `?page_size=xxx`.

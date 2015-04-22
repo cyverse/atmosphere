@@ -8,6 +8,8 @@ from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 from django.db.models import Q
 
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -31,7 +33,7 @@ from api import failure_response, invalid_creds, malformed_response
 from api.renderers import JPEGRenderer, PNGRenderer
 from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProviderMachineSerializer,\
-    PaginatedProviderMachineSerializer, ApplicationScoreSerializer,\
+    ApplicationScoreSerializer,\
     LicenseSerializer
 
 
@@ -80,11 +82,6 @@ def list_filtered_machines(esh_driver, provider_uuid, request_user=None):
                                  cmp=compare_core_machines)
     return sorted_machine_list
 
-def all_filtered_machines():
-    return ProviderMachine.objects.exclude(
-        Q(instance_source__identifier__startswith="eki-")
-        | Q(instance_source__identifier__startswith="eri-")).order_by("-application__start_date")
-
 
 class MachineList(APIView):
     """List of machines."""
@@ -121,113 +118,47 @@ class MachineList(APIView):
         return response
 
 
-class MachineHistory(APIView):
+def all_filtered_machines(user):
+    return ProviderMachine.objects\
+        .filter(application__created_by=user)\
+        .exclude(
+            Q(instance_source__identifier__startswith="eki-")
+            | Q(instance_source__identifier__startswith="eri-"))\
+        .order_by("-application__start_date")
+
+
+class MachineHistory(ListAPIView):
     """Details about the machine history for an identity."""
+    serializer_class = ProviderMachineSerializer
 
     permission_classes = (InMaintenance, ApiAuthRequired)
 
-    def get(self, request, provider_uuid, identity_uuid):
-        data = request.DATA
-        user = User.objects.filter(username=request.user)
+    filter_backends = ()
 
-        if user and len(user) > 0:
-            user = user[0]
-        else:
-            return failure_response(
-                status.HTTP_401_UNAUTHORIZED,
-                "User not found.")
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
-        if not esh_driver:
-            return invalid_creds(provider_uuid, identity_uuid)
-        # Historic Machines
-        all_machines_list = all_filtered_machines()
-        if all_machines_list:
-            history_machine_list =\
-                [m for m in all_machines_list if
-                 m.application.created_by.username == user.username]
-        else:
-            history_machine_list = []
-
-        page = request.QUERY_PARAMS.get('page')
-        if page or len(history_machine_list) == 0:
-            paginator = Paginator(history_machine_list, 5,
-                                  allow_empty_first_page=True)
-        else:
-            paginator = Paginator(history_machine_list,
-                                  len(histor_machine_list),
-                                  allow_empty_first_page=True)
-        try:
-            history_machine_page = paginator.page(page)
-        except PageNotAnInteger:
-            # If page is not an integer, deliver first page.
-            history_machine_page = paginator.page(1)
-        except EmptyPage:
-            # Page is out of range.
-            # deliver last page of results.
-            history_machine_page = paginator.page(paginator.num_pages)
-        serialized_data = PaginatedProviderMachineSerializer(
-            history_machine_page, context={'request':request}).data
-        response = Response(serialized_data)
-        response['Cache-Control'] = 'no-cache'
-        return response
+    def get_queryset(self):
+        return all_filtered_machines(self.request.user)
 
 
-def get_first(coll):
-    """
-    Return the first element of a collection, otherwise return False.
-    """
-    if coll and len(coll) > 0:
-        return coll[0]
-    else:
-        return False
-
-
-class MachineSearch(APIView):
+class MachineSearch(ListAPIView):
     """Provides server-side machine search for an identity."""
+    filter_backends = ()
 
     permission_classes = (InMaintenance, ApiAuthRequired)
 
-    def get(self, request, provider_uuid, identity_uuid):
+    serializer_class = ProviderMachineSerializer
+
+    def get_queryset(self):
         """
         """
-        data = request.DATA
-        user = get_first(User.objects.filter(username=request.user))
-        if not user:
-            return failure_response(
-                status.HTTP_401_UNAUTHORIZED,
-                "User not found.")
-        query = request.QUERY_PARAMS.get('query')
+        user = self.request.user
+        query = self.request.QUERY_PARAMS.get('query')
+        identity_uuid = self.kwargs['identity_uuid']
+
         if not query:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                "Query not provided.")
-        identity = get_first(Identity.objects.filter(uuid=identity_uuid))
-        if not identity:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                'Identity not provided,')
-        search_result = search([CoreSearchProvider], identity, query)
-        page = request.QUERY_PARAMS.get('page')
-        if page or len(search_result) == 0:
-            paginator = Paginator(search_result, 20,
-                                  allow_empty_first_page=True)
-        else:
-            paginator = Paginator(search_result, len(search_result),
-                                  allow_empty_first_page=True)
-        try:
-            search_page = paginator.page(page)
-        except PageNotAnInteger:
-            # If page is not an integer, deliver first page.
-            search_page = paginator.page(1)
-        except EmptyPage:
-            # Page is out of range.
-            # deliver last page of results.
-            search_page = paginator.page(paginator.num_pages)
-        serialized_data = PaginatedProviderMachineSerializer(
-            search_page, context={'request':request}).data
-        response = Response(serialized_data)
-        response['Cache-Control'] = 'no-cache'
-        return response
+            return ProviderMachine.objects.all()
+
+        identity = Identity.objects.filter(uuid=identity_uuid).first()
+        return search([CoreSearchProvider], identity, query)
 
 
 class Machine(APIView):

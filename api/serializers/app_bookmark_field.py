@@ -6,7 +6,8 @@ from rest_framework import serializers
 class AppBookmarkField(serializers.Field):
 
     def to_representation(self, bookmark_mgr):
-        request_user = self.root.request_user
+        request = self.context.get('request', None)
+        request_user = request.user
         if type(request_user) == AnonymousUser:
             return False
         try:
@@ -20,7 +21,9 @@ class AppBookmarkField(serializers.Field):
         if value is None:
             return
         app = self.root.object
-        user = self.root.request_user
+        request = self.context.get('request', None)
+        user = request.user
+
         if value:
             ApplicationBookmark.objects.\
                 get_or_create(application=app, user=user)
