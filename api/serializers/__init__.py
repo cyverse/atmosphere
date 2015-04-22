@@ -13,14 +13,11 @@ from .cleaned_identity_serializer import CleanedIdentitySerializer
 from .boot_script_serializer import BootScriptSerializer
 from .application_threshold_serializer import ApplicationThresholdSerializer
 from .application_serializer import ApplicationSerializer
-from .paginated_application_serializer import PaginatedApplicationSerializer
 from .application_bookmark_serializer import ApplicationBookmarkSerializer
 from .application_score_serializer import ApplicationScoreSerializer
 from .credential_serializer import CredentialDetailSerializer
 from .instance_serializer import InstanceSerializer, InstanceActionSerializer
 from .instance_history_serializer import InstanceHistorySerializer
-from .paginated_instance_history_serializer import PaginatedInstanceHistorySerializer
-from .paginated_instance_serializer import PaginatedInstanceSerializer
 from .export_request_serializer import ExportRequestSerializer
 from .license_serializer import LicenseSerializer
 from .post_license_serializer import POST_LicenseSerializer
@@ -31,7 +28,6 @@ from .atmo_user_serializer import AtmoUserSerializer
 from .cloud_admin_serializer import CloudAdminSerializer, CloudAdminActionListSerializer
 from .profile_serializer import ProfileSerializer
 from .provider_machine_serializer import ProviderMachineSerializer
-from .paginated_provider_machine_serializer import PaginatedProviderMachineSerializer
 from .group_serializer import GroupSerializer
 from .volume_serializer import VolumeSerializer
 from .no_project_serializer import NoProjectSerializer

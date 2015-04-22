@@ -3,6 +3,7 @@ from django.core.paginator import Paginator,\
 from django.contrib.auth.models import AnonymousUser
 
 from rest_framework.views import APIView
+from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -19,7 +20,9 @@ from service.search import search, CoreApplicationSearch
 from api import failure_response
 from api.permissions import InMaintenance, ApiAuthOptional
 from api.serializers import ApplicationThresholdSerializer,\
-    ApplicationSerializer, PaginatedApplicationSerializer
+    ApplicationSerializer
+from rest_framework.pagination import PageNumberPagination
+
 
 def _filter_applications(applications, user, params):
     #Filter the list based on query strings
@@ -52,8 +55,7 @@ def _filter_applications(applications, user, params):
     return applications
 
 
-
-class ApplicationList(APIView):
+class ApplicationList(ListAPIView):
     """
         When this endpoint is called without authentication,
         a list of 'public' images is returned.
@@ -66,41 +68,20 @@ class ApplicationList(APIView):
         Description, or Tag(s).
     """
 
+    serializer_class = ApplicationSerializer
+
     permission_classes = (InMaintenance, ApiAuthOptional)
 
-    def get(self, request, **kwargs):
-        """Authentication optional, list of applications."""
-        applications = public_applications()
-        #Concatenate 'visible'
-        if request.user and type(request.user) != AnonymousUser:
-            my_apps = visible_applications(request.user)
-            applications.extend(my_apps)
-        params = request.QUERY_PARAMS
-        applications = _filter_applications(applications, request.user, params)
+    filter_backends = ()
 
-        page = params.get('page')
-        if page or len(applications) == 0:
-            paginator = Paginator(applications, 20,
-                                  allow_empty_first_page=True)
-        else:
-            # return all results.
-            paginator = Paginator(applications, len(applications),
-                                  allow_empty_first_page=True)
-        try:
-            app_page = paginator.page(page)
-        except PageNotAnInteger:
-            # If page is not an integer, deliver first page.
-            app_page = paginator.page(1)
-        except EmptyPage:
-            # Page is out of range.
-            # deliver last page of results.
-            app_page = paginator.page(paginator.num_pages)
-        serialized_data = PaginatedApplicationSerializer(
-            app_page,
-            context={'request': request}).data
-        response = Response(serialized_data)
-        response['Cache-Control'] = 'no-cache'
-        return response
+    def get_queryset(self):
+        applications = public_applications()
+        if self.request.user and type(self.request.user) != AnonymousUser:
+            my_apps = visible_applications(self.request.user)
+            applications.extend(my_apps)
+        return _filter_applications(applications,
+                                    self.request.user,
+                                    self.request.query_params)
 
 
 class ApplicationThresholdDetail(APIView):
@@ -285,52 +266,27 @@ class Application(APIView):
             serializer.errors)
 
 
-class ApplicationSearch(APIView):
+class ApplicationSearch(ListAPIView):
     """
     Provides server-side Application search for an identity.
 
     Currently the search expects the Query Param: query
     and the query will be perfomed for matches on: Name, Description, & Tag(s)
     """
+    filters_backend = ()
 
     permission_classes = (InMaintenance, ApiAuthOptional)
 
-    def get(self, request):
+    serializer_class = ApplicationSerializer
+
+    def get_queryset(self):
         """"""
-        query = request.QUERY_PARAMS.get('query')
+        query = self.request.QUERY_PARAMS.get('query')
         if not query:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                "Query not provided.")
+            return CoreApplication.objects.all()
 
-        identity_uuid = request.QUERY_PARAMS.get('identity')
-        identity = Identity.objects.filter(uuid=identity_uuid)
-        #Empty List or identity found..
-        if identity:
-            identity = identity[0]
-        #Okay to search w/ identity=None
-        search_result = search([CoreApplicationSearch], query, identity)
-        page = request.QUERY_PARAMS.get('page')
-        if page or len(search_result) == 0:
-            paginator = Paginator(search_result, 20,
-                                  allow_empty_first_page=True)
-        else:
-            page = None
-            paginator = Paginator(search_result, len(search_result),
-                                  allow_empty_first_page=True)
-        try:
-            search_page = paginator.page(page)
-        except PageNotAnInteger:
-            # If page is not an integer, deliver first page.
-            search_page = paginator.page(1)
-        except EmptyPage:
-            # Page is out of range.
-            # deliver last page of results.
-            search_page = paginator.page(paginator.num_pages)
-        serialized_data = PaginatedApplicationSerializer(
-            search_page,
-            context={'request': request}).data
-        response = Response(serialized_data)
-        response['Cache-Control'] = 'no-cache'
-        return response
+        identity = Identity.objects.filter(
+            uuid=self.request.QUERY_PARAMS.get('identity')).first()
 
+        # Okay to search w/ identity=None
+        return search([CoreApplicationSearch], query, identity)

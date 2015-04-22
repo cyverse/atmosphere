@@ -11,7 +11,7 @@ from core.models.machine import compare_core_machines, filter_core_machine,\
     ProviderMachine
 from core.models.provider import Provider
 from core.models.application import Application
-from core.query import only_current
+from core.query import only_current_source
 
 def search(providers, identity, query):
     return reduce(operator.or_, [p.search(identity, query) for p in providers])
@@ -40,8 +40,8 @@ class CoreSearchProvider(BaseSearchProvider):
     def search(cls, identity, query):
         return ProviderMachine.objects.filter(
             # Privately owned OR public machines
-            Q(application__private=True, created_by_identity=identity)
-            | Q(application__private=False, provider=identity.provider),
+            Q(application__private=True, instance_source__created_by_identity=identity)
+            | Q(application__private=False, instance_source__provider=identity.provider),
             # AND query matches on:
             # app tag name OR
             # app tag desc OR
@@ -51,7 +51,7 @@ class CoreSearchProvider(BaseSearchProvider):
             | Q(application__tags__description__icontains=query)
             | Q(application__name__icontains=query)
             | Q(application__description__icontains=query),
-            only_current())
+            only_current_source())
 
 
 class CoreApplicationSearch(BaseSearchProvider):
@@ -65,7 +65,7 @@ class CoreApplicationSearch(BaseSearchProvider):
             base_apps = Application.objects.filter(
                 # Privately owned OR public machines
                 Q(private=True,
-                  providermachine__created_by_identity=identity)
+                  providermachine__instance_source__created_by_identity=identity)
                 | Q(private=False,
                     providermachine__instance_source__provider=identity.provider))
         else:
@@ -85,5 +85,5 @@ class CoreApplicationSearch(BaseSearchProvider):
             | Q(name__icontains=query)
             # OR app desc
             | Q(description__icontains=query),
-            only_current())
+            only_current_source())
         return query_match.distinct()

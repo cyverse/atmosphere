@@ -7,6 +7,8 @@ from django.core.paginator import Paginator,\
 from django.db.models import Q
 
 from rest_framework import status
+from rest_framework.generics import ListAPIView
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -14,6 +16,8 @@ from rtwo.exceptions import ConnectionFailure
 from libcloud.common.types import InvalidCredsError, MalformedResponseError
 
 from threepio import logger
+
+from api import emulate_user
 
 from core.models import AtmosphereUser as User
 from core.models.identity import Identity
@@ -46,9 +50,8 @@ from api import failure_response, invalid_creds,\
                 connection_failure, malformed_response
 from api.permissions import ApiAuthRequired
 from api.serializers import InstanceStatusHistorySerializer
-from api.serializers import InstanceSerializer, PaginatedInstanceSerializer
-from api.serializers import InstanceHistorySerializer,\
-    PaginatedInstanceHistorySerializer
+from api.serializers import InstanceSerializer
+from api.serializers import InstanceHistorySerializer
 from api.serializers import VolumeSerializer
 from api.serializers import TagSerializer
 
@@ -226,66 +229,28 @@ def _filter_instance_history(history_instance_list, params):
     return history_instance_list
 
 
-class InstanceHistory(APIView):
-    """Paginated list of all instance history for specific user."""
+class InstanceHistory(ListAPIView):
+    """Instance history for a specific user."""
 
+    serializer_class = InstanceHistorySerializer
     permission_classes = (ApiAuthRequired,)
-    
-    def get(self, request):
+
+    @emulate_user
+    def get_queryset(self):
         """
         Authentication required, Retrieve a list of previously launched instances.
         """
-        data = request.DATA
-        params = request.QUERY_PARAMS.copy()
-        emulate_name = params.pop('username', None)
-        user = request.user
-        # Support for staff users to emulate a specific user history
-        if user.is_staff and emulate_name:
-            emualate_name = emulate_name[0]  # Querystring conversion
-            try:
-                user = User.objects.get(username=emulate_name)
-            except User.DoesNotExist:
-                return failure_response(status.HTTP_401_UNAUTHORIZED,
-                                        'Emulated User %s not found' %
-                                        emualte_name)
-        try:
-            # List of all instances created by user
-            sort_by = params.get('sort_by','')
-            order_by = params.get('order_by','desc')
-            history_instance_list = CoreInstance.objects.filter(
-                created_by=user).order_by("-start_date")
-            history_instance_list = _filter_instance_history(
-                    history_instance_list, params)
-            history_instance_list = _sort_instance_history(
-                    history_instance_list, sort_by, 'desc' in order_by.lower())
-        except Exception as e:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                'Bad query string caused filter validation errors : %s'
-                % (e,))
+        # List of all instances created by user
+        sort_by = self.request.query_params.get('sort_by','')
+        order_by = self.request.query_params.get('order_by','desc')
+        history_instance_list = CoreInstance.objects.filter(
+            created_by=self.request.user).order_by("-start_date")
+        history_instance_list = _filter_instance_history(
+                history_instance_list, self.request.query_params)
+        history_instance_list = _sort_instance_history(
+                history_instance_list, sort_by, 'desc' in order_by.lower())
+        return history_instance_list
 
-        page = params.get('page')
-        if page or len(history_instance_list) == 0:
-            paginator = Paginator(history_instance_list, 20,
-                                  allow_empty_first_page=True)
-        else:
-            paginator = Paginator(history_instance_list,
-                                  len(history_instance_list),
-                                  allow_empty_first_page=True)
-        try:
-            history_instance_page = paginator.page(page)
-        except PageNotAnInteger:
-            # If page is not an integer, deliver first page.
-            history_instance_page = paginator.page(1)
-        except EmptyPage:
-            # Page is out of range.
-            # deliver last page of results.
-            history_instance_page = paginator.page(paginator.num_pages)
-        serialized_data = PaginatedInstanceHistorySerializer(
-                history_instance_page, context={'request':request}).data
-        response = Response(serialized_data)
-        response['Cache-Control'] = 'no-cache'
-        return response
 
 class InstanceHistoryDetail(APIView):
     """instance history for specific instance."""
@@ -325,7 +290,9 @@ class InstanceHistoryDetail(APIView):
             return failure_response(status.HTTP_401_UNAUTHORIZED,
                                     'Instance %s not found' %
                                     instance_id)
-        serialized_data = InstanceHistorySerializer(core_instance).data
+        serialized_data = InstanceHistorySerializer(core_instance,
+                                                    context={"request": request},
+                                                    many=True).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
