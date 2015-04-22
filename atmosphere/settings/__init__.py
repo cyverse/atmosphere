@@ -352,10 +352,10 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (
         # Included Renderers
         'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.JSONPRenderer',
+        'rest_framework_jsonp.renderers.JSONPRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
-        'rest_framework.renderers.YAMLRenderer',
-        'rest_framework.renderers.XMLRenderer',
+        'rest_framework_yaml.renderers.YAMLRenderer',
+        'rest_framework_xml.renderers.XMLRenderer',
         # Our Renderers
         'api.renderers.PNGRenderer',
         'api.renderers.JPEGRenderer',
