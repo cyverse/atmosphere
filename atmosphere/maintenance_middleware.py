@@ -7,9 +7,12 @@ class MaintenanceMiddleware(object):
     """
     
     def process_request(self, request):
-        content = {
-            'message': 'Atmosphere is currently under maintenance'
-        }
-        response = JsonResponse(content)
-        response.status_code = 503
-        return response
+        if request.user.is_staff:
+            return None
+        else:
+            content = {
+                'message': 'Atmosphere is currently under maintenance'
+            }
+            response = JsonResponse(content)
+            response.status_code = 503
+            return response
