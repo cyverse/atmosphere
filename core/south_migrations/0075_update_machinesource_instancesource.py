@@ -9,7 +9,35 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
-        for volume in orm.Volume.objects.all():
+        for pm in orm.ProviderMachine.objects.order_by('id'):
+            orm.MachineSource.objects.get_or_create(
+                    provider=pm.provider,
+                    application=pm.application,
+                    identifier=pm.identifier,
+                    created_by=pm.created_by,
+                    created_by_identity=pm.created_by_identity,
+                    start_date=pm.start_date,
+                    end_date=pm.end_date,
+                    version=pm.version)
+        print "Mapped %s ProviderMachine to %s MachineSource" % (
+                orm.ProviderMachine.objects.count(),
+                orm.MachineSource.objects.count())
+
+        for instance in orm.Instance.objects.order_by('id'):
+            instance.source = orm.MachineSource.objects.get(
+                    provider=instance.provider_machine.provider,
+                    identifier=instance.provider_machine.identifier)
+            instance.save()
+        print "Added %s new MachineSource to instance" %\
+        orm.Instance.objects.filter(source__isnull=False).count()
+
+        for mr in orm.MachineRequest.objects.all():
+            mr.parent_machine_source = orm.MachineSource.objects.get(provider=mr.parent_machine.provider, identifier=mr.parent_machine.identifier)
+            if mr.new_machine_id:
+                mr.new_machine_source = orm.MachineSource.objects.get(provider=mr.new_machine.provider, identifier=mr.new_machine.identifier)
+            mr.save()
+
+        for volume in orm.Volume.objects.order_by('id'):
             orm.VolumeSource.objects.get_or_create(
                     name=volume.name,
                     description=volume.description,
@@ -22,28 +50,54 @@ class Migration(DataMigration):
                     end_date=volume.end_date)
         print "Created %s new VolumeSource"% orm.VolumeSource.objects.count()
 
-        for pm in orm.ProviderMachine.objects.all():
-            orm.MachineSource.objects.get_or_create(
-                    provider=pm.provider,
-                    application=pm.application,
-                    identifier=pm.identifier,
-                    created_by=pm.created_by,
-                    created_by_identity=pm.created_by_identity,
-                    start_date=pm.start_date,
-                    end_date=pm.end_date,
-                    version=pm.version)
-        print "Created %s new MachineSource"% orm.MachineSource.objects.count()
-
-        for instance in orm.Instance.objects.all():
-            instance.source = orm.MachineSource.objects.get(
-                    provider=instance.provider_machine.provider,
-                    identifier=instance.provider_machine.identifier)
-            instance.save()
-        print "Added %s new MachineSource to instance" %\
-        orm.Instance.objects.filter(source__isnull=False).count()
-
     def backwards(self, orm):
         "Write your backwards methods here."
+        db.rename_column('machine_request', 'new_machine_tmp_id', 'new_machine_id')
+        db.rename_column('machine_request', 'parent_machine_tmp_id', 'parent_machine_id')
+
+        for pm in orm.MachineSource.objects.order_by('id'):
+            orm.ProviderMachine.objects.get_or_create(
+                    provider=pm.instancesource_ptr.provider,
+                    application=pm.application,
+                    identifier=pm.instancesource_ptr.identifier,
+                    created_by=pm.instancesource_ptr.created_by,
+                    created_by_identity=pm.instancesource_ptr.created_by_identity,
+                    start_date=pm.instancesource_ptr.start_date,
+                    end_date=pm.instancesource_ptr.end_date,
+                    version=pm.version)
+        print "Mapped %s MachineSource to %s ProviderMachine" % (
+                orm.MachineSource.objects.count(),
+                orm.ProviderMachine.objects.count(),
+                )
+
+        for instance in orm.Instance.objects.order_by('id'):
+            instance.provider_machine = orm.ProviderMachine.objects.get(
+                    provider=instance.source.provider,
+                    identifier=instance.source.identifier)
+            instance.save()
+        print "Added %s old ProviderMachine to instance" %\
+        orm.Instance.objects.filter(provider_machine__isnull=False).count()
+
+        for mr in orm.MachineRequest.objects.order_by('id'):
+            if mr.parent_machine_source_id:
+                mr.parent_machine = orm.ProviderMachine.objects.get(provider=mr.parent_machine_source.provider, identifier=mr.parent_machine_source.identifier)
+            if mr.new_machine_source_id:
+                mr.new_machine = orm.ProviderMachine.objects.get(provider=mr.new_machine_source.provider, identifier=mr.new_machine_source.identifier)
+            mr.save()
+
+        for volume in orm.VolumeSource.objects.order_by('id'):
+            orm.Volume.objects.get_or_create(
+                name=volume.name,
+                description=volume.description,
+                size=volume.size,
+                identifier=volume.instancesource_ptr.identifier,
+                provider=volume.instancesource_ptr.provider,
+                created_by=volume.instancesource_ptr.created_by,
+                created_by_identity=volume.instancesource_ptr.created_by_identity,
+                start_date=volume.instancesource_ptr.start_date,
+                end_date=volume.instancesource_ptr.end_date)
+        print "Created %s old Volume"% orm.Volume.objects.count()
+
 
     models = {
         u'auth.group': {
@@ -277,6 +331,8 @@ class Migration(DataMigration):
             'new_machine_version': ('django.db.models.fields.CharField', [], {'default': "'1.0.0'", 'max_length': '128'}),
             'new_machine_visibility': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'parent_machine': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'ancestor_machine'", 'to': "orm['core.ProviderMachine']"}),
+            'parent_machine_source': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.MachineSource']"}),
+            'new_machine_source': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.MachineSource']"}),
             'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2015, 1, 13, 0, 0)'}),
             'status': ('django.db.models.fields.TextField', [], {'default': "''", 'blank': 'True'})
         },

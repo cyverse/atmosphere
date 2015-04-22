@@ -26,6 +26,16 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('core', ['VolumeSource'])
 
+        #Adding field 'MachineRequest.parent_machine_source'
+        db.add_column('machine_request', 'parent_machine_source',
+                      self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.MachineSource'], null=True, blank=True),
+                      keep_default=False)
+
+        #Adding field 'MachineRequest.new_machine_source'
+        db.add_column('machine_request', 'new_machine_source',
+                      self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.MachineSource'], null=True, blank=True),
+                      keep_default=False)
+
 
     def backwards(self, orm):
         # Deleting model 'MachineSource'
@@ -33,6 +43,12 @@ class Migration(SchemaMigration):
 
         # Deleting model 'VolumeSource'
         db.delete_table('volume_source')
+
+        #Deleting field 'MachineRequest.parent_machine_source'
+        db.delete_column('machine_request', 'parent_machine_source')
+
+        #Deleting field 'MachineRequest.new_machine_source'
+        db.delete_column('machine_request', 'new_machine_source')
 
 
     models = {
@@ -267,6 +283,8 @@ class Migration(SchemaMigration):
             'new_machine_version': ('django.db.models.fields.CharField', [], {'default': "'1.0.0'", 'max_length': '128'}),
             'new_machine_visibility': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'parent_machine': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'ancestor_machine'", 'to': "orm['core.ProviderMachine']"}),
+            'parent_machine_source': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'ancestor_machine'", 'to': "orm['core.MachineSource']"}),
+            'new_machine_source': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'ancestor_machine'", 'to': "orm['core.MachineSource']"}),
             'start_date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2015, 1, 13, 0, 0)'}),
             'status': ('django.db.models.fields.TextField', [], {'default': "''", 'blank': 'True'})
         },

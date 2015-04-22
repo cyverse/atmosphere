@@ -94,7 +94,6 @@ def main():
             images.extend(name_match_list)
     else:
         images = []
-    import ipdb;ipdb.set_trace()
     now_time = timezone.now()
     for image in images:
         if image in deleted_list:

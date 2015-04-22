@@ -526,3 +526,296 @@ def make_private(image_manager, image, provider_machine, tenant_list=[]):
             if created:
                 print "Created new ProviderMachineMembership: %s" \
                     % (obj,)
+#### OMG ITS A CLONE -- Delete this in DD####
+class MachineRequestCorrected(models.Model):
+    """
+    Storage container for the MachineRequestThread to start/restart the Queue
+    Provides a Parent-Child relationship between the new image and ancestor(s)
+    """
+    #Pointer to the database
+    connection_name = "repairs"
+    # The instance to image.
+    instance = models.ForeignKey("Instance")
+
+    # Machine imaging Metadata
+    status = models.TextField(default='', blank=True)
+    parent_machine = models.ForeignKey("ProviderMachine",
+                                       related_name="ancestor_machine")
+    # Specifics for machine imaging.
+    iplant_sys_files = models.TextField(default='', blank=True)
+    installed_software = models.TextField(default='', blank=True)
+    exclude_files = models.TextField(default='', blank=True)
+    access_list = models.TextField(default='', blank=True)
+
+    # Data for the new machine.
+    new_machine_provider = models.ForeignKey(Provider)
+    new_machine_name = models.CharField(max_length=256)
+    new_machine_owner = models.ForeignKey(User)
+    new_machine_visibility = models.CharField(max_length=256)
+    new_machine_description = models.TextField(default='', blank=True)
+    new_machine_tags = models.TextField(default='', blank=True)
+    new_machine_version = models.CharField(max_length=128, default='1.0.0')
+    new_machine_forked = models.BooleanField(default=True)
+    new_machine_memory_min = models.IntegerField(default=0)
+    new_machine_storage_min = models.IntegerField(default=0)
+    new_machine_licenses = models.ManyToManyField(License,
+            null=True, blank=True)
+    #Date time stamps
+    start_date = models.DateTimeField(default=timezone.now())
+    end_date = models.DateTimeField(null=True, blank=True)
+
+    # Filled in when completed.
+    new_machine = models.ForeignKey("ProviderMachine",
+                                    null=True, blank=True,
+                                    related_name="created_machine")
+    def new_machine_threshold(self):
+        return {'memory': self.new_machine_memory_min,
+                'disk': self.new_machine_storage_min }
+    def get_app(self):
+        if self.new_machine:
+            return self.new_machine.application
+        #Return the parent application if the new machine has not been created.
+        return self.parent_machine.application
+
+    def update_threshold(self):
+        application = self.get_app()
+        existing_threshold = ApplicationThreshold.objects.filter(
+                application=application)
+
+        if existing_threshold:
+            threshold = existing_threshold[0]
+        else:
+            threshold = ApplicationThreshold(application=application)
+
+        threshold.memory_min=machine_request.new_machine_memory_min
+        threshold.storage_min=machine_request.new_machine_storage_min
+        threshold.save()
+        return threshold
+
+    def has_threshold(self):
+        return self.new_machine_memory_min > 0\
+                or self.new_machine_storage_min > 0
+
+    def _get_meta_name(self):
+        """
+        admin_<username>_<name_under_scored>_<mmddyyyy_hhmmss>
+        """
+        meta_name = '%s_%s_%s_%s' %\
+            ('admin', self.new_machine_owner.username,
+            self.new_machine_name.replace(' ','_').replace('/','-'),
+            self.start_date.strftime('%m%d%Y_%H%M%S'))
+        return meta_name
+
+    def fix_metadata(self, im):
+        if not mr.new_machine:
+            raise Exception("New machine missing from machine request. Cannot Fix.")
+        (orig_managerCls, orig_creds,
+         dest_managerCls, dest_creds) = self.prepare_manager()
+        im = dest_managerCls(**dest_creds)
+        old_mach_id = mr.instance.source.identifier
+        new_mach_id = mr.new_machine.identifier
+        old_mach = im.get_image(old_mach_id)
+        if not old_mach:
+            raise Exception("Could not find old machine.. Cannot Fix.")
+        new_mach = im.get_image(new_mach_id)
+        if not old_mach:
+            raise Exception("Could not find new machine.. Cannot Fix.")
+        properties = new_mach.properties
+        previous_kernel = old_mach.properties.get('kernel_id')
+        previous_ramdisk = old_mach.properties.get('ramdisk_id')
+        if not previous_kernel or previous_ramdisk:
+            raise Exception("Kernel/Ramdisk information MISSING from previous machine. Fix NOT required")
+        properties.update({'kernel_id': previous_kernel, 'ramdisk_id': previous_ramdisk})
+        im.update_image(new_mach, properties=properties)
+
+    def old_provider(self):
+        return self.instance.source.provider
+    def new_machine_id(self):
+        return 'zzz%s' % self.new_machine.identifier if self.new_machine else None
+
+    def instance_alias(self):
+        return self.instance.provider_alias
+
+    def is_public(self):
+        return "public" in self.new_machine_visibility.lower()
+
+    def get_access_list(self):
+        if '[' not in self.access_list:
+            #Format = "test1, test2, test3"
+            json_loads_list = str(self.access_list.split(", "))
+            #New Format = "[u'test1', u'test2', u'test3']"
+        else:
+            #Format = "[u'test1', u'test2', u'test3']"
+            json_loads_list = self.access_list
+        json_loads_list = json_loads_list.replace("'",'"').replace('u"', '"')
+        user_list = json.loads(json_loads_list)
+        return user_list
+
+    def parse_access_list(self):
+        user_list=re.split(', | |\n', self.access_list)
+        return user_list
+
+    def get_exclude_files(self):
+        exclude=re.split(", | |\n", self.exclude_files)
+        return exclude
+
+    def old_admin_identity(self):
+        old_provider = self.parent_machine.provider
+        old_admin = old_provider.get_admin_identity()
+        return old_admin
+
+    def new_admin_identity(self):
+        new_provider = self.new_machine_provider
+        new_admin = new_provider.get_admin_identity()
+        return new_admin
+
+    def new_admin_driver(self):
+        from service.driver import get_admin_driver
+        return get_admin_driver(self.new_machine_provider)
+
+    def active_provider(self):
+        active_provider = self.new_machine_provider
+        if not active_provider:
+            active_provider = self.parent_machine.provider
+        return active_provider
+
+
+    def get_credentials(self):
+        old_provider = self.parent_machine.provider
+        old_creds = old_provider.get_credentials()
+        old_admin = old_provider.get_admin_identity().get_credentials()
+        old_creds.update(old_admin)
+
+        new_provider = self.new_machine_provider
+        if old_provider.id == new_provider.id:
+            new_creds = old_creds.copy()
+        else:
+            new_creds = new_provider.get_credentials()
+            new_admin = new_provider.get_admin_identity().get_credentials()
+            new_creds.update(new_admin)
+        return (old_creds, new_creds)
+
+    def prepare_manager(self):
+        """
+        Prepares, but does not initialize, manager(s)
+        This allows the manager and required credentials to be passed to celery
+        without causing serialization errors
+        """
+        from chromogenic.drivers.openstack import ImageManager as OSImageManager
+        from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
+
+        orig_provider = self.parent_machine.provider
+        dest_provider = self.new_machine_provider
+        orig_type = orig_provider.get_type_name().lower()
+        dest_type = dest_provider.get_type_name().lower()
+
+        origCls = destCls = None
+        if orig_type == 'eucalyptus':
+            origCls = EucaImageManager
+        elif orig_type == 'openstack':
+            origCls = OSImageManager
+
+        if dest_type == orig_type:
+            destCls = origCls
+        elif dest_type == 'eucalyptus':
+            destCls = EucaImageManager
+        elif dest_type == 'openstack':
+            destCls = OSImageManager
+
+        orig_creds, dest_creds = self.get_credentials()
+        orig_creds = origCls._build_image_creds(orig_creds)
+        dest_creds = destCls._build_image_creds(dest_creds)
+
+        return (origCls, orig_creds, destCls, dest_creds)
+
+    def get_imaging_args(self):
+        """
+        Prepares the entire machine request for serialization to celery
+
+        TODO: Add things like description and tags to export and migration drivers
+        """
+        from chromogenic.drivers.openstack import ImageManager as OSImageManager
+        from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
+
+        (orig_managerCls, orig_creds,
+         dest_managerCls, dest_creds) = self.prepare_manager()
+    
+        download_dir = secrets.LOCAL_STORAGE
+    
+        imaging_args = {
+            "instance_id": self.instance.provider_alias,
+            "image_name": self.new_machine_name,
+            "download_dir" : download_dir}
+        if issubclass(orig_managerCls, OSImageManager):
+            id_owner = self.instance.created_by_identity
+            tenant_cred = id_owner.credential_set.filter(
+                    key='ex_tenant_name')
+            if not tenant_cred:
+                tenant_cred = id_owner.credential_set.filter(
+                        key='ex_project_name')
+            if not tenant_cred:
+                raise Exception("You should not be here! Update the key "
+                        "used for openstack tenant names!")
+            tenant_cred = tenant_cred[0]
+            download_location = os.path.join(
+                    download_dir, tenant_cred.value)
+            download_location = os.path.join(
+                    download_location, '%s.qcow2' % self.new_machine_name)
+            imaging_args['download_location'] = download_location 
+        elif issubclass(orig_managerCls, EucaImageManager):
+            meta_name = self._get_meta_name()
+            public_image = self.is_public()
+            #Splits the string by ", " OR " " OR "\n" to create the list
+            private_users = self.parse_access_list()
+            exclude = self.get_exclude_files()
+            #Create image on image manager
+            node_scp_info = self.get_euca_node_info(orig_managerCls, orig_creds)
+            imaging_args.update({
+                "public" : public_image,
+                "private_user_list" : private_users,
+                "exclude" : exclude,
+                "meta_name" : meta_name,
+                "node_scp_info" : node_scp_info,
+            })
+        orig_provider = self.parent_machine.provider
+        dest_provider = self.new_machine_provider
+        orig_platform = orig_provider.get_platform_name().lower()
+        dest_platform = dest_provider.get_platform_name().lower()
+        if orig_platform != dest_platform:
+            if orig_platform == 'kvm' and dest_platform == 'xen':
+                imaging_args['kvm_to_xen'] = True
+            elif orig_platform == 'xen' and dest_platform == 'kvm':
+                imaging_args['xen_to_kvm'] = True
+        return imaging_args
+
+    def get_euca_node_info(self, euca_managerCls, euca_creds):
+        node_dict = {
+                'hostname':'',
+                'port':'',
+                'private_key':''
+        }
+        instance_id = self.instance.provider_alias
+        #Prepare and use the manager
+        euca_manager = euca_managerCls(**euca_creds)
+        node_ip = euca_manager.get_instance_node(instance_id)
+
+        #Find the matching node
+        try:
+            core_node = NodeController.objects.get(alias=node_ip)
+            node_dict['hostname'] = core_node.hostname
+            node_dict['port'] = core_node.port
+            node_dict['private_key'] = core_node.private_ssh_key
+        except NodeController.DoesNotExist:
+            logger.error("Must create a nodecontroller for IP: %s" % node_ip)
+        #Return a dict containing information on how to SCP to the node
+        return node_dict
+
+    def __unicode__(self):
+        return '%s Instance: %s Name: %s Status: %s'\
+                % (self.new_machine_owner, self.instance.provider_alias,
+                   self.new_machine_name, self.status)
+
+    class Meta:
+        db_table = "machine_request"
+        app_label = "core"
+
