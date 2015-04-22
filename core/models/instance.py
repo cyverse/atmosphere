@@ -23,6 +23,61 @@ from core.models.volume import convert_esh_volume
 from core.models.size import convert_esh_size
 from core.models.tag import Tag
 
+OPENSTACK_TASK_STATUS_MAP = {
+        #Terminate tasks
+        #'deleting': 'active',
+        #Suspend tasks
+        'resuming':'build',
+        'suspending':'suspended',
+        #Shutdown tasks
+        'powering-on':'build',
+        'shutting-down':'suspended',
+        #Instance launch tasks
+        'initializing':'build',
+        'scheduling':'build',
+        'spawning':'build',
+        #Atmosphere Task-specific lines
+        'networking':'networking',
+        'deploying':'deploying',
+        'deploy_error':'deploy_error',
+}
+OPENSTACK_ACTIVE_STATES = ['active']
+OPENSTACK_INACTIVE_STATES = ['build','suspended','shutoff']
+
+def _get_status_name_for_provider(provider, status_name, task_name=None, tmp_status=None):
+    """
+    Purpose: to be used in lookups/saves
+    Return the appropriate InstanceStatus
+    """
+    provider_type = provider.get_type_name().lower()
+    if provider_type == 'openstack':
+        return _get_openstack_name_map(status_name, task_name, tmp_status)
+    logger.warn("Could not find a strategy for provider type:%s" % provider_type)
+    return status_name
+
+def _get_openstack_name_map(status_name, task_name, tmp_status):
+    new_status = None
+    if task_name:
+        new_status = OPENSTACK_TASK_STATUS_MAP.get(task_name)
+
+    if new_status:
+        logger.debug("Task provided:%s, Status maps to %s"
+                     % (task_name, new_status))
+    elif tmp_status:
+        #ASSERT: task_name = None
+        new_status = OPENSTACK_TASK_STATUS_MAP.get(tmp_status)
+        logger.debug("Tmp_status provided:%s, Status maps to %s" % (tmp_status, new_status))
+    if not new_status:
+        #ASSERT: tmp_status = None
+        return status_name
+    #ASSERT: new_status exists.
+    #Determine precedence/override based on status_name.
+    if status_name in OPENSTACK_ACTIVE_STATES:
+        return new_status
+    else:
+        # This covers cases like 'shutoff - deploy_error' being marked as 'shutoff'
+        return status_name
+
 
 def strfdelta(tdelta, fmt=None):
     from string import Formatter
@@ -95,7 +150,7 @@ class Instance(models.Model):
         #try:
         #    return self.instancestatushistory_set.latest('id')
         #except InstanceStatusHistory.DoesNotExist:
-        #    return None            
+        #    return None
         #TODO: Profile current choice
         last_history = self.instancestatushistory_set.all().order_by('-start_date')
         if not last_history:
@@ -113,32 +168,7 @@ class Instance(models.Model):
         first_history.save()
         return first_history
 
-    def _task_to_status(self, task_name):
-        task_status_map = {
-                #Terminate tasks
-                #'deleting': 'active',
-                #Suspend tasks
-                'resuming':'build',
-                'suspending':'suspended',
-                #Shutdown tasks
-                'powering-on':'active',
-                'powering-off':'suspended',
-                #Instance launch tasks
-                'initializing':'build',
-                'scheduling':'build',
-                'spawning':'build',
-                #Atmosphere Task-specific lines
-                'networking':'build',
-                'deploying':'build',
-                'deploy_error':'build',
-                #There are more.. Must find table..
-        }
-        new_status = task_status_map.get(task_name)
-        logger.debug("Instance:%s History - Task provided:%s, Status should be %s"
-                      % (self.provider_alias, task_name, new_status))
-        return new_status
-
-    def update_history(self, status_name, size, task=None, first_update=False):
+    def update_history(self, status_name, size, task=None, tmp_status=None, first_update=False):
         """
         Given the status name and size, look up the previous history object
         If nothing has changed: return (False, last_history)
@@ -146,12 +176,7 @@ class Instance(models.Model):
               return (True, new_history)
         """
         #1. Get status name
-        if task:
-            new_status = self._task_to_status(task)
-            #TODO: More validation needed.
-            #suspended - deploy_error == build.. but thats not ideal.
-            if new_status:
-                status_name = new_status
+        status_name= _get_status_name_for_provider(self.provider_machine.provider, status_name, task, tmp_status)
         #2. Get the last history (or Build a new one if no other exists)
         last_history = self.get_last_history()
         if not last_history:
@@ -661,10 +686,10 @@ def convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
     core_instance.update_history(
         esh_instance.extra['status'],
         core_size,
-        esh_instance.extra.get('task') or
+        esh_instance.extra.get('task'),
         esh_instance.extra.get('metadata',{}).get('tmp_status'))
     #Update values in core with those found in metadata.
-    core_instance = set_instance_from_metadata(esh_driver, core_instance)
+    #core_instance = set_instance_from_metadata(esh_driver, core_instance)
     return core_instance
 
 def _esh_instance_size_to_core(esh_driver, esh_instance, provider_uuid):
@@ -676,43 +701,43 @@ def _esh_instance_size_to_core(esh_driver, esh_instance, provider_uuid):
         #MockSize includes only the Alias/ID information
         #so a lookup on the size is required to get accurate
         #information.
+        #TODO: Switch to 'get_cached_size!'
         esh_size = esh_driver.get_size(esh_size.id)
     core_size = convert_esh_size(esh_size, provider_uuid)
     return core_size
 
-def set_instance_from_metadata(esh_driver, core_instance):
-    #Fixes Dep. loop - Do not remove
-    from api.serializers import InstanceSerializer
-    #Breakout for drivers (Eucalyptus) that don't support metadata
-    if not hasattr(esh_driver._connection, 'ex_get_metadata'):
-        #logger.debug("EshDriver %s does not have function 'ex_get_metadata'"
-        #            % esh_driver._connection.__class__)
-        return core_instance
-    try:
-        esh_instance = esh_driver.get_instance(core_instance.provider_alias)
-        if not esh_instance:
-            return core_instance
-        metadata =  esh_driver._connection.ex_get_metadata(esh_instance)
-    except Exception, e:
-        logger.exception("Exception retrieving instance metadata for %s" %
-                core_instance.provider_alias)
-        return core_instance
-
-    #TODO: Match with actual instance launch metadata in service/instance.py
-    #TODO: Probably better to redefine serializer as InstanceMetadataSerializer
-    #TODO: Define a creator and their identity by the METADATA instead of
-    # assuming its the person who 'found' the instance
-
-    serializer = InstanceSerializer(core_instance, data=metadata,
-                                    partial=True)
-    if not serializer.is_valid():
-        logger.warn("Encountered errors serializing metadata:%s"
-                    % serializer.errors)
-        return core_instance
-    serializer.save()
-    core_instance = serializer.object
-    core_instance.esh = esh_instance
-    return core_instance
+# def set_instance_from_metadata(esh_driver, core_instance):
+#     #Fixes Dep. loop - Do not remove
+#     from api.serializers import InstanceSerializer
+#     #Breakout for drivers (Eucalyptus) that don't support metadata
+#     if not hasattr(esh_driver._connection, 'ex_get_metadata'):
+#         #logger.debug("EshDriver %s does not have function 'ex_get_metadata'"
+#         #            % esh_driver._connection.__class__)
+#         return core_instance
+#     try:
+#         esh_instance = esh_driver.get_instance(core_instance.provider_alias)
+#         if not esh_instance:
+#             return core_instance
+#         metadata =  esh_driver._connection.ex_get_metadata(esh_instance)
+#     except Exception, e:
+#         logger.exception("Exception retrieving instance metadata for %s" %
+#                 core_instance.provider_alias)
+#         return core_instance
+# 
+#     #TODO: Match with actual instance launch metadata in service/instance.py
+#     #TODO: Probably better to redefine serializer as InstanceMetadataSerializer
+#     #TODO: Define a creator and their identity by the METADATA instead of
+#     # assuming its the person who 'found' the instance
+# 
+#     serializer = InstanceSerializer(core_instance, data=metadata,
+#                                     partial=True)
+#     if not serializer.is_valid():
+#         logger.warn("Encountered errors serializing metadata:%s"
+#                     % serializer.errors)
+#         return core_instance
+#     serializer.save()
+#     core_instance = serializer.object
+#     return core_instance
 
 def create_instance(provider_uuid, identity_uuid, provider_alias, instance_source,
                    ip_address, name, creator, create_stamp,

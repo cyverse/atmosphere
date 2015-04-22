@@ -679,12 +679,12 @@ def _generate_userdata_content(name, username, token=None, password=None, init_f
 
 def _complete_launch_instance(driver, identity, instance, user, token, password):
     from service import task
-    # call async task to deploy to instance.
-    task.deploy_init_task(driver, instance, identity, user.username, password, token)
     #Create the Core/DB for instance
     core_instance = convert_esh_instance(
         driver, instance, identity.provider.uuid, identity.uuid,
         user, token, password)
+    # call async task to deploy to instance.
+    task.deploy_init_task(driver, instance, identity, user.username, password, token)
     #Update InstanceStatusHistory
     _first_update(driver, identity, core_instance, instance)
     #Invalidate and return
@@ -698,8 +698,7 @@ def _first_update(driver, identity, core_instance, esh_instance):
     history = core_instance.update_history(
         core_instance.esh.extra['status'],
         core_size,
-        #3rd arg is task OR tmp_status
-        core_instance.esh.extra.get('task') or
+        core_instance.esh.extra.get('task'),
         core_instance.esh.extra.get('metadata', {}).get('tmp_status'),
         first_update=True)
     return history
