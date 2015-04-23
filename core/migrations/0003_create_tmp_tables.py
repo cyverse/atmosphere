@@ -32,7 +32,7 @@ def create_volume(old_volume, Instance, InstanceSourceTmp, VolumeTmp):
     )
 
     # Update old_volume status projects
-    projects = old_volume.projects_set.all()
+    projects = old_volume.projects.all()
 
     for entry in projects:
         entry.volume_tmp = new_volume
@@ -136,7 +136,7 @@ def copy_data_to_new_models(apps, schema_editor):
         associate_machine(machine, new_machine)
 
     for volume in volumes:
-        create_volume(apps, volume, Instance, InstanceSourceTmp, VolumeTmp)
+        create_volume(volume, Instance, InstanceSourceTmp, VolumeTmp)
 
 
 def do_nothing(apps, schema_editor):
