@@ -571,10 +571,12 @@ def get_core_instances(identity_uuid):
                       for esh_instance in instances]
     return core_instances
 
-def _pre_launch_validation(username, identity_uuid, size, boot_source):
+def _pre_launch_validation(username, esh_driver, identity_uuid, boot_source, size):
     """
-    Used
+    Used BEFORE launching a volume/instance .. Raise exceptions here to be dealt with by the caller.
     """
+    identity = CoreIdentity.objects.get(uuid=identity_uuid)
+
     #May raise OverQuotaError or OverAllocationError
     check_quota(username, identity_uuid, size)
 
@@ -587,8 +589,9 @@ def _pre_launch_validation(username, identity_uuid, size, boot_source):
         _test_for_licensing(machine, identity)
 
 def launch_instance(user, provider_uuid, identity_uuid,
-                    size_alias, source_alias, **kwargs):
+                    size_alias, source_alias, **launch_kwargs):
     """
+    USE THIS TO LAUNCH YOUR INSTANCE FROM THE REPL!
     Initialization point --> launch_*_instance --> ..
     Required arguments will launch the instance, extras will do
     provider-specific modifications.
@@ -613,9 +616,9 @@ def launch_instance(user, provider_uuid, identity_uuid,
     boot_source = get_boot_source(user.username, identity_uuid, source_alias)
 
     #Raise any other exceptions before launching here
-    _pre_launch_validation(user.username, identity_uuid, size, boot_source)
+    _pre_launch_validation(user.username, esh_driver, identity_uuid, boot_source, size)
 
-    core_instance = _select_and_launch_source(user, identity_uuid, esh_driver, boot_source)
+    core_instance = _select_and_launch_source(user, identity_uuid, esh_driver, boot_source, size, **launch_kwargs)
     return core_instance
 
 
@@ -628,10 +631,11 @@ def launch_instance(user, provider_uuid, identity_uuid,
 """
 Actual Launch Methods
 """
-def _select_and_launch_source(user, identity_uuid, esh_driver, boot_source):
+def _select_and_launch_source(user, identity_uuid, esh_driver, boot_source, size, **launch_kwargs):
     """
     Select launch route based on whether boot_source is-a machine/volume
     """
+    identity = CoreIdentity.objects.get(uuid=identity_uuid)
     if boot_source.is_volume():
         #NOTE: THIS route works when launching an EXISTING volume ONLY
         #      to CREATE a new bootable volume (from an existing volume/image/snapshot)
@@ -639,12 +643,12 @@ def _select_and_launch_source(user, identity_uuid, esh_driver, boot_source):
         volume = _retrieve_source(esh_driver, boot_source.identifier, "volume")
 
         core_instance = launch_volume_instance(esh_driver, identity,
-                volume, size, **kwargs)
+                volume, size, **launch_kwargs)
     elif boot_source.is_machine():
         machine = _retrieve_source(esh_driver, boot_source.identifier, "machine")
 
         core_instance = launch_machine_instance(esh_driver, identity,
-                machine, size, **kwargs)
+                machine, size, **launch_kwargs)
     else:
         raise Exception("Boot source is of an unknown type")
     return core_instance
