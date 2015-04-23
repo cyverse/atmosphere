@@ -24,19 +24,18 @@ class Migration(migrations.Migration):
             name='provider_machines',
             field=models.ManyToManyField(related_name='members', through='core.ProviderMachineMembership', to='core.ProviderMachineTmp', blank=True),
         ),
-        #migrations.AlterField(
-        #    model_name='project',
-        #    name='volumes',
-        #    field=models.ManyToManyField(related_name='projects', to='core.VolumeTmp', blank=True, null=True),
-        #    preserve_default=True,
-        #),
+        migrations.AlterField(
+            model_name='project',
+            name='volumes',
+            field=models.ManyToManyField(related_name='projects', to='core.VolumeTmp', blank=True, null=True),
+            preserve_default=True,
+        ),
 
         # Remove old references
         migrations.RemoveField('Instance', 'source'),
         migrations.RemoveField('MachineRequest', 'new_machine'),
         migrations.RemoveField('MachineRequest', 'parent_machine'),
         migrations.RemoveField('VolumeStatusHistory', 'volume'),
-        migrations.RemoveField('Project', 'volume'),
         migrations.RemoveField('ProviderMachineMembership', 'provider_machine'),
 
         # Rename fields
@@ -45,7 +44,6 @@ class Migration(migrations.Migration):
         migrations.RenameField('MachineRequest', 'new_machine_tmp', 'new_machine'),
         migrations.RenameField('MachineRequest', 'parent_machine_tmp', 'parent_machine'),
         migrations.RenameField('VolumeStatusHistory', 'volume_tmp', 'volume'),
-        migrations.RenameField('Project', 'volume_tmp', 'volume'),
 
         # Delete old models
         migrations.DeleteModel('ProviderMachine'),
@@ -60,7 +58,6 @@ class Migration(migrations.Migration):
         # Rename new models
         migrations.RenameModel('InstanceSourceTmp', 'InstanceSource'),
         migrations.RenameModel('ProviderMachineTmp', 'ProviderMachine'),
-        migrations.RunPython(introspection_hook),
         migrations.RenameModel('VolumeTmp', 'Volume'),
 
         # Alter Fields to point to new models
