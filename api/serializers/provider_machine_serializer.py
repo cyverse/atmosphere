@@ -29,7 +29,7 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     # tags = serializers.CharField(source='application.tags.all')
     tags = TagRelatedField(slug_field='name', source='application.tags.all', many=True, queryset=Tag.objects.all())
     allow_imaging = serializers.BooleanField()
-    licenses = LicenseSerializer(source='licenses.all', read_only=True)
+    licenses = LicenseSerializer(source='licenses.all', many=True, read_only=True)
     description = serializers.CharField(source='application.description')
     start_date = serializers.ReadOnlyField(source='instance_source.start_date')
     end_date = serializers.ReadOnlyField(source='instance_source.end_date')
