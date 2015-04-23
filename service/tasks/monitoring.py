@@ -93,11 +93,15 @@ def monitor_instances_for(provider_id, users=None,
         running_instances = instance_map[username]
         identity = _get_identity_from_tenant_name(provider, username)
         if identity and running_instances:
-            driver = get_cached_driver(identity=identity)
-            core_running_instances = [
-                convert_esh_instance(driver, inst,
-                    identity.provider.uuid, identity.uuid,
-                    identity.created_by) for inst in running_instances]
+            try:
+                driver = get_cached_driver(identity=identity)
+                core_running_instances = [
+                    convert_esh_instance(driver, inst,
+                        identity.provider.uuid, identity.uuid,
+                        identity.created_by) for inst in running_instances]
+            except Exception as exc:
+                logger.exception("Could not convert running instances for %s" % username)
+                continue
         else:
             #No running instances.
             core_running_instances = []

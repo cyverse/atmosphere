@@ -430,7 +430,6 @@ CELERY_QUEUES = (
     )
 CELERY_DEFAULT_QUEUE = 'default'
 CELERY_DEFAULT_ROUTING_KEY = "default"
-CELERY_ROUTES = ('atmosphere.celery_router.CloudRouter', )
 # # Django-Celery Development settings
 # CELERY_ALWAYS_EAGER = True
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
@@ -483,8 +482,13 @@ CELERY_QUEUES = (
         Queue('imaging', Exchange('imaging'), routing_key='imaging'),
         Queue('periodic', Exchange('periodic'), routing_key='periodic'),
     )
+
 CELERY_DEFAULT_QUEUE = 'default'
 CELERY_ROUTES = ('atmosphere.celery_router.CloudRouter', )
+CELERY_DEFAULT_EXCHANGE = 'default'
+CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
+CELERY_DEFAULT_ROUTING_KEY = 'default'
+
 CELERY_ROUTES += ({
     "chromogenic.tasks.migrate_instance_task":
     {"queue": "imaging", "routing_key": "imaging.execute"},
