@@ -18,12 +18,6 @@ def create_volume(old_volume, Instance, InstanceSourceTmp, VolumeTmp):
         end_date=old_source.end_date
     )
 
-    # Update instance pointers
-    instances = Instance.objects.filter(source_id=old_volume.instancesource_ptr_id)
-
-    for instance in instances:
-        instance.source_tmp = source
-        instance.save()
     new_volume = VolumeTmp.objects.create(
         size=old_volume.size,
         name=old_volume.name,
@@ -46,7 +40,6 @@ def create_volume(old_volume, Instance, InstanceSourceTmp, VolumeTmp):
         entry.volume_tmp = new_volume
         entry.save()
 
-
 def create_machine(apps, old_machine):
     InstanceSourceTmp = apps.get_model("core", "InstanceSourceTmp")
     Instance = apps.get_model("core", "Instance")
@@ -61,13 +54,6 @@ def create_machine(apps, old_machine):
         start_date=old_source.start_date,
         end_date=old_source.end_date
     )
-
-    # Update instance pointers (match by 'string' rather than ID)
-    instances = Instance.objects.filter(
-            source__identifier=old_source.identifier)
-    for instance in instances:
-        instance.source_tmp = source
-        instance.save()
 
     return ProviderMachineTmp.objects.create(
         application_id=old_machine.application.id,
@@ -118,10 +104,13 @@ def copy_data_to_new_models(apps, schema_editor):
     ProviderMachine = apps.get_model("core", "ProviderMachine")
     Volume = apps.get_model("core", "Volume")
     MachineRequest = apps.get_model("core", "MachineRequest")
+    Instance = apps.get_model("core", "Instance")
+    InstanceSourceTmp = apps.get_model("core", "InstanceSourceTmp")
 
     volumes = Volume.objects.order_by('id')
     machines = ProviderMachine.objects.order_by('id')
     machine_requests = MachineRequest.objects.order_by('id')
+    instances = Instance.objects.order_by('id')
 
     machine_cache = {}
     for machine in machines:
@@ -138,6 +127,8 @@ def copy_data_to_new_models(apps, schema_editor):
     for volume in volumes:
         create_volume(volume, Instance, InstanceSourceTmp, VolumeTmp)
 
+    for instance in instances:
+        associate_instance(instance, InstanceSourceTmp)
 
 def do_nothing(apps, schema_editor):
     return
@@ -192,6 +183,12 @@ class Migration(migrations.Migration):
                 'db_table': 'volume_tmp',
             },
             bases=(models.Model,),
+        ),
+        migrations.AddField(
+            model_name='project',
+            name='volume_tmp',
+            field=models.ForeignKey(related_name='volumes', to='core.VolumeTmp', null=True),
+            preserve_default=True,
         ),
         migrations.AddField(
             model_name='instance',
