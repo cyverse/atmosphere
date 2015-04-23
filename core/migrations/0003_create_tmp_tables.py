@@ -1,60 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from IPython import embed
-
 from django.db import models, migrations
 import django.utils.timezone
 from django.conf import settings
 
 
-def create_machine(apps, old_machine):
-    InstanceSourceTmp = apps.get_model("core", "InstanceSourceTmp")
-    Instance = apps.get_model("core", "Instance")
-    ProviderMachineTmp = apps.get_model("core", "ProviderMachineTmp")
-
-    old_source = old_machine.instancesource_ptr
-    source = InstanceSourceTmp.objects.create(
-        provider=old_source.provider,
-        identifier=old_source.identifier,
-        created_by=old_source.created_by,
-        created_by_identity=old_source.created_by_identity,
-        start_date=old_source.start_date,
-        end_date=old_source.end_date
-    )
-
-    # Update instance pointers
-    #instances = Instance.objects.filter(
-    #    source_id=old_machine.instancesource_ptr_id)
-    instances = Instance.objects.filter(
-            source__identifier=old_source.identifier)
-    for instance in instances:
-        instance.source_tmp = source
-        instance.save()
-
-    return ProviderMachineTmp.objects.create(
-        application_id=old_machine.application.id,
-        version=old_machine.version,
-        instance_source=source
-    )
-
-def associate_machine(apps, machine, new_machine):
-    MachineRequest = apps.get_model("core", "MachineRequest")
-
-    new_machine.licenses = machine.licenses.all()
-    new_machine.save()
-
-    # Update membership
-    members = machine.providermachinemembership_set.all()
-
-    for member in members:
-        member.provider_machine_tmp = new_machine
-        member.save()
-
-def create_volume(apps, old_volume):
-    Instance = apps.get_model("core", "Instance")
-    InstanceSourceTmp = apps.get_model("core", "InstanceSourceTmp")
-    VolumeTmp = apps.get_model("core", "VolumeTmp")
+def create_volume(old_volume, Instance, InstanceSourceTmp, VolumeTmp):
 
     old_source = old_volume.instancesource_ptr
     source = InstanceSourceTmp.objects.create(
@@ -72,13 +24,20 @@ def create_volume(apps, old_volume):
     for instance in instances:
         instance.source_tmp = source
         instance.save()
-
     new_volume = VolumeTmp.objects.create(
         size=old_volume.size,
         name=old_volume.name,
         description=old_volume.description,
         instance_source=source
     )
+
+    # Update old_volume status projects
+    projects = old_volume.projects_set.all()
+
+    for entry in projects:
+        entry.volume_tmp = new_volume
+        entry.save()
+    print 'Updated %s projects on Volume %s' % (len(projects),old_source.identifier)
 
     # Update old_volume status history
     history = old_volume.volumestatushistory_set.all()
@@ -88,7 +47,74 @@ def create_volume(apps, old_volume):
         entry.save()
 
 
+def create_machine(apps, old_machine):
+    InstanceSourceTmp = apps.get_model("core", "InstanceSourceTmp")
+    Instance = apps.get_model("core", "Instance")
+    ProviderMachineTmp = apps.get_model("core", "ProviderMachineTmp")
+
+    old_source = old_machine.instancesource_ptr
+    source = InstanceSourceTmp.objects.create(
+        provider=old_source.provider,
+        identifier=old_source.identifier,
+        created_by=old_source.created_by,
+        created_by_identity=old_source.created_by_identity,
+        start_date=old_source.start_date,
+        end_date=old_source.end_date
+    )
+
+    # Update instance pointers (match by 'string' rather than ID)
+    instances = Instance.objects.filter(
+            source__identifier=old_source.identifier)
+    for instance in instances:
+        instance.source_tmp = source
+        instance.save()
+
+    return ProviderMachineTmp.objects.create(
+        application_id=old_machine.application.id,
+        version=old_machine.version,
+        instance_source=source
+    )
+def restore_machine_request(machine_request, ProviderMachine, machine_cache):
+    try:
+        parent = ProviderMachine.objects.get(id=machine_request.parent_machine_id)
+    except ProviderMachine.DoesNotExist:
+        machine_request.parent_machine = machine_request.instance.source.providermachine
+        machine_request.save()
+        parent = ProviderMachine.objects.get(id=machine_request.parent_machine.id)
+
+    new_parent_machine = machine_cache[parent.id]
+    machine_request.parent_machine_tmp_id = new_parent_machine.id
+
+    if machine_request.new_machine_id:
+        try:
+            new_machine = machine_request.new_machine
+            new_new_machine = machine_cache[new_machine.id]
+            machine_request.new_machine_tmp_id = new_new_machine.id
+        except Exception as dne:
+            print 'Warn: The new machine created from Instance %s (Named %s) has been lost (Provider %s)'\
+                    % (machine_request.instance.provider_alias,
+                       machine_request.new_machine_name,
+                       machine_request.new_machine_provider.location)
+            machine_request.new_machine_id = None
+
+    machine_request.save()
+
+def associate_machine(machine, new_machine):
+
+    new_machine.licenses = machine.licenses.all()
+    new_machine.save()
+
+    # Update membership
+    members = machine.providermachinemembership_set.all()
+
+    for member in members:
+        member.provider_machine_tmp = new_machine
+        member.save()
+
 def copy_data_to_new_models(apps, schema_editor):
+    Instance = apps.get_model("core", "Instance")
+    InstanceSourceTmp = apps.get_model("core", "InstanceSourceTmp")
+    VolumeTmp = apps.get_model("core", "VolumeTmp")
     ProviderMachine = apps.get_model("core", "ProviderMachine")
     Volume = apps.get_model("core", "Volume")
     MachineRequest = apps.get_model("core", "MachineRequest")
@@ -102,48 +128,19 @@ def copy_data_to_new_models(apps, schema_editor):
         new_machine = create_machine(apps, machine)
         machine_cache[machine.id] = new_machine
 
+    #These associations must be made AFTER all ProviderMachines are built
     for machine_request in machine_requests:
-        try:
-            parent = ProviderMachine.objects.get(id=machine_request.parent_machine_id)
-        except ProviderMachine.DoesNotExist:
-            machine_request.parent_machine = machine_request.instance.source.providermachine
-            machine_request.save()
-            parent = ProviderMachine.objects.get(id=machine_request.parent_machine.id)
-
-        new_parent_machine = machine_cache[parent.id]
-        machine_request.parent_machine_tmp_id = new_parent_machine.id
-
-        if machine_request.new_machine_id:
-            try:
-                new_machine = machine_request.new_machine
-                new_new_machine = machine_cache[new_machine.id]
-                machine_request.new_machine_tmp_id = new_new_machine.id
-            except Exception as dne:
-                print 'Warn: The new machine created from Instance %s (Named %s) has been lost (Provider %s)'\
-                        % (machine_request.instance.provider_alias,
-                           machine_request.new_machine_name,
-                           machine_request.new_machine_provider.location)
-                machine_request.new_machine_id = None
-
-        machine_request.save()
-
+        restore_machine_request(machine_request, ProviderMachine, machine_cache)
     for machine in machines:
         new_machine = machine_cache[machine.id]
-        associate_machine(apps, machine, new_machine)
-    import ipdb;ipdb.set_trace()
+        associate_machine(machine, new_machine)
 
     for volume in volumes:
-        new_volume = create_volume(apps, volume)
+        create_volume(apps, volume, Instance, InstanceSourceTmp, VolumeTmp)
 
 
-def copy_data_to_old_model(apps, schema_editor):
-    ProviderMachineTmp = apps.get_model("core", "ProviderMachineTmp")
-    ProviderMachine = apps.get_model("core", "ProviderMachine")
-    VolumeTmp = apps.get_model("core", "VolumeTmp")
-    Volume = apps.get_model("core", "Volume")
-
-    volumes = VolumeTmp.objects.all()
-    machines = ProviderMachineTmp.objects.all()
+def do_nothing(apps, schema_editor):
+    return
 
 class Migration(migrations.Migration):
 
@@ -226,5 +223,5 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(to='core.VolumeTmp', null=True),
             preserve_default=True,
         ),
-        migrations.RunPython(copy_data_to_new_models)
+        migrations.RunPython(copy_data_to_new_models, do_nothing)
     ]

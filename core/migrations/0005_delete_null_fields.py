@@ -10,7 +10,6 @@ def remove_null_entries(apps, schema_editor):
 
     memberships = ProviderMachineMembership.objects.filter(
         provider_machine=None)
-    import ipdb;ipdb.set_trace()
     requests = MachineRequest.objects.filter(parent_machine=None)
 
     memberships.delete()
