@@ -196,12 +196,6 @@ class Migration(migrations.Migration):
             bases=(models.Model,),
         ),
         migrations.AddField(
-            model_name='project',
-            name='volume_tmp',
-            field=models.ForeignKey(related_name='volumes', to='core.VolumeTmp', null=True),
-            preserve_default=True,
-        ),
-        migrations.AddField(
             model_name='instance',
             name='source_tmp',
             field=models.ForeignKey(related_name='instances', to='core.InstanceSourceTmp', null=True),
