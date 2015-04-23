@@ -26,12 +26,12 @@ def create_volume(old_volume, Instance, InstanceSourceTmp, VolumeTmp):
     )
 
     # Update old_volume status projects
-    projects = old_volume.projects.all()
+    #projects = old_volume.projects.all()
 
-    for entry in projects:
-        entry.volume_tmp = new_volume
-        entry.save()
-    print 'Updated %s projects on Volume %s' % (len(projects),old_source.identifier)
+    #if projects.count():
+    #    for entry in projects:
+    #        entry.volume_tmp = new_volume
+    #        entry.save()
 
     # Update old_volume status history
     history = old_volume.volumestatushistory_set.all()
@@ -85,6 +85,13 @@ def restore_machine_request(machine_request, ProviderMachine, machine_cache):
 
     machine_request.save()
 
+def associate_instance(instance, InstanceSourceTmp):
+    new_source = InstanceSourceTmp.objects.get(
+        identifier=instance.source.identifier,
+        provider=instance.source.provider)
+    instance.source_tmp = new_source
+    instance.save()
+
 def associate_machine(machine, new_machine):
 
     new_machine.licenses = machine.licenses.all()
@@ -111,24 +118,28 @@ def copy_data_to_new_models(apps, schema_editor):
     machines = ProviderMachine.objects.order_by('id')
     machine_requests = MachineRequest.objects.order_by('id')
     instances = Instance.objects.order_by('id')
-
+    print "This can take a while...\n%s" % django.utils.timezone.now()
     machine_cache = {}
     for machine in machines:
         new_machine = create_machine(apps, machine)
         machine_cache[machine.id] = new_machine
 
+    print "%s" % django.utils.timezone.now()
     #These associations must be made AFTER all ProviderMachines are built
     for machine_request in machine_requests:
         restore_machine_request(machine_request, ProviderMachine, machine_cache)
     for machine in machines:
         new_machine = machine_cache[machine.id]
         associate_machine(machine, new_machine)
+    print "%s" % django.utils.timezone.now()
 
     for volume in volumes:
         create_volume(volume, Instance, InstanceSourceTmp, VolumeTmp)
+    print "%s" % django.utils.timezone.now()
 
     for instance in instances:
         associate_instance(instance, InstanceSourceTmp)
+    print "%s - Completed!" % django.utils.timezone.now()
 
 def do_nothing(apps, schema_editor):
     return
