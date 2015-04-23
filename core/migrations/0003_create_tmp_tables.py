@@ -118,24 +118,24 @@ def copy_data_to_new_models(apps, schema_editor):
     machines = ProviderMachine.objects.order_by('id')
     machine_requests = MachineRequest.objects.order_by('id')
     instances = Instance.objects.order_by('id')
-    print "This can take a while...\n%s" % django.utils.timezone.now()
+    print "This can take a while...\nCreating machines - %s" % django.utils.timezone.now()
     machine_cache = {}
     for machine in machines:
         new_machine = create_machine(apps, machine)
         machine_cache[machine.id] = new_machine
 
-    print "%s" % django.utils.timezone.now()
+    print "Updating machine_requests - %s" % django.utils.timezone.now()
     #These associations must be made AFTER all ProviderMachines are built
     for machine_request in machine_requests:
         restore_machine_request(machine_request, ProviderMachine, machine_cache)
     for machine in machines:
         new_machine = machine_cache[machine.id]
         associate_machine(machine, new_machine)
-    print "%s" % django.utils.timezone.now()
+    print "Creating Volumes %s" % django.utils.timezone.now()
 
     for volume in volumes:
         create_volume(volume, Instance, InstanceSourceTmp, VolumeTmp)
-    print "%s" % django.utils.timezone.now()
+    print "Updating Instances %s" % django.utils.timezone.now()
 
     for instance in instances:
         associate_instance(instance, InstanceSourceTmp)
