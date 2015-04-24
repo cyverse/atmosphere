@@ -118,28 +118,32 @@ def copy_data_to_new_models(apps, schema_editor):
     machines = ProviderMachine.objects.order_by('id')
     machine_requests = MachineRequest.objects.order_by('id')
     instances = Instance.objects.order_by('id')
-    print "This can take a while...\nCreating machines - %s" % django.utils.timezone.now()
+    print " ...\nThis can take a while..."
     machine_cache = {}
+    started_at = django.utils.timezone.now()
     for machine in machines:
         new_machine = create_machine(apps, machine)
         machine_cache[machine.id] = new_machine
-
-    print "Updating machine_requests - %s" % django.utils.timezone.now()
-    #These associations must be made AFTER all ProviderMachines are built
-    for machine_request in machine_requests:
-        restore_machine_request(machine_request, ProviderMachine, machine_cache)
     for machine in machines:
         new_machine = machine_cache[machine.id]
         associate_machine(machine, new_machine)
-    print "Creating Volumes %s" % django.utils.timezone.now()
+    print "Created %s machines - %s" % (machines.count(), django.utils.timezone.now()-started_at)
 
+    started_at = django.utils.timezone.now()
+    for machine_request in machine_requests:
+        restore_machine_request(machine_request, ProviderMachine, machine_cache)
+    print "Updated %s machine_requests - %s" % (machine_requests.count(), django.utils.timezone.now()-started_at)
+
+    started_at = django.utils.timezone.now()
     for volume in volumes:
         create_volume(volume, Instance, InstanceSourceTmp, VolumeTmp)
-    print "Updating Instances %s" % django.utils.timezone.now()
+    print "Created %s Volumes %s" % (volumes.count(),django.utils.timezone.now()-started_at)
 
+    started_at = django.utils.timezone.now()
     for instance in instances:
         associate_instance(instance, InstanceSourceTmp)
-    print "%s - Completed!" % django.utils.timezone.now()
+    print "Updated %s Instances %s" % (instances.count(), django.utils.timezone.now()-started_at)
+    print "Completed!"
 
 def do_nothing(apps, schema_editor):
     return
