@@ -105,19 +105,28 @@ class ApiAuthOptional(permissions.BasePermission):
 
 
 def get_maintenance_messages(records):
+    """
+    Combine maintenance messages together into a string.
+    """
     messages = ""
     for r in records:
-        messages = "%s: %s\n" % (r.title, r.message)
+        if messages:
+            messages += " | "
+        messages += "%s: %s" % (r.title, r.message)
+    return messages
 
 
 class InMaintenance(permissions.BasePermission):
+    """
+    Return a 503 Service unavailable if in maintenance.
 
+    Exceptions: for DjangoUser staff.
+    """
     def has_permission(self, request, view):
-        maintenance_records = MaintenanceRecord.active()\
-                                               .filter(provider__isnull=True)
-        if maintenance_records:
-            messages = _maintenance_messages(maintenace_records)
-            raise ServiceUnavailable(
-                detail=get_maintenance_messages(maintenance_records))
-        else:
-            return True
+        records = MaintenanceRecord.active()\
+                                   .filter(provider__isnull=True)
+        if records:
+            if not request.user.is_staff:
+                raise ServiceUnavailable(
+                    detail=get_maintenance_messages(records))
+        return True
