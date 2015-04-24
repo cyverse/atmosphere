@@ -1,14 +1,17 @@
 """
 Atmosphere API's extension of DRF permissions.
 """
-from core.models.cloud_admin import CloudAdministrator
 
 from rest_framework import permissions
 
 from threepio import logger
 
+from core.models.cloud_admin import CloudAdministrator
+from core.models import MaintenanceRecord
 
-# NOTE: It would be better to use Object-level permissions here.
+from api import ServiceUnavailable
+
+
 class ProjectOwnerRequired(permissions.BasePermission):
     def has_permission(self, request, view):
         auth_user = request.user
@@ -36,7 +39,8 @@ def _get_administrator_accounts(user):
 
 def _get_administrator_account_for(user, provider_uuid):
     try:
-        return _get_administrator_accounts(user).get(provider__uuid=provider_uuid)
+        return _get_administrator_accounts(user)\
+            .get(provider__uuid=provider_uuid)
     except CloudAdministrator.DoesNotExist:
         return None
 
@@ -100,6 +104,20 @@ class ApiAuthOptional(permissions.BasePermission):
         return request.user.is_authenticated()
 
 
+def get_maintenance_messages(records):
+    messages = ""
+    for r in records:
+        messages = "%s: %s\n" % (r.title, r.message)
+
+
 class InMaintenance(permissions.BasePermission):
+
     def has_permission(self, request, view):
-        return True
+        maintenance_records = MaintenanceRecord.active()\
+                                               .filter(provider__isnull=True)
+        if maintenance_records:
+            messages = _maintenance_messages(maintenace_records)
+            raise ServiceUnavailable(
+                detail=get_maintenance_messages(maintenance_records))
+        else:
+            return True
