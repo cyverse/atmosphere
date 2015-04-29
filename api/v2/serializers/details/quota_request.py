@@ -1,6 +1,6 @@
+from rest_framework import serializers
 from core.models import QuotaRequest, Quota, Identity, AtmosphereUser as User
 from core.models.status_type import StatusType
-from rest_framework import serializers
 from api.v2.serializers.summaries import (
     IdentitySummarySerializer,
     UserSummarySerializer,
@@ -31,7 +31,6 @@ class IdentityRelatedField(serializers.PrimaryKeyRelatedField):
         serializer = IdentitySummarySerializer(identity, context=self.context)
         return serializer.data
 
-
 class QuotaRelatedField(serializers.PrimaryKeyRelatedField):
 
     def get_queryset(self):
@@ -60,10 +59,14 @@ class QuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.CharField(read_only=True)
     created_by = UserRelatedField(read_only=True)
     user = UserSummarySerializer(source='membership.identity.created_by', read_only=True)
-    identity = IdentityRelatedField(source='membership.identity', queryset=Identity.objects.none())
+    identity = IdentityRelatedField(source='membership.identity',
+                                    read_only=True)
     provider = ProviderSummarySerializer(source='membership.identity.provider', read_only=True)
-    quota = QuotaRelatedField(queryset=Quota.objects.all(), required=False)
-    status = StatusTypeRelatedField(queryset=StatusType.objects.none(), required=False)
+    status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
+                                    allow_null=True,
+                                    required=False)
+    quota = QuotaRelatedField(queryset=Quota.objects.all(),
+                              required=True)
 
     class Meta:
         model = QuotaRequest
@@ -82,3 +85,8 @@ class QuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
             'admin_message',
             'quota'
         )
+
+class UserQuotaRequestSerializer(QuotaRequest):
+    quota = QuotaRelatedField(read_only=True)
+    status =  StatusTypeRelatedField(read_only=True)
+    admin_message = serializers.CharField(read_only=True)
