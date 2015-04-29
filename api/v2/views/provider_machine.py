@@ -9,3 +9,5 @@ class ProviderMachineViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = ProviderMachine.objects.all()
     serializer_class = ProviderMachineSerializer
+    search_fields = ('application__id', 'instance_source__created_by__username')
+    filter_fields = ('application__id', 'instance_source__created_by__username')
