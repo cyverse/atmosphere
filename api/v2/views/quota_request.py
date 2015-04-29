@@ -1,37 +1,40 @@
-from rest_framework import viewsets
-from core.models import QuotaRequest, IdentityMembership
-from api.v2.serializers.details import QuotaRequestSerializer
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
+
+from api.v2.views.base import BaseRequestViewSet
+from api.v2.serializers.details import QuotaRequestSerializer, UserQuotaRequestSerializer
+from core.models import QuotaRequest
+from web.emails import quota_request_email
 
 
-class QuotaRequestViewSet(viewsets.ModelViewSet):
+class QuotaRequestViewSet(BaseRequestViewSet):
     """
-    API endpoint that allows providers to be viewed or edited.
+    API endpoint that allows quota request to be viewed or edited.
     """
-    queryset = QuotaRequest.objects.all()
-    serializer_class = QuotaRequestSerializer
+    queryset = QuotaRequest.objects.none()
+    model = QuotaRequest
+    serializer_class = UserQuotaRequestSerializer
+    admin_serializer_class = QuotaRequestSerializer
     permission_classes = (IsAuthenticated,)
     filter_fields = ('status__id', 'status__name')
-    http_method_names = ['get', 'post', 'put', 'patch', 'head', 'options', 'trace']
 
-    def perform_create(self, serializer):
-        identity_id = serializer.initial_data.get('identity')
-        membership = IdentityMembership.objects.get(identity=identity_id)
-        serializer.save(
-            membership=membership,
-            created_by=self.request.user
-        )
-
-    def get_queryset(self):
+    def submit_action(self, instance):
         """
-        Filter quota requests by current user
+        Submits a quota request email
         """
-        user = self.request.user
-        return QuotaRequest.objects.filter(created_by=user)
+        requested_quota = instance.request
+        reason_for_request = instance.description
+        username = self.request.user.username
+        quota_request_email(self.request, username, requested_quota, reason_for_request)
 
-    def get_permissions(self):
-        method = self.request.method
-        if method == 'PUT':
-            self.permission_classes = (IsAdminUser,)
+    def approve_action(self, instance):
+        """
+        Updates the quota for the request
+        """
+        membership = instance.membership
+        membership.quota = instance.quota
+        membership.approve_quota(instance.uuid)
 
-        return super(viewsets.ModelViewSet, self).get_permissions()
+    def deny_action(self, instance):
+        """
+        Notify the user that the request was denied
+        """
