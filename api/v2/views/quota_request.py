@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from api.v2.views.base import BaseRequestViewSet
 from api.v2.serializers.details import QuotaRequestSerializer, UserQuotaRequestSerializer
 from core.models import QuotaRequest
+from core.email import send_denied_quota_email
 from web.emails import quota_request_email
 
 
@@ -38,3 +39,6 @@ class QuotaRequestViewSet(BaseRequestViewSet):
         """
         Notify the user that the request was denied
         """
+        send_denied_quota_email(user=instance.created_by,
+                                request=instance.request,
+                                reason=instance.admin_message)
