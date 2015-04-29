@@ -37,7 +37,7 @@ rtwo==0.2.10
 caslib.py==2.2.0
 chromogenic==0.1.5
 jwt.py==0.1.0
-subspace==0.1.3
+subspace==0.1.4
 
 ## dev
 #django-sslserver #NOTE: Debugs requests real-time.
