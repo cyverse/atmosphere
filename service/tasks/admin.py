@@ -24,6 +24,6 @@ def set_quota_request_failed(err, identifier):
     Set the quota request as failed if
     Marks the quota request ask
     """
-    request = QuotaRequest.objects.get(uuid=identifier)
+    request = QuotaRequest.objects.get(id=identifier)
     request.status = get_status_type(status="failed")
     request.save()
