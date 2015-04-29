@@ -1,0 +1,6 @@
+---
+- name: Playbook to install and configure vncserver 
+  hosts: matts-test-group
+  roles:
+    # Requires ATMOUSERNAME and VNCLICENSE
+    - realvnc-server-v5 

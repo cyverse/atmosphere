@@ -1,5 +1,0 @@
-post_script_dir: "/etc/atmo/post-scripts.d"
-post_script_dir_run: "/etc/atmo/post-scripts.d/*"
-post_script_log_dir: "/var/log/atmo/post-scripts"
-post_script_log_stdout: "/var/log/atmo/post-scripts/stdout"
-post_script_log_stderr: "/var/log/atmo/post-scripts/stderr" 

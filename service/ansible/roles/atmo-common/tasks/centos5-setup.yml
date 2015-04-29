@@ -17,24 +17,15 @@
     - fuse-devel.x86_64
     - python
     - python-ldap
-    - denyhosts
     
     
     
-- name: set hostname
-  hostname: name={{ ansible_hostname }}
-
-
-- name: /etc/ssh/sshd_config changes  
-  lineinfile: dest=/etc/ssh/sshd_config backup=yes regexp="{{ item.regexp}}" line="{{ item.line }}"
-  with_items:
-    - { regexp: '^PermitRootLogin', line: 'PermitRootLogin without-password'}
-    - { regexp: '^UseDNS', line: 'UseDNS no'}
-
-- name: Append AllowGroups Line to /etc/ssh/sshd_config
-  lineinfile: dest=/etc/ssh/sshd_config line="AllowGroups users core-services root"
-  notify:
-  - restart centos ssh
+#- set_fact: ansible_python_interpreter=/usr/bin/python2.6
+#
+#- name: set hostname
+#  hostname: name={{ HOSTNAME | ansible_hostname }}
+#
+#- set_fact: ansible_python_interpreter=/usr/bin/python
 
 - name: Remove old timezone link
   file: dest=/etc/localtime state=absent
@@ -42,40 +33,16 @@
 - name: Update timezone
   file: src=/usr/share/zoneinfo/US/Arizona dest=/etc/localtime owner=root group=root state=link
 
-- name: create denyhosts directory if it does not exist   
-  file: path={{denyhosts_filepath}} state=directory
-
-- name: Add allowed-hosts file to denyhosts directory if it does not exist 
-  copy: src=allowed-hosts dest={{denyhosts_filepath}} force=yes
-
-- name: add block service for /etc/denyhosts.conf
-  lineinfile: dest=/etc/denyhosts.conf backup=yes line="BLOCK_SERVICE = ALL"
-
-
-- name: verify text in rc.local
-  command: grep '# this is for atmosphere' /etc/rc.d/rc.local  
-  register: rc_local_atmo_exists
-  ignore_errors: true
-
 - name: add necessary lines to rc.local
   lineinfile: dest=/etc/rc.d/rc.local line="\n# this is for atmosphere\nif [ -x /etc/rc.d/rc.local.atmo ]; then\n\t/etc/rc.d/rc.local.atmo\nfi" 
-  when: rc_local_atmo_exists|failed 
-
-- name: touch rc.local.atmo to ensure that it exists
-  file: path=/etc/rc.d/rc.local.atmo state=touch
 
 - name: create rc.local.atmo
-  lineinfile: dest=/etc/rc.d/rc.local.atmo line='#!/bin/sh -e\ndepmod -a\nmodprobe acpiphp\nhostname {{ ansible_hostname }}\n'
+  lineinfile: dest=/etc/rc.d/rc.local.atmo create=yes state=present line='#!/bin/sh -e\ndepmod -a\nmodprobe acpiphp\nhostname {{ ansible_hostname }}\n'
 
 - name: download get-pip.py
   get_url:  dest=/tmp/ url=https://bootstrap.pypa.io/get-pip.py validate_certs=no
 
 - name: install/upgrade pip
   shell: /usr/bin/python26 get-pip.py chdir=/tmp/
-
-#- name: install pip packages
-#  pip: name={{ item }}
-#  with_items:
-#    - yum
 
 - set_fact: ansible_python_interpreter=/usr/bin/python26

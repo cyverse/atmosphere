@@ -1,0 +1,8 @@
+- include: centos-setup.yml
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version < '7'
+
+- include: centos7-setup.yml
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+
+- include: ubuntu-setup.yml
+  when: ansible_distribution == "Ubuntu"

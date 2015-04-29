@@ -1,0 +1,20 @@
+- name: uninstall denyhosts
+  yum: name=denyhosts.noarch state=absent
+  tags: uninstall-denyhosts
+
+- name: install fail2ban for centos
+  yum: name=fail2ban.noarch state=present
+  tags: install-fail2ban
+
+- name: configure fail2ban local jails
+  action: template src=centos-jail.local.j2 dest=/etc/fail2ban/jail.local mode=0644
+  notify: restart fail2ban centos
+  tags: configure-fail2ban
+
+- name: touch and chown sshd.log
+  file: path=/var/log/sshd.log state=touch mode="0644"
+  tags: touch-sshd-log
+
+- name: start/stop fail2ban service
+  service: name=fail2ban state=restarted enabled=yes
+  tags: restart-fail2ban

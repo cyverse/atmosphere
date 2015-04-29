@@ -1,4 +1,0 @@
-PLUGINS_DIR: /usr/lib/nagios/plugins
-ATMO_COMMANDS_PATH: /etc/nagios/nrpe.d/atmo-commands.cfg
-NRPE_DAEMON: nagios-nrpe-server
-NRPE_USER: nagios
