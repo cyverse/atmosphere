@@ -64,7 +64,7 @@ class BaseRequestViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # NOTE: An identity could possible have multiple memberships
         # It may be better to directly take membership rather than an identity
-        identity_id = serializer.initial_data("identity")
+        identity_id = serializer.initial_data.get("identity")
         status, _ = StatusType.objects.get_or_create(name="pending")
         try:
             membership = IdentityMembership.objects.get(identity=identity_id)
