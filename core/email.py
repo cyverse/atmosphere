@@ -352,27 +352,13 @@ def send_image_request_email(user, new_machine, name):
     subject = 'Your Atmosphere Image is Complete'
     return email_from_admin(user, subject, body)
 
-
 def send_new_provider_email(username, provider_name):
-    subject = "Your iPlant Atmosphere account has been granted access "\
-              "to the %s provider" % provider_name
-    django_user = User.objects.get(username=username)
-    username, user_email, user_name = user_email_info(django_user.username)
-    help_link = "https://pods.iplantcollaborative.org/wiki/"\
-                "display/atmman/Changing+Providers"
-    ask_link = "http://ask.iplantcollaborative.org/"
-    email_body = """Welcome %s,<br/><br/>
-You have been granted access to the %s provider on Atmosphere.
-Instructions to change to a new provider can be found on <a href="%s">this page</a>.
-<br/>
-<br/>
-If you have questions or encounter technical issues while using %s, you can
-browse and post questions to <a href="%s">iPlant Ask</a> or contact support@iplantcollaborative.org.
-<br/>
-Thank you,<br/>
-iPlant Atmosphere Team""" % (user_name,
-                             provider_name,
-                             help_link,
-                             provider_name,
-                             ask_link)
-    return email_from_admin(username, subject, email_body, html=True)
+    subject = ("Your iPlant Atmosphere account has been granted access "
+               "to the %s provider" % provider_name)
+    context = {
+        "user": username,
+        "provider": provider_name,
+    }
+    body = render_to_string("core/email/provider_email.html",
+                            context=Context(context))
+    return email_from_admin(username, subject, body, html=True)
