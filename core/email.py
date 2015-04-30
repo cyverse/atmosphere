@@ -342,13 +342,13 @@ def send_image_request_email(user, new_machine, name):
     which will provide useful information about the new image.
     """
     username, user_email, user_name = user_email_info(user.username)
-    body = """Hello %s,
-
-Your image is ready. The image ID is "%s" and the image is named "%s".
-
-Thank you for using atmosphere!
-If you have any questions please contact: support@iplantcollaborative.org""" %\
-        (user_name, new_machine.identifier, name)
+    context = {
+        "user": user_name,
+        "identifier": new_machine.identifier,
+        "alias": name
+    }
+    body = render_to_string("core/email/imaging_success.html",
+                            context=Context(context))
     subject = 'Your Atmosphere Image is Complete'
     return email_from_admin(user, subject, body)
 
