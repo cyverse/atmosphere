@@ -2,6 +2,7 @@ from functools import wraps
 
 from django.utils import timezone
 from rest_framework import exceptions, status, viewsets
+from rest_framework.response import Response
 
 from core import exceptions as core_exceptions
 from core.models import IdentityMembership
