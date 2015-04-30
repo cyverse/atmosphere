@@ -1,10 +1,11 @@
-from rest_framework import viewsets
 from core.models import Identity, Group
-from api.v2.serializers.details import IdentitySerializer
 from core.query import only_current_provider
 
+from api.v2.serializers.details import IdentitySerializer
+from api.base import AuthViewSet
 
-class IdentityViewSet(viewsets.ReadOnlyModelViewSet):
+
+class IdentityViewSet(AuthViewSet):
     """
     API endpoint that allows providers to be viewed or edited.
     """
@@ -18,5 +19,6 @@ class IdentityViewSet(viewsets.ReadOnlyModelViewSet):
         """
         user = self.request.user
         group = Group.objects.get(name=user.username)
-        identities = group.identities.filter(only_current_provider(), provider__active=True)
+        identities = group.identities.filter(
+            only_current_provider(), provider__active=True)
         return identities

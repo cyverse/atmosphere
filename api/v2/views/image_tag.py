@@ -1,9 +1,10 @@
-from rest_framework import viewsets
 from core.models import ApplicationTag as ImageTag
+
 from api.v2.serializers.details import ImageTagSerializer
+from api.v2.base import AuthViewSet
 
 
-class ImageTagViewSet(viewsets.ModelViewSet):
+class ImageTagViewSet(AuthViewSet):
     """
     API endpoint that allows instance tags to be viewed
     """
@@ -15,4 +16,4 @@ class ImageTagViewSet(viewsets.ModelViewSet):
         """
         Filter out tags for deleted instances
         """
-        return ImageTag.objects.filter(application__end_date__isnull=True,)
+        return ImageTag.objects.filter(application__end_date__isnull=True)

@@ -1,12 +1,14 @@
-from rest_framework import viewsets
 from core.models import Quota
+
 from api.v2.serializers.details import QuotaSerializer
+from api.v2.base import AuthReadOnlyViewSet
 
 
-class QuotaViewSet(viewsets.ReadOnlyModelViewSet):
+class QuotaViewSet(AuthReadOnlyViewSet):
     """
     API endpoint that allows providers to be viewed or edited.
     """
+
     queryset = Quota.objects.all()
     serializer_class = QuotaSerializer
     http_method_names = ['get', 'head', 'options', 'trace']

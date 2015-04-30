@@ -1,12 +1,14 @@
-from rest_framework import viewsets
 from core.models import ProjectVolume
+
 from api.v2.serializers.details import ProjectVolumeSerializer
+from api.v2.base import AuthViewSet
 
 
-class ProjectVolumeViewSet(viewsets.ModelViewSet):
+class ProjectVolumeViewSet(AuthViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
+
     queryset = ProjectVolume.objects.all()
     serializer_class = ProjectVolumeSerializer
     filter_fields = ('project__id',)

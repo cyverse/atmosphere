@@ -1,12 +1,13 @@
-from rest_framework import viewsets
 from core.models import AtmosphereUser
 from api.v2.serializers.details import UserSerializer
+from api.v2.base import AuthReadOnlyViewSet
 
 
-class UserViewSet(viewsets.ReadOnlyModelViewSet):
+class UserViewSet(AuthReadOnlyViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
+
     queryset = AtmosphereUser.objects.all()
     serializer_class = UserSerializer
     filter_fields = ('email',)

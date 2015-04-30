@@ -1,27 +1,28 @@
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.decorators import detail_route
+
 from core.models import Provider, Group
-from api.v2.serializers.details import ProviderSerializer
-from api.v2.serializers.summaries import SizeSummarySerializer
 from core.query import only_current_provider
 
+from api.permissions import CloudAdminRequired
+from api.v2.serializers.details import ProviderSerializer
+from api.v2.serializers.summaries import SizeSummarySerializer
+from api.v2.base import AuthReadOnlyViewSet, AuthViewSet
 
-class ProviderViewSet(viewsets.ReadOnlyModelViewSet):
+
+class ProviderViewSet(AuthReadOnlyViewSet):
     """
     API endpoint that allows providers to be viewed or edited.
     """
+
     queryset = Provider.objects.all()
     serializer_class = ProviderSerializer
-    permission_classes = (IsAuthenticated,)
     http_method_names = ['get', 'head', 'options', 'trace']
 
     def get_permissions(self):
         method = self.request.method
         if method == 'DELETE' or method == 'PUT':
-            self.permission_classes = (IsAdminUser,)
-
-        return super(viewsets.GenericViewSet, self).get_permissions()
+            self.permission_classes += (CloudAdminRequired,)
+        return super(AuthReadOnlyViewSet, self).get_permissions()
 
     def get_queryset(self):
         """
@@ -29,7 +30,9 @@ class ProviderViewSet(viewsets.ReadOnlyModelViewSet):
         """
         user = self.request.user
         group = Group.objects.get(name=user.username)
-        provider_ids = group.identities.filter(only_current_provider(), provider__active=True).values_list('provider', flat=True)
+        provider_ids = group.identities.filter(
+            only_current_provider(),
+            provider__active=True).values_list('provider', flat=True)
         return Provider.objects.filter(id__in=provider_ids)
 
     @detail_route()

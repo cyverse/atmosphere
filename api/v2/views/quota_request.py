@@ -1,10 +1,11 @@
-from rest_framework.permissions import IsAuthenticated
-
-from api.v2.views.base import BaseRequestViewSet
-from api.v2.serializers.details import QuotaRequestSerializer, UserQuotaRequestSerializer
 from core.models import QuotaRequest
 from core.email import send_denied_quota_email
+
 from web.emails import quota_request_email
+
+from api.v2.views.base import BaseRequestViewSet
+from api.v2.serializers.details import QuotaRequestSerializer,\
+    UserQuotaRequestSerializer
 
 
 class QuotaRequestViewSet(BaseRequestViewSet):
@@ -15,7 +16,6 @@ class QuotaRequestViewSet(BaseRequestViewSet):
     model = QuotaRequest
     serializer_class = UserQuotaRequestSerializer
     admin_serializer_class = QuotaRequestSerializer
-    permission_classes = (IsAuthenticated,)
     filter_fields = ('status__id', 'status__name')
 
     def submit_action(self, instance):
@@ -25,7 +25,8 @@ class QuotaRequestViewSet(BaseRequestViewSet):
         requested_quota = instance.request
         reason_for_request = instance.description
         username = self.request.user.username
-        quota_request_email(self.request, username, requested_quota, reason_for_request)
+        quota_request_email(self.request, username, requested_quota,
+                            reason_for_request)
 
     def approve_action(self, instance):
         """
