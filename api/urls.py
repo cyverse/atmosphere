@@ -6,9 +6,8 @@ from api.allocation import AllocationDetail, AllocationList, MonitoringList
 from api.allocation_request import AllocationRequestDetail,\
     AllocationRequestList
 from api.application import ApplicationSearch, ApplicationList, Application,\
-                            ApplicationThresholdDetail
+    ApplicationThresholdDetail
 from api.bookmark import ApplicationBookmarkDetail, ApplicationBookmarkList
-
 from api.cloud_admin import\
     CloudAdminImagingRequestList, CloudAdminImagingRequest,\
     CloudAdminAccountList, CloudAdminAccount,\
@@ -35,12 +34,12 @@ from api.meta import Meta, MetaAction
 from api.notification import NotificationList
 from api.occupancy import Occupancy, Hypervisor
 from api.project import NoProjectList, NoProjectInstanceList,\
-        NoProjectVolumeList, NoProjectApplicationList
+    NoProjectVolumeList, NoProjectApplicationList
 from api.post_boot import BootScriptList, BootScript
 from api.project import ProjectList, ProjectDetail
 from api.project import ProjectInstanceList, ProjectInstanceExchange,\
-        ProjectApplicationList, ProjectApplicationExchange,\
-        ProjectVolumeList, ProjectVolumeExchange
+    ProjectApplicationList, ProjectApplicationExchange,\
+    ProjectVolumeList, ProjectVolumeExchange
 from api.profile import Profile
 from api.provider import ProviderList, Provider
 from api.quota import QuotaDetail, QuotaList
@@ -52,8 +51,8 @@ from api.tag import TagList, Tag
 from api.token import TokenEmulate
 from api.version import Version
 from api.volume import BootVolume,\
-        VolumeSnapshot, VolumeSnapshotDetail,\
-        VolumeList, Volume
+    VolumeSnapshot, VolumeSnapshotDetail,\
+    VolumeList, Volume
 
 # Regex matching you'll use everywhere..
 id_match = '\d+'

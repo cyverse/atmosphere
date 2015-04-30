@@ -100,10 +100,10 @@ class ProjectInstanceExchange(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
         instance = user.instance_set.filter(provider_alias=instance_id)
         if not instance:
-            return Response("instance with ID=%s not found in the database"
-                            % (instance_id,),
-                            status=status.HTTpep8
-                            P_400_BAD_REQUEST)
+            return Response(
+                "instance with ID=%s not found in the database"
+                % (instance_id),
+                status=status.HTTP_400_BAD_REQUEST)
         instance = instance[0]
         existing_projects = instance.projects.all()
         if existing_projects:
