@@ -14,7 +14,7 @@ from core.query import only_current
 from core.models.identity import Identity
 from core.models.instance_source import InstanceSource
 from core.models.provider import Provider
-from core.models.status_type import StatusType, get_status_type
+from core.models.status_type import StatusType, get_status_type_id
 from core.models.user import AtmosphereUser as User
 
 UNRESOLVED_STATES = ["pending", "failed"]
@@ -25,7 +25,7 @@ class BaseRequest(models.Model):
     Base model which represents a request object
     """
     uuid = models.CharField(max_length=36, default=uuid4)
-    status = models.ForeignKey(StatusType, default=get_status_type)
+    status = models.ForeignKey(StatusType, default=get_status_type_id)
 
     # Associated creator and identity
     created_by = models.ForeignKey(User)
