@@ -21,7 +21,7 @@ class UserRelatedField(serializers.PrimaryKeyRelatedField):
         return serializer.data
 
 
-class IdentityRelatedField(serializers.PrimaryKeyRelatedField):
+class IdentityRelatedField(serializers.RelatedField):
 
     def get_queryset(self):
         return Identity.objects.all()
@@ -46,7 +46,7 @@ class IdentityRelatedField(serializers.PrimaryKeyRelatedField):
             )
 
 
-class QuotaRelatedField(serializers.PrimaryKeyRelatedField):
+class QuotaRelatedField(serializers.RelatedField):
 
     def get_queryset(self):
         return Quota.objects.all()
@@ -74,7 +74,7 @@ class QuotaRelatedField(serializers.PrimaryKeyRelatedField):
             )
 
 
-class StatusTypeRelatedField(serializers.PrimaryKeyRelatedField):
+class StatusTypeRelatedField(serializers.RelatedField):
 
     def get_queryset(self):
         return StatusType.objects.all()
