@@ -2,29 +2,26 @@
 Atmosphere service user rest api.
 
 """
-#from django.contrib.auth.models import User as AuthUser
-from core.models import AtmosphereUser as AuthUser
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.response import Response
 
 from threepio import logger
 
-
-
 from service.accounts.eucalyptus import AccountDriver
-from api.permissions import InMaintenance, ApiAuthRequired
-from api.serializers import ProfileSerializer
+
+from core.models import AtmosphereUser as User
 from core.models.provider import Provider
 
-class UserManagement(APIView):
+from api.serializers import ProfileSerializer
+from api.views import AuthAPIView
+
+
+class UserManagement(AuthAPIView):
     """
     Represents both the collection of users
     AND
     Objects on the User class
     """
-    permission_classes = (ApiAuthRequired,)
 
     def post(self, request):
         """
@@ -34,43 +31,37 @@ class UserManagement(APIView):
         """
         params = request.DATA
         user = request.user
-        if user.username is not 'admin' or not user.is_superuser:
-            return Response('Only admin and superusers can create accounts',
+        if user.username is not "admin" or not user.is_superuser:
+            return Response("Only admin and superusers can create accounts",
                             status=status.HTTP_401_UNAUTHORIZED)
 
-        username = params['username']
-        #STEP1 Create the account on the provider
-        provider = Provider.objects.get(location='EUCALYPTUS')
+        username = params["username"]
+        # STEP1 Create the account on the provider
+        provider = Provider.objects.get(location="EUCALYPTUS")
         driver = AccountDriver(provider)
         user = driver.add_user(username)
-        #STEP2 Retrieve the identity from the provider
+        # STEP2 Retrieve the identity from the provider
         if user:
             user_keys = driver.get_key(username)
             driver.create_key(user_keys)
-        #STEP3 Return the new users serialized profile
+        # STEP3 Return the new users serialized profile
         serialized_data = ProfileSerializer(user.userprofile).data
         response = Response(serialized_data)
         return response
 
     def get(self, request):
         user = request.user
-        if user.username is not 'admin' and not user.is_superuser:
-            return Response('Only admin and superusers can view all accounts',
+        if user.username is not "admin" and not user.is_superuser:
+            return Response("Only admin and superusers can view all accounts",
                             status=status.HTTP_401_UNAUTHORIZED)
-
-        all_users = AuthUser.objects.order_by('username')
+        all_users = User.objects.order_by("username")
         all_profiles = [u.userprofile for u in all_users]
         serialized_data = ProfileSerializer(all_profiles).data
         response = Response(serialized_data)
         return response
 
 
-class User(APIView):
-    """
-    """
-
-    permission_classes = (ApiAuthRequired,)
-    
+class User(AuthAPIView):
     def get(self, request, username):
         """
         Return the object belonging to the user
@@ -82,15 +73,15 @@ class User(APIView):
         4. Set in session THEN pass in response
         """
         user = request.user
-        if user.username is not 'admin' or not user.is_superuser:
+        if user.username is not "admin" or not user.is_superuser:
             return Response(
-                'Only admin and superusers '
-                + 'can view individual account profiles',
+                "Only admin and superusers "
+                "can view individual account profiles",
                 status=status.HTTP_401_UNAUTHORIZED)
 
         logger.info(request.__dict__)
 
-        user = AuthUser.objects.get(username=username)
+        user = User.objects.get(username=username)
         serialized_data = ProfileSerializer(user.userprofile).data
         response = Response(serialized_data)
         return response
@@ -102,12 +93,12 @@ class User(APIView):
         2. Mark account as deleted (Don't delete?)
         """
         user = request.user
-        if user.username is not 'admin' or not user.is_superuser:
+        if user.username is not "admin" or not user.is_superuser:
             return Response(
-                'Only admin and superusers '
-                + 'can delete individual account profiles',
+                "Only admin and superusers "
+                "can delete individual account profiles",
                 status=status.HTTP_401_UNAUTHORIZED)
-        return Response('NotImplemented',
+        return Response("NotImplemented",
                         status=status.HTTP_501_NOT_IMPLEMENTED)
 
     def put(self, request, username):
@@ -116,10 +107,10 @@ class User(APIView):
         (Should this be available? LDAP needs to take care of this
         """
         user = request.user
-        if user.username is not 'admin' or not user.is_superuser:
+        if user.username is not "admin" or not user.is_superuser:
             return Response(
-                'Only admin and superusers '
-                + 'can update individual account profiles',
+                "Only admin and superusers "
+                "can update individual account profiles",
                 status=status.HTTP_401_UNAUTHORIZED)
-        return Response('NotImplemented',
+        return Response("NotImplemented",
                         status=status.HTTP_501_NOT_IMPLEMENTED)
