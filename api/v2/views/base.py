@@ -14,9 +14,9 @@ def unresolved_requests_only(fn):
     """
     @wraps(fn)
     def wrapper(self, request, *args, **kwargs):
-        pending_request = self.get_object()
-        if (hasattr(pending_request, "is_closed")
-            and pending_request.is_closed()):
+        instance = self.get_object()
+        if (hasattr(instance, "is_closed")
+            and instance.is_closed()):
             message = (
                 "Method '%s' not allowed: "
                 "the request has already been resolved."
