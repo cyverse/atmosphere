@@ -26,7 +26,7 @@ def unresolved_requests_only(fn):
                                               detail=message)
         else:
             return fn(self, request, *args, **kwargs)
-        return wrapper
+    return wrapper
 
 
 class BaseRequestViewSet(viewsets.ModelViewSet):
