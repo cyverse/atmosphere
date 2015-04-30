@@ -1,14 +1,33 @@
-- include: centos5-setup.yml
-  when: ansible_distribution == "CentOS" and {{ ansible_distribution_major_version | version_compare('6', '<') }}
+- include_vars: "{{ item }}"
+  with_first_found:
+  - "{{ ansible_distribution }}.yml"
+  - "default.yml"
 
-- include: centos-setup.yml
-  when: ansible_distribution == "CentOS"  and {{ ansible_distribution_major_version | version_compare('6', '>=') }}
+- include: centos5-setup.yml
+  when: ansible_distribution == "CentOS" and ansible_distribution_version < '6' 
+
+- include: centos6-setup.yml
+  when: ansible_distribution == "CentOS"  and ansible_distribution_version == '6' 
+
+- include: centos7-setup.yml
+  when: ansible_distribution == "CentOS"  and ansible_distribution_version > '6' 
 
 - include: ubuntu-setup.yml
   when: ansible_distribution == "Ubuntu"
 
-- name: download fuse conf file
-  get_url: url={{fusermount_url}} dest=/etc/fuse.conf
+- name: /etc/ssh/sshd_config changes
+  lineinfile: dest=/etc/ssh/sshd_config backup=yes regexp="{{ item.regexp}}" line="{{ item.line }}"
+  with_items:
+    - { regexp: '^PermitRootLogin', line: 'PermitRootLogin without-password'}
+    - { regexp: '^UseDNS', line: 'UseDNS no'}
+
+- name: Append AllowGroups Line to /etc/ssh/sshd_config 
+  lineinfile: dest=/etc/ssh/sshd_config line="AllowGroups users core-services root" 
+  notify:
+  - restart ssh
+
+- name: copy fuse conf file over
+  copy: src=fuse.conf dest=/etc/fuse.conf
 
 - name: change fusermount permissions
   file: path=/bin/fusermount state=touch mode="0644"
@@ -16,29 +35,13 @@
 - name: make sure ssh directory exists
   file: path=/root/.ssh/ state=directory mode="0700"
 
+- name: set hostname
+  hostname: name={{ default_hostname }}
+
+
 # look in the vars directory for the keys
 - name: add ssh keys to authorzied_keys
-  authorized_key: user=root key="{{ item }}"
+  authorized_key: user=root key="{{ item }}" state=present
   with_items:
     sshkeys
 
-# /etc/sudoers changes
-- name: add core services to sudoers
-  lineinfile:
-     dest=/etc/sudoers
-     backup=yes
-     line="{{ item }}"
-  with_items:
-     - '%core-services ALL=(ALL) ALL'
-
-# this is the deny hosts section
-#- name: white list localhost for /etc/hosts.allow
-#  lineinfile: dest=/etc/hosts.allow backup=yes line='127.0.0.1'
-
-#- name: white list for /etc/hosts.allow
-#  lineinfile: "dest=/etc/hosts.allow backup=yes line='ALL: {{ item }}'"
-#  with_items:
-#     DEFAULT_WHITELIST_HOSTS
-
-#- name: add block service for /etc/denyhosts.conf
-#  lineinfile: dest=/etc/denyhosts.conf backup=yes line="BLOCK_SERVICE = ALL"

@@ -1,5 +1,0 @@
----
-- name: Test Playbook to check integration of ansible in atmosphere pipeline
-  hosts: all
-  roles:
-    - atmo-common

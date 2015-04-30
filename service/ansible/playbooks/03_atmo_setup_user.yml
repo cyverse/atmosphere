@@ -1,0 +1,6 @@
+---
+- name: Setup up user on an atmosphere vm.
+  hosts: atmosphere
+  roles:
+    # ATMOUSERNAME variable required 
+    - atmo-setup-user

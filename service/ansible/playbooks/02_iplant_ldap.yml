@@ -1,0 +1,5 @@
+---
+- name: Install ldap to iplant specifications.
+  hosts: atmosphere
+  roles:
+    - iplant-ldap

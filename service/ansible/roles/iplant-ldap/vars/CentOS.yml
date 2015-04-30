@@ -1,0 +1,8 @@
+PACKAGES:
+  - nss-pam-ldapd 
+  - pam_ldap 
+  - openldap 
+  - openssl 
+  - openssl-devel 
+  - sssd 
+  - oddjob-mkhomedir
