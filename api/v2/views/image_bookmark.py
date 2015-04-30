@@ -1,7 +1,7 @@
 from core.models import ApplicationBookmark as ImageBookmark
 
 from api.v2.serializers.details import ImageBookmarkSerializer
-from api.v2.base import AuthViewSet
+from api.v2.views.base import AuthViewSet
 
 
 class ImageBookmarkViewSet(AuthViewSet):

@@ -5,7 +5,7 @@ from core.query import only_current
 
 from api.v2.serializers.details import ProjectSerializer,\
     VolumeSerializer, InstanceSerializer
-from api.v2.base import AuthViewSet
+from api.v2.views.base import AuthViewSet
 
 
 class ProjectViewSet(AuthViewSet):

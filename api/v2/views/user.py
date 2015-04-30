@@ -1,6 +1,6 @@
 from core.models import AtmosphereUser
 from api.v2.serializers.details import UserSerializer
-from api.v2.base import AuthReadOnlyViewSet
+from api.v2.views.base import AuthReadOnlyViewSet
 
 
 class UserViewSet(AuthReadOnlyViewSet):

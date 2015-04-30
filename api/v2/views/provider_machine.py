@@ -1,7 +1,7 @@
 from core.models import ProviderMachine
 
 from api.v2.serializers.details import ProviderMachineSerializer
-from api.v2.base import AuthReadOnlyViewSet
+from api.v2.views.base import AuthReadOnlyViewSet
 
 
 class ProviderMachineViewSet(AuthReadOnlyViewSet):

@@ -2,7 +2,7 @@ from core.models import Tag
 
 from api.permissions import CloudAdminRequired
 from api.v2.serializers.summaries import TagSummarySerializer
-from api.v2.base import AuthOptionalViewSet
+from api.v2.views.base import AuthOptionalViewSet
 
 
 class TagViewSet(AuthOptionalViewSet):

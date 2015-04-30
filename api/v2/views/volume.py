@@ -4,7 +4,7 @@ from core.models import Volume
 from core.query import only_current_source
 
 from api.v2.serializers.details import VolumeSerializer
-from api.v2.base import AuthViewSet
+from api.v2.views.base import AuthViewSet
 
 
 class VolumeFilter(django_filters.FilterSet):

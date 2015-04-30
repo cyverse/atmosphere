@@ -2,7 +2,7 @@ from core.models import Instance
 from core.query import only_current
 
 from api.v2.serializers.details import InstanceSerializer
-from api.v2.base import AuthViewSet
+from api.v2.views.base import AuthViewSet
 
 
 class InstanceViewSet(AuthViewSet):

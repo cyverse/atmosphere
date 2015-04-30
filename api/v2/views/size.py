@@ -2,13 +2,14 @@ from core.models import Group, Size
 from core.query import only_current, only_current_provider
 
 from api.v2.serializers.details import SizeSerializer
-from api.v2.base import AuthReadOnlyViewSet
+from api.v2.views.base import AuthReadOnlyViewSet
 
 
 class SizeViewSet(AuthReadOnlyViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
+
     queryset = Size.objects.all()
     serializer_class = SizeSerializer
     filter_fields = ('provider__id',)

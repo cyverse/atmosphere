@@ -3,9 +3,9 @@ from core.email import send_denied_quota_email
 
 from web.emails import quota_request_email
 
-from api.v2.views.base import BaseRequestViewSet
 from api.v2.serializers.details import QuotaRequestSerializer,\
     UserQuotaRequestSerializer
+from api.v2.views.base import BaseRequestViewSet
 
 
 class QuotaRequestViewSet(BaseRequestViewSet):

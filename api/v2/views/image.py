@@ -7,7 +7,7 @@ from core.models import AtmosphereUser
 from core.query import only_current, only_current_machines
 
 from api.v2.serializers.details import ImageSerializer
-from api.v2.base import AuthOptionalViewSet
+from api.v2.views.base import AuthOptionalViewSet
 
 
 class ImageViewSet(AuthOptionalViewSet):

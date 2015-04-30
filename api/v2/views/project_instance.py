@@ -1,7 +1,7 @@
 from core.models import ProjectInstance
 
 from api.v2.serializers.details import ProjectInstanceSerializer
-from api.v2.base import AuthViewSet
+from api.v2.views.base import AuthViewSet
 
 
 class ProjectInstanceViewSet(AuthViewSet):

@@ -1,7 +1,7 @@
 from core.models import ProjectVolume
 
 from api.v2.serializers.details import ProjectVolumeSerializer
-from api.v2.base import AuthViewSet
+from api.v2.views.base import AuthViewSet
 
 
 class ProjectVolumeViewSet(AuthViewSet):

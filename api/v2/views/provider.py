@@ -6,7 +6,7 @@ from core.query import only_current_provider
 from api.permissions import CloudAdminRequired
 from api.v2.serializers.details import ProviderSerializer
 from api.v2.serializers.summaries import SizeSummarySerializer
-from api.v2.base import AuthReadOnlyViewSet, AuthViewSet
+from api.v2.views.base import AuthReadOnlyViewSet, AuthViewSet
 
 
 class ProviderViewSet(AuthReadOnlyViewSet):

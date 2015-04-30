@@ -1,7 +1,7 @@
 from core.models import Quota
 
 from api.v2.serializers.details import QuotaSerializer
-from api.v2.base import AuthReadOnlyViewSet
+from api.v2.views.base import AuthReadOnlyViewSet
 
 
 class QuotaViewSet(AuthReadOnlyViewSet):

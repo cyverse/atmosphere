@@ -1,7 +1,7 @@
 from core.models import InstanceTag
 
 from api.v2.serializers.details import InstanceTagSerializer
-from api.v2.base import AuthViewSet
+from api.v2.views.base import AuthViewSet
 
 
 class InstanceTagViewSet(AuthViewSet):
