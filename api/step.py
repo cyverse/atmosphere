@@ -6,33 +6,28 @@ from uuid import uuid1
 from django.utils import timezone
 
 from rest_framework import status
-from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from threepio import logger
-
 
 from core.models.flow import Flow as CoreFlow
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import Instance as CoreInstance
 from core.models.step import Step as CoreStep
 
-from api.permissions import InMaintenance, ApiAuthRequired
-from api.serializers import StepSerializer
-
 from api import failure_response
+from api.serializers import StepSerializer
+from api.views import AuthAPIView
 
 
-class StepList(APIView):
+class StepList(AuthAPIView):
     """
     List all steps for an identity.
     """
-    permission_classes = (ApiAuthRequired,)
-    
+
     def get(self, request, provider_uuid, identity_uuid):
         """
         Using provider and identity, getlist of machines
-        TODO: Cache this request
         """
         step_list = [s for s in CoreStep.objects.filter(
             created_by_identity__uuid=identity_uuid)]
@@ -76,12 +71,11 @@ class StepList(APIView):
             serializer.errors)
 
 
-class Step(APIView):
+class Step(AuthAPIView):
     """
     View a details of a step.
     """
-    permission_classes = (ApiAuthRequired,)
-    
+
     def get(self, request, provider_uuid, identity_uuid, step_id):
         """
         Get details of a specific step.
@@ -123,7 +117,6 @@ class Step(APIView):
         return failure_response(
             status.HTTP_400_BAD_REQUEST,
             serializer.errors)
-
 
     def delete(self, request, provider_uuid, identity_uuid, step_id):
         """
