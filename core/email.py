@@ -285,24 +285,16 @@ def send_preemptive_deploy_failed_email(core_instance, message):
     """
     user = core_instance.created_by
     username, user_email, user_name = user_email_info(user.username)
-    body = """ADMINS: Serveral attempts to contact the instance have failed!
-This system is put in place as an "Early Warning System" to help
-stem off or deal with these problems while the instances can still
-go through their normal deployment process.
-A final email will be sent when the last attempt has been made.
----
-Failed Instance Details:
-  Alias: %s
-  Owner: %s (%s Email: %s)
-  IP Address: %s
-  Image ID: %s
----
-Additional Details: %s
-""" % (core_instance.provider_alias,
-       user, user_name, user_email,
-       core_instance.ip_address,
-       core_instance.source.providermachine.identifier,
-       message)
+    context = {
+        "alias": core_instance.provider_alias,
+        "owner": user,
+        "user": user_name,
+        "email": user_email,
+        "ip": core_instance.ip_address,
+        "identifier": core_instance.source.providermachine.identifier,
+        "details": message
+    }
+    body = render_to_string("core/email/deploy_warning.html", Context(context))
     from_name, from_email = atmo_daemon_address()
     subject = '(%s) Preemptive Deploy Failure' % username
     return email_to_admin(subject, body, from_name, from_email,
