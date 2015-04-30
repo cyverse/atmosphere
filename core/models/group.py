@@ -182,9 +182,10 @@ class IdentityMembership(models.Model):
         super(IdentityMembership, self).save()
         try:
             from service.tasks.admin import set_provider_quota,\
-                set_quota_request_failed
+                set_quota_request_failed, close_quota_request
             set_provider_quota.apply_async(
                 args=[self.identity.uuid],
+                link=close_quota_request.s(request_id),
                 link_error=set_quota_request_failed.s(request_id))
         except Exception as ex:
             logger.warn("Unable to update service.quota.set_provider_quota.")
