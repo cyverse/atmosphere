@@ -4,6 +4,9 @@ Atmosphere core email.
 """
 
 from core.models import AtmosphereUser as User
+
+from django.template import Context
+from django.template.loader import render_to_string
 from django.utils import timezone as django_timezone
 
 from pytz import timezone as pytz_timezone
@@ -14,6 +17,22 @@ from atmosphere import settings
 
 from authentication.protocol.ldap import lookupEmail, lookupUser
 from service.tasks.email import send_email as send_email_task
+
+
+def send_email_template(subject, template, recipient, sender,
+                        context=None, cc=None, html=True, silent=False):
+    """
+    Send a email using the template provided
+    """
+    body = render_to_string(template, context=Context(context))
+    args = (subject, body, recipient, sender)
+    kwargs = {
+        "cc": cc,
+        "fail_silently": silent,
+        "html": html
+    }
+    send_email_task.apply_async(args=args, kwargs=kwargs)
+    return True
 
 
 def email_address_str(name, email):
