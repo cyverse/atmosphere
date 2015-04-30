@@ -319,22 +319,17 @@ def send_image_request_failed_email(machine_request, exception_str):
     username, user_email, user_name = user_email_info(user.username)
     approve_link = '%s/api/v1/request_image/%s/approve' \
         % (settings.SERVER_URL, machine_request.id)
-    body = """ADMINS: A machine request has FAILED."
-Please look over the exception. If the exception is one-time failure
-you can re-approve the image here: %s
-------------------------------------------------------------------
-Machine Request:
-  ID: %d
-  Owner: %s
-  Contact:%s (E-mail: %s)
-  Instance: %s
-  IP Address: %s
-Exception: %s
-""" % (approve_link, machine_request.id, user,
-        user_name, user_email,
-        machine_request.instance.provider_alias,
-        machine_request.instance.ip_address,
-        exception_str)
+    context = {
+        "approval_link": approve_link,
+        "identifier": machine_request.id,
+        "owner": user,
+        "user": user_name,
+        "email": user_email,
+        "alias": machine_request.instance.provider_alias,
+        "ip": machine_request.instance.ip_address,
+        "error": exception_str
+    }
+    body = render_to_string("core/email/imaging_failed.html", context=Context(context))
     subject = 'ERROR - Atmosphere Imaging Task has encountered an exception'
     return email_to_admin(subject, body, user.username, user_email,
                           cc_user=False)
