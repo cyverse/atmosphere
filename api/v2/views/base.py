@@ -63,7 +63,9 @@ class BaseRequestViewSet(viewsets.ModelViewSet):
         return self.serializer_class
 
     def perform_create(self, serializer):
-        identity_id = serializer.initial_data.get('identity')
+        # NOTE: An identity could possible have multiple memberships
+        # It may be better to directly take membership rather than an identity
+        identity_id = serializer.initial_data("identity")
         status, _ = StatusType.objects.get_or_create(name="pending")
         try:
             membership = IdentityMembership.objects.get(identity=identity_id)
@@ -99,6 +101,10 @@ class BaseRequestViewSet(viewsets.ModelViewSet):
         """
         Updates the request and performs any update actions.
         """
+        # NOTE: An identity could possible have multiple memberships
+        # It may be better to directly take membership rather than an identity
+        identity_id = serializer.initial_data.get('identity').get("id", None)
+        membership = IdentityMembership.objects.get(identity=identity_id)
         try:
             instance = serializer.save(end_date=timezone.now())
         except Exception as e:
