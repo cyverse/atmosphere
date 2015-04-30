@@ -1,4 +1,4 @@
-from rest_framework import serializers
+from rest_framework import exceptions, serializers
 from core.models import QuotaRequest, Quota, Identity, AtmosphereUser as User
 from core.models.status_type import StatusType
 from api.v2.serializers.summaries import (
@@ -31,6 +31,20 @@ class IdentityRelatedField(serializers.PrimaryKeyRelatedField):
         serializer = IdentitySummarySerializer(identity, context=self.context)
         return serializer.data
 
+    def to_internal_value(self, data):
+        queryset = self.get_queryset()
+        if isinstance(data, dict):
+            identity = data.get("id", None)
+        else:
+            identity = data
+        try:
+            return queryset.get(id=identity)
+        except:
+            raise exceptions.ValidationError(
+                "Identity with id '%s' does not exist."
+                % identity
+            )
+
 class QuotaRelatedField(serializers.PrimaryKeyRelatedField):
 
     def get_queryset(self):
@@ -44,6 +58,20 @@ class QuotaRelatedField(serializers.PrimaryKeyRelatedField):
         serializer = QuotaSummarySerializer(quota, context=self.context)
         return serializer.data
 
+    def to_internal_value(self, data):
+        queryset = self.get_queryset()
+        if isinstance(data, dict):
+            identity = data.get("id", None)
+        else:
+            identity = data
+        try:
+            return queryset.get(id=identity)
+        except:
+            raise exceptions.ValidationError(
+                "Quota with id '%s' does not exist."
+                % identity
+            )
+
 class StatusTypeRelatedField(serializers.PrimaryKeyRelatedField):
 
     def get_queryset(self):
@@ -54,13 +82,27 @@ class StatusTypeRelatedField(serializers.PrimaryKeyRelatedField):
         serializer = StatusTypeSummarySerializer(status_type, context=self.context)
         return serializer.data
 
+    def to_internal_value(self, data):
+        queryset = self.get_queryset()
+        if isinstance(data, dict):
+            identity = data.get("id", None)
+        else:
+            identity = data
+
+        try:
+            return queryset.get(id=identity)
+        except:
+            raise exceptions.ValidationError(
+                "StatusType with id '%s' does not exist."
+                % identity
+            )
 
 class QuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.CharField(read_only=True)
     created_by = UserRelatedField(read_only=True)
     user = UserSummarySerializer(source='membership.identity.created_by', read_only=True)
     identity = IdentityRelatedField(source='membership.identity',
-                                    read_only=True)
+                                    queryset=Identity.objects.none())
     provider = ProviderSummarySerializer(source='membership.identity.provider', read_only=True)
     status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
                                     allow_null=True,
@@ -86,7 +128,31 @@ class QuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
             'quota'
         )
 
-class UserQuotaRequestSerializer(QuotaRequest):
+class UserQuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
     quota = QuotaRelatedField(read_only=True)
     status =  StatusTypeRelatedField(read_only=True)
     admin_message = serializers.CharField(read_only=True)
+    uuid = serializers.CharField(read_only=True)
+    created_by = UserRelatedField(read_only=True)
+    user = UserSummarySerializer(source='membership.identity.created_by', read_only=True)
+    identity = IdentityRelatedField(source='membership.identity',
+                                    queryset=Identity.objects.none())
+    provider = ProviderSummarySerializer(source='membership.identity.provider', read_only=True)
+
+    class Meta:
+        model = QuotaRequest
+        view_name = 'api_v2:quotarequest-detail'
+        fields = (
+            'id',
+            'uuid',
+            'url',
+            'request',
+            'description',
+            'status',
+            'created_by',
+            'user',
+            'identity',
+            'provider',
+            'admin_message',
+            'quota'
+        )
