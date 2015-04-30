@@ -244,37 +244,22 @@ def send_instance_email(user, instance_id, instance_name,
 
     Returns a boolean.
     """
+    format_string = '%b, %d %Y %H:%M:%S'
     username, user_email, user_name = user_email_info(user)
-
     launched_at = launched_at.replace(tzinfo=None)
-    body = """
-Hello %s,
-
-The atmosphere instance <%s> is running and ready for use.
-
-Your Instance Information:
-* Name: %s
-* IP Address: %s
-* SSH Username: %s
-* Launched at: %s UTC (%s Arizona time)
-
-Please terminate instances when they are no longer needed.
-This e-mail notification was auto-generated after instance launch.
-Helpful links:
-  Atmosphere Manual: Using Instances
-  * https://pods.iplantcollaborative.org/wiki/display/atmman/Using+Instances
-  Atmosphere E-mail Support
-  * atmo@iplantcollaborative.org
-""" % (user_name,
-       instance_id,
-       instance_name,
-       ip, linuxusername,
-       launched_at.strftime('%b, %d %Y %H:%M:%S'),
-       django_timezone.localtime(
-           django_timezone.make_aware(
-               launched_at,
-               timezone=pytz_timezone('UTC')))
-       .strftime('%b, %d %Y %H:%M:%S'))
+    utc_date = django_timezone.make_aware(launched_at,
+                                          timezone=pytz_timezone('UTC'))
+    local_launched_at = django_timezone.localtime(utc_date)
+    context = {
+        "user": user_name,
+        "id": instance_id,
+        "name": instance_name,
+        "ip": ip,
+        "sshuser": linuxusername,
+        "launched_at": launched_at.strftime(format_string),
+        "local_launched_at": local_launched_at.strftime(format_string)
+    }
+    body = render_to_string("core/email/instance_ready.html", context=Context(context))
     subject = 'Your Atmosphere Instance is Available'
     return email_from_admin(user, subject, body)
 
