@@ -10,3 +10,4 @@ from .size import SizeSummarySerializer
 from .tag import TagSummarySerializer
 from .user import UserSummarySerializer
 from .volume import VolumeSummarySerializer
+from .license import LicenseSerializer

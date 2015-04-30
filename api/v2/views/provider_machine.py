@@ -7,7 +7,7 @@ from core.query import only_current_source
 from api.v2.serializers.details import ProviderMachineSerializer
 
 
-class ProviderMachineViewSet(viewsets.ReadOnlyModelViewSet):
+class ProviderMachineViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
