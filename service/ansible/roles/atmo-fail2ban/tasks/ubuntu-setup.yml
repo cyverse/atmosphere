@@ -1,0 +1,17 @@
+- name: uninstall denyhosts
+  apt: name=denyhosts.noarch state=absent purge=yes
+  tags: uninstall-denyhosts
+
+- name: install fail2ban for Ubuntu
+  apt: name=fail2ban state=present
+  when: ansible_distribution == "Ubuntu"
+  tags: install-fail2ban
+
+- name: configure fail2ban local jails
+  action: template src=ubuntu-jail.local.j2 dest=/etc/fail2ban/jail.local mode=0644
+  notify: restart fail2ban ubuntu
+  tags: configuration
+
+- name: start/stop fail2ban service
+  service: name=fail2ban state=restarted enabled=yes
+  tags: restart-fail2ban

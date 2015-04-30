@@ -1,8 +1,0 @@
-- include: setup_vnc_ubuntu.yml
-  when: ansible_distribution == "Ubuntu"
-
-- include: setup_vnc_CentOS5.yml
-  when: ansible_distribution == "CentOS" and {{ ansible_distribution_major_version | version_compare('6', '<') }}
-
-- include: setup_vnc_CentOS.yml
-  when: ansible_distribution == "CentOS" and {{ ansible_distribution_major_version | version_compare('6', '>=') }}

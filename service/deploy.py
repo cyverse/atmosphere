@@ -84,22 +84,26 @@ class LoggedScriptDeployment(ScriptDeployment):
         return node
 
 
-def deploy_to(instance_ip):
+def deploy_to(instance_ip, username):
     """
     Use service.ansible to deploy to an instance.
     """
     configure_ansible()
     my_limit = {"hostname": build_host_name(instance_ip), "ip": instance_ip}
-    silverlinings_the_player = os.path.join(
+    deploy_playbooks = os.path.join(
         settings.PROJECT_ROOT,
-        "service/ansible/playbooks/atmo_init_deploy.yml")
+        "service/ansible/playbooks")
     host_list = os.path.join(
         settings.PROJECT_ROOT,
         "service/ansible/hosts")
-    pb = subspace.PlayBook.factory(silverlinings_the_player,
-                                   host_list=host_list, limit=my_limit)
-    pb.run()
-    return pb
+    extra_vars = {"ATMOUSERNAME" : username,
+                  "VNCLICENSE" : secrets.ATMOSPHERE_VNC_LICENSE}
+    pbs = subspace.playbook.get_playbooks(deploy_playbooks,
+                                          host_list=host_list,
+                                          limit=my_limit,
+                                          extra_vars=extra_vars)
+    [pb.run() for pb in pbs]
+    return pbs
 
 
 def configure_ansible():
@@ -109,6 +113,8 @@ def configure_ansible():
     subspace.constants("HOST_KEY_CHECKING", False)
     subspace.constants("DEFAULT_ROLES_PATH", os.path.join(
         settings.PROJECT_ROOT, "service/ansible/roles"))
+    subspace.constants("ANSIBLE_CONFIG", os.path.join(
+        settings.PROJECT_ROOT, "service/ansible/ansible.cfg"))
     subspace.use_logger(logger)
 
 
