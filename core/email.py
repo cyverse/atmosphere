@@ -316,21 +316,17 @@ def send_deploy_failed_email(core_instance, exception_str):
     """
     user = core_instance.created_by
     username, user_email, user_name = user_email_info(user.username)
-    body = """ADMINS: An instance has FAILED to deploy succesfully.
-The exception and relevant details about the image can be found here:
----
-Failed Instance Details:
-  Alias: %s
-  Owner: %s (%s Email: %s)
-  IP Address: %s
-  Image ID: %s
----
-Exception: %s
-""" % (core_instance.provider_alias,
-       user, user_name, user_email,
-       core_instance.ip_address,
-       core_instance.source.providermachine.identifier,
-       exception_str)
+    context = {
+        "alias": core_instance.provider_alias,
+        "owner": user,
+        "user": user_name,
+        "email": user_email,
+        "ip": core_instance.ip_address,
+        "identifier": core_instance.source.providermachine.identifier,
+        "error": exception_str
+    }
+    body = render_to_string("core/email/deploy_failed.html",
+                            context=Context(context))
     from_name, from_email = atmo_daemon_address()
     subject = '(%s) Deploy Failed' % username
     return email_to_admin(subject, body, from_name, from_email,
