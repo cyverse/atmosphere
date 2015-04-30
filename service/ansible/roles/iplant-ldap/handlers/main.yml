@@ -1,0 +1,14 @@
+- name: restart dbus daemon
+  action: service name=dbus state=restarted
+
+- name: restart messagebus daemon
+  action: service name=messagebus state=restarted
+
+- name: restart sssd daemon
+  action: service name=sssd state=restarted
+
+- name: restart oddjobd daemon
+  action: service name=oddjobd state=restarted
+
+- name: restart nslcd daemon
+  action: service name=nslcd state=restarted

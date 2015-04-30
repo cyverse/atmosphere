@@ -17,6 +17,10 @@ def get_status_type(status="pending"):
     return status_type
 
 
+def get_status_type_id(status="pending"):
+    return get_status_type(status=status).id
+
+
 @python_2_unicode_compatible
 class StatusType(models.Model):
     """

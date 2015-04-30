@@ -41,7 +41,7 @@ def admin_address(test_user=None):
 
 
 def atmo_daemon_address():
-    """ Return the daemon email address.                                                                                             
+    """ Return the daemon email address.
     """
     return (settings.ATMO_DAEMON[0][0], settings.ATMO_DAEMON[0][1])
 
@@ -94,7 +94,6 @@ def request_info(request):
             ", height: " + \
             request.POST.get('resolution[screen][height]', '') + ")"
     return (user_agent, remote_ip, location, resolution)
-
 
 def send_email(subject, body, from_email, to, cc=None,
                fail_silently=False, html=False):
@@ -174,6 +173,49 @@ def email_from_admin(username, subject, message, html=False):
                       to=[email_address_str(username, user_email)],
                       cc=[email_address_str(from_name, from_email)],
                       html=html)
+
+def send_approved_quota_email(user, request, reason):
+    """
+    Notify the user the that their request has been approved.
+    """
+    template = """
+Hello {user},
+
+Your quota request for {request} has been approved!
+
+Reason: {reason}
+
+If you have questions please contact us at support@iplantcollaborative.org.
+
+Thank you,
+iPlant Atmosphere Team"""
+    subject = "Your Quota Request has been approved"
+    body = template.format(user=user.username,
+                           request=request,
+                           reason=reason)
+    return email_from_admin(user, subject, body)
+
+def send_denied_quota_email(user, request, reason):
+    """
+    Send an email notifying the user that their request has been denied.
+    """
+    template = """
+Hello {user},
+
+Your quota request for {request} has been denied.
+
+Reason: {reason}
+
+If you have questions please contact us at support@iplantcollaborative.org.
+
+Thank you,
+iPlant Atmosphere Team"""
+
+    subject = "Your Quota Request has been denied"
+    body = template.format(user=user.username,
+                           request=request,
+                           reason=reason)
+    return email_from_admin(user, subject, body)
 
 
 def send_instance_email(user, instance_id, instance_name,
