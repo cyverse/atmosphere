@@ -7,23 +7,23 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from api.permissions import CloudAdminRequired
-from api.serializers import MachineRequestSerializer,\
-    IdentitySerializer, AccountSerializer, \
-    PATCH_ProviderInstanceActionSerializer, \
-    POST_ProviderInstanceActionSerializer, \
-    ProviderInstanceActionSerializer, ResolveQuotaRequestSerializer, \
-    ResolveAllocationRequestSerializer
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 from core.models.cloud_admin import CloudAdministrator
 from core.models.provider import Provider, ProviderInstanceAction
 from core.models.group import IdentityMembership
-
 from core.models.request import AllocationRequest, QuotaRequest
 
 from service.driver import get_account_driver
-
 from service.tasks.machine import start_machine_imaging
+
+from api.permissions import ApiAuthRequired, CloudAdminRequired,\
+    InMaintenance
+from api.serializers import MachineRequestSerializer,\
+    IdentitySerializer, AccountSerializer,\
+    PATCH_ProviderInstanceActionSerializer,\
+    POST_ProviderInstanceActionSerializer,\
+    ProviderInstanceActionSerializer, ResolveQuotaRequestSerializer,\
+    ResolveAllocationRequestSerializer
 
 
 def _get_administrator_accounts(user):
@@ -42,14 +42,15 @@ class CloudAdminImagingRequestList(APIView):
     Cloud Administration API for handling Imaging Requests
     """
 
-    permission_classes = (CloudAdminRequired,)
+    permission_classes = (ApiAuthRequired,
+                          InMaintenance,
+                          CloudAdminRequired,)
 
     def get(self, request):
-        """
-        """
         user = request.user
         machine_reqs = CoreMachineRequest.objects.filter(
-            instance__source__provider__cloudadministrator__user=user).order_by('-start_date')
+            instance__source__provider__cloudadministrator__user=user
+        ).order_by('-start_date')
         serializer = MachineRequestSerializer(machine_reqs, many=True)
         return Response(serializer.data)
 
@@ -60,7 +61,9 @@ class CloudAdminImagingRequest(APIView):
     A staff member can view any machine request by its ID
     """
 
-    permission_classes = (CloudAdminRequired,)
+    permission_classes = (ApiAuthRequired,
+                          InMaintenance,
+                          CloudAdminRequired,)
 
     def get(self, request,
             machine_request_id, action=None):
@@ -152,7 +155,9 @@ class CloudAdminAccountList(APIView):
     This API is used to provide account management.
     provider_uuid -- The id of the provider whose account you want to manage.
     """
-    permission_classes = (CloudAdminRequired,)
+    permission_classes = (ApiAuthRequired,
+                          InMaintenance,
+                          CloudAdminRequired,)
 
     def get(self, request):
         """
@@ -160,7 +165,8 @@ class CloudAdminAccountList(APIView):
         """
         user = request.user
         memberships = IdentityMembership.objects.filter(
-            identity__provider__cloudadministrator__user=user).order_by('member__name')
+            identity__provider__cloudadministrator__user=user
+        ).order_by('member__name')
         serializer = AccountSerializer(memberships, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -202,7 +208,10 @@ class CloudAdminAccountList(APIView):
 
 
 class CloudAdminRequestListMixin(object):
-    permission_classes = (CloudAdminRequired,)
+
+    permission_classes = (ApiAuthRequired,
+                          InMaintenance,
+                          CloudAdminRequired,)
 
     model = None
     serializer_class = None
@@ -230,9 +239,11 @@ class CloudAdminRequestDetailMixin(object):
     """
     Detail Mixin to manage a request
     """
-    permission_classes = (CloudAdminRequired,)
-    identifier_key = "uuid"
 
+    permission_classes = (ApiAuthRequired,
+                          InMaintenance,
+                          CloudAdminRequired,)
+    identifier_key = "uuid"
     model = None
     serializer_class = None
 
@@ -366,9 +377,13 @@ class CloudAdminAllocationRequest(APIView, CloudAdminRequestDetailMixin):
 
 class CloudAdminAccount(APIView):
     """
-    This API is used to Enable/Disable a specific identity on your Cloud Provider.
+    This API is used to Enable/Disable a specific identity on
+    your Cloud Provider.
     """
-    permission_classes = (CloudAdminRequired,)
+
+    permission_classes = (ApiAuthRequired,
+                          InMaintenance,
+                          CloudAdminRequired,)
 
     def get(self, request, username):
         """
@@ -388,7 +403,7 @@ class CloudAdminInstanceActionList(APIView):
     This API is used to provide account management.
     provider_uuid -- The id of the provider whose account you want to manage.
     """
-    permission_classes = (CloudAdminRequired,)
+
     def get(self, request):
         """
         Return a list of ALL users found on provider_uuid
@@ -396,8 +411,10 @@ class CloudAdminInstanceActionList(APIView):
         p_instance_actions = ProviderInstanceAction.objects.filter(
             provider__cloudadministrator__user=request.user,
         )
-        serializer = ProviderInstanceActionSerializer(p_instance_actions, many=True)
+        serializer = ProviderInstanceActionSerializer(
+            p_instance_actions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
     def post(self, request):
         """
         Create a new "ProviderInstanceAction"
@@ -415,27 +432,35 @@ class CloudAdminInstanceAction(APIView):
     This API is used to provide account management.
     provider_uuid -- The id of the provider whose account you want to manage.
     """
-    permission_classes = (CloudAdminRequired,)
+
+    permission_classes = (ApiAuthRequired,
+                          InMaintenance,
+                          CloudAdminRequired,)
+
     def get(self, request, provider_instance_action_id):
         """
         Return a list of ALL users found on provider_uuid
         """
         try:
-           p_instance_action = ProviderInstanceAction.objects.get(id=provider_instance_action_id)
+            p_instance_action = ProviderInstanceAction.objects.get(
+                id=provider_instance_action_id)
         except ProviderInstanceAction.DoesNotExist:
             return Response("Bad ID", status=status.HTTP_400_BAD_REQUEST)
         serializer = ProviderInstanceActionSerializer(p_instance_action)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
     def patch(self, request, provider_instance_action_id):
         """
         Return a list of ALL users found on provider_uuid
         """
         data = request.DATA
         try:
-           p_instance_action = ProviderInstanceAction.objects.get(id=provider_instance_action_id)
+            p_instance_action = ProviderInstanceAction.objects.get(
+                id=provider_instance_action_id)
         except ProviderInstanceAction.DoesNotExist:
             return Response("Bad ID", status=status.HTTP_400_BAD_REQUEST)
-        serializer = PATCH_ProviderInstanceActionSerializer(p_instance_action, data=data, partial=True)
+        serializer = PATCH_ProviderInstanceActionSerializer(
+            p_instance_action, data=data, partial=True)
         if serializer.is_valid():
             p_instance_action = serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)

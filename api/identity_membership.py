@@ -2,24 +2,22 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.reverse import reverse
-from rest_framework.views import APIView
 
 from threepio import logger
 
-from core.query import only_current_provider
 from core.models.group import Group
 from core.models import IdentityMembership as CoreIdentityMembership
+from core.query import only_current_provider
 
 from api import failure_response
-from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import IdentitySerializer
+from api.views import AuthAPIView
 
 
-class IdentityMembershipList(APIView):
-    """A List of people who are members of this identity"""
-
-    permission_classes = (ApiAuthRequired,)
+class IdentityMembershipList(AuthAPIView):
+    """
+    A List of people who are members of this identity.
+    """
 
     def post(self, request, provider_uuid, identity_uuid, format=None):
         """
@@ -36,14 +34,11 @@ class IdentityMembershipList(APIView):
                 status.HTTP_404_NOT_FOUND,
                 '%s does not exist.' % odne.message.split()[0])
         if not identity.can_share(user):
-            logger.error("User %s cannot share identity %s. "
-                         + "This incident will be reported")
             return failure_response(
                 status.HTTP_401_UNAUTHORIZED,
                 "User %s cannot remove sharing from identity %s. "
-                + "This incident will be reported"
+                "This incident will be reported"
                 % (user, identity_uuid))
-
         id_member = identity.share(group)
         serializer = IdentitySerializer(id_member.identity)
         serialized_data = serializer.data
@@ -53,15 +48,18 @@ class IdentityMembershipList(APIView):
         """
         Return the credential information for this identity
         """
-        #Sanity checks:
+        # Sanity checks:
         # User is authenticated
         user = request.user
         try:
             # User is a member of a group ( TODO: loop through all instead)
             group = user.group_set.get(name=user.username)
-            #NOTE: Provider_uuid no longer needed.
-            # Group has access to the identity on an active, currently-running provider
-            identity = group.identities.get(only_current_provider(), provider__active=True, uuid=identity_uuid)
+            # NOTE: Provider_uuid no longer needed.
+            # Group has access to the identity on an active,
+            # currently-running provider
+            identity = group.identities.get(only_current_provider(),
+                                            provider__active=True,
+                                            uuid=identity_uuid)
             # All other members of the identity are visible
             id_members = CoreIdentityMembership.objects.filter(
                 identity__uuid=identity_uuid)
@@ -75,14 +73,15 @@ class IdentityMembershipList(APIView):
         return Response(serialized_data)
 
 
-class IdentityMembership(APIView):
-    """IdentityMembership details for a specific group/identity combination."""
-    permission_classes = (ApiAuthRequired,)
+class IdentityMembership(AuthAPIView):
+    """
+    IdentityMembership details for a specific group/identity combination.
+    """
 
     def delete(self, request, provider_uuid,
                identity_uuid, group_name, format=None):
         """
-        Unshare the identity
+        Unshare the identity.
         """
         try:
             identity = Identity.objects.get(uuid=identity_uuid)
@@ -91,13 +90,14 @@ class IdentityMembership(APIView):
                 status.HTTP_404_NOT_FOUND,
                 "Identity does not exist.")
         if not identity.can_share(user):
-            logger.error("User %s cannot remove sharing from identity %s. "
-                         + "This incident will be reported"
-                         % (user, identity_uuid))
+            logger.error(
+                "User %s cannot remove sharing from identity %s. "
+                "This incident will be reported"
+                % (user, identity_uuid))
             return failure_response(
                 status.HTTP_401_UNAUTHORIZED,
                 "User %s cannot remove sharing from identity %s. "
-                + "This incident will be reported"
+                "This incident will be reported"
                 % (user, identity_uuid))
         group = Group.objects.get(name=group_name)
         id_member = identity.unshare(group)

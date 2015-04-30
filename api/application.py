@@ -25,8 +25,8 @@ from rest_framework.pagination import PageNumberPagination
 
 
 def _filter_applications(applications, user, params):
-    #Filter the list based on query strings
-    #DB Queryset modifications
+    # Filter the list based on query strings
+    # DB Queryset modifications
     for filter_key, value in params.items():
         if 'start_date' == filter_key:
             applications = applications.filter(
@@ -38,10 +38,10 @@ def _filter_applications(applications, user, params):
         elif 'tag' == filter_key:
             applications = applications.filter(
                 tags__name=value)
-    #List comprehensions 
+    # List comprehensions
     for filter_key, value in params.items():
         if 'featured' == filter_key:
-            #Support for 'featured=true' and 'featured=false'
+            # Support for 'featured=true' and 'featured=false'
             featured = value.lower() == "true"
             if featured:
                 applications = [a for a in applications if a.featured()]
@@ -158,7 +158,7 @@ class ApplicationThresholdDetail(APIView):
             return failure_response(status.HTTP_403_FORBIDDEN,
                                     "You are not the Application owner. "
                                     "This incident will be reported")
-            #Or it wont.. Up to operations..
+            # Or it wont.. Up to operations..
         if kwargs.get('delete'):
             threshold = app.get_threshold()
             if threshold:
@@ -244,22 +244,22 @@ class Application(APIView):
             return failure_response(status.HTTP_403_FORBIDDEN,
                                     "You are not the Application owner. "
                                     "This incident will be reported")
-            #Or it wont.. Up to operations..
+            # Or it wont.. Up to operations..
         partial_update = True if request.method == 'PATCH' else False
         serializer = ApplicationSerializer(app, data=data,
                                            context={'request': request},
                                            partial=partial_update)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
-            #TODO: Update application metadata on each machine?
-            #update_machine_metadata(esh_driver, esh_machine, data)
+            # TODO: Update application metadata on each machine?
+            # update_machine_metadata(esh_driver, esh_machine, data)
             serializer.save()
             if 'created_by_identity' in data:
                 identity = serializer.object.created_by_identity
                 update_application_owner(serializer.object, identity)
             if 'boot_scripts' in data:
                 _save_scripts_to_application(serializer.object,
-                                             data.get('boot_scripts',[]))
+                                             data.get('boot_scripts', []))
             return Response(serializer.data)
         return failure_response(
             status.HTTP_400_BAD_REQUEST,

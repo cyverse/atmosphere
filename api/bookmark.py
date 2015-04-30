@@ -1,7 +1,6 @@
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
 
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -9,20 +8,19 @@ from threepio import logger
 
 from core.models.application import ApplicationBookmark, Application
 from authentication.decorators import api_auth_token_required
+
 from api import failure_response
-from api.permissions import InMaintenance
 from api.serializers import ApplicationBookmarkSerializer
+from api.views import MaintenanceAPIView
 
 
-class ApplicationBookmarkList(APIView):
+class ApplicationBookmarkList(MaintenanceAPIView):
     """
     Represents:
         A Manager of Machine
         Calls to the Machine Class
     TODO: POST when we have programmatic image creation/snapshots
     """
-
-    permission_classes = (InMaintenance,)
 
     @api_auth_token_required
     def get(self, request, **kwargs):
@@ -38,15 +36,13 @@ class ApplicationBookmarkList(APIView):
         return response
 
 
-class ApplicationBookmarkDetail(APIView):
+class ApplicationBookmarkDetail(MaintenanceAPIView):
     """
     Represents:
         A Manager of Machine
         Calls to the Machine Class
     TODO: POST when we have programmatic image creation/snapshots
     """
-
-    permission_classes = (InMaintenance,)
 
     @api_auth_token_required
     def get(self, request, app_uuid, **kwargs):
@@ -81,7 +77,8 @@ class ApplicationBookmarkDetail(APIView):
                 app_bookmark, _ = ApplicationBookmark.objects.get_or_create(
                     application=app,
                     user=user)
-                serialized_data = ApplicationBookmarkSerializer(app_bookmark).data
+                serialized_data = ApplicationBookmarkSerializer(
+                    app_bookmark).data
                 response = Response(serialized_data)
                 return response
             elif data['marked'] == False:
@@ -91,10 +88,10 @@ class ApplicationBookmarkDetail(APIView):
                 return Response(status=status.HTTP_204_NO_CONTENT)
             else:
                 return failure_response(status.HTTP_400_BAD_REQUEST,
-                    "'marked' should be True/False")
+                                        "'marked' should be True/False")
 
         return failure_response(status.HTTP_400_BAD_REQUEST,
-                "Missing 'marked' in PUT data")
+                                "Missing 'marked' in PUT data")
 
     @api_auth_token_required
     def delete(self, request, app_uuid, **kwargs):
@@ -110,10 +107,8 @@ class ApplicationBookmarkDetail(APIView):
         app_bookmark = ApplicationBookmark.objects.filter(application=app,
                                                           user=user)
         if not app_bookmark:
-            return failure_response(status.HTTP_404_NOT_FOUND,
-                                    "No Bookmark for Application: uuid %s" % app_uuid)
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                "No Bookmark for Application: uuid %s" % app_uuid)
         app_bookmark.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-

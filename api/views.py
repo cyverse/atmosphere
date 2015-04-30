@@ -1,6 +1,6 @@
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
-from api.permissions import ApiAuthRequired, InMaintenance
+from api.permissions import ApiAuthOptional, ApiAuthRequired, InMaintenance
 
 
 class MaintenanceAPIView(APIView):
@@ -9,6 +9,11 @@ class MaintenanceAPIView(APIView):
 
 class AuthAPIView(MaintenanceAPIView):
     permission_classes = (ApiAuthRequired,
+                          InMaintenance,)
+
+
+class AuthOptionalAPIView(MaintenanceAPIView):
+    permission_classes = (ApiAuthOptional,
                           InMaintenance,)
 
 

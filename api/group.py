@@ -2,43 +2,43 @@
 Atmosphere service group rest api.
 
 """
-
-from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from threepio import logger
 
-
 from core.models.group import Group as CoreGroup
 
-from api.permissions import InMaintenance, ApiAuthOptional, ApiAuthRequired
 from api.serializers import GroupSerializer
+from api.views import AuthAPIView
 
-class GroupList(APIView):
-    """Every User is assigned to a Group of their own name initially. This
+
+class GroupList(AuthAPIView):
+    """
+    Every User is assigned to a Group of their own name initially. This
     'usergroup' is then in charge of all the identities, providers, instances,
     and applications which can be shared among other, larger groups, but can
-    still be tracked back to the original user who made the API request."""
-    permission_classes = (ApiAuthRequired,)
+    still be tracked back to the original user who made the API request.
+    """
 
     def post(self, request):
-        """Authentication Required, Create a new group.
+        """
+        Authentication Required, Create a new group.
 
         Params:name -- The name of the group
                user -- One or more users belonging to the group
         """
         params = request.DATA
         groupname = params['name']
-        #STEP1 Create the account on the provider
+        # STEP1 Create the account on the provider
         group = CoreGroup.objects.create(name=groupname)
+        # STEP2 ???? PROFIT ????
         for user in params['user[]']:
                 group.user_set.add(user)
-        #STEP3 Return the new groups serialized profile
+        # STEP3 Return the new groups serialized profile
         serialized_data = GroupSerializer(group).data
         response = Response(serialized_data)
         return response
 
-    
     def get(self, request):
         """
         Authentication Required, A list of all the user's groups.
@@ -50,16 +50,18 @@ class GroupList(APIView):
         return response
 
 
-class Group(APIView):
-    """Every User is assigned to a Group of their own name initially. This
+class Group(AuthAPIView):
+    """
+    Every User is assigned to a Group of their own name initially. This
     'usergroup' is then in charge of all the identities, providers, instances,
     and applications which can be shared among other, larger groups, but can
-    still be tracked back to the original user who made the API request."""
-
-    permission_classes = (ApiAuthRequired,)
+    still be tracked back to the original user who made the API request.
+    """
 
     def get(self, request, groupname):
-        """Authentication Required, Retrieve details about a specific group."""
+        """
+        Authentication Required, Retrieve details about a specific group.
+        """
         logger.info(request.__dict__)
         user = request.user
         group = user.group_set.get(name=groupname)

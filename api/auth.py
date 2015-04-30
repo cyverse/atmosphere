@@ -1,20 +1,26 @@
 from django.contrib.auth import authenticate, login
+
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from api.permissions import ApiAuthIgnore
+
 from atmosphere.settings import secrets
 from authentication import createAuthToken, lookupSessionToken
+
+from api.permissions import ApiAuthIgnore
 from api.serializers import TokenSerializer
 
+
 class Authentication(APIView):
+
     permission_classes = (ApiAuthIgnore,)
 
     def get(self, request):
         user = request.user
         if not user.is_authenticated():
-            return Response("Logged-in User or POST required to retrieve AuthToken",
-                    status=status.HTTP_403_FORBIDDEN)
+            return Response("Logged-in User or POST required "
+                            "to retrieve AuthToken",
+                            status=status.HTTP_403_FORBIDDEN)
         # Authenticated users have tokens
         token = lookupSessionToken(request)
         if token.is_expired():
@@ -31,7 +37,7 @@ class Authentication(APIView):
         if not username:
             raise Exception("Where my username")
         user = authenticate(username=username, password=password,
-                    request=request)
+                            request=request)
         login(request, user)
         return self._token_for_username(user.username)
 

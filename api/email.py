@@ -3,7 +3,6 @@ Atmosphere api email
 """
 from django.core import urlresolvers
 
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -17,15 +16,13 @@ from core.models.group import IdentityMembership
 from core.models.user import AtmosphereUser as User
 
 from api import failure_response
-from api.permissions import ApiAuthRequired
+from api.views import AuthAPIView
 
 
-class Feedback(APIView):
+class Feedback(AuthAPIView):
     """
     Post feedback via RESTful API
     """
-
-    permission_classes = (ApiAuthRequired,)
 
     def post(self, request):
         """
@@ -50,16 +47,14 @@ class Feedback(APIView):
         return feedback_email(request, username, user_email, message)
 
 
-class QuotaEmail(APIView):
+class QuotaEmail(AuthAPIView):
     """
-    Post Quota Email via RESTful API
+    Post Quota Email via RESTful API.
     """
-
-    permission_classes = (ApiAuthRequired,)
 
     def post(self, request):
         """
-        Creates a new Quota Request email and sends it to admins
+        Creates a new Quota Request email and sends it to admins.
         """
         required = ["quota", "reason"]
         missing_keys = check_missing_keys(request.DATA, required)
@@ -81,11 +76,7 @@ class QuotaEmail(APIView):
         return quota_request_email(request, username, new_quota, reason)
 
 
-class SupportEmail(APIView):
-    """
-    """
-
-    permission_classes = (ApiAuthRequired,)
+class SupportEmail(AuthAPIView):
 
     def post(self, request):
         """
@@ -122,9 +113,9 @@ def check_missing_keys(data, required_keys):
     Return any missing required post key names.
     """
     return [key for key in required_keys
-            #Key must exist and have a non-empty value.
-            if key not in data
-            or (type(data[key]) == str and len(data[key]) > 0)]
+            # Key must exist and have a non-empty value.
+            if key not in data or
+            (type(data[key]) == str and len(data[key]) > 0)]
 
 
 def keys_not_found(missing_keys):

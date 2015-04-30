@@ -1,5 +1,6 @@
 """
 Atmosphere service maintenance record rest api.
+
 """
 import copy
 
@@ -8,28 +9,23 @@ from django.utils import timezone
 
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
-from core.models.maintenance import MaintenanceRecord as CoreMaintenanceRecord
+from core.models.maintenance import\
+    MaintenanceRecord as CoreMaintenanceRecord
 from core.models.provider import Provider
 from core.query import only_current_provider
 
-from api.permissions import ApiAuthOptional
 from api.serializers import MaintenanceRecordSerializer
+from api.views import AuthOptionalAPIView
 
 
-
-class MaintenanceRecordList(APIView):
+class MaintenanceRecordList(AuthOptionalAPIView):
     """
     A list of all maintenance.
     Use ?active=True to get current maintenenace.
     """
 
-    permission_classes = (ApiAuthOptional,)
-
     def get(self, request):
-        """
-        """
         query = request.GET
         user = request.user
         providers = []
@@ -58,12 +54,10 @@ class MaintenanceRecordList(APIView):
         return Response(MaintenanceRecordSerializer(records, many=True).data)
 
 
-class MaintenanceRecord(APIView):
+class MaintenanceRecord(AuthOptionalAPIView):
     """
     Represents a maintenance record.
     """
-
-    permission_classes = (ApiAuthOptional,)
 
     def get(self, request, record_id):
         """

@@ -1,39 +1,33 @@
 """
 Atmosphere License rest api.
 """
-from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
+
 from rest_framework.response import Response
 from rest_framework import status
 
-from django.shortcuts import get_object_or_404
-
-from api.permissions import ApiAuthRequired
-from api.serializers import POST_LicenseSerializer, LicenseSerializer
-
 from core.models import License as CoreLicense
 
+from api.serializers import POST_LicenseSerializer, LicenseSerializer
+from api.views import AuthAPIView
 
-class LicenseList(APIView):
-    """
-    """
-    permission_classes = (ApiAuthRequired,)
+
+class LicenseList(AuthAPIView):
 
     def get(self, request):
-        """
-        """
         user = request.user
         licenses = CoreLicense.objects.filter(created_by=user)
-        serialized_data = LicenseSerializer(licenses, many=True,
-               context={"request":request}).data
+        serialized_data = LicenseSerializer(
+            licenses, many=True,
+            context={"request": request}).data
         return Response(serialized_data)
 
     def post(self, request):
-        """
-        """
         data = request.DATA
         data['created_by'] = request.user
-        serializer = POST_LicenseSerializer(data=data, context={"request":request})
-
+        serializer = POST_LicenseSerializer(
+            data=data,
+            context={"request": request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -41,37 +35,28 @@ class LicenseList(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class License(APIView):
-    """
-    """
-    permission_classes = (ApiAuthRequired,)
+class License(AuthAPIView):
 
     def get(self, request, license_id):
-        """
-        """
         license = get_object_or_404(CoreLicense, id=license_id)
-        serialized_data = LicenseSerializer(license, context={"request":request}).data
+        serialized_data = LicenseSerializer(
+            license,
+            context={"request": request}).data
         return Response(serialized_data)
 
     def put(self, request, license_id):
-        """
-        """
         return self._update_license(request, license_id)
 
     def patch(self, request, license_id):
-        """
-        """
         return self._update_license(request, license_id, partial=True)
 
     def _update_license(self, request, license_id, partial=False):
         data = request.DATA
         license = get_object_or_404(CoreLicense, id=license_id)
-        serializer = LicenseSerializer(license, context={"request":request},
-                data=data, partial=partial)
-
+        serializer = LicenseSerializer(
+            license, context={"request": request},
+            data=data, partial=partial)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
