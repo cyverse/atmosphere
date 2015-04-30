@@ -104,11 +104,25 @@ class BaseRequestViewSet(viewsets.ModelViewSet):
         # NOTE: An identity could possible have multiple memberships
         # It may be better to directly take membership rather than an identity
         identity_id = serializer.initial_data.get('identity').get("id", None)
-        membership = IdentityMembership.objects.get(identity=identity_id)
         try:
-            instance = serializer.save(end_date=timezone.now())
-        except Exception as e:
-            raise e
+            membership = IdentityMembership.objects.get(identity=identity_id)
+            instance = serializer.save(end_date=timezone.now(),
+                                       membership=membership)
+        except core_exceptions.ProviderLimitExceeded:
+            message = "Only one active request is allowed per provider."
+            raise exceptions.MethodNotAllowed('create', detail=message)
+        except core_exceptions.InvalidMembership:
+            message = (
+                "The user '%s' is not a valid member."
+                % self.request.user.username
+            )
+            raise exceptions.ParseError(detail=message)
+        except IdentityMembership.DoesNotExist:
+            message = (
+                "The identity '%s' does not have a membership"
+                % identity_id
+            )
+            raise exceptions.ParseError(detail=message)
 
         if instance.is_approved():
             self.approve_action(instance)
