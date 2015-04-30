@@ -52,7 +52,6 @@ class BaseRequest(models.Model):
 
         super(BaseRequest, self).save(*args, **kwargs)
 
-
     @classmethod
     def is_active(cls, identity_membership):
         """

@@ -45,6 +45,7 @@ class IdentityRelatedField(serializers.PrimaryKeyRelatedField):
                 % identity
             )
 
+
 class QuotaRelatedField(serializers.PrimaryKeyRelatedField):
 
     def get_queryset(self):
@@ -72,6 +73,7 @@ class QuotaRelatedField(serializers.PrimaryKeyRelatedField):
                 % identity
             )
 
+
 class StatusTypeRelatedField(serializers.PrimaryKeyRelatedField):
 
     def get_queryset(self):
@@ -96,6 +98,7 @@ class StatusTypeRelatedField(serializers.PrimaryKeyRelatedField):
                 "StatusType with id '%s' does not exist."
                 % identity
             )
+
 
 class QuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.CharField(read_only=True)
@@ -131,9 +134,10 @@ class QuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
             'quota'
         )
 
+
 class UserQuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
     quota = QuotaRelatedField(read_only=True)
-    status =  StatusTypeRelatedField(read_only=True)
+    status = StatusTypeRelatedField(read_only=True)
     admin_message = serializers.CharField(read_only=True)
     uuid = serializers.CharField(read_only=True)
     created_by = UserRelatedField(read_only=True)

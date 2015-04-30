@@ -15,8 +15,7 @@ def unresolved_requests_only(fn):
     @wraps(fn)
     def wrapper(self, request, *args, **kwargs):
         instance = self.get_object()
-        if (hasattr(instance, "is_closed")
-            and instance.is_closed()):
+        if (hasattr(instance, "is_closed") and instance.is_closed()):
             message = (
                 "Method '%s' not allowed: "
                 "the request has already been resolved."
@@ -69,7 +68,7 @@ class BaseRequestViewSet(viewsets.ModelViewSet):
         status, _ = StatusType.objects.get_or_create(name="pending")
         try:
             membership = IdentityMembership.objects.get(identity=identity_id)
-            instance  = serializer.save(
+            instance = serializer.save(
                 membership=membership,
                 status=status,
                 created_by=self.request.user
