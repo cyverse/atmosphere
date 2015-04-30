@@ -108,7 +108,10 @@ class QuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
                                     allow_null=True,
                                     required=False)
     quota = QuotaRelatedField(queryset=Quota.objects.all(),
+                              allow_null=True,
                               required=True)
+    request = serializers.CharField(read_only=True)
+    description = serializers.CharField(read_only=True)
 
     class Meta:
         model = QuotaRequest
