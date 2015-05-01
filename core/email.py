@@ -211,22 +211,14 @@ def send_denied_quota_email(user, request, reason):
     """
     Send an email notifying the user that their request has been denied.
     """
-    template = """
-Hello {user},
-
-Your quota request for {request} has been denied.
-
-Reason: {reason}
-
-If you have questions please contact us at support@iplantcollaborative.org.
-
-Thank you,
-iPlant Atmosphere Team"""
-
     subject = "Your Quota Request has been denied"
-    body = template.format(user=user.username,
-                           request=request,
-                           reason=reason)
+    context = {
+        "user": user.username,
+        "request": request,
+        "reason": reason
+    }
+    body = render_to_string("core/email/quota_request_denied.html",
+                            context=Context(context))
     return email_from_admin(user, subject, body)
 
 
