@@ -22,7 +22,7 @@ from service.tasks.email import send_email as send_email_task
 def send_email_template(subject, template, recipient, sender,
                         context=None, cc=None, html=True, silent=False):
     """
-    Send a email using the template provided
+    Send an email using the template provided
     """
     body = render_to_string(template, context=Context(context))
     args = (subject, body, recipient, sender)
