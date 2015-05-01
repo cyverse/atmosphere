@@ -197,21 +197,14 @@ def send_approved_quota_email(user, request, reason):
     """
     Notify the user the that their request has been approved.
     """
-    template = """
-Hello {user},
-
-Your quota request for {request} has been approved!
-
-Reason: {reason}
-
-If you have questions please contact us at support@iplantcollaborative.org.
-
-Thank you,
-iPlant Atmosphere Team"""
     subject = "Your Quota Request has been approved"
-    body = template.format(user=user.username,
-                           request=request,
-                           reason=reason)
+    context = {
+        "user": user.username,
+        "request": request,
+        "reason": reason
+    }
+    body = render_to_string("core/email/quota_request_approved.html",
+                            context=Context(context))
     return email_from_admin(user, subject, body)
 
 def send_denied_quota_email(user, request, reason):
