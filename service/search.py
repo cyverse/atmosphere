@@ -65,16 +65,16 @@ class CoreApplicationSearch(BaseSearchProvider):
             base_apps = Application.objects.filter(
                 # Privately owned OR public machines
                 Q(private=True,
-                  providermachine__instance_source__created_by_identity=identity)
+                  versions__machines__instance_source__created_by_identity=identity)
                 | Q(private=False,
-                    providermachine__instance_source__provider=identity.provider))
+                  versions__machines__instance_source__provider=identity.provider))
         else:
             active_providers = Provider.get_active()
             base_apps = Application.objects.filter(
                 # Public machines
                 private=False,
                 #Providermachine's provider is active
-                providermachine__instance_source__provider__in=active_providers)
+                versions__machines__instance_source__provider__in=active_providers)
         # AND query matches on:
         query_match = base_apps.filter(
             # app tag name

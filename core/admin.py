@@ -110,13 +110,13 @@ class AllocationAdmin(admin.ModelAdmin):
 @admin.register(ProviderMachine)
 class ProviderMachineAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
-    search_fields = ["application__name", "instance_source__provider__location", "instance_source__identifier"]
+    search_fields = ["application_version__application__name", "instance_source__provider__location", "instance_source__identifier"]
     list_display = ["identifier",
-            "_pm_provider", "application",
+            "_pm_provider",
             "end_date"]
     list_filter = [
         "instance_source__provider__location",
-        "application__private",
+        "application_version__application__private",
     ]
 
     def _pm_provider(self, obj):
@@ -140,12 +140,12 @@ class ProviderMachineMembershipAdmin(admin.ModelAdmin):
     def _pm_provider(self, obj):
         return obj.provider_machine.provider.location
     def _pm_private(self, obj):
-        return obj.provider_machine.application.private
+        return obj.provider_machine.application_version.application.private
     _pm_private.boolean = True
     def _pm_identifier(self, obj):
         return obj.provider_machine.identifier
     def _pm_name(self, obj):
-        return obj.provider_machine.application.name
+        return obj.provider_machine.application_version.application.name
     pass
 
 class ProviderCredentialInline(admin.TabularInline):
@@ -208,7 +208,7 @@ class VolumeAdmin(admin.ModelAdmin):
 @admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
     actions = [end_date_object, private_object]
-    search_fields = ["name", "id", "providermachine__instance_source__identifier"]
+    search_fields = ["name", "id", "versions__machines__instance_source__identifier"]
     list_display = ["uuid", "_current_machines", "name", "private", "created_by", "start_date", "end_date" ]
     filter_vertical = ["tags",]
 

@@ -7,7 +7,7 @@ from api.v2.serializers.fields import ProviderMachineRelatedField
 class ImageSerializer(serializers.HyperlinkedModelSerializer):
     created_by = UserSummarySerializer()
     tags = TagSummarySerializer(many=True)
-    provider_images = ProviderMachineRelatedField(source='providermachine_set', many=True)
+    provider_images = ProviderMachineRelatedField(source='all_machines', many=True)
 
     class Meta:
         model = Image

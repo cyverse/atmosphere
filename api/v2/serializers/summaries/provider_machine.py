@@ -15,5 +15,5 @@ class ProviderMachineSummarySerializer(serializers.HyperlinkedModelSerializer):
         model = ProviderMachine
         view_name = 'api_v2:providermachine-detail'
         fields = ('id', 'uuid', 'url', 'provider',
-                'licenses', 'allow_imaging', 'version',
                 'start_date', 'end_date')
+        #TODO: add 'application_version'

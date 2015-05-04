@@ -397,7 +397,7 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     new_owner = machine_request.new_machine_owner
     owner_identity = _get_owner(new_provider, new_owner)
     tags = _match_tags_to_names(machine_request.new_machine_tags)
-
+    #TODO: How to add app version here.
     if machine_request.new_machine_forked:
         app = create_application(
             new_image_id,
@@ -414,9 +414,10 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     #2. Create the new InstanceSource and appropriate Object, relations, Memberships..
     if ProviderMachine.test_existence(new_provider, new_image_id):
         pm = ProviderMachine.objects.get(identifier=new_image_id, provider=new_provider)
-        pm = update_provider_machine(pm, new_created_by_identity=owner_identity, new_created_by=machine_request.new_machine_owner, new_application=app, new_version=machine_request.new_machine_version, allow_imaging=machine_request.new_machine_allow_imaging)
+        pm = update_provider_machine(pm, new_created_by_identity=owner_identity, new_created_by=machine_request.new_machine_owner, new_application=app, new_version=app_version, allow_imaging=machine_request.new_machine_allow_imaging)
     else:
-        pm = create_provider_machine(new_image_id, new_provider.uuid, app, owner_identity, machine_request.new_machine_version, machine_request.new_machine_allow_imaging)
+        #TODO: Create APP version first! Then provider machine & Instance Source using the information.
+        pm = create_provider_machine(new_image_id, new_provider.uuid, app, owner_identity, app_version)
         provider_machine_write_hook(pm)
 
     #Must be set in order to ask for threshold information
