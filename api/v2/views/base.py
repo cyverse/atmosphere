@@ -2,6 +2,8 @@ from functools import wraps
 
 from django.utils import timezone
 
+from threepio import logger
+
 from rest_framework import exceptions, status
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
@@ -34,19 +36,19 @@ def unresolved_requests_only(fn):
 
 class AuthViewSet(ModelViewSet):
 
-    permissions_classes = (InMaintenance,
+    permission_classes = (InMaintenance,
                            ApiAuthRequired,)
 
 
 class AuthOptionalViewSet(ModelViewSet):
 
-    permissions_classes = (InMaintenance,
+    permission_classes = (InMaintenance,
                            ApiAuthOptional,)
 
 
 class AuthReadOnlyViewSet(ReadOnlyModelViewSet):
 
-    permissions_classes = (InMaintenance,
+    permission_classes = (InMaintenance,
                            ApiAuthOptional,)
 
 
