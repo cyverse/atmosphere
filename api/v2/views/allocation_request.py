@@ -4,6 +4,7 @@ from api.v2.views.base import BaseRequestViewSet
 from api.v2.serializers.details import AllocationRequestSerializer,\
     UserAllocationRequestSerializer
 from core.models import AllocationRequest
+from core.email import send_approved_quota_email, send_denied_quota_email
 from web.emails import quota_request_email
 
 
@@ -35,8 +36,14 @@ class AllocationRequestViewSet(BaseRequestViewSet):
         membership = instance.membership
         membership.allocation = instance.allocation
         membership.save()
+        send_approved_quota_email(user=instance.created_by,
+                                  request=instance.request,
+                                  reason=instance.admin_message)
 
     def deny_action(self, instance):
         """
         Notify the user that the request was denied
         """
+        send_denied_quota_email(user=instance.created_by,
+                                request=instance.request,
+                                reason=instance.admin_message)
