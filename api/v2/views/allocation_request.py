@@ -4,6 +4,7 @@ from api.v2.views.base import BaseRequestViewSet
 from api.v2.serializers.details import AllocationRequestSerializer,\
     UserAllocationRequestSerializer
 from core.models import AllocationRequest
+from web.emails import quota_request_email
 
 
 class AllocationRequestViewSet(BaseRequestViewSet):
@@ -21,6 +22,11 @@ class AllocationRequestViewSet(BaseRequestViewSet):
         """
         Submits an allocation request email
         """
+        requested_allocation = instance.request
+        reason_for_request = instance.description
+        username = self.request.user.username
+        allocation_request_email(self.request, username, requested_allocation,
+                                 reason_for_request)
 
     def approve_action(self, instance):
         """
