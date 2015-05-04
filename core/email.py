@@ -174,6 +174,53 @@ def email_from_admin(username, subject, message, html=False):
                       cc=[email_address_str(from_name, from_email)],
                       html=html)
 
+
+def send_approved_allocation_email(user, request, reason):
+    """
+    Notify the user the that their request has been approved.
+    """
+    subject = "Your Allocation Request has been approved"
+    template = """
+Hello {user},
+
+Your allocation request for {request} has been approved!
+
+Reason: {reason}
+
+If you have questions please contact us at support@iplantcollaborative.org.
+
+Thank you,
+iPlant Atmosphere Team"""
+    subject = "Your Allocation Request has been approved"
+    body = template.format(user=user.username,
+                           request=request,
+                           reason=reason)
+    return email_from_admin(user, subject, body)
+
+
+def send_denied_allocation_email(user, request, reason):
+    """
+    Notify the user the that their request has been denied.
+    """
+    subject = "Your Allocation Request has been denied"
+
+    template = """
+Hello {user},
+
+Your Allocation request for {request} has been denied.
+
+Reason: {reason}
+
+If you have questions please contact us at support@iplantcollaborative.org.
+
+Thank you,
+iPlant Atmosphere Team"""
+    body = template.format(user=user.username,
+                           request=request,
+                           reason=reason)
+    return email_from_admin(user, subject, body)
+
+
 def send_approved_quota_email(user, request, reason):
     """
     Notify the user the that their request has been approved.
