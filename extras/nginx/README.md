@@ -1,6 +1,6 @@
 nginx configuration
 ===================
-Configure atmosphere to use nginx.
+Configure atmosphere to use nginx. The Makefile uses defaults for a common configuration of Atmosphere.
 
 # Instructions
 
