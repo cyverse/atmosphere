@@ -387,7 +387,7 @@ def deploy_to(driverCls, provider, identity, instance_id, *args, **kwargs):
       ignore_result=True,
       max_retries=3)
 def deploy_init_to(driverCls, provider, identity, instance_id,
-                   username=None, password=None, redeploy=False,
+                   username=None, password=None, redeploy=False, deploy=True,
                    *args, **kwargs):
     try:
         logger.debug("deploy_init_to task started at %s." % datetime.now())
@@ -399,9 +399,10 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         image_metadata = driver._connection\
                                .ex_get_image_metadata(instance.source)
         deploy_chain = get_deploy_chain(driverCls, provider, identity,
-                                        instance, password, redeploy)
+                                        instance, password, redeploy, deploy)
         logger.debug("Starting deploy chain 'ROUTE' @ Task: %s for: %s." % (deploy_chain, instance_id))
-        deploy_chain.apply_async()
+        if deploy_chain:
+            deploy_chain.apply_async()
         #Can be really useful when testing.
         #if kwargs.get('delay'):
         #    async.get()
@@ -418,11 +419,12 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         deploy_init_to.retry(exc=exc)
 
 def get_deploy_chain(driverCls, provider, identity, instance,
-                     username=None, password=None, redeploy=False):
-    from core.models.instance import Instance
-    instance_id = instance.id
-    start_task = get_chain_from_build(driverCls, provider, identity, instance, username, password, redeploy)
-    return start_task
+                     username=None, password=None, redeploy=False, deploy=True):
+    if deploy:
+        from core.models.instance import Instance
+        instance_id = instance.id
+        start_task = get_chain_from_build(driverCls, provider, identity, instance, username, password, redeploy, deploy)
+        return start_task
 
 def get_idempotent_deploy_chain(driverCls, provider, identity, instance, username):
     """
@@ -475,10 +477,9 @@ def get_remove_status_chain(driverCls, provider, identity, instance):
     return start_chain
 
 
-
-
 def get_chain_from_build(driverCls, provider, identity, instance,
-                         username=None, password=None, redeploy=False):
+                         username=None, password=None, redeploy=False,
+                         deploy=True):
     """
     Wait for instance to go to active.
     THEN Initialize the networking for the instance
@@ -487,7 +488,7 @@ def get_chain_from_build(driverCls, provider, identity, instance,
     wait_active_task = wait_for_instance.s(
         instance.id, driverCls, provider, identity, "active")
     start_chain = wait_active_task
-    network_start = get_chain_from_active_no_ip(driverCls, provider, identity, instance, username,password, redeploy)
+    network_start = get_chain_from_active_no_ip(driverCls, provider, identity, instance, username,password, redeploy, deploy)
     start_chain.link(network_start)
     return start_chain
 
@@ -501,7 +502,8 @@ def print_chain(start_task, idx=0):
         print_chain(task, idx+1)
 
 def get_chain_from_active_no_ip(driverCls, provider, identity, instance,
-                                username=None, password=None, redeploy=False):
+                                username=None, password=None, redeploy=False,
+                                deploy=True):
     """
     Initialize the networking for the instance
     THEN deploy to the box.
@@ -522,12 +524,13 @@ def get_chain_from_active_no_ip(driverCls, provider, identity, instance,
         start_chain = network_meta_task
         start_chain.link(floating_task)
     end_chain = floating_task
-    deploy_start = get_chain_from_active_with_ip(driverCls, provider, identity, instance, username,password, redeploy)
+    deploy_start = get_chain_from_active_with_ip(driverCls, provider, identity, instance, username,password, redeploy, deploy)
     end_chain.link(deploy_start)
     return start_chain
 
 def get_chain_from_active_with_ip(driverCls, provider, identity, instance,
-                                username=None, password=None, redeploy=False):
+                                  username=None, password=None, redeploy=False,
+                                  deploy=True):
     """
     Deploy to the box (instance),
     but change what atmo-init does based on redeploy
@@ -539,39 +542,40 @@ def get_chain_from_active_with_ip(driverCls, provider, identity, instance,
         driverCls, provider, identity, instance.id)
 
     #IMPORTANT NOTE: we are NOT updating to 'deploying' until actual deployment takes place (SSH established. Time spent from 'add_floating_ip' to SSH established is considered 'networking' time)
-    deploy_meta_task = update_metadata.si(
-        driverCls, provider, identity, instance.id,
-        {'tmp_status': 'deploying'})
+    if deploy:
+        deploy_meta_task = update_metadata.si(
+            driverCls, provider, identity, instance.id,
+            {'tmp_status': 'deploying'})
 
-    deploy_task = _deploy_init_to.si(
-        driverCls, provider, identity, instance.id,
-        username, password, redeploy)
+        deploy_task = _deploy_init_to.si(
+            driverCls, provider, identity, instance.id,
+            username, password, redeploy)
 
-    #Call additional Deployments
-    check_shell_task = check_process_task.si(
-        driverCls, provider, identity, instance.id, "shellinaboxd")
-    check_vnc_task = check_process_task.si(
-        driverCls, provider, identity, instance.id, "vnc")
-    #ONLY if redeploy == False!
-    email_task = _send_instance_email.si(
-        driverCls, provider, identity, instance.id)
+        #Call additional Deployments
+        check_shell_task = check_process_task.si(
+            driverCls, provider, identity, instance.id, "shellinaboxd")
+        check_vnc_task = check_process_task.si(
+            driverCls, provider, identity, instance.id, "vnc")
+        #ONLY if redeploy == False!
+        email_task = _send_instance_email.si(
+            driverCls, provider, identity, instance.id)
 
-    # (SUCCESS_)LINKS and ERROR_LINKS
-    deploy_task.link_error(
-        deploy_failed.s(driverCls, provider, identity, instance.id))
+        # (SUCCESS_)LINKS and ERROR_LINKS
+        deploy_task.link_error(
+            deploy_failed.s(driverCls, provider, identity, instance.id))
 
-    if instance.extra.get('metadata',{}).get('tmp_status','') == 'deploying':
-        start_chain = deploy_ready_task
-    else:
-        start_chain = deploy_meta_task
-        start_chain.link(deploy_ready_task)
+        if instance.extra.get('metadata',{}).get('tmp_status','') == 'deploying':
+            start_chain = deploy_ready_task
+        else:
+            start_chain = deploy_meta_task
+            start_chain.link(deploy_ready_task)
 
-    deploy_ready_task.link(deploy_task)
-    deploy_task.link(check_vnc_task)
+        deploy_ready_task.link(deploy_task)
+        deploy_task.link(check_vnc_task)
     
     #JUST before we finish, check for boot_scripts_chain
     boot_chain_start, boot_chain_end = _get_boot_script_chain(
-            driverCls, provider, identity,instance.id)
+            driverCls, provider, identity, instance.id)
     if boot_chain_start and boot_chain_end:
         end_chain = boot_chain_end
     else:
