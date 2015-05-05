@@ -154,17 +154,26 @@ class InstanceList(APIView):
             return keys_not_found(missing_keys)
 
         #Pass these as args
-        size_alias = data.pop('size_alias')
-        machine_alias = data.pop('machine_alias')
-        hypervisor_name = data.pop('hypervisor',None)
-        boot_scripts = data.pop('boot_scripts', [])
+        size_alias = data.pop("size_alias")
+        machine_alias = data.pop("machine_alias")
+        hypervisor_name = data.pop("hypervisor", None)
+        deploy = data.pop("deploy", True)
+        if type(deploy) in [str, unicode] and deploy.lower() == "false":
+            deploy = False
+        elif not type(deploy) is bool:
+            deploy = True
+        data["deploy"] = deploy
+        logger.debug("deploy type = %s" % type(deploy))
+        logger.debug("deploy = %s" % deploy)
+        logger.debug("data = %s" % str(data))
+        boot_scripts = data.pop("boot_scripts", [])
         try:
             logger.debug(data)
             core_instance = launch_instance(
                 user, provider_uuid, identity_uuid,
                 size_alias, machine_alias,
                 ex_availability_zone=hypervisor_name,
-                **data)
+                deploy=deploy, **data)
         except UnderThresholdError, ute:
             return under_threshold(ute)
         except OverQuotaError, oqe:
