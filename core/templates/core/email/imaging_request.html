@@ -1,0 +1,24 @@
+{%if approved%}
+Your image request has been approved! The imaging process will
+begin shortly.
+{%else%}
+Your image request has been received. Upon staff approval, we will send you an e-mail to let you know that the the imaging process will begin shortly.
+{%endif%}
+
+When the imaging process has completed, you will receive an email with
+details about the new image.
+
+Your Image Request:
+Username : {{user.username}}
+Full Name: {{user.get_full_name}}
+Instance ID: {{request.instance.provider_alias}}
+---
+Installed software: {{request.installed_software}}
+System Files changed: {{request.iplant_sys_files}}
+Image visiblity: {{request.new_machine_visibility}}
+Shared with (Private only): {{request.access_list}}
+---
+New Image name: {{request.new_machine_name}}
+New Image description: {{request.new_machine_description}}
+New Image tags: {{request.new_machine_tags}}
+
