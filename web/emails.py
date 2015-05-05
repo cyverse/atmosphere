@@ -61,21 +61,23 @@ def quota_request_email(request, username, new_quota, reason):
     """
     user = User.objects.get(username=username)
     full_name = user.get_full_name()
-    membership = IdentityMembership.objects.get(identity=user.select_identity(),
-            member__in=user.group_set.all())
+    membership = IdentityMembership.objects.get(
+        identity=user.select_identity(),
+        member__in=user.group_set.all())
     admin_url = reverse('admin:core_identitymembership_change',
                                      args=(membership.id,))
-    message = """
-    Username : %s
-    Full name: %s
-    Quota Requested: %s
-    Reason for Quota Increase: %s
-    URL for Quota Increase:%s
-    """ % (username, full_name, new_quota, reason,
-           request.build_absolute_uri(admin_url))
+
     subject = "Atmosphere Quota Request - %s" % username
-    logger.info(message)
-    email_success = email_admin(request, subject, message, cc_user=False)
+    context = {
+        "user": user,
+        "quota": new_quota,
+        "reason": reason,
+        "url": request.build_absolute_uri(admin_url)
+    }
+    body = render_to_string("core/email/quota_request.html",
+                            context=Context(context))
+    logger.info(body)
+    email_success = email_admin(request, subject, body, cc_user=False)
     return {"email_sent": email_success}
 
 
