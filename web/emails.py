@@ -60,7 +60,6 @@ def quota_request_email(request, username, new_quota, reason):
     Returns a response.
     """
     user = User.objects.get(username=username)
-    full_name = user.get_full_name()
     membership = IdentityMembership.objects.get(
         identity=user.select_identity(),
         member__in=user.group_set.all())
@@ -88,10 +87,14 @@ def feedback_email(request, username, user_email, message):
     Returns a response.
     """
     user = User.objects.get(username=username)
-    full_name = user.get_full_name()
     subject = 'Subject: Atmosphere Client Feedback from %s' % username
-    message = '---\nFull Name:%s\nFeedback: %s\n---' % (full_name, message)
-    email_success = email_admin(request, subject, message, request_tracker=True)
+    context = {
+        "user": user,
+        "feedback": message
+    }
+    body = render_to_string("core/email/feedback.html",
+                            context=Context(context))
+    email_success = email_admin(request, subject, body, request_tracker=True)
     if email_success:
         resp = {'result':
                    {'code': 'success',
