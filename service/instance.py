@@ -37,6 +37,7 @@ from service.exceptions import OverAllocationError, OverQuotaError,\
     VolumeAttachConflict, UnderThresholdError, ActionNotAllowed
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 
+
 def _get_size(esh_driver, esh_instance):
     if type(esh_instance.size) == MockSize:
         size = esh_driver.get_size(esh_instance.size.id)
@@ -589,7 +590,8 @@ def _pre_launch_validation(username, esh_driver, identity_uuid, boot_source, siz
         _test_for_licensing(machine, identity)
 
 def launch_instance(user, provider_uuid, identity_uuid,
-                    size_alias, source_alias, **launch_kwargs):
+                    size_alias, source_alias, deploy=True,
+                    **launch_kwargs):
     """
     USE THIS TO LAUNCH YOUR INSTANCE FROM THE REPL!
     Initialization point --> launch_*_instance --> ..
@@ -618,11 +620,8 @@ def launch_instance(user, provider_uuid, identity_uuid,
     #Raise any other exceptions before launching here
     _pre_launch_validation(user.username, esh_driver, identity_uuid, boot_source, size)
 
-    core_instance = _select_and_launch_source(user, identity_uuid, esh_driver, boot_source, size, **launch_kwargs)
+    core_instance = _select_and_launch_source(user, identity_uuid, esh_driver, boot_source, size, deploy=deploy, **launch_kwargs)
     return core_instance
-
-
-
 
 
 #NOTE: Harmonizing these four methods below would be nice..
@@ -631,7 +630,7 @@ def launch_instance(user, provider_uuid, identity_uuid,
 """
 Actual Launch Methods
 """
-def _select_and_launch_source(user, identity_uuid, esh_driver, boot_source, size, **launch_kwargs):
+def _select_and_launch_source(user, identity_uuid, esh_driver, boot_source, size, deploy=True, **launch_kwargs):
     """
     Select launch route based on whether boot_source is-a machine/volume
     """
@@ -641,24 +640,25 @@ def _select_and_launch_source(user, identity_uuid, esh_driver, boot_source, size
         #      to CREATE a new bootable volume (from an existing volume/image/snapshot)
         #      use service/volume.py 'boot_volume'
         volume = _retrieve_source(esh_driver, boot_source.identifier, "volume")
-
-        core_instance = launch_volume_instance(esh_driver, identity,
-                volume, size, **launch_kwargs)
+        core_instance = launch_volume_instance(
+            esh_driver, identity, volume, size,
+            deploy=deploy, **launch_kwargs)
     elif boot_source.is_machine():
         machine = _retrieve_source(esh_driver, boot_source.identifier, "machine")
-
-        core_instance = launch_machine_instance(esh_driver, identity,
-                machine, size, **launch_kwargs)
+        core_instance = launch_machine_instance(
+            esh_driver, identity, machine, size,
+            deploy=deploy, **launch_kwargs)
     else:
         raise Exception("Boot source is of an unknown type")
     return core_instance
+
 
 def boot_volume_instance(
         driver, identity, copy_source, size, name,
         #Depending on copy source, these specific kwargs may/may not be used.
         boot_index=0, shutdown=False, volume_size=None,
         #Other kwargs passed for future needs
-        **kwargs):
+        deploy=True, **kwargs):
     """
     Create a new volume and launch it as an instance
     """
@@ -667,10 +667,13 @@ def boot_volume_instance(
     instance, token, password = _boot_volume(
             driver, identity, copy_source, size,
             name, userdata, network, **kwargs)
-    return _complete_launch_instance(driver, identity, instance,
-            identity.created_by, token, password)
+    return _complete_launch_instance(
+        driver, identity, instance,
+        identity.created_by, token, password, deploy=deploy)
 
-def launch_volume_instance(driver, identity, volume, size, name, **kwargs):
+
+def launch_volume_instance(driver, identity, volume, size, name,
+                           deploy=True, **kwargs):
     """
     Re-Launch an existing volume as an instance
     """
@@ -680,19 +683,22 @@ def launch_volume_instance(driver, identity, volume, size, name, **kwargs):
             driver, identity, volume, size,
             name, userdata, network, **kwargs)
     return _complete_launch_instance(driver, identity, instance,
-           identity.created_by, token, password)
+                                     identity.created_by, token, password,
+                                     deploy=deploy)
 
-def launch_machine_instance(driver, identity, machine, size, name, **kwargs):
+def launch_machine_instance(driver, identity, machine, size, name,
+                            deploy=True, **kwargs):
     """
     Launch an existing machine as an instance
     """
     prep_kwargs,  userdata, network = _pre_launch_instance(driver, identity, size, name, **kwargs)
     kwargs.update(prep_kwargs)
     instance, token, password = _launch_machine(
-            driver, identity, machine, size,
-            name, userdata, network, **kwargs)
+        driver, identity, machine, size,
+        name, userdata, network, **kwargs)
     return _complete_launch_instance(driver, identity, instance,
-            identity.created_by, token, password)
+                                     identity.created_by, token, password,
+                                     deploy=deploy)
 
 
 def _boot_volume(driver, identity, copy_source, size, name, userdata, network,
@@ -747,7 +753,7 @@ def _launch_machine(driver, identity, machine, size,
                 name=name, image=machine, size=size,
                 token=token, 
                 networks=[network], ex_admin_pass=password,
-                deploy=True, **kwargs)
+                **kwargs)
         #Used for testing.. Eager ignores countdown
         if app.conf.CELERY_ALWAYS_EAGER:
             logger.debug("Eager Task, wait 1 minute")
@@ -818,14 +824,15 @@ def _generate_userdata_content(name, username, token=None, password=None, init_f
                                          username, init_file)
     return userdata_content
 
-def _complete_launch_instance(driver, identity, instance, user, token, password):
+def _complete_launch_instance(driver, identity, instance, user, token, password, deploy=True):
     from service import task
     #Create the Core/DB for instance
     core_instance = convert_esh_instance(
         driver, instance, identity.provider.uuid, identity.uuid,
         user, token, password)
     # call async task to deploy to instance.
-    task.deploy_init_task(driver, instance, identity, user.username, password, token)
+    task.deploy_init_task(driver, instance, identity, user.username,
+                          password, token, deploy=deploy)
     #Update InstanceStatusHistory
     _first_update(driver, identity, core_instance, instance)
     #Invalidate and return
