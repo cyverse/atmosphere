@@ -2,6 +2,7 @@
 Authentication Backends and validation methods
 """
 from django.contrib.auth.backends import ModelBackend
+from django.conf import settings
 
 from threepio import auth_logger as logger
 
@@ -24,7 +25,7 @@ class MockLoginBackend(ModelBackend):
         Return user if Always
         Return None Never.
         """
-        return get_or_create_user(username, {
+        return get_or_create_user(settings.ALWAYS_AUTH_USER, {
             'firstName':"Mocky Mock",
             'lastName':"MockDoodle",
             'email': 'sparkles@iplantcollaborative.org'})

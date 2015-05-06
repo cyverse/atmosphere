@@ -2,10 +2,10 @@ from core.models import Tag
 
 from api.permissions import CloudAdminRequired
 from api.v2.serializers.summaries import TagSummarySerializer
-from api.v2.views.base import AuthOptionalViewSet
+from api.v2.views.base import AuthReadOnlyViewSet
 
 
-class TagViewSet(AuthOptionalViewSet):
+class TagViewSet(AuthReadOnlyViewSet):
     """
     API endpoint that allows tags to be viewed or edited.
     """
@@ -18,7 +18,6 @@ class TagViewSet(AuthOptionalViewSet):
         serializer.save(user=self.request.user)
 
     def get_permissions(self):
-        method = self.request.method
-        if method == 'DELETE' or method == 'PUT':
+        if self.request.method in ["POST", "PUT", "DELETE"]:
             self.permission_classes = (CloudAdminRequired,)
-        return super(viewsets.ModelViewSet, self).get_permissions()
+        return super(Auth, self).get_permissions()

@@ -52,6 +52,7 @@ deploy: $(COMBINED_CERT_PATH) setup $(DHPARAM) unlink
 	mkdir -p $(SITES_ENABLED_DIR)
 	ln -fs $(ATMOSPHERE_PATH)/extras/nginx/atmo.conf $(SITES_AVAILABLE_DIR)/atmo.conf
 	ln -fs $(SITES_AVAILABLE_DIR)/atmo.conf $(SITES_ENABLED_DIR)/atmo.conf
+	ln -fs $(ATMOSPHERE_PATH)/extras/init.d/atmosphere.uwsgi+nginx /etc/init.d/atmosphere
 
 unlink:
 	-rm $(SITES_ENABLED_DIR)/atmo.conf
@@ -64,4 +65,7 @@ restart:
 	service nginx restart
 
 clean: unlink
-	rm -f $(CONFIG) $(DHPARAM)
+	-rm $(COMBINED_CERT_PATH)
+	-rm $(CONFIG)
+	-rm $(DHPARAM)
+	-rm /etc/init.d/atmosphere

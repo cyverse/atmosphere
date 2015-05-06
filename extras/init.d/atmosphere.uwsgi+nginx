@@ -7,11 +7,11 @@
 NAME='Atmosphere'
 DESC="Deals with the workflow associated with running atmospehre as a service"
 
-WEB_SERVICE="apache2" # could be httpd on centos..
+WEB_SERVICE="nginx" # could be httpd on centos..
 WEB_INITD="/etc/init.d/$WEB_SERVICE"
 CELERY_INITD="/etc/init.d/celeryd"
 CELERYBEAT_INITD="/etc/init.d/celerybeat"
-REDIS_INITD="/etc/init/redis-server.conf"
+REDIS_INITD="/etc/init.d/redis-server"
 CELERY_DEFAULT="/etc/default/celeryd"
 
 if [ ! -f  $CELERY_INITD ]; then
@@ -42,7 +42,7 @@ fi
 
 case "$1" in
 status)
-    service apache2 status
+    service $WEB_SERVICE status
     service redis-server status
     service celeryd status
     service celerybeat status
@@ -102,7 +102,7 @@ restart)
     fi
     echo "Restarting Atmosphere Web Services"
     service uwsgi restart
-    service apache2 restart
+    service $WEB_SERVICE restart
 ;;
 
 celery-restart)
@@ -112,7 +112,7 @@ celery-restart)
     fi
     echo "Restarting Atmosphere Web Services"
     service uwsgi restart
-    service apache2 restart
+    service $WEB_SERVICE restart
     #echo "Force Killing All Celery Nodes"
     #service celeryd kill
     echo "Restarting Atmosphere Celery Nodes"
