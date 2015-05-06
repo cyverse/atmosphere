@@ -2,6 +2,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser
 from core.models import Tag
 from api.v2.serializers.summaries import TagSummarySerializer
+from api.v2.permissions import IsAdminOrReadOnly
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -10,7 +11,7 @@ class TagViewSet(viewsets.ModelViewSet):
     """
     queryset = Tag.objects.all()
     serializer_class = TagSummarySerializer
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+    permission_classes = (IsAdminOrReadOnly,)
     max_paginate_by = 1000
 
     def perform_create(self, serializer):
@@ -18,7 +19,7 @@ class TagViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         method = self.request.method
-        if method == 'DELETE' or method == 'PUT':
-            self.permission_classes = (IsAdminUser,)
+        if method == 'POST':
+            self.permission_classes = (IsAuthenticatedOrReadOnly,)
 
         return super(viewsets.ModelViewSet, self).get_permissions()
