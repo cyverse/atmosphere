@@ -8,20 +8,18 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 
 from api import failure_response
-from api.permissions import ApiAuthRequired
 from api.serializers import QuotaRequestSerializer, UserQuotaRequestSerializer
+from api.views import AuthAPIView
 
 from core.exceptions import InvalidMembership, ProviderLimitExceeded
 from core.models import Identity, IdentityMembership, QuotaRequest
 from core.models.status_type import get_status_type
 
 
-class QuotaRequestList(APIView):
+class QuotaRequestList(AuthAPIView):
     """
     Lists or Creates a QuotaRequest
     """
-    permission_classes = (ApiAuthRequired,)
-
     def get_objects(self, request):
         memberships = []
         identities = request.user.identity_set.all()
@@ -71,12 +69,10 @@ class QuotaRequestList(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class QuotaRequestDetail(APIView):
+class QuotaRequestDetail(AuthAPIView):
     """
     Fetches or updates a specific QuotaRequest
     """
-    permission_classes = (ApiAuthRequired,)
-
     def get_object(self, identifier):
         return get_object_or_404(QuotaRequest, uuid=identifier)
 
