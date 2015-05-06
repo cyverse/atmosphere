@@ -8,19 +8,17 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 
 from api import failure_response
-from api.permissions import ApiAuthRequired
 from api.serializers import AllocationRequestSerializer
+from api.views import AuthAPIView
 
 from core.models import AllocationRequest, Identity, IdentityMembership
 from core.models.status_type import get_status_type
 
 
-class AllocationRequestList(APIView):
+class AllocationRequestList(AuthAPIView):
     """
     Lists or Creates a AllocationRequest
     """
-    permission_classes = (ApiAuthRequired,)
-
     def get(self, request, provider_uuid, identity_uuid):
         """
         Fetches all AllocationRequests for a specific identity
@@ -80,12 +78,10 @@ class AllocationRequestList(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class AllocationRequestDetail(APIView):
+class AllocationRequestDetail(AuthAPIView):
     """
     Fetches or updates a specific AllocatinRequest
     """
-    permission_classes = (ApiAuthRequired,)
-
     user_whitelist = ["description", "request"]
 
     admin_whitelist = ["end_date", "status", "description", "request",

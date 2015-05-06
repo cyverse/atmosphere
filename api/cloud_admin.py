@@ -333,12 +333,12 @@ class CloudAdminRequestDetailMixin(object):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class CloudAdminQuotaList(APIView, CloudAdminRequestListMixin):
+class CloudAdminQuotaList(CloudAdminRequestListMixin, APIView):
     model = QuotaRequest
     serializer_class = ResolveQuotaRequestSerializer
 
 
-class CloudAdminQuotaRequest(APIView, CloudAdminRequestDetailMixin):
+class CloudAdminQuotaRequest(CloudAdminRequestDetailMixin, APIView):
     """
     Manage user quota requests
     """
@@ -354,12 +354,12 @@ class CloudAdminQuotaRequest(APIView, CloudAdminRequestDetailMixin):
         membership.approve_quota(pending_request.id)
 
 
-class CloudAdminAllocationList(APIView, CloudAdminRequestListMixin):
+class CloudAdminAllocationList(CloudAdminRequestListMixin, APIView):
     model = AllocationRequest
     serializer_class = ResolveAllocationRequestSerializer
 
 
-class CloudAdminAllocationRequest(APIView, CloudAdminRequestDetailMixin):
+class CloudAdminAllocationRequest(CloudAdminRequestDetailMixin, APIView):
     """
     Manage user allocation requests
     """

@@ -7,18 +7,16 @@ from rest_framework import status
 
 from django.shortcuts import get_object_or_404
 
-from api.permissions import ApiAuthRequired
 from api.serializers import QuotaSerializer
+from api.views import AuthAPIView
 
 from core.models import Quota
 
 
-class QuotaList(APIView):
+class QuotaList(AuthAPIView):
     """
     Lists or creates new Quotas
     """
-    permission_classes = (ApiAuthRequired,)
-
     def get(self, request):
         """
         Returns a list of all existing Quotas
@@ -41,12 +39,10 @@ class QuotaList(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class QuotaDetail(APIView):
+class QuotaDetail(AuthAPIView):
     """
     Fetches or updates a Quota
     """
-    permission_classes = (ApiAuthRequired,)
-
     def get(self, request, quota_id):
         """
         Return the specified Quota
