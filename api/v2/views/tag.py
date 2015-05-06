@@ -20,4 +20,4 @@ class TagViewSet(AuthReadOnlyViewSet):
     def get_permissions(self):
         if self.request.method in ["POST", "PUT", "DELETE"]:
             self.permission_classes = (CloudAdminRequired,)
-        return super(Auth, self).get_permissions()
+        return super(TagViewSet, self).get_permissions()
