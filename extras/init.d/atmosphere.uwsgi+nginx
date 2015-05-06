@@ -42,7 +42,7 @@ fi
 
 case "$1" in
 status)
-    service apache2 status
+    service $WEB_SERVICE status
     service redis-server status
     service celeryd status
     service celerybeat status
@@ -102,7 +102,7 @@ restart)
     fi
     echo "Restarting Atmosphere Web Services"
     service uwsgi restart
-    service apache2 restart
+    service $WEB_SERVICE restart
 ;;
 
 celery-restart)
@@ -112,7 +112,7 @@ celery-restart)
     fi
     echo "Restarting Atmosphere Web Services"
     service uwsgi restart
-    service apache2 restart
+    service $WEB_SERVICE restart
     #echo "Force Killing All Celery Nodes"
     #service celeryd kill
     echo "Restarting Atmosphere Celery Nodes"

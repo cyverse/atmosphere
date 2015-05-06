@@ -11,7 +11,7 @@ WEB_SERVICE="apache2" # could be httpd on centos..
 WEB_INITD="/etc/init.d/$WEB_SERVICE"
 CELERY_INITD="/etc/init.d/celeryd"
 CELERYBEAT_INITD="/etc/init.d/celerybeat"
-REDIS_INITD="/etc/init.d/redis-server"
+REDIS_INITD="/etc/init/redis-server.conf"
 CELERY_DEFAULT="/etc/default/celeryd"
 
 if [ ! -f  $CELERY_INITD ]; then
