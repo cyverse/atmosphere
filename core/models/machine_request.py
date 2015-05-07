@@ -6,6 +6,7 @@ import re
 import os
 
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from core.models.user import AtmosphereUser as User
 
@@ -31,41 +32,32 @@ class MachineRequest(models.Model):
     instance = models.ForeignKey("Instance")
 
     # Machine imaging Metadata
-    status = models.TextField(default='', blank=True)
+    status = models.TextField(default='', blank=True, null=True)
     parent_machine = models.ForeignKey(ProviderMachine,
                                        related_name="ancestor_machine")
 
     # Data for the new machine.
     # SPECIFIC to 'forked=True'
-    new_application_name = models.CharField(max_length=256)
+    new_application_name = models.CharField(max_length=256, null=True, blank=True)
     # SPECIFIC to 'forked=False'
 
     # Specific to ApplicationVersion && ProviderMachine
-    iplant_sys_files = models.TextField(default='', blank=True)
-    installed_software = models.TextField(default='', blank=True)
-    exclude_files = models.TextField(default='', blank=True)
+    iplant_sys_files = models.TextField(default='', blank=True, null=True)
+    installed_software = models.TextField(default='', blank=True, null=True)
+    exclude_files = models.TextField(default='', blank=True, null=True)
     new_version_allow_imaging = models.BooleanField(default=True)
-    new_version_description = models.TextField(default='', blank=True)
-    new_version_tags = models.TextField(default='', blank=True)
+    new_version_description = models.TextField(default='', blank=True, null=True)
+    new_version_tags = models.TextField(default='', blank=True, null=True)
     new_version_forked = models.BooleanField(default=True)
     new_version_memory_min = models.IntegerField(default=0)
     new_version_storage_min = models.IntegerField(default=0)
     new_version_licenses = models.ManyToManyField(License, blank=True)
     new_version_membership = models.ManyToManyField("Group", blank=True)
-    new_version_visibility = models.CharField(max_length=256) #Public, Private, Select
-    access_list = models.TextField(default='', blank=True) # DEPRECATED
+    new_version_visibility = models.CharField(max_length=256, blank=True, null=True) #Public, Private, Select
+    access_list = models.TextField(default='', blank=True, null=True) # DEPRECATED
 
     new_machine_provider = models.ForeignKey(Provider)
     new_machine_owner = models.ForeignKey(User)
-    new_machine_visibility = models.CharField(max_length=256) # DEPRECATED
-    new_machine_description = models.TextField(default='', blank=True) # DEPRECATED
-    new_machine_tags = models.TextField(default='', blank=True) # DEPRECATED
-    new_machine_forked = models.BooleanField(default=True) # DEPRECATED
-    new_machine_memory_min = models.IntegerField(default=0) # DEPRECATED
-    new_machine_storage_min = models.IntegerField(default=0) # DEPRECATED
-    new_machine_licenses = models.ManyToManyField(License,
-            blank=True)
-    new_machine_allow_imaging = models.BooleanField(default=True) # DEPRECATED
     #Date time stamps
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
@@ -371,12 +363,13 @@ def _match_membership_to_access(access_list, membership):
     #Circ.Dep. DO NOT MOVE UP!! -- Future Solve:Move into Group?
     from core.models.group import Group
     if not access_list:
-        return self.
+        return self.new_version_membership.all()
+    # If using access list, parse the list into queries and evaluate the filter ONCE.
     names_wanted = access_list.split(',')
     query_list = map(lambda name: Q(name__iexact=name), names_wanted)
     query_list = reduce(lambda qry1, qry2: qry1 | qry2, query_list)
-    members = Group.objects.filter(query_list | Q())
-    return members
+    members = Group.objects.filter(query_list)
+    return members | self.new_version_membership.all()
 
 def _match_tags_to_names(tag_names):
     """
@@ -385,8 +378,12 @@ def _match_tags_to_names(tag_names):
     NOTE: Tags NOT created BEFORE being added to new_machine_tags are ignored.
     """
     from core.models.tag import Tag
-    tags = [Tag.objects.filter(name__iexact=tag)[0] for tag in
-            tag_names.split(',')]
+    if not tag_names:
+        return []
+    tags_wanted = tag_names.split(',')
+    query_list = map(lambda tag: Q(name__iexact=tag), tags_wanted)
+    query_list = reduce(lambda qry1, qry2: qry1 | qry2, query_list)
+    tags = Tag.objects.filter(query_list)
     return tags
 
 def _get_owner(new_provider, user):

@@ -111,9 +111,7 @@ class AllocationAdmin(admin.ModelAdmin):
 class ProviderMachineAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     search_fields = ["application_version__application__name", "instance_source__provider__location", "instance_source__identifier"]
-    list_display = ["identifier",
-            "_pm_provider",
-            "end_date"]
+    list_display = ["identifier", "_pm_provider", "end_date"]
     list_filter = [
         "instance_source__provider__location",
         "application_version__application__private",
@@ -309,8 +307,7 @@ class MachineRequestAdmin(admin.ModelAdmin):
                     "old_provider", "new_machine_provider", 
 		    "start_date", "end_date", "status",
 		    "opt_new_machine", "opt_parent_machine", "opt_machine_visibility"]
-    list_filter = ["new_machine_visibility",
-                   "status"]
+    list_filter = ["status"]
 
     #Overwrite
     def render_change_form(self, request, context, *args, **kwargs):

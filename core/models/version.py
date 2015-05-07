@@ -30,7 +30,7 @@ class ApplicationVersion(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     application = models.ForeignKey("Application", related_name="versions")
     fork_version = models.ForeignKey("ApplicationVersion", blank=True, null=True)
-    name = models.CharField(max_length=32, blank=True)#Potentially goes unused..
+    name = models.CharField(max_length=32, blank=True, null=True)#Potentially goes unused..
     description = models.TextField(null=True, blank=True)
     #TODO: Dynamic location for upload_to
     icon = models.ImageField(upload_to="application_versions", null=True, blank=True)
@@ -40,9 +40,9 @@ class ApplicationVersion(models.Model):
     #TODO: Decide if we want to enable this information.. Is it useful?
     #As it stands now, we collect this information on the request, but 
     # this would allow users to edit/interact/view?
-    iplant_system_files = models.TextField(default='', blank=True)
-    installed_software = models.TextField(default='', blank=True)
-    excluded_files = models.TextField(default='', blank=True)
+    iplant_system_files = models.TextField(default='', null=True, blank=True)
+    installed_software = models.TextField(default='', null=True, blank=True)
+    excluded_files = models.TextField(default='', null=True, blank=True)
     licenses = models.ManyToManyField(License,
             blank=True, related_name='application_versions')
     membership = models.ManyToManyField('Group',

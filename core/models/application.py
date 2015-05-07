@@ -505,8 +505,7 @@ class ApplicationBookmark(models.Model):
 
 
 class ApplicationThreshold(models.Model):
-    application = models.OneToOneField(Application, related_name="threshold")
-    application_version = models.OneToOneField(ApplicationVersion, related_name="threshold")
+    application_version = models.OneToOneField(ApplicationVersion, related_name="threshold", blank=True, null=True)
     memory_min = models.IntegerField(default=0)
     storage_min = models.IntegerField(default=0)
 
