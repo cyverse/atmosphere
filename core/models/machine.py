@@ -304,15 +304,20 @@ def _username_lookup(provider_uuid, username):
         return None
 
 
-def update_provider_machine(provider_machine, new_created_by_identity=None, new_created_by=None, new_application=None, new_version=None):
+def update_provider_machine(provider_machine, new_created_by_identity=None, new_created_by=None, new_application_version=None):
+    """
+    Used to explicitly 'update' + call the 'provider_machine_write_hook'
+    * Glance updates, metadata updates, etc.
+    *
+    TODO: Find a way to bring this IN to ProviderMachine.save?
+    """
     if new_created_by:
         provider_machine.created_by = new_created_by
     if new_created_by_identity:
         provider_machine.created_by_identity = new_created_by_identity
-    if new_application:
-        provider_machine.application = new_application
-    if new_version:
+    if new_application_version:
         provider_machine.application_version = new_version
+        provider_machine.application = new_version.application
     provider_machine.save()
     provider_machine_write_hook(provider_machine)
 

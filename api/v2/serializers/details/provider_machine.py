@@ -5,19 +5,22 @@ from api.v2.serializers.summaries import ImageSummarySerializer, ProviderSummary
 
 class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.ReadOnlyField(source='instance_source.identifier')
-    image = ImageSummarySerializer(source='application')
+    image = ImageSummarySerializer(source='application_version.application')
+    allow_imaging = serializers.ReadOnlyField(source='application_version.allow_imaging')
+    version = serializers.ReadOnlyField(source='application_version.name')
     provider = ProviderSummarySerializer(source='instance_source.provider')
     created_by = UserSummarySerializer(source='instance_source.created_by')
     start_date = serializers.DateTimeField(source='instance_source.start_date')
     end_date = serializers.DateTimeField(source='instance_source.end_date')
     licenses = LicenseSerializer(many=True, read_only=True) #NEW
-    #members = MachineMembershipSerializer(many=True) #NEW
+    members = serializers.SlugRelatedField(slug_field='name', read_only=True, many=True) #NEW
+    
 
     class Meta:
         model = ProviderMachine
         view_name = 'api_v2:providermachine-detail'
         fields = ('id', 'uuid', 'url', 'image', 'provider',
-                'licenses', 'allow_imaging', 'version',
+                'licenses', 'members', 'allow_imaging', 'version',
                 'created_by', 'start_date', 'end_date')
 
     #def create(self, validated_data):

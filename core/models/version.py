@@ -1,5 +1,5 @@
 """
-  Application Version models for atmosphere.
+  ApplicationVersion models for atmosphere.
 """
 import uuid
 
@@ -7,7 +7,6 @@ from django.db import models
 from django.utils import timezone
 from threepio import logger
 
-from core.models.application import Application
 from core.models.license import License
 from core.models.identity import Identity
 from core.models.tag import Tag
@@ -25,9 +24,11 @@ class ApplicationVersion(models.Model):
       - Installed Software
       - Excluded Files
     This is a container for that information.
+
+    NOTE: Using this as the 'model' for DB moving to ID==UUID format.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    application = models.ForeignKey(Application, related_name="versions")
+    application = models.ForeignKey("Application", related_name="versions")
     fork_version = models.ForeignKey("ApplicationVersion", blank=True, null=True)
     name = models.CharField(max_length=32, blank=True)#Potentially goes unused..
     description = models.TextField(null=True, blank=True)
@@ -36,7 +37,12 @@ class ApplicationVersion(models.Model):
     allow_imaging = models.BooleanField(default=True)
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
-    #NOTE: Some day this could be InstanceSource. But that day is not today.
+    #TODO: Decide if we want to enable this information.. Is it useful?
+    #As it stands now, we collect this information on the request, but 
+    # this would allow users to edit/interact/view?
+    iplant_system_files = models.TextField(default='', blank=True)
+    installed_software = models.TextField(default='', blank=True)
+    excluded_files = models.TextField(default='', blank=True)
     licenses = models.ManyToManyField(License,
             blank=True, related_name='application_versions')
     membership = models.ManyToManyField('Group',

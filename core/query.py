@@ -24,6 +24,11 @@ def only_current_machines(now_time=None):
     return (Q(versions__machines__instance_source__end_date__isnull=True) |
             Q(versions__machines__instance_source__end_date__gt=now_time))
 
+def only_current_machines_in_version(now_time=None):
+    if not now_time:
+        now_time = timezone.now()
+    return (Q(machines__instance_source__end_date__isnull=True) |
+            Q(machines__instance_source__end_date__gt=now_time))
 
 def only_current_source(now_time=None):
     """

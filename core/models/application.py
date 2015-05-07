@@ -15,6 +15,7 @@ from core.models.provider import Provider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
 from core.metadata import _get_admin_owner
+from core.models.version import ApplicationVersion
 
 class Application(models.Model):
     """
@@ -53,7 +54,6 @@ class Application(models.Model):
 
     @property
     def latest_version(self):
-        from core.models.version import ApplicationVersion
         try:
             return self.versions.order_by('start_date').last()
         except ApplicationVersion.DoesNotExist:
@@ -356,6 +356,9 @@ def _username_lookup(provider_uuid, username):
 
 def update_application(application, new_name=None, new_tags=None,
         new_description=None):
+    """
+    This is a dumb way of doing things. Fix this.
+    """
     if new_name:
         application.name = new_name
     if new_description:
@@ -368,6 +371,11 @@ def update_application(application, new_name=None, new_tags=None,
 
 def create_application(provider_uuid, identifier, name=None,
                        created_by_identity=None, created_by=None, description=None, private=False, tags=None, uuid=None):
+    """
+    Create application & Initial ApplicationVersion.
+    Build information (Based on MachineRequest or API inputs..)
+    and RETURN ApplicationVersion!!
+    """
     from core.models import AtmosphereUser
     new_app = None
 
@@ -498,6 +506,7 @@ class ApplicationBookmark(models.Model):
 
 class ApplicationThreshold(models.Model):
     application = models.OneToOneField(Application, related_name="threshold")
+    application_version = models.OneToOneField(ApplicationVersion, related_name="threshold")
     memory_min = models.IntegerField(default=0)
     storage_min = models.IntegerField(default=0)
 
