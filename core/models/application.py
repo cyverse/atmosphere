@@ -48,6 +48,9 @@ class Application(models.Model):
     def latest_description(self):
         return self.latest_version.description
 
+    def get_icon_url(self):
+        return self.icon.url if self.icon else None
+
     @property
     def icon(self):
         return self.latest_version.icon if self.latest_version.icon else None

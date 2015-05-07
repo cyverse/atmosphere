@@ -8,6 +8,7 @@ class ImageSerializer(serializers.HyperlinkedModelSerializer):
     created_by = UserSummarySerializer()
     tags = TagSummarySerializer(many=True)
     provider_images = ProviderMachineRelatedField(source='all_machines', many=True)
+    icon = serializers.CharField(source="get_icon_url", read_only=True)
 
     class Meta:
         model = Image
