@@ -1,5 +1,0 @@
-MOUNTNAME: "/home"
-MOUNTSOURCE: "/dev/vdb"
-MOUNTTYPE: "ext3"
-
-ALL_DISKS: "{% print ansible_devices.keys() %}"

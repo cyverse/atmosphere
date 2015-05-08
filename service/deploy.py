@@ -88,14 +88,12 @@ def deploy_to(instance_ip, username):
     """
     Use service.ansible to deploy to an instance.
     """
+    if not check_ansible():
+        return []
     configure_ansible()
     my_limit = {"hostname": build_host_name(instance_ip), "ip": instance_ip}
-    deploy_playbooks = os.path.join(
-        settings.PROJECT_ROOT,
-        "service/ansible/playbooks")
-    host_list = os.path.join(
-        settings.PROJECT_ROOT,
-        "service/ansible/hosts")
+    deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
+    host_list = settings.ANSIBLE_HOST_FILE
     extra_vars = {"ATMOUSERNAME" : username,
                   "VNCLICENSE" : secrets.ATMOSPHERE_VNC_LICENSE}
     pbs = subspace.playbook.get_playbooks(deploy_playbooks,
@@ -106,15 +104,29 @@ def deploy_to(instance_ip, username):
     return pbs
 
 
+def check_ansible():
+    """
+    If the playbooks and roles directory exist then ANSIBLE_* settings
+    variables are likely configured.
+    """
+    exists = os.path.exists(settings.ANSIBLE_PLAYBOOKS_DIR) and\
+             os.path.exists(settings.ANSIBLE_ROLES_PATH)
+    if not exists:
+        logger.warn("Ansible is not configured. Verify your "
+                    "ANSIBLE_* settings variables")
+    return exists
+
+
 def configure_ansible():
     """
-    Configure ansible to work with service.ansible.
+    Configure ansible to work with service.ansible and subspace.
     """
     subspace.constants("HOST_KEY_CHECKING", False)
-    subspace.constants("DEFAULT_ROLES_PATH", os.path.join(
-        settings.PROJECT_ROOT, "service/ansible/roles"))
-    subspace.constants("ANSIBLE_CONFIG", os.path.join(
-        settings.PROJECT_ROOT, "service/ansible/ansible.cfg"))
+    subspace.constants("DEFAULT_ROLES_PATH",
+                       settings.ANSIBLE_ROLES_PATH)
+    if settings.ANSIBLE_CONFIG_FILE:
+        subspace.constants("ANSIBLE_CONFIG",
+                           settings.ANSIBLE_CONFIG_FILE)
     subspace.use_logger(logger)
 
 

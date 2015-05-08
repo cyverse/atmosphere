@@ -1,8 +1,0 @@
-- name: restart fail2ban ubuntu
-  action: service name=fail2ban state=restarted
-
-- name: restart fail2ban centos
-  action: service name=fail2ban state=restarted
-
-- name: restart fail2ban centos7
-  action: service name=fail2ban state=restarted

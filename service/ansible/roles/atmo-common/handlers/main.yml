@@ -1,8 +1,0 @@
-- name: restart apache
-  service: name=apache state=restarted
-
-- name: restart ssh
-  service: name={{ SSHD }} state=restarted
-
-- name: update ubuntu timezone
-  command: dpkg-reconfigure --frontend noninteractive tzdata

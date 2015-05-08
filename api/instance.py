@@ -162,7 +162,6 @@ class InstanceList(APIView):
             deploy = False
         elif not type(deploy) is bool:
             deploy = True
-        data["deploy"] = deploy
         logger.debug("deploy type = %s" % type(deploy))
         logger.debug("deploy = %s" % deploy)
         logger.debug("data = %s" % str(data))
