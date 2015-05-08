@@ -50,6 +50,14 @@ class ApplicationVersion(models.Model):
                                         through='ApplicationVersionMembership',
                                         blank=True)
 
+    @property
+    def str_id(self):
+        return str(self.id)
+
+    @property
+    def icon_url(self):
+        return self.icon.url if self.icon else None
+
 class ApplicationVersionMembership(models.Model):
     """
     Members of a specific ApplicationVersion

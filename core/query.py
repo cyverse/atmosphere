@@ -62,3 +62,8 @@ def _active_identity_membership(user, now_time=None):
         Q(identity__provider__end_date__gt=now_time),
         identity__provider__active=True,
         member__user__username=user.username)
+
+def _membership_for_user(user):
+    if not user:
+        return Q()
+    return Q(group__id__in=user.group_set.values('id'))

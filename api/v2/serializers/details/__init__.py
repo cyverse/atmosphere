@@ -1,5 +1,5 @@
 from .allocation import AllocationSerializer
-from .application_version import ApplicationVersionSerializer
+from .image_version import ImageVersionSerializer
 from .identity import IdentitySerializer
 from .image import ImageSerializer
 from .image_tag import ImageTagSerializer

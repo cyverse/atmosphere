@@ -3,7 +3,7 @@ from rest_framework import routers
 from api.v2 import views
 
 router = routers.DefaultRouter(trailing_slash=False)
-router.register(r'application_version', views.ApplicationVersionViewSet, base_name='applicationversion')
+router.register(r'image_version', views.ImageVersionViewSet, base_name='imageversion')
 router.register(r'allocations', views.AllocationViewSet)
 router.register(r'identities', views.IdentityViewSet)
 router.register(r'images', views.ImageViewSet, base_name='application')

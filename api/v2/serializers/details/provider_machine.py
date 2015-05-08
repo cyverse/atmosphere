@@ -1,13 +1,15 @@
 from core.models import ProviderMachine
 from rest_framework import serializers
-from api.v2.serializers.summaries import ImageSummarySerializer, ProviderSummarySerializer, UserSummarySerializer, LicenseSerializer
+from api.v2.serializers.summaries import ImageSummarySerializer, ImageVersionSummarySerializer, ProviderSummarySerializer, UserSummarySerializer, LicenseSerializer
 
 
 class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.ReadOnlyField(source='instance_source.identifier')
+    #Will eventually be moved OUT of this serializer.
     image = ImageSummarySerializer(source='application_version.application')
     allow_imaging = serializers.ReadOnlyField(source='application_version.allow_imaging')
-    version = serializers.ReadOnlyField(source='application_version.name')
+    # Will replace stuff above it
+    version = ImageVersionSummarySerializer(source='application_version')
     provider = ProviderSummarySerializer(source='instance_source.provider')
     created_by = UserSummarySerializer(source='instance_source.created_by')
     start_date = serializers.DateTimeField(source='instance_source.start_date')
