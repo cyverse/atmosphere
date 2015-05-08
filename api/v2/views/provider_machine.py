@@ -2,7 +2,7 @@ from django.db.models import Q
 from rest_framework import viewsets
 
 from core.models import ProviderMachine
-from core.query import only_current_source
+from core.query import only_current_source_args
 
 from api.v2.serializers.details import ProviderMachineSerializer
 
@@ -20,10 +20,10 @@ class ProviderMachineViewSet(viewsets.ModelViewSet):
         request_user = self.request.user
 
         #Showing non-end dated, public ProviderMachines
-        public_pms_set = ProviderMachine.objects.filter(only_current_source(), application_version__application__private=False)
+        public_pms_set = ProviderMachine.objects.filter(*only_current_source_args(), application_version__application__private=False)
 
         #Showing non-end dated, public ProviderMachines
-        shared_pms_set = ProviderMachine.objects.filter(only_current_source(), members__in=request_user.group_set.values('id'))
+        shared_pms_set = ProviderMachine.objects.filter(*only_current_source_args(), members__in=request_user.group_set.values('id'))
 
         #NOTE: Showing 'my pms' EVEN if they are end-dated.
         my_pms_set = ProviderMachine.objects.filter(

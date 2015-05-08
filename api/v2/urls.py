@@ -24,7 +24,7 @@ router.register(r'sizes', views.SizeViewSet)
 router.register(r'status_types', views.StatusTypeViewSet)
 router.register(r'tags', views.TagViewSet)
 router.register(r'users', views.UserViewSet)
-router.register(r'volumes', views.VolumeViewSet)
+router.register(r'volumes', views.VolumeViewSet, base_name='volume')
 
 urlpatterns = patterns('',
                        url(r'^', include(router.urls)),

@@ -23,7 +23,7 @@ class ImageViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
-        public_image_set = Image.objects.filter(only_current(), private=False).order_by('-start_date')
+        public_image_set = Image.objects.filter(only_current(), only_current_machines(), private=False).order_by('-start_date')
         if type(request_user) == AnonymousUser:
             # Anonymous users can only see PUBLIC applications
             # (& their respective images on PUBLIC providers)
