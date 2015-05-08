@@ -1,5 +1,0 @@
----
-- name: Install and configure fail2ban.
-  hosts: atmosphere
-  roles:
-    - atmo-fail2ban

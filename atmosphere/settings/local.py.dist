@@ -1,3 +1,4 @@
+import os
 import sys
 
 globals().update(vars(sys.modules['atmosphere.settings']))
@@ -67,6 +68,19 @@ ATMOSPHERE_PRIVATE_KEYFILE=os.path.join(PROJECT_ROOT, "extras/ssh/id_rsa")
 ATMOSPHERE_KEYPAIR_FILE=os.path.join(PROJECT_ROOT, "path/to/keypair.pub")
 ATMOSPHERE_KEYPAIR_NAME=""
 
+# Atmosphere Ansible Deploy
+ANSIBLE_ROOT = ""  # The root directory for the ansible deploy project.
+	       	   # If this is emptry str then ansible deploys will not
+		   # run and will warn that ansible is no configured.
+ANSIBLE_CONFIG_FILE = os.path.join(settings.ANSIBLE_ROOT,
+                                   "ansible/ansible.cfg")
+ANSIBLE_HOST_FILE = os.path.join(settings.ANSIBLE_ROOT,
+                                 "ansible/hosts")
+ANSIBLE_PLAYBOOKS_DIR = os.path.join(settings.ANSIBLE_ROOT,
+                                     "ansible/playbooks")
+ANSIBLE_ROLES_PATH = os.path.join(settings.ANSIBLE_ROOT,
+                                  "ansible/roles")
+
 # Atmosphere App Configs
 INSTANCE_SERVICE_URL = SERVER_URL + REDIRECT_URL + "/api/v1/notification/"
 API_SERVER_URL = SERVER_URL + REDIRECT_URL + "/resources/v1"
@@ -97,3 +111,10 @@ caslib.cas_init(CAS_SERVER, SERVICE_URL, PROXY_URL, PROXY_CALLBACK_URL, SELF_SIG
 # NOTE: This user will be authenticated indefinitely while active, Should only be activated for
 # development on a localhost.
 # ALWAYS_AUTH_USER = "test_user"
+
+# Deal with urllib3 warnings till we're on python > 2.7.9
+try:
+    import urllib3
+    urllib3.disable_warnings()
+except ImportError:
+    pass

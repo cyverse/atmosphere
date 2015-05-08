@@ -33,11 +33,13 @@ def deploy_init_task(driver, instance, identity,
                      redeploy=False, deploy=True, *args, **kwargs):
     from service.tasks.driver import _update_status_log
     _update_status_log(instance, "Launching Instance")
+    logger.debug("deploy_init_task redeploy = %s" % redeploy)
     deploy_init_to.apply_async((driver.__class__,
                                 driver.provider,
                                 driver.identity,
                                 instance.alias,
-                                token,
+                                username,
+                                password,
                                 redeploy,
                                 deploy),
                                immutable=True)
