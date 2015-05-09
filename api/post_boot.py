@@ -3,25 +3,24 @@ atmosphere service post boot scripts rest api.
 
 """
 from rest_framework import status
-from rest_framework.views import APIView
 from rest_framework.response import Response
 
-
 from core.models.group import Group
-from core.models.post_boot import ScriptType, BootScript, get_scripts_for_user
+from core.models.post_boot import ScriptType, BootScript,\
+    get_scripts_for_user
 
 from api import failure_response
 from api.serializers import BootScriptSerializer
-from api.permissions import ApiAuthRequired
+from api.views import AuthAPIView
 
 
-class BootScriptList(APIView):
-    """BootScripts represent a script to be deployed on an instance and/or
+class BootScriptList(AuthAPIView):
+    """
+    BootScripts represent a script to be deployed on an instance and/or
     application after Atmosphere has finished deploying the instance.
     BootScripts can be of type URL, Raw Text.
     """
-    permission_classes = (ApiAuthRequired,)
-    
+
     def get(self, request):
         """
         Authentication Required, list of BootScripts on your account.
@@ -46,12 +45,13 @@ class BootScriptList(APIView):
             serializer.errors)
 
 
-class BootScript(APIView):
-    """BootScripts represent the different Cloud configurations hosted on Atmosphere.
+class BootScript(AuthAPIView):
+    """
+    BootScripts represent the different Cloud configurations hosted
+    on Atmosphere.
     BootScripts can be of type AWS, Eucalyptus, OpenStack.
     """
-    permission_classes = (ApiAuthRequired,)
-    
+
     def get(self, request, script_id):
         """
         Authentication Required, return specific BootScript.
@@ -66,17 +66,19 @@ class BootScript(APIView):
                 "BootScript of id %s does not exist." % script_id)
         serialized_data = BootScriptSerializer(script).data
         return Response(serialized_data)
+
     def patch(self, request, script_id):
         return self._update_script(request, script_id)
+
     def put(self, request, script_id):
         return self._update_script(request, script_id)
+
     def _update_script(self, request, script_id):
         user = request.user
         data = request.DATA
         partial = True if request.method == 'PATCH' else False
-        #Step 1: Retrieve or 'Forbidden' on updating script
+        # Step 1: Retrieve or 'Forbidden' on updating script
         scripts = get_scripts_for_user(user.username)
-
         try:
             script = scripts.get(id=script_id)
         except CoreBootScript.DoesNotExist:

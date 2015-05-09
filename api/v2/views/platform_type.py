@@ -1,12 +1,14 @@
-from rest_framework import viewsets
 from core.models import PlatformType
+
 from api.v2.serializers.details import PlatformTypeSerializer
+from api.v2.views.base import AuthReadOnlyViewSet
 
 
-class PlatformTypeViewSet(viewsets.ReadOnlyModelViewSet):
+class PlatformTypeViewSet(AuthReadOnlyViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
+
     queryset = PlatformType.objects.all()
     serializer_class = PlatformTypeSerializer
     http_method_names = ['get', 'head', 'options', 'trace']

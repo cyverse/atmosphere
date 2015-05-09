@@ -2,38 +2,36 @@
 Atmosphere service machine rest api.
 
 """
+import copy
+import re
 
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
 from threepio import logger
 
-
-from api import failure_response
-from api.permissions import ApiAuthRequired
-from api.serializers import MachineRequestSerializer
 from core.models.machine_request import share_with_admins, share_with_self
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 from core.models import Provider
-from web.emails import requestImaging
+
 from service.tasks.machine import start_machine_imaging
 from service.instance import _permission_to_act
 from service.exceptions import ActionNotAllowed
 
-import copy
-import re
+from web.emails import requestImaging
+
+from api import failure_response
+from api.serializers import MachineRequestSerializer
+from api.views import AuthAPIView
 
 
-class MachineRequestList(APIView):
+class MachineRequestList(AuthAPIView):
     """
     This is the user portal for machine requests
     Here they can view all the machine requests they made
     as well as e-mail the admins to approve a machine request
     """
 
-    permission_classes = (ApiAuthRequired,)
-    
     def get(self, request, provider_uuid, identity_uuid):
         """
         """
@@ -82,35 +80,40 @@ class MachineRequestList(APIView):
 
     def _create_image(self, request, provider_uuid, identity_uuid):
         _permission_to_act(identity_uuid, "Imaging")
-        #request.DATA is r/o
-        #Copy allows for editing
+        # request.DATA is r/o
+        # Copy allows for editing
         data = copy.deepcopy(request.DATA)
         data.update({'owner': data.get('created_for', request.user.username)})
-        if data.get('vis','public') != 'public':
-            user_list  = re.split(', | |\n', data.get('shared_with',""))
+        if data.get('vis', 'public') != 'public':
+            user_list = re.split(', | |\n', data.get('shared_with', ""))
             share_with_admins(user_list, data.get('provider'))
             share_with_self(user_list, request.user.username)
-            user_list = [user for user in user_list if user] # Skips blanks
-            #TODO: Remove duplicates as well..
+            user_list = [user for user in user_list if user]  # Skips blanks
+            # TODO: Remove duplicates as well..
             data['shared_with'] = user_list
         logger.info(data)
         serializer = MachineRequestSerializer(data=data)
         if serializer.is_valid():
-            #Add parent machine to request
+            # Add parent machine to request
             machine_request = serializer.object
             self._permission_to_image(machine_request, identity_uuid)
             instance = machine_request.instance
             machine = machine_request.instance.source.providermachine
-            #NOTE: THIS IS A HACK -- While we enforce all images to go to iPlant Cloud - Tucson.
-            # THIS CODE SHOULD BE REMOVED 
+            # NOTE: THIS IS A HACK -- While we enforce all images
+            #       to go to iPlant Cloud - Tucson.
+            # THIS CODE SHOULD BE REMOVED
             try:
-                tucson_provider = Provider.objects.get(location='iPlant Cloud - Tucson')
-                if machine_request.new_machine_provider.location != tucson_provider.location:
+                tucson_provider = Provider.objects.get(
+                    location='iPlant Cloud - Tucson')
+                if machine_request.new_machine_provider.location\
+                   != tucson_provider.location:
                     machine_request.new_machine_provider = tucson_provider
-            except: # Will skip this step if no provider is named iPlant Cloud - Tucson.
+            except:
+                # Will skip this step if no provider is named
+                # iPlant Cloud - Tucson.
                 pass
             serializer.save()
-            #Object now has an ID for links..
+            # Object now has an ID for links..
             machine_request_id = serializer.object.id
             active_provider = machine_request.active_provider()
             auto_approve = active_provider.auto_imaging
@@ -125,8 +128,7 @@ class MachineRequestList(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
 
 
-
-class MachineRequest(APIView):
+class MachineRequest(AuthAPIView):
     """
     MachineRequests are available to allow users
     to request that their instance be permanantly saved,
@@ -134,8 +136,7 @@ class MachineRequest(APIView):
     Upon request, these applications can be made Public, Private, or available
     to a specific set of users.
     """
-    permission_classes = (ApiAuthRequired,)
-    
+
     def get(self, request, provider_uuid, identity_uuid, machine_request_id):
         """
         Authentication Required, get information about a previous request.
@@ -152,11 +153,13 @@ class MachineRequest(APIView):
         response = Response(serialized_data)
         return response
 
-    def patch(self, request, provider_uuid, identity_uuid, machine_request_id):
-        """Authentication Required, update information on a pending request.
+    def patch(self, request, provider_uuid, identity_uuid,
+              machine_request_id):
         """
-        #Meta data changes in 'pending' are OK
-        #Status change 'pending' --> 'cancel' are OK
+        Authentication Required, update information on a pending request.
+        """
+        # Meta data changes in 'pending' are OK
+        # Status change 'pending' --> 'cancel' are OK
         data = request.DATA
         try:
             machine_request = CoreMachineRequest.objects.get(
@@ -177,10 +180,11 @@ class MachineRequest(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, provider_uuid, identity_uuid, machine_request_id):
-        """Authentication Required, update information on a pending request.
         """
-        #Meta data changes in 'pending' are OK
-        #Status change 'pending' --> 'cancel' are OK
+        Authentication Required, update information on a pending request.
+        """
+        # Meta data changes in 'pending' are OK
+        # Status change 'pending' --> 'cancel' are OK
         data = request.DATA
         try:
             machine_request = CoreMachineRequest.objects.get(
@@ -193,7 +197,7 @@ class MachineRequest(APIView):
         serializer = MachineRequestSerializer(machine_request,
                                               data=data, partial=True)
         if serializer.is_valid():
-            #Only run task if status is 'approve'
+            # Only run task if status is 'approve'
             machine_request = serializer.object
             if machine_request.status == 'approve':
                 start_machine_imaging(machine_request)

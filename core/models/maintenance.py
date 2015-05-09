@@ -23,7 +23,7 @@ class MaintenanceRecord(models.Model):
     def active(cls, provider=None):
         now = timezone.now()
         records = MaintenanceRecord.objects.filter(
-            Q(start_date__lt=now),
+            Q(start_date__lte=now),
             Q(end_date__gt=now) | Q(end_date__isnull=True))
         if provider:
             if isinstance(provider, collections.Iterable):

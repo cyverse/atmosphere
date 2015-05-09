@@ -1,12 +1,17 @@
 from functools import wraps
 
 from django.utils import timezone
-from rest_framework import exceptions, status, viewsets
-from rest_framework.response import Response
+
+from threepio import logger
+
+from rest_framework import exceptions, status
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from core import exceptions as core_exceptions
 from core.models import IdentityMembership
 from core.models.status_type import StatusType
+
+from api.permissions import ApiAuthOptional, ApiAuthRequired, InMaintenance
 
 
 def unresolved_requests_only(fn):
@@ -29,12 +34,30 @@ def unresolved_requests_only(fn):
     return wrapper
 
 
-class BaseRequestViewSet(viewsets.ModelViewSet):
+class AuthViewSet(ModelViewSet):
+
+    permission_classes = (InMaintenance,
+                           ApiAuthRequired,)
+
+
+class AuthOptionalViewSet(ModelViewSet):
+
+    permission_classes = (InMaintenance,
+                           ApiAuthOptional,)
+
+
+class AuthReadOnlyViewSet(ReadOnlyModelViewSet):
+
+    permission_classes = (InMaintenance,
+                           ApiAuthOptional,)
+
+
+class BaseRequestViewSet(AuthViewSet):
     """
     Base class ViewSet to handle requests
     """
-    admin_serializer_class = None
 
+    admin_serializer_class = None
     model = None
 
     def get_queryset(self):

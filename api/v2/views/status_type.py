@@ -1,9 +1,10 @@
-from rest_framework import viewsets
 from core.models.status_type import StatusType
+
 from api.v2.serializers.details import StatusTypeSerializer
+from api.v2.views.base import AuthReadOnlyViewSet
 
 
-class StatusTypeViewSet(viewsets.ReadOnlyModelViewSet):
+class StatusTypeViewSet(AuthReadOnlyViewSet):
     """
     API endpoint that allows status types to be viewed.
     """

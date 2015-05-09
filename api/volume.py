@@ -3,7 +3,6 @@ Atmosphere service volume
 """
 from django.utils.timezone import datetime, now
 
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -29,14 +28,14 @@ from service.volume import create_volume
 
 from api import failure_response, invalid_creds, connection_failure,\
                 malformed_response
-from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import VolumeSerializer, InstanceSerializer
+from api.views import AuthAPIView
 
-class VolumeSnapshot(APIView):
+
+class VolumeSnapshot(AuthAPIView):
     """
-    Initialize and view volume snapshots
+    Initialize and view volume snapshots.
     """
-    permission_classes = (ApiAuthRequired,)
 
     def get(self, request, provider_uuid, identity_uuid):
         """
@@ -74,16 +73,16 @@ class VolumeSnapshot(APIView):
         missing_keys = valid_snapshot_post_data(data)
         if missing_keys:
             return keys_not_found(missing_keys)
-        #Required
+        # Required
         size = data.get('size')
         volume_id = data.get('volume_id')
         display_name = data.get('display_name')
-        #Optional
+        # Optional
         description = data.get('description')
         metadata = data.get('metadata')
         snapshot_id = data.get('snapshot_id')
 
-        #STEP 0 - Existence tests
+        # STEP 0 - Existence tests
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -98,8 +97,8 @@ class VolumeSnapshot(APIView):
                              "Returning 409-CONFLICT")
             return failure_response(status.HTTP_409_CONFLICT,
                                     str(exc.message))
-        #TODO: Put quota tests at the TOP so we dont over-create resources!
-        #STEP 1 - Reuse/Create snapshot
+        # TODO: Put quota tests at the TOP so we dont over-create resources!
+        # STEP 1 - Reuse/Create snapshot
         if snapshot_id:
             snapshot = esh_driver._connection.get_snapshot(snapshot_id)
             if not snapshot:
@@ -108,7 +107,7 @@ class VolumeSnapshot(APIView):
                     "Snapshot %s not found. Process aborted."
                     % snapshot_id)
         else:
-            #Normal flow, create a snapshot from the volume
+            # Normal flow, create a snapshot from the volume
             if not esh_volume:
                 return volume_not_found(volume_id)
             if esh_volume.extra['status'].lower() != 'available':
@@ -123,7 +122,7 @@ class VolumeSnapshot(APIView):
                 return failure_response(
                     status.HTTP_400_BAD_REQUEST,
                     "Snapshot not created. Process aborted.")
-        #STEP 2 - Create volume from snapshot
+        # STEP 2 - Create volume from snapshot
         try:
             success, esh_volume = create_volume(esh_driver, identity_uuid,
                                                 display_name, size,
@@ -148,9 +147,10 @@ class VolumeSnapshot(APIView):
             return invalid_creds(provider_uuid, identity_uuid)
 
 
-class VolumeSnapshotDetail(APIView):
-    """Details of specific volume on Identity."""
-    permission_classes = (ApiAuthRequired,)
+class VolumeSnapshotDetail(AuthAPIView):
+    """
+    Details of specific volume on Identity.
+    """
 
     def get(self, request, provider_uuid, identity_uuid, snapshot_id):
         """
@@ -168,7 +168,7 @@ class VolumeSnapshotDetail(APIView):
         """
         Destroys the volume and updates the DB
         """
-        #Ensure volume exists
+        # Ensure volume exists
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -176,8 +176,8 @@ class VolumeSnapshotDetail(APIView):
         if not snapshot:
             return snapshot_not_found(snapshot_id)
         delete_success = esh_driver._connection.ex_delete_snapshot(snapshot)
-        #NOTE: Always false until icehouse...
-        #if not delete_success:
+        # NOTE: Always false until icehouse...
+        # if not delete_success:
         #    return failure_response(
         #        status.HTTP_400_BAD_REQUEST,
         #        "Failed to delete snapshot %s. Please try again later."
@@ -185,10 +185,10 @@ class VolumeSnapshotDetail(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class VolumeList(APIView):
-    """List all volumes on Identity"""
-
-    permission_classes = (ApiAuthRequired,)
+class VolumeList(AuthAPIView):
+    """
+    List all volumes on Identity.
+    """
 
     def get(self, request, provider_uuid, identity_uuid):
         """
@@ -230,10 +230,10 @@ class VolumeList(APIView):
         missing_keys = valid_volume_post_data(data)
         if missing_keys:
             return keys_not_found(missing_keys)
-        #Pass arguments
+        # Pass arguments
         name = data.get('name')
         size = data.get('size')
-        #Optional fields
+        # Optional fields
         description = data.get('description')
         image_id = data.get('image')
         if image_id:
@@ -276,9 +276,10 @@ class VolumeList(APIView):
         return Response(serialized_data, status=status.HTTP_201_CREATED)
 
 
-class Volume(APIView):
-    """Details of specific volume on Identity."""
-    permission_classes = (ApiAuthRequired,)
+class Volume(AuthAPIView):
+    """
+    Details of specific volume on Identity.
+    """
 
     def get(self, request, provider_uuid, identity_uuid, volume_id):
         """
@@ -321,7 +322,7 @@ class Volume(APIView):
         """
         user = request.user
         data = request.DATA
-        #Ensure volume exists
+        # Ensure volume exists
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -361,7 +362,7 @@ class Volume(APIView):
         user = request.user
         data = request.DATA
 
-        #Ensure volume exists
+        # Ensure volume exists
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -398,7 +399,7 @@ class Volume(APIView):
         Destroys the volume and updates the DB
         """
         user = request.user
-        #Ensure volume exists
+        # Ensure volume exists
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -417,20 +418,21 @@ class Volume(APIView):
             return volume_not_found(volume_id)
         core_volume = convert_esh_volume(esh_volume, provider_uuid,
                                          identity_uuid, user)
-        #Delete the object, update the DB
+        # Delete the object, update the DB
         esh_driver.destroy_volume(esh_volume)
         core_volume.end_date = now()
         core_volume.save()
-        #Return the object
+        # Return the object
         serialized_data = VolumeSerializer(core_volume,
                                            context={'request': request}).data
         response = Response(serialized_data)
         return response
 
 
-class BootVolume(APIView):
-    """Launch an instance using this volume as the source"""
-    permission_classes = (ApiAuthRequired,)
+class BootVolume(AuthAPIView):
+    """
+    Launch an instance using this volume as the source
+    """
 
     def _select_source_key(self, data):
         if 'image_id' in data:
@@ -441,7 +443,6 @@ class BootVolume(APIView):
             return "volume_id"
         else:
             return None
-
 
     def post(self, request, provider_uuid, identity_uuid, volume_id=None):
         user = request.user
@@ -482,9 +483,9 @@ def valid_launch_data(data):
     """
     required = ['name', 'size']
     return [key for key in required
-            #Key must exist and have a non-empty value.
-            if key not in data
-            or (type(data[key]) == str and len(data[key]) > 0)]
+            # Key must exist and have a non-empty value.
+            if key not in data or
+            (type(data[key]) == str and len(data[key]) > 0)]
 
 
 def valid_snapshot_post_data(data):
@@ -493,9 +494,9 @@ def valid_snapshot_post_data(data):
     """
     required = ['display_name', 'volume_id', 'size']
     return [key for key in required
-            #Key must exist and have a non-empty value.
-            if key not in data
-            or (type(data[key]) == str and len(data[key]) > 0)]
+            # Key must exist and have a non-empty value.
+            if key not in data or
+            (type(data[key]) == str and len(data[key]) > 0)]
 
 
 def valid_snapshot_post_data(data):
@@ -504,8 +505,10 @@ def valid_snapshot_post_data(data):
     """
     required = ['display_name', 'volume_id', 'size']
     return [key for key in required
-            #Key must exist and have a non-empty value.
-            if key not in data or (type(data[key]) == str and len(data[key]) > 0)]
+            # Key must exist and have a non-empty value.
+            if key not in data or
+            (type(data[key]) == str and len(data[key]) > 0)]
+
 
 def valid_volume_post_data(data):
     """
@@ -513,9 +516,9 @@ def valid_volume_post_data(data):
     """
     required = ['name', 'size']
     return [key for key in required
-            #Key must exist and have a non-empty value.
-            if key not in data
-            or (type(data[key]) == str and len(data[key]) > 0)]
+            # Key must exist and have a non-empty value.
+            if key not in data or
+            (type(data[key]) == str and len(data[key]) > 0)]
 
 
 def keys_not_found(missing_keys):

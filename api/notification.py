@@ -2,9 +2,7 @@
 Atmosphere service notification rest api.
 
 """
-
 from rest_framework import status
-from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from threepio import logger
@@ -13,9 +11,10 @@ from core.email import send_instance_email
 from core.models.instance import Instance as CoreInstance
 
 from api import failure_response
+from api.views import MaintenanceAPIView
 
 
-class NotificationList(APIView):
+class NotificationList(MaintenanceAPIView):
     """
     Represents:
         A List of Instance
@@ -32,7 +31,7 @@ class NotificationList(APIView):
         '''
         instance_token = params.get('token')
         username = params.get('userid')
-        vm_info = params.get('vminfo',{})
+        vm_info = params.get('vminfo', {})
         instance_name = params.get('name')
         instance_id = vm_info.get('instance-id')
         instance = None
@@ -44,10 +43,10 @@ class NotificationList(APIView):
         if not instance:
             error_list.append(
                 "The token %s did not match a core instance."
-                 % instance_token)
+                % instance_token)
             instance = CoreInstance.objects.filter(
                 ip_address=request.META['REMOTE_ADDR'])
-            #TODO: AND filter no end_date
+            # TODO: AND filter no end_date
         if not instance:
             error_list.append(
                 "The IP Address %s did not match a new core instance."
@@ -55,7 +54,7 @@ class NotificationList(APIView):
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
                 str(error_list))
-        #Get out of the filter
+        # Get out of the filter
         instance = instance[0]
         ip_address = vm_info.get('public-ipv4',
                                  request.META.get('REMOTE_ADDR'))

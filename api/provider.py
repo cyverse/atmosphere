@@ -12,15 +12,18 @@ from core.models.provider import Provider as CoreProvider
 
 from api import failure_response
 from api.serializers import ProviderSerializer
-from api.permissions import InMaintenance, ApiAuthRequired, CloudAdminUpdatingRequired
+from api.permissions import InMaintenance, ApiAuthRequired,\
+    CloudAdminUpdatingRequired
+from api.views import AuthAPIView
 
 
-class ProviderList(APIView):
-    """Providers represent the different Cloud configurations hosted on Atmosphere.
+class ProviderList(AuthAPIView):
+    """Providers represent the different Cloud configurations
+    hosted on Atmosphere.
+
     Providers can be of type AWS, Eucalyptus, OpenStack.
     """
-    permission_classes = (ApiAuthRequired,)
-    
+
     def get(self, request):
         """
         Authentication Required, list of Providers on your account.
@@ -28,8 +31,11 @@ class ProviderList(APIView):
         username = request.user.username
         group = Group.objects.get(name=username)
         try:
-            provider_ids = group.identities.filter(only_current_provider(), provider__active=True).values_list('provider', flat=True)
-            providers = CoreProvider.objects.filter(id__in=provider_ids).order_by('id')
+            provider_ids = group.identities.filter(
+                only_current_provider(),
+                provider__active=True).values_list('provider', flat=True)
+            providers = CoreProvider.objects.filter(
+                id__in=provider_ids).order_by('id')
         except CoreProvider.DoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
@@ -39,7 +45,9 @@ class ProviderList(APIView):
 
 
 class Provider(APIView):
-    """Providers represent the different Cloud configurations hosted on Atmosphere.
+    """Providers represent the different Cloud configurations hosted
+    on Atmosphere.
+
     Providers can be of type AWS, Eucalyptus, OpenStack.
     """
     permission_classes = (ApiAuthRequired, CloudAdminUpdatingRequired)
@@ -51,9 +59,12 @@ class Provider(APIView):
         username = request.user.username
         group = Group.objects.get(name=username)
         try:
-            provider_ids = group.identities.filter(only_current_provider(), provider__active=True).values_list('provider', flat=True)
-            provider = CoreProvider.objects.get(uuid=provider_uuid,
-                                            id__in=provider_ids)
+            provider_ids = group.identities.filter(
+                only_current_provider(),
+                provider__active=True).values_list('provider', flat=True)
+            provider = CoreProvider.objects.get(
+                uuid=provider_uuid,
+                id__in=provider_ids)
         except CoreProvider.DoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
