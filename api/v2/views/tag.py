@@ -1,4 +1,7 @@
+from rest_framework.serializers import ValidationError
+
 from threepio import logger
+
 from core.models import Tag
 
 from api.permissions import ApiAuthRequired, CloudAdminRequired,\
@@ -20,9 +23,8 @@ class TagViewSet(AuthOptionalViewSet):
         same_name_tags = Tag.objects.filter(
             name__iexact=serializer.validated_data.get("name"))
         if same_name_tags:
-            raise serializers.ValidationError(
-                "A tag with this name already exists: %s" %
-                same_name_tags.first().name)
+            raise ValidationError("A tag with this name already exists: %s" %
+                                  same_name_tags.first().name)
         serializer.save(user=self.request.user)
 
     def get_permissions(self):
