@@ -1202,7 +1202,7 @@ def update_membership_for(provider_uuid):
             return
         else:
             pm = pm[0]
-        app_manager = pm.application.applicationmembership_set
+        app_manager = pm.application_version.application.applicationmembership_set
         if not img.is_public:
             #Lookup members
             image_members = acct_driver.image_manager.shared_images_for(

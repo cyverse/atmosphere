@@ -110,13 +110,11 @@ class AllocationAdmin(admin.ModelAdmin):
 @admin.register(ProviderMachine)
 class ProviderMachineAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
-    search_fields = ["application__name", "instance_source__provider__location", "instance_source__identifier"]
-    list_display = ["identifier",
-            "_pm_provider", "application",
-            "end_date"]
+    search_fields = ["application_version__application__name", "instance_source__provider__location", "instance_source__identifier"]
+    list_display = ["identifier", "_pm_provider", "end_date"]
     list_filter = [
         "instance_source__provider__location",
-        "application__private",
+        "application_version__application__private",
     ]
 
     def _pm_provider(self, obj):
@@ -140,12 +138,12 @@ class ProviderMachineMembershipAdmin(admin.ModelAdmin):
     def _pm_provider(self, obj):
         return obj.provider_machine.provider.location
     def _pm_private(self, obj):
-        return obj.provider_machine.application.private
+        return obj.provider_machine.application_version.application.private
     _pm_private.boolean = True
     def _pm_identifier(self, obj):
         return obj.provider_machine.identifier
     def _pm_name(self, obj):
-        return obj.provider_machine.application.name
+        return obj.provider_machine.application_version.application.name
     pass
 
 class ProviderCredentialInline(admin.TabularInline):
@@ -208,7 +206,7 @@ class VolumeAdmin(admin.ModelAdmin):
 @admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
     actions = [end_date_object, private_object]
-    search_fields = ["name", "id", "providermachine__instance_source__identifier"]
+    search_fields = ["name", "id", "versions__machines__instance_source__identifier"]
     list_display = ["uuid", "_current_machines", "name", "private", "created_by", "start_date", "end_date" ]
     filter_vertical = ["tags",]
 
@@ -305,12 +303,11 @@ class ExportRequestAdmin(admin.ModelAdmin):
 @admin.register(MachineRequest)
 class MachineRequestAdmin(admin.ModelAdmin):
     search_fields = ["new_machine_owner__username", "new_machine_name", "instance__provider_alias"]
-    list_display = ["new_machine_name", "new_machine_owner", "instance_alias",
+    list_display = ["new_application_name", "new_machine_owner", "instance_alias",
                     "old_provider", "new_machine_provider", 
 		    "start_date", "end_date", "status",
 		    "opt_new_machine", "opt_parent_machine", "opt_machine_visibility"]
-    list_filter = ["new_machine_visibility",
-                   "status"]
+    list_filter = ["status"]
 
     #Overwrite
     def render_change_form(self, request, context, *args, **kwargs):

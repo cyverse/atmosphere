@@ -17,13 +17,13 @@ class ImageViewSet(viewsets.ModelViewSet):
     """
     serializer_class = ImageSerializer
     filter_fields = ('created_by__username', 'tags__name')
-    search_fields = ('name', 'description', 'tags__name', 'tags__description', 'created_by__username')
+    search_fields = ('id', 'name', 'versions__description', 'tags__name', 'tags__description', 'created_by__username')
     permission_classes = (IsAuthenticatedOrReadOnly,)
     http_method_names = ['get', 'head', 'options', 'trace']
 
     def get_queryset(self):
         request_user = self.request.user
-        public_image_set = Image.objects.filter(only_current(), private=False).order_by('-start_date')
+        public_image_set = Image.objects.filter(only_current(), only_current_machines(), private=False).order_by('-start_date')
         if type(request_user) == AnonymousUser:
             # Anonymous users can only see PUBLIC applications
             # (& their respective images on PUBLIC providers)
@@ -36,7 +36,7 @@ class ImageViewSet(viewsets.ModelViewSet):
             # been EXPLICITLY shared with me
             privately_shared = Image.objects.filter(
                 only_current_machines(),
-                providermachine__members__id__in=
+                versions__machines__members__id__in=
                     request_user.group_set.values('id'))
             return (public_image_set | my_images | privately_shared).distinct()
         else:

@@ -20,3 +20,15 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
         model = Volume
         view_name = 'api_v2:volume-detail'
         fields = ('id', 'uuid', 'url', 'name', 'size', 'user', 'provider', 'identity', 'projects', 'start_date', 'end_date')
+
+    def update(self, instance, validated_data):
+        if 'instance_source' in validated_data:
+            source = instance.instance_source
+            source_data = validated_data.pop('instance_source')
+            for key, val in source_data.items():
+                setattr(source, key, val)
+            source.save()
+        for (key, val) in validated_data.items():
+            setattr(instance, key, val)
+        instance.save()
+        return instance

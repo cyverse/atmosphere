@@ -8,8 +8,12 @@ class ProviderMachineSummarySerializer(serializers.HyperlinkedModelSerializer):
     provider = ProviderSummarySerializer(source='instance_source.provider')
     start_date = serializers.DateTimeField(source='instance_source.start_date')
     end_date = serializers.DateTimeField(source='instance_source.end_date')
+    #licenses = LicenseSerializer(many=True) #NEW
+    #members = MachineMembershipSerializer(many=True) #NEW
 
     class Meta:
         model = ProviderMachine
         view_name = 'api_v2:providermachine-detail'
-        fields = ('id', 'uuid', 'url', 'provider', 'start_date', 'end_date')
+        fields = ('id', 'uuid', 'url', 'provider',
+                'start_date', 'end_date')
+        #TODO: add 'application_version'

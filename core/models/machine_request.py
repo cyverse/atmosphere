@@ -6,6 +6,7 @@ import re
 import os
 
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from core.models.user import AtmosphereUser as User
 
@@ -16,6 +17,7 @@ from core.models.machine import create_provider_machine, ProviderMachine, update
 from core.models.node import NodeController
 from core.models.provider import Provider, AccountProvider
 from core.models.identity import Identity
+from core.models.version import ApplicationVersion
 
 from atmosphere.settings import secrets
 from threepio import logger
@@ -30,38 +32,65 @@ class MachineRequest(models.Model):
     instance = models.ForeignKey("Instance")
 
     # Machine imaging Metadata
-    status = models.TextField(default='', blank=True)
+    status = models.TextField(default='', blank=True, null=True)
     parent_machine = models.ForeignKey(ProviderMachine,
                                        related_name="ancestor_machine")
 
-    # Specifics for machine imaging.
-    iplant_sys_files = models.TextField(default='', blank=True)
-    installed_software = models.TextField(default='', blank=True)
-    exclude_files = models.TextField(default='', blank=True)
-    access_list = models.TextField(default='', blank=True)
-
     # Data for the new machine.
+    # SPECIFIC to 'forked=True'
+    new_application_name = models.CharField(max_length=256, null=True, blank=True)
+    # SPECIFIC to 'forked=False'
+
+    # Specific to ApplicationVersion && ProviderMachine
+    iplant_sys_files = models.TextField(default='', blank=True, null=True)
+    installed_software = models.TextField(default='', blank=True, null=True)
+    exclude_files = models.TextField(default='', blank=True, null=True)
+    new_version_allow_imaging = models.BooleanField(default=True)
+    new_version_description = models.TextField(default='', blank=True, null=True)
+    new_version_tags = models.TextField(default='', blank=True, null=True)
+    new_version_forked = models.BooleanField(default=True)
+    new_version_memory_min = models.IntegerField(default=0)
+    new_version_storage_min = models.IntegerField(default=0)
+    new_version_licenses = models.ManyToManyField(License, blank=True)
+    new_version_membership = models.ManyToManyField("Group", blank=True)
+    new_version_visibility = models.CharField(max_length=256, blank=True, null=True) #Public, Private, Select
+    access_list = models.TextField(default='', blank=True, null=True) # DEPRECATED
+
     new_machine_provider = models.ForeignKey(Provider)
-    new_machine_name = models.CharField(max_length=256)
     new_machine_owner = models.ForeignKey(User)
-    new_machine_visibility = models.CharField(max_length=256)
-    new_machine_description = models.TextField(default='', blank=True)
-    new_machine_tags = models.TextField(default='', blank=True)
-    new_machine_version = models.CharField(max_length=128, default='1.0.0')
-    new_machine_forked = models.BooleanField(default=True)
-    new_machine_memory_min = models.IntegerField(default=0)
-    new_machine_storage_min = models.IntegerField(default=0)
-    new_machine_licenses = models.ManyToManyField(License,
-            blank=True)
-    new_machine_allow_imaging = models.BooleanField(default=True)
     #Date time stamps
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     # Filled in when completed.
+    # NOTE: ProviderMachine and 'new_machine' might be phased out
+    # along with 'new_machine_provider' as Versions become replicated
+    # across different clouds. 
+    # However, it might be good to have the "Original machine"..
+    # similar to the 'created_by/created_by_identity' dilemma
     new_machine = models.ForeignKey(ProviderMachine,
-                                    null=True, blank=True,
-                                    related_name="created_machine")
+                                    null=True, blank=True)
+    new_application_version = models.ForeignKey(ApplicationVersion,
+                                    null=True, blank=True)
+
+    def clean(self):
+        """
+        Clean up machine requests before saving initial objects to allow
+        users the chance to correct their mistakes.
+        """
+        #'Created application' specific logic that should fail:
+        if self.new_application_forked:
+            pass
+        #'Updated Version' specific logic that should fail:
+        else:
+            if self.new_application_name:
+                raise ValidationError("Application name cannot be set unless a new application is being created. Remove the Application name to update -OR- fork the existing application")
+
+        #General Validation && AutoCompletion
+
+        #Automatically set 'end date' when completed
+        if self.status == 'completed' and not self.end_date:
+            self.end_date = timezone.now()
 
     def new_machine_threshold(self):
         return {'memory': self.new_machine_memory_min,
@@ -325,6 +354,23 @@ class MachineRequest(models.Model):
         app_label = "core"
 
 
+def _match_membership_to_access(access_list, membership):
+    """
+    INPUT: tag1,tag2,tag3
+    OUTPUT: <Tag: tag1>, ..., <Tag: tag3>
+    NOTE: Tags NOT created BEFORE being added to new_machine_tags are ignored.
+    """
+    #Circ.Dep. DO NOT MOVE UP!! -- Future Solve:Move into Group?
+    from core.models.group import Group
+    if not access_list:
+        return self.new_version_membership.all()
+    # If using access list, parse the list into queries and evaluate the filter ONCE.
+    names_wanted = access_list.split(',')
+    query_list = map(lambda name: Q(name__iexact=name), names_wanted)
+    query_list = reduce(lambda qry1, qry2: qry1 | qry2, query_list)
+    members = Group.objects.filter(query_list)
+    return members | self.new_version_membership.all()
+
 def _match_tags_to_names(tag_names):
     """
     INPUT: tag1,tag2,tag3
@@ -332,8 +378,12 @@ def _match_tags_to_names(tag_names):
     NOTE: Tags NOT created BEFORE being added to new_machine_tags are ignored.
     """
     from core.models.tag import Tag
-    tags = [Tag.objects.filter(name__iexact=tag)[0] for tag in
-            tag_names.split(',')]
+    if not tag_names:
+        return []
+    tags_wanted = tag_names.split(',')
+    query_list = map(lambda tag: Q(name__iexact=tag), tags_wanted)
+    query_list = reduce(lambda qry1, qry2: qry1 | qry2, query_list)
+    tags = Tag.objects.filter(query_list)
     return tags
 
 def _get_owner(new_provider, user):
@@ -342,81 +392,40 @@ def _get_owner(new_provider, user):
     except Identity.DoesNotExist:
         return new_provider.admin
 
-def _create_new_application(machine_request, new_image_id, tags=[]):
-    from core.models import Identity
-    new_provider = machine_request.new_machine_provider
-    user = machine_request.new_machine_owner
-    owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
-    # This is a brand new app and a brand new providermachine
-    new_app = create_application(
-            new_image_id,
-            new_provider.id,
-            machine_request.new_machine_name, 
-            owner_ident,
-            #new_app.Private = False when machine_request.is_public = True
-            not machine_request.is_public(),
-            machine_request.new_machine_version,
-            machine_request.new_machine_description,
-            tags)
-    return new_app
-
-def _update_parent_application(machine_request, new_image_id, tags=[]):
-    parent_app = machine_request.instance.source.providermachine.application
-    return _update_application(parent_app, machine_request, tags=tags)
-
-def _update_application(application, machine_request, tags=[]):
-    if application.name is not machine_request.new_machine_name:
-        application.name = machine_request.new_machine_name
-    if machine_request.new_machine_description:
-        application.description = machine_request.new_machine_description
-    application.private = not machine_request.is_public()
-    application.tags = tags
-    application.save()
-    return application
-
-def _update_existing_machine(machine_request, application, provider_machine):
-    from core.models import Identity
-    new_provider = machine_request.new_machine_provider
-    user = machine_request.new_machine_owner
-    owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
-
-    provider_machine.application = application
-    provider_machine.version = machine_request.new_machine_version
-    provider_machine.created_by = user
-    provider_machine.created_by_identity = owner_ident
-    provider_machine.save()
-
 def process_machine_request(machine_request, new_image_id, update_cloud=True):
     """
     NOTE: Current process accepts instance with source of 'Image' ONLY! 
           VOLUMES CANNOT BE IMAGED until this function is updated!
     """
+    #Based on original instance -- You'll need this:
     parent_mach = machine_request.instance.provider_machine
-    parent_app = machine_request.instance.provider_machine.application
+    parent_version = parent_mach.application_version
+    #Based on data provided in MR:
     new_provider = machine_request.new_machine_provider
     new_owner = machine_request.new_machine_owner
     owner_identity = _get_owner(new_provider, new_owner)
     tags = _match_tags_to_names(machine_request.new_machine_tags)
-
+    membership = _match_membership_to_access(machine_request.access_list, machine_request.new_version_membership)
     if machine_request.new_machine_forked:
-        app = create_application(
+        version = create_application(
             new_image_id,
             new_provider.uuid,
-            machine_request.new_machine_name,
+            machine_request.new_application_name,
             created_by_identity=owner_identity,
             description=machine_request.new_machine_description,
             private=not machine_request.is_public(),
+            allow_imaging=machine_request.new_machine_allow_imaging,
             tags=tags)
     else:
-        parent_app = machine_request.instance.source.providermachine.application
-        app = update_application(parent_app, machine_request.new_machine_name, machine_request.new_machine_description, tags)
+        version = update_application(parent_version, machine_request.new_machine_name, machine_request.new_machine_description, tags)
 
     #2. Create the new InstanceSource and appropriate Object, relations, Memberships..
     if ProviderMachine.test_existence(new_provider, new_image_id):
         pm = ProviderMachine.objects.get(identifier=new_image_id, provider=new_provider)
-        pm = update_provider_machine(pm, new_created_by_identity=owner_identity, new_created_by=machine_request.new_machine_owner, new_application=app, new_version=machine_request.new_machine_version, allow_imaging=machine_request.new_machine_allow_imaging)
+        pm = update_provider_machine(pm, new_created_by_identity=owner_identity, new_created_by=machine_request.new_machine_owner, new_application_version=app_version)
     else:
-        pm = create_provider_machine(new_image_id, new_provider.uuid, app, owner_identity, machine_request.new_machine_version, machine_request.new_machine_allow_imaging)
+        #TODO: Create APP version first! Then provider machine & Instance Source using the information.
+        pm = create_provider_machine(new_image_id, new_provider.uuid, app, owner_identity, app_version)
         provider_machine_write_hook(pm)
 
     #Must be set in order to ask for threshold information
@@ -431,7 +440,6 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
         upload_privacy_data(machine_request, pm)
 
     #5. Advance the state of machine request
-    machine_request.end_date = timezone.now()
     #After processing, validate the image.
     machine_request.status = 'validating'
     machine_request.save()
