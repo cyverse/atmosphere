@@ -54,8 +54,7 @@ def _get_administrator_account(user, admin_uuid):
 
 class CloudAdminRequired(permissions.BasePermission):
     def has_permission(self, request, view):
-        user = request.user
-        if not user.is_authenticated():
+        if not request.user.is_authenticated():
             return False
 
         kwargs = request.parser_context.get('kwargs', {})
@@ -65,8 +64,7 @@ class CloudAdminRequired(permissions.BasePermission):
                 request.user, admin_uuid)
         else:
             admin = _get_administrator_accounts(request.user).exists()
-
-        return True if admin else False
+        return admin or request.user.is_staff
 
 
 class CloudAdminUpdatingRequired(permissions.BasePermission):
