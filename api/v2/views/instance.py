@@ -1,13 +1,15 @@
-from rest_framework import viewsets
 from core.models import Instance
-from api.v2.serializers.details import InstanceSerializer
 from core.query import only_current
 
+from api.v2.serializers.details import InstanceSerializer
+from api.v2.views.base import AuthViewSet
 
-class InstanceViewSet(viewsets.ModelViewSet):
+
+class InstanceViewSet(AuthViewSet):
     """
     API endpoint that allows providers to be viewed or edited.
     """
+
     queryset = Instance.objects.all()
     serializer_class = InstanceSerializer
     filter_fields = ('created_by__id', 'projects')
@@ -15,7 +17,7 @@ class InstanceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        Filter projects by current user
+        Filter projects by current user.
         """
         user = self.request.user
         return Instance.objects.filter(only_current(), created_by=user)

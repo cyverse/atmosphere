@@ -1,5 +1,0 @@
----
-- name: Setup mount point for home.
-  hosts: atmosphere
-  roles:
-    - atmo-setup-mount-point

@@ -1,12 +1,14 @@
-from rest_framework import viewsets
 from core.models import ApplicationBookmark as ImageBookmark
+
 from api.v2.serializers.details import ImageBookmarkSerializer
+from api.v2.views.base import AuthViewSet
 
 
-class ImageBookmarkViewSet(viewsets.ModelViewSet):
+class ImageBookmarkViewSet(AuthViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
+
     queryset = ImageBookmark.objects.all()
     serializer_class = ImageBookmarkSerializer
     http_method_names = ['get', 'post', 'delete', 'head', 'options', 'trace']

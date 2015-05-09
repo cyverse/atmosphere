@@ -25,6 +25,4 @@ router.register(r'tags', views.TagViewSet)
 router.register(r'users', views.UserViewSet)
 router.register(r'volumes', views.VolumeViewSet)
 
-urlpatterns = patterns('',
-                       url(r'^', include(router.urls)),
-                       )
+urlpatterns = patterns('', url(r'^', include(router.urls)),)

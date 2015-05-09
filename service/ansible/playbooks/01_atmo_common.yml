@@ -1,6 +1,0 @@
----
-- name: Playbook to call atmo-common role. Configures fuse, ssh keys, install base packages, sudoers, hostname, timezone, rc.local, motd, and other stuff
-  hosts: atmosphere
-  roles:
-    # TODO: in atmo-common, copy over the dhcp hook script; different per distro
-    - atmo-common
