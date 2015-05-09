@@ -155,7 +155,6 @@ class InstanceList(AuthAPIView):
             deploy = False
         elif not type(deploy) is bool:
             deploy = True
-        data["deploy"] = deploy
         boot_scripts = data.pop("boot_scripts", [])
         try:
             logger.debug(data)
