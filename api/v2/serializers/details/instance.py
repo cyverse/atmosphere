@@ -5,7 +5,8 @@ from api.v2.serializers.summaries import (
     UserSummarySerializer,
     ProviderSummarySerializer,
     SizeSummarySerializer,
-    ImageSummarySerializer
+    ImageSummarySerializer,
+    ImageVersionSummarySerializer
 )
 
 
@@ -17,6 +18,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
     projects = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     size = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
+    version = serializers.SerializerMethodField()
     uuid = serializers.CharField(source='provider_alias')
 
     def get_size(self, obj):
@@ -30,6 +32,11 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
         image_uuid = obj.application_uuid()
         image = Image.objects.get(uuid=image_uuid)
         serializer = ImageSummarySerializer(image, context=self.context)
+        return serializer.data
+
+    def get_version(self, obj):
+        version = obj.source.providermachine.application_version
+        serializer = ImageVersionSummarySerializer(version, context=self.context)
         return serializer.data
 
     class Meta:
@@ -49,7 +56,8 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
             'user',
             'provider',
             'image',
+            'version', #NOTE:Should replace image?
             'projects',
             'start_date',
-            'end_date'
+            'end_date',
         )
