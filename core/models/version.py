@@ -49,6 +49,8 @@ class ApplicationVersion(models.Model):
                                         related_name='application_versions',
                                         through='ApplicationVersionMembership',
                                         blank=True)
+    def __unicode__(self):
+        return "%s - %s" % (self.application.name, self.start_date)
 
     @property
     def str_id(self):
@@ -72,8 +74,8 @@ class ApplicationVersionMembership(models.Model):
     can_share = models.BooleanField(default=False)
 
     def __unicode__(self):
-        return "(ProviderMachine:%s - Member:%s) " %\
-            (self.provider_machine.identifier, self.group.name)
+        return "(ApplicationVersion:%s - Member:%s) " %\
+            (self.application_version, self.group.name)
 
     class Meta:
         db_table = 'application_version_membership'

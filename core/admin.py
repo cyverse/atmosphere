@@ -30,6 +30,7 @@ from core.models.step import Step
 from core.models.tag import Tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
+from core.models.version import ApplicationVersion, ApplicationVersionMembership
 
 from threepio import logger
 
@@ -125,6 +126,28 @@ class ProviderMachineAdmin(admin.ModelAdmin):
         #context['adminform'].form.fields['instance_source'].queryset = InstanceSource.objects.filter(id=pm.instancesource_ptr.id)
         return super(ProviderMachineAdmin, self).render_change_form(request, context, *args, **kwargs)
 
+
+@admin.register(ApplicationVersionMembership)
+class ApplicationVersionMembershipAdmin(admin.ModelAdmin):
+    list_display = ["id", "_app_name", "_start_date", "_app_private", "group"]
+    list_filter = [
+            "application_version__application__name",
+            "group__name"
+            ]
+    def _start_date(self, obj):
+        return obj.application_version.start_date
+    def _app_private(self, obj):
+        return obj.application_version.application.private
+    _app_private.boolean = True
+    def _app_name(self, obj):
+        return obj.application_version
+
+    def render_change_form(self, request, context, *args, **kwargs):
+        application = context['original']
+        context['adminform'].form.fields['application_version'].queryset = ApplicationVersion.objects.order_by('application__name')
+        context['adminform'].form.fields['group'].queryset = Group.objects.order_by('name')
+        return super(ApplicationVersionMembershipAdmin, self).render_change_form(request, context, *args, **kwargs)
+    pass
 
 @admin.register(ProviderMachineMembership)
 class ProviderMachineMembershipAdmin(admin.ModelAdmin):
