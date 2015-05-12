@@ -2,33 +2,27 @@
 Atmosphere service instance rest api.
 
 """
-## Frameworks
-from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.reverse import reverse
 
-from threepio import logger
-## Atmosphere Libraries
-
-
-from api.permissions import InMaintenance, ApiAuthRequired
-from api.serializers import ProfileSerializer, AtmoUserSerializer
 from core.models.profile import UserProfile
 
-class Profile(APIView):
-    """Profile can be thought of as the 'entry-point' to the Atmosphere APIs.
+from api.views import AuthAPIView
+from api.serializers import ProfileSerializer, AtmoUserSerializer
+
+
+class Profile(AuthAPIView):
+    """
+    Profile can be thought of as the 'entry-point' to the Atmosphere APIs.
     Once authentiated, a user can find their default provider and identity.
     The IDs for provider and Identity can be used to navigate the rest of
     the API.
     """
 
-    permission_classes = (ApiAuthRequired,)
-
     def get(self, request, provider_uuid=None, identity_uuid=None):
-        """Authentication Required, retrieve the users profile."""
-        #logger.info(request.user)
+        """
+        Authentication Required, retrieve the users profile.
+        """
         user = request.user
-        #logger.debug(user.userprofile)
         profile = user.userprofile
         serialized_data = ProfileSerializer(profile).data
         identity = user.select_identity()

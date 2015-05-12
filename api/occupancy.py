@@ -5,9 +5,7 @@ atmosphere service provider occupancy rest api.
 from django.utils import timezone
 
 from rest_framework import status
-from rest_framework.views import APIView
 from rest_framework.response import Response
-
 
 from core.models.provider import Provider
 from core.models.size import convert_esh_size
@@ -15,19 +13,19 @@ from core.models.size import convert_esh_size
 from service.driver import get_esh_driver, get_admin_driver
 
 from api import failure_response
-from api.permissions import InMaintenance, ApiAuthRequired
 from api.serializers import ProviderSizeSerializer
+from api.views import AuthAPIView
 
 
-class Occupancy(APIView):
-    """Returns occupancy data for the specific provider."""
-    permission_classes = (ApiAuthRequired,)
-    
+class Occupancy(AuthAPIView):
+    """
+    Returns occupancy data for the specific provider.
+    """
+
     def get(self, request, provider_uuid):
         """
         Returns occupancy data for the specific provider.
         """
-        #Get meta for provider to call occupancy
         try:
             provider = Provider.get_active(provider_uuid)
         except Provider.DoesNotExist:
@@ -48,11 +46,11 @@ class Occupancy(APIView):
         return Response(serialized_data)
 
 
-class Hypervisor(APIView):
-    """Returns hypervisor statistics for the specific provider.
+class Hypervisor(AuthAPIView):
     """
-    permission_classes = (ApiAuthRequired,)
-    
+    Returns hypervisor statistics for the specific provider.
+    """
+
     def get(self, request, provider_uuid):
         try:
             provider = Provider.get_active(provider_uuid)

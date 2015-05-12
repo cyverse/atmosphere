@@ -5,12 +5,16 @@ from core.models import ProviderMachine
 from core.query import only_current_source_args
 
 from api.v2.serializers.details import ProviderMachineSerializer
+from api.v2.views.base import AuthReadOnlyViewSet
 
 
-class ProviderMachineViewSet(viewsets.ModelViewSet):
+#TODO: Determine if "OLD" should be used or not...
+#OLD: class ProviderMachineViewSet(viewsets.ModelViewSet):
+class ProviderMachineViewSet(AuthReadOnlyViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
+
     queryset = ProviderMachine.objects.all()
     serializer_class = ProviderMachineSerializer
     search_fields = ('application_version__application__id', 'instance_source__created_by__username')

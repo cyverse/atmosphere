@@ -1,17 +1,16 @@
 from itertools import chain
 
 from django.contrib.auth.models import AnonymousUser
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from core.models import Application as Image
 from core.models import AtmosphereUser
 from core.query import only_current, only_current_machines
 
 from api.v2.serializers.details import ImageSerializer
+from api.v2.views.base import AuthOptionalViewSet
 
 
-class ImageViewSet(viewsets.ModelViewSet):
+class ImageViewSet(AuthOptionalViewSet):
     """
     API endpoint that allows images to be viewed or edited.
     """
@@ -23,7 +22,8 @@ class ImageViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
-        public_image_set = Image.objects.filter(only_current(), only_current_machines(), private=False).order_by('-start_date')
+        public_image_set = Image.objects.filter(
+            only_current(), private=False).order_by('-start_date')
         if type(request_user) == AnonymousUser:
             # Anonymous users can only see PUBLIC applications
             # (& their respective images on PUBLIC providers)

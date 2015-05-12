@@ -8,7 +8,6 @@ import time
 from libcloud.common.types import InvalidCredsError
 
 from rest_framework import status
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
@@ -17,14 +16,13 @@ from threepio import logger
 from service.driver import prepare_driver
 
 from api import failure_response, invalid_creds
-from api.permissions import InMaintenance, ApiAuthRequired
+from api.views import AuthAPIView
 
 
-class Meta(APIView):
+class Meta(AuthAPIView):
     """
     Meta-details about Atmosphere API, including self-describing URLs.
     """
-    permission_classes = (ApiAuthRequired,)
 
     def get(self, request, provider_uuid, identity_uuid):
         """
@@ -41,57 +39,58 @@ class Meta(APIView):
 
 def add_staff_urls(request, provider_uuid, identity_uuid):
     data = {
-            'request-image-list': reverse('api:private_apis:direct-machine-request-list',
-                            request=request),
-        }
+        'request-image-list':
+        reverse('api:private_apis:direct-machine-request-list',
+                request=request), }
+
+
 def add_user_urls(request, provider_uuid, identity_uuid):
     data = {
         'group-list': reverse('api:public_apis:group-list',
-                            request=request),
+                              request=request),
         'tag-list': reverse('api:public_apis:tag-list',
                             request=request),
         'provider-list': reverse('api:public_apis:provider-list',
-                            request=request),
+                                 request=request),
         'occupancy': reverse('api:private_apis:occupancy',
-                            args=(provider_uuid,),
-                            request=request),
+                             args=(provider_uuid,),
+                             request=request),
         'hypervisor': reverse('api:private_apis:hypervisor',
-                            args=(provider_uuid,),
-                            request=request),
+                              args=(provider_uuid,),
+                              request=request),
         'identity-list': reverse('api:public_apis:identity-list',
-                            args=(provider_uuid,),
-                            request=request),
+                                 args=(provider_uuid,),
+                                 request=request),
         'volume-list': reverse('api:public_apis:volume-list',
-                          args=(provider_uuid, identity_uuid),
-                          request=request),
+                               args=(provider_uuid, identity_uuid),
+                               request=request),
         'meta': reverse('api:private_apis:meta-detail',
                         args=(provider_uuid, identity_uuid),
                         request=request),
         'machine-history-list': reverse('api:public_apis:machine-history',
-                            args=(provider_uuid, identity_uuid),
-                            request=request),
+                                        args=(provider_uuid, identity_uuid),
+                                        request=request),
         'instance-history-list': reverse('api:public_apis:instance-history',
-                            args=(provider_uuid, identity_uuid),
-                            request=request),
+                                         args=(provider_uuid, identity_uuid),
+                                         request=request),
         'instance-list': reverse('api:public_apis:instance-list',
-                            args=(provider_uuid, identity_uuid),
-                            request=request),
+                                 args=(provider_uuid, identity_uuid),
+                                 request=request),
         'machine-list': reverse('api:public_apis:machine-list',
-                           args=(provider_uuid, identity_uuid),
-                           request=request),
+                                args=(provider_uuid, identity_uuid),
+                                request=request),
         'size-list': reverse('api:public_apis:size-list',
-                        args=(provider_uuid, identity_uuid),
-                        request=request),
-        'profile': reverse('api:public_apis:profile', request=request)
-    }
+                             args=(provider_uuid, identity_uuid),
+                             request=request),
+        'profile': reverse('api:public_apis:profile', request=request)}
     return data
 
-class MetaAction(APIView):
+
+class MetaAction(AuthAPIView):
     """
     Atmosphere service meta rest api.
     """
-    permission_classes = (ApiAuthRequired,)
-    
+
     def get(self, request, provider_uuid, identity_uuid, action=None):
         """
         """

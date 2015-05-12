@@ -1,23 +1,22 @@
 """
 Atmosphere allocation rest api.
 """
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-
 from django.shortcuts import get_object_or_404
 
-from api.permissions import ApiAuthRequired
-from api.serializers import AllocationSerializer, AllocationResultSerializer
+from rest_framework.response import Response
+from rest_framework import status
 
 from core.models import Allocation, AllocationStrategy
 from core.query import _active_identity_membership
 
-class AllocationList(APIView):
+from api.serializers import AllocationSerializer, AllocationResultSerializer
+from api.views import AuthAPIView
+
+
+class AllocationList(AuthAPIView):
     """
     Lists or creates new Allocations
     """
-    permission_classes = (ApiAuthRequired,)
 
     def get(self, request):
         """
@@ -41,11 +40,10 @@ class AllocationList(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class AllocationDetail(APIView):
+class AllocationDetail(AuthAPIView):
     """
     Fetches or updates an Allocation
     """
-    permission_classes = (ApiAuthRequired,)
 
     def get(self, request, allocation_id):
         """
@@ -84,11 +82,10 @@ class AllocationDetail(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class MonitoringList(APIView):
+class MonitoringList(AuthAPIView):
     """
     Runs the allocation engine and returns detailed monitoring information
     """
-    permission_classes = (ApiAuthRequired,)
 
     def get(self, request):
         """
@@ -98,8 +95,11 @@ class MonitoringList(APIView):
         allocation_results = []
         memberships = _active_identity_membership(user)
         for membership in memberships:
-            strat = AllocationStrategy.objects.get(provider=membership.identity.provider)
-            allocation_result = strat.execute(membership.identity, membership.allocation)
+            strat = AllocationStrategy.objects.get(
+                provider=membership.identity.provider)
+            allocation_result = strat.execute(
+                membership.identity, membership.allocation)
             allocation_results.append(allocation_result)
-        serialized_data = AllocationResultSerializer(allocation_results, many=True).data
+        serialized_data = AllocationResultSerializer(
+            allocation_results, many=True).data
         return Response(serialized_data)

@@ -4,6 +4,9 @@ Atmosphere core email.
 """
 
 from core.models import AtmosphereUser as User
+
+from django.template import Context
+from django.template.loader import render_to_string
 from django.utils import timezone as django_timezone
 
 from pytz import timezone as pytz_timezone
@@ -14,6 +17,22 @@ from atmosphere import settings
 
 from authentication.protocol.ldap import lookupEmail, lookupUser
 from service.tasks.email import send_email as send_email_task
+
+
+def send_email_template(subject, template, recipient, sender,
+                        context=None, cc=None, html=True, silent=False):
+    """
+    Send an email using the template provided
+    """
+    body = render_to_string(template, context=Context(context))
+    args = (subject, body, recipient, sender)
+    kwargs = {
+        "cc": cc,
+        "fail_silently": silent,
+        "html": html
+    }
+    send_email_task.apply_async(args=args, kwargs=kwargs)
+    return True
 
 
 def email_address_str(name, email):
@@ -178,43 +197,28 @@ def send_approved_quota_email(user, request, reason):
     """
     Notify the user the that their request has been approved.
     """
-    template = """
-Hello {user},
-
-Your quota request for {request} has been approved!
-
-Reason: {reason}
-
-If you have questions please contact us at support@iplantcollaborative.org.
-
-Thank you,
-iPlant Atmosphere Team"""
     subject = "Your Quota Request has been approved"
-    body = template.format(user=user.username,
-                           request=request,
-                           reason=reason)
+    context = {
+        "user": user.username,
+        "request": request,
+        "reason": reason
+    }
+    body = render_to_string("core/email/quota_request_approved.html",
+                            context=Context(context))
     return email_from_admin(user, subject, body)
 
 def send_denied_quota_email(user, request, reason):
     """
     Send an email notifying the user that their request has been denied.
     """
-    template = """
-Hello {user},
-
-Your quota request for {request} has been denied.
-
-Reason: {reason}
-
-If you have questions please contact us at support@iplantcollaborative.org.
-
-Thank you,
-iPlant Atmosphere Team"""
-
     subject = "Your Quota Request has been denied"
-    body = template.format(user=user.username,
-                           request=request,
-                           reason=reason)
+    context = {
+        "user": user.username,
+        "request": request,
+        "reason": reason
+    }
+    body = render_to_string("core/email/quota_request_denied.html",
+                            context=Context(context))
     return email_from_admin(user, subject, body)
 
 
@@ -225,37 +229,22 @@ def send_instance_email(user, instance_id, instance_name,
 
     Returns a boolean.
     """
+    format_string = '%b, %d %Y %H:%M:%S'
     username, user_email, user_name = user_email_info(user)
-
     launched_at = launched_at.replace(tzinfo=None)
-    body = """
-Hello %s,
-
-The atmosphere instance <%s> is running and ready for use.
-
-Your Instance Information:
-* Name: %s
-* IP Address: %s
-* SSH Username: %s
-* Launched at: %s UTC (%s Arizona time)
-
-Please terminate instances when they are no longer needed.
-This e-mail notification was auto-generated after instance launch.
-Helpful links:
-  Atmosphere Manual: Using Instances
-  * https://pods.iplantcollaborative.org/wiki/display/atmman/Using+Instances
-  Atmosphere E-mail Support
-  * atmo@iplantcollaborative.org
-""" % (user_name,
-       instance_id,
-       instance_name,
-       ip, linuxusername,
-       launched_at.strftime('%b, %d %Y %H:%M:%S'),
-       django_timezone.localtime(
-           django_timezone.make_aware(
-               launched_at,
-               timezone=pytz_timezone('UTC')))
-       .strftime('%b, %d %Y %H:%M:%S'))
+    utc_date = django_timezone.make_aware(launched_at,
+                                          timezone=pytz_timezone('UTC'))
+    local_launched_at = django_timezone.localtime(utc_date)
+    context = {
+        "user": user_name,
+        "id": instance_id,
+        "name": instance_name,
+        "ip": ip,
+        "sshuser": linuxusername,
+        "launched_at": launched_at.strftime(format_string),
+        "local_launched_at": local_launched_at.strftime(format_string)
+    }
+    body = render_to_string("core/email/instance_ready.html", context=Context(context))
     subject = 'Your Atmosphere Instance is Available'
     return email_from_admin(user, subject, body)
 
@@ -266,24 +255,16 @@ def send_preemptive_deploy_failed_email(core_instance, message):
     """
     user = core_instance.created_by
     username, user_email, user_name = user_email_info(user.username)
-    body = """ADMINS: Serveral attempts to contact the instance have failed!
-This system is put in place as an "Early Warning System" to help
-stem off or deal with these problems while the instances can still
-go through their normal deployment process.
-A final email will be sent when the last attempt has been made.
----
-Failed Instance Details:
-  Alias: %s
-  Owner: %s (%s Email: %s)
-  IP Address: %s
-  Image ID: %s
----
-Additional Details: %s
-""" % (core_instance.provider_alias,
-       user, user_name, user_email,
-       core_instance.ip_address,
-       core_instance.source.providermachine.identifier,
-       message)
+    context = {
+        "alias": core_instance.provider_alias,
+        "owner": user,
+        "user": user_name,
+        "email": user_email,
+        "ip": core_instance.ip_address,
+        "identifier": core_instance.source.providermachine.identifier,
+        "details": message
+    }
+    body = render_to_string("core/email/deploy_warning.html", Context(context))
     from_name, from_email = atmo_daemon_address()
     subject = '(%s) Preemptive Deploy Failure' % username
     return email_to_admin(subject, body, from_name, from_email,
@@ -297,21 +278,17 @@ def send_deploy_failed_email(core_instance, exception_str):
     """
     user = core_instance.created_by
     username, user_email, user_name = user_email_info(user.username)
-    body = """ADMINS: An instance has FAILED to deploy succesfully.
-The exception and relevant details about the image can be found here:
----
-Failed Instance Details:
-  Alias: %s
-  Owner: %s (%s Email: %s)
-  IP Address: %s
-  Image ID: %s
----
-Exception: %s
-""" % (core_instance.provider_alias,
-       user, user_name, user_email,
-       core_instance.ip_address,
-       core_instance.source.providermachine.identifier,
-       exception_str)
+    context = {
+        "alias": core_instance.provider_alias,
+        "owner": user,
+        "user": user_name,
+        "email": user_email,
+        "ip": core_instance.ip_address,
+        "identifier": core_instance.source.providermachine.identifier,
+        "error": exception_str
+    }
+    body = render_to_string("core/email/deploy_failed.html",
+                            context=Context(context))
     from_name, from_email = atmo_daemon_address()
     subject = '(%s) Deploy Failed' % username
     return email_to_admin(subject, body, from_name, from_email,
@@ -327,22 +304,17 @@ def send_image_request_failed_email(machine_request, exception_str):
     username, user_email, user_name = user_email_info(user.username)
     approve_link = '%s/api/v1/request_image/%s/approve' \
         % (settings.SERVER_URL, machine_request.id)
-    body = """ADMINS: A machine request has FAILED."
-Please look over the exception. If the exception is one-time failure
-you can re-approve the image here: %s
-------------------------------------------------------------------
-Machine Request:
-  ID: %d
-  Owner: %s
-  Contact:%s (E-mail: %s)
-  Instance: %s
-  IP Address: %s
-Exception: %s
-""" % (approve_link, machine_request.id, user,
-        user_name, user_email,
-        machine_request.instance.provider_alias,
-        machine_request.instance.ip_address,
-        exception_str)
+    context = {
+        "approval_link": approve_link,
+        "identifier": machine_request.id,
+        "owner": user,
+        "user": user_name,
+        "email": user_email,
+        "alias": machine_request.instance.provider_alias,
+        "ip": machine_request.instance.ip_address,
+        "error": exception_str
+    }
+    body = render_to_string("core/email/imaging_failed.html", context=Context(context))
     subject = 'ERROR - Atmosphere Imaging Task has encountered an exception'
     return email_to_admin(subject, body, user.username, user_email,
                           cc_user=False)
@@ -355,37 +327,23 @@ def send_image_request_email(user, new_machine, name):
     which will provide useful information about the new image.
     """
     username, user_email, user_name = user_email_info(user.username)
-    body = """Hello %s,
-
-Your image is ready. The image ID is "%s" and the image is named "%s".
-
-Thank you for using atmosphere!
-If you have any questions please contact: support@iplantcollaborative.org""" %\
-        (user_name, new_machine.identifier, name)
+    context = {
+        "user": user_name,
+        "identifier": new_machine.identifier,
+        "alias": name
+    }
+    body = render_to_string("core/email/imaging_success.html",
+                            context=Context(context))
     subject = 'Your Atmosphere Image is Complete'
     return email_from_admin(user, subject, body)
 
-
 def send_new_provider_email(username, provider_name):
-    subject = "Your iPlant Atmosphere account has been granted access "\
-              "to the %s provider" % provider_name
-    django_user = User.objects.get(username=username)
-    username, user_email, user_name = user_email_info(django_user.username)
-    help_link = "https://pods.iplantcollaborative.org/wiki/"\
-                "display/atmman/Changing+Providers"
-    ask_link = "http://ask.iplantcollaborative.org/"
-    email_body = """Welcome %s,<br/><br/>
-You have been granted access to the %s provider on Atmosphere.
-Instructions to change to a new provider can be found on <a href="%s">this page</a>.
-<br/>
-<br/>
-If you have questions or encounter technical issues while using %s, you can
-browse and post questions to <a href="%s">iPlant Ask</a> or contact support@iplantcollaborative.org.
-<br/>
-Thank you,<br/>
-iPlant Atmosphere Team""" % (user_name,
-                             provider_name,
-                             help_link,
-                             provider_name,
-                             ask_link)
-    return email_from_admin(username, subject, email_body, html=True)
+    subject = ("Your iPlant Atmosphere account has been granted access "
+               "to the %s provider" % provider_name)
+    context = {
+        "user": username,
+        "provider": provider_name,
+    }
+    body = render_to_string("core/email/provider_email.html",
+                            context=Context(context))
+    return email_from_admin(username, subject, body, html=True)
