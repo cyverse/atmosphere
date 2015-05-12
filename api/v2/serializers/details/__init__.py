@@ -1,4 +1,5 @@
 from .allocation import AllocationSerializer
+from .image_version import ImageVersionSerializer
 from .identity import IdentitySerializer
 from .image import ImageSerializer
 from .image_tag import ImageTagSerializer

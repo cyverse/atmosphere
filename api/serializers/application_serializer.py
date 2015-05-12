@@ -13,6 +13,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
     """
     #Read-Only Fields
     uuid = serializers.CharField(read_only=True)
+    description = serializers.CharField(read_only=True, source='latest_description')
     icon = serializers.CharField(read_only=True, source='icon_url')
     created_by = serializers.SlugRelatedField(slug_field='username',
                                               read_only=True)
@@ -21,7 +22,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
     #Writeable Fields
     name = serializers.CharField()
     tags = TagRelatedField(slug_field='name', many=True, queryset=Tag.objects.all())
-    description = serializers.CharField()
     start_date = serializers.CharField()
     end_date = serializers.CharField(required=False, read_only=True)
     private = serializers.BooleanField()

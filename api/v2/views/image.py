@@ -16,8 +16,7 @@ class ImageViewSet(AuthOptionalViewSet):
     """
     serializer_class = ImageSerializer
     filter_fields = ('created_by__username', 'tags__name')
-    search_fields = ('name', 'description', 'tags__name',
-                     'tags__description', 'created_by__username')
+    search_fields = ('id', 'name', 'versions__description', 'tags__name', 'tags__description', 'created_by__username')
     http_method_names = ['get', 'head', 'options', 'trace']
 
     def get_queryset(self):
@@ -36,10 +35,8 @@ class ImageViewSet(AuthOptionalViewSet):
             # been EXPLICITLY shared with me
             privately_shared = Image.objects.filter(
                 only_current_machines(),
-                providermachine__members__id__in=request_user
-                .group_set.values('id'))
-            return (public_image_set |
-                    my_images |
-                    privately_shared).distinct()
+                versions__machines__members__id__in=
+                    request_user.group_set.values('id'))
+            return (public_image_set | my_images | privately_shared).distinct()
         else:
             return Image.objects.none()

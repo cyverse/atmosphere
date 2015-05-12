@@ -10,11 +10,12 @@ from threepio import logger
 
 from atmosphere import settings
 
-from core.query import only_current, only_current_source
+from core.query import only_current, only_current_source_args
 from core.models.provider import Provider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
 from core.metadata import _get_admin_owner
+from core.models.version import ApplicationVersion
 
 class Application(models.Model):
     """
@@ -25,15 +26,42 @@ class Application(models.Model):
     """
     uuid = models.CharField(max_length=36, unique=True, default=uuid4)
     name = models.CharField(max_length=256)
-    description = models.TextField(null=True, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
-    icon = models.ImageField(upload_to="machine_images", null=True, blank=True)
     private = models.BooleanField(default=False)
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
     # User/Identity that created the application object
     created_by = models.ForeignKey('AtmosphereUser')
     created_by_identity = models.ForeignKey(Identity, null=True)
+
+    @property
+    def all_machines(self):
+        from core.models import ProviderMachine
+        providermachine_set = ProviderMachine.objects.filter(
+                application_version__application=self)
+        return providermachine_set
+
+    @property
+    def description(self):
+        return self.latest_version.description
+
+    def latest_description(self):
+        return self.latest_version.description
+
+    def get_icon_url(self):
+        return self.icon.url if self.icon else None
+
+    @property
+    def icon(self):
+        return self.latest_version.icon if self.latest_version.icon else None
+
+    @property
+    def latest_version(self):
+        try:
+            return self.versions.order_by('start_date').last()
+        except ApplicationVersion.DoesNotExist:
+            return None
+
 
     def _current_machines(self, request_user=None):
         """
@@ -43,8 +71,9 @@ class Application(models.Model):
                 * Provider has not exceeded its end_date
                 * The ProviderMachine has not exceeded its end_date
         """
-        pms = self.providermachine_set.filter(
-            only_current_source(),
+        providermachine_set = self.all_machines
+        pms = providermachine_set.filter(
+            *only_current_source_args(),
             instance_source__provider__active=True)
         if request_user:
             if type(request_user) == AnonymousUser:
@@ -57,12 +86,14 @@ class Application(models.Model):
 
     def first_machine(self):
         #Out of all non-end dated machines in this application
-        first = self.providermachine_set.filter(only_current_source()).order_by('instance_source__start_date').first()
+        providermachine_set = self.all_machines
+        first = providermachine_set.filter(only_current_source()).order_by('instance_source__start_date').first()
         return first
 
     def last_machine(self):
+        providermachine_set = self.all_machines
         #Out of all non-end dated machines in this application
-        last = self.providermachine_set.filter(only_current_source()).order_by('instance_source__start_date').last()
+        last = providermachine_set.filter(only_current_source()).order_by('instance_source__start_date').last()
         return last
 
     def get_threshold(self):
@@ -200,7 +231,8 @@ class ApplicationMembership(models.Model):
 
 
 def _has_active_provider(app):
-    machines = app.providermachine_set.filter(
+    providermachine_set = app.all_machines
+    machines = providermachine_set.filter(
         Q(instance_source__end_date=None) |
         Q(instance_source__end_date__gt=timezone.now())
     )
@@ -230,7 +262,8 @@ def visible_applications(user):
     #Look only for 'Active' private applications
     for app in Application.objects.filter(only_current(), private=True):
         #Retrieve the machines associated with this app
-        machine_set = app.providermachine_set.filter(only_current_source())
+        providermachine_set = app.all_machines
+        machine_set = providermachine_set.filter(only_current_source())
         #Skip app if all their machines are on inactive providers.
         if all(not pm.instance_source.provider.is_active() for pm in machine_set):
             continue
@@ -256,7 +289,7 @@ def _get_app_by_name(provider_uuid, name):
     """
     try:
         app = Application.objects.get(
-            providermachine__instance_source__provider__uuid=provider_uuid,
+            versions__machines__instance_source__provider__uuid=provider_uuid,
             name=name)
         return app
     except Application.DoesNotExist:
@@ -277,8 +310,8 @@ def _get_app_by_identifier(provider_uuid, identifier):
     try:
         # Attempt #1: to retrieve application based on identifier
         app = Application.objects.get(
-            providermachine__instance_source__provider__uuid=provider_uuid,
-            providermachine__instance_source__identifier=identifier)
+            versions__machines__instance_source__provider__uuid=provider_uuid,
+            versions__machines__instance_source__identifier=identifier)
         return app
     except Application.DoesNotExist:
         return None
@@ -326,6 +359,9 @@ def _username_lookup(provider_uuid, username):
 
 def update_application(application, new_name=None, new_tags=None,
         new_description=None):
+    """
+    This is a dumb way of doing things. Fix this.
+    """
     if new_name:
         application.name = new_name
     if new_description:
@@ -338,6 +374,11 @@ def update_application(application, new_name=None, new_tags=None,
 
 def create_application(provider_uuid, identifier, name=None,
                        created_by_identity=None, created_by=None, description=None, private=False, tags=None, uuid=None):
+    """
+    Create application & Initial ApplicationVersion.
+    Build information (Based on MachineRequest or API inputs..)
+    and RETURN ApplicationVersion!!
+    """
     from core.models import AtmosphereUser
     new_app = None
 
@@ -467,7 +508,7 @@ class ApplicationBookmark(models.Model):
 
 
 class ApplicationThreshold(models.Model):
-    application = models.OneToOneField(Application, related_name="threshold")
+    application_version = models.OneToOneField(ApplicationVersion, related_name="threshold", blank=True, null=True)
     memory_min = models.IntegerField(default=0)
     storage_min = models.IntegerField(default=0)
 

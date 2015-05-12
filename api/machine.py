@@ -113,11 +113,11 @@ class MachineList(AuthAPIView):
 
 def all_filtered_machines(user):
     return ProviderMachine.objects\
-        .filter(application__created_by=user)\
+        .filter(application_version__application__created_by=user)\
         .exclude(
-            Q(instance_source__identifier__startswith="eki-") |
-            Q(instance_source__identifier__startswith="eri-"))\
-        .order_by("-application__start_date")
+            Q(instance_source__identifier__startswith="eki-")
+            | Q(instance_source__identifier__startswith="eri-"))\
+        .order_by("-application_version__application__start_date")
 
 
 class MachineHistory(AuthListAPIView):
@@ -206,7 +206,7 @@ class Machine(AuthAPIView):
         core_machine = convert_esh_machine(esh_driver, esh_machine,
                                            provider_uuid, user)
         if not user.is_staff\
-           and user is not core_machine.application.created_by:
+           and user is not core_machine.application_version.application.created_by:
             logger.warn('%s is Non-staff/non-owner trying to update a machine'
                         % (user.username))
             return failure_response(
@@ -225,7 +225,7 @@ class Machine(AuthAPIView):
             serializer.save()
             if 'created_by_identity' in request.DATA:
                 identity = serializer.object.created_by_identity
-                update_application_owner(core_machine.application, identity)
+                update_application_owner(core_machine.application_version.application, identity)
             logger.info(serializer.data)
             return Response(serializer.data)
         return failure_response(
@@ -256,9 +256,9 @@ class MachineIcon(AuthAPIView):
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
                 "Could not retrieve machine with ID = %s" % machine_id)
-        if not core_machine.application.icon:
+        if not core_machine.application_version.application.icon:
             return None
-        app_icon = core_machine.application.icon
+        app_icon = core_machine.application_version.application.icon
         image_name, image_ext = os.path.splitext(app_icon.name)
         return Response(app_icon.file)
 
@@ -282,7 +282,7 @@ class MachineVote(AuthAPIView):
                 status.HTTP_400_BAD_REQUEST,
                 "Machine id %s does not exist" % machine_id)
 
-        app = core_machine[0].application
+        app = core_machine[0].application_version.application
         vote = ApplicationScore.last_vote(app, request.user)
         serialized_data = ApplicationScoreSerializer(vote).data
         return Response(serialized_data, status=status.HTTP_200_OK)
@@ -308,7 +308,7 @@ class MachineVote(AuthAPIView):
                 status.HTTP_400_BAD_REQUEST,
                 "Machine id %s does not exist" % machine_id)
 
-        app = core_machine[0].application
+        app = core_machine[0].application_version.application
 
         if 'up' in vote:
             vote = ApplicationScore.upvote(app, user)

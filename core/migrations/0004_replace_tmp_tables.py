@@ -12,10 +12,6 @@ class Migration(migrations.Migration):
         ('core', '0003_create_tmp_tables'),
     ]
 
-    def introspection_hook(apps, schema_editor):
-        import ipdb;ipdb.set_trace()
-        return
-
     # switch to new tables
     operations = [
         # Point many-to-many fields to tmp models

@@ -1,5 +1,6 @@
 from core.models import Instance
-from core.query import only_current
+from api.v2.serializers.details import InstanceSerializer
+from core.query import only_current_instance_args
 
 from api.v2.serializers.details import InstanceSerializer
 from api.v2.views.base import AuthViewSet
@@ -20,4 +21,4 @@ class InstanceViewSet(AuthViewSet):
         Filter projects by current user.
         """
         user = self.request.user
-        return Instance.objects.filter(only_current(), created_by=user)
+        return Instance.objects.filter(*only_current_instance_args(), created_by=user)

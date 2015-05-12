@@ -11,7 +11,11 @@ WEB_SERVICE="nginx" # could be httpd on centos..
 WEB_INITD="/etc/init.d/$WEB_SERVICE"
 CELERY_INITD="/etc/init.d/celeryd"
 CELERYBEAT_INITD="/etc/init.d/celerybeat"
-REDIS_INITD="/etc/init.d/redis-server"
+if [ -f "/etc/init.d/redis-server" ]; then
+    REDIS_INITD="/etc/init.d/redis-server" #Ubuntu 12.04
+elif [ -f "/etc/init/redis-server.conf" ]; then
+    REDIS_INITD="/etc/init/redis-server.conf" #Ubuntu 14.04
+fi
 CELERY_DEFAULT="/etc/default/celeryd"
 
 if [ ! -f  $CELERY_INITD ]; then
