@@ -106,8 +106,9 @@ restart)
         echo "You must be a root user to restart atmosphere"
         exit 1
     fi
-    echo "Restarting Atmosphere Web Services"
+    echo "Restarting Atmosphere Web Services (uWSGI)"
     service uwsgi restart
+    echo "Restarting Atmosphere Web Services (Apache)"
     service apache2 restart
 ;;
 
@@ -116,8 +117,9 @@ celery-restart)
         echo "You must be a root user to restart atmosphere"
         exit 1
     fi
-    echo "Restarting Atmosphere Web Services"
+    echo "Restarting Atmosphere Web Services (uWSGI)"
     service uwsgi restart
+    echo "Restarting Atmosphere Web Services (Apache)"
     service apache2 restart
     #echo "Force Killing All Celery Nodes"
     #service celeryd kill
