@@ -1,7 +1,7 @@
 import random
 from datetime import timedelta
 
-import pytz
+import pytz, time
 from django.db.models import Q
 from django.utils import timezone
 from threepio import logger
@@ -193,7 +193,11 @@ def suspend_all_instances_for(identity, user):
         try:
             if driver._is_active_instance(instance):
                 # Suspend active instances, update the task in the DB
-                driver.suspend_instance(instance)
+                try:
+                    driver.suspend_instance(instance)
+                except Exception as exc:
+                    if not 'in task_state suspending' in exc.message:
+                        raise
                 # NOTE: Intentionally added to allow time for
                 #      the Cloud to begin 'suspend' operation
                 #      before querying for the instance again.
