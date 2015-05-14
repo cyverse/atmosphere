@@ -365,7 +365,7 @@ def _create_new_provider_machine(machine_request, application, new_image_id):
         #In this case, we have 'found' the ProviderMachine via other methods
         #PRIOR to processing machine request
         new_provider = machine_request.new_machine_provider
-        new_machine = ProviderMachine.objects.get(identifier=new_image_id, provider=new_provider)
+        new_machine = ProviderMachine.objects.get(instance_source__identifier=new_image_id, instance_source__provider=new_provider)
         _update_existing_machine(machine_request, application, new_machine)
     except ProviderMachine.DoesNotExist:
         new_machine = create_provider_machine(
