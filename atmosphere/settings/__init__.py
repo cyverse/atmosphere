@@ -223,7 +223,8 @@ CORS_ORIGIN_ALLOW_ALL = True
 CORS_ORIGIN_WHITELIST = None
 
 JENKINS_TASKS = (
-    'django_jenkins.tasks.run_flake8',
+#NOTE: disable flake8 temporarily for version conflict
+#    'django_jenkins.tasks.run_flake8',
 )
 # The age of session cookies, in seconds.
 # http://docs.djangoproject.com/en/dev/ref/settings/
