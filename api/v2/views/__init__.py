@@ -1,4 +1,5 @@
 from .allocation import AllocationViewSet
+from .allocation_request import AllocationRequestViewSet
 from .identity import IdentityViewSet
 from .image import ImageViewSet
 from .image_bookmark import ImageBookmarkViewSet

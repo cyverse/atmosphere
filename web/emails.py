@@ -52,6 +52,30 @@ def requestImaging(request, machine_request_id, auto_approve=False):
 
     return email_from_admin(user.username, subject, body)
 
+def allocation_request_email(request, username, new_allocation, reason):
+    """
+    Processes Increase allocation request. Sends email to atmo@iplantc.org
+
+    Returns a response.
+    """
+    user = User.objects.get(username=username)
+    full_name = user.get_full_name()
+    membership = IdentityMembership.objects.get(identity=user.select_identity(),
+            member__in=user.group_set.all())
+    admin_url = urlresolvers.reverse('admin:core_identitymembership_change',
+                                     args=(membership.id,))
+    message = """
+    Username : %s
+    Full name: %s
+    Allocation Requested: %s
+    Reason for Allocation Increase: %s
+    URL for Allocation Increase:%s
+    """ % (username, full_name, new_allocation, reason,
+           request.build_absolute_uri(admin_url))
+    subject = "Atmosphere Allocation Request - %s" % username
+    logger.info(message)
+    email_success = email_admin(request, subject, message, cc_user=False)
+    return {"email_sent": email_success}
 
 def quota_request_email(request, username, new_quota, reason):
     """

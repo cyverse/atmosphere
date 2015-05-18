@@ -1,4 +1,6 @@
 from .allocation import AllocationSerializer
+from .allocation_request import AllocationRequestSerializer,\
+    UserAllocationRequestSerializer
 from .identity import IdentitySerializer
 from .image import ImageSerializer
 from .image_tag import ImageTagSerializer

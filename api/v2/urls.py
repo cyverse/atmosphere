@@ -4,6 +4,7 @@ from api.v2 import views
 
 router = routers.DefaultRouter(trailing_slash=False)
 router.register(r'allocations', views.AllocationViewSet)
+router.register(r'allocation_requests', views.AllocationRequestViewSet)
 router.register(r'identities', views.IdentityViewSet)
 router.register(r'images', views.ImageViewSet, base_name='application')
 router.register(r'image_bookmarks', views.ImageBookmarkViewSet)
