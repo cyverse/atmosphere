@@ -14,7 +14,7 @@ django-celery==3.1.16
 
 gevent==1.0.1
 
-apache-libcloud==0.15.1
+apache-libcloud==0.16.0
 requests==2.2
 python-dateutil==1.4.1
 pytz==2014.7
@@ -33,7 +33,7 @@ uWSGI==2.0.9
 
 ## ours
 threepio==0.2.0
-rtwo==0.2.10
+rtwo==0.2.12
 caslib.py==2.2.0
 chromogenic==0.1.2
 jwt.py==0.1.0
