@@ -28,6 +28,7 @@ from service.driver import prepare_driver
 from service.search import search, CoreSearchProvider
 
 from api import failure_response, invalid_creds, malformed_response
+from api.pagination import OptionalPagination
 from api.renderers import JPEGRenderer, PNGRenderer
 from api.serializers import ProviderMachineSerializer,\
     ApplicationScoreSerializer,\
@@ -122,6 +123,8 @@ def all_filtered_machines(user):
 
 class MachineHistory(AuthListAPIView):
     """Details about the machine history for an identity."""
+    pagination_class = OptionalPagination
+
     serializer_class = ProviderMachineSerializer
 
     filter_backends = ()
@@ -133,6 +136,8 @@ class MachineHistory(AuthListAPIView):
 class MachineSearch(AuthListAPIView):
     """Provides server-side machine search for an identity."""
     filter_backends = ()
+
+    pagination_class = OptionalPagination
 
     serializer_class = ProviderMachineSerializer
 

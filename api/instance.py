@@ -44,6 +44,7 @@ from service.exceptions import OverAllocationError, OverQuotaError,\
 from api import failure_response, invalid_creds,\
                 connection_failure, malformed_response,\
                 emulate_user
+from api.pagination import OptionalPagination
 from api.serializers import InstanceStatusHistorySerializer,\
     InstanceSerializer, InstanceHistorySerializer, VolumeSerializer,\
     TagSerializer
@@ -229,6 +230,7 @@ def _filter_instance_history(history_instance_list, params):
 
 class InstanceHistory(AuthListAPIView):
     """Instance history for a specific user."""
+    pagination_class = OptionalPagination
 
     serializer_class = InstanceHistorySerializer
 

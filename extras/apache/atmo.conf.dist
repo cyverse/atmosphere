@@ -176,6 +176,12 @@
         ProxyPassReverse /version http://localhost:5000/version
         ProxyPass /maintenance http://localhost:5000/maintenance
         ProxyPassReverse /maintenance http://localhost:5000/maintenance
+        ProxyPass /tropo-admin http://localhost:5000/tropo-admin
+        ProxyPassReverse /tropo-admin http://localhost:5000/tropo-admin
+        ProxyPass /tropo-api http://localhost:5000/tropo-api
+        ProxyPassReverse /tropo-api http://localhost:5000/tropo-api
+        ProxyPass /atmo_maintenance http://localhost:5000/atmo_maintenance
+        ProxyPassReverse /atmo_maintenance http://localhost:5000/atmo_maintenance
 
         ProxyPassMatch ^/emulate http://localhost:5000
         ProxyPassReverse /emulate http://localhost:5000

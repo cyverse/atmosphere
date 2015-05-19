@@ -18,10 +18,10 @@ from core.models.application import visible_applications, public_applications
 from service.search import search, CoreApplicationSearch
 
 from api import failure_response
+from api.pagination import OptionalPagination
 from api.permissions import InMaintenance, ApiAuthOptional
 from api.serializers import ApplicationThresholdSerializer,\
     ApplicationSerializer
-from rest_framework.pagination import PageNumberPagination
 
 
 def _filter_applications(applications, user, params):
@@ -69,6 +69,8 @@ class ApplicationList(ListAPIView):
     """
 
     serializer_class = ApplicationSerializer
+
+    pagination_class = OptionalPagination
 
     permission_classes = (InMaintenance, ApiAuthOptional)
 
@@ -276,6 +278,8 @@ class ApplicationSearch(ListAPIView):
     filters_backend = ()
 
     permission_classes = (InMaintenance, ApiAuthOptional)
+
+    pagination_class = OptionalPagination
 
     serializer_class = ApplicationSerializer
 

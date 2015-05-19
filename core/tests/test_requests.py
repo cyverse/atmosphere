@@ -3,12 +3,12 @@
 from django.test import TestCase
 
 from core.models.request import AllocationRequest, QuotaRequest
-from core.models.status_type import StatusType
+from core.models.status_type import get_status_type
 
 
 class TestAllocationRequest(TestCase):
     def setUp(self):
-        self.status = StatusType.default()
+        self.status = get_status_type()
         self.message = "Allocation admin message"
         self.request = "Allocation of size x"
         self.blank_request = AllocationRequest(
@@ -24,7 +24,7 @@ class TestAllocationRequest(TestCase):
 
 class TestQuotaRequest(TestCase):
     def setUp(self):
-        self.status = StatusType.default()
+        self.status = get_status_type()
         self.message = "Quota admin message"
         self.request = "Quota x"
         self.blank_request = QuotaRequest(
