@@ -150,3 +150,16 @@ class InMaintenance(permissions.BasePermission):
                 raise ServiceUnavailable(
                     detail=get_maintenance_messages(records))
         return True
+
+
+class CanEditOrReadOnly(permissions.BasePermission):
+    """
+    Authorize the request if the user is the creator or the request is a
+    safe operation.
+    """
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        if request.user.is_staff:
+            return True
+        return hasattr(obj, "created_by") and obj.created_by == request.user
