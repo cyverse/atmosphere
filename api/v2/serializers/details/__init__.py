@@ -16,7 +16,8 @@ from .membership import MembershipSerializer
 from .project import ProjectSerializer
 from .project_instance import ProjectInstanceSerializer
 from .project_volume import ProjectVolumeSerializer
-from .provider import ProviderSerializer, ProviderTypeSerializer, PlatformTypeSerializer
+from .provider import (ProviderSerializer, ProviderTypeSerializer,
+                       PlatformTypeSerializer)
 from .provider_machine import ProviderMachineSerializer
 from .quota import QuotaSerializer
 from .resource_request import (
