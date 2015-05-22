@@ -1,6 +1,6 @@
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 from api.v2.views import ImageViewSet as ViewSet
-from .factories import UserFactory, AnonymousUserFactory, ImageFactory
+from api.tests.factories import UserFactory, AnonymousUserFactory, ImageFactory
 from django.core.urlresolvers import reverse
 from core.models import AtmosphereUser as User
 

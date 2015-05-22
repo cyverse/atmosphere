@@ -1,6 +1,6 @@
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 from api.v2.views import PlatformTypeViewSet as ViewSet
-from .factories import UserFactory, AnonymousUserFactory, GroupFactory, PlatformTypeFactory
+from api.tests.factories import UserFactory, AnonymousUserFactory, GroupFactory, PlatformTypeFactory
 from django.core.urlresolvers import reverse
 
 
