@@ -55,3 +55,4 @@ flake8
 pep8
 wheel
 django-nose
+mock==1.0.1
