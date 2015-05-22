@@ -409,7 +409,7 @@ CELERYD_PREFETCH_MULTIPLIER = 1
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_SEND_EVENTS = True
 CELERY_TASK_RESULT_EXPIRES = 3*60*60  # Store results for 3 hours
-CELERYD_MAX_TASKS_PER_CHILD = 150
+CELERYD_MAX_TASKS_PER_CHILD = 10
 CELERYD_LOG_FORMAT = "[%(asctime)s: %(name)s-%(levelname)s"\
     "/%(processName)s [PID:%(process)d]"\
     " @ %(pathname)s on %(lineno)d] %(message)s"
