@@ -15,7 +15,7 @@ class GetListTests(APITestCase):
         self.platform_type = PlatformTypeFactory.create()
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:platformtype-list')
+        url = reverse('api:v2:platformtype-list')
         self.request = factory.get(url)
         force_authenticate(self.request, user=self.user)
         self.response = self.view(self.request)
@@ -59,7 +59,7 @@ class GetDetailTests(APITestCase):
         self.platform_type = PlatformTypeFactory.create()
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:platformtype-detail', args=(self.platform_type.id,))
+        url = reverse('api:v2:platformtype-detail', args=(self.platform_type.id,))
         self.request = factory.get(url)
         force_authenticate(self.request, user=self.user)
         self.response = self.view(self.request, pk=self.platform_type.id)

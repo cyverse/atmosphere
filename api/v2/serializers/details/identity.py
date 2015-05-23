@@ -16,5 +16,5 @@ class IdentitySerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Identity
-        view_name = 'api_v2:identity-detail'
+        view_name = 'api:v2:identity-detail'
         fields = ('id', 'uuid', 'url', 'quota', 'allocation', 'provider', 'user')

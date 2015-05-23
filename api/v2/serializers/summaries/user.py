@@ -5,7 +5,7 @@ from rest_framework import serializers
 class UserSummarySerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = AtmosphereUser
-        view_name = 'api_v2:atmosphereuser-detail'
+        view_name = 'api:v2:atmosphereuser-detail'
         fields = (
                 'id',
                 'url',

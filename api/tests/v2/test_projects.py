@@ -18,7 +18,7 @@ class GetProjectListTests(APITestCase):
 
         self.view = ProjectViewSet.as_view({'get': 'list'})
         factory = APIRequestFactory()
-        url = reverse('api_v2:project-list')
+        url = reverse('api:v2:project-list')
         self.request = factory.get(url)
 
     def test_is_not_public(self):
@@ -63,7 +63,7 @@ class GetProjectDetailTests(APITestCase):
 
         self.view = ProjectViewSet.as_view({'get': 'retrieve'})
         factory = APIRequestFactory()
-        url = reverse('api_v2:project-detail', args=(self.project.id,))
+        url = reverse('api:v2:project-detail', args=(self.project.id,))
         self.request = factory.get(url)
 
     def test_is_not_public(self):
@@ -98,7 +98,7 @@ class CreateProjectTests(APITestCase):
 
         self.view = ProjectViewSet.as_view({'post': 'create'})
         self.factory = APIRequestFactory()
-        self.url = reverse('api_v2:project-list')
+        self.url = reverse('api:v2:project-list')
         self.request = self.factory.post(self.url, {
             'name': self.project.name,
             'description': self.project.description
@@ -146,7 +146,7 @@ class UpdateProjectTests(APITestCase):
         }
 
         self.factory = APIRequestFactory()
-        self.url = reverse('api_v2:project-detail', args=(self.project.id,))
+        self.url = reverse('api:v2:project-detail', args=(self.project.id,))
         self.request = self.factory.put(self.url, {
             'name': self.updated_project_data['name'],
             'description': self.updated_project_data['description']
@@ -187,7 +187,7 @@ class DeleteProjectTests(APITestCase):
 
         self.view = ProjectViewSet.as_view({'delete': 'destroy'})
         self.factory = APIRequestFactory()
-        self.url = reverse('api_v2:project-detail', args=(self.project.id,))
+        self.url = reverse('api:v2:project-detail', args=(self.project.id,))
         self.request = self.factory.delete(self.url)
 
     def test_anonymous_user_cannot_delete_project(self):

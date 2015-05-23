@@ -11,7 +11,7 @@ class ImageSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Image
-        view_name = 'api_v2:application-detail'
+        view_name = 'api:v2:application-detail'
         fields = (
             'id', 'url', 'uuid', 'name', 'description', 'icon', 'created_by',
             'tags', 'start_date', 'end_date', 'provider_images'

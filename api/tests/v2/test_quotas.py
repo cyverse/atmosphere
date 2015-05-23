@@ -18,7 +18,7 @@ class GetListTests(APITestCase):
         self.quota = QuotaFactory.create()
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:quota-list')
+        url = reverse('api:v2:quota-list')
         self.request = factory.get(url)
         force_authenticate(self.request, user=self.user)
         self.response = self.view(self.request)
@@ -64,7 +64,7 @@ class GetDetailTests(APITestCase):
         self.quota = QuotaFactory.create()
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:quota-detail', args=(self.quota.id,))
+        url = reverse('api:v2:quota-detail', args=(self.quota.id,))
         self.request = factory.get(url)
         force_authenticate(self.request, user=self.user)
         self.response = self.view(self.request, pk=self.quota.id)
