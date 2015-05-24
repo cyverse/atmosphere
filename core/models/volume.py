@@ -1,21 +1,34 @@
 from datetime import datetime
-import pytz
 
 from django.db import models, transaction, DatabaseError
 from django.db.models import Q
 from django.utils import timezone
 
+import pytz
+
+from threepio import logger
+
 from core.models.abstract import BaseSource
 from core.models.instance_source import InstanceSource
 from core.models.provider import Provider
 from core.models.identity import Identity
-from threepio import logger
+from core.query import only_current_source
+
+
+class ActiveVolumesManager(models.Manager):
+
+    def get_queryset(self):
+        return super(ActiveVolumesManager, self)\
+            .get_queryset().filter(only_current_source())
 
 
 class Volume(BaseSource):
+
     size = models.IntegerField()
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
+    objects = models.Manager() # The default manager.
+    active_volumes = ActiveVolumesManager()
 
     class Meta:
         db_table = "volume"
