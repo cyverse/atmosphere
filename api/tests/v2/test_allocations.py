@@ -1,9 +1,7 @@
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
-from api.v2.views import QuotaViewSet as ViewSet
-from .factories import UserFactory, AnonymousUserFactory, IdentityFactory, ProviderFactory, GroupFactory, \
-    ProviderMembershipFactory, IdentityMembershipFactory, QuotaFactory, AllocationFactory
+from api.v2.views import AllocationViewSet as ViewSet
+from api.tests.factories import UserFactory, AnonymousUserFactory, GroupFactory, AllocationFactory
 from django.core.urlresolvers import reverse
-from core.models import Identity
 
 
 class GetListTests(APITestCase):
@@ -14,7 +12,7 @@ class GetListTests(APITestCase):
         self.group = GroupFactory.create(name=self.user.username)
         self.staff_user = UserFactory.create(is_staff=True)
 
-        self.quota = QuotaFactory.create()
+        self.allocation = AllocationFactory.create()
 
         factory = APIRequestFactory()
         url = reverse('api_v2:quota-list')
@@ -42,14 +40,11 @@ class GetListTests(APITestCase):
         response = self.view(self.request)
         data = response.data.get('results')[0]
 
-        self.assertEquals(len(data), 7)
+        self.assertEquals(len(data), 4)
         self.assertIn('id', data)
         self.assertIn('url', data)
-        self.assertIn('cpu', data)
-        self.assertIn('memory', data)
-        self.assertIn('storage', data)
-        self.assertIn('storage_count', data)
-        self.assertIn('suspended_count', data)
+        self.assertIn('threshold', data)
+        self.assertIn('delta', data)
 
 
 class GetDetailTests(APITestCase):
@@ -60,37 +55,34 @@ class GetDetailTests(APITestCase):
         self.group = GroupFactory.create(name=self.user.username)
         self.staff_user = UserFactory.create(is_staff=True)
 
-        self.quota = QuotaFactory.create()
+        self.allocation = AllocationFactory.create()
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:quota-detail', args=(self.quota.id,))
+        url = reverse('api_v2:quota-detail', args=(self.allocation.id,))
         self.request = factory.get(url)
         force_authenticate(self.request, user=self.user)
-        self.response = self.view(self.request, pk=self.quota.id)
+        self.response = self.view(self.request, pk=self.allocation.id)
 
     def test_is_not_public(self):
         force_authenticate(self.request, user=self.anonymous_user)
-        response = self.view(self.request, pk=self.quota.id)
+        response = self.view(self.request, pk=self.allocation.id)
         self.assertEquals(response.status_code, 403)
 
     def test_is_visible_to_authenticated_user(self):
         force_authenticate(self.request, user=self.user)
-        response = self.view(self.request, pk=self.quota.id)
+        response = self.view(self.request, pk=self.allocation.id)
         self.assertEquals(response.status_code, 200)
 
     def test_response_contains_expected_fields(self):
         force_authenticate(self.request, user=self.user)
-        response = self.view(self.request, pk=self.quota.id)
+        response = self.view(self.request, pk=self.allocation.id)
         data = response.data
 
-        self.assertEquals(len(data), 7)
+        self.assertEquals(len(data), 4)
         self.assertIn('id', data)
         self.assertIn('url', data)
-        self.assertIn('cpu', data)
-        self.assertIn('memory', data)
-        self.assertIn('storage', data)
-        self.assertIn('storage_count', data)
-        self.assertIn('suspended_count', data)
+        self.assertIn('threshold', data)
+        self.assertIn('delta', data)
 
 
 class CreateTests(APITestCase):

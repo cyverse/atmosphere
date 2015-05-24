@@ -1,6 +1,6 @@
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 from api.v2.views import ProjectViewSet
-from .factories import ProjectFactory, UserFactory, AnonymousUserFactory, GroupFactory
+from api.tests.factories import ProjectFactory, UserFactory, AnonymousUserFactory, GroupFactory
 from django.core.urlresolvers import reverse
 from core.models import Project
 

@@ -1,19 +1,21 @@
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
-from api.v2.views import UserViewSet
-from .factories import UserFactory, AnonymousUserFactory
+from api.v2.views import ProviderTypeViewSet as ViewSet
+from api.tests.factories import UserFactory, AnonymousUserFactory, GroupFactory, ProviderTypeFactory
 from django.core.urlresolvers import reverse
-from core.models import AtmosphereUser as User
 
 
 class GetListTests(APITestCase):
     def setUp(self):
-        self.view = UserViewSet.as_view({'get': 'list'})
+        self.view = ViewSet.as_view({'get': 'list'})
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
+        self.group = GroupFactory.create(name=self.user.username)
         self.staff_user = UserFactory.create(is_staff=True)
 
+        self.provider_type = ProviderTypeFactory.create()
+
         factory = APIRequestFactory()
-        url = reverse('api_v2:atmosphereuser-list')
+        url = reverse('api_v2:providertype-list')
         self.request = factory.get(url)
         force_authenticate(self.request, user=self.user)
         self.response = self.view(self.request)
@@ -38,66 +40,64 @@ class GetListTests(APITestCase):
         response = self.view(self.request)
         data = response.data.get('results')[0]
 
-        self.assertEquals(len(data), 9)
+        self.assertEquals(len(data), 5)
         self.assertIn('id', data)
         self.assertIn('url', data)
-        self.assertIn('username', data)
-        self.assertIn('first_name', data)
-        self.assertIn('last_name', data)
-        self.assertIn('email', data)
-        self.assertIn('is_staff', data)
-        self.assertIn('is_superuser', data)
-        self.assertIn('date_joined', data)
+        self.assertIn('name', data)
+        self.assertIn('start_date', data)
+        self.assertIn('end_date', data)
 
 
 class GetDetailTests(APITestCase):
     def setUp(self):
-        self.view = UserViewSet.as_view({'get': 'retrieve'})
+        self.view = ViewSet.as_view({'get': 'retrieve'})
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
+        self.group = GroupFactory.create(name=self.user.username)
+        self.staff_user = UserFactory.create(is_staff=True)
+
+        self.provider_type = ProviderTypeFactory.create()
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:atmosphereuser-detail', args=(self.user.id,))
+        url = reverse('api_v2:providertype-detail', args=(self.provider_type.id,))
         self.request = factory.get(url)
+        force_authenticate(self.request, user=self.user)
+        self.response = self.view(self.request, pk=self.provider_type.id)
 
     def test_is_not_public(self):
         force_authenticate(self.request, user=self.anonymous_user)
-        response = self.view(self.request, pk=self.user.id)
+        response = self.view(self.request, pk=self.provider_type.id)
         self.assertEquals(response.status_code, 403)
 
     def test_is_visible_to_authenticated_user(self):
         force_authenticate(self.request, user=self.user)
-        response = self.view(self.request, pk=self.user.id)
+        response = self.view(self.request, pk=self.provider_type.id)
         self.assertEquals(response.status_code, 200)
 
     def test_response_contains_expected_fields(self):
         force_authenticate(self.request, user=self.user)
-        response = self.view(self.request, pk=self.user.id)
+        response = self.view(self.request, pk=self.provider_type.id)
         data = response.data
 
-        self.assertEquals(len(data), 9)
+        self.assertEquals(len(data), 5)
         self.assertIn('id', data)
         self.assertIn('url', data)
-        self.assertIn('username', data)
-        self.assertIn('first_name', data)
-        self.assertIn('last_name', data)
-        self.assertIn('email', data)
-        self.assertIn('is_staff', data)
-        self.assertIn('is_superuser', data)
-        self.assertIn('date_joined', data)
+        self.assertIn('name', data)
+        self.assertIn('start_date', data)
+        self.assertIn('end_date', data)
 
 
 class CreateTests(APITestCase):
     def test_endpoint_does_not_exist(self):
-        self.assertTrue('post' not in UserViewSet.http_method_names)
+        self.assertTrue('post' not in ViewSet.http_method_names)
 
 
 class UpdateTests(APITestCase):
     def test_endpoint_does_not_exist(self):
-        self.assertTrue('put' not in UserViewSet.http_method_names)
+        self.assertTrue('put' not in ViewSet.http_method_names)
 
 
 class DeleteTests(APITestCase):
     def test_endpoint_does_not_exist(self):
-        self.assertTrue('delete' not in UserViewSet.http_method_names)
+        self.assertTrue('delete' not in ViewSet.http_method_names)
 

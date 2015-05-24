@@ -1,7 +1,8 @@
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
-from api.v2.views import ProviderTypeViewSet as ViewSet
-from .factories import UserFactory, AnonymousUserFactory, GroupFactory, ProviderTypeFactory
+from api.v2.views import ImageViewSet as ViewSet
+from api.tests.factories import UserFactory, AnonymousUserFactory, ImageFactory
 from django.core.urlresolvers import reverse
+from core.models import AtmosphereUser as User
 
 
 class GetListTests(APITestCase):
@@ -9,21 +10,20 @@ class GetListTests(APITestCase):
         self.view = ViewSet.as_view({'get': 'list'})
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
-        self.group = GroupFactory.create(name=self.user.username)
         self.staff_user = UserFactory.create(is_staff=True)
 
-        self.provider_type = ProviderTypeFactory.create()
+        self.image = ImageFactory.create(created_by=self.user)
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:providertype-list')
+        url = reverse('api_v2:application-list')
         self.request = factory.get(url)
         force_authenticate(self.request, user=self.user)
         self.response = self.view(self.request)
 
-    def test_is_not_public(self):
+    def test_is_public(self):
         force_authenticate(self.request, user=self.anonymous_user)
         response = self.view(self.request)
-        self.assertEquals(response.status_code, 403)
+        self.assertEquals(response.status_code, 200)
 
     def test_is_visible_to_authenticated_user(self):
         force_authenticate(self.request, user=self.user)
@@ -40,10 +40,17 @@ class GetListTests(APITestCase):
         response = self.view(self.request)
         data = response.data.get('results')[0]
 
-        self.assertEquals(len(data), 5)
+        self.assertEquals(len(data), 12)
         self.assertIn('id', data)
         self.assertIn('url', data)
+        self.assertIn('uuid', data)
         self.assertIn('name', data)
+        self.assertIn('description', data)
+        self.assertIn('icon', data)
+        self.assertIn('tags', data)
+        self.assertIn('created_by', data)
+        self.assertIn('provider_images', data)
+        self.assertIn('machine_count', data)
         self.assertIn('start_date', data)
         self.assertIn('end_date', data)
 
@@ -53,36 +60,39 @@ class GetDetailTests(APITestCase):
         self.view = ViewSet.as_view({'get': 'retrieve'})
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
-        self.group = GroupFactory.create(name=self.user.username)
-        self.staff_user = UserFactory.create(is_staff=True)
 
-        self.provider_type = ProviderTypeFactory.create()
+        self.image = ImageFactory.create(created_by=self.user)
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:providertype-detail', args=(self.provider_type.id,))
+        url = reverse('api_v2:application-detail', args=(self.user.id,))
         self.request = factory.get(url)
-        force_authenticate(self.request, user=self.user)
-        self.response = self.view(self.request, pk=self.provider_type.id)
 
-    def test_is_not_public(self):
+    def test_is_public(self):
         force_authenticate(self.request, user=self.anonymous_user)
-        response = self.view(self.request, pk=self.provider_type.id)
-        self.assertEquals(response.status_code, 403)
+        response = self.view(self.request, pk=self.user.id)
+        self.assertEquals(response.status_code, 200)
 
     def test_is_visible_to_authenticated_user(self):
         force_authenticate(self.request, user=self.user)
-        response = self.view(self.request, pk=self.provider_type.id)
+        response = self.view(self.request, pk=self.image.id)
         self.assertEquals(response.status_code, 200)
 
     def test_response_contains_expected_fields(self):
         force_authenticate(self.request, user=self.user)
-        response = self.view(self.request, pk=self.provider_type.id)
+        response = self.view(self.request, pk=self.image.id)
         data = response.data
 
-        self.assertEquals(len(data), 5)
+        self.assertEquals(len(data), 12)
         self.assertIn('id', data)
         self.assertIn('url', data)
+        self.assertIn('uuid', data)
         self.assertIn('name', data)
+        self.assertIn('description', data)
+        self.assertIn('icon', data)
+        self.assertIn('tags', data)
+        self.assertIn('created_by', data)
+        self.assertIn('provider_images', data)
+        self.assertIn('machine_count', data)
         self.assertIn('start_date', data)
         self.assertIn('end_date', data)
 
