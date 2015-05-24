@@ -19,15 +19,14 @@ def only_current_machines(now_time=None):
     Filters the current provider_machines.
     """
     def _active_provider():
-        return \
-            (Q(providermachine__instance_source__provider__end_date__isnull=True) |
-             Q(providermachine__instance_source__provider__end_date__gt=now_time)) &\
-            Q(providermachine__instance_source__provider__active=True)
+        return (Q(providermachine__instance_source__provider__end_date__isnull=True) |
+                Q(providermachine__instance_source__provider__end_date__gt=now_time))\
+            & Q(providermachine__instance_source__provider__active=True)
 
     def _in_range():
         return (Q(providermachine__instance_source__end_date__isnull=True) |
-                Q(providermachine__instance_source__end_date__gt=now_time)) &\
-            Q(providermachine__instance_source__start_date__lt=now_time)
+                Q(providermachine__instance_source__end_date__gt=now_time))\
+            & Q(providermachine__instance_source__start_date__lt=now_time)
 
     if not now_time:
         now_time = timezone.now()
