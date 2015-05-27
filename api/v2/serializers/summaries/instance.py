@@ -29,7 +29,7 @@ class InstanceSummarySerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Instance
-        view_name = 'api_v2:instance-detail'
+        view_name = 'api:v2:instance-detail'
         fields = (
             'id',
             'uuid',
@@ -57,7 +57,7 @@ class InstanceSuperSummarySerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Instance
-        view_name = 'api_v2:instance-detail'
+        view_name = 'api:v2:instance-detail'
         fields = (
             'id',
             'uuid',

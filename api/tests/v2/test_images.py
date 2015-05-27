@@ -15,7 +15,7 @@ class GetListTests(APITestCase):
         self.image = ImageFactory.create(created_by=self.user)
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:application-list')
+        url = reverse('api:v2:application-list')
         self.request = factory.get(url)
         force_authenticate(self.request, user=self.user)
         self.response = self.view(self.request)
@@ -64,7 +64,7 @@ class GetDetailTests(APITestCase):
         self.image = ImageFactory.create(created_by=self.user)
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:application-detail', args=(self.user.id,))
+        url = reverse('api:v2:application-detail', args=(self.user.id,))
         self.request = factory.get(url)
 
     def test_is_public(self):

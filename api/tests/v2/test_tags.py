@@ -12,7 +12,7 @@ class GetTagListTests(APITestCase):
         self.anonymous_user = AnonymousUserFactory()
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:tag-list')
+        url = reverse('api:v2:tag-list')
         self.request = factory.get(url)
 
     def test_does_not_require_authenticated_user(self):
@@ -45,7 +45,7 @@ class GetTagDetailTests(APITestCase):
         self.view = TagViewSet.as_view({'get': 'retrieve'})
         self.anonymous_user = AnonymousUserFactory()
         factory = APIRequestFactory()
-        url = reverse('api_v2:tag-detail', args=(self.tag.id,))
+        url = reverse('api:v2:tag-detail', args=(self.tag.id,))
         self.request = factory.get(url)
 
     def test_does_not_require_authenticated_user(self):
@@ -74,7 +74,7 @@ class DeleteTagTests(APITestCase):
         self.staff_user = UserFactory(is_staff=True)
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:tag-detail', args=(self.tag.id,))
+        url = reverse('api:v2:tag-detail', args=(self.tag.id,))
         self.request = factory.delete(url)
 
         self.view = TagViewSet.as_view({'delete': 'destroy'})
@@ -103,7 +103,7 @@ class CreateTagTests(APITestCase):
         self.staff_user = UserFactory.create(is_staff=True)
 
         self.factory = APIRequestFactory()
-        self.url = reverse('api_v2:tag-list')
+        self.url = reverse('api:v2:tag-list')
         self.request = self.factory.post(self.url, {
             'name': self.tag.name,
             'description': self.tag.description
@@ -147,7 +147,7 @@ class UpdateTagTests(APITestCase):
         }
 
         self.factory = APIRequestFactory()
-        self.url = reverse('api_v2:tag-detail', args=(self.tag.id,))
+        self.url = reverse('api:v2:tag-detail', args=(self.tag.id,))
         self.request = self.factory.put(self.url, {
             'name': self.updated_tag_data['name'],
             'description': self.updated_tag_data['description']

@@ -116,7 +116,7 @@ class QuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = QuotaRequest
-        view_name = 'api_v2:quotarequest-detail'
+        view_name = 'api:v2:quotarequest-detail'
         fields = (
             'id',
             'uuid',
@@ -146,7 +146,7 @@ class UserQuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = QuotaRequest
-        view_name = 'api_v2:quotarequest-detail'
+        view_name = 'api:v2:quotarequest-detail'
         fields = (
             'id',
             'uuid',

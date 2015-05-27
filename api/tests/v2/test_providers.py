@@ -3,7 +3,7 @@ from api.v2.views import ProviderViewSet
 
 #TODO: CURRENT TEST SET DEPRECATED -- ProviderMembership (Core test feature) removed! Refactor tests and re-add.
 ####
-# from api.tests.factories import ProviderFactory, UserFactory, AnonymousUserFactory, GroupFactory, ProviderMembershipFactory
+# from api:tests.factories import ProviderFactory, UserFactory, AnonymousUserFactory, GroupFactory, ProviderMembershipFactory
 # from django.core.urlresolvers import reverse
 # from core.models import Provider
 # from rest_framework.authtoken.models import Token
@@ -23,7 +23,7 @@ from api.v2.views import ProviderViewSet
 #         self.membership_count = 2
 #
 #         factory = APIRequestFactory()
-#         url = reverse('api_v2:provider-list')
+#         url = reverse('api:v2:provider-list')
 #         self.request = factory.get(url)
 #         force_authenticate(self.request, user=self.user)
 #         self.response = self.view(self.request)
@@ -81,7 +81,7 @@ from api.v2.views import ProviderViewSet
 #         self.no_provider = self.providers[1]
 #
 #         factory = APIRequestFactory()
-#         url = reverse('api_v2:provider-detail', args=(self.yes_provider.id,))
+#         url = reverse('api:v2:provider-detail', args=(self.yes_provider.id,))
 #         self.request = factory.get(url)
 #
 #     def test_is_not_public(self):

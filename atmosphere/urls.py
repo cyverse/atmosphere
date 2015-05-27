@@ -6,8 +6,8 @@ from django.conf.urls import patterns, url, include
 
 
 from rest_framework.urlpatterns import format_suffix_patterns
-from api.auth import Authentication 
-from api.version import Version
+from api.auth import Authentication
+#from api.version import Version
 
 resources_path = os.path.join(os.path.dirname(__file__), 'resources')
 mobile = os.path.join(os.path.dirname(__file__), 'mobile')
@@ -15,6 +15,7 @@ cloud2 = os.path.join(os.path.dirname(__file__), 'cf2')
 user_match = "[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*"
 
 admin.autodiscover()
+
 urlpatterns = patterns(
     '',
 
@@ -78,21 +79,16 @@ urlpatterns = patterns(
     url(r'^no_user$', 'web.views.no_user_redirect'),
     #API Layer
 
-    url(r'^api/version$', Version.as_view()),
-    url(r'^api/v1/', include("api.urls", namespace="api")),
-    url(r'^api/v2/', include("api.v2.urls", namespace="api_v2")),
+#    url(r'^api/version$', Version.as_view()),
+    url(r'^api/', include("api.urls", namespace="api")),
 
     #API Documentation
     url(r'^api-auth/',
-        include('rest_framework.urls', namespace='rest_framework'))
-)
-private_root_urls = patterns('',
+        include('rest_framework.urls', namespace='rest_framework')),
 
     ### DJANGORESTFRAMEWORK ###
     url(r'^api-token-auth/',
-            'rest_framework.authtoken.views.obtain_auth_token'),
+            'rest_framework.authtoken.views.obtain_auth_token')
 )
 
-urlpatterns += patterns('',url(r'^',
-    include(private_root_urls,namespace="private_root_urls")))
 urlpatterns += staticfiles_urlpatterns()

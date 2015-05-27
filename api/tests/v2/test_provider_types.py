@@ -15,7 +15,7 @@ class GetListTests(APITestCase):
         self.provider_type = ProviderTypeFactory.create()
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:providertype-list')
+        url = reverse('api:v2:providertype-list')
         self.request = factory.get(url)
         force_authenticate(self.request, user=self.user)
         self.response = self.view(self.request)
@@ -59,7 +59,7 @@ class GetDetailTests(APITestCase):
         self.provider_type = ProviderTypeFactory.create()
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:providertype-detail', args=(self.provider_type.id,))
+        url = reverse('api:v2:providertype-detail', args=(self.provider_type.id,))
         self.request = factory.get(url)
         force_authenticate(self.request, user=self.user)
         self.response = self.view(self.request, pk=self.provider_type.id)

@@ -8,7 +8,7 @@ from atmosphere.settings import secrets
 from authentication import createAuthToken, lookupSessionToken
 
 from api.permissions import ApiAuthIgnore
-from api.serializers import TokenSerializer
+from api.v1.serializers import TokenSerializer
 
 
 class Authentication(APIView):

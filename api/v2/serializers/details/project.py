@@ -18,7 +18,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Project
-        view_name = 'api_v2:project-detail'
+        view_name = 'api:v2:project-detail'
         fields = (
             'id',
             'url',

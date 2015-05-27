@@ -13,7 +13,7 @@ class GetListTests(APITestCase):
         self.staff_user = UserFactory.create(is_staff=True)
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:atmosphereuser-list')
+        url = reverse('api:v2:atmosphereuser-list')
         self.request = factory.get(url)
         force_authenticate(self.request, user=self.user)
         self.response = self.view(self.request)
@@ -57,7 +57,7 @@ class GetDetailTests(APITestCase):
         self.user = UserFactory.create()
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:atmosphereuser-detail', args=(self.user.id,))
+        url = reverse('api:v2:atmosphereuser-detail', args=(self.user.id,))
         self.request = factory.get(url)
 
     def test_is_not_public(self):

@@ -26,7 +26,7 @@ class GetListTests(APITestCase):
         )
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:identity-list')
+        url = reverse('api:v2:identity-list')
         self.request = factory.get(url)
         force_authenticate(self.request, user=self.user)
         self.response = self.view(self.request)
@@ -78,7 +78,7 @@ class GetDetailTests(APITestCase):
         )
 
         factory = APIRequestFactory()
-        url = reverse('api_v2:identity-detail', args=(self.identity.id,))
+        url = reverse('api:v2:identity-detail', args=(self.identity.id,))
         self.request = factory.get(url)
         force_authenticate(self.request, user=self.user)
         self.response = self.view(self.request, pk=self.identity.id)

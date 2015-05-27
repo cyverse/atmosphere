@@ -32,7 +32,7 @@ class ProjectVolumeSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = ProjectVolume
-        view_name = 'api_v2:projectvolume-detail'
+        view_name = 'api:v2:projectvolume-detail'
         fields = (
             'id',
             'url',
