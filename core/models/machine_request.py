@@ -332,7 +332,7 @@ def _match_tags_to_names(tag_names):
     NOTE: Tags NOT created BEFORE being added to new_machine_tags are ignored.
     """
     from core.models.tag import Tag
-    ts = [t for t in machine_request.new_machine_tags.split(',') if t]
+    ts = [t for t in tag_names.new_machine_tags.split(',') if t]
     tags = [Tag.objects.filter(name__iexact=tag)[0] for tag in ts]
     return tags
 
