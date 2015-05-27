@@ -3,6 +3,7 @@
 """
 import json
 import re
+import operator
 import os
 
 from django.db import models
@@ -390,7 +391,9 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     parent_app = machine_request.instance.provider_machine.application
     if machine_request.new_machine_tags:
         ts = [t for t in machine_request.new_machine_tags.split(',') if t]
-        tags = [Tag.objects.filter(name__iexact=tag)[0] for tag in ts]
+        matches = [models.Q(name__iexact=name) for name in ts]
+        filters = reduce(operator.or_,  matches, models.Q())
+        tags = Tag.objects.filter(filters)
     else:
         tags = []
 
