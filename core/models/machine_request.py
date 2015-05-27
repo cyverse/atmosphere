@@ -251,16 +251,16 @@ class MachineRequest(models.Model):
 
         (orig_managerCls, orig_creds,
          dest_managerCls, dest_creds) = self.prepare_manager()
-    
+
         download_dir = secrets.LOCAL_STORAGE
-    
+
         imaging_args = {
             "instance_id": self.instance.provider_alias,
             "image_name": self.new_machine_name,
             "download_dir" : download_dir}
         if issubclass(orig_managerCls, OSImageManager):
             download_location = self._extract_file_location(download_dir)
-            imaging_args['download_location'] = download_location 
+            imaging_args['download_location'] = download_location
         elif issubclass(orig_managerCls, EucaImageManager):
             euca_args = _prepare_euca_args()
             imaging_args.update(euca_args)
@@ -332,8 +332,8 @@ def _match_tags_to_names(tag_names):
     NOTE: Tags NOT created BEFORE being added to new_machine_tags are ignored.
     """
     from core.models.tag import Tag
-    tags = [Tag.objects.filter(name__iexact=tag)[0] for tag in
-            tag_names.split(',')]
+    ts = [t for t in machine_request.new_machine_tags.split(',') if t]
+    tags = [Tag.objects.filter(name__iexact=tag)[0] for tag in ts]
     return tags
 
 def _get_owner(new_provider, user):
@@ -351,7 +351,7 @@ def _create_new_application(machine_request, new_image_id, tags=[]):
     new_app = create_application(
             new_image_id,
             new_provider.id,
-            machine_request.new_machine_name, 
+            machine_request.new_machine_name,
             owner_ident,
             #new_app.Private = False when machine_request.is_public = True
             not machine_request.is_public(),
@@ -388,7 +388,7 @@ def _update_existing_machine(machine_request, application, provider_machine):
 
 def process_machine_request(machine_request, new_image_id, update_cloud=True):
     """
-    NOTE: Current process accepts instance with source of 'Image' ONLY! 
+    NOTE: Current process accepts instance with source of 'Image' ONLY!
           VOLUMES CANNOT BE IMAGED until this function is updated!
     """
     parent_mach = machine_request.instance.provider_machine
@@ -531,7 +531,7 @@ def make_private(image_manager, image, provider_machine, tenant_list=[]):
         name = tenant.name
         group = Group.objects.get(name=name)
         obj, created = ApplicationMembership.objects.get_or_create(
-                group=group, 
+                group=group,
                 application=provider_machine.application)
         if created:
             print "Created new ApplicationMembership: %s" \
