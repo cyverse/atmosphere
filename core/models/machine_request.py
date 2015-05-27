@@ -3,6 +3,7 @@
 """
 import json
 import re
+import operator
 import os
 
 from django.db import models
@@ -332,9 +333,9 @@ def _match_tags_to_names(tag_names):
     NOTE: Tags NOT created BEFORE being added to new_machine_tags are ignored.
     """
     from core.models.tag import Tag
-    ts = [t for t in tag_names.new_machine_tags.split(',') if t]
-    tags = [Tag.objects.filter(name__iexact=tag)[0] for tag in ts]
-    return tags
+    matches = [models.Q(name__iexact=name) for name in tag_names.split(',')]
+    filters = reduce(operator.or_,  matches, models.Q())
+    return Tag.objects.filter(filters)
 
 def _get_owner(new_provider, user):
     try:
