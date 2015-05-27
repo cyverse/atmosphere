@@ -389,8 +389,8 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     parent_mach = machine_request.instance.provider_machine
     parent_app = machine_request.instance.provider_machine.application
     if machine_request.new_machine_tags:
-        tags = [Tag.objects.filter(name__iexact=tag)[0] for tag in
-                machine_request.new_machine_tags.split(',')]
+        ts = [t for t in machine_request.new_machine_tags.split(',') if t]
+        tags = [Tag.objects.filter(name__iexact=tag)[0] for tag in ts]
     else:
         tags = []
 
