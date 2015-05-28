@@ -234,7 +234,7 @@ def _remove_network(os_acct_driver, core_identity, tenant_name, remove_network=F
     return True
 
 
-@task(name="clear_empty_ips_for", queue="celery_periodic")
+@task(name="clear_empty_ips_for", queue="periodic")
 def clear_empty_ips_for(core_identity_uuid, username=None):
     """
     RETURN: (number_ips_removed, delete_network_called)
@@ -1164,7 +1164,7 @@ def check_image_membership():
         logger.exception('Error during check_image_membership task')
         check_image_membership.retry(exc=exc)
 
-@task(name="update_membership_for", queue="celery_periodic")
+@task(name="update_membership_for", queue="periodic")
 def update_membership_for(provider_uuid):
     from core.models import Provider, ProviderMachine
     provider = Provider.objects.get(uuid=provider_uuid)
