@@ -11,7 +11,7 @@ from core.models import Provider
 
 from service.driver import get_account_driver
 
-@task(name="remove_empty_networks_for", queue="periodic")
+@task(name="remove_empty_networks_for")
 def remove_empty_networks_for(provider_id):
     provider = Provider.objects.get(id=provider_id)
     os_driver = get_account_driver(provider)

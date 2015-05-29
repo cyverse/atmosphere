@@ -63,7 +63,7 @@ def monitor_instances():
         monitor_instances_for.apply_async(args=[p.id])
 
 
-@task(name="monitor_instances_for", queue="periodic")
+@task(name="monitor_instances_for")
 def monitor_instances_for(provider_id, users=None,
                           print_logs=False, start_date=None, end_date=None):
     """
@@ -123,7 +123,7 @@ def monitor_sizes():
         monitor_sizes_for.apply_async(args=[p.id])
 
 
-@task(name="monitor_sizes_for", queue="periodic")
+@task(name="monitor_sizes_for")
 def monitor_sizes_for(provider_id, print_logs=False):
     """
     Run the set of tasks related to monitoring sizes for a provider.
