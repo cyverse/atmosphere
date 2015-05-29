@@ -1,5 +1,7 @@
 """
 Tasks for driver operations.
+NOTE: At this point create options do not have a hard-set requirement for 'CoreIdentity'
+Delete/remove operations do. This should be investigated further..
 """
 from celery.contrib import rdb
 
@@ -1018,9 +1020,11 @@ def add_floating_ip(driverCls, provider, identity,
         floating_ips = driver._connection.neutron_list_ips(instance)
         if floating_ips:
             floating_ip = floating_ips[0]["floating_ip_address"]
+            logger.debug("Reusing existing floating_ip_address - %s" % floating_ip)
         else:
             floating_ip = driver._connection.neutron_associate_ip(
                 instance, *args, **kwargs)["floating_ip_address"]
+            logger.debug("Created new floating_ip_address - %s" % floating_ip)
         _update_status_log(instance, "Networking Complete")
         #TODO: Implement this as its own task, with the result from
         #'floating_ip' passed in. Add it to the deploy_chain before deploy_to
