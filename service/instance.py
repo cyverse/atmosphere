@@ -240,7 +240,11 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
 
 def redeploy_instance(esh_driver, esh_instance, username, force_redeploy=False):
     """
-    Kick off redeployment of an instance.
+    EXPERIMENTAL.
+
+    Starts redeployment of an instance using the tmp_status metadata.
+
+    NOTE: Not used by API. See redeploy_init.
     """
     from service.tasks.driver import get_idempotent_deploy_chain
     if force_redeploy or esh_instance.extra.get('metadata').get('tmp_status',None) == "":
