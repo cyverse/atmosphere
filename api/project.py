@@ -18,7 +18,7 @@ from api.serializers import ProjectSerializer, InstanceSerializer,\
 from core.models.application import Application
 from core.models.project import Project
 from core.models.group import Group, get_user_group
-from core.query import only_current
+from core.query import only_current, only_current_provider
 from api.permissions import InMaintenance, ApiAuthRequired,\
         ProjectOwnerRequired
 from api.serializers import NoProjectSerializer
@@ -184,7 +184,15 @@ class ProjectVolumeList(APIView):
         if not project:
             return Response("Project with ID=%s does not exist" % project_uuid,
                             status=status.HTTP_400_BAD_REQUEST)
-        volumes = project.volumes.filter(only_current(), provider__active=True)
+        now = timezone.now()
+        volumes = project.volumes.filter(
+            Q(instance_source__end_date__gt=now)
+            | Q(instance_source__end_date__isnull=True),
+            Q(instance_source__provider__end_date__gt=now)
+            | Q(instance_source__provider__end_date__isnull=True),
+            instance_source__provider__active=True,
+            instance_source__start_date__lt=now,
+            instance_source__provider__start_date__lt=now())
         serialized_data = VolumeSerializer(volumes, many=True,
                                             context={"request":request}).data
         response = Response(serialized_data)
@@ -228,8 +236,10 @@ class ProjectInstanceList(APIView):
         if not project:
             return Response("Project with ID=%s does not exist" % project_uuid,
                             status=status.HTTP_400_BAD_REQUEST)
-        instances = project.instances.filter(only_current(),
-                provider_machine__provider__active=True)
+        instances = project.instances.filter(
+            only_current(),
+            only_current_provider(),
+            provider_machine__provider__active=True)
         serialized_data = InstanceSerializer(instances, many=True,
                                             context={"request":request}).data
         response = Response(serialized_data)

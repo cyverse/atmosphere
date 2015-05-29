@@ -3,6 +3,7 @@
 """
 import json
 import re
+import operator
 import os
 
 from django.db import models
@@ -365,7 +366,7 @@ def _create_new_provider_machine(machine_request, application, new_image_id):
         #In this case, we have 'found' the ProviderMachine via other methods
         #PRIOR to processing machine request
         new_provider = machine_request.new_machine_provider
-        new_machine = ProviderMachine.objects.get(identifier=new_image_id, provider=new_provider)
+        new_machine = ProviderMachine.objects.get(instance_source__identifier=new_image_id, instance_source__provider=new_provider)
         _update_existing_machine(machine_request, application, new_machine)
     except ProviderMachine.DoesNotExist:
         new_machine = create_provider_machine(
@@ -389,8 +390,10 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     parent_mach = machine_request.instance.provider_machine
     parent_app = machine_request.instance.provider_machine.application
     if machine_request.new_machine_tags:
-        tags = [Tag.objects.filter(name__iexact=tag)[0] for tag in
-                machine_request.new_machine_tags.split(',')]
+        ts = [t for t in machine_request.new_machine_tags.split(',') if t]
+        matches = [models.Q(name__iexact=name) for name in ts]
+        filters = reduce(operator.or_,  matches, models.Q())
+        tags = Tag.objects.filter(filters)
     else:
         tags = []
 
@@ -446,6 +449,9 @@ def upload_privacy_data(machine_request, new_machine):
         return
     img = accounts.image_manager.get_image(new_machine.identifier)
     tenant_list = machine_request.get_access_list()
+    return sync_membership(accounts, img, new_machine, tenant_list)
+
+def sync_membership(accounts, glance_image, new_machine, tenant_list):
     #All in the list will be added as 'sharing' the OStack img
     #All tenants already sharing the OStack img will be added to this list
     tenant_list = sync_image_access_list(accounts, img, names=tenant_list)

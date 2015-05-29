@@ -39,7 +39,7 @@ class MachineRequestList(APIView):
         """
         all_user_reqs = CoreMachineRequest.objects.filter(
             new_machine_owner=request.user)
-        serialized_data = MachineRequestSerializer(all_user_reqs).data
+        serialized_data = MachineRequestSerializer(all_user_reqs, many=True).data
         response = Response(serialized_data)
         return response
 
@@ -76,10 +76,9 @@ class MachineRequestList(APIView):
         serializer = MachineRequestSerializer(data=data)
         if serializer.is_valid():
             #Add parent machine to request
-            machine_request = serializer.object
-            instance = machine_request.instance
+            instance = serializer.validated_data['instance']
             if instance.source.is_machine():
-                machine_request.parent_machine = machine_request.instance\
+                serializer.validated_data['parent_machine'] = instance\
                         .source.providermachine
             elif instance.source.is_volume():
                 raise Exception(
@@ -93,16 +92,17 @@ class MachineRequestList(APIView):
             # THIS CODE SHOULD BE REMOVED 
             try:
                 tucson_provider = Provider.objects.get(location='iPlant Cloud - Tucson')
-                if machine_request.new_machine_provider.location != tucson_provider.location:
-                    machine_request.new_machine_provider = tucson_provider
-            except:
+                if serializer.validated_data['new_machine_provider'] != tucson_provider:
+                    raise Exception(
+                       "Only the iPlant Cloud - Tucson Provider can create images."
+                       " Please change your 'Cloud for Deployment'")
+            except Provider.DoesNotExist:
                 pass
-            serializer.save()
+            machine_request = serializer.save()
             #Object now has an ID for links..
-            machine_request_id = serializer.object.id
             active_provider = machine_request.active_provider()
             auto_approve = active_provider.auto_imaging
-            requestImaging(request, machine_request_id,
+            requestImaging(request, machine_request.id,
                            auto_approve=auto_approve)
             if auto_approve:
                 start_machine_imaging(machine_request)

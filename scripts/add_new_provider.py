@@ -5,6 +5,7 @@ import sys
 
 import os
 import django
+django.setup()
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 import libcloud.security
