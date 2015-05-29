@@ -449,6 +449,9 @@ def upload_privacy_data(machine_request, new_machine):
         return
     img = accounts.image_manager.get_image(new_machine.identifier)
     tenant_list = machine_request.get_access_list()
+    return sync_membership(accounts, img, new_machine, tenant_list)
+
+def sync_membership(accounts, glance_image, new_machine, tenant_list):
     #All in the list will be added as 'sharing' the OStack img
     #All tenants already sharing the OStack img will be added to this list
     tenant_list = sync_image_access_list(accounts, img, names=tenant_list)
