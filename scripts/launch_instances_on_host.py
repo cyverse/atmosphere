@@ -3,14 +3,13 @@ import argparse
 import os
 import sys
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0,root_dir)
+sys.path.insert(0, root_dir)
 os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
 
 import django
 django.setup()
 
 import libcloud.security
-libcloud.security.VERIFY_SSL_CERT = False
 
 from core.models import AtmosphereUser as User
 from core.models import Identity, Provider, ProviderMachine, Size
@@ -19,9 +18,15 @@ from core.query import only_current
 from service.instance import launch_instance
 
 
+libcloud.security.VERIFY_SSL_CERT = False
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", help="The OpenStack compute node to launch"
+                        " instances on.")
+    parser.add_argument("--name", default="Agent Smith",
+                        help="The OpenStack compute node to launch"
                         " instances on.")
     parser.add_argument("--provider-list", action="store_true",
                         help="List of provider names and IDs")
@@ -52,15 +57,19 @@ def main():
         instance_source__identifier=args.machine_alias,
         instance_source__provider_id=provider.id)
     user = User.objects.get(username=args.user)
+    handle_count(args)
     print "Using Provider %s." % provider
     print "Using Size %s." % size.name
     if args.host:
         host = "nova:%s" % args.host
     else:
         host = None
-    launch(user, provider, machine, size,
+    launch(user, args.name, provider, machine, size,
            host, args.skip_deploy, args.count)
-    print "Launched %d instances." % args.count
+    if args.count == 1:
+        print "Launched %d instance." % args.count
+    else:
+        print "Launched %d instances." % args.count
 
 
 def handle_provider_list():
@@ -95,27 +104,22 @@ def handle_size(args, provider):
         sys.exit(1)
 
 
-def launch(user, provider, machine, size,
+def handle_count(args):
+    if args.count < 1 or args.count > 10:
+        print "Error: Count must be between 1 and 10."
+        sys.exit(1)
+
+
+def launch(user, name, provider, machine, size,
            host, skip_deploy, count):
     ident = user.identity_set.get(provider_id=provider.id)
-    print host
-    print user
-    print user.username
-    print type(user)
-    print type(provider.uuid)
-    print type(ident)
-    print type(size.alias)
-    print count
-    print type(machine.instance_source.identifier)
-    print skip_deploy
-    print machine
-    deploy = not skip_deploy
-    print deploy
-    launch_instance(user, provider.uuid, ident.uuid, size.alias,
-                    machine.instance_source.identifier,
-                    deploy=deploy,
-                    ex_availability_zone=host,
-                    **{"bootscripts": []})
+    instances = []
+    for c in range(0, count):
+        instances.append(launch_instance(
+            user, provider.uuid, ident.uuid, size.alias,
+            machine.instance_source.identifier, deploy=(not skip_deploy),
+            ex_availability_zone=host, **{"name": name}))
+    return instances
 
 
 if __name__ == "__main__":
