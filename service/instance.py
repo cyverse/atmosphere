@@ -303,6 +303,17 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
     task_three.link(task_four)
     return task_one
 
+def redeploy_instance(esh_driver, esh_instance, username, force_redeploy=False):
+    """
+    Kick off redeployment of an instance.
+    """
+    from service.tasks.driver import get_idempotent_deploy_chain
+    if force_redeploy or esh_instance.extra.get('metadata').get('tmp_status',None) == "":
+        esh_instance.extra['metadata']['tmp_status'] = "initializing"
+    deploy_chain = get_idempotent_deploy_chain(
+        esh_driver.__class__, esh_driver.provider, esh_driver.identity,
+        esh_instance, username)
+    return deploy_chain.apply_async()
 
 def redeploy_init(esh_driver, esh_instance):
     """
