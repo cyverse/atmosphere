@@ -38,9 +38,11 @@ IMAGING_TASKS = [
 
 ]
 PERIODIC_TASKS = [
-        "remove_empty_networks_for", "monitor_sizes_for",
-        "monitor_instances_for", "update_membership_for",
-        "clear_empty_ips_for",
+        "monitor_sizes", "monitor_sizes_for",
+        "monitor_instances", "monitor_instances_for",
+        "check_image_membership", "update_membership_for",
+        "clear_empty_ips", "clear_empty_ips_for",
+        "remove_empty_networks_for",
 
 ]
 SHORT_TASKS = [

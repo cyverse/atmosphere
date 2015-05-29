@@ -449,14 +449,14 @@ def upload_privacy_data(machine_request, new_machine):
         return
     img = accounts.image_manager.get_image(new_machine.identifier)
     tenant_list = machine_request.get_access_list()
+    #All in the list will be added as 'sharing' the OStack img
+    #All tenants already sharing the OStack img will be added to this list
     return sync_membership(accounts, img, new_machine, tenant_list)
 
 def sync_membership(accounts, glance_image, new_machine, tenant_list):
-    #All in the list will be added as 'sharing' the OStack img
-    #All tenants already sharing the OStack img will be added to this list
-    tenant_list = sync_image_access_list(accounts, img, names=tenant_list)
+    tenant_list = sync_image_access_list(accounts, glance_image, names=tenant_list)
     #Make private on the DB level
-    make_private(accounts.image_manager, img, new_machine, tenant_list)
+    make_private(accounts.image_manager, glance_image, new_machine, tenant_list)
 
 
 
