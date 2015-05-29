@@ -457,7 +457,7 @@ def upload_privacy_data(machine_request, new_machine):
     #All tenants already sharing the OStack img will be added to this list
     tenant_list = sync_image_access_list(accounts, img, names=tenant_list)
     #Make private on the DB level
-    make_private(accounts.image_manager, img, new_machine, tenant_list)
+    make_private(accounts.image_manager, glance_image, new_machine, tenant_list)
 
 
 
