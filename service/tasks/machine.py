@@ -230,7 +230,7 @@ def machine_request_error(task_uuid, machine_request_id):
     machine_request.save()
 
 
-@task(name='imaging_complete', queue="imaging", ignore_result=False)
+@task(name='imaging_complete', ignore_result=False)
 def imaging_complete(machine_request_id):
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.status = 'completed'
@@ -241,7 +241,7 @@ def imaging_complete(machine_request_id):
     new_image_id = machine_request.new_machine.identifier
     return new_image_id
 
-@task(name='process_request', queue="imaging", ignore_result=False)
+@task(name='process_request', ignore_result=False)
 def process_request(new_image_id, machine_request_id):
     """
     First, save the new image id so we can resume in case of failure.
@@ -260,7 +260,7 @@ def process_request(new_image_id, machine_request_id):
     return new_image_id
 
 
-@task(name='validate_new_image', queue="imaging", ignore_result=False)
+@task(name='validate_new_image', ignore_result=False)
 def validate_new_image(image_id, machine_request_id):
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.status = 'validating'
@@ -300,7 +300,7 @@ def invalidate_machine_cache(machine_request):
     driver.provider.machineCls.invalidate_provider_cache(driver.provider)
 
 
-@task(name='freeze_instance_task', ignore_result=False, queue="imaging")
+@task(name='freeze_instance_task', ignore_result=False) 
 def freeze_instance_task(identity_id, instance_id, **celery_task_args):
     identity = Identity.objects.get(id=identity_id)
     driver = get_esh_driver(identity)
