@@ -422,15 +422,19 @@ CELERYD_TASK_LOG_FORMAT = "[%(asctime)s: %(name)s-%(levelname)s"\
 # - 2. Create a Queue,
 # - 3. Bind Queue to Exchange
 CELERY_QUEUES = (
-        Queue('default', Exchange('default'), routing_key='default'),
-        Queue('email', Exchange('default'), routing_key='email.sending'),
-        Queue('ssh_deploy', Exchange('deployment'), routing_key='long.deployment'),
-        Queue('fast_deploy', Exchange('deployment'), routing_key='short.deployment'),
-        Queue('imaging', Exchange('imaging'), routing_key='imaging'),
-        Queue('periodic', Exchange('periodic'), routing_key='periodic'),
+    Queue('default', Exchange('default'), routing_key='default'),
+    Queue('email', Exchange('default'), routing_key='email.sending'),
+    Queue('ssh_deploy', Exchange('deployment'), routing_key='long.deployment'),
+    Queue('fast_deploy', Exchange('deployment'), routing_key='short.deployment'),
+    Queue('imaging', Exchange('imaging'), routing_key='imaging'),
+    Queue('periodic', Exchange('periodic'), routing_key='periodic'),
     )
 CELERY_DEFAULT_QUEUE = 'default'
 CELERY_DEFAULT_ROUTING_KEY = "default"
+CELERY_DEFAULT_EXCHANGE = 'default'
+CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
+#NOTE: We are Using atmosphere's celery_router as an interim solution.
+CELERY_ROUTES = ('atmosphere.celery_router.CloudRouter', )
 # # Django-Celery Development settings
 # CELERY_ALWAYS_EAGER = True
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
@@ -445,64 +449,32 @@ CELERYBEAT_SCHEDULE = {
     "check_image_membership": {
         "task": "check_image_membership",
         "schedule": timedelta(minutes=60),
-        "options": {"expires": 10*60, "time_limit": 2*60,
-                    "queue": "periodic"}
+        "options": {"expires": 10*60, "time_limit": 2*60}
     },
     "monitor_sizes": {
         "task": "monitor_sizes",
         "schedule" : timedelta(minutes=30),
-        "options": {"expires":10*60, "time_limit":10*60,
-                    "queue":"periodic"}
+        "options": {"expires":10*60, "time_limit":10*60}
     },
     "monitor_instances": {
         "task": "monitor_instances",
         "schedule" : timedelta(minutes=15),
-        "options": {"expires":10*60, "time_limit":10*60,
-                    "queue":"periodic"}
+        "options": {"expires":10*60, "time_limit":10*60}
     },
     "clear_empty_ips": {
         "task": "clear_empty_ips",
         "schedule": timedelta(minutes=120),
         #"schedule": crontab(hour="0", minute="0", day_of_week="*"),
-        "options": {"expires": 60*60,
-                    "queue": "periodic"}
+        "options": {"expires": 60*60}
     },
     "remove_empty_networks": {
         "task": "remove_empty_networks",
         #Every two hours.. midnight/2am/4am/...
         "schedule": crontab(hour="*/2", minute="0", day_of_week="*"),
-        "options": {"expires": 5*60, "time_limit": 5*60,
-                    "queue": "periodic"}
+        "options": {"expires": 5*60, "time_limit": 5*60}
     },
 }
-CELERY_QUEUES = (
-        Queue('default', Exchange('default'), routing_key='default'),
-        Queue('email', Exchange('default'), routing_key='email.sending'),
-        Queue('ssh_deploy', Exchange('deployment'), routing_key='long.deployment'),
-        Queue('fast_deploy', Exchange('deployment'), routing_key='short.deployment'),
-        Queue('imaging', Exchange('imaging'), routing_key='imaging'),
-        Queue('periodic', Exchange('periodic'), routing_key='periodic'),
-    )
 
-CELERY_DEFAULT_QUEUE = 'default'
-CELERY_ROUTES = ('atmosphere.celery_router.CloudRouter', )
-CELERY_DEFAULT_EXCHANGE = 'default'
-CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
-CELERY_DEFAULT_ROUTING_KEY = 'default'
-
-CELERY_ROUTES += ({
-    "chromogenic.tasks.migrate_instance_task":
-    {"queue": "imaging", "routing_key": "imaging.execute"},
-    "chromogenic.tasks.machine_imaging_task":
-    {"queue": "imaging", "routing_key": "imaging.execute"},
-
-    "service.tasks.machine.freeze_instance_task":
-    {"queue": "imaging", "routing_key": "imaging.prepare"},
-    "service.tasks.machine.process_request":
-    {"queue": "imaging", "routing_key": "imaging.complete"},
-    "service.tasks.email.send_email":
-    {"queue": "email", "routing_key": "email.sending"},
-},)
 #     # Django-Celery Development settings
 # CELERY_ALWAYS_EAGER = True
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
