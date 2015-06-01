@@ -31,5 +31,5 @@ class ImageBookmarkSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = ImageBookmark
-        view_name = 'api_v2:applicationbookmark-detail'
+        view_name = 'api:v2:applicationbookmark-detail'
         fields = ('id', 'url', 'image', 'user')

@@ -3,6 +3,7 @@
 """
 import json
 import re
+import operator
 import os
 
 from django.db import models
@@ -280,16 +281,16 @@ class MachineRequest(models.Model):
 
         (orig_managerCls, orig_creds,
          dest_managerCls, dest_creds) = self.prepare_manager()
-    
+
         download_dir = secrets.LOCAL_STORAGE
-    
+
         imaging_args = {
             "instance_id": self.instance.provider_alias,
             "image_name": self.new_machine_name,
             "download_dir" : download_dir}
         if issubclass(orig_managerCls, OSImageManager):
             download_location = self._extract_file_location(download_dir)
-            imaging_args['download_location'] = download_location 
+            imaging_args['download_location'] = download_location
         elif issubclass(orig_managerCls, EucaImageManager):
             euca_args = _prepare_euca_args()
             imaging_args.update(euca_args)
@@ -378,13 +379,9 @@ def _match_tags_to_names(tag_names):
     NOTE: Tags NOT created BEFORE being added to new_machine_tags are ignored.
     """
     from core.models.tag import Tag
-    if not tag_names:
-        return []
-    tags_wanted = tag_names.split(',')
-    query_list = map(lambda tag: Q(name__iexact=tag), tags_wanted)
-    query_list = reduce(lambda qry1, qry2: qry1 | qry2, query_list)
-    tags = Tag.objects.filter(query_list)
-    return tags
+    matches = [models.Q(name__iexact=name) for name in tag_names.split(',')]
+    filters = reduce(operator.or_,  matches, models.Q())
+    return Tag.objects.filter(filters)
 
 def _get_owner(new_provider, user):
     try:
@@ -392,9 +389,53 @@ def _get_owner(new_provider, user):
     except Identity.DoesNotExist:
         return new_provider.admin
 
+def _create_new_application(machine_request, new_image_id, tags=[]):
+    from core.models import Identity
+    new_provider = machine_request.new_machine_provider
+    user = machine_request.new_machine_owner
+    owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
+    # This is a brand new app and a brand new providermachine
+    new_app = create_application(
+            new_image_id,
+            new_provider.id,
+            machine_request.new_machine_name,
+            owner_ident,
+            #new_app.Private = False when machine_request.is_public = True
+            not machine_request.is_public(),
+            machine_request.new_machine_version,
+            machine_request.new_machine_description,
+            tags)
+    return new_app
+
+def _update_parent_application(machine_request, new_image_id, tags=[]):
+    parent_app = machine_request.instance.source.providermachine.application
+    return _update_application(parent_app, machine_request, tags=tags)
+
+def _update_application(application, machine_request, tags=[]):
+    if application.name is not machine_request.new_machine_name:
+        application.name = machine_request.new_machine_name
+    if machine_request.new_machine_description:
+        application.description = machine_request.new_machine_description
+    application.private = not machine_request.is_public()
+    application.tags = tags
+    application.save()
+    return application
+
+def _update_existing_machine(machine_request, application, provider_machine):
+    from core.models import Identity
+    new_provider = machine_request.new_machine_provider
+    user = machine_request.new_machine_owner
+    owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
+
+    provider_machine.application = application
+    provider_machine.version = machine_request.new_machine_version
+    provider_machine.created_by = user
+    provider_machine.created_by_identity = owner_ident
+    provider_machine.save()
+
 def process_machine_request(machine_request, new_image_id, update_cloud=True):
     """
-    NOTE: Current process accepts instance with source of 'Image' ONLY! 
+    NOTE: Current process accepts instance with source of 'Image' ONLY!
           VOLUMES CANNOT BE IMAGED until this function is updated!
     """
     #Based on original instance -- You'll need this:
@@ -464,7 +505,7 @@ def upload_privacy_data(machine_request, new_machine):
     #All tenants already sharing the OStack img will be added to this list
     tenant_list = sync_image_access_list(accounts, img, names=tenant_list)
     #Make private on the DB level
-    make_private(accounts.image_manager, img, new_machine, tenant_list)
+    make_private(accounts.image_manager, glance_image, new_machine, tenant_list)
 
 
 
@@ -539,7 +580,7 @@ def make_private(image_manager, image, provider_machine, tenant_list=[]):
         name = tenant.name
         group = Group.objects.get(name=name)
         obj, created = ApplicationMembership.objects.get_or_create(
-                group=group, 
+                group=group,
                 application=provider_machine.application)
         if created:
             print "Created new ApplicationMembership: %s" \

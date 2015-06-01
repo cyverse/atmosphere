@@ -15,25 +15,33 @@ def only_active_provider(now_time=None):
 
 def only_current_provider(now_time=None):
     """
-    Use this query on any model with a 'provider.end_date'
-    to limit the objects to those
-    that have not past their end_date
+    Filters the current active providers.
     """
     if not now_time:
         now_time = timezone.now()
-    return Q(provider__end_date__isnull=True) | Q(provider__end_date__gt=now_time)
+    return (Q(provider__end_date__isnull=True) |
+            Q(provider__end_date__gt=now_time)) &\
+        Q(provider__active=True) &\
+        Q(provider__start_date__lt=now_time)
 
 
 def only_current_machines(now_time=None):
     """
-    Use this query on any model with 'provider_machine.end_date'
-    to limit the objects to those
-    that have not past their end_date
+    Filters the current provider_machines.
     """
+    def _active_provider():
+        return (Q(providermachine__instance_source__provider__end_date__isnull=True) |
+                Q(providermachine__instance_source__provider__end_date__gt=now_time))\
+            & Q(providermachine__instance_source__provider__active=True)
+
+    def _in_range():
+        return (Q(providermachine__instance_source__end_date__isnull=True) |
+                Q(providermachine__instance_source__end_date__gt=now_time))\
+            & Q(providermachine__instance_source__start_date__lt=now_time)
+
     if not now_time:
         now_time = timezone.now()
-    return (Q(versions__machines__instance_source__end_date__isnull=True) |
-            Q(versions__machines__instance_source__end_date__gt=now_time))
+    return _in_range() & _active_provider()
 
 def only_current_machines_in_version(now_time=None):
     if not now_time:
@@ -43,50 +51,31 @@ def only_current_machines_in_version(now_time=None):
 
 def only_current_instance_args(now_time=None):
     """
-    Use this as a "*args" query, at the END of any args
-    on the filter using it.
-    This will test on any model with
-    'instance_source.end_date' & 'instance_source.provider'
-    to limit the objects to those
-    that are active and have not past their end_date
+    Filters the current instance_sources.
     """
-    if not now_time:
-        now_time = timezone.now()
-    return (
-            (Q(end_date__isnull=True) |
-             Q(end_date__gt=now_time)),
-            (Q(created_by_identity__provider__end_date__isnull=True) |
-             Q(created_by_identity__provider__end_date__gt=now_time)),
-            Q(created_by_identity__provider__active=True))
+    def _active_provider():
+        return (Q(instance_source__provider__end_date__isnull=True) |
+                Q(instance_source__provider__end_date__gt=now_time)) &\
+            Q(instance_source__provider__active=True)
 
-def only_current_source_args(now_time=None):
-    """
-    Use this as a "*args" query, at the END of any args
-    on the filter using it.
-    This will test on any model with
-    'instance_source.end_date' & 'instance_source.provider'
-    to limit the objects to those
-    that are active and have not past their end_date
-    """
+    def _in_range():
+        return (Q(instance_source__end_date__isnull=True) |
+                Q(instance_source__end_date__gt=now_time)) &\
+            Q(instance_source__start_date__lt=now_time)
+
     if not now_time:
         now_time = timezone.now()
-    return (
-           ( Q(instance_source__end_date__isnull=True) |
-            Q(instance_source__end_date__gt=now_time)),
-            (Q(instance_source__provider__end_date__isnull=True) |
-            Q(instance_source__provider__end_date__gt=now_time)),
-            Q(instance_source__provider__active=True))
+    return _in_range() & _active_provider()
 
 
 def only_current(now_time=None):
     """
-    Use this query on any model with 'end_date'
-    to limit the objects to those
-    that have not past their end_date
+    Filters in range using start_date and end_date.
     """
     if not now_time:
         now_time = timezone.now()
-    return Q(end_date=None) | Q(end_date__gt=now_time)
+    return (Q(end_date=None) | Q(end_date__gt=now_time)) &\
+        Q(start_date__lt=now_time)
 
 
 def _active_identity_membership(user, now_time=None):
@@ -94,7 +83,7 @@ def _active_identity_membership(user, now_time=None):
     if not now_time:
         now_time = timezone.now()
     return IdentityMembership.objects.filter(
-        Q(identity__provider__end_date__isnull=True) |\
+        Q(identity__provider__end_date__isnull=True) |
         Q(identity__provider__end_date__gt=now_time),
         identity__provider__active=True,
         member__user__username=user.username)

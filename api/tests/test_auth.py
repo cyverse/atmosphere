@@ -26,7 +26,7 @@ class OAuthTokenAPIClient(APIClient):
         Authenticate **credentials, create a token and return the tokens uuid
         """
         oauth_token = "JHbSqjRVfp8k_BRWZtVkr4L-0By1cDGB1-XiJ4bkej3kl8x-Mc_nwZFJ"
-        reverse_url = reverse('api:public_apis:profile')
+        reverse_url = reverse('api:v1:profile')
         full_url = urljoin(settings.SERVER_URL, reverse_url)
         api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + oauth_token)
         response = api_client.get(full_url, data, format='multipart')

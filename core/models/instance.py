@@ -22,6 +22,8 @@ from core.models.machine import ProviderMachine, ProviderMachine, convert_esh_ma
 from core.models.volume import convert_esh_volume
 from core.models.size import convert_esh_size
 from core.models.tag import Tag
+from core.query import only_current, only_current_source
+
 
 OPENSTACK_TASK_STATUS_MAP = {
         #Terminate tasks
@@ -121,6 +123,26 @@ class InstanceAction(models.Model):
             (self.name,)
 
 
+class ActiveInstancesManager(models.Manager):
+
+    def _active_provider(self, now_time):
+        return (Q(source__provider__end_date__isnull=True) |
+                Q(source__provider__end_date__gt=now_time)) &\
+            Q(source__provider__active=True)
+
+    def _source_in_range(self, now_time):
+        return (Q(source__end_date__isnull=True) |
+                Q(source__end_date__gt=now_time)) &\
+            Q(source__start_date__lt=now_time)
+
+    def get_queryset(self):
+        now_time = timezone.now()
+        return super(ActiveInstancesManager, self)\
+            .get_queryset().filter(
+                only_current(),
+                self._source_in_range(now_time) & self._active_provider(now_time))
+
+
 class Instance(models.Model):
     """
     When a user launches a machine, an Instance is created.
@@ -149,6 +171,8 @@ class Instance(models.Model):
     # FIXME  Problems when setting a default.
     start_date = models.DateTimeField()
     end_date = models.DateTimeField(null=True)
+    objects = models.Manager() # The default manager.
+    active_instances = ActiveInstancesManager()
 
     def get_projects(self, user):
         projects = self.projects.filter(

@@ -9,15 +9,15 @@ django-filter==0.9.2
 django-redis-cache==0.13.0
 redis==2.10.3
 
-celery==3.1.17
+celery==3.1.18
 django-celery==3.1.16
 
 gevent==1.0.1
 
-apache-libcloud==0.15.1
+apache-libcloud==0.16.0
 requests==2.2
 python-dateutil==1.4.1
-pytz==2014.7
+pytz==2015.4
 Pillow==2.5.3
 
 #Theirs (Could be Installed Manually on windows)
@@ -33,7 +33,7 @@ uWSGI==2.0.9
 
 ## ours
 threepio==0.2.0
-rtwo==0.2.10
+rtwo==0.2.13
 caslib.py==2.2.0
 chromogenic==0.1.5
 jwt.py==0.1.0
@@ -41,6 +41,8 @@ subspace==0.1.4
 
 ## dev
 #django-sslserver #NOTE: Debugs requests real-time.
+django-jenkins==0.17.0
+coverage==3.7.1
 flower==0.7.3 #TODO: Do we need a specific version here? -steve
 pip-tools==0.3.5 #TODO: Do we need a specific version here? -steve
 newrelic==2.34.0.29 # newrelic investigation.

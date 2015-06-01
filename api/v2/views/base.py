@@ -127,11 +127,24 @@ class BaseRequestViewSet(AuthViewSet):
         """
         # NOTE: An identity could possible have multiple memberships
         # It may be better to directly take membership rather than an identity
-        identity_id = serializer.initial_data.get('identity').get("id", None)
+        identity = serializer.initial_data.get('identity', {})
+        membership = None
+
+        if isinstance(identity, dict):
+            identity_id = identity.get("id", None)
+        else:
+            identity_id = identity
+
         try:
-            membership = IdentityMembership.objects.get(identity=identity_id)
-            instance = serializer.save(end_date=timezone.now(),
-                                       membership=membership)
+            if identity_id is not None:
+                membership = IdentityMembership.objects.get(
+                    identity=identity_id)
+
+            if membership:
+                instance = serializer.save(end_date=timezone.now(),
+                                           membership=membership)
+            else:
+                instance = serializer.save(end_date=timezone.now())
         except core_exceptions.ProviderLimitExceeded:
             message = "Only one active request is allowed per provider."
             raise exceptions.MethodNotAllowed('create', detail=message)
