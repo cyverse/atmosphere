@@ -12,3 +12,4 @@ class UserViewSet(AuthReadOnlyViewSet):
     serializer_class = UserSerializer
     filter_fields = ('email',)
     http_method_names = ['get', 'head', 'options', 'trace']
+    search_fields = ('^username',)  # NOTE: ^ == Startswith searching

@@ -1,5 +1,5 @@
 from core.models.user import AtmosphereUser
-from core.query import only_current, only_current_source_args
+from core.query import only_current, only_current_source
 from rest_framework import serializers
 from .application_serializer import ApplicationSerializer
 from .instance_serializer import InstanceSerializer
@@ -29,7 +29,7 @@ class NoProjectSerializer(serializers.ModelSerializer):
         return [VolumeSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            atmo_user.volume_set().filter(*only_current_source_args(),
+            atmo_user.volume_set().filter(*only_current_source(),
                 instance_source__provider__active=True, projects=None)]
 
     class Meta:

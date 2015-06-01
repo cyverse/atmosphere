@@ -73,7 +73,7 @@ class Application(models.Model):
         """
         providermachine_set = self.all_machines
         pms = providermachine_set.filter(
-            *only_current_source_args(),
+            *only_current_source(),
             instance_source__provider__active=True)
         if request_user:
             if type(request_user) == AnonymousUser:

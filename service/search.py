@@ -11,7 +11,7 @@ from core.models.machine import compare_core_machines, filter_core_machine,\
     ProviderMachine
 from core.models.provider import Provider
 from core.models.application import Application
-from core.query import only_current_source_args
+from core.query import only_current_source
 
 def search(providers, identity, query):
     return reduce(operator.or_, [p.search(identity, query) for p in providers])
@@ -51,7 +51,7 @@ class CoreSearchProvider(BaseSearchProvider):
             | Q(application__tags__description__icontains=query)
             | Q(application__name__icontains=query)
             | Q(application__description__icontains=query),
-            *only_current_source_args())
+            *only_current_source())
 
 
 class CoreApplicationSearch(BaseSearchProvider):
@@ -85,5 +85,5 @@ class CoreApplicationSearch(BaseSearchProvider):
             | Q(name__icontains=query)
             # OR app desc
             | Q(description__icontains=query),
-            *only_current_source_args())
+            *only_current_source())
         return query_match.distinct()

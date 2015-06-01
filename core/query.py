@@ -49,7 +49,7 @@ def only_current_machines_in_version(now_time=None):
     return (Q(machines__instance_source__end_date__isnull=True) |
             Q(machines__instance_source__end_date__gt=now_time))
 
-def only_current_instance_args(now_time=None):
+def only_current_source(now_time=None):
     """
     Filters the current instance_sources.
     """

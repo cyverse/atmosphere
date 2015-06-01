@@ -40,3 +40,9 @@ class ImageViewSet(AuthOptionalViewSet):
             return (public_image_set | my_images | privately_shared).distinct()
         else:
             return Image.objects.none()
+
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super(ImageViewSet, self).get_search_results(request, queryset)
+        import ipdb;ipdb.set_trace()
+        #Perform the search
+        return queryset, use_distinct
