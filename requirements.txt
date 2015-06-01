@@ -9,7 +9,7 @@ django-filter==0.9.2
 django-redis-cache==0.13.0
 redis==2.10.3
 
-celery==3.1.17
+celery==3.1.18
 django-celery==3.1.16
 
 gevent==1.0.1
@@ -17,7 +17,7 @@ gevent==1.0.1
 apache-libcloud==0.16.0
 requests==2.2
 python-dateutil==1.4.1
-pytz==2014.7
+pytz==2015.4
 Pillow==2.5.3
 
 #Theirs (Could be Installed Manually on windows)
