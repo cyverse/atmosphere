@@ -10,7 +10,7 @@ from threepio import logger
 
 from atmosphere import settings
 
-from core.query import only_current, only_current_source_args
+from core.query import only_current, only_current_source
 from core.models.provider import Provider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
