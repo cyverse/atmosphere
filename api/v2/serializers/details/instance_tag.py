@@ -34,7 +34,7 @@ class InstanceTagSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = InstanceTag
-        view_name = 'api_v2:instancetag-detail'
+        view_name = 'api:v2:instancetag-detail'
         fields = (
             'id',
             'url',

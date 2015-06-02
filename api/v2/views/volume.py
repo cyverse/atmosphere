@@ -1,3 +1,6 @@
+from django.db.models import Q
+from django.utils import timezone
+
 import django_filters
 
 from core.models import Volume
@@ -30,5 +33,7 @@ class VolumeViewSet(AuthViewSet):
         Filter projects by current user
         """
         user = self.request.user
-        return Volume.objects.filter(only_current_source(),
-                                     instance_source__created_by=user)
+        now = timezone.now()
+        return Volume.objects.filter(
+            only_current_source(now),
+            instance_source__created_by=user)

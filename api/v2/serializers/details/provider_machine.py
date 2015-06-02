@@ -13,5 +13,5 @@ class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = ProviderMachine
-        view_name = 'api_v2:providermachine-detail'
+        view_name = 'api:v2:providermachine-detail'
         fields = ('id', 'uuid', 'url', 'image', 'provider', 'created_by', 'start_date', 'end_date')

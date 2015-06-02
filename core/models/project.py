@@ -5,6 +5,7 @@ from core.models.application import Application
 from core.models.instance import Instance
 from core.models.group import Group
 from core.models.volume import Volume
+from core.query import only_current_source
 
 from threepio import logger
 
@@ -28,6 +29,14 @@ class Project(models.Model):
                                        blank=True)
     volumes = models.ManyToManyField(Volume, related_name="projects",
                                      blank=True)
+
+    def active_volumes(self):
+        return self.volumes.model.active_volumes.filter(
+            pk__in=self.volumes.values_list("id"))
+
+    def active_instances(self):
+        return self.instances.model.active_instances.filter(
+            pk__in=self.instances.values_list("id"))
 
     def __unicode__(self):
         return "%s Owner:%s: Apps:%s Instances:%s Volumes:%s"\
