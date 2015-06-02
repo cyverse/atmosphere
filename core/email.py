@@ -148,6 +148,8 @@ def email_to_admin(subject, body, username=None,
         if type(username) == User:
             username = username.username
         user_email = lookupEmail(username)
+        if not user_email:
+            user_email = "%s@iplantcollaborative.org" % username
     elif not username:  # user_email provided
         username = 'Unknown'
     if request_tracker or not cc_user:
@@ -169,6 +171,8 @@ def email_from_admin(username, subject, message, html=False):
     """
     from_name, from_email = admin_address()
     user_email = lookupEmail(username)
+    if not user_email:
+        user_email = "%s@iplantcollaborative.org" % username
     return send_email(subject, message,
                       from_email=email_address_str(from_name, from_email),
                       to=[email_address_str(username, user_email)],
