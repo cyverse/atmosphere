@@ -11,7 +11,7 @@ import operator
 class MinLengthRequiredSearchFilter(SearchFilter):
     def filter_queryset(self, request, queryset, view):
         search_fields = getattr(view, 'search_fields', None)
-        min_length = getattr(view, 'min_search_length', 3)
+        min_length = getattr(view, 'min_search_length', 1)
         if not search_fields:
             return queryset
         orm_lookups = [self.construct_search(six.text_type(search_field))
@@ -41,4 +41,3 @@ class UserViewSet(AuthReadOnlyViewSet):
     filter_backends = (MinLengthRequiredSearchFilter,)
     http_method_names = ['get', 'head', 'options', 'trace']
     search_fields = ('^username',)  # NOTE: ^ == Startswith searching
-    min_search_length = 2
