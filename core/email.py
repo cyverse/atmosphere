@@ -62,7 +62,8 @@ def user_email_info(username):
     logger.debug("user = %s" % username)
     ldap_attrs = lookupUser(username)
     user_email = ldap_attrs.get('mail', [None])[0]
-
+    if not user_email:
+        raise Exception("Could not locate email address for User:%s - Attrs: %s" % (username, ldap_attrs))
     user_name = ldap_attrs.get('cn', [""])[0]
     if not user_name:
         user_name = "%s %s" % (ldap_attrs.get("displayName", [""])[0],
