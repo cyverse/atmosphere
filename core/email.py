@@ -41,7 +41,7 @@ def admin_address(test_user=None):
 
 
 def atmo_daemon_address():
-    """ Return the daemon email address.                                                                                             
+    """ Return the daemon email address.
     """
     return (settings.ATMO_DAEMON[0][0], settings.ATMO_DAEMON[0][1])
 
@@ -62,10 +62,8 @@ def user_email_info(username):
     logger.debug("user = %s" % username)
     ldap_attrs = lookupUser(username)
     user_email = ldap_attrs.get('mail', [None])[0]
-
     if not user_email:
-        user_email = "%s@iplantcollaborative.org" % username
-
+        raise Exception("Could not locate email address for User:%s - Attrs: %s" % (username, ldap_attrs))
     user_name = ldap_attrs.get('cn', [""])[0]
     if not user_name:
         user_name = "%s %s" % (ldap_attrs.get("displayName", [""])[0],
@@ -219,7 +217,7 @@ Helpful links:
                timezone=pytz_timezone('UTC')))
        .strftime('%b, %d %Y %H:%M:%S'))
     subject = 'Your Atmosphere Instance is Available'
-    return email_from_admin(user, subject, body)
+    return email_from_admin(user.username, subject, body)
 
 
 def send_preemptive_deploy_failed_email(core_instance, message):
@@ -325,7 +323,7 @@ Thank you for using atmosphere!
 If you have any questions please contact: support@iplantcollaborative.org""" %\
         (user_name, new_machine.identifier, name)
     subject = 'Your Atmosphere Image is Complete'
-    return email_from_admin(user, subject, body)
+    return email_from_admin(user.username, subject, body)
 
 
 def send_new_provider_email(username, provider_name):
