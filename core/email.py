@@ -213,7 +213,7 @@ Helpful links:
                timezone=pytz_timezone('UTC')))
        .strftime('%b, %d %Y %H:%M:%S'))
     subject = 'Your Atmosphere Instance is Available'
-    return email_from_admin(user, subject, body)
+    return email_from_admin(user.username, subject, body)
 
 
 def send_preemptive_deploy_failed_email(core_instance, message):
@@ -319,7 +319,7 @@ Thank you for using atmosphere!
 If you have any questions please contact: support@iplantcollaborative.org""" %\
         (user_name, new_machine.identifier, name)
     subject = 'Your Atmosphere Image is Complete'
-    return email_from_admin(user, subject, body)
+    return email_from_admin(user.username, subject, body)
 
 
 def send_new_provider_email(username, provider_name):
