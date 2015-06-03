@@ -41,7 +41,7 @@ def admin_address(test_user=None):
 
 
 def atmo_daemon_address():
-    """ Return the daemon email address.                                                                                             
+    """ Return the daemon email address.
     """
     return (settings.ATMO_DAEMON[0][0], settings.ATMO_DAEMON[0][1])
 
@@ -62,9 +62,6 @@ def user_email_info(username):
     logger.debug("user = %s" % username)
     ldap_attrs = lookupUser(username)
     user_email = ldap_attrs.get('mail', [None])[0]
-
-    if not user_email:
-        user_email = "%s@iplantcollaborative.org" % username
 
     user_name = ldap_attrs.get('cn', [""])[0]
     if not user_name:
