@@ -26,3 +26,6 @@ chown -R www-data:core-services ${ATMOSPHERE_HOME}/extras/apache
 
 chown -R root:root ${ATMOSPHERE_HOME}/extras/ssh
 
+chown root:root ${ATMOSPHERE_HOME}/extras/logrotate.atmosphere
+
+chmod 644 ${ATMOSPHERE_HOME}/extras/logrotate.atmosphere
