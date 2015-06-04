@@ -1,15 +1,11 @@
 from api.v1.views.allocation import AllocationDetail, AllocationList, MonitoringList
-from api.v1.views.allocation_request import AllocationRequestDetail,\
-    AllocationRequestList
 from api.v1.views.application import ApplicationSearch, ApplicationList, Application,\
     ApplicationThresholdDetail
 from api.v1.views.bookmark import ApplicationBookmarkDetail, ApplicationBookmarkList
 from api.v1.views.cloud_admin import\
     CloudAdminImagingRequestList, CloudAdminImagingRequest,\
     CloudAdminAccountList, CloudAdminAccount,\
-    CloudAdminInstanceActionList, CloudAdminInstanceAction,\
-    CloudAdminAllocationRequest, CloudAdminQuotaRequest,\
-    CloudAdminAllocationList, CloudAdminQuotaList
+    CloudAdminInstanceActionList, CloudAdminInstanceAction
 from api.v1.views.credential import CredentialList, CredentialDetail
 from api.v1.views.email import Feedback, QuotaEmail, SupportEmail
 from api.v1.views.group import GroupList, Group
@@ -39,7 +35,6 @@ from api.v1.views.project import ProjectInstanceList, ProjectInstanceExchange,\
 from api.v1.views.profile import Profile
 from api.v1.views.provider import ProviderList, Provider
 from api.v1.views.quota import QuotaDetail, QuotaList
-from api.v1.views.quota_request import QuotaRequestDetail, QuotaRequestList
 from api.v1.views.size import SizeList, Size
 from api.v1.views.hypervisor import HypervisorList, HypervisorDetail
 from api.v1.views.step import StepList, Step

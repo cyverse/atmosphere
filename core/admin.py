@@ -24,7 +24,7 @@ from core.models.profile import UserProfile
 from core.models.provider import Provider, ProviderType, AccountProvider
 from core.models.quota import Quota
 from core.models.allocation_strategy import Allocation, AllocationStrategy
-from core.models.request import AllocationRequest, QuotaRequest
+from core.models.resource_request import ResourceRequest
 from core.models.size import Size
 from core.models.step import Step
 from core.models.tag import Tag
@@ -40,26 +40,6 @@ private_object.short_description = 'Make objects private True'
 def end_date_object(modeladmin, request, queryset):
         queryset.update(end_date=timezone.now())
 end_date_object.short_description = 'Add end-date to objects'
-
-
-@admin.register(AllocationRequest)
-class AllocationRequestAdmin(admin.ModelAdmin):
-    readonly_fields = ('uuid', 'created_by', 'request', 'description',
-                       'start_date', 'end_date')
-    list_display = ("request", "status", "created_by", "start_date",
-                    "end_date", "allocation")
-
-    list_filter = ["status", "membership__identity__provider__location"]
-    exclude = ("membership",)
-
-    def save_model(self, request, obj, form, changed):
-        obj.end_date = timezone.now()
-        obj.save()
-
-        if obj.is_approved():
-            membership = obj.membership
-            membership.allocation = obj.allocation
-            membership.save()
 
 
 @admin.register(NodeController)
@@ -306,7 +286,7 @@ class ExportRequestAdmin(admin.ModelAdmin):
 class MachineRequestAdmin(admin.ModelAdmin):
     search_fields = ["new_machine_owner__username", "new_machine_name", "instance__provider_alias"]
     list_display = ["new_machine_name", "new_machine_owner", "instance_alias",
-                    "old_provider", "new_machine_provider", 
+                    "old_provider", "new_machine_provider",
 		    "start_date", "end_date", "status",
 		    "opt_new_machine", "opt_parent_machine", "opt_machine_visibility"]
     list_filter = ["new_machine_visibility",
@@ -384,15 +364,15 @@ class CloudAdminAdmin(admin.ModelAdmin):
     model = CloudAdministrator
 
 
-@admin.register(QuotaRequest)
-class QuotaRequestAdmin(admin.ModelAdmin):
+@admin.register(ResourceRequest)
+class ResourceRequestAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid', 'created_by', 'request', 'description',
                        'start_date', 'end_date')
     list_display = ("request", "status", "created_by", "start_date",
-                    "end_date", "quota")
-    exclude = ("membership",)
+                    "end_date", "allocation", "quota")
+
     list_filter = ["status", "membership__identity__provider__location"]
-    order = ('-start_date',)
+    exclude = ("membership",)
 
     def save_model(self, request, obj, form, changed):
         obj.end_date = timezone.now()
@@ -400,9 +380,10 @@ class QuotaRequestAdmin(admin.ModelAdmin):
 
         if obj.is_approved():
             membership = obj.membership
+            membership.allocation = obj.allocation
             membership.quota = obj.quota
-            membership.approve_quota(obj.uuid)
-
+            membership.save()
+            membership.approve_quota(obj.id)
 
 #For adding 'new' registrations
 admin.site.register(Credential)

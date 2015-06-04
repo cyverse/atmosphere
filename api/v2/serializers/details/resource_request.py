@@ -1,7 +1,8 @@
 from rest_framework import exceptions, serializers
-from core.models import QuotaRequest, Quota, Identity, AtmosphereUser as User
+from core.models import ResourceRequest, Allocation, Quota, Identity, AtmosphereUser as User
 from core.models.status_type import StatusType
 from api.v2.serializers.summaries import (
+    AllocationSummarySerializer,
     IdentitySummarySerializer,
     UserSummarySerializer,
     ProviderSummarySerializer,
@@ -42,6 +43,34 @@ class IdentityRelatedField(serializers.RelatedField):
         except:
             raise exceptions.ValidationError(
                 "Identity with id '%s' does not exist."
+                % identity
+            )
+
+
+class AllocationRelatedField(serializers.RelatedField):
+
+    def get_queryset(self):
+        return Allocation.objects.all()
+
+    def to_representation(self, value):
+        if value.pk is None:
+            return None
+
+        allocation = Allocation.objects.get(pk=value.pk)
+        serializer = AllocationSummarySerializer(allocation, context=self.context)
+        return serializer.data
+
+    def to_internal_value(self, data):
+        queryset = self.get_queryset()
+        if isinstance(data, dict):
+            identity = data.get("id", None)
+        else:
+            identity = data
+        try:
+            return queryset.get(id=identity)
+        except:
+            raise exceptions.ValidationError(
+                "Allocation with id '%s' does not exist."
                 % identity
             )
 
@@ -100,7 +129,7 @@ class StatusTypeRelatedField(serializers.RelatedField):
             )
 
 
-class QuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
+class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.CharField(read_only=True)
     created_by = UserRelatedField(read_only=True)
     user = UserSummarySerializer(source='membership.identity.created_by', read_only=True)
@@ -114,9 +143,12 @@ class QuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
                               allow_null=True,
                               required=False)
 
+    allocation = AllocationRelatedField(queryset=Allocation.objects.all(),
+                                        allow_null=True,
+                                        required=False)
     class Meta:
-        model = QuotaRequest
-        view_name = 'api:v2:quotarequest-detail'
+        model = ResourceRequest
+        view_name = 'api:v2:resourcerequest-detail'
         fields = (
             'id',
             'uuid',
@@ -129,12 +161,14 @@ class QuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
             'identity',
             'provider',
             'admin_message',
-            'quota'
+            'quota',
+            'allocation'
         )
 
 
-class UserQuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
+class UserResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
     quota = QuotaRelatedField(read_only=True)
+    allocation = AllocationRelatedField(read_only=True)
     status = StatusTypeRelatedField(read_only=True)
     admin_message = serializers.CharField(read_only=True)
     uuid = serializers.CharField(read_only=True)
@@ -145,8 +179,8 @@ class UserQuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
     provider = ProviderSummarySerializer(source='membership.identity.provider', read_only=True)
 
     class Meta:
-        model = QuotaRequest
-        view_name = 'api:v2:quotarequest-detail'
+        model = ResourceRequest
+        view_name = 'api:v2:resourcerequest-detail'
         fields = (
             'id',
             'uuid',
@@ -159,5 +193,6 @@ class UserQuotaRequestSerializer(serializers.HyperlinkedModelSerializer):
             'identity',
             'provider',
             'admin_message',
-            'quota'
+            'quota',
+            'allocation'
         )

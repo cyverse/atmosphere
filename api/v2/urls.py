@@ -3,7 +3,7 @@ from rest_framework import routers
 from api.v2 import views
 
 router = routers.DefaultRouter(trailing_slash=False)
-router.register(r'allocations', views.AllocationViewSet)
+router.register(r'allocations', views.AllocationViewSet, base_name='allocation')
 router.register(r'identities', views.IdentityViewSet)
 router.register(r'images', views.ImageViewSet, base_name='application')
 router.register(r'image_bookmarks', views.ImageBookmarkViewSet)
@@ -18,7 +18,7 @@ router.register(r'providers', views.ProviderViewSet)
 router.register(r'provider_machines', views.ProviderMachineViewSet)
 router.register(r'provider_types', views.ProviderTypeViewSet)
 router.register(r'quotas', views.QuotaViewSet)
-router.register(r'quota_requests', views.QuotaRequestViewSet)
+router.register(r'resource_requests', views.ResourceRequestViewSet)
 router.register(r'sizes', views.SizeViewSet)
 router.register(r'status_types', views.StatusTypeViewSet)
 router.register(r'tags', views.TagViewSet)
