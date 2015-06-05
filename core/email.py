@@ -178,14 +178,14 @@ def email_from_admin(username, subject, message, html=False):
                       html=html)
 
 
-def send_instance_email(user, instance_id, instance_name,
+def send_instance_email(username, instance_id, instance_name,
                         ip, launched_at, linuxusername):
     """
     Sends an email to the user providing information about the new instance.
 
     Returns a boolean.
     """
-    username, user_email, user_name = user_email_info(user)
+    _, user_email, user_name = user_email_info(username)
 
     launched_at = launched_at.replace(tzinfo=None)
     body = """
@@ -217,7 +217,7 @@ Helpful links:
                timezone=pytz_timezone('UTC')))
        .strftime('%b, %d %Y %H:%M:%S'))
     subject = 'Your Atmosphere Instance is Available'
-    return email_from_admin(user.username, subject, body)
+    return email_from_admin(username, subject, body)
 
 
 def send_preemptive_deploy_failed_email(core_instance, message):
