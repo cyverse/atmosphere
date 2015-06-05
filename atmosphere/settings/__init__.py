@@ -470,7 +470,7 @@ CELERYBEAT_SCHEDULE = {
     "monthly_allocation_reset": {
         "task": "monthly_allocation_reset",
         #Every month, first of the month.
-        "schedule": crontab(0, 0, month_of_year="*"),
+        "schedule": crontab(0, 0, day_of_month=1, month_of_year="*"),
         "options": {"expires": 5*60, "time_limit": 5*60}
     },
     "remove_empty_networks": {
