@@ -53,9 +53,9 @@ def requestImaging(request, machine_request_id, auto_approve=False):
     return email_from_admin(user.username, subject, body)
 
 
-def quota_request_email(request, username, new_quota, reason):
+def resource_request_email(request, username, new_resource, reason):
     """
-    Processes Increase Quota request. Sends email to atmo@iplantc.org
+    Processes Resource request. Sends email to atmo@iplantc.org
 
     Returns a response.
     """
@@ -66,14 +66,14 @@ def quota_request_email(request, username, new_quota, reason):
     admin_url = reverse('admin:core_identitymembership_change',
                                      args=(membership.id,))
 
-    subject = "Atmosphere Quota Request - %s" % username
+    subject = "Atmosphere Resource Request - %s" % username
     context = {
         "user": user,
-        "quota": new_quota,
+        "resource": new_resource,
         "reason": reason,
         "url": request.build_absolute_uri(admin_url)
     }
-    body = render_to_string("core/email/quota_request.html",
+    body = render_to_string("core/email/resource_request.html",
                             context=Context(context))
     logger.info(body)
     email_success = email_admin(request, subject, body, cc_user=False)

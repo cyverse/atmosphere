@@ -28,7 +28,7 @@ from core.models.group import Group, IdentityMembership,\
     InstanceMembership
 from core.models.allocation_strategy import Allocation, AllocationStrategy
 from core.models.step import Step
-from core.models.request import AllocationRequest, QuotaRequest
+from core.models.resource_request import ResourceRequest
 from core.models.application import Application, ApplicationMembership,\
     ApplicationScore, ApplicationBookmark
 from core.models.application_tag import ApplicationTag

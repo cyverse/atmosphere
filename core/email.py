@@ -193,31 +193,33 @@ def email_from_admin(username, subject, message, html=False):
                       cc=[email_address_str(from_name, from_email)],
                       html=html)
 
-def send_approved_quota_email(user, request, reason):
+
+def send_approved_resource_email(user, request, reason):
     """
     Notify the user the that their request has been approved.
     """
-    subject = "Your Quota Request has been approved"
+    subject = "Your Resource Request has been approved"
     context = {
         "user": user.username,
         "request": request,
         "reason": reason
     }
-    body = render_to_string("core/email/quota_request_approved.html",
+    body = render_to_string("core/email/resource_request_approved.html",
                             context=Context(context))
     return email_from_admin(user, subject, body)
 
-def send_denied_quota_email(user, request, reason):
+
+def send_denied_resource_email(user, request, reason):
     """
     Send an email notifying the user that their request has been denied.
     """
-    subject = "Your Quota Request has been denied"
+    subject = "Your Resource Request has been denied"
     context = {
         "user": user.username,
         "request": request,
         "reason": reason
     }
-    body = render_to_string("core/email/quota_request_denied.html",
+    body = render_to_string("core/email/resource_request_denied.html",
                             context=Context(context))
     return email_from_admin(user, subject, body)
 

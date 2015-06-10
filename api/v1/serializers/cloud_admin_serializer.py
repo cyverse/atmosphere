@@ -41,7 +41,5 @@ class CloudAdminActionListSerializer(serializers.ModelSerializer):
             # # Additional admin functionality
             # 'create_account',
             # 'over_allocation_policy',
-            # 'quota_request',
-            # 'allocation_request',
             'imaging_request',
         )

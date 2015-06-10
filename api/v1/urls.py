@@ -241,21 +241,10 @@ urlpatterns = format_suffix_patterns(patterns(
     url(identity_specific + r'/profile$',
         views.Profile.as_view(), name='profile-detail'),
 
-    url(identity_specific + r'/allocation_request$',
-        views.AllocationRequestList.as_view(), name='allocation-request-list'),
-    url(identity_specific +
-        r'/allocation_request/(?P<allocation_request_uuid>%s)$' % uuid_match,
-        views.AllocationRequestDetail.as_view(), name='allocation-request-detail'),
-
     url(r'^allocation$',
         views.AllocationList.as_view(), name='allocation-list'),
     url(r'^allocation/(?P<quota_id>%s)$' % (id_match,),
         views.AllocationDetail.as_view(), name='quota-detail'),
-
-    url(r'^quota_request$',
-        views.QuotaRequestList.as_view(), name='quota-request-list'),
-    url(r'^quota_request/(?P<quota_request_uuid>%s)$' % uuid_match,
-        views.QuotaRequestDetail.as_view(), name='quota-request-detail'),
 
     url(r'^quota$',
         views.QuotaList.as_view(), name='quota-list'),
@@ -308,20 +297,6 @@ urlpatterns = format_suffix_patterns(patterns(
         '(?P<provider_instance_action_id>%s)$' % (id_match,),
         views.CloudAdminInstanceAction.as_view(),
         name='cloud-admin-instance-action-detail'),
-
-    url(r'^admin/quota$',
-        views.CloudAdminQuotaList.as_view(),
-        name='cloud-admin-quota-list'),
-    url(r'^admin/quota/(?P<identifier>%s)$' % (uuid_match,),
-        views.CloudAdminQuotaRequest.as_view(),
-        name='cloud-admin-quota-detail'),
-
-    url(r'^admin/allocation$',
-        views.CloudAdminAllocationList.as_view(),
-        name='cloud-admin-allocation-list'),
-    url(r'^admin/allocation/(?P<identifier>%s)$' % (uuid_match,),
-        views.CloudAdminAllocationRequest.as_view(),
-        name='cloud-admin-allocation-detail'),
 
     url(identity_specific + r'/export_request$',
         views.ExportRequestList.as_view(), name='export-request-list'),

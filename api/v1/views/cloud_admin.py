@@ -11,7 +11,6 @@ from core.models.machine_request import MachineRequest as CoreMachineRequest
 from core.models.cloud_admin import CloudAdministrator
 from core.models.provider import Provider, ProviderInstanceAction
 from core.models.group import IdentityMembership
-from core.models.request import AllocationRequest, QuotaRequest
 
 from service.driver import get_account_driver
 from service.tasks.machine import start_machine_imaging
@@ -22,8 +21,7 @@ from api.v1.serializers import MachineRequestSerializer,\
     IdentitySerializer, AccountSerializer,\
     PATCH_ProviderInstanceActionSerializer,\
     POST_ProviderInstanceActionSerializer,\
-    ProviderInstanceActionSerializer, ResolveQuotaRequestSerializer,\
-    ResolveAllocationRequestSerializer
+    ProviderInstanceActionSerializer
 
 
 def _get_administrator_accounts(user):
@@ -205,174 +203,6 @@ class CloudAdminAccountList(APIView):
         # membership = driver.create_account(**data)
         # serializer = AccountSerializer(membership)
         return Response(serializer.data)
-
-
-class CloudAdminRequestListMixin(object):
-
-    permission_classes = (ApiAuthRequired,
-                          InMaintenance,
-                          CloudAdminRequired,)
-
-    model = None
-    serializer_class = None
-
-    def get_objects(self, unresolved=False):
-        """
-        Return a list of requests
-
-        unresolved - when True only return unresolved requests
-        """
-        if unresolved:
-            return self.model.get_unresolved()
-        return self.model.objects.all()
-
-    def get(self, request):
-        """
-        Return a list of A
-        """
-        objects = self.get_objects()
-        data = self.serializer_class(objects, many=True).data
-        return Response(data)
-
-
-class CloudAdminRequestDetailMixin(object):
-    """
-    Detail Mixin to manage a request
-    """
-
-    permission_classes = (ApiAuthRequired,
-                          InMaintenance,
-                          CloudAdminRequired,)
-    identifier_key = "uuid"
-    model = None
-    serializer_class = None
-
-    def approve(self, request):
-        """
-        Perform the approved action for the request
-        """
-
-    def deny(self, request):
-        """
-        Perform the denied action for the request
-        """
-
-    def get_object(self, identifier):
-        """
-        Fetch the request object
-        """
-        kwargs = {self.identifier_key: identifier}
-        return get_object_or_404(self.model, **kwargs)
-
-    def _unresolved_requests_only(fn):
-        """
-        Only allow a unresolved request to be processed
-        """
-        @wraps(fn)
-        def wrapper(self, request, identifier):
-            pending_request = self.get_object(identifier)
-            if pending_request.is_closed():
-                message = "This request has already been resolved."
-                return Response(data={"message": message},
-                                status=status.HTTP_405_METHOD_NOT_ALLOWED)
-            else:
-                return fn(self, request, identifier)
-        return wrapper
-
-    def _perform_update(self, request):
-        """
-        Action to be performed to a closed request
-        """
-        if request.is_approved():
-            self.approve(request)
-
-        if request.is_denied():
-            self.deny(request)
-
-    def get(self, request, identifier):
-        """
-        Return the request for the specific identifier
-        """
-        pending_request = self.get_object(identifier)
-        data = self.serializer_class(pending_request).data
-        return Response(data)
-
-    @_unresolved_requests_only
-    def put(self, request, identifier):
-        """
-        Update the request for the specific identifier
-        """
-        pending_request = self.get_object(identifier)
-        request.data["end_date"] = timezone.now()
-
-        serializer = self.serializer_class(pending_request, request.data)
-        if not serializer.is_valid():
-            return Response(data=serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        pending_request = serializer.save()
-        self._perform_update(pending_request)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    @_unresolved_requests_only
-    def patch(self, request, identifier):
-        """
-        Partially update the request for the specific identifier
-        """
-        request.data["end_date"] = timezone.now()
-        pending_request = self.get_object(identifier)
-        serializer = self.serializer_class(pending_request, request.data,
-                                           partial=True)
-
-        if not serializer.is_valid():
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        pending_request = serializer.save()
-        self._perform_update(pending_request)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class CloudAdminQuotaList(CloudAdminRequestListMixin, APIView):
-    model = QuotaRequest
-    serializer_class = ResolveQuotaRequestSerializer
-
-
-class CloudAdminQuotaRequest(CloudAdminRequestDetailMixin, APIView):
-    """
-    Manage user quota requests
-    """
-    model = QuotaRequest
-    serializer_class = ResolveQuotaRequestSerializer
-
-    def approve(self, pending_request):
-        """
-        Updates the quota for the request
-        """
-        membership = pending_request.membership
-        membership.quota = pending_request.quota
-        membership.approve_quota(pending_request.id)
-
-
-class CloudAdminAllocationList(CloudAdminRequestListMixin, APIView):
-    model = AllocationRequest
-    serializer_class = ResolveAllocationRequestSerializer
-
-
-class CloudAdminAllocationRequest(CloudAdminRequestDetailMixin, APIView):
-    """
-    Manage user allocation requests
-    """
-    model = AllocationRequest
-    serializer_class = ResolveAllocationRequestSerializer
-
-    def approve(self, pending_request):
-        """
-        Updates the allocation for the request
-        """
-        membership = pending_request.membership
-        membership.allocation = pending_request.allocation
-        membership.save()
 
 
 class CloudAdminAccount(APIView):
