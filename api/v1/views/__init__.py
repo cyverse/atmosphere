@@ -37,7 +37,6 @@ from api.v1.views.provider import ProviderList, Provider
 from api.v1.views.quota import QuotaDetail, QuotaList
 from api.v1.views.size import SizeList, Size
 from api.v1.views.hypervisor import HypervisorList, HypervisorDetail
-from api.v1.views.step import StepList, Step
 from api.v1.views.tag import TagList, Tag
 from api.v1.views.token import TokenEmulate
 from api.v1.views.version import Version

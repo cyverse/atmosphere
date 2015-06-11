@@ -26,7 +26,6 @@ from core.models.quota import Quota
 from core.models.allocation_strategy import Allocation, AllocationStrategy
 from core.models.resource_request import ResourceRequest
 from core.models.size import Size
-from core.models.step import Step
 from core.models.tag import Tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
@@ -182,13 +181,6 @@ class SizeAdmin(admin.ModelAdmin):
     list_display = ["name", "provider", "cpu", "mem", "disk",
                     "start_date", "end_date"]
     list_filter = ["provider__location"]
-
-
-@admin.register(Step)
-class StepAdmin(admin.ModelAdmin):
-    search_fields = ["name", "alias", "created_by__username",
-                     "instance__provider_alias"]
-    list_display = ["alias", "name", "start_date", "end_date"]
 
 
 @admin.register(Tag)
