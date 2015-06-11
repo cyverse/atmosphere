@@ -71,7 +71,7 @@ def do_nothing(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0019_set_default_status_type'),
+        ('core', '0023_remove_redundant_fields_machine_request_and_version'),
     ]
 
     operations = [
