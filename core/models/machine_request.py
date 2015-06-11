@@ -127,7 +127,7 @@ class MachineRequest(models.Model):
         """
         meta_name = '%s_%s_%s_%s' %\
             ('admin', self.new_machine_owner.username,
-            self.new_machine_name.replace(' ','_').replace('/','-'),
+            self.new_application_name.replace(' ','_').replace('/','-'),
             self.start_date.strftime('%m%d%Y_%H%M%S'))
         return meta_name
 
@@ -268,7 +268,7 @@ class MachineRequest(models.Model):
         download_location = os.path.join(
                 download_dir, tenant_cred.value)
         download_location = os.path.join(
-                download_location, '%s.qcow2' % self.new_machine_name)
+                download_location, '%s.qcow2' % self.new_application_name)
         return download_location
     def get_imaging_args(self):
         """
@@ -286,7 +286,7 @@ class MachineRequest(models.Model):
 
         imaging_args = {
             "instance_id": self.instance.provider_alias,
-            "image_name": self.new_machine_name,
+            "image_name": self.new_application_name,
             "download_dir" : download_dir}
         if issubclass(orig_managerCls, OSImageManager):
             download_location = self._extract_file_location(download_dir)
@@ -348,7 +348,7 @@ class MachineRequest(models.Model):
     def __unicode__(self):
         return '%s Instance: %s Name: %s Status: %s'\
                 % (self.new_machine_owner, self.instance.provider_alias,
-                   self.new_machine_name, self.status)
+                   self.new_application_name, self.status)
 
     class Meta:
         db_table = "machine_request"
@@ -398,7 +398,7 @@ def _create_new_application(machine_request, new_image_id, tags=[]):
     new_app = create_application(
             new_image_id,
             new_provider.id,
-            machine_request.new_machine_name,
+            machine_request.new_application_name,
             owner_ident,
             #new_app.Private = False when machine_request.is_public = True
             not machine_request.is_public(),
@@ -412,8 +412,8 @@ def _update_parent_application(machine_request, new_image_id, tags=[]):
     return _update_application(parent_app, machine_request, tags=tags)
 
 def _update_application(application, machine_request, tags=[]):
-    if application.name is not machine_request.new_machine_name:
-        application.name = machine_request.new_machine_name
+    if application.name is not machine_request.new_application_name:
+        application.name = machine_request.new_application_name
     if machine_request.new_machine_description:
         application.description = machine_request.new_machine_description
     application.private = not machine_request.is_public()
@@ -458,7 +458,7 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
             allow_imaging=machine_request.new_machine_allow_imaging,
             tags=tags)
     else:
-        version = update_application(parent_version, machine_request.new_machine_name, machine_request.new_machine_description, tags)
+        version = update_application(parent_version, machine_request.new_application_name, machine_request.new_machine_description, tags)
 
     #2. Create the new InstanceSource and appropriate Object, relations, Memberships..
     if ProviderMachine.test_existence(new_provider, new_image_id):

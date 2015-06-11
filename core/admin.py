@@ -305,8 +305,8 @@ class ExportRequestAdmin(admin.ModelAdmin):
 
 @admin.register(MachineRequest)
 class MachineRequestAdmin(admin.ModelAdmin):
-    search_fields = ["new_machine_owner__username", "new_machine_name", "instance__provider_alias"]
-    list_display = ["new_machine_name", "new_machine_owner", "instance_alias",
+    search_fields = ["new_machine_owner__username", "new_application_name", "instance__provider_alias"]
+    list_display = ["new_application_name", "new_machine_owner", "instance_alias",
                     "old_provider", "new_machine_provider",
 		    "start_date", "end_date", "status",
 		    "opt_new_machine", "opt_parent_machine", "opt_machine_visibility"]

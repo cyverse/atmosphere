@@ -25,7 +25,7 @@ class MachineRequestSerializer(serializers.ModelSerializer):
     exclude_files = serializers.CharField(default="", required=False)
     shared_with = serializers.CharField(source="access_list", required=False)
 
-    name = serializers.CharField(source='new_machine_name')
+    name = serializers.CharField(source='new_application_name')
     provider = serializers.SlugRelatedField(
         slug_field='uuid', source='new_machine_provider',
         queryset=Provider.objects.all()
