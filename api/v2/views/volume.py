@@ -35,4 +35,4 @@ class VolumeViewSet(AuthViewSet):
         Filter projects by current user
         """
         user = self.request.user
-        return Volume.objects.filter(*only_current_source(), instance_source__created_by=user)
+        return Volume.objects.filter(only_current_source(), instance_source__created_by=user)

@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from core.models import Application as Image
 from core.models import AtmosphereUser
-from core.query import only_current, only_current_machines
+from core.query import only_current, only_current_apps
 
 from api.v2.serializers.details import ImageSerializer
 from api.v2.views.base import AuthOptionalViewSet
@@ -37,7 +37,7 @@ class ImageViewSet(AuthOptionalViewSet):
             # Non-end dated machines that have
             # been EXPLICITLY shared with me
             privately_shared = Image.objects.filter(
-                only_current_machines(),
+                only_current_apps(),
                 versions__machines__members__id__in=
                     request_user.group_set.values('id'))
             return (public_image_set | my_images | privately_shared).distinct()

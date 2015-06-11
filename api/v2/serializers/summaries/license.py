@@ -6,5 +6,5 @@ class LicenseSerializer(serializers.HyperlinkedModelSerializer):
     #TODO: type --> type_name
     class Meta:
         model = License
-        view_name = 'api_v2:license-detail'
+        view_name = 'api:v2:license-detail'
         fields = ('id', 'title', 'license_type', 'license_text')
