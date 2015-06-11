@@ -49,6 +49,7 @@ class Allocation(models.Model):
     class Meta:
         db_table = 'allocation'
         app_label = 'core'
+        unique_together = ("threshold", "delta")
 
 
 class RulesBehavior(models.Model):

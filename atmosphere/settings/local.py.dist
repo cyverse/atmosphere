@@ -72,13 +72,13 @@ ATMOSPHERE_KEYPAIR_NAME=""
 ANSIBLE_ROOT = ""  # The root directory for the ansible deploy project.
 	       	   # If this is emptry str then ansible deploys will not
 		   # run and will warn that ansible is no configured.
-ANSIBLE_CONFIG_FILE = os.path.join(settings.ANSIBLE_ROOT,
+ANSIBLE_CONFIG_FILE = os.path.join(ANSIBLE_ROOT,
                                    "ansible/ansible.cfg")
-ANSIBLE_HOST_FILE = os.path.join(settings.ANSIBLE_ROOT,
+ANSIBLE_HOST_FILE = os.path.join(ANSIBLE_ROOT,
                                  "ansible/hosts")
-ANSIBLE_PLAYBOOKS_DIR = os.path.join(settings.ANSIBLE_ROOT,
+ANSIBLE_PLAYBOOKS_DIR = os.path.join(ANSIBLE_ROOT,
                                      "ansible/playbooks")
-ANSIBLE_ROLES_PATH = os.path.join(settings.ANSIBLE_ROOT,
+ANSIBLE_ROLES_PATH = os.path.join(ANSIBLE_ROOT,
                                   "ansible/roles")
 
 # Atmosphere App Configs

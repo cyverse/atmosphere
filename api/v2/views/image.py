@@ -1,6 +1,9 @@
 from itertools import chain
 
 from django.contrib.auth.models import AnonymousUser
+from django.shortcuts import get_object_or_404
+
+from rest_framework.response import Response
 
 from core.models import Application as Image
 from core.models import AtmosphereUser
@@ -40,3 +43,9 @@ class ImageViewSet(AuthOptionalViewSet):
             return (public_image_set | my_images | privately_shared).distinct()
         else:
             return Image.objects.none()
+
+    def retrieve(self, request, pk=None):
+        queryset = Image.objects.all()
+        image = get_object_or_404(queryset, pk=pk)
+        serialized = ImageSerializer(image, context={"request": request})
+        return Response(serialized.data)

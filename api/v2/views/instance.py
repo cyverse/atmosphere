@@ -2,6 +2,8 @@ from core.models import Instance
 from api.v2.serializers.details import InstanceSerializer
 from core.query import only_current
 
+from api.v1.views.instance import Instance as V1Instance
+
 from api.v2.serializers.details import InstanceSerializer
 from api.v2.views.base import AuthViewSet
 
@@ -22,3 +24,10 @@ class InstanceViewSet(AuthViewSet):
         """
         user = self.request.user
         return Instance.objects.filter(only_current(), created_by=user)
+
+
+    def perform_destroy(self, instance):
+        return V1Instance().delete(self.request,
+                                   instance.provider_alias,
+                                   instance.created_by_identity.uuid,
+                                   instance.id)

@@ -11,7 +11,7 @@ from threepio import logger
 from authentication.protocol.ldap import lookupEmail
 
 from core.email import email_admin
-from web.emails import feedback_email, quota_request_email
+from web.emails import feedback_email, resource_request_email
 from core.models.group import IdentityMembership
 from core.models.user import AtmosphereUser as User
 
@@ -67,13 +67,13 @@ class QuotaEmail(AuthAPIView):
                              request.DATA["reason"])
         return Response(result, status=status.HTTP_201_CREATED)
 
-    def _email(self, request, username, new_quota, reason):
+    def _email(self, request, username, new_resource, reason):
         """
-        Processes Increase Quota request. Sends email to atmo@iplantc.org
+        Processes resource request increases. Sends email to atmo@iplantc.org
 
         Returns a response.
         """
-        return quota_request_email(request, username, new_quota, reason)
+        return resource_request_email(request, username, new_resource, reason)
 
 
 class SupportEmail(AuthAPIView):

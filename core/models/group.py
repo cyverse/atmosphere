@@ -120,7 +120,7 @@ class IdentityMembership(models.Model):
             return group.identitymembership_set.first()
         except IdentityMembershipDoesNotExist:
             logger.warn("%s is not a member of any identities" % groupname)
-        
+
 
     def get_allocation_dict(self):
         if not self.allocation:
@@ -182,11 +182,11 @@ class IdentityMembership(models.Model):
         super(IdentityMembership, self).save()
         try:
             from service.tasks.admin import set_provider_quota,\
-                set_quota_request_failed, close_quota_request
+                set_resource_request_failed, close_resource_request
             set_provider_quota.apply_async(
                 args=[self.identity.uuid],
-                link=close_quota_request.s(request_id),
-                link_error=set_quota_request_failed.s(request_id))
+                link=close_resource_request.s(request_id),
+                link_error=set_resource_request_failed.s(request_id))
         except Exception as ex:
             logger.warn("Unable to update service.quota.set_provider_quota.")
             raise
