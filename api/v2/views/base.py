@@ -94,7 +94,6 @@ class BaseRequestViewSet(AuthViewSet):
             membership = IdentityMembership.objects.get(identity=identity_id)
             instance = serializer.save(
                 membership=membership,
-                quota=membership.quota,
                 status=status,
                 created_by=self.request.user
             )
