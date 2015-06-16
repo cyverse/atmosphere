@@ -85,8 +85,8 @@ class ProviderMachine(BaseSource):
             #logger.exception("Image Update Failed for %s on Provider %s"
             #                 % (self.identifier, self.provider))
 
-    def update_version(self, version):
-        self.version = version
+    def update_version(self, app_version):
+        self.application_version = app_version
         self.save()
     
     def icon_url(self):

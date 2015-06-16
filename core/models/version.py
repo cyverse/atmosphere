@@ -49,6 +49,7 @@ class ApplicationVersion(models.Model):
                                         related_name='application_versions',
                                         through='ApplicationVersionMembership',
                                         blank=True)
+    #NOTE: Created_by, created_by_ident will be == Application (EVERY TIME!)
     def __unicode__(self):
         return "%s - %s" % (self.application.name, self.start_date)
 
