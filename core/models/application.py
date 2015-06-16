@@ -98,7 +98,7 @@ class Application(models.Model):
 
     def get_threshold(self):
         try:
-            return self.threshold
+            return self.latest_version.threshold
         except ApplicationThreshold.DoesNotExist, no_threshold:
             return None
 
