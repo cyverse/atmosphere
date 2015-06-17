@@ -4,12 +4,8 @@ from api.v2.serializers.summaries import ImageSummarySerializer, ImageVersionSum
 
 
 class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
+    #NOTE: these fields could be generalized for reuse in VolumeSerializer
     uuid = serializers.ReadOnlyField(source='instance_source.identifier')
-    #Will eventually be moved OUT of this serializer.
-    image = ImageSummarySerializer(source='application_version.application')
-    allow_imaging = serializers.ReadOnlyField(source='application_version.allow_imaging')
-    # Will replace stuff above it
-    version = ImageVersionSummarySerializer(source='application_version')
     provider = ProviderSummarySerializer(source='instance_source.provider')
     created_by = UserSummarySerializer(source='instance_source.created_by')
     start_date = serializers.DateTimeField(source='instance_source.start_date')
@@ -21,8 +17,8 @@ class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = ProviderMachine
         view_name = 'api:v2:providermachine-detail'
-        fields = ('id', 'uuid', 'url', 'image', 'provider',
-                'licenses', 'members', 'allow_imaging', 'version',
+        fields = ('id', 'uuid', 'url', 'provider',
+                'licenses', 'members',
                 'created_by', 'start_date', 'end_date')
 
     #def create(self, validated_data):

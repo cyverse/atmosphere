@@ -45,7 +45,7 @@ class ImageViewSet(AuthOptionalViewSet):
             return Image.objects.none()
 
     def retrieve(self, request, pk=None):
-        queryset = Image.objects.all()
+        queryset = self.get_queryset()
         image = get_object_or_404(queryset, pk=pk)
         serialized = ImageSerializer(image, context={"request": request})
         return Response(serialized.data)
