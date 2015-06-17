@@ -17,12 +17,13 @@ from libcloud.compute.deployment import MultiStepDeployment
 
 from threepio import logger
 from threepio import logging
+from threepio import deploy_logger
 
 from authentication.protocol import ldap
 
 from atmosphere import settings
 from atmosphere.settings import secrets
-
+from core.logging import create_instance_logger
 
 class WriteFileDeployment(Deployment):
     def __init__(self, full_text, target):
@@ -84,13 +85,14 @@ class LoggedScriptDeployment(ScriptDeployment):
         return node
 
 
-def deploy_to(instance_ip, username):
+def deploy_to(instance_ip, username, instance_id):
     """
     Use service.ansible to deploy to an instance.
     """
     if not check_ansible():
         return []
-    configure_ansible()
+    logger = create_instance_logger(deploy_logger, instance_ip, username, instance_id)
+    configure_ansible(logger)
     my_limit = {"hostname": build_host_name(instance_ip), "ip": instance_ip}
     deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
     host_list = settings.ANSIBLE_HOST_FILE
@@ -117,7 +119,7 @@ def check_ansible():
     return exists
 
 
-def configure_ansible():
+def configure_ansible(logger):
     """
     Configure ansible to work with service.ansible and subspace.
     """
