@@ -17,12 +17,12 @@ class ProviderMachineViewSet(AuthReadOnlyViewSet):
 
     queryset = ProviderMachine.objects.all()
     serializer_class = ProviderMachineSerializer
-    search_fields = ('application_version__application__id', 'instance_source__created_by__username')
-    filter_fields = ('application_version__application__id', 'instance_source__created_by__username')
+    search_fields = ('application_version__id', 'application_version__application__id', 'instance_source__created_by__username')
+    filter_fields = ('application_version__id', 'application_version__application__id', 'instance_source__created_by__username')
 
     def get_queryset(self):
         request_user = self.request.user
-
+        version_id = self.request.QUERY_PARAMS.get('version_id')
         #Showing non-end dated, public ProviderMachines
         public_pms_set = ProviderMachine.objects.filter(only_current_source(), application_version__application__private=False)
         if type(request_user) != AnonymousUser:
@@ -36,4 +36,9 @@ class ProviderMachineViewSet(AuthReadOnlyViewSet):
             shared_pms_set = ProviderMachine.objects.none()
             my_pms_set = ProviderMachine.objects.none()
         #Order them by date, make sure no dupes.
-        return (public_pms_set | shared_pms_set | my_pms_set).distinct().order_by('-instance_source__start_date')
+        queryset = (public_pms_set | shared_pms_set | my_pms_set).distinct().order_by('-instance_source__start_date')
+        #NOTE: This is a *HACK* until UUID support is integrated into django-filter
+        if version_id:
+            queryset = queryset.filter(application_version__id=version_id)
+
+        return queryset
