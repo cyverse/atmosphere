@@ -118,3 +118,19 @@ try:
     urllib3.disable_warnings()
 except ImportError:
     pass
+
+# LOGSTASH
+LOGSTASH_HOST = None
+LOGSTASH_PORT = 3333
+
+try:
+    import logstash
+    import threepio
+    has_logstash = True
+except ImportError:
+    has_logstash = False
+
+if has_logstash and LOGSTASH_HOST:
+    fh = logstash.TCPLogstashHandler(LOGSTASH_HOST, LOGSTASH_PORT,
+                                     message_type="atmo-deploy", version=1)
+    threepio.deploy_logger.addHandler(fh)
