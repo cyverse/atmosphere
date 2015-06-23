@@ -84,6 +84,8 @@ def suspend_all_instances(provider, action, sleep_time=None, dry_run=False):
 
 def _execute_action(ident, inst, action, sleep_time, dry_run=False):
     status = inst._node.extra['status']
+    if status != 'active':
+        print "Skipping instance %s in state %s" % (inst.id, status)
     if 'suspend' in action.lower():
         _execute_suspend(ident, inst, status, sleep_time, dry_run)
     elif 'stop' in action.lower():
@@ -98,7 +100,8 @@ def _execute_stop(ident, inst, status, sleep_time, dry_run=False):
             if not dry_run:
                 stop_instance(driver, inst, ident.provider.id, ident.id, ident.created_by)
             print "Shutoff Instance %s.. Sleep %s seconds" % (inst.id,sleep_time)
-            time.sleep(sleep_time)
+            if not dry_run:
+                time.sleep(sleep_time)
         except Exception, err:
             print "WARN: Could not shut off instance %s. Original Status:%s Error: %s" % (inst.id, status, err)
 
@@ -109,7 +112,8 @@ def _execute_suspend(ident, inst, status, sleep_time, dry_run=False):
             if not dry_run:
                 suspend_instance(driver, inst, ident.provider.id, ident.id, ident.created_by)
             print "Suspended Instance %s.. Sleep %s seconds" % (inst.id,sleep_time)
-            time.sleep(sleep_time)
+            if not dry_run:
+                time.sleep(sleep_time)
         except Exception, err:
             print "WARN: Could not suspend instance %s. Original Status:%s Error: %s" % (inst.id, status, err)
 
