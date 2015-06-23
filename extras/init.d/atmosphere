@@ -11,7 +11,12 @@ WEB_SERVICE="apache2" # could be httpd on centos..
 WEB_INITD="/etc/init.d/$WEB_SERVICE"
 CELERY_INITD="/etc/init.d/celeryd"
 CELERYBEAT_INITD="/etc/init.d/celerybeat"
-REDIS_INITD="/etc/init/redis-server.conf"
+#TODO: Replace with 'python -m platform' method...
+if [ -f "/etc/init.d/redis-server" ]; then
+  REDIS_INITD="/etc/init.d/redis-server"
+elif [ -f "/etc/init/redis-server.conf" ]; then
+  REDIS_INITD="/etc/init/redis-server.conf"
+fi
 CELERY_DEFAULT="/etc/default/celeryd"
 
 if [ ! -f  $CELERY_INITD ]; then
@@ -100,8 +105,9 @@ restart)
         echo "You must be a root user to restart atmosphere"
         exit 1
     fi
-    echo "Restarting Atmosphere Web Services"
+    echo "Restarting Atmosphere Web Services (uWSGI)"
     service uwsgi restart
+    echo "Restarting Atmosphere Web Services (Apache)"
     service apache2 restart
 ;;
 
@@ -110,8 +116,9 @@ celery-restart)
         echo "You must be a root user to restart atmosphere"
         exit 1
     fi
-    echo "Restarting Atmosphere Web Services"
+    echo "Restarting Atmosphere Web Services (uWSGI)"
     service uwsgi restart
+    echo "Restarting Atmosphere Web Services (Apache)"
     service apache2 restart
     #echo "Force Killing All Celery Nodes"
     #service celeryd kill

@@ -13,6 +13,7 @@ from core.models.size import Size, convert_esh_size
 from core.models.instance import convert_esh_instance, Instance
 from core.models.user import AtmosphereUser
 from core.models.provider import Provider
+from core.models import Allocation
 
 from service.monitoring import\
         _cleanup_missing_instances,\
@@ -159,3 +160,34 @@ def monitor_sizes_for(provider_id, print_logs=False):
 
     if print_logs:
         logger.removeHandler(consolehandler)
+
+@task(name="monthly_allocation_reset")
+def monthly_allocation_reset():
+    """
+    This task contains logic related to:
+    * Providers whose allocations should be reset on the first of the month
+    * Which Allocation will be used as 'default'
+    """
+    default_allocation = Allocation.default_allocation()
+    provider = Provider.objects.get(location='iPlant Cloud - Tucson')
+    reset_provider_allocation.apply_async(args=[provider.id, default_allocation.id])
+
+@task(name="reset_provider_allocation")
+def reset_provider_allocation(provider_id, default_allocation_id):
+    provider = Provider.objects.get(id=provider_id)
+    default_allocation = Allocation.objects.get(id=default_allocation_id)
+    users_reset = 0
+    memberships_reset = []
+    for ident in provider.identity_set.all():
+        if ident.created_by.is_staff or ident.created_by.is_superuser:
+            continue
+        for membership in ident.identitymembership_set.all():
+            if membership.allocation_id == default_allocation.id:
+                continue
+            print "Resetting Allocation for %s \t\tOld Allocation:%s" % (membership.member.name, membership.allocation)
+            membership.allocation = default_allocation
+            membership.save()
+            memberships_reset.append(membership)
+            users_reset += 1
+    return (users_reset, memberships_reset)
+

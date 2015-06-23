@@ -234,6 +234,10 @@ class ProjectInstanceList(AuthAPIView):
         instances = project.instances.filter(
             only_current(),
             provider_machine__provider__active=True)
+        active_provider_uuids = [ap.uuid for ap in Provider.get_active()]
+        instances = instances.filter(
+            pk__in=[i.id for i in instances\
+                    if i.instance.provider_uuid() in active_provider_uuids])
         serialized_data = InstanceSerializer(
             instances, many=True,
             context={"request": request}).data
