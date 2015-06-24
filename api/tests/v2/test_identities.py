@@ -51,11 +51,13 @@ class GetListTests(APITestCase):
         response = self.view(self.request)
         data = response.data.get('results')[0]
 
-        self.assertEquals(len(data), 5)
+        self.assertEquals(len(data), 7)
         self.assertIn('id', data)
+        self.assertIn('uuid', data)
         self.assertIn('url', data)
         self.assertIn('quota', data)
         self.assertIn('allocation', data)
+        self.assertIn('provider', data)
         self.assertIn('user', data)
 
 
@@ -98,11 +100,13 @@ class GetDetailTests(APITestCase):
         response = self.view(self.request, pk=self.identity.id)
         data = response.data
 
-        self.assertEquals(len(data), 5)
+        self.assertEquals(len(data), 7)
         self.assertIn('id', data)
+        self.assertIn('uuid', data)
         self.assertIn('url', data)
         self.assertIn('quota', data)
         self.assertIn('allocation', data)
+        self.assertIn('provider', data)
         self.assertIn('user', data)
 
 

@@ -2,6 +2,8 @@
 Atmosphere API's extension of DRF permissions.
 """
 
+from django.contrib.auth.models import AnonymousUser
+
 from rest_framework import permissions
 
 from threepio import logger
@@ -26,9 +28,7 @@ class ProjectOwnerRequired(permissions.BasePermission):
 
 class ApiAuthRequired(permissions.BasePermission):
     def has_permission(self, request, view):
-        auth_user = request.user.is_authenticated()
-        return auth_user
-
+        return request.user.is_authenticated()
 
 def _get_administrator_accounts(user):
     try:

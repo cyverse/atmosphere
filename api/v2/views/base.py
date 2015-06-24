@@ -49,7 +49,7 @@ class AuthOptionalViewSet(ModelViewSet):
 class AuthReadOnlyViewSet(ReadOnlyModelViewSet):
 
     permission_classes = (InMaintenance,
-                           ApiAuthOptional,)
+                          ApiAuthOptional,)
 
 
 class BaseRequestViewSet(AuthViewSet):
