@@ -9,14 +9,15 @@ class ActionNotAllowed(Exception):
         self.status_code = 409
         super(ActionNotAllowed, self).__init__()
 
+
 class UnderThresholdError(Exception):
     def __init__(self, message):
         self.message = message
         self.status_code = 400
         super(UnderThresholdError, self).__init__()
 
-class SecurityGroupNotCreated(Exception):
 
+class SecurityGroupNotCreated(Exception):
     def __init__(self):
         self.message = "Gateway Timeout! Security Group(s) could not be created. Please try again later"
         self.status_code = 504
@@ -24,6 +25,8 @@ class SecurityGroupNotCreated(Exception):
 
     def __str__(self):
         return "%s" % (self.message, )
+
+
 class HypervisorCapacityError(Exception):
 
     def __init__(self, hypervisor, message):
@@ -88,6 +91,7 @@ class SizeNotAvailable(Exception):
     def __str__(self):
         return "%s" % (self.message, )
 
+
 class VolumeAttachConflict(Exception):
 
     def __init__(self, instance_id, volume_id):
@@ -97,6 +101,7 @@ class VolumeAttachConflict(Exception):
 
     def __str__(self):
         return "%s" % (self.message, )
+
 
 class VolumeMountConflict(Exception):
 
@@ -109,3 +114,7 @@ class VolumeMountConflict(Exception):
 
     def __str__(self):
         return "%s" % (self.message, )
+
+
+class AnsibleDeployException(Exception):
+    pass
