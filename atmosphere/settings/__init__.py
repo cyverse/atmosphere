@@ -473,6 +473,12 @@ CELERYBEAT_SCHEDULE = {
         #"schedule": crontab(hour="0", minute="0", day_of_week="*"),
         "options": {"expires": 60*60}
     },
+    "monthly_allocation_reset": {
+        "task": "monthly_allocation_reset",
+        #Every month, first of the month.
+        "schedule": crontab(0, 0, day_of_month=1, month_of_year="*"),
+        "options": {"expires": 5*60, "time_limit": 5*60}
+    },
     "remove_empty_networks": {
         "task": "remove_empty_networks",
         #Every two hours.. midnight/2am/4am/...
