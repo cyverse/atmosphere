@@ -24,7 +24,6 @@ class ImageViewSet(AuthOptionalViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
-        import ipdb;ipdb.set_trace()
         public_image_set = Image.objects.filter(
             only_current(), private=False).order_by('-start_date')
         if type(request_user) == AnonymousUser:
