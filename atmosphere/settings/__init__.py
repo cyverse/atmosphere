@@ -415,7 +415,7 @@ CELERYD_PREFETCH_MULTIPLIER = 1
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_SEND_EVENTS = True
 CELERY_TASK_RESULT_EXPIRES = 3*60*60  # Store results for 3 hours
-CELERYD_MAX_TASKS_PER_CHILD = 150
+CELERYD_MAX_TASKS_PER_CHILD = 10
 CELERYD_LOG_FORMAT = "[%(asctime)s: %(name)s-%(levelname)s"\
     "/%(processName)s [PID:%(process)d]"\
     " @ %(pathname)s on %(lineno)d] %(message)s"
@@ -472,6 +472,12 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=120),
         #"schedule": crontab(hour="0", minute="0", day_of_week="*"),
         "options": {"expires": 60*60}
+    },
+    "monthly_allocation_reset": {
+        "task": "monthly_allocation_reset",
+        #Every month, first of the month.
+        "schedule": crontab(0, 0, day_of_month=1, month_of_year="*"),
+        "options": {"expires": 5*60, "time_limit": 5*60}
     },
     "remove_empty_networks": {
         "task": "remove_empty_networks",

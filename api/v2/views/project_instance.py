@@ -1,4 +1,7 @@
-from core.models import ProjectInstance
+from django.db.models import Q
+from django.utils import timezone
+
+from core.models import ProjectInstance, Provider
 
 from api.v2.serializers.details import ProjectInstanceSerializer
 from api.v2.views.base import AuthViewSet
@@ -12,14 +15,18 @@ class ProjectInstanceViewSet(AuthViewSet):
     queryset = ProjectInstance.objects.all()
     serializer_class = ProjectInstanceSerializer
     filter_fields = ('project__id',)
-    # http_method_names = ['get', 'post', 'delete', 'head', 'options', 'trace']
 
     def get_queryset(self):
         """
         Filter out tags for deleted instances
         """
         user = self.request.user
-        return ProjectInstance.objects.filter(
-            instance__end_date__isnull=True,
-            instance__created_by=user
-        )
+        now = timezone.now()
+        p_instances = ProjectInstance.objects.filter(
+            Q(instance__end_date__gt=now)
+            | Q(instance__end_date__isnull=True),
+            instance__created_by=user)
+        active_provider_uuids = [ap.uuid for ap in Provider.get_active()]
+        return p_instances.filter(
+            pk__in=[i.id for i in p_instances\
+                    if i.instance.provider_uuid() in active_provider_uuids])

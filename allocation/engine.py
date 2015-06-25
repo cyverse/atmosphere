@@ -147,7 +147,7 @@ def _calculate_instance_history_list(instance, rules, start_date, end_date,
                                      print_logs=print_logs)
 
         if clock_time == timedelta(0):
-            history_result.clock_time = clock_time
+            history_result.clock_time = clock_time # do we need this? seems like it could cause unforseen problems
             history_list.append(history_result)
             continue
 
@@ -156,6 +156,7 @@ def _calculate_instance_history_list(instance, rules, start_date, end_date,
         #          (Is that a thing?)
         time_per_second = _running_time_per_second(history, instance, rules)
         running_time = _multiply_time_delta(clock_time, time_per_second)
+        history_result.clock_time += clock_time
         history_result.total_time += running_time
 
         if _get_burn_rate_test(history, end_date):
