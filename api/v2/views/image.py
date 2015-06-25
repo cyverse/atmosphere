@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 
 from core.models import Application as Image
-from core.models import AtmosphereUser
+from core.models import AtmosphereUser, AccountProvider
 from core.query import only_current, only_current_apps
 
 from api.v2.serializers.details import ImageSerializer
@@ -34,13 +34,28 @@ class ImageViewSet(AuthOptionalViewSet):
         elif type(request_user) == AtmosphereUser:
             # All my images (Regardless of 'end dates' or public/private
             my_images = request_user.application_set.all()
+
             # Non-end dated machines that have
             # been EXPLICITLY shared with me
             privately_shared = Image.objects.filter(
                 only_current_apps(),
                 versions__machines__members__id__in=
-                    request_user.group_set.values('id'))
-            return (public_image_set | my_images | privately_shared).distinct()
+                    request_user.group_set.values_list('id', flat=True))
+            if not request_user.is_staff:
+                return (public_image_set | my_images | privately_shared).distinct()
+            # Final query for admins/staff images
+            provider_id_list = request_user.identity_set.values_list('provider',flat=True)
+            # TODO: This 'just works' and is probably very slow... Look for a better way?
+            account_providers_list = AccountProvider.objects.filter(provider__id__in=provider_id_list)
+            admin_users = [ap.identity.created_by for ap in account_providers_list]
+            image_ids = []
+            for user in admin_users:
+                image_ids.extend(
+                    user.application_set.values_list('id', flat=True))
+            admin_list = Image.objects.filter(
+                only_current_apps(),
+                id__in=image_ids)
+            return (public_image_set | my_images | privately_shared | admin_list).distinct()
         else:
             return Image.objects.none()
 
