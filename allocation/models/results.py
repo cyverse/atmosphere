@@ -122,16 +122,21 @@ class TimePeriodResult(object):
         Knowing the total allocation, collect total runtime.
         If the difference is LESS THAN//EQUAL to 0, user is OVER Allocation.
         """
-        //TODO: Refactor -- look at first value of 'allocation_difference(2-tuple)'
-        return self.allocation_difference() <= timedelta(0)
+        return self.allocation_difference()[0]
 
     def allocation_difference(self):
         """
         Difference between allocation_credit (Given) and total_runtime (Used)
+        Return: (True - Over Allocation, False - Under Allocation
+                 Amount over/under allocation)
         """
         total_runtime = self.total_instance_runtime()
-        //TODO: Refactor -- first value (True,False (if value is negative), Abs(value))
-        return self.total_credit - total_runtime
+        difference = self.total_credit - total_runtime
+        is_over = difference <= timedelta(0)
+        if is_over:
+            #Absolute values required..
+            difference = -difference
+        return (is_over, difference)
 
     def increase_credit(self, credit_amount, carry_forward=False):
         """
@@ -236,13 +241,14 @@ class AllocationResult():
         return self.last_period().time_to_zero()
 
     def total_difference(self):
-        //TODO: Refactor to the (2-tuple) method
         if self.carry_forward:
             return self.last_period().allocation_difference()
-        difference = timedelta(0)
+        is_over = False
+        total_diff = timedelta(0)
         for period in self.time_periods:
-            difference += period.allocation_difference()
-        return difference
+            is_over, difference = period.allocation_difference()
+            total_diff = (total_diff - difference) if is_over else (total_diff + difference)
+        return total_diff
 
     def over_allocation(self):
         return any(period.over_allocation() for period in self.time_periods)
