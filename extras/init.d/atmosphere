@@ -11,11 +11,10 @@ WEB_SERVICE="apache2" # could be httpd on centos..
 WEB_INITD="/etc/init.d/$WEB_SERVICE"
 CELERY_INITD="/etc/init.d/celeryd"
 CELERYBEAT_INITD="/etc/init.d/celerybeat"
-#TODO: Replace with 'python -m platform' method...
-if [ -f "/etc/init.d/redis-server" ]; then
-  REDIS_INITD="/etc/init.d/redis-server"
-elif [ -f "/etc/init/redis-server.conf" ]; then
-  REDIS_INITD="/etc/init/redis-server.conf"
+if [[ `python -mplatform` == *"Ubuntu-14.04"* ]]; then
+    REDIS_INITD="/etc/init/redis-server.conf"
+else
+    REDIS_INITD="/etc/init.d/redis-server"
 fi
 CELERY_DEFAULT="/etc/default/celeryd"
 
