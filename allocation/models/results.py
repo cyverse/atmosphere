@@ -83,9 +83,9 @@ class TimePeriodResult(object):
         * This avoids having an "Inifinite" or "N/A" ttz due to recharge
         """
         # As of 'end_date'
-        current_difference = self.allocation_difference()
+        is_over, diff_amount = self.allocation_difference()
 
-        if current_difference < timedelta(0):
+        if is_over:
             # TTZ == end_date (Its already over)
             return self.stop_counting_date
 
@@ -96,7 +96,7 @@ class TimePeriodResult(object):
         # To move from rate to date
         # divide (seconds remaining) over (seconds per second)
         # To get remaining seconds in the future
-        difference = current_difference.total_seconds()
+        difference = diff_amount.total_seconds()
         rate = current_rate.total_seconds()
         ttz_in_secs = difference / rate
 
@@ -241,14 +241,29 @@ class AllocationResult():
         return self.last_period().time_to_zero()
 
     def total_difference(self):
+        """
+        Returns 2-tuple:
+        (over_allocation-True/under_allocation-False, amount_over_or_under)
+        """
         if self.carry_forward:
             return self.last_period().allocation_difference()
-        is_over = False
-        total_diff = timedelta(0)
+        over_allocation = False
+        total_diff_credit = timedelta(0)
+        total_diff_overage = timedelta(0)
         for period in self.time_periods:
             is_over, difference = period.allocation_difference()
-            total_diff = (total_diff - difference) if is_over else (total_diff + difference)
-        return total_diff
+            if is_over:
+                total_diff_overage += difference
+            else:
+                total_diff_credit += difference
+            #Keep your math in order -- dealing with absvalues (and -timedelta means something else)!
+            if total_diff_overage > total_diff_credit:
+                over_allocation = True
+                total_diff = total_diff_overage - total_diff_credit
+            else:
+                over_allocation = False
+                total_diff = total_diff_credit - total_diff_overage
+        return (over_allocation, total_diff)
 
     def over_allocation(self):
         return any(period.over_allocation() for period in self.time_periods)
