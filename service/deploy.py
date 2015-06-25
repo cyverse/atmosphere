@@ -3,28 +3,26 @@ Deploy methods for Atmosphere
 """
 from functools import wraps
 import os
-from os.path import basename
 import sys
 import time
 
 from django.utils.timezone import datetime
 
+from libcloud.compute.deployment import Deployment, ScriptDeployment,\
+    MultiStepDeployment
+
 import subspace
 
-from libcloud.compute.deployment import Deployment
-from libcloud.compute.deployment import ScriptDeployment
-from libcloud.compute.deployment import MultiStepDeployment
-
-from threepio import logger
-from threepio import logging
-from threepio import deploy_logger
-
-from authentication.protocol import ldap
+from threepio import logger, logging, deploy_logger
 
 from atmosphere import settings
 from atmosphere.settings import secrets
+
+from authentication.protocol import ldap
+
 from core.logging import create_instance_logger
 
+from service.exceptions import AnsibleDeployException
 
 class WriteFileDeployment(Deployment):
     def __init__(self, full_text, target):
@@ -106,6 +104,7 @@ def deploy_to(instance_ip, username, instance_id):
                                           extra_vars=extra_vars)
     [pb.run() for pb in pbs]
     log_playbook_summaries(logger, pbs, hostname)
+    raise_playbook_errors(pbs, hostname)
     return pbs
 
 
@@ -154,6 +153,24 @@ def get_playbook_filename(filename):
         return os.path.join(rel, basename)
     else:
         return basename
+
+
+def playbook_error_message(count, error_name, pb):
+    return ("%s => %s with PlayBook %s|"
+            % (count, error_name, get_playbook_filename(pb.filename)))
+
+
+def raise_playbook_errors(pbs, hostname):
+    error_message = ""
+    for pb in pbs:
+        if pb.stats.dark:
+            error_message += playbook_error_message(
+                pb.stats.dark[hostname], "Unreachable", pb)
+        if pb.stats.failures:
+            error_message += playbook_error_message(
+                pb.stats.failures[hostname], "Failures", pb)
+    if error_message:
+        raise AnsibleDeployException(error_message[:-1])
 
 
 def sync_instance():
@@ -245,7 +262,7 @@ def step_script(step):
 
 
 def wget_file(filename, url, logfile=None, attempts=3):
-    name = './deploy_wget_%s.sh' % (basename(filename))
+    name = './deploy_wget_%s.sh' % (os.path.basename(filename))
     return LoggedScriptDeployment(
         "wget -O %s %s" % (filename, url),
         name=name, attempts=attempts, logfile=logfile)
