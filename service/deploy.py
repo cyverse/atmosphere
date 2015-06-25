@@ -25,6 +25,7 @@ from atmosphere import settings
 from atmosphere.settings import secrets
 from core.logging import create_instance_logger
 
+
 class WriteFileDeployment(Deployment):
     def __init__(self, full_text, target):
         """
@@ -92,8 +93,9 @@ def deploy_to(instance_ip, username, instance_id):
     if not check_ansible():
         return []
     logger = create_instance_logger(deploy_logger, instance_ip, username, instance_id)
+    hostname = build_host_name(instance_ip)
     configure_ansible(logger)
-    my_limit = {"hostname": build_host_name(instance_ip), "ip": instance_ip}
+    my_limit = {"hostname": hostname, "ip": instance_ip}
     deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
     host_list = settings.ANSIBLE_HOST_FILE
     extra_vars = {"ATMOUSERNAME" : username,
@@ -103,6 +105,7 @@ def deploy_to(instance_ip, username, instance_id):
                                           limit=my_limit,
                                           extra_vars=extra_vars)
     [pb.run() for pb in pbs]
+    log_playbook_summaries(logger, pbs, hostname)
     return pbs
 
 
@@ -135,6 +138,22 @@ def configure_ansible(logger):
 def build_host_name(ip):
     list_of_subnet = ip.split(".")
     return "vm%s-%s" % (list_of_subnet[2], list_of_subnet[3])
+
+
+def log_playbook_summaries(logger, pbs, hostname):
+    summaries = [(pb.filename, pb.stats.summarize(hostname)) for pb in pbs]
+    for filename, summary in summaries:
+        logger.info(get_playbook_filename(filename) + str(summary))
+
+
+def get_playbook_filename(filename):
+    rel = os.path.relpath(os.path.dirname(filename),
+                          settings.ANSIBLE_PLAYBOOKS_DIR)
+    basename = os.path.basename(filename)
+    if rel != ".":
+        return os.path.join(rel, basename)
+    else:
+        return basename
 
 
 def sync_instance():
