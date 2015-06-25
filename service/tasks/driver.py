@@ -878,7 +878,7 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
 
 @task(name="_deploy_init_to",
       default_retry_delay=124,
-      time_limit=32*60,  # 120 minute hard-set time limit.
+      time_limit=32*60,  # 32 minute hard-set time limit.
       max_retries=10)
 def _deploy_init_to(driverCls, provider, identity, instance_id,
                     username=None, password=None, token=None, redeploy=False,
