@@ -122,6 +122,7 @@ class TimePeriodResult(object):
         Knowing the total allocation, collect total runtime.
         If the difference is LESS THAN//EQUAL to 0, user is OVER Allocation.
         """
+        //TODO: Refactor -- look at first value of 'allocation_difference(2-tuple)'
         return self.allocation_difference() <= timedelta(0)
 
     def allocation_difference(self):
@@ -129,6 +130,7 @@ class TimePeriodResult(object):
         Difference between allocation_credit (Given) and total_runtime (Used)
         """
         total_runtime = self.total_instance_runtime()
+        //TODO: Refactor -- first value (True,False (if value is negative), Abs(value))
         return self.total_credit - total_runtime
 
     def increase_credit(self, credit_amount, carry_forward=False):
@@ -234,6 +236,7 @@ class AllocationResult():
         return self.last_period().time_to_zero()
 
     def total_difference(self):
+        //TODO: Refactor to the (2-tuple) method
         if self.carry_forward:
             return self.last_period().allocation_difference()
         difference = timedelta(0)

@@ -110,7 +110,7 @@ def calculate_allocation(allocation, print_logs=False):
             for instance_result in instance_results:
                 logger.debug("> > %s" % instance_result)
         current_period.instance_results = instance_results
-
+        //TODO: Refactor here - allocation_difference (2-tuple: True/False, Amount over/Under)
         if print_logs:
             logger.debug("> > %s - %s = %s" %
                          (current_period.total_credit,
