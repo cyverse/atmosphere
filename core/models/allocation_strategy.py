@@ -147,7 +147,7 @@ class AllocationStrategy(models.Model):
         first_month = timezone.datetime(now.year, now.month, 1,
                                         tzinfo=timezone.utc)
         next_month = first_month + relativedelta(months=1)
-        return FixedWindow(first_month, next_month)
+        return FixedWindow(first_month, now)
 
     def _parse_rules_behaviors(self):
         rule_behaviors = []

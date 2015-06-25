@@ -18,9 +18,11 @@ class MachineRequestSerializer(serializers.ModelSerializer):
         source="instance_source.identifier")
 
     sys = serializers.CharField(default="", source='iplant_sys_files',
+                                allow_blank=True,
                                 required=False)
     software = serializers.CharField(default="No software listed",
                                      source='installed_software',
+                                     allow_blank=True,
                                      required=False)
     exclude_files = serializers.CharField(default="", required=False)
     shared_with = serializers.CharField(source="access_list", required=False)
@@ -40,8 +42,10 @@ class MachineRequestSerializer(serializers.ModelSerializer):
     fork = serializers.BooleanField(source='new_machine_forked',
         required=False)
     description = serializers.CharField(source='new_machine_description',
+                                        allow_blank=True,
                                         required=False)
-    tags = serializers.CharField(source='new_machine_tags', required=False)
+    tags = serializers.CharField(source='new_machine_tags', required=False,
+                                 allow_blank=True)
     threshold = NewThresholdField(source='new_machine_threshold', required=False)
     #TODO: Convert to 'LicenseField' and allow POST of ID instead of
     #      full-object. for additional support for the image creator

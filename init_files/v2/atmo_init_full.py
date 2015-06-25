@@ -1078,6 +1078,7 @@ def redeploy_atmo_init(user, public_ip_hint):
     start_vncserver(user)
     start_shellinaboxd()
     distro = get_distro()
+    start_ntp(distro)
     #Get IP addr//Hostname from instance metadata
     instance_metadata = get_metadata()
     hostname = get_hostname(instance_metadata, public_ip_hint)
@@ -1132,6 +1133,7 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password,
     nagios()
     distro_files(distro)
     update_timezone()
+    start_ntp(distro)
     shellinaboxd(distro)
     insert_modprobe()
     denyhost_whitelist()
@@ -1193,6 +1195,12 @@ def check_ldap(user):
         if not found:
                 raise Exception("Failed to contact ldap within %d seconds" % (delay_time * max_tries))
 
+def start_ntp(distro):
+      if is_rhel(distro):
+         if os.path.exists("/etc/init.d/ntpd"):
+            run_command(["/etc/init.d/ntpd", "restart"])
+      elif os.path.exists("/etc/init.d/ntp"):
+         run_command(["/etc/init.d/ntp", "restart"])
 
 def main(argv):
     init_logs('/var/log/atmo/atmo_init_full.log')
