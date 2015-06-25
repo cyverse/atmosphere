@@ -40,7 +40,7 @@ class GetListTests(APITestCase):
         response = self.view(self.request)
         data = response.data.get('results')[0]
 
-        self.assertEquals(len(data), 12)
+        self.assertEquals(len(data), 11)
         self.assertIn('id', data)
         self.assertIn('url', data)
         self.assertIn('uuid', data)
@@ -50,7 +50,6 @@ class GetListTests(APITestCase):
         self.assertIn('tags', data)
         self.assertIn('created_by', data)
         self.assertIn('provider_images', data)
-        self.assertIn('machine_count', data)
         self.assertIn('start_date', data)
         self.assertIn('end_date', data)
 
@@ -69,7 +68,7 @@ class GetDetailTests(APITestCase):
 
     def test_is_public(self):
         force_authenticate(self.request, user=self.anonymous_user)
-        response = self.view(self.request, pk=self.user.id)
+        response = self.view(self.request, pk=self.image.id)
         self.assertEquals(response.status_code, 200)
 
     def test_is_visible_to_authenticated_user(self):
@@ -82,7 +81,7 @@ class GetDetailTests(APITestCase):
         response = self.view(self.request, pk=self.image.id)
         data = response.data
 
-        self.assertEquals(len(data), 12)
+        self.assertEquals(len(data), 11)
         self.assertIn('id', data)
         self.assertIn('url', data)
         self.assertIn('uuid', data)
@@ -92,7 +91,6 @@ class GetDetailTests(APITestCase):
         self.assertIn('tags', data)
         self.assertIn('created_by', data)
         self.assertIn('provider_images', data)
-        self.assertIn('machine_count', data)
         self.assertIn('start_date', data)
         self.assertIn('end_date', data)
 

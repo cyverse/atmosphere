@@ -1,10 +1,10 @@
 from core.models import Quota
 
 from api.v2.serializers.details import QuotaSerializer
-from api.v2.views.base import AuthReadOnlyViewSet
+from api.v2.views.base import AuthViewSet
 
 
-class QuotaViewSet(AuthReadOnlyViewSet):
+class QuotaViewSet(AuthViewSet):
     """
     API endpoint that allows providers to be viewed or edited.
     """

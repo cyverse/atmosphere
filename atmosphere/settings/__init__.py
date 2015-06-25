@@ -273,12 +273,14 @@ API_LOG_FILENAME = create_log_path("atmosphere_api.log")
 AUTH_LOG_FILENAME = create_log_path('atmosphere_auth.log')
 EMAIL_LOG_FILENAME = create_log_path('atmosphere_email.log')
 STATUS_LOG_FILENAME = create_log_path('atmosphere_status.log')
+DEPLOY_LOG_FILENAME = create_log_path('atmosphere_deploy.log')
 
 check_and_touch(LOG_FILENAME)
 check_and_touch(API_LOG_FILENAME)
 check_and_touch(AUTH_LOG_FILENAME)
 check_and_touch(EMAIL_LOG_FILENAME)
 check_and_touch(STATUS_LOG_FILENAME)
+check_and_touch(DEPLOY_LOG_FILENAME)
 
 #####
 # FileHandler
@@ -289,7 +291,7 @@ api_fh = logging.FileHandler(API_LOG_FILENAME)
 auth_fh = logging.FileHandler(AUTH_LOG_FILENAME)
 email_fh = logging.FileHandler(EMAIL_LOG_FILENAME)
 status_fh = logging.FileHandler(STATUS_LOG_FILENAME)
-
+deploy_fh = logging.FileHandler(DEPLOY_LOG_FILENAME)
 ####
 # Formatters
 ####
@@ -337,6 +339,14 @@ threepio.auth_logger = threepio\
                     app_logging_level=LOGGING_LEVEL,
                     dep_logging_level=DEP_LOGGING_LEVEL,
                     global_logger=False)
+threepio.deploy_logger = threepio\
+        .initialize("atmosphere_deploy",
+                    handlers=[deploy_fh],
+                    log_filename=DEPLOY_LOG_FILENAME,
+                    app_logging_level=LOGGING_LEVEL,
+                    dep_logging_level=DEP_LOGGING_LEVEL,
+                    global_logger=False)
+
 
 ##Directory that the app (One level above this file) exists
 # (TEST if this is necessary)
@@ -462,6 +472,12 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=120),
         #"schedule": crontab(hour="0", minute="0", day_of_week="*"),
         "options": {"expires": 60*60}
+    },
+    "monthly_allocation_reset": {
+        "task": "monthly_allocation_reset",
+        #Every month, first of the month.
+        "schedule": crontab(0, 0, day_of_month=1, month_of_year="*"),
+        "options": {"expires": 5*60, "time_limit": 5*60}
     },
     "remove_empty_networks": {
         "task": "remove_empty_networks",

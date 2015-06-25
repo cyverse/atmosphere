@@ -904,7 +904,7 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         _deploy_init_to.retry(exc=exc)
     try:
         username = identity.user.username
-        playbooks = ansible_deploy_to(instance.ip, username)
+        playbooks = ansible_deploy_to(instance.ip, username, instance_id)
         _update_status_log(instance, "Ansible Finished for %s." % instance.ip)
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
     except DeploymentError as exc:

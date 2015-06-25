@@ -100,4 +100,3 @@ class UpdateTests(APITestCase):
 class DeleteTests(APITestCase):
     def test_endpoint_does_not_exist(self):
         self.assertTrue('delete' not in ViewSet.http_method_names)
-

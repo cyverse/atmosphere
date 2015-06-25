@@ -35,7 +35,8 @@ def unresolved_requests_only(fn):
 
 
 class AuthViewSet(ModelViewSet):
-
+    http_method_names = ['get', 'put', 'patch', 'post',
+                         'delete', 'head', 'options', 'trace']
     permission_classes = (InMaintenance,
                            ApiAuthRequired,)
 
@@ -49,7 +50,7 @@ class AuthOptionalViewSet(ModelViewSet):
 class AuthReadOnlyViewSet(ReadOnlyModelViewSet):
 
     permission_classes = (InMaintenance,
-                           ApiAuthOptional,)
+                          ApiAuthOptional,)
 
 
 class BaseRequestViewSet(AuthViewSet):

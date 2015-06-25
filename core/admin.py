@@ -351,7 +351,8 @@ class InstanceStatusHistoryAdmin(admin.ModelAdmin):
             "instance__provider_alias", "status__name"]
     list_display = ["instance_alias", "status", "start_date", "end_date"]
     list_filter = ["instance__source__provider__location",
-                   "status__name"]
+                   "status__name",
+                   "instance__created_by__username" ]
     ordering = ('-start_date',)
     def instance_alias(self, model):
         return model.instance.provider_alias

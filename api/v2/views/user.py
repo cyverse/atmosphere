@@ -1,6 +1,6 @@
 from core.models import AtmosphereUser
 from api.v2.serializers.details import UserSerializer
-from api.v2.views.base import AuthReadOnlyViewSet
+from api.v2.views.base import AuthViewSet
 
 from rest_framework.filters import SearchFilter
 from django.utils import six
@@ -31,7 +31,7 @@ class MinLengthRequiredSearchFilter(SearchFilter):
         fields = ["username", "email"]
 
 
-class UserViewSet(AuthReadOnlyViewSet):
+class UserViewSet(AuthViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
