@@ -1,10 +1,10 @@
 from core.models import Allocation
 
 from api.v2.serializers.details import AllocationSerializer
-from api.v2.views.base import AuthReadOnlyViewSet
+from api.v2.views.base import AuthViewSet
 
 
-class AllocationViewSet(AuthReadOnlyViewSet):
+class AllocationViewSet(AuthViewSet):
     """
     API endpoint that allows providers to be viewed or edited.
     """

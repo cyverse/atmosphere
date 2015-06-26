@@ -38,6 +38,7 @@ from core.models.profile import UserProfile
 from service.deploy import init, check_process, wrap_script, echo_test_script,\
     deploy_to as ansible_deploy_to
 from service.driver import get_driver, get_esh_driver, get_account_driver
+from service.exceptions import AnsibleDeployException
 from service.instance import update_instance_metadata
 from service.instance import _create_and_attach_port
 from service.networking import _generate_ssh_kwargs
@@ -877,8 +878,8 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
 
 @task(name="_deploy_init_to",
       default_retry_delay=124,
-      time_limit=120*60,  # 120 minute hard-set time limit.
-      max_retries=60)
+      time_limit=32*60,  # 32 minute hard-set time limit.
+      max_retries=10)
 def _deploy_init_to(driverCls, provider, identity, instance_id,
                     username=None, password=None, token=None, redeploy=False,
                     **celery_task_args):
@@ -907,6 +908,9 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         playbooks = ansible_deploy_to(instance.ip, username, instance_id)
         _update_status_log(instance, "Ansible Finished for %s." % instance.ip)
         logger.debug("_deploy_init_to task finished at %s." % datetime.now())
+    except AnsibleDeployException as exc:
+        logger.exception(exc)
+        _deploy_init_to.retry(exc=exc)
     except DeploymentError as exc:
         logger.exception(exc)
         full_deploy_output = _parse_steps_output(msd)
@@ -984,7 +988,6 @@ def check_process_task(driverCls, provider, identity,
     except (BaseException, Exception) as exc:
         logger.exception(exc)
         check_process_task.retry(exc=exc)
-
 
 
 @task(name="update_metadata", max_retries=250, default_retry_delay=15)

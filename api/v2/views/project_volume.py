@@ -22,6 +22,7 @@ class ProjectVolumeViewSet(AuthViewSet):
         """
         user = self.request.user
         now = timezone.now()
+        #TODO: Refactor -- core.query
         return ProjectVolume.objects.filter(
             Q(volume__instance_source__end_date__gt=now)
             | Q(volume__instance_source__end_date__isnull=True),
