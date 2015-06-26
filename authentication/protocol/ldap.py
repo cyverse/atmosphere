@@ -59,7 +59,7 @@ def lookupUser(userid):
     except Exception as e:
         logger.warn("Error occurred looking up user: %s" % userid)
         logger.exception(e)
-        return None
+        raise
 
 
 def lookupEmail(userid):
@@ -76,16 +76,7 @@ def lookupEmail(userid):
     except Exception as e:
         logger.warn("Error occurred looking up email for user: %s" % userid)
         logger.exception(e)
-        import traceback
-        import sys
-        import inspect
-        s = inspect.stack()
-        for i in range(0, 4):
-            logger.debug(s[i])
-        etype, value, tb = sys.exc_info()
-        logger.error("TB = %s" % traceback.format_tb(tb))
-
-        return None
+        raise
 
 
 def ldap_validate(username, password):
