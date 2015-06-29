@@ -1,6 +1,7 @@
 from datetime import datetime
 import time
 
+from socket import error as socket_error
 from django.utils import timezone
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
@@ -70,7 +71,7 @@ def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
     esh_instance = None
     try:
         esh_instance = esh_driver.get_instance(instance_id)
-    except ConnectionFailure:
+    except (socket_error, ConnectionFailure):
         return connection_failure(provider_uuid, identity_uuid)
     except InvalidCredsError:
         return invalid_creds(provider_uuid, identity_uuid)
@@ -113,6 +114,8 @@ class InstanceList(AuthAPIView):
             esh_instance_list = get_cached_instances(identity=identity)
         except MalformedResponseError:
             return malformed_response(provider_uuid, identity_uuid)
+        except (socket_error, ConnectionFailure):
+            return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         core_instance_list = [convert_esh_instance(esh_driver,
@@ -174,7 +177,7 @@ class InstanceList(AuthAPIView):
             return size_not_availabe(snae)
         except SecurityGroupNotCreated:
             return connection_failure(provider_uuid, identity_uuid)
-        except ConnectionFailure:
+        except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -434,7 +437,7 @@ class InstanceAction(AuthAPIView):
 
         try:
             esh_instance = esh_driver.get_instance(instance_id)
-        except ConnectionFailure:
+        except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -565,7 +568,7 @@ class InstanceAction(AuthAPIView):
             return over_quota(oae)
         except SizeNotAvailable, snae:
             return size_not_availabe(snae)
-        except ConnectionFailure:
+        except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -613,7 +616,7 @@ class Instance(AuthAPIView):
             return invalid_creds(provider_uuid, identity_uuid)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
-        except ConnectionFailure:
+        except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -651,7 +654,7 @@ class Instance(AuthAPIView):
             return invalid_creds(provider_uuid, identity_uuid)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
-        except ConnectionFailure:
+        except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -698,7 +701,7 @@ class Instance(AuthAPIView):
             return invalid_creds(provider_uuid, identity_uuid)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
-        except ConnectionFailure:
+        except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -749,7 +752,7 @@ class Instance(AuthAPIView):
             return invalid_creds(provider_uuid, identity_uuid)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
-        except ConnectionFailure:
+        except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -777,7 +780,7 @@ class Instance(AuthAPIView):
         except VolumeAttachConflict as exc:
             message = exc.message
             return failure_response(status.HTTP_409_CONFLICT, message)
-        except ConnectionFailure:
+        except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -804,7 +807,7 @@ class Instance(AuthAPIView):
         except (Identity.DoesNotExist) as exc:
             return failure_response(status.HTTP_400_BAD_REQUEST,
                                     "Invalid provider_uuid or identity_uuid.")
-        except ConnectionFailure:
+        except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
