@@ -8,9 +8,12 @@ from rest_framework.response import Response
 from core.models.size import convert_esh_size
 
 from service.driver import prepare_driver
-from libcloud.common.types import MalformedResponseError
+from libcloud.common.types import InvalidCredsError, MalformedResponseError
 
-from api import invalid_creds, malformed_response
+from socket import error as socket_error
+from rtwo.exceptions import ConnectionFailure
+
+from api import invalid_creds, malformed_response, connection_failure
 from api.v1.serializers import ProviderSizeSerializer
 from api.v1.views.base import AuthAPIView
 
@@ -37,6 +40,8 @@ class SizeList(AuthAPIView):
             return malformed_response(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
+        except (socket_error, ConnectionFailure):
+            return connection_failure(provider_uuid, identity_uuid)
         all_size_list = [convert_esh_size(size, provider_uuid)
                          for size in esh_size_list]
         if active:

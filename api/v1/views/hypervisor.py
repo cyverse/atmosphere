@@ -4,11 +4,15 @@ from django.utils import timezone
 
 from rest_framework.response import Response
 
+from socket import error as socket_error
+from rtwo.exceptions import ConnectionFailure
+from rest_framework import status
+
 from core.models import Provider
 
 from service.driver import prepare_driver, get_admin_driver
 
-from api import invalid_creds
+from api import invalid_creds, connection_failure, failure_response
 from api.v1.views.base import AuthAPIView
 
 
@@ -30,14 +34,25 @@ class HypervisorList(AuthAPIView):
             return invalid_creds(provider_uuid, identity_uuid)
         esh_driver = get_admin_driver(provider[0])
         esh_hypervisor_list = []
-        if hasattr(esh_driver._connection, 'ex_list_hypervisor_nodes'):
+        if not hasattr(esh_driver._connection, 'ex_list_hypervisor_nodes'):
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                "The Hypervisor List cannot be retrieved for this provider.")
+        try:
             esh_hypervisor_list =\
                 esh_driver._connection.ex_list_hypervisor_nodes()
-        region_name = esh_driver._connection._ex_force_service_region
-        for obj in esh_hypervisor_list:
-            obj['service_region'] = region_name
-        response = Response(esh_hypervisor_list)
-        return response
+            region_name = esh_driver._connection._ex_force_service_region
+            for obj in esh_hypervisor_list:
+                obj['service_region'] = region_name
+
+            response = Response(esh_hypervisor_list)
+            return response
+        except (socket_error, ConnectionFailure):
+            return connection_failure(provider_uuid, identity_uuid)
+        except Exception as exc:
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                "Error encountered retrieving hypervisor list:%s" % exc)
 
 
 class HypervisorDetail(AuthAPIView):
@@ -59,9 +74,19 @@ class HypervisorDetail(AuthAPIView):
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         hypervisor = {}
-        if hasattr(esh_driver._connection, 'ex_detail_hypervisor_node'):
+        if not hasattr(esh_driver._connection, 'ex_detail_hypervisor_node'):
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                "Hypervisor Details cannot be retrieved for this provider.")
+        try:
             hypervisor = esh_driver._connection\
                     .ex_detail_hypervisor_node(hypervisor_id)
             hypervisor['cpu_info'] = json.loads(hypervisor['cpu_info'])
-        response = Response(hypervisor)
-        return response
+            response = Response(hypervisor)
+            return response
+        except (socket_error, ConnectionFailure):
+            return connection_failure(provider_uuid, identity_uuid)
+        except Exception as exc:
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                "Error encountered retrieving hypervisor details:%s" % exc)
