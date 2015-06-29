@@ -67,16 +67,15 @@ class Hypervisor(AuthAPIView):
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
                 "The driver cannot be retrieved for this provider.")
-        if hasattr(admin_driver._connection, "ex_hypervisor_statistics"):
-            try:
-                stats = admin_driver._connection.ex_hypervisor_statistics()
-            except (socket_error, ConnectionFailure):
-                return connection_failure(provider_uuid)
-            except Exception as exc:
-                return failure_response(status.HTTP_503_SERVICE_UNAVAILABLE,
-                        "Error occurred while retrieving statistics: %s" % exc)
-            return Response(stats)
-        else:
+        if not hasattr(admin_driver._connection, "ex_hypervisor_statistics"):
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                "Hypervisor statistics are unavailable for this provider.")
+                "Occupancy statistics cannot be retrieved for this provider.")
+        try:
+            stats = admin_driver._connection.ex_hypervisor_statistics()
+            return Response(stats)
+        except (socket_error, ConnectionFailure):
+            return connection_failure(provider_uuid)
+        except Exception as exc:
+            return failure_response(status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Error occurred while retrieving statistics: %s" % exc)
