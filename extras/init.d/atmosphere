@@ -11,10 +11,15 @@ WEB_SERVICE="apache2" # could be httpd on centos..
 WEB_INITD="/etc/init.d/$WEB_SERVICE"
 CELERY_INITD="/etc/init.d/celeryd"
 CELERYBEAT_INITD="/etc/init.d/celerybeat"
-if [[ `python -mplatform` == *"Ubuntu-14.04"* ]]; then
-    REDIS_INITD="/etc/init/redis-server.conf"
-else
-    REDIS_INITD="/etc/init.d/redis-server"
+if [ -f "/etc/init.d/rabbitmq-server" ]; then
+    TASK_MGR_SERVICE="/etc/init.d/rabbitmq-server"
+    TASK_MGR="rabbitmq-server"
+elif [ -f "/etc/init/redis-server.conf" ]; then
+    TASK_MGR_SERVICE="/etc/init/redis-server.conf"
+    TASK_MGR="redis-server"
+elif [ -f "/etc/init.d/redis-server" ]; then
+    TASK_MGR_SERVICE="/etc/init.d/redis-server"
+    TASK_MGR="redis-server"
 fi
 CELERY_DEFAULT="/etc/default/celeryd"
 
@@ -35,9 +40,9 @@ elif [ ! -f  $CELERY_DEFAULT ]; then
     echo "cp /opt/dev/atmosphere/extras/init.d/celeryd.default.dist /opt/dev/atmosphere/extras/init.d/celeryd.default"
     echo "ln -s /opt/dev/atmosphere/extras/init.d/celeryd.default $CELERY_DEFAULT"
     exit 1
-elif [ ! -f  $REDIS_INITD ]; then
-    echo "MISSING DEPEDENCY: Init file for $REDIS_INITD missing."
-    echo "sudo apt-get install redis-server"
+elif [ ! -f  $TASK_MGR_SERVICE ]; then
+    echo "MISSING DEPEDENCY: Init file for $TASK_MGR_SERVICE missing."
+    echo "sudo apt-get install $TASK_MGR"
     exit 1
 elif [ ! -f  $WEB_INITD ]; then
     echo "MISSING DEPEDENCY: Expected apache service file $WEB_INITD missing"
@@ -47,7 +52,7 @@ fi
 case "$1" in
 status)
     service apache2 status
-    service redis-server status
+    service $TASK_MGR status
     service celeryd status
     service celerybeat status
     service uwsgi status atmo.uwsgi
@@ -63,8 +68,8 @@ full-start | start)
     service uwsgi start
     printf "Starting $WEB_SERVICE\n"
     service $WEB_SERVICE start
-    printf "Starting redis server..\n"
-    service redis-server start
+    printf "Starting $TASK_MGR \n"
+    service $TASK_MGR start
     printf "Starting Celery..\n"
     service celeryd start
     printf "Starting Celerybeat..\n"
@@ -83,8 +88,8 @@ full-stop)
     printf "Stopping Celery..\n"
     service celeryd stop
     service celerybeat stop
-    printf "Stopping redis server..\n"
-    service redis-server stop
+    printf "Stopping $TASK_MGR ..\n"
+    service $TASK_MGR stop
 ;;
 stop)
     printf "Stopping $NAME...\n"
@@ -128,6 +133,6 @@ celery-restart)
 
 *)
         echo "Usage: $0 {celery-restart|full-start|full-stop|status|start|stop|restart}"
-        echo "Full start/stop will include the redis-server in the process"
+        echo "Full start/stop will include the $TASK_MGR in the process"
         exit 1
 esac
