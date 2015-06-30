@@ -1,6 +1,8 @@
 """
 Atmosphere service volume
 """
+from socket import error as socket_error
+
 from django.utils.timezone import datetime, now
 
 from rest_framework.response import Response
@@ -81,14 +83,13 @@ class VolumeSnapshot(AuthAPIView):
         description = data.get('description')
         metadata = data.get('metadata')
         snapshot_id = data.get('snapshot_id')
-
         # STEP 0 - Existence tests
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         try:
             esh_volume = esh_driver.get_volume(volume_id)
-        except ConnectionFailure:
+        except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -205,10 +206,12 @@ class VolumeList(AuthAPIView):
             volume_list_method = esh_driver.list_all_volumes
         try:
             esh_volume_list = volume_list_method()
+        except (socket_error, ConnectionFailure):
+            return connection_failure(provider_uuid, identity_uuid)
         except MalformedResponseError:
-            return malformed_response(provider_id, identity_id)
+            return malformed_response(provider_uuid, identity_uuid)
         except InvalidCredsError:
-            return invalid_creds(provider_id, identity_id)
+            return invalid_creds(provider_uuid, identity_uuid)
 
         core_volume_list = [convert_esh_volume(volume, provider_uuid,
                                                identity_uuid, user)

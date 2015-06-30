@@ -13,7 +13,9 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from libcloud.common.types import InvalidCredsError, MalformedResponseError
+from socket import error as socket_error
 
+from rtwo.exceptions import ConnectionFailure
 from threepio import logger
 
 from core.models import AtmosphereUser as User
@@ -27,7 +29,7 @@ from core.metadata import update_machine_metadata
 from service.driver import prepare_driver
 from service.search import search, CoreSearchProvider
 
-from api import failure_response, invalid_creds, malformed_response
+from api import failure_response, invalid_creds, malformed_response, connection_failure
 from api.pagination import OptionalPagination
 from api.renderers import JPEGRenderer, PNGRenderer
 from api.v1.serializers import ProviderMachineSerializer,\
@@ -99,6 +101,8 @@ class MachineList(AuthAPIView):
             return invalid_creds(provider_uuid, identity_uuid)
         except MalformedResponseError:
             return malformed_response(provider_uuid, identity_uuid)
+        except (socket_error, ConnectionFailure):
+            return connection_failure(provider_uuid, identity_uuid)
         except Exception as e:
             logger.exception("Unexpected exception for user:%s"
                              % request_user)

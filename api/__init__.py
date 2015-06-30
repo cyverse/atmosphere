@@ -87,7 +87,7 @@ def invalid_creds(provider_id, identity_id):
         'Identity/Provider Authentication Failed')
 
 
-def connection_failure(provider_id, identity_id):
+def connection_failure(provider_id, identity_id=None):
     logger.warn('Multiple Connection Attempts Failed. '
                 'Provider-id:%s Identity-id:%s'
                 % (provider_id, identity_id))
