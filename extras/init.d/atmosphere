@@ -11,10 +11,12 @@ WEB_SERVICE="apache2" # could be httpd on centos..
 WEB_INITD="/etc/init.d/$WEB_SERVICE"
 CELERY_INITD="/etc/init.d/celeryd"
 CELERYBEAT_INITD="/etc/init.d/celerybeat"
-if [[ `python -mplatform` == *"Ubuntu-14.04"* ]]; then
-    REDIS_INITD="/etc/init/redis-server.conf"
-else
-    REDIS_INITD="/etc/init.d/redis-server"
+if [ -f "/etc/init.d/rabbitmq-server" ]; then
+    TASK_MGR_SERVICE="/etc/init.d/rabbitmq-server"
+elif [ -f "/etc/init/redis-server.conf" ]; then
+    TASK_MGR_SERVICE="/etc/init/redis-server.conf"
+elif [ -f "/etc/init.d/redis-server" ]; then
+    TASK_MGR_SERVICE="/etc/init.d/redis-server"
 fi
 CELERY_DEFAULT="/etc/default/celeryd"
 
@@ -35,8 +37,8 @@ elif [ ! -f  $CELERY_DEFAULT ]; then
     echo "cp /opt/dev/atmosphere/extras/init.d/celeryd.default.dist /opt/dev/atmosphere/extras/init.d/celeryd.default"
     echo "ln -s /opt/dev/atmosphere/extras/init.d/celeryd.default $CELERY_DEFAULT"
     exit 1
-elif [ ! -f  $REDIS_INITD ]; then
-    echo "MISSING DEPEDENCY: Init file for $REDIS_INITD missing."
+elif [ ! -f  $TASK_MGR_SERVICE ]; then
+    echo "MISSING DEPEDENCY: Init file for $TASK_MGR_SERVICE missing."
     echo "sudo apt-get install redis-server"
     exit 1
 elif [ ! -f  $WEB_INITD ]; then
