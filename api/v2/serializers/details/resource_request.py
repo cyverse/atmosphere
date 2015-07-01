@@ -144,6 +144,8 @@ class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
     allocation = AllocationRelatedField(queryset=Allocation.objects.all(),
                                         allow_null=True,
                                         required=False)
+
+    #TODO should be refactored to not use SerializerMethodField()
     current_quota = serializers.SerializerMethodField()
     current_allocation = serializers.SerializerMethodField()
 
