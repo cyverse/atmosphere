@@ -37,9 +37,12 @@ class MachineRequest(models.Model):
     parent_machine = models.ForeignKey(ProviderMachine,
                                        related_name="ancestor_machine")
 
-    # Data for the new machine.
-    # SPECIFIC to 'forked=True'
+    # Data for the new machine, version and app...
+    # Application specific:
     new_application_name = models.CharField(max_length=256, null=True, blank=True)
+    new_application_description = models.TextField(default='', blank=True, null=True)
+    new_application_visibility = models.CharField(max_length=256, blank=True, null=True) # Choices:Public, Private, Select
+    access_list = models.TextField(default='', blank=True, null=True) # DEPRECATED
     # SPECIFIC to 'forked=False'
 
     # Specific to ApplicationVersion && ProviderMachine
@@ -47,16 +50,14 @@ class MachineRequest(models.Model):
     installed_software = models.TextField(default='', blank=True, null=True)
     exclude_files = models.TextField(default='', blank=True, null=True)
     new_version_name = models.CharField(max_length=256, blank=True, null=True)
+    new_version_change_log = models.TextField(default='', blank=True, null=True)
     new_version_allow_imaging = models.BooleanField(default=True)
-    new_version_description = models.TextField(default='', blank=True, null=True)
     new_version_tags = models.TextField(default='', blank=True, null=True)
     new_version_forked = models.BooleanField(default=True)
     new_version_memory_min = models.IntegerField(default=0)
     new_version_storage_min = models.IntegerField(default=0)
     new_version_licenses = models.ManyToManyField(License, blank=True)
     new_version_membership = models.ManyToManyField("Group", blank=True)
-    new_version_visibility = models.CharField(max_length=256, blank=True, null=True) #Public, Private, Select
-    access_list = models.TextField(default='', blank=True, null=True) # DEPRECATED
 
     new_machine_provider = models.ForeignKey(Provider)
     new_machine_owner = models.ForeignKey(User)
@@ -461,6 +462,7 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     else:
         application = update_application(parent_version, machine_request.new_application_name, machine_request.new_machine_description, tags)
     app_version = create_app_version(application, self.new_version_name)
+
     #2. Create the new InstanceSource and appropriate Object, relations, Memberships..
     if ProviderMachine.test_existence(new_provider, new_image_id):
         pm = ProviderMachine.objects.get(identifier=new_image_id, provider=new_provider)
@@ -471,6 +473,7 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
         provider_machine_write_hook(pm)
 
     #Must be set in order to ask for threshold information
+    machine_request.new_application_version = app_version
     machine_request.new_machine = pm
 
     #3. Associate additional attributes to new application
