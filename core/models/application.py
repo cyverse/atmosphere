@@ -26,6 +26,9 @@ class Application(models.Model):
     """
     uuid = models.CharField(max_length=36, unique=True, default=uuid4)
     name = models.CharField(max_length=256)
+    #TODO: Dynamic location for upload_to
+    icon = models.ImageField(upload_to="application_versions", null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
     private = models.BooleanField(default=False)
     start_date = models.DateTimeField(default=timezone.now)
@@ -42,8 +45,13 @@ class Application(models.Model):
         return providermachine_set
 
     @property
-    def description(self):
-        return self.latest_version.description
+    def full_description(self):
+        description = self.description
+        for version in self.active_versions():
+            description += version.change_log
+
+    def active_versions(self, now_time=None):
+        return self.versions.filter(only_current(now_time)).order_by('start_date')
 
     def latest_description(self):
         return self.latest_version.description
@@ -58,7 +66,7 @@ class Application(models.Model):
     @property
     def latest_version(self):
         try:
-            return self.versions.order_by('start_date').last()
+            return self.active_versions().last()
         except ApplicationVersion.DoesNotExist:
             return None
 
@@ -377,7 +385,7 @@ def create_application(provider_uuid, identifier, name=None,
     """
     Create application & Initial ApplicationVersion.
     Build information (Based on MachineRequest or API inputs..)
-    and RETURN ApplicationVersion!!
+    and RETURN Application!!
     """
     from core.models import AtmosphereUser
     new_app = None
