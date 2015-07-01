@@ -27,7 +27,7 @@ class Application(models.Model):
     uuid = models.CharField(max_length=36, unique=True, default=uuid4)
     name = models.CharField(max_length=256)
     #TODO: Dynamic location for upload_to
-    icon = models.ImageField(upload_to="application_versions", null=True, blank=True)
+    icon = models.ImageField(upload_to="applications", null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
     private = models.BooleanField(default=False)
@@ -58,10 +58,6 @@ class Application(models.Model):
 
     def get_icon_url(self):
         return self.icon.url if self.icon else None
-
-    @property
-    def icon(self):
-        return self.latest_version.icon if self.latest_version.icon else None
 
     @property
     def latest_version(self):

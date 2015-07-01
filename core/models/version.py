@@ -30,7 +30,8 @@ class ApplicationVersion(models.Model):
     #Required
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     application = models.ForeignKey("Application", related_name="versions")
-    fork_version = models.ForeignKey("ApplicationVersion")
+    #NOTE: Parent is 'null' when this version was created by a STAFF user (import, etc.)
+    parent = models.ForeignKey("ApplicationVersion", blank=True, null=True)
     name = models.CharField(max_length=256)#Potentially goes unused..
     #Optional/default available
     change_log = models.TextField(null=True, blank=True)
