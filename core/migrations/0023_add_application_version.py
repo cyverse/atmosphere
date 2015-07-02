@@ -22,15 +22,15 @@ def migrate_to_new_fields(apps, schema_editor):
 
 def update_machine_requests(MachineRequest, ApplicationVersion, ApplicationThreshold):
     for request in MachineRequest.objects.order_by('id'):
-        update_machine_request(request, MachineRequest)
+        update_machine_request(request, MachineRequest, ApplicationVersion)
 
     for threshold in ApplicationThreshold.objects.order_by('id'):
         threshold.application_version = threshold.application.versions.last()
         threshold.save()
 
 
-def update_machine_request(request, MachineRequest):
-    _fill_version_using_machine_request(request)
+def update_machine_request(request, MachineRequest, ApplicationVersion):
+    _fill_version_using_machine_request(request, ApplicationVersion)
     #Update the request
 
 
@@ -40,7 +40,7 @@ def _many_to_many_copy(machine_manager, version_manager):
     for x in machine_manager.order_by('id'):
         version_manager.add(x)
 
-def _fill_version_using_machine_request(machine_request):
+def _fill_version_using_machine_request(machine_request, ApplicationVersion):
     current_version = None
     if machine_request.new_machine:
         current_version = machine_request.new_machine.application_version
@@ -52,7 +52,7 @@ def _fill_version_using_machine_request(machine_request):
     if not current_version:
         return
     if not current_version.parent:
-        current_version.parent = parent_version
+        current_version.parent = ApplicationVersion.objects.get(id=parent_version.id)
     #Double-check this..
     if not current_version.parent:
         print "WARN: Could not set fork version for MachineRequest %s." % machine_request.id
@@ -72,7 +72,8 @@ def update_application_versions(ProviderMachine, ProviderMachineMembership, Appl
     for machine in machines:
         created = update_application_version(machine, ApplicationVersion, ApplicationVersionMembership, ProviderMachineMembership)
         create_count += created
-    print "Converted %s ProviderMachines into %s ApplicationVersions on %s applications" % (ProviderMachine.objects.count(), ApplicationVersion.objects.count(), Application.objects.count())
+    #NOTE: comma at the end to intentionally leave all text on one line.
+    print "Converted %s ProviderMachines into %s ApplicationVersions on %s applications" % (ProviderMachine.objects.count(), ApplicationVersion.objects.count(), Application.objects.count()),
 
 def update_application_version(machine, ApplicationVersion, ApplicationVersionMembership, ProviderMachineMembership):
     source = machine.instance_source
@@ -108,7 +109,7 @@ def update_application_version(machine, ApplicationVersion, ApplicationVersionMe
     if machine_members.count():
         for pm_membership in machine_members:
             membership, _ = ApplicationVersionMembership.objects.get_or_create(
-                application_version = app_version,
+                application_version_id = app_version.id,
                 group_id = pm_membership.group.id,
                 can_share = pm_membership.can_share)
     return 1 if created else 0

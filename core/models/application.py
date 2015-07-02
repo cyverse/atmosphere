@@ -50,6 +50,22 @@ class Application(models.Model):
         for version in self.active_versions():
             description += version.change_log
 
+    def end_date_all(self, now=None):
+        if not now:
+            now = timezone.now()
+        for version in self.versions.all():
+            for machine in version.machines.all():
+                if not machine.end_date:
+                    machine.end_date = now
+                    machine.save()
+            if not version.end_date:
+                version.end_date = now
+                version.save()
+        if not self.end_date:
+            self.end_date = now
+            self.save()
+
+
     def active_versions(self, now_time=None):
         return self.versions.filter(only_current(now_time)).order_by('start_date')
 

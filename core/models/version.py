@@ -63,6 +63,9 @@ class ApplicationVersion(models.Model):
         return "%s - %s" % (self.application.name, self.start_date)
 
     @property
+    def machine_ids(self):
+        return self.machines.values_list('instance_source__identifier', flat=True)
+    @property
     def str_id(self):
         return str(self.id)
 
