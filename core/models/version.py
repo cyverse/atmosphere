@@ -27,16 +27,20 @@ class ApplicationVersion(models.Model):
 
     NOTE: Using this as the 'model' for DB moving to ID==UUID format.
     """
+    #Required
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     application = models.ForeignKey("Application", related_name="versions")
-    fork_version = models.ForeignKey("ApplicationVersion", blank=True, null=True)
-    name = models.CharField(max_length=32, blank=True, null=True)#Potentially goes unused..
-    description = models.TextField(null=True, blank=True)
-    #TODO: Dynamic location for upload_to
-    icon = models.ImageField(upload_to="application_versions", null=True, blank=True)
+    #NOTE: Parent is 'null' when this version was created by a STAFF user (import, etc.)
+    parent = models.ForeignKey("ApplicationVersion", blank=True, null=True)
+    name = models.CharField(max_length=256)#Potentially goes unused..
+    #Optional/default available
+    change_log = models.TextField(null=True, blank=True)
     allow_imaging = models.BooleanField(default=True)
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
+    # User/Identity that created the version object
+    created_by = models.ForeignKey('AtmosphereUser')
+    created_by_identity = models.ForeignKey(Identity, null=True)
     #TODO: Decide if we want to enable this information.. Is it useful?
     #As it stands now, we collect this information on the request, but 
     # this would allow users to edit/interact/view?
@@ -49,6 +53,11 @@ class ApplicationVersion(models.Model):
                                         related_name='application_versions',
                                         through='ApplicationVersionMembership',
                                         blank=True)
+    class Meta:
+        db_table = 'application_version'
+        app_label = 'core'
+        unique_together = ('application', 'name')
+
     #NOTE: Created_by, created_by_ident will be == Application (EVERY TIME!)
     def __unicode__(self):
         return "%s - %s" % (self.application.name, self.start_date)
@@ -110,14 +119,14 @@ def create_app_version(app, version="1.0"):
     last_version = app.latest_version
     if last_version:
         #DEFAULT: Inherit your information from your parents
-        app_version.description=last_version.description
+        app_version.change_log=last_version.description
         app_version.icon=last_version.icon
         app_version.allow_imaging=last_version.allow_imaging
         app_version.save()
         transfer_licenses(last_version, app_version)
         transfer_membership(last_version, app_version)
     else:
-        app_version.description = "New Application %s - Version %s" % (app.name, app_version.name)
+        app_version.change_log = "New Application %s - Version %s" % (app.name, app_version.name)
         app_version.save()
     return app_version
 
