@@ -210,7 +210,7 @@ def get_or_create_provider_machine(image_id, machine_name,
     if not version:
         version = get_version_for_machine(provider_uuid, image_id)
     if not version:
-        version = create_app_version(app)
+        version = create_app_version(app, "1.0")
 
     return create_provider_machine(image_id, provider_uuid, app, version=version)
 
@@ -274,8 +274,6 @@ def create_provider_machine(identifier, provider_uuid, app,
     if not created_by_identity:
         created_by_identity = provider.admin
 
-    logger.debug("Provider %s" % provider)
-    logger.debug("App %s" % app)
     #TODO: Reminder to re-evaluate these lines when you get to Django 1.8
     source = InstanceSource.objects.create(
         identifier=identifier,
@@ -285,6 +283,9 @@ def create_provider_machine(identifier, provider_uuid, app,
     )
     if not version:
         version = create_app_version(app)
+    logger.debug("Provider %s" % provider)
+    logger.debug("App %s" % app)
+    logger.debug("Version %s" % version)
     provider_machine = ProviderMachine.objects.create(
         instance_source=source,
         application_version=version,

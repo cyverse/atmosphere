@@ -3,7 +3,7 @@
 """
 import uuid
 
-from django.db import models
+from django.db import models, IntegrityError
 from django.utils import timezone
 from threepio import logger
 
@@ -60,7 +60,7 @@ class ApplicationVersion(models.Model):
 
     #NOTE: Created_by, created_by_ident will be == Application (EVERY TIME!)
     def __unicode__(self):
-        return "%s - %s" % (self.application.name, self.start_date)
+        return "%s:%s - %s" % (self.application.name, self.name, self.start_date)
 
     @property
     def machine_ids(self):
@@ -105,25 +105,41 @@ def get_version_for_machine(provider_uuid, identifier):
         return None
 
 
-def get_app_version(app, version):
+def get_app_version(app, version, created_by=None, created_by_identity=None):
     try:
         app_version = ApplicationVersion.objects.get(
             name=version,
             application=app)
         return app_version
     except ApplicationVersion.DoesNotExist:
-        app_version = create_app_version(app)
+        app_version = create_app_version(app, version, created_by, created_by_identity)
         return app_version
 
-def create_app_version(app, version="1.0"):
-    app_version = ApplicationVersion.objects.create(
-        application=app,
-        name=version)
+def create_unique_version(app, version, created_by, created_by_identity):
+    while True:
+        try:
+            app_version = ApplicationVersion.objects.create(
+                application=app,
+                name=version,
+                created_by=created_by,
+                created_by_identity=created_by_identity,
+            )
+            return app_version
+        except IntegrityError as duplicate_found:
+            logger.warn( "Version %s is taken for Application %s" % (version, app))
+            version += ".0"
+
+
+def create_app_version(app, version_str, created_by=None, created_by_identity=None):
+    if not created_by:
+        created_by = app.created_by
+    if not created_by_identity:
+        created_by_identity = app.created_by_identity
+    app_version = create_unique_version(app, version_str, created_by, created_by_identity)
     last_version = app.latest_version
     if last_version:
         #DEFAULT: Inherit your information from your parents
-        app_version.change_log=last_version.description
-        app_version.icon=last_version.icon
+        app_version.change_log=last_version.change_log
         app_version.allow_imaging=last_version.allow_imaging
         app_version.save()
         transfer_licenses(last_version, app_version)
