@@ -210,6 +210,11 @@ class VolumeList(APIView):
             return malformed_response(provider_id, identity_id)
         except InvalidCredsError:
             return invalid_creds(provider_id, identity_id)
+        except Exception:
+            logger.exception("Something unforseen has happened here")
+            return failure_response(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                'Volume list method failed. Contact support')
 
         core_volume_list = [convert_esh_volume(volume, provider_uuid,
                                                identity_uuid, user)
