@@ -2,6 +2,8 @@
 Atmosphere service exceptions.
 """
 
+from ansible.errors import AnsibleError
+
 
 class ActionNotAllowed(Exception):
     def __init__(self, message):
@@ -116,5 +118,5 @@ class VolumeMountConflict(Exception):
         return "%s" % (self.message, )
 
 
-class AnsibleDeployException(Exception):
+class AnsibleDeployException(AnsibleError):
     pass
