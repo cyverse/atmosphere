@@ -151,11 +151,11 @@ class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_current_quota(self, request):
         user_membership = IdentityMembership.objects.get(id=request.membership_id)
-        return user_membership.quota.id
+        return user_membership.quota.id if user_membership.quota else None
 
     def get_current_allocation(self, request):
         user_membership = IdentityMembership.objects.get(id=request.membership_id)
-        return user_membership.allocation.id
+        return user_membership.allocation.id if user_membership.allocation else None
 
     class Meta:
         model = ResourceRequest
