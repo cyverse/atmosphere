@@ -232,7 +232,7 @@ def send_instance_email(username, instance_id, instance_name,
     Returns a boolean.
     """
     format_string = '%b, %d %Y %H:%M:%S'
-    username, user_email, user_name = user_email_info(user)
+    username, user_email, user_name = user_email_info(username)
     launched_at = launched_at.replace(tzinfo=None)
     utc_date = django_timezone.make_aware(launched_at,
                                           timezone=pytz_timezone('UTC'))
