@@ -155,7 +155,7 @@ def build_host_name(ip):
 
 
 def cache_bust_redis(hostname):
-    r.del("ansible_facts%s" % hostname)
+    r.delete("ansible_facts%s" % hostname)
 
 
 def log_playbook_summaries(logger, pbs, hostname):
