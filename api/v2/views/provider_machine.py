@@ -40,7 +40,6 @@ class ProviderMachineViewSet(AuthReadOnlyViewSet):
     def get_queryset(self):
         request_user = self.request.user
         version_id = self.request.QUERY_PARAMS.get('application_version__id')
-        import ipdb;ipdb.set_trace()
         #Showing non-end dated, public ProviderMachines
         public_set = ProviderMachine.objects.filter(only_current_source(), application_version__application__private=False)
         if type(request_user) != AnonymousUser:
