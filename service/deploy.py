@@ -155,7 +155,11 @@ def build_host_name(ip):
 
 
 def cache_bust_redis(hostname):
-    r.delete("ansible_facts%s" % hostname)
+    try:
+        r.zrem("ansible_cache_keys", hostname)
+        r.delete("ansible_facts%s" % hostname)
+    except Exception as ex:
+        logger.warn("Problem with cache_bust_redis: %s" % ex.message)
 
 
 def log_playbook_summaries(logger, pbs, hostname):
