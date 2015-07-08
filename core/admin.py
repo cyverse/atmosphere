@@ -375,6 +375,9 @@ class ResourceRequestAdmin(admin.ModelAdmin):
     list_filter = ["status", "membership__identity__provider__location"]
     exclude = ("membership",)
 
+    def has_add_permission(self, request):
+        return False
+
     def save_model(self, request, obj, form, changed):
         obj.end_date = timezone.now()
         obj.save()
