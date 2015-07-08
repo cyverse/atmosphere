@@ -49,7 +49,6 @@ class GetListTests(APITestCase):
         self.assertIn('icon', data)
         self.assertIn('tags', data)
         self.assertIn('created_by', data)
-        self.assertIn('provider_images', data)
         self.assertIn('start_date', data)
         self.assertIn('end_date', data)
 
@@ -90,7 +89,6 @@ class GetDetailTests(APITestCase):
         self.assertIn('icon', data)
         self.assertIn('tags', data)
         self.assertIn('created_by', data)
-        self.assertIn('provider_images', data)
         self.assertIn('start_date', data)
         self.assertIn('end_date', data)
 
