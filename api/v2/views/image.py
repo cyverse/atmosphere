@@ -12,6 +12,20 @@ from core.query import only_current, only_current_apps
 from api.v2.serializers.details import ImageSerializer
 from api.v2.views.base import AuthOptionalViewSet
 
+def get_admin_images(request_user):
+     # Final query for admins/staff images
+     provider_id_list = request_user.identity_set.values_list('provider',flat=True)
+     # TODO: This 'just works' and is probably very slow... Look for a better way?
+     account_providers_list = AccountProvider.objects.filter(provider__id__in=provider_id_list)
+     admin_users = [ap.identity.created_by for ap in account_providers_list]
+     image_ids = []
+     for user in admin_users:
+         image_ids.extend(
+             user.application_set.values_list('id', flat=True))
+     admin_list = Image.objects.filter(
+         only_current_apps(),
+         id__in=image_ids)
+     return admin_list
 
 class ImageViewSet(AuthOptionalViewSet):
     """
@@ -42,19 +56,10 @@ class ImageViewSet(AuthOptionalViewSet):
                 versions__machines__members__id__in=
                     request_user.group_set.values_list('id', flat=True))
             if not request_user.is_staff:
-                return (public_image_set | my_images | privately_shared).distinct()
-            # Final query for admins/staff images
-            provider_id_list = request_user.identity_set.values_list('provider',flat=True)
-            # TODO: This 'just works' and is probably very slow... Look for a better way?
-            account_providers_list = AccountProvider.objects.filter(provider__id__in=provider_id_list)
-            admin_users = [ap.identity.created_by for ap in account_providers_list]
-            image_ids = []
-            for user in admin_users:
-                image_ids.extend(
-                    user.application_set.values_list('id', flat=True))
-            admin_list = Image.objects.filter(
-                only_current_apps(),
-                id__in=image_ids)
+                admin_list = Image.objects.none()
+            else:
+                admin_list = get_admin_images(request_user)
+
             return (public_image_set | my_images | privately_shared | admin_list).distinct()
         else:
             return Image.objects.none()
