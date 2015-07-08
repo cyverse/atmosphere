@@ -19,7 +19,7 @@ class ImageViewSet(AuthOptionalViewSet):
     """
     serializer_class = ImageSerializer
     filter_fields = ('created_by__username', 'tags__name')
-    search_fields = ('id', 'name', 'versions__description', 'tags__name', 'tags__description', 'created_by__username')
+    search_fields = ('id', 'name', 'versions__change_log', 'tags__name', 'tags__description', 'created_by__username')
     http_method_names = ['get', 'head', 'options', 'trace']
 
     def get_queryset(self):
