@@ -9,9 +9,6 @@ TODO: Refactor #1 - have one AllocationResult PER INSTANCE so that each can be
 
     #TODO: Do we have rules that 'use time' that are NOT
     # directed at instances? (Global?)
-
-
-    #TODO: Include time to zero
 """
 import pytz
 
@@ -110,14 +107,17 @@ def calculate_allocation(allocation, print_logs=False):
             for instance_result in instance_results:
                 logger.debug("> > %s" % instance_result)
         current_period.instance_results = instance_results
-
+        is_over, diff_amount = current_period.allocation_difference()
         if print_logs:
-            logger.debug("> > %s - %s = %s" %
+            logger.debug("> > %s - %s = %s %s" %
                          (current_period.total_credit,
                           current_period.total_instance_runtime(),
-                          current_period.allocation_difference()))
+                          "-" if is_over else "",
+                          diff_amount))
         if current_result.carry_forward:
-            time_forward = current_period.allocation_difference()
+            # We need to 'carry forward the negative value'
+            # to appropriately 'credit' the next month.
+            time_forward = -diff_amount if is_over else diff_amount
     return current_result
 
 
