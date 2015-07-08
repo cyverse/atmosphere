@@ -10,10 +10,10 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
     """
     #NOTE: Implicitly included via 'fields'
     # id, application
-    fork_version = serializers.HyperlinkedRelatedField(
+    parent = serializers.HyperlinkedRelatedField(
         view_name="applicationversion-detail",
         read_only=True)
-    #name, description, icon, allow_imaging
+    #name, change_log, icon, allow_imaging
     licenses = LicenseSerializer(many=True, read_only=True) #NEW
     membership = serializers.SlugRelatedField(slug_field='name', read_only=True, many=True) #NEW
     machines = ProviderMachineRelatedField(many=True)
@@ -23,7 +23,7 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = ImageVersion
         view_name = 'api:v2:providermachine-detail'
-        fields = ('id', 'fork_version', 'name', 'description',
-                'icon', 'machines', 'allow_imaging',
+        fields = ('id', 'parent', 'name', 'change_log',
+                'machines', 'allow_imaging',
                 'licenses','membership',
                 'start_date', 'end_date')
