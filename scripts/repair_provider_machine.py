@@ -7,7 +7,6 @@ from django.utils.timezone import datetime, utc
 from service.driver import get_account_driver
 from core.models import Provider, ProviderMachine, Identity, MachineRequest, Application, ProviderMachine
 from core.models.application import _generate_app_uuid
-from core.models.machine_request import _update_application, _create_new_application
 
 def main():
     parser = argparse.ArgumentParser()
@@ -115,6 +114,21 @@ def find_kernel_ramdisk(accounts, machine_request):
         return find_kernel_ramdisk(accounts, existing_parent_request)
     #Fall through and exit, failure occurred.
     return None, None
+
+def _update_parent_application(machine_request, new_image_id, tags=[]):
+    parent_app = machine_request.instance.source.providermachine.application
+    return _update_application(parent_app, machine_request, tags=tags)
+
+def _update_application(application, machine_request, tags=[]):
+    if application.name is not machine_request.new_application_name:
+        application.name = machine_request.new_application_name
+    if machine_request.new_machine_description:
+        application.description = machine_request.new_machine_description
+    application.private = not machine_request.is_public()
+    application.tags = tags
+    application.save()
+    return application
+
 
 
 if __name__ == "__main__":

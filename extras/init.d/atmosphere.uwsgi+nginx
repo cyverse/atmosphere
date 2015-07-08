@@ -6,17 +6,19 @@
 
 NAME='Atmosphere'
 DESC="Deals with the workflow associated with running atmospehre as a service"
-
 WEB_SERVICE="nginx" # could be httpd on centos..
 WEB_INITD="/etc/init.d/$WEB_SERVICE"
 CELERY_INITD="/etc/init.d/celeryd"
 CELERYBEAT_INITD="/etc/init.d/celerybeat"
-TASK_SERVICE="redis" 
-#TASK_SERVICE="rabbitmq"
-if [[ `python -mplatform` == *"Ubuntu-14.04"* ]]; then
-    REDIS_INITD="/etc/init/redis-server.conf"
-else
-    REDIS_INITD="/etc/init.d/redis-server"
+if [ -f "/etc/init.d/rabbitmq-server" ]; then
+    TASK_MGR_SERVICE="/etc/init.d/rabbitmq-server"
+    TASK_MGR="rabbitmq-server"
+elif [ -f "/etc/init/redis-server.conf" ]; then
+    TASK_MGR_SERVICE="/etc/init/redis-server.conf"
+    TASK_MGR="redis-server"
+elif [ -f "/etc/init.d/redis-server" ]; then
+    TASK_MGR_SERVICE="/etc/init.d/redis-server"
+    TASK_MGR="redis-server"
 fi
 CELERY_DEFAULT="/etc/default/celeryd"
 
@@ -37,10 +39,9 @@ elif [ ! -f  $CELERY_DEFAULT ]; then
     echo "cp /opt/dev/atmosphere/extras/init.d/celeryd.default.dist /opt/dev/atmosphere/extras/init.d/celeryd.default"
     echo "ln -s /opt/dev/atmosphere/extras/init.d/celeryd.default $CELERY_DEFAULT"
     exit 1
-elif [ ! -f  $REDIS_INITD ]; then
-    #IGNORE if TASK_SERVICE == rabbitmq
-    echo "MISSING DEPEDENCY: Init file for $REDIS_INITD missing."
-    echo "sudo apt-get install redis-server"
+elif [ ! -f  $TASK_MGR_SERVICE ]; then
+    echo "MISSING DEPEDENCY: Init file for $TASK_MGR_SERVICE missing."
+    echo "sudo apt-get install $TASK_MGR"
     exit 1
 elif [ ! -f  $WEB_INITD ]; then
     echo "MISSING DEPEDENCY: Expected apache service file $WEB_INITD missing"

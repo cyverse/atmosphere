@@ -1,5 +1,5 @@
 from rest_framework import exceptions, serializers
-from core.models import ResourceRequest, Allocation, Quota, Identity, AtmosphereUser as User
+from core.models import ResourceRequest, Allocation, Quota, Identity, AtmosphereUser as User, IdentityMembership
 from core.models.status_type import StatusType
 from api.v2.serializers.summaries import (
     AllocationSummarySerializer,
@@ -9,7 +9,6 @@ from api.v2.serializers.summaries import (
     QuotaSummarySerializer,
     StatusTypeSummarySerializer
 )
-
 
 class UserRelatedField(serializers.PrimaryKeyRelatedField):
 
@@ -23,7 +22,6 @@ class UserRelatedField(serializers.PrimaryKeyRelatedField):
 
 
 class IdentityRelatedField(serializers.RelatedField):
-
     def get_queryset(self):
         return Identity.objects.all()
 
@@ -146,6 +144,19 @@ class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
     allocation = AllocationRelatedField(queryset=Allocation.objects.all(),
                                         allow_null=True,
                                         required=False)
+
+    #TODO should be refactored to not use SerializerMethodField()
+    current_quota = serializers.SerializerMethodField()
+    current_allocation = serializers.SerializerMethodField()
+
+    def get_current_quota(self, request):
+        user_membership = IdentityMembership.objects.get(id=request.membership_id)
+        return user_membership.quota.id if user_membership.quota else None
+
+    def get_current_allocation(self, request):
+        user_membership = IdentityMembership.objects.get(id=request.membership_id)
+        return user_membership.allocation.id if user_membership.allocation else None
+
     class Meta:
         model = ResourceRequest
         view_name = 'api:v2:resourcerequest-detail'
@@ -162,7 +173,9 @@ class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
             'provider',
             'admin_message',
             'quota',
-            'allocation'
+            'allocation',
+            'current_quota',
+            'current_allocation'
         )
 
 

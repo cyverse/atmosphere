@@ -94,7 +94,7 @@ def fix_private_images_without_repr(private_images, prov, accounts):
     for img in private_images:
         machine_requests = MachineRequest.objects.filter(
                 new_machine_provider=prov,
-                new_machine_name=img.name)
+                new_application_name=img.name)
         for mr in machine_requests:
             print "Machine Request found matching name %s of image %s" \
                     % (img.name, img.id)

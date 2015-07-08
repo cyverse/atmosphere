@@ -227,7 +227,7 @@ class CoreProviderMachineHelper(object):
         return self.machine
 
 class CoreMachineRequestHelper(object):
-    def __init__(self, new_machine_name, start_date,
+    def __init__(self, new_application_name, start_date,
             new_machine_version='1.0', new_machine_forked=True,
             instance=None, provider='openstack', username='mock_user'):
         self.AVAILABLE_PROVIDERS = _new_providers()
@@ -240,7 +240,7 @@ class CoreMachineRequestHelper(object):
         if not instance:
             instance = _new_core_instance(
                     "Mock Instance", uuid4(), start_date, self.identity, None)
-        self.new_machine_name = new_machine_name
+        self.new_application_name = new_application_name
         self.new_machine_version = new_machine_version
         self.instance = instance
         self.start_date = start_date
@@ -259,7 +259,7 @@ class CoreMachineRequestHelper(object):
                 instance=self.instance, status='pending',
                 parent_machine = provider_machine,
                 new_machine_provider=provider_machine.provider,
-                new_machine_name=self.new_machine_name,
+                new_application_name=self.new_application_name,
                 new_machine_version=self.new_machine_version,
                 new_machine_owner=self.user, new_machine_visibility='public',
                 new_machine_forked=self.forked, start_date=self.start_date)[0]

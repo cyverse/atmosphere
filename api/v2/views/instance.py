@@ -1,4 +1,5 @@
 from core.models import Instance
+from api.v2.serializers.details import InstanceSerializer
 from core.query import only_current
 
 from api.v1.views.instance import Instance as V1Instance

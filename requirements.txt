@@ -1,4 +1,4 @@
-Django==1.8
+Django==1.8.2
 django-cors-headers==0.12.0
 django-pipeline==1.3.20
 djangorestframework==3.1.1
@@ -39,7 +39,7 @@ rtwo==0.2.13
 caslib.py==2.2.0
 chromogenic==0.1.5
 jwt.py==0.1.0
-subspace==0.1.4
+subspace==0.1.5
 
 ## dev
 #django-sslserver #NOTE: Debugs requests real-time.

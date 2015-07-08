@@ -29,7 +29,7 @@ class NoProjectSerializer(serializers.ModelSerializer):
         return [VolumeSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            atmo_user.volume_set().filter(only_current_source(),
+            atmo_user.volume_set().filter(*only_current_source(),
                 instance_source__provider__active=True, projects=None)]
 
     class Meta:

@@ -51,7 +51,7 @@ class CoreSearchProvider(BaseSearchProvider):
             | Q(application__tags__description__icontains=query)
             | Q(application__name__icontains=query)
             | Q(application__description__icontains=query),
-            only_current_source())
+            *only_current_source())
 
 
 class CoreApplicationSearch(BaseSearchProvider):
@@ -65,16 +65,16 @@ class CoreApplicationSearch(BaseSearchProvider):
             base_apps = Application.objects.filter(
                 # Privately owned OR public machines
                 Q(private=True,
-                  providermachine__instance_source__created_by_identity=identity)
+                  versions__machines__instance_source__created_by_identity=identity)
                 | Q(private=False,
-                    providermachine__instance_source__provider=identity.provider))
+                  versions__machines__instance_source__provider=identity.provider))
         else:
             active_providers = Provider.get_active()
             base_apps = Application.objects.filter(
                 # Public machines
                 private=False,
                 #Providermachine's provider is active
-                providermachine__instance_source__provider__in=active_providers)
+                versions__machines__instance_source__provider__in=active_providers)
         # AND query matches on:
         query_match = base_apps.filter(
             # app tag name
@@ -85,5 +85,5 @@ class CoreApplicationSearch(BaseSearchProvider):
             | Q(name__icontains=query)
             # OR app desc
             | Q(description__icontains=query),
-            only_current_source())
+            *only_current_source())
         return query_match.distinct()

@@ -195,7 +195,7 @@ def process_export(export_file_path, export_request_id):
     export_request.complete_export(export_file_path)
     #send_image_export_email(export_request.new_machine_owner,
     #                         export_request.new_machine,
-    #                         export_request.new_machine_name)
+    #                         export_request.new_application_name)
     return export_file_path
 
 @task(name='export_request_error')
@@ -237,7 +237,7 @@ def imaging_complete(machine_request_id):
     machine_request.save()
     send_image_request_email(machine_request.new_machine_owner,
                              machine_request.new_machine,
-                             machine_request.new_machine_name)
+                             machine_request.new_application_name)
     new_image_id = machine_request.new_machine.identifier
     return new_image_id
 

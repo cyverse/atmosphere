@@ -7,7 +7,6 @@ from django.utils.timezone import datetime, utc
 from service.driver import get_account_driver
 from core.models import Provider, ProviderMachine, Identity, MachineRequest, Application, ProviderMachine
 from core.models.application import _generate_app_uuid
-from core.models.machine_request import _update_application, _create_new_application
 
 Force = False
 
@@ -84,7 +83,7 @@ def _fix_new_machine_forked(machine_request, provider, new_machine):
         for machine in remaining_machines:
             glance_image = accounts.image_manager.get_image(machine.identifier)
             if glance_image:
-                original_request = MachineRequest.objects.filter(new_machine_name=glance_image.name)
+                original_request = MachineRequest.objects.filter(new_application_name=glance_image.name)
                 print "Hint: Image_ID:%s Named:%s MachineRequest:%s" % (glance_image.id, glance_image.name, original_request)
 
     return True
@@ -110,7 +109,7 @@ def _find_machine_by_request(machine_request):
     accounts = get_account_driver(acct_provider)
     images = accounts.list_all_images()
 
-    lookup_name = machine_request.new_machine_name
+    lookup_name = machine_request.new_application_name
     started = machine_request.start_date
     completed = machine_request.end_date
     potential_matches = _match_by_date_range(images, started, completed)
@@ -166,6 +165,38 @@ def _strptime(timestamp):
             #Include microseconds using ISO Standard
             return datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
         raise
+
+def _create_new_application(machine_request, new_image_id, tags=[]):
+    from core.models import Identity
+    new_provider = machine_request.new_machine_provider
+    user = machine_request.new_machine_owner
+    owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
+    # This is a brand new app and a brand new providermachine
+    new_app = create_application(
+            new_image_id,
+            new_provider.id,
+            machine_request.new_application_name, 
+            owner_ident,
+            #new_app.Private = False when machine_request.is_public = True
+            not machine_request.is_public(),
+            machine_request.new_machine_version,
+            machine_request.new_machine_description,
+            tags)
+    return new_app
+
+def _update_parent_application(machine_request, new_image_id, tags=[]):
+    parent_app = machine_request.instance.source.providermachine.application
+    return _update_application(parent_app, machine_request, tags=tags)
+
+def _update_application(application, machine_request, tags=[]):
+    if application.name is not machine_request.new_application_name:
+        application.name = machine_request.new_application_name
+    if machine_request.new_machine_description:
+        application.description = machine_request.new_machine_description
+    application.private = not machine_request.is_public()
+    application.tags = tags
+    application.save()
+    return application
 
 
 if __name__ == "__main__":

@@ -30,6 +30,7 @@ from core.models.step import Step
 from core.models.tag import Tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
+from core.models.version import ApplicationVersion, ApplicationVersionMembership
 
 from threepio import logger
 
@@ -90,13 +91,11 @@ class AllocationAdmin(admin.ModelAdmin):
 @admin.register(ProviderMachine)
 class ProviderMachineAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
-    search_fields = ["application__name", "instance_source__provider__location", "instance_source__identifier"]
-    list_display = ["identifier",
-            "_pm_provider", "application",
-            "end_date"]
+    search_fields = ["application_version__application__name", "instance_source__provider__location", "instance_source__identifier"]
+    list_display = ["identifier", "_pm_provider", "end_date"]
     list_filter = [
         "instance_source__provider__location",
-        "application__private",
+        "application_version__application__private",
     ]
 
     def _pm_provider(self, obj):
@@ -107,6 +106,28 @@ class ProviderMachineAdmin(admin.ModelAdmin):
         #context['adminform'].form.fields['instance_source'].queryset = InstanceSource.objects.filter(id=pm.instancesource_ptr.id)
         return super(ProviderMachineAdmin, self).render_change_form(request, context, *args, **kwargs)
 
+
+@admin.register(ApplicationVersionMembership)
+class ApplicationVersionMembershipAdmin(admin.ModelAdmin):
+    list_display = ["id", "_app_name", "_start_date", "_app_private", "group"]
+    list_filter = [
+            "application_version__application__name",
+            "group__name"
+            ]
+    def _start_date(self, obj):
+        return obj.application_version.start_date
+    def _app_private(self, obj):
+        return obj.application_version.application.private
+    _app_private.boolean = True
+    def _app_name(self, obj):
+        return obj.application_version
+
+    def render_change_form(self, request, context, *args, **kwargs):
+        application = context['original']
+        context['adminform'].form.fields['application_version'].queryset = ApplicationVersion.objects.order_by('application__name')
+        context['adminform'].form.fields['group'].queryset = Group.objects.order_by('name')
+        return super(ApplicationVersionMembershipAdmin, self).render_change_form(request, context, *args, **kwargs)
+    pass
 
 @admin.register(ProviderMachineMembership)
 class ProviderMachineMembershipAdmin(admin.ModelAdmin):
@@ -120,12 +141,12 @@ class ProviderMachineMembershipAdmin(admin.ModelAdmin):
     def _pm_provider(self, obj):
         return obj.provider_machine.provider.location
     def _pm_private(self, obj):
-        return obj.provider_machine.application.private
+        return obj.provider_machine.application_version.application.private
     _pm_private.boolean = True
     def _pm_identifier(self, obj):
         return obj.provider_machine.identifier
     def _pm_name(self, obj):
-        return obj.provider_machine.application.name
+        return obj.provider_machine.application_version.application.name
     pass
 
 class ProviderCredentialInline(admin.TabularInline):
@@ -188,7 +209,7 @@ class VolumeAdmin(admin.ModelAdmin):
 @admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
     actions = [end_date_object, private_object]
-    search_fields = ["name", "id", "providermachine__instance_source__identifier"]
+    search_fields = ["name", "id", "versions__machines__instance_source__identifier"]
     list_display = ["uuid", "_current_machines", "name", "private", "created_by", "start_date", "end_date" ]
     filter_vertical = ["tags",]
 
@@ -284,13 +305,12 @@ class ExportRequestAdmin(admin.ModelAdmin):
 
 @admin.register(MachineRequest)
 class MachineRequestAdmin(admin.ModelAdmin):
-    search_fields = ["new_machine_owner__username", "new_machine_name", "instance__provider_alias"]
-    list_display = ["new_machine_name", "new_machine_owner", "instance_alias",
+    search_fields = ["new_machine_owner__username", "new_application_name", "instance__provider_alias"]
+    list_display = ["new_application_name", "new_machine_owner", "instance_alias",
                     "old_provider", "new_machine_provider",
 		    "start_date", "end_date", "status",
 		    "opt_new_machine", "opt_parent_machine", "opt_machine_visibility"]
-    list_filter = ["new_machine_visibility",
-                   "status"]
+    list_filter = ["status"]
 
     #Overwrite
     def render_change_form(self, request, context, *args, **kwargs):
@@ -374,6 +394,9 @@ class ResourceRequestAdmin(admin.ModelAdmin):
 
     list_filter = ["status", "membership__identity__provider__location"]
     exclude = ("membership",)
+
+    def has_add_permission(self, request):
+        return False
 
     def save_model(self, request, obj, form, changed):
         obj.end_date = timezone.now()
