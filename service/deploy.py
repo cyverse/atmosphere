@@ -11,6 +11,8 @@ from django.utils.timezone import datetime
 from libcloud.compute.deployment import Deployment, ScriptDeployment,\
     MultiStepDeployment
 
+import redis
+
 import subspace
 
 from threepio import logger, logging, deploy_logger
@@ -23,6 +25,18 @@ from authentication.protocol import ldap
 from core.logging import create_instance_logger
 
 from service.exceptions import AnsibleDeployException
+
+
+r = None
+
+
+def create_redis_client():
+    global r
+    r = redis.StrictRedis()
+
+
+create_redis_client()
+
 
 class WriteFileDeployment(Deployment):
     def __init__(self, full_text, target):
@@ -92,6 +106,7 @@ def deploy_to(instance_ip, username, instance_id):
         return []
     logger = create_instance_logger(deploy_logger, instance_ip, username, instance_id)
     hostname = build_host_name(instance_ip)
+    cache_bust_redis(hostname)
     configure_ansible(logger)
     my_limit = {"hostname": hostname, "ip": instance_ip}
     deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
@@ -137,6 +152,10 @@ def configure_ansible(logger):
 def build_host_name(ip):
     list_of_subnet = ip.split(".")
     return "vm%s-%s" % (list_of_subnet[2], list_of_subnet[3])
+
+
+def cache_bust_redis(hostname):
+    r.del("ansible_facts%s" % hostname)
 
 
 def log_playbook_summaries(logger, pbs, hostname):
