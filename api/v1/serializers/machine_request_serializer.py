@@ -36,20 +36,20 @@ class MachineRequestSerializer(serializers.ModelSerializer):
                                          source='new_machine_owner',
                                          queryset=AtmosphereUser.objects.all()
     )
-    vis = serializers.CharField(source='new_machine_visibility')
-    version = serializers.CharField(source='new_machine_version',
+    vis = serializers.CharField(source='new_application_visibility')
+    version = serializers.CharField(source='new_version_name',
         required=False)
-    fork = serializers.BooleanField(source='new_machine_forked',
+    fork = serializers.BooleanField(source='new_version_forked',
         required=False)
-    description = serializers.CharField(source='new_machine_description',
+    description = serializers.CharField(source='new_application_description',
                                         allow_blank=True,
                                         required=False)
-    tags = serializers.CharField(source='new_machine_tags', required=False,
+    tags = serializers.CharField(source='new_version_tags', required=False,
                                  allow_blank=True)
-    threshold = NewThresholdField(source='new_machine_threshold', required=False)
+    threshold = NewThresholdField(source='new_version_threshold', required=False)
     #TODO: Convert to 'LicenseField' and allow POST of ID instead of
     #      full-object. for additional support for the image creator
-    licenses = LicenseSerializer(source='new_machine_licenses.all', many=True, required=False)
+    licenses = LicenseSerializer(source='new_version_licenses.all', many=True, required=False)
     new_machine = serializers.SlugRelatedField(
         slug_field='identifier', required=False,
         queryset=InstanceSource.objects.all()

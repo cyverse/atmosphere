@@ -95,9 +95,9 @@ class MachineRequest(models.Model):
         if self.status == 'completed' and not self.end_date:
             self.end_date = timezone.now()
 
-    def new_machine_threshold(self):
-        return {'memory': self.new_machine_memory_min,
-                'disk': self.new_machine_storage_min }
+    def new_version_threshold(self):
+        return {'memory': self.new_version_memory_min,
+                'disk': self.new_version_storage_min }
     def get_app(self):
         if self.new_machine:
             return self.new_machine.application
@@ -114,14 +114,14 @@ class MachineRequest(models.Model):
         else:
             threshold = ApplicationThreshold(application=application)
 
-        threshold.memory_min=machine_request.new_machine_memory_min
-        threshold.storage_min=machine_request.new_machine_storage_min
+        threshold.memory_min=machine_request.new_version_memory_min
+        threshold.storage_min=machine_request.new_version_storage_min
         threshold.save()
         return threshold
 
     def has_threshold(self):
-        return self.new_machine_memory_min > 0\
-                or self.new_machine_storage_min > 0
+        return self.new_version_memory_min > 0\
+                or self.new_version_storage_min > 0
 
     def _get_meta_name(self):
         """
