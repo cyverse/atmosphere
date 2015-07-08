@@ -8,4 +8,4 @@ class ImageVersionSummarySerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = ImageVersion
         view_name = 'api:v2:imageversion-detail'
-        fields = ('id', 'url', 'name',)
+        fields = ('id', 'url', 'name','membership')
