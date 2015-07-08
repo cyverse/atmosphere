@@ -416,13 +416,13 @@ class Instance(models.Model):
 
     def application_uuid(self):
         if self.source.is_machine():
-            return self.source.providermachine.application.uuid
+            return self.source.providermachine.application_version.application.uuid
         else:
             return None
 
     def application_id(self):
         if self.source.is_machine():
-            return self.source.providermachine.application.id
+            return self.source.providermachine.application_version.application.id
         else:
             return None
 
@@ -434,7 +434,7 @@ class Instance(models.Model):
         
     def esh_source_name(self):
         if self.source.is_machine():
-            return self.source.providermachine.application.name
+            return self.source.providermachine.application_version.application.name
         elif self.source.is_volume():
             return self.source.volume.name
         else:

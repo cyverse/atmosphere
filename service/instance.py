@@ -914,8 +914,8 @@ def check_application_threshold(username, identity_uuid, esh_size, boot_source):
     """
     core_identity = CoreIdentity.objects.get(uuid=identity_uuid)
     application = Application.objects.filter(
-        providermachine__instance_source__identifier=boot_source.identifier,
-        providermachine__instance_source__provider=core_identity.provider).distinct().get()
+        versions__machines__instance_source__identifier=boot_source.identifier,
+        versions__machines__instance_source__provider=core_identity.provider).distinct().get()
     threshold = application.get_threshold()
     if not threshold:
         return
@@ -942,13 +942,15 @@ def _test_for_licensing(esh_machine, identity):
             instance_source__provider=identity.provider)
     except ProviderMachine.DoesNotExist:
         raise Exception("Execution in workflow error! Trying to launch a provider machine, but it has not been added to the DB (convert_esh_machine is broken?)")
-    if not core_machine.licenses.count():
+    app_version = core_machine.application_version
+    if not app_version.licenses.count():
         return True
-    for license in core_machine.licenses.all():
+    for license in app_version.licenses.all():
         passed_test = _test_license(license, identity)
         if passed_test:
             return True
-    raise Exception("Identity %s did not meet the requirements of the associated license on Machine %s" % (identity.uuid, core_machine.instance_source.identifier))
+    app = app_version.application
+    raise Exception("Identity %s did not meet the requirements of the associated license on Application %s + Version %s" % (app.name, app_version.name))
 
 
 def check_quota(username, identity_uuid, esh_size, resuming=False):

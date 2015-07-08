@@ -13,6 +13,7 @@ from core.models.abstract import BaseSource
 from core.models.instance_source import InstanceSource
 from core.models.application import Application
 from core.models.application import create_application, get_application
+from core.models.version import ApplicationVersion, create_app_version, get_app_version, get_version_for_machine
 from core.models.identity import Identity
 from core.models.license import License
 from core.models.provider import Provider
@@ -30,11 +31,11 @@ class ProviderMachine(BaseSource):
     to represent that machine. (emi-12341234 vs ami-43214321)
     """
     esh = None
-    application = models.ForeignKey(Application)
-    allow_imaging = models.BooleanField(default=True)
-    version = models.CharField(max_length=128, default='1.0.0')
-    licenses = models.ManyToManyField(License,
-            blank=True, related_name='machines')
+    application_version = models.ForeignKey(ApplicationVersion, related_name="machines", null=True)
+
+    @property
+    def application(self):
+        return self.application_version.application
 
     @property
     def identifier(self):
@@ -84,8 +85,8 @@ class ProviderMachine(BaseSource):
             #logger.exception("Image Update Failed for %s on Provider %s"
             #                 % (self.identifier, self.provider))
 
-    def update_version(self, version):
-        self.version = version
+    def update_version(self, app_version):
+        self.application_version = app_version
         self.save()
     
     def icon_url(self):
@@ -186,7 +187,7 @@ def get_cached_machine(provider_alias, provider_id):
 
 
 def get_or_create_provider_machine(image_id, machine_name,
-                                   provider_uuid, app=None):
+                                   provider_uuid, app=None, version=None):
     """
     Guaranteed Return of ProviderMachine.
     1. Load provider machine from DB
@@ -201,12 +202,17 @@ def get_or_create_provider_machine(image_id, machine_name,
         return provider_machine
     if not app:
         app = get_application(provider_uuid, image_id, machine_name)
-
     #ASSERT: If no application here, this is a new image (Found on an instance)
     # that was created on a seperate server. We need to make a new one.
     if not app:
         app = create_application(provider_uuid, image_id, machine_name)
-    return create_provider_machine(image_id, provider_uuid, app)
+
+    if not version:
+        version = get_version_for_machine(provider_uuid, image_id)
+    if not version:
+        version = create_app_version(app, "1.0")
+
+    return create_provider_machine(image_id, provider_uuid, app, version=version)
 
 def _extract_tenant_name(identity):
     tenant_name = identity.get_credential('ex_tenant_name')
@@ -261,15 +267,13 @@ def provider_machine_update_hook(new_machine, provider_uuid, identifier):
 
 
 def create_provider_machine(identifier, provider_uuid, app,
-                            created_by_identity=None, version="1.0", allow_imaging=True):
+                            created_by_identity=None, version=None):
     # Attempt to match machine by provider alias
     # Admin identity used until the real owner can be identified.
     provider = Provider.objects.get(uuid=provider_uuid)
     if not created_by_identity:
         created_by_identity = provider.admin
 
-    logger.debug("Provider %s" % provider)
-    logger.debug("App %s" % app)
     #TODO: Reminder to re-evaluate these lines when you get to Django 1.8
     source = InstanceSource.objects.create(
         identifier=identifier,
@@ -277,11 +281,14 @@ def create_provider_machine(identifier, provider_uuid, app,
         provider=provider,
         created_by_identity=created_by_identity,
     )
+    if not version:
+        version = create_app_version(app)
+    logger.debug("Provider %s" % provider)
+    logger.debug("App %s" % app)
+    logger.debug("Version %s" % version)
     provider_machine = ProviderMachine.objects.create(
         instance_source=source,
-        application=app,
-        version=version,
-        allow_imaging=allow_imaging,
+        application_version=version,
     )
     provider_machine_update_hook(provider_machine, provider_uuid, identifier)
     logger.info("New ProviderMachine created: %s" % provider_machine)
@@ -298,17 +305,20 @@ def _username_lookup(provider_uuid, username):
         return None
 
 
-def update_provider_machine(provider_machine, new_created_by_identity=None, new_created_by=None, new_application=None, new_version=None, allow_imaging=None):
+def update_provider_machine(provider_machine, new_created_by_identity=None, new_created_by=None, new_application_version=None):
+    """
+    Used to explicitly 'update' + call the 'provider_machine_write_hook'
+    * Glance updates, metadata updates, etc.
+    *
+    TODO: Find a way to bring this IN to ProviderMachine.save?
+    """
     if new_created_by:
         provider_machine.created_by = new_created_by
     if new_created_by_identity:
         provider_machine.created_by_identity = new_created_by_identity
-    if new_application:
-        provider_machine.application = new_application
-    if new_version:
-        provider_machine.version = new_version
-    if allow_imaging:
-        provider_machine.allow_imaging = allow_imaging
+    if new_application_version:
+        provider_machine.application_version = new_version
+        provider_machine.application = new_version.application
     provider_machine.save()
     provider_machine_write_hook(provider_machine)
 
@@ -353,6 +363,7 @@ def _load_machine(esh_machine, provider_uuid):
     if not app:
         logger.debug("Creating Application for Image %s" % (alias, ))
         app = create_application(provider_uuid, alias, name)
+
     #Using what we know about our (possibly new) application
     #and load (or possibly create) the provider machine
     provider_machine = get_or_create_provider_machine(
@@ -370,7 +381,6 @@ def convert_esh_machine(
         return _convert_from_instance(esh_driver, provider_uuid, identifier)
     elif not esh_machine:
         return None
-
     provider_machine = _load_machine(esh_machine, provider_uuid)
 
     provider_machine.esh = esh_machine

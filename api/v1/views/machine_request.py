@@ -57,15 +57,15 @@ class MachineRequestList(AuthAPIView):
             return failure_response(
                 status.HTTP_400_BAD_REQUEST, exc.message)
 
-    def _permission_to_image(self, machine_request, identity_uuid, instance):
+    def _permission_to_image(self, identity_uuid, instance):
         """
         Raises an exception when imaging has been disabled, OR if
         user attempts to image an instance that is not 'machine' in source.
         """
-        instance = machine_request.instance
+        instance = instance
         if instance.source.is_machine():
-            machine = machine_request.instance.source.providermachine
-            if not machine.allow_imaging:
+            machine = instance.source.providermachine
+            if not machine.application_version.allow_imaging:
                 raise Exception(
                     "The Image Author has disabled re-imaging of Machine %s."
                     % machine.instance_source.identifier)
@@ -95,10 +95,12 @@ class MachineRequestList(AuthAPIView):
         serializer = MachineRequestSerializer(data=data)
         if serializer.is_valid():
             # Add parent machine to request
-            machine_request = serializer.object
-            self._permission_to_image(machine_request, identity_uuid)
+            instance = serializer.validated_data['instance']
+            parent_machine = instance.source.providermachine
+            serializer.validated_data['parent_machine'] = parent_machine
+            self._permission_to_image(identity_uuid, instance)
+            machine_request = serializer.save()
             instance = machine_request.instance
-            machine = machine_request.instance.source.providermachine
             # NOTE: THIS IS A HACK -- While we enforce all images
             #       to go to iPlant Cloud - Tucson.
             # THIS CODE SHOULD BE REMOVED
@@ -114,7 +116,7 @@ class MachineRequestList(AuthAPIView):
                 pass
             serializer.save()
             # Object now has an ID for links..
-            machine_request_id = serializer.object.id
+            machine_request_id = machine_request.id
             active_provider = machine_request.active_provider()
             auto_approve = active_provider.auto_imaging
             requestImaging(request, machine_request.id,

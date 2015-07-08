@@ -1,6 +1,7 @@
 from .allocation import AllocationSummarySerializer
 from .identity import IdentitySummarySerializer
 from .image import ImageSummarySerializer
+from .image_version import ImageVersionSummarySerializer
 from .instance import InstanceSummarySerializer, InstanceSuperSummarySerializer
 from .project import ProjectSummarySerializer
 from .provider import ProviderSummarySerializer
@@ -11,3 +12,4 @@ from .status_type import StatusTypeSummarySerializer
 from .tag import TagSummarySerializer
 from .user import UserSummarySerializer
 from .volume import VolumeSummarySerializer
+from .license import LicenseSerializer
