@@ -4,34 +4,67 @@ from __future__ import unicode_literals
 from django.db import models, migrations
 import django.utils.timezone
 from django.conf import settings
-import uuid
+import uuid, json
 
 VERBOSE = False
+
+def inspect_ipdb(apps, schema_editor):
+    MachineRequest = apps.get_model("core", "MachineRequest")
+    pass
 
 def migrate_to_new_fields(apps, schema_editor):
     Application = apps.get_model("core", "Application")
     ApplicationThreshold = apps.get_model("core", "ApplicationThreshold")
     ApplicationVersion = apps.get_model("core", "ApplicationVersion")
     ApplicationVersionMembership = apps.get_model("core", "ApplicationVersionMembership")
+    Group = apps.get_model("core", "Group")
     MachineRequest = apps.get_model("core", "MachineRequest")
     ProviderMachine = apps.get_model("core", "ProviderMachine")
     ProviderMachineMembership = apps.get_model("core", "ProviderMachineMembership")
     update_application_versions(ProviderMachine, ProviderMachineMembership, ApplicationVersion, ApplicationVersionMembership, Application)
-    update_machine_requests(MachineRequest, ApplicationVersion, ApplicationThreshold)
+    update_machine_requests(MachineRequest, Group, ApplicationVersion, ApplicationThreshold)
+    import ipdb;ipdb.set_trace()
     pass
 
-def update_machine_requests(MachineRequest, ApplicationVersion, ApplicationThreshold):
+def update_machine_requests(MachineRequest, Group, ApplicationVersion, ApplicationThreshold):
     for request in MachineRequest.objects.order_by('id'):
-        update_machine_request(request, MachineRequest, ApplicationVersion)
+        update_machine_request(request, Group, MachineRequest, ApplicationVersion)
 
     for threshold in ApplicationThreshold.objects.order_by('id'):
         threshold.application_version = threshold.application.versions.last()
         threshold.save()
 
+def _update_request(machine_request, Group):
+    if machine_request.new_machine_id:
+        current_version = machine_request.new_machine.application_version
+        machine_request.new_application_version_id = current_version.id
+    machine_request.new_application_visibility = machine_request.new_machine_visibility
+    machine_request.new_version_name = machine_request.new_machine_version
+    machine_request.new_application_name = machine_request.new_machine_name
+    machine_request.new_version_tags = machine_request.new_machine_tags
+    machine_request.new_application_description = machine_request.new_machine_description
+    if not machine_request.new_version_forked:
+        machine_request.new_version_change_log = machine_request.new_machine_description
+    if machine_request.access_list:
+        if '[' in machine_request.access_list:
+            list_str = machine_request.access_list.replace("'",'"').replace('u"', '"')
+            usernames = json.loads(list_str)
+        else:
+            usernames = machine_request.access_list.split(',')
+        for name in usernames:
+            try:
+                name = name.strip()
+                group = Group.objects.get(name=name)
+                machine_request.new_version_membership.add(group)
+            except Group.DoesNotExist:
+                print 'Skipped user %s on request %s - DoesNotExist' % (name, machine_request.id)
+    machine_request.save()
 
-def update_machine_request(request, MachineRequest, ApplicationVersion):
-    _fill_version_using_machine_request(request, ApplicationVersion)
+def update_machine_request(machine_request, Group, MachineRequest, ApplicationVersion):
     #Update the request
+    _update_request(machine_request, Group)
+    #Update the version
+    _fill_version_using_machine_request(machine_request, ApplicationVersion)
 
 
 def _many_to_many_copy(machine_manager, version_manager):
@@ -44,7 +77,6 @@ def _fill_version_using_machine_request(machine_request, ApplicationVersion):
     current_version = None
     if machine_request.new_machine:
         current_version = machine_request.new_machine.application_version
-        machine_request.new_application_version = current_version
 
     parent_instance = machine_request.instance
     parent_version = parent_instance.source.providermachine.application_version
