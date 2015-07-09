@@ -80,7 +80,7 @@ INSTALLED_APPS = (
     'pipeline',
     'corsheaders',
     #3rd party apps (Development Only)
-    #'django_jenkins',
+    'django_jenkins',
     #'sslserver',
 
     #iPlant apps
