@@ -80,7 +80,6 @@ INSTALLED_APPS = (
     'pipeline',
     'corsheaders',
     #3rd party apps (Development Only)
-    #'django_jenkins',
     #'sslserver',
 
     #iPlant apps
@@ -222,10 +221,6 @@ AUTHENTICATION_BACKENDS = (
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ORIGIN_WHITELIST = None
 
-JENKINS_TASKS = (
-#NOTE: disable flake8 temporarily for version conflict
-#    'django_jenkins.tasks.run_flake8',
-)
 # The age of session cookies, in seconds.
 # http://docs.djangoproject.com/en/dev/ref/settings/
 # http://docs.djangoproject.com/en/dev/topics/http/sessions/
