@@ -8,11 +8,6 @@ import uuid, json
 
 VERBOSE = False
 
-def inspect_ipdb(apps, schema_editor):
-    import ipdb;ipdb.set_trace()
-    MachineRequest = apps.get_model("core", "MachineRequest")
-    pass
-
 def migrate_to_new_fields(apps, schema_editor):
     Application = apps.get_model("core", "Application")
     ApplicationThreshold = apps.get_model("core", "ApplicationThreshold")
@@ -22,7 +17,7 @@ def migrate_to_new_fields(apps, schema_editor):
     MachineRequest = apps.get_model("core", "MachineRequest")
     ProviderMachine = apps.get_model("core", "ProviderMachine")
     ProviderMachineMembership = apps.get_model("core", "ProviderMachineMembership")
-    #update_application_versions(ProviderMachine, ProviderMachineMembership, ApplicationVersion, ApplicationVersionMembership, Application)
+    update_application_versions(ProviderMachine, ProviderMachineMembership, ApplicationVersion, ApplicationVersionMembership, Application)
     update_machine_requests(MachineRequest, Group, ApplicationVersion, ApplicationThreshold)
     pass
 

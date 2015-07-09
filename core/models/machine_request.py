@@ -42,7 +42,7 @@ class MachineRequest(models.Model):
     new_application_name = models.CharField(max_length=256, null=True, blank=True)
     new_application_description = models.TextField(default='', blank=True, null=True)
     new_application_visibility = models.CharField(max_length=256, blank=True, null=True) # Choices:Public, Private, Select
-    access_list = models.TextField(default='', blank=True, null=True) # DEPRECATED
+    access_list = models.TextField(default='', blank=True, null=True) # DEPRECATED in API v2
     # SPECIFIC to 'forked=False'
 
     # Specific to ApplicationVersion && ProviderMachine
@@ -51,11 +51,11 @@ class MachineRequest(models.Model):
     exclude_files = models.TextField(default='', blank=True, null=True)
     new_version_name = models.CharField(max_length=256, blank=True, null=True)
     new_version_change_log = models.TextField(default='', blank=True, null=True)
-    new_version_allow_imaging = models.BooleanField(default=True)
     new_version_tags = models.TextField(default='', blank=True, null=True)
-    new_version_forked = models.BooleanField(default=True)
     new_version_memory_min = models.IntegerField(default=0)
     new_version_storage_min = models.IntegerField(default=0)
+    new_version_allow_imaging = models.BooleanField(default=True)
+    new_version_forked = models.BooleanField(default=True)
     new_version_licenses = models.ManyToManyField(License, blank=True)
     new_version_membership = models.ManyToManyField("Group", blank=True)
 

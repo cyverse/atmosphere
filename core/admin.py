@@ -320,10 +320,10 @@ class MachineRequestAdmin(admin.ModelAdmin):
         return super(MachineRequestAdmin, self).render_change_form(request, context, *args, **kwargs)
 
     def opt_machine_visibility(self, machine_request):
-        if machine_request.new_machine_visibility.lower() != 'public':
-            return "%s\nUsers:%s" % (machine_request.new_machine_visibility,
+        if machine_request.new_application_visibility.lower() != 'public':
+            return "%s\nUsers:%s" % (machine_request.new_application_visibility,
                                         machine_request.access_list)
-        return machine_request.new_machine_visibility
+        return machine_request.new_application_visibility
     opt_machine_visibility.allow_tags = True
 
     def opt_parent_machine(self, machine_request):
