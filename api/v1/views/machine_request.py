@@ -37,7 +37,7 @@ class MachineRequestList(AuthAPIView):
         """
         all_user_reqs = CoreMachineRequest.objects.filter(
             new_machine_owner=request.user)
-        serialized_data = MachineRequestSerializer(all_user_reqs).data
+        serialized_data = MachineRequestSerializer(all_user_reqs, many=True).data
         response = Response(serialized_data)
         return response
 
@@ -117,7 +117,7 @@ class MachineRequestList(AuthAPIView):
             machine_request_id = serializer.object.id
             active_provider = machine_request.active_provider()
             auto_approve = active_provider.auto_imaging
-            requestImaging(request, machine_request_id,
+            requestImaging(request, machine_request.id,
                            auto_approve=auto_approve)
             if auto_approve:
                 start_machine_imaging(machine_request)

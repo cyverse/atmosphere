@@ -306,12 +306,14 @@ class AllocationTestCase(unittest.TestCase):
         self.assertEqual(allocation_result.total_runtime(), total_runtime)
         return self
 
-    def assertDifferenceEquals(self, allocation, difference):
+    def assertDifferenceEquals(self, allocation, is_over_allocation, difference):
         """
         Assert that the difference and the allocation matches
         """
         allocation_result = self._calculate_allocation(allocation)
-        self.assertEquals(allocation_result.total_difference(), difference)
+        is_over, diff_amount = allocation_result.total_difference()
+        self.assertEquals(is_over, is_over_allocation)
+        self.assertEquals(diff_amount, difference)
         return self
 
 

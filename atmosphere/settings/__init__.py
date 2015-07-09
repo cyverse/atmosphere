@@ -80,7 +80,7 @@ INSTALLED_APPS = (
     'pipeline',
     'corsheaders',
     #3rd party apps (Development Only)
-    'django_jenkins',
+    #'django_jenkins',
     #'sslserver',
 
     #iPlant apps
@@ -472,6 +472,12 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=120),
         #"schedule": crontab(hour="0", minute="0", day_of_week="*"),
         "options": {"expires": 60*60}
+    },
+    "monthly_allocation_reset": {
+        "task": "monthly_allocation_reset",
+        #Every month, first of the month.
+        "schedule": crontab(0, 0, day_of_month=1, month_of_year="*"),
+        "options": {"expires": 5*60, "time_limit": 5*60}
     },
     "remove_empty_networks": {
         "task": "remove_empty_networks",

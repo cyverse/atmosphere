@@ -23,11 +23,10 @@ class ProjectInstanceViewSet(AuthViewSet):
         user = self.request.user
         now = timezone.now()
         p_instances = ProjectInstance.objects.filter(
-            Q(instance__end_date__gt=now) |
-            Q(instance__end_date__isnull=True),
-            instance__start_date__lt=now,
+            Q(instance__end_date__gt=now)
+            | Q(instance__end_date__isnull=True),
             instance__created_by=user)
         active_provider_uuids = [ap.uuid for ap in Provider.get_active()]
         return p_instances.filter(
-            pk__in=[i.id for i in p_instances
+            pk__in=[i.id for i in p_instances\
                     if i.instance.provider_uuid() in active_provider_uuids])

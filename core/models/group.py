@@ -130,16 +130,14 @@ class IdentityMembership(models.Model):
         from service.monitoring import get_delta, _get_allocation_result
         delta = get_delta(self, time_period=settings.FIXED_WINDOW)
         allocation_result = _get_allocation_result(self.identity)
-
+        over_allocation, diff_amount = allocation_result.total_difference()
         burn_time = allocation_result.get_burn_rate()
         #Moving from seconds to hours
         hourly_credit = int(allocation_result\
                 .total_credit().total_seconds()/3600.0)
         hourly_runtime = int(allocation_result\
                 .total_runtime().total_seconds()/3600.0)
-        hourly_difference = int(allocation_result\
-                .total_difference().total_seconds()/3600.0)
-
+        hourly_difference = int(diff_amount.total_seconds()/3600.0)
         zero_time = allocation_result.time_to_zero()
 
         allocation_dict = {

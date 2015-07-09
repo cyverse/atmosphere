@@ -9,9 +9,6 @@ TODO: Refactor #1 - have one AllocationResult PER INSTANCE so that each can be
 
     #TODO: Do we have rules that 'use time' that are NOT
     # directed at instances? (Global?)
-
-
-    #TODO: Include time to zero
 """
 import pytz
 
@@ -110,14 +107,17 @@ def calculate_allocation(allocation, print_logs=False):
             for instance_result in instance_results:
                 logger.debug("> > %s" % instance_result)
         current_period.instance_results = instance_results
-
+        is_over, diff_amount = current_period.allocation_difference()
         if print_logs:
-            logger.debug("> > %s - %s = %s" %
+            logger.debug("> > %s - %s = %s %s" %
                          (current_period.total_credit,
                           current_period.total_instance_runtime(),
-                          current_period.allocation_difference()))
+                          "-" if is_over else "",
+                          diff_amount))
         if current_result.carry_forward:
-            time_forward = current_period.allocation_difference()
+            # We need to 'carry forward the negative value'
+            # to appropriately 'credit' the next month.
+            time_forward = -diff_amount if is_over else diff_amount
     return current_result
 
 
@@ -147,7 +147,7 @@ def _calculate_instance_history_list(instance, rules, start_date, end_date,
                                      print_logs=print_logs)
 
         if clock_time == timedelta(0):
-            history_result.clock_time = clock_time
+            history_result.clock_time = clock_time # do we need this? seems like it could cause unforseen problems
             history_list.append(history_result)
             continue
 
@@ -156,6 +156,7 @@ def _calculate_instance_history_list(instance, rules, start_date, end_date,
         #          (Is that a thing?)
         time_per_second = _running_time_per_second(history, instance, rules)
         running_time = _multiply_time_delta(clock_time, time_per_second)
+        history_result.clock_time += clock_time
         history_result.total_time += running_time
 
         if _get_burn_rate_test(history, end_date):

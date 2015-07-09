@@ -81,10 +81,8 @@ def user_email_info(username):
     logger.debug("user = %s" % username)
     ldap_attrs = lookupUser(username)
     user_email = ldap_attrs.get('mail', [None])[0]
-
     if not user_email:
-        user_email = "%s@iplantcollaborative.org" % username
-
+        raise Exception("Could not locate email address for User:%s - Attrs: %s" % (username, ldap_attrs))
     user_name = ldap_attrs.get('cn', [""])[0]
     if not user_name:
         user_name = "%s %s" % (ldap_attrs.get("displayName", [""])[0],
@@ -166,6 +164,8 @@ def email_to_admin(subject, body, username=None,
         if type(username) == User:
             username = username.username
         user_email = lookupEmail(username)
+        if not user_email:
+            user_email = "%s@iplantcollaborative.org" % username
     elif not username:  # user_email provided
         username = 'Unknown'
     if request_tracker or not cc_user:
@@ -187,6 +187,8 @@ def email_from_admin(username, subject, message, html=False):
     """
     from_name, from_email = admin_address()
     user_email = lookupEmail(username)
+    if not user_email:
+        user_email = "%s@iplantcollaborative.org" % username
     return send_email(subject, message,
                       from_email=email_address_str(from_name, from_email),
                       to=[email_address_str(username, user_email)],
@@ -224,7 +226,7 @@ def send_denied_resource_email(user, request, reason):
     return email_from_admin(user, subject, body)
 
 
-def send_instance_email(user, instance_id, instance_name,
+def send_instance_email(username, instance_id, instance_name,
                         ip, launched_at, linuxusername):
     """
     Sends an email to the user providing information about the new instance.
@@ -232,7 +234,7 @@ def send_instance_email(user, instance_id, instance_name,
     Returns a boolean.
     """
     format_string = '%b, %d %Y %H:%M:%S'
-    username, user_email, user_name = user_email_info(user)
+    username, user_email, user_name = user_email_info(username)
     launched_at = launched_at.replace(tzinfo=None)
     utc_date = django_timezone.make_aware(launched_at,
                                           timezone=pytz_timezone('UTC'))
@@ -248,7 +250,7 @@ def send_instance_email(user, instance_id, instance_name,
     }
     body = render_to_string("core/email/instance_ready.html", context=Context(context))
     subject = 'Your Atmosphere Instance is Available'
-    return email_from_admin(user, subject, body)
+    return email_from_admin(username, subject, body)
 
 
 def send_preemptive_deploy_failed_email(core_instance, message):
@@ -337,7 +339,7 @@ def send_image_request_email(user, new_machine, name):
     body = render_to_string("core/email/imaging_success.html",
                             context=Context(context))
     subject = 'Your Atmosphere Image is Complete'
-    return email_from_admin(user, subject, body)
+    return email_from_admin(user.username, subject, body)
 
 def send_new_provider_email(username, provider_name):
     subject = ("Your iPlant Atmosphere account has been granted access "

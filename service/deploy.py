@@ -3,27 +3,40 @@ Deploy methods for Atmosphere
 """
 from functools import wraps
 import os
-from os.path import basename
 import sys
 import time
 
 from django.utils.timezone import datetime
 
+from libcloud.compute.deployment import Deployment, ScriptDeployment,\
+    MultiStepDeployment
+
+import redis
+
 import subspace
 
-from libcloud.compute.deployment import Deployment
-from libcloud.compute.deployment import ScriptDeployment
-from libcloud.compute.deployment import MultiStepDeployment
-
-from threepio import logger
-from threepio import logging
-from threepio import deploy_logger
-
-from authentication.protocol import ldap
+from threepio import logger, logging, deploy_logger
 
 from atmosphere import settings
 from atmosphere.settings import secrets
+
+from authentication.protocol import ldap
+
 from core.logging import create_instance_logger
+
+from service.exceptions import AnsibleDeployException
+
+
+r = None
+
+
+def create_redis_client():
+    global r
+    r = redis.StrictRedis()
+
+
+create_redis_client()
+
 
 class WriteFileDeployment(Deployment):
     def __init__(self, full_text, target):
@@ -92,8 +105,10 @@ def deploy_to(instance_ip, username, instance_id):
     if not check_ansible():
         return []
     logger = create_instance_logger(deploy_logger, instance_ip, username, instance_id)
+    hostname = build_host_name(instance_ip)
+    cache_bust_redis(hostname)
     configure_ansible(logger)
-    my_limit = {"hostname": build_host_name(instance_ip), "ip": instance_ip}
+    my_limit = {"hostname": hostname, "ip": instance_ip}
     deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
     host_list = settings.ANSIBLE_HOST_FILE
     extra_vars = {"ATMOUSERNAME" : username,
@@ -103,6 +118,8 @@ def deploy_to(instance_ip, username, instance_id):
                                           limit=my_limit,
                                           extra_vars=extra_vars)
     [pb.run() for pb in pbs]
+    log_playbook_summaries(logger, pbs, hostname)
+    raise_playbook_errors(pbs, hostname)
     return pbs
 
 
@@ -135,6 +152,48 @@ def configure_ansible(logger):
 def build_host_name(ip):
     list_of_subnet = ip.split(".")
     return "vm%s-%s" % (list_of_subnet[2], list_of_subnet[3])
+
+
+def cache_bust_redis(hostname):
+    try:
+        r.zrem("ansible_cache_keys", hostname)
+        r.delete("ansible_facts%s" % hostname)
+    except Exception as ex:
+        logger.warn("Problem with cache_bust_redis: %s" % ex.message)
+
+
+def log_playbook_summaries(logger, pbs, hostname):
+    summaries = [(pb.filename, pb.stats.summarize(hostname)) for pb in pbs]
+    for filename, summary in summaries:
+        logger.info(get_playbook_filename(filename) + str(summary))
+
+
+def get_playbook_filename(filename):
+    rel = os.path.relpath(os.path.dirname(filename),
+                          settings.ANSIBLE_PLAYBOOKS_DIR)
+    basename = os.path.basename(filename)
+    if rel != ".":
+        return os.path.join(rel, basename)
+    else:
+        return basename
+
+
+def playbook_error_message(count, error_name, pb):
+    return ("%s => %s with PlayBook %s|"
+            % (count, error_name, get_playbook_filename(pb.filename)))
+
+
+def raise_playbook_errors(pbs, hostname):
+    error_message = ""
+    for pb in pbs:
+        if pb.stats.dark:
+            error_message += playbook_error_message(
+                pb.stats.dark[hostname], "Unreachable", pb)
+        if pb.stats.failures:
+            error_message += playbook_error_message(
+                pb.stats.failures[hostname], "Failures", pb)
+    if error_message:
+        raise AnsibleDeployException(error_message[:-1])
 
 
 def sync_instance():
@@ -226,7 +285,7 @@ def step_script(step):
 
 
 def wget_file(filename, url, logfile=None, attempts=3):
-    name = './deploy_wget_%s.sh' % (basename(filename))
+    name = './deploy_wget_%s.sh' % (os.path.basename(filename))
     return LoggedScriptDeployment(
         "wget -O %s %s" % (filename, url),
         name=name, attempts=attempts, logfile=logfile)
