@@ -605,7 +605,11 @@ def vnc(user, distro, license=None):
 
 def parrot_install(distro):
     try:
-        cctools_file = 'cctools-5.0.3-x86_64-redhat5.tar.gz'
+        run_command(['rm -rf '
+                 + os.path.join('/opt', 'cctools')
+                 + '*'], shell=True)
+        cctools = 'cctools-5.0.3-x86_64-redhat5'
+        cctools_file = '%s.tar.gz' % cctools
         download_file(
             'http://www.iplantcollaborative.org/sites/default/files'
             + '/atmosphere/cctools/%s' % (cctools_file),
@@ -615,6 +619,10 @@ def parrot_install(distro):
             ['/bin/tar', 'zxf',
              '/opt/%s' % (cctools_file),
              '-C', '/opt/'])
+        run_command(
+            ['/bin/ln', '-s',
+             '/opt/%s' % (cctools),
+             '/opt/cctools'])
         if not is_rhel(distro):
             run_command(['/usr/bin/apt-get', '-qy', 'install',
                          'libssl-dev'])
