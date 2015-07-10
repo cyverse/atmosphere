@@ -605,12 +605,12 @@ def vnc(user, distro, license=None):
 
 def parrot_install(distro):
     try:
-        cctools_file = 'cctools-3.7.2-x86_64-redhat5.tar.gz'
+        cctools_file = 'cctools-5.0.3-x86_64-redhat5.tar.gz'
         download_file(
             'http://www.iplantcollaborative.org/sites/default/files'
             + '/atmosphere/cctools/%s' % (cctools_file),
             '/opt/%s' % (cctools_file),
-            match_hash='04e0ef9e11e8ef7ac28ef694fd57e75b09455084')
+            match_hash='9008a1b2fea74b49809013cd804c4e96c4d50d22')
         run_command(
             ['/bin/tar', 'zxf',
              '/opt/%s' % (cctools_file),
