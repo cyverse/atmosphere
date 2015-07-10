@@ -43,13 +43,19 @@ def _db_update_owner(application, username):
 
 def _os_update_owner(provider_machine, tenant_name):
     from core.models import Provider
-    from service.driver import get_admin_driver
+    from service.driver import get_account_driver
     from service.cache import get_cached_machines, get_cached_driver
     provider = provider_machine.provider
     if provider not in Provider.get_active(type_name='openstack'):
         raise Exception("An active openstack provider is required to"
                         " update image owner")
-    esh_driver = get_cached_driver(provider)
+    accounts = get_account_driver(provider)
+    if not accounts:
+        print "Aborting import: Could not retrieve OSAccounts driver "\
+                "for Provider %s" % prov
+        return
+    accounts.clear_cache()
+    esh_driver = accounts.admin_driver
     if not esh_driver:
         raise Exception("The account driver of Provider %s is required to"
                         " update image metadata" % provider)
@@ -157,12 +163,12 @@ def write_app_to_metadata(application, provider_machine, **extras):
         image_kwargs['min_disk'] = app_threshold.storage_min
         logger.info("Including App Threshold: %s" % (app_threshold,))
 
-    image_manager = accounts.image_manager
     # Using Glance:
+    #image_manager = accounts.image_manager
     #image = image_manager.get_image(image_id)
     #image_manager.update_image(image, **image_kwargs)
     # Using rtwo/libcloud:
-    esh_driver = image_manager.admin_driver
+    esh_driver = accounts.clear_cache()
     esh_machine = esh_driver.get_machine(image_id)
     update_machine_metadata(esh_driver, esh_machine, properties)
 
