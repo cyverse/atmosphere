@@ -526,7 +526,11 @@ def sync_db_access(image_manager, image, provider_machine, tenant_list=[]):
     if tenant_list:
         for tenant in tenant_list:
             name = tenant.name
-            group = Group.objects.get(name=name)
+            try:
+                group = Group.objects.get(name=name)
+            except Group.DoesNotExist:
+                print "Skipping Tenant/User named %s - Not in DB" \
+                    % (name,)
             obj, created = ProviderMachineMembership.objects.get_or_create(
                     group=group, 
                     provider_machine=provider_machine)

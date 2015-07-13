@@ -67,7 +67,6 @@ class CloudRouter(PredeclareRouter):
             logger.info("ROUTE: Assigning Route %s for Celery AsyncTask: %r %r %r" % (the_route, task, args, kwargs))
         else:
             logger.info("ROUTE: Assigning Route Default for Celery AsyncTask: %r %r %r" % (task, args, kwargs))
-
         return the_route
     def prepare_route(self, task_name):
         if task_name in SHORT_TASKS:
@@ -81,6 +80,6 @@ class CloudRouter(PredeclareRouter):
         elif task_name in DEPLOY_TASKS:
             return {"queue": "ssh_deploy", "routing_key": "long.deployment"}
         else:
-            logger.info("Could not place a routing key for TASK:%s"
+            logger.info("ROUTE: Could not place a routing key for TASK:%s"
                     % task_name)
             return {"queue": "default", "routing_key": "default"}

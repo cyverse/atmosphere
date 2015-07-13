@@ -72,15 +72,6 @@ def _os_update_owner(provider_machine, tenant_name):
                              "application_owner": tenant_name})
 
 
-def get_os_account_driver(provider):
-    from service.accounts.openstack import AccountDriver as OSAccountDriver
-    if provider not in Provider.get_active(type_name='openstack'):
-        raise Exception("An active openstack provider is required to"
-                        " update image owner")
-    accounts = OSAccountDriver(provider)
-    return accounts
-
-
 def get_app_driver(provider_machine):
     from service.driver import get_admin_driver
     provider = provider_machine.provider
@@ -91,7 +82,8 @@ def get_app_driver(provider_machine):
     return esh_driver
 
 def _tenant_name_to_id(provider, tenant_name):
-    accounts = get_os_account_driver(provider)
+    from service.driver import get_account_driver
+    accounts = get_account_driver(provider)
     if not accounts:
         raise Exception("The account driver of Provider %s is required to"
                         " update image metadata" % provider)
@@ -121,7 +113,8 @@ def write_app_to_metadata(application, provider_machine, **extras):
         return
 
     #These calls are better served connecting to chromogenic Image Manager
-    accounts = get_os_account_driver(provider_machine.provider)
+    from service.driver import get_account_driver
+    accounts = get_account_driver(provider_machine.provider)
     if not accounts:
         raise Exception("The account driver of Provider %s is required to"
                         " write image metadata" % provider_machine.provider)

@@ -20,7 +20,7 @@ from core.models.tag import Tag, updateTags
 from core.fields import VersionNumberField, VersionNumber
 
 from core.metadata import _get_owner_identity
-from core.application import get_os_account_driver, write_app_to_metadata,\
+from core.application import write_app_to_metadata,\
                              has_app_metadata, get_app_metadata
 
 
@@ -214,6 +214,7 @@ def _extract_tenant_name(identity):
 
 
 def update_application_owner(application, identity):
+    from service.driver import get_account_driver
     old_identity = application.created_by_identity
     tenant_name = _extract_tenant_name(identity)
     old_tenant_name = _extract_tenant_name(old_identity)
@@ -225,7 +226,7 @@ def update_application_owner(application, identity):
     all_pms = application.providermachine_set.all()
     print "Updating %s machines.." % len(all_pms)
     for provider_machine in all_pms:
-        accounts = get_os_account_driver(provider_machine.provider)
+        accounts = get_account_driver(provider_machine.provider)
         image_id = provider_machine.instance_source.identifier
         image = accounts.image_manager.get_image(image_id)
         if not image:
