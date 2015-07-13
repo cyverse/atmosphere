@@ -290,9 +290,9 @@ class Machine(APIView):
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
             update_machine_metadata(esh_driver, esh_machine, data)
-            serializer.save()
+            machine = serializer.save()
             if 'created_by_identity' in request.DATA:
-                identity = serializer.object.created_by_identity
+                identity = machine.created_by_identity
                 update_application_owner(core_machine.application, identity)
             logger.info(serializer.data)
             return Response(serializer.data)

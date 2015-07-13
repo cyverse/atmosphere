@@ -185,9 +185,9 @@ class InstanceList(APIView):
                                         data=data)
         #NEVER WRONG
         if serializer.is_valid():
-            serializer.save()
+            instance = serializer.save()
             if boot_scripts:
-                _save_scripts_to_instance(serializer.object, boot_scripts)
+                _save_scripts_to_instance(instance, boot_scripts)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors,
@@ -652,10 +652,10 @@ class Instance(APIView):
             logger.info('metadata = %s' % data)
             update_instance_metadata(esh_driver, esh_instance, data,
                     replace=False)
-            serializer.save()
+            instance = serializer.save()
             boot_scripts = data.pop('boot_scripts', [])
             if boot_scripts:
-                _save_scripts_to_instance(serializer.object, boot_scripts)
+                _save_scripts_to_instance(instance, boot_scripts)
             invalidate_cached_instances(identity=Identity.objects.get(uuid=identity_uuid))
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
@@ -685,8 +685,7 @@ class Instance(APIView):
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
             update_instance_metadata(esh_driver, esh_instance, data)
-            serializer.save()
-            new_instance = serializer.object
+            new_instance = serializer.save()
             boot_scripts = data.pop('boot_scripts', [])
             if boot_scripts:
                 new_instance = _save_scripts_to_instance(new_instance, boot_scripts)
@@ -800,8 +799,7 @@ class InstanceTagList(APIView):
             serializer = TagSerializer(data=data)
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            serializer.save()
-            add_tag = serializer.object
+            add_tag = serializer.save()
             created = True
         core_instance.tags.add(add_tag)
         return Response(status=status.HTTP_204_NO_CONTENT)
