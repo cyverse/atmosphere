@@ -253,15 +253,15 @@ class Application(APIView):
                                            partial=partial_update)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
-            # TODO: Update application metadata on each machine?
-            # update_machine_metadata(esh_driver, esh_machine, data)
-            serializer.save()
+            #TODO: Update application metadata on each machine?
+            #update_machine_metadata(esh_driver, esh_machine, data)
+            app = serializer.save()
             if 'created_by_identity' in data:
-                identity = serializer.object.created_by_identity
-                update_application_owner(serializer.object, identity)
+                identity = app.created_by_identity
+                update_application_owner(app, identity)
             if 'boot_scripts' in data:
-                _save_scripts_to_application(serializer.object,
-                                             data.get('boot_scripts', []))
+                _save_scripts_to_application(app,
+                                             data.get('boot_scripts',[]))
             return Response(serializer.data)
         return failure_response(
             status.HTTP_400_BAD_REQUEST,
