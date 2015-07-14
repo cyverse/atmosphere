@@ -27,17 +27,6 @@ from core.logging import create_instance_logger
 from service.exceptions import AnsibleDeployException
 
 
-r = None
-
-
-def create_redis_client():
-    global r
-    r = redis.StrictRedis()
-
-
-create_redis_client()
-
-
 class WriteFileDeployment(Deployment):
     def __init__(self, full_text, target):
         """
@@ -106,7 +95,7 @@ def deploy_to(instance_ip, username, instance_id):
         return []
     logger = create_instance_logger(deploy_logger, instance_ip, username, instance_id)
     hostname = build_host_name(instance_ip)
-    cache_bust_redis(hostname)
+    cache_bust(hostname)
     configure_ansible(logger)
     my_limit = {"hostname": hostname, "ip": instance_ip}
     deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
@@ -120,6 +109,7 @@ def deploy_to(instance_ip, username, instance_id):
     [pb.run() for pb in pbs]
     log_playbook_summaries(logger, pbs, hostname)
     raise_playbook_errors(pbs, hostname)
+    cache_bust(hostname)
     return pbs
 
 
@@ -154,12 +144,11 @@ def build_host_name(ip):
     return "vm%s-%s" % (list_of_subnet[2], list_of_subnet[3])
 
 
-def cache_bust_redis(hostname):
+def cache_bust(hostname):
     try:
-        r.zrem("ansible_cache_keys", hostname)
-        r.delete("ansible_facts%s" % hostname)
+        subspace.cache.bust(hostname)
     except Exception as ex:
-        logger.warn("Problem with cache_bust_redis: %s" % ex.message)
+        logger.warn("Problem with subspace.cache.bust: %s" % ex.message)
 
 
 def log_playbook_summaries(logger, pbs, hostname):
