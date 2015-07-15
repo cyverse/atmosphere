@@ -170,7 +170,7 @@ class IdentityMembership(models.Model):
         super(IdentityMembership, self).save(*args, **kwargs)
         try:
             from service.tasks.admin import set_provider_quota
-            set_provider_quota.apply_async(args=[self.identity.uuid])
+            set_provider_quota.apply_async(args=[str(self.identity.uuid)])
         except Exception as ex:
             logger.warn("Unable to update service.quota.set_provider_quota.")
             raise
@@ -184,7 +184,7 @@ class IdentityMembership(models.Model):
             from service.tasks.admin import set_provider_quota,\
                 set_resource_request_failed, close_resource_request
             set_provider_quota.apply_async(
-                args=[self.identity.uuid],
+                args=[str(self.identity.uuid)],
                 link=close_resource_request.s(request_id),
                 link_error=set_resource_request_failed.s(request_id))
         except Exception as ex:
