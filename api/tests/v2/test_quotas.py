@@ -23,6 +23,9 @@ class GetListTests(APITestCase):
         force_authenticate(self.request, user=self.user)
         self.response = self.view(self.request)
 
+    def tearDown(self):
+        self.quota.delete()
+
     def test_is_not_public(self):
         force_authenticate(self.request, user=self.anonymous_user)
         response = self.view(self.request)
@@ -68,6 +71,9 @@ class GetDetailTests(APITestCase):
         self.request = factory.get(url)
         force_authenticate(self.request, user=self.user)
         self.response = self.view(self.request, pk=self.quota.id)
+
+    def tearDown(self):
+        self.quota.delete()
 
     def test_is_not_public(self):
         force_authenticate(self.request, user=self.anonymous_user)
