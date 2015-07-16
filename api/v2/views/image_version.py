@@ -1,6 +1,7 @@
 from django.db.models import Q
 from django.contrib.auth.models import AnonymousUser
-from rest_framework import viewsets
+
+import django_filters
 
 from core.models import ApplicationVersion as ImageVersion
 from core.models import AccountProvider
@@ -27,6 +28,10 @@ def get_admin_image_versions(user):
         id__in=version_ids)
     return admin_list
 
+class ImageFilter(django_filters.FilterSet):
+    image_id = django_filters.CharFilter('application__id')
+    created_by = django_filters.CharFilter('application__created_by__username')
+
 class ImageVersionViewSet(AuthOptionalViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.
@@ -34,7 +39,8 @@ class ImageVersionViewSet(AuthOptionalViewSet):
     queryset = ImageVersion.objects.all()
     serializer_class = ImageVersionSerializer
     search_fields = ('application__id', 'application__created_by__username')
-    filter_fields = ('application__id', 'application__created_by__username')
+    filter_backend = (django_filters.DjangoFilterBackend,)
+    filter_class = ImageFilter
 
     def get_queryset(self):
         request_user = self.request.user

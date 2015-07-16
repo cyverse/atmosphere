@@ -1,6 +1,8 @@
 from django.db.models import Q
 from django.contrib.auth.models import AnonymousUser
 
+import django_filters
+
 from core.models import ProviderMachine, AccountProvider
 from core.query import only_current_source
 
@@ -24,6 +26,10 @@ def get_admin_machines(user):
         id__in=machine_ids)
     return admin_list
 
+class ImageVersionFilter(django_filters.FilterSet):
+    image_id = django_filters.CharFilter('application_version__application__id')
+    version_id = django_filters.CharFilter('application_version__id')
+    created_by = django_filters.CharFilter('instance_source__created_by__username')
 
 #TODO: Determine if "OLD" should be used or not...
 #OLD: class ProviderMachineViewSet(viewsets.ModelViewSet):
@@ -35,7 +41,8 @@ class ProviderMachineViewSet(AuthReadOnlyViewSet):
     queryset = ProviderMachine.objects.all()
     serializer_class = ProviderMachineSerializer
     search_fields = ('application_version__id', 'application_version__application__id', 'instance_source__created_by__username')
-    filter_fields = ('application_version__id', 'application_version__application__id', 'instance_source__created_by__username')
+    filter_backend = (django_filters.DjangoFilterBackend,)
+    filter_class = ImageVersionFilter
 
     def get_queryset(self):
         request_user = self.request.user
