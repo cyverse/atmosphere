@@ -47,7 +47,6 @@ ADMINS = (
 
 
 # Required to send RequestTracker emails
-# ("Atmosphere Support", "atmo-rt@iplantcollaborative.org")
 ATMO_SUPPORT = ADMINS
 ATMO_DAEMON = (("Atmosphere Daemon", "atmo-alerts@iplantcollaborative.org"),)
 
@@ -225,12 +224,10 @@ CORS_ORIGIN_WHITELIST = None
 # http://docs.djangoproject.com/en/dev/ref/settings/
 # http://docs.djangoproject.com/en/dev/topics/http/sessions/
 # Now I set sessio cookies life time = 3600 seconds = 1 hour
-#SESSION_COOKIE_AGE = 3600
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 
 ## ATMOSPHERE APP CONFIGS
-# INSTANCE_SERVICE_URL = SERVER_URL + REDIRECT_URL+'/instanceservice/'
 INSTANCE_SERVICE_URL = SERVER_URL + REDIRECT_URL + '/api/notification/'
 API_SERVER_URL = SERVER_URL + REDIRECT_URL + '/resources/v1'
 AUTH_SERVER_URL = SERVER_URL + REDIRECT_URL + '/auth'
@@ -281,7 +278,6 @@ check_and_touch(DEPLOY_LOG_FILENAME)
 # FileHandler
 #####
 #Default filehandler will use 'LOG_FILENAME'
-#fh = logging.FileHandler(LOG_FILENAME)
 api_fh = logging.FileHandler(API_LOG_FILENAME)
 auth_fh = logging.FileHandler(AUTH_LOG_FILENAME)
 email_fh = logging.FileHandler(EMAIL_LOG_FILENAME)
@@ -437,14 +433,12 @@ CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
 #NOTE: We are Using atmosphere's celery_router as an interim solution.
 CELERY_ROUTES = ('atmosphere.celery_router.CloudRouter', )
 # # Django-Celery Development settings
-# CELERY_ALWAYS_EAGER = True
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
 
 
 #Related to Celerybeat
 CELERYBEAT_CHDIR = PROJECT_ROOT
-#CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
 
 CELERYBEAT_SCHEDULE = {
     "check_image_membership": {
@@ -465,7 +459,6 @@ CELERYBEAT_SCHEDULE = {
     "clear_empty_ips": {
         "task": "clear_empty_ips",
         "schedule": timedelta(minutes=120),
-        #"schedule": crontab(hour="0", minute="0", day_of_week="*"),
         "options": {"expires": 60*60}
     },
     "monthly_allocation_reset": {
@@ -483,7 +476,6 @@ CELERYBEAT_SCHEDULE = {
 }
 
 #     # Django-Celery Development settings
-# CELERY_ALWAYS_EAGER = True
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
 import djcelery

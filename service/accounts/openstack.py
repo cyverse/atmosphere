@@ -41,20 +41,14 @@ class AccountDriver(CachedAccountDriver):
         ("TCP", 22, 23),
         ("UDP", 22, 23),
         # SMTP Mail
-        #("TCP", 25, 25),
         # HTTP Access
         ("TCP", 80, 80),
         # POP Mail
-        #("TCP", 109, 110),
         # SFTP Access
         ("TCP", 115, 115),
         # SQL Access
-        #("TCP", 118, 118),
-        #("UDP", 118, 118),
         # IMAP Access
-        #("TCP", 143, 143),
         # SNMP Access
-        #("UDP", 161, 161),
         # LDAP Access
         ("TCP", 389, 389),
         ("UDP", 389, 389),
@@ -357,10 +351,8 @@ class AccountDriver(CachedAccountDriver):
         #Core credentials need to be converted to openstack names
         identity_creds = self.parse_identity(identity)
         username = identity_creds["username"]
-        #password = identity_creds["password"]
         project_name = identity_creds["tenant_name"]
         # Convert from libcloud names to openstack client names
-        #net_args = self._base_network_creds()
         return self.network_manager.delete_project_network(
             username, project_name, remove_network=remove_network)
 

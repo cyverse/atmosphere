@@ -36,7 +36,6 @@ def main():
     non_staff = sorted(list(set(usernames) - set(staff)))
     for user in non_staff:
         #Raise everybody's quota
-        #try:
         im_list = IdentityMembership.objects.filter(identity__created_by__username=user, identity__provider=openstack)
         if not im_list:
             print "Missing user:%s" % user
@@ -56,18 +55,9 @@ def main():
         print 'Found non-staff user:%s -- Update quota and add allocation' % user
     #for user in staff_users:
     #    # Openstack account exists, but we need the identity.
-    #    im = IdentityMembership.objects.filter(identity__created_by__username=user, identity__provider=openstack)
-    #    if not im:
-    #        print "Missing user:%s" % user
     #        continue
-    #    im = im[0]
-    #    if im.quota.cpu == quota_dict["cpu"]:
     #        continue
     #    #Disable time allocation
-    #    im.allocation = None
-    #    im.quota = higher_quota
-    #    im.save()
-    #    print 'Found staff user:%s -- Update quota and no allocation' % user
     print "Total users added to atmosphere:%s" % len(usernames)
 
 

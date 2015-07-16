@@ -128,7 +128,6 @@ def start_instance(esh_driver, esh_instance,
     """
     from service.tasks.driver import update_metadata
     #Don't check capacity because.. I think.. its already being counted.
-    #admin_capacity_check(provider_uuid, esh_instance.id)
     _permission_to_act(identity_uuid, "Start")
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
@@ -434,10 +433,8 @@ def resume_instance(esh_driver, esh_instance,
     _update_status_log(esh_instance, "Resuming Instance")
     size = _get_size(esh_driver, esh_instance)
     check_quota(user.username, identity_uuid, size, resuming=True)
-    #admin_capacity_check(provider_uuid, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
-        #restore_instance_port(esh_driver, esh_instance)
         deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True,
                 #NOTE: after removing FIXME, This parameter can be removed as well
                 core_identity_uuid=identity_uuid)
@@ -487,7 +484,6 @@ def unshelve_instance(esh_driver, esh_instance,
     admin_capacity_check(provider_uuid, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
-        #restore_instance_port(esh_driver, esh_instance)
         deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True,
                 #NOTE: after removing FIXME, This parameter can be removed as well
                 core_identity_uuid=identity_uuid)
@@ -525,7 +521,6 @@ def destroy_instance(identity_uuid, instance_alias):
     #Bail if instance doesnt exist
     if not instance:
         return None
-    #_check_volume_attachment(esh_driver, instance)
     if isinstance(esh_driver, OSDriver):
         try:
             # Openstack: Remove floating IP first
@@ -744,7 +739,6 @@ def _launch_volume(driver, identity, volume, size, userdata_content, network,
     boot_success, new_instance = driver.boot_volume(
             name=name, image=None, snapshot=None, volume=volume,
             boot_index=boot_index, shutdown=shutdown,
-            #destination_type=destination_type,
             volume_size=None, size=size, networks=[network],
             ex_admin_pass=password, **kwargs)
     return (new_instance, token, password)
@@ -822,8 +816,6 @@ def _select_copy_source(copy_source):
     image = snapshot = volume = None
     if type(copy_source) == Machine:
         image = copy_source
-    #if type(copy_source) == SnapShot:
-    #    snapshot = copy_source
     if type(copy_source) == Volume:
         volume = copy_source
     return (image, snapshot, volume)
@@ -1042,7 +1034,6 @@ def _provision_openstack_instance(core_identity, admin_user=False):
 def _extra_openstack_args(core_identity, ex_metadata={}):
     credentials = core_identity.get_credentials()
     username = core_identity.created_by.username
-    #username = credentials.get('key')
     tenant_name = credentials.get('ex_tenant_name')
     ex_metadata.update({'tmp_status': 'initializing',
                    'tenant_name': tenant_name,
@@ -1118,9 +1109,6 @@ def _create_and_attach_port(provider, driver, instance, core_identity):
     else:
         network = network[0]
         subnet = subnet[0]
-    #new_fixed_ip = _get_next_fixed_ip(network_resources['ports'])
-    #admin = accounts.admin_driver
-    #port = accounts.network_manager.create_port(
     #    instance.id, network['id'], subnet['id'], new_fixed_ip, tenant_id)
     attached_intf = driver._connection.ex_attach_interface(instance.id, network['id'])
     return attached_intf

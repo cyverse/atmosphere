@@ -254,7 +254,6 @@ class Application(APIView):
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
             # TODO: Update application metadata on each machine?
-            # update_machine_metadata(esh_driver, esh_machine, data)
             serializer.save()
             if 'created_by_identity' in data:
                 identity = serializer.object.created_by_identity

@@ -13,9 +13,7 @@ from atmosphere.settings import secrets
 from api.tests import verify_expected_output
 from authentication.protocol.oauth import generate_access_token
 from core.tests import create_os_provider
-#from core.tests import create_euca_provider
 from service.accounts.openstack import AccountDriver as OSAccounts
-#from service.accounts.eucalyptus import AccountDriver as EucaAccounts
 
 
 class OAuthTokenAPIClient(APIClient):
@@ -98,25 +96,15 @@ class AuthTests(TestCase):
 
     def setUp(self):
         #Initialize API
-        #self.euca_admin_id = create_euca_provider()
-        #self.euca_provider = self.euca_admin_id.provider
-        #euca_accounts = EucaAccounts(self.euca_provider)
-        #euca_user = euca_accounts.get_user(settings.TEST_RUNNER_USER)
-        #self.euca_id = euca_accounts.create_account(euca_user)
         pass
 
     def tearDown(self):
         pass
 
     #TODO: Remove comments if testing of 'Groupy' OAuth is required.
-    #def test_oauth_token(self):
     #    """
     #    Explicitly call auth and test that tokens can be created.
     #    """
-    #    self.oauth_api_client = OAuthTokenAPIClient()
-    #    self.oauth_api_client.login(oauth_user='sgregory')
-    #    verify_expected_output(self, self.oauth_api_client.token, self.expected_output)
-    #    self.oauth_api_client.logout()
 
     def test_api_token(self):
         """

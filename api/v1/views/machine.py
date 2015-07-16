@@ -96,7 +96,6 @@ class MachineList(AuthAPIView):
                                                                provider_uuid,
                                                                identity_uuid,
                                                                request_user)
-            #logger.debug(filtered_machine_list)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except MalformedResponseError:
@@ -108,7 +107,6 @@ class MachineList(AuthAPIView):
                              % request_user)
             return failure_response(status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     e.message)
-        #logger.debug(filtered_machine_list)
         serialized_data = ProviderMachineSerializer(filtered_machine_list,
                                                     request_user=request.user,
                                                     many=True).data

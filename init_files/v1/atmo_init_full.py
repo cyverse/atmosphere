@@ -926,7 +926,6 @@ def main(argv):
             instance_data["atmosphere"]["userid"] = arg
             user_id = arg
         elif opt in ("-v", "--vnc_license"):
-            #instance_data["atmosphere"]["vnc_license"] = arg
             vnclicense = arg
         elif opt in ("--root_password"):
             root_password = arg
@@ -970,8 +969,6 @@ def main(argv):
 
     if not is_rhel(distro):
         run_command(['/usr/bin/apt-get', 'update'])
-    #else:
-    #   run_command(['/usr/bin/yum', 'check-update'])
 
     mount_storage()
     ldap_install()
@@ -987,7 +984,6 @@ def main(argv):
     run_command(['/bin/chmod', 'u+s', '/bin/fusermount'])
     vnc(linuxuser, distro, vnclicense)
     iplant_files(distro)
-    #atmo_cl()
     nagios()
     distro_files(distro)
     update_timezone()

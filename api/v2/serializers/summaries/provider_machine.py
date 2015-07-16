@@ -10,8 +10,6 @@ class ProviderMachineSummarySerializer(serializers.HyperlinkedModelSerializer):
     owner = serializers.ReadOnlyField(source='application_version.application.created_by.username')
     start_date = serializers.DateTimeField(source='instance_source.start_date')
     end_date = serializers.DateTimeField(source='instance_source.end_date')
-    #licenses = LicenseSerializer(many=True) #NEW
-    #members = MachineMembershipSerializer(many=True) #NEW
 
     class Meta:
         model = ProviderMachine

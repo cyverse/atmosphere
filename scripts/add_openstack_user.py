@@ -3,8 +3,6 @@ import argparse
 
 from keystoneclient.exceptions import NotFound
 
-#try:
-#    from authentication.protocol.oauth import is_atmo_user
 #except ImportError:
 from authentication.protocol.ldap import is_atmo_user
 

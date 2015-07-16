@@ -105,8 +105,6 @@ def get_atmo_users():
         % secrets.GROUPY_SERVER,
         headers={'Authorization': 'Token %s' % access_token})
     return response
-    # atmo_users = [user['name'] for user in response.json()]
-    # return atmo_users
 
 
 def lookupUser(username):

@@ -17,7 +17,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
     icon = serializers.CharField(read_only=True, source='icon_url')
     created_by = serializers.SlugRelatedField(slug_field='username',
                                               read_only=True)
-    #scores = serializers.Field(source='get_scores')
     uuid_hash = serializers.CharField(read_only=True, source='hash_uuid')
     #Writeable Fields
     name = serializers.CharField()
@@ -29,7 +28,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
     machines = serializers.SerializerMethodField()
     is_bookmarked = AppBookmarkField(source="bookmarks.all")
     threshold = serializers.RelatedField(read_only=True)
-    # projects = ProjectsField()
     scripts = BootScriptSerializer(many=True, required=False)
 
     def get_machines(self, application):

@@ -362,7 +362,6 @@ def deploy_failed(task_uuid, driverCls, provider, identity, instance_id, message
                                  replace=False)
         #Send deploy email
         core_instance = Instance.objects.get(provider_alias=instance_id)
-        #send_deploy_failed_email(core_instance, err_str)
         logger.debug("deploy_failed task finished at %s." % datetime.now())
     except Exception as exc:
         logger.warn(exc)
@@ -411,8 +410,6 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         if deploy_chain:
             deploy_chain.apply_async()
         #Can be really useful when testing.
-        #if kwargs.get('delay'):
-        #    async.get()
         logger.debug("deploy_init_to task finished at %s." % datetime.now())
     except SystemExit:
         logger.exception("System Exits are BAD! Find this and get rid of it!")
@@ -898,7 +895,6 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         # the adminPass? --Steve
         logger.info(instance.extra)
         instance._node.extra['password'] = None
-        #msd = init(instance, identity.user.username, password, token, redeploy)
 
     except (BaseException, Exception) as exc:
         logger.exception(exc)

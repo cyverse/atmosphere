@@ -26,7 +26,6 @@ def get_admin_machines(user):
 
 
 #TODO: Determine if "OLD" should be used or not...
-#OLD: class ProviderMachineViewSet(viewsets.ModelViewSet):
 class ProviderMachineViewSet(AuthReadOnlyViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.

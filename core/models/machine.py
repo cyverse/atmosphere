@@ -161,7 +161,6 @@ class ProviderMachineMembership(models.Model):
 
 
 def build_cached_machines():
-    #logger.debug("building cached machines")
     machine_dict = {}
     cms = ProviderMachine.objects.all()
     for cm in cms:
@@ -339,9 +338,6 @@ def provider_machine_write_hook(provider_machine):
 
 
 def add_to_cache(provider_machine):
-    #if not ProviderMachine.cached_machines:
-    #    logger.warn("ProviderMachine cache does not exist.. Building.")
-    #    build_cached_machines()
     #ProviderMachine.cached_machines[(
     #    provider_machine.provider.id,
     #    provider_machine.identifier)] = provider_machine

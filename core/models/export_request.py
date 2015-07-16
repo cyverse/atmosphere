@@ -98,8 +98,6 @@ class ExportRequest(models.Model):
         # NOTE:  Instance-exporting is also possible in OpenStack,
         # but we would need new models to support it.
         #
-        # elif source.is_instance():
-        #    default_kwargs['instance_id'] = self.source.identifier
 
         return default_kwargs
 

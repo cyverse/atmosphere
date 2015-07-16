@@ -209,10 +209,7 @@ class ProjectApplicationList(AuthAPIView):
             return Response("Project with ID=%s does not "
                             "exist" % project_uuid,
                             status=status.HTTP_400_BAD_REQUEST)
-        # user = request.user
-        # group = get_user_group(user.username)
         # TODO: Check that you have permission!
-        # projects = get_group_project(group, project_uuid)
         applications = project.applications.filter(only_current())
         serialized_data = ApplicationSerializer(
             applications, many=True,

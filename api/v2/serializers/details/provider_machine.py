@@ -22,8 +22,6 @@ class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
                 'licenses', 'members', 'version',
                 'created_by', 'start_date', 'end_date')
 
-    #def create(self, validated_data):
-    #    raise Exception("To create a new 'ProviderMachine', you should POST to MachineRequest")
 
     def update(self, instance, validated_data):
         if 'instance_source' in validated_data:

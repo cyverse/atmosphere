@@ -533,7 +533,6 @@ def running_process(proc_name, user=None):
     #4444
     #4445  (The Running PIDs)
     #Output if not running:
-    #      (Empty)
     if len(out) > 1:
         logging.debug("Found PID(s) %s for proccess name:%s"
                       % (out, proc_name))

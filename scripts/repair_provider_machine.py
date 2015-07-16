@@ -32,7 +32,6 @@ def fix_images(provider, images=[]):
             break
         try:
             #NOTE: Will need to change provider query when migrating to DD and beyond
-            #pm = ProviderMachine.objects.get(instancesource_ptr__provider=provider, instancesource_ptr__identifier=image_id)
             pm = ProviderMachine.objects.get(provider=provider, identifier=image_id)
         except ProviderMachine.DoesNotExist:
             print "Error: NO ProviderMachine for Provider:%s Image ID:%s" % (provider, image_id)

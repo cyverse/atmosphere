@@ -52,7 +52,6 @@ def remove_empty_networks():
 def running_instances(network_name, all_instances):
     for instance in all_instances:
         if network_name in instance.extra['addresses'].keys():
-            #if instance.extra['status'].lower() in ['build', 'active']:
             #    #If not build/active, the network is assumed to be NOT in use
             logger.debug("Network %s is in use, Active Instance:%s"
                     % (network_name, instance.id))

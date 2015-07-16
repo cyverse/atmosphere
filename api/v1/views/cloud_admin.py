@@ -200,8 +200,6 @@ class CloudAdminAccountList(APIView):
         serializer = IdentitySerializer(identity)
 
         # TODO: Account creation SHOULD return IdentityMembership NOT identity.
-        # membership = driver.create_account(**data)
-        # serializer = AccountSerializer(membership)
         return Response(serializer.data)
 
 

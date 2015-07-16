@@ -2,7 +2,6 @@
 Atmosphere utilizes the DjangoGroup model
 to manage users via the membership relationship
 """
-#from datetime import timedelta
 from math import floor, ceil
 
 from django.db import models

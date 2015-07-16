@@ -21,7 +21,6 @@ class Size(models.Model):
     class Meta:
         db_table = "size"
         app_label = "core"
-        # unique_together = ('alias', 'provider') # Uncomment when in EE
 
     def esh_total(self):
         try:

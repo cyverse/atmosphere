@@ -462,8 +462,6 @@ class TestAllocationEngine(AllocationTestCase):
         Returns False
         When the total allocation time has not been exceeded.
         """
-        # history_start = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
-        # history_stop = datetime(2014, 12, 4, hour=12, tzinfo=pytz.utc)
 
     def test_allocation_for_multiple_instances(self):
         """
@@ -593,7 +591,6 @@ def repl_counting_behaviors():
     end_of_year = datetime(2015, 12, 31, tzinfo=pytz.utc)
     end_of_month = datetime(2015, 2, 28, tzinfo=pytz.utc)
     counting_behaviors = [
-        # None == Now
         FixedEndSlidingWindow(None, relativedelta(hours=1)),
         FixedEndSlidingWindow(None, relativedelta(days=2)),
         FixedEndSlidingWindow(None, relativedelta(days=28)),

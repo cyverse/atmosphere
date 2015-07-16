@@ -11,7 +11,6 @@ user_match = '[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*'
 # Paste This for provider: provider\/(?P<provider_uuid>\\d+)
 provider_specific = r'^provider/(?P<provider_uuid>%s)' % uuid_match
 # Paste this for identity:
-# /r'^provider\/(?P<provider_uuid>\\d+)\/identity\/(?P<identity_uuid>\
 identity_specific = provider_specific +\
                     r'/identity/(?P<identity_uuid>%s)' % uuid_match
 

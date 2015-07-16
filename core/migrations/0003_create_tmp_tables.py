@@ -26,12 +26,8 @@ def create_volume(old_volume, Instance, InstanceSourceTmp, VolumeTmp):
     )
 
     # Update old_volume status projects
-    #projects = old_volume.projects.all()
 
-    #if projects.count():
     #    for entry in projects:
-    #        entry.volume_tmp = new_volume
-    #        entry.save()
 
     # Update old_volume status history
     history = old_volume.volumestatushistory_set.all()

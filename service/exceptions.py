@@ -77,7 +77,6 @@ class DeviceBusyException(Exception):
                   "unmounting. All offending processes names and IDs are "\
                   "listed below:%s" % (mount_loc, proc_str)
         self.message = message
-        #Exception.__init__(self, message)
         super(DeviceBusyException, self).__init__(mount_loc, process_list)
 
     def __str__(self):

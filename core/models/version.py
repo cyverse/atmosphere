@@ -157,7 +157,6 @@ def transfer_licenses(parent_version, new_version):
 def transfer_membership(parent_version, new_version):
     if parent_version.membership.count():
         for member in parent_version.membership.all():
-            #member == Group
             old_membership = ApplicationVersionMembership.objects.get(
                 group=member, application_version=parent_version)
             membership, _ = ApplicationVersionMembership.objects.get_or_create(

@@ -18,7 +18,6 @@ from allocation import validate_interval
 class TimeUnit:
     # TODO: If using enums:
     # pip install enum34
-    # class Unit(Enum):
     second = 0
     minute = 1
     hour = 2

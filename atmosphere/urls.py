@@ -7,7 +7,6 @@ from django.conf.urls import patterns, url, include
 
 from rest_framework.urlpatterns import format_suffix_patterns
 from api.auth import Authentication
-#from api.version import Version
 
 resources_path = os.path.join(os.path.dirname(__file__), 'resources')
 mobile = os.path.join(os.path.dirname(__file__), 'mobile')
@@ -32,7 +31,6 @@ urlpatterns = patterns(
 
     #v2 api auth by token
     url(r'^auth$', Authentication.as_view(), name='token-auth'),
-    #url(r'^auth$', 'authentication.views.token_auth', name='token-auth'),
 
     #File Retrieval:
     # Systemwide
@@ -71,7 +69,6 @@ urlpatterns = patterns(
 
     # Experimental UI
     # TODO: Rename to application when it launches
-    # url(r'^beta/', 'web.views.app_beta'), # remove for production.
     #Partials
     url(r'^partials/(?P<path>.*)$', 'web.views.partial'),
 
@@ -79,7 +76,6 @@ urlpatterns = patterns(
     url(r'^no_user$', 'web.views.no_user_redirect'),
     #API Layer
 
-#    url(r'^api/version$', Version.as_view()),
     url(r'^api/', include("api.urls", namespace="api")),
 
     #API Documentation

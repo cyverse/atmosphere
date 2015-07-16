@@ -90,7 +90,6 @@ def make_user_instances(instance_list, all_tenants, users):
             continue
         username = tenant[0].name
         if users and username not in users:
-            #print "Skipping instance %s - Belongs to %s" % (instance.id, username)
             continue
         # NOTE: creates a new 'temp attr' .username
         instance.username = username

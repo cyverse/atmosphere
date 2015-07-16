@@ -169,11 +169,9 @@ class MachineRequest(models.Model):
 
     def get_access_list(self):
         if '[' not in self.access_list:
-            #Format = "test1, test2, test3"
             json_loads_list = str(self.access_list.split(", "))
             #New Format = "[u'test1', u'test2', u'test3']"
         else:
-            #Format = "[u'test1', u'test2', u'test3']"
             json_loads_list = self.access_list
         json_loads_list = json_loads_list.replace("'",'"').replace('u"', '"')
         user_list = json.loads(json_loads_list)
@@ -548,8 +546,6 @@ def sync_image_access_list(accounts, img, names=None):
     projects = []
     shared_with = accounts.image_manager.shared_images_for(
             image_id=img.id)
-    #if not shared_with:
-    #    return tenant_names
     #Find tenants who are marked as 'sharing' on openstack but not on DB
     #Or just in One-line..
     projects = [accounts.get_project_by_id(member.member_id) for member in shared_with]

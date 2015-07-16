@@ -21,8 +21,6 @@ class CloudAdminActionListSerializer(serializers.ModelSerializer):
     user_list = serializers.HyperlinkedIdentityField(
         view_name='api:v1:cloud-admin-account-list',
         lookup_field='uuid', lookup_url_kwarg="cloud_admin_uuid")
-    #user_enable = serializers.HyperlinkedIdentityField(
-    #    view_name='api:v1:cloud-admin-account-enable',
     #    lookup_field='uuid', lookup_url_kwarg="cloud_admin_uuid")
     imaging_request = serializers.HyperlinkedIdentityField(
         view_name='api:v1:cloud-admin-imaging-request-list',

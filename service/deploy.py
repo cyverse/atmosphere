@@ -55,7 +55,6 @@ class LoggedScriptDeployment(ScriptDeployment):
         self.attempts = attempts
         if logfile:
             self.script = self.script + " >> %s 2>&1" % logfile
-        #logger.info(self.script)
 
     def run(self, node, client):
         """
@@ -335,7 +334,6 @@ def redeploy_script(filename, username, instance, logfile=None):
         username)
     #kludge: weirdness without the str cast...
     str_awesome_atmo_call = str(awesome_atmo_call)
-    #logger.debug(isinstance(str_awesome_atmo_call, basestring))
     return LoggedScriptDeployment(
         str_awesome_atmo_call,
         name='./deploy_call_atmoinit.sh',
@@ -363,7 +361,6 @@ def init_script(filename, username, token, instance, password,
         awesome_atmo_call += " --root_password=%s" % (password)
     #kludge: weirdness without the str cast...
     str_awesome_atmo_call = str(awesome_atmo_call)
-    #logger.debug(isinstance(str_awesome_atmo_call, basestring))
     return LoggedScriptDeployment(
         str_awesome_atmo_call,
         name='./deploy_call_atmoinit.sh',

@@ -52,7 +52,6 @@ def print_instances(provider, users=[], status_list=[]):
     for tenant, instance_list in tenant_instances_map.iteritems():
         username = tenant.name
         if users and username not in users:
-            #print "Found affected user:%s and Instances:%s - Skipping because they aren't in the list." % (username, instance_list)
             continue
         for instance in instance_list:
             instance_status = instance.extra.get('status')

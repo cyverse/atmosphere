@@ -26,7 +26,6 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     scores = serializers.SerializerMethodField()
     #Writeable fields
     name = serializers.CharField(source='application_version.application.name')
-    # tags = serializers.CharField(source='application_version.application.tags.all')
     tags = TagRelatedField(slug_field='name', source='application_version.application.tags.all', many=True, queryset=Tag.objects.all())
     allow_imaging = serializers.BooleanField(source='application_version.allow_imaging', read_only=True)
     licenses = LicenseSerializer(source='licenses.all', many=True, read_only=True)

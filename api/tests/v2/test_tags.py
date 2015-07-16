@@ -36,7 +36,6 @@ class GetTagListTests(APITestCase):
         self.assertIn('url', data)
         self.assertEquals(data['name'], self.tags[0].name)
         self.assertEquals(data['description'], self.tags[0].description)
-        # self.assertIn('user', data)
 
 
 class GetTagDetailTests(APITestCase):
@@ -63,7 +62,6 @@ class GetTagDetailTests(APITestCase):
         self.assertIn('url', data)
         self.assertEquals(data['name'], self.tag.name)
         self.assertEquals(data['description'], self.tag.description)
-        # self.assertIn('user', data)
 
 
 class DeleteTagTests(APITestCase):

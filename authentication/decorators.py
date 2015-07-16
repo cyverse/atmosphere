@@ -43,7 +43,6 @@ def atmo_login_required(func):
         emulator = request.session.get('emulated_by', None)
 
         if emulator:
-            # logger.info("%s\n%s\n%s" % (username, redirect, emulator))
             logger.info("Test emulator %s instead of %s" %
                         (emulator, username))
             logger.debug(request.session.__dict__)
@@ -61,7 +60,6 @@ def atmo_login_required(func):
                             request=request)
         if not user:
             logger.info("Could not authenticate user %s" % username)
-            # logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
             return cas_loginRedirect(request, redirect)
         django_login(request, user)
         return func(request, *args, **kwargs)

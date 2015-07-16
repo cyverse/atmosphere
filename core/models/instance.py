@@ -27,7 +27,6 @@ from core.query import only_current, only_current_source
 
 OPENSTACK_TASK_STATUS_MAP = {
         #Terminate tasks
-        #'deleting': 'active',
         #Suspend tasks
         'resuming':'build',
         'suspending':'suspended',
@@ -186,10 +185,7 @@ class Instance(models.Model):
         Returns the newest InstanceStatusHistory
         """
         #TODO: Profile Option
-        #try:
-        #    return self.instancestatushistory_set.latest('id')
         #except InstanceStatusHistory.DoesNotExist:
-        #    return None
         #TODO: Profile current choice
         last_history = self.instancestatushistory_set.all().order_by('-start_date')
         if not last_history:
@@ -246,9 +242,6 @@ class Instance(models.Model):
         total_time = self._calculate_active_time(delta)
         return delta_to_hours(total_time)
 
-    #def get_active_time(self, delta=None):
-    #    total_time = self._calculate_active_time(delta)
-    #    return total_time
 
     def _calculate_active_time(self, delta=None):
         if not delta:
@@ -355,11 +348,9 @@ class Instance(models.Model):
         logger.info("END DATING instance %s: %s" % (self.provider_alias, end_date))
         ish_list = self.instancestatushistory_set.filter(end_date=None)
         for ish in ish_list:
-            # logger.info('Saving history:%s' % ish)
             ish.end_date = end_date
             ish.save()
         if not self.end_date:
-            # logger.info("Saving Instance:%s" % self)
             self.end_date = end_date
             self.save()
 
@@ -689,8 +680,6 @@ def convert_instance_source(esh_driver, esh_instance, esh_source, provider_uuid,
     from rtwo.volume import BaseVolume
     from rtwo.machine import BaseMachine
     #TODO: Future Release..
-    #if isinstance(esh_source, BaseSnapShot):
-    #    core_source = convert_esh_snapshot(esh_source, provider_uuid, identity_uuid, user)
     new_source = None
     if isinstance(esh_source, BaseVolume):
         core_source = convert_esh_volume(esh_source, provider_uuid, identity_uuid, user)
@@ -743,7 +732,6 @@ def convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
         esh_instance.extra.get('task'),
         esh_instance.extra.get('metadata',{}).get('tmp_status'))
     #Update values in core with those found in metadata.
-    #core_instance = set_instance_from_metadata(esh_driver, core_instance)
     return core_instance
 
 def _esh_instance_size_to_core(esh_driver, esh_instance, provider_uuid):

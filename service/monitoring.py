@@ -78,7 +78,6 @@ def _convert_tenant_id_to_names(instances, tenants):
 def _get_identity_from_tenant_name(provider, username):
     try:
         # NOTE: I could see this being a problem when 'user1' and 'user2' use
-        #      ex_project_name == 'shared_group'
         # TODO: Ideally we would be able to extract some more information
         #      when we move away from explicit user-groups.
         credential = Credential.objects.get(

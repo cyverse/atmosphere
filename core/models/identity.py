@@ -176,7 +176,6 @@ class Identity(models.Model):
                 new_uuid = uuid4()
                 identity = Identity.objects.create(created_by=user,
                         provider=provider, uuid=str(new_uuid))
-            #Two-tuple, (Object, created)
             id_membership = IdentityMembership.objects.get_or_create(
                 identity=identity, member=group, allocation=default_allocation, quota=Quota.default_quota())
         #Either first in list OR object from two-tuple.. Its what we need.

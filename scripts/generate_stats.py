@@ -59,8 +59,6 @@ def print_time(seconds):
     hours = seconds // 3600
     return "%s hours" % hours
     #OPT 2:
-    #d = timedelta(seconds=seconds)
-    #return str(d)
 def most_launched(json_data, count=20):
     sorted_json = sort_and_filter(json_data, sort_key=lambda obj: obj['instance_count'])
     return sorted_json[:count]

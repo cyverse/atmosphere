@@ -763,7 +763,6 @@ class Instance(AuthAPIView):
                                     str(exc.message))
         try:
             # Test that there is not an attached volume BEFORE we destroy
-            # _check_volume_attachment(esh_driver, esh_instance)
 
             task.destroy_instance_task(esh_instance, identity_uuid)
 

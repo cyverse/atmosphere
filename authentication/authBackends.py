@@ -45,7 +45,6 @@ class SAMLLoginBackend(ModelBackend):
         """
         # logger.debug("SAMLBackend-- U:%s P:%s R:%s"
         #              % (username, password, request))
-        # logger.debug("U:%s P:%s R:%s" % (username, password, request))
         if not request:
             logger.debug("SAML Authentication skipped - No request.")
             return None
@@ -54,8 +53,6 @@ class SAMLLoginBackend(ModelBackend):
         if False:
             logger.debug("SAML Authentication failed - " + username)
             return None
-        # attributes = saml_response.attributes
-        # return get_or_create_user(username, attributes)
 
 
 class CASLoginBackend(ModelBackend):

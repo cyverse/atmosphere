@@ -44,10 +44,8 @@ if hasattr(settings, "NEW_RELIC_ENVIRONMENT"):
 else:
     print "[A]Plugin: Skipping New Relic setup. NEW_RELIC_ENVIRONMENT not defined in local.py"
 
-#LIBCLOUD_DEBUG = os.path.abspath(os.path.join(
 #    root_dir,
 #    'logs/libcloud.log'))
-#os.environ.setdefault("LIBCLOUD_DEBUG",LIBCLOUD_DEBUG)
 
 # This application object is used by any WSGI server configured to use this
 # file. This includes Django's development server, if the WSGI_APPLICATION
@@ -56,8 +54,5 @@ from django.core.wsgi import get_wsgi_application
 try:
     application = get_wsgi_application()
 except Exception, e:
-    #e.msg = os.path.dirname(__file__)
     raise
 
-#from helloworld.wsgi import HelloWorldApplication
-#application = HelloWorldApplication(application)

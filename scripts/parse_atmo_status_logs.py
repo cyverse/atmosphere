@@ -31,7 +31,6 @@ def _parse_logs(filename):
             launch_time = None
             network_time = None
             deploy_time = None
-            #STRFTIME == "%Y-%m-%d %H:%M:%S"
             for row in history:
                 status = row[5]
                 if not request_time and 'Request Received' in status:

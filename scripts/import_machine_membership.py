@@ -76,11 +76,9 @@ def main():
 
 def parse_list(raw_access_list, provider_id):
     if '[' not in raw_access_list:
-        #Format = "test1, test2, test3"
         json_loads_list = str(raw_access_list.split(", "))
         #New Format = "[u'test1', u'test2', u'test3']"
     else:
-        #Format = "[u'test1', u'test2', u'test3']"
         json_loads_list = raw_access_list
     json_loads_list = json_loads_list.replace("'",'"').replace('u"', '"')
     user_list = json.loads(json_loads_list)

@@ -15,7 +15,6 @@ class InstanceSerializer(serializers.ModelSerializer):
     application_name = serializers.CharField(
         read_only=True, source='esh_source_name')
     application_uuid = serializers.CharField(read_only=True)
-    #created_by = serializers.CharField(read_only=True, source='creator_name')
     created_by = serializers.SlugRelatedField(slug_field='username', read_only=True)
     status = serializers.CharField(read_only=True, source='esh_status')
     fault = serializers.ReadOnlyField(source='esh_fault')

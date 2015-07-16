@@ -61,10 +61,7 @@ def main():
         for image in deleted_list:
             print "%s" % image
         print "\n\n"
-        #print "Correct\n---"
         #for image in correct_list:
-        #    print "%s" % image
-        #print "\n\n"
         print "No UUID -- But Names Match (Fix/Create if association is wrong!)\n---"
         for image in name_match_list:
             print "%s" % image
@@ -148,8 +145,6 @@ def _identify_problem_apps(provider, accounts, print_log=True):
 
     for pm in ProviderMachine.objects.filter(instance_source__provider=provider):
         uuid = _generate_app_uuid(pm.identifier)
-        #if print_log:
-        #    print "ProviderMachine: %s == UUID: %s" % (pm.identifier, uuid)
         apps = Application.objects.filter(uuid=uuid)
         if not apps.count():
             # NO UUID Match on providermachine's identifier
@@ -166,8 +161,6 @@ def _identify_problem_apps(provider, accounts, print_log=True):
                 apps_2 = Application.objects.filter(name=name)
                 if apps_2[0] == pm.application:
                     #Matched name is ProviderMachines application
-                    #if print_log:
-                    #    print "OKAY: %s points to correct application by NAME: %s" % (pm.identifier, name)
                     name_match.append(pm)
                 else:
                     #Matched name is NOT ProviderMachines application
@@ -182,8 +175,6 @@ def _identify_problem_apps(provider, accounts, print_log=True):
         else:
             # UUID Match on providermachine's identifier
             if apps[0] == pm.application:
-                #if print_log:
-                #    print "OKAY: %s points to correct application." % pm.identifier
                 correct_apps.append(pm)
             else:
                 if print_log or True:
@@ -209,10 +200,8 @@ def _apply_fix(accounts, provider, pm):
     if NO_META:
         print "Fixed: %s Now points to %s" % (pm.identifier, app)
         return
-    #print "\t\tOld properties: %s" % g_img.properties
     app.update_images()
     g_img = get_image(accounts, image_id)
-    #print "\t\tNew properties: %s" % g_img.properties
     print "Updated: %s Now points to %s" % (pm.identifier, app)
 
 

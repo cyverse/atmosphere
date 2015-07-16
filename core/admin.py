@@ -102,7 +102,6 @@ class ProviderMachineAdmin(admin.ModelAdmin):
 
     def render_change_form(self, request, context, *args, **kwargs):
         pm = context['original']
-        #context['adminform'].form.fields['instance_source'].queryset = InstanceSource.objects.filter(id=pm.instancesource_ptr.id)
         return super(ProviderMachineAdmin, self).render_change_form(request, context, *args, **kwargs)
 
 
@@ -405,9 +404,6 @@ class ResourceRequestAdmin(admin.ModelAdmin):
 admin.site.register(Credential)
 admin.site.register(Group)
 admin.site.register(ProviderType)
-# admin.site.register(CountingBehavior, CountingBehaviorAdmin)
-# admin.site.register(RefreshBehavior, RefreshBehaviorAdmin)
-# admin.site.register(RulesBehavior, RulesBehaviorAdmin)
 
 #For removing 'standard' registrations
 admin.site.unregister(DjangoGroup)

@@ -49,8 +49,6 @@ class InstanceRule(Rule):
 class EngineRule(GlobalRule):
     """
     """
-    # def apply_rule(self, allocation, allocation_result):
-    #     raise NotImplementedError("Should be implemented by subclass.")
 
 
 # Level 3

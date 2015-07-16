@@ -116,7 +116,6 @@ def s_login(request):
     """
      SAML Login: Phase 1/2 Call SAML Login
     """
-    #logger.info("Login Request:%s" % request)
     #Form Sets 'next' when user clicks login
     records = MaintenanceRecord.active()
     disable_login = False
@@ -130,7 +129,6 @@ def login(request):
     """
      CAS Login : Phase 1/3 Call CAS Login
     """
-    #logger.info("Login Request:%s" % request)
     #Form Sets 'next' when user clicks login
     records = MaintenanceRecord.active()
     disable_login = False
@@ -187,15 +185,12 @@ def app(request):
     try:
         if MaintenanceRecord.disable_login_access(request):
             return HttpResponseRedirect('/login/')
-#        template = get_template("cf2/index.html")
-#        output = template.render(context)
         logger.debug("render to response.")
         return render_to_response("cf2/index.html", {
             'site_root': settings.REDIRECT_URL,
             'debug': settings.DEBUG,
             'year': datetime.now().year},
             context_instance=RequestContext(request))
-#HttpResponse(output)
     except KeyError, e:
         logger.debug("User not logged in.. Redirecting to CAS login")
         return auth_loginRedirect(request, settings.REDIRECT_URL+'/application')
@@ -261,8 +256,6 @@ def compile_templates(template_path, js_files_path):
             for f in sorted(files):
                 fullpath = os.path.join(root, f)
                 name, ext = os.path.splitext(f)
-                #         #logger.debug(name)
-                #         #logger.debug(ext)
                 file = open(fullpath, 'r')
                 output = file.read()
                 if ext == '.html':
@@ -279,7 +272,6 @@ def application(request):
         logger.debug("APPLICATION")
         logger.debug(str(request.session.__dict__))
         #access_log(request,meta_data = "{'userid' : '%s', 'token' : '%s',
-        #'api_server' : '%s'}" %(request.session['username'],
         #request.session['token'],request.session['api_server']))
         template = get_template('application/application.html')
     except Exception, e:

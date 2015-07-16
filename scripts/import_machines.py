@@ -88,7 +88,6 @@ def get_file_contents(filename):
     contents = f.read()
     old_data = json.loads(contents)
     machine_tag_map = {jObj['pk']:jObj['fields']['tag_name'] for jObj in old_data if jObj['model'] == 'service_old.machine_tag'}
-    #print [len(jObj['fields']['tag_name']) for jObj in machine_tag_map]
     old_machines = [jObj for jObj in old_data if jObj['model'] == 'service_old.machine']
     return (machine_tag_map, old_machines)
 
