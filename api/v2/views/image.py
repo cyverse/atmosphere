@@ -11,6 +11,7 @@ from core.query import only_current, only_current_apps
 
 from api.v2.serializers.details import ImageSerializer
 from api.v2.views.base import AuthOptionalViewSet
+from api.v2.views.mixins import MultipleFieldLookup
 
 
 def get_admin_images(request_user):
@@ -31,7 +32,7 @@ def get_admin_images(request_user):
     return admin_list
 
 
-class ImageViewSet(AuthOptionalViewSet):
+class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
     """
     API endpoint that allows images to be viewed or edited.
     """
@@ -41,6 +42,7 @@ class ImageViewSet(AuthOptionalViewSet):
     search_fields = ('id', 'name', 'versions__change_log', 'tags__name',
                      'tags__description', 'created_by__username')
     http_method_names = ['get', 'head', 'options', 'trace']
+    lookup_fields = ("id", "uuid")
 
     def get_queryset(self):
         request_user = self.request.user
