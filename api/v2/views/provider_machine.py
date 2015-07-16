@@ -41,7 +41,6 @@ class ProviderMachineViewSet(AuthReadOnlyViewSet):
     queryset = ProviderMachine.objects.all()
     serializer_class = ProviderMachineSerializer
     search_fields = ('application_version__id', 'application_version__application__id', 'instance_source__created_by__username')
-    filter_backend = (django_filters.DjangoFilterBackend,)
     filter_class = ImageVersionFilter
 
     def get_queryset(self):

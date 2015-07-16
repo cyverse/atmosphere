@@ -39,7 +39,6 @@ class ImageVersionViewSet(AuthOptionalViewSet):
     queryset = ImageVersion.objects.all()
     serializer_class = ImageVersionSerializer
     search_fields = ('application__id', 'application__created_by__username')
-    filter_backend = (django_filters.DjangoFilterBackend,)
     filter_class = ImageFilter
 
     def get_queryset(self):
