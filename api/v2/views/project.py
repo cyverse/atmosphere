@@ -8,6 +8,7 @@ from api.v2.serializers.details import ProjectSerializer,\
 from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
+
 class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
     """
     API endpoint that allows projects to be viewed or edited.

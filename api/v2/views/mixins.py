@@ -6,6 +6,7 @@ from rest_framework.generics import get_object_or_404
 
 from threepio import api_logger as logger
 
+
 class MultipleFieldLookup(object):
     lookup_fields = None
 
