@@ -13,7 +13,7 @@ import glob
 try:
     from hashlib import sha1
 except ImportError:
-    #Support for python 2.4
+    # Support for python 2.4
     from sha import sha as sha1
 try:
     import json
@@ -41,7 +41,7 @@ SCRIPT_VERSION = "v2"
 def mkdir_p(path):
     try:
         os.makedirs(path)
-    except OSError, exc:
+    except OSError as exc:
         # Python >2.5
         if exc.errno == errno.EEXIST and os.path.isdir(path):
             pass
@@ -75,37 +75,41 @@ def download_file(url, fileLoc, retry=True, match_hash=None):
     contents = None
     while True:
         attempts += 1
-        logging.debug('Download File:%s Attempt: %s, Wait %s seconds' % (url, attempts, waitTime))
+        logging.debug(
+            'Download File:%s Attempt: %s, Wait %s seconds' %
+            (url, attempts, waitTime))
         time.sleep(waitTime)
-        #Exponential backoff * 10s = 20s,40s,80s,160s,320s...
+        # Exponential backoff * 10s = 20s,40s,80s,160s,320s...
         waitTime = max(10 * 2**attempts, 120)
         try:
             resp = urllib2.urlopen(url)
-        except Exception, e:
+        except Exception as e:
             logging.exception("Failed to download URL: %s" % url)
             resp = None
 
-        #Download file on success
+        # Download file on success
         if resp is not None and resp.code == 200:
             contents = resp.read()
-        #EXIT condition #1: Non-empty file found
+        # EXIT condition #1: Non-empty file found
         if contents is not None and len(contents) != 0:
             logging.debug('Downloaded file')
             break
-        #EXIT condition #2: Don't want to try again
+        # EXIT condition #2: Don't want to try again
         if not retry:
             break
         if attempts >= max_attempts:
-            logging.debug("File could NOT be downloaded: %s Download attempted %s times." % (url, max_attempts))
+            logging.debug(
+                "File could NOT be downloaded: %s Download attempted %s times." %
+                (url, max_attempts))
             break
-        #Retry condition: Retry is true && file is empty
-    #Save file if hash matches
+        # Retry condition: Retry is true && file is empty
+    # Save file if hash matches
     try:
         file_hash = sha1(contents).hexdigest()
-    except Exception, e:
+    except Exception as e:
         file_hash = ""
         logging.exception("Failed to create sha1 hash for file")
-    #Don't save file if hash exists and doesnt match..
+    # Don't save file if hash exists and doesnt match..
     if match_hash and match_hash != file_hash:
         logging.warn(
             "Error, The downloaded file <%s - SHA1:%s> "
@@ -120,9 +124,9 @@ def download_file(url, fileLoc, retry=True, match_hash=None):
 
 
 def set_hostname(hostname, distro):
-    #Set the hostname once
+    # Set the hostname once
     run_command(['/bin/hostname', hostname])
-    #And set a dhcp exithook to keep things running on suspend/stop
+    # And set a dhcp exithook to keep things running on suspend/stop
     if is_rhel(distro):
         run_command(['/usr/bin/yum', '-qy', 'install', 'dhcp'])
         if os.path.exists("/etc/dhcp"):
@@ -145,7 +149,9 @@ def set_hostname(hostname, distro):
             % (ATMO_INIT_FILES, SCRIPT_VERSION),
             "/etc/dhcp/dhclient-exit-hooks.d/hostname",
             match_hash='')
-        run_command(['/bin/chmod', 'a+x', "/etc/dhcp/dhclient-exit-hooks.d/hostname"])
+        run_command(
+            ['/bin/chmod', 'a+x', "/etc/dhcp/dhclient-exit-hooks.d/hostname"])
+
 
 def _get_local_ip():
     try:
@@ -155,13 +161,14 @@ def _get_local_ip():
         return None
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        #Google DNS availability
-        s.connect(("8.8.8.8",80))
+        # Google DNS availability
+        s.connect(("8.8.8.8", 80))
         ip_addr = s.getsockname()[0]
         s.close()
         return ip_addr
     except socket.gaierror:
         return None
+
 
 def _test_hostname(hostname):
     try:
@@ -175,6 +182,7 @@ def _test_hostname(hostname):
     except socket.gaierror:
         return False
 
+
 def _get_hostname_by_socket(public_ip):
     try:
         import socket
@@ -185,6 +193,8 @@ def _get_hostname_by_socket(public_ip):
     return fqdn
 
 # this is necessary because tacc ips do not have a reverse lookup
+
+
 def tacc_ip2hostname(ip):
 
     # let's split the ip first
@@ -192,9 +202,10 @@ def tacc_ip2hostname(ip):
 
     # simple check to verify ip number and last octet
     if ip.startswith("129.114.5.") and octets[3].isdigit():
-       return "austin5-" + octets[3] + ".cloud.bio.ci"
+        return "austin5-" + octets[3] + ".cloud.bio.ci"
     else:
-       return None
+        return None
+
 
 def get_hostname(instance_metadata, public_ip_hint=None):
     """
@@ -203,19 +214,20 @@ def get_hostname(instance_metadata, public_ip_hint=None):
     (To avoid setting <machine_name>.novalocal)
     """
     ip_address = None
-    #1. Look for 'public-ipv4' in metadata
+    # 1. Look for 'public-ipv4' in metadata
     if not instance_metadata:
         instance_metadata = {}
     if 'public-ipv4' in instance_metadata:
         public_hostname = tacc_ip2hostname(instance_metadata['public-ipv4'])
         if not public_hostname:
-            public_hostname = _get_hostname_by_socket(instance_metadata['public-ipv4'])
+            public_hostname = _get_hostname_by_socket(
+                instance_metadata['public-ipv4'])
         result = _test_hostname(public_hostname)
         if result:
             return public_hostname
 
-    #2. Look in user-defined metadata public-hostname OR public-ip
-    defined_metadata = instance_metadata.get('meta',{})
+    # 2. Look in user-defined metadata public-hostname OR public-ip
+    defined_metadata = instance_metadata.get('meta', {})
     if defined_metadata.get('public-hostname'):
         public_hostname = defined_metadata['public-hostname']
         result = _test_hostname(public_hostname)
@@ -224,7 +236,8 @@ def get_hostname(instance_metadata, public_ip_hint=None):
     if defined_metadata.get('public-ip'):
         public_hostname = tacc_ip2hostname(defined_metadata['public-ip'])
         if not public_hostname:
-            public_hostname = _get_hostname_by_socket(defined_metadata['public-ip'])
+            public_hostname = _get_hostname_by_socket(
+                defined_metadata['public-ip'])
         result = _test_hostname(public_hostname)
         if result:
             return public_hostname
@@ -235,11 +248,11 @@ def get_hostname(instance_metadata, public_ip_hint=None):
         result = _test_hostname(public_hostname)
         if result:
             return public_hostname
-    #4. As a last resort, use the instance's (Fixed) IP address
+    # 4. As a last resort, use the instance's (Fixed) IP address
     ip_addr = _get_local_ip()
     if ip_addr:
         return ip_addr
-    #5. If NONE of these work, use 'localhost'
+    # 5. If NONE of these work, use 'localhost'
     return 'localhost'
 
 
@@ -249,7 +262,7 @@ def get_public_ip(instance_metadata):
     """
     ip_addr = instance_metadata.get('public-ipv4')
     if not ip_addr:
-        defined_metadata = instance_metadata.get('meta',{})
+        defined_metadata = instance_metadata.get('meta', {})
         if defined_metadata.get('public-ip'):
             ip_addr = defined_metadata['public-ip']
             logging.info("NOTE: key 'public-ipv4' MISSING from metadata!"
@@ -275,8 +288,8 @@ def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 stdin=None, dry_run=False, shell=False, bash_wrap=False,
                 block_log=False):
     if bash_wrap:
-        #Wrap the entire command in '/bin/bash -c',
-        #This can sometimes help pesky commands
+        # Wrap the entire command in '/bin/bash -c',
+        # This can sometimes help pesky commands
         commandList = ['/bin/bash', '-c', ' '.join(commandList)]
     """
     NOTE: Use this to run ANY system command, because its wrapped around a loggger
@@ -286,7 +299,7 @@ def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     err = None
     cmd_str = ' '.join(commandList)
     if dry_run:
-        #Bail before making the call
+        # Bail before making the call
         logging.debug("Mock Command: %s" % cmd_str)
         return ('', '')
     try:
@@ -297,10 +310,10 @@ def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr,
                                     shell=shell)
         out, err = proc.communicate(input=stdin)
-    except Exception, e:
+    except Exception as e:
         logging.exception(e)
     if block_log:
-        #Leave before we log!
+        # Leave before we log!
         return (out, err)
     if stdin:
         logging.debug("%s STDIN: %s" % (cmd_str, stdin))
@@ -331,7 +344,7 @@ def is_updated_test(filename):
 def etc_skel_bashrc(user):
     filename = "/etc/skel/.bashrc"
     if not is_updated_test(filename):
-        #TODO: Should this be $USER instead of %s?
+        # TODO: Should this be $USER instead of %s?
         append_to_file(filename, """
 export IDS_HOME="/irods/data.iplantc.org/iplant/home/%s"
 alias ids_home="cd $IDS_HOME"
@@ -349,7 +362,7 @@ def in_sudoers(user):
     for idx, line in enumerate(lines):
         if line_match in line:
             allowed_idx = idx
-    root_allowed = lines[allowed_idx+1:]
+    root_allowed = lines[allowed_idx + 1:]
     for line in root_allowed:
         if line:
             return True
@@ -361,7 +374,7 @@ def add_sudoers(user):
     append_to_file(
         atmo_sudo_file,
         "%s ALL=(ALL)ALL" % user)
-    os.chmod(atmo_sudo_file, 0440)
+    os.chmod(atmo_sudo_file, 0o440)
 
 
 def restart_ssh(distro):
@@ -406,7 +419,7 @@ def get_metadata_keys(metadata):
                                      "public-keys/0/openssh-key/"))
     if os_key:
         keys.append(os_key)
-    #JSON metadata API
+    # JSON metadata API
     public_keys = metadata.get('public_keys', {})
     for k, v in public_keys.items():
         keys.append(v.replace('\n', ''))  # Includes a newline
@@ -425,7 +438,7 @@ def collect_json_metadata(metadata_url):
     content = _make_request(metadata_url)
     try:
         meta_obj = json.loads(content)
-    except ValueError, bad_content:
+    except ValueError as bad_content:
         logging.exception("JSON Metadata not found. url: %s" % metadata_url)
         meta_obj = {}
 
@@ -438,7 +451,7 @@ def _make_request(request_url):
         resp = urllib2.urlopen(request_url)
         content = resp.read()
         return content
-    except Exception, e:
+    except Exception as e:
         logging.exception("Could not retrieve meta-data for instance")
         return ""
 
@@ -461,7 +474,7 @@ def collect_metadata(meta_endpoint):
                     meta_list.append("%s%s" % (meta_key, value))
             else:
                 metadata[meta_key] = meta_value
-        except Exception, e:
+        except Exception as e:
             logging.exception("Metadata retrieval error")
             metadata[meta_key] = None
     return metadata
@@ -482,19 +495,19 @@ def mount_storage():
         dev_1 = None
         dev_2 = None
         if 'sda1' in out:
-            #Eucalyptus CentOS format
+            # Eucalyptus CentOS format
             dev_1 = 'sda1'
             dev_2 = 'sda2'
         elif 'xvda1' in out:
-            #Eucalyptus Ubuntu format
+            # Eucalyptus Ubuntu format
             dev_1 = 'xvda1'
             dev_2 = 'xvda2'
         elif 'vda' in out:
-            #Openstack format for Root/Ephem. Disk
+            # Openstack format for Root/Ephem. Disk
             dev_1 = 'vda'
             dev_2 = 'vdb'
         else:
-            #Harddrive format cannot be determined..
+            # Harddrive format cannot be determined..
             logging.warn("Could not determine disks from fdisk output:%s"
                          % out)
         outLines = out.split('\n')
@@ -512,7 +525,7 @@ def mount_storage():
                 "%s is larger than %s, Mounting %s to home"
                 % (dev_2, dev_1, dev_2))
             run_command(["/bin/mount", "-text3", "/dev/%s" % dev_2, "/home"])
-    except Exception, e:
+    except Exception as e:
         logging.exception("Could not mount storage. Error below:")
 
 
@@ -529,10 +542,10 @@ def running_process(proc_name, user=None):
     else:
         pgrep_str = "pgrep %s" % proc_name
     out, err = run_command([pgrep_str], shell=True)
-    #Output if running:
-    #4444
-    #4445  (The Running PIDs)
-    #Output if not running:
+    # Output if running:
+    # 4444
+    # 4445  (The Running PIDs)
+    # Output if not running:
     if len(out) > 1:
         logging.debug("Found PID(s) %s for proccess name:%s"
                       % (out, proc_name))
@@ -548,7 +561,7 @@ def vnc(user, distro, license=None):
             logging.debug("Could not find a GUI on this machine, "
                           "Skipping VNC Install.")
             return
-        #ASSERT: VNC server installed on this machine
+        # ASSERT: VNC server installed on this machine
         if is_rhel(distro):
             run_command(['/usr/bin/yum', '-qy', 'remove', 'vnc-E',
                          'realvnc-vnc-server'])
@@ -598,7 +611,7 @@ def vnc(user, distro, license=None):
         run_command(['/bin/mkdir', '/tmp/.X11-unix'])
         run_command(['/bin/chmod', 'a+rwxt', '/tmp/.X11-unix'])
         start_vncserver(user)
-    except Exception, e:
+    except Exception as e:
         logging.exception('Failed to install VNC')
 
 
@@ -617,7 +630,7 @@ def parrot_install(distro):
         if not is_rhel(distro):
             run_command(['/usr/bin/apt-get', '-qy', 'install',
                          'libssl-dev'])
-            #Ubuntu needs linking
+            # Ubuntu needs linking
             run_command(
                 ['/bin/ln', '-s',
                  '/lib/x86_64-linux-gnu/libssl.so.1.0.0',
@@ -626,7 +639,7 @@ def parrot_install(distro):
                 ['/bin/ln', '-s',
                  '/lib/x86_64-linux-gnu/libcrypto.so.1.0.0',
                  '/lib/x86_64-linux-gnu/libcrypto.so.6'])
-        #link all files
+        # link all files
 
         for f in os.listdir("/opt/cctools/bin"):
             try:
@@ -639,7 +652,7 @@ def parrot_install(distro):
             except Exception:
                 logging.debug(
                     "Problem linking /opt/cctools/bin to /usr/local/bin")
-    except Exception, e:
+    except Exception as e:
         logging.exception("Failed to install parrot. Details below:")
 
 
@@ -707,7 +720,9 @@ def idrop(username, distro):
             if not os.path.exists(os.path.join(dirname, "Desktop")):
                 continue
             idrop_path = os.path.join(dirname, "Desktop/")
-            idrop_match_str = os.path.join(idrop_path, "[i,I][d,D][r,R][o,O][p,P].desktop")
+            idrop_match_str = os.path.join(
+                idrop_path,
+                "[i,I][d,D][r,R][o,O][p,P].desktop")
             idrop_files = glob.glob(idrop_match_str)
             for idrop_file in idrop_files:
                 if os.path.exists(idrop_file):
@@ -725,17 +740,17 @@ def modify_rclocal(username, distro, hostname='localhost'):
         else:
             distro_rc_local = '/etc/rc.local'
 
-        #This temporary file will be re-written each time.
+        # This temporary file will be re-written each time.
         atmo_rclocal_path = '/etc/rc.local.atmo'
 
-        #First we must make sure its included in our original RC local
+        # First we must make sure its included in our original RC local
         if not line_in_file(atmo_rclocal_path, distro_rc_local):
             open_file = open(distro_rc_local, 'a')
             open_file.write('if [ -x %s ]; then\n'
                             '\t%s\n'
                             'fi\n' % (atmo_rclocal_path, atmo_rclocal_path))
             open_file.close()
-        #If there was an exit line, it must be removed
+        # If there was an exit line, it must be removed
         if line_in_file('exit', distro_rc_local):
             run_command(['/bin/sed', '-i',
                          "s/exit.*//", '/etc/rc.local'])
@@ -745,13 +760,13 @@ def modify_rclocal(username, distro, hostname='localhost'):
                            'depmod -a\n'
                            'modprobe acpiphp\n'
                            'hostname %s\n'  # public_ip
-                           #Add new rc.local commands here
-                           #And they will be excecuted on startup
-                           #Don't forget the newline char
+                           # Add new rc.local commands here
+                           # And they will be excecuted on startup
+                           # Don't forget the newline char
                            % (hostname))
         atmo_rclocal.close()
-        os.chmod(atmo_rclocal_path, 0755)
-    except Exception, e:
+        os.chmod(atmo_rclocal_path, 0o755)
+    except Exception as e:
         logging.exception("Failed to write to rc.local")
 
 
@@ -775,6 +790,7 @@ def shellinaboxd(distro):
                  + os.path.join(USER_HOME_DIR, 'shellinabox')
                  + '*'], shell=True)
     start_shellinaboxd()
+
 
 def start_shellinaboxd():
     if not running_process("shellinaboxd"):
@@ -808,13 +824,11 @@ def nagios():
                  os.path.join(USER_HOME_DIR, 'nrpe-snmp-install.sh')])
 
 
-
-
 def distro_files(distro):
     install_motd(distro)
     try:
         install_irods(distro)
-    except IOError, file_busy_err:
+    except IOError as file_busy_err:
         pass
     install_icommands(distro)
 
@@ -828,13 +842,13 @@ def is_rhel(distro):
 
 def install_motd(distro):
     if is_rhel(distro):
-        #Rhel path
+        # Rhel path
         download_file('http://www.iplantcollaborative.org/sites/default/files/'
                       + 'atmosphere/motd',
                       '/etc/motd',
                       match_hash='b8ef30b1b7d25fcaf300ecbc4ee7061e986678c4')
     else:
-        #Ubuntu path
+        # Ubuntu path
         download_file('http://www.iplantcollaborative.org/sites/default/files/'
                       + 'atmosphere/motd',
                       '/etc/motd.tail',
@@ -855,7 +869,7 @@ def include_motd_more(distro):
 
 def install_irods(distro):
     if is_rhel(distro):
-        #Rhel path
+        # Rhel path
         download_file('http://www.iplantcollaborative.org/sites/default/files/'
                       + 'atmosphere/motd',
                       '/etc/motd',
@@ -868,7 +882,7 @@ def install_irods(distro):
         run_command(['/usr/bin/yum', '-qy',
                      'install', 'emacs', 'mosh', 'patch'])
     else:
-        #Ubuntu path
+        # Ubuntu path
         download_file('http://www.iplantcollaborative.org/sites/default/files/'
                       + 'atmosphere/motd',
                       '/etc/motd.tail',
@@ -928,7 +942,7 @@ def run_update_sshkeys(sshdir, sshkeys):
             sshkeys.remove(key)
     f = open(authorized_keys, 'a')
     for key in sshkeys:
-        f.write(key+'\n')
+        f.write(key + '\n')
     f.close()
 
 
@@ -946,8 +960,7 @@ def update_sshkeys(metadata):
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDQNBua13LVIG61LNztP9b7k7T+Qg8t22Drhpy17WVwbBH1CPYdn5NR2rXUmfiOa3RhC5Pz6uXsYUJ4xexOUJaFKY3S8h9VaeaPxMyeA8oj9ssZC6tNLqNxqGzKJbHfSzQXofKwBH87e+du34mzqzm2apOMT2JVzxWmTwrl3JWnd2HG0odeVKMNsXLuQFN6jzCeJdLxHpu+dJOL6gJTW5t9AwoJ8jxmwO8xgUbk+7s38VATSuaV/RiIfXfGFv34CT7AY1gRxm1og9jjP6qkFMyZiO6M+lwrJIlHKTOKxw+xc15w/tIssUkeflzAcrkkNGzT8sBL39BoQOo9RTrMD2QL weather-balloon@wesley.iplantcollaborative.org",
         "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAo/O1gw1hn7I8sDgKGsIY/704O4/89JFO2AG2Quy9LCS5dO5HL40igFOUBmVkqy9ANPEMslaA5VwzPuP+ojKmDhTzoWc4wmvnCGjnZqaTW/+M+QfPSOKoyAaevKC4/Y2dxevS7eRdbeY5Pvweu5rf/eoCXF4DnGMWJ4C6IPVHy7gYpfZrdeiaYzxus53DvFNr4Dee9Y2jvY8wuS3EvL37DU1AGsv1UAN2IoOKZ9Itxwmhf/ZfnFyqMdebggceWRmpK/U2FuXewKMjoJ+HMWgzESR2Rit+9jGniiIVV3K5JeNmHqfWxu2BLpXDYEalX6l28opaiEbDevirwWmvoaAbDw== dboss",
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCyORkWztT4EXpwP5T3voIL/hK683RlOrGh794CSklUiFxbM/Iag6TYqDV3diNmVLfNWXvDD/WATYrsn6bijDpMn7qPBwKeuTI1f2j3tBMluUw3dsavlC2VIyyIEbL0PnLrgiXa4/OpYxZmuD9GIf9eDlb6xYsFQ3B8ZimCCX6vqUVj8gyVNEt7JMWgrx8q1D0u0jWvN2wAMoSD9epMN0IpWEMB9cwNEHbU1Jt5upm1pTC3np7o008aZxJios05iVLdCkj5bTl/ZVxJ5ShIpECBW+h5I2y9MTzeCFOAAmqsbFJN3rjI2Q6u3DjPmvh3y4aF1wGOaYnQMbpnLTqACRsS0D6IofIfuxzSCABgCLc+R4g2IqimcnhGrp62qzyGW/bLkzxEZBhKwudl4fl+ghTqDAPcCQwssvbE466CuWaBuEvfdEQ+yHTe3Fgezri4C4nhF53ZzWynUM/9ajtkzSV53fU6W4RAdYdipsXKzXDa25y5maff2AnhrvewDuVY4mt4pba13ihw2rf3p/RWmHBdN4nulZkCWdm6eQ1VgDc+shU+LE9GOTOQNzibVO1n3mAdjxJyX3RYj/egSUlYqNbBeEAAbwmbFmJTuTWQgm63IMnliPrgJjLQtuU9ZV+SJUxyoV/6qPPZA0L2DYes4iWeMW43uVFOck8Yjik/d/Ar0Q== mattd@IPC-MARA.local",
-        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDiAFmfG+7QP4WK6EwiKo+v34bG9DywF6f0eXym5FJkc6NQPDeG13F/kZSayFqB4IhD40nEofuawaMsPHsjJpjUAXwwgfuPUgnLjiPiFzrxdynnaevsCEzen8TXgOfvhUMgZTz9WiU7SGzSz5Sum8FncjKVjk0uVxbX6K/0FlVCm554uCEkY1l7yP59GpFDVGrDtDDUxmf+MM9862zoMWo5v8ekiFOlnILQONS0DojAoCWCb9TGmI833kKqJtVNh1ZbDdTjL/iR2o1bEbBXN+2CoPA1ZDaE25O+BOGAKY0wAL+Yc8pzeKWV7N34KK4L91XfcGPPQWggZ7O0BgHg57Ez root@lofn ansible"
-    ]
+        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDiAFmfG+7QP4WK6EwiKo+v34bG9DywF6f0eXym5FJkc6NQPDeG13F/kZSayFqB4IhD40nEofuawaMsPHsjJpjUAXwwgfuPUgnLjiPiFzrxdynnaevsCEzen8TXgOfvhUMgZTz9WiU7SGzSz5Sum8FncjKVjk0uVxbX6K/0FlVCm554uCEkY1l7yP59GpFDVGrDtDDUxmf+MM9862zoMWo5v8ekiFOlnILQONS0DojAoCWCb9TGmI833kKqJtVNh1ZbDdTjL/iR2o1bEbBXN+2CoPA1ZDaE25O+BOGAKY0wAL+Yc8pzeKWV7N34KK4L91XfcGPPQWggZ7O0BgHg57Ez root@lofn ansible"]
     more_keys = get_metadata_keys(metadata)
     sshkeys.extend(more_keys)
     root_ssh_dir = '/root/.ssh'
@@ -988,7 +1001,7 @@ def denyhost_whitelist():
         logging.error("Removing existing file: %s" % filename)
         os.remove(filename)
     allowed_hosts_content = "\n".join(allow_list)
-    #Don't write if the folder doesn't exist
+    # Don't write if the folder doesn't exist
     if os.path.exists("/var/lib/denyhosts"):
         write_to_file(filename, allowed_hosts_content)
     return
@@ -1007,8 +1020,8 @@ def ldap_replace():
 
 
 def ldap_install():
-    #TODO: if not ldap package
-    #TODO:     install ldap package
+    # TODO: if not ldap package
+    # TODO:     install ldap package
     ldap_replace()
 
 
@@ -1017,7 +1030,7 @@ def insert_modprobe():
     run_command(['modprobe', 'acpiphp'])
 
 
-#File Operations
+# File Operations
 def line_in_file(needle, filename):
     found = False
     f = open(filename, 'r')
@@ -1042,7 +1055,7 @@ def read_file(filename):
         content = f.read()
         f.close()
         return content
-    except Exception, e:
+    except Exception as e:
         logging.exception("Error reading file %s" % filename)
         return ""
 
@@ -1053,7 +1066,7 @@ def write_to_file(filename, text):
         f = open(filename, "w")
         f.write(text)
         f.close()
-    except Exception, e:
+    except Exception as e:
         logging.exception("Failed to write to %s" % filename)
 
 
@@ -1067,7 +1080,7 @@ def append_to_file(filename, text):
         f.write("\n")
         f.write("## End Atmosphere System\n")
         f.close()
-    except Exception, e:
+    except Exception as e:
         logging.exception("Failed to append to %s" % filename)
         logging.exception("Failed to append text: %s" % text)
 
@@ -1078,7 +1091,7 @@ def redeploy_atmo_init(user, public_ip_hint):
     start_shellinaboxd()
     distro = get_distro()
     start_ntp(distro)
-    #Get IP addr//Hostname from instance metadata
+    # Get IP addr//Hostname from instance metadata
     instance_metadata = get_metadata()
     hostname = get_hostname(instance_metadata, public_ip_hint)
     logging.debug("Distro - %s" % distro)
@@ -1099,7 +1112,7 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password,
     instance_metadata["linuxuserpassword"] = linuxpass
     instance_metadata["linuxuservncpassword"] = linuxpass
 
-    #TODO: Test this is multi-call safe
+    # TODO: Test this is multi-call safe
     update_sshkeys(instance_metadata)
     update_sudoers()
 
@@ -1107,7 +1120,7 @@ def deploy_atmo_init(user, instance_data, instance_metadata, root_password,
         add_sudoers(linuxuser)
     if not in_etc_group('/etc/group', linuxuser):
         add_etc_group(linuxuser)
-    #is_updated_test determines if this sensitive file needs
+    # is_updated_test determines if this sensitive file needs
     if not is_updated_test("/etc/ssh/sshd_config"):
         ssh_config(distro)
     if root_password:
@@ -1146,7 +1159,7 @@ def is_executable(full_path):
 def run_boot_scripts():
     post_script_dir = "/etc/atmo/post-scripts.d"
     if not os.path.isdir(post_script_dir):
-        #Nothing to execute.
+        # Nothing to execute.
         return
     post_script_log_dir = "/var/log/atmo/post-scripts"
     if not os.path.exists(post_script_log_dir):
@@ -1161,13 +1174,17 @@ def run_boot_scripts():
                 output, error = run_command([full_path])
                 output_file = open(stdout_logfile, 'a')
                 if output_file:
-                    output_file.write("--\n%s OUTPUT:\n%s\n" % (full_path, output))
+                    output_file.write(
+                        "--\n%s OUTPUT:\n%s\n" %
+                        (full_path, output))
                     output_file.close()
                 output_file = open(stderr_logfile, 'a')
                 if output_file:
-                    output_file.write("--\n%s ERROR:\n%s\n" % (full_path, error))
+                    output_file.write(
+                        "--\n%s ERROR:\n%s\n" %
+                        (full_path, error))
                     output_file.close()
-        except Exception, exc:
+        except Exception as exc:
             logging.exception("Exception executing/logging the file: %s"
                               % full_path)
 
@@ -1176,30 +1193,37 @@ def add_zsh():
     if os.path.exists("/bin/zsh") and not os.path.exists("/usr/bin/zsh"):
         run_command(['ln', '-s', '/bin/zsh', '/usr/bin/zsh'])
 
+
 def check_ldap(user):
-        delay_time = 60 # in seconds
-        max_tries = 60
-        current_try = 0
-        found = None
-        while current_try < max_tries:
+    delay_time = 60  # in seconds
+    max_tries = 60
+    current_try = 0
+    found = None
+    while current_try < max_tries:
 
-                current_try += 1
-                try:
-                        found = pwd.getpwnam(user)
-                        break;
-                except KeyError, e:
-                        logging.debug('check_ldap: failed, attempt #%d, waiting %d seconds' % (current_try, delay_time))
-                        time.sleep(delay_time)
+        current_try += 1
+        try:
+            found = pwd.getpwnam(user)
+            break
+        except KeyError as e:
+            logging.debug(
+                'check_ldap: failed, attempt #%d, waiting %d seconds' %
+                (current_try, delay_time))
+            time.sleep(delay_time)
 
-        if not found:
-                raise Exception("Failed to contact ldap within %d seconds" % (delay_time * max_tries))
+    if not found:
+        raise Exception(
+            "Failed to contact ldap within %d seconds" %
+            (delay_time * max_tries))
+
 
 def start_ntp(distro):
-      if is_rhel(distro):
-         if os.path.exists("/etc/init.d/ntpd"):
+    if is_rhel(distro):
+        if os.path.exists("/etc/init.d/ntpd"):
             run_command(["/etc/init.d/ntpd", "restart"])
-      elif os.path.exists("/etc/init.d/ntp"):
-         run_command(["/etc/init.d/ntp", "restart"])
+    elif os.path.exists("/etc/init.d/ntp"):
+        run_command(["/etc/init.d/ntp", "restart"])
+
 
 def main(argv):
     init_logs('/var/log/atmo/atmo_init_full.log')
@@ -1215,10 +1239,9 @@ def main(argv):
     vnclicense = None
     try:
         opts, args = getopt.getopt(
-            argv,
-            "rt:u:s:i:T:N:v:",
-            ["redeploy", "service_type=", "service_url=", "server=", "user_id=", "token=",
-             "name=", "vnc_license=", "root_password="])
+            argv, "rt:u:s:i:T:N:v:",
+            ["redeploy", "service_type=", "service_url=", "server=",
+             "user_id=", "token=", "name=", "vnc_license=", "root_password="])
     except getopt.GetoptError:
         logging.error("Invalid arguments provided.")
         sys.exit(2)
@@ -1257,7 +1280,7 @@ def main(argv):
             _debug = 1
             logging.setLevel(logging.DEBUG)
 
-    #TODO: What is this line for?
+    # TODO: What is this line for?
     source = "".join(args)
     logging.debug("Atmoserver - %s" % ATMOSERVER)
     logging.debug("Atmosphere init parameters- %s" % instance_data)

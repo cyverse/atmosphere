@@ -30,11 +30,11 @@ class AccountDriver():
             provider = Provider.objects.get(location='EUCALYPTUS')
         self.core_provider = provider
 
-        #credential dicts
+        # credential dicts
         admin_creds = provider.get_admin_identity().get_credentials()
         provider_creds = provider.get_credentials()
         self.provider_creds = provider_creds
-        #Merge credential dicts
+        # Merge credential dicts
         all_creds = provider_creds
         all_creds.update(admin_creds)
         # Convert creds for each manager
@@ -51,7 +51,7 @@ class AccountDriver():
         return the credentials required to build a "UserManager" object
         """
         img_args = credentials.copy()
-        #Required args:
+        # Required args:
         img_args.get('key')
         img_args.get('secret')
 
@@ -61,9 +61,9 @@ class AccountDriver():
         img_args.get('euca_cert_path')
         img_args.get('pk_path')
         img_args.get('s3_url')
-        #Root dir to find extras/...
+        # Root dir to find extras/...
         img_args.get('extras_root', settings.PROJECT_ROOT)
-        #Remove if exists:
+        # Remove if exists:
         img_args.pop('account_path')
         return img_args
 
@@ -74,14 +74,14 @@ class AccountDriver():
         return the credentials required to build a "UserManager" object
         """
         user_args = credentials.copy()
-        #Required args:
+        # Required args:
         user_args.get('key')
         user_args.get('secret')
         user_args.get('account_path')
-        #ec2_url//url required for user_manager
+        # ec2_url//url required for user_manager
         if not user_args.get('url', None):
             user_args['url'] = user_args.pop('ec2_url', None)
-        #Remove if exists:
+        # Remove if exists:
         user_args.pop('config_path', None)
         user_args.pop('ec2_cert_path', None)
         user_args.pop('euca_cert_path', None)
@@ -95,7 +95,7 @@ class AccountDriver():
         create_identity should be called after account is established
         """
 
-        if type(euca_user) == str:
+        if isinstance(euca_user, str):
             euca_user = self.get_user(euca_user)
 
         identity = self.create_identity(
@@ -111,7 +111,7 @@ class AccountDriver():
         max_quota - Set this user to have the maximum quota,
                     instead of the default quota
         """
-        if type(euca_user) == str:
+        if isinstance(euca_user, str):
             euca_user = self.get_user(euca_user)
         return self.create_identity(euca_user['username'],
                                     euca_user['access_key'],
@@ -133,11 +133,11 @@ class AccountDriver():
     def clean_credentials(self, credential_dict):
         creds = ["username", "access_key", "secret_key"]
         missing_creds = []
-        #1. Remove non-credential information from the dict
+        # 1. Remove non-credential information from the dict
         for key in credential_dict.keys():
             if key not in creds:
                 credential_dict.pop(key)
-        #2. Check the dict has all the required credentials
+        # 2. Check the dict has all the required credentials
         for c in creds:
             if not hasattr(credential_dict, c):
                 missing_creds.append(c)

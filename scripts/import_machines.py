@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-# Takes a single command-line argument, a .json file generated from `./manage.py dumpdata service_old.machine &> machines.json`
+# Takes a single command-line argument, a .json file generated from
+# `./manage.py dumpdata service_old.machine &> machines.json`
 import sys
 import json
 from datetime import datetime
@@ -13,7 +14,7 @@ import django
 django.setup()
 
 
-#Tags are global, can be added to each machine
+# Tags are global, can be added to each machine
 machine_tag_map = {}
 
 
@@ -26,42 +27,45 @@ def convert_old_machine(machine_obj):
         created_by = User.objects.get(username='admin')
     else:
         created_by = created_by[0]
-    #Do not add dummy images
+    # Do not add dummy images
     if not old_machine['image_name']:
-        return (None,None,None)
+        return (None, None, None)
     new_machine = {
-        'name': old_machine['image_name'] if len(old_machine['image_name']) > 0 else old_machine['image_id'],
-        'description': old_machine['image_description'] if old_machine['image_description'] else 'Describe %s' % old_machine['image_id'],
-        'icon': old_machine['machine_image'],
+        'name': old_machine['image_name']
+        if len(old_machine['image_name']) > 0 else old_machine['image_id'],
+        'description': old_machine['image_description']
+        if old_machine['image_description'] else 'Describe %s' % old_machine
+        ['image_id'], 'icon': old_machine['machine_image'],
         'private': old_machine['image_is_public'] == 'private',
         'featured': old_machine['image_featured'],
-        'created_by': created_by,
-        'start_date': old_machine['registered_at'],
-        'end_date': old_machine['image_end_date'],
-    }
+        'created_by': created_by, 'start_date': old_machine['registered_at'],
+        'end_date': old_machine['image_end_date'], }
     new_provider_machine = {
         'identifier': old_machine['image_id']
     }
     new_machine_tags = []
     if machine_tag_map and old_machine.get('machine_tags'):
-        #Machine_tag_map contains OLD ID -> Name
-        #Get/Create a tag with the same name and apply it to the machine
+        # Machine_tag_map contains OLD ID -> Name
+        # Get/Create a tag with the same name and apply it to the machine
         for tag_id in old_machine['machine_tags']:
-            if machine_tag_map.has_key(tag_id):
-                new_tag = Tag.objects.get_or_create(name=machine_tag_map[tag_id])[0]
+            if tag_id in machine_tag_map:
+                new_tag = Tag.objects.get_or_create(
+                    name=machine_tag_map[tag_id])[0]
                 new_machine_tags.append(new_tag)
 
     return (new_machine, new_provider_machine, new_machine_tags)
+
 
 def format_date(date_str):
     if not date_str:
         return None
     try:
         new_date = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S')
-    except ValueError, bad_format:
+    except ValueError as bad_format:
         new_date = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%f')
     new_date = new_date.replace(tzinfo=timezone('UTC'))
     return new_date
+
 
 def update_provider_machine(provider_machine, machine_obj, machine_tags):
     application = provider_machine.application
@@ -76,7 +80,7 @@ def update_provider_machine(provider_machine, machine_obj, machine_tags):
         application.icon = machine_obj['icon']
     for tag in machine_tags:
         application.tags.add(tag)
-    if machine_obj.has_key('tags'):
+    if 'tags' in machine_obj:
         application.tags = machine_obj['tags']
     application.save()
 
@@ -87,24 +91,33 @@ def get_file_contents(filename):
     f = open(filename, 'r')
     contents = f.read()
     old_data = json.loads(contents)
-    machine_tag_map = {jObj['pk']:jObj['fields']['tag_name'] for jObj in old_data if jObj['model'] == 'service_old.machine_tag'}
-    old_machines = [jObj for jObj in old_data if jObj['model'] == 'service_old.machine']
+    machine_tag_map = {jObj['pk']: jObj['fields']['tag_name']
+                       for jObj in old_data
+                       if jObj['model'] == 'service_old.machine_tag'}
+    old_machines = [
+        jObj for jObj in old_data if jObj['model'] == 'service_old.machine']
     return (machine_tag_map, old_machines)
+
 
 def main(filename):
     machine_tag_map, old_machines = get_file_contents(filename)
     new_machines = map(convert_old_machine, old_machines)
-    # new_machines is now a list of two-tuples of the form (core.models.Machine, core.models.ProviderMachine)
+    # new_machines is now a list of two-tuples of the form
+    # (core.models.Machine, core.models.ProviderMachine)
 
     euca = Provider.objects.get(location="EUCALYPTUS")
 
     for (machine_dict, provider_machine_dict, machine_tags) in new_machines:
-        #Does the ProviderMachine exist?
+        # Does the ProviderMachine exist?
         if not machine_dict or not provider_machine_dict:
             continue
-        provider_machine = ProviderMachine.objects.filter(identifier=provider_machine_dict['identifier'])
+        provider_machine = ProviderMachine.objects.filter(
+            identifier=provider_machine_dict['identifier'])
         if provider_machine:
-            update_provider_machine(provider_machine[0], machine_dict, machine_tags)
+            update_provider_machine(
+                provider_machine[0],
+                machine_dict,
+                machine_tags)
         else:
             application = Application(**machine_dict)
             application.save()

@@ -26,6 +26,7 @@ from core.models.identity import Identity
 
 from service.accounts.base import CachedAccountDriver
 
+
 class AccountDriver(CachedAccountDriver):
     user_manager = None
     image_manager = None
@@ -34,10 +35,10 @@ class AccountDriver(CachedAccountDriver):
 
     MASTER_RULES_LIST = [
         ("ICMP", 0, 255),
-        #FTP Access
+        # FTP Access
         ("UDP", 20, 20),  # FTP data transfer
         ("TCP", 20, 21),  # FTP control
-        #SSH & Telnet Access
+        # SSH & Telnet Access
         ("TCP", 22, 23),
         ("UDP", 22, 23),
         # SMTP Mail
@@ -60,7 +61,7 @@ class AccountDriver(CachedAccountDriver):
         # Open up >1024
         ("TCP", 1024, 4199),
         ("UDP", 1024, 4199),
-        #SKIP PORT 4200.. See Below
+        # SKIP PORT 4200.. See Below
         ("TCP", 4201, 65535),
         ("UDP", 4201, 65535),
         # Poke hole in 4200 for iPlant VMs proxy-access only (Shellinabox)
@@ -104,7 +105,7 @@ class AccountDriver(CachedAccountDriver):
         self.image_creds = self._build_image_creds(all_creds)
         self.net_creds = self._build_network_creds(all_creds)
 
-        #Initialize managers with respective credentials
+        # Initialize managers with respective credentials
         self.user_manager = UserManager(**self.user_creds)
         self.image_manager = ImageManager(**self.image_creds)
         self.network_manager = NetworkManager(**self.net_creds)
@@ -134,14 +135,14 @@ class AccountDriver(CachedAccountDriver):
                       project_name=None, role_name=None, max_quota=False):
         finished = False
 
-        #Attempt account creation
+        # Attempt account creation
         while not finished:
             try:
                 if not password:
                     password = self.hashpass(username)
                 if not project_name:
                     project_name = username
-                #1. Create Project: should exist before creating user
+                # 1. Create Project: should exist before creating user
                 project = self.user_manager.get_project(project_name)
                 if not project:
                     project = self.user_manager.create_project(project_name)
@@ -154,7 +155,7 @@ class AccountDriver(CachedAccountDriver):
                     user = self.user_manager.create_user(username, password,
                                                          project)
                 # 3.1 Include the admin in the project
-                #TODO: providercredential initialization of
+                # TODO: providercredential initialization of
                 #  "default_admin_role"
                 self.user_manager.include_admin(project_name)
 
@@ -166,7 +167,7 @@ class AccountDriver(CachedAccountDriver):
 
                 # 4. Create a security group -- SUSPENDED.. Will occur on
                 # instance launch instead.
-                #self.init_security_group(user, password, project,
+                # self.init_security_group(user, password, project,
                 #                         project.name,
                 #                         self.MASTER_RULES_LIST)
 
@@ -200,27 +201,28 @@ class AccountDriver(CachedAccountDriver):
         nc = self.user_manager.nova
         rule_max = max(len(rules_list), 100)
         nc.quotas.update(project.id, security_group_rules=rule_max)
-        #Change the description of the security group to match the project name
+        # Change the description of the security group to match the project
+        # name
         try:
-            #Create the default security group
+            # Create the default security group
             nova = self.user_manager.build_nova(username, password,
                                                 project_name)
             sec_groups = nova.security_groups.list()
             if not sec_groups:
                 nova.security_group.create("default", project_name)
             self.network_manager.rename_security_group(project)
-        except ConnectionError, ce:
+        except ConnectionError as ce:
             logger.exception(
-                    "Failed to establish connection."
-                    " Security group creation FAILED")
+                "Failed to establish connection."
+                " Security group creation FAILED")
             return None
-        except NeutronClientException, nce:
+        except NeutronClientException as nce:
             if nce.status_code != 404:
                 logger.exception("Encountered unknown exception while renaming"
                                  " the security group")
             return None
 
-        #Start creating security group
+        # Start creating security group
         return self.user_manager.build_security_group(
             user.name, password, project.name,
             security_group_name, rules_list)
@@ -294,11 +296,11 @@ class AccountDriver(CachedAccountDriver):
         """
         creds = ["username", "password", "project_name"]
         missing_creds = []
-        #1. Remove non-credential information from the dict
+        # 1. Remove non-credential information from the dict
         for key in credential_dict.keys():
             if key not in creds:
                 credential_dict.pop(key)
-        #2. Check the dict has all the required credentials
+        # 2. Check the dict has all the required credentials
         for c in creds:
             if not hasattr(credential_dict, c):
                 missing_creds.append(c)
@@ -313,14 +315,14 @@ class AccountDriver(CachedAccountDriver):
         identity = Identity.create_identity(
             username, self.core_provider.location,
             quota=quota,
-            #Flags..
+            # Flags..
             max_quota=max_quota, account_admin=account_admin,
-            ##Pass in credentials with cred_ namespace
+            # Pass in credentials with cred_ namespace
             cred_key=username, cred_secret=password,
             cred_ex_tenant_name=project_name,
             cred_ex_project_name=project_name)
 
-        #Return the identity
+        # Return the identity
         return identity
 
     def rebuild_project_network(self, username, project_name,
@@ -348,7 +350,7 @@ class AccountDriver(CachedAccountDriver):
         return True
 
     def delete_network(self, identity, remove_network=True):
-        #Core credentials need to be converted to openstack names
+        # Core credentials need to be converted to openstack names
         identity_creds = self.parse_identity(identity)
         username = identity_creds["username"]
         project_name = identity_creds["tenant_name"]
@@ -357,13 +359,13 @@ class AccountDriver(CachedAccountDriver):
             username, project_name, remove_network=remove_network)
 
     def create_network(self, identity):
-        #Core credentials need to be converted to openstack names
+        # Core credentials need to be converted to openstack names
         identity_creds = self.parse_identity(identity)
         username = identity_creds["username"]
         password = identity_creds["password"]
         project_name = identity_creds["tenant_name"]
         dns_nameservers = [
-            dns_server.ip_address for dns_server\
+            dns_server.ip_address for dns_server
             in identity.provider.dns_server_ips.order_by('order')]
         # Convert from libcloud names to openstack client names
         net_args = self._base_network_creds()
@@ -394,7 +396,8 @@ class AccountDriver(CachedAccountDriver):
         else:
             user = self.user_manager.add_user(username, password)
             project = self.user_manager.get_project(username)
-        #TODO: Instead, return user.get_user match, or call it if you have to..
+        # TODO: Instead, return user.get_user match, or call it if you have
+        # to..
         return user
 
     def delete_account(self, username, projectname):
@@ -404,23 +407,23 @@ class AccountDriver(CachedAccountDriver):
     def os_delete_account(self, username, projectname):
         project = self.user_manager.get_project(projectname)
 
-        #1. Network cleanup
+        # 1. Network cleanup
         if project:
             self.network_manager.delete_project_network(username, projectname)
-            #2. Role cleanup (Admin too)
+            # 2. Role cleanup (Admin too)
             self.user_manager.delete_all_roles(username, projectname)
             adminuser = self.user_manager.keystone.username
             self.user_manager.delete_all_roles(adminuser, projectname)
-            #3. Project cleanup
+            # 3. Project cleanup
             self.user_manager.delete_project(projectname)
-        #4. User cleanup
+        # 4. User cleanup
         user = self.user_manager.get_user(username)
         if user:
             self.user_manager.delete_user(username)
         return True
 
     def hashpass(self, username):
-        #TODO: Must be better.
+        # TODO: Must be better.
         return sha1(username).hexdigest()
 
     def get_project_name_for(self, username):
@@ -433,11 +436,15 @@ class AccountDriver(CachedAccountDriver):
     def _get_image(self, *args, **kwargs):
         return self.image_manager.get_image(*args, **kwargs)
 
-    #For one-time caching
+    # For one-time caching
     def _list_all_images(self, *args, **kwargs):
         return self.image_manager.list_images(*args, **kwargs)
 
-    def tenant_instances_map(self, status_list=[], match_all=False, include_empty=False):
+    def tenant_instances_map(
+            self,
+            status_list=[],
+            match_all=False,
+            include_empty=False):
         """
         Maps 'Tenant' objects to all the 'owned instances' as listed by the admin driver
         Optional fields:
@@ -448,7 +455,7 @@ class AccountDriver(CachedAccountDriver):
         all_projects = self.list_projects()
         all_instances = self.list_all_instances()
         if include_empty:
-            project_map = {proj:[] for proj in all_projects}
+            project_map = {proj: [] for proj in all_projects}
         else:
             project_map = {}
         for instance in all_instances:
@@ -458,19 +465,37 @@ class AccountDriver(CachedAccountDriver):
 
                 project = [p for p in all_projects if p.id == tenant_id][0]
             except (ValueError, KeyError):
-                raise Exception("The implementaion for recovering a tenant id has changed. Update the code base above this line!")
+                raise Exception(
+                    "The implementaion for recovering a tenant id has changed. Update the code base above this line!")
 
-            metadata = instance._node.extra.get('metadata',{})
+            metadata = instance._node.extra.get('metadata', {})
             instance_status = instance.extra.get('status')
             task = instance.extra.get('task')
-            tmp_status = metadata.get('tmp_status','')
+            tmp_status = metadata.get('tmp_status', '')
             if status_list:
                 if match_all:
-                    truth = all(True if (status_name and status_name in [instance_status, task, tmp_status]) else False for status_name in status_list)
+                    truth = all(
+                        True if (
+                            status_name and status_name in [
+                                instance_status,
+                                task,
+                                tmp_status]) else False for status_name in status_list)
                 else:
-                    truth = any(True if (status_name and status_name in [instance_status, task, tmp_status]) else False for status_name in status_list)
+                    truth = any(
+                        True if (
+                            status_name and status_name in [
+                                instance_status,
+                                task,
+                                tmp_status]) else False for status_name in status_list)
                 if not truth:
-                    logger.info("Found an instance:%s for tenant:%s but skipped because %s could be found in the list: (%s - %s - %s)" % (instance.id, project.name, "none of the status_names" if not match_all else "not all of the status names", instance_status,task,tmp_status))
+                    logger.info(
+                        "Found an instance:%s for tenant:%s but skipped because %s could be found in the list: (%s - %s - %s)" %
+                        (instance.id,
+                         project.name,
+                         "none of the status_names" if not match_all else "not all of the status names",
+                         instance_status,
+                         task,
+                         tmp_status))
                     continue
             instance_list = project_map.get(project, [])
             instance_list.append(instance)
@@ -492,7 +517,7 @@ class AccountDriver(CachedAccountDriver):
     def _make_tenant_id_map(self):
         all_projects = self.list_projects()
         tenant_id_map = {project.id: project.name for project in all_projects}
-	return tenant_id_map
+        return tenant_id_map
 
     def list_projects(self):
         return self.user_manager.list_projects()
@@ -529,7 +554,7 @@ class AccountDriver(CachedAccountDriver):
             (parsed_url.hostname, tenant_id)
 
     def get_openstack_clients(self, username, password=None, tenant_name=None):
-        #TODO: I could replace with identity.. but should I?
+        # TODO: I could replace with identity.. but should I?
         user_creds = self._get_openstack_credentials(
             username, password, tenant_name)
         neutron = self.network_manager.new_connection(**user_creds)
@@ -541,7 +566,7 @@ class AccountDriver(CachedAccountDriver):
             "nova": nova,
             "neutron": neutron,
             "horizon": self._get_horizon_url(keystone.tenant_id)
-            }
+        }
 
     def _get_openstack_credentials(self, username,
                                    password=None, tenant_name=None):
@@ -558,7 +583,7 @@ class AccountDriver(CachedAccountDriver):
         }
         return user_creds
 
-    ## Credential manipulaters
+    # Credential manipulaters
     def _libcloud_to_openstack(self, credentials):
         credentials["username"] = credentials.pop("key")
         credentials["password"] = credentials.pop("secret")
@@ -581,14 +606,14 @@ class AccountDriver(CachedAccountDriver):
         return the credentials required to build a "NetworkManager" object
         """
         net_args = credentials.copy()
-        #Required:
+        # Required:
         net_args.get("username")
         net_args.get("password")
         net_args.get("tenant_name")
 
         net_args.get("router_name")
         net_args.get("region_name")
-        #Ignored:
+        # Ignored:
         net_args["auth_url"] = net_args.pop("admin_url").replace("/tokens", "")
         net_args.pop("location", None)
         net_args.pop("ex_project_name", None)
@@ -602,10 +627,17 @@ class AccountDriver(CachedAccountDriver):
         return the credentials required to build a "UserManager" object
         """
         img_args = credentials.copy()
-        #Required:
-        for required_arg in ["username", "password", "tenant_name", "auth_url", "region_name"]:
-            if not img_args.has_key(required_arg) or not img_args[required_arg]:
-                raise ValueError("ImageManager is missing a Required Argument: %s" % required_arg)
+        # Required:
+        for required_arg in [
+                "username",
+                "password",
+                "tenant_name",
+                "auth_url",
+                "region_name"]:
+            if required_arg not in img_args or not img_args[required_arg]:
+                raise ValueError(
+                    "ImageManager is missing a Required Argument: %s" %
+                    required_arg)
 
         return img_args
 
@@ -616,7 +648,7 @@ class AccountDriver(CachedAccountDriver):
         return the credentials required to build a "UserManager" object
         """
         user_args = credentials.copy()
-        #Required args:
+        # Required args:
         user_args.get("username")
         user_args.get("password")
         user_args.get("tenant_name")
@@ -624,7 +656,7 @@ class AccountDriver(CachedAccountDriver):
         user_args["auth_url"] = user_args.get("auth_url")\
             .replace("/tokens", "")
         user_args.get("region_name")
-        #Removable args:
+        # Removable args:
         user_args.pop("admin_url", None)
         user_args.pop("location", None)
         user_args.pop("router_name", None)

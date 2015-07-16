@@ -10,6 +10,7 @@ from api.v1.views.base import AuthOptionalAPIView
 
 
 class MachineNameLookup(AuthOptionalAPIView):
+
     """
     Given a machine_name, return all matching PMs
     """

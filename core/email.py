@@ -82,7 +82,9 @@ def user_email_info(username):
     ldap_attrs = lookupUser(username)
     user_email = ldap_attrs.get('mail', [None])[0]
     if not user_email:
-        raise Exception("Could not locate email address for User:%s - Attrs: %s" % (username, ldap_attrs))
+        raise Exception(
+            "Could not locate email address for User:%s - Attrs: %s" %
+            (username, ldap_attrs))
     user_name = ldap_attrs.get('cn', [""])[0]
     if not user_name:
         user_name = "%s %s" % (ldap_attrs.get("displayName", [""])[0],
@@ -111,6 +113,7 @@ def request_info(request):
             ", height: " + \
             request.POST.get('resolution[screen][height]', '') + ")"
     return (user_agent, remote_ip, location, resolution)
+
 
 def send_email(subject, body, from_email, to, cc=None,
                fail_silently=False, html=False):
@@ -145,8 +148,14 @@ def email_admin(request, subject, message,
                           request_tracker=request_tracker)
 
 
-def email_to_admin(subject, body, username=None,
-                   user_email=None, cc_user=True, admin_user=None, request_tracker=False):
+def email_to_admin(
+        subject,
+        body,
+        username=None,
+        user_email=None,
+        cc_user=True,
+        admin_user=None,
+        request_tracker=False):
     """
     Send a basic email to the admins. Nothing more than subject and message
     are required.
@@ -157,11 +166,11 @@ def email_to_admin(subject, body, username=None,
         sendto, sendto_email = request_tracker_address()
     else:
         sendto, sendto_email = admin_address()
-    #E-mail yourself if no users are provided
+    # E-mail yourself if no users are provided
     if not username and not user_email:
         username, user_email = sendto, sendto_email
     elif not user_email:  # Username provided
-        if type(username) == User:
+        if isinstance(username, User):
             username = username.username
         user_email = lookupEmail(username)
         if not user_email:
@@ -169,11 +178,11 @@ def email_to_admin(subject, body, username=None,
     elif not username:  # user_email provided
         username = 'Unknown'
     if request_tracker or not cc_user:
-        #Send w/o the CC
+        # Send w/o the CC
         return send_email(subject, body,
                           from_email=email_address_str(username, user_email),
                           to=[email_address_str(sendto, sendto_email)])
-    #Send w/ the CC
+    # Send w/ the CC
     return send_email(subject, body,
                       from_email=email_address_str(username, user_email),
                       to=[email_address_str(sendto, sendto_email)],
@@ -248,7 +257,9 @@ def send_instance_email(username, instance_id, instance_name,
         "launched_at": launched_at.strftime(format_string),
         "local_launched_at": local_launched_at.strftime(format_string)
     }
-    body = render_to_string("core/email/instance_ready.html", context=Context(context))
+    body = render_to_string(
+        "core/email/instance_ready.html",
+        context=Context(context))
     subject = 'Your Atmosphere Instance is Available'
     return email_from_admin(username, subject, body)
 
@@ -318,7 +329,9 @@ def send_image_request_failed_email(machine_request, exception_str):
         "ip": machine_request.instance.ip_address,
         "error": exception_str
     }
-    body = render_to_string("core/email/imaging_failed.html", context=Context(context))
+    body = render_to_string(
+        "core/email/imaging_failed.html",
+        context=Context(context))
     subject = 'ERROR - Atmosphere Imaging Task has encountered an exception'
     return email_to_admin(subject, body, user.username, user_email,
                           cc_user=False)
@@ -340,6 +353,7 @@ def send_image_request_email(user, new_machine, name):
                             context=Context(context))
     subject = 'Your Atmosphere Image is Complete'
     return email_from_admin(user.username, subject, body)
+
 
 def send_new_provider_email(username, provider_name):
     subject = ("Your iPlant Atmosphere account has been granted access "

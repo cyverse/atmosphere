@@ -8,8 +8,12 @@ from service.driver import get_esh_driver
 import django
 django.setup()
 
+
 def main():
-    driver = get_esh_driver(Identity.objects.get(provider__id=4, created_by__username='sgregory'))
+    driver = get_esh_driver(
+        Identity.objects.get(
+            provider__id=4,
+            created_by__username='sgregory'))
     for app in Application.objects.all():
         pms = app.providermachine_set.filter(provider__id=4)
         if len(pms) >= 2:
@@ -20,10 +24,10 @@ def main():
                     print "%s doesnt exist" % pm.identifier
                     continue
                 if mach.name != app.name:
-                     new_app = create_application(pm.identifier, 4, mach.name)
-                     pm.application = new_app
-                     pm.save()
-                     print 'New app created:%s' % new_app.name
+                    new_app = create_application(pm.identifier, 4, mach.name)
+                    pm.application = new_app
+                    pm.save()
+                    print 'New app created:%s' % new_app.name
 
 
 if __name__ == "__main__":

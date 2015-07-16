@@ -8,20 +8,21 @@ from core.models.user import AtmosphereUser as User
 from chromogenic.drivers.openstack import ImageManager as OSImageManager
 from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
 
+
 class ExportRequest(models.Model):
     # The machine to export
     source = models.ForeignKey("InstanceSource")
     # Request related metadata
     status = models.CharField(max_length=256)
-    #The exported image
+    # The exported image
     export_name = models.CharField(max_length=256)
     export_owner = models.ForeignKey(User)
     export_format = models.CharField(max_length=256)
     export_file = models.CharField(max_length=256, null=True, blank=True)
-    #Request start to image exported
+    # Request start to image exported
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
-    #TODO: Perhaps a field for the MD5 Hash?
+    # TODO: Perhaps a field for the MD5 Hash?
 
     def complete_export(self, export_file_path):
         self.status = 'completed'
@@ -46,12 +47,15 @@ class ExportRequest(models.Model):
         return creds
 
     def _extract_os_file_location(self, download_dir):
-        #Openstack snapshots are saved as a QCOW2
+        # Openstack snapshots are saved as a QCOW2
         ext = "qcow2"
-        download_location = os.path.join(download_dir, self.export_owner.username)
-        download_location = os.path.join(download_location, '%s.%s' % (self.export_name, ext))
+        download_location = os.path.join(
+            download_dir,
+            self.export_owner.username)
+        download_location = os.path.join(
+            download_location, '%s.%s' %
+            (self.export_name, ext))
         return download_location
-
 
     def prepare_manager(self):
         """
@@ -67,7 +71,6 @@ class ExportRequest(models.Model):
             origCls = EucaImageManager
         elif orig_type == 'openstack':
             origCls = OSImageManager
-
 
         all_creds = self.get_credentials()
         image_creds = origCls._build_image_creds(all_creds)
@@ -103,9 +106,9 @@ class ExportRequest(models.Model):
 
     def __unicode__(self):
         return '%s ExportRequest of %s: %s Status:%s'\
-                % (self.export_owner,
-                   self.source.source_type, self.source.identifier,
-                   self.status)
+            % (self.export_owner,
+               self.source.source_type, self.source.identifier,
+               self.status)
 
     class Meta:
         db_table = "export_request"

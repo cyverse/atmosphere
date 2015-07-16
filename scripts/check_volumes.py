@@ -4,6 +4,8 @@ from service.driver import get_esh_driver
 
 import django
 django.setup()
+
+
 def main():
     for ident in Identity.objects.filter(provider__id=1):
         driver = get_esh_driver(ident)
@@ -15,7 +17,7 @@ def main():
             continue
         print ('%s\n---\n' % ident.created_by.username)
         for vol in vols:
-            print ('%s\t%s' %( vol.alias, vol.extra['createTime']))
+            print ('%s\t%s' % (vol.alias, vol.extra['createTime']))
 
 if __name__ == "__main__":
     main()

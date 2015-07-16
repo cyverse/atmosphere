@@ -9,6 +9,7 @@ from api.v2.views.base import AuthViewSet
 
 
 class InstanceViewSet(AuthViewSet):
+
     """
     API endpoint that allows providers to be viewed or edited.
     """
@@ -24,7 +25,6 @@ class InstanceViewSet(AuthViewSet):
         """
         user = self.request.user
         return Instance.objects.filter(only_current(), created_by=user)
-
 
     def perform_destroy(self, instance):
         return V1Instance().delete(self.request,

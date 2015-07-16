@@ -15,6 +15,7 @@ from api.v1.views.base import MaintenanceAPIView
 
 
 class ApplicationBookmarkList(MaintenanceAPIView):
+
     """
     Represents:
         A Manager of Machine
@@ -37,6 +38,7 @@ class ApplicationBookmarkList(MaintenanceAPIView):
 
 
 class ApplicationBookmarkDetail(MaintenanceAPIView):
+
     """
     Represents:
         A Manager of Machine
@@ -48,8 +50,8 @@ class ApplicationBookmarkDetail(MaintenanceAPIView):
     def get(self, request, app_uuid, **kwargs):
         user = request.user
         app_bookmark = ApplicationBookmark.objects.filter(
-                application__uuid=app_uuid,
-                user=user)
+            application__uuid=app_uuid,
+            user=user)
         if not app_bookmark:
             return failure_response(status.HTTP_404_NOT_FOUND,
                                     "Application with uuid %s does not exist "

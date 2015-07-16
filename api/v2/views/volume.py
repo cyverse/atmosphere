@@ -21,6 +21,7 @@ class VolumeFilter(django_filters.FilterSet):
 
 
 class VolumeViewSet(AuthViewSet):
+
     """
     API endpoint that allows providers to be viewed or edited.
     """
@@ -33,4 +34,6 @@ class VolumeViewSet(AuthViewSet):
         Filter projects by current user
         """
         user = self.request.user
-        return Volume.objects.filter(only_current_source(), instance_source__created_by=user)
+        return Volume.objects.filter(
+            only_current_source(),
+            instance_source__created_by=user)

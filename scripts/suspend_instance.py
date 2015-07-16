@@ -27,9 +27,13 @@ def main():
     instance = args.instance
     provider = args.provider
     try:
-        ident = Identity.objects.get(provider__id=provider, created_by__username=user)
+        ident = Identity.objects.get(
+            provider__id=provider,
+            created_by__username=user)
     except Exception as e:
-        print("Identity could not be found for user: %s on provider: %s" % (user, provider))
+        print(
+            "Identity could not be found for user: %s on provider: %s" %
+            (user, provider))
         print_exc()
         return 1
     driver = get_esh_driver(ident)
@@ -41,19 +45,33 @@ def main():
         return 2
     if args.resume:
         try:
-            resume_instance(driver, inst, ident.provider.id, ident.id, ident.created_by)
+            resume_instance(
+                driver,
+                inst,
+                ident.provider.id,
+                ident.id,
+                ident.created_by)
         except Exception as e:
             print("Resume failed.")
-            print("Calling service.instance.resume_instance failed for instance %s." % (instance))
+            print(
+                "Calling service.instance.resume_instance failed for instance %s." %
+                (instance))
             print_exc()
             return 3
         print("Resumed %s." % (instance))
     else:
         try:
-            suspend_instance(driver, inst, ident.provider.id, ident.id, ident.created_by)
+            suspend_instance(
+                driver,
+                inst,
+                ident.provider.id,
+                ident.id,
+                ident.created_by)
         except Exception as e:
             print("Suspend failed.")
-            print("Calling service.instance.suspend_instance failed for instance %s." % (instance))
+            print(
+                "Calling service.instance.suspend_instance failed for instance %s." %
+                (instance))
             print_exc()
             return 4
         print("Suspended %s." % (instance))

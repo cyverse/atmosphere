@@ -5,6 +5,7 @@ from api.v2.views.base import AuthReadOnlyViewSet
 
 
 class StatusTypeViewSet(AuthReadOnlyViewSet):
+
     """
     API endpoint that allows status types to be viewed.
     """

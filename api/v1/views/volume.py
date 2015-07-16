@@ -23,18 +23,19 @@ from core.models.instance_source import InstanceSource
 from service.cache import get_cached_volumes
 from service.driver import prepare_driver
 from service.volume import create_volume,\
-                           create_bootable_volume,\
-                           update_volume_metadata
+    create_bootable_volume,\
+    update_volume_metadata
 from service.exceptions import OverQuotaError
 from service.volume import create_volume
 
 from api import failure_response, invalid_creds, connection_failure,\
-                malformed_response
+    malformed_response
 from api.v1.serializers import VolumeSerializer, InstanceSerializer
 from api.v1.views.base import AuthAPIView
 
 
 class VolumeSnapshot(AuthAPIView):
+
     """
     Initialize and view volume snapshots.
     """
@@ -140,7 +141,7 @@ class VolumeSnapshot(AuthAPIView):
                 core_volume,
                 context={'request': request}).data
             return Response(serialized_data, status=status.HTTP_201_CREATED)
-        except OverQuotaError, oqe:
+        except OverQuotaError as oqe:
             return over_quota(oqe)
         except ConnectionFailure:
             return connection_failure(provider_uuid, identity_uuid)
@@ -149,6 +150,7 @@ class VolumeSnapshot(AuthAPIView):
 
 
 class VolumeSnapshotDetail(AuthAPIView):
+
     """
     Details of specific volume on Identity.
     """
@@ -185,6 +187,7 @@ class VolumeSnapshotDetail(AuthAPIView):
 
 
 class VolumeList(AuthAPIView):
+
     """
     List all volumes on Identity.
     """
@@ -257,7 +260,7 @@ class VolumeList(AuthAPIView):
             success, esh_volume = create_volume(driver, identity_uuid,
                                                 name, size, description,
                                                 snapshot=snapshot, image=image)
-        except OverQuotaError, oqe:
+        except OverQuotaError as oqe:
             return over_quota(oqe)
         except ConnectionFailure:
             return connection_failure(provider_uuid, identity_uuid)
@@ -278,6 +281,7 @@ class VolumeList(AuthAPIView):
 
 
 class Volume(AuthAPIView):
+
     """
     Details of specific volume on Identity.
     """
@@ -348,7 +352,7 @@ class Volume(AuthAPIView):
         if serializer.is_valid():
             serializer.save()
             update_volume_metadata(
-                    esh_driver, esh_volume, data)
+                esh_driver, esh_volume, data)
             response = Response(serializer.data)
             return response
         else:
@@ -387,7 +391,7 @@ class Volume(AuthAPIView):
         if serializer.is_valid():
             serializer.save()
             update_volume_metadata(
-                    esh_driver, esh_volume, data)
+                esh_driver, esh_volume, data)
             response = Response(serializer.data)
             return response
         else:
@@ -431,6 +435,7 @@ class Volume(AuthAPIView):
 
 
 class BootVolume(AuthAPIView):
+
     """
     Launch an instance using this volume as the source
     """
@@ -466,7 +471,7 @@ class BootVolume(AuthAPIView):
                 request.user, provider_uuid, identity_uuid,
                 name, size_id, source_alias, source_hint=key_name,
                 **data)
-        except Exception, exc:
+        except Exception as exc:
             message = exc.message
             return failure_response(
                 status.HTTP_409_CONFLICT,
@@ -486,7 +491,7 @@ def valid_launch_data(data):
     return [key for key in required
             # Key must exist and have a non-empty value.
             if key not in data or
-            (type(data[key]) == str and len(data[key]) > 0)]
+            (isinstance(data[key], str) and len(data[key]) > 0)]
 
 
 def valid_snapshot_post_data(data):
@@ -497,7 +502,7 @@ def valid_snapshot_post_data(data):
     return [key for key in required
             # Key must exist and have a non-empty value.
             if key not in data or
-            (type(data[key]) == str and len(data[key]) > 0)]
+            (isinstance(data[key], str) and len(data[key]) > 0)]
 
 
 def valid_snapshot_post_data(data):
@@ -508,7 +513,7 @@ def valid_snapshot_post_data(data):
     return [key for key in required
             # Key must exist and have a non-empty value.
             if key not in data or
-            (type(data[key]) == str and len(data[key]) > 0)]
+            (isinstance(data[key], str) and len(data[key]) > 0)]
 
 
 def valid_volume_post_data(data):
@@ -519,7 +524,7 @@ def valid_volume_post_data(data):
     return [key for key in required
             # Key must exist and have a non-empty value.
             if key not in data or
-            (type(data[key]) == str and len(data[key]) > 0)]
+            (isinstance(data[key], str) and len(data[key]) > 0)]
 
 
 def keys_not_found(missing_keys):

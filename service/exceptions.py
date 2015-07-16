@@ -6,6 +6,7 @@ from ansible.errors import AnsibleError
 
 
 class ActionNotAllowed(Exception):
+
     def __init__(self, message):
         self.message = message
         self.status_code = 409
@@ -13,6 +14,7 @@ class ActionNotAllowed(Exception):
 
 
 class UnderThresholdError(Exception):
+
     def __init__(self, message):
         self.message = message
         self.status_code = 400
@@ -20,6 +22,7 @@ class UnderThresholdError(Exception):
 
 
 class SecurityGroupNotCreated(Exception):
+
     def __init__(self):
         self.message = "Gateway Timeout! Security Group(s) could not be created. Please try again later"
         self.status_code = 504
@@ -97,7 +100,7 @@ class VolumeAttachConflict(Exception):
 
     def __init__(self, instance_id, volume_id):
         self.message = "Volume %s is still attached to instance %s"\
-                % (volume_id, instance_id)
+            % (volume_id, instance_id)
         super(VolumeAttachConflict, self).__init__()
 
     def __str__(self):
@@ -108,9 +111,9 @@ class VolumeMountConflict(Exception):
 
     def __init__(self, instance_id, volume_id, extra=None):
         self.message = "Volume %s could not be auto-mounted to %s. %s"\
-                " See Available Volumes -> Mounting a Volume "\
-                " to learn how to mount the device manually"\
-                % (volume_id, instance_id, "Reason:%s" % extra)
+            " See Available Volumes -> Mounting a Volume "\
+            " to learn how to mount the device manually"\
+            % (volume_id, instance_id, "Reason:%s" % extra)
         super(VolumeMountConflict, self).__init__()
 
     def __str__(self):

@@ -36,6 +36,7 @@ def _get_administrator_account(user, admin_uuid):
 
 
 class CloudAdminImagingRequestList(APIView):
+
     """
     Cloud Administration API for handling Imaging Requests
     """
@@ -54,6 +55,7 @@ class CloudAdminImagingRequestList(APIView):
 
 
 class CloudAdminImagingRequest(APIView):
+
     """
     This is the staff portal for machine requests
     A staff member can view any machine request by its ID
@@ -149,6 +151,7 @@ class CloudAdminImagingRequest(APIView):
 
 
 class CloudAdminAccountList(APIView):
+
     """
     This API is used to provide account management.
     provider_uuid -- The id of the provider whose account you want to manage.
@@ -204,6 +207,7 @@ class CloudAdminAccountList(APIView):
 
 
 class CloudAdminAccount(APIView):
+
     """
     This API is used to Enable/Disable a specific identity on
     your Cloud Provider.
@@ -227,6 +231,7 @@ class CloudAdminAccount(APIView):
 
 
 class CloudAdminInstanceActionList(APIView):
+
     """
     This API is used to provide account management.
     provider_uuid -- The id of the provider whose account you want to manage.
@@ -256,6 +261,7 @@ class CloudAdminInstanceActionList(APIView):
 
 
 class CloudAdminInstanceAction(APIView):
+
     """
     This API is used to provide account management.
     provider_uuid -- The id of the provider whose account you want to manage.

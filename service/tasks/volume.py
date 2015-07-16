@@ -45,15 +45,16 @@ def check_volume_task(driverCls, provider, identity,
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'timeout': 120})
 
-        #One script to make two checks:
-        #1. Voume exists 2. Volume has a filesystem
+        # One script to make two checks:
+        # 1. Voume exists 2. Volume has a filesystem
         cv_script = check_volume(device)
-        #NOTE: non_zero_deploy needed to stop DeploymentError from being raised
+        # NOTE: non_zero_deploy needed to stop DeploymentError from being
+        # raised
         kwargs.update({'deploy': cv_script,
                        'non_zero_deploy': True})
         driver.deploy_to(instance, **kwargs)
-        kwargs.pop('non_zero_deploy',None)
-        #Script execute
+        kwargs.pop('non_zero_deploy', None)
+        # Script execute
 
         if cv_script.exit_status != 0:
             if 'No such file' in cv_script.stdout:
@@ -61,7 +62,7 @@ def check_volume_task(driverCls, provider, identity,
                                 'Device %s does not exist on instance %s'
                                 % (volume, device, instance))
             elif 'Bad magic number' in cv_script.stdout:
-                #Filesystem needs to be created for this device
+                # Filesystem needs to be created for this device
                 logger.info("Mkfs needed")
                 mkfs_script = mkfs_volume(device)
                 kwargs.update({'deploy': mkfs_script})
@@ -75,6 +76,8 @@ def check_volume_task(driverCls, provider, identity,
     except Exception as exc:
         logger.warn(exc)
         check_volume_task.retry(exc=exc)
+
+
 def _parse_mount_location(mount_output, device_location):
     """
     GENERAL ASSUMPTION:
@@ -86,11 +89,12 @@ def _parse_mount_location(mount_output, device_location):
     for line in mount_output.split("\n"):
         if device_location not in line:
             continue
-        before_text_idx = line.find(" on ")+4
+        before_text_idx = line.find(" on ") + 4
         after_text_idx = line.find(" type ")
         if before_text_idx == -1 or after_text_idx == -1:
             return ""
         return line[before_text_idx:after_text_idx]
+
 
 @task(name="mount_task",
       max_retries=0,
@@ -106,7 +110,7 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         volume = driver.get_volume(volume_id)
 
         username = identity.get_username()
-        #DEV NOTE: Set as 'users' because this is a GUARANTEED group
+        # DEV NOTE: Set as 'users' because this is a GUARANTEED group
         # and we know our 'user' will exist (if atmo_init_full was executed)
         # in case the VM does NOT rely on iPlant LDAP
         groupname = "users"
@@ -116,7 +120,7 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
             attach_data = volume.extra['attachments'][0]
             if not device:
                 device = attach_data['device']
-        except KeyError, IndexError:
+        except KeyError as IndexError:
             logger.warn("Volume %s missing attachments in Extra"
                         % (volume,))
             device = None
@@ -128,7 +132,7 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'timeout': 120})
 
-        #Step 2. Check the volume is not already mounted
+        # Step 2. Check the volume is not already mounted
         cm_script = check_mount()
         kwargs.update({'deploy': cm_script})
         driver.deploy_to(instance, **kwargs)
@@ -137,13 +141,15 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
             mount_location = _parse_mount_location(cm_script.stdout, device)
             if not mount_location:
                 raise Exception("Device already mounted, "
-                "but mount location could not be determined!"
-                "Check _parse_mount_location()!")
-            logger.warn("Device already mounted. Mount output:%s" % cm_script.stdout)
-            #Device has already been mounted. Move along..
+                                "but mount location could not be determined!"
+                                "Check _parse_mount_location()!")
+            logger.warn(
+                "Device already mounted. Mount output:%s" %
+                cm_script.stdout)
+            # Device has already been mounted. Move along..
             return mount_location
 
-        #Step 3. Find a suitable location to mount the volume
+        # Step 3. Find a suitable location to mount the volume
         logger.info("Original mount location - %s" % mount_location)
         if not mount_location:
             inc = 1
@@ -181,7 +187,7 @@ def umount_task(driverCls, provider, identity, instance_id,
         attach_data = volume.extra['attachments'][0]
         device = attach_data['device']
 
-        #Check mount to find the mount_location for device
+        # Check mount to find the mount_location for device
         private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'timeout': 120})
@@ -201,7 +207,7 @@ def umount_task(driverCls, provider, identity, instance_id,
                 mount_location = search_dict['location']
                 break
 
-        #Volume not mounted, move along..
+        # Volume not mounted, move along..
         if not mount_location:
             return
 
@@ -210,7 +216,7 @@ def umount_task(driverCls, provider, identity, instance_id,
         driver.deploy_to(instance, **kwargs)
 
         if 'device is busy' in um_script.stdout:
-            #Show all processes that are making device busy..
+            # Show all processes that are making device busy..
             lsof_script = lsof_location(mount_location)
             kwargs.update({'deploy': lsof_script})
             driver.deploy_to(instance, **kwargs)
@@ -226,7 +232,7 @@ def umount_task(driverCls, provider, identity, instance_id,
                     (search_dict['name'], search_dict['pid']))
 
             raise DeviceBusyException(mount_location, offending_processes)
-        #Return here if no errors occurred..
+        # Return here if no errors occurred..
         logger.debug("umount_task finished at %s." % datetime.now())
     except DeviceBusyException:
         raise
@@ -246,14 +252,14 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         volume = driver.get_volume(volume_id)
-        #Step 1. Attach the volume
-        #NOTE: device_choice !== device 100%
+        # Step 1. Attach the volume
+        # NOTE: device_choice !== device 100%
         driver.attach_volume(instance,
                              volume,
                              device_choice)
 
-        #When the reslt returns the volume will be 'attaching'
-        #We can't do anything until the volume is 'available/in-use'
+        # When the reslt returns the volume will be 'attaching'
+        # We can't do anything until the volume is 'available/in-use'
         attempts = 0
         while True:
             volume = driver.get_volume(volume_id)
@@ -262,9 +268,9 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
                 return None
             if attempts > 6:  # After 6 attempts (~1min)
                 break
-            #Openstack Check
+            # Openstack Check
             if isinstance(driver, OSDriver) and\
-                    'attaching' not in volume.extra.get('status',''):
+                    'attaching' not in volume.extra.get('status', ''):
                 break
             if isinstance(driver, EucaDriver) and\
                     'attaching' not in volume.extra.get('status', ''):
@@ -277,15 +283,15 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
                             sleep_time))
             time.sleep(sleep_time)
 
-        if 'available' in volume.extra.get('status',''):
+        if 'available' in volume.extra.get('status', ''):
             raise Exception("Volume %s failed to attach to instance %s"
                             % (volume.id, instance.id))
 
-        #Device path for euca == openstack
+        # Device path for euca == openstack
         try:
             attach_data = volume.extra['attachments'][0]
             device = attach_data['device']
-        except (IndexError, KeyError), bad_fetch:
+        except (IndexError, KeyError) as bad_fetch:
             logger.warn("Could not find 'device' in "
                         "volume.extra['attachments']: "
                         "Volume:%s Extra:%s" % (volume.id, volume.extra))
@@ -311,18 +317,18 @@ def detach_task(driverCls, provider, identity,
         volume = driver.get_volume(volume_id)
 
         driver.detach_volume(volume)
-        #When the reslt returns the volume will be 'detaching'
-        #We will ensure the volume does not return to 'in-use'
+        # When the reslt returns the volume will be 'detaching'
+        # We will ensure the volume does not return to 'in-use'
         attempts = 0
         while True:
             volume = driver.get_volume(volume_id)
             if attempts > 6:  # After 6 attempts (~1min)
                 break
-            #The Openstack way
+            # The Openstack way
             if isinstance(driver, OSDriver)\
                     and 'detaching' not in volume.extra['status']:
                 break
-            #The Eucalyptus way
+            # The Eucalyptus way
             attach_data = volume.extra['attachments'][0]
             if isinstance(driver, EucaDriver) and attach_data\
                     and 'detaching' not in attach_data.get('status'):
@@ -340,24 +346,27 @@ def detach_task(driverCls, provider, identity,
 
         logger.debug("detach_task finished at %s." % datetime.now())
     except DeviceBusyException:
-        #We should NOT retry if the device is busy
+        # We should NOT retry if the device is busy
         raise
     except Exception as exc:
-        #If the volume is NOT attached, do not retry.
+        # If the volume is NOT attached, do not retry.
         if 'Volume is not attached' in exc.message:
             return
         logger.exception(exc)
         detach_task.retry(exc=exc)
 
+
 @task(name="update_mount_location", max_retries=2, default_retry_delay=15)
-def update_mount_location(new_mount_location, 
-        driverCls, provider, identity,
-        volume_alias):
+def update_mount_location(new_mount_location,
+                          driverCls, provider, identity,
+                          volume_alias):
     """
     """
     from service import volume as volume_service
     try:
-        logger.debug("update_mount_location task started at %s." % datetime.now())
+        logger.debug(
+            "update_mount_location task started at %s." %
+            datetime.now())
         driver = get_driver(driverCls, provider, identity)
         volume = driver.get_volume(volume_alias)
         if not volume:
@@ -367,8 +376,10 @@ def update_mount_location(new_mount_location,
         volume_metadata = volume.extra['metadata']
         return volume_service.update_volume_metadata(
             driver, volume,
-            metadata={'mount_location':new_mount_location})
-        logger.debug("update_mount_location task finished at %s." % datetime.now())
+            metadata={'mount_location': new_mount_location})
+        logger.debug(
+            "update_mount_location task finished at %s." %
+            datetime.now())
     except Exception as exc:
         logger.exception(exc)
         update_mount_location.retry(exc=exc)
@@ -376,13 +387,15 @@ def update_mount_location(new_mount_location,
 
 @task(name="update_volume_metadata", max_retries=2, default_retry_delay=15)
 def update_volume_metadata(driverCls, provider,
-        identity, volume_alias,
-        metadata):
+                           identity, volume_alias,
+                           metadata):
     """
     """
     from service import volume as volume_service
     try:
-        logger.debug("update_volume_metadata task started at %s." % datetime.now())
+        logger.debug(
+            "update_volume_metadata task started at %s." %
+            datetime.now())
         driver = get_driver(driverCls, provider, identity)
         volume = driver.get_volume(volume_alias)
         if not volume:
@@ -396,9 +409,11 @@ def update_volume_metadata(driverCls, provider,
         update_volume_metadata.retry(exc=exc)
 
 # Deploy and Destroy tasks
+
+
 @task(name="mount_failed")
 def mount_failed(task_uuid, driverCls, provider, identity, volume_id,
-        unmount=False, **celery_task_args):
+                 unmount=False, **celery_task_args):
     from service import volume as volume_service
     try:
         logger.debug("mount_failed task started at %s." % datetime.now())

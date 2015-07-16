@@ -7,6 +7,7 @@ from keystoneclient.apiclient.exceptions import Unauthorized
 import django
 django.setup()
 
+
 def main():
     """
     Using the keyname and public_key defined in settings
@@ -30,12 +31,12 @@ def main():
                 (keypair, created) = os_accounts.get_or_create_keypair(
                     creds['username'], creds['password'], creds['tenant_name'],
                     keyname, public_key)
-            except Unauthorized, exc:
+            except Unauthorized as exc:
                 print "Could not create keypair for %s. Error message: %s"\
-                        % (creds['username'], exc.message)
+                    % (creds['username'], exc.message)
             if created:
                 print "Created keypair %s for user %s"\
-                        % (keypair, creds['username'])
+                    % (keypair, creds['username'])
                 count += 1
         print 'Keypairs added for %s accounts on %s' % (count, prov)
 

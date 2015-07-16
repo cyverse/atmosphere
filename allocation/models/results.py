@@ -10,6 +10,7 @@ from allocation.models.inputs import \
 
 
 class InstanceHistoryResult(object):
+
     def __init__(self, status_name,
                  clock_time=timedelta(0),
                  total_time=timedelta(0),
@@ -30,16 +31,17 @@ class InstanceHistoryResult(object):
         return self.__unicode__()
 
     def __unicode__(self):
-        return "<HistoryResult: Status:%s Clock Time:%s Total Time:%s Burn Rate:%s/0:00:01>"\
-            % (self.status_name, self.clock_time,
-               self.total_time, self.burn_rate)
+        return "<HistoryResult: Status:%s Clock Time:%s Total Time:%s Burn Rate:%s/0:00:01>" % (
+            self.status_name, self.clock_time, self.total_time, self.burn_rate)
 
 
 class InstanceResult(object):
+
     def __init__(self, identifier, history_list):
         self.identifier = identifier
         self.history_list = history_list
     # Group into status results if necessary
+
     def get_burn_rate(self):
         burn_rates = (status.burn_rate for status in self.history_list)
         return sum(burn_rates, timedelta(0))
@@ -57,6 +59,7 @@ class InstanceResult(object):
 
 
 class TimePeriodResult(object):
+
     def __init__(self, start_date=None, end_date=None,
                  allocation_credit=timedelta(0), instance_results=None):
         validate_interval(start_date, end_date)
@@ -158,7 +161,7 @@ class TimePeriodResult(object):
         if self.total_credit != self._allocation_credit:
             return " (From Rule: %s, From Carry Over: %s)"\
                 % (self._allocation_credit,
-                   self.total_credit-self._allocation_credit)
+                   self.total_credit - self._allocation_credit)
         return ""
 
     def __unicode__(self):
@@ -169,6 +172,7 @@ class TimePeriodResult(object):
 
 
 class AllocationResult():
+
     """
     "The Result". This class contains 'all the things'
     """
@@ -292,7 +296,6 @@ class AllocationResult():
         time_periods.append(time_period)
         self._credit_by_interval(time_periods)
         return time_periods
-
 
     def _time_periods_by_allocation(self):
         """

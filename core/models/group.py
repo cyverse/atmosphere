@@ -21,6 +21,7 @@ from core.models.user import AtmosphereUser
 
 
 class Group(DjangoGroup):
+
     """
     Extend the Django Group model to support 'membership'
     """
@@ -34,10 +35,11 @@ class Group(DjangoGroup):
                                           related_name='members',
                                           through='ApplicationMembership',
                                           blank=True)
-    provider_machines = models.ManyToManyField('ProviderMachine',
-                                          related_name='members',
-                                          through='ProviderMachineMembership',
-                                          blank=True)
+    provider_machines = models.ManyToManyField(
+        'ProviderMachine',
+        related_name='members',
+        through='ProviderMachineMembership',
+        blank=True)
 
     @classmethod
     def check_membership(cls, test_user, membership_groups):
@@ -63,7 +65,7 @@ class Group(DjangoGroup):
 
     @classmethod
     def create_usergroup(cls, username):
-        #TODO: ENFORCEMENT of lowercase-only usernames until cleared by mgmt.
+        # TODO: ENFORCEMENT of lowercase-only usernames until cleared by mgmt.
         username = username.lower()
         user = AtmosphereUser.objects.get_or_create(username=username)[0]
         group = Group.objects.get_or_create(name=username)[0]
@@ -83,6 +85,7 @@ class Group(DjangoGroup):
         db_table = 'group'
         app_label = 'core'
 
+
 class Leadership(models.Model):
     user = models.ForeignKey('AtmosphereUser')
     group = models.ForeignKey(Group)
@@ -100,6 +103,7 @@ def get_user_group(username):
 
 
 class IdentityMembership(models.Model):
+
     """
     IdentityMembership allows group 'API access' to use a specific provider
     The identity is given a quota on how many resources can be allocated
@@ -120,31 +124,30 @@ class IdentityMembership(models.Model):
         except IdentityMembershipDoesNotExist:
             logger.warn("%s is not a member of any identities" % groupname)
 
-
     def get_allocation_dict(self):
         if not self.allocation:
             return {}
-        #Don't move it up. Circular reference.
+        # Don't move it up. Circular reference.
         from django.conf import settings
         from service.monitoring import get_delta, _get_allocation_result
         delta = get_delta(self, time_period=settings.FIXED_WINDOW)
         allocation_result = _get_allocation_result(self.identity)
 
         burn_time = allocation_result.get_burn_rate()
-        #Moving from seconds to hours
-        hourly_credit = int(allocation_result\
-                .total_credit().total_seconds()/3600.0)
-        hourly_runtime = int(allocation_result\
-                .total_runtime().total_seconds()/3600.0)
-        hourly_difference = int(allocation_result\
-                .total_difference().total_seconds()/3600.0)
+        # Moving from seconds to hours
+        hourly_credit = int(allocation_result
+                            .total_credit().total_seconds() / 3600.0)
+        hourly_runtime = int(allocation_result
+                             .total_runtime().total_seconds() / 3600.0)
+        hourly_difference = int(allocation_result
+                                .total_difference().total_seconds() / 3600.0)
 
         zero_time = allocation_result.time_to_zero()
 
         allocation_dict = {
             "threshold": hourly_credit,
             "current": hourly_runtime,
-            "delta": ceil(delta.total_seconds()/60),
+            "delta": ceil(delta.total_seconds() / 60),
             "burn": hourly_difference,
             "ttz": zero_time,
         }
@@ -206,6 +209,7 @@ class IdentityMembership(models.Model):
 
 
 class InstanceMembership(models.Model):
+
     """
     InstanceMembership allows group to see Instances in the frontend/API calls.
     InstanceMembership is the equivilant of

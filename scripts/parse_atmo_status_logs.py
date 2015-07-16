@@ -3,22 +3,31 @@
 import csv
 from datetime import datetime
 
+
 def _parse_logs(filename):
-    user_history = {}; pending_instances = {}
+    user_history = {}
+    pending_instances = {}
     with open(filename, 'r') as the_file:
         csvreader = csv.reader(the_file, delimiter=',')
         for row in csvreader:
             try:
-                (timestamp, username, instance_id, machine_id, size_id, status_name) = row
+                (timestamp,
+                 username,
+                 instance_id,
+                 machine_id,
+                 size_id,
+                 status_name) = row
             except:
                 print 'Could not parse row:\n%s' % row
                 continue
             if status_name == 'Request Received':
                 pending_instances[(username, machine_id, size_id)] = row
             else:
-                first_row = pending_instances.pop((username, machine_id, size_id),None)
-                user_instance_history = user_history.get(username,{})
-                instance_history = user_instance_history.get(instance_id,[])
+                first_row = pending_instances.pop(
+                    (username, machine_id, size_id),
+                    None)
+                user_instance_history = user_history.get(username, {})
+                instance_history = user_instance_history.get(instance_id, [])
                 if first_row:
                     instance_history.append(first_row)
                 instance_history.append(row)
@@ -51,6 +60,7 @@ def _parse_logs(filename):
                 total_deploy_time = deploy_time - launch_time
             print "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s"\
                 % (username, instance_id, row[3], row[4], request_time, launch_time, network_time, deploy_time, total_launch_time, total_deploy_time)
+
 
 def get_time(time_str):
     return datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S')

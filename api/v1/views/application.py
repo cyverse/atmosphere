@@ -48,7 +48,7 @@ def _filter_applications(applications, user, params):
             else:
                 applications = [a for a in applications if not a.featured()]
         elif 'bookmark' == filter_key:
-            if type(user) == AnonymousUser:
+            if isinstance(user, AnonymousUser):
                 return []
             bookmarked_apps = [bm.application for bm in user.bookmarks.all()]
             applications = [a for a in applications if a in bookmarked_apps]
@@ -56,6 +56,7 @@ def _filter_applications(applications, user, params):
 
 
 class ApplicationList(ListAPIView):
+
     """
         When this endpoint is called without authentication,
         a list of 'public' images is returned.
@@ -78,7 +79,9 @@ class ApplicationList(ListAPIView):
 
     def get_queryset(self):
         applications = public_applications()
-        if self.request.user and type(self.request.user) != AnonymousUser:
+        if self.request.user and not isinstance(
+                self.request.user,
+                AnonymousUser):
             my_apps = visible_applications(self.request.user)
             applications.extend(my_apps)
         return _filter_applications(applications,
@@ -87,6 +90,7 @@ class ApplicationList(ListAPIView):
 
 
 class ApplicationThresholdDetail(APIView):
+
     """
         Applications are a set of one or more images that can
         be uniquely identified by a specific UUID, or more commonly, by Name,
@@ -182,6 +186,7 @@ class ApplicationThresholdDetail(APIView):
 
 
 class Application(APIView):
+
     """
         Applications are a set of one or more images that can
         be uniquely identified by a specific UUID, or more commonly, by Name,
@@ -268,6 +273,7 @@ class Application(APIView):
 
 
 class ApplicationSearch(ListAPIView):
+
     """
     Provides server-side Application search for an identity.
 

@@ -31,7 +31,6 @@ class OAuthTokenAPIClient(APIClient):
         json_data = json.loads(response.content)
         return json_data
 
-
     def login(self, **credentials):
         username = credentials.get('oauth_user')
         if not username:
@@ -44,18 +43,19 @@ class OAuthTokenAPIClient(APIClient):
         if not token:
             raise Exception("Cannot generate OAuth Access token to atmosphere"
                             " service for user:%s. Check the Secrets file")
-        #This is what a successful /auth response looks like..
-        #TODO: See if we can use a serializer here to keep results consistent
+        # This is what a successful /auth response looks like..
+        # TODO: See if we can use a serializer here to keep results consistent
         # with changes in /auth URL
         self.token = {
-                'username': username,
-                'token' : token,
-                'expires': expires
-                }
+            'username': username,
+            'token': token,
+            'expires': expires
+        }
         if not self.token:
             return False
         self.credentials(HTTP_AUTHORIZATION='Bearer %s' % self.token['token'])
         return True
+
 
 class TokenAPIClient(APIClient):
     token = None
@@ -66,14 +66,13 @@ class TokenAPIClient(APIClient):
         """
         reverse_url = reverse('token-auth')
         data = {
-            "username":credentials.get('username'),
-            "password":credentials.get('password'),
-            }
+            "username": credentials.get('username'),
+            "password": credentials.get('password'),
+        }
         full_url = urljoin(settings.SERVER_URL, reverse_url)
         response = api_client.post(full_url, data, format='multipart')
         json_data = json.loads(response.content)
         return json_data
-
 
     def login(self, **credentials):
         logged_in = super(TokenAPIClient, self).login(**credentials)
@@ -85,23 +84,24 @@ class TokenAPIClient(APIClient):
         self.credentials(HTTP_AUTHORIZATION='Token %s' % self.token['token'])
         return True
 
+
 class AuthTests(TestCase):
     api_client = None
 
     expected_output = {
-        "username":"",
-        "token":"",
-        "expires":"",
-        }
+        "username": "",
+        "token": "",
+        "expires": "",
+    }
 
     def setUp(self):
-        #Initialize API
+        # Initialize API
         pass
 
     def tearDown(self):
         pass
 
-    #TODO: Remove comments if testing of 'Groupy' OAuth is required.
+    # TODO: Remove comments if testing of 'Groupy' OAuth is required.
     #    """
     #    Explicitly call auth and test that tokens can be created.
     #    """
@@ -112,8 +112,10 @@ class AuthTests(TestCase):
         """
         self.api_client = TokenAPIClient()
         self.api_client.login(
-                username=settings.TEST_RUNNER_USER,
-                password=settings.TEST_RUNNER_PASS)
-        verify_expected_output(self, self.api_client.token, self.expected_output)
+            username=settings.TEST_RUNNER_USER,
+            password=settings.TEST_RUNNER_PASS)
+        verify_expected_output(
+            self,
+            self.api_client.token,
+            self.expected_output)
         self.api_client.logout()
-

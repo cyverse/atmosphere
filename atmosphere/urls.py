@@ -24,17 +24,18 @@ urlpatterns = patterns(
     # ADMIN Section:
     # Emulation controls for admin users
     url(r'^api/emulate$', 'web.views.emulate_request'),
-    url(r'^api/emulate/(?P<username>(%s))$' % user_match, 'web.views.emulate_request'),
+    url(r'^api/emulate/(?P<username>(%s))$' %
+        user_match, 'web.views.emulate_request'),
     # DB Admin Panel for admin users
     url(r'^admin/', include(admin.site.urls)),
     url(r'^admin_login/', 'web.views.redirectAdmin'),
 
-    #v2 api auth by token
+    # v2 api auth by token
     url(r'^auth$', Authentication.as_view(), name='token-auth'),
 
-    #File Retrieval:
+    # File Retrieval:
     # Systemwide
-    #TODO: Remove when using Troposphere
+    # TODO: Remove when using Troposphere
     url(r'^resources/(?P<path>.*)$', 'django.views.static.serve',
         {'document_root': resources_path}),
 
@@ -55,11 +56,11 @@ urlpatterns = patterns(
     #    Service URL validates the ticket returned after CAS login
     url(r'^CAS_serviceValidater',
         'authentication.protocol.cas.cas_validateTicket', name='cas-service-validate-link'),
-    #A valid callback URL for maintaining proxy requests
+    # A valid callback URL for maintaining proxy requests
     # This URL retrieves Proxy IOU combination
     url(r'^CAS_proxyCallback',
         'authentication.protocol.cas.cas_proxyCallback', name='cas-proxy-callback-link'),
-    #This URL retrieves maps Proxy IOU & ID
+    # This URL retrieves maps Proxy IOU & ID
     url(r'^CAS_proxyUrl',
         'authentication.protocol.cas.cas_storeProxyIOU_ID', name='cas-proxy-url-link'),
     url(r'^CASlogin/(?P<redirect>.*)$', 'authentication.cas_loginRedirect'),
@@ -69,22 +70,22 @@ urlpatterns = patterns(
 
     # Experimental UI
     # TODO: Rename to application when it launches
-    #Partials
+    # Partials
     url(r'^partials/(?P<path>.*)$', 'web.views.partial'),
 
-    #Error Redirection
+    # Error Redirection
     url(r'^no_user$', 'web.views.no_user_redirect'),
-    #API Layer
+    # API Layer
 
     url(r'^api/', include("api.urls", namespace="api")),
 
-    #API Documentation
+    # API Documentation
     url(r'^api-auth/',
         include('rest_framework.urls', namespace='rest_framework')),
 
     ### DJANGORESTFRAMEWORK ###
     url(r'^api-token-auth/',
-            'rest_framework.authtoken.views.obtain_auth_token')
+        'rest_framework.authtoken.views.obtain_auth_token')
 )
 
 urlpatterns += staticfiles_urlpatterns()

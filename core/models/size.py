@@ -4,6 +4,7 @@ from core.models.provider import Provider
 
 
 class Size(models.Model):
+
     """
     """
     # Special field that is filled out when converting an esh_size

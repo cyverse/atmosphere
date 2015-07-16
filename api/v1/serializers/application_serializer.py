@@ -9,18 +9,24 @@ from .tag_related_field import TagRelatedField
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
+
     """
     """
-    #Read-Only Fields
+    # Read-Only Fields
     uuid = serializers.CharField(read_only=True)
-    description = serializers.CharField(read_only=True, source='latest_description')
+    description = serializers.CharField(
+        read_only=True,
+        source='latest_description')
     icon = serializers.CharField(read_only=True, source='icon_url')
     created_by = serializers.SlugRelatedField(slug_field='username',
                                               read_only=True)
     uuid_hash = serializers.CharField(read_only=True, source='hash_uuid')
-    #Writeable Fields
+    # Writeable Fields
     name = serializers.CharField()
-    tags = TagRelatedField(slug_field='name', many=True, queryset=Tag.objects.all())
+    tags = TagRelatedField(
+        slug_field='name',
+        many=True,
+        queryset=Tag.objects.all())
     start_date = serializers.CharField()
     end_date = serializers.CharField(required=False, read_only=True)
     private = serializers.BooleanField()
@@ -31,7 +37,8 @@ class ApplicationSerializer(serializers.ModelSerializer):
     scripts = BootScriptSerializer(many=True, required=False)
 
     def get_machines(self, application):
-        machines = application._current_machines(request_user=self.request_user)
+        machines = application._current_machines(
+            request_user=self.request_user)
         return [pm.to_dict() for pm in machines]
 
     def __init__(self, *args, **kwargs):
@@ -41,4 +48,4 @@ class ApplicationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Application
-        exclude = ("created_by_identity","id")
+        exclude = ("created_by_identity", "id")

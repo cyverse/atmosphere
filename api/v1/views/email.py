@@ -20,6 +20,7 @@ from api.v1.views.base import AuthAPIView
 
 
 class Feedback(AuthAPIView):
+
     """
     Post feedback via RESTful API
     """
@@ -48,6 +49,7 @@ class Feedback(AuthAPIView):
 
 
 class QuotaEmail(AuthAPIView):
+
     """
     Post Quota Email via RESTful API.
     """
@@ -115,7 +117,7 @@ def check_missing_keys(data, required_keys):
     return [key for key in required_keys
             # Key must exist and have a non-empty value.
             if key not in data or
-            (type(data[key]) == str and len(data[key]) > 0)]
+            (isinstance(data[key], str) and len(data[key]) > 0)]
 
 
 def keys_not_found(missing_keys):

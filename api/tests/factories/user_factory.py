@@ -4,6 +4,7 @@ from django.contrib.auth.models import AnonymousUser
 
 
 class UserFactory(factory.DjangoModelFactory):
+
     class Meta:
         model = User
 
@@ -11,5 +12,6 @@ class UserFactory(factory.DjangoModelFactory):
 
 
 class AnonymousUserFactory(factory.Factory):
+
     class Meta:
         model = AnonymousUser

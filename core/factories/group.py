@@ -5,6 +5,7 @@ from core.models import group as models
 
 
 class GroupFactory(DjangoModelFactory):
+
     class Meta:
         model = models.Group
 
@@ -12,6 +13,7 @@ class GroupFactory(DjangoModelFactory):
 
 
 class LeadershipFactory(DjangoModelFactory):
+
     class Meta:
         model = models.Leadership
 

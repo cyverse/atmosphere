@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 
 class ExportRequestSerializer(serializers.ModelSerializer):
+
     """
     """
     name = serializers.CharField(source='export_name')
@@ -17,7 +18,7 @@ class ExportRequestSerializer(serializers.ModelSerializer):
     owner = serializers.SlugRelatedField(slug_field='username',
                                          source='export_owner',
                                          queryset=AtmosphereUser.objects.all()
-    )
+                                         )
     file = serializers.CharField(read_only=True, default="",
                                  required=False, source='export_file')
 

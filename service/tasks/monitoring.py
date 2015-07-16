@@ -16,9 +16,9 @@ from core.models.provider import Provider
 from core.models import Allocation
 
 from service.monitoring import\
-        _cleanup_missing_instances,\
-        _get_instance_owner_map, \
-        _get_identity_from_tenant_name
+    _cleanup_missing_instances,\
+    _get_instance_owner_map, \
+    _get_identity_from_tenant_name
 from service.monitoring import user_over_allocation_enforcement
 from service.cache import get_cached_driver, get_cached_instances
 
@@ -28,7 +28,7 @@ from threepio import logger
 def strfdelta(tdelta, fmt=None):
     from string import Formatter
     if not fmt:
-        #The standard, most human readable format.
+        # The standard, most human readable format.
         fmt = "{D} days {H:02} hours {M:02} minutes {S:02} seconds"
     if tdelta == timedelta():
         return "0 minutes"
@@ -47,7 +47,7 @@ def strfdelta(tdelta, fmt=None):
 
 def strfdate(datetime_o, fmt=None):
     if not fmt:
-        #The standard, most human readable format.
+        # The standard, most human readable format.
         fmt = "%m/%d/%Y %H:%M:%S"
     if not datetime_o:
         datetime_o = timezone.now()
@@ -75,7 +75,7 @@ def monitor_instances_for(provider_id, users=None,
     """
     provider = Provider.objects.get(id=provider_id)
 
-    #For now, lets just ignore everything that isn't openstack.
+    # For now, lets just ignore everything that isn't openstack.
     if 'openstack' not in provider.type.name.lower():
         return
 
@@ -88,8 +88,8 @@ def monitor_instances_for(provider_id, users=None,
         consolehandler.setLevel(logging.DEBUG)
         logger.addHandler(consolehandler)
 
-    #DEVNOTE: Potential slowdown running multiple functions
-    #Break this out when instance-caching is enabled
+    # DEVNOTE: Potential slowdown running multiple functions
+    # Break this out when instance-caching is enabled
     for username in sorted(instance_map.keys()):
         running_instances = instance_map[username]
         identity = _get_identity_from_tenant_name(provider, username)
@@ -97,20 +97,27 @@ def monitor_instances_for(provider_id, users=None,
             try:
                 driver = get_cached_driver(identity=identity)
                 core_running_instances = [
-                    convert_esh_instance(driver, inst,
-                        identity.provider.uuid, identity.uuid,
+                    convert_esh_instance(
+                        driver,
+                        inst,
+                        identity.provider.uuid,
+                        identity.uuid,
                         identity.created_by) for inst in running_instances]
             except Exception as exc:
-                logger.exception("Could not convert running instances for %s" % username)
+                logger.exception(
+                    "Could not convert running instances for %s" %
+                    username)
                 continue
         else:
-            #No running instances.
+            # No running instances.
             core_running_instances = []
-        #Using the 'known' list of running instances, cleanup the DB
-        core_instances = _cleanup_missing_instances(identity, core_running_instances)
+        # Using the 'known' list of running instances, cleanup the DB
+        core_instances = _cleanup_missing_instances(
+            identity,
+            core_running_instances)
         allocation_result = user_over_allocation_enforcement(
-                provider, username,
-                print_logs, start_date, end_date)
+            provider, username,
+            print_logs, start_date, end_date)
     if print_logs:
         logger.removeHandler(consolehandler)
 
@@ -161,6 +168,7 @@ def monitor_sizes_for(provider_id, print_logs=False):
     if print_logs:
         logger.removeHandler(consolehandler)
 
+
 @task(name="monthly_allocation_reset")
 def monthly_allocation_reset():
     """
@@ -170,7 +178,11 @@ def monthly_allocation_reset():
     """
     default_allocation = Allocation.default_allocation()
     provider = Provider.objects.get(location='iPlant Cloud - Tucson')
-    reset_provider_allocation.apply_async(args=[provider.id, default_allocation.id])
+    reset_provider_allocation.apply_async(
+        args=[
+            provider.id,
+            default_allocation.id])
+
 
 @task(name="reset_provider_allocation")
 def reset_provider_allocation(provider_id, default_allocation_id):
@@ -190,4 +202,3 @@ def reset_provider_allocation(provider_id, default_allocation_id):
             memberships_reset.append(membership)
             users_reset += 1
     return (users_reset, memberships_reset)
-

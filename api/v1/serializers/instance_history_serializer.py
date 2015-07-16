@@ -5,13 +5,13 @@ from .tag_related_field import TagRelatedField
 
 
 class InstanceHistorySerializer(serializers.ModelSerializer):
-    #R/O Fields first!
+    # R/O Fields first!
     alias = serializers.CharField(read_only=True, source='provider_alias')
     alias_hash = serializers.CharField(read_only=True, source='hash_alias')
     created_by = serializers.SlugRelatedField(slug_field='username',
                                               read_only=True)
     size_alias = serializers.CharField(read_only=True, source='esh_size')
-    #NOTE: Now that we have moved to 'source', this can be a bit of a
+    # NOTE: Now that we have moved to 'source', this can be a bit of a
     # misnomer.. New API should correct this representation.
     machine_alias = serializers.CharField(read_only=True, source='esh_source')
     machine_name = serializers.CharField(read_only=True,
@@ -20,14 +20,17 @@ class InstanceHistorySerializer(serializers.ModelSerializer):
                                                source='hash_machine_alias')
     application_uuid = serializers.CharField(read_only=True,)
     application_id = serializers.IntegerField(read_only=True,)
-    #ENDNOTE
+    # ENDNOTE
     ip_address = serializers.CharField(read_only=True)
     start_date = serializers.DateTimeField(read_only=True)
     end_date = serializers.DateTimeField(read_only=True)
     provider = serializers.CharField(read_only=True, source='provider_name')
-    #Writeable fields
+    # Writeable fields
     name = serializers.CharField()
-    tags = TagRelatedField(slug_field='name', many=True, queryset=Tag.objects.all())
+    tags = TagRelatedField(
+        slug_field='name',
+        many=True,
+        queryset=Tag.objects.all())
 
     class Meta:
         model = Instance

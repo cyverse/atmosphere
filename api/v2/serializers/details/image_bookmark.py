@@ -14,7 +14,9 @@ class ImagePrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
 
 
 class ImageBookmarkSerializer(serializers.HyperlinkedModelSerializer):
-    image = ImagePrimaryKeyRelatedField(source='application', queryset=Image.objects.all())
+    image = ImagePrimaryKeyRelatedField(
+        source='application',
+        queryset=Image.objects.all())
     user = UserSummarySerializer(read_only=True)
 
     def validate_image(self, value):
@@ -24,7 +26,9 @@ class ImageBookmarkSerializer(serializers.HyperlinkedModelSerializer):
         user = self.context['request'].user
 
         try:
-            existing_image_bookmark = ImageBookmark.objects.get(application=value, user=user)
+            existing_image_bookmark = ImageBookmark.objects.get(
+                application=value,
+                user=user)
             raise serializers.ValidationError("Image already bookmarked")
         except ImageBookmark.DoesNotExist:
             return value

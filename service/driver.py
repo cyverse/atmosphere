@@ -38,7 +38,8 @@ def get_admin_driver(provider):
     Create an admin driver for a given provider.
     """
     try:
-        return get_esh_driver(provider.accountprovider_set.all().first().identity)
+        return get_esh_driver(
+            provider.accountprovider_set.all().first().identity)
     except:
         logger.info("Admin driver for provider %s not found." %
                     (provider.location))
@@ -53,15 +54,15 @@ def get_account_driver(provider):
         type_name = provider.get_type_name().lower()
         if 'openstack' in type_name:
             from service.accounts.openstack import AccountDriver as\
-                    OSAccountDriver
+                OSAccountDriver
             return OSAccountDriver(provider)
         elif 'eucalyptus' in type_name:
             from service.accounts.eucalyptus import AccountDriver as\
-                    EucaAccountDriver
+                EucaAccountDriver
             return EucaAccountDriver(provider)
     except:
         logger.exception("Account driver for provider %s not found." %
-                    (provider.location))
+                         (provider.location))
         return None
 
 
@@ -71,17 +72,17 @@ ESH_MAP = {
         'identity': OSIdentity,
         'driver': OSDriver
     },
-    'eucalyptus':  {
+    'eucalyptus': {
         'provider': EucaProvider,
         'identity': EucaIdentity,
         'driver': EucaDriver
     },
-    'ec2_us_east':  {
+    'ec2_us_east': {
         'provider': AWSUSEastProvider,
         'identity': AWSIdentity,
         'driver': AWSDriver
     },
-    'ec2_us_west':  {
+    'ec2_us_west': {
         'provider': AWSUSWestProvider,
         'identity': AWSIdentity,
         'driver': AWSDriver
@@ -97,7 +98,7 @@ def get_esh_map(core_provider):
     try:
         provider_name = core_provider.type.name.lower()
         return ESH_MAP[provider_name]
-    except Exception, e:
+    except Exception as e:
         logger.exception(e)
         return None
 
@@ -105,13 +106,13 @@ def get_esh_map(core_provider):
 def get_esh_provider(core_provider, username=None):
     try:
         if username:
-            identifier="%s+%s" % (core_provider.location, username)
+            identifier = "%s+%s" % (core_provider.location, username)
         else:
-            identifier="%s" % core_provider.location
+            identifier = "%s" % core_provider.location
         esh_map = get_esh_map(core_provider)
         provider = esh_map['provider'](identifier=identifier)
         return provider
-    except Exception, e:
+    except Exception as e:
         logger.exception(e)
         raise
 
@@ -130,7 +131,7 @@ def get_esh_driver(core_identity, username=None):
         identity = esh_map['identity'](provider, user=user, **identity_creds)
         driver = esh_map['driver'](provider, identity, **provider_creds)
         return driver
-    except Exception, e:
+    except Exception as e:
         logger.exception(e)
         raise
 
@@ -147,11 +148,15 @@ def prepare_driver(request, provider_uuid, identity_uuid):
         core_identity = CoreIdentity.objects.get(provider__uuid=provider_uuid,
                                                  uuid=identity_uuid)
         if not core_identity.provider.is_active():
-            raise ValueError("Provier %s is NOT active. Driver not created." % (core_identity.provider,))
+            raise ValueError(
+                "Provier %s is NOT active. Driver not created." %
+                (core_identity.provider,))
         if core_identity in request.user.identity_set.all():
             return get_esh_driver(core_identity=core_identity)
         else:
-            raise Exception("User %s is NOT the owner of Identity UUID: %s" % (request.user.username, core_identity.uuid))
+            raise Exception(
+                "User %s is NOT the owner of Identity UUID: %s" %
+                (request.user.username, core_identity.uuid))
     except (CoreIdentity.DoesNotExist, ValueError):
         logger.exception("Unable to prepare driver.")
         return None
@@ -173,7 +178,7 @@ def _retrieve_source(esh_driver, new_source_alias, source_hint):
         return source
     if source_hint:
         raise Exception("Source %s Identifier %s was Not Found and/or"
-                " Does Not Exist" % (source_hint, new_source_alias))
+                        " Does Not Exist" % (source_hint, new_source_alias))
     else:
         raise Exception("No Source found for Identifier %s"
-                % (source_hint, ))
+                        % (source_hint, ))

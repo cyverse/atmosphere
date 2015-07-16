@@ -12,7 +12,8 @@ from core.models import AtmosphereUser as User
 
 def cas_logoutRedirect():
     return HttpResponseRedirect(settings.CAS_SERVER +
-                                "/cas/logout?service="+settings.SERVER_URL)
+                                "/cas/logout?service=" + settings.SERVER_URL)
+
 
 def auth_loginRedirect(request, redirect, gateway=False):
     """
@@ -22,16 +23,22 @@ def auth_loginRedirect(request, redirect, gateway=False):
     :param gateway: If true, all login attempts should be PASSIVE (that is, the user should not be prompted for a login)
     :return: httpResponseRedirect: User selected area to be redirected
     """
-    #TODO: The next step will be adding a 'Splash page' here for users to select their 'choice of Authentication Scheme'
-    #      and then makes the appropriate httpResponseRedirect that sends them to: 1) a login that returns auth information
+    # TODO: The next step will be adding a 'Splash page' here for users to select their 'choice of Authentication Scheme'
+    # and then makes the appropriate httpResponseRedirect that sends them to:
+    # 1) a login that returns auth information
     if hasattr(settings, "ALWAYS_AUTH_USER"):
         return always_auth(request, redirect)
     return cas_loginRedirect(request, redirect, gateway)
 
+
 def always_auth(request, redirect):
-    user = authenticate(username=settings.ALWAYS_AUTH_USER,password=None,request=request)
+    user = authenticate(
+        username=settings.ALWAYS_AUTH_USER,
+        password=None,
+        request=request)
     login(request, user)
     return HttpResponseRedirect("%s" % (redirect,))
+
 
 def saml_loginRedirect(request, redirect=None, gateway=False):
     login_url = "%s%s/login?service=%s/s_serviceValidater%s" %\

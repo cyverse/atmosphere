@@ -27,7 +27,7 @@ class Volume(BaseSource):
     size = models.IntegerField()
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
-    objects = models.Manager() # The default manager.
+    objects = models.Manager()  # The default manager.
     active_volumes = ActiveVolumesManager()
 
     class Meta:
@@ -38,11 +38,11 @@ class Volume(BaseSource):
         """
         Allows for partial updating of the model
         """
-        #Upload args into kwargs
+        # Upload args into kwargs
         for arg in args:
             for (key, value) in arg.items():
                 kwargs[key] = value
-        #Update the values
+        # Update the values
         for key in kwargs.keys():
             if hasattr(self, key):
                 try:
@@ -66,7 +66,7 @@ class Volume(BaseSource):
     def get_status(self):
         if self.esh and self.esh.extra:
             status = self.esh.extra["status"]
-            tmp_status = self.esh.extra.get('tmp_status','')
+            tmp_status = self.esh.extra.get('tmp_status', '')
             if tmp_status:
                 return "%s - %s" % (status, tmp_status)
             return status
@@ -92,7 +92,7 @@ class Volume(BaseSource):
         else:
             attach_data = {}
         if attach_data:
-            if type(attach_data) is list and attach_data:
+            if isinstance(attach_data, list) and attach_data:
                 attach_data = attach_data[0]
             if "serverId" in attach_data:
                 attach_data["instance_alias"] = attach_data["serverId"]
@@ -100,7 +100,7 @@ class Volume(BaseSource):
         else:
             last_history = self._get_last_history()
             if last_history\
-               and (last_history.status.name == VolumeStatus.INUSE\
+               and (last_history.status.name == VolumeStatus.INUSE
                     or last_history.status.name == VolumeStatus.ATTACHING):
                 return last_history.get_attach_data()
         return None
@@ -112,7 +112,7 @@ class Volume(BaseSource):
         metadata = {}
         if self.esh and self.esh.extra:
             metadata = self.esh.extra.get('metadata', {})
-        return metadata.get('mount_location',None)
+        return metadata.get('mount_location', None)
 
     def esh_attach_data(self):
         """
@@ -157,8 +157,9 @@ class Volume(BaseSource):
                             last_history.save()
                         new_history.save()
                     except DatabaseError as dbe:
-                        logger.exception("volume_status_history: Lock is already acquired by"
-                                         "another transaction.")
+                        logger.exception(
+                            "volume_status_history: Lock is already acquired by"
+                            "another transaction.")
 
 
 def convert_esh_volume(esh_volume, provider_uuid, identity_uuid, user):
@@ -175,8 +176,14 @@ def convert_esh_volume(esh_volume, provider_uuid, identity_uuid, user):
             identifier=identifier, provider__uuid=provider_uuid)
         volume = source.volume
     except InstanceSource.DoesNotExist:
-        volume = create_volume(name, identifier, size, provider_uuid, identity_uuid,
-                               user, created_on)
+        volume = create_volume(
+            name,
+            identifier,
+            size,
+            provider_uuid,
+            identity_uuid,
+            user,
+            created_on)
     volume.esh = esh_volume
     volume._update_history()
     return volume
@@ -197,8 +204,8 @@ def create_volume(name, identifier, size, provider_uuid, identity_uuid,
     if created_on:
         # Taking advantage of the ability to save string dates as datetime
         # but we need to get the actual date time after we are done..
-        #NOTE: Why is this different than the method in convert_esh_instance
-        #NOTE: -Steve
+        # NOTE: Why is this different than the method in convert_esh_instance
+        # NOTE: -Steve
         volume.start_date = pytz.utc.localize(created_on)
         volume.save()
     volume = Volume.objects.get(id=volume.id)
@@ -206,6 +213,7 @@ def create_volume(name, identifier, size, provider_uuid, identity_uuid,
 
 
 class VolumeStatus(models.Model):
+
     """
     Used to enumerate the types of actions
     (I.e. available, in-use, attaching, detaching)
@@ -226,6 +234,7 @@ class VolumeStatus(models.Model):
 
 
 class VolumeStatusHistory(models.Model):
+
     """
     Used to keep track of each change in volume status.
     """

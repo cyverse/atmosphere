@@ -7,7 +7,8 @@ class ProviderMachineSummarySerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.ReadOnlyField(source='instance_source.identifier')
     provider = ProviderSummarySerializer(source='instance_source.provider')
     version = serializers.ReadOnlyField(source='application_version.name')
-    owner = serializers.ReadOnlyField(source='application_version.application.created_by.username')
+    owner = serializers.ReadOnlyField(
+        source='application_version.application.created_by.username')
     start_date = serializers.DateTimeField(source='instance_source.start_date')
     end_date = serializers.DateTimeField(source='instance_source.end_date')
 

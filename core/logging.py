@@ -3,13 +3,14 @@ import logging
 
 
 class InstanceAdapter(logging.LoggerAdapter):
+
     def process(self, msg, kwargs):
         extra = kwargs.get("extra", {})
         extra.update(self.extra)
         kwargs["extra"] = extra
         fields = "|".join([self.extra['instance_id'],
-                            self.extra['ip_address'],
-                            self.extra['username']])
+                           self.extra['ip_address'],
+                           self.extra['username']])
         return '%s %s' % (fields, msg), kwargs
 
 

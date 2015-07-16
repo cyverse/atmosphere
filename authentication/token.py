@@ -14,6 +14,7 @@ from core.models.user import AtmosphereUser
 
 
 class TokenAuthentication(BaseAuthentication):
+
     """
     Atmosphere 'AuthToken' based authentication.
     To authenticate, pass the token key in the "Authorization"
@@ -32,23 +33,27 @@ class TokenAuthentication(BaseAuthentication):
             token_key = request.session['token']
         if validate_token(token_key):
             token = self.model.objects.get(key=token_key)
-            #logger.info("AuthToken Obtained for %s:%s" %
+            # logger.info("AuthToken Obtained for %s:%s" %
             #            (token.user.username, token_key))
             if token.user.is_active:
                 return (token.user, token)
         return None
+
+
 class OAuthTokenAuthentication(TokenAuthentication):
+
     """
     OAuthTokenAuthentication:
     To authenticate, pass the token key in the "Authorization" HTTP header,
     prepend with the string "Token ". For example:
         Authorization: Token 098f6bcd4621d373cade4e832627b4f6
     """
+
     def _mock_oauth_login(self, oauth_token):
         username = settings.ALWAYS_AUTH_USER
         user = get_or_create_user(username, {
-            'firstName':"Mocky Mock",
-            'lastName':"MockDoodle",
+            'firstName': "Mocky Mock",
+            'lastName': "MockDoodle",
             'email': '%s@iplantcollaborative.org' % settings.ALWAYS_AUTH_USER,
             'entitlement': []})
         _, token = self.model.objects.get_or_create(key=oauth_token, user=user)
@@ -84,7 +89,7 @@ def validate_oauth_token(token, request=None):
     username = user_profile.get("id")
     attrs = user_profile.get("attributes")
     if not username or not attrs:
-        #logger.info("Invalid Profile:%s does not have username/attributes"
+        # logger.info("Invalid Profile:%s does not have username/attributes"
         #            % user_profile)
         return False
 
@@ -94,8 +99,8 @@ def validate_oauth_token(token, request=None):
         return None
     username = username.lower()
 
-    #TEST 1 : Must be in the group 'atmo-user'
-    #NOTE: Test 1 will be IGNORED until we can verify it returns 'entitlement'
+    # TEST 1 : Must be in the group 'atmo-user'
+    # NOTE: Test 1 will be IGNORED until we can verify it returns 'entitlement'
     # EVERY TIME!
     #    raise Unauthorized("User %s is not a member of group 'atmo-user'"
     #                       % username)

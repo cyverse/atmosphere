@@ -10,6 +10,7 @@ from api.v2.serializers.summaries import (
     StatusTypeSummarySerializer
 )
 
+
 class UserRelatedField(serializers.PrimaryKeyRelatedField):
 
     def get_queryset(self):
@@ -22,6 +23,7 @@ class UserRelatedField(serializers.PrimaryKeyRelatedField):
 
 
 class IdentityRelatedField(serializers.RelatedField):
+
     def get_queryset(self):
         return Identity.objects.all()
 
@@ -55,7 +57,9 @@ class AllocationRelatedField(serializers.RelatedField):
             return None
 
         allocation = Allocation.objects.get(pk=value.pk)
-        serializer = AllocationSummarySerializer(allocation, context=self.context)
+        serializer = AllocationSummarySerializer(
+            allocation,
+            context=self.context)
         return serializer.data
 
     def to_internal_value(self, data):
@@ -108,7 +112,9 @@ class StatusTypeRelatedField(serializers.RelatedField):
 
     def to_representation(self, value):
         status_type = StatusType.objects.get(pk=value.pk)
-        serializer = StatusTypeSummarySerializer(status_type, context=self.context)
+        serializer = StatusTypeSummarySerializer(
+            status_type,
+            context=self.context)
         return serializer.data
 
     def to_internal_value(self, data):
@@ -130,10 +136,14 @@ class StatusTypeRelatedField(serializers.RelatedField):
 class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.CharField(read_only=True)
     created_by = UserRelatedField(read_only=True)
-    user = UserSummarySerializer(source='membership.identity.created_by', read_only=True)
+    user = UserSummarySerializer(
+        source='membership.identity.created_by',
+        read_only=True)
     identity = IdentityRelatedField(source='membership.identity',
                                     queryset=Identity.objects.none())
-    provider = ProviderSummarySerializer(source='membership.identity.provider', read_only=True)
+    provider = ProviderSummarySerializer(
+        source='membership.identity.provider',
+        read_only=True)
     status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
                                     allow_null=True,
                                     required=False)
@@ -145,16 +155,18 @@ class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
                                         allow_null=True,
                                         required=False)
 
-    #TODO should be refactored to not use SerializerMethodField()
+    # TODO should be refactored to not use SerializerMethodField()
     current_quota = serializers.SerializerMethodField()
     current_allocation = serializers.SerializerMethodField()
 
     def get_current_quota(self, request):
-        user_membership = IdentityMembership.objects.get(id=request.membership_id)
+        user_membership = IdentityMembership.objects.get(
+            id=request.membership_id)
         return user_membership.quota.id if user_membership.quota else None
 
     def get_current_allocation(self, request):
-        user_membership = IdentityMembership.objects.get(id=request.membership_id)
+        user_membership = IdentityMembership.objects.get(
+            id=request.membership_id)
         return user_membership.allocation.id if user_membership.allocation else None
 
     class Meta:
@@ -186,10 +198,14 @@ class UserResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
     admin_message = serializers.CharField(read_only=True)
     uuid = serializers.CharField(read_only=True)
     created_by = UserRelatedField(read_only=True)
-    user = UserSummarySerializer(source='membership.identity.created_by', read_only=True)
+    user = UserSummarySerializer(
+        source='membership.identity.created_by',
+        read_only=True)
     identity = IdentityRelatedField(source='membership.identity',
                                     queryset=Identity.objects.none())
-    provider = ProviderSummarySerializer(source='membership.identity.provider', read_only=True)
+    provider = ProviderSummarySerializer(
+        source='membership.identity.provider',
+        read_only=True)
 
     class Meta:
         model = ResourceRequest

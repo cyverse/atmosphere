@@ -7,6 +7,7 @@ from core import models
 
 
 class AtmosphereUserFactory(DjangoModelFactory):
+
     class Meta:
         model = models.AtmosphereUser
 

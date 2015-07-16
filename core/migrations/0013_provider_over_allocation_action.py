@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import models, migrations
 
+
 def add_default_action(apps, schema_editor):
     InstanceAction = apps.get_model("core", "InstanceAction")
     Provider = apps.get_model("core", "Provider")
@@ -15,6 +16,7 @@ def add_default_action(apps, schema_editor):
 def do_nothing(apps, schema_editor):
     pass
 
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -25,7 +27,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='provider',
             name='over_allocation_action',
-            field=models.ForeignKey(blank=True, to='core.InstanceAction', null=True),
+            field=models.ForeignKey(
+                blank=True,
+                to='core.InstanceAction',
+                null=True),
         ),
-        migrations.RunPython(add_default_action, do_nothing),
+        migrations.RunPython(
+            add_default_action,
+            do_nothing),
     ]

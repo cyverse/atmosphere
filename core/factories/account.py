@@ -9,6 +9,7 @@ from core.factories.provider import ProviderFactory
 
 
 class AccountProviderFactory(DjangoModelFactory):
+
     class Meta:
         model = models.AccountProvider
 

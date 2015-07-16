@@ -8,6 +8,7 @@ from service.driver import get_account_driver
 from core.models import Provider, ProviderMachine, Identity, MachineRequest, Application, ProviderMachine
 from core.models.application import _generate_app_uuid
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--provider", type=int,
@@ -23,6 +24,7 @@ def main():
     images = args.image_ids.split(",")
     fix_images(provider, images)
 
+
 def fix_images(provider, images=[]):
     accounts = get_account_driver(provider)
     for image_id in images:
@@ -31,12 +33,15 @@ def fix_images(provider, images=[]):
             print "ERROR: Image %s does not exist." % image_id
             break
         try:
-            #NOTE: Will need to change provider query when migrating to DD and beyond
-            pm = ProviderMachine.objects.get(provider=provider, identifier=image_id)
+            # NOTE: Will need to change provider query when migrating to DD and
+            # beyond
+            pm = ProviderMachine.objects.get(
+                provider=provider,
+                identifier=image_id)
         except ProviderMachine.DoesNotExist:
             print "Error: NO ProviderMachine for Provider:%s Image ID:%s" % (provider, image_id)
             break
-        #It's a real image. It SHOULD have a corresponding machine request
+        # It's a real image. It SHOULD have a corresponding machine request
         try:
             mr = MachineRequest.objects.get(new_machine__identifier=image_id)
         except MachineRequest.DoesNotExist:
@@ -52,7 +57,9 @@ def fix_images(provider, images=[]):
             original_application = _create_new_application(mr, image_id)
         # Update Application from MachineRequest information
         if mr:
-            original_application = _update_application(original_application, mr)
+            original_application = _update_application(
+                original_application,
+                mr)
 
         if original_application.uuid is not current_application.uuid:
             pm.application = original_application
@@ -61,29 +68,33 @@ def fix_images(provider, images=[]):
         # Write to metadata INCLUDING kernel and ramdisk id!
         fix_image_metadata(accounts, glance_image, original_application, mr)
 
+
 def fix_image_metadata(accounts, glance_image, application, machine_request):
     if not accounts:
         raise Exception("FATAL - No Account Driver!")
     elif not glance_image:
         raise Exception("FATAL - No glance image!")
-    #Start with ALL the information
+    # Start with ALL the information
     image_id = glance_image.id
     updates = glance_image.properties
     # Look for kernel and ramdisk
-    if not glance_image.properties.has_key('kernel_id')\
-            or not glance_image.properties.has_key('ramdisk_id'):
+    if 'kernel_id' not in glance_image.properties\
+            or 'ramdisk_id' not in glance_image.properties:
         print "Image %s is missing kernel and/or ramdisk ..." % (image_id,),
         updates['kernel_id'], updates['ramdisk_id'] = find_kernel_ramdisk(
             accounts, machine_request)
         if not updates['kernel_id'] or not updates['ramdisk_id']:
-            raise Exception("FATAL - no Kernel/Ramdisk found for image %s" % image_id)
-    #Update the meta description (all other values should be fine)
+            raise Exception(
+                "FATAL - no Kernel/Ramdisk found for image %s" %
+                image_id)
+    # Update the meta description (all other values should be fine)
     meta_description = updates.get("application_description")
     if "\n" in application.description or meta_description != application.description:
         print "Image Metadata Description: %s differs from Application Description:%s" % (meta_description, application.description)
         updates["application_description"] = application.description
     print "Updating glance image %s properties: %s" % (image_id, updates)
     glance_image.update(properties=updates)
+
 
 def find_kernel_ramdisk(accounts, machine_request):
     print "Pass #1. Does my ancestor have a kernel or ramdisk?",
@@ -105,18 +116,21 @@ def find_kernel_ramdisk(accounts, machine_request):
         else:
             print " Fail! Old Image:%s ALSO missing kernel+ramdisk" % old_glance_image
         try:
-            existing_parent_request = MachineRequest.objects.get(new_machine__identifier=image_id)
+            existing_parent_request = MachineRequest.objects.get(
+                new_machine__identifier=image_id)
         except MachineRequest.DoesNotExist:
             print "ALSO: MachineRequest for parent could not be found! FAIL!"
             return None, None
         print " Re-testing old image to check THEIR parent!"
         return find_kernel_ramdisk(accounts, existing_parent_request)
-    #Fall through and exit, failure occurred.
+    # Fall through and exit, failure occurred.
     return None, None
+
 
 def _update_parent_application(machine_request, new_image_id, tags=[]):
     parent_app = machine_request.instance.source.providermachine.application
     return _update_application(parent_app, machine_request, tags=tags)
+
 
 def _update_application(application, machine_request, tags=[]):
     if application.name is not machine_request.new_application_name:
@@ -127,7 +141,6 @@ def _update_application(application, machine_request, tags=[]):
     application.tags = tags
     application.save()
     return application
-
 
 
 if __name__ == "__main__":

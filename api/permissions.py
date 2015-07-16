@@ -15,6 +15,7 @@ from api import ServiceUnavailable
 
 
 class ProjectOwnerRequired(permissions.BasePermission):
+
     def has_permission(self, request, view):
         auth_user = request.user
         project_uuid = view.kwargs.get('project_uuid')
@@ -27,8 +28,10 @@ class ProjectOwnerRequired(permissions.BasePermission):
 
 
 class ApiAuthRequired(permissions.BasePermission):
+
     def has_permission(self, request, view):
         return request.user.is_authenticated()
+
 
 def _get_administrator_accounts(user):
     try:
@@ -53,6 +56,7 @@ def _get_administrator_account(user, admin_uuid):
 
 
 class CloudAdminRequired(permissions.BasePermission):
+
     def has_permission(self, request, view):
         if not request.user.is_authenticated():
             return False
@@ -68,6 +72,7 @@ class CloudAdminRequired(permissions.BasePermission):
 
 
 class CloudAdminUpdatingRequired(permissions.BasePermission):
+
     def has_permission(self, request, view):
         user = request.user
         if request.method in permissions.SAFE_METHODS:
@@ -89,6 +94,7 @@ class CloudAdminUpdatingRequired(permissions.BasePermission):
 
 
 class IsAdminOrReadOnly(permissions.BasePermission):
+
     """
     The request is authenticated as an admin, or is a read-only request.
     """
@@ -101,11 +107,13 @@ class IsAdminOrReadOnly(permissions.BasePermission):
 
 
 class ApiAuthIgnore(permissions.BasePermission):
+
     def has_permission(self, request, view):
         return True
 
 
 class ApiAuthOptional(permissions.BasePermission):
+
     def has_permission(self, request, view):
         # Allow access to GET/OPTIONS/HEAD operations.
         if request.method in permissions.SAFE_METHODS:
@@ -127,11 +135,13 @@ def get_maintenance_messages(records):
 
 
 class InMaintenance(permissions.BasePermission):
+
     """
     Return a 503 Service unavailable if in maintenance.
 
     Exceptions: for DjangoUser staff.
     """
+
     def has_permission(self, request, view):
         records = MaintenanceRecord.active()\
                                    .filter(provider__isnull=True)

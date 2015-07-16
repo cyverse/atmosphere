@@ -19,8 +19,8 @@ def get_context_user(serializer, kwargs, required=False):
         else:
             return None
     if user:
-        #NOTE: Converting str to atmosphere user is easier when debugging
-        if type(user) == str:
+        # NOTE: Converting str to atmosphere user is easier when debugging
+        if isinstance(user, str):
             user = AtmosphereUser.objects.get(
                 username=user)
         elif type(user) not in [AnonymousUser, AtmosphereUser]:

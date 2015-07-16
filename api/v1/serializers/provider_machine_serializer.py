@@ -9,11 +9,12 @@ from .tag_related_field import TagRelatedField
 
 
 class ProviderMachineSerializer(serializers.ModelSerializer):
-    #R/O Fields first!
+    # R/O Fields first!
     alias = serializers.ReadOnlyField(source='instance_source.identifier')
     alias_hash = serializers.SerializerMethodField()
     created_by = serializers.CharField(
-        read_only=True, source='application_version.application.created_by.username')
+        read_only=True,
+        source='application_version.application.created_by.username')
     created_by_identity = CleanedIdentitySerializer(
         source='instance_source.created_by_identity')
     icon = serializers.CharField(read_only=True, source='icon_url')
@@ -24,17 +25,30 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     ownerid = serializers.CharField(read_only=True, source='esh_ownerid')
     state = serializers.CharField(read_only=True, source='esh_state')
     scores = serializers.SerializerMethodField()
-    #Writeable fields
+    # Writeable fields
     name = serializers.CharField(source='application_version.application.name')
-    tags = TagRelatedField(slug_field='name', source='application_version.application.tags.all', many=True, queryset=Tag.objects.all())
-    allow_imaging = serializers.BooleanField(source='application_version.allow_imaging', read_only=True)
-    licenses = LicenseSerializer(source='licenses.all', many=True, read_only=True)
-    description = serializers.CharField(source='application_version.application.description')
+    tags = TagRelatedField(
+        slug_field='name',
+        source='application_version.application.tags.all',
+        many=True,
+        queryset=Tag.objects.all())
+    allow_imaging = serializers.BooleanField(
+        source='application_version.allow_imaging',
+        read_only=True)
+    licenses = LicenseSerializer(
+        source='licenses.all',
+        many=True,
+        read_only=True)
+    description = serializers.CharField(
+        source='application_version.application.description')
     start_date = serializers.ReadOnlyField(source='instance_source.start_date')
     end_date = serializers.ReadOnlyField(source='instance_source.end_date')
-    featured = serializers.BooleanField(source='application_version.application.featured')
+    featured = serializers.BooleanField(
+        source='application_version.application.featured')
     identifier = serializers.ReadOnlyField(source="instance_source.identifier")
-    version = serializers.CharField(source="application_version.name", read_only=True)
+    version = serializers.CharField(
+        source="application_version.name",
+        read_only=True)
 
     def __init__(self, *args, **kwargs):
         self.request_user = kwargs.pop('request_user', None)

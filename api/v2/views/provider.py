@@ -10,6 +10,7 @@ from api.v2.views.base import AuthReadOnlyViewSet, AuthViewSet
 
 
 class ProviderViewSet(AuthReadOnlyViewSet):
+
     """
     API endpoint that allows providers to be viewed or edited.
     """
