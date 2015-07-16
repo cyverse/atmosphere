@@ -21,6 +21,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         view_name = 'api:v2:project-detail'
         fields = (
             'id',
+            'uuid',
             'url',
             'name',
             'description',
