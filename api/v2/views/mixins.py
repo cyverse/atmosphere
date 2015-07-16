@@ -1,6 +1,7 @@
 import operator
 
 from django.db import models
+from django.db.models import Q
 from django.http import Http404
 from rest_framework.generics import get_object_or_404
 
@@ -39,7 +40,7 @@ class MultipleFieldLookup(object):
             if isinstance(field, VALID_FIELDS):
                 filter_fields.append(field_name)
 
-        query_list = [models.Q(**{field: filter_value}) for field in filter_fields]
+        query_list = [Q(**{field: filter_value}) for field in filter_fields]
         try:
             filter_chain = reduce(operator.or_, query_list)
         except TypeError:
