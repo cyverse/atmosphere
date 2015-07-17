@@ -5,10 +5,13 @@ from django.db import models, migrations
 
 
 def remove_null_entries(apps, schema_editor):
-    ProviderMachineMembership = apps.get_model("core", "ProviderMachineMembership")
+    ProviderMachineMembership = apps.get_model(
+        "core",
+        "ProviderMachineMembership")
     MachineRequest = apps.get_model("core", "MachineRequest")
 
-    memberships = ProviderMachineMembership.objects.filter(provider_machine=None)
+    memberships = ProviderMachineMembership.objects.filter(
+        provider_machine=None)
     requests = MachineRequest.objects.filter(parent_machine=None)
 
     memberships.delete()
@@ -24,27 +27,19 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(remove_null_entries),
         migrations.AlterField(
-            model_name='instance',
-            name='source',
-            field=models.ForeignKey(related_name='instances', to='core.InstanceSource'),
-            preserve_default=True,
-        ),
+            model_name='instance', name='source', field=models.ForeignKey(
+                related_name='instances', to='core.InstanceSource'),
+            preserve_default=True,),
         migrations.AlterField(
-            model_name='providermachinemembership',
-            name='provider_machine',
+            model_name='providermachinemembership', name='provider_machine',
             field=models.ForeignKey(to='core.ProviderMachine'),
-            preserve_default=True,
-        ),
+            preserve_default=True,),
         migrations.AlterField(
-            model_name='machinerequest',
-            name='parent_machine',
-            field=models.ForeignKey(related_name='ancestor_machine', to='core.ProviderMachine'),
-            preserve_default=True,
-        ),
+            model_name='machinerequest', name='parent_machine',
+            field=models.ForeignKey(
+                related_name='ancestor_machine', to='core.ProviderMachine'),
+            preserve_default=True,),
         migrations.AlterField(
-            model_name='volumestatushistory',
-            name='volume',
+            model_name='volumestatushistory', name='volume',
             field=models.ForeignKey(to='core.Volume'),
-            preserve_default=True,
-        ),
-    ]
+            preserve_default=True,), ]

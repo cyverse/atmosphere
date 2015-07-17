@@ -1,7 +1,9 @@
 from django.db import models
 from core.models.user import AtmosphereUser
 
+
 class MatchType(models.Model):
+
     """
     MatchType objects are created by developers,
     they should NOT be added/removed unless there
@@ -14,6 +16,7 @@ class MatchType(models.Model):
 
 
 class PatternMatch(models.Model):
+
     """
     pattern - the actual string to be matched on
     type - How that string is matched

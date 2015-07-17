@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 
 
 class GetListTests(APITestCase):
+
     def setUp(self):
         self.view = ViewSet.as_view({'get': 'list'})
         self.anonymous_user = AnonymousUserFactory()
@@ -49,6 +50,7 @@ class GetListTests(APITestCase):
 
 
 class GetDetailTests(APITestCase):
+
     def setUp(self):
         self.view = ViewSet.as_view({'get': 'retrieve'})
         self.anonymous_user = AnonymousUserFactory()
@@ -59,7 +61,11 @@ class GetDetailTests(APITestCase):
         self.platform_type = PlatformTypeFactory.create()
 
         factory = APIRequestFactory()
-        url = reverse('api:v2:platformtype-detail', args=(self.platform_type.id,))
+        url = reverse(
+            'api:v2:platformtype-detail',
+            args=(
+                self.platform_type.id,
+            ))
         self.request = factory.get(url)
         force_authenticate(self.request, user=self.user)
         self.response = self.view(self.request, pk=self.platform_type.id)
@@ -88,15 +94,18 @@ class GetDetailTests(APITestCase):
 
 
 class CreateTests(APITestCase):
+
     def test_endpoint_does_not_exist(self):
         self.assertTrue('post' not in ViewSet.http_method_names)
 
 
 class UpdateTests(APITestCase):
+
     def test_endpoint_does_not_exist(self):
         self.assertTrue('put' not in ViewSet.http_method_names)
 
 
 class DeleteTests(APITestCase):
+
     def test_endpoint_does_not_exist(self):
         self.assertTrue('delete' not in ViewSet.http_method_names)

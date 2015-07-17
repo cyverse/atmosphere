@@ -20,7 +20,7 @@ def _search_ldap(userid, conn=None):
         result = conn.search_s(
             secrets.LDAP_SERVER_DN,
             ldap_driver.SCOPE_SUBTREE,
-            '(uid='+userid+')'
+            '(uid=' + userid + ')'
         )
         return result
     except Exception as e:
@@ -94,7 +94,7 @@ def ldap_validate(username, password):
         ldap_server_dn = secrets.LDAP_SERVER_DN
         logger.warn("[LDAP] Validation Test - %s" % username)
         ldap_conn = ldap_driver.initialize(ldap_server)
-        dn = "uid="+username+","+ldap_server_dn
+        dn = "uid=" + username + "," + ldap_server_dn
         ldap_conn.simple_bind_s(dn, password)
         return True
     except Exception as e:

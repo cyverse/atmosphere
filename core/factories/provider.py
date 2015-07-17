@@ -13,6 +13,7 @@ from core.models.instance import InstanceAction
 
 
 class PlatformTypeFactory(DjangoModelFactory):
+
     class Meta:
         model = models.PlatformType
 
@@ -20,6 +21,7 @@ class PlatformTypeFactory(DjangoModelFactory):
 
 
 class ProviderTypeFactory(DjangoModelFactory):
+
     class Meta:
         model = models.ProviderType
 
@@ -29,6 +31,7 @@ class ProviderTypeFactory(DjangoModelFactory):
 
 
 class ProviderFactory(DjangoModelFactory):
+
     class Meta:
         model = models.Provider
 
@@ -46,6 +49,7 @@ class ProviderFactory(DjangoModelFactory):
 
 
 class DNSFactory(DjangoModelFactory):
+
     class Meta:
         model = models.ProviderDNSServerIP
 
@@ -60,6 +64,7 @@ class DNSFactory(DjangoModelFactory):
 
 
 class InstanceActionFactory(DjangoModelFactory):
+
     class Meta:
         model = InstanceAction
 
@@ -68,6 +73,7 @@ class InstanceActionFactory(DjangoModelFactory):
 
 
 class ProviderInstanceActionFactory(DjangoModelFactory):
+
     class Meta:
         model = models.ProviderInstanceAction
     enabled = True

@@ -17,6 +17,7 @@ from api.v1.views.base import AuthAPIView
 
 
 class HypervisorList(AuthAPIView):
+
     """
     List all available Hypervisors
     """
@@ -56,6 +57,7 @@ class HypervisorList(AuthAPIView):
 
 
 class HypervisorDetail(AuthAPIView):
+
     """
     View a single Hypervisor
     """
@@ -80,7 +82,7 @@ class HypervisorDetail(AuthAPIView):
                 "Hypervisor Details cannot be retrieved for this provider.")
         try:
             hypervisor = esh_driver._connection\
-                    .ex_detail_hypervisor_node(hypervisor_id)
+                .ex_detail_hypervisor_node(hypervisor_id)
             hypervisor['cpu_info'] = json.loads(hypervisor['cpu_info'])
             response = Response(hypervisor)
             return response

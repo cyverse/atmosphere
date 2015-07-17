@@ -5,19 +5,21 @@ from core.models import IdentityMembership, Identity, Provider
 from service.accounts.openstack import AccountDriver
 from service.cache import get_cached_driver
 
+
 def _get_hard_limits(provider):
     """
     At some point this will be a DIRECT relationship to the provider. But for
     now its hard-coded
     """
-    return {"ram": 500, "cpu":64}
+    return {"ram": 500, "cpu": 64}
+
 
 def set_provider_quota(identity_uuid, limit_dict=None):
     """
     """
     identity = Identity.objects.get(uuid=identity_uuid)
     if not identity.credential_set.all():
-        #Can't update quota if credentials arent set
+        # Can't update quota if credentials arent set
         return
     if not limit_dict:
         limit_dict = _get_hard_limits(identity.provider)
@@ -26,16 +28,17 @@ def set_provider_quota(identity_uuid, limit_dict=None):
         username = identity.created_by.username
         user_id = driver._connection._get_user_id()
         tenant_id = driver._connection._get_tenant_id()
-        membership = IdentityMembership.objects.get(identity__uuid=identity_uuid,
-                                                    member__name=username)
+        membership = IdentityMembership.objects.get(
+            identity__uuid=identity_uuid,
+            member__name=username)
         user_quota = membership.quota
         if user_quota:
-            #Don't go above the hard-set limits per provider.
+            # Don't go above the hard-set limits per provider.
             if user_quota.cpu > limit_dict['cpu']:
                 user_quota.cpu = limit_dict['cpu']
             if user_quota.memory > limit_dict['ram']:
                 user_quota.memory = limit_dict['ram']
-            #Use THESE values...
+            # Use THESE values...
             values = {'cores': user_quota.cpu,
                       'ram': user_quota.memory * 1024}
             logger.info("Updating quota for %s to %s" % (username, values))
@@ -54,7 +57,7 @@ def get_current_quota(identity_uuid):
     instances = driver.list_instances()
     for instance in instances:
         if instance.extra['status'] == 'suspended'\
-        or instance.extra['status'] == 'shutoff':
+                or instance.extra['status'] == 'shutoff':
             suspended += 1
             continue
         size = driver.get_size(instance.size.id)
@@ -100,7 +103,7 @@ def check_over_quota(username, identity_uuid, esh_size=None, resuming=False):
         new_suspended = cur_suspended + 1
         logger.debug("User attempting to suspend/launch another instance")
 
-    #Quota tests here
+    # Quota tests here
     if new_cpu > user_quota.cpu:
         logger.debug("quota exceeded on cpu: %s"
                      % user_quota.cpu)

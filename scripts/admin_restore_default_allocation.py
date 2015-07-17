@@ -33,8 +33,9 @@ def main():
     parser.add_argument("--provider-id", type=int,
                         help="Atmosphere provider ID"
                         " to use when importing users.")
-    parser.add_argument("--allocation-id",
-                        help="Atmosphere Allocation ID to assign (Optional, instead of default)")
+    parser.add_argument(
+        "--allocation-id",
+        help="Atmosphere Allocation ID to assign (Optional, instead of default)")
     args = parser.parse_args()
     users = None
     quota = None
@@ -49,10 +50,10 @@ def main():
             print "%s\t%s" % (alloc.id, alloc)
         return
 
-    #Optional args
+    # Optional args
     if args.dry_run:
         print "Test Run Enabled"
-    #Optional args
+    # Optional args
     if args.allocation_id:
         def_allocation = Allocation.objects.get(id=args.allocation_id)
     else:
@@ -63,9 +64,10 @@ def main():
         print "ERROR: provider-id is required. To get a list of providers use"\
             " --provider-list"
         return
-    members = IdentityMembership.objects.filter(~Q(allocation__id=def_allocation.id),
-                                                Q(identity__provider__id=args.provider_id),
-                                                identity__created_by__is_staff=False)
+    members = IdentityMembership.objects.filter(
+        ~Q(allocation__id=def_allocation.id),
+        Q(identity__provider__id=args.provider_id),
+        identity__created_by__is_staff=False)
     print "Identities with non-default Allocation:%s" % len(members)
     for ident_member in members:
         user = ident_member.member.name
@@ -74,7 +76,6 @@ def main():
         if not args.dry_run:
             ident_member.save()
         print "Updated Allocation for %s (OLD:%s)" % (user, old_alloc)
-
 
 
 if __name__ == "__main__":

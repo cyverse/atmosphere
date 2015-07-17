@@ -57,11 +57,11 @@ def main():
             print "%s\t%s" % (q.id, q)
         return
 
-    #Debugging args
+    # Debugging args
     if dry_run:
         print "Dry run initialized.."
 
-    #Optional args
+    # Optional args
     if args.quota_id:
         quota = Quota.objects.get(id=args.quota_id)
 
@@ -74,15 +74,29 @@ def main():
     acct_driver = get_account_driver(provider)
 
     groups = args.groups.split(",") if args.groups else []
-    total_added = process_groups(acct_driver, groups, quota, make_admins, dry_run)
+    total_added = process_groups(
+        acct_driver,
+        groups,
+        quota,
+        make_admins,
+        dry_run)
 
     users = args.users.split(",") if args.users else []
-    total_added += process_users(acct_driver, users, quota, make_admins, dry_run)
+    total_added += process_users(acct_driver,
+                                 users,
+                                 quota,
+                                 make_admins,
+                                 dry_run)
 
     print "Processing complete. %d users processed." % total_added
 
 
-def process_groups(acct_driver, groups, quota=None, make_admin=False, dry_run=False):
+def process_groups(
+        acct_driver,
+        groups,
+        quota=None,
+        make_admin=False,
+        dry_run=False):
     total_added = 0
     for groupname in groups:
         group_add = 0
@@ -95,7 +109,12 @@ def process_groups(acct_driver, groups, quota=None, make_admin=False, dry_run=Fa
     return total_added
 
 
-def process_users(acct_driver, users, quota=None, admin_user=False, dry_run=False):
+def process_users(
+        acct_driver,
+        users,
+        quota=None,
+        admin_user=False,
+        dry_run=False):
     total_added = 0
     for user in users:
         success = process_user(acct_driver, user,
@@ -107,7 +126,12 @@ def process_users(acct_driver, users, quota=None, admin_user=False, dry_run=Fals
     return total_added
 
 
-def process_user(acct_driver, username, quota=None, admin_user=False, dry_run=False):
+def process_user(
+        acct_driver,
+        username,
+        quota=None,
+        admin_user=False,
+        dry_run=False):
     try:
         if not is_atmo_user(username):
             print "%s is not in the LDAP atmosphere group (atmo-user)." %\

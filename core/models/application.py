@@ -17,7 +17,9 @@ from core.models.tag import Tag, updateTags
 from core.metadata import _get_admin_owner
 from core.models.version import ApplicationVersion
 
+
 class Application(models.Model):
+
     """
     An application is a collection of providermachines, where each
     providermachine represents a single revision, together forming a linear
@@ -26,7 +28,7 @@ class Application(models.Model):
     """
     uuid = models.CharField(max_length=36, unique=True, default=uuid4)
     name = models.CharField(max_length=256)
-    #TODO: Dynamic location for upload_to
+    # TODO: Dynamic location for upload_to
     icon = models.ImageField(upload_to="applications", null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
@@ -41,7 +43,7 @@ class Application(models.Model):
     def all_machines(self):
         from core.models import ProviderMachine
         providermachine_set = ProviderMachine.objects.filter(
-                application_version__application=self)
+            application_version__application=self)
         return providermachine_set
 
     @property
@@ -65,9 +67,9 @@ class Application(models.Model):
             self.end_date = now
             self.save()
 
-
     def active_versions(self, now_time=None):
-        return self.versions.filter(only_current(now_time)).order_by('start_date')
+        return self.versions.filter(
+            only_current(now_time)).order_by('start_date')
 
     def latest_description(self):
         return self.latest_version.description
@@ -82,7 +84,6 @@ class Application(models.Model):
         except ApplicationVersion.DoesNotExist:
             return None
 
-
     def _current_machines(self, request_user=None):
         """
         Return a list of current provider machines.
@@ -96,7 +97,7 @@ class Application(models.Model):
             *only_current_source(),
             instance_source__provider__active=True)
         if request_user:
-            if type(request_user) == AnonymousUser:
+            if isinstance(request_user, AnonymousUser):
                 providers = Provider.objects.filter(public=True)
             else:
                 providers = [identity.provider for identity in
@@ -105,21 +106,23 @@ class Application(models.Model):
         return pms
 
     def first_machine(self):
-        #Out of all non-end dated machines in this application
+        # Out of all non-end dated machines in this application
         providermachine_set = self.all_machines
-        first = providermachine_set.filter(only_current_source()).order_by('instance_source__start_date').first()
+        first = providermachine_set.filter(
+            only_current_source()).order_by('instance_source__start_date').first()
         return first
 
     def last_machine(self):
         providermachine_set = self.all_machines
-        #Out of all non-end dated machines in this application
-        last = providermachine_set.filter(only_current_source()).order_by('instance_source__start_date').last()
+        # Out of all non-end dated machines in this application
+        last = providermachine_set.filter(
+            only_current_source()).order_by('instance_source__start_date').last()
         return last
 
     def get_threshold(self):
         try:
             return self.latest_version.threshold
-        except ApplicationThreshold.DoesNotExist, no_threshold:
+        except ApplicationThreshold.DoesNotExist as no_threshold:
             return None
 
     def get_projects(self, user):
@@ -154,9 +157,9 @@ class Application(models.Model):
 
     def is_bookmarked(self, request_user):
         from core.models import AtmosphereUser
-        if type(request_user) == str:
+        if isinstance(request_user, str):
             request_user = AtmosphereUser.objects.get(username=request_user)
-        if type(request_user) == AnonymousUser:
+        if isinstance(request_user, AnonymousUser):
             return False
         user_bookmarks = [bookmark.application for bookmark
                           in request_user.bookmarks.all()]
@@ -194,22 +197,21 @@ class Application(models.Model):
         update the applicable images/provider_machines
         """
         super(Application, self).save(*args, **kwargs)
-        #TODO: if changes were made..
-        #TODO: Call out to OpenStack, Admin(Email), Groupy Hooks..
-        #self.update_images()
+        # TODO: if changes were made..
+        # TODO: Call out to OpenStack, Admin(Email), Groupy Hooks..
 
     def update(self, *args, **kwargs):
         """
         Allows for partial updating of the model
         """
-        #Upload args into kwargs
+        # Upload args into kwargs
         for arg in args:
             for (key, value) in arg.items():
                 kwargs[key] = value
-        #Update the values
+        # Update the values
         for key in kwargs.keys():
             if key == 'tags':
-                if type(kwargs[key]) != list:
+                if not isinstance(kwargs[key], list):
                     tags_list = kwargs[key].split(",")
                 else:
                     tags_list = kwargs[key]
@@ -228,6 +230,7 @@ class Application(models.Model):
 
 
 class ApplicationMembership(models.Model):
+
     """
     Members of a private image can view & launch its respective machines. If
     the can_modify flag is set, then members also have ownership--they can make
@@ -256,8 +259,9 @@ def _has_active_provider(app):
         Q(instance_source__end_date=None) |
         Q(instance_source__end_date__gt=timezone.now())
     )
-    providers =(pm.instance_source.provider for pm in machines)
+    providers = (pm.instance_source.provider for pm in machines)
     return any(p.is_active() for p in providers)
+
 
 def public_applications():
     public_apps = []
@@ -279,15 +283,16 @@ def visible_applications(user):
     from core.models import Provider, ProviderMachineMembership
     active_providers = Provider.get_active()
     now_time = timezone.now()
-    #Look only for 'Active' private applications
+    # Look only for 'Active' private applications
     for app in Application.objects.filter(only_current(), private=True):
-        #Retrieve the machines associated with this app
+        # Retrieve the machines associated with this app
         providermachine_set = app.all_machines
         machine_set = providermachine_set.filter(only_current_source())
-        #Skip app if all their machines are on inactive providers.
-        if all(not pm.instance_source.provider.is_active() for pm in machine_set):
+        # Skip app if all their machines are on inactive providers.
+        if all(not pm.instance_source.provider.is_active()
+               for pm in machine_set):
             continue
-        #Add the application if 'user' is a member of the application or PM
+        # Add the application if 'user' is a member of the application or PM
         if app.members.filter(user=user):
             _add_app(apps, app)
         for pm in machine_set:
@@ -324,7 +329,7 @@ def _get_app_by_name(provider_uuid, name):
 def _get_app_by_identifier(provider_uuid, identifier):
     """
     Retrieve app by 'instance_source.identifier'
-    This will retrieve the 'correct' app if a NEW application is choosen 
+    This will retrieve the 'correct' app if a NEW application is choosen
     that does NOT match the UUID hash of the provider_machine
     """
     try:
@@ -336,6 +341,7 @@ def _get_app_by_identifier(provider_uuid, identifier):
     except Application.DoesNotExist:
         return None
 
+
 def get_application(provider_uuid, identifier, app_name, app_uuid=None):
     application = _get_app_by_identifier(provider_uuid, identifier)
     if application:
@@ -345,11 +351,13 @@ def get_application(provider_uuid, identifier, app_name, app_uuid=None):
         return application
     return _get_app_by_uuid(identifier, app_uuid)
 
+
 def _generate_app_uuid(identifier):
     app_uuid = uuid5(
-            settings.ATMOSPHERE_NAMESPACE_UUID,
-            str(identifier))
+        settings.ATMOSPHERE_NAMESPACE_UUID,
+        str(identifier))
     return str(app_uuid)
+
 
 def _get_app_by_uuid(identifier, app_uuid):
     """
@@ -360,11 +368,11 @@ def _get_app_by_uuid(identifier, app_uuid):
     app_uuid = str(app_uuid)
     try:
         app = Application.objects.get(
-              uuid=app_uuid)
+            uuid=app_uuid)
         return app
     except Application.DoesNotExist:
         return None
-    except Exception, e:
+    except Exception as e:
         logger.exception(e)
 
 
@@ -378,7 +386,7 @@ def _username_lookup(provider_uuid, username):
 
 
 def update_application(application, new_name=None, new_tags=None,
-        new_description=None):
+                       new_description=None):
     """
     This is a dumb way of doing things. Fix this.
     """
@@ -392,8 +400,16 @@ def update_application(application, new_name=None, new_tags=None,
     return application
 
 
-def create_application(provider_uuid, identifier, name=None,
-                       created_by_identity=None, created_by=None, description=None, private=False, tags=None, uuid=None):
+def create_application(
+        provider_uuid,
+        identifier,
+        name=None,
+        created_by_identity=None,
+        created_by=None,
+        description=None,
+        private=False,
+        tags=None,
+        uuid=None):
     """
     Create application & Initial ApplicationVersion.
     Build information (Based on MachineRequest or API inputs..)
@@ -414,7 +430,9 @@ def create_application(provider_uuid, identifier, name=None,
     if not description:
         description = "Imported Application - %s" % name
     if created_by:
-        created_by_identity = _username_lookup(provider_uuid, created_by.username)
+        created_by_identity = _username_lookup(
+            provider_uuid,
+            created_by.username)
     if not created_by_identity:
         created_by_identity = _get_admin_owner(provider_uuid)
     if not tags:
@@ -427,18 +445,20 @@ def create_application(provider_uuid, identifier, name=None,
         new_app.private = private
         new_app.save()
     else:
-        new_app = Application.objects.create(name=name,
-                                         description=description,
-                                         created_by=created_by_identity.created_by,
-                                         created_by_identity=created_by_identity,
-                                         private=private,
-                                         uuid=uuid)
+        new_app = Application.objects.create(
+            name=name,
+            description=description,
+            created_by=created_by_identity.created_by,
+            created_by_identity=created_by_identity,
+            private=private,
+            uuid=uuid)
     if tags:
         updateTags(new_app, tags, created_by_identity.created_by)
     return new_app
 
 
 class ApplicationScore(models.Model):
+
     """
     Users can Cast their "Score" -1/0/+1 on a specific Application.
     -1 = Vote Down
@@ -528,14 +548,18 @@ class ApplicationBookmark(models.Model):
 
 
 class ApplicationThreshold(models.Model):
-    application_version = models.OneToOneField(ApplicationVersion, related_name="threshold", blank=True, null=True)
+    application_version = models.OneToOneField(
+        ApplicationVersion,
+        related_name="threshold",
+        blank=True,
+        null=True)
     memory_min = models.IntegerField(default=0)
     storage_min = models.IntegerField(default=0)
 
     def __unicode__(self):
         return "%s requires >%s MB memory, >%s GB disk" % (self.application,
-                                                          self.memory_min,
-                                                          self.storage_min)
+                                                           self.memory_min,
+                                                           self.storage_min)
 
     class Meta:
         db_table = 'application_threshold'

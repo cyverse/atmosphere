@@ -22,6 +22,7 @@ from api.v1.views.base import AuthAPIView
 
 
 class Occupancy(AuthAPIView):
+
     """
     Returns occupancy data for the specific provider.
     """
@@ -51,6 +52,7 @@ class Occupancy(AuthAPIView):
 
 
 class Hypervisor(AuthAPIView):
+
     """
     Returns hypervisor statistics for the specific provider.
     """
@@ -77,5 +79,7 @@ class Hypervisor(AuthAPIView):
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid)
         except Exception as exc:
-            return failure_response(status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Error occurred while retrieving statistics: %s" % exc)
+            return failure_response(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Error occurred while retrieving statistics: %s" %
+                exc)

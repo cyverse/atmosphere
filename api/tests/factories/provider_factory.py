@@ -5,6 +5,7 @@ from .platform_type_factory import PlatformTypeFactory
 
 
 class ProviderFactory(factory.DjangoModelFactory):
+
     class Meta:
         model = Provider
 

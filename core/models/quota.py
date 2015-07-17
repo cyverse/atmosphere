@@ -5,11 +5,15 @@ from django.db import models
 
 
 class Quota(models.Model):
+
     """
     Quota limits the amount of resources that can be used for a User/Group
     Quotas are set at the Identity Level in IdentityMembership
     """
-    cpu = models.IntegerField(null=True, blank=True, default=16)  # In CPU Units
+    cpu = models.IntegerField(
+        null=True,
+        blank=True,
+        default=16)  # In CPU Units
     memory = models.IntegerField(null=True, blank=True, default=128)  # In GB
     storage = models.IntegerField(null=True, blank=True, default=10)  # In GB
     # In #Volumes allowed
@@ -31,7 +35,7 @@ class Quota(models.Model):
         if not Quota.objects.all():
             return self.unreachable_quota()
         max_quota_by_type = Quota.objects.all().aggregate(
-                                        Max(by_type))['%s__max' % by_type]
+            Max(by_type))['%s__max' % by_type]
         quota = Quota.objects.filter(cpu=max_quota_by_type)[0]
         if quota.cpu <= self._meta.get_field('cpu').default:
             return self.unreachable_quota()
@@ -40,12 +44,12 @@ class Quota(models.Model):
     @classmethod
     def default_quota(self):
         return Quota.objects.get_or_create(
-                **Quota.default_dict())[0]
+            **Quota.default_dict())[0]
 
     @classmethod
     def unreachable_quota(self):
         return Quota.objects.get_or_create(
-                **Quota.unreachable_dict())[0]
+            **Quota.unreachable_dict())[0]
 
     @classmethod
     def unreachable_dict(cls):
@@ -55,6 +59,7 @@ class Quota(models.Model):
             'storage': 1000,
             'storage_count': 10
         }
+
     @classmethod
     def default_dict(cls):
         return {
@@ -78,10 +83,10 @@ def has_cpu_quota(driver, quota, new_size=0):
     driver is less than or equal to Quota.cpu,
     otherwise False.
     """
-    #Always False if quota doesnt exist, new size is negative
+    # Always False if quota doesnt exist, new size is negative
     if not quota or new_size < 0:
         return False
-    #Always True if cpu is null
+    # Always True if cpu is null
     if not quota.cpu:
         return True
     total_size = new_size
@@ -96,10 +101,10 @@ def has_mem_quota(driver, quota, new_size=0):
     True if the total amount of RAM found on driver is
     less than or equal to Quota.mem, otherwise False.
     """
-    #Always False if quota doesnt exist, new size is negative
+    # Always False if quota doesnt exist, new size is negative
     if not quota or new_size < 0:
         return False
-    #Always True if ram is null
+    # Always True if ram is null
     if not quota.ram:
         return True
     total_size = new_size
@@ -114,10 +119,10 @@ def has_storage_quota(driver, quota, new_size=0):
     True if the total size of volumes found on driver is
     less than or equal to Quota.storage, otherwise False.
     """
-    #Always False if quota doesnt exist, new size is negative
+    # Always False if quota doesnt exist, new size is negative
     if not quota or new_size < 0:
         return False
-    #Always True if storage is null
+    # Always True if storage is null
     if not quota.storage:
         return True
     vols = driver.list_volumes()
@@ -132,10 +137,10 @@ def has_storage_count_quota(driver, quota, new_size=0):
     True if the total size of volumes found on driver is
     greater than or equal to Quota.storage otherwise False.
     """
-    #Always False if quota doesnt exist, new size is negative
+    # Always False if quota doesnt exist, new size is negative
     if not quota or new_size < 0:
         return False
-    #Always True if storage count is null
+    # Always True if storage count is null
     if not quota.storage_count:
         return True
     num_vols = new_size
@@ -145,6 +150,7 @@ def has_storage_count_quota(driver, quota, new_size=0):
 
 def get_quota(identity_uuid):
     try:
-        return Quota.objects.get(identitymembership__identity__uuid=identity_uuid)
+        return Quota.objects.get(
+            identitymembership__identity__uuid=identity_uuid)
     except Quota.DoesNotExist:
         return None

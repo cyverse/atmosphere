@@ -43,10 +43,10 @@ def get_version(form='short'):
 
     Takes single argument ``form``, which should be one of the following
     strings:
-    
+
     * ``short`` Returns major + minor branch version string with the format of
     B.b.t.
-    * ``normal`` Returns human readable version string with the format of 
+    * ``normal`` Returns human readable version string with the format of
     B.b.t _type type_num.
     * ``verbose`` Returns a verbose version string with the format of
     B.b.t _type type_num@git_sha_abbrev
@@ -57,7 +57,7 @@ def get_version(form='short'):
     tertiary = VERSION[2]
     type_ = VERSION[3]
     type_num = VERSION[4]
-    
+
     versions["branch"] = branch
     v = versions["branch"]
     if tertiary:

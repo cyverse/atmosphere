@@ -23,6 +23,7 @@ def get_status_type_id(status="pending"):
 
 @python_2_unicode_compatible
 class StatusType(models.Model):
+
     """
     Representation of a State
     """

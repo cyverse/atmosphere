@@ -8,6 +8,7 @@ from core.models.provider import Provider
 
 
 class NodeController(models.Model):
+
     """
     NodeControllers are specific to a provider
     They have a dedicated, static IP address and a human readable name

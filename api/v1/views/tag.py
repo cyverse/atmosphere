@@ -13,6 +13,7 @@ from api.v1.views.base import AuthAPIView, AuthOptionalAPIView
 
 
 class TagList(AuthOptionalAPIView):
+
     """
     Tags are a easy way to allow users to group several images as similar
     based on a feature/program of the application.
@@ -50,6 +51,7 @@ class TagList(AuthOptionalAPIView):
 
 
 class Tag(AuthAPIView):
+
     """
     Tags are a easy way to allow users to group several images as similar
     based on a feature/program of the application.

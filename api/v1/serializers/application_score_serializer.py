@@ -3,9 +3,10 @@ from rest_framework import serializers
 
 
 class ApplicationScoreSerializer(serializers.ModelSerializer):
+
     """
     """
-    #TODO:Need to validate provider/identity membership on id change
+    # TODO:Need to validate provider/identity membership on id change
     username = serializers.CharField(read_only=True, source='user.username')
     application = serializers.CharField(read_only=True,
                                         source='application.name')

@@ -36,7 +36,9 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_version(self, obj):
         version = obj.source.providermachine.application_version
-        serializer = ImageVersionSummarySerializer(version, context=self.context)
+        serializer = ImageVersionSummarySerializer(
+            version,
+            context=self.context)
         return serializer.data
 
     class Meta:
@@ -56,7 +58,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
             'user',
             'provider',
             'image',
-            'version', #NOTE:Should replace image?
+            'version',  # NOTE:Should replace image?
             'projects',
             'start_date',
             'end_date',

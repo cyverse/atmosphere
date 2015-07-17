@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-import time, requests
+import time
+import requests
 
 from threepio import logger
 
@@ -13,6 +14,7 @@ django.setup()
 
 include_openstack = True
 
+
 def main():
     """
     TODO: Add argparse, --delete : Deletes existing users in eucalyptus (Never use in PROD)
@@ -22,13 +24,13 @@ def main():
     openstack = Provider.objects.get(location='iPlant Cloud - Tucson')
     os_driver = OSAccountDriver(openstack)
     all_users = euca_driver.list_users()
-    #Sort by users
+    # Sort by users
     all_values = sorted(all_users.values(), key=lambda user: user['username'])
     total = 0
     for user_dict in all_values:
         id_exists = Identity.objects.filter(
-                created_by__username=user_dict['username'],
-                provider=euca)
+            created_by__username=user_dict['username'],
+            provider=euca)
         if not id_exists:
             euca_driver.create_account(user_dict)
             total += 1
@@ -39,8 +41,8 @@ def main():
         total = 0
         for user_dict in all_values:
             id_exists = Identity.objects.filter(
-                    created_by__username=user_dict['username'],
-                                    provider=openstack)
+                created_by__username=user_dict['username'],
+                provider=openstack)
             if not id_exists:
                 os_driver.create_account(user_dict['username'])
                 total += 1

@@ -63,7 +63,7 @@ def malformed_response(provider_id, identity_id):
 
 def invalid_provider(provider_id):
     log_message = 'Provider %s is inactive, disabled, or does not exist.'\
-                % (provider_id, )
+        % (provider_id, )
     logger.warn(log_message)
     return failure_response(
         status.HTTP_401_UNAUTHORIZED,
@@ -72,7 +72,7 @@ def invalid_provider(provider_id):
 
 def invalid_provider_identity(provider_id, identity_id):
     log_message = 'Identity %s is inactive, disabled, '\
-            'or does not exist on Provider %s' % (identity_id, provider_id)
+        'or does not exist on Provider %s' % (identity_id, provider_id)
     logger.warn(log_message)
     return failure_response(
         status.HTTP_401_UNAUTHORIZED,

@@ -15,31 +15,18 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='ExportRequest',
-            fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('status', models.CharField(max_length=256)),
-                ('export_name', models.CharField(max_length=256)),
-                ('export_format', models.CharField(max_length=256)),
-                ('export_file', models.CharField(max_length=256, null=True, blank=True)),
-                ('start_date', models.DateTimeField(default=django.utils.timezone.now)),
-                ('end_date', models.DateTimeField(null=True, blank=True)),
-                ('export_owner', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
-                ('source', models.ForeignKey(to='core.InstanceSource')),
-            ],
-            options={
-                'db_table': 'export_request',
-            },
-        ),
-        migrations.RemoveField(
-            model_name='machineexport',
-            name='export_owner',
-        ),
-        migrations.RemoveField(
-            model_name='machineexport',
-            name='source',
-        ),
-        migrations.DeleteModel(
-            name='MachineExport',
-        ),
-    ]
+            name='ExportRequest', fields=[
+                ('id', models.AutoField(
+                    verbose_name='ID', serialize=False, auto_created=True, primary_key=True)), ('status', models.CharField(
+                        max_length=256)), ('export_name', models.CharField(
+                            max_length=256)), ('export_format', models.CharField(
+                                max_length=256)), ('export_file', models.CharField(
+                                    max_length=256, null=True, blank=True)), ('start_date', models.DateTimeField(
+                                        default=django.utils.timezone.now)), ('end_date', models.DateTimeField(
+                                            null=True, blank=True)), ('export_owner', models.ForeignKey(
+                                                to=settings.AUTH_USER_MODEL)), ('source', models.ForeignKey(
+                                                    to='core.InstanceSource')), ], options={
+                'db_table': 'export_request', }, ), migrations.RemoveField(
+            model_name='machineexport', name='export_owner', ), migrations.RemoveField(
+            model_name='machineexport', name='source', ), migrations.DeleteModel(
+            name='MachineExport', ), ]

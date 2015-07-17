@@ -7,15 +7,17 @@ import django
 django.setup()
 
 failed_imaes = [
-# NOTE: Fails to complete when 'yum' is running
-"emi-CC741A8B",
-# could not determine latest ramdisk.. because no kvm kernel downloaded.
-"emi-BA292148", "emi-654625E1", 
+    # NOTE: Fails to complete when 'yum' is running
+    "emi-CC741A8B",
+    # could not determine latest ramdisk.. because no kvm kernel downloaded.
+    "emi-BA292148", "emi-654625E1",
 ]
 image_these = [
-#"emi-"
-"emi-2B1E2D19", "emi-84062187", "emi-2BF82729", "emi-8D5F249A", "emi-28B327FB"
+    #"emi-"
+    "emi-2B1E2D19", "emi-84062187", "emi-2BF82729", "emi-8D5F249A", "emi-28B327FB"
 ]
+
+
 def start(images):
     print 'Initializing account drivers'
     euca_accounts = EucaAccountDriver(Provider.objects.get(id=1))
@@ -25,10 +27,10 @@ def start(images):
     os_img_class = os_accounts.image_manager.__class__
     os_img_creds = os_accounts.image_creds
     migrate_args = {
-            'download_dir':"/Storage",
-            'image_id':None,
-            'xen_to_kvm':True,
-            }
+        'download_dir': "/Storage",
+        'image_id': None,
+        'xen_to_kvm': True,
+    }
     print 'Account drivers initialized'
     for mach_to_migrate in images:
         migrate_args['image_id'] = mach_to_migrate
@@ -36,8 +38,12 @@ def start(images):
         migrate_args['image_name'] = pm.application.name
         print 'Migrating %s..' % mach_to_migrate
         # Lookup machine, set nme
-        migrate_image(euca_img_class, euca_img_creds, os_img_class, os_img_creds,
-                **migrate_args)
+        migrate_image(
+            euca_img_class,
+            euca_img_creds,
+            os_img_class,
+            os_img_creds,
+            **migrate_args)
 
 if __name__ == "__main__":
     start(image_these)

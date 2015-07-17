@@ -27,7 +27,9 @@ class TagRelatedField(serializers.PrimaryKeyRelatedField):
 
 
 class ImageTagSerializer(serializers.HyperlinkedModelSerializer):
-    image = ImageRelatedField(source='application', queryset=Image.objects.none())
+    image = ImageRelatedField(
+        source='application',
+        queryset=Image.objects.none())
     tag = TagRelatedField(queryset=Tag.objects.none())
 
     class Meta:

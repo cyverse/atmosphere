@@ -9,5 +9,7 @@ class ProviderMachineRelatedField(serializers.RelatedField):
         super(ProviderMachineRelatedField, self).__init__(**kwargs)
 
     def to_representation(self, value):
-        serializer = ProviderMachineSummarySerializer(value, context=self.context)
+        serializer = ProviderMachineSummarySerializer(
+            value,
+            context=self.context)
         return serializer.data

@@ -6,6 +6,7 @@ from threepio import logger, email_logger
 
 log_message = "Email Sent. From:{0}\nTo:{1}Cc:{2}\nSubject:{3}\nBody:\n{4}"
 
+
 @task(name="send_email")
 def send_email(subject, body, from_email, to, cc=None,
                fail_silently=False, html=False):

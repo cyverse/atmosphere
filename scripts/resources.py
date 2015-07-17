@@ -113,7 +113,7 @@ def _node_resources(status=None, nodes=None):
     for i in _get_all_instances():
         if i.extra["status"] in status:
             node = i.extra["object"]["OS-EXT-SRV-ATTR:host"]
-            if not node_map.has_key(node):
+            if node not in node_map:
                 continue
             size = _get_size(i.size.id)
             node_map[node]["cpus"] += size.cpu
@@ -143,16 +143,23 @@ def _node_resources_pretty_print(resources):
     if resources.get("Hypervisor"):
         h = resources["Hypervisor"]
         s += "Hypervisor\n"
-        for k,v in sorted(h.items()):
+        for k, v in sorted(h.items()):
             s += "\t%s: %s\n" % (k, v)
     return s
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--status", help="Filter by instance statuses. (comma separated)")
-    parser.add_argument("--nodes", help="Filter by OpenStack compute nodes. (comma separated)")
-    parser.add_argument("--python", help="Print Python data structures.", action="store_true")
+    parser.add_argument(
+        "--status",
+        help="Filter by instance statuses. (comma separated)")
+    parser.add_argument(
+        "--nodes",
+        help="Filter by OpenStack compute nodes. (comma separated)")
+    parser.add_argument(
+        "--python",
+        help="Print Python data structures.",
+        action="store_true")
     args = parser.parse_args()
     status = None
     nodes = None

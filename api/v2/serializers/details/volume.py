@@ -9,7 +9,8 @@ from api.v2.serializers.summaries import (
 
 class VolumeSerializer(serializers.HyperlinkedModelSerializer):
     provider = ProviderSummarySerializer(source='instance_source.provider')
-    identity = IdentitySummarySerializer(source='instance_source.created_by_identity')
+    identity = IdentitySummarySerializer(
+        source='instance_source.created_by_identity')
     user = UserSummarySerializer(source='instance_source.created_by')
     start_date = serializers.DateTimeField(source='instance_source.start_date')
     end_date = serializers.DateTimeField(source='instance_source.end_date')
@@ -19,7 +20,18 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Volume
         view_name = 'api:v2:volume-detail'
-        fields = ('id', 'uuid', 'url', 'name', 'size', 'user', 'provider', 'identity', 'projects', 'start_date', 'end_date')
+        fields = (
+            'id',
+            'uuid',
+            'url',
+            'name',
+            'size',
+            'user',
+            'provider',
+            'identity',
+            'projects',
+            'start_date',
+            'end_date')
 
     def update(self, instance, validated_data):
         if 'instance_source' in validated_data:

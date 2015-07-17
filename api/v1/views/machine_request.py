@@ -26,6 +26,7 @@ from api.v1.views.base import AuthAPIView
 
 
 class MachineRequestList(AuthAPIView):
+
     """
     This is the user portal for machine requests
     Here they can view all the machine requests they made
@@ -37,7 +38,9 @@ class MachineRequestList(AuthAPIView):
         """
         all_user_reqs = CoreMachineRequest.objects.filter(
             new_machine_owner=request.user)
-        serialized_data = MachineRequestSerializer(all_user_reqs, many=True).data
+        serialized_data = MachineRequestSerializer(
+            all_user_reqs,
+            many=True).data
         response = Response(serialized_data)
         return response
 
@@ -53,7 +56,7 @@ class MachineRequestList(AuthAPIView):
                 status.HTTP_409_CONFLICT,
                 "Machine Imaging has been "
                 "explicitly disabled on this provider.")
-        except Exception, exc:
+        except Exception as exc:
             return failure_response(
                 status.HTTP_400_BAD_REQUEST, exc.message)
 
@@ -71,12 +74,12 @@ class MachineRequestList(AuthAPIView):
                     % machine.instance_source.identifier)
         elif instance.source.is_volume():
             raise Exception(
-                    "Instance of booted volume can NOT be imaged."
-                    "Contact your Administrator for more information.")
+                "Instance of booted volume can NOT be imaged."
+                "Contact your Administrator for more information.")
         else:
             raise Exception(
-                    "Instance source type cannot be determined."
-                    "Contact your Administrator for more information.")
+                "Instance source type cannot be determined."
+                "Contact your Administrator for more information.")
 
     def _create_image(self, request, provider_uuid, identity_uuid):
         _permission_to_act(identity_uuid, "Imaging")
@@ -131,6 +134,7 @@ class MachineRequestList(AuthAPIView):
 
 
 class MachineRequest(AuthAPIView):
+
     """
     MachineRequests are available to allow users
     to request that their instance be permanantly saved,

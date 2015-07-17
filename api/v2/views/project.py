@@ -6,13 +6,16 @@ from core.query import only_current
 from api.v2.serializers.details import ProjectSerializer,\
     VolumeSerializer, InstanceSerializer
 from api.v2.views.base import AuthViewSet
+from api.v2.views.mixins import MultipleFieldLookup
 
 
-class ProjectViewSet(AuthViewSet):
+class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
+
     """
     API endpoint that allows projects to be viewed or edited.
     """
 
+    lookup_fields = ("id", "uuid")
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
 

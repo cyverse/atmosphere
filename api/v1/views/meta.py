@@ -20,6 +20,7 @@ from api.v1.views.base import AuthAPIView
 
 
 class Meta(AuthAPIView):
+
     """
     Meta-details about Atmosphere API, including self-describing URLs.
     """
@@ -87,6 +88,7 @@ def add_user_urls(request, provider_uuid, identity_uuid):
 
 
 class MetaAction(AuthAPIView):
+
     """
     Atmosphere service meta rest api.
     """
@@ -113,7 +115,7 @@ class MetaAction(AuthAPIView):
             return failure_response(
                 status.HTTP_401_UNAUTHORIZED,
                 'Identity/Provider Authentication Failed')
-        except NotImplemented, ne:
+        except NotImplemented as ne:
             logger.exception(ne)
             return failure_response(
                 status.HTTP_404_NOT_FOUND,

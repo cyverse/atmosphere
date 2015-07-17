@@ -15,10 +15,12 @@ from core.models.user import AtmosphereUser
 
 # Requests auth class for access tokens
 class TokenAuth(requests.auth.AuthBase):
+
     """
     Authentication using the protocol:
     Token <access_token>
     """
+
     def __init__(self, access_token):
         self.access_token = access_token
 
@@ -105,8 +107,6 @@ def get_atmo_users():
         % secrets.GROUPY_SERVER,
         headers={'Authorization': 'Token %s' % access_token})
     return response
-    # atmo_users = [user['name'] for user in response.json()]
-    # return atmo_users
 
 
 def lookupUser(username):
@@ -189,7 +189,7 @@ def generate_access_token(pem_id_key, iss='atmosphere',
               data={
                   'assertion': encoded_sig,
                   'grant_type': 'urn:ietf:params:oauth:grant-type:jwt-bearer'
-                  })
+              })
     if response.status_code != 200:
         raise Exception("Failed to generate auth token. Response:%s"
                         % response.__dict__)
@@ -239,7 +239,7 @@ def cas_profile_contains(attrs, test_value):
     # Objects: e.g. attrs['email'] = 'test@email.com'
     for attr in attrs:
         for (key, value) in attr.items():
-            if type(value) == list and test_value in value:
+            if isinstance(value, list) and test_value in value:
                 return True
             elif value == test_value:
                 return True

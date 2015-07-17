@@ -3,9 +3,7 @@ import argparse
 
 from keystoneclient.exceptions import NotFound
 
-#try:
-#    from authentication.protocol.oauth import is_atmo_user
-#except ImportError:
+# except ImportError:
 from authentication.protocol.ldap import is_atmo_user
 
 from core.email import send_new_provider_email
@@ -15,6 +13,7 @@ from service.accounts.openstack import AccountDriver
 
 import django
 django.setup()
+
 
 def main():
     """
@@ -42,11 +41,11 @@ def main():
             else:
                 password = driver.hashpass(username)
                 identity = driver.create_identity(user.name,
-                                               password,
-                                               project_name=username)
+                                                  password,
+                                                  project_name=username)
                 credentials = identity.credential_set.all()
                 print 'Found OStack User - Credentials: %s' % (credentials)
-            #ASSERT: User exists on openstack, create an identity for them.
+            # ASSERT: User exists on openstack, create an identity for them.
             success += 1
             print 'New OStack Identity - %s:%s' % (identity.id, identity)
         except Exception as e:

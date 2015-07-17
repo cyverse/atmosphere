@@ -7,9 +7,9 @@ from django.utils import timezone
 from core.query import only_current_provider
 from threepio import logger
 
+
 class AtmosphereUser(AbstractUser):
     selected_identity = models.ForeignKey('Identity', blank=True, null=True)
-
 
     def user_quota(self):
         identity = self.select_identity()
@@ -20,7 +20,7 @@ class AtmosphereUser(AbstractUser):
         """
         Set, save and return an active selected_identity for the user.
         """
-        #Return previously selected identity
+        # Return previously selected identity
         if self.selected_identity and self.selected_identity.is_active():
             return self.selected_identity
         else:
@@ -56,37 +56,46 @@ class AtmosphereUser(AbstractUser):
         db_table = 'atmosphere_user'
         app_label = 'core'
 
-#Save Hooks Here:
+# Save Hooks Here:
+
+
 def get_or_create_user_profile(sender, instance, created, **kwargs):
     from core.models.profile import UserProfile
     prof = UserProfile.objects.get_or_create(user=instance)
     if prof[1] is True:
         logger.debug("Creating User Profile for %s" % instance)
 
-#Instantiate the hooks:
+# Instantiate the hooks:
 post_save.connect(get_or_create_user_profile, sender=AtmosphereUser)
 
-#USER METHODS HERE
+# USER METHODS HERE
+
 
 def get_default_provider(username):
     """
-    Return default provider given 
+    Return default provider given
     """
     try:
         from core.models.group import get_user_group
         group = get_user_group(username)
-        provider_ids = group.identities.filter(only_current_provider(), provider__active=True).values_list('provider', flat=True)
-        provider = Provider.objects.filter(id__in=provider_ids, type__name="OpenStack")
+        provider_ids = group.identities.filter(
+            only_current_provider(),
+            provider__active=True).values_list(
+            'provider',
+            flat=True)
+        provider = Provider.objects.filter(
+            id__in=provider_ids,
+            type__name="OpenStack")
         if provider:
             logger.debug("get_default_provider selected a new "
-                        "Provider for %s: %s" % (username, provider))
+                         "Provider for %s: %s" % (username, provider))
             provider = provider[0]
         else:
             logger.error("get_default_provider could not find a new "
-                        "Provider for %s" % (username,))
+                         "Provider for %s" % (username,))
             return None
         return provider
-    except Exception, e:
+    except Exception as e:
         logger.exception("get_default_provider encountered an error "
                          "for %s" % (username,))
         return None
@@ -107,8 +116,7 @@ def get_default_identity(username, provider=None):
             else:
                 logger.error("Provider provided for "
                              "get_default_identity is inactive.")
-                raise("Provider provided for get_default_identity "
-                      "is inactive.")
+                raise "Provider provided for get_default_identity "
         else:
             default_provider = get_default_provider(username)
             default_identity = group.identities.filter(
@@ -117,8 +125,6 @@ def get_default_identity(username, provider=None):
                 "default_identity set to %s " %
                 default_identity)
             return default_identity
-    except Exception, e:
+    except Exception as e:
         logger.exception(e)
         return None
-
-

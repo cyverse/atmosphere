@@ -32,7 +32,6 @@ def token_auth(request):
     Use this to give out tokens to access the API
     """
     logger.info('Request to auth')
-    #logger.info(request)
 
     token = request.POST.get('token', None)
 
@@ -63,10 +62,8 @@ def token_auth(request):
             logger.debug("[LDAP] Failed to validate %s" % username)
             return HttpResponse("LDAP login failed", status=401)
 
-    # if request.session and request.session.get('token'):
     #    logger.info("User %s already authenticated, renewing token"
     #                % username)
-    #    token = validateToken(username, request.session.get('token'))
 
     # ASSERT: Token exists here
     if token:
@@ -85,7 +82,6 @@ def token_auth(request):
         # force user to login via CAS
         return cas_loginRedirect(request, '/auth/')
 
-    # CAS Authenticate by Proxy (Password not necessary):
     if cas_validateUser(username):
         logger.info("CAS User %s validated. Creating auth token" % username)
         token = createAuthToken(username)

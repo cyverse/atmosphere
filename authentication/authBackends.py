@@ -16,28 +16,30 @@ from authentication.protocol.oauth import get_user_for_token,\
 
 
 class MockLoginBackend(ModelBackend):
+
     """
     AuthenticationBackend for Testing login
     (Logging in from admin or Django REST framework login)
     """
+
     def authenticate(self, username=None, password=None, request=None):
         """
         Return user if Always
         Return None Never.
         """
         return get_or_create_user(settings.ALWAYS_AUTH_USER, {
-            'firstName':"Mocky Mock",
-            'lastName':"MockDoodle",
+            'firstName': "Mocky Mock",
+            'lastName': "MockDoodle",
             'email': 'sparkles@iplantcollaborative.org'})
 
 
-
-
 class SAMLLoginBackend(ModelBackend):
+
     """
     Implemting an AuthenticationBackend
     (Used by Django for logging in to admin, storing session info)
     """
+
     def authenticate(self, username=None, password=None, request=None):
         """
         Return user if validated by CAS
@@ -45,7 +47,6 @@ class SAMLLoginBackend(ModelBackend):
         """
         # logger.debug("SAMLBackend-- U:%s P:%s R:%s"
         #              % (username, password, request))
-        # logger.debug("U:%s P:%s R:%s" % (username, password, request))
         if not request:
             logger.debug("SAML Authentication skipped - No request.")
             return None
@@ -54,15 +55,15 @@ class SAMLLoginBackend(ModelBackend):
         if False:
             logger.debug("SAML Authentication failed - " + username)
             return None
-        # attributes = saml_response.attributes
-        # return get_or_create_user(username, attributes)
 
 
 class CASLoginBackend(ModelBackend):
+
     """
     Implemting an AuthenticationBackend
     (Used by Django for logging in to admin, storing session info)
     """
+
     def authenticate(self, username=None, password=None, request=None):
         """
         Return user if validated by CAS
@@ -77,17 +78,19 @@ class CASLoginBackend(ModelBackend):
         logger.info("Authenticate by CAS: %s - %s %s"
                     % (username, success, cas_response))
         if not success:
-            logger.debug("CAS Authentication failed - "+username)
+            logger.debug("CAS Authentication failed - " + username)
             return None
         attributes = cas_response.attributes
         return get_or_create_user(username, attributes)
 
 
 class LDAPLoginBackend(ModelBackend):
+
     """
     AuthenticationBackend for LDAP logins
     (Logging in from admin or Django REST framework login)
     """
+
     def authenticate(self, username=None, password=None, request=None):
         """
         Return user if validated by LDAP.
@@ -96,7 +99,7 @@ class LDAPLoginBackend(ModelBackend):
         # logger.debug("LDAPBackend-- U:%s P:%s R:%s"
         #              % (username, password, request))
         if not ldap_validate(username, password):
-            logger.debug("LDAP Authentication failed - "+username)
+            logger.debug("LDAP Authentication failed - " + username)
             return None
         ldap_attrs = ldap_lookupUser(username)
         attributes = ldap_formatAttrs(ldap_attrs)
@@ -105,10 +108,12 @@ class LDAPLoginBackend(ModelBackend):
 
 
 class OAuthLoginBackend(ModelBackend):
+
     """
     AuthenticationBackend for OAuth authorizations
     (Authorize user from Third party (web) clients via OAuth)
     """
+
     def authenticate(self, username=None, password=None, request=None):
         """
         Return user if validated by OAuth.
@@ -146,10 +151,12 @@ class OAuthLoginBackend(ModelBackend):
 
 
 class AuthTokenLoginBackend(ModelBackend):
+
     """
     AuthenticationBackend for OAuth authorizations
     (Authorize user from Third party (web) clients via OAuth)
     """
+
     def authenticate(self, username=None, password=None, auth_token=None,
                      request=None):
         """

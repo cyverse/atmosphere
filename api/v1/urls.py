@@ -11,9 +11,8 @@ user_match = '[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*'
 # Paste This for provider: provider\/(?P<provider_uuid>\\d+)
 provider_specific = r'^provider/(?P<provider_uuid>%s)' % uuid_match
 # Paste this for identity:
-# /r'^provider\/(?P<provider_uuid>\\d+)\/identity\/(?P<identity_uuid>\
 identity_specific = provider_specific +\
-                    r'/identity/(?P<identity_uuid>%s)' % uuid_match
+    r'/identity/(?P<identity_uuid>%s)' % uuid_match
 
 urlpatterns = format_suffix_patterns(patterns(
     '',
@@ -111,7 +110,9 @@ urlpatterns = format_suffix_patterns(patterns(
     url(identity_specific + r'/machine/(?P<machine_id>%s)/vote$' % uuid_match,
         views.MachineVote.as_view(), name='machine-vote'),
 
-    url(identity_specific + r'/meta$', views.Meta.as_view(), name='meta-detail'),
+    url(identity_specific + r'/meta$',
+        views.Meta.as_view(),
+        name='meta-detail'),
     url(identity_specific + r'/meta/(?P<action>.*)$',
         views.MetaAction.as_view(), name='meta-action'),
 
@@ -148,7 +149,8 @@ urlpatterns = format_suffix_patterns(patterns(
     url(r'^instance_history$', views.InstanceHistory.as_view(),
         name='instance-history'),
     url(r'^instance_history/'
-        '(?P<instance_id>%s)$' % uuid_match, views.InstanceHistoryDetail.as_view(),
+        '(?P<instance_id>%s)$' % uuid_match, views.InstanceHistoryDetail.as_view(
+        ),
         name='instance-history'),
     url(r'^instance_history/(?P<instance_id>%s)/' % uuid_match +
         'status_history$', views.InstanceStatusHistoryDetail.as_view(),
@@ -308,7 +310,9 @@ urlpatterns = format_suffix_patterns(patterns(
     url(identity_specific + r'/machine/(?P<machine_id>%s)/vote$' % uuid_match,
         views.MachineVote.as_view(), name='machine-vote'),
 
-    url(identity_specific + r'/meta$', views.Meta.as_view(), name='meta-detail'),
+    url(identity_specific + r'/meta$',
+        views.Meta.as_view(),
+        name='meta-detail'),
     url(identity_specific + r'/meta/(?P<action>.*)$',
         views.MetaAction.as_view(), name='meta-action'),
 

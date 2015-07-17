@@ -8,6 +8,7 @@ from core.models import Identity
 
 
 class GetListTests(APITestCase):
+
     def setUp(self):
         self.view = ViewSet.as_view({'get': 'list'})
         self.anonymous_user = AnonymousUserFactory()
@@ -57,6 +58,7 @@ class GetListTests(APITestCase):
 
 
 class GetDetailTests(APITestCase):
+
     def setUp(self):
         self.view = ViewSet.as_view({'get': 'retrieve'})
         self.anonymous_user = AnonymousUserFactory()
@@ -101,16 +103,18 @@ class GetDetailTests(APITestCase):
 
 
 class CreateTests(APITestCase):
+
     def test_endpoint_does_not_exist(self):
         self.assertTrue('post' not in ViewSet.http_method_names)
 
 
 class UpdateTests(APITestCase):
+
     def test_endpoint_does_not_exist(self):
         self.assertTrue('put' not in ViewSet.http_method_names)
 
 
 class DeleteTests(APITestCase):
+
     def test_endpoint_does_not_exist(self):
         self.assertTrue('delete' not in ViewSet.http_method_names)
-

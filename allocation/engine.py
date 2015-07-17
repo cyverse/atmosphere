@@ -147,7 +147,8 @@ def _calculate_instance_history_list(instance, rules, start_date, end_date,
                                      print_logs=print_logs)
 
         if clock_time == timedelta(0):
-            history_result.clock_time = clock_time # do we need this? seems like it could cause unforseen problems
+            # do we need this? seems like it could cause unforseen problems
+            history_result.clock_time = clock_time
             history_list.append(history_result)
             continue
 

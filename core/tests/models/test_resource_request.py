@@ -8,6 +8,7 @@ from core.models.status_type import get_status_type
 
 
 class TestResouceRequest(TestCase):
+
     def setUp(self):
         self.status = get_status_type()
         self.message = "Resource admin message"

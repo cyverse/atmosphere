@@ -12,7 +12,7 @@ from chromogenic.tasks import machine_imaging_task, migrate_instance_task
 from atmosphere.celery_init import app
 
 from core.email import \
-        send_image_request_email, send_image_request_failed_email
+    send_image_request_email, send_image_request_failed_email
 from core.models.machine_request import MachineRequest, process_machine_request
 from core.models.export_request import ExportRequest
 from core.models.identity import Identity
@@ -23,8 +23,8 @@ from service.tasks.driver import wait_for_instance, destroy_instance
 
 
 def _get_imaging_task(orig_managerCls, orig_creds,
-                      dest_managerCls, dest_creds, imaging_args): 
-    #NOTE: destManagerCls may == origManagerCls,
+                      dest_managerCls, dest_creds, imaging_args):
+    # NOTE: destManagerCls may == origManagerCls,
     #      but creds MUST be different for a migration.
     if dest_managerCls and dest_creds != orig_creds:
         migrate_task = migrate_instance_task.si(
@@ -36,11 +36,13 @@ def _get_imaging_task(orig_managerCls, orig_creds,
             orig_managerCls, orig_creds, imaging_args)
         return image_task
 
+
 def _recover_from_error(status_name):
     if not status_name:
         return False, status_name
     if 'exception' in status_name.lower():
-        return True, status_name[status_name.find("(")+1:status_name.find(")")]
+        return True, status_name[
+            status_name.find("(") + 1:status_name.find(")")]
     return False, status_name
 
 
@@ -84,6 +86,7 @@ def start_export_request(export_request, delay=False):
         async.get()
     return async
 
+
 def start_machine_imaging(machine_request, delay=False):
     """
     Builds up a machine imaging task using core.models.machine_request
@@ -104,61 +107,61 @@ def start_machine_imaging(machine_request, delay=False):
 
     imaging_error_task = machine_request_error.s(machine_request.id)
 
-    #Task 2 = Imaging w/ Chromogenic
+    # Task 2 = Imaging w/ Chromogenic
     imaging_task = _get_imaging_task(orig_managerCls, orig_creds,
                                      dest_managerCls, dest_creds,
                                      imaging_args)
     imaging_task.link_error(imaging_error_task)
-    #Assume we are starting from the beginning.
+    # Assume we are starting from the beginning.
     init_task = imaging_task
-    #Task 2 = Process the machine request
+    # Task 2 = Process the machine request
     if 'processing' in original_status:
-        #If processing, start here..
-        image_id = machine_request.status.replace("processing - ","")
+        # If processing, start here..
+        image_id = machine_request.status.replace("processing - ", "")
         logger.info("Start with processing:%s" % image_id)
         process_task = process_request.s(image_id, machine_request.id)
         init_task = process_task
     else:
-        #Link from imaging to process..
+        # Link from imaging to process..
         process_task = process_request.s(machine_request.id)
         imaging_task.link(process_task)
     process_task.link_error(imaging_error_task)
 
-    #Task 3 = Validate the new image by launching an instance
+    # Task 3 = Validate the new image by launching an instance
     if 'validating' in original_status:
         image_id = machine_request.new_machine.identifier
         logger.info("Start with validating:%s" % image_id)
-        #If validating, seed the image_id and start here..
+        # If validating, seed the image_id and start here..
         validate_task = validate_new_image.s(image_id, machine_request.id)
         init_task = validate_task
     else:
         validate_task = validate_new_image.s(machine_request.id)
         process_task.link(validate_task)
 
-    #Task 4 = Wait for new instance to be 'active'
+    # Task 4 = Wait for new instance to be 'active'
     wait_for_task = wait_for_instance.s(
-            #NOTE: 1st arg, instance_id, passed from last task.
-            admin_driver.__class__, 
-            admin_driver.provider,
-            admin_driver.identity,
-            "active",
-            return_id=True)
+        # NOTE: 1st arg, instance_id, passed from last task.
+        admin_driver.__class__,
+        admin_driver.provider,
+        admin_driver.identity,
+        "active",
+        return_id=True)
     validate_task.link(wait_for_task)
     validate_task.link_error(imaging_error_task)
 
-    #Task 5 = Terminate the new instance on completion
+    # Task 5 = Terminate the new instance on completion
     destroy_task = destroy_instance.s(
-            admin_ident.uuid)
+        admin_ident.uuid)
     wait_for_task.link(destroy_task)
     wait_for_task.link_error(imaging_error_task)
-    #Task 6 - Finally, email the user that their image is ready!
-    #NOTE: si == Ignore the result of the last task.
+    # Task 6 - Finally, email the user that their image is ready!
+    # NOTE: si == Ignore the result of the last task.
     email_task = imaging_complete.si(machine_request.id)
     destroy_task.link_error(imaging_error_task)
     destroy_task.link(email_task)
 
     email_task.link_error(imaging_error_task)
-    #Set status to imaging ONLY if our initial task is the imaging task.
+    # Set status to imaging ONLY if our initial task is the imaging task.
     if init_task == imaging_task:
         machine_request.status = 'imaging'
         machine_request.save()
@@ -189,14 +192,16 @@ def set_machine_request_metadata(machine_request, image_id):
     lc_driver.ex_set_image_metadata(machine, metadata)
     return machine
 
+
 @task(name='process_export', queue="imaging", ignore_result=False)
 def process_export(export_file_path, export_request_id):
     export_request = ExportRequest.objects.get(id=export_request_id)
     export_request.complete_export(export_file_path)
-    #send_image_export_email(export_request.new_machine_owner,
+    # send_image_export_email(export_request.new_machine_owner,
     #                         export_request.new_machine,
     #                         export_request.new_application_name)
     return export_file_path
+
 
 @task(name='export_request_error')
 def export_request_error(task_uuid, export_request_id):
@@ -222,7 +227,10 @@ def machine_request_error(task_uuid, machine_request_id):
     result = app.AsyncResult(task_uuid)
     with allow_join_result():
         exc = result.get(propagate=False)
-    err_str = "(%s) ERROR - %r Exception:%r" % (machine_request.status, result.result, result.traceback,)
+    err_str = "(%s) ERROR - %r Exception:%r" % (machine_request.status,
+                                                result.result,
+                                                result.traceback,
+                                                )
     logger.error(err_str)
     send_image_request_failed_email(machine_request, err_str)
     machine_request = MachineRequest.objects.get(id=machine_request_id)
@@ -241,6 +249,7 @@ def imaging_complete(machine_request_id):
     new_image_id = machine_request.new_machine.identifier
     return new_image_id
 
+
 @task(name='process_request', ignore_result=False)
 def process_request(new_image_id, machine_request_id):
     """
@@ -253,7 +262,7 @@ def process_request(new_image_id, machine_request_id):
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.status = 'processing - %s' % new_image_id
     machine_request.save()
-    #TODO: Best if we could 'broadcast' this to all running
+    # TODO: Best if we could 'broadcast' this to all running
     # Apache WSGI procs && celery 'imaging' procs
     invalidate_machine_cache(machine_request)
     process_machine_request(machine_request, new_image_id)
@@ -269,21 +278,23 @@ def validate_new_image(image_id, machine_request_id):
     admin_driver = machine_request.new_admin_driver()
     admin_ident = machine_request.new_admin_identity()
     if not admin_driver:
-        logger.warn("Need admin_driver functionality to auto-validate instance")
+        logger.warn(
+            "Need admin_driver functionality to auto-validate instance")
         return False
     if not admin_ident:
-        logger.warn("Need to know the AccountProvider to auto-validate instance")
+        logger.warn(
+            "Need to know the AccountProvider to auto-validate instance")
         return False
     # Attempt to launch using the admin_driver
     admin_driver.identity.user = admin_ident.created_by
     machine = admin_driver.get_machine(image_id)
     small_size = admin_driver.list_sizes()[0]
     instance = launch_machine_instance(
-            admin_driver, admin_ident,
-            machine, small_size,
-            'Automated Image Verification - %s' % image_id,
-            username='atmoadmin',
-            using_admin=True)
+        admin_driver, admin_ident,
+        machine, small_size,
+        'Automated Image Verification - %s' % image_id,
+        username='atmoadmin',
+        using_admin=True)
     return instance.id
 
 
@@ -300,7 +311,7 @@ def invalidate_machine_cache(machine_request):
     driver.provider.machineCls.invalidate_provider_cache(driver.provider)
 
 
-@task(name='freeze_instance_task', ignore_result=False) 
+@task(name='freeze_instance_task', ignore_result=False)
 def freeze_instance_task(identity_id, instance_id, **celery_task_args):
     identity = Identity.objects.get(id=identity_id)
     driver = get_esh_driver(identity)

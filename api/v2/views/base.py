@@ -38,13 +38,13 @@ class AuthViewSet(ModelViewSet):
     http_method_names = ['get', 'put', 'patch', 'post',
                          'delete', 'head', 'options', 'trace']
     permission_classes = (InMaintenance,
-                           ApiAuthRequired,)
+                          ApiAuthRequired,)
 
 
 class AuthOptionalViewSet(ModelViewSet):
 
     permission_classes = (InMaintenance,
-                           ApiAuthOptional,)
+                          ApiAuthOptional,)
 
 
 class AuthReadOnlyViewSet(ReadOnlyModelViewSet):
@@ -54,6 +54,7 @@ class AuthReadOnlyViewSet(ReadOnlyModelViewSet):
 
 
 class BaseRequestViewSet(AuthViewSet):
+
     """
     Base class ViewSet to handle requests
     """

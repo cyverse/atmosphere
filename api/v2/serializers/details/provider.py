@@ -4,6 +4,7 @@ from api.v2.serializers.summaries import SizeSummarySerializer
 
 
 class ProviderTypeSerializer(serializers.HyperlinkedModelSerializer):
+
     class Meta:
         model = ProviderType
         view_name = 'api:v2:providertype-detail'
@@ -11,6 +12,7 @@ class ProviderTypeSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class PlatformTypeSerializer(serializers.HyperlinkedModelSerializer):
+
     class Meta:
         model = PlatformType
         view_name = 'api:v2:platformtype-detail'
@@ -25,5 +27,18 @@ class ProviderSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Provider
-        view_name='api:v2:provider-detail'
-        fields = ('id', 'uuid', 'url', 'name', 'description', 'public', 'active', 'type', 'virtualization', 'sizes', 'start_date', 'end_date', )
+        view_name = 'api:v2:provider-detail'
+        fields = (
+            'id',
+            'uuid',
+            'url',
+            'name',
+            'description',
+            'public',
+            'active',
+            'type',
+            'virtualization',
+            'sizes',
+            'start_date',
+            'end_date',
+        )

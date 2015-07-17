@@ -18,6 +18,7 @@ from api.v1.views.base import AuthAPIView
 
 
 class ProviderList(AuthAPIView):
+
     """Providers represent the different Cloud configurations
     hosted on Atmosphere.
 
@@ -45,6 +46,7 @@ class ProviderList(AuthAPIView):
 
 
 class Provider(APIView):
+
     """Providers represent the different Cloud configurations hosted
     on Atmosphere.
 

@@ -3,7 +3,9 @@ from django.db import models
 from core.models.user import AtmosphereUser
 from core.models.match import PatternMatch
 
+
 class LicenseType(models.Model):
+
     """
     LicenseType objects are created by developers,
     they should NOT be added/removed unless there
@@ -19,7 +21,9 @@ class LicenseType(models.Model):
     def __unicode__(self):
         return self.name
 
+
 class License(models.Model):
+
     """
     """
     title = models.CharField(max_length=256)

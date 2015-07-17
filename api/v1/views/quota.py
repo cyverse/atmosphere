@@ -14,9 +14,11 @@ from core.models import Quota
 
 
 class QuotaList(AuthAPIView):
+
     """
     Lists or creates new Quotas
     """
+
     def get(self, request):
         """
         Returns a list of all existing Quotas
@@ -40,9 +42,11 @@ class QuotaList(AuthAPIView):
 
 
 class QuotaDetail(AuthAPIView):
+
     """
     Fetches or updates a Quota
     """
+
     def get(self, request, quota_id):
         """
         Return the specified Quota

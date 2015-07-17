@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 
 class AllocationSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Allocation
 
@@ -28,12 +29,15 @@ class InstanceInputSerializer(serializers.Serializer):
     provider = serializers.CharField(source="provider.name")
     history = InstanceHistoryInputSerializer(many=True)
 
+
 class RuleInputSerializer(serializers.Serializer):
     name = serializers.CharField()
+
 
 class CreditInputSerializer(serializers.Serializer):
     name = serializers.CharField()
     increase_date = serializers.CharField()
+
 
 class AllocationInputSerializer(serializers.Serializer):
     instances = InstanceInputSerializer(many=True)

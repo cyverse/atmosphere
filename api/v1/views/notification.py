@@ -15,6 +15,7 @@ from api.v1.views.base import MaintenanceAPIView
 
 
 class NotificationList(MaintenanceAPIView):
+
     """
     Represents:
         A List of Instance

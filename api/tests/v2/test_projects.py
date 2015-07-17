@@ -1,11 +1,14 @@
-from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
+from rest_framework.test import APITestCase, APIRequestFactory,\
+    force_authenticate
 from api.v2.views import ProjectViewSet
-from api.tests.factories import ProjectFactory, UserFactory, AnonymousUserFactory, GroupFactory
+from api.tests.factories import ProjectFactory, UserFactory,\
+    AnonymousUserFactory, GroupFactory
 from django.core.urlresolvers import reverse
 from core.models import Project
 
 
 class GetProjectListTests(APITestCase):
+
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
@@ -38,12 +41,13 @@ class GetProjectListTests(APITestCase):
         data = response.data.get('results')[0]
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(data), 10)
+        self.assertEquals(len(data), 11, "Number of fields does not match")
         self.assertEquals(data['id'], self.project.id)
         self.assertIn('url', data)
         self.assertEquals(data['name'], self.project.name)
         self.assertEquals(data['description'], self.project.description)
         self.assertIn('owner', data)
+        self.assertIn('uuid', data)
         self.assertIn('instances', data)
         self.assertIn('volumes', data)
         self.assertIn('images', data)
@@ -52,6 +56,7 @@ class GetProjectListTests(APITestCase):
 
 
 class GetProjectDetailTests(APITestCase):
+
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
@@ -78,12 +83,13 @@ class GetProjectDetailTests(APITestCase):
         data = response.data
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(data), 10)
+        self.assertEquals(len(data), 11, "Number of fields does not match")
         self.assertEquals(data['id'], self.project.id)
         self.assertIn('url', data)
         self.assertEquals(data['name'], self.project.name)
         self.assertEquals(data['description'], self.project.description)
         self.assertIn('owner', data)
+        self.assertIn('uuid', data)
         self.assertIn('instances', data)
         self.assertIn('volumes', data)
         self.assertIn('images', data)
@@ -92,6 +98,7 @@ class GetProjectDetailTests(APITestCase):
 
 
 class CreateProjectTests(APITestCase):
+
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
@@ -132,6 +139,7 @@ class CreateProjectTests(APITestCase):
 
 
 class UpdateProjectTests(APITestCase):
+
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
@@ -174,10 +182,13 @@ class UpdateProjectTests(APITestCase):
         self.assertEquals(Project.objects.count(), 2)
         project = Project.objects.first()
         self.assertEquals(project.name, self.updated_project_data['name'])
-        self.assertEquals(project.description, self.updated_project_data['description'])
+        self.assertEquals(
+            project.description,
+            self.updated_project_data['description'])
 
 
 class DeleteProjectTests(APITestCase):
+
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()

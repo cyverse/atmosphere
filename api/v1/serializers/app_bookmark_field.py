@@ -8,7 +8,7 @@ class AppBookmarkField(serializers.Field):
     def to_representation(self, bookmark_mgr):
         request = self.context.get('request', None)
         request_user = request.user
-        if type(request_user) == AnonymousUser:
+        if isinstance(request_user, AnonymousUser):
             return False
         try:
             bookmark_mgr.get(user=request_user)

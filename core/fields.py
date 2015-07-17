@@ -16,8 +16,9 @@ class VersionNumber(object):
     def __init__(self, major, minor=0, patch=0, build=0):
         self.number = (int(major), int(minor), int(patch), int(build))
         if any([i < 0 or i > 255 for i in self.number]):
-            raise ValueError("Version number components must between 0 and 255,"
-                             " inclusive")
+            raise ValueError(
+                "Version number components must between 0 and 255,"
+                " inclusive")
 
     def __int__(self):
         """
@@ -38,22 +39,23 @@ class VersionNumber(object):
             if part != 0:
                 end_index = index
 
-        return ".".join([str(i) for i in self.number[:end_index+1]])
+        return ".".join([str(i) for i in self.number[:end_index + 1]])
 
     def __repr__(self):
         return "<VersionNumber(%d, %d, %d, %d)>" % self.number
 
 
 class VersionNumberField(models.Field):
+
     """
-    A version number. Stored as a integer. Retrieved as a VersionNumber. Like 
+    A version number. Stored as a integer. Retrieved as a VersionNumber. Like
     magic. Major, minor, patch, build must not exceed 255
     """
     __metaclass__ = models.SubfieldBase
 
     def get_internal_type(self):
         return 'IntegerField'
-    
+
     def to_python(self, value):
         """
         Convert a int to a VersionNumber
@@ -77,7 +79,7 @@ class VersionNumberField(models.Field):
         Convert a VersionNumber or tuple to an int
         """
         if isinstance(value, tuple):
-            value = VersionNumber(*value) 
+            value = VersionNumber(*value)
         if isinstance(value, int):
             return value
 
@@ -86,5 +88,3 @@ class VersionNumberField(models.Field):
     def value_to_string(self, obj):
         value = self._get_val_from_obj(obj)
         return self.get_prep_value(value)
-
-

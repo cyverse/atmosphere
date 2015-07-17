@@ -8,12 +8,13 @@ from .get_context_user import get_context_user
 class VolumeSerializer(serializers.ModelSerializer):
     status = serializers.CharField(read_only=True, source='get_status')
     attach_data = serializers.ReadOnlyField(source='esh_attach_data')
-    #metadata = serializers.Field(source='esh_metadata')
     mount_location = serializers.ReadOnlyField()
     created_by = serializers.ReadOnlyField(
         source="instance_source.created_by.username")
-    provider = serializers.ReadOnlyField(source="instance_source.provider.uuid")
-    identity = CleanedIdentitySerializer(source="instance_source.created_by_identity")
+    provider = serializers.ReadOnlyField(
+        source="instance_source.provider.uuid")
+    identity = CleanedIdentitySerializer(
+        source="instance_source.created_by_identity")
     alias = serializers.ReadOnlyField(source='instance_source.identifier')
     start_date = serializers.ReadOnlyField(source='instance_source.start_date')
     end_date = serializers.ReadOnlyField(source='instance_source.end_date')

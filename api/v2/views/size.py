@@ -6,6 +6,7 @@ from api.v2.views.base import AuthReadOnlyViewSet
 
 
 class SizeViewSet(AuthReadOnlyViewSet):
+
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
