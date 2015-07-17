@@ -12,7 +12,8 @@ from authentication.models import Token
 
 from gevent import monkey
 
-# patches stdlib (including socket and ssl modules) to cooperate with other greenlets
+# patches stdlib (including socket and ssl modules) to cooperate with
+# other greenlets
 monkey.patch_socket()
 monkey.patch_ssl()
 
@@ -48,7 +49,10 @@ def main(args):
 
         user_tokens = Token.objects.filter(user=user).order_by('-issuedTime')
         if user_tokens.count() == 0:
-            print("No tokens for user: " + user.username + ". No instances will launch on their account.")
+            print(
+                "No tokens for user: " +
+                user.username +
+                ". No instances will launch on their account.")
             continue
 
         latest_token = user_tokens[0]
@@ -65,7 +69,13 @@ def main(args):
         }
 
         for x in range(args.count):
-            job = gevent.spawn(launch_instance, launch_url, headers, json.dumps(payload), provider, user)
+            job = gevent.spawn(
+                launch_instance,
+                launch_url,
+                headers,
+                json.dumps(payload),
+                provider,
+                user)
             async_request_list.append(job)
 
     print "Sending requests to Atmosphere..."

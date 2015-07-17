@@ -11,6 +11,7 @@ from api.v2.views.base import AuthOptionalViewSet
 
 
 class TagViewSet(AuthOptionalViewSet):
+
     """
     API endpoint that allows tags to be viewed or edited.
     """

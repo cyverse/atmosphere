@@ -12,11 +12,11 @@ from hashlib import md5
 
 class UserProfile(models.Model):
     user = models.OneToOneField(AtmosphereUser, primary_key=True)
-    #Backend Profile attributes
+    # Backend Profile attributes
     send_emails = models.BooleanField(default=True)
     quick_launch = models.BooleanField(default=True)
     vnc_resolution = models.CharField(max_length=255, default='800x600')
-    #Frontend profile attributes
+    # Frontend profile attributes
     default_size = models.CharField(max_length=255, default='m1.small')
     background = models.CharField(max_length=255, default='default')
     icon_set = models.CharField(max_length=255, default='default')

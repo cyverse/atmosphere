@@ -33,12 +33,14 @@ from core.models.version import ApplicationVersion, ApplicationVersionMembership
 
 from threepio import logger
 
+
 def private_object(modeladmin, request, queryset):
-        queryset.update(private=True)
+    queryset.update(private=True)
 private_object.short_description = 'Make objects private True'
 
+
 def end_date_object(modeladmin, request, queryset):
-        queryset.update(end_date=timezone.now())
+    queryset.update(end_date=timezone.now())
 end_date_object.short_description = 'Add end-date to objects'
 
 
@@ -59,7 +61,13 @@ class MaintenanceAdmin(admin.ModelAdmin):
 
 @admin.register(Quota)
 class QuotaAdmin(admin.ModelAdmin):
-    list_display = ("__unicode__", "cpu", "memory", "storage", "storage_count", "suspended_count")
+    list_display = (
+        "__unicode__",
+        "cpu",
+        "memory",
+        "storage",
+        "storage_count",
+        "suspended_count")
 
 
 @admin.register(AllocationStrategy)
@@ -90,7 +98,10 @@ class AllocationAdmin(admin.ModelAdmin):
 @admin.register(ProviderMachine)
 class ProviderMachineAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
-    search_fields = ["application_version__application__name", "instance_source__provider__location", "instance_source__identifier"]
+    search_fields = [
+        "application_version__application__name",
+        "instance_source__provider__location",
+        "instance_source__identifier"]
     list_display = ["identifier", "_pm_provider", "end_date"]
     list_filter = [
         "instance_source__provider__location",
@@ -102,51 +113,73 @@ class ProviderMachineAdmin(admin.ModelAdmin):
 
     def render_change_form(self, request, context, *args, **kwargs):
         pm = context['original']
-        #context['adminform'].form.fields['instance_source'].queryset = InstanceSource.objects.filter(id=pm.instancesource_ptr.id)
-        return super(ProviderMachineAdmin, self).render_change_form(request, context, *args, **kwargs)
+        return super(
+            ProviderMachineAdmin,
+            self).render_change_form(
+            request,
+            context,
+            *args,
+            **kwargs)
 
 
 @admin.register(ApplicationVersionMembership)
 class ApplicationVersionMembershipAdmin(admin.ModelAdmin):
     list_display = ["id", "_app_name", "_start_date", "_app_private", "group"]
     list_filter = [
-            "application_version__application__name",
-            "group__name"
-            ]
+        "application_version__application__name",
+        "group__name"
+    ]
+
     def _start_date(self, obj):
         return obj.application_version.start_date
+
     def _app_private(self, obj):
         return obj.application_version.application.private
     _app_private.boolean = True
+
     def _app_name(self, obj):
         return obj.application_version
 
     def render_change_form(self, request, context, *args, **kwargs):
         application = context['original']
-        context['adminform'].form.fields['application_version'].queryset = ApplicationVersion.objects.order_by('application__name')
-        context['adminform'].form.fields['group'].queryset = Group.objects.order_by('name')
-        return super(ApplicationVersionMembershipAdmin, self).render_change_form(request, context, *args, **kwargs)
+        context['adminform'].form.fields[
+            'application_version'].queryset = ApplicationVersion.objects.order_by('application__name')
+        context['adminform'].form.fields[
+            'group'].queryset = Group.objects.order_by('name')
+        return super(
+            ApplicationVersionMembershipAdmin,
+            self).render_change_form(
+            request,
+            context,
+            *args,
+            **kwargs)
     pass
+
 
 @admin.register(ProviderMachineMembership)
 class ProviderMachineMembershipAdmin(admin.ModelAdmin):
     list_display = ["id", "_pm_provider", "_pm_identifier", "_pm_name",
                     "_pm_private", "group"]
     list_filter = [
-            "provider_machine__instance_source__provider__location",
-            "provider_machine__instance_source__identifier",
-            "group__name"
-            ]
+        "provider_machine__instance_source__provider__location",
+        "provider_machine__instance_source__identifier",
+        "group__name"
+    ]
+
     def _pm_provider(self, obj):
         return obj.provider_machine.provider.location
+
     def _pm_private(self, obj):
         return obj.provider_machine.application_version.application.private
     _pm_private.boolean = True
+
     def _pm_identifier(self, obj):
         return obj.provider_machine.identifier
+
     def _pm_name(self, obj):
         return obj.provider_machine.application_version.application.name
     pass
+
 
 class ProviderCredentialInline(admin.TabularInline):
     model = ProviderCredential
@@ -160,10 +193,12 @@ class ProviderAdmin(admin.ModelAdmin):
     list_display = ["location", "id", "provider_type", "active",
                     "public", "start_date", "end_date", "_credential_info"]
     list_filter = ["active", "public", "type__name"]
+
     def _credential_info(self, obj):
         return_text = ""
         for cred in obj.providercredential_set.order_by('key'):
-            return_text += "<strong>%s</strong>:%s<br/>" % (cred.key, cred.value)
+            return_text += "<strong>%s</strong>:%s<br/>" % (
+                cred.key, cred.value)
         return return_text
     _credential_info.allow_tags = True
     _credential_info.short_description = 'Provider Credentials'
@@ -194,16 +229,26 @@ class VolumeAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     search_fields = ["identifier", "name", "location"]
     list_display = ["identifier", "size", "provider",
-            "start_date", "end_date"]
+                    "start_date", "end_date"]
     list_filter = ["instance_source__provider__location"]
 
 
 @admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
     actions = [end_date_object, private_object]
-    search_fields = ["name", "id", "versions__machines__instance_source__identifier"]
-    list_display = ["uuid", "_current_machines", "name", "private", "created_by", "start_date", "end_date" ]
-    filter_vertical = ["tags",]
+    search_fields = [
+        "name",
+        "id",
+        "versions__machines__instance_source__identifier"]
+    list_display = [
+        "uuid",
+        "_current_machines",
+        "name",
+        "private",
+        "created_by",
+        "start_date",
+        "end_date"]
+    filter_vertical = ["tags", ]
 
     def save_model(self, request, obj, form, change):
         user = request.user
@@ -213,15 +258,23 @@ class ApplicationAdmin(admin.ModelAdmin):
         if change:
             try:
                 save_app_to_metadata(application)
-            except Exception, e:
+            except Exception as e:
                 logger.exception("Could not update metadata for application %s"
                                  % application)
         return application
 
     def render_change_form(self, request, context, *args, **kwargs):
         application = context['original']
-        context['adminform'].form.fields['created_by_identity'].queryset = Identity.objects.filter(created_by=application.created_by)
-        return super(ApplicationAdmin, self).render_change_form(request, context, *args, **kwargs)
+        context['adminform'].form.fields['created_by_identity'].queryset = Identity.objects.filter(
+            created_by=application.created_by)
+        return super(
+            ApplicationAdmin,
+            self).render_change_form(
+            request,
+            context,
+            *args,
+            **kwargs)
+
 
 class CredentialInline(admin.TabularInline):
     model = Credential
@@ -238,7 +291,8 @@ class IdentityAdmin(admin.ModelAdmin):
     def _credential_info(self, obj):
         return_text = ""
         for cred in obj.credential_set.order_by('key'):
-            return_text += "<strong>%s</strong>:%s<br/>" % (cred.key, cred.value)
+            return_text += "<strong>%s</strong>:%s<br/>" % (
+                cred.key, cred.value)
         return return_text
     _credential_info.allow_tags = True
     _credential_info.short_description = 'Credentials'
@@ -269,11 +323,20 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
 
     def render_change_form(self, request, context, *args, **kwargs):
         identity_membership = context['original']
-        #TODO: Change when created_by is != the user who 'owns' this identity...
+        # TODO: Change when created_by is != the user who 'owns' this
+        # identity...
         user = identity_membership.identity.created_by
-        context['adminform'].form.fields['identity'].queryset = user.identity_set.all()
-        context['adminform'].form.fields['member'].queryset = user.group_set.all()
-        return super(IdentityMembershipAdmin, self).render_change_form(request, context, *args, **kwargs)
+        context['adminform'].form.fields[
+            'identity'].queryset = user.identity_set.all()
+        context['adminform'].form.fields[
+            'member'].queryset = user.group_set.all()
+        return super(
+            IdentityMembershipAdmin,
+            self).render_change_form(
+            request,
+            context,
+            *args,
+            **kwargs)
 
     def _identity_provider(self, obj):
         return obj.identity.provider.location
@@ -283,11 +346,12 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
         return obj.identity.created_by.username
     _identity_user.short_description = 'Username'
 
+
 @admin.register(ExportRequest)
 class ExportRequestAdmin(admin.ModelAdmin):
     list_display = ["export_name", "export_owner_username",
-    "source_provider", "start_date", "end_date", "status",
-    "export_file"]
+                    "source_provider", "start_date", "end_date", "status",
+                    "export_file"]
 
     def export_owner_username(self, export_request):
         return export_request.export_owner.username
@@ -295,34 +359,58 @@ class ExportRequestAdmin(admin.ModelAdmin):
     def source_provider(self, export_request):
         return export_request.source.provider
 
+
 @admin.register(MachineRequest)
 class MachineRequestAdmin(admin.ModelAdmin):
-    search_fields = ["new_machine_owner__username", "new_application_name", "instance__provider_alias"]
-    list_display = ["new_application_name", "new_machine_owner", "instance_alias",
-                    "old_provider", "new_machine_provider",
-		    "start_date", "end_date", "status",
-		    "opt_new_machine", "opt_parent_machine", "opt_machine_visibility"]
+    search_fields = [
+        "new_machine_owner__username",
+        "new_application_name",
+        "instance__provider_alias"]
+    list_display = [
+        "new_application_name",
+        "new_machine_owner",
+        "instance_alias",
+        "old_provider",
+        "new_machine_provider",
+        "start_date",
+        "end_date",
+        "status",
+        "opt_new_machine",
+        "opt_parent_machine",
+        "opt_machine_visibility"]
     list_filter = ["status"]
 
-    #Overwrite
+    # Overwrite
     def render_change_form(self, request, context, *args, **kwargs):
         machine_request = context['original']
-        #TODO: Change when created_by is != the user who 'owns' this identity...
+        # TODO: Change when created_by is != the user who 'owns' this
+        # identity...
         instance = machine_request.instance
         user = machine_request.new_machine_owner
         provider = machine_request.new_machine_provider
-        context['adminform'].form.fields['new_machine_owner'].queryset = provider.list_users()
-        context['adminform'].form.fields['new_machine'].queryset = ProviderMachine.objects.filter(instance_source__provider=provider)
-        context['adminform'].form.fields['instance'].queryset = user.instance_set.all()
-        #NOTE: Can't reliably refine 'parent_machine' -- Since the parent could be from another provider.
-        context['adminform'].form.fields['parent_machine'].queryset = ProviderMachine.objects.filter(instance_source__identifier=instance.source.identifier)
+        context['adminform'].form.fields[
+            'new_machine_owner'].queryset = provider.list_users()
+        context['adminform'].form.fields['new_machine'].queryset = ProviderMachine.objects.filter(
+            instance_source__provider=provider)
+        context['adminform'].form.fields[
+            'instance'].queryset = user.instance_set.all()
+        # NOTE: Can't reliably refine 'parent_machine' -- Since the parent
+        # could be from another provider.
+        context['adminform'].form.fields['parent_machine'].queryset = ProviderMachine.objects.filter(
+            instance_source__identifier=instance.source.identifier)
 
-        return super(MachineRequestAdmin, self).render_change_form(request, context, *args, **kwargs)
+        return super(
+            MachineRequestAdmin,
+            self).render_change_form(
+            request,
+            context,
+            *args,
+            **kwargs)
 
     def opt_machine_visibility(self, machine_request):
         if machine_request.new_application_visibility.lower() != 'public':
-            return "%s\nUsers:%s" % (machine_request.new_application_visibility,
-                                        machine_request.access_list)
+            return "%s\nUsers:%s" % (
+                machine_request.new_application_visibility, machine_request.access_list)
         return machine_request.new_application_visibility
     opt_machine_visibility.allow_tags = True
 
@@ -340,12 +428,13 @@ class MachineRequestAdmin(admin.ModelAdmin):
 @admin.register(InstanceStatusHistory)
 class InstanceStatusHistoryAdmin(admin.ModelAdmin):
     search_fields = ["instance__created_by__username",
-            "instance__provider_alias", "status__name"]
+                     "instance__provider_alias", "status__name"]
     list_display = ["instance_alias", "status", "start_date", "end_date"]
     list_filter = ["instance__source__provider__location",
                    "status__name",
-                   "instance__created_by__username" ]
+                   "instance__created_by__username"]
     ordering = ('-start_date',)
+
     def instance_alias(self, model):
         return model.instance.provider_alias
 
@@ -359,6 +448,7 @@ class InstanceAdmin(admin.ModelAdmin):
 
 @admin.register(DjangoSession)
 class SessionAdmin(admin.ModelAdmin):
+
     def _session_data(self, obj):
         return obj.get_decoded()
     list_display = ['session_key', '_session_data', 'expire_date']
@@ -401,13 +491,10 @@ class ResourceRequestAdmin(admin.ModelAdmin):
             membership.save()
             membership.approve_quota(obj.id)
 
-#For adding 'new' registrations
+# For adding 'new' registrations
 admin.site.register(Credential)
 admin.site.register(Group)
 admin.site.register(ProviderType)
-# admin.site.register(CountingBehavior, CountingBehaviorAdmin)
-# admin.site.register(RefreshBehavior, RefreshBehaviorAdmin)
-# admin.site.register(RulesBehavior, RulesBehaviorAdmin)
 
-#For removing 'standard' registrations
+# For removing 'standard' registrations
 admin.site.unregister(DjangoGroup)

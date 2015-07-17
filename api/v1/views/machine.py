@@ -80,6 +80,7 @@ def list_filtered_machines(esh_driver, provider_uuid, request_user=None):
 
 
 class MachineList(AuthAPIView):
+
     """
     List of machines.
     """
@@ -96,7 +97,6 @@ class MachineList(AuthAPIView):
                                                                provider_uuid,
                                                                identity_uuid,
                                                                request_user)
-            #logger.debug(filtered_machine_list)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except MalformedResponseError:
@@ -108,7 +108,6 @@ class MachineList(AuthAPIView):
                              % request_user)
             return failure_response(status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     e.message)
-        #logger.debug(filtered_machine_list)
         serialized_data = ProviderMachineSerializer(filtered_machine_list,
                                                     request_user=request.user,
                                                     many=True).data
@@ -126,6 +125,7 @@ def all_filtered_machines(user):
 
 
 class MachineHistory(AuthListAPIView):
+
     """Details about the machine history for an identity."""
     pagination_class = OptionalPagination
 
@@ -138,6 +138,7 @@ class MachineHistory(AuthListAPIView):
 
 
 class MachineSearch(AuthListAPIView):
+
     """Provides server-side machine search for an identity."""
     filter_backends = ()
 
@@ -160,6 +161,7 @@ class MachineSearch(AuthListAPIView):
 
 
 class Machine(AuthAPIView):
+
     """
     Details about a specific machine, as seen by that identity.
     """
@@ -214,8 +216,7 @@ class Machine(AuthAPIView):
         esh_machine = esh_driver.get_machine(machine_id)
         core_machine = convert_esh_machine(esh_driver, esh_machine,
                                            provider_uuid, user)
-        if not user.is_staff\
-           and user is not core_machine.application_version.application.created_by:
+        if not user.is_staff and user is not core_machine.application_version.application.created_by:
             logger.warn('%s is Non-staff/non-owner trying to update a machine'
                         % (user.username))
             return failure_response(
@@ -234,7 +235,9 @@ class Machine(AuthAPIView):
             serializer.save()
             if 'created_by_identity' in request.DATA:
                 identity = serializer.object.created_by_identity
-                update_application_owner(core_machine.application_version.application, identity)
+                update_application_owner(
+                    core_machine.application_version.application,
+                    identity)
             logger.info(serializer.data)
             return Response(serializer.data)
         return failure_response(
@@ -243,6 +246,7 @@ class Machine(AuthAPIView):
 
 
 class MachineIcon(AuthAPIView):
+
     """
     Represents:
         Calls to modify the single machine
@@ -273,6 +277,7 @@ class MachineIcon(AuthAPIView):
 
 
 class MachineVote(AuthAPIView):
+
     """
     Rate the selected image by voting.
     """
@@ -331,6 +336,7 @@ class MachineVote(AuthAPIView):
 
 
 class MachineLicense(AuthAPIView):
+
     """
     Show list of all machine licenses applied.
     """
@@ -373,11 +379,11 @@ class MachineLicense(AuthAPIView):
         core_machine = core_machine.get()
         if core_machine.instance_source.created_by == request.user:
             return failure_response(
-                    status.HTTP_400_BAD_REQUEST,
-                    "You are NOT the owner of Machine id=%s " % machine_id)
+                status.HTTP_400_BAD_REQUEST,
+                "You are NOT the owner of Machine id=%s " % machine_id)
 
         if 'licenses' not in data \
-                or type(data['licenses']) != list:
+                or not isinstance(data['licenses'], list):
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
                 "Licenses missing from data. Expected a list of License IDs"

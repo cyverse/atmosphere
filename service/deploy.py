@@ -28,6 +28,7 @@ from service.exceptions import AnsibleDeployException
 
 
 class WriteFileDeployment(Deployment):
+
     def __init__(self, full_text, target):
         """
         :type target: ``str``
@@ -40,11 +41,12 @@ class WriteFileDeployment(Deployment):
         self.target = target
 
     def run(self, node, client):
-        client.put(self.target,  contents=self.full_text, mode='w')
+        client.put(self.target, contents=self.full_text, mode='w')
         return node
 
 
 class LoggedScriptDeployment(ScriptDeployment):
+
     def __init__(self, script, name=None, delete=False, logfile=None,
                  attempts=1):
         """
@@ -55,7 +57,6 @@ class LoggedScriptDeployment(ScriptDeployment):
         self.attempts = attempts
         if logfile:
             self.script = self.script + " >> %s 2>&1" % logfile
-        #logger.info(self.script)
 
     def run(self, node, client):
         """
@@ -93,15 +94,19 @@ def deploy_to(instance_ip, username, instance_id):
     """
     if not check_ansible():
         return []
-    logger = create_instance_logger(deploy_logger, instance_ip, username, instance_id)
+    logger = create_instance_logger(
+        deploy_logger,
+        instance_ip,
+        username,
+        instance_id)
     hostname = build_host_name(instance_ip)
     cache_bust(hostname)
     configure_ansible(logger)
     my_limit = {"hostname": hostname, "ip": instance_ip}
     deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
     host_list = settings.ANSIBLE_HOST_FILE
-    extra_vars = {"ATMOUSERNAME" : username,
-                  "VNCLICENSE" : secrets.ATMOSPHERE_VNC_LICENSE}
+    extra_vars = {"ATMOUSERNAME": username,
+                  "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE}
     pbs = subspace.playbook.get_playbooks(deploy_playbooks,
                                           host_list=host_list,
                                           limit=my_limit,
@@ -119,7 +124,7 @@ def check_ansible():
     variables are likely configured.
     """
     exists = os.path.exists(settings.ANSIBLE_PLAYBOOKS_DIR) and\
-             os.path.exists(settings.ANSIBLE_ROLES_PATH)
+        os.path.exists(settings.ANSIBLE_ROLES_PATH)
     if not exists:
         logger.warn("Ansible is not configured. Verify your "
                     "ANSIBLE_* settings variables")
@@ -222,7 +227,7 @@ def mount_volume(device, mount_location, username=None, group=None):
     mount_script += "mount %s %s; " % (device, mount_location)
     if username and group:
         mount_script += "chown -R %s:%s %s" % (username, group, mount_location)
-    #NOTE: Fails to recognize mount_script as a str
+    # NOTE: Fails to recognize mount_script as a str
     # Removing this line will cause 'celery' to fail
     # to execute this particular ScriptDeployment
     return ScriptDeployment(str(mount_script), name="./deploy_mount_volume.sh")
@@ -288,7 +293,7 @@ def chmod_ax_file(filename, logfile=None):
 
 
 def package_deps(logfile=None, username=None):
-    #These requirements are for Editors, Shell-in-a-box, etc.
+    # These requirements are for Editors, Shell-in-a-box, etc.
     do_ubuntu = "apt-get update;apt-get install -y emacs vim wget "\
                 + "language-pack-en make gcc g++ gettext texinfo "\
                 + "autoconf automake python-httplib2 "
@@ -333,9 +338,8 @@ def redeploy_script(filename, username, instance, logfile=None):
         settings.INSTANCE_SERVICE_URL,
         settings.DEPLOY_SERVER_URL,
         username)
-    #kludge: weirdness without the str cast...
+    # kludge: weirdness without the str cast...
     str_awesome_atmo_call = str(awesome_atmo_call)
-    #logger.debug(isinstance(str_awesome_atmo_call, basestring))
     return LoggedScriptDeployment(
         str_awesome_atmo_call,
         name='./deploy_call_atmoinit.sh',
@@ -356,14 +360,16 @@ def init_script(filename, username, token, instance, password,
         settings.DEPLOY_SERVER_URL,
         username,
         token,
-        instance.name.replace('"', '\\\"'),  # Prevents single " from preventing calls to atmo_init_full
+        instance.name.replace(
+            '"',
+            '\\\"'),
+        # Prevents single " from preventing calls to atmo_init_full
         " --redeploy" if redeploy else "",
         secrets.ATMOSPHERE_VNC_LICENSE)
     if password:
         awesome_atmo_call += " --root_password=%s" % (password)
-    #kludge: weirdness without the str cast...
+    # kludge: weirdness without the str cast...
     str_awesome_atmo_call = str(awesome_atmo_call)
-    #logger.debug(isinstance(str_awesome_atmo_call, basestring))
     return LoggedScriptDeployment(
         str_awesome_atmo_call,
         name='./deploy_call_atmoinit.sh',
@@ -426,7 +432,7 @@ def init(instance, username, password=None, token=None, redeploy=False,
                                    instance, password, redeploy, logfile)
 
     if redeploy:
-        #Redeploy the instance
+        # Redeploy the instance
         script_atmo_init = redeploy_script(atmo_init, username,
                                            instance, logfile)
         script_list = [script_init,
@@ -434,7 +440,7 @@ def init(instance, username, password=None, token=None, redeploy=False,
                        script_chmod,
                        script_atmo_init]
     else:
-        #Standard install
+        # Standard install
         script_list = [script_init,
                        script_deps,
                        script_wget,
@@ -447,6 +453,7 @@ def init(instance, username, password=None, token=None, redeploy=False,
 
     return MultiStepDeployment(script_list)
 
+
 def wrap_script(script_text, script_name):
     """
     NOTE: In current implementation, the script can only be executed, and not
@@ -458,9 +465,8 @@ def wrap_script(script_text, script_name):
     * Execute and redirect output to stdout/stderr to logfile.
     """
     logfile = "/var/log/atmo/post_boot_scripts.log"
-    #kludge: weirdness without the str cast...
+    # kludge: weirdness without the str cast...
     script_text = str(script_text)
     full_script_name = "./deploy_boot_script_%s.sh"
     return ScriptDeployment(
         script_text, name=full_script_name)
-

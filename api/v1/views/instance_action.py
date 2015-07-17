@@ -12,6 +12,7 @@ from api.v1.serializers import InstanceActionSerializer
 
 
 class InstanceActionList(APIView):
+
     """
     Paginated list of all instance history for specific user.
     """
@@ -33,6 +34,7 @@ class InstanceActionList(APIView):
 
 
 class InstanceActionDetail(APIView):
+
     """
     Instance history for specific instance.
     """

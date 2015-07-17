@@ -18,7 +18,6 @@ from allocation import validate_interval
 class TimeUnit:
     # TODO: If using enums:
     # pip install enum34
-    # class Unit(Enum):
     second = 0
     minute = 1
     hour = 2
@@ -31,6 +30,7 @@ class TimeUnit:
 
 # Models
 class Provider(object):
+
     def __init__(self, name, identifier):
         self.name = name
         self.identifier = identifier
@@ -47,6 +47,7 @@ class Provider(object):
 
 
 class Machine(object):
+
     def __init__(self, name, identifier):
         self.name = name
         self.identifier = identifier
@@ -64,6 +65,7 @@ class Machine(object):
 
 
 class Size(object):
+
     def __init__(self, name, identifier, cpu=0, ram=0, disk=0):
         self.name = name
         self.identifier = identifier
@@ -85,6 +87,7 @@ class Size(object):
 
 
 class Instance(object):
+
     def __init__(self, identifier, provider=None, machine=None, history=[]):
         self.identifier = identifier
         self.provider = provider
@@ -121,6 +124,7 @@ class Instance(object):
 
 
 class InstanceHistory(object):
+
     def __init__(self, status, size, start_date, end_date):
         validate_interval(start_date, end_date)
         self.status = status
@@ -146,10 +150,12 @@ class InstanceHistory(object):
 
 
 class AllocationIncrease(object):
+
     """
     AllocationIncrease represents a one-time, positive increase, given on the
     'increase_date'
     """
+
     def __init__(self, name, unit, amount, increase_date=None):
         self.name = name
         self.unit = unit
@@ -213,6 +219,7 @@ class AllocationIncrease(object):
 
 
 class AllocationUnlimited(AllocationIncrease):
+
     def __init__(self, increase_date=None):
         if not increase_date:
             increase_date = self._get_current_date_utc()
@@ -222,6 +229,7 @@ class AllocationUnlimited(AllocationIncrease):
 
 
 class AllocationRecharge(AllocationIncrease):
+
     """
     AllocationRecharge represent the start of a new period of accounting.
     1. Rules engine will evaluate this rule, and add to time_allowed, before
@@ -232,6 +240,7 @@ class AllocationRecharge(AllocationIncrease):
     3. For any allocation increase PRIOR to the recharge_date, time will NOT be
        counted.
     """
+
     def __init__(self, name, unit, amount, recharge_date):
         super(AllocationRecharge, self).__init__(name, unit, amount,
                                                  recharge_date)
@@ -246,6 +255,7 @@ class AllocationRecharge(AllocationIncrease):
 
 
 class Allocation(object):
+
     def __init__(self, credits, rules, instances,
                  start_date, end_date, interval_delta=None):
         validate_interval(start_date, end_date)

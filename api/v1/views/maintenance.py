@@ -20,6 +20,7 @@ from api.v1.views.base import AuthOptionalAPIView
 
 
 class MaintenanceRecordList(AuthOptionalAPIView):
+
     """
     A list of all maintenance.
     Use ?active=True to get current maintenenace.
@@ -31,7 +32,7 @@ class MaintenanceRecordList(AuthOptionalAPIView):
         providers = []
         records = CoreMaintenanceRecord.objects.none()
         active_records = query.get('active', 'false').lower() == "true"
-        if user and type(user) != AnonymousUser:
+        if user and not isinstance(user, AnonymousUser):
             groups = user.group_set.all()
             for group in groups:
                 provider_ids = group.identities.filter(
@@ -55,6 +56,7 @@ class MaintenanceRecordList(AuthOptionalAPIView):
 
 
 class MaintenanceRecord(AuthOptionalAPIView):
+
     """
     Represents a maintenance record.
     """

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-# Takes a single command-line argument, a .json file generated from `./manage.py dumpdata service_old.machine &> machines.json`
+# Takes a single command-line argument, a .json file generated from
+# `./manage.py dumpdata service_old.machine &> machines.json`
 import sys
 import json
 from datetime import datetime
@@ -12,16 +13,18 @@ from core.models import IdentityMembership, Quota, Provider
 import django
 django.setup()
 
+
 def get_unique_quota(old_list):
     d = {}
     for quota_obj in old_list:
         q = quota_obj['fields']
-        mem_gb = q['memory']/1024
-        if d.has_key( (q['cpu'],mem_gb) ):
-            d[ (q['cpu'],mem_gb) ].append(q['userid'])
+        mem_gb = q['memory'] / 1024
+        if (q['cpu'], mem_gb) in d:
+            d[(q['cpu'], mem_gb)].append(q['userid'])
         else:
-            d[ (q['cpu'],mem_gb) ] = [q['userid']]
+            d[(q['cpu'], mem_gb)] = [q['userid']]
     return d
+
 
 def main(filename):
     f = open(filename, 'r')
@@ -31,19 +34,21 @@ def main(filename):
     unique_quota = get_unique_quota(old_quota)
     euca = Provider.objects.get(location="EUCALYPTUS")
     failed = 0
-    for ( (cpu,mem), users) in unique_quota.items():
+    for ((cpu, mem), users) in unique_quota.items():
         print cpu, mem
         print users
-        new_quota_obj = Quota.objects.get_or_create(cpu=cpu,memory=mem)[0]
+        new_quota_obj = Quota.objects.get_or_create(cpu=cpu, memory=mem)[0]
         for user in users:
             try:
-                user_identity = IdentityMembership.objects.get(member__name=user, identity__provider=euca)
+                user_identity = IdentityMembership.objects.get(
+                    member__name=user,
+                    identity__provider=euca)
                 user_identity.quota = new_quota_obj
                 user_identity.save()
-            except IdentityMembership.DoesNotExist, no_membership:
+            except IdentityMembership.DoesNotExist as no_membership:
                 print "Username: %s does not have an identity. Run scripts/import_users.py FIRST, then run scripts/import_quota.py" % user
                 failed += 1
-    print str(len(old_quota)-failed) + " quotas added"
+    print str(len(old_quota) - failed) + " quotas added"
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

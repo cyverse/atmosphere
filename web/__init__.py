@@ -22,13 +22,13 @@ def getRequestParams(request):
     """
     if request.META['REQUEST_METHOD'] == 'GET':
         try:
-            #Will only succeed if a GET method with items
+            # Will only succeed if a GET method with items
             return dict(request.GET.items())
         except:
             pass
     elif request.META['REQUEST_METHOD'] == 'POST':
         try:
-            #Will only succeed if a POST method with items
+            # Will only succeed if a POST method with items
             return dict(request.POST.items())
         except:
             pass
@@ -46,7 +46,7 @@ def getRequestVars(request):
     api_server = None
     emulate = None
     try:
-        #Attempt #1 - SessionStorage - Most reliable
+        # Attempt #1 - SessionStorage - Most reliable
         logger.debug(request.session.items())
         username = request.session['username']
         token = request.session['token']
@@ -57,7 +57,7 @@ def getRequestVars(request):
     except KeyError:
         pass
     try:
-        #Attempt #2 - Header/META values, this is DEPRECATED as of v2!
+        # Attempt #2 - Header/META values, this is DEPRECATED as of v2!
         logger.debug(request.META.items())
         username = request.META['HTTP_X_AUTH_USER']
         token = request.META['HTTP_X_AUTH_TOKEN']
@@ -68,7 +68,7 @@ def getRequestVars(request):
     except KeyError:
         pass
     try:
-        #Final attempt - GET/POST values
+        # Final attempt - GET/POST values
         params = getRequestParams(request)
         logger.debug(params.items())
         username = params['HTTP_X_AUTH_USER']

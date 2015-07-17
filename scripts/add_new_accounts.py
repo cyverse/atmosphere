@@ -14,8 +14,10 @@ from service.accounts.openstack import AccountDriver as OSAccountDriver
 
 
 libcloud.security.VERIFY_SSL_CERT = False
-#TODO: Remove this and use 'get_members' in authentication/protocols/ldap.py
+# TODO: Remove this and use 'get_members' in authentication/protocols/ldap.py
 #      when it exists (A-N)
+
+
 def get_members(groupname):
     """
     """
@@ -27,8 +29,8 @@ def get_members(groupname):
             "ou=people", "ou=Groups")
         ldap_conn = ldap_driver.initialize(ldap_server)
         group_users = ldap_conn.search_s(ldap_group_dn,
-                                        ldap_driver.SCOPE_SUBTREE,
-                                        '(cn=%s)' % groupname)
+                                         ldap_driver.SCOPE_SUBTREE,
+                                         '(cn=%s)' % groupname)
         all_users = group_users[0][1]['memberUid']
         return sorted(all_users)
     except Exception as e:
@@ -37,7 +39,10 @@ def get_members(groupname):
         return []
 
 # DEPRECATION WARNING: DO NOT USE THIS SCRIPT!
-# There is an updated script here: <atmosphere_dir>/scripts/import_users_from_ldap.py
+# There is an updated script here:
+# <atmosphere_dir>/scripts/import_users_from_ldap.py
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--provider", type=int,
@@ -72,8 +77,8 @@ def main():
         # Then add the Openstack Identity
         try:
             id_exists = Identity.objects.filter(
-                    created_by__username__iexact=user,
-                    provider=provider)
+                created_by__username__iexact=user,
+                provider=provider)
             if id_exists:
                 continue
             acct_driver.create_account(user, max_quota=args.admin)

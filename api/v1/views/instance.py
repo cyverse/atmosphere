@@ -43,8 +43,8 @@ from service.exceptions import OverAllocationError, OverQuotaError,\
     UnderThresholdError, ActionNotAllowed
 
 from api import failure_response, invalid_creds,\
-                connection_failure, malformed_response,\
-                emulate_user
+    connection_failure, malformed_response,\
+    emulate_user
 from api.pagination import OptionalPagination
 from api.v1.serializers import InstanceStatusHistorySerializer,\
     InstanceSerializer, InstanceHistorySerializer, VolumeSerializer,\
@@ -66,8 +66,8 @@ def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
     esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
     if not esh_driver:
         raise InvalidCredsError(
-                "Provider_uuid && identity_uuid "
-                "did not produce a valid combination")
+            "Provider_uuid && identity_uuid "
+            "did not produce a valid combination")
     esh_instance = None
     try:
         esh_instance = esh_driver.get_instance(instance_id)
@@ -95,6 +95,7 @@ def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
 
 
 class InstanceList(AuthAPIView):
+
     """
     Instances are the objects created when you launch a machine. They are
     represented by a unique ID, randomly generated on launch, important
@@ -150,14 +151,14 @@ class InstanceList(AuthAPIView):
         missing_keys = valid_post_data(data)
         if missing_keys:
             return keys_not_found(missing_keys)
-        #Pass these as args
+        # Pass these as args
         size_alias = data.pop("size_alias")
         machine_alias = data.pop("machine_alias")
         hypervisor_name = data.pop("hypervisor", None)
         deploy = data.pop("deploy", True)
         if type(deploy) in [str, unicode] and deploy.lower() == "false":
             deploy = False
-        elif not type(deploy) is bool:
+        elif not isinstance(deploy, bool):
             deploy = True
         boot_scripts = data.pop("boot_scripts", [])
         try:
@@ -167,13 +168,13 @@ class InstanceList(AuthAPIView):
                 size_alias, machine_alias,
                 ex_availability_zone=hypervisor_name,
                 deploy=deploy, **data)
-        except UnderThresholdError, ute:
+        except UnderThresholdError as ute:
             return under_threshold(ute)
-        except OverQuotaError, oqe:
+        except OverQuotaError as oqe:
             return over_quota(oqe)
-        except OverAllocationError, oae:
+        except OverAllocationError as oae:
             return over_quota(oae)
-        except SizeNotAvailable, snae:
+        except SizeNotAvailable as snae:
             return size_not_availabe(snae)
         except SecurityGroupNotCreated:
             return connection_failure(provider_uuid, identity_uuid)
@@ -232,6 +233,7 @@ def _filter_instance_history(history_instance_list, params):
 
 
 class InstanceHistory(AuthListAPIView):
+
     """Instance history for a specific user."""
     pagination_class = OptionalPagination
 
@@ -249,16 +251,18 @@ class InstanceHistory(AuthListAPIView):
         history_instance_list = CoreInstance.objects.filter(
             created_by=self.request.user).order_by("-start_date")
         history_instance_list = _filter_instance_history(
-                history_instance_list, self.request.query_params)
+            history_instance_list, self.request.query_params)
         history_instance_list = _sort_instance_history(
-                history_instance_list, sort_by, 'desc' in order_by.lower())
+            history_instance_list, sort_by, 'desc' in order_by.lower())
         return history_instance_list
 
 
 class InstanceHistoryDetail(AuthAPIView):
+
     """
     Instance history for specific instance.
     """
+
     def get(self, request, instance_id):
         """
         Authentication required, Retrieve a list of previously launched
@@ -305,6 +309,7 @@ class InstanceHistoryDetail(AuthAPIView):
 
 
 class InstanceStatusHistoryDetail(AuthAPIView):
+
     """
     List of instance status history for specific instance.
     """
@@ -354,6 +359,7 @@ class InstanceStatusHistoryDetail(AuthAPIView):
 
 
 class InstanceAction(AuthAPIView):
+
     """
     This endpoint will allow you to run a specific action on an instance.
     The GET method will retrieve all available actions and any parameters
@@ -500,7 +506,7 @@ class InstanceAction(AuthAPIView):
                                      context={"request": request}).data
             elif 'resize' == action:
                 size_alias = action_params.get('size', '')
-                if type(size_alias) == int:
+                if isinstance(size_alias, int):
                     size_alias = str(size_alias)
                 resize_instance(esh_driver, esh_instance, size_alias,
                                 provider_uuid, identity_uuid, user)
@@ -560,31 +566,31 @@ class InstanceAction(AuthAPIView):
             }
             response = Response(api_response, status=status.HTTP_200_OK)
             return response
-        except HypervisorCapacityError, hce:
+        except HypervisorCapacityError as hce:
             return over_capacity(hce)
-        except OverQuotaError, oqe:
+        except OverQuotaError as oqe:
             return over_quota(oqe)
-        except OverAllocationError, oae:
+        except OverAllocationError as oae:
             return over_quota(oae)
-        except SizeNotAvailable, snae:
+        except SizeNotAvailable as snae:
             return size_not_availabe(snae)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
-        except VolumeMountConflict, vmc:
+        except VolumeMountConflict as vmc:
             return mount_failed(vmc)
-        except NotImplemented, ne:
+        except NotImplemented as ne:
             return failure_response(
                 status.HTTP_409_CONFLICT,
                 "The requested action %s is not available on this provider."
                 % action_params['action'])
-        except ActionNotAllowed, no_act:
+        except ActionNotAllowed as no_act:
             return failure_response(
                 status.HTTP_409_CONFLICT,
                 "The requested action %s has been explicitly "
                 "disabled on this provider." % action_params['action'])
-        except Exception, exc:
+        except Exception as exc:
             logger.exception("Exception occurred processing InstanceAction")
             message = exc.message
             if message.startswith('409 Conflict'):
@@ -599,6 +605,7 @@ class InstanceAction(AuthAPIView):
 
 
 class Instance(AuthAPIView):
+
     """
     Instances are the objects created when you launch a machine. They are
     represented by a unique ID, randomly generated on launch, important
@@ -731,8 +738,8 @@ class Instance(AuthAPIView):
                     new_instance,
                     context={"request": request})
             invalidate_cached_instances(
-                    identity=Identity.objects.get(
-                        uuid=identity_uuid))
+                identity=Identity.objects.get(
+                    uuid=identity_uuid))
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
             response['Cache-Control'] = 'no-cache'
@@ -763,7 +770,6 @@ class Instance(AuthAPIView):
                                     str(exc.message))
         try:
             # Test that there is not an attached volume BEFORE we destroy
-            # _check_volume_attachment(esh_driver, esh_instance)
 
             task.destroy_instance_task(esh_instance, identity_uuid)
 
@@ -814,6 +820,7 @@ class Instance(AuthAPIView):
 
 
 class InstanceTagList(AuthAPIView):
+
     """
     Tags are a easy way to allow users to group several images as similar
     based on a feature/program of the application.
@@ -872,6 +879,7 @@ class InstanceTagList(AuthAPIView):
 
 
 class InstanceTagDetail(AuthAPIView):
+
     """
     Tags are a easy way to allow users to group several images as similar
     based on a feature/program of the application.
@@ -922,7 +930,7 @@ def valid_post_data(data):
     required = ['machine_alias', 'size_alias', 'name']
     return [key for key in required
             if key not in data or
-            (type(data[key]) == str and len(data[key]) > 0)]
+            (isinstance(data[key], str) and len(data[key]) > 0)]
 
 
 def keys_not_found(missing_keys):

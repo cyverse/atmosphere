@@ -7,7 +7,8 @@ from service.driver import get_account_driver, get_esh_driver
 from service.instance import suspend_instance, stop_instance
 import django
 django.setup()
-SLEEP_MIN=30
+SLEEP_MIN = 30
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -16,12 +17,14 @@ def main():
     parser.add_argument("--provider-id", type=int,
                         help="Atmosphere provider ID"
                         " to use when importing users.")
-    parser.add_argument("--users", type=str,
-            help="List of Users to take action on (Comma-separated)."
-                 " (Default: All Users)")
+    parser.add_argument(
+        "--users",
+        type=str,
+        help="List of Users to take action on (Comma-separated)."
+        " (Default: All Users)")
     parser.add_argument("--action",
-            help="Atmosphere Action to take [Suspend/Stop/Shelve]"
-            " (Default:Suspend)")
+                        help="Atmosphere Action to take [Suspend/Stop/Shelve]"
+                        " (Default:Suspend)")
     parser.add_argument("--sleep", type=int,
                         help="# of seconds to sleep after taking action"
                         " (Default:30sec)")
@@ -70,7 +73,7 @@ def _create_hostname_mapping(all_instances):
         if not key:
             print "Skipping Instance %s - not on a host" % inst.id
             continue
-        inst_list = host_map.get(key,[])
+        inst_list = host_map.get(key, [])
         inst_list.append(inst)
         host_map[key] = inst_list
     return host_map
@@ -90,14 +93,19 @@ def make_user_instances(instance_list, all_tenants, users):
             continue
         username = tenant[0].name
         if users and username not in users:
-            #print "Skipping instance %s - Belongs to %s" % (instance.id, username)
             continue
         # NOTE: creates a new 'temp attr' .username
         instance.username = username
         new_list.append(instance)
     return new_list
 
-def start_instance_maintenances(provider, action, users=[], sleep_time=None, dry_run=False):
+
+def start_instance_maintenances(
+        provider,
+        action,
+        users=[],
+        sleep_time=None,
+        dry_run=False):
     accounts = get_account_driver(provider)
     all_insts = accounts.list_all_instances()
     all_tenants = accounts.list_projects()
@@ -105,7 +113,7 @@ def start_instance_maintenances(provider, action, users=[], sleep_time=None, dry
     hostname_map = _create_hostname_mapping(all_insts)
     finished = False
     while not finished:
-        #Iterate the list of hosts, complete
+        # Iterate the list of hosts, complete
         finished = True
         for host in hostname_map.keys():
             inst_list = hostname_map[host]
@@ -119,28 +127,39 @@ def start_instance_maintenances(provider, action, users=[], sleep_time=None, dry
                 continue
             finished = False
             identity = Identity.objects.get(
-                    created_by__username=instance.username,
-                    provider=provider)
+                created_by__username=instance.username,
+                provider=provider)
             print 'Performing Instance Maintenance - %s - %s' % (instance.id, host)
             try:
                 _execute_action(identity, instance, action, dry_run)
-            except Exception, e:
+            except Exception as e:
                 print "Could not %s Instance %s - Error %s" % (action, instance.id, e)
                 continue
         print "Waiting %s seconds" % sleep_time
         if not dry_run:
             time.sleep(sleep_time)
 
+
 def _execute_action(identity, instance, action, dry_run=False):
     driver = get_esh_driver(identity)
     if action == 'stop':
         if not dry_run:
-            stop_instance(driver, instance, identity.provider.id, identity.id, identity.created_by)
+            stop_instance(
+                driver,
+                instance,
+                identity.provider.id,
+                identity.id,
+                identity.created_by)
         print "Shutoff instanceance %s" % (instance.id,)
     elif action == 'suspend':
         print "Attempt to suspend instanceance %s in state %s" % (instance.id, instance._node.extra['status'])
         if not dry_run:
-            suspend_instance(driver, instance, identity.provider.id, identity.id, identity.created_by)
+            suspend_instance(
+                driver,
+                instance,
+                identity.provider.id,
+                identity.id,
+                identity.created_by)
         print "Suspended instanceance %s" % (instance.id)
 
 if __name__ == "__main__":

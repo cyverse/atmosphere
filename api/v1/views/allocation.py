@@ -14,6 +14,7 @@ from api.v1.views.base import AuthAPIView
 
 
 class AllocationList(AuthAPIView):
+
     """
     Lists or creates new Allocations
     """
@@ -41,6 +42,7 @@ class AllocationList(AuthAPIView):
 
 
 class AllocationDetail(AuthAPIView):
+
     """
     Fetches or updates an Allocation
     """
@@ -83,6 +85,7 @@ class AllocationDetail(AuthAPIView):
 
 
 class MonitoringList(AuthAPIView):
+
     """
     Runs the allocation engine and returns detailed monitoring information
     """

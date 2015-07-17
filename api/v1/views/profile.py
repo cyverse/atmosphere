@@ -11,6 +11,7 @@ from api.v1.serializers import ProfileSerializer, AtmoUserSerializer
 
 
 class Profile(AuthAPIView):
+
     """
     Profile can be thought of as the 'entry-point' to the Atmosphere APIs.
     Once authentiated, a user can find their default provider and identity.

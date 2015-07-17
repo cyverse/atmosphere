@@ -15,11 +15,15 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='allocationrequest',
             name='status',
-            field=models.ForeignKey(default=core.models.status_type.get_status_type_id, to='core.StatusType'),
+            field=models.ForeignKey(
+                default=core.models.status_type.get_status_type_id,
+                to='core.StatusType'),
         ),
         migrations.AlterField(
             model_name='quotarequest',
             name='status',
-            field=models.ForeignKey(default=core.models.status_type.get_status_type_id, to='core.StatusType'),
+            field=models.ForeignKey(
+                default=core.models.status_type.get_status_type_id,
+                to='core.StatusType'),
         ),
     ]

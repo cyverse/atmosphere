@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 
 class InstanceRelatedField(serializers.RelatedField):
+
     def to_native(self, instance_alias):
         instance = Instance.objects.get(provider_alias=instance_alias)
         return instance.provider_alias

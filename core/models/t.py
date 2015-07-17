@@ -7,6 +7,7 @@ from django.utils import timezone
 
 
 class T(models.Model):
+
     """
     Track Atmosphere transactions across our system.
     """

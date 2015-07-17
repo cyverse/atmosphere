@@ -24,6 +24,7 @@ from core.metadata import _get_owner_identity
 
 
 class ProviderMachine(BaseSource):
+
     """
     Machines are created by Providers, and multiple providers
     can implement a single machine (I.e. Ubuntu 12.04)
@@ -31,7 +32,10 @@ class ProviderMachine(BaseSource):
     to represent that machine. (emi-12341234 vs ami-43214321)
     """
     esh = None
-    application_version = models.ForeignKey(ApplicationVersion, related_name="machines", null=True)
+    application_version = models.ForeignKey(
+        ApplicationVersion,
+        related_name="machines",
+        null=True)
 
     @property
     def application(self):
@@ -50,7 +54,9 @@ class ProviderMachine(BaseSource):
         """
         Fastest DB Query for existence testing
         """
-        return ProviderMachine.objects.filter(instance_source__identifier=identifier, instance_source__provider=provider).count()
+        return ProviderMachine.objects.filter(
+            instance_source__identifier=identifier,
+            instance_source__provider=provider).count()
 
     def to_dict(self):
         machine = {
@@ -62,7 +68,7 @@ class ProviderMachine(BaseSource):
 
     def update_image(self, **image_updates):
         """
-        The acceptable values for image_updates are specific to the image 
+        The acceptable values for image_updates are specific to the image
         and image_manager, but here are some common examples for an OpenStack
         cloud:
         * name="My New Name"
@@ -80,20 +86,21 @@ class ProviderMachine(BaseSource):
             image = accounts.get_image(self.identifier)
             accounts.image_manager.update_image(image, **image_updates)
         except Exception as ex:
-            logger.exception("Image Update Failed for %s on Provider %s"
-                        % (self.identifier, self.instance_source.provider))
-            #logger.exception("Image Update Failed for %s on Provider %s"
+            logger.exception(
+                "Image Update Failed for %s on Provider %s" %
+                (self.identifier, self.instance_source.provider))
+            # logger.exception("Image Update Failed for %s on Provider %s"
             #                 % (self.identifier, self.provider))
 
     def update_version(self, app_version):
         self.application_version = app_version
         self.save()
-    
+
     def icon_url(self):
         return self.application.icon.url if self.application.icon else None
 
     def save(self, *args, **kwargs):
-        #Update values on the application
+        # Update values on the application
         self.application.update(**kwargs)
         super(ProviderMachine, self).save(*args, **kwargs)
 
@@ -120,7 +127,9 @@ class ProviderMachine(BaseSource):
         if self.esh and self.esh._image\
            and self.esh._image.extra\
            and self.esh._image.extra.get('metadata'):
-            return self.esh._image.extra['metadata'].get('application_owner', "admin")
+            return self.esh._image.extra['metadata'].get(
+                'application_owner',
+                "admin")
 
     def esh_state(self):
         if self.esh and self.esh._image\
@@ -139,6 +148,7 @@ class ProviderMachine(BaseSource):
 
 
 class ProviderMachineMembership(models.Model):
+
     """
     Members of a specific image and provider combination.
     Members can view & launch respective machines.
@@ -161,7 +171,6 @@ class ProviderMachineMembership(models.Model):
 
 
 def build_cached_machines():
-    #logger.debug("building cached machines")
     machine_dict = {}
     cms = ProviderMachine.objects.all()
     for cm in cms:
@@ -202,7 +211,7 @@ def get_or_create_provider_machine(image_id, machine_name,
         return provider_machine
     if not app:
         app = get_application(provider_uuid, image_id, machine_name)
-    #ASSERT: If no application here, this is a new image (Found on an instance)
+    # ASSERT: If no application here, this is a new image (Found on an instance)
     # that was created on a seperate server. We need to make a new one.
     if not app:
         app = create_application(provider_uuid, image_id, machine_name)
@@ -212,7 +221,12 @@ def get_or_create_provider_machine(image_id, machine_name,
     if not version:
         version = create_app_version(app, "1.0")
 
-    return create_provider_machine(image_id, provider_uuid, app, version=version)
+    return create_provider_machine(
+        image_id,
+        provider_uuid,
+        app,
+        version=version)
+
 
 def _extract_tenant_name(identity):
     tenant_name = identity.get_credential('ex_tenant_name')
@@ -230,11 +244,11 @@ def update_application_owner(application, identity):
     old_identity = application.created_by_identity
     tenant_name = _extract_tenant_name(identity)
     old_tenant_name = _extract_tenant_name(old_identity)
-    #Prepare the application
+    # Prepare the application
     application.created_by_identity = identity
     application.created_by = identity.created_by
     application.save()
-    #Update all the PMs
+    # Update all the PMs
     all_pms = application.providermachine_set.all()
     print "Updating %s machines.." % len(all_pms)
     for provider_machine in all_pms:
@@ -263,7 +277,9 @@ def provider_machine_update_hook(new_machine, provider_uuid, identifier):
     if provider.get_type_name().lower() == 'openstack':
         glance_update_machine(new_machine)
     else:
-        logger.warn("machine data for %s is likely incomplete. Create a new hook for %s." % provider)
+        logger.warn(
+            "machine data for %s is likely incomplete. Create a new hook for %s." %
+            provider)
 
 
 def create_provider_machine(identifier, provider_uuid, app,
@@ -274,7 +290,7 @@ def create_provider_machine(identifier, provider_uuid, app,
     if not created_by_identity:
         created_by_identity = provider.admin
 
-    #TODO: Reminder to re-evaluate these lines when you get to Django 1.8
+    # TODO: Reminder to re-evaluate these lines when you get to Django 1.8
     source = InstanceSource.objects.create(
         identifier=identifier,
         created_by=created_by_identity.created_by,
@@ -305,7 +321,11 @@ def _username_lookup(provider_uuid, username):
         return None
 
 
-def update_provider_machine(provider_machine, new_created_by_identity=None, new_created_by=None, new_application_version=None):
+def update_provider_machine(
+        provider_machine,
+        new_created_by_identity=None,
+        new_created_by=None,
+        new_application_version=None):
     """
     Used to explicitly 'update' + call the 'provider_machine_write_hook'
     * Glance updates, metadata updates, etc.
@@ -334,15 +354,13 @@ def provider_machine_write_hook(provider_machine):
     if provider.get_type_name().lower() == 'openstack':
         glance_write_machine(provider_machine)
     else:
-        logger.warn("Create a new write hook for %s to keep cloud objects up to date." % provider)
-
+        logger.warn(
+            "Create a new write hook for %s to keep cloud objects up to date." %
+            provider)
 
 
 def add_to_cache(provider_machine):
-    #if not ProviderMachine.cached_machines:
-    #    logger.warn("ProviderMachine cache does not exist.. Building.")
-    #    build_cached_machines()
-    #ProviderMachine.cached_machines[(
+    # ProviderMachine.cached_machines[(
     #    provider_machine.provider.id,
     #    provider_machine.identifier)] = provider_machine
     return provider_machine
@@ -356,6 +374,7 @@ def get_provider_machine(identifier, provider_uuid):
     except InstanceSource.DoesNotExist:
         return None
 
+
 def _load_machine(esh_machine, provider_uuid):
     name = esh_machine.name
     alias = esh_machine.id
@@ -364,11 +383,12 @@ def _load_machine(esh_machine, provider_uuid):
         logger.debug("Creating Application for Image %s" % (alias, ))
         app = create_application(provider_uuid, alias, name)
 
-    #Using what we know about our (possibly new) application
-    #and load (or possibly create) the provider machine
+    # Using what we know about our (possibly new) application
+    # and load (or possibly create) the provider machine
     provider_machine = get_or_create_provider_machine(
         alias, name, provider_uuid, app=app)
     return provider_machine
+
 
 def convert_esh_machine(
         esh_driver, esh_machine,
@@ -398,9 +418,13 @@ def _check_project(core_application, user):
 
 
 def _convert_from_instance(esh_driver, provider_uuid, image_id):
-    provider_machine = get_or_create_provider_machine(image_id, 'Imported Machine %s' % image_id,
-            provider_uuid)
+    provider_machine = get_or_create_provider_machine(
+        image_id,
+        'Imported Machine %s' %
+        image_id,
+        provider_uuid)
     return provider_machine
+
 
 def compare_core_machines(mach_1, mach_2):
     """
@@ -410,13 +434,16 @@ def compare_core_machines(mach_1, mach_2):
         return -1
     elif not mach_1.application.featured and mach_2.application.featured:
         return 1
-    #Neither/Both images are featured.. Check start_date
+    # Neither/Both images are featured.. Check start_date
     if mach_1.application.start_date > mach_2.application.start_date:
         return -1
     elif mach_1.application.start_date < mach_2.application.start_date:
         return 1
     else:
-        return cmp(mach_1.instance_source.identifier, mach_2.instance_source.identifier)
+        return cmp(
+            mach_1.instance_source.identifier,
+            mach_2.instance_source.identifier)
+
 
 def filter_core_machine(provider_machine):
     """
@@ -425,7 +452,7 @@ def filter_core_machine(provider_machine):
     * end_date < now
     """
     now = timezone.now()
-    #Ignore end dated providers
+    # Ignore end dated providers
     if provider_machine.instance_source.end_date or\
        provider_machine.application.end_date:
         if provider_machine.instance_source.end_date:

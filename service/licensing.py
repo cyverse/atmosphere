@@ -20,7 +20,12 @@ def create_license(title, description, created_by, allow_imaging=True):
         license_type = LicenseType.objects.get(name="URL")
     else:
         license_type = LicenseType.objects.get(name="Full Text")
-    new_license = License(title=title, license_type=license_type, license_text=description, allow_imaging=allow_imaging, created_by=created_by)
+    new_license = License(
+        title=title,
+        license_type=license_type,
+        license_text=description,
+        allow_imaging=allow_imaging,
+        created_by=created_by)
     new_license.save()
     return new_license
 
@@ -33,7 +38,10 @@ def create_pattern_match(pattern, pattern_type, created_by):
         match_type = MatchType.objects.get(name="Username")
     else:
         raise ValueError("Received invalid pattern_type: %s" % pattern_type)
-    pattern = PatternMatch(pattern=pattern, type=match_type, created_by=created_by)
+    pattern = PatternMatch(
+        pattern=pattern,
+        type=match_type,
+        created_by=created_by)
     pattern.save()
     return pattern
 
@@ -45,7 +53,7 @@ def _test_license(license, identity):
     if not license.access_list.count():
         return True
     for test in license.access_list.iterator():
-        #TODO: Add more 'type_name' logic here!
+        # TODO: Add more 'type_name' logic here!
         if test.type.name == 'BasicEmail':
             result = _test_user_email(identity.created_by, test.pattern)
         elif test.type.name == "Username":
@@ -73,15 +81,24 @@ def _simple_glob_test(test_string, pattern):
 def _test_user_email(atmo_user, email_pattern):
     email = atmo_user.email.lower()
     email_pattern = email_pattern.pattern.lower()
-    result = _simple_glob_test(email, email_pattern) or _simple_match(email, email_pattern, contains=True)
-    logger.info("Email:%s Pattern:%s - Result:%s" % (email, email_pattern, result))
+    result = _simple_glob_test(
+        email,
+        email_pattern) or _simple_match(
+        email,
+        email_pattern,
+        contains=True)
+    logger.info(
+        "Email:%s Pattern:%s - Result:%s" %
+        (email, email_pattern, result))
     return result
 
 
 def _test_username(atmo_user, username_match):
     username = atmo_user.username
     result = _simple_match(username, username_match, contains=True)
-    logger.info("Username:%s Match On:%s - Result:%s" % (username, username_match, result))
+    logger.info(
+        "Username:%s Match On:%s - Result:%s" %
+        (username, username_match, result))
     return result
 
 
@@ -90,10 +107,8 @@ def is_url(test_string):
     try:
         val(test_string)
         return True
-    except ValidationError, e:
+    except ValidationError as e:
         return False
     except:
         logger.exception("URL Validation no longer works -- Code fix required")
         return False
-
-

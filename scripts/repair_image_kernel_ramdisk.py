@@ -8,6 +8,7 @@ from core.models import Provider, Identity, MachineRequest
 import django
 django.setup()
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--provider", type=int,
@@ -27,26 +28,29 @@ def main():
     for image_id in images:
         mr = MachineRequest.objects.get(new_machine__identifier=image_id)
         glance_image = accounts.get_image(image_id)
-        if not glance_image.properties.has_key('kernel_id')\
-                or not glance_image.properties.has_key('ramdisk_id'):
-            print "Image %s (%s) is missing kernel and/or ramdisk ..." % (image_id,glance_image.name),
+        if 'kernel_id' not in glance_image.properties\
+                or 'ramdisk_id' not in glance_image.properties:
+            print "Image %s (%s) is missing kernel and/or ramdisk ..." % (image_id, glance_image.name),
             fix_image(accounts, glance_image, mr)
+
 
 def fix_image(accounts, glance_image, mr):
     old_machine_id = mr.instance.provider_machine.identifier
     old_glance_image = accounts.get_image(old_machine_id)
-    if not old_glance_image.properties.has_key('kernel_id')\
-            or not old_glance_image.properties.has_key('ramdisk_id'):
+    if 'kernel_id' not in old_glance_image.properties\
+            or 'ramdisk_id' not in old_glance_image.properties:
         print "Parent image %s (%s) is also missing kernel/ramdisk. OK!"\
-                % (old_machine_id, old_glance_image.name)
+            % (old_machine_id, old_glance_image.name)
         return
     old_kernel = old_glance_image.properties['kernel_id']
     old_ramdisk = old_glance_image.properties['ramdisk_id']
     img_properties = glance_image.properties
     img_properties.update({
-        'kernel_id':old_kernel,
-        'ramdisk_id':old_ramdisk})
-    accounts.image_manager.update_image(glance_image, properties=img_properties)
+        'kernel_id': old_kernel,
+        'ramdisk_id': old_ramdisk})
+    accounts.image_manager.update_image(
+        glance_image,
+        properties=img_properties)
     print "Fixed"
 
 

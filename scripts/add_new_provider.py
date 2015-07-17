@@ -177,7 +177,7 @@ def create_admin(provider, admin_info):
     quota = Quota.objects.filter(**Quota.default_dict()).first()
     if not quota:
         quota = Quota.default_quota()
-    #TODO: Test why we do this here and not AFTER creating AccountProvider/IdentityMembership -- Then label the rationale.
+    # TODO: Test why we do this here and not AFTER creating AccountProvider/IdentityMembership -- Then label the rationale.
     # Necessary for save hooks -- Default project, select an identity
     user.save()
 

@@ -1,13 +1,20 @@
 #!/usr/bin/env python
-# Command line utility for compiling JS files into a single file for production environments
+# Command line utility for compiling JS files into a single file for
+# production environments
 import os
 from atmosphere import settings
 from web.views import compile_js
 
 import django
 django.setup()
+
+
 def main():
-    output_file_path = os.path.join(settings.root_dir, 'resources', 'js', 'cf2.min.js')
+    output_file_path = os.path.join(
+        settings.root_dir,
+        'resources',
+        'js',
+        'cf2.min.js')
     output_file = open(output_file_path, 'w')
 
     compiled_js = compile_js()

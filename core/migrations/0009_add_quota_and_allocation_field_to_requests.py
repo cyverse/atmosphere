@@ -7,7 +7,8 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0008_instance_actions_and_migrate_provider_trait_to_dns_and_auto_imaging'),
+        ('core',
+         '0008_instance_actions_and_migrate_provider_trait_to_dns_and_auto_imaging'),
     ]
 
     operations = [

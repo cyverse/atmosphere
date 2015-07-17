@@ -25,6 +25,7 @@ def _get_count(queryset):
 
 
 class OptionalPagination(PageNumberPagination):
+
     """
     Defaults to no pagination but supports pagination
     """

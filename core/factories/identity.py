@@ -11,6 +11,7 @@ from core.factories.provider import ProviderFactory
 
 
 class IdentityFactory(DjangoModelFactory):
+
     class Meta:
         model = models.Identity
 

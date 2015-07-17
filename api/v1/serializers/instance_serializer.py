@@ -9,14 +9,15 @@ from .get_context_user import get_context_user
 
 
 class InstanceSerializer(serializers.ModelSerializer):
-    #R/O Fields first!
+    # R/O Fields first!
     alias = serializers.CharField(read_only=True, source='provider_alias')
     alias_hash = serializers.CharField(read_only=True, source='hash_alias')
     application_name = serializers.CharField(
         read_only=True, source='esh_source_name')
     application_uuid = serializers.CharField(read_only=True)
-    #created_by = serializers.CharField(read_only=True, source='creator_name')
-    created_by = serializers.SlugRelatedField(slug_field='username', read_only=True)
+    created_by = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only=True)
     status = serializers.CharField(read_only=True, source='esh_status')
     fault = serializers.ReadOnlyField(source='esh_fault')
     size_alias = serializers.CharField(read_only=True, source='esh_size')
@@ -33,9 +34,13 @@ class InstanceSerializer(serializers.ModelSerializer):
     has_vnc = serializers.BooleanField(read_only=True, source='vnc')
     identity = CleanedIdentitySerializer(source="created_by_identity",
                                          read_only=True)
-    #Writeable fields
+    # Writeable fields
     name = serializers.CharField()
-    tags = TagRelatedField(slug_field='name', required=False, many=True, queryset=Tag.objects.all())
+    tags = TagRelatedField(
+        slug_field='name',
+        required=False,
+        many=True,
+        queryset=Tag.objects.all())
     projects = ProjectsField(required=False)
     scripts = BootScriptSerializer(many=True, required=False)
 
@@ -50,7 +55,7 @@ class InstanceSerializer(serializers.ModelSerializer):
                    'shell', 'vnc', 'password', 'created_by_identity')
 
 
-
 class InstanceActionSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = InstanceAction

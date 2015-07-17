@@ -4,10 +4,11 @@
 
 from django.db import models
 
+
 class Tag(models.Model):
     name = models.SlugField(max_length=128)
     description = models.CharField(max_length=1024)
-    #Not-Null="User-Specific"
+    # Not-Null="User-Specific"
     user = models.ForeignKey('AtmosphereUser', null=True, blank=True)
 
     def in_use(self):
@@ -36,23 +37,24 @@ def updateTags(coreObject, tags, user=None):
     from core.models.instance import Instance
     from core.models.application import Application
     from core.models.machine_request import MachineRequest
-    #Remove all tags from core*
+    # Remove all tags from core*
     for tag in coreObject.tags.all():
-        if type(coreObject) == Instance:
+        if isinstance(coreObject, Instance):
             tag.instance_set.remove(coreObject)
-        elif type(coreObject) == Application:
+        elif isinstance(coreObject, Application):
             tag.application_set.remove(coreObject)
-        elif type(coreObject) == MachineRequest:
+        elif isinstance(coreObject, MachineRequest):
             tag.machinerequest_set.remove(coreObject)
-    #Add all tags in tags to core*
+    # Add all tags in tags to core*
     for tag in tags:
-        if type(tag) == str:
+        if isinstance(tag, str):
             tag = find_or_create_tag(tag, user)
-        elif type(tag) != Tag:
+        elif not isinstance(tag, Tag):
             raise TypeError("Expected list of str or Tag, found %s"
                             % type(tag))
         coreObject.tags.add(tag)
     return coreObject
+
 
 def find_or_create_tag(name, user=None):
     tag = Tag.objects.filter(name__iexact=name)

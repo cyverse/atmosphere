@@ -20,7 +20,7 @@ def get_admin_images(request_user):
                                                              flat=True)
     # TODO: This 'just works' and is probably very slow... Better way?
     account_providers_list = AccountProvider.objects.filter(
-         provider__id__in=provider_id_list)
+        provider__id__in=provider_id_list)
     admin_users = [ap.identity.created_by for ap in account_providers_list]
     image_ids = []
     for user in admin_users:
@@ -33,6 +33,7 @@ def get_admin_images(request_user):
 
 
 class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
+
     """
     API endpoint that allows images to be viewed or edited.
     """
@@ -48,12 +49,12 @@ class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
         request_user = self.request.user
         public_image_set = Image.objects.filter(
             only_current(), private=False).order_by('-start_date')
-        if type(request_user) == AnonymousUser:
+        if isinstance(request_user, AnonymousUser):
             # Anonymous users can only see PUBLIC applications
             # (& their respective images on PUBLIC providers)
             # that have not been end dated by Owner/Admin.
             return public_image_set
-        elif type(request_user) == AtmosphereUser:
+        elif isinstance(request_user, AtmosphereUser):
             # All my images (Regardless of 'end dates' or public/private
             my_images = request_user.application_set.all()
 
@@ -61,8 +62,8 @@ class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
             # been EXPLICITLY shared with me
             member_ids = request_user.group_set.values_list('id', flat=True)
             privately_shared = Image.objects.filter(
-                 only_current_apps(),
-                 versions__machines__members__id__in=member_ids)
+                only_current_apps(),
+                versions__machines__members__id__in=member_ids)
             if not request_user.is_staff:
                 admin_list = Image.objects.none()
             else:

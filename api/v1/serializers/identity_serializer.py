@@ -11,8 +11,13 @@ class IdentitySerializer(serializers.ModelSerializer):
     provider_id = serializers.ReadOnlyField(source='provider_uuid')
     quota = QuotaSerializer(source='get_quota')
     allocation = AllocationSerializer(source='get_allocation')
-    # membership = serializers.ReadOnlyField(source='get_membership')
 
     class Meta:
         model = Identity
-        fields = ('id', 'created_by', 'provider_id', 'credentials', 'quota', 'allocation')
+        fields = (
+            'id',
+            'created_by',
+            'provider_id',
+            'credentials',
+            'quota',
+            'allocation')

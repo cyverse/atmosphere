@@ -4,9 +4,11 @@ from __future__ import unicode_literals
 from django.db import models, migrations
 import django.utils.timezone
 from django.conf import settings
-import uuid, json
+import uuid
+import json
 
 VERBOSE = False
+
 
 class Migration(migrations.Migration):
 

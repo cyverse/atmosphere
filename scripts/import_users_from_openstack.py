@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-import time, requests
+import time
+import requests
 
 
 from threepio import logger
@@ -11,20 +12,22 @@ from core.models import Provider, Quota
 import django
 django.setup()
 
+
 def main():
     """
     TODO: Add argparse, --delete : Deletes existing users in openstack (Never use in PROD)
     """
-    openstack = Provider.objects.filter(type__name__iexact="openstack").order_by("id")
+    openstack = Provider.objects.filter(
+        type__name__iexact="openstack").order_by("id")
     if not openstack:
-      raise Provider.DoesNotExist("No OpenStack Provider Found")
+        raise Provider.DoesNotExist("No OpenStack Provider Found")
     openstack = openstack[0]
     os_driver = OSAccountDriver(openstack)
     found = 0
     create = 0
     usernames = os_driver.list_usergroup_names()
     quota_dict = {
-        'cpu':10,
+        'cpu': 10,
         'memory': 20,
         'storage': 10,
         'storage_count': 10
@@ -35,21 +38,23 @@ def main():
         ident = os_driver.create_account(user)
         if is_staff(ident):
             im = ident.identity_membership.all()[0]
-            #Disable time allocation
+            # Disable time allocation
             im.allocation = None
-        #Raise everybody's quota
+        # Raise everybody's quota
         im.quota = higher_quota
         im.save()
     print "Total users added to atmosphere:%s" % len(usernames)
 
+
 def is_staff(core_identity):
-    #Query Groupy
+    # Query Groupy
     staff_users = []
     if not staff_users:
         staff_users = members_query_groupy("staff")
     if core_identity.created_by.username in staff_users:
         return True
     return False
+
 
 def members_query_groupy(groupname):
     r = requests.get(
@@ -58,8 +63,9 @@ def members_query_groupy(groupname):
     json_obj = r.json()
     usernames = []
     for user in json_obj['data']:
-	    usernames.append(user['name'].replace('esteve','sgregory'))
+        usernames.append(user['name'].replace('esteve', 'sgregory'))
     return usernames
+
 
 def fix_openstack_network(os_driver):
     """
@@ -69,11 +75,13 @@ def fix_openstack_network(os_driver):
     usergroups = [usergroup for usergroup in os_driver.list_usergroups()]
     users_with_networks = os_driver.network_manager.list_tenant_network()
     users_without_networks = []
-    for (user,group) in usergroups:
+    for (user, group) in usergroups:
         if user.name not in users_with_networks:
             # This user needs to have a tenant network created
             password = os_driver.hashpass(user.name)
-            os_driver.network_manager.create_tenant_network(user.name, password,
+            os_driver.network_manager.create_tenant_network(
+                user.name,
+                password,
                 group.name)
             logger.info("Tenant network built for %s" % user.name)
 

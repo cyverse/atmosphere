@@ -13,6 +13,7 @@ from api.v1.views.base import AuthAPIView
 
 
 class GroupList(AuthAPIView):
+
     """
     Every User is assigned to a Group of their own name initially. This
     'usergroup' is then in charge of all the identities, providers, instances,
@@ -33,7 +34,7 @@ class GroupList(AuthAPIView):
         group = CoreGroup.objects.create(name=groupname)
         # STEP2 ???? PROFIT ????
         for user in params['user[]']:
-                group.user_set.add(user)
+            group.user_set.add(user)
         # STEP3 Return the new groups serialized profile
         serialized_data = GroupSerializer(group).data
         response = Response(serialized_data)
@@ -51,6 +52,7 @@ class GroupList(AuthAPIView):
 
 
 class Group(AuthAPIView):
+
     """
     Every User is assigned to a Group of their own name initially. This
     'usergroup' is then in charge of all the identities, providers, instances,

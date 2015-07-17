@@ -21,6 +21,7 @@ UNRESOLVED_STATES = ["pending", "failed"]
 
 
 class BaseRequest(models.Model):
+
     """
     Base model which represents a request object
     """
@@ -45,10 +46,12 @@ class BaseRequest(models.Model):
         Only allow one active request per provider
         """
         if not self.pk and self.is_active(self.membership):
-            raise ProviderLimitExceeded("The number of open requests has been exceeded.")
+            raise ProviderLimitExceeded(
+                "The number of open requests has been exceeded.")
 
         if not self.membership.is_member(self.created_by):
-            raise InvalidMembership("This membership does not belong to the user")
+            raise InvalidMembership(
+                "This membership does not belong to the user")
 
         super(BaseRequest, self).save(*args, **kwargs)
 
@@ -89,6 +92,7 @@ class BaseRequest(models.Model):
 
 
 class BaseSource(models.Model):
+
     """
     Source object which can be booted
     """
@@ -134,6 +138,7 @@ class BaseSource(models.Model):
 
 
 class BaseHistory(models.Model):
+
     """
     Base model which is used to track changes in another model
     """

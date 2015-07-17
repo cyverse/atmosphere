@@ -11,6 +11,7 @@ from allocation.models import Instance as AllocInstance
 
 
 class PythonAllocationStrategy(object):
+
     """
     PythonAllocationStrategy is powered by CORE: Identity, Allocation
     Start date and End date REQUIRED
@@ -22,6 +23,7 @@ class PythonAllocationStrategy(object):
     * Rules Behavior
     * ???
     """
+
     def __init__(self, counting_behavior,
                  recharge_behaviors=[], rule_behaviors=[]):
         self.counting_behavior = counting_behavior
@@ -80,11 +82,13 @@ class PythonAllocationStrategy(object):
 
 
 class PythonRulesBehavior(object):
+
     """
     The Rules Behavior
     All 'PythonRulesBehavior' objects define a set of rules to be applied
     When/How the rules are applied is dependent on the behavior
     """
+
     def __init__(self, rules=[]):
         self.rules = rules
 
@@ -97,14 +101,17 @@ class PythonRulesBehavior(object):
 
 
 class GlobalRules(PythonRulesBehavior):
+
     """
     The Global Rules behavior will ALWAYS apply
     """
+
     def apply_rules(self, identity, core_application):
         return self.rules
 
 
 class NewUserRules(PythonRulesBehavior):
+
     """
     The StaffRules behavior will only apply if the identity is aenoted as staff
     """
@@ -120,9 +127,11 @@ class NewUserRules(PythonRulesBehavior):
 
 
 class StaffRules(PythonRulesBehavior):
+
     """
     The StaffRules behavior will only apply if the identity is denoted as staff
     """
+
     def apply_rules(self, identity, core_application):
         if identity.created_by.is_staff:
             return self.rules
@@ -155,6 +164,7 @@ class IgnoreNonActiveStatus(GlobalRules):
 
 
 class PythonRefreshBehavior(object):
+
     """
     Define a set of rules that explain when/how a user should be refreshed.
     IF: start_increase = 1/1/2015, end_increase = 1/31/2015
@@ -212,7 +222,7 @@ class PythonRefreshBehavior(object):
                     unit=unit,
                     amount=amount,
                     recharge_date=recharge_date)
-                )
+            )
             if not self.interval_delta:
                 break
             recharge_date = recharge_date + self.interval_delta
@@ -223,6 +233,7 @@ class PythonRefreshBehavior(object):
 
 
 class OneTimeRefresh(PythonRefreshBehavior):
+
     """
     A One Time Refresh is granted ONCE on the start date,
     It has no End date and no Interval
@@ -239,6 +250,7 @@ class OneTimeRefresh(PythonRefreshBehavior):
 
 
 class RecurringRefresh(PythonRefreshBehavior):
+
     """
       Accepts:
       A time to Start refreshing,
@@ -323,6 +335,7 @@ class PythonCountingBehavior(object):
 
 
 class FixedWindow(PythonCountingBehavior):
+
     """
     A fixed window gives complete control over how to 'Count time'
     window_start - When to begin counting time
@@ -341,6 +354,7 @@ class FixedWindow(PythonCountingBehavior):
 
 
 class FixedStartSlidingWindow(PythonCountingBehavior):
+
     """
     window_delta - can be RELATIVEdelta or TIMEdelta
     """
@@ -377,6 +391,7 @@ class FixedStartSlidingWindow(PythonCountingBehavior):
 
 
 class FixedEndSlidingWindow(PythonCountingBehavior):
+
     """
     The 'delta' can be RELATIVEdelta or TIMEdelta
     """

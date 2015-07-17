@@ -6,6 +6,7 @@ from core.models import Tag
 
 
 class GetTagListTests(APITestCase):
+
     def setUp(self):
         self.tags = TagFactory.create_batch(10)
         self.view = TagViewSet.as_view({'get': 'list'})
@@ -36,10 +37,10 @@ class GetTagListTests(APITestCase):
         self.assertIn('url', data)
         self.assertEquals(data['name'], self.tags[0].name)
         self.assertEquals(data['description'], self.tags[0].description)
-        # self.assertIn('user', data)
 
 
 class GetTagDetailTests(APITestCase):
+
     def setUp(self):
         self.tag = TagFactory.create()
         self.view = TagViewSet.as_view({'get': 'retrieve'})
@@ -63,10 +64,10 @@ class GetTagDetailTests(APITestCase):
         self.assertIn('url', data)
         self.assertEquals(data['name'], self.tag.name)
         self.assertEquals(data['description'], self.tag.description)
-        # self.assertIn('user', data)
 
 
 class DeleteTagTests(APITestCase):
+
     def setUp(self):
         self.tag = TagFactory.create()
         self.anonymous_user = AnonymousUserFactory()
@@ -96,6 +97,7 @@ class DeleteTagTests(APITestCase):
 
 
 class CreateTagTests(APITestCase):
+
     def setUp(self):
         self.tag = TagFactory.build()
         self.anonymous_user = AnonymousUserFactory()
@@ -136,6 +138,7 @@ class CreateTagTests(APITestCase):
 
 
 class UpdateTagTests(APITestCase):
+
     def setUp(self):
         self.tag = TagFactory.create()
         self.anonymous_user = AnonymousUserFactory()
@@ -173,4 +176,6 @@ class UpdateTagTests(APITestCase):
         self.assertEquals(Tag.objects.count(), 1)
         tag = Tag.objects.first()
         self.assertEquals(tag.name, self.updated_tag_data['name'])
-        self.assertEquals(tag.description, self.updated_tag_data['description'])
+        self.assertEquals(
+            tag.description,
+            self.updated_tag_data['description'])

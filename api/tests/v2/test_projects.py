@@ -6,6 +6,7 @@ from core.models import Project
 
 
 class GetProjectListTests(APITestCase):
+
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
@@ -52,6 +53,7 @@ class GetProjectListTests(APITestCase):
 
 
 class GetProjectDetailTests(APITestCase):
+
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
@@ -92,6 +94,7 @@ class GetProjectDetailTests(APITestCase):
 
 
 class CreateProjectTests(APITestCase):
+
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
@@ -132,6 +135,7 @@ class CreateProjectTests(APITestCase):
 
 
 class UpdateProjectTests(APITestCase):
+
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
@@ -174,10 +178,13 @@ class UpdateProjectTests(APITestCase):
         self.assertEquals(Project.objects.count(), 2)
         project = Project.objects.first()
         self.assertEquals(project.name, self.updated_project_data['name'])
-        self.assertEquals(project.description, self.updated_project_data['description'])
+        self.assertEquals(
+            project.description,
+            self.updated_project_data['description'])
 
 
 class DeleteProjectTests(APITestCase):
+
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()

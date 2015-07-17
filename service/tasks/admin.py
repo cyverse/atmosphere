@@ -10,7 +10,7 @@ from threepio import logger
 
 @task(name="set_provider_quota",
       default_retry_delay=5,
-      time_limit=30*60,  # 30minute hard-set time limit.
+      time_limit=30 * 60,  # 30minute hard-set time limit.
       max_retries=3)
 def set_provider_quota(identity_uuid):
     try:

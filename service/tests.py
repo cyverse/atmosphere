@@ -13,6 +13,7 @@ from core.tests import create_euca_provider, create_os_provider
 
 
 class ServiceTests(TestCase):
+
     '''
     Test service.*
 
@@ -45,4 +46,3 @@ class ServiceTests(TestCase):
 
     def tearDown(self):
         pass
-

@@ -12,7 +12,9 @@ from rtwo.provider import Provider as EshProvider
 from threepio import logger
 from uuid import uuid4
 
+
 class PlatformType(models.Model):
+
     """
     Keep track of Virtualization Platform via type
     """
@@ -32,7 +34,9 @@ class PlatformType(models.Model):
     def __unicode__(self):
         return self.name
 
+
 class ProviderType(models.Model):
+
     """
     Keep track of Provider via type
     """
@@ -54,6 +58,7 @@ class ProviderType(models.Model):
 
 
 class Provider(models.Model):
+
     """
     Detailed information about a provider
     Providers have a specific location
@@ -62,13 +67,13 @@ class Provider(models.Model):
     Inactive providers are shown as "Offline" in the UI and API requests.
     Start date and end date are recorded for logging purposes
     """
-    #CONSTANTS
+    # CONSTANTS
     ALLOWED_STATES = [
         "Suspend",
         "Stop",
         "Terminate",
         "Shelve", "Shelve Offload"]
-    #Fields
+    # Fields
     uuid = models.CharField(max_length=36, unique=True, default=uuid4)
     location = models.CharField(max_length=256)
     description = models.TextField(blank=True)
@@ -99,11 +104,12 @@ class Provider(models.Model):
         Get the provider if it's active, otherwise raise
         Provider.DoesNotExist.
         """
-        active_providers =  cls.objects.filter(
+        active_providers = cls.objects.filter(
             Q(end_date=None) | Q(end_date__gt=timezone.now()),
             active=True)
         if type_name:
-            active_providers = active_providers.filter(type__name__iexact=type_name)
+            active_providers = active_providers.filter(
+                type__name__iexact=type_name)
         if provider_uuid:
             # no longer a list
             active_providers = active_providers.get(uuid=provider_uuid)
@@ -147,11 +153,15 @@ class Provider(models.Model):
         Get a list of users from the list of identities found in a provider.
         """
         from core.models.user import AtmosphereUser
-        users_on_provider = self.identity_set.values_list('created_by__username', flat=True)
+        users_on_provider = self.identity_set.values_list(
+            'created_by__username',
+            flat=True)
         return AtmosphereUser.objects.filter(username__in=users_on_provider)
 
     def list_admin_names(self):
-        return self.accountprovider_set.values_list('identity__created_by__username',flat=True)
+        return self.accountprovider_set.values_list(
+            'identity__created_by__username',
+            flat=True)
 
     @property
     def admin(self):
@@ -162,13 +172,15 @@ class Provider(models.Model):
 
     def list_admins(self):
         from core.models.identity import Identity
-        identity_ids = self.accountprovider_set.values_list('identity', flat=True)
+        identity_ids = self.accountprovider_set.values_list(
+            'identity',
+            flat=True)
         return Identity.objects.filter(id__in=identity_ids)
 
     def get_admin_identity(self):
         provider_admins = self.list_admins()
         if provider_admins:
-          return provider_admins[0]
+            return provider_admins[0]
         return None
 
     def __unicode__(self):
@@ -186,14 +198,15 @@ class ProviderInstanceAction(models.Model):
 
     def __unicode__(self):
         return "Provider:%s Action:%s Enabled:%s" % \
-                (self.provider, self.instance_action, self.enabled)
+            (self.provider, self.instance_action, self.enabled)
+
     class Meta:
         db_table = 'provider_instance_action'
         app_label = 'core'
 
 
-
 class ProviderDNSServerIP(models.Model):
+
     """
     Used to describe all available
     DNS servers (by IP, in order) for a given provider
@@ -204,7 +217,8 @@ class ProviderDNSServerIP(models.Model):
 
     def __unicode__(self):
         return "#%s Provider:%s ip_address:%s" % \
-                (self.order, self.provider, self.ip_address)
+            (self.order, self.provider, self.ip_address)
+
     class Meta:
         db_table = 'provider_dns_server_ip'
         app_label = 'core'
@@ -213,6 +227,7 @@ class ProviderDNSServerIP(models.Model):
 
 
 class AccountProvider(models.Model):
+
     """
     This model is reserved exclusively for accounts that can see everything on
     a given provider.
@@ -234,7 +249,6 @@ class AccountProvider(models.Model):
         prov_member = self.provider.share(core_group)
         id_member = self.identity.share(core_group, quota=quota)
         return (prov_member, id_member)
-
 
     def __unicode__(self):
         return "Account Admin %s for %s" % (self.identity, self.provider)

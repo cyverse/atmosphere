@@ -17,14 +17,15 @@ from service.instance import network_init
 import django
 django.setup()
 
+
 def get_next_ip(ports):
     max_ip = -1
     for port in ports:
-         fixed_ip = port['fixed_ips']
-         if not fixed_ip:
-             continue
-         fixed_ip = fixed_ip[0]['ip_address']
-         max_ip = max(max_ip, ip2long(fixed_ip))
+        fixed_ip = port['fixed_ips']
+        if not fixed_ip:
+            continue
+        fixed_ip = fixed_ip[0]['ip_address']
+        max_ip = max(max_ip, ip2long(fixed_ip))
     if max_ip <= 0:
         raise Exception("Next IP address could not be determined"
                         " (You have no existing Fixed IPs!)")
@@ -37,10 +38,11 @@ def repair_instance(accounts, admin, instance, provider, new_fixed_ip=None):
     tenant = accounts.user_manager.get_project_by_id(tenant_id)
     tenant_name = tenant.name
     identity = Identity.objects.get(
-            created_by__username=tenant_name,
-            provider__id=provider.id)
+        created_by__username=tenant_name,
+        provider__id=provider.id)
     network_init(identity)
-    network_resources = accounts.network_manager.find_tenant_resources(tenant_id)
+    network_resources = accounts.network_manager.find_tenant_resources(
+        tenant_id)
     network = network_resources['networks']
     if not network:
         network, subnet = accounts.create_network(identity)
@@ -48,15 +50,21 @@ def repair_instance(accounts, admin, instance, provider, new_fixed_ip=None):
         network = network[0]
         subnet = network_resources['subnets'][0]
 
-    #Ensure the network,subnet exist
+    # Ensure the network,subnet exist
     if not new_fixed_ip:
         new_fixed_ip = get_next_ip(network_resources['ports'])
 
     user_driver = get_esh_driver(identity)
-    port = accounts.network_manager.create_port(instance.id, network['id'],
-            subnet['id'], new_fixed_ip, tenant_id)
+    port = accounts.network_manager.create_port(
+        instance.id,
+        network['id'],
+        subnet['id'],
+        new_fixed_ip,
+        tenant_id)
     print "Created new port: %s" % port
-    attached_intf = user_driver._connection.ex_attach_interface(instance.id, port['id'])
+    attached_intf = user_driver._connection.ex_attach_interface(
+        instance.id,
+        port['id'])
     print "Attached port to driver: %s" % attached_intf
 
 
@@ -72,16 +80,17 @@ def suspended_repair_instance(accounts, admin, instance, provider):
         raise Exception("Instance is missing OS-EXT-SRV-ATTR:host attribute!")
 
     print 'Attaching iface-bridge. Instance:%s Node:%s Port:%s'\
-            % (instance.id, compute_node, port_id)
-    out, err = run_command(["virsh","-c",
-        "qemu+tcp://%s/system" % (compute_node,), "iface-bridge", "eth3", port_id])
+        % (instance.id, compute_node, port_id)
+    out, err = run_command(
+        ["virsh", "-c", "qemu+tcp://%s/system" % (compute_node,),
+         "iface-bridge", "eth3", port_id])
     print 'Out: %s' % out
     print 'Err: %s' % err
-    #Hard reboot instance
+    # Hard reboot instance
 
 
 def suspended_release_instance(accounts, admin, instance, provider, port_id):
-    #virsh iface-unbridge
+    # virsh iface-unbridge
     compute_node = instance.extra['object']['OS-EXT-SRV-ATTR:host']
     if not port_id:
         old_port = instance.extra['metadata']['port-id0']
@@ -89,9 +98,10 @@ def suspended_release_instance(accounts, admin, instance, provider, port_id):
     elif not port_id.startswith('qbr'):
         port_id = "qbr%s" % port_id[:11]
     print 'Detaching iface-bridge. Instance:%s Node:%s Port:%s'\
-            % (instance.id, compute_node, port_id)
-    out, err = run_command(["virsh","-c",
-        "qemu+tcp://%s/system" % (compute_node,), "iface-unbridge", port_id])
+        % (instance.id, compute_node, port_id)
+    out, err = run_command(
+        ["virsh", "-c", "qemu+tcp://%s/system" % (compute_node,),
+         "iface-unbridge", port_id])
     print 'Out: %s' % out
     print 'Err: %s' % err
 
@@ -100,8 +110,8 @@ def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 stdin=None, dry_run=False, shell=False, bash_wrap=False,
                 block_log=False):
     if bash_wrap:
-        #Wrap the entire command in '/bin/bash -c',
-        #This can sometimes help pesky commands
+        # Wrap the entire command in '/bin/bash -c',
+        # This can sometimes help pesky commands
         commandList = ['/bin/bash', '-c', ' '.join(commandList)]
     """
     NOTE: Use this to run ANY system command, because its wrapped around a loggger
@@ -111,7 +121,7 @@ def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     err = None
     cmd_str = ' '.join(commandList)
     if dry_run:
-        #Bail before making the call
+        # Bail before making the call
         logging.debug("Mock Command: %s" % cmd_str)
         return ('', '')
     try:
@@ -122,10 +132,10 @@ def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr,
                                     shell=shell)
         out, err = proc.communicate(input=stdin)
-    except Exception, e:
+    except Exception as e:
         logging.exception(e)
     if block_log:
-        #Leave before we log!
+        # Leave before we log!
         return (out, err)
     if stdin:
         logging.debug("%s STDIN: %s" % (cmd_str, stdin))
@@ -171,16 +181,16 @@ def main():
     instance = admin.get_instance(instance_id)
     if not instance:
         raise Exception("Instance %s does not exist on provider %s" %
-                instance_id, provider_id)
+                        instance_id, provider_id)
     if args.suspend_release:
         suspended_release_instance(accounts, admin, instance, provider,
-                args.port_id)
+                                   args.port_id)
     elif args.suspend_loop:
         suspended_repair_instance(accounts, admin, instance, provider)
         print 'Resuming instance: %s' % instance.id
         admin.resume_instance(instance)
         print 'Waiting 5 minutes to allow instance to resume (Ctrl+C to cancel): %s' % instance.id
-        time.sleep(5*60)
+        time.sleep(5 * 60)
         print 'Rebuilding instance network and adding port: %s' % instance.id
         repair_instance(accounts, admin, instance, provider, new_fixed_ip)
     else:

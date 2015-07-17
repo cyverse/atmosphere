@@ -12,15 +12,13 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='allocation',
-            unique_together=set([('threshold', 'delta')]),
-        ),
+            name='allocation', unique_together=set(
+                [('threshold', 'delta')]),),
         migrations.AlterUniqueTogether(
             name='quota',
-            unique_together=set([('cpu', 'memory', 'storage', 'storage_count', 'suspended_count')]),
-        ),
+            unique_together=set(
+                [('cpu', 'memory', 'storage', 'storage_count',
+                  'suspended_count')]),),
         migrations.AlterUniqueTogether(
-            name='statustype',
-            unique_together=set([('name', 'start_date')]),
-        ),
-    ]
+            name='statustype', unique_together=set(
+                [('name', 'start_date')]),), ]

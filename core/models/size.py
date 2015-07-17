@@ -4,6 +4,7 @@ from core.models.provider import Provider
 
 
 class Size(models.Model):
+
     """
     """
     # Special field that is filled out when converting an esh_size
@@ -21,7 +22,6 @@ class Size(models.Model):
     class Meta:
         db_table = "size"
         app_label = "core"
-        # unique_together = ('alias', 'provider') # Uncomment when in EE
 
     def esh_total(self):
         try:

@@ -14,6 +14,7 @@ from core.models.user import AtmosphereUser
 
 
 class TokenAuthentication(BaseAuthentication):
+
     """
     Atmosphere 'AuthToken' based authentication.
     To authenticate, pass the token key in the "Authorization"
@@ -32,23 +33,27 @@ class TokenAuthentication(BaseAuthentication):
             token_key = request.session['token']
         if validate_token(token_key):
             token = self.model.objects.get(key=token_key)
-            #logger.info("AuthToken Obtained for %s:%s" %
+            # logger.info("AuthToken Obtained for %s:%s" %
             #            (token.user.username, token_key))
             if token.user.is_active:
                 return (token.user, token)
         return None
+
+
 class OAuthTokenAuthentication(TokenAuthentication):
+
     """
     OAuthTokenAuthentication:
     To authenticate, pass the token key in the "Authorization" HTTP header,
     prepend with the string "Token ". For example:
         Authorization: Token 098f6bcd4621d373cade4e832627b4f6
     """
+
     def _mock_oauth_login(self, oauth_token):
         username = settings.ALWAYS_AUTH_USER
         user = get_or_create_user(username, {
-            'firstName':"Mocky Mock",
-            'lastName':"MockDoodle",
+            'firstName': "Mocky Mock",
+            'lastName': "MockDoodle",
             'email': '%s@iplantcollaborative.org' % settings.ALWAYS_AUTH_USER,
             'entitlement': []})
         _, token = self.model.objects.get_or_create(key=oauth_token, user=user)
@@ -84,7 +89,7 @@ def validate_oauth_token(token, request=None):
     username = user_profile.get("id")
     attrs = user_profile.get("attributes")
     if not username or not attrs:
-        #logger.info("Invalid Profile:%s does not have username/attributes"
+        # logger.info("Invalid Profile:%s does not have username/attributes"
         #            % user_profile)
         return False
 
@@ -94,10 +99,9 @@ def validate_oauth_token(token, request=None):
         return None
     username = username.lower()
 
-    #TEST 1 : Must be in the group 'atmo-user'
-    #NOTE: Test 1 will be IGNORED until we can verify it returns 'entitlement'
+    # TEST 1 : Must be in the group 'atmo-user'
+    # NOTE: Test 1 will be IGNORED until we can verify it returns 'entitlement'
     # EVERY TIME!
-    #if not cas_profile_contains(attrs, 'atmo-user'):
     #    raise Unauthorized("User %s is not a member of group 'atmo-user'"
     #                       % username)
     # TODO: TEST 2 : Must have an identity (?)
@@ -105,7 +109,6 @@ def validate_oauth_token(token, request=None):
         raise Unauthorized("User %s does not exist as an AtmosphereUser"
                            % username)
     auth_token = obtainOAuthToken(username, token)
-    # logger.info("OAuthToken Obtained for %s:%s" % (username, auth_token))
     if not auth_token:
         return False
     return True
@@ -132,7 +135,6 @@ def validate_token(token, request=None):
             # re-authed.
             user_to_auth = request.session.get('emulated_by', user)
             if cas_validateUser(user_to_auth):
-                # logger.debug("Reauthenticated user -- Token updated")
                 auth_token.update_expiration()
                 auth_token.save()
                 return True
@@ -171,12 +173,10 @@ def validate_token1_0(request):
     emulate = request_vars.get('emulate', None)
 
     if not user or not token:
-        # logger.debug("Request Variables missing")
         return False
     try:
         token = AuthToken.objects.get(token=token)
     except AuthToken.DoesNotExist:
-        # logger.debug("AuthToken does not exist")
         return False
 
     tokenExpireTime = timedelta(days=1)
@@ -184,25 +184,18 @@ def validate_token1_0(request):
     if token.user != user\
             or token.logout is not None\
             or token.api_server_url != api_server:
-        # logger.debug("%s - Token Invalid." % user)
-        # logger.debug("%s != %s" % (token.user, user))
-        # logger.debug("%s != %s" % (token.api_server_url, api_server))
-        # logger.debug("%s is not None" % (token.logout))
         return False
 
     # Expired Token
     if token.issuedTime + tokenExpireTime < timezone.now():
         if request.META["REQUEST_METHOD"] == "GET":
-            # logger.debug("Token Expired - %s requesting GET data OK" % user)
             return True
         # Expired and POSTing data, need to re-authenticate the token
         if emulate:
             user = emulate
         if not cas_validateUser(user):
-            # logger.debug("Token Expired - %s was not logged into CAS.")
             return False
         # CAS Reauthentication Success
-        # logger.debug("%s reauthenticated with CAS" % user)
 
     # Valid Token
     token.issuedTime = timezone.now()

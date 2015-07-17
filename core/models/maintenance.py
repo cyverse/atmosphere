@@ -9,6 +9,7 @@ from core.models.provider import Provider
 
 
 class MaintenanceRecord(models.Model):
+
     """
     Maintenace can be activated through the database
     """

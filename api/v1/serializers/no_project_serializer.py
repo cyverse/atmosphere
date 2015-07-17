@@ -22,15 +22,19 @@ class NoProjectSerializer(serializers.ModelSerializer):
             item,
             context={'request': self.context.get('request')}).data for item in
             atmo_user.instance_set.filter(only_current(),
-                source__provider__active=True,
-                projects=None)]
+                                          source__provider__active=True,
+                                          projects=None)]
 
     def get_user_volumes(self, atmo_user):
-        return [VolumeSerializer(
-            item,
-            context={'request': self.context.get('request')}).data for item in
-            atmo_user.volume_set().filter(*only_current_source(),
-                instance_source__provider__active=True, projects=None)]
+        return [
+            VolumeSerializer(
+                item,
+                context={
+                    'request': self.context.get('request')}).data for item in atmo_user.volume_set().filter(
+                *
+                only_current_source(),
+                instance_source__provider__active=True,
+                projects=None)]
 
     class Meta:
         model = AtmosphereUser
