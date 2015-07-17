@@ -25,6 +25,13 @@ is compliant with our style guide.
 ln -s contrib/pre-commit.hook .git/hooks/pre-commit
 ```
 
+To automate running tests before a push use the git `pre-push` hook to ensure
+your code passes all the tests.
+
+```bash
+ln -s contrib/pre-push.hook .git/hooks/pre-push
+```
+
 ## License
 
 See LICENSE.txt for license information
