@@ -5,8 +5,6 @@ from django.db.models import Q
 from django.http import Http404
 from rest_framework.generics import get_object_or_404
 
-from threepio import api_logger as logger
-
 
 class MultipleFieldLookup(object):
     lookup_fields = None
@@ -20,7 +18,7 @@ class MultipleFieldLookup(object):
         filter_value = self.kwargs[lookup_url_kwarg]
 
         #: determine the value of the field
-        if filter_value.isdecimal():
+        if isinstance(filter_value, int) or filter_value.isdecimal():
             VALID_FIELDS = (models.AutoField,
                             models.IntegerField,
                             models.BigIntegerField)
@@ -40,7 +38,7 @@ class MultipleFieldLookup(object):
             if isinstance(field, VALID_FIELDS):
                 filter_fields.append(field_name)
 
-        query_list = [Q(**{field: filter_value}) for field in filter_fields]
+        query_list = [Q(**{f: filter_value}) for f in filter_fields]
         try:
             filter_chain = reduce(operator.or_, query_list)
         except TypeError:
