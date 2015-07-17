@@ -39,12 +39,13 @@ class GetProjectListTests(APITestCase):
         data = response.data.get('results')[0]
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(data), 10)
+        self.assertEquals(len(data), 11, "Number of fields does not match")
         self.assertEquals(data['id'], self.project.id)
         self.assertIn('url', data)
         self.assertEquals(data['name'], self.project.name)
         self.assertEquals(data['description'], self.project.description)
         self.assertIn('owner', data)
+        self.assertIn('uuid', data)
         self.assertIn('instances', data)
         self.assertIn('volumes', data)
         self.assertIn('images', data)
@@ -80,12 +81,13 @@ class GetProjectDetailTests(APITestCase):
         data = response.data
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(data), 10)
+        self.assertEquals(len(data), 11, "Number of fields does not match")
         self.assertEquals(data['id'], self.project.id)
         self.assertIn('url', data)
         self.assertEquals(data['name'], self.project.name)
         self.assertEquals(data['description'], self.project.description)
         self.assertIn('owner', data)
+        self.assertIn('uuid', data)
         self.assertIn('instances', data)
         self.assertIn('volumes', data)
         self.assertIn('images', data)
