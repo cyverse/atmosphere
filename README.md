@@ -44,10 +44,11 @@ See LICENSE.txt for license information
 
 + **J. Matt Peterson <jmatt@iplantcollaborative.org>**
 + **Steven Gregory <sgregory@iplantcollaborative.org>**
++ **Andre Mercer <amercer@iplantcollaborative.org>**
++ **Evan Briones <evrick@iplantcollaborative.org>**
++ **Joseph Garcia <prosif@iplantcollaborative.org>**
 + **Monica Lent <mlent@iplantcollaborative.org>**
 + **Christopher James LaRose <cjlarose@iplantcollaborative.org>**
-+ **Andre Mercer <amercer@iplantcollaborative.org>**
 + **Jason Hansen <jchansen@iplantcollaborative.org>**
-+ **Evan Briones <evrick@iplantcollaborative.org>**
 
 Where the cloud lives!
