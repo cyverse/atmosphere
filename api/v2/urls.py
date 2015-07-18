@@ -4,15 +4,15 @@ from api.v2 import views
 
 router = routers.DefaultRouter(trailing_slash=False)
 router.register(
-    r'image_version',
-    views.ImageVersionViewSet,
-    base_name='imageversion')
-router.register(
     r'allocations',
     views.AllocationViewSet,
     base_name='allocation')
 router.register(r'identities', views.IdentityViewSet)
 router.register(r'images', views.ImageViewSet, base_name='application')
+router.register(
+    r'image_versions',
+    views.ImageVersionViewSet,
+    base_name='imageversion')
 router.register(r'image_bookmarks', views.ImageBookmarkViewSet)
 router.register(r'image_tags', views.ImageTagViewSet)
 router.register(r'instances', views.InstanceViewSet)
