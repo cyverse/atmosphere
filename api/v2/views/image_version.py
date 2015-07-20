@@ -24,14 +24,16 @@ def get_admin_image_versions(user):
         version_ids.extend(
             user.applicationversion_set.values_list('id', flat=True))
     admin_list = ImageVersion.objects.filter(
-        only_current(),
-        only_current_machines_in_version(),
         id__in=version_ids)
     return admin_list
 
 class ImageFilter(django_filters.FilterSet):
     image_id = django_filters.CharFilter('application__id')
     created_by = django_filters.CharFilter('application__created_by__username')
+
+    class Meta:
+        model = ImageVersion
+        fields = ['image_id', 'created_by']
 
 class ImageVersionViewSet(AuthOptionalViewSet):
 
@@ -54,6 +56,7 @@ class ImageVersionViewSet(AuthOptionalViewSet):
         if not isinstance(request_user, AnonymousUser):
             # NOTE: Showing 'my pms EVEN if they are end-dated.
             my_set = ImageVersion.objects.filter(
+                Q(created_by=request_user) |
                 Q(application__created_by=request_user) |
                 Q(machines__instance_source__created_by=request_user))
             all_group_ids = request_user.group_set.values('id')
@@ -70,5 +73,6 @@ class ImageVersionViewSet(AuthOptionalViewSet):
             admin_set = shared_set = my_set = ImageVersion.objects.none()
 
         # Order them by date, make sure no dupes.
-        return (public_set | shared_set | my_set | admin_set).distinct().order_by(
+        all_versions = (public_set | shared_set | my_set | admin_set).distinct().order_by(
             '-machines__instance_source__start_date')
+        return all_versions

@@ -38,6 +38,10 @@ class ImageVersionFilter(django_filters.FilterSet):
     created_by = django_filters.CharFilter(
         'instance_source__created_by__username')
 
+    class Meta:
+        model = ProviderMachine
+        fields = ['image_id', 'version_id', 'created_by']
+
 # TODO: Determine if "OLD" should be used or not...
 class ProviderMachineViewSet(AuthReadOnlyViewSet):
 
