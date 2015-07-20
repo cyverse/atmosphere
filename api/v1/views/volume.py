@@ -213,6 +213,11 @@ class VolumeList(AuthAPIView):
             return malformed_response(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
+        except Exception:
+            logger.exception("Uncaught Exception in Volume list method")
+            return failure_response(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                'Volume list method failed. Contact support')
 
         core_volume_list = [convert_esh_volume(volume, provider_uuid,
                                                identity_uuid, user)

@@ -18,6 +18,17 @@ get_hostname() {
    fi
 }
 
+# This function will lookup the ip address 
+reverse_lookup ()  {
+	if [ -n "$1" ]; then
+		local ip=$1
+		local htemp=$(dig -x $ip +short)
+		if [ $? -eq 0 -a -n "$htemp" ]; then
+			hostname_value=${htemp:0:-1}
+		fi
+	fi
+}
+
 MAX_ATTEMPTS=5
 
 retry=0
@@ -33,6 +44,26 @@ while [ $retry -lt $MAX_ATTEMPTS -a -z "$hostname_value" ]; do
     sleep 1
 done
 
+# attempt external ip resolution through dyndns
+if [[ -z $hostname_value ]]; then
+	myip=$(curl -s 'http://checkip.dyndns.org' | sed 's/.*Current IP Address: \([0-9\.]*\).*/\1/g')
+	if [ $? -eq 0 -a -n "$myip" ]; then
+		reverse_lookup $myip
+    		echo $(date +"%m%d%y %H:%M:%S") "   setting using dyndns" >>/var/log/atmo/dhcp_hostname.log
+	fi
+fi
+
+
+# attempt external ip resolution through ipify
+if [[ -z $hostname_value ]]; then
+	myip=$(curl https://api.ipify.org)
+	if [ $? -eq 0 -a -n "$myip" ]; then
+		reverse_lookup $myip
+    		echo $(date +"%m%d%y %H:%M:%S") "   setting using ipify" >>/var/log/atmo/dhcp_hostname.log
+	fi
+fi
+
+# retest hostname value
 if [[ -z $hostname_value ]]; then
     echo $(date +"%m%d%y %H:%M:%S") "   Hostname could not be determined. using `hostname`" >>/var/log/atmo/dhcp_hostname.log
 else

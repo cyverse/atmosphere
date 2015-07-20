@@ -83,6 +83,7 @@ def glance_image_for(provider_uuid, identifier):
     try:
         prov = Provider.objects.get(uuid=provider_uuid)
         accounts = get_account_driver(prov)
+        accounts.clear_cache()
         glance_image = accounts.get_image(identifier)
     except Exception as e:
         logger.exception(e)
@@ -95,6 +96,7 @@ def glance_image_owner(provider_uuid, identifier, glance_image=None):
         prov = Provider.objects.get(uuid=provider_uuid)
         accounts = get_account_driver(prov)
         if not glance_image:
+            accounts.clear_cache()
             glance_image = accounts.get_image(identifier)
         project = accounts.user_manager.get_project_by_id(glance_image.owner)
     except Exception as e:
