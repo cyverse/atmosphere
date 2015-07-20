@@ -139,8 +139,7 @@ class IdentityMembership(models.Model):
                             .total_credit().total_seconds() / 3600.0)
         hourly_runtime = int(allocation_result
                              .total_runtime().total_seconds() / 3600.0)
-        hourly_difference = int(allocation_result
-                                .total_difference().total_seconds() / 3600.0)
+        hourly_difference = int(diff_amount.total_seconds() / 3600.0)
         zero_time = allocation_result.time_to_zero()
 
         allocation_dict = {
