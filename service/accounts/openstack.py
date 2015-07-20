@@ -72,6 +72,11 @@ class AccountDriver(CachedAccountDriver):
 
     ]
 
+    def clear_cache(self):
+        self.admin_driver.provider.machineCls.invalidate_provider_cache(
+                self.admin_driver.provider)
+        return self.admin_driver
+
     def _init_by_provider(self, provider, *args, **kwargs):
         from service.driver import get_esh_driver
 

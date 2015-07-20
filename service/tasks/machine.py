@@ -264,7 +264,6 @@ def process_request(new_image_id, machine_request_id):
     machine_request.save()
     # TODO: Best if we could 'broadcast' this to all running
     # Apache WSGI procs && celery 'imaging' procs
-    invalidate_machine_cache(machine_request)
     process_machine_request(machine_request, new_image_id)
     return new_image_id
 
@@ -274,8 +273,10 @@ def validate_new_image(image_id, machine_request_id):
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.status = 'validating'
     machine_request.save()
+    accounts = get_os_account_driver(machine_request.new_machine.provider)
+    accounts.clear_cache()
     from service.instance import launch_machine_instance
-    admin_driver = machine_request.new_admin_driver()
+    admin_driver = accounts.admin_driver
     admin_ident = machine_request.new_admin_identity()
     if not admin_driver:
         logger.warn(
@@ -298,20 +299,7 @@ def validate_new_image(image_id, machine_request_id):
     return instance.id
 
 
-def invalidate_machine_cache(machine_request):
-    """
-    The new image won't populate in the machine list unless
-    the list is cleared.
-    """
-    provider = machine_request.instance.\
-        provider_machine.provider
-    driver = get_admin_driver(provider)
-    if not driver:
-        return
-    driver.provider.machineCls.invalidate_provider_cache(driver.provider)
-
-
-@task(name='freeze_instance_task', ignore_result=False)
+@task(name='freeze_instance_task', ignore_result=False) 
 def freeze_instance_task(identity_id, instance_id, **celery_task_args):
     identity = Identity.objects.get(id=identity_id)
     driver = get_esh_driver(identity)

@@ -162,13 +162,14 @@ def user_over_allocation_enforcement(
         return allocation_result
 
     # Enforce allocation if overboard.
-    if allocation_result.over_allocation():
+    over_allocation, diff_amount = allocation_result.total_difference()
+    if over_allocation:
         logger.info(
             "%s is OVER allocation. %s - %s = %s"
             % (username,
                allocation_result.total_credit(),
                allocation_result.total_runtime(),
-               allocation_result.total_difference()))
+               diff_amount))
         enforce_allocation_policy(identity, user)
     return allocation_result
 
@@ -409,12 +410,12 @@ def check_over_allocation(username, identity_uuid,
     """
     Check if an identity is over allocation.
 
-    True if allocation has been exceeded, otherwise False.
+    True,False - Over/Under Allocation
+    Amount - Time (amount) Over/Under Allocation.
     """
     identity = Identity.objects.get(uuid=identity_uuid)
     allocation_result = _get_allocation_result(identity)
-    return (allocation_result.over_allocation(),
-            allocation_result.total_difference())
+    return allocation_result.total_difference()
 
 
 def get_allocation(username, identity_uuid):
