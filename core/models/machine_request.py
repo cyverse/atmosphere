@@ -498,7 +498,8 @@ def upload_privacy_data(machine_request, new_machine):
         print "Aborting import: Could not retrieve Account Driver "\
                 "for Provider %s" % prov
         return
-    admin_driver = get_admin_driver(prov)
+    accounts.clear_cache()
+    admin_driver = accounts.admin_driver # cache has been cleared
     if not admin_driver:
         print "Aborting import: Could not retrieve admin_driver "\
                 "for Provider %s" % prov
@@ -510,9 +511,9 @@ def upload_privacy_data(machine_request, new_machine):
     return sync_membership(accounts, img, new_machine, tenant_list)
 
 def sync_membership(accounts, glance_image, new_machine, tenant_list):
-    tenant_list = sync_image_access_list(accounts, glance_image, names=tenant_list)
+    tenant_list = sync_cloud_access(accounts, glance_image, names=tenant_list)
     #Make private on the DB level
-    make_private(accounts.image_manager, glance_image, new_machine, tenant_list)
+    sync_db_access(accounts.image_manager, glance_image, new_machine, tenant_list)
 
 
 
@@ -544,7 +545,7 @@ def share_with_self(private_userlist, username):
     private_userlist.append(str(username))
     return private_userlist
 
-def sync_image_access_list(accounts, img, names=None):
+def sync_cloud_access(accounts, img, names=None):
     projects = []
     shared_with = accounts.image_manager.shared_images_for(
             image_id=img.id)
@@ -564,7 +565,7 @@ def sync_image_access_list(accounts, img, names=None):
             projects.append(project)
     return projects
 
-def make_private(image_manager, image, provider_machine, tenant_list=[]):
+def sync_db_access(image_manager, image, provider_machine, tenant_list=[]):
     #Circ.Dep. DO NOT MOVE UP!!
     from core.models import Group, ProviderMachineMembership
 

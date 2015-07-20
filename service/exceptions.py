@@ -39,11 +39,11 @@ class HypervisorCapacityError(Exception):
 
 class OverAllocationError(Exception):
 
-    def __init__(self, wait_timedelta):
-        self.wait_timedelta = wait_timedelta
-        self.message = "Time allocation exceeded. "\
-            "Wait %s before requesting new resources"\
-            % (self.wait_timedelta)
+    def __init__(self, amount_exceeded):
+        self.overage = amount_exceeded
+        self.message = "Time allocation exceeded: Instance usage is over by "\
+            "%s."\
+            % (self.overage,)
         super(OverAllocationError, self).__init__(self.message)
 
     def __str__(self):

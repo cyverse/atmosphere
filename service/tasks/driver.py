@@ -4,7 +4,6 @@ NOTE: At this point create options do not have a hard-set requirement for 'CoreI
 Delete/remove operations do. This should be investigated further..
 """
 from celery.contrib import rdb
-
 from operator import attrgetter
 import sys
 import re
@@ -20,6 +19,8 @@ from celery.task.schedules import crontab
 
 from libcloud.compute.types import Provider, NodeState, DeploymentError
 
+#TODO: Internalize exception into RTwo
+from neutronclient.common.exceptions import BadRequest
 from rtwo.exceptions import NonZeroDeploymentException
 
 from threepio import logger, status_logger
@@ -1082,6 +1083,21 @@ def add_floating_ip(driverCls, provider, identity,
         #End
         logger.debug("add_floating_ip task finished at %s." % datetime.now())
         return {"floating_ip": floating_ip, "hostname": hostname}
+    except BadRequest as bad_request:
+        # NOTE: 'Bad Request' is a good message to 'catch and fix' because its
+        # a user-supplied problem.
+        # Here we will attempt to 'fix' requests and put the 'add_floating_ip'
+        # task back on the queue after we're done.
+        logger.exception("Neutron did not accept request - %s."
+            % bad_request.message)
+        if 'no fixed ip' in bad_request.message.lower():
+            fixed_ip = add_fixed_ip(driverCls, provider, identity,
+                                    instance_alias)
+            if fixed_ip:
+                logger.debug("Fixed IP %s has been added to Instance %s."
+                             % (fixed_ip, instance_alias))
+        # let the exception bubble-up for a retry..
+        raise
     except (BaseException, Exception) as exc:
         logger.exception("Error occurred while assigning a floating IP")
         #Networking can take a LONG time when an instance first launches,
