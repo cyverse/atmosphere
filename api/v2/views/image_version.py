@@ -1,6 +1,7 @@
 from django.db.models import Q
 from django.contrib.auth.models import AnonymousUser
 
+from rest_framework import filters
 import django_filters
 
 from core.models import ApplicationVersion as ImageVersion
@@ -27,6 +28,7 @@ def get_admin_image_versions(user):
         id__in=version_ids)
     return admin_list
 
+
 class ImageFilter(django_filters.FilterSet):
     image_id = django_filters.CharFilter('application__id')
     created_by = django_filters.CharFilter('application__created_by__username')
@@ -34,6 +36,7 @@ class ImageFilter(django_filters.FilterSet):
     class Meta:
         model = ImageVersion
         fields = ['image_id', 'created_by']
+
 
 class ImageVersionViewSet(AuthOptionalViewSet):
 
@@ -43,7 +46,10 @@ class ImageVersionViewSet(AuthOptionalViewSet):
     queryset = ImageVersion.objects.all()
     serializer_class = ImageVersionSerializer
     search_fields = ('application__id', 'application__created_by__username')
+    ordering_fields = ('start_date',)
+    ordering = ('start_date',)
     filter_class = ImageFilter
+    filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
 
     def get_queryset(self):
         request_user = self.request.user
@@ -72,7 +78,6 @@ class ImageVersionViewSet(AuthOptionalViewSet):
         else:
             admin_set = shared_set = my_set = ImageVersion.objects.none()
 
-        # Order them by date, make sure no dupes.
-        all_versions = (public_set | shared_set | my_set | admin_set).distinct().order_by(
-            '-machines__instance_source__start_date')
+        # Make sure no dupes.
+        all_versions = (public_set | shared_set | my_set | admin_set).distinct()
         return all_versions
