@@ -5,6 +5,7 @@ from .image import ImageSerializer
 from .image_tag import ImageTagSerializer
 from .image_bookmark import ImageBookmarkSerializer
 from .instance_tag import InstanceTagSerializer
+from .instance_history import InstanceStatusHistorySerializer
 from .instance import InstanceSerializer
 from .project import ProjectSerializer
 from .project_instance import ProjectInstanceSerializer

@@ -6,7 +6,7 @@ from .image_tag import ImageTagViewSet
 from .image_version import ImageVersionViewSet
 from .instance import InstanceViewSet
 from .instance_tag import InstanceTagViewSet
-from .instance_history import InstanceHistoryViewSet
+from .instance_history import InstanceStatusHistoryViewSet
 from .platform_type import PlatformTypeViewSet
 from .project import ProjectViewSet
 from .project_instance import ProjectInstanceViewSet

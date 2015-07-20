@@ -16,7 +16,9 @@ router.register(
 router.register(r'image_bookmarks', views.ImageBookmarkViewSet)
 router.register(r'image_tags', views.ImageTagViewSet)
 router.register(r'instances', views.InstanceViewSet)
-router.register(r'instance_histories', views.InstanceHistoryViewSet)
+router.register(r'instance_histories',
+    views.InstanceStatusHistoryViewSet,
+    base_name='instancestatushistory')
 router.register(r'instance_tags', views.InstanceTagViewSet)
 router.register(r'platform_types', views.PlatformTypeViewSet)
 router.register(r'projects', views.ProjectViewSet)
