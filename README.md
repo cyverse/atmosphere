@@ -32,6 +32,16 @@ your code passes all the tests.
 ln -s contrib/pre-push.hook .git/hooks/pre-push
 ```
 
+### Coding Conventions
+
+#### Import ordering
+Imports should be grouped into the sections below and in sorted order.
+
+1. Standard libraries
+2. Third-party libraries
+3. External project libraries
+4. Local libraries
+
 ## License
 
 See LICENSE.txt for license information
