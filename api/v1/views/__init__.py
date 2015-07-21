@@ -39,7 +39,7 @@ from api.v1.views.size import SizeList, Size
 from api.v1.views.hypervisor import HypervisorList, HypervisorDetail
 from api.v1.views.tag import TagList, Tag
 from api.v1.views.token import TokenEmulate
-from api.v1.views.version import Version
+from api.v1.views.version import Version, DeployVersion
 from api.v1.views.volume import BootVolume,\
     VolumeSnapshot, VolumeSnapshotDetail,\
     VolumeList, Volume
