@@ -1,7 +1,4 @@
 from django.contrib.auth.models import AnonymousUser
-from django.shortcuts import get_object_or_404
-
-from rest_framework.response import Response
 
 from core.models import Application as Image
 from core.models import AtmosphereUser, AccountProvider
@@ -49,7 +46,8 @@ class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
 
     serializer_class = ImageSerializer
 
-    search_fields = ('id', 'name', 'versions__change_log', 'tags__name', 'tags__description', 'created_by__username')
+    search_fields = ('id', 'name', 'versions__change_log', 'tags__name',
+                     'tags__description', 'created_by__username')
 
     def get_queryset(self):
         request_user = self.request.user
