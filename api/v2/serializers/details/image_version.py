@@ -16,7 +16,7 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
     # NOTE: Implicitly included via 'fields'
     # id, application
     parent = ImageVersionSummarySerializer()
-    #name, change_log, allow_imaging
+    # name, change_log, allow_imaging
     licenses = LicenseSerializer(many=True, read_only=True)  # NEW
     membership = serializers.SlugRelatedField(
         slug_field='name',
@@ -34,4 +34,5 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         fields = ('id', 'parent', 'name', 'change_log',
                   'machines', 'allow_imaging',
                   'licenses', 'membership',
+                  'user', 'identity',
                   'start_date', 'end_date')
