@@ -2,13 +2,10 @@ from rest_framework import serializers
 
 from core.models import Instance, InstanceStatusHistory, Size
 
-from api.v2.serializers.summaries import InstanceSuperSummarySerializer, ImageSummarySerializer
+from api.v2.serializers.summaries import InstanceSuperSummarySerializer
 from api.v2.serializers.summaries.size import SizeRelatedField
 
 class InstanceRelatedField(serializers.PrimaryKeyRelatedField):
-
-    def get_queryset(self):
-        return Instance.objects.all()
 
     def to_representation(self, value):
         instance = Instance.objects.get(pk=value.pk)

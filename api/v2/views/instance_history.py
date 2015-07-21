@@ -8,7 +8,7 @@ from core.models import InstanceStatusHistory
 from api.v2.serializers.details import InstanceStatusHistorySerializer
 from api.v2.views.base import AuthReadOnlyViewSet
 
-class InstanceFilter(django_filters.FilterSet):
+class InstanceStatusHistoryFilter(django_filters.FilterSet):
     instance = django_filters.MethodFilter(action='filter_instance_id')
     created_by = django_filters.CharFilter('instance__created_by__username')
 
@@ -37,11 +37,12 @@ class InstanceStatusHistoryViewSet(AuthReadOnlyViewSet):
     serializer_class = InstanceStatusHistorySerializer
     ordering = ('-start_date', 'instance__id')
     ordering_fields = ('start_date', 'instance__id')
-    filter_class = InstanceFilter
+    filter_class = InstanceStatusHistoryFilter
     filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
 
     def get_queryset(self):
         """
         Filter out tags for deleted instances
         """
-        return InstanceStatusHistory.objects.filter(instance__end_date__isnull=True)
+        user_id = self.request.user.id
+        return InstanceStatusHistory.objects.filter(instance__created_by_id=user_id)
