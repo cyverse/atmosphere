@@ -1,10 +1,18 @@
-from core.models.post_boot import BootScript
 from rest_framework import serializers
-from api.v2.serializers.details import BootScriptSerializer
+from rest_framework import exceptions
+
+# from api.v2.serializers.summaries import BootScriptSummarySerializer
+# from core.models.post_boot import BootScript
 
 
 class ModelRelatedField(serializers.RelatedField):
+    """
+    Related field that renders view based on `serializer_class`
+    """
+    lookup_field = "id"
+
     model = None
+
     serializer_class = None
 
     def get_queryset(self):
@@ -12,7 +20,7 @@ class ModelRelatedField(serializers.RelatedField):
             "%s should have a `model` attribute."
             % self.___class__.__name__
         )
-        return model.objects.all()
+        return self.model.objects.all()
 
     def to_representation(self, value):
         assert self.serializer_class is not None, (
@@ -20,37 +28,37 @@ class ModelRelatedField(serializers.RelatedField):
             % self.___class__.__name__
         )
         queryset = self.get_queryset()
-        instance = queryset.get(pk=value.pk)
-        serializer = serializer_class(instance, context=self.context)
+        obj = queryset.get(pk=value.pk)
+        serializer = self.serializer_class(obj, context=self.context)
         return serializer.data
 
     def to_internal_value(self, data):
         queryset = self.get_queryset()
         if isinstance(data, dict):
-            instance_id = data.get("id", None)
+            identifier = data.get(self.lookup_field, None)
         else:
-            instance_id = data
+            identifier = data
         try:
-            return queryset.get(id=instance_id)
+            return queryset.get(**{self.lookup_field: identifier})
         except:
             raise exceptions.ValidationError(
                 "%s with id '%s' does not exist."
-                % (self.model.__class__.__name__, identity)
+                % (self.model.__class__.__name__, identifier)
             )
 
 
-class BootScriptRelatedField(ModelRelatedField):
-    model = BootScript
-    serializer_class = BootScriptSerializer
-
-    def get_queryset(self):
-        return BootScript.objects.all()
-
-    def to_representation(self, value):
-        script = BootScript.objects.get(id=value)
-        serializer = BootScriptSerializer(script, context=self.context)
-        return serializer.data
-
-    def to_internal_value(self, data):
-        queryset = self.get_queryset()
-        self.data
+# class BootScriptRelatedField(ModelRelatedField):
+#     model = BootScript
+#     serializer_class = BootScriptSummarySerializer
+#
+#     def get_queryset(self):
+#         return BootScript.objects.all()
+#
+#     def to_representation(self, value):
+#         script = BootScript.objects.get(id=value)
+#         serializer = BootScriptSerializer(script, context=self.context)
+#         return serializer.data
+#
+#     def to_internal_value(self, data):
+#         queryset = self.get_queryset()
+#         self.data
