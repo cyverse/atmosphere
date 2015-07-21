@@ -36,6 +36,8 @@ class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
     """
     API endpoint that allows images to be viewed or edited.
     """
+    lookup_fields = ("id", "uuid")
+
     http_method_names = ['get', 'put', 'patch', 'head', 'options', 'trace']
 
     filter_fields = ('created_by__username', 'tags__name')
