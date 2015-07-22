@@ -1,12 +1,13 @@
-from core.models import Application as Image
+from core.models import Application as Image, BootScript
 from rest_framework import serializers
-from api.v2.serializers.summaries import TagSummarySerializer, UserSummarySerializer
+from api.v2.serializers.summaries import TagSummarySerializer,\
+    UserSummarySerializer
 from api.v2.serializers.fields import ImageVersionRelatedField
 
 
 class ImageSerializer(serializers.HyperlinkedModelSerializer):
-    created_by = UserSummarySerializer()
-    tags = TagSummarySerializer(many=True)
+    created_by = UserSummarySerializer(read_only=True)
+    tags = TagSummarySerializer(many=True, read_only=True)
     versions = ImageVersionRelatedField(many=True)
     icon = serializers.CharField(source="get_icon_url", read_only=True)
 
