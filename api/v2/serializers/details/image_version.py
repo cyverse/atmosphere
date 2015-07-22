@@ -1,12 +1,14 @@
 from core.models import ApplicationVersion as ImageVersion
+from core.models import Application as Image
 from rest_framework import serializers
 from api.v2.serializers.summaries import (
     LicenseSummarySerializer,
     UserSummarySerializer,
-    IdentitySummarySerializer,
     ImageSummarySerializer,
+    IdentitySummarySerializer,
     ImageVersionSummarySerializer)
-from api.v2.serializers.fields import ProviderMachineRelatedField
+from api.v2.serializers.fields import (
+    ProviderMachineRelatedField, ModelRelatedField)
 
 
 class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
@@ -26,7 +28,11 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
     user = UserSummarySerializer(source='created_by')
     identity = IdentitySummarySerializer(source='created_by_identity')
     machines = ProviderMachineRelatedField(many=True)
-    image = ImageSummarySerializer(source='application')
+    image = ModelRelatedField(
+        source='application',
+        queryset=Image.objects.all(),
+        serializer_class=ImageSummarySerializer,
+        style={'base_template': 'input.html'})
     start_date = serializers.DateTimeField()
     end_date = serializers.DateTimeField(allow_null=True)
 
