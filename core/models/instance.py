@@ -1,7 +1,6 @@
 """
   Instance model for atmosphere.
 """
-import time
 from hashlib import md5
 from datetime import datetime, timedelta
 
@@ -18,11 +17,12 @@ from threepio import logger
 
 from core.models.instance_source import InstanceSource
 from core.models.identity import Identity
-from core.models.machine import ProviderMachine, ProviderMachine, convert_esh_machine, get_or_create_provider_machine
+from core.models.machine import (
+    convert_esh_machine, get_or_create_provider_machine)
 from core.models.volume import convert_esh_volume
-from core.models.size import convert_esh_size
+from core.models.size import convert_esh_size, Size
 from core.models.tag import Tag
-from core.query import only_current, only_current_source
+from core.query import only_current
 
 
 OPENSTACK_TASK_STATUS_MAP = {
@@ -124,7 +124,8 @@ class InstanceAction(models.Model):
     """
     An InstanceAction is a 'Type' field that lists every available action for
     a given instance on a 'generic' cloud.
-    see 'ProviderInstanceAction' to Enable/disable a specific instance action on a given cloud(Provider)
+    see 'ProviderInstanceAction' to Enable/disable a
+    specific instance action on a given cloud(Provider)
     """
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
@@ -187,6 +188,10 @@ class Instance(models.Model):
     objects = models.Manager()  # The default manager.
     active_instances = ActiveInstancesManager()
 
+    @property
+    def provider(self):
+        return self.source.provider
+
     def get_projects(self, user):
         projects = self.projects.filter(
             Q(end_date=None) | Q(end_date__gt=timezone.now()),
@@ -203,12 +208,19 @@ class Instance(models.Model):
         # TODO: Profile current choice
         last_history = self.instancestatushistory_set.all().order_by(
             '-start_date')
-        if not last_history:
-            return None
-        return last_history[0]
+        if last_history:
+            return last_history[0]
+        else:
+            unknown_size = Size.objects.get(
+                alias='N/A', provider=self.provider)
+            last_history = self._build_first_history(
+                'Unknown', unknown_size, self.start_date, self.end_date, True)
+            logger.warn("No history existed for %s until now. "
+                        "An 'Unknown' history was created" % self)
+            return last_history
 
     def _build_first_history(self, status_name, size, start_date,
-                             first_update=False):
+                             end_date=None, first_update=False):
         if not first_update and status_name not in [
                 'build',
                 'pending',
@@ -217,7 +229,7 @@ class Instance(models.Model):
             # NOTE: This is needed to prevent over-charging accounts
             status_name = 'unknown'
         first_history = InstanceStatusHistory.create_history(
-            status_name, size, start_date)
+            status_name, self, size, start_date, end_date)
         first_history.save()
         return first_history
 
@@ -248,7 +260,8 @@ class Instance(models.Model):
             last_history.save()
             logger.debug("First history: %s" % last_history)
         # 2. Size and name must match to continue using last history
-        if last_history.status.name == status_name and last_history.size.id == size.id:
+        if last_history.status.name == status_name \
+                and last_history.size.id == size.id:
             # logger.info("status_name matches last history:%s " %
             #        last_history.status.name)
             return (False, last_history)
@@ -261,15 +274,9 @@ class Instance(models.Model):
                 start_time=now_time,
                 last_history=last_history)
             return (True, new_history)
-        except ValueError as bad_transaction:
+        except ValueError:
             logger.exception("Bad transaction")
             return (False, last_history)
-
-    def get_active_hours(self, delta):
-        # Don't move it up. Circular reference.
-        from service.monitoring import delta_to_hours
-        total_time = self._calculate_active_time(delta)
-        return delta_to_hours(total_time)
 
     def _calculate_active_time(self, delta=None):
         if not delta:
@@ -352,7 +359,6 @@ class Instance(models.Model):
         if not earliest_time:
             earliest_time = self.start_date
 
-        total_time = timedelta()
         accounting_list = []
         active_history = self.recent_history(earliest_time, latest_time)
 
@@ -398,10 +404,8 @@ class Instance(models.Model):
         else:
             try:
                 if self.source:
-                    source = self.source
-                    identifier = source.identifier
                     return md5(self.source.identifier).hexdigest()
-            except InstanceSource.DoesNotExist as dne:
+            except InstanceSource.DoesNotExist:
                 logger.exception(
                     "Unable to find provider_machine for %s." %
                     self.provider_alias)
@@ -421,6 +425,9 @@ class Instance(models.Model):
         else:
             return "Unknown"
 
+    def get_size(self):
+        return self.get_last_history().size
+
     def esh_size(self):
         if not self.esh or not hasattr(self.esh, 'extra'):
             last_history = self.get_last_history()
@@ -439,13 +446,15 @@ class Instance(models.Model):
 
     def application_uuid(self):
         if self.source.is_machine():
-            return self.source.providermachine.application_version.application.uuid
+            return self.source.providermachine\
+                    .application_version.application.uuid
         else:
             return None
 
     def application_id(self):
         if self.source.is_machine():
-            return self.source.providermachine.application_version.application.id
+            return self.source.providermachine\
+                    .application_version.application.id
         else:
             return None
 
@@ -457,7 +466,8 @@ class Instance(models.Model):
 
     def esh_source_name(self):
         if self.source.is_machine():
-            return self.source.providermachine.application_version.application.name
+            return self.source.providermachine\
+                    .application_version.application.name
         elif self.source.is_volume():
             return self.source.volume.name
         else:
@@ -467,7 +477,6 @@ class Instance(models.Model):
         return self.source.provider.uuid
 
     def provider_name(self):
-        source_dict = self.source.__dict__
         return self.source.provider.location
 
     def esh_source(self):
@@ -543,7 +552,8 @@ class InstanceStatusHistory(models.Model):
                 new_history = InstanceStatusHistory.create_history(
                     status_name, instance, size, start_time)
                 logger.info(
-                    "Status Update - User:%s Instance:%s Old:%s New:%s Time:%s" %
+                    "Status Update - User:%s Instance:%s "
+                    "Old:%s New:%s Time:%s" %
                     (instance.created_by,
                      instance.provider_alias,
                      last_history.status.name,
@@ -551,13 +561,14 @@ class InstanceStatusHistory(models.Model):
                      new_history.start_date))
                 new_history.save()
             return new_history
-        except DatabaseError as dbe:
+        except DatabaseError:
             logger.exception(
                 "instance_status_history: Lock is already acquired by"
                 "another transaction.")
 
     @classmethod
-    def create_history(cls, status_name, instance, size, start_date=None):
+    def create_history(cls, status_name, instance, size,
+                       start_date=None, end_date=None):
         """
         Creates a new (Unsaved!) InstanceStatusHistory
         """
@@ -567,6 +578,9 @@ class InstanceStatusHistory(models.Model):
         if start_date:
             new_history.start_date = start_date
             logger.debug("Created new history object: %s " % (new_history))
+        if end_date and not new_history.end_date:
+            new_history.end_date = end_date
+            logger.debug("End-dated new history object: %s " % (new_history))
         return new_history
 
     def get_active_time(self, earliest_time=None, latest_time=None):
@@ -716,7 +730,8 @@ def _convert_timestamp(iso_8601_stamp):
                 '%Y-%m-%dT%H:%M:%SZ')
         except ValueError:
             raise ValueError(
-                "Expected ISO8601 Timestamp in Format: YYYY-MM-DDTHH:MM:SS[.ssss][Z]")
+                "Expected ISO8601 Timestamp in Format: "
+                "YYYY-MM-DDTHH:MM:SS[.ssss][Z]")
     # All Dates are UTC relative
     datetime_obj = datetime_obj.replace(tzinfo=pytz.utc)
     return datetime_obj
@@ -847,13 +862,13 @@ def set_instance_from_metadata(esh_driver, core_instance):
         if not esh_instance:
             return core_instance
         metadata = esh_driver._connection.ex_get_metadata(esh_instance)
-    except Exception as e:
+    except Exception:
         logger.exception("Exception retrieving instance metadata for %s" %
                          core_instance.provider_alias)
         return core_instance
 
     # TODO: Match with actual instance launch metadata in service/instance.py
-    # TODO: Probably better to redefine serializer as InstanceMetadataSerializer
+    # TODO: Probably best to redefine serializer as InstanceMetadataSerializer
     # TODO: Define a creator and their identity by the METADATA instead of
     # assuming its the person who 'found' the instance
 
