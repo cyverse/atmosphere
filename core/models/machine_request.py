@@ -18,7 +18,7 @@ from core.models.machine import create_provider_machine, ProviderMachine, update
 from core.models.node import NodeController
 from core.models.provider import Provider, AccountProvider
 from core.models.identity import Identity
-from core.models.version import ApplicationVersion
+from core.models.application_version import ApplicationVersion
 
 from atmosphere.settings import secrets
 from threepio import logger

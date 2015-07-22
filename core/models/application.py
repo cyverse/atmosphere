@@ -15,7 +15,7 @@ from core.models.provider import Provider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
 from core.metadata import _get_admin_owner
-from core.models.version import ApplicationVersion
+from core.models.application_version import ApplicationVersion
 
 
 class Application(models.Model):

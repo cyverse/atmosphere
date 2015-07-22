@@ -10,7 +10,7 @@ from threepio import logger
 from core.models.abstract import BaseSource
 from core.models.instance_source import InstanceSource
 from core.models.application import create_application, get_application
-from core.models.version import (
+from core.models.application_version import (
         ApplicationVersion,
         create_app_version,
         get_version_for_machine)
