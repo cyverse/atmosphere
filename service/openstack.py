@@ -16,7 +16,7 @@ def glance_write_machine(provider_machine):
     base_source = provider_machine.instance_source
     base_app = provider_machine.application
     identifier = base_source.identifier
-    g_image = glance_image_for(provider_uuid, identifier)
+    g_image = glance_image_for(base_source.provider.uuid, identifier)
     if not g_image:
         return
     props = g_image.properties
@@ -39,6 +39,27 @@ def _make_safe(unsafe_str):
 
 def _make_unsafe(safe_str):
     return safe_str.replace("_LINE_BREAK_", "\n")
+
+
+def glance_update_machine_metadata(provider_machine, metadata={}):
+    base_source = provider_machine.instance_source
+    base_app = provider_machine.application
+    identifier = base_source.identifier
+    g_image = glance_image_for(base_source.provider.uuid, identifier)
+    if not g_image:
+        return
+    props = g_image.properties
+    extras = {
+        "application_version": str(provider_machine.version),
+        "application_uuid": base_app.uuid,
+        "application_name": _make_safe(base_app.name),
+        "application_owner": base_app.created_by.username,
+        "application_tags": json.dumps(
+            [_make_safe(tag.name) for tag in base_app.tags.all()]),
+        "application_description": _make_safe(base_app.description)}
+    props.update(extras)
+    # Do any updating that makes sense... Name. Metadata..
+    g_image.update(name=base_app.name, properties=props)
 
 
 def glance_update_machine(new_machine):
@@ -131,7 +152,8 @@ def glance_timestamp(iso_8601_stamp):
                 '%Y-%m-%dT%H:%M:%S')
         except ValueError:
             raise ValueError(
-                "Expected ISO8601 Timestamp in Format: YYYY-MM-DDTHH:MM:SS[.sssss]")
+                "Expected ISO8601 Timestamp in Format:"
+                " YYYY-MM-DDTHH:MM:SS[.sssss]")
     # All Dates are UTC relative
     datetime_obj = datetime_obj.replace(tzinfo=pytz.utc)
     return datetime_obj

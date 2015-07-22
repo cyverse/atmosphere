@@ -9,9 +9,6 @@ from threepio import logger
 
 from core.models.license import License
 from core.models.identity import Identity
-from core.models.tag import Tag
-
-from atmosphere import settings
 
 
 class ApplicationVersion(models.Model):
@@ -84,16 +81,20 @@ class ApplicationVersion(models.Model):
     def icon_url(self):
         return self.icon.url if self.icon else None
 
+    def is_owner(self, atmo_user):
+        return (self.created_by == atmo_user |
+                self.application.created_by == atmo_user)
+
 
 class ApplicationVersionMembership(models.Model):
-
     """
     Members of a specific ApplicationVersion
     Members can view & launch respective machines.
-    If the can_share flag is set, then members also have ownership--they can give
-    membership to other users.
+    If the can_share flag is set, then members also have ownership--
+    they can give membership to other users.
     The unique_together field ensures just one of those states is true.
-    NOTE: There IS underlying cloud implementation 9/10 times. That should be 'hooked' in here!
+    NOTE: There IS underlying cloud implementation 9/10 times.
+    That should be 'hooked' in here!
     """
     application_version = models.ForeignKey(ApplicationVersion)
     group = models.ForeignKey('Group')
@@ -143,7 +144,8 @@ def create_unique_version(app, version, created_by, created_by_identity):
                 created_by_identity=created_by_identity,
             )
             return app_version
-        except IntegrityError as duplicate_found:
+        except IntegrityError:
+            # duplicate_found
             logger.warn(
                 "Version %s is taken for Application %s" %
                 (version, app))

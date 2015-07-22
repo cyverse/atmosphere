@@ -1,4 +1,4 @@
-from uuid import uuid4, uuid5, UUID
+from uuid import uuid4, uuid5
 from hashlib import md5
 
 from django.db import models
@@ -84,6 +84,9 @@ class Application(models.Model):
         except ApplicationVersion.DoesNotExist:
             return None
 
+    def is_owner(self, atmo_user):
+        return self.created_by == atmo_user
+
     def _current_machines(self, request_user=None):
         """
         Return a list of current provider machines.
@@ -109,20 +112,22 @@ class Application(models.Model):
         # Out of all non-end dated machines in this application
         providermachine_set = self.all_machines
         first = providermachine_set.filter(
-            only_current_source()).order_by('instance_source__start_date').first()
+            only_current_source()
+            ).order_by('instance_source__start_date').first()
         return first
 
     def last_machine(self):
         providermachine_set = self.all_machines
         # Out of all non-end dated machines in this application
         last = providermachine_set.filter(
-            only_current_source()).order_by('instance_source__start_date').last()
+            only_current_source()
+            ).order_by('instance_source__start_date').last()
         return last
 
     def get_threshold(self):
         try:
             return self.latest_version.threshold
-        except ApplicationThreshold.DoesNotExist as no_threshold:
+        except ApplicationThreshold.DoesNotExist:
             return None
 
     def get_projects(self, user):
@@ -280,9 +285,6 @@ def visible_applications(user):
     apps = []
     if not user:
         return apps
-    from core.models import Provider, ProviderMachineMembership
-    active_providers = Provider.get_active()
-    now_time = timezone.now()
     # Look only for 'Active' private applications
     for app in Application.objects.filter(only_current(), private=True):
         # Retrieve the machines associated with this app
@@ -415,7 +417,6 @@ def create_application(
     Build information (Based on MachineRequest or API inputs..)
     and RETURN Application!!
     """
-    from core.models import AtmosphereUser
     new_app = None
 
     if not uuid:
@@ -440,8 +441,8 @@ def create_application(
     if new_app:
         new_app.name = name
         new_app.description = description
-        new_app.created_by = owner.created_by
-        new_app.created_by_identity = owner
+        new_app.created_by = created_by_identity.created_by
+        new_app.created_by_identity = created_by_identity
         new_app.private = private
         new_app.save()
     else:
