@@ -41,12 +41,13 @@ class GetListTests(APITestCase):
         response = self.view(self.request)
         data = response.data.get('results')[0]
 
-        self.assertEquals(len(data), 11)
+        self.assertEquals(len(data), 12, "Unexepcted # of arguments in API endpoint")
         self.assertIn('id', data)
         self.assertIn('url', data)
         self.assertIn('uuid', data)
         self.assertIn('name', data)
         self.assertIn('description', data)
+        self.assertIn('is_public', data)
         self.assertIn('icon', data)
         self.assertIn('tags', data)
         self.assertIn('created_by', data)
@@ -82,12 +83,13 @@ class GetDetailTests(APITestCase):
         response = self.view(self.request, pk=self.image.id)
         data = response.data
 
-        self.assertEquals(len(data), 11)
+        self.assertEquals(len(data), 12, "Unexepcted # of arguments in API endpoint")
         self.assertIn('id', data)
         self.assertIn('url', data)
         self.assertIn('uuid', data)
         self.assertIn('name', data)
         self.assertIn('description', data)
+        self.assertIn('is_public', data)
         self.assertIn('icon', data)
         self.assertIn('tags', data)
         self.assertIn('created_by', data)
