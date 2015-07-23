@@ -40,6 +40,8 @@ class MembershipViewSet(AuthViewSet):
     API endpoint that allows groups to be viewed or edited.
     """
 
+    max_page_size = 10000
+    max_page_size_query_param = 1000
     queryset = Group.objects.all()
     serializer_class = MembershipSerializer
     filter_backends = (MinLengthRequiredSearchFilter,)

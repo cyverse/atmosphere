@@ -39,7 +39,8 @@ class UserViewSet(AuthViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
-
+    max_page_size = 10000
+    max_page_size_query_param = 1000
     queryset = AtmosphereUser.objects.all()
     serializer_class = UserSerializer
     filter_backends = (MinLengthRequiredSearchFilter,)
