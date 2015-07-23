@@ -33,7 +33,7 @@ class ImageViewSet(viewsets.ModelViewSet):
 
             if user.is_staff:
                 return Image.objects.all()
-            return (public_image_set | user_image_set | shared_image_set).distinct()#Image.objects.filter(private=False, created_by=user, end_date=None)
+            return (public_image_set | user_image_set | shared_image_set).distinct()
 
         else:
             return Image.objects.none()
