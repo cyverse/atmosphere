@@ -13,6 +13,10 @@ router.register(
     r'image_versions',
     views.ImageVersionViewSet,
     base_name='imageversion')
+router.register(
+    r'image_version_memberships',
+    views.ImageVersionMembershipViewSet,
+    base_name='imageversion_membership')
 router.register(r'image_bookmarks', views.ImageBookmarkViewSet)
 router.register(r'image_tags', views.ImageTagViewSet)
 router.register(r'instances', views.InstanceViewSet)
@@ -36,6 +40,7 @@ router.register(r'sizes', views.SizeViewSet)
 router.register(r'status_types', views.StatusTypeViewSet)
 router.register(r'tags', views.TagViewSet)
 router.register(r'users', views.UserViewSet)
+router.register(r'groups', views.MembershipViewSet, base_name='group')
 router.register(r'volumes', views.VolumeViewSet, base_name='volume')
 
 urlpatterns = patterns('', url(r'^', include(router.urls)),)

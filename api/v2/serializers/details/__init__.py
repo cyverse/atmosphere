@@ -1,5 +1,6 @@
 from .allocation import AllocationSerializer
 from .image_version import ImageVersionSerializer
+from .image_version_membership import ImageVersionMembershipSerializer
 from .identity import IdentitySerializer
 from .image import ImageSerializer
 from .image_tag import ImageTagSerializer
@@ -7,6 +8,7 @@ from .image_bookmark import ImageBookmarkSerializer
 from .instance_tag import InstanceTagSerializer
 from .instance_history import InstanceStatusHistorySerializer
 from .instance import InstanceSerializer
+from .membership import MembershipSerializer
 from .project import ProjectSerializer
 from .project_instance import ProjectInstanceSerializer
 from .project_volume import ProjectVolumeSerializer

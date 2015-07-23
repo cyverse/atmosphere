@@ -24,7 +24,7 @@ from core.models.t import T
 from core.models.tag import Tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
-from core.models.application_version import ApplicationVersion
+from core.models.application_version import ApplicationVersion, ApplicationVersionMembership
 from core.models.group import Group, IdentityMembership,\
     InstanceMembership
 from core.models.allocation_strategy import Allocation, AllocationStrategy

@@ -1,4 +1,5 @@
 from .allocation import AllocationSummarySerializer
+from .membership import MembershipSummarySerializer
 from .identity import IdentitySummarySerializer
 from .image import ImageSummarySerializer
 from .image_version import ImageVersionSummarySerializer
