@@ -83,7 +83,7 @@ def create_bootable_volume(
     **kwargs passed as data to boot_volume_instance
     """
 
-    identity = CoreIdentity.objects.get(uuid=identity_uuid)
+    identity = Identity.objects.get(uuid=identity_uuid)
     if not identity:
         raise Exception("Identity UUID %s does not exist." % identity_uuid)
 
@@ -100,7 +100,7 @@ def create_bootable_volume(
     # Return source or raises an Exception
     source = _retrieve_source(driver, new_source_alias, source_hint)
 
-    core_instance = boot_volume_instance(esh_driver, identity,
-                                         source, size, name, **data)
+    core_instance = boot_volume_instance(driver, identity,
+                                         source, size, name, **kwargs)
 
     return core_instance
