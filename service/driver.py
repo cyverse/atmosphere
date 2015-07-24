@@ -1,22 +1,24 @@
 from threepio import logger
 
-import rtwo.compute  # Necessary to initialize Meta classes
 from rtwo.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
-    OSProvider, OSValhallaProvider
+    OSProvider
 from rtwo.identity import AWSIdentity, EucaIdentity,\
     OSIdentity
 from rtwo.driver import AWSDriver, EucaDriver, OSDriver
 
-from core.ldap import get_uid_number
 from core.models import AtmosphereUser as User
 from core.models.identity import Identity as CoreIdentity
+
+EucaProvider.set_meta()
+AWSProvider.set_meta()
+OSProvider.set_meta()
 
 
 def get_hypervisor_statistics(admin_driver):
     if hasattr(admin_driver._connection, "ex_hypervisor_statistics"):
         return None
-    all_instance_stats = admin_driver._connection.ex_hypervisor_statistics()
+    # all_instance_stats = admin_driver._connection.ex_hypervisor_statistics()
     all_instances = admin_driver.list_all_instances()
     for instance in all_instances:
         pass
@@ -136,7 +138,8 @@ def get_esh_driver(core_identity, username=None):
         raise
 
 
-def prepare_driver(request, provider_uuid, identity_uuid):
+def prepare_driver(request, provider_uuid, identity_uuid,
+                   raise_exception=False):
     """
     Return an rtwo.EshDriver for the given provider_uuid
     and identity_uuid.
@@ -149,7 +152,7 @@ def prepare_driver(request, provider_uuid, identity_uuid):
                                                  uuid=identity_uuid)
         if not core_identity.provider.is_active():
             raise ValueError(
-                "Provier %s is NOT active. Driver not created." %
+                "Provider %s is NOT active. Driver not created." %
                 (core_identity.provider,))
         if core_identity in request.user.identity_set.all():
             return get_esh_driver(core_identity=core_identity)
@@ -159,6 +162,8 @@ def prepare_driver(request, provider_uuid, identity_uuid):
                 (request.user.username, core_identity.uuid))
     except (CoreIdentity.DoesNotExist, ValueError):
         logger.exception("Unable to prepare driver.")
+        if raise_exception:
+            raise
         return None
 
 
