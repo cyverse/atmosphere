@@ -115,6 +115,12 @@ class VolumeAttachConflict(ServiceException):
         return "%s" % (self.message, )
 
 
+class VolumeError(ServiceException):
+    """
+    Errors encountered during volume creation.
+    """
+
+
 class VolumeMountConflict(ServiceException):
 
     def __init__(self, instance_id, volume_id, extra=None):

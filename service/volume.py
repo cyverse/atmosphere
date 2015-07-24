@@ -1,6 +1,3 @@
-from djcelery.app import app
-from django.conf import settings
-
 from threepio import logger
 
 from core.models.quota import get_quota, has_storage_count_quota,\
@@ -11,7 +8,7 @@ from service.cache import get_cached_driver
 from service.driver import _retrieve_source
 
 from service.instance import boot_volume_instance
-from service.exceptions import OverQuotaError
+from service.exceptions import OverQuotaError, VolumeError
 
 
 def update_volume_metadata(esh_driver, esh_volume,
@@ -25,10 +22,8 @@ def update_volume_metadata(esh_driver, esh_volume,
     passed: c=5
     End: ('a':'value', 'c':5)
     """
-    wait_time = 1
     if not esh_volume:
         return {}
-    volume_id = esh_volume.id
 
     if not hasattr(esh_driver._connection, 'ex_update_volume_metadata'):
         logger.warn(
@@ -50,8 +45,8 @@ def update_volume_metadata(esh_driver, esh_volume,
 
 
 def create_volume(esh_driver, identity_uuid, name, size,
-                  description=None, metadata=None, snapshot=None, image=None):
-    identity = Identity.objects.get(uuid=identity_uuid)
+                  description=None, metadata=None, snapshot=None, image=None,
+                  raise_exception=False):
     quota = get_quota(identity_uuid)
     if not has_storage_quota(esh_driver, quota, size):
         raise OverQuotaError(
@@ -67,6 +62,10 @@ def create_volume(esh_driver, identity_uuid, name, size,
         metadata=metadata,
         snapshot=snapshot,
         image=image)
+
+    if not success and raise_exception:
+        raise VolumeError("The volume failed to be created.")
+
     return success, esh_volume
 
 
