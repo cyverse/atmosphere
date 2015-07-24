@@ -27,6 +27,11 @@ class MultipleFieldLookup(object):
                             models.CharField,
                             models.TextField)
 
+        assert self.lookup_fields is not None, (
+            "%s must define the attribute `lookup_fields`."
+            % self.__class__.__name__
+        )
+
         filter_fields = []
         for field_name in self.lookup_fields:
             try:
