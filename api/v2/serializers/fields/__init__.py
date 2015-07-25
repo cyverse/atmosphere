@@ -18,7 +18,7 @@ class ModelRelatedField(serializers.RelatedField):
     lookup_field = "pk"
 
     def __init__(self, *args, **kwargs):
-        self.serializer_class = kwargs.pop("serializer_class")
+        self.serializer_class = kwargs.pop("serializer_class", None)
         self.lookup_fields = kwargs.pop("lookup_field", self.lookup_field)
         super(ModelRelatedField, self).__init__(*args, **kwargs)
 
