@@ -8,4 +8,4 @@ class LicenseSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = License
         view_name = 'api:v2:license-detail'
-        fields = ('id', 'title', 'license_type', 'license_text')
+        fields = ('id', 'title', 'license_text', 'license_type')

@@ -9,6 +9,7 @@ from .image_version_membership import ImageVersionMembershipViewSet
 from .instance import InstanceViewSet
 from .instance_tag import InstanceTagViewSet
 from .instance_history import InstanceStatusHistoryViewSet
+from .license import LicenseViewSet
 from .platform_type import PlatformTypeViewSet
 from .project import ProjectViewSet
 from .project_instance import ProjectInstanceViewSet
