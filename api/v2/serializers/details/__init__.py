@@ -1,6 +1,7 @@
 from .allocation import AllocationSerializer
 from .image_version import ImageVersionSerializer
 from .image_version_membership import ImageVersionMembershipSerializer
+from .image_version_license import ImageVersionLicenseSerializer
 from .identity import IdentitySerializer
 from .image import ImageSerializer
 from .image_tag import ImageTagSerializer

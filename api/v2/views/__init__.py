@@ -6,6 +6,7 @@ from .image_bookmark import ImageBookmarkViewSet
 from .image_tag import ImageTagViewSet
 from .image_version import ImageVersionViewSet
 from .image_version_membership import ImageVersionMembershipViewSet
+from .image_version_license import ImageVersionLicenseViewSet
 from .instance import InstanceViewSet
 from .instance_tag import InstanceTagViewSet
 from .instance_history import InstanceStatusHistoryViewSet

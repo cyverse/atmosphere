@@ -1,10 +1,10 @@
 from core.models import ApplicationVersion as ImageVersion
 from rest_framework import serializers
 from api.v2.serializers.summaries import (
-        LicenseSerializer,
-        UserSummarySerializer,
-        IdentitySummarySerializer,
-        ImageVersionSummarySerializer)
+    LicenseSummarySerializer,
+    UserSummarySerializer,
+    IdentitySummarySerializer,
+    ImageVersionSummarySerializer)
 from api.v2.serializers.fields import ProviderMachineRelatedField
 
 
@@ -17,7 +17,7 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
     # id, application
     parent = ImageVersionSummarySerializer()
     # name, change_log, allow_imaging
-    licenses = LicenseSerializer(many=True, read_only=True)  # NEW
+    licenses = LicenseSummarySerializer(many=True, read_only=True)  # NEW
     membership = serializers.SlugRelatedField(
         slug_field='name',
         read_only=True,

@@ -4,7 +4,7 @@ from .identity import IdentitySummarySerializer
 from .image import ImageSummarySerializer
 from .image_version import ImageVersionSummarySerializer
 from .instance import InstanceSummarySerializer, InstanceSuperSummarySerializer
-from .license import LicenseSerializer
+from .license import LicenseSummarySerializer
 from .project import ProjectSummarySerializer
 from .provider import ProviderSummarySerializer
 from .provider_machine import ProviderMachineSummarySerializer

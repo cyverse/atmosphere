@@ -14,6 +14,10 @@ router.register(
     views.ImageVersionViewSet,
     base_name='imageversion')
 router.register(
+    r'image_version_licenses',
+    views.ImageVersionLicenseViewSet,
+    base_name='imageversion_license')
+router.register(
     r'image_version_memberships',
     views.ImageVersionMembershipViewSet,
     base_name='imageversion_membership')
