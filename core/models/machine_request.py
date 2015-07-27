@@ -82,7 +82,7 @@ class MachineRequest(models.Model):
         users the chance to correct their mistakes.
         """
         #'Created application' specific logic that should fail:
-        if self.new_application_forked:
+        if self.new_version_forked:
             pass
         #'Updated Version' specific logic that should fail:
         else:
