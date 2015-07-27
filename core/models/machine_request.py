@@ -449,7 +449,7 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     owner_identity = _get_owner(new_provider, new_owner)
     tags = _match_tags_to_names(machine_request.new_machine_tags)
     membership = _match_membership_to_access(machine_request.access_list, machine_request.new_version_membership)
-    if machine_request.new_machine_forked:
+    if machine_request.new_version_forked:
         application = create_application(
             new_image_id,
             new_provider.uuid,
