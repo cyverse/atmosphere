@@ -10,12 +10,42 @@ from .instance import InstanceSerializer
 from .project import ProjectSerializer
 from .project_instance import ProjectInstanceSerializer
 from .project_volume import ProjectVolumeSerializer
-from .provider import ProviderSerializer, ProviderTypeSerializer, PlatformTypeSerializer
+from .provider import ProviderSerializer, ProviderTypeSerializer,\
+    PlatformTypeSerializer
 from .provider_machine import ProviderMachineSerializer
 from .quota import QuotaSerializer
-from .resource_request import ResourceRequestSerializer, UserResourceRequestSerializer
+from .resource_request import ResourceRequestSerializer,\
+    UserResourceRequestSerializer
 from .size import SizeSerializer
 from .status_type import StatusTypeSerializer
 from .tag import TagSerializer
 from .user import UserSerializer
-from .volume import VolumeSerializer
+from .volume import VolumeSerializer, UpdateVolumeSerializer
+
+__all__ = (
+    "AllocationSerializer",
+    "BootScriptSerializer",
+    "IdentitySerializer",
+    "ImageBookmarkSerializer",
+    "ImageSerializer",
+    "ImageTagSerializer",
+    "ImageVersionSerializer",
+    "InstanceSerializer",
+    "InstanceTagSerializer",
+    "PlatformTypeSerializer",
+    "ProjectInstanceSerializer",
+    "ProjectSerializer",
+    "ProjectVolumeSerializer",
+    "ProviderMachineSerializer",
+    "ProviderSerializer",
+    "ProviderTypeSerializer",
+    "QuotaSerializer",
+    "ResourceRequestSerializer",
+    "SizeSerializer",
+    "StatusTypeSerializer",
+    "TagSerializer",
+    "UpdateVolumeSerializer",
+    "UserResourceRequestSerializer",
+    "UserSerializer",
+    "VolumeSerializer"
+)

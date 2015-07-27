@@ -91,14 +91,40 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
 
         return Volume.objects.create(**kwargs)
 
-    def update(self, instance, validated_data):
-        if 'instance_source' in validated_data:
-            source = instance.instance_source
-            source_data = validated_data.pop('instance_source')
-            for key, val in source_data.items():
-                setattr(source, key, val)
-            source.save()
-        for (key, val) in validated_data.items():
-            setattr(instance, key, val)
-        instance.save()
-        return instance
+
+class UpdateVolumeSerializer(serializers.HyperlinkedModelSerializer):
+    name = serializers.CharField(required=False)
+    description = serializers.CharField(required=False)
+
+    identity = IdentitySummarySerializer(
+        source="instance_source.created_by_identity",
+        read_only=True)
+
+    provider = ProviderSummarySerializer(source="instance_source.provider",
+                                         read_only=True)
+
+    user = UserSummarySerializer(source='instance_source.created_by',
+                                 read_only=True)
+
+    uuid = serializers.CharField(source='instance_source.identifier',
+                                 read_only=True)
+
+    projects = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+
+    class Meta:
+        model = Volume
+        view_name = 'api:v2:volume-detail'
+        read_only_fields = ("user", "size", "uuid", "start_date", "end_date")
+        fields = (
+            'id',
+            'uuid',
+            'name',
+            'description',
+            'identity',
+            'user',
+            'provider',
+            'projects',
+            'size',
+            'url',
+            'start_date',
+            'end_date')
