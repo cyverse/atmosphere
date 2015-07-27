@@ -4,13 +4,15 @@ from django.utils import timezone
 from libcloud.common.types import InvalidCredsError, MalformedResponseError
 from rest_framework import exceptions
 
-from api.v2.serializers.details import VolumeSerializer
+from api.v2.serializers.details import VolumeSerializer, UpdateVolumeSerializer
 from api.v2.views.base import AuthViewSet
 from core.models import Volume
 from core.query import only_current_source
 from service.volume import create_volume_or_fail
 from service.exceptions import OverQuotaError
 from rtwo.exceptions import ConnectionFailure
+
+UPDATE_METHODS = ("PUT", "PATCH")
 
 VOLUME_EXCEPTIONS = (OverQuotaError, ConnectionFailure, MalformedResponseError)
 
@@ -33,6 +35,11 @@ class VolumeViewSet(AuthViewSet):
     filter_class = VolumeFilter
     http_method_names = ('get', 'post', 'put', 'patch', 'head', 'options',
                          'trace')
+
+    def get_serializer_class(self):
+        if self.request.method in UPDATE_METHODS:
+            return UpdateVolumeSerializer
+        return self.serializer_class
 
     def get_queryset(self):
         """
