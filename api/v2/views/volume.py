@@ -8,7 +8,7 @@ from api.v2.serializers.details import VolumeSerializer, UpdateVolumeSerializer
 from api.v2.views.base import AuthViewSet
 from core.models import Volume
 from core.query import only_current_source
-from service.volume import create_volume_or_fail
+from service.volume import create_volume_or_fail, destroy_volume_or_fail
 from service.exceptions import OverQuotaError
 from rtwo.exceptions import ConnectionFailure
 
@@ -33,8 +33,8 @@ class VolumeViewSet(AuthViewSet):
     """
     serializer_class = VolumeSerializer
     filter_class = VolumeFilter
-    http_method_names = ('get', 'post', 'put', 'patch', 'head', 'options',
-                         'trace')
+    http_method_names = ('get', 'post', 'put', 'patch', 'delete',
+                         'head', 'options', 'trace')
 
     def get_serializer_class(self):
         if self.request.method in UPDATE_METHODS:
@@ -70,6 +70,16 @@ class VolumeViewSet(AuthViewSet):
                             name=esh_volume.name,
                             created_on=pytz.utc.localize(created_on),
                             user=self.request.user)
+        except InvalidCredsError as e:
+            raise exceptions.PermissionDenied(detail=e.message)
+        except VOLUME_EXCEPTIONS as e:
+            raise exceptions.ParseError(detail=e.message)
+
+    def perform_destroy(self, instance):
+        try:
+            destroy_volume_or_fail(instance, self.request.user)
+            instance.end_date = timezone.now()
+            instance.save()
         except InvalidCredsError as e:
             raise exceptions.PermissionDenied(detail=e.message)
         except VOLUME_EXCEPTIONS as e:

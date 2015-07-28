@@ -121,6 +121,12 @@ class VolumeError(ServiceException):
     """
 
 
+class NotFound(ServiceException):
+    """
+    Exception raised when a resource cannot be found.
+    """
+
+
 class VolumeMountConflict(ServiceException):
 
     def __init__(self, instance_id, volume_id, extra=None):
