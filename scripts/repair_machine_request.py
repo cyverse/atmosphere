@@ -53,11 +53,11 @@ def fix_requests(provider, requests=[]):
     if not fixed:
         fixed = _fix_wrong_machine_on_request(machine_request, provider, new_machine)
     if not fixed and new_machine:
-        _fix_new_machine_forked(machine_request, provider, new_machine)
+        _fix_new_version_forked(machine_request, provider, new_machine)
 
-def _fix_new_machine_forked(machine_request, provider, new_machine):
+def _fix_new_version_forked(machine_request, provider, new_machine):
     app_uuid = _generate_app_uuid(new_machine.identifier)
-    if not machine_request.new_machine_forked:
+    if not machine_request.new_version_forked:
         return False
     if Application.objects.filter(uuid=app_uuid).count():
         return False
@@ -179,8 +179,8 @@ def _create_new_application(machine_request, new_image_id, tags=[]):
             owner_ident,
             #new_app.Private = False when machine_request.is_public = True
             not machine_request.is_public(),
-            machine_request.new_machine_version,
-            machine_request.new_machine_description,
+            machine_request.new_version_name,
+            machine_request.new_application_description,
             tags)
     return new_app
 
@@ -191,8 +191,8 @@ def _update_parent_application(machine_request, new_image_id, tags=[]):
 def _update_application(application, machine_request, tags=[]):
     if application.name is not machine_request.new_application_name:
         application.name = machine_request.new_application_name
-    if machine_request.new_machine_description:
-        application.description = machine_request.new_machine_description
+    if machine_request.new_application_description:
+        application.description = machine_request.new_application_description
     application.private = not machine_request.is_public()
     application.tags = tags
     application.save()

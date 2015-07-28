@@ -102,7 +102,7 @@ def fix_private_images_without_repr(private_images, prov, accounts):
                 print "Processing machine with image %s" % img.id
                 process_machine_request(mr, img.id)
             pm = mr.new_machine
-            if mr.new_machine_visibility.lower() == 'public':
+            if mr.new_application_visibility.lower() == 'public':
                 make_public(accounts.image_manager, img, pm)
                 continue
             #Private or selected access..
@@ -134,7 +134,7 @@ def fix_private_images(private_images, prov, accounts):
         pm = pm[0]
         machine_requests = MachineRequest.objects.filter(new_machine=pm)
         for mr in machine_requests:
-            if mr.new_machine_visibility.lower() == 'public':
+            if mr.new_application_visibility.lower() == 'public':
                 print "Machine Request says image %s should be public" % img.id
                 make_public(accounts.image_manager, img, pm)
                 continue
@@ -172,7 +172,7 @@ def fix_public_images(public_images, prov, accounts):
         pm = pm[0]
         machine_requests = MachineRequest.objects.filter(
                 Q(new_machine=pm) &
-                ~Q(new_machine_visibility__exact="public"))
+                ~Q(new_application_visibility__exact="public"))
         for mr in machine_requests:
             access_list  = parse_list(mr.access_list, prov.id)
             #Fix on the image

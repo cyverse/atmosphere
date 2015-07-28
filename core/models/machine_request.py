@@ -165,7 +165,7 @@ class MachineRequest(models.Model):
         return self.instance.provider_alias
 
     def is_public(self):
-        return "public" in self.new_machine_visibility.lower()
+        return "public" in self.new_application_visibility.lower()
 
     def get_access_list(self):
         if '[' not in self.access_list:
@@ -289,6 +289,7 @@ class MachineRequest(models.Model):
         imaging_args = {
             "instance_id": self.instance.provider_alias,
             "image_name": self.new_application_name,
+            "timestamp": self.start_date,
             "download_dir" : download_dir}
         if issubclass(orig_managerCls, OSImageManager):
             download_location = self._extract_file_location(download_dir)
@@ -447,7 +448,7 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     new_provider = machine_request.new_machine_provider
     new_owner = machine_request.new_machine_owner
     owner_identity = _get_owner(new_provider, new_owner)
-    tags = _match_tags_to_names(machine_request.new_machine_tags)
+    tags = _match_tags_to_names(machine_request.new_version_tags)
     membership = _match_membership_to_access(machine_request.access_list, machine_request.new_version_membership)
     if machine_request.new_version_forked:
         application = create_application(
@@ -455,12 +456,12 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
             new_provider.uuid,
             machine_request.new_application_name,
             created_by_identity=owner_identity,
-            description=machine_request.new_machine_description,
+            description=machine_request.new_application_description,
             private=not machine_request.is_public(),
-            allow_imaging=machine_request.new_machine_allow_imaging,
+            allow_imaging=machine_request.new_version_allow_imaging,
             tags=tags)
     else:
-        application = update_application(parent_version, machine_request.new_application_name, machine_request.new_machine_description, tags)
+        application = update_application(parent_version, machine_request.new_application_name, machine_request.new_application_description, tags)
     app_version = create_app_version(application, self.new_version_name)
 
     #2. Create the new InstanceSource and appropriate Object, relations, Memberships..

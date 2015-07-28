@@ -180,10 +180,10 @@ def set_machine_request_metadata(machine_request, image_id):
         return
     metadata = lc_driver.ex_get_image_metadata(machine)
 
-    if machine_request.new_machine_description:
-        metadata['description'] = machine_request.new_machine_description
-    if machine_request.new_machine_tags:
-        metadata['tags'] = machine_request.new_machine_tags
+    if machine_request.new_application_description:
+        metadata['description'] = machine_request.new_application_description
+    if machine_request.new_version_tags:
+        metadata['tags'] = machine_request.new_version_tags
     logger.info("LC Driver:%s - Machine:%s - Metadata:%s"
                 % (lc_driver, machine.id, metadata))
     lc_driver.ex_set_image_metadata(machine, metadata)
