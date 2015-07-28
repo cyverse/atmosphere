@@ -11,6 +11,9 @@ from service.driver import _retrieve_source, prepare_driver
 from service.instance import boot_volume_instance
 from service.exceptions import OverQuotaError, VolumeError
 
+# FIXME: fix prepare_driver to take a user directly
+Request = namedtuple("request", ["user"])
+
 
 def update_volume_metadata(esh_driver, esh_volume,
                            metadata={}):
@@ -55,11 +58,10 @@ def restrict_size_by_image(size, image):
 
 
 def create_volume_or_fail(name, size, user, provider, identity,
-                          description=None, image_id=None, snapshot_id=None):
+                          image_id=None, snapshot_id=None):
     snapshot = None
     image = None
     # FIXME: fix prepare_driver to take a user directly
-    Request = namedtuple("request", ["user"])
     request = Request(user)
     driver = prepare_driver(request, provider.uuid, identity.uuid,
                             raise_exception=True)
@@ -78,7 +80,6 @@ def create_volume_or_fail(name, size, user, provider, identity,
 
     #: Create the volume or raise an exception
     _, volume = create_volume(driver, identity.uuid, name, size,
-                              description=description,
                               snapshot=snapshot, image=image,
                               raise_exception=True)
     return volume

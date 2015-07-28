@@ -11,7 +11,7 @@ from core.models.instance_source import InstanceSource
 
 
 class VolumeSerializer(serializers.HyperlinkedModelSerializer):
-    description = serializers.CharField(required=False)
+    description = serializers.CharField(required=False, allow_blank=True)
 
     identity = ModelRelatedField(source="instance_source.created_by_identity",
                                  queryset=Identity.objects.all(),
@@ -30,8 +30,10 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
                                  read_only=True)
 
     projects = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    snapshot_id = serializers.CharField(write_only=True, required=False)
-    image_id = serializers.CharField(write_only=True, required=False)
+    snapshot_id = serializers.CharField(write_only=True, allow_blank=True,
+                                        required=False)
+    image_id = serializers.CharField(write_only=True, allow_blank=True,
+                                     required=False)
 
     class Meta:
         model = Volume
@@ -68,12 +70,14 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
     def create(self, validated_data):
         name = validated_data.get('name')
         size = validated_data.get('size')
-        description = validated_data.get('description')
         identifier = validated_data.get("identifier")
-        provider = validated_data.get("provider")
+        description = validated_data.get('description')
         user = validated_data.get("user")
-        identity = validated_data.get("identity")
         start_date = validated_data.get("created_on")
+
+        instance_source = validated_data.get("instance_source")
+        identity = instance_source.get("created_by_identity")
+        provider = instance_source.get('provider')
 
         source = InstanceSource.objects.create(
             identifier=identifier,

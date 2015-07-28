@@ -54,10 +54,8 @@ class VolumeViewSet(AuthViewSet):
         data = serializer.validated_data
         name = data.get('name')
         size = data.get('size')
-        description = data.get('description')
         image_id = data.get('image')
         snapshot_id = data.get('snapshot')
-        # FIXME: Determine what a sane default is
         instance_source = data.get("instance_source")
         identity = instance_source.get("created_by_identity")
         provider = instance_source.get('provider')
@@ -65,15 +63,13 @@ class VolumeViewSet(AuthViewSet):
         try:
             esh_volume = create_volume_or_fail(name, size, self.request.user,
                                                provider, identity,
-                                               description=description,
                                                image_id=image_id,
                                                snapshot_id=snapshot_id)
             created_on = esh_volume.extra.get("createTime", timezone.now())
             serializer.save(identifier=esh_volume.id,
                             name=esh_volume.name,
                             created_on=pytz.utc.localize(created_on),
-                            user=self.request.user,
-                            identity=identity)
+                            user=self.request.user)
         except InvalidCredsError as e:
             raise exceptions.PermissionDenied(detail=e.message)
         except VOLUME_EXCEPTIONS as e:
