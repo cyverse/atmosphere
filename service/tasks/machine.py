@@ -17,7 +17,7 @@ from core.models.machine_request import MachineRequest, process_machine_request
 from core.models.export_request import ExportRequest
 from core.models.identity import Identity
 
-from service.driver import get_admin_driver, get_esh_driver
+from service.driver import get_admin_driver, get_esh_driver, get_account_driver
 from service.deploy import freeze_instance, sync_instance
 from service.tasks.driver import wait_for_instance, destroy_instance
 
@@ -264,7 +264,7 @@ def validate_new_image(image_id, machine_request_id):
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.status = 'validating'
     machine_request.save()
-    accounts = get_os_account_driver(machine_request.new_machine.provider)
+    accounts = get_account_driver(machine_request.new_machine.provider)
     accounts.clear_cache()
     from service.instance import launch_machine_instance
     admin_driver = accounts.admin_driver

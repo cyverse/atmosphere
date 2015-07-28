@@ -422,8 +422,8 @@ def create_application(provider_uuid, identifier, name=None,
     if new_app:
         new_app.name = name
         new_app.description = description
-        new_app.created_by = owner.created_by
-        new_app.created_by_identity = owner
+        new_app.created_by = created_by_identity.created_by
+        new_app.created_by_identity = created_by_identity
         new_app.private = private
         new_app.save()
     else:

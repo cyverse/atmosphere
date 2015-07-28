@@ -317,8 +317,7 @@ def update_provider_machine(provider_machine, new_created_by_identity=None, new_
     if new_created_by_identity:
         provider_machine.created_by_identity = new_created_by_identity
     if new_application_version:
-        provider_machine.application_version = new_version
-        provider_machine.application = new_version.application
+        provider_machine.application_version = new_application_version
     provider_machine.save()
     provider_machine_write_hook(provider_machine)
 

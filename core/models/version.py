@@ -130,7 +130,7 @@ def create_unique_version(app, version, created_by, created_by_identity):
             version += ".0"
 
 
-def create_app_version(app, version_str, created_by=None, created_by_identity=None):
+def create_app_version(app, version_str, created_by=None, created_by_identity=None, change_log=None, allow_imaging=None):
     if not created_by:
         created_by = app.created_by
     if not created_by_identity:
@@ -138,14 +138,25 @@ def create_app_version(app, version_str, created_by=None, created_by_identity=No
     app_version = create_unique_version(app, version_str, created_by, created_by_identity)
     last_version = app.latest_version
     if last_version:
-        #DEFAULT: Inherit your information from your parents
-        app_version.change_log=last_version.change_log
-        app_version.allow_imaging=last_version.allow_imaging
+        # DEFAULT: Use kwargs.. Otherwise: Inherit information from last
+        if change_log != None:
+            app_version.change_log = change_log
+        else:
+            app_version.change_log=last_version.change_log
+        if allow_imaging != None:
+            app_version.allow_imaging = allow_imaging
+        else:
+            app_version.allow_imaging=last_version.allow_imaging
         app_version.save()
         transfer_licenses(last_version, app_version)
         transfer_membership(last_version, app_version)
     else:
-        app_version.change_log = "New Application %s - Version %s" % (app.name, app_version.name)
+        if change_log == None:
+            change_log = "New Application %s - Version %s" % (app.name, app_version.name)
+        if allow_imaging == None:
+            allow_imaging = True
+        app_version.change_log = change_log
+        app_version.allow_imaging = allow_imaging
         app_version.save()
     return app_version
 

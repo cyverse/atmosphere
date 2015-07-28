@@ -12,14 +12,15 @@ def glance_write_machine(provider_machine):
     Using the provider_machine in the DB, save information to the Cloud.
     """
     base_source = provider_machine.instance_source
+    provider = base_source.provider
     base_app = provider_machine.application
     identifier = base_source.identifier
-    g_image = glance_image_for(provider_uuid, identifier)
+    g_image = glance_image_for(provider.uuid, identifier)
     if not g_image:
         return
     props = g_image.properties
     extras = {
-        "application_version": str(provider_machine.version),
+        "application_version": str(provider_machine.application_version.name),
         "application_uuid": base_app.uuid,
         "application_name": _make_safe(base_app.name),
         "application_owner": base_app.created_by.username,
