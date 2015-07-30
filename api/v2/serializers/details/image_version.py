@@ -26,7 +26,7 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
     identity = IdentitySummarySerializer(source='created_by_identity')
     machines = ProviderMachineRelatedField(many=True)
     start_date = serializers.DateTimeField()
-    end_date = serializers.DateTimeField(required=False)
+    end_date = serializers.DateTimeField(allow_null=True)
 
     class Meta:
         model = ImageVersion
