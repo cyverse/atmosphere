@@ -1,6 +1,4 @@
-from djcelery.app import app
-from django.conf import settings
-
+from collections import namedtuple
 from threepio import logger
 
 from core.models.quota import get_quota, has_storage_count_quota,\
@@ -8,10 +6,13 @@ from core.models.quota import get_quota, has_storage_count_quota,\
 from core.models.identity import Identity
 
 from service.cache import get_cached_driver
-from service.driver import _retrieve_source
+from service.driver import _retrieve_source, prepare_driver
 
+from service import exceptions
 from service.instance import boot_volume_instance
-from service.exceptions import OverQuotaError
+
+# FIXME: fix prepare_driver to take a user directly
+Request = namedtuple("request", ["user"])
 
 
 def update_volume_metadata(esh_driver, esh_volume,
@@ -25,10 +26,8 @@ def update_volume_metadata(esh_driver, esh_volume,
     passed: c=5
     End: ('a':'value', 'c':5)
     """
-    wait_time = 1
     if not esh_volume:
         return {}
-    volume_id = esh_volume.id
 
     if not hasattr(esh_driver._connection, 'ex_update_volume_metadata'):
         logger.warn(
@@ -49,15 +48,52 @@ def update_volume_metadata(esh_driver, esh_volume,
             raise
 
 
+def restrict_size_by_image(size, image):
+    image_size = image._connection.get_size(image._image)
+    if size > image_size + 4:
+        raise exceptions.VolumeError(
+            "Volumes created from images cannot exceed "
+            "more than 4GB greater than the size of the image:%s GB"
+            % size)
+
+
+def create_volume_or_fail(name, size, user, provider, identity,
+                          image_id=None, snapshot_id=None):
+    snapshot = None
+    image = None
+    # FIXME: fix prepare_driver to take a user directly
+    request = Request(user)
+    driver = prepare_driver(request, provider.uuid, identity.uuid,
+                            raise_exception=True)
+
+    if snapshot_id:
+        snapshot = driver._connection.ex_get_snapshot(image_id)
+
+    if image_id:
+        image = driver.get_machine(image_id)
+        restrict_size_by_image(size, image)
+
+    #: Guard against both snapshot and image being present
+    assert snapshot is None or image is None, (
+        "A volume can only be constructed from a `snapshot` "
+        "or an `image` not both.")
+
+    #: Create the volume or raise an exception
+    _, volume = create_volume(driver, identity.uuid, name, size,
+                              snapshot=snapshot, image=image,
+                              raise_exception=True)
+    return volume
+
+
 def create_volume(esh_driver, identity_uuid, name, size,
-                  description=None, metadata=None, snapshot=None, image=None):
-    identity = Identity.objects.get(uuid=identity_uuid)
+                  description=None, metadata=None, snapshot=None, image=None,
+                  raise_exception=False):
     quota = get_quota(identity_uuid)
     if not has_storage_quota(esh_driver, quota, size):
-        raise OverQuotaError(
+        raise exceptions.OverQuotaError(
             message="Maximum total size of Storage Volumes Exceeded")
     if not has_storage_count_quota(esh_driver, quota, 1):
-        raise OverQuotaError(
+        raise exceptions.OverQuotaError(
             message="Maximum # of Storage Volumes Exceeded")
     # NOTE: Calling non-standard create_volume_obj so we know the ID
     # of newly created volume. Libcloud just returns 'True'... --Steve
@@ -67,7 +103,45 @@ def create_volume(esh_driver, identity_uuid, name, size,
         metadata=metadata,
         snapshot=snapshot,
         image=image)
+
+    if not success and raise_exception:
+        raise exceptions.VolumeError("The volume failed to be created.")
+
     return success, esh_volume
+
+
+def destroy_volume_or_fail(volume, user, cascade=False):
+    """
+    Destroy the volume specified
+
+    :param cascade: Cascades through and destroy volume snapshots
+                    (defaults is False)
+    :type cascade: ``bool``
+    """
+    provider = volume.instance_source.provider
+    identity = volume.instance_source.created_by_identity
+    # FIXME: fix prepare_driver to take a user directly
+    request = Request(user)
+    driver = prepare_driver(request, provider.uuid, identity.uuid,
+                            raise_exception=True)
+
+    # retrieve volume or fail with not found
+    esh_volume = driver.get_volume(volume.identifier)
+
+    if esh_volume is None:
+        raise exceptions.NotFound(
+            "The `%s` could not be found."
+            % volume.identifier)
+
+    # if cascade True and snapshots exist delete all snapshots
+    if cascade:
+        snapshots = esh_volume.list_snapshots()
+        for snapshot in snapshots:
+            driver.destroy_snapshot(snapshot)
+
+    # destroy the volume successfully or raise an exception
+    if not driver.destroy_volume(esh_volume):
+        raise Exception("Encountered an error destroying the volume.")
 
 
 def create_bootable_volume(
