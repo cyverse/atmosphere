@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from core.models.group import Group
-from core.models.post_boot import ScriptType, BootScript,\
+from core.models.boot_script import ScriptType, BootScript,\
     get_scripts_for_user
 
 from api import failure_response

@@ -7,10 +7,19 @@ router.register(r'image_version', views.ImageVersionViewSet, base_name='imagever
 router.register(r'allocations', views.AllocationViewSet, base_name='allocation')
 router.register(r'identities', views.IdentityViewSet)
 router.register(r'images', views.ImageViewSet, base_name='application')
+router.register(
+    r'image_versions',
+    views.ImageVersionViewSet,
+    base_name='imageversion')
+router.register(
+    r'image_version_boot_scripts',
+    views.ImageVersionBootScriptViewSet,
+    base_name='imageversion_bootscript')
 router.register(r'image_bookmarks', views.ImageBookmarkViewSet)
 router.register(r'image_tags', views.ImageTagViewSet)
 router.register(r'instances', views.InstanceViewSet)
 router.register(r'instance_tags', views.InstanceTagViewSet)
+router.register(r'boot_scripts', views.BootScriptViewSet)
 router.register(r'platform_types', views.PlatformTypeViewSet)
 router.register(r'projects', views.ProjectViewSet)
 router.register(r'project_instances', views.ProjectInstanceViewSet)

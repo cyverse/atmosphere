@@ -31,7 +31,7 @@ from django.conf import settings
 
 from core.email import send_instance_email
 from core.ldap import get_uid_number as get_unique_number
-from core.models.post_boot import get_scripts_for_instance
+from core.models.boot_script import get_scripts_for_instance
 from core.models.instance import Instance
 from core.models.identity import Identity
 from core.models.profile import UserProfile

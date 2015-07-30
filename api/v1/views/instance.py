@@ -20,7 +20,7 @@ from core.models import AtmosphereUser as User
 from core.models.identity import Identity
 from core.models.instance import convert_esh_instance
 from core.models.instance import Instance as CoreInstance
-from core.models.post_boot import _save_scripts_to_instance
+from core.models.boot_script import _save_scripts_to_instance
 from core.models.provider import AccountProvider
 from core.models.tag import Tag as CoreTag
 from core.models.volume import convert_esh_volume

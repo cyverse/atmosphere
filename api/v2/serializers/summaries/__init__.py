@@ -3,6 +3,7 @@ from .identity import IdentitySummarySerializer
 from .image import ImageSummarySerializer
 from .image_version import ImageVersionSummarySerializer
 from .instance import InstanceSummarySerializer, InstanceSuperSummarySerializer
+from .boot_script import BootScriptSummarySerializer
 from .project import ProjectSummarySerializer
 from .provider import ProviderSummarySerializer
 from .provider_machine import ProviderMachineSummarySerializer
@@ -12,4 +13,15 @@ from .status_type import StatusTypeSummarySerializer
 from .tag import TagSummarySerializer
 from .user import UserSummarySerializer
 from .volume import VolumeSummarySerializer
-from .license import LicenseSerializer
+
+__all__ = (
+    AllocationSummarySerializer,
+    IdentitySummarySerializer, ImageSummarySerializer,
+    ImageVersionSummarySerializer, InstanceSummarySerializer,
+    InstanceSuperSummarySerializer, 
+    BootScriptSummarySerializer, ProjectSummarySerializer,
+    ProviderSummarySerializer, ProviderMachineSummarySerializer,
+    QuotaSummarySerializer, SizeSummarySerializer,
+    StatusTypeSummarySerializer, TagSummarySerializer,
+    UserSummarySerializer, VolumeSummarySerializer
+)
