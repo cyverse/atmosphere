@@ -21,6 +21,7 @@ router.register(
     r'image_version_memberships',
     views.ImageVersionMembershipViewSet,
     base_name='imageversion_membership')
+router.register(
     r'image_version_boot_scripts',
     views.ImageVersionBootScriptViewSet,
     base_name='imageversion_bootscript')
