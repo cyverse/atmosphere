@@ -344,7 +344,6 @@ def update_provider_machine(
         provider_machine.created_by_identity = new_created_by_identity
     if new_application_version:
         provider_machine.application_version = new_application_version
-        provider_machine.application = new_application_version.application
     provider_machine.save()
     provider_machine_write_hook(provider_machine)
 

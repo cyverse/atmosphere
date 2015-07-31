@@ -18,7 +18,7 @@ from core.models.machine import create_provider_machine, ProviderMachine, update
 from core.models.node import NodeController
 from core.models.provider import Provider, AccountProvider
 from core.models.identity import Identity
-from core.models.application_version import ApplicationVersion
+from core.models.application_version import ApplicationVersion, create_app_version
 
 from atmosphere.settings import secrets
 from threepio import logger
@@ -99,7 +99,7 @@ class MachineRequest(models.Model):
         users the chance to correct their mistakes.
         """
         #'Created application' specific logic that should fail:
-        if self.new_application_forked:
+        if self.new_version_forked:
             pass
         #'Updated Version' specific logic that should fail:
         else:
@@ -188,7 +188,7 @@ class MachineRequest(models.Model):
         return self.instance.provider_alias
 
     def is_public(self):
-        return "public" in self.new_machine_visibility.lower()
+        return "public" in self.new_application_visibility.lower()
 
     def get_access_list(self):
         if '[' not in self.access_list:
@@ -310,7 +310,8 @@ class MachineRequest(models.Model):
         imaging_args = {
             "instance_id": self.instance.provider_alias,
             "image_name": self.new_application_name,
-            "download_dir": download_dir}
+            "timestamp": self.start_date,
+            "download_dir" : download_dir}
         if issubclass(orig_managerCls, OSImageManager):
             download_location = self._extract_file_location(download_dir)
             imaging_args['download_location'] = download_location
@@ -380,21 +381,19 @@ class MachineRequest(models.Model):
 
 def _match_membership_to_access(access_list, membership):
     """
-    INPUT: tag1,tag2,tag3
-    OUTPUT: <Tag: tag1>, ..., <Tag: tag3>
-    NOTE: Tags NOT created BEFORE being added to new_machine_tags are ignored.
+    INPUT: user1,user2, user3 + user4,user5
+    OUTPUT: <User: 1>, ..., <User: 5>
     """
     # Circ.Dep. DO NOT MOVE UP!! -- Future Solve:Move into Group?
     from core.models.group import Group
     if not access_list:
-        return self.new_version_membership.all()
-    # If using access list, parse the list into queries and evaluate the
-    # filter ONCE.
+        return membership.all()
+    # If using access list, parse the list into queries and evaluate the filter ONCE.
     names_wanted = access_list.split(',')
     query_list = map(lambda name: Q(name__iexact=name), names_wanted)
     query_list = reduce(lambda qry1, qry2: qry1 | qry2, query_list)
     members = Group.objects.filter(query_list)
-    return members | self.new_version_membership.all()
+    return members | membership.all()
 
 
 def _match_tags_to_names(tag_names):
@@ -476,53 +475,47 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     new_provider = machine_request.new_machine_provider
     new_owner = machine_request.new_machine_owner
     owner_identity = _get_owner(new_provider, new_owner)
-    tags = _match_tags_to_names(machine_request.new_machine_tags)
-    membership = _match_membership_to_access(
-        machine_request.access_list,
-        machine_request.new_version_membership)
-    if machine_request.new_machine_forked:
+    tags = _match_tags_to_names(machine_request.new_version_tags)
+    membership = _match_membership_to_access(machine_request.access_list, machine_request.new_version_membership)
+    if machine_request.new_version_forked:
         application = create_application(
             new_image_id,
             new_provider.uuid,
             machine_request.new_application_name,
             created_by_identity=owner_identity,
-            description=machine_request.new_machine_description,
+            description=machine_request.new_application_description,
             private=not machine_request.is_public(),
-            allow_imaging=machine_request.new_machine_allow_imaging,
             tags=tags)
     else:
         application = update_application(
-            parent_version,
+	    parent_version,
             machine_request.new_application_name,
-            machine_request.new_machine_description,
+            machine_request.new_application_description,
             tags)
-    app_version = create_app_version(application, self.new_version_name)
+    app_version = create_app_version(application, machine_request.new_version_name,
+            new_owner, owner_identity, machine_request.new_version_change_log,
+            machine_request.new_version_allow_imaging)
 
     # 2. Create the new InstanceSource and appropriate Object, relations,
     # Memberships..
     if ProviderMachine.test_existence(new_provider, new_image_id):
         pm = ProviderMachine.objects.get(
-            identifier=new_image_id,
-            provider=new_provider)
+            instance_source__identifier=new_image_id,
+            instance_source__provider=new_provider)
         pm = update_provider_machine(
             pm,
             new_created_by_identity=owner_identity,
             new_created_by=machine_request.new_machine_owner,
             new_application_version=app_version)
     else:
-        # TODO: Create APP version first! Then provider machine & Instance
-        # Source using the information.
-        pm = create_provider_machine(
-            new_image_id,
-            new_provider.uuid,
-            app,
-            owner_identity,
-            app_version)
+        #TODO: Create APP version first! Then provider machine & Instance Source using the information.
+        pm = create_provider_machine(new_image_id, new_provider.uuid, application, owner_identity, app_version)
         provider_machine_write_hook(pm)
 
     # Must be set in order to ask for threshold information
     machine_request.new_application_version = app_version
     machine_request.new_machine = pm
+    machine_request.save()
 
     # 3. Associate additional attributes to new application
     if machine_request.has_threshold():

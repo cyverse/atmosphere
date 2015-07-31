@@ -43,7 +43,7 @@ def convert_old_machine(machine_obj):
     new_provider_machine = {
         'identifier': old_machine['image_id']
     }
-    new_machine_tags = []
+    new_version_tags = []
     if machine_tag_map and old_machine.get('machine_tags'):
         # Machine_tag_map contains OLD ID -> Name
         # Get/Create a tag with the same name and apply it to the machine
@@ -51,9 +51,9 @@ def convert_old_machine(machine_obj):
             if tag_id in machine_tag_map:
                 new_tag = Tag.objects.get_or_create(
                     name=machine_tag_map[tag_id])[0]
-                new_machine_tags.append(new_tag)
+                new_version_tags.append(new_tag)
 
-    return (new_machine, new_provider_machine, new_machine_tags)
+    return (new_machine, new_provider_machine, new_version_tags)
 
 
 def format_date(date_str):

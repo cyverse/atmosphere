@@ -135,8 +135,8 @@ def _update_parent_application(machine_request, new_image_id, tags=[]):
 def _update_application(application, machine_request, tags=[]):
     if application.name is not machine_request.new_application_name:
         application.name = machine_request.new_application_name
-    if machine_request.new_machine_description:
-        application.description = machine_request.new_machine_description
+    if machine_request.new_application_description:
+        application.description = machine_request.new_application_description
     application.private = not machine_request.is_public()
     application.tags = tags
     application.save()
