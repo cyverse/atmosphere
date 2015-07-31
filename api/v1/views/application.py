@@ -11,7 +11,7 @@ from threepio import logger
 
 from core.models import Application as CoreApplication
 from core.models import Identity, Group
-from core.models.post_boot import _save_scripts_to_application
+from core.models.boot_script import _save_scripts_to_application
 from core.models.machine import update_application_owner
 from core.models.application import visible_applications, public_applications
 

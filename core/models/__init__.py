@@ -24,7 +24,7 @@ from core.models.maintenance import MaintenanceRecord
 from core.models.instance import Instance, InstanceStatusHistory,\
     InstanceStatus, InstanceAction, InstanceSource
 from core.models.node import NodeController
-from core.models.post_boot import ScriptType, BootScript
+from core.models.boot_script import ScriptType, BootScript, ApplicationVersionBootScript
 from core.models.quota import Quota
 from core.models.resource_request import ResourceRequest
 from core.models.size import Size

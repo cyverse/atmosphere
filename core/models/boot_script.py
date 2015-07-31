@@ -1,5 +1,5 @@
 """
-  Post Boot script model for atmosphere.
+  Boot script model for atmosphere.
 """
 import time
 import requests
@@ -75,9 +75,26 @@ class BootScript(models.Model):
     class Meta:
         db_table = 'boot_script'
         app_label = 'core'
+
+
+class ApplicationVersionBootScript(models.Model):
+    """
+    Represents the M2M table auto-created by 'application_version.licenses'
+    """
+    applicationversion = models.ForeignKey("ApplicationVersion")
+    script = models.ForeignKey(BootScript)
+
+    def __unicode__(self):
+        return "(ApplicationVersion:%s - BootScript:%s) " %\
+            (self.application_version, self.script.title)
+
+    class Meta:
+        db_table = 'application_version_boot_scripts'
+        app_label = 'core'
+        managed = False
+
+
 # Useful
-
-
 def get_scripts_for_user(username):
     return BootScript.objects.filter(
         created_by__username=username)

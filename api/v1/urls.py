@@ -250,6 +250,7 @@ urlpatterns = format_suffix_patterns(patterns(
 
 
     url(r'^version$', views.Version.as_view()),
+    url(r'^deploy_version$', views.DeployVersion.as_view()),
     url(r'^maintenance$',
         views.MaintenanceRecordList.as_view(),
         name='maintenance-record-list'),

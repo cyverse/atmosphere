@@ -8,6 +8,7 @@ from django.utils import timezone
 from threepio import logger
 
 from core.models.license import License
+from core.models.boot_script import BootScript
 from core.models.identity import Identity
 
 
@@ -47,8 +48,10 @@ class ApplicationVersion(models.Model):
     iplant_system_files = models.TextField(default='', null=True, blank=True)
     installed_software = models.TextField(default='', null=True, blank=True)
     excluded_files = models.TextField(default='', null=True, blank=True)
-    licenses = models.ManyToManyField(
-        License,
+    licenses = models.ManyToManyField(License,
+            blank=True, related_name='application_versions')
+    boot_scripts = models.ManyToManyField(
+        BootScript,
         blank=True,
         related_name='application_versions')
     membership = models.ManyToManyField('Group',
