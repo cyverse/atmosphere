@@ -17,6 +17,7 @@ from core.models.instance import Instance as CoreInstance
 from core.models.boot_script import _save_scripts_to_instance
 from core.models.tag import Tag as CoreTag
 from core.models.volume import convert_esh_volume
+from core.models.provider import Provider
 
 from service import task
 from service.cache import get_cached_instances,\

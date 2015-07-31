@@ -36,7 +36,7 @@ class ImageVersionBootScriptSerializer(serializers.HyperlinkedModelSerializer):
     image_version = ImageVersionRelatedField(
         queryset=ImageVersion.objects.none(), source='applicationversion')
     boot_script = BootScriptRelatedField(
-        queryset=BootScript.objects.none())
+        queryset=BootScript.objects.none(), source='bootscript')
 
     class Meta:
         model = ImageVersionBootScript
