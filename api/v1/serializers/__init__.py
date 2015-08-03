@@ -6,6 +6,8 @@ from .app_bookmark_field import AppBookmarkField
 from .tag_related_field import TagRelatedField
 from .identity_related_field import IdentityRelatedField
 from .instance_related_field import InstanceRelatedField
+from .boot_script_related_field import BootScriptRelatedField
+from .license_related_field import LicenseRelatedField
 from .account_serializer import AccountSerializer
 from .provider_serializer import ProviderSerializer, ProviderInstanceActionSerializer,\
     PATCH_ProviderInstanceActionSerializer, POST_ProviderInstanceActionSerializer

@@ -14,6 +14,7 @@ from core.models.user import AtmosphereUser as User
 
 from core.models.application import update_application, create_application, ApplicationMembership
 from core.models.license import License
+from core.models.boot_script import BootScript
 from core.models.machine import create_provider_machine, ProviderMachine, update_provider_machine, provider_machine_write_hook
 from core.models.node import NodeController
 from core.models.provider import Provider, AccountProvider
@@ -74,6 +75,7 @@ class MachineRequest(models.Model):
     new_version_allow_imaging = models.BooleanField(default=True)
     new_version_forked = models.BooleanField(default=True)
     new_version_licenses = models.ManyToManyField(License, blank=True)
+    new_version_scripts = models.ManyToManyField(BootScript, blank=True)
     new_version_membership = models.ManyToManyField("Group", blank=True)
 
     new_machine_provider = models.ForeignKey(Provider)
