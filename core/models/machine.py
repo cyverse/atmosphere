@@ -320,6 +320,7 @@ def update_provider_machine(provider_machine, new_created_by_identity=None, new_
         provider_machine.application_version = new_application_version
     provider_machine.save()
     provider_machine_write_hook(provider_machine)
+    return provider_machine
 
 
 def provider_machine_write_hook(provider_machine):

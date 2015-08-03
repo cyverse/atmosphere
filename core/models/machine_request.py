@@ -463,7 +463,6 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     app_version = create_app_version(application, machine_request.new_version_name,
             new_owner, owner_identity, machine_request.new_version_change_log,
             machine_request.new_version_allow_imaging)
-
     #2. Create the new InstanceSource and appropriate Object, relations, Memberships..
     if ProviderMachine.test_existence(new_provider, new_image_id):
         pm = ProviderMachine.objects.get(instance_source__identifier=new_image_id, instance_source__provider=new_provider)
@@ -587,7 +586,10 @@ def sync_db_access(image_manager, image, provider_machine, tenant_list=[]):
     else:
         tenant_list = [group.name for group in group_list]
     for tenant in tenant_list:
-        name = tenant.name
+        if type(tenant) != unicode:
+            name = tenant.name
+        else:
+            name = tenant
         group = Group.objects.get(name=name)
         obj, created = ApplicationMembership.objects.get_or_create(
                 group=group,
