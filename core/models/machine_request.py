@@ -478,7 +478,8 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     new_owner = machine_request.new_machine_owner
     owner_identity = _get_owner(new_provider, new_owner)
     tags = _match_tags_to_names(machine_request.new_version_tags)
-    membership = _match_membership_to_access(machine_request.access_list, machine_request.new_version_membership)
+    #TODO: Use it or remove it
+    #membership = _match_membership_to_access(machine_request.access_list, machine_request.new_version_membership)
     if machine_request.new_version_forked:
         application = create_application(
             new_image_id,
@@ -523,9 +524,19 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     if machine_request.has_threshold():
         machine_request.update_threshold()
 
-    # 3. Add new *Memberships For new ProviderMachine//Application
+    # 4a. Add new *Memberships For new ProviderMachine//Application
     if not machine_request.is_public():
         upload_privacy_data(machine_request, pm)
+
+    # 4b. If new boot scripts have been associated, add them to the new version.
+    if machine_request.new_version_scripts.count():
+        for script in machine_request.new_version_scripts.all():
+            app_version.boot_scripts.add(script)
+
+    # 4c. If new licenses have been associated, add them to the new version.
+    if machine_request.new_version_licenses.count():
+        for license in machine_request.new_version_licenses.all():
+            app_version.licenses.add(license)
 
     # 5. Advance the state of machine request
     # After processing, validate the image.
@@ -554,22 +565,12 @@ def upload_privacy_data(machine_request, new_machine):
     # All tenants already sharing the OStack img will be added to this list
     return sync_membership(accounts, img, new_machine, tenant_list)
 
-def sync_membership(accounts, glance_image, new_machine, tenant_list):
-    tenant_list = sync_cloud_access(accounts, glance_image, names=tenant_list)
-    #Make private on the DB level
-    sync_db_access(accounts.image_manager, glance_image, new_machine, tenant_list)
 
 def sync_membership(accounts, glance_image, new_machine, tenant_list):
-    tenant_list = sync_image_access_list(
-        accounts,
-        glance_image,
-        names=tenant_list)
+    tenant_list = sync_cloud_access(accounts, glance_image, names=tenant_list)
     # Make private on the DB level
-    make_private(
-        accounts.image_manager,
-        glance_image,
-        new_machine,
-        tenant_list)
+    make_private(accounts.image_manager,
+                 glance_image, new_machine, tenant_list)
 
 
 def share_with_admins(private_userlist, provider_uuid):
