@@ -122,10 +122,10 @@ class MachineRequestList(AuthAPIView):
             machine_request_id = machine_request.id
             active_provider = machine_request.active_provider()
             auto_approve = active_provider.auto_imaging
-            requestImaging(request, machine_request.id,
+            requestImaging(request, machine_request_id,
                            auto_approve=auto_approve)
-            # TODO: Remove this before going back 'to live'
-            #if auto_approve:
+            # # TODO: Remove this before going back 'to live'
+            # if auto_approve:
             #    start_machine_imaging(machine_request)
             return Response(serializer.data,
                             status=status.HTTP_201_CREATED)
@@ -203,7 +203,7 @@ class MachineRequest(AuthAPIView):
         serializer = MachineRequestSerializer(machine_request,
                                               data=data, partial=True)
         if serializer.is_valid():
-            #Only run task if status is 'approve'
+            # Only run task if status is 'approve'
             machine_request = serializer.save()
             if machine_request.status == 'approve':
                 start_machine_imaging(machine_request)
