@@ -28,7 +28,11 @@ extras/sql/*
 extras/ssh/*
 extras/newrelic/*
 extras/apache/atmo.conf
-extras/nginx/atmo.conf
+extras/nginx/Makefile
+extras/nginx/site.conf
+extras/nginx/locations/atmo.conf
+extras/nginx/locations/flower.conf
+extras/nginx/locations/leaderboard.conf
 tests/secrets
 n/service.log
 n/service.err
