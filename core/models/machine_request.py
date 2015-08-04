@@ -69,7 +69,7 @@ class MachineRequest(models.Model):
         default='',
         blank=True,
         null=True)
-    new_version_tags = models.TextField(default='', blank=True, null=True)
+    new_version_tags = models.TextField(default='', blank=True, null=True) # Re-rename to new_application_tags
     new_version_memory_min = models.IntegerField(default=0)
     new_version_storage_min = models.IntegerField(default=0)
     new_version_allow_imaging = models.BooleanField(default=True)
