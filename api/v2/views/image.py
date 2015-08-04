@@ -1,9 +1,4 @@
-from itertools import chain
-
 from django.contrib.auth.models import AnonymousUser
-from django.shortcuts import get_object_or_404
-
-from rest_framework.response import Response
 
 from core.models import Application as Image
 from core.models import AtmosphereUser, AccountProvider
@@ -42,7 +37,7 @@ class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
     filter_fields = ('created_by__username', 'tags__name')
     search_fields = ('id', 'name', 'versions__change_log', 'tags__name',
                      'tags__description', 'created_by__username')
-    http_method_names = ['get', 'head', 'options', 'trace']
+    http_method_names = ['get', 'head', 'options', 'trace', 'patch']
     lookup_fields = ("id", "uuid")
 
     def get_queryset(self):
