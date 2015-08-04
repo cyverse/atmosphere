@@ -42,8 +42,8 @@ class MachineRequestSerializer(serializers.ModelSerializer):
                                          queryset=AtmosphereUser.objects.all()
                                          )
     vis = serializers.CharField(source='new_application_visibility')
-    version_name = serializers.CharField(source='new_version_name', default="1.0"
-                                    required=False)
+    version_name = serializers.CharField(source='new_version_name',
+            default="1.0", required=False)
     version_changes = serializers.CharField(source='new_version_change_log',
             default="1.0 - New Version Created", required=False)
     fork = serializers.BooleanField(source='new_version_forked',
