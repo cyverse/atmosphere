@@ -1,12 +1,14 @@
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.decorators import detail_route
+from rest_framework import viewsets
 
 from core.models import Provider, Group
-from core.query import only_current_provider
+from core.query import only_current_provider, only_current
 
 from api.permissions import CloudAdminRequired
 from api.v2.serializers.details import ProviderSerializer
 from api.v2.serializers.summaries import SizeSummarySerializer
-from api.v2.views.base import AuthReadOnlyViewSet, AuthViewSet
+from api.v2.views.base import AuthReadOnlyViewSet
 
 
 class ProviderViewSet(AuthReadOnlyViewSet):
@@ -30,6 +32,12 @@ class ProviderViewSet(AuthReadOnlyViewSet):
         Filter providers by current user
         """
         user = self.request.user
+        # Anonymous access: Show ONLY the providers that are:
+        # publically available, active, and non-end dated
+        if (type(user) == AnonymousUser):
+            return Provider.objects.filter(
+                only_current(), active=True, public=True)
+
         group = Group.objects.get(name=user.username)
         provider_ids = group.identities.filter(
             only_current_provider(),

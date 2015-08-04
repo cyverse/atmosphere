@@ -30,14 +30,15 @@ class ProviderSerializer(serializers.HyperlinkedModelSerializer):
         view_name = 'api:v2:provider-detail'
         fields = (
             'id',
-            'uuid',
             'url',
+            'uuid',
             'name',
             'description',
-            'public',
-            'active',
             'type',
             'virtualization',
+            'active',
+            'public',
+            'auto_imaging',
             'sizes',
             'start_date',
             'end_date',
