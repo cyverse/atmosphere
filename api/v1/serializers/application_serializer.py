@@ -13,7 +13,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
     """
     #Read-Only Fields
     uuid = serializers.CharField(read_only=True)
-    description = serializers.CharField(read_only=True, source='latest_description')
     icon = serializers.CharField(read_only=True, source='icon_url')
     created_by = serializers.SlugRelatedField(slug_field='username',
                                               read_only=True)
@@ -28,7 +27,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
     featured = serializers.BooleanField()
     machines = serializers.SerializerMethodField()
     is_bookmarked = AppBookmarkField(source="bookmarks.all")
-    threshold = serializers.RelatedField(read_only=True)
+    threshold = serializers.RelatedField(read_only=True, source='get_threshold')
     # projects = ProjectsField()
     scripts = BootScriptSerializer(many=True, required=False)
 
