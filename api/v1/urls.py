@@ -45,9 +45,6 @@ urlpatterns = format_suffix_patterns(patterns(
     url(r'^project/null$',
         views.NoProjectList.as_view(),
         name='empty-project-list'),
-    url(r'^project/null/application$',
-        views.NoProjectApplicationList.as_view(),
-        name='empty-project-application-list'),
     url(r'^project/null/instance$',
         views.NoProjectInstanceList.as_view(),
         name='empty-project-instance-list'),
@@ -58,13 +55,6 @@ urlpatterns = format_suffix_patterns(patterns(
     url(r'^project/(?P<project_uuid>%s)$' % uuid_match,
         views.ProjectDetail.as_view(),
         name='project-detail'),
-    url(r'^project/(?P<project_uuid>%s)/application$' % uuid_match,
-        views.ProjectApplicationList.as_view(),
-        name='project-application-list'),
-    url(r'^project/(?P<project_uuid>%s)/application/(?P<application_uuid>%s)$'
-        % (uuid_match, uuid_match),
-        views.ProjectApplicationExchange.as_view(),
-        name='project-application-exchange'),
     url(r'^project/(?P<project_uuid>%s)/instance$' % (uuid_match,),
         views.ProjectInstanceList.as_view(),
         name='project-instance-list'),
@@ -90,13 +80,6 @@ urlpatterns = format_suffix_patterns(patterns(
         views.Occupancy.as_view(), name='occupancy'),
     url(provider_specific + r'/hypervisor$',
         views.Hypervisor.as_view(), name='hypervisor'),
-
-    url(r'^bookmark$',
-        views.ApplicationBookmarkList.as_view(), name='bookmark-list'),
-    url(r'^bookmark/application$',
-        views.ApplicationBookmarkList.as_view(), name='bookmark-application-list'),
-    url(r'^bookmark/application/(?P<app_uuid>%s)$' % uuid_match,
-        views.ApplicationBookmarkDetail.as_view(), name='bookmark-application'),
 
     url(identity_specific + r'/image_export$',
         views.ExportRequestList.as_view(), name='machine-export-list'),
@@ -129,21 +112,6 @@ urlpatterns = format_suffix_patterns(patterns(
 
     url(r'^tag$', views.TagList.as_view(), name='tag-list'),
     url(r'^tag/(?P<tag_slug>.*)$', views.Tag.as_view()),
-
-    url(r'^application$',
-        views.ApplicationList.as_view(),
-        name='application-list'),
-
-    url(r'^application/search$',
-        views.ApplicationSearch.as_view(),
-        name='application-search'),
-    url(r'^application/(?P<app_uuid>%s)$' % uuid_match,
-        views.Application.as_view(),
-        name='application-detail'),
-    # ApplicationThreshold Related APIs
-    url(r'^application/(?P<app_uuid>%s)/threshold$' % uuid_match,
-        views.ApplicationThresholdDetail.as_view(),
-        name='threshold-detail'),
 
     url(r'^instance_history$', views.InstanceHistory.as_view(),
         name='instance-history'),
