@@ -1,7 +1,4 @@
 from api.v1.views.allocation import AllocationDetail, AllocationList, MonitoringList
-from api.v1.views.application import ApplicationSearch, ApplicationList, Application,\
-    ApplicationThresholdDetail
-from api.v1.views.bookmark import ApplicationBookmarkDetail, ApplicationBookmarkList
 from api.v1.views.cloud_admin import\
     CloudAdminImagingRequestList, CloudAdminImagingRequest,\
     CloudAdminAccountList, CloudAdminAccount,\
@@ -26,11 +23,10 @@ from api.v1.views.meta import Meta, MetaAction
 from api.v1.views.notification import NotificationList
 from api.v1.views.occupancy import Occupancy, Hypervisor
 from api.v1.views.project import NoProjectList, NoProjectInstanceList,\
-    NoProjectVolumeList, NoProjectApplicationList
+    NoProjectVolumeList
 from api.v1.views.post_boot import BootScriptList, BootScript
 from api.v1.views.project import ProjectList, ProjectDetail
 from api.v1.views.project import ProjectInstanceList, ProjectInstanceExchange,\
-    ProjectApplicationList, ProjectApplicationExchange,\
     ProjectVolumeList, ProjectVolumeExchange
 from api.v1.views.profile import Profile
 from api.v1.views.provider import ProviderList, Provider
