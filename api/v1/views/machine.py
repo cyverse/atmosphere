@@ -19,7 +19,6 @@ from rtwo.exceptions import ConnectionFailure
 from threepio import logger
 
 from core.models import AtmosphereUser as User
-from core.models.application import ApplicationScore
 from core.models.license import License
 from core.models.identity import Identity
 from core.models.machine import compare_core_machines, filter_core_machine,\
@@ -33,7 +32,6 @@ from api import failure_response, invalid_creds, malformed_response, connection_
 from api.pagination import OptionalPagination
 from api.renderers import JPEGRenderer, PNGRenderer
 from api.v1.serializers import ProviderMachineSerializer,\
-    ApplicationScoreSerializer,\
     LicenseSerializer
 from api.v1.views.base import AuthAPIView, AuthListAPIView
 
@@ -270,64 +268,6 @@ class MachineIcon(AuthAPIView):
         app_icon = core_machine.application_version.application.icon
         image_name, image_ext = os.path.splitext(app_icon.name)
         return Response(app_icon.file)
-
-
-class MachineVote(AuthAPIView):
-    """
-    Rate the selected image by voting.
-    """
-
-    def get(self, request, provider_uuid, identity_uuid, machine_id):
-        """
-        Lookup the machine information
-        (Lookup using the given provider/identity)
-        Update on server (If applicable)
-        """
-        core_machine = ProviderMachine.objects.filter(
-            provider__uuid=provider_uuid,
-            identifier=machine_id)
-        if not core_machine:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                "Machine id %s does not exist" % machine_id)
-
-        app = core_machine[0].application_version.application
-        vote = ApplicationScore.last_vote(app, request.user)
-        serialized_data = ApplicationScoreSerializer(vote).data
-        return Response(serialized_data, status=status.HTTP_200_OK)
-
-    def post(self, request, provider_uuid, identity_uuid, machine_id):
-        """
-        TODO: Determine who is allowed to edit machines besides
-        core_machine.owner
-        """
-        user = request.user
-        data = request.DATA
-        if 'vote' not in data:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                "Vote missing from data")
-        vote = data['vote']
-
-        core_machine = ProviderMachine.objects.filter(
-            provider__uuid=provider_uuid,
-            identifier=machine_id)
-        if not core_machine:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                "Machine id %s does not exist" % machine_id)
-
-        app = core_machine[0].application_version.application
-
-        if 'up' in vote:
-            vote = ApplicationScore.upvote(app, user)
-        elif 'down' in vote:
-            vote = ApplicationScore.downvote(app, user)
-        else:
-            vote = ApplicationScore.novote(app, user)
-
-        serialized_data = ApplicationScoreSerializer(vote).data
-        return Response(serialized_data, status=status.HTTP_201_CREATED)
 
 
 class MachineLicense(AuthAPIView):

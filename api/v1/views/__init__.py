@@ -15,7 +15,7 @@ from api.v1.views.instance import InstanceList, Instance,\
 from api.v1.views.instance_action import InstanceActionList, InstanceActionDetail
 from api.v1.views.license import LicenseList, License
 from api.v1.views.machine import MachineList, Machine, MachineHistory,\
-    MachineSearch, MachineVote, MachineIcon, MachineLicense
+    MachineSearch, MachineIcon, MachineLicense
 from api.v1.views.machine_request import MachineRequestList, MachineRequest
 from api.v1.views.export_request import ExportRequestList, ExportRequest
 from api.v1.views.maintenance import MaintenanceRecordList, MaintenanceRecord

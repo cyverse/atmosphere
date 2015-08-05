@@ -91,9 +91,6 @@ urlpatterns = format_suffix_patterns(patterns(
     url(identity_specific + r'/hypervisor/(?P<hypervisor_id>%s)$'
         % (id_match,), views.HypervisorDetail.as_view(), name='hypervisor-detail'),
 
-    url(identity_specific + r'/machine/(?P<machine_id>%s)/vote$' % uuid_match,
-        views.MachineVote.as_view(), name='machine-vote'),
-
     url(identity_specific + r'/meta$', views.Meta.as_view(), name='meta-detail'),
     url(identity_specific + r'/meta/(?P<action>.*)$',
         views.MetaAction.as_view(), name='meta-action'),
@@ -273,9 +270,6 @@ urlpatterns = format_suffix_patterns(patterns(
     url(identity_specific + r'/hypervisor/'
         '(?P<hypervisor_id>%s)$' % (id_match,),
         views.HypervisorDetail.as_view(), name='hypervisor-detail'),
-
-    url(identity_specific + r'/machine/(?P<machine_id>%s)/vote$' % uuid_match,
-        views.MachineVote.as_view(), name='machine-vote'),
 
     url(identity_specific + r'/meta$', views.Meta.as_view(), name='meta-detail'),
     url(identity_specific + r'/meta/(?P<action>.*)$',
