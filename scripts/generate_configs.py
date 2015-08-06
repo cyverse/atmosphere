@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 import argparse
+import ConfigParser
 import os
 import shutil
 
 from jinja2 import Environment, FileSystemLoader, meta, StrictUndefined,\
     TemplateNotFound
+
+
+# Configuration variables file path is relative to projectpath directory.
+VARIABLES_FILENAME = 'variables.ini'
 
 
 config_files = {
@@ -36,7 +41,21 @@ env = Environment(loader=loader,
                   undefined=StrictUndefined)
 
 
-context = {}
+variables_path = os.path.join(projectpath, VARIABLES_FILENAME)
+
+
+def _get_variables():
+    try:
+        parser = ConfigParser.ConfigParser()
+        parser.readfp(open(variables_path))
+        variables = {}
+        for section in parser.sections():
+            variables.update(parser.items(section))
+        return (variables, [])
+    except Exception as e:
+        return (False,
+                ['Unable to get or parse '
+                 'variables from %s' % (variables_path)])
 
 
 def _get_filtered_config_files(configs):
@@ -87,12 +106,15 @@ def _generate_configs(configs):
     c_files, messages = _get_filtered_config_files(configs)
     if not c_files:
         return (False, messages)
+    variables, messages = _get_variables()
+    if not variables:
+        return (False, messages)
     for template_location, output_location in c_files:
         try:
             output_path = os.path.join(projectpath,
                                        output_location)
             template = env.get_template(template_location)
-            rendered = template.render(context)
+            rendered = template.render(variables)
             # Backup the output file.
             if os.path.isfile(output_path):
                 shutil.copyfile(output_path, output_path + '.bak')
@@ -134,6 +156,13 @@ def print_configs(configs):
     """
     Print config name, template and output file information.
     """
+    print 'Config Variables from %s' % (variables_path)
+    variables, messages = _get_variables()
+    if not variables:
+        print_messages(messages)
+    else:
+        print variables
+    print
     print 'Config Name:\n\tTemplate => Output'
     c_files, messages = _get_filtered_config_files(configs)
     if not c_files:
