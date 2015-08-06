@@ -35,6 +35,7 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     end_date = serializers.ReadOnlyField(source='instance_source.end_date')
     featured = serializers.BooleanField(source='application_version.application.featured')
     identifier = serializers.ReadOnlyField(source="instance_source.identifier")
+    application_name = serializers.CharField(source='application_version.application.name', read_only=True)
     version = serializers.CharField(source="application_version.name", read_only=True)
 
     def __init__(self, *args, **kwargs):
