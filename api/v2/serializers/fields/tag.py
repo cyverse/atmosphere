@@ -10,7 +10,9 @@ class TagRelatedField(serializers.RelatedField):
         super(TagRelatedField, self).__init__(**kwargs)
 
     def to_representation(self, value):
-        username = value.__str__()
-        user = Tag.objects.get(username=username)
-        serializer = TagSummarySerializer(user, context=self.context)
+        serializer = TagSummarySerializer(value, context=self.context)
         return serializer.data
+
+    def to_internal_value(self, data):
+        tag = Tag.objects.get(id=data)
+        return tag
