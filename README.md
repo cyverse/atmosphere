@@ -60,5 +60,6 @@ See LICENSE.txt for license information
 + **Monica Lent <mlent@iplantcollaborative.org>**
 + **Christopher James LaRose <cjlarose@iplantcollaborative.org>**
 + **Jason Hansen <jchansen@iplantcollaborative.org>**
++ **Tharon Carlson <tharon@iplantcollaborative.org>**
 
 Where the cloud lives!
