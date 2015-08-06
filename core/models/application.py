@@ -71,9 +71,6 @@ class Application(models.Model):
         return self.versions.filter(
             only_current(now_time)).order_by('start_date')
 
-    def latest_description(self):
-        return self.latest_version.description
-
     def get_icon_url(self):
         return self.icon.url if self.icon else None
 
@@ -97,7 +94,7 @@ class Application(models.Model):
         """
         providermachine_set = self.all_machines
         pms = providermachine_set.filter(
-            *only_current_source(),
+            only_current_source(),
             instance_source__provider__active=True)
         if request_user:
             if isinstance(request_user, AnonymousUser):

@@ -1,8 +1,11 @@
-from core.models import BootScript, ScriptType
+from core.models.boot_script import BootScript, ScriptType
+from core.models.user import AtmosphereUser
 from rest_framework import serializers
 
 
 class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
+    created_by = serializers.SlugRelatedField(
+        slug_field='username', queryset=AtmosphereUser.objects.all())
     text = serializers.CharField(source='script_text')
     type = serializers.SlugRelatedField(
         source='script_type',
@@ -19,5 +22,5 @@ class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = BootScript
-        view_name = 'api:v2:boot_script-detail'
-        fields = ('id', 'title', 'text', 'type')
+        # view_name = 'api:v2:boot_script-detail' -- not needed?
+        fields = ('id', 'created_by', 'title', 'text', 'type')

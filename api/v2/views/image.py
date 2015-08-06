@@ -1,14 +1,10 @@
-from itertools import chain
-
 from django.contrib.auth.models import AnonymousUser
-from django.shortcuts import get_object_or_404
-
-from rest_framework.response import Response
 
 from core.models import Application as Image
 from core.models import AtmosphereUser, AccountProvider
 from core.query import only_current, only_current_apps
 
+from api import permissions
 from api.v2.serializers.details import ImageSerializer
 from api.v2.views.base import AuthOptionalViewSet
 from api.v2.views.mixins import MultipleFieldLookup
@@ -38,12 +34,17 @@ class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
     API endpoint that allows images to be viewed or edited.
     """
 
-    serializer_class = ImageSerializer
     filter_fields = ('created_by__username', 'tags__name')
+    lookup_fields = ("id", "uuid")
     search_fields = ('id', 'name', 'versions__change_log', 'tags__name',
                      'tags__description', 'created_by__username')
-    http_method_names = ['get', 'head', 'options', 'trace']
-    lookup_fields = ("id", "uuid")
+    http_method_names = ['get', 'head', 'options', 'trace', 'patch']
+    permission_classes = (permissions.InMaintenance,
+                          permissions.ApiAuthOptional,
+                          permissions.CanEditOrReadOnly,
+                          permissions.ApplicationMemberOrReadOnly)
+
+    serializer_class = ImageSerializer
 
     def get_queryset(self):
         request_user = self.request.user

@@ -1,7 +1,8 @@
 from core.models import Application as Image
 from rest_framework import serializers
-from api.v2.serializers.summaries import TagSummarySerializer, UserSummarySerializer
-from api.v2.serializers.fields import ImageVersionRelatedField
+from api.v2.serializers.summaries import UserSummarySerializer
+from api.v2.serializers.fields import (
+        ImageVersionRelatedField, TagRelatedField)
 
 
 class SwapBooleanField(serializers.BooleanField):
@@ -17,8 +18,8 @@ class SwapBooleanField(serializers.BooleanField):
 
 
 class ImageSerializer(serializers.HyperlinkedModelSerializer):
-    created_by = UserSummarySerializer()
-    tags = TagSummarySerializer(many=True)
+    created_by = UserSummarySerializer(read_only=True)
+    tags = TagRelatedField(many=True)
     versions = ImageVersionRelatedField(many=True)
     icon = serializers.CharField(source="get_icon_url", read_only=True)
     is_public = SwapBooleanField(source='private')
