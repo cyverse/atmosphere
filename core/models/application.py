@@ -71,9 +71,6 @@ class Application(models.Model):
         return self.versions.filter(
             only_current(now_time)).order_by('start_date')
 
-    def latest_description(self):
-        return self.latest_version.description
-
     def get_icon_url(self):
         return self.icon.url if self.icon else None
 

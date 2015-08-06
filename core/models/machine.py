@@ -60,7 +60,7 @@ class ProviderMachine(BaseSource):
 
     def to_dict(self):
         machine = {
-            "version": self.version,
+            "version": self.application_version.name,
             "provider": self.instance_source.provider.uuid
         }
         machine.update(super(ProviderMachine, self).to_dict())
@@ -346,6 +346,7 @@ def update_provider_machine(
         provider_machine.application_version = new_application_version
     provider_machine.save()
     provider_machine_write_hook(provider_machine)
+    return provider_machine
 
 
 def provider_machine_write_hook(provider_machine):
