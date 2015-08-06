@@ -5,7 +5,8 @@ from rest_framework import serializers
 
 class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
     created_by = serializers.SlugRelatedField(
-        slug_field='username', queryset=AtmosphereUser.objects.all())
+        slug_field='username', queryset=AtmosphereUser.objects.all(),
+        required=False)
     text = serializers.CharField(source='script_text')
     type = serializers.SlugRelatedField(
         source='script_type',
