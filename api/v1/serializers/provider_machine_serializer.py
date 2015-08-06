@@ -1,4 +1,3 @@
-from core.models.application import ApplicationScore
 from core.models.machine import ProviderMachine
 from core.models import Tag
 from core.models.instance_source import InstanceSource
@@ -24,7 +23,6 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
                                          source='esh_architecture')
     ownerid = serializers.CharField(read_only=True, source='esh_ownerid')
     state = serializers.CharField(read_only=True, source='esh_state')
-    scores = serializers.SerializerMethodField()
     # Writeable fields
     name = serializers.CharField(source='application_version.application.name')
     tags = TagRelatedField(
@@ -56,22 +54,6 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
 
     def get_alias_hash(self, pm):
         return pm.hash_alias()
-
-    def get_scores(self, pm):
-        app = pm.application_version.application
-        scores = app.get_scores()
-        update_dict = {
-            "has_voted": False,
-            "vote_cast": None}
-        if not self.request_user:
-            scores.update(update_dict)
-            return scores
-        last_vote = ApplicationScore.last_vote(app, self.request_user)
-        if last_vote:
-            update_dict["has_voted"] = True
-            update_dict["vote_cast"] = last_vote.get_vote_name()
-        scores.update(update_dict)
-        return scores
 
     class Meta:
         model = ProviderMachine
