@@ -1,4 +1,4 @@
-from core.models.post_boot import BootScript, ScriptType
+from core.models.boot_script import BootScript, ScriptType
 from core.models.user import AtmosphereUser
 from rest_framework import serializers
 

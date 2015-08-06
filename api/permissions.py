@@ -7,7 +7,7 @@ from rest_framework import permissions
 from threepio import logger
 
 from core.models.cloud_admin import CloudAdministrator
-from core.models import MaintenanceRecord
+from core.models import Group, MaintenanceRecord
 
 from api import ServiceUnavailable
 
@@ -166,3 +166,36 @@ class InMaintenance(permissions.BasePermission):
                 raise ServiceUnavailable(
                     detail=get_maintenance_messages(records))
         return True
+
+
+class CanEditOrReadOnly(permissions.BasePermission):
+    """
+    Authorize the request if the user is the creator or the request is a
+    safe operation.
+    """
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        if request.user.is_staff:
+            return True
+        return hasattr(obj, "created_by") and obj.created_by == request.user
+
+
+class ApplicationMemberOrReadOnly(permissions.BasePermission):
+    """
+    Authorize the request if the user is member of the application or
+    the request is a safe operation.
+    """
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        if request.user.is_staff:
+            return True
+        # Allow Application/Image owners to make changes
+        if obj.created_by == request.user:
+            return True
+
+        # FIXME: move queries into a model manager
+        user_groups = Group.objects.filter(user=request.user)
+        app_groups = Group.objects.filter(applications=obj)
+        return (user_groups & app_groups).exists()
