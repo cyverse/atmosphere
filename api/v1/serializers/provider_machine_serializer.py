@@ -47,6 +47,9 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     version = serializers.CharField(
         source="application_version.name",
         read_only=True)
+    application_name = serializers.CharField(
+        source='application_version.application.name',
+        read_only=True)
 
     def __init__(self, *args, **kwargs):
         self.request_user = kwargs.pop('request_user', None)
