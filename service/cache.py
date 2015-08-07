@@ -102,7 +102,7 @@ def get_cached_instances(provider=None, identity=None, force=False):
         key = INSTANCES_KEY_PROVIDER.format(provider.id)
     else:
         key = INSTANCES_KEY_IDENTITY.format(identity.created_by.username,
-                                           identity.id)
+                                            identity.id)
     return _get_cached(key,
                        instances_method,
                        _scrub,
@@ -114,7 +114,7 @@ def invalidate_cached_instances(provider=None, identity=None):
         key = INSTANCES_KEY_PROVIDER.format(provider.id)
     else:
         key = INSTANCES_KEY_IDENTITY.format(identity.created_by.username,
-                                           identity.id)
+                                            identity.id)
     _invalidate(key)
 
 

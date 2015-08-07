@@ -1,4 +1,5 @@
-import random, time
+import random
+import time
 from datetime import timedelta
 from django.core.exceptions import ObjectDoesNotExist
 import pytz
@@ -19,7 +20,6 @@ from service.cache import get_cached_instances, get_cached_driver
 from service.instance import suspend_instance, stop_instance, destroy_instance, shelve_instance, offload_instance
 from allocation.engine import calculate_allocation
 from django.conf import settings
-
 
 
 # Private
@@ -78,7 +78,6 @@ def _convert_tenant_id_to_names(instances, tenants):
 def _get_identity_from_tenant_name(provider, username):
     try:
         # NOTE: I could see this being a problem when 'user1' and 'user2' use
-        #      ex_project_name == 'shared_group'
         # TODO: Ideally we would be able to extract some more information
         #      when we move away from explicit user-groups.
         credential = Credential.objects.get(
@@ -194,20 +193,42 @@ def _execute_provider_action(identity, user, instance, action_name):
             logger.debug("No 'action_name' provided")
             return
         elif action_name == 'Suspend':
-            suspend_instance(driver, instance, identity.provider.uuid, identity.uuid, user)
+            suspend_instance(
+                driver,
+                instance,
+                identity.provider.uuid,
+                identity.uuid,
+                user)
         elif action_name == 'Stop':
-            stop_instance(driver, instance, identity.provider.uuid, identity.uuid, user)
+            stop_instance(
+                driver,
+                instance,
+                identity.provider.uuid,
+                identity.uuid,
+                user)
         elif action_name == 'Shelve':
-            shelve_instance(driver, instance, identity.provider.uuid, identity.uuid, user)
+            shelve_instance(
+                driver,
+                instance,
+                identity.provider.uuid,
+                identity.uuid,
+                user)
         elif action_name == 'Shelve Offload':
-            offload_instance(driver, instance, identity.provider.uuid, identity.uuid, user)
+            offload_instance(
+                driver,
+                instance,
+                identity.provider.uuid,
+                identity.uuid,
+                user)
         elif action_name == 'Terminate':
             destroy_instance(identity.uuid, instance)
         else:
             raise Exception("Encountered Unknown Action Named %s" % action)
     except ObjectDoesNotExist:
         # This may be unreachable when null,blank = True
-        logger.debug("Provider %s - 'Do Nothing' for Over Allocation" % provider)
+        logger.debug(
+            "Provider %s - 'Do Nothing' for Over Allocation" %
+            provider)
         return
 
 
@@ -215,22 +236,28 @@ def provider_over_allocation_enforcement(identity, user):
     provider = identity.provider
     action = provider.over_allocation_action
     if not action:
-            logger.debug("No 'over_allocation_action' provided for %s" % provider)
-            return False
+        logger.debug("No 'over_allocation_action' provided for %s" % provider)
+        return False
     driver = get_cached_driver(identity=identity)
     esh_instances = driver.list_instances()
-    #TODO: Parallelize this operation so you don't wait for larger instances to finish 'wait_for' task below..
+    # TODO: Parallelize this operation so you don't wait for larger instances
+    # to finish 'wait_for' task below..
     for instance in esh_instances:
         try:
             if driver._is_active_instance(instance):
                 # Suspend active instances, update the task in the DB
                 # NOTE: identity.created_by COULD BE the Admin User, indicating that this action/InstanceHistory was
                 #       executed by the administrator.. Future Release Idea.
-                _execute_provider_action(identity, identity.created_by, instance, action.name)
+                _execute_provider_action(
+                    identity,
+                    identity.created_by,
+                    instance,
+                    action.name)
                 # NOTE: Intentionally added to allow time for
                 #      the Cloud to begin 'suspend' operation
                 #      before querying for the instance again.
-                #TODO: Instead: Add "wait_for" change from active to any terminal, non-active state?
+                # TODO: Instead: Add "wait_for" change from active to any
+                # terminal, non-active state?
                 wait_time = random.uniform(2, 6)
                 time.sleep(wait_time)
                 updated_esh = driver.get_instance(instance.id)
@@ -239,10 +266,10 @@ def provider_over_allocation_enforcement(identity, user):
                     identity.provider.uuid,
                     identity.uuid,
                     user)
-        except Exception, e:
+        except Exception as e:
             # Raise ANY exception that doesn't say
             # 'This instance is already in the requested VM state'
-            #NOTE: This is OpenStack specific
+            # NOTE: This is OpenStack specific
             if 'in vm_state' not in e.message:
                 raise
     return True  # User was over_allocation
@@ -457,6 +484,7 @@ def _get_allocation_result(identity, start_date=None, end_date=None,
         allocation_input,
         print_logs=print_logs)
     return allocation_result
+
 
 def apply_strategy(identity, core_allocation):
     """

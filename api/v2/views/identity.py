@@ -6,6 +6,7 @@ from api.v2.views.base import AuthViewSet
 
 
 class IdentityViewSet(AuthViewSet):
+
     """
     API endpoint that allows providers to be viewed or edited.
     """

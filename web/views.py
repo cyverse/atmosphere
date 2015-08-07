@@ -56,8 +56,7 @@ def redirectAdmin(request):
     Redirects to /application if user is authorized, otherwise forces a login
     """
     return auth_loginRedirect(request,
-                             settings.REDIRECT_URL+'/admin/')
-
+                              settings.REDIRECT_URL + '/admin/')
 
 
 def redirectApp(request):
@@ -65,8 +64,8 @@ def redirectApp(request):
     Redirects to /application if user is authorized, otherwise forces a login
     """
     return auth_loginRedirect(request,
-                             settings.REDIRECT_URL+'/api/v1/profile',
-                             gateway=True)
+                              settings.REDIRECT_URL + '/api/v1/profile',
+                              gateway=True)
 
 
 def o_login_redirect(request):
@@ -79,45 +78,44 @@ def o_callback_authorize(request):
     logger.info(request.__dict__)
     if 'code' not in request.GET:
         logger.info(request.__dict__)
-        #TODO - Maybe: Redirect into a login
+        # TODO - Maybe: Redirect into a login
         return HttpResponse("")
     oauth_client = get_cas_oauth_client()
     oauth_code = request.GET['code']
-    #Exchange code for ticket
+    # Exchange code for ticket
     access_token, expiry_date = oauth_client.get_access_token(oauth_code)
     if not access_token:
         logger.info("The Code %s is invalid/expired. Attempting another login."
                     % oauth_code)
         return o_login_redirect(request)
-    #Exchange token for profile
+    # Exchange token for profile
     user_profile = oauth_client.get_profile(access_token)
     if not user_profile or "id" not in user_profile:
         logger.error("AccessToken is producing an INVALID profile!"
                      " Check the CAS server and caslib.py for more"
                      " information.")
-        #NOTE: Make sure this redirects the user OUT of the loop!
+        # NOTE: Make sure this redirects the user OUT of the loop!
         return login(request)
-    #ASSERT: A valid OAuth token gave us the Users Profile.
+    # ASSERT: A valid OAuth token gave us the Users Profile.
     # Now create an AuthToken and return it
     username = user_profile["id"]
     auth_token = obtainOAuthToken(username, access_token, expiry_date)
-    #Set the username to the user to be emulated
-    #to whom the token also belongs
+    # Set the username to the user to be emulated
+    # to whom the token also belongs
     request.session['username'] = username
     request.session['token'] = auth_token.key
     logger.info("Returning user - %s - to application "
                 % username)
     logger.info(request.session.__dict__)
     logger.info(request.user)
-    return HttpResponseRedirect(settings.REDIRECT_URL+"/application/")
+    return HttpResponseRedirect(settings.REDIRECT_URL + "/application/")
 
 
 def s_login(request):
     """
      SAML Login: Phase 1/2 Call SAML Login
     """
-    #logger.info("Login Request:%s" % request)
-    #Form Sets 'next' when user clicks login
+    # Form Sets 'next' when user clicks login
     records = MaintenanceRecord.active()
     disable_login = False
     for record in records:
@@ -130,8 +128,7 @@ def login(request):
     """
      CAS Login : Phase 1/3 Call CAS Login
     """
-    #logger.info("Login Request:%s" % request)
-    #Form Sets 'next' when user clicks login
+    # Form Sets 'next' when user clicks login
     records = MaintenanceRecord.active()
     disable_login = False
     for record in records:
@@ -140,7 +137,7 @@ def login(request):
 
     if 'next' in request.POST:
         return auth_loginRedirect(request,
-                                 settings.REDIRECT_URL+'/application/')
+                                  settings.REDIRECT_URL + '/application/')
     else:
         template = get_template('application/login.html')
 
@@ -162,7 +159,7 @@ def cas_validateTicket(request):
 
     (result, username) = caslib.cas_serviceValidate(ticket)
     if result is True:
-        logger.info("Username for CAS Ticket= "+username)
+        logger.info("Username for CAS Ticket= " + username)
     if 'HTTP_X_AUTH_USER' in request.META:
         checkUser = request.META['HTTP_X_AUTH_USER']
         logger.info("Existing user found in header, checking for match")
@@ -179,7 +176,7 @@ def logout(request):
     if request.POST.get('cas', False):
         return cas_logoutRedirect()
     RequestContext(request)
-    return HttpResponseRedirect(settings.REDIRECT_URL+'/login')
+    return HttpResponseRedirect(settings.REDIRECT_URL + '/login')
 
 
 @atmo_login_required
@@ -187,27 +184,30 @@ def app(request):
     try:
         if MaintenanceRecord.disable_login_access(request):
             return HttpResponseRedirect('/login/')
-#        template = get_template("cf2/index.html")
-#        output = template.render(context)
         logger.debug("render to response.")
         return render_to_response("cf2/index.html", {
             'site_root': settings.REDIRECT_URL,
             'debug': settings.DEBUG,
             'year': datetime.now().year},
             context_instance=RequestContext(request))
-#HttpResponse(output)
-    except KeyError, e:
+    except KeyError as e:
         logger.debug("User not logged in.. Redirecting to CAS login")
-        return auth_loginRedirect(request, settings.REDIRECT_URL+'/application')
-    except Exception, e:
+        return auth_loginRedirect(
+            request,
+            settings.REDIRECT_URL +
+            '/application')
+    except Exception as e:
         logger.exception(e)
-        return auth_loginRedirect(request, settings.REDIRECT_URL+'/application')
+        return auth_loginRedirect(
+            request,
+            settings.REDIRECT_URL +
+            '/application')
 
 
 def app_beta(request):
     logger.debug("APP BETA")
     try:
-        #TODO Reimplment maintenance record check
+        # TODO Reimplment maintenance record check
         template = get_template("cf3/index.html")
         context = RequestContext(request, {
             'site_root': settings.REDIRECT_URL,
@@ -217,12 +217,12 @@ def app_beta(request):
         })
         output = template.render(context)
         return HttpResponse(output)
-    except KeyError, e:
+    except KeyError as e:
         logger.debug("User not logged in.. Redirecting to CAS login")
-        return auth_loginRedirect(request, settings.REDIRECT_URL+'/beta')
-    except Exception, e:
+        return auth_loginRedirect(request, settings.REDIRECT_URL + '/beta')
+    except Exception as e:
         logger.exception(e)
-        return auth_loginRedirect(request, settings.REDIRECT_URL+'/beta')
+        return auth_loginRedirect(request, settings.REDIRECT_URL + '/beta')
 
 
 @atmo_valid_token_required
@@ -261,8 +261,6 @@ def compile_templates(template_path, js_files_path):
             for f in sorted(files):
                 fullpath = os.path.join(root, f)
                 name, ext = os.path.splitext(f)
-                #         #logger.debug(name)
-                #         #logger.debug(ext)
                 file = open(fullpath, 'r')
                 output = file.read()
                 if ext == '.html':
@@ -278,13 +276,12 @@ def application(request):
     try:
         logger.debug("APPLICATION")
         logger.debug(str(request.session.__dict__))
-        #access_log(request,meta_data = "{'userid' : '%s', 'token' : '%s',
-        #'api_server' : '%s'}" %(request.session['username'],
-        #request.session['token'],request.session['api_server']))
+        # access_log(request,meta_data = "{'userid' : '%s', 'token' : '%s',
+        # request.session['token'],request.session['api_server']))
         template = get_template('application/application.html')
-    except Exception, e:
+    except Exception as e:
         logger.exception(e)
-        return HttpResponseRedirect(settings.REDIRECT_URL+'/login')
+        return HttpResponseRedirect(settings.REDIRECT_URL + '/login')
     variables = RequestContext(request, {})
     output = template.render(variables)
     return HttpResponse(output)
@@ -300,14 +297,16 @@ def emulate_request(request, username=None):
             logger.info("Clearing emulation attributes from user")
             request.session['username'] = request.session['emulated_by']
             del request.session['emulated_by']
-            #Allow user to fall through on line below
+            # Allow user to fall through on line below
 
         try:
             user = DjangoUser.objects.get(username=username)
         except DjangoUser.DoesNotExist:
             logger.info("Emulate attempt failed. User <%s> does not exist"
                         % username)
-            return HttpResponseRedirect(settings.REDIRECT_URL+"/api/v1/profile")
+            return HttpResponseRedirect(
+                settings.REDIRECT_URL +
+                "/api/v1/profile")
 
         logger.info("Emulate success, creating tokens for %s" % username)
         token = AuthToken(
@@ -318,23 +317,23 @@ def emulate_request(request, username=None):
             api_server_url=settings.API_SERVER_URL
         )
         token.save()
-        #Keep original emulator if it exists, or use the last known username
+        # Keep original emulator if it exists, or use the last known username
         original_emulator = request.session.get(
             'emulated_by', request.session['username'])
         request.session['emulated_by'] = original_emulator
-        #Set the username to the user to be emulated
-        #to whom the token also belongs
+        # Set the username to the user to be emulated
+        # to whom the token also belongs
         request.session['username'] = username
         request.session['token'] = token.key
         logger.info("Returning emulated user - %s - to api profile "
                     % username)
         logger.info(request.session.__dict__)
         logger.info(request.user)
-        return HttpResponseRedirect(settings.REDIRECT_URL+"/api/v1/profile")
-    except Exception, e:
+        return HttpResponseRedirect(settings.REDIRECT_URL + "/api/v1/profile")
+    except Exception as e:
         logger.warn("Emulate request failed")
         logger.exception(e)
-        return HttpResponseRedirect(settings.REDIRECT_URL+"/api/v1/profile")
+        return HttpResponseRedirect(settings.REDIRECT_URL + "/api/v1/profile")
 
 
 def ip_request(req):
@@ -356,25 +355,25 @@ def ip_request(req):
 
         if len(instances) > 0:
             _json = json.dumps({'result':
-                               {'code': 'success',
-                                'meta': '',
-                                'value': 'Thank you for your feedback!'
+                                {'code': 'success',
+                                 'meta': '',
+                                 'value': 'Thank you for your feedback!'
                                          + 'Support has been notified.'}})
             status = 200
         else:
             _json = json.dumps({'result':
-                               {'code': 'failed',
-                                'meta': '',
-                                'value': 'No instance found '
+                                {'code': 'failed',
+                                 'meta': '',
+                                 'value': 'No instance found '
                                          + 'with requested IP address'}})
             status = 404
-    except Exception, e:
+    except Exception as e:
         logger.debug("IP request failed")
         logger.debug("%s %s %s" % (e, str(e), e.message))
         _json = json.dumps({'result':
-                           {'code': 'failed',
-                            'meta': '',
-                            'value': 'An error occured'}})
+                            {'code': 'failed',
+                             'meta': '',
+                             'value': 'An error occured'}})
         status = 500
     response = HttpResponse(_json,
                             status=status, content_type='application/json')
@@ -386,22 +385,22 @@ def get_resource(request, file_location):
         username = request.session.get('username', None)
         remote_ip = request.META.get('REMOTE_ADDR', None)
         if remote_ip is not None:
-            #Authenticated if the instance requests resource.
+            # Authenticated if the instance requests resource.
             instances = Instance.objects.filter(ip_address=remote_ip)
             authenticated = len(instances) > 0
         elif username is not None:
             django_authenticate(username=username, password="")
-            #User Authenticated by this line
+            # User Authenticated by this line
             authenticated = True
 
         if not authenticated:
             raise Exception("Unauthorized access")
-        path = settings.PROJECT_ROOT+"/init_files/"+file_location
+        path = settings.PROJECT_ROOT + "/init_files/" + file_location
         if os.path.exists(path):
             file = open(path, 'r')
             content = file.read()
             response = HttpResponse(content)
-            #Download it, even if it looks like text
+            # Download it, even if it looks like text
             response['Content-Disposition'] = \
                 'attachment; filename=%s' % file_location.split("/")[-1]
             return response
@@ -411,7 +410,7 @@ def get_resource(request, file_location):
         })
         output = template.render(variables)
         return HttpResponse(output)
-    except Exception, e:
+    except Exception as e:
         logger.debug("Resource request failed")
         logger.exception(e)
-        return HttpResponseRedirect(settings.REDIRECT_URL+"/login")
+        return HttpResponseRedirect(settings.REDIRECT_URL + "/login")

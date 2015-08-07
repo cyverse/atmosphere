@@ -33,31 +33,36 @@ class Rule():
 
 # Level 2
 class GlobalRule(Rule):
+
     """
     """
+
     def apply_global_rule(self, allocation, allocation_result):
         raise NotImplementedError("Should be implemented by subclass.")
 
 
 class InstanceRule(Rule):
+
     """
     """
+
     def apply_rule(self, instance, history, running_time, print_logs=False):
         raise NotImplementedError("Should be implemented by subclass.")
 
 
 class EngineRule(GlobalRule):
+
     """
     """
-    # def apply_rule(self, allocation, allocation_result):
-    #     raise NotImplementedError("Should be implemented by subclass.")
 
 
 # Level 3
 class CarryForwardTime(EngineRule):
+
     """
     When there is "leftover" time between TimePeriods, carry forward the time.
     """
+
     def apply_global_rule(self, allocation, allocation_result):
         allocation_result.carry_forward = True
 
@@ -68,6 +73,7 @@ class CarryForwardTime(EngineRule):
 
 
 class FilterOutRule(InstanceRule):
+
     """
     These rules determine what InstanceHistory status should
     be filtered out of calculation
@@ -82,6 +88,7 @@ class FilterOutRule(InstanceRule):
 
 
 class InstanceCountingRule(InstanceRule):
+
     """
     Each sub-class represents a way of 'counting time'.
     Instance
@@ -93,6 +100,7 @@ class InstanceCountingRule(InstanceRule):
 
 
 class InstanceMultiplierRule(InstanceCountingRule):
+
     """
     Instance Multiplier Rules.. ALL rules of this type will be applied
     MULTIPLICATIVELY to an instance.
@@ -117,7 +125,7 @@ class IgnoreStatusRule(FilterOutRule):
         If a match is found between Status History and the 'needle'
         Then the running_time should be ZEROed.
         """
-        if type(self.value) != list:
+        if not isinstance(self.value, list):
             values = [self.value]
         else:
             values = self.value
@@ -131,18 +139,19 @@ class IgnoreStatusRule(FilterOutRule):
         return running_time
 
     def _validate_value(self, value):
-        if type(value) != str:
+        if not isinstance(value, str):
             raise Exception("Expects a name to be matched on "
                             "InstanceStatusHistory.status")
 
 
 class IgnoreMachineRule(FilterOutRule):
+
     def __init__(self, name, value):
         super(IgnoreMachineRule, self).__init__(name, value)
         self.instance_attr = 'machine'
 
     def _validate_value(self, value):
-        if type(value) != str:
+        if not isinstance(value, str):
             raise Exception("Expects a machine UUID to be matched on "
                             "Instance.machine.identifier")
 
@@ -151,7 +160,7 @@ class IgnoreMachineRule(FilterOutRule):
         If a match is found between Machine UUID and the 'needle'
         Then the running_time should be ZEROed.
         """
-        if type(self.value) != list:
+        if not isinstance(self.value, list):
             values = [self.value]
         else:
             values = self.value
@@ -165,8 +174,9 @@ class IgnoreMachineRule(FilterOutRule):
 
 
 class IgnoreProviderRule(FilterOutRule):
+
     def _validate_value(self, value):
-        if type(value) != str:
+        if not isinstance(value, str):
             raise Exception("Expects a provider UUID to be matched on "
                             "Instance.provider.identifier")
 
@@ -175,7 +185,7 @@ class IgnoreProviderRule(FilterOutRule):
         If a match is found between Provider ID and the 'needle'
         Then the running_time should be ZEROed.
         """
-        if type(self.value) != list:
+        if not isinstance(self.value, list):
             values = [self.value]
         else:
             values = self.value
@@ -195,6 +205,7 @@ class IgnoreProviderRule(FilterOutRule):
 
 # Types of 'InstanceCountingRule'
 class MultiplyBurnTime(InstanceMultiplierRule):
+
     def apply_rule(self, instance, history, running_time, print_logs=False):
         """
         Multiply the running_time by (multiplier) to adjust the overall burn
@@ -212,6 +223,7 @@ class MultiplyBurnTime(InstanceMultiplierRule):
 
 
 class MultiplySizeCPU(InstanceMultiplierRule):
+
     def apply_rule(self, instance, history, running_time, print_logs=False):
         """
         Multiply the running_time by size of CPU * (multiplier)
@@ -230,9 +242,11 @@ class MultiplySizeCPU(InstanceMultiplierRule):
 
 
 class MultiplySizeDisk(InstanceMultiplierRule):
+
     """
     Units here are ALWAYS in GB
     """
+
     def apply_rule(self, instance, history, running_time, print_logs=False):
         """
         Multiply the running_time by size of Disk (GB) * (multiplier)
@@ -251,6 +265,7 @@ class MultiplySizeDisk(InstanceMultiplierRule):
 
 
 class MultiplySizeRAM(InstanceMultiplierRule):
+
     """
     Units here are ALWAYS in MB
 
@@ -260,10 +275,10 @@ class MultiplySizeRAM(InstanceMultiplierRule):
     """
 
     def _gb_to_mb(gb_size):
-        return gb_size*1024
+        return gb_size * 1024
 
     def _mb_to_gb(mb_size):
-        return mb_size/1024.0
+        return mb_size / 1024.0
 
     def apply_rule(self, instance, history, running_time, print_logs=False):
         """

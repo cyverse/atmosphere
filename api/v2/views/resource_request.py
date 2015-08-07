@@ -9,6 +9,7 @@ from api.v2.views.base import BaseRequestViewSet
 
 
 class ResourceRequestViewSet(BaseRequestViewSet):
+
     """
     API endpoint that allows resource request to be viewed or edited.
     """

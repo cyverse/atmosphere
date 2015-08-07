@@ -3,7 +3,15 @@ from rest_framework import serializers
 
 
 class QuotaSummarySerializer(serializers.HyperlinkedModelSerializer):
+
     class Meta:
         model = Quota
         view_name = 'api:v2:quota-detail'
-        fields = ('id', 'url', 'cpu', 'memory', 'storage', 'storage_count', 'suspended_count')
+        fields = (
+            'id',
+            'url',
+            'cpu',
+            'memory',
+            'storage',
+            'storage_count',
+            'suspended_count')

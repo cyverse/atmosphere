@@ -43,10 +43,10 @@ def requestImaging(request, machine_request_id, auto_approve=False):
         namespace = "api:v1:cloud-admin-imaging-request-detail"
         base_url = reverse(namespace, args=(machine_request_id,))
         context["view"] = base_url
-        context["approve"] = "%s/approve"  % base_url
-        context["deny"] = "%s/deny"  % base_url
+        context["approve"] = "%s/approve" % base_url
+        context["deny"] = "%s/deny" % base_url
         staff_body = render_to_string("core/email/imaging_request_staff.html",
-                                       context=Context(context))
+                                      context=Context(context))
         email_success = email_admin(request, subject, staff_body,
                                     cc_user=False)
 
@@ -64,7 +64,7 @@ def resource_request_email(request, username, new_resource, reason):
         identity=user.select_identity(),
         member__in=user.group_set.all())
     admin_url = reverse('admin:core_identitymembership_change',
-                                     args=(membership.id,))
+                        args=(membership.id,))
 
     subject = "Atmosphere Resource Request - %s" % username
     context = {
@@ -97,7 +97,7 @@ def feedback_email(request, username, user_email, message):
     email_success = email_admin(request, subject, body, request_tracker=True)
     if email_success:
         resp = {'result':
-                   {'code': 'success',
+                {'code': 'success',
                     'meta': '',
                     'value': 'Thank you for your feedback! '
                              + 'Support has been notified.'}}
@@ -120,5 +120,9 @@ def support_email(request, subject, message):
 
     Returns a response.
     """
-    email_success = email_admin(request, subject, message, request_tracker=True)
+    email_success = email_admin(
+        request,
+        subject,
+        message,
+        request_tracker=True)
     return {"email_sent": email_success}

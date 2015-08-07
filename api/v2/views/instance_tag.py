@@ -5,6 +5,7 @@ from api.v2.views.base import AuthViewSet
 
 
 class InstanceTagViewSet(AuthViewSet):
+
     """
     API endpoint that allows instance tags to be viewed
     """

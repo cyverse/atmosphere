@@ -8,8 +8,10 @@ from .get_context_user import get_context_user
 
 class ProjectSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField(source='uuid')
-    #Edits to Writable fields..
-    owner = serializers.SlugRelatedField(slug_field='name', queryset=Group.objects.all())
+    # Edits to Writable fields..
+    owner = serializers.SlugRelatedField(
+        slug_field='name',
+        queryset=Group.objects.all())
     # These fields are READ-ONLY!
     instances = serializers.SerializerMethodField('get_user_instances')
     volumes = serializers.SerializerMethodField('get_user_volumes')
@@ -19,8 +21,8 @@ class ProjectSerializer(serializers.ModelSerializer):
             item,
             context={'request': self.context.get('request')}).data for item in
             project.instances.filter(only_current(),
-                source__provider__active=True
-                )]
+                                     source__provider__active=True
+                                     )]
 
     def get_user_volumes(self, project):
         return [VolumeSerializer(

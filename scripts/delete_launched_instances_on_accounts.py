@@ -12,7 +12,8 @@ from authentication.models import Token
 
 from gevent import monkey
 
-# patches stdlib (including socket and ssl modules) to cooperate with other greenlets
+# patches stdlib (including socket and ssl modules) to cooperate with
+# other greenlets
 monkey.patch_socket()
 monkey.patch_ssl()
 
@@ -25,7 +26,7 @@ def delete_instance(launch_url, headers, provider, user):
     print "Sending request"
     print launch_url
     r = requests.delete(launch_url, headers=headers)
-    if r.status_code in [200,204]:
+    if r.status_code in [200, 204]:
         print "Instance deleted successfully: %s, %s" % (provider.location, user.username)
     else:
         print "Instance failed to delete: %s, %s, %s" % (provider.location, user.username, r.status_code)
@@ -46,7 +47,10 @@ def main(args):
         identity = Identity.objects.get(created_by=user, provider=provider)
         user_tokens = Token.objects.filter(user=user).order_by('-issuedTime')
         if user_tokens.count() == 0:
-            print("No tokens for user: " + user.username + ". No instances will launch on their account.")
+            print(
+                "No tokens for user: " +
+                user.username +
+                ". No instances will launch on their account.")
             continue
 
         latest_token = user_tokens[0]
@@ -59,8 +63,14 @@ def main(args):
                                             name=args.name)
 
         for instance in instances:
-            launch_url = settings.SERVER_URL + "/api/v1/provider/" + provider.uuid + "/identity/" + identity.uuid + "/instance/" + instance.provider_alias
-            job = gevent.spawn(delete_instance, launch_url, headers, provider, user)
+            launch_url = settings.SERVER_URL + "/api/v1/provider/" + provider.uuid + \
+                "/identity/" + identity.uuid + "/instance/" + instance.provider_alias
+            job = gevent.spawn(
+                delete_instance,
+                launch_url,
+                headers,
+                provider,
+                user)
             async_request_list.append(job)
 
     print "Sending requests to Atmosphere..."

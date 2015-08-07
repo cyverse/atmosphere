@@ -8,6 +8,7 @@ from api.v2.views.base import AuthViewSet
 
 
 class ProjectInstanceViewSet(AuthViewSet):
+
     """
     API endpoint that allows instance actions to be viewed or edited.
     """

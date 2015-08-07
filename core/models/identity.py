@@ -11,7 +11,9 @@ from django.db import models
 from threepio import logger
 from uuid import uuid5, uuid4
 
+
 class Identity(models.Model):
+
     """
     An Identity is the minimal set of credentials necessary
     to authenticate against a single provider
@@ -23,7 +25,7 @@ class Identity(models.Model):
 
     @classmethod
     def delete_identity(cls, username, provider_location):
-        #Do not move up. ImportError.
+        # Do not move up. ImportError.
         from core.models import AtmosphereUser, Group, Credential, Quota,\
             Provider, AccountProvider,\
             IdentityMembership
@@ -48,26 +50,26 @@ class Identity(models.Model):
         1. You are the original owner of the identity
         2. You are the leader of a group who contains the owner of the identity
         """
-        #This person leads a group, may be able to share.
-        #Check 0
+        # This person leads a group, may be able to share.
+        # Check 0
         if django_user.is_staff:
             return True
-        #Check 1
+        # Check 1
         original_owner = self.created_by
         if original_owner == django_user:
             return True
-        #Check 2
+        # Check 2
         shared = False
         leader_groups = django_user.group_set.get(leaders__in=[django_user])
         for group in leader_groups:
             id_member = g.identitymembership_set.get(identity=self)
             if not id_member:
                 continue
-            #ASSERT: You have SHARED access to the identity
+            # ASSERT: You have SHARED access to the identity
             shared = True
             if original_owner in group.user_set.all():
                 return True
-        #User can't share.. Log the attempt for record-keeping
+        # User can't share.. Log the attempt for record-keeping
         if shared:
             logger.info("FAILED SHARE ATTEMPT: User:%s Identity:%s "
                         "Reason: You are not a leader of any group that "
@@ -88,13 +90,15 @@ class Identity(models.Model):
         if existing_membership:
             return existing_membership[0]
 
-
-        #Ready to create new membership for this group
+        # Ready to create new membership for this group
         if not quota:
             quota = Quota.default_quota()
         allocation = Allocation.default_allocation()
         new_membership = IdentityMembership.objects.get_or_create(
-            member=core_group, identity=self, quota=quota, allocation=allocation)[0]
+            member=core_group,
+            identity=self,
+            quota=quota,
+            allocation=allocation)[0]
         return new_membership
 
     def unshare(self, core_group):
@@ -116,7 +120,7 @@ class Identity(models.Model):
     def get_membership(self):
         identity_members = self.identitymembership_set.all()
         group_names = [id_member.member for id_member in identity_members]
-        #TODO: Add 'rules' if we want to hide specific users (staff, etc.)
+        # TODO: Add 'rules' if we want to hide specific users (staff, etc.)
         return group_names
 
     @classmethod
@@ -139,7 +143,7 @@ class Identity(models.Model):
           Atmosphere will run fine without an account_admin, but the above
           features will be disabled.
         """
-        #Do not move up. ImportError.
+        # Do not move up. ImportError.
         from core.models import Group, Credential, Quota,\
             Provider, AccountProvider, Allocation,\
             IdentityMembership
@@ -155,7 +159,7 @@ class Identity(models.Model):
 
         (user, group) = Group.create_usergroup(username)
 
-        #NOTE: This specific query will need to be modified if we want
+        # NOTE: This specific query will need to be modified if we want
         # 2+ Identities on a single provider
 
         id_membership = IdentityMembership.objects.filter(
@@ -164,8 +168,8 @@ class Identity(models.Model):
             identity__created_by__username=user.username)
         if not id_membership:
             default_allocation = Allocation.default_allocation()
-            #1. Create an Identity Membership
-            #DEV NOTE: I have a feeling that THIS line will mean
+            # 1. Create an Identity Membership
+            # DEV NOTE: I have a feeling that THIS line will mean
             #          creating a secondary identity for a user on a given
             #          provider will be difficult. We need to find a better
             #          workflow here..
@@ -174,17 +178,21 @@ class Identity(models.Model):
                                                 provider=provider)
             except Identity.DoesNotExist:
                 new_uuid = uuid4()
-                identity = Identity.objects.create(created_by=user,
-                        provider=provider, uuid=str(new_uuid))
-            #Two-tuple, (Object, created)
+                identity = Identity.objects.create(
+                    created_by=user,
+                    provider=provider,
+                    uuid=str(new_uuid))
             id_membership = IdentityMembership.objects.get_or_create(
-                identity=identity, member=group, allocation=default_allocation, quota=Quota.default_quota())
-        #Either first in list OR object from two-tuple.. Its what we need.
+                identity=identity,
+                member=group,
+                allocation=default_allocation,
+                quota=Quota.default_quota())
+        # Either first in list OR object from two-tuple.. Its what we need.
         id_membership = id_membership[0]
 
-        #ID_Membership exists.
+        # ID_Membership exists.
 
-        #2. Make sure that all kwargs exist as credentials
+        # 2. Make sure that all kwargs exist as credentials
         # NOTE: Because we assume only one identity per provider
         #       We can add new credentials to
         #       existing identities if missing..
@@ -199,13 +207,13 @@ class Identity(models.Model):
                 logger.info("Conflicting Key Error: Key:%s Value:%s "
                             "Replacement:%s" %
                             (c_key, c_value, test_key_exists[0].value))
-                #No Dupes... But should we really throw an Exception here?
+                # No Dupes... But should we really throw an Exception here?
                 continue
             Credential.objects.get_or_create(
                 identity=id_membership.identity,
                 key=c_key,
                 value=c_value)[0]
-        #3. Assign a different quota, if requested
+        # 3. Assign a different quota, if requested
         if quota:
             id_membership.quota = quota
             id_membership.allocation = None
@@ -220,9 +228,9 @@ class Identity(models.Model):
                 provider=id_membership.identity.provider,
                 identity=id_membership.identity)[0]
 
-        #5. Save the user to activate profile on first-time use
+        # 5. Save the user to activate profile on first-time use
         user.save()
-        #Return the identity
+        # Return the identity
         return id_membership.identity
 
     def provider_uuid(self):
@@ -248,12 +256,14 @@ class Identity(models.Model):
         cred_dict = {}
         for cred in self.provider.providercredential_set.all():
             cred_dict[cred.key] = cred.value
-        #Allow overriding in the identity
+        # Allow overriding in the identity
         for cred in self.credential_set.all():
             cred_dict[cred.key] = cred.value
         return cred_dict
+
     def get_urls(self):
         return []
+
     def get_allocation(self):
         id_member = self.identitymembership_set.all()[0]
         return id_member.allocation
@@ -269,7 +279,7 @@ class Identity(models.Model):
 
     def get_quota_dict(self):
         id_member = self.identitymembership_set.all()[0]
-        #See core/models/group.py#IdentityMembership
+        # See core/models/membership.py#IdentityMembership
         quota_dict = id_member.get_quota_dict()
         allocation_dict = self.get_allocation_dict()
         if allocation_dict:

@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from core.models.group import Group
-from core.models.post_boot import ScriptType, BootScript,\
+from core.models.boot_script import ScriptType, BootScript,\
     get_scripts_for_user
 
 from api import failure_response
@@ -15,6 +15,7 @@ from api.v1.views.base import AuthAPIView
 
 
 class BootScriptList(AuthAPIView):
+
     """
     BootScripts represent a script to be deployed on an instance and/or
     application after Atmosphere has finished deploying the instance.
@@ -46,6 +47,7 @@ class BootScriptList(AuthAPIView):
 
 
 class BootScript(AuthAPIView):
+
     """
     BootScripts represent the different Cloud configurations hosted
     on Atmosphere.

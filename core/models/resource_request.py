@@ -7,6 +7,7 @@ from core.models.abstract import BaseRequest
 
 
 class ResourceRequest(BaseRequest):
+
     """
     Tracks users requests to change their current Resources
     """

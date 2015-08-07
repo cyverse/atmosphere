@@ -13,7 +13,9 @@ class InstanceRelatedField(serializers.PrimaryKeyRelatedField):
         instance = Instance.objects.get(pk=value.pk)
         # important! We have to use the SuperSummary because there are non-end_dated
         # instances that don't have a valid size (size='Unknown')
-        serializer = InstanceSuperSummarySerializer(instance, context=self.context)
+        serializer = InstanceSuperSummarySerializer(
+            instance,
+            context=self.context)
         return serializer.data
 
 

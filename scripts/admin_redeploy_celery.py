@@ -11,6 +11,7 @@ django.setup()
 
 DO_NOTHING = False
 
+
 def main():
     global DO_NOTHING
     parser = argparse.ArgumentParser()
@@ -45,21 +46,33 @@ def main():
 
 def redeploy_users(provider, users=[]):
     accounts = get_account_driver(provider)
-    tenant_instances_map = accounts.tenant_instances_map(status_list=['deploy_error', 'networking','deploying','initializing'])
+    tenant_instances_map = accounts.tenant_instances_map(
+        status_list=[
+            'deploy_error',
+            'networking',
+            'deploying',
+            'initializing'])
     for tenant, instance_list in tenant_instances_map.iteritems():
         username = tenant.name
         if users and username not in users:
             print "Found affected user:%s and Instances:%s - Skipping because they aren't in the list." % (username, instance_list)
             continue
         for instance in instance_list:
-            metadata = instance._node.extra.get('metadata',{})
+            metadata = instance._node.extra.get('metadata', {})
             instance_status = instance.extra.get('status')
-            tmp_status = metadata.get('tmp_status','')
+            tmp_status = metadata.get('tmp_status', '')
             print "Starting idempotent redeployment for %s - Instance: %s (%s - %s)" % (username, instance.id, instance_status, tmp_status)
-            ident = Identity.objects.get(provider=provider, created_by__username=username)
+            ident = Identity.objects.get(
+                provider=provider,
+                created_by__username=username)
             driver = get_esh_driver(ident)
             try:
-                start_task = get_idempotent_deploy_chain(driver.__class__, driver.provider, driver.identity, instance, username)
+                start_task = get_idempotent_deploy_chain(
+                    driver.__class__,
+                    driver.provider,
+                    driver.identity,
+                    instance,
+                    username)
                 print "Starting idempotent redeployment: %s ..." % (start_task),
                 start_task.apply_async()
             except Identity.DoesNotExist:
@@ -68,7 +81,7 @@ def redeploy_users(provider, users=[]):
             if DO_NOTHING:
                 continue
             print " Sent"
-       
+
 
 if __name__ == "__main__":
     main()

@@ -2,19 +2,36 @@
 Atmosphere API's extension of DRF permissions.
 """
 
-from django.contrib.auth.models import AnonymousUser
-
 from rest_framework import permissions
 
 from threepio import logger
 
 from core.models.cloud_admin import CloudAdministrator
-from core.models import MaintenanceRecord
+from core.models import Group, MaintenanceRecord
 
 from api import ServiceUnavailable
 
 
+class ImageOwnerUpdateAllowed(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+        user = request.user
+        if request.METHOD != 'PATCH':
+            return True
+        image_id = view.kwargs.get('image_id')
+        if not image_id:
+            logger.warn("Could not find kwarg:'image_id'")
+            return False
+        if user.is_superuser() or \
+                user.is_staff() or \
+                any(app for app in
+                    user.application_set.filter(id=image_id)):
+            return True
+        return False
+
+
 class ProjectOwnerRequired(permissions.BasePermission):
+
     def has_permission(self, request, view):
         auth_user = request.user
         project_uuid = view.kwargs.get('project_uuid')
@@ -27,8 +44,10 @@ class ProjectOwnerRequired(permissions.BasePermission):
 
 
 class ApiAuthRequired(permissions.BasePermission):
+
     def has_permission(self, request, view):
         return request.user.is_authenticated()
+
 
 def _get_administrator_accounts(user):
     try:
@@ -53,6 +72,7 @@ def _get_administrator_account(user, admin_uuid):
 
 
 class CloudAdminRequired(permissions.BasePermission):
+
     def has_permission(self, request, view):
         if not request.user.is_authenticated():
             return False
@@ -68,6 +88,7 @@ class CloudAdminRequired(permissions.BasePermission):
 
 
 class CloudAdminUpdatingRequired(permissions.BasePermission):
+
     def has_permission(self, request, view):
         user = request.user
         if request.method in permissions.SAFE_METHODS:
@@ -89,6 +110,7 @@ class CloudAdminUpdatingRequired(permissions.BasePermission):
 
 
 class IsAdminOrReadOnly(permissions.BasePermission):
+
     """
     The request is authenticated as an admin, or is a read-only request.
     """
@@ -101,11 +123,13 @@ class IsAdminOrReadOnly(permissions.BasePermission):
 
 
 class ApiAuthIgnore(permissions.BasePermission):
+
     def has_permission(self, request, view):
         return True
 
 
 class ApiAuthOptional(permissions.BasePermission):
+
     def has_permission(self, request, view):
         # Allow access to GET/OPTIONS/HEAD operations.
         if request.method in permissions.SAFE_METHODS:
@@ -127,11 +151,13 @@ def get_maintenance_messages(records):
 
 
 class InMaintenance(permissions.BasePermission):
+
     """
     Return a 503 Service unavailable if in maintenance.
 
     Exceptions: for DjangoUser staff.
     """
+
     def has_permission(self, request, view):
         records = MaintenanceRecord.active()\
                                    .filter(provider__isnull=True)
@@ -140,3 +166,36 @@ class InMaintenance(permissions.BasePermission):
                 raise ServiceUnavailable(
                     detail=get_maintenance_messages(records))
         return True
+
+
+class CanEditOrReadOnly(permissions.BasePermission):
+    """
+    Authorize the request if the user is the creator or the request is a
+    safe operation.
+    """
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        if request.user.is_staff:
+            return True
+        return hasattr(obj, "created_by") and obj.created_by == request.user
+
+
+class ApplicationMemberOrReadOnly(permissions.BasePermission):
+    """
+    Authorize the request if the user is member of the application or
+    the request is a safe operation.
+    """
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        if request.user.is_staff:
+            return True
+        # Allow Application/Image owners to make changes
+        if obj.created_by == request.user:
+            return True
+
+        # FIXME: move queries into a model manager
+        user_groups = Group.objects.filter(user=request.user)
+        app_groups = Group.objects.filter(applications=obj)
+        return (user_groups & app_groups).exists()

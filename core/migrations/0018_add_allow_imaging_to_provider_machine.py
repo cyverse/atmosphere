@@ -19,16 +19,21 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='machinerequest',
             name='new_machine_allow_imaging',
-            field=models.BooleanField(default=True),
+            field=models.BooleanField(
+                default=True),
         ),
         migrations.AddField(
             model_name='providermachine',
             name='allow_imaging',
-            field=models.BooleanField(default=True),
+            field=models.BooleanField(
+                default=True),
         ),
         migrations.AlterField(
             model_name='providermachine',
             name='licenses',
-            field=models.ManyToManyField(related_name='machines', to='core.License', blank=True),
+            field=models.ManyToManyField(
+                related_name='machines',
+                to='core.License',
+                blank=True),
         ),
     ]

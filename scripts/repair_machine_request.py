@@ -10,6 +10,7 @@ from core.models.application import _generate_app_uuid
 
 Force = False
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--force", action="store_true",
@@ -17,8 +18,10 @@ def main():
     parser.add_argument("--provider", type=int,
                         help="Atmosphere provider ID"
                         " to use.")
-    parser.add_argument("--request_ids", required=True,
-                        help="Machine Request DB ID(s) to be repaired. (Comma-Separated)")
+    parser.add_argument(
+        "--request_ids",
+        required=True,
+        help="Machine Request DB ID(s) to be repaired. (Comma-Separated)")
 
     args = parser.parse_args()
     if args.force:
@@ -43,28 +46,37 @@ def fix_requests(provider, requests=[]):
             continue
 
         if machine_request.new_machine_provider != provider:
-            raise ValueError("MachineRequest ID:%s is for Provider:%s. Testing Provider is:%s" % (request_id, machine_request.new_machine_provider, provider))
+            raise ValueError(
+                "MachineRequest ID:%s is for Provider:%s. Testing Provider is:%s" %
+                (request_id, machine_request.new_machine_provider, provider))
     fixed = False
     try:
-        new_machine = ProviderMachine.objects.get(id=machine_request.new_machine_id)
-    except ProviderMachine.DoesNotExist, no_match:
+        new_machine = ProviderMachine.objects.get(
+            id=machine_request.new_machine_id)
+    except ProviderMachine.DoesNotExist as no_match:
         print "OK: This MachineRequest has a BAD 'new_machine' (DoesNotExist)"
         new_machine = None
     if not fixed:
-        fixed = _fix_wrong_machine_on_request(machine_request, provider, new_machine)
+        fixed = _fix_wrong_machine_on_request(
+            machine_request,
+            provider,
+            new_machine)
     if not fixed and new_machine:
         _fix_new_version_forked(machine_request, provider, new_machine)
 
-def _fix_new_version_forked(machine_request, provider, new_machine):
+
+def _fix_new_machine_forked(machine_request, provider, new_machine):
     app_uuid = _generate_app_uuid(new_machine.identifier)
     if not machine_request.new_version_forked:
         return False
     if Application.objects.filter(uuid=app_uuid).count():
         return False
     print "OK: This MachineRequest: %s has a BAD Application." \
-      "\tUUID should be %s." % (machine_request, app_uuid)
+        "\tUUID should be %s." % (machine_request, app_uuid)
     old_application = new_machine.application
-    current_application = _create_new_application(machine_request, new_machine.identifier)
+    current_application = _create_new_application(
+        machine_request,
+        new_machine.identifier)
 
     remaining_machines = old_application._current_machines()
     for machine in remaining_machines:
@@ -83,19 +95,23 @@ def _fix_new_version_forked(machine_request, provider, new_machine):
         for machine in remaining_machines:
             glance_image = accounts.image_manager.get_image(machine.identifier)
             if glance_image:
-                original_request = MachineRequest.objects.filter(new_application_name=glance_image.name)
+                original_request = MachineRequest.objects.filter(
+                    new_application_name=glance_image.name)
                 print "Hint: Image_ID:%s Named:%s MachineRequest:%s" % (glance_image.id, glance_image.name, original_request)
 
     return True
+
 
 def _fix_wrong_machine_on_request(machine_request, provider, new_machine):
     if new_machine.provider == provider:
         return False
     print "OK: This MachineRequest: %s has a BAD 'new_machine':%s" \
-      "\tProvider should be %s." % (machine_request, new_machine, provider)
+        "\tProvider should be %s." % (machine_request, new_machine, provider)
 
     actual_image = _find_machine_by_request(machine_request)
-    actual_machine = ProviderMachine.objects.get(identifier=actual_image.id, provider=provider)
+    actual_machine = ProviderMachine.objects.get(
+        identifier=actual_image.id,
+        provider=provider)
     print "FIXED: Found correct 'new_machine': %s-->%s" % (new_machine, actual_machine)
     machine_request.new_machine = actual_machine
     machine_request.save()
@@ -115,11 +131,13 @@ def _find_machine_by_request(machine_request):
     potential_matches = _match_by_date_range(images, started, completed)
     count = len(potential_matches)
     if count < 1:
-        raise Exception("Could not find an image to match this MachineRequest!")
+        raise Exception(
+            "Could not find an image to match this MachineRequest!")
     elif count == 1:
         return potential_matches[0]
     else:
         return _match_by_name(potential_matches, lookup_name)
+
 
 def _match_by_name(image_list, lookup_name):
     """
@@ -136,7 +154,9 @@ def _match_by_name(image_list, lookup_name):
     elif count == 1:
         return matches[0]
     else:
-        raise Exception("Ambiguity Error! Multiple images named %s: %s" % (lookup_name, matches))
+        raise Exception(
+            "Ambiguity Error! Multiple images named %s: %s" %
+            (lookup_name, matches))
 
 
 def _match_by_date_range(image_list, started, completed):
@@ -156,15 +176,19 @@ def _match_by_date_range(image_list, started, completed):
         matches.append(image)
     return matches
 
+
 def _strptime(timestamp):
     try:
-        #99% of images use this Standard format
-        return datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S').replace(tzinfo=utc)
-    except ValueError, bad_timestamp:
+        # 99% of images use this Standard format
+        return datetime.strptime(
+            timestamp, '%Y-%m-%dT%H:%M:%S').replace(tzinfo=utc)
+    except ValueError as bad_timestamp:
         if 'unconverted data' in bad_timstamp.message and 'Z' in bad_timestamp.message:
-            #Include microseconds using ISO Standard
-            return datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
+            # Include microseconds using ISO Standard
+            return datetime.strptime(
+                timestamp, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
         raise
+
 
 def _create_new_application(machine_request, new_image_id, tags=[]):
     from core.models import Identity
@@ -184,9 +208,11 @@ def _create_new_application(machine_request, new_image_id, tags=[]):
             tags)
     return new_app
 
+
 def _update_parent_application(machine_request, new_image_id, tags=[]):
     parent_app = machine_request.instance.source.providermachine.application
     return _update_application(parent_app, machine_request, tags=tags)
+
 
 def _update_application(application, machine_request, tags=[]):
     if application.name is not machine_request.new_application_name:

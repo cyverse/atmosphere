@@ -79,6 +79,7 @@ def get_identity(user, identity_uuid):
 
 
 class IdentityDetail(AuthAPIView):
+
     """
     The identity contains every credential necessary for atmosphere
     to connect 'The Provider' with a specific user.
@@ -100,6 +101,7 @@ class IdentityDetail(AuthAPIView):
 
 
 class IdentityDetailList(AuthAPIView):
+
     """
     The identity contains every credential necessary for atmosphere
     to connect 'The Provider' with a specific user.
@@ -116,6 +118,7 @@ class IdentityDetailList(AuthAPIView):
 
 
 class IdentityList(AuthAPIView):
+
     """
     The identity contains every credential necessary for atmosphere
     to connect 'The Provider' with a specific user.
@@ -136,6 +139,7 @@ class IdentityList(AuthAPIView):
 
 
 class Identity(AuthAPIView):
+
     """
     The identity contains every credential necessary for atmosphere
     to connect 'The Provider' with a specific user.

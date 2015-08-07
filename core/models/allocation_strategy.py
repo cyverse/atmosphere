@@ -10,8 +10,11 @@ from allocation.models.strategy import \
     PythonAllocationStrategy, OneTimeRefresh, FixedWindow,\
     IgnoreNonActiveStatus, MultiplySizeCPURule
 
-#NOTE: Carried over from OLD allocation model. This will be changing soon
+# NOTE: Carried over from OLD allocation model. This will be changing soon
+
+
 class Allocation(models.Model):
+
     """
     Allocation limits the amount of time resources that can be used for
     a User/Group. Allocations are set at the Identity Level
@@ -20,11 +23,11 @@ class Allocation(models.Model):
     # One week
     threshold = models.IntegerField(null=True,
                                     blank=True,
-                                    default=7*24*60)  # In Minutes
+                                    default=7 * 24 * 60)  # In Minutes
     # Over One year
     delta = models.IntegerField(null=True,
                                 blank=True,
-                                default=365*24*60)  # In Minutes
+                                default=365 * 24 * 60)  # In Minutes
 
     def __unicode__(self):
         return "Threshold: %s minutes over Delta: %s minutes" %\
@@ -53,6 +56,7 @@ class Allocation(models.Model):
 
 
 class RulesBehavior(models.Model):
+
     """
     allow real-time modification of the rules used on the allocation engine.
     """
@@ -67,6 +71,7 @@ class RulesBehavior(models.Model):
 
 
 class RefreshBehavior(models.Model):
+
     """
     real-time modification of how to refresh a users allocation.
     """
@@ -82,6 +87,7 @@ class RefreshBehavior(models.Model):
 
 
 class CountingBehavior(models.Model):
+
     """
     Should be used as part of assigning another class that references
     CountingBehavior, but could be used as an 'emergency catch' for
@@ -98,6 +104,7 @@ class CountingBehavior(models.Model):
 
 
 class AllocationStrategy(models.Model):
+
     """
     AllocationStrategy is composed of three types of strategy:
         * Counting Strategy -- one-to-one

@@ -8,23 +8,32 @@ import os
 
 from django.db import models
 from django.db.models import Q
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from core.models.user import AtmosphereUser as User
 
 
-from core.models.application import update_application, create_application, ApplicationMembership
+from core.models.application import (
+        update_application, create_application,
+        ApplicationThreshold, ApplicationMembership)
 from core.models.license import License
-from core.models.machine import create_provider_machine, ProviderMachine, update_provider_machine, provider_machine_write_hook
+from core.models.boot_script import BootScript
+from core.models.machine import (
+        create_provider_machine, ProviderMachine,
+        update_provider_machine, provider_machine_write_hook)
 from core.models.node import NodeController
 from core.models.provider import Provider, AccountProvider
 from core.models.identity import Identity
-from core.models.version import ApplicationVersion, create_app_version
+from core.models.application_version import (
+        ApplicationVersion, create_app_version)
 
 from atmosphere.settings import secrets
 from threepio import logger
+from functools import reduce
 
 
 class MachineRequest(models.Model):
+
     """
     Storage container for the MachineRequestThread to start/restart the Queue
     Provides a Parent-Child relationship between the new image and ancestor(s)
@@ -39,10 +48,22 @@ class MachineRequest(models.Model):
 
     # Data for the new machine, version and app...
     # Application specific:
-    new_application_name = models.CharField(max_length=256, null=True, blank=True)
-    new_application_description = models.TextField(default='', blank=True, null=True)
-    new_application_visibility = models.CharField(max_length=256, blank=True, null=True) # Choices:Public, Private, Select
-    access_list = models.TextField(default='', blank=True, null=True) # DEPRECATED in API v2
+    new_application_name = models.CharField(
+        max_length=256,
+        null=True,
+        blank=True)
+    new_application_description = models.TextField(
+        default='',
+        blank=True,
+        null=True)
+    new_application_visibility = models.CharField(
+        max_length=256,
+        blank=True,
+        null=True)  # Choices:Public, Private, Select
+    access_list = models.TextField(
+        default='',
+        blank=True,
+        null=True)  # DEPRECATED in API v2
     # SPECIFIC to 'forked=False'
 
     # Specific to ApplicationVersion && ProviderMachine
@@ -50,78 +71,88 @@ class MachineRequest(models.Model):
     installed_software = models.TextField(default='', blank=True, null=True)
     exclude_files = models.TextField(default='', blank=True, null=True)
     new_version_name = models.CharField(max_length=256, blank=True, null=True)
-    new_version_change_log = models.TextField(default='', blank=True, null=True)
-    new_version_tags = models.TextField(default='', blank=True, null=True)
+    new_version_change_log = models.TextField(
+        default='',
+        blank=True,
+        null=True)
+    new_version_tags = models.TextField(
+        default='', blank=True, null=True)  # Re-rename to new_application_tags
     new_version_memory_min = models.IntegerField(default=0)
     new_version_storage_min = models.IntegerField(default=0)
     new_version_allow_imaging = models.BooleanField(default=True)
     new_version_forked = models.BooleanField(default=True)
     new_version_licenses = models.ManyToManyField(License, blank=True)
+    new_version_scripts = models.ManyToManyField(BootScript, blank=True)
     new_version_membership = models.ManyToManyField("Group", blank=True)
 
     new_machine_provider = models.ForeignKey(Provider)
     new_machine_owner = models.ForeignKey(User)
-    #Date time stamps
+    # Date time stamps
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     # Filled in when completed.
     # NOTE: ProviderMachine and 'new_machine' might be phased out
     # along with 'new_machine_provider' as Versions become replicated
-    # across different clouds. 
+    # across different clouds.
     # However, it might be good to have the "Original machine"..
     # similar to the 'created_by/created_by_identity' dilemma
     new_machine = models.ForeignKey(ProviderMachine,
                                     null=True, blank=True)
     new_application_version = models.ForeignKey(ApplicationVersion,
-                                    null=True, blank=True)
+                                                null=True, blank=True)
 
     def clean(self):
         """
         Clean up machine requests before saving initial objects to allow
         users the chance to correct their mistakes.
         """
-        #'Created application' specific logic that should fail:
+        # 'Created application' specific logic that should fail:
         if self.new_version_forked:
             pass
-        #'Updated Version' specific logic that should fail:
+        # 'Updated Version' specific logic that should fail:
         else:
             if self.new_application_name:
-                raise ValidationError("Application name cannot be set unless a new application is being created. Remove the Application name to update -OR- fork the existing application")
+                raise ValidationError(
+                    "Application name cannot be set unless a new application "
+                    "is being created. Remove the Application name to update "
+                    "-OR- fork the existing application")
 
-        #General Validation && AutoCompletion
+        # General Validation && AutoCompletion
 
-        #Automatically set 'end date' when completed
+        # Automatically set 'end date' when completed
         if self.status == 'completed' and not self.end_date:
             self.end_date = timezone.now()
 
     def new_version_threshold(self):
         return {'memory': self.new_version_memory_min,
-                'disk': self.new_version_storage_min }
+                'disk': self.new_version_storage_min}
+
     def get_app(self):
         if self.new_machine:
             return self.new_machine.application
-        #Return the parent application if the new machine has not been created.
+        # Return the parent application if the new machine has not been
+        # created.
         return self.parent_machine.application
 
     def update_threshold(self):
         application = self.get_app()
         existing_threshold = ApplicationThreshold.objects.filter(
-                application=application)
+            application=application)
 
         if existing_threshold:
             threshold = existing_threshold[0]
         else:
             threshold = ApplicationThreshold(application=application)
 
-        threshold.memory_min=machine_request.new_version_memory_min
-        threshold.storage_min=machine_request.new_version_storage_min
+        threshold.memory_min = self.new_version_memory_min
+        threshold.storage_min = self.new_version_storage_min
         threshold.save()
         return threshold
 
     def has_threshold(self):
         return self.new_version_memory_min > 0\
-                or self.new_version_storage_min > 0
+            or self.new_version_storage_min > 0
 
     def _get_meta_name(self):
         """
@@ -129,13 +160,14 @@ class MachineRequest(models.Model):
         """
         meta_name = '%s_%s_%s_%s' %\
             ('admin', self.new_machine_owner.username,
-            self.new_application_name.replace(' ','_').replace('/','-'),
-            self.start_date.strftime('%m%d%Y_%H%M%S'))
+             self.new_application_name.replace(' ', '_').replace('/', '-'),
+             self.start_date.strftime('%m%d%Y_%H%M%S'))
         return meta_name
 
     def fix_metadata(self, im):
         if not self.new_machine:
-            raise Exception("New machine missing from machine request. Cannot Fix.")
+            raise Exception(
+                "New machine missing from machine request. Cannot Fix.")
         (orig_managerCls, orig_creds,
          dest_managerCls, dest_creds) = self.prepare_manager()
         im = dest_managerCls(**dest_creds)
@@ -151,15 +183,22 @@ class MachineRequest(models.Model):
         previous_kernel = old_mach.properties.get('kernel_id')
         previous_ramdisk = old_mach.properties.get('ramdisk_id')
         if not previous_kernel or previous_ramdisk:
-            raise Exception("Kernel/Ramdisk information MISSING from previous machine. Fix NOT required")
-        properties.update({'kernel_id': previous_kernel, 'ramdisk_id': previous_ramdisk})
+            raise Exception(
+                "Kernel/Ramdisk information MISSING "
+                "from previous machine. "
+                "Fix NOT required")
+        properties.update(
+            {'kernel_id': previous_kernel, 'ramdisk_id': previous_ramdisk})
         im.update_image(new_mach, properties=properties)
 
     def old_provider(self):
         return self.instance.source.provider
 
     def new_machine_id(self):
-        return 'zzz%s' % self.new_machine.identifier if self.new_machine else None
+        if self.new_machine:
+            return self.new_machine.identifier
+        else:
+            return None
 
     def instance_alias(self):
         return self.instance.provider_alias
@@ -169,22 +208,20 @@ class MachineRequest(models.Model):
 
     def get_access_list(self):
         if '[' not in self.access_list:
-            #Format = "test1, test2, test3"
             json_loads_list = str(self.access_list.split(", "))
-            #New Format = "[u'test1', u'test2', u'test3']"
+            # New Format = "[u'test1', u'test2', u'test3']"
         else:
-            #Format = "[u'test1', u'test2', u'test3']"
             json_loads_list = self.access_list
-        json_loads_list = json_loads_list.replace("'",'"').replace('u"', '"')
+        json_loads_list = json_loads_list.replace("'", '"').replace('u"', '"')
         user_list = json.loads(json_loads_list)
         return user_list
 
     def parse_access_list(self):
-        user_list=re.split(', | |\n', self.access_list)
+        user_list = re.split(', | |\n', self.access_list)
         return user_list
 
     def get_exclude_files(self):
-        exclude=re.split(", | |\n", self.exclude_files)
+        exclude = re.split(", | |\n", self.exclude_files)
         return exclude
 
     def old_admin_identity(self):
@@ -207,7 +244,6 @@ class MachineRequest(models.Model):
             active_provider = self.parent_machine.provider
         return active_provider
 
-
     def get_credentials(self):
         old_provider = self.parent_machine.provider
         old_creds = old_provider.get_credentials()
@@ -229,8 +265,10 @@ class MachineRequest(models.Model):
         This allows the manager and required credentials to be passed to celery
         without causing serialization errors
         """
-        from chromogenic.drivers.openstack import ImageManager as OSImageManager
-        from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
+        from chromogenic.drivers.openstack import \
+            ImageManager as OSImageManager
+        from chromogenic.drivers.eucalyptus import \
+            ImageManager as EucaImageManager
 
         orig_provider = self.parent_machine.provider
         dest_provider = self.new_machine_provider
@@ -259,27 +297,29 @@ class MachineRequest(models.Model):
     def _extract_file_location(self, download_dir):
         id_owner = self.instance.created_by_identity
         tenant_cred = id_owner.credential_set.filter(
-                key='ex_tenant_name')
+            key='ex_tenant_name')
         if not tenant_cred:
             tenant_cred = id_owner.credential_set.filter(
-                    key='ex_project_name')
+                key='ex_project_name')
         if not tenant_cred:
             raise Exception("You should not be here! Update the key "
-                    "used for openstack tenant names!")
+                            "used for openstack tenant names!")
         tenant_cred = tenant_cred[0]
         download_location = os.path.join(
-                download_dir, tenant_cred.value)
+            download_dir, tenant_cred.value)
         download_location = os.path.join(
-                download_location, '%s.qcow2' % self.new_application_name)
+            download_location, '%s.qcow2' % self.new_application_name)
         return download_location
+
     def get_imaging_args(self):
         """
         Prepares the entire machine request for serialization to celery
 
-        TODO: Add things like description and tags to export and migration drivers
         """
-        from chromogenic.drivers.openstack import ImageManager as OSImageManager
-        from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
+        from chromogenic.drivers.openstack import \
+            ImageManager as OSImageManager
+        from chromogenic.drivers.eucalyptus import \
+            ImageManager as EucaImageManager
 
         (orig_managerCls, orig_creds,
          dest_managerCls, dest_creds) = self.prepare_manager()
@@ -290,12 +330,12 @@ class MachineRequest(models.Model):
             "instance_id": self.instance.provider_alias,
             "image_name": self.new_application_name,
             "timestamp": self.start_date,
-            "download_dir" : download_dir}
+            "download_dir": download_dir}
         if issubclass(orig_managerCls, OSImageManager):
             download_location = self._extract_file_location(download_dir)
             imaging_args['download_location'] = download_location
         elif issubclass(orig_managerCls, EucaImageManager):
-            euca_args = _prepare_euca_args()
+            euca_args = self._prepare_euca_args()
             imaging_args.update(euca_args)
 
         orig_provider = self.parent_machine.provider
@@ -310,34 +350,36 @@ class MachineRequest(models.Model):
                 imaging_args['xen_to_kvm'] = True
         return imaging_args
 
-    def _prepare_euca_args():
+    def _prepare_euca_args(self):
         meta_name = self._get_meta_name()
         public_image = self.is_public()
-        #Splits the string by ", " OR " " OR "\n" to create the list
+        # Splits the string by ", " OR " " OR "\n" to create the list
         private_users = self.parse_access_list()
         exclude = self.get_exclude_files()
-        #Create image on image manager
+        # Create image on image manager
+        (orig_managerCls, orig_creds,
+         dest_managerCls, dest_creds) = self.prepare_manager()
         node_scp_info = self.get_euca_node_info(orig_managerCls, orig_creds)
         euca_args = {
-            "public" : public_image,
-            "private_user_list" : private_users,
-            "exclude" : exclude,
-            "meta_name" : meta_name,
-            "node_scp_info" : node_scp_info,
+            "public": public_image,
+            "private_user_list": private_users,
+            "exclude": exclude,
+            "meta_name": meta_name,
+            "node_scp_info": node_scp_info,
         }
 
     def get_euca_node_info(self, euca_managerCls, euca_creds):
         node_dict = {
-                'hostname':'',
-                'port':'',
-                'private_key':''
+            'hostname': '',
+            'port': '',
+            'private_key': ''
         }
         instance_id = self.instance.provider_alias
-        #Prepare and use the manager
+        # Prepare and use the manager
         euca_manager = euca_managerCls(**euca_creds)
         node_ip = euca_manager.get_instance_node(instance_id)
 
-        #Find the matching node
+        # Find the matching node
         try:
             core_node = NodeController.objects.get(alias=node_ip)
             node_dict['hostname'] = core_node.hostname
@@ -345,13 +387,13 @@ class MachineRequest(models.Model):
             node_dict['private_key'] = core_node.private_ssh_key
         except NodeController.DoesNotExist:
             logger.error("Must create a nodecontroller for IP: %s" % node_ip)
-        #Return a dict containing information on how to SCP to the node
+        # Return a dict containing information on how to SCP to the node
         return node_dict
 
     def __unicode__(self):
         return '%s Instance: %s Name: %s Status: %s'\
-                % (self.new_machine_owner, self.instance.provider_alias,
-                   self.new_application_name, self.status)
+            % (self.new_machine_owner, self.instance.provider_alias,
+               self.new_application_name, self.status)
 
     class Meta:
         db_table = "machine_request"
@@ -363,16 +405,18 @@ def _match_membership_to_access(access_list, membership):
     INPUT: user1,user2, user3 + user4,user5
     OUTPUT: <User: 1>, ..., <User: 5>
     """
-    #Circ.Dep. DO NOT MOVE UP!! -- Future Solve:Move into Group?
+    # Circ.Dep. DO NOT MOVE UP!! -- Future Solve:Move into Group?
     from core.models.group import Group
     if not access_list:
         return membership.all()
-    # If using access list, parse the list into queries and evaluate the filter ONCE.
+    # If using access list, parse the list
+    # into queries and evaluate the filter ONCE.
     names_wanted = access_list.split(',')
     query_list = map(lambda name: Q(name__iexact=name), names_wanted)
     query_list = reduce(lambda qry1, qry2: qry1 | qry2, query_list)
     members = Group.objects.filter(query_list)
     return members | membership.all()
+
 
 def _match_tags_to_names(tag_names):
     """
@@ -382,14 +426,16 @@ def _match_tags_to_names(tag_names):
     """
     from core.models.tag import Tag
     matches = [models.Q(name__iexact=name) for name in tag_names.split(',')]
-    filters = reduce(operator.or_,  matches, models.Q())
+    filters = reduce(operator.or_, matches, models.Q())
     return Tag.objects.filter(filters)
+
 
 def _get_owner(new_provider, user):
     try:
         return Identity.objects.get(provider=new_provider, created_by=user)
     except Identity.DoesNotExist:
         return new_provider.admin
+
 
 def _create_new_application(machine_request, new_image_id, tags=[]):
     from core.models import Identity
@@ -398,20 +444,22 @@ def _create_new_application(machine_request, new_image_id, tags=[]):
     owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
     # This is a brand new app and a brand new providermachine
     new_app = create_application(
-            new_image_id,
-            new_provider.id,
-            machine_request.new_application_name,
-            owner_ident,
-            #new_app.Private = False when machine_request.is_public = True
-            not machine_request.is_public(),
-            machine_request.new_machine_version,
-            machine_request.new_machine_description,
-            tags)
+        new_image_id,
+        new_provider.id,
+        machine_request.new_application_name,
+        owner_ident,
+        # new_app.Private = False when machine_request.is_public = True
+        not machine_request.is_public(),
+        machine_request.new_machine_version,
+        machine_request.new_machine_description,
+        tags)
     return new_app
+
 
 def _update_parent_application(machine_request, new_image_id, tags=[]):
     parent_app = machine_request.instance.source.providermachine.application
     return _update_application(parent_app, machine_request, tags=tags)
+
 
 def _update_application(application, machine_request, tags=[]):
     if application.name is not machine_request.new_application_name:
@@ -422,6 +470,7 @@ def _update_application(application, machine_request, tags=[]):
     application.tags = tags
     application.save()
     return application
+
 
 def _update_existing_machine(machine_request, application, provider_machine):
     from core.models import Identity
@@ -435,20 +484,24 @@ def _update_existing_machine(machine_request, application, provider_machine):
     provider_machine.created_by_identity = owner_ident
     provider_machine.save()
 
+
 def process_machine_request(machine_request, new_image_id, update_cloud=True):
     """
     NOTE: Current process accepts instance with source of 'Image' ONLY!
           VOLUMES CANNOT BE IMAGED until this function is updated!
     """
-    #Based on original instance -- You'll need this:
+    # Based on original instance -- You'll need this:
     parent_mach = machine_request.instance.provider_machine
     parent_version = parent_mach.application_version
-    #Based on data provided in MR:
+    # Based on data provided in MR:
     new_provider = machine_request.new_machine_provider
     new_owner = machine_request.new_machine_owner
     owner_identity = _get_owner(new_provider, new_owner)
     tags = _match_tags_to_names(machine_request.new_version_tags)
-    membership = _match_membership_to_access(machine_request.access_list, machine_request.new_version_membership)
+    # TODO: Use it or remove it
+    # membership = _match_membership_to_access(
+    #     machine_request.access_list,
+    #     machine_request.new_version_membership)
     if machine_request.new_version_forked:
         application = create_application(
             new_image_id,
@@ -459,63 +512,88 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
             private=not machine_request.is_public(),
             tags=tags)
     else:
-        application = update_application(parent_version, machine_request.new_application_name, machine_request.new_application_description, tags)
-    app_version = create_app_version(application, machine_request.new_version_name,
-            new_owner, owner_identity, machine_request.new_version_change_log,
-            machine_request.new_version_allow_imaging)
-    #2. Create the new InstanceSource and appropriate Object, relations, Memberships..
+        application = update_application(
+            parent_version,
+            machine_request.new_application_name,
+            machine_request.new_application_description,
+            tags)
+    app_version = create_app_version(
+        application, machine_request.new_version_name,
+        new_owner, owner_identity, machine_request.new_version_change_log,
+        machine_request.new_version_allow_imaging)
+
+    # 2. Create the new InstanceSource and appropriate Object, relations,
+    # Memberships..
     if ProviderMachine.test_existence(new_provider, new_image_id):
-        pm = ProviderMachine.objects.get(instance_source__identifier=new_image_id, instance_source__provider=new_provider)
-        pm = update_provider_machine(pm, new_created_by_identity=owner_identity, new_created_by=machine_request.new_machine_owner, new_application_version=app_version)
+        pm = ProviderMachine.objects.get(
+            instance_source__identifier=new_image_id,
+            instance_source__provider=new_provider)
+        pm = update_provider_machine(
+            pm,
+            new_created_by_identity=owner_identity,
+            new_created_by=machine_request.new_machine_owner,
+            new_application_version=app_version)
     else:
-        #TODO: Create APP version first! Then provider machine & Instance Source using the information.
         pm = create_provider_machine(new_image_id, new_provider.uuid, application, owner_identity, app_version)
         provider_machine_write_hook(pm)
 
-    #Must be set in order to ask for threshold information
+    # Must be set in order to ask for threshold information
     machine_request.new_application_version = app_version
     machine_request.new_machine = pm
     machine_request.save()
 
-    #3. Associate additional attributes to new application
+    # 3. Associate additional attributes to new application
     if machine_request.has_threshold():
         machine_request.update_threshold()
 
-    #3. Add new *Memberships For new ProviderMachine//Application
+    # 4a. Add new *Memberships For new ProviderMachine//Application
     if not machine_request.is_public():
         upload_privacy_data(machine_request, pm)
 
-    #5. Advance the state of machine request
-    #After processing, validate the image.
+    # 4b. If new boot scripts have been associated,
+    # add them to the new version.
+    if machine_request.new_version_scripts.count():
+        for script in machine_request.new_version_scripts.all():
+            app_version.boot_scripts.add(script)
+
+    # 4c. If new licenses have been associated, add them to the new version.
+    if machine_request.new_version_licenses.count():
+        for license in machine_request.new_version_licenses.all():
+            app_version.licenses.add(license)
+
+    # 5. Advance the state of machine request
+    # After processing, validate the image.
     machine_request.status = 'validating'
     machine_request.save()
     return machine_request
 
+
 def upload_privacy_data(machine_request, new_machine):
-    from service.driver import get_admin_driver, get_account_driver
+    from service.driver import get_account_driver
     prov = new_machine.provider
     accounts = get_account_driver(prov)
     if not accounts:
         print "Aborting import: Could not retrieve Account Driver "\
-                "for Provider %s" % prov
+            "for Provider %s" % prov
         return
     accounts.clear_cache()
-    admin_driver = accounts.admin_driver # cache has been cleared
+    admin_driver = accounts.admin_driver  # cache has been cleared
     if not admin_driver:
         print "Aborting import: Could not retrieve admin_driver "\
-                "for Provider %s" % prov
+            "for Provider %s" % prov
         return
     img = accounts.get_image(new_machine.identifier)
     tenant_list = machine_request.get_access_list()
-    #All in the list will be added as 'sharing' the OStack img
-    #All tenants already sharing the OStack img will be added to this list
+    # All in the list will be added as 'sharing' the OStack img
+    # All tenants already sharing the OStack img will be added to this list
     return sync_membership(accounts, img, new_machine, tenant_list)
+
 
 def sync_membership(accounts, glance_image, new_machine, tenant_list):
     tenant_list = sync_cloud_access(accounts, glance_image, names=tenant_list)
-    #Make private on the DB level
-    sync_db_access(accounts.image_manager, glance_image, new_machine, tenant_list)
-
+    # Make private on the DB level
+    make_private(accounts.image_manager,
+                 glance_image, new_machine, tenant_list)
 
 
 def share_with_admins(private_userlist, provider_uuid):
@@ -525,63 +603,69 @@ def share_with_admins(private_userlist, provider_uuid):
     services and the admin are members of, and add only that tenant to the
     list.
     """
-    if type(private_userlist) != list:
+    if not isinstance(private_userlist, list):
         raise Exception("Expected private_userlist to be list, got %s: %s"
                         % (type(private_userlist), private_userlist))
 
     from authentication.protocol.ldap import get_core_services
     core_services = get_core_services()
-    admin_users = [ap.identity.created_by.username for ap in
-                   AccountProvider.objects.filter(provider__uuid=provider_uuid)]
+    admin_users = [
+        ap.identity.created_by.username
+        for ap in AccountProvider.objects.filter(
+            provider__uuid=provider_uuid)]
     private_userlist.extend(core_services)
     private_userlist.extend(admin_users)
     return private_userlist
 
-def share_with_self(private_userlist, username):
-    if type(private_userlist) != list:
-        raise Exception("Expected type(private_userlist) to be list, got %s: %s"
-                        % (type(private_userlist), private_userlist))
 
-    #TODO: Optionally, Lookup username and get the Projectname
+def share_with_self(private_userlist, username):
+    if not isinstance(private_userlist, list):
+        raise Exception(
+            "Expected type(private_userlist) to be list, got %s: %s" %
+            (type(private_userlist), private_userlist))
+
+    # TODO: Optionally, Lookup username and get the Projectname
     private_userlist.append(str(username))
     return private_userlist
+
 
 def sync_cloud_access(accounts, img, names=None):
     projects = []
     shared_with = accounts.image_manager.shared_images_for(
-            image_id=img.id)
-    #if not shared_with:
-    #    return tenant_names
-    #Find tenants who are marked as 'sharing' on openstack but not on DB
-    #Or just in One-line..
-    projects = [accounts.get_project_by_id(member.member_id) for member in shared_with]
-    #Any names who aren't already on the image should be added
-    #Find names who are marekd as 'sharing' on DB but not on OpenStack
+        image_id=img.id)
+    # Find tenants who are marked as 'sharing' on openstack but not on DB
+    # Or just in One-line..
+    projects = [
+        accounts.get_project_by_id(
+            member.member_id) for member in shared_with]
+    # Any names who aren't already on the image should be added
+    # Find names who are marekd as 'sharing' on DB but not on OpenStack
     for name in names:
         project = accounts.get_project(name)
         if project and project not in projects:
             print "Sharing image %s with project named %s" \
-                    % (img.id, name)
+                % (img.id, name)
             accounts.image_manager.share_image(img, name)
             projects.append(project)
     return projects
 
-def sync_db_access(image_manager, image, provider_machine, tenant_list=[]):
-    #Circ.Dep. DO NOT MOVE UP!!
+
+def make_private(image_manager, image, provider_machine, tenant_list=[]):
+    # Circ.Dep. DO NOT MOVE UP!!
     from core.models import Group, ProviderMachineMembership
 
-    if image.is_public == True:
+    if image.is_public:
         print "Marking image %s private" % image.id
         image_manager.update_image(image, is_public=False)
-    if provider_machine.application.private == False:
+    if provider_machine.application.private is False:
         print "Marking application %s private" % provider_machine.application
         provider_machine.application.private = True
         provider_machine.application.save()
-    #Add all these people by default..
+    # Add all these people by default..
     owner = provider_machine.application.created_by
     group_list = owner.group_set.all()
     if tenant_list:
-        #ASSERT: Groupnames == Usernames
+        # ASSERT: Groupnames == Usernames
         tenant_list.extend([group.name for group in group_list])
     else:
         tenant_list = [group.name for group in group_list]
@@ -592,14 +676,14 @@ def sync_db_access(image_manager, image, provider_machine, tenant_list=[]):
             name = tenant
         group = Group.objects.get(name=name)
         obj, created = ApplicationMembership.objects.get_or_create(
-                group=group,
-                application=provider_machine.application)
+            group=group,
+            application=provider_machine.application)
         if created:
             print "Created new ApplicationMembership: %s" \
                 % (obj,)
         obj, created = ProviderMachineMembership.objects.get_or_create(
-                group=group,
-                provider_machine=provider_machine)
+            group=group,
+            provider_machine=provider_machine)
         if created:
             print "Created new ProviderMachineMembership: %s" \
                 % (obj,)

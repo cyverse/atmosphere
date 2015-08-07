@@ -5,9 +5,10 @@ from rest_framework import serializers
 
 
 class ProjectsField(serializers.Field):
+
     def to_representation(self, project_mgr):
         request_user = self.parent.request_user
-        if type(request_user) == AnonymousUser:
+        if isinstance(request_user, AnonymousUser):
             return None
         try:
             group = get_user_group(request_user.username)
@@ -25,7 +26,7 @@ class ProjectsField(serializers.Field):
         user = self.parent.request_user
         group = get_user_group(user.username)
         # Retrieve the New Project(s)
-        if type(value) == list:
+        if isinstance(value, list):
             new_projects = value
         else:
             new_projects = [value, ]
@@ -38,8 +39,8 @@ class ProjectsField(serializers.Field):
         # Add Project(s) to related_obj
         for project_id in new_projects:
             # Retrieve/Create the New Project
-            #TODO: When projects can be shared,
-            #change the qualifier here.
+            # TODO: When projects can be shared,
+            # change the qualifier here.
             new_project = Project.objects.get(id=project_id, owner=group)
             # Assign related_obj to New Project
             if not related_obj.projects.filter(id=project_id):

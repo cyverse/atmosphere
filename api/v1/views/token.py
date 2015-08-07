@@ -19,6 +19,7 @@ from api.v1.views.base import AuthAPIView
 
 
 class TokenEmulate(AuthAPIView):
+
     """
     This API allows already-authenticated users
     to request a new token that will emulate a user that is not their own.

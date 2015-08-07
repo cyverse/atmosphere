@@ -8,6 +8,7 @@ from api.v2.views.base import AuthViewSet
 
 
 class ProjectVolumeViewSet(AuthViewSet):
+
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
@@ -22,7 +23,7 @@ class ProjectVolumeViewSet(AuthViewSet):
         """
         user = self.request.user
         now = timezone.now()
-        #TODO: Refactor -- core.query
+        # TODO: Refactor -- core.query
         return ProjectVolume.objects.filter(
             Q(volume__instance_source__end_date__gt=now)
             | Q(volume__instance_source__end_date__isnull=True),

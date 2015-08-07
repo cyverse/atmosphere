@@ -18,19 +18,19 @@ def atmo_login_required(func):
             logger.debug("[NOREQUEST] User is being logged out because request"
                          " is empty")
             logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
-            return HttpResponseRedirect(settings.SERVER_URL+"/logout/")
+            return HttpResponseRedirect(settings.SERVER_URL + "/logout/")
 
         if not request.session:
             logger.debug("[NOSESSION] User is being logged out because session"
                          " object does not exist in request")
             logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
-            return HttpResponseRedirect(settings.SERVER_URL+"/logout/")
+            return HttpResponseRedirect(settings.SERVER_URL + "/logout/")
 
         if not request.session.get('username'):
             logger.debug("[NOUSER] User is being logged out because session"
                          " did not include a username")
             logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
-            return HttpResponseRedirect(settings.SERVER_URL+"/logout/")
+            return HttpResponseRedirect(settings.SERVER_URL + "/logout/")
 
         # logger.info('atmo_login_required session info: %s'
         #             % request.session.__dict__)
@@ -43,7 +43,6 @@ def atmo_login_required(func):
         emulator = request.session.get('emulated_by', None)
 
         if emulator:
-            # logger.info("%s\n%s\n%s" % (username, redirect, emulator))
             logger.info("Test emulator %s instead of %s" %
                         (emulator, username))
             logger.debug(request.session.__dict__)
@@ -52,7 +51,7 @@ def atmo_login_required(func):
                                 auth_token=token, request=request)
             # AUTHORIZED STAFF ONLY
             if not user or not user.is_staff:
-                return HttpResponseRedirect(settings.SERVER_URL+"/logout/")
+                return HttpResponseRedirect(settings.SERVER_URL + "/logout/")
             logger.info("Emulate success - Logging in %s" % user.username)
             django_login(request, user)
             return func(request, *args, **kwargs)
@@ -61,7 +60,6 @@ def atmo_login_required(func):
                             request=request)
         if not user:
             logger.info("Could not authenticate user %s" % username)
-            # logger.debug("%s\n%s\n%s\n%s" % (request, args, kwargs, func))
             return cas_loginRedirect(request, redirect)
         django_login(request, user)
         return func(request, *args, **kwargs)

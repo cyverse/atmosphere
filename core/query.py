@@ -30,9 +30,11 @@ def only_current_machines(now_time=None):
     Filters the current provider_machines.
     """
     def _active_provider():
-        return (Q(providermachine__instance_source__provider__end_date__isnull=True) |
-                Q(providermachine__instance_source__provider__end_date__gt=now_time))\
-            & Q(providermachine__instance_source__provider__active=True)
+        return (
+            Q(
+                providermachine__instance_source__provider__end_date__isnull=True) | Q(
+                providermachine__instance_source__provider__end_date__gt=now_time)) & Q(
+            providermachine__instance_source__provider__active=True)
 
     def _in_range():
         return (Q(providermachine__instance_source__end_date__isnull=True) |
@@ -46,9 +48,11 @@ def only_current_machines(now_time=None):
 
 def only_current_apps(now_time=None):
     def _active_provider():
-        return (Q(versions__machines__instance_source__provider__end_date__isnull=True) |
-                Q(versions__machines__instance_source__provider__end_date__gt=now_time))\
-            & Q(versions__machines__instance_source__provider__active=True)
+        return (
+            Q(
+                versions__machines__instance_source__provider__end_date__isnull=True) | Q(
+                versions__machines__instance_source__provider__end_date__gt=now_time)) & Q(
+            versions__machines__instance_source__provider__active=True)
 
     def _in_range():
         return (Q(versions__machines__instance_source__end_date__isnull=True) |
@@ -64,6 +68,7 @@ def only_current_machines_in_version(now_time=None):
         now_time = timezone.now()
     return (Q(machines__instance_source__end_date__isnull=True) |
             Q(machines__instance_source__end_date__gt=now_time))
+
 
 def only_current_source(now_time=None):
     """
@@ -103,6 +108,7 @@ def _active_identity_membership(user, now_time=None):
         Q(identity__provider__end_date__gt=now_time),
         identity__provider__active=True,
         member__user__username=user.username)
+
 
 def _query_membership_for_user(user):
     """

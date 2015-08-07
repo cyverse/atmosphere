@@ -15,6 +15,7 @@ from api.v1.views.base import AuthAPIView
 
 
 class IdentityMembershipList(AuthAPIView):
+
     """
     A List of people who are members of this identity.
     """
@@ -74,6 +75,7 @@ class IdentityMembershipList(AuthAPIView):
 
 
 class IdentityMembership(AuthAPIView):
+
     """
     IdentityMembership details for a specific group/identity combination.
     """

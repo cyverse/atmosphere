@@ -17,11 +17,10 @@ def get_context_user(serializer, kwargs, required=False):
         if required:
             raise Exception(print_str)
         else:
-            #logger.debug("Incomplete Data Warning:%s" % print_str)
             return None
     if user:
-        #NOTE: Converting str to atmosphere user is easier when debugging
-        if type(user) == str:
+        # NOTE: Converting str to atmosphere user is easier when debugging
+        if isinstance(user, str):
             user = AtmosphereUser.objects.get(
                 username=user)
         elif type(user) not in [AnonymousUser, AtmosphereUser]:
@@ -29,7 +28,6 @@ def get_context_user(serializer, kwargs, required=False):
                             "to be of type str or AtmosphereUser")
     elif request:
         user = request.user
-    #if user:
     #    logger.debug("%s initialized with user %s"
     #                 % (serializer, user))
     return user

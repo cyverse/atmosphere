@@ -40,8 +40,8 @@ def main():
     for i in bad_instances:
         print "Removing networking metadata for %s" % (i)
         admin_driver._connection.ex_write_metadata(i,
-                                                 {"tmp_status": ""},
-                                                 replace_metadata=False)
+                                                   {"tmp_status": ""},
+                                                   replace_metadata=False)
 
 
 if __name__ == "__main__":

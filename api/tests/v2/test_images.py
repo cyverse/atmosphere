@@ -6,6 +6,7 @@ from core.models import AtmosphereUser as User
 
 
 class GetListTests(APITestCase):
+
     def setUp(self):
         self.view = ViewSet.as_view({'get': 'list'})
         self.anonymous_user = AnonymousUserFactory()
@@ -40,12 +41,13 @@ class GetListTests(APITestCase):
         response = self.view(self.request)
         data = response.data.get('results')[0]
 
-        self.assertEquals(len(data), 11)
+        self.assertEquals(len(data), 12, "Unexepcted # of arguments in API endpoint")
         self.assertIn('id', data)
         self.assertIn('url', data)
         self.assertIn('uuid', data)
         self.assertIn('name', data)
         self.assertIn('description', data)
+        self.assertIn('is_public', data)
         self.assertIn('icon', data)
         self.assertIn('tags', data)
         self.assertIn('created_by', data)
@@ -54,6 +56,7 @@ class GetListTests(APITestCase):
 
 
 class GetDetailTests(APITestCase):
+
     def setUp(self):
         self.view = ViewSet.as_view({'get': 'retrieve'})
         self.anonymous_user = AnonymousUserFactory()
@@ -80,12 +83,13 @@ class GetDetailTests(APITestCase):
         response = self.view(self.request, pk=self.image.id)
         data = response.data
 
-        self.assertEquals(len(data), 11)
+        self.assertEquals(len(data), 12, "Unexepcted # of arguments in API endpoint")
         self.assertIn('id', data)
         self.assertIn('url', data)
         self.assertIn('uuid', data)
         self.assertIn('name', data)
         self.assertIn('description', data)
+        self.assertIn('is_public', data)
         self.assertIn('icon', data)
         self.assertIn('tags', data)
         self.assertIn('created_by', data)
@@ -94,16 +98,18 @@ class GetDetailTests(APITestCase):
 
 
 class CreateTests(APITestCase):
+
     def test_endpoint_does_not_exist(self):
         self.assertTrue('post' not in ViewSet.http_method_names)
 
 
 class UpdateTests(APITestCase):
+
     def test_endpoint_does_not_exist(self):
         self.assertTrue('put' not in ViewSet.http_method_names)
 
 
 class DeleteTests(APITestCase):
+
     def test_endpoint_does_not_exist(self):
         self.assertTrue('delete' not in ViewSet.http_method_names)
-

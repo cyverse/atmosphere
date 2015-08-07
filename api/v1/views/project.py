@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from core.models.group import Group, get_user_group
 from core.models.project import Project
+from core.models.provider import Provider
 from core.query import only_current
 
 from api import failure_response
@@ -158,7 +159,7 @@ class ProjectInstanceList(AuthAPIView):
             provider_machine__provider__active=True)
         active_provider_uuids = [ap.uuid for ap in Provider.get_active()]
         instances = instances.filter(
-            pk__in=[i.id for i in instances\
+            pk__in=[i.id for i in instances
                     if i.instance.provider_uuid() in active_provider_uuids])
         serialized_data = InstanceSerializer(
             instances, many=True,
@@ -219,16 +220,16 @@ class ProjectList(AuthAPIView):
             data['owner'] = user.username
         elif not Group.check_access(user, data['owner']):
             return failure_response(
-                    status.HTTP_403_FORBIDDEN,
-                    "Current User: %s - Cannot assign project for group %s"
-                    % (user.username, data['owner']))
+                status.HTTP_403_FORBIDDEN,
+                "Current User: %s - Cannot assign project for group %s"
+                % (user.username, data['owner']))
         serializer = ProjectSerializer(data=data,
                                        context={"request": request})
         if serializer.is_valid():
             serializer.save()
             response = Response(
-                    serializer.data,
-                    status=status.HTTP_201_CREATED)
+                serializer.data,
+                status=status.HTTP_201_CREATED)
             return response
         else:
             return Response(serializer.errors,

@@ -3,6 +3,7 @@ from core.models import Tag
 
 
 class TagFactory(factory.DjangoModelFactory):
+
     class Meta:
         model = Tag
 

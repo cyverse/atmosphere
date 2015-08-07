@@ -18,12 +18,20 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='group',
             name='provider_machines',
-            field=models.ManyToManyField(related_name='members', through='core.ProviderMachineMembership', to='core.ProviderMachineTmp', blank=True),
+            field=models.ManyToManyField(
+                related_name='members',
+                through='core.ProviderMachineMembership',
+                to='core.ProviderMachineTmp',
+                blank=True),
         ),
         migrations.AlterField(
             model_name='project',
             name='volumes',
-            field=models.ManyToManyField(related_name='projects', to='core.VolumeTmp', blank=True, null=True),
+            field=models.ManyToManyField(
+                related_name='projects',
+                to='core.VolumeTmp',
+                blank=True,
+                null=True),
             preserve_default=True,
         ),
 
@@ -32,13 +40,24 @@ class Migration(migrations.Migration):
         migrations.RemoveField('MachineRequest', 'new_machine'),
         migrations.RemoveField('MachineRequest', 'parent_machine'),
         migrations.RemoveField('VolumeStatusHistory', 'volume'),
-        migrations.RemoveField('ProviderMachineMembership', 'provider_machine'),
+        migrations.RemoveField(
+            'ProviderMachineMembership',
+            'provider_machine'),
 
         # Rename fields
-        migrations.RenameField('ProviderMachineMembership', 'provider_machine_tmp', 'provider_machine'),
+        migrations.RenameField(
+            'ProviderMachineMembership',
+            'provider_machine_tmp',
+            'provider_machine'),
         migrations.RenameField('Instance', 'source_tmp', 'source'),
-        migrations.RenameField('MachineRequest', 'new_machine_tmp', 'new_machine'),
-        migrations.RenameField('MachineRequest', 'parent_machine_tmp', 'parent_machine'),
+        migrations.RenameField(
+            'MachineRequest',
+            'new_machine_tmp',
+            'new_machine'),
+        migrations.RenameField(
+            'MachineRequest',
+            'parent_machine_tmp',
+            'parent_machine'),
         migrations.RenameField('VolumeStatusHistory', 'volume_tmp', 'volume'),
 
         # Delete old models
@@ -72,30 +91,48 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='group',
             name='provider_machines',
-            field=models.ManyToManyField(related_name='members', through='core.ProviderMachineMembership', to='core.ProviderMachine', blank=True),
+            field=models.ManyToManyField(
+                related_name='members',
+                through='core.ProviderMachineMembership',
+                to='core.ProviderMachine',
+                blank=True),
         ),
         migrations.AlterField(
             model_name='project',
             name='volumes',
-            field=models.ManyToManyField(related_name='projects', to='core.Volume', blank=True, null=True),
+            field=models.ManyToManyField(
+                related_name='projects',
+                to='core.Volume',
+                blank=True,
+                null=True),
             preserve_default=True,
         ),
         migrations.AlterField(
             model_name='instance',
             name='source',
-            field=models.ForeignKey(related_name='instances', to='core.InstanceSource', null=True),
+            field=models.ForeignKey(
+                related_name='instances',
+                to='core.InstanceSource',
+                null=True),
             preserve_default=True,
         ),
         migrations.AlterField(
             model_name='machinerequest',
             name='new_machine',
-            field=models.ForeignKey(related_name='created_machine', blank=True, to='core.ProviderMachine', null=True),
+            field=models.ForeignKey(
+                related_name='created_machine',
+                blank=True,
+                to='core.ProviderMachine',
+                null=True),
             preserve_default=True,
         ),
         migrations.AlterField(
             model_name='machinerequest',
             name='parent_machine',
-            field=models.ForeignKey(related_name='ancestor_machine', to='core.ProviderMachine', null=True),
+            field=models.ForeignKey(
+                related_name='ancestor_machine',
+                to='core.ProviderMachine',
+                null=True),
             preserve_default=True,
         ),
         migrations.AlterField(

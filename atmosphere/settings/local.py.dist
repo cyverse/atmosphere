@@ -117,7 +117,7 @@ caslib.cas_init(CAS_SERVER, SERVICE_URL, PROXY_URL, PROXY_CALLBACK_URL, SELF_SIG
 try:
     import urllib3
     urllib3.disable_warnings()
-except ImportError:
+except (AttributeError, ImportError):
     pass
 
 # LOGSTASH

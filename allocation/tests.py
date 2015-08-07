@@ -45,13 +45,17 @@ random_machine_2 = Machine(
 
 
 tiny_size = Size(
-    name='Kids Fry', identifier='test.tiny', cpu=1, ram=1024*2, disk=0)
+    name='Kids Fry', identifier='test.tiny', cpu=1, ram=1024 * 2, disk=0)
 small_size = Size(
-    name='Small Fry', identifier='test.small', cpu=2, ram=1024*4, disk=60)
+    name='Small Fry', identifier='test.small', cpu=2, ram=1024 * 4, disk=60)
 medium_size = Size(
-    name='Medium Fry', identifier='test.medium', cpu=4, ram=1024*16, disk=120)
+    name='Medium Fry',
+    identifier='test.medium',
+    cpu=4,
+    ram=1024 * 16,
+    disk=120)
 large_size = Size(
-    name='Large Fry', identifier='test.large', cpu=8, ram=1024*32, disk=240)
+    name='Large Fry', identifier='test.large', cpu=8, ram=1024 * 32, disk=240)
 
 
 AVAILABLE_PROVIDERS = {
@@ -79,14 +83,14 @@ STATUS_CHOICES = frozenset(["active", "suspended", "build", "resize"])
 carry_forward = CarryForwardTime()
 
 multiply_by_ram = MultiplySizeRAM(
-    name="Multiply TimeUsed by Ram (*1GB)", multiplier=(1/1024))
+    name="Multiply TimeUsed by Ram (*1GB)", multiplier=(1 / 1024))
 multiply_by_cpu = MultiplySizeCPU(
     name="Multiply TimeUsed by CPU", multiplier=1)
 multiply_by_disk = MultiplySizeDisk(
     name="Multiply TimeUsed by Disk", multiplier=1)
 
 half_usage_by_ram = MultiplySizeRAM(
-    name="Multiply TimeUsed by 50% of Ram (GB)", multiplier=.5*(1/1024))
+    name="Multiply TimeUsed by 50% of Ram (GB)", multiplier=.5 * (1 / 1024))
 half_usage_by_cpu = MultiplySizeCPU(
     name="Multiply TimeUsed by 50% of CPU", multiplier=.5)
 half_usage_by_disk = MultiplySizeDisk(
@@ -110,6 +114,7 @@ ignore_build = IgnoreStatusRule("Ignore 'Build' Instances", "build")
 
 
 class InstanceHelper(object):
+
     def __init__(self, provider="openstack", machine="machine1"):
         if provider not in AVAILABLE_PROVIDERS:
             raise Exception(
@@ -158,6 +163,7 @@ class InstanceHelper(object):
 
 
 class AllocationHelper(object):
+
     def __init__(self, start_window, end_window, increase_date,
                  credit_hours=1000, interval_delta=None):
         self.start_window = start_window
@@ -318,6 +324,7 @@ class AllocationTestCase(unittest.TestCase):
 
 
 class TestValidateInterval(TestCase):
+
     def setUp(self):
         self.start_time = datetime(2014, 7, 1, tzinfo=pytz.utc)
         self.end_time = datetime(2014, 7, 1, tzinfo=pytz.utc)
@@ -464,8 +471,6 @@ class TestAllocationEngine(AllocationTestCase):
         Returns False
         When the total allocation time has not been exceeded.
         """
-        # history_start = datetime(2014, 7, 4, hour=12, tzinfo=pytz.utc)
-        # history_stop = datetime(2014, 12, 4, hour=12, tzinfo=pytz.utc)
 
     def test_allocation_for_multiple_instances(self):
         """
@@ -539,7 +544,7 @@ def repl_profile_test_1():
     1 hour remaining
     """
     instance_count = 45
-    credit_hours = 24*31*instance_count + 1
+    credit_hours = 24 * 31 * instance_count + 1
 
     increase_date = start_window = datetime(2015, 1, 1, tzinfo=pytz.utc)
     stop_window = datetime(2015, 12, 1, tzinfo=pytz.utc)
@@ -560,7 +565,7 @@ def repl_profile_test_1():
         credit_hours=credit_hours, interval_delta=interval)
     # Instance(s) Setup
     instance_start = history_start
-    for number in xrange(1, instance_count+1):
+    for number in xrange(1, instance_count + 1):
         instance_helper = InstanceHelper()
         instance_stop = instance_start + terminate_offset
         # History Setup -- Starting with 'launch' of instance
@@ -595,7 +600,6 @@ def repl_counting_behaviors():
     end_of_year = datetime(2015, 12, 31, tzinfo=pytz.utc)
     end_of_month = datetime(2015, 2, 28, tzinfo=pytz.utc)
     counting_behaviors = [
-        # None == Now
         FixedEndSlidingWindow(None, relativedelta(hours=1)),
         FixedEndSlidingWindow(None, relativedelta(days=2)),
         FixedEndSlidingWindow(None, relativedelta(days=28)),

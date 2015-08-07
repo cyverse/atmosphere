@@ -19,6 +19,7 @@ from api.v1.views.base import AuthAPIView
 
 
 class SizeList(AuthAPIView):
+
     """
     List all active sizes.
     """
@@ -52,6 +53,7 @@ class SizeList(AuthAPIView):
 
 
 class Size(AuthAPIView):
+
     """
     View a single size.
     """

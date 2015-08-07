@@ -1,14 +1,8 @@
-from datetime import datetime
-import time
-
 from socket import error as socket_error
 from django.utils import timezone
-from django.core.paginator import Paginator,\
-    PageNotAnInteger, EmptyPage
 from django.db.models import Q
 
 from rest_framework import status
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from rtwo.exceptions import ConnectionFailure
@@ -20,31 +14,29 @@ from core.models import AtmosphereUser as User
 from core.models.identity import Identity
 from core.models.instance import convert_esh_instance
 from core.models.instance import Instance as CoreInstance
-from core.models.post_boot import _save_scripts_to_instance
-from core.models.provider import AccountProvider
+from core.models.boot_script import _save_scripts_to_instance
 from core.models.tag import Tag as CoreTag
 from core.models.volume import convert_esh_volume
+from core.models.provider import Provider
 
 from service import task
 from service.cache import get_cached_instances,\
     invalidate_cached_instances
-from service.deploy import build_script
 from service.driver import prepare_driver
 from service.instance import redeploy_init, reboot_instance,\
     launch_instance, resize_instance, confirm_resize,\
     start_instance, resume_instance,\
     stop_instance, suspend_instance,\
-    update_instance_metadata, _check_volume_attachment,\
+    update_instance_metadata, \
     shelve_instance, unshelve_instance, offload_instance
-from service.quota import check_over_quota
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
     VolumeAttachConflict, VolumeMountConflict,\
     UnderThresholdError, ActionNotAllowed
 
 from api import failure_response, invalid_creds,\
-                connection_failure, malformed_response,\
-                emulate_user
+    connection_failure, malformed_response,\
+    emulate_user
 from api.pagination import OptionalPagination
 from api.v1.serializers import InstanceStatusHistorySerializer,\
     InstanceSerializer, InstanceHistorySerializer, VolumeSerializer,\
@@ -66,8 +58,8 @@ def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
     esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
     if not esh_driver:
         raise InvalidCredsError(
-                "Provider_uuid && identity_uuid "
-                "did not produce a valid combination")
+            "Provider_uuid && identity_uuid "
+            "did not produce a valid combination")
     esh_instance = None
     try:
         esh_instance = esh_driver.get_instance(instance_id)
@@ -95,6 +87,7 @@ def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
 
 
 class InstanceList(AuthAPIView):
+
     """
     Instances are the objects created when you launch a machine. They are
     represented by a unique ID, randomly generated on launch, important
@@ -150,14 +143,14 @@ class InstanceList(AuthAPIView):
         missing_keys = valid_post_data(data)
         if missing_keys:
             return keys_not_found(missing_keys)
-        #Pass these as args
+        # Pass these as args
         size_alias = data.pop("size_alias")
         machine_alias = data.pop("machine_alias")
         hypervisor_name = data.pop("hypervisor", None)
         deploy = data.pop("deploy", True)
         if type(deploy) in [str, unicode] and deploy.lower() == "false":
             deploy = False
-        elif not type(deploy) is bool:
+        elif not isinstance(deploy, bool):
             deploy = True
         boot_scripts = data.pop("boot_scripts", [])
         try:
@@ -167,13 +160,13 @@ class InstanceList(AuthAPIView):
                 size_alias, machine_alias,
                 ex_availability_zone=hypervisor_name,
                 deploy=deploy, **data)
-        except UnderThresholdError, ute:
+        except UnderThresholdError as ute:
             return under_threshold(ute)
-        except OverQuotaError, oqe:
+        except OverQuotaError as oqe:
             return over_quota(oqe)
-        except OverAllocationError, oae:
+        except OverAllocationError as oae:
             return over_quota(oae)
-        except SizeNotAvailable, snae:
+        except SizeNotAvailable as snae:
             return size_not_availabe(snae)
         except SecurityGroupNotCreated:
             return connection_failure(provider_uuid, identity_uuid)
@@ -232,6 +225,7 @@ def _filter_instance_history(history_instance_list, params):
 
 
 class InstanceHistory(AuthListAPIView):
+
     """Instance history for a specific user."""
     pagination_class = OptionalPagination
 
@@ -249,22 +243,23 @@ class InstanceHistory(AuthListAPIView):
         history_instance_list = CoreInstance.objects.filter(
             created_by=self.request.user).order_by("-start_date")
         history_instance_list = _filter_instance_history(
-                history_instance_list, self.request.query_params)
+            history_instance_list, self.request.query_params)
         history_instance_list = _sort_instance_history(
-                history_instance_list, sort_by, 'desc' in order_by.lower())
+            history_instance_list, sort_by, 'desc' in order_by.lower())
         return history_instance_list
 
 
 class InstanceHistoryDetail(AuthAPIView):
+
     """
     Instance history for specific instance.
     """
+
     def get(self, request, instance_id):
         """
         Authentication required, Retrieve a list of previously launched
         instances.
         """
-        data = request.DATA
         params = request.QUERY_PARAMS.copy()
         user = User.objects.filter(username=request.user)
         if user and len(user) > 0:
@@ -276,14 +271,14 @@ class InstanceHistoryDetail(AuthAPIView):
         emulate_name = params.pop('username', None)
         # Support for staff users to emulate a specific user history
         if user.is_staff and emulate_name:
-            emualate_name = emulate_name[0]  # Querystring conversion
+            emulate_name = emulate_name[0]  # Querystring conversion
             user = User.objects.filter(username=emulate_name)
             if user and len(user) > 0:
                 user = user[0]
             else:
                 return failure_response(status.HTTP_401_UNAUTHORIZED,
                                         'Emulated User %s not found' %
-                                        emualte_name)
+                                        emulate_name)
         # List of all instances matching user, instance_id
         core_instance =\
             CoreInstance.objects.filter(
@@ -305,6 +300,7 @@ class InstanceHistoryDetail(AuthAPIView):
 
 
 class InstanceStatusHistoryDetail(AuthAPIView):
+
     """
     List of instance status history for specific instance.
     """
@@ -314,7 +310,6 @@ class InstanceStatusHistoryDetail(AuthAPIView):
         Authentication required, Retrieve a list of previously launched
         instances.
         """
-        data = request.DATA
         params = request.QUERY_PARAMS.copy()
         user = User.objects.filter(username=request.user)
         if user and len(user) > 0:
@@ -326,14 +321,14 @@ class InstanceStatusHistoryDetail(AuthAPIView):
         emulate_name = params.pop('username', None)
         # Support for staff users to emulate a specific user history
         if user.is_staff and emulate_name:
-            emualate_name = emulate_name[0]  # Querystring conversion
+            emulate_name = emulate_name[0]  # Querystring conversion
             user = User.objects.filter(username=emulate_name)
             if user and len(user) > 0:
                 user = user[0]
             else:
                 return failure_response(status.HTTP_401_UNAUTHORIZED,
                                         'Emulated User %s not found' %
-                                        emualte_name)
+                                        emulate_name)
         # List of all instances matching user, instance_id
         core_instance = CoreInstance.objects.filter(
             created_by=user,
@@ -354,6 +349,7 @@ class InstanceStatusHistoryDetail(AuthAPIView):
 
 
 class InstanceAction(AuthAPIView):
+
     """
     This endpoint will allow you to run a specific action on an instance.
     The GET method will retrieve all available actions and any parameters
@@ -461,18 +457,16 @@ class InstanceAction(AuthAPIView):
                         mount_location = None
                     if device == 'null' or device == 'None':
                         device = None
-                    future_mount_location =\
-                        task.attach_volume_task(esh_driver,
-                                                esh_instance.alias,
-                                                volume_id,
-                                                device,
-                                                mount_location)
+                    task.attach_volume_task(esh_driver,
+                                            esh_instance.alias,
+                                            volume_id,
+                                            device,
+                                            mount_location)
                 elif 'mount_volume' == action:
-                    future_mount_location =\
-                        task.mount_volume_task(esh_driver,
-                                               esh_instance.alias,
-                                               volume_id, device,
-                                               mount_location)
+                    task.mount_volume_task(esh_driver,
+                                           esh_instance.alias,
+                                           volume_id, device,
+                                           mount_location)
                 elif 'unmount_volume' == action:
                     (result, error_msg) =\
                         task.unmount_volume_task(esh_driver,
@@ -500,7 +494,7 @@ class InstanceAction(AuthAPIView):
                                      context={"request": request}).data
             elif 'resize' == action:
                 size_alias = action_params.get('size', '')
-                if type(size_alias) == int:
+                if isinstance(size_alias, int):
                     size_alias = str(size_alias)
                 resize_instance(esh_driver, esh_instance, size_alias,
                                 provider_uuid, identity_uuid, user)
@@ -560,31 +554,31 @@ class InstanceAction(AuthAPIView):
             }
             response = Response(api_response, status=status.HTTP_200_OK)
             return response
-        except HypervisorCapacityError, hce:
+        except HypervisorCapacityError as hce:
             return over_capacity(hce)
-        except OverQuotaError, oqe:
+        except OverQuotaError as oqe:
             return over_quota(oqe)
-        except OverAllocationError, oae:
+        except OverAllocationError as oae:
             return over_quota(oae)
-        except SizeNotAvailable, snae:
+        except SizeNotAvailable as snae:
             return size_not_availabe(snae)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
-        except VolumeMountConflict, vmc:
+        except VolumeMountConflict as vmc:
             return mount_failed(vmc)
-        except NotImplemented, ne:
+        except NotImplemented:
             return failure_response(
                 status.HTTP_409_CONFLICT,
                 "The requested action %s is not available on this provider."
                 % action_params['action'])
-        except ActionNotAllowed, no_act:
+        except ActionNotAllowed:
             return failure_response(
                 status.HTTP_409_CONFLICT,
                 "The requested action %s has been explicitly "
                 "disabled on this provider." % action_params['action'])
-        except Exception, exc:
+        except Exception as exc:
             logger.exception("Exception occurred processing InstanceAction")
             message = exc.message
             if message.startswith('409 Conflict'):
@@ -599,6 +593,7 @@ class InstanceAction(AuthAPIView):
 
 
 class Instance(AuthAPIView):
+
     """
     Instances are the objects created when you launch a machine. They are
     represented by a unique ID, randomly generated on launch, important
@@ -611,20 +606,32 @@ class Instance(AuthAPIView):
         Authentication Required, get instance details.
         """
         user = request.user
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
-        if not esh_driver:
-            return invalid_creds(provider_uuid, identity_uuid)
+        # NOTE: This 'Scheme' should be used across
+        #       the ENTIRE API v1 (Machines, Volumes, Sizes)
+        # NOTE: Especially the part below, where you end date
+        #       all the things that are 'inactive'
         try:
-            esh_instance = esh_driver.get_instance(instance_id)
-        except (socket_error, ConnectionFailure):
-            return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+            provider = Provider.objects.get(uuid=provider_uuid)
+        except Provider.DoesNotExist:
             return invalid_creds(provider_uuid, identity_uuid)
-        except Exception as exc:
-            logger.exception("Encountered a generic exception. "
-                             "Returning 409-CONFLICT")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+        if provider.is_active():
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+            try:
+                esh_instance = esh_driver.get_instance(instance_id)
+            except (socket_error, ConnectionFailure):
+                return connection_failure(provider_uuid, identity_uuid)
+            except InvalidCredsError:
+                return invalid_creds(provider_uuid, identity_uuid)
+            except Exception as exc:
+                logger.exception("Encountered a generic exception. "
+                                 "Returning 409-CONFLICT")
+                return failure_response(status.HTTP_409_CONFLICT,
+                                        str(exc.message))
+        else:
+            esh_instance = None
+
+        # NOTE: Especially THIS part below, where you end date all the
+        #       things that are 'inactive'
         if not esh_instance:
             try:
                 core_inst = CoreInstance.objects.get(
@@ -635,6 +642,7 @@ class Instance(AuthAPIView):
             except CoreInstance.DoesNotExist:
                 pass
             return instance_not_found(instance_id)
+
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                              provider_uuid, identity_uuid,
                                              user)
@@ -674,13 +682,14 @@ class Instance(AuthAPIView):
             context={"request": request}, partial=True)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
-            update_instance_metadata(esh_driver, esh_instance, data,
-                    replace=False)
+            update_instance_metadata(esh_driver, esh_instance,
+                                     data, replace=False)
             instance = serializer.save()
             boot_scripts = data.pop('boot_scripts', [])
             if boot_scripts:
                 _save_scripts_to_instance(instance, boot_scripts)
-            invalidate_cached_instances(identity=Identity.objects.get(uuid=identity_uuid))
+            invalidate_cached_instances(identity=Identity.objects.get(
+                uuid=identity_uuid))
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
             response['Cache-Control'] = 'no-cache'
@@ -729,8 +738,8 @@ class Instance(AuthAPIView):
                     new_instance,
                     context={"request": request})
             invalidate_cached_instances(
-                    identity=Identity.objects.get(
-                        uuid=identity_uuid))
+                identity=Identity.objects.get(
+                    uuid=identity_uuid))
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
             response['Cache-Control'] = 'no-cache'
@@ -761,7 +770,6 @@ class Instance(AuthAPIView):
                                     str(exc.message))
         try:
             # Test that there is not an attached volume BEFORE we destroy
-            # _check_volume_attachment(esh_driver, esh_instance)
 
             task.destroy_instance_task(esh_instance, identity_uuid)
 
@@ -812,6 +820,7 @@ class Instance(AuthAPIView):
 
 
 class InstanceTagList(AuthAPIView):
+
     """
     Tags are a easy way to allow users to group several images as similar
     based on a feature/program of the application.
@@ -851,7 +860,6 @@ class InstanceTagList(AuthAPIView):
         if not core_instance:
             instance_not_found(instance_id)
 
-        created = False
         same_name_tags = CoreTag.objects.filter(name__iexact=data['name'])
         if same_name_tags:
             add_tag = same_name_tags[0]
@@ -860,14 +868,15 @@ class InstanceTagList(AuthAPIView):
             data['name'] = data['name'].lower()
             serializer = TagSerializer(data=data)
             if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             add_tag = serializer.save()
-            created = True
         core_instance.tags.add(add_tag)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class InstanceTagDetail(AuthAPIView):
+
     """
     Tags are a easy way to allow users to group several images as similar
     based on a feature/program of the application.
@@ -918,7 +927,7 @@ def valid_post_data(data):
     required = ['machine_alias', 'size_alias', 'name']
     return [key for key in required
             if key not in data or
-            (type(data[key]) == str and len(data[key]) > 0)]
+            (isinstance(data[key], str) and len(data[key]) > 0)]
 
 
 def keys_not_found(missing_keys):

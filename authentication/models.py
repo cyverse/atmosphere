@@ -12,6 +12,7 @@ from core.models import AtmosphereUser as User
 
 
 class Token(models.Model):
+
     """
     AuthTokens are issued (or reused if existing)
     each time a user asks for a token using CloudAuth
@@ -61,6 +62,7 @@ class Token(models.Model):
 
 
 class UserProxy(models.Model):
+
     """
       The UserProxy model
       Maps username+proxyIOU (Returned on serviceValidate+proxy)

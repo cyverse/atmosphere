@@ -3,7 +3,9 @@ from django.db import models
 from core.models.user import AtmosphereUser
 from core.models.match import PatternMatch
 
+
 class LicenseType(models.Model):
+
     """
     LicenseType objects are created by developers,
     they should NOT be added/removed unless there
@@ -19,7 +21,9 @@ class LicenseType(models.Model):
     def __unicode__(self):
         return self.name
 
+
 class License(models.Model):
+
     """
     """
     title = models.CharField(max_length=256)
@@ -32,9 +36,26 @@ class License(models.Model):
         return self.access_list.all()
 
     def __unicode__(self):
-        return "%s - Re-Imaging Allowed:%s %s" %\
-            (self.title, self.allow_imaging, self.allowed_access())
+        return "%s - Access List:%s" %\
+            (self.title, self.allowed_access())
 
     class Meta:
         db_table = 'license'
         app_label = 'core'
+
+
+class ApplicationVersionLicense(models.Model):
+    """
+    Represents the M2M table auto-created by 'application_version.licenses'
+    """
+    applicationversion = models.ForeignKey("ApplicationVersion")
+    license = models.ForeignKey(License)
+
+    def __unicode__(self):
+        return "(ApplicationVersion:%s - License:%s) " %\
+            (self.application_version, self.license.title)
+
+    class Meta:
+        db_table = 'application_version_licenses'
+        app_label = 'core'
+        managed = False

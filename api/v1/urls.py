@@ -11,9 +11,8 @@ user_match = '[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*'
 # Paste This for provider: provider\/(?P<provider_uuid>\\d+)
 provider_specific = r'^provider/(?P<provider_uuid>%s)' % uuid_match
 # Paste this for identity:
-# /r'^provider\/(?P<provider_uuid>\\d+)\/identity\/(?P<identity_uuid>\
 identity_specific = provider_specific +\
-                    r'/identity/(?P<identity_uuid>%s)' % uuid_match
+    r'/identity/(?P<identity_uuid>%s)' % uuid_match
 
 urlpatterns = format_suffix_patterns(patterns(
     '',
@@ -70,35 +69,14 @@ urlpatterns = format_suffix_patterns(patterns(
         views.ProjectVolumeExchange.as_view(),
         name='project-volume-exchange'),
 
-    url(r'^maintenance/(?P<record_id>%s)$' % (id_match,),
-        views.MaintenanceRecord.as_view(),
-        name='maintenance-record'),
     url(r'^notification$', views.NotificationList.as_view()),
     url(r'^token_emulate/(?P<username>.*)$', views.TokenEmulate.as_view()),
-
-    url(provider_specific + r'/occupancy$',
-        views.Occupancy.as_view(), name='occupancy'),
-    url(provider_specific + r'/hypervisor$',
-        views.Hypervisor.as_view(), name='hypervisor'),
 
     url(identity_specific + r'/image_export$',
         views.ExportRequestList.as_view(), name='machine-export-list'),
     url(identity_specific + r'/image_export/(?P<machine_request_id>%s)$'
         % (id_match,), views.ExportRequest.as_view(), name='machine-export'),
 
-    url(identity_specific + r'/hypervisor$',
-        views.HypervisorList.as_view(), name='hypervisor-list'),
-    url(identity_specific + r'/hypervisor/(?P<hypervisor_id>%s)$'
-        % (id_match,), views.HypervisorDetail.as_view(), name='hypervisor-detail'),
-
-    url(identity_specific + r'/meta$', views.Meta.as_view(), name='meta-detail'),
-    url(identity_specific + r'/meta/(?P<action>.*)$',
-        views.MetaAction.as_view(), name='meta-action'),
-
-    url(identity_specific + r'/members$',
-        views.IdentityMembershipList.as_view(), name='identity-membership-list'),
-    url(identity_specific + r'/members/(?P<group_name>%s)$' % user_match,
-        views.IdentityMembership.as_view(), name='identity-membership-detail'),
     #
     # Public api
     #
@@ -110,10 +88,12 @@ urlpatterns = format_suffix_patterns(patterns(
     url(r'^tag$', views.TagList.as_view(), name='tag-list'),
     url(r'^tag/(?P<tag_slug>.*)$', views.Tag.as_view()),
 
+    #TODO: Shouldn't these names be unique
     url(r'^instance_history$', views.InstanceHistory.as_view(),
         name='instance-history'),
     url(r'^instance_history/'
-        '(?P<instance_id>%s)$' % uuid_match, views.InstanceHistoryDetail.as_view(),
+        '(?P<instance_id>%s)$' % uuid_match, views.InstanceHistoryDetail.as_view(
+        ),
         name='instance-history'),
     url(r'^instance_history/(?P<instance_id>%s)/' % uuid_match +
         'status_history$', views.InstanceStatusHistoryDetail.as_view(),
@@ -173,9 +153,9 @@ urlpatterns = format_suffix_patterns(patterns(
         '/icon$', views.MachineIcon.as_view(), name='machine-icon'),
 
     url(provider_specific + r'/identity$', views.IdentityList.as_view(),
-        name='identity-list'),
+        name='identity-list'),  # OLD
     url(identity_specific + r'$', views.Identity.as_view(),
-        name='identity-detail'),
+        name='identity-detail'),  # OLD
 
     url(r'^credential$', views.CredentialList.as_view(),
         name='credential-list'),
@@ -217,6 +197,9 @@ urlpatterns = format_suffix_patterns(patterns(
     url(r'^maintenance$',
         views.MaintenanceRecordList.as_view(),
         name='maintenance-record-list'),
+    url(r'^maintenance/(?P<record_id>%s)$' % (id_match,),
+        views.MaintenanceRecord.as_view(),
+        name='maintenance-record'),
 
     url(r'^license$',
         views.LicenseList.as_view(),
@@ -265,13 +248,20 @@ urlpatterns = format_suffix_patterns(patterns(
         '(?P<export_request_id>%s)$' % (id_match,),
         views.ExportRequest.as_view(), name='export-request'),
 
+    url(provider_specific + r'/occupancy$',
+        views.Occupancy.as_view(), name='occupancy'),
+    url(provider_specific + r'/hypervisor$',
+        views.Hypervisor.as_view(), name='hypervisor'),
+
     url(identity_specific + r'/hypervisor$',
         views.HypervisorList.as_view(), name='hypervisor-list'),
     url(identity_specific + r'/hypervisor/'
         '(?P<hypervisor_id>%s)$' % (id_match,),
         views.HypervisorDetail.as_view(), name='hypervisor-detail'),
 
-    url(identity_specific + r'/meta$', views.Meta.as_view(), name='meta-detail'),
+    url(identity_specific + r'/meta$',
+        views.Meta.as_view(),
+        name='meta-detail'),
     url(identity_specific + r'/meta/(?P<action>.*)$',
         views.MetaAction.as_view(), name='meta-action'),
 

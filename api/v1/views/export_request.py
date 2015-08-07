@@ -18,6 +18,7 @@ from api.v1.views.base import AuthAPIView
 
 
 class ExportRequestList(AuthAPIView):
+
     """
     Starts the process of bundling a running instance
     """
@@ -56,6 +57,7 @@ class ExportRequestList(AuthAPIView):
 
 
 class ExportRequest(AuthAPIView):
+
     """
     Represents:
         Calls to modify the single exportrequest

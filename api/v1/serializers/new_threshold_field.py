@@ -10,8 +10,8 @@ class NewThresholdField(serializers.Field):
         value = data.get('threshold')
         if value is None:
             return
-        memory = value.get('memory',0)
-        disk = value.get('disk',0)
+        memory = value.get('memory', 0)
+        disk = value.get('disk', 0)
         machine_request = self.root.object
         machine_request.new_machine_memory_min = memory
         machine_request.new_machine_storage_min = disk

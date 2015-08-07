@@ -16,16 +16,17 @@ framework.
 import os
 import sys
 
-#Adds the directory above wsgi.py to system path
+# Adds the directory above wsgi.py to system path
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, '/opt/env/atmo/lib/python2.7/site-packages/')
 sys.path.insert(1, root_dir)
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
 
-#NOTE: DO NOT MOVE ABOVE THIS LINE! Django will fail to import settings without knowing
+# NOTE: DO NOT MOVE ABOVE THIS LINE! Django will fail to import settings without knowing
 # what settings module ('atmosphere.settings') to use!
-# Failure to do so will result in 500 error, exception output in the apache logs.
+# Failure to do so will result in 500 error, exception output in the
+# apache logs.
 from django.conf import settings
 
 if hasattr(settings, "NEW_RELIC_ENVIRONMENT"):
@@ -35,19 +36,17 @@ if hasattr(settings, "NEW_RELIC_ENVIRONMENT"):
             os.path.join(root_dir, "extras/newrelic/atmosphere_newrelic.ini"),
             settings.NEW_RELIC_ENVIRONMENT)
         print "[A]Plugin: New Relic initialized!"
-    except ImportError, bad_import:
+    except ImportError as bad_import:
         print "[A]Warning: newrelic not installed.."
         print bad_import
-    except Exception, bad_config:
+    except Exception as bad_config:
         print "[A]Warning: newrelic not initialized.."
         print bad_config
 else:
     print "[A]Plugin: Skipping New Relic setup. NEW_RELIC_ENVIRONMENT not defined in local.py"
 
-#LIBCLOUD_DEBUG = os.path.abspath(os.path.join(
 #    root_dir,
 #    'logs/libcloud.log'))
-#os.environ.setdefault("LIBCLOUD_DEBUG",LIBCLOUD_DEBUG)
 
 # This application object is used by any WSGI server configured to use this
 # file. This includes Django's development server, if the WSGI_APPLICATION
@@ -55,9 +54,5 @@ else:
 from django.core.wsgi import get_wsgi_application
 try:
     application = get_wsgi_application()
-except Exception, e:
-    #e.msg = os.path.dirname(__file__)
+except Exception as e:
     raise
-
-#from helloworld.wsgi import HelloWorldApplication
-#application = HelloWorldApplication(application)
