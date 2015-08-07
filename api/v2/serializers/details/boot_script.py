@@ -23,5 +23,4 @@ class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = BootScript
-        # view_name = 'api:v2:boot_script-detail' -- not needed?
         fields = ('id', 'created_by', 'title', 'text', 'type')
