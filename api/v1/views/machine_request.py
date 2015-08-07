@@ -124,9 +124,8 @@ class MachineRequestList(AuthAPIView):
             auto_approve = active_provider.auto_imaging
             requestImaging(request, machine_request_id,
                            auto_approve=auto_approve)
-            # # TODO: Remove this before going back 'to live'
-            # if auto_approve:
-            #    start_machine_imaging(machine_request)
+            if auto_approve:
+                start_machine_imaging(machine_request)
             return Response(serializer.data,
                             status=status.HTTP_201_CREATED)
         else:
