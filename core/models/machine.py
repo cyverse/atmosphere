@@ -54,8 +54,7 @@ class ProviderMachine(BaseSource):
             instance_source__provider=provider).count()
 
     def is_owner(self, atmo_user):
-        return (self.created_by == atmo_user |
-                self.application_version.created_by == atmo_user |
+        return (self.application_version.created_by == atmo_user or
                 self.application_version.application.created_by == atmo_user)
 
     def to_dict(self):
