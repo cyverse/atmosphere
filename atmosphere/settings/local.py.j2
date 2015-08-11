@@ -1,128 +1,99 @@
+"""
+Settings specific to the local deploy.
+"""
 import os
 import sys
 
+
 globals().update(vars(sys.modules['atmosphere.settings']))
 
-#Debug Mode
-DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 
-#Enforcing mode -- True, when in production (Debug=False)
-#ENFORCING = not DEBUG
+# Debug Mode
+DEBUG = {{ DJANGO_DEBUG }}
+TEMPLATE_DEBUG = {{ DJANGO_TEMPLATE_DEBUG }}
 
-ATMO_SUPPORT = (
-    ("Atmosphere Support", "atmo-rt@iplantcollaborative.org"),
-)
+
+# Logging
+LOGGING_LEVEL = {{ LOGGING_LEVEL }}
+# Logging level for dependencies.
+DEP_LOGGING_LEVEL = {{ LOGGING_DEP_LEVEL }}
+
 
 PROJECT_ROOT = os.path.abspath(
     os.path.join(
-        os.path.dirname(__file__), "../.."))
-
-###
-# CELERY - These settings will vary between a production/development environment.
-# This dist will give you a few different options for how to setup a BROKER, and some 'good defaults' when running celery in atmosphere.
-###
-
-#Local settings for celery
-#How to setup a 'RabbitMQ' Broker (Stable, Production-Recommended):
-BROKER_URL = 'amqp://username:password@localhost:5672/virutalhost_name'
-#How to setup a 'Redis' Broker (Stable, Fast, Development-Recommended)
-#BROKER_URL = 'redis://localhost:6379/0'
-#How to setup a 'MongoDB' Broker (Experimental)
-#BROKER_URL = "mongodb://userid:password@hostname:port/database_name"
-CELERYD_PREFETCH_MULTIPLIER = 1
-CELERY_RESULT_PERSISTENT = True
-CELERY_TASK_RESULT_EXPIRES = 18000  # 5 hours.
+    os.path.dirname(__file__), '../..'))
 
 
-#Django-Celery Development settings
-#CELERY_ALWAYS_EAGER = True
-##CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
+TEST_RUNNER = '{{ TEST_RUNNER }}'
+TEST_RUNNER_USER = '{{ TEST_RUNNER_USER }}'
+TEST_RUNNER_PASS = '{{ TEST_RUNNER_PASS }}'
 
 
+SERVER_URL = '{{ DJANGO_SERVER_URL }}'
 
-TEST_RUNNER='atmosphere.test_runner.CeleryDiscoverTestSuiteRunner'
-TEST_RUNNER_USER=''
-TEST_RUNNER_PASS=''
-
-SERVER_URL = "SERVERNAMEHERE"
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": "",
-        "USER": "",
-        "PASSWORD": "",
-        "HOST": "",
-        "PORT": ""
+    'default': {
+        'NAME': '{{ DATABASE_NAME }}',
+        'ENGINE': '{{ DATABASE_ENGINE }}',
+        'USER': '{{ DATABASE_USER }}',
+        'CONN_MAX_AGE': {{ DATABASE_CONN_MAX_AGE }},
+        'PASSWORD': '{{ DATABASE_PASSWORD }}',
+        'HOST': '{{ DATABASE_HOST }}',
+        'PORT': {{ DATABASE_PORT }}
     },
 }
 
-# Must reassign anything using SERVER_URL.
 
 # Prevents warnings
-ALLOWED_HOSTS = [SERVER_URL.replace("https://","")]
+ALLOWED_HOSTS = [SERVER_URL.replace('https://', '')]
 
-#Atmosphere Keypair/Deployment Configs
-ATMOSPHERE_PRIVATE_KEYFILE=os.path.join(PROJECT_ROOT, "extras/ssh/id_rsa")
-ATMOSPHERE_KEYPAIR_FILE=os.path.join(PROJECT_ROOT, "path/to/keypair.pub")
-ATMOSPHERE_KEYPAIR_NAME=""
 
-# Atmosphere Ansible Deploy
-ANSIBLE_ROOT = ""  # The root directory for the ansible deploy project.
-	       	   # If this is emptry str then ansible deploys will not
-		   # run and will warn that ansible is no configured.
-ANSIBLE_CONFIG_FILE = os.path.join(ANSIBLE_ROOT,
-                                   "ansible/ansible.cfg")
-ANSIBLE_HOST_FILE = os.path.join(ANSIBLE_ROOT,
-                                 "ansible/hosts")
-ANSIBLE_PLAYBOOKS_DIR = os.path.join(ANSIBLE_ROOT,
-                                     "ansible/playbooks")
-ANSIBLE_ROLES_PATH = os.path.join(ANSIBLE_ROOT,
-                                  "ansible/roles")
+# Atmosphere Keypair/Deployment Configs
+ATMOSPHERE_PRIVATE_KEYFILE = os.path.join(PROJECT_ROOT, 'extras/ssh/id_rsa')
+ATMOSPHERE_KEYPAIR_FILE = os.path.join(PROJECT_ROOT, 'extras/ssh/id_rsa.pub')
+ATMOSPHERE_KEYPAIR_NAME = 'atmosphere'
+
 
 # Atmosphere App Configs
-INSTANCE_SERVICE_URL = SERVER_URL + REDIRECT_URL + "/api/v1/notification/"
-API_SERVER_URL = SERVER_URL + REDIRECT_URL + "/resources/v1"
-AUTH_SERVER_URL = SERVER_URL + REDIRECT_URL + "/auth"
-DEPLOY_SERVER_URL = SERVER_URL.replace("https:", "http:")
+INSTANCE_SERVICE_URL = SERVER_URL + REDIRECT_URL + '/api/v1/notification'
+INSTANCE_SERVICE_URL.replace('https', 'http')
+API_SERVER_URL = SERVER_URL + REDIRECT_URL + '/resources/v1'
+AUTH_SERVER_URL = SERVER_URL + REDIRECT_URL + '/auth'
+DEPLOY_SERVER_URL = SERVER_URL.replace('https', 'http')
+
+
+# Django-Celery Development settings
+# CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
+
 
 # CASLIB
-OAUTH_CLIENT_KEY = "OauthClientKey"
-OAUTH_CLIENT_SECRET = "OauthClientSecret"
-OAUTH_CLIENT_CALLBACK = SERVER_URL + "/oauth2.0/callbackAuthorize"
-SELF_SIGNED_CERT = False
-SERVER_URL = SERVER_URL+REDIRECT_URL
-CAS_SERVER = ""
-CAS_AUTH_PREFIX = "/cas4test"
-SERVICE_URL = SERVER_URL+"/CAS_serviceValidater?sendback="+REDIRECT_URL+"/application/"
-PROXY_URL = SERVER_URL+"/CAS_proxyUrl"
-PROXY_CALLBACK_URL = SERVER_URL+"/CAS_proxyCallback"
-caslib.cas_init(CAS_SERVER, SERVICE_URL, PROXY_URL, PROXY_CALLBACK_URL, SELF_SIGNED_CERT)
+OAUTH_CLIENT_KEY = '{{ OAUTH_CLIENT_KEY }}'
+OAUTH_CLIENT_SECRET = '{{ OAUTH_CLIENT_SECRET }}'
+OAUTH_CLIENT_CALLBACK = SERVER_URL + '/oauth2.0/callbackAuthorize'
+SELF_SIGNED_CERT = {{ SELF_SIGNED_CERT }}
+SERVER_URL = SERVER_URL + REDIRECT_URL
+CAS_SERVER = '{{ CAS_SERVER }}'
+CAS_AUTH_PREFIX = '{{ CAS_AUTH_PREFIX }}'
+SERVICE_URL = SERVER_URL + '/CAS_serviceValidater?sendback=' + REDIRECT_URL + '/application/'
+PROXY_URL = SERVER_URL + '/CAS_proxyUrl'
+PROXY_CALLBACK_URL = SERVER_URL + '/CAS_proxyCallback'
 
-#Looking to do Localhost development? These settings come in handy:
-# AUTHENTICATION_BACKENDS = (
-#     #  For Always-OK Access
-#     'authentication.authBackends.MockLoginBackend',
-# ) + AUTHENTICATION_BACKENDS
-# INSTALLED_APPS += (
-#     "sslserver",
-# )
-# NOTE: This user will be authenticated indefinitely while active, Should only be activated for
-# development on a localhost.
-# ALWAYS_AUTH_USER = "test_user"
 
-# Deal with urllib3 warnings till we're on python > 2.7.9
-try:
-    import urllib3
-    urllib3.disable_warnings()
-except ImportError:
-    pass
+# Atmosphere Ansible Deploy
+ANSIBLE_ROOT = '{{ ANSIBLE_ROOT }}'
+# The root directory for the ansible deploy project.
+# If this is emptry str then ansible deploys will not
+# run and will warn that ansible is no configured.
+ANSIBLE_CONFIG_FILE = os.path.join(ANSIBLE_ROOT, 'ansible/ansible.cfg')
+ANSIBLE_HOST_FILE = os.path.join(ANSIBLE_ROOT, 'ansible/hosts')
+ANSIBLE_PLAYBOOKS_DIR = os.path.join(ANSIBLE_ROOT, 'ansible/playbooks')
+ANSIBLE_ROLES_PATH = os.path.join(ANSIBLE_ROOT, 'ansible/roles')
+
 
 # LOGSTASH
-LOGSTASH_HOST = None
-LOGSTASH_PORT = 3333
-
+LOGSTASH_HOST = '{{ LOGSTASH_HOST }}'
+LOGSTASH_PORT = {{ LOGSTASH_PORT }}
 try:
     import logstash
     import threepio
@@ -130,7 +101,11 @@ try:
 except ImportError:
     has_logstash = False
 
+
+METRIC_SERVER = '{{ METRIC_SERVER }}'
+
+
 if has_logstash and LOGSTASH_HOST:
     fh = logstash.TCPLogstashHandler(LOGSTASH_HOST, LOGSTASH_PORT,
-                                     message_type="atmo-deploy", version=1)
+                                     message_type='atmo-deploy', version=1)
     threepio.deploy_logger.addHandler(fh)
