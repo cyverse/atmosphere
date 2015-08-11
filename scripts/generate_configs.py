@@ -19,6 +19,9 @@ BACKUP_EXT = '.bak'
 
 config_files = {
     # semantic_name: (template_location, output_location)
+    'apache': ('extras/apache/atmo.conf.j2', 'extras/apache/atmo.conf'),
+    'local.py': ('atmosphere/settings/local.py.j2',
+                 'atmosphere/settings/local.py'),
     'nginx': ('extras/nginx/Makefile.j2', 'extras/nginx/Makefile'),
     'nginx-site': ('extras/nginx/site.conf.j2',
                    'extras/nginx/site.conf'),
@@ -30,9 +33,8 @@ config_files = {
                       'extras/nginx/locations/jenkins.conf'),
     'nginx-lb': ('extras/nginx/locations/lb.conf.j2',
                  'extras/nginx/locations/lb.conf'),
-    'apache': ('extras/apache/atmo.conf.j2', 'extras/apache/atmo.conf'),
-    'local.py': ('atmosphere/settings/local.py.j2',
-                 'atmosphere/settings/local.py')}
+    'secrets.py': ('atmosphere/settings/secrets.py.j2',
+                   'atmosphere/settings/secrets.py')} 
 
 
 projectpath = os.path.abspath(
