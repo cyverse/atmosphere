@@ -1,3 +1,0 @@
-location ~^/api/(leaderboard|metrics) {
-    proxy_pass http://@LEADERBOARD_URL;
-}
