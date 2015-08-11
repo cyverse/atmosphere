@@ -9,9 +9,6 @@ from threepio import logger
 
 from core.models.license import License
 from core.models.identity import Identity
-from core.models.tag import Tag
-
-from atmosphere import settings
 
 
 class ApplicationVersion(models.Model):
@@ -50,8 +47,10 @@ class ApplicationVersion(models.Model):
     iplant_system_files = models.TextField(default='', null=True, blank=True)
     installed_software = models.TextField(default='', null=True, blank=True)
     excluded_files = models.TextField(default='', null=True, blank=True)
-    licenses = models.ManyToManyField(
-        License,
+    licenses = models.ManyToManyField(License,
+            blank=True, related_name='application_versions')
+    boot_scripts = models.ManyToManyField(
+        "BootScript",
         blank=True,
         related_name='application_versions')
     membership = models.ManyToManyField('Group',
@@ -84,16 +83,20 @@ class ApplicationVersion(models.Model):
     def icon_url(self):
         return self.icon.url if self.icon else None
 
+    def is_owner(self, atmo_user):
+        return (self.created_by == atmo_user |
+                self.application.created_by == atmo_user)
+
 
 class ApplicationVersionMembership(models.Model):
-
     """
     Members of a specific ApplicationVersion
     Members can view & launch respective machines.
-    If the can_share flag is set, then members also have ownership--they can give
-    membership to other users.
+    If the can_share flag is set, then members also have ownership--
+    they can give membership to other users.
     The unique_together field ensures just one of those states is true.
-    NOTE: There IS underlying cloud implementation 9/10 times. That should be 'hooked' in here!
+    NOTE: There IS underlying cloud implementation 9/10 times.
+    That should be 'hooked' in here!
     """
     application_version = models.ForeignKey(ApplicationVersion)
     group = models.ForeignKey('Group')
@@ -143,7 +146,8 @@ def create_unique_version(app, version, created_by, created_by_identity):
                 created_by_identity=created_by_identity,
             )
             return app_version
-        except IntegrityError as duplicate_found:
+        except IntegrityError:
+            # duplicate_found
             logger.warn(
                 "Version %s is taken for Application %s" %
                 (version, app))
@@ -154,7 +158,8 @@ def create_app_version(
         app,
         version_str,
         created_by=None,
-        created_by_identity=None):
+        created_by_identity=None,
+        change_log=None, allow_imaging=None):
     if not created_by:
         created_by = app.created_by
     if not created_by_identity:
@@ -166,15 +171,25 @@ def create_app_version(
         created_by_identity)
     last_version = app.latest_version
     if last_version:
-        # DEFAULT: Inherit your information from your parents
-        app_version.change_log = last_version.change_log
-        app_version.allow_imaging = last_version.allow_imaging
+        # DEFAULT: Use kwargs.. Otherwise: Inherit information from last
+        if change_log != None:
+            app_version.change_log = change_log
+        else:
+            app_version.change_log=last_version.change_log
+        if allow_imaging != None:
+            app_version.allow_imaging = allow_imaging
+        else:
+            app_version.allow_imaging=last_version.allow_imaging
         app_version.save()
         transfer_licenses(last_version, app_version)
         transfer_membership(last_version, app_version)
     else:
-        app_version.change_log = "New Application %s - Version %s" % (
-            app.name, app_version.name)
+        if change_log == None:
+            change_log = "New Application %s - Version %s" % (app.name, app_version.name)
+        if allow_imaging == None:
+            allow_imaging = True
+        app_version.change_log = change_log
+        app_version.allow_imaging = allow_imaging
         app_version.save()
     return app_version
 

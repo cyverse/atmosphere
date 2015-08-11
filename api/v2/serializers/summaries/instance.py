@@ -1,4 +1,4 @@
-from core.models import Instance, Size, Application as Image
+from core.models import Instance, Application as Image
 from rest_framework import serializers
 from .identity import IdentitySummarySerializer
 from .size import SizeSummarySerializer
@@ -19,9 +19,7 @@ class InstanceSummarySerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.CharField(source='provider_alias')
 
     def get_size(self, obj):
-        size_alias = obj.esh_size()
-        provider_id = obj.created_by_identity.provider_id
-        size = Size.objects.get(alias=size_alias, provider=provider_id)
+        size = obj.get_size()
         serializer = SizeSummarySerializer(size, context=self.context)
         return serializer.data
 

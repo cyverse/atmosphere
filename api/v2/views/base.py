@@ -2,9 +2,8 @@ from functools import wraps
 
 from django.utils import timezone
 
-from threepio import logger
-
 from rest_framework import exceptions, status
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from core import exceptions as core_exceptions
@@ -51,6 +50,21 @@ class AuthReadOnlyViewSet(ReadOnlyModelViewSet):
 
     permission_classes = (InMaintenance,
                           ApiAuthOptional,)
+
+
+class OwnerUpdateViewSet(AuthViewSet):
+    """
+    Base class ViewSet to handle the case where a normal user should see 'GET'
+    and an owner (or admin) should be allowed to PUT or PATCH
+    """
+
+    http_method_names = ['get', 'put', 'patch', 'post',
+                         'delete', 'head', 'options', 'trace']
+
+    @property
+    def allowed_methods(self):
+        raise Exception("The @property-method 'allowed_methods' should be"
+                        " handled by the subclass of OwnerUpdateViewSet")
 
 
 class BaseRequestViewSet(AuthViewSet):

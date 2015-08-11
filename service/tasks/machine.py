@@ -17,7 +17,7 @@ from core.models.machine_request import MachineRequest, process_machine_request
 from core.models.export_request import ExportRequest
 from core.models.identity import Identity
 
-from service.driver import get_admin_driver, get_esh_driver
+from service.driver import get_admin_driver, get_esh_driver, get_account_driver
 from service.deploy import freeze_instance, sync_instance
 from service.tasks.driver import wait_for_instance, destroy_instance
 
@@ -183,10 +183,10 @@ def set_machine_request_metadata(machine_request, image_id):
         return
     metadata = lc_driver.ex_get_image_metadata(machine)
 
-    if machine_request.new_machine_description:
-        metadata['description'] = machine_request.new_machine_description
-    if machine_request.new_machine_tags:
-        metadata['tags'] = machine_request.new_machine_tags
+    if machine_request.new_application_description:
+        metadata['description'] = machine_request.new_application_description
+    if machine_request.new_version_tags:
+        metadata['tags'] = machine_request.new_version_tags
     logger.info("LC Driver:%s - Machine:%s - Metadata:%s"
                 % (lc_driver, machine.id, metadata))
     lc_driver.ex_set_image_metadata(machine, metadata)
@@ -273,7 +273,7 @@ def validate_new_image(image_id, machine_request_id):
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.status = 'validating'
     machine_request.save()
-    accounts = get_os_account_driver(machine_request.new_machine.provider)
+    accounts = get_account_driver(machine_request.new_machine.provider)
     accounts.clear_cache()
     from service.instance import launch_machine_instance
     admin_driver = accounts.admin_driver

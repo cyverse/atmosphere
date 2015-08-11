@@ -2,13 +2,10 @@ from datetime import timedelta
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
-from django.contrib.auth.models import User as DjangoUser
 from django.contrib.auth.models import Group as DjangoGroup
-from django.contrib.auth.forms import UserChangeForm
 from django.contrib.sessions.models import Session as DjangoSession
 from django.utils import timezone
 
-from core.models.abstract import InstanceSource
 from core.models.application import Application
 from core.models.cloud_admin import CloudAdministrator
 from core.models.credential import Credential, ProviderCredential
@@ -29,7 +26,8 @@ from core.models.size import Size
 from core.models.tag import Tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
-from core.models.version import ApplicationVersion, ApplicationVersionMembership
+from core.models.application_version import (
+        ApplicationVersion, ApplicationVersionMembership)
 
 from threepio import logger
 
@@ -112,7 +110,6 @@ class ProviderMachineAdmin(admin.ModelAdmin):
         return obj.instance_source.provider.location
 
     def render_change_form(self, request, context, *args, **kwargs):
-        pm = context['original']
         return super(
             ProviderMachineAdmin,
             self).render_change_form(
@@ -141,9 +138,8 @@ class ApplicationVersionMembershipAdmin(admin.ModelAdmin):
         return obj.application_version
 
     def render_change_form(self, request, context, *args, **kwargs):
-        application = context['original']
-        context['adminform'].form.fields[
-            'application_version'].queryset = ApplicationVersion.objects.order_by('application__name')
+        context['adminform'].form.fields['application_version'].queryset = \
+                ApplicationVersion.objects.order_by('application__name')
         context['adminform'].form.fields[
             'group'].queryset = Group.objects.order_by('name')
         return super(
@@ -251,22 +247,22 @@ class ApplicationAdmin(admin.ModelAdmin):
     filter_vertical = ["tags", ]
 
     def save_model(self, request, obj, form, change):
-        user = request.user
         application = form.save(commit=False)
         application.save()
         form.save_m2m()
         if change:
             try:
-                save_app_to_metadata(application)
-            except Exception as e:
+                # TODO: Remove/Replace with 'glance_update_metadata'
+                pass
+            except Exception:
                 logger.exception("Could not update metadata for application %s"
                                  % application)
         return application
 
     def render_change_form(self, request, context, *args, **kwargs):
         application = context['original']
-        context['adminform'].form.fields['created_by_identity'].queryset = Identity.objects.filter(
-            created_by=application.created_by)
+        context['adminform'].form.fields['created_by_identity'].queryset = \
+            Identity.objects.filter(created_by=application.created_by)
         return super(
             ApplicationAdmin,
             self).render_change_form(

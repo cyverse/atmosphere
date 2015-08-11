@@ -41,6 +41,9 @@ class Group(DjangoGroup):
         through='ProviderMachineMembership',
         blank=True)
 
+    def is_leader(self, test_user):
+        return any(user for user in self.leaders.all() if user == test_user)
+
     @classmethod
     def check_membership(cls, test_user, membership_groups):
         """

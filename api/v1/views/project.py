@@ -9,15 +9,15 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from core.models.application import Application
 from core.models.group import Group, get_user_group
 from core.models.project import Project
+from core.models.provider import Provider
 from core.query import only_current
 
 from api import failure_response
 from api.permissions import InMaintenance, ApiAuthRequired,\
     ProjectOwnerRequired
-from api.v1.serializers import ApplicationSerializer, NoProjectSerializer,\
+from api.v1.serializers import NoProjectSerializer,\
     InstanceSerializer, ProjectSerializer, VolumeSerializer
 from api.v1.views.base import AuthAPIView
 
@@ -27,61 +27,6 @@ def get_group_project(group, project_uuid):
         return group.projects.get(uuid=project_uuid)
     except Project.DoesNotExist:
         return None
-
-
-class ProjectApplicationExchange(APIView):
-
-    permission_classes = (ApiAuthRequired,
-                          InMaintenance,
-                          ProjectOwnerRequired,)
-
-    def put(self, request, project_uuid, application_uuid):
-        user = request.user
-        group = get_user_group(user.username)
-        project = get_group_project(group, project_uuid)
-        if not project:
-            return Response("Project with ID=%s does not exist" % project_uuid,
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        application = Application.objects.filter(uuid=application_uuid)
-        if not application:
-            return Response("application with UUID=%s not found "
-                            "in the database" % (application_uuid,),
-                            status=status.HTTP_400_BAD_REQUEST)
-        application = application[0]
-        if application.private:
-            # If the application is private, the user must be a member to have
-            # access to the application inside their project.
-            application = user.application_set.filter(
-                provider_alias=instance_id)
-            if not application:
-                return Response(
-                    "Private Application with UUID=%s not "
-                    "accessible to user:%s"
-                    % (application_uuid, user.username),
-                    status=status.HTTP_400_BAD_REQUEST)
-            application = application[0]
-        project.add_object(application)
-        response = Response(status=status.HTTP_204_NO_CONTENT)
-        return response
-
-    def delete(self, request, project_uuid, application_uuid):
-        user = request.user
-        group = get_user_group(user.username)
-        project = group.projects.filter(id=project_uuid)
-        if not project:
-            return Response("Project with ID=%s does not exist" % project_uuid,
-                            status=status.HTTP_400_BAD_REQUEST)
-        application = project.applications.filter(
-            provider_alias=application_uuid)
-        if not application:
-            error_str = "application with ID=%s does not exist in Project %s"\
-                        % (application_uuid, project.id),
-            return Response(error_str, status=status.HTTP_400_BAD_REQUEST)
-        application = application[0]
-        project.remove_object(application)
-        response = Response(status=status.HTTP_204_NO_CONTENT)
-        return response
 
 
 class ProjectInstanceExchange(APIView):
@@ -199,25 +144,6 @@ class ProjectVolumeList(AuthAPIView):
         return response
 
 
-class ProjectApplicationList(AuthAPIView):
-
-    def get(self, request, project_uuid):
-        user = request.user
-        group = get_user_group(user.username)
-        project = get_group_project(group, project_uuid)
-        if not project:
-            return Response("Project with ID=%s does not "
-                            "exist" % project_uuid,
-                            status=status.HTTP_400_BAD_REQUEST)
-        # TODO: Check that you have permission!
-        applications = project.applications.filter(only_current())
-        serialized_data = ApplicationSerializer(
-            applications, many=True,
-            context={"request": request}).data
-        response = Response(serialized_data)
-        return response
-
-
 class ProjectInstanceList(AuthAPIView):
 
     def get(self, request, project_uuid):
@@ -265,19 +191,6 @@ class NoProjectVolumeList(AuthAPIView):
                               projects=None)
         serialized_data = VolumeSerializer(volumes, many=True,
                                            context={"request": request}).data
-        response = Response(serialized_data)
-        return response
-
-
-class NoProjectApplicationList(AuthAPIView):
-
-    def get(self, request):
-        user = request.user
-        applications = user.application_set.filter(
-            only_current(), projects=None)
-        serialized_data = ApplicationSerializer(
-            applications, many=True,
-            context={"request": request}).data
         response = Response(serialized_data)
         return response
 

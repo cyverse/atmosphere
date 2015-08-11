@@ -8,17 +8,24 @@ import os
 
 from django.db import models
 from django.db.models import Q
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from core.models.user import AtmosphereUser as User
 
 
-from core.models.application import update_application, create_application, ApplicationMembership
+from core.models.application import (
+        update_application, create_application,
+        ApplicationThreshold, ApplicationMembership)
 from core.models.license import License
-from core.models.machine import create_provider_machine, ProviderMachine, update_provider_machine, provider_machine_write_hook
+from core.models.boot_script import BootScript
+from core.models.machine import (
+        create_provider_machine, ProviderMachine,
+        update_provider_machine, provider_machine_write_hook)
 from core.models.node import NodeController
 from core.models.provider import Provider, AccountProvider
 from core.models.identity import Identity
-from core.models.version import ApplicationVersion
+from core.models.application_version import (
+        ApplicationVersion, create_app_version)
 
 from atmosphere.settings import secrets
 from threepio import logger
@@ -68,12 +75,14 @@ class MachineRequest(models.Model):
         default='',
         blank=True,
         null=True)
-    new_version_tags = models.TextField(default='', blank=True, null=True)
+    new_version_tags = models.TextField(
+        default='', blank=True, null=True)  # Re-rename to new_application_tags
     new_version_memory_min = models.IntegerField(default=0)
     new_version_storage_min = models.IntegerField(default=0)
     new_version_allow_imaging = models.BooleanField(default=True)
     new_version_forked = models.BooleanField(default=True)
     new_version_licenses = models.ManyToManyField(License, blank=True)
+    new_version_scripts = models.ManyToManyField(BootScript, blank=True)
     new_version_membership = models.ManyToManyField("Group", blank=True)
 
     new_machine_provider = models.ForeignKey(Provider)
@@ -98,14 +107,16 @@ class MachineRequest(models.Model):
         Clean up machine requests before saving initial objects to allow
         users the chance to correct their mistakes.
         """
-        #'Created application' specific logic that should fail:
-        if self.new_application_forked:
+        # 'Created application' specific logic that should fail:
+        if self.new_version_forked:
             pass
-        #'Updated Version' specific logic that should fail:
+        # 'Updated Version' specific logic that should fail:
         else:
             if self.new_application_name:
                 raise ValidationError(
-                    "Application name cannot be set unless a new application is being created. Remove the Application name to update -OR- fork the existing application")
+                    "Application name cannot be set unless a new application "
+                    "is being created. Remove the Application name to update "
+                    "-OR- fork the existing application")
 
         # General Validation && AutoCompletion
 
@@ -134,8 +145,8 @@ class MachineRequest(models.Model):
         else:
             threshold = ApplicationThreshold(application=application)
 
-        threshold.memory_min = machine_request.new_version_memory_min
-        threshold.storage_min = machine_request.new_version_storage_min
+        threshold.memory_min = self.new_version_memory_min
+        threshold.storage_min = self.new_version_storage_min
         threshold.save()
         return threshold
 
@@ -173,7 +184,9 @@ class MachineRequest(models.Model):
         previous_ramdisk = old_mach.properties.get('ramdisk_id')
         if not previous_kernel or previous_ramdisk:
             raise Exception(
-                "Kernel/Ramdisk information MISSING from previous machine. Fix NOT required")
+                "Kernel/Ramdisk information MISSING "
+                "from previous machine. "
+                "Fix NOT required")
         properties.update(
             {'kernel_id': previous_kernel, 'ramdisk_id': previous_ramdisk})
         im.update_image(new_mach, properties=properties)
@@ -182,13 +195,16 @@ class MachineRequest(models.Model):
         return self.instance.source.provider
 
     def new_machine_id(self):
-        return 'zzz%s' % self.new_machine.identifier if self.new_machine else None
+        if self.new_machine:
+            return self.new_machine.identifier
+        else:
+            return None
 
     def instance_alias(self):
         return self.instance.provider_alias
 
     def is_public(self):
-        return "public" in self.new_machine_visibility.lower()
+        return "public" in self.new_application_visibility.lower()
 
     def get_access_list(self):
         if '[' not in self.access_list:
@@ -249,8 +265,10 @@ class MachineRequest(models.Model):
         This allows the manager and required credentials to be passed to celery
         without causing serialization errors
         """
-        from chromogenic.drivers.openstack import ImageManager as OSImageManager
-        from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
+        from chromogenic.drivers.openstack import \
+            ImageManager as OSImageManager
+        from chromogenic.drivers.eucalyptus import \
+            ImageManager as EucaImageManager
 
         orig_provider = self.parent_machine.provider
         dest_provider = self.new_machine_provider
@@ -297,10 +315,11 @@ class MachineRequest(models.Model):
         """
         Prepares the entire machine request for serialization to celery
 
-        TODO: Add things like description and tags to export and migration drivers
         """
-        from chromogenic.drivers.openstack import ImageManager as OSImageManager
-        from chromogenic.drivers.eucalyptus import ImageManager as EucaImageManager
+        from chromogenic.drivers.openstack import \
+            ImageManager as OSImageManager
+        from chromogenic.drivers.eucalyptus import \
+            ImageManager as EucaImageManager
 
         (orig_managerCls, orig_creds,
          dest_managerCls, dest_creds) = self.prepare_manager()
@@ -310,12 +329,13 @@ class MachineRequest(models.Model):
         imaging_args = {
             "instance_id": self.instance.provider_alias,
             "image_name": self.new_application_name,
+            "timestamp": self.start_date,
             "download_dir": download_dir}
         if issubclass(orig_managerCls, OSImageManager):
             download_location = self._extract_file_location(download_dir)
             imaging_args['download_location'] = download_location
         elif issubclass(orig_managerCls, EucaImageManager):
-            euca_args = _prepare_euca_args()
+            euca_args = self._prepare_euca_args()
             imaging_args.update(euca_args)
 
         orig_provider = self.parent_machine.provider
@@ -330,13 +350,15 @@ class MachineRequest(models.Model):
                 imaging_args['xen_to_kvm'] = True
         return imaging_args
 
-    def _prepare_euca_args():
+    def _prepare_euca_args(self):
         meta_name = self._get_meta_name()
         public_image = self.is_public()
         # Splits the string by ", " OR " " OR "\n" to create the list
         private_users = self.parse_access_list()
         exclude = self.get_exclude_files()
         # Create image on image manager
+        (orig_managerCls, orig_creds,
+         dest_managerCls, dest_creds) = self.prepare_manager()
         node_scp_info = self.get_euca_node_info(orig_managerCls, orig_creds)
         euca_args = {
             "public": public_image,
@@ -380,21 +402,20 @@ class MachineRequest(models.Model):
 
 def _match_membership_to_access(access_list, membership):
     """
-    INPUT: tag1,tag2,tag3
-    OUTPUT: <Tag: tag1>, ..., <Tag: tag3>
-    NOTE: Tags NOT created BEFORE being added to new_machine_tags are ignored.
+    INPUT: user1,user2, user3 + user4,user5
+    OUTPUT: <User: 1>, ..., <User: 5>
     """
     # Circ.Dep. DO NOT MOVE UP!! -- Future Solve:Move into Group?
     from core.models.group import Group
     if not access_list:
-        return self.new_version_membership.all()
-    # If using access list, parse the list into queries and evaluate the
-    # filter ONCE.
+        return membership.all()
+    # If using access list, parse the list
+    # into queries and evaluate the filter ONCE.
     names_wanted = access_list.split(',')
     query_list = map(lambda name: Q(name__iexact=name), names_wanted)
     query_list = reduce(lambda qry1, qry2: qry1 | qry2, query_list)
     members = Group.objects.filter(query_list)
-    return members | self.new_version_membership.all()
+    return members | membership.all()
 
 
 def _match_tags_to_names(tag_names):
@@ -476,61 +497,69 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     new_provider = machine_request.new_machine_provider
     new_owner = machine_request.new_machine_owner
     owner_identity = _get_owner(new_provider, new_owner)
-    tags = _match_tags_to_names(machine_request.new_machine_tags)
-    membership = _match_membership_to_access(
-        machine_request.access_list,
-        machine_request.new_version_membership)
-    if machine_request.new_machine_forked:
+    tags = _match_tags_to_names(machine_request.new_version_tags)
+    # TODO: Use it or remove it
+    # membership = _match_membership_to_access(
+    #     machine_request.access_list,
+    #     machine_request.new_version_membership)
+    if machine_request.new_version_forked:
         application = create_application(
             new_image_id,
             new_provider.uuid,
             machine_request.new_application_name,
             created_by_identity=owner_identity,
-            description=machine_request.new_machine_description,
+            description=machine_request.new_application_description,
             private=not machine_request.is_public(),
-            allow_imaging=machine_request.new_machine_allow_imaging,
             tags=tags)
     else:
         application = update_application(
             parent_version,
             machine_request.new_application_name,
-            machine_request.new_machine_description,
+            machine_request.new_application_description,
             tags)
-    app_version = create_app_version(application, self.new_version_name)
+    app_version = create_app_version(
+        application, machine_request.new_version_name,
+        new_owner, owner_identity, machine_request.new_version_change_log,
+        machine_request.new_version_allow_imaging)
 
     # 2. Create the new InstanceSource and appropriate Object, relations,
     # Memberships..
     if ProviderMachine.test_existence(new_provider, new_image_id):
         pm = ProviderMachine.objects.get(
-            identifier=new_image_id,
-            provider=new_provider)
+            instance_source__identifier=new_image_id,
+            instance_source__provider=new_provider)
         pm = update_provider_machine(
             pm,
             new_created_by_identity=owner_identity,
             new_created_by=machine_request.new_machine_owner,
             new_application_version=app_version)
     else:
-        # TODO: Create APP version first! Then provider machine & Instance
-        # Source using the information.
-        pm = create_provider_machine(
-            new_image_id,
-            new_provider.uuid,
-            app,
-            owner_identity,
-            app_version)
+        pm = create_provider_machine(new_image_id, new_provider.uuid, application, owner_identity, app_version)
         provider_machine_write_hook(pm)
 
     # Must be set in order to ask for threshold information
     machine_request.new_application_version = app_version
     machine_request.new_machine = pm
+    machine_request.save()
 
     # 3. Associate additional attributes to new application
     if machine_request.has_threshold():
         machine_request.update_threshold()
 
-    # 3. Add new *Memberships For new ProviderMachine//Application
+    # 4a. Add new *Memberships For new ProviderMachine//Application
     if not machine_request.is_public():
         upload_privacy_data(machine_request, pm)
+
+    # 4b. If new boot scripts have been associated,
+    # add them to the new version.
+    if machine_request.new_version_scripts.count():
+        for script in machine_request.new_version_scripts.all():
+            app_version.boot_scripts.add(script)
+
+    # 4c. If new licenses have been associated, add them to the new version.
+    if machine_request.new_version_licenses.count():
+        for license in machine_request.new_version_licenses.all():
+            app_version.licenses.add(license)
 
     # 5. Advance the state of machine request
     # After processing, validate the image.
@@ -540,7 +569,7 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
 
 
 def upload_privacy_data(machine_request, new_machine):
-    from service.driver import get_admin_driver, get_account_driver
+    from service.driver import get_account_driver
     prov = new_machine.provider
     accounts = get_account_driver(prov)
     if not accounts:
@@ -548,7 +577,7 @@ def upload_privacy_data(machine_request, new_machine):
             "for Provider %s" % prov
         return
     accounts.clear_cache()
-    admin_driver = accounts.admin_driver # cache has been cleared
+    admin_driver = accounts.admin_driver  # cache has been cleared
     if not admin_driver:
         print "Aborting import: Could not retrieve admin_driver "\
             "for Provider %s" % prov
@@ -559,22 +588,12 @@ def upload_privacy_data(machine_request, new_machine):
     # All tenants already sharing the OStack img will be added to this list
     return sync_membership(accounts, img, new_machine, tenant_list)
 
-def sync_membership(accounts, glance_image, new_machine, tenant_list):
-    tenant_list = sync_cloud_access(accounts, glance_image, names=tenant_list)
-    #Make private on the DB level
-    sync_db_access(accounts.image_manager, glance_image, new_machine, tenant_list)
 
 def sync_membership(accounts, glance_image, new_machine, tenant_list):
-    tenant_list = sync_image_access_list(
-        accounts,
-        glance_image,
-        names=tenant_list)
+    tenant_list = sync_cloud_access(accounts, glance_image, names=tenant_list)
     # Make private on the DB level
-    make_private(
-        accounts.image_manager,
-        glance_image,
-        new_machine,
-        tenant_list)
+    make_private(accounts.image_manager,
+                 glance_image, new_machine, tenant_list)
 
 
 def share_with_admins(private_userlist, provider_uuid):
@@ -609,6 +628,7 @@ def share_with_self(private_userlist, username):
     private_userlist.append(str(username))
     return private_userlist
 
+
 def sync_cloud_access(accounts, img, names=None):
     projects = []
     shared_with = accounts.image_manager.shared_images_for(
@@ -637,7 +657,7 @@ def make_private(image_manager, image, provider_machine, tenant_list=[]):
     if image.is_public:
         print "Marking image %s private" % image.id
         image_manager.update_image(image, is_public=False)
-    if provider_machine.application.private == False:
+    if provider_machine.application.private is False:
         print "Marking application %s private" % provider_machine.application
         provider_machine.application.private = True
         provider_machine.application.save()
@@ -650,7 +670,10 @@ def make_private(image_manager, image, provider_machine, tenant_list=[]):
     else:
         tenant_list = [group.name for group in group_list]
     for tenant in tenant_list:
-        name = tenant.name
+        if type(tenant) != unicode:
+            name = tenant.name
+        else:
+            name = tenant
         group = Group.objects.get(name=name)
         obj, created = ApplicationMembership.objects.get_or_create(
             group=group,

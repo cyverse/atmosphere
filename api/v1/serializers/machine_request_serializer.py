@@ -3,10 +3,12 @@ from core.models.user import AtmosphereUser
 from core.models.instance import Instance
 from core.models.instance_source import InstanceSource
 from core.models.provider import Provider
-from core.models.machine import ProviderMachine
+from core.models.boot_script import BootScript
+from core.models.license import License
 from rest_framework import serializers
 from .new_threshold_field import NewThresholdField
-from .license_serializer import LicenseSerializer
+from .boot_script_related_field import BootScriptRelatedField
+from .license_related_field import LicenseRelatedField
 
 
 class MachineRequestSerializer(serializers.ModelSerializer):
@@ -40,8 +42,10 @@ class MachineRequestSerializer(serializers.ModelSerializer):
                                          queryset=AtmosphereUser.objects.all()
                                          )
     vis = serializers.CharField(source='new_application_visibility')
-    version = serializers.CharField(source='new_version_name',
-                                    required=False)
+    version_name = serializers.CharField(source='new_version_name',
+            default="1.0", required=False)
+    version_changes = serializers.CharField(source='new_version_change_log',
+            default="1.0 - New Version Created", required=False)
     fork = serializers.BooleanField(source='new_version_forked',
                                     required=False)
     description = serializers.CharField(source='new_application_description',
@@ -54,9 +58,13 @@ class MachineRequestSerializer(serializers.ModelSerializer):
         required=False)
     # TODO: Convert to 'LicenseField' and allow POST of ID instead of
     #      full-object. for additional support for the image creator
-    licenses = LicenseSerializer(
-        source='new_version_licenses.all',
-        many=True,
+    scripts = BootScriptRelatedField(
+        source='new_version_scripts',
+        many=True, queryset=BootScript.objects.none(),
+        required=False)
+    licenses = LicenseRelatedField(
+        source='new_version_licenses',
+        many=True, queryset=License.objects.none(),
         required=False)
     new_machine = serializers.SlugRelatedField(
         slug_field='identifier', required=False,
@@ -67,5 +75,6 @@ class MachineRequestSerializer(serializers.ModelSerializer):
         model = MachineRequest
         fields = ('id', 'instance', 'status', 'name', 'owner', 'provider',
                   'vis', 'description', 'tags', 'sys', 'software',
-                  'threshold', 'fork', 'version', 'parent_machine',
-                  'exclude_files', 'shared_with', 'licenses', 'new_machine')
+                  'threshold', 'fork', 'version_name', 'version_changes',
+                  'exclude_files', 'shared_with', 'scripts', 'licenses',
+                  'parent_machine', 'new_machine')

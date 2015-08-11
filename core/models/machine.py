@@ -1,26 +1,21 @@
 """
   Machine models for atmosphere.
 """
-import json
 from hashlib import md5
 
 from django.db import models
 from django.utils import timezone
 from threepio import logger
 
-from atmosphere import settings
 from core.models.abstract import BaseSource
 from core.models.instance_source import InstanceSource
-from core.models.application import Application
 from core.models.application import create_application, get_application
-from core.models.version import ApplicationVersion, create_app_version, get_app_version, get_version_for_machine
+from core.models.application_version import (
+        ApplicationVersion,
+        create_app_version,
+        get_version_for_machine)
 from core.models.identity import Identity
-from core.models.license import License
 from core.models.provider import Provider
-from core.models.tag import Tag, updateTags
-from core.fields import VersionNumberField, VersionNumber
-
-from core.metadata import _get_owner_identity
 
 
 class ProviderMachine(BaseSource):
@@ -58,9 +53,14 @@ class ProviderMachine(BaseSource):
             instance_source__identifier=identifier,
             instance_source__provider=provider).count()
 
+    def is_owner(self, atmo_user):
+        return (self.created_by == atmo_user |
+                self.application_version.created_by == atmo_user |
+                self.application_version.application.created_by == atmo_user)
+
     def to_dict(self):
         machine = {
-            "version": self.version,
+            "version": self.application_version.name,
             "provider": self.instance_source.provider.uuid
         }
         machine.update(super(ProviderMachine, self).to_dict())
@@ -85,12 +85,10 @@ class ProviderMachine(BaseSource):
             accounts = get_account_driver(self.provider)
             image = accounts.get_image(self.identifier)
             accounts.image_manager.update_image(image, **image_updates)
-        except Exception as ex:
+        except Exception:
             logger.exception(
                 "Image Update Failed for %s on Provider %s" %
                 (self.identifier, self.instance_source.provider))
-            # logger.exception("Image Update Failed for %s on Provider %s"
-            #                 % (self.identifier, self.provider))
 
     def update_version(self, app_version):
         self.application_version = app_version
@@ -152,7 +150,8 @@ class ProviderMachineMembership(models.Model):
     """
     Members of a specific image and provider combination.
     Members can view & launch respective machines.
-    If the can_share flag is set, then members also have ownership--they can give
+    If the can_share flag is set,
+    then members also have ownership--they can give
     membership to other users.
     The unique_together field ensures just one of those states is true.
     """
@@ -211,7 +210,7 @@ def get_or_create_provider_machine(image_id, machine_name,
         return provider_machine
     if not app:
         app = get_application(provider_uuid, image_id, machine_name)
-    # ASSERT: If no application here, this is a new image (Found on an instance)
+    # ASSERT: If no application here, this is a new image (Found on instance)
     # that was created on a seperate server. We need to make a new one.
     if not app:
         app = create_application(provider_uuid, image_id, machine_name)
@@ -241,6 +240,9 @@ def _extract_tenant_name(identity):
 
 
 def update_application_owner(application, identity):
+    from service.openstack import glance_update_machine_metadata
+    from service.driver import get_account_driver
+
     old_identity = application.created_by_identity
     tenant_name = _extract_tenant_name(identity)
     old_tenant_name = _extract_tenant_name(old_identity)
@@ -252,13 +254,16 @@ def update_application_owner(application, identity):
     all_pms = application.providermachine_set.all()
     print "Updating %s machines.." % len(all_pms)
     for provider_machine in all_pms:
-        accounts = get_os_account_driver(provider_machine.provider)
+        accounts = get_account_driver(provider_machine.provider)
         image_id = provider_machine.instance_source.identifier
         image = accounts.get_image(image_id)
         if not image:
             continue
         tenant_id = accounts.get_project(tenant_name).id
-        write_app_to_metadata(provider_machine, owner=tenant_id)
+        glance_update_machine_metadata(
+            provider_machine,
+            {'owner': tenant_id,
+             'application_owner': tenant_name})
         print "App data saved for %s" % image_id
         accounts.image_manager.share_image(image, tenant_name)
         print "Shared access to %s with %s" % (image_id, tenant_name)
@@ -278,7 +283,8 @@ def provider_machine_update_hook(new_machine, provider_uuid, identifier):
         glance_update_machine(new_machine)
     else:
         logger.warn(
-            "machine data for %s is likely incomplete. Create a new hook for %s." %
+            "machine data for %s is likely incomplete."
+            " Create a new hook for %s." %
             provider)
 
 
@@ -337,10 +343,10 @@ def update_provider_machine(
     if new_created_by_identity:
         provider_machine.created_by_identity = new_created_by_identity
     if new_application_version:
-        provider_machine.application_version = new_version
-        provider_machine.application = new_version.application
+        provider_machine.application_version = new_application_version
     provider_machine.save()
     provider_machine_write_hook(provider_machine)
+    return provider_machine
 
 
 def provider_machine_write_hook(provider_machine):
@@ -355,7 +361,8 @@ def provider_machine_write_hook(provider_machine):
         glance_write_machine(provider_machine)
     else:
         logger.warn(
-            "Create a new write hook for %s to keep cloud objects up to date." %
+            "Create a new write hook for %s"
+            " to keep cloud objects up to date." %
             provider)
 
 

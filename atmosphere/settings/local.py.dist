@@ -80,6 +80,7 @@ ANSIBLE_PLAYBOOKS_DIR = os.path.join(ANSIBLE_ROOT,
                                      "ansible/playbooks")
 ANSIBLE_ROLES_PATH = os.path.join(ANSIBLE_ROOT,
                                   "ansible/roles")
+sys.path.insert(2, ANSIBLE_ROOT)
 
 # Atmosphere App Configs
 INSTANCE_SERVICE_URL = SERVER_URL + REDIRECT_URL + "/api/v1/notification/"
@@ -116,7 +117,7 @@ caslib.cas_init(CAS_SERVER, SERVICE_URL, PROXY_URL, PROXY_CALLBACK_URL, SELF_SIG
 try:
     import urllib3
     urllib3.disable_warnings()
-except ImportError:
+except (AttributeError, ImportError):
     pass
 
 # LOGSTASH

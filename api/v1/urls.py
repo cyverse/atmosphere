@@ -44,9 +44,6 @@ urlpatterns = format_suffix_patterns(patterns(
     url(r'^project/null$',
         views.NoProjectList.as_view(),
         name='empty-project-list'),
-    url(r'^project/null/application$',
-        views.NoProjectApplicationList.as_view(),
-        name='empty-project-application-list'),
     url(r'^project/null/instance$',
         views.NoProjectInstanceList.as_view(),
         name='empty-project-instance-list'),
@@ -57,13 +54,6 @@ urlpatterns = format_suffix_patterns(patterns(
     url(r'^project/(?P<project_uuid>%s)$' % uuid_match,
         views.ProjectDetail.as_view(),
         name='project-detail'),
-    url(r'^project/(?P<project_uuid>%s)/application$' % uuid_match,
-        views.ProjectApplicationList.as_view(),
-        name='project-application-list'),
-    url(r'^project/(?P<project_uuid>%s)/application/(?P<application_uuid>%s)$'
-        % (uuid_match, uuid_match),
-        views.ProjectApplicationExchange.as_view(),
-        name='project-application-exchange'),
     url(r'^project/(?P<project_uuid>%s)/instance$' % (uuid_match,),
         views.ProjectInstanceList.as_view(),
         name='project-instance-list'),
@@ -79,47 +69,14 @@ urlpatterns = format_suffix_patterns(patterns(
         views.ProjectVolumeExchange.as_view(),
         name='project-volume-exchange'),
 
-    url(r'^maintenance/(?P<record_id>%s)$' % (id_match,),
-        views.MaintenanceRecord.as_view(),
-        name='maintenance-record'),
     url(r'^notification$', views.NotificationList.as_view()),
     url(r'^token_emulate/(?P<username>.*)$', views.TokenEmulate.as_view()),
-
-    url(provider_specific + r'/occupancy$',
-        views.Occupancy.as_view(), name='occupancy'),
-    url(provider_specific + r'/hypervisor$',
-        views.Hypervisor.as_view(), name='hypervisor'),
-
-    url(r'^bookmark$',
-        views.ApplicationBookmarkList.as_view(), name='bookmark-list'),
-    url(r'^bookmark/application$',
-        views.ApplicationBookmarkList.as_view(), name='bookmark-application-list'),
-    url(r'^bookmark/application/(?P<app_uuid>%s)$' % uuid_match,
-        views.ApplicationBookmarkDetail.as_view(), name='bookmark-application'),
 
     url(identity_specific + r'/image_export$',
         views.ExportRequestList.as_view(), name='machine-export-list'),
     url(identity_specific + r'/image_export/(?P<machine_request_id>%s)$'
         % (id_match,), views.ExportRequest.as_view(), name='machine-export'),
 
-    url(identity_specific + r'/hypervisor$',
-        views.HypervisorList.as_view(), name='hypervisor-list'),
-    url(identity_specific + r'/hypervisor/(?P<hypervisor_id>%s)$'
-        % (id_match,), views.HypervisorDetail.as_view(), name='hypervisor-detail'),
-
-    url(identity_specific + r'/machine/(?P<machine_id>%s)/vote$' % uuid_match,
-        views.MachineVote.as_view(), name='machine-vote'),
-
-    url(identity_specific + r'/meta$',
-        views.Meta.as_view(),
-        name='meta-detail'),
-    url(identity_specific + r'/meta/(?P<action>.*)$',
-        views.MetaAction.as_view(), name='meta-action'),
-
-    url(identity_specific + r'/members$',
-        views.IdentityMembershipList.as_view(), name='identity-membership-list'),
-    url(identity_specific + r'/members/(?P<group_name>%s)$' % user_match,
-        views.IdentityMembership.as_view(), name='identity-membership-detail'),
     #
     # Public api
     #
@@ -131,21 +88,7 @@ urlpatterns = format_suffix_patterns(patterns(
     url(r'^tag$', views.TagList.as_view(), name='tag-list'),
     url(r'^tag/(?P<tag_slug>.*)$', views.Tag.as_view()),
 
-    url(r'^application$',
-        views.ApplicationList.as_view(),
-        name='application-list'),
-
-    url(r'^application/search$',
-        views.ApplicationSearch.as_view(),
-        name='application-search'),
-    url(r'^application/(?P<app_uuid>%s)$' % uuid_match,
-        views.Application.as_view(),
-        name='application-detail'),
-    # ApplicationThreshold Related APIs
-    url(r'^application/(?P<app_uuid>%s)/threshold$' % uuid_match,
-        views.ApplicationThresholdDetail.as_view(),
-        name='threshold-detail'),
-
+    #TODO: Shouldn't these names be unique
     url(r'^instance_history$', views.InstanceHistory.as_view(),
         name='instance-history'),
     url(r'^instance_history/'
@@ -210,9 +153,9 @@ urlpatterns = format_suffix_patterns(patterns(
         '/icon$', views.MachineIcon.as_view(), name='machine-icon'),
 
     url(provider_specific + r'/identity$', views.IdentityList.as_view(),
-        name='identity-list'),
+        name='identity-list'),  # OLD
     url(identity_specific + r'$', views.Identity.as_view(),
-        name='identity-detail'),
+        name='identity-detail'),  # OLD
 
     url(r'^credential$', views.CredentialList.as_view(),
         name='credential-list'),
@@ -250,9 +193,13 @@ urlpatterns = format_suffix_patterns(patterns(
 
 
     url(r'^version$', views.Version.as_view()),
+    url(r'^deploy_version$', views.DeployVersion.as_view()),
     url(r'^maintenance$',
         views.MaintenanceRecordList.as_view(),
         name='maintenance-record-list'),
+    url(r'^maintenance/(?P<record_id>%s)$' % (id_match,),
+        views.MaintenanceRecord.as_view(),
+        name='maintenance-record'),
 
     url(r'^license$',
         views.LicenseList.as_view(),
@@ -301,14 +248,16 @@ urlpatterns = format_suffix_patterns(patterns(
         '(?P<export_request_id>%s)$' % (id_match,),
         views.ExportRequest.as_view(), name='export-request'),
 
+    url(provider_specific + r'/occupancy$',
+        views.Occupancy.as_view(), name='occupancy'),
+    url(provider_specific + r'/hypervisor$',
+        views.Hypervisor.as_view(), name='hypervisor'),
+
     url(identity_specific + r'/hypervisor$',
         views.HypervisorList.as_view(), name='hypervisor-list'),
     url(identity_specific + r'/hypervisor/'
         '(?P<hypervisor_id>%s)$' % (id_match,),
         views.HypervisorDetail.as_view(), name='hypervisor-detail'),
-
-    url(identity_specific + r'/machine/(?P<machine_id>%s)/vote$' % uuid_match,
-        views.MachineVote.as_view(), name='machine-vote'),
 
     url(identity_specific + r'/meta$',
         views.Meta.as_view(),

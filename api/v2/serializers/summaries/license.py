@@ -1,11 +1,14 @@
-from core.models import License
+from core.models import License, LicenseType
 from rest_framework import serializers
 
 
-class LicenseSerializer(serializers.HyperlinkedModelSerializer):
-    # TODO: type --> type_name
+class LicenseSummarySerializer(serializers.HyperlinkedModelSerializer):
+    type = serializers.SlugRelatedField(
+        source='license_type',
+        slug_field='name',
+        queryset=LicenseType.objects.all())
 
     class Meta:
         model = License
         view_name = 'api:v2:license-detail'
-        fields = ('id', 'title', 'license_type', 'license_text')
+        fields = ('id', 'title', 'type')

@@ -2,8 +2,6 @@
 Atmosphere API's extension of DRF permissions.
 """
 
-from django.contrib.auth.models import AnonymousUser
-
 from rest_framework import permissions
 
 from threepio import logger
@@ -12,6 +10,24 @@ from core.models.cloud_admin import CloudAdministrator
 from core.models import Group, MaintenanceRecord
 
 from api import ServiceUnavailable
+
+
+class ImageOwnerUpdateAllowed(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+        user = request.user
+        if request.METHOD != 'PATCH':
+            return True
+        image_id = view.kwargs.get('image_id')
+        if not image_id:
+            logger.warn("Could not find kwarg:'image_id'")
+            return False
+        if user.is_superuser() or \
+                user.is_staff() or \
+                any(app for app in
+                    user.application_set.filter(id=image_id)):
+            return True
+        return False
 
 
 class ProjectOwnerRequired(permissions.BasePermission):
@@ -175,8 +191,11 @@ class ApplicationMemberOrReadOnly(permissions.BasePermission):
             return True
         if request.user.is_staff:
             return True
+        # Allow Application/Image owners to make changes
+        if obj.created_by == request.user:
+            return True
 
-        #FIXME: move queries into a model manager
+        # FIXME: move queries into a model manager
         user_groups = Group.objects.filter(user=request.user)
         app_groups = Group.objects.filter(applications=obj)
         return (user_groups & app_groups).exists()

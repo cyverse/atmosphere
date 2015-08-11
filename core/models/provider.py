@@ -7,9 +7,8 @@ from django.db.models import Q
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
-from rtwo.provider import AWSProvider, EucaProvider, OSProvider
-from rtwo.provider import Provider as EshProvider
-from threepio import logger
+from rtwo.provider import EucaProvider, OSProvider
+
 from uuid import uuid4
 
 
@@ -80,6 +79,7 @@ class Provider(models.Model):
     type = models.ForeignKey(ProviderType)
     virtualization = models.ForeignKey(PlatformType)
     active = models.BooleanField(default=True)
+    # NOTE: we are overloading this variable to stand in for 'allow_imaging'
     public = models.BooleanField(default=False)
     auto_imaging = models.BooleanField(default=False)
     over_allocation_action = models.ForeignKey(

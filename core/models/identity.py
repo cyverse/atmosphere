@@ -279,7 +279,7 @@ class Identity(models.Model):
 
     def get_quota_dict(self):
         id_member = self.identitymembership_set.all()[0]
-        # See core/models/group.py#IdentityMembership
+        # See core/models/membership.py#IdentityMembership
         quota_dict = id_member.get_quota_dict()
         allocation_dict = self.get_allocation_dict()
         if allocation_dict:

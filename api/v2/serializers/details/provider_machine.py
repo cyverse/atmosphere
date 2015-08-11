@@ -1,6 +1,8 @@
 from core.models import ProviderMachine
 from rest_framework import serializers
-from api.v2.serializers.summaries import ImageVersionSummarySerializer, ProviderSummarySerializer, UserSummarySerializer, LicenseSerializer
+from api.v2.serializers.summaries import (
+        ImageVersionSummarySerializer, ProviderSummarySerializer,
+        UserSummarySerializer, LicenseSummarySerializer)
 
 
 class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
@@ -10,8 +12,9 @@ class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
     version = ImageVersionSummarySerializer(source='application_version')
     created_by = UserSummarySerializer(source='instance_source.created_by')
     start_date = serializers.DateTimeField(source='instance_source.start_date')
-    end_date = serializers.DateTimeField(source='instance_source.end_date')
-    licenses = LicenseSerializer(many=True, read_only=True)  # NEW
+    end_date = serializers.DateTimeField(source='instance_source.end_date',
+                                         allow_null=True)
+    licenses = LicenseSummarySerializer(many=True, read_only=True)  # NEW
     members = serializers.SlugRelatedField(
         slug_field='name',
         read_only=True,
