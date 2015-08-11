@@ -13,6 +13,10 @@ from jinja2 import Environment, FileSystemLoader, meta, StrictUndefined,\
 VARIABLES_FILENAME = 'variables.ini'
 
 
+# Backup file extension.
+BACKUP_EXT = '.bak'
+
+
 config_files = {
     # semantic_name: (template_location, output_location)
     'nginx': ('extras/nginx/Makefile.j2', 'extras/nginx/Makefile'),
@@ -111,7 +115,17 @@ def _handle_preconditions(configs):
     return (success, messages)
 
 
-def _generate_configs(configs):
+def _backup_file(path):
+    """
+    Backup path if it's a file. Use the BACKUP_EXT extension.
+    Return the backup location.
+    """
+    if os.path.isfile(path):
+        shutil.copyfile(path, path + BACKUP_EXT)
+        return path + BACKUP_EXT
+
+
+def _generate_configs(configs, backup):
     success = True
     c_files, messages = _get_filtered_config_files(configs)
     if not c_files:
@@ -125,9 +139,12 @@ def _generate_configs(configs):
                                        output_location)
             template = env.get_template(template_location)
             rendered = template.render(variables)
-            # Backup the output file.
-            if os.path.isfile(output_path):
-                shutil.copyfile(output_path, output_path + '.bak')
+            if backup:
+                backup_path = _backup_file(output_path)
+                if backup_path:
+                    messages.append('Backed up %s '\
+                                    'as %s\n' % (output_location,
+                                                 backup_path))
             # Write to the output file.
             with open(output_path, 'wb') as fh:
                 fh.write(rendered)
@@ -144,14 +161,14 @@ def _generate_configs(configs):
     return (success, messages)
 
 
-def generate_configs(configs):
+def generate_configs(configs, backup):
     print 'Testing for preconditions...\n'
     success, messages = _handle_preconditions(configs)
     print_messages(messages)
     if not success:
         exit(1)
     print 'Generating configs...\n'
-    success, messages = _generate_configs(configs)
+    success, messages = _generate_configs(configs, backup)
     print_messages(messages)
     if not success:
         exit(2)
@@ -210,6 +227,9 @@ def main():
                         help='Show a list of availabe configs')
     parser.add_argument('-c', '--configs', nargs='*',
                         help='A list of configs to generate.')
+    parser.add_argument('-b', '--backup', action='store_true',
+                        help='Backup config output files before '
+                        'generating new files.')
     parser.add_argument('-t', '--test', action='store_true',
                         help='Test configs for preconditions.')
     print 'Project Path => %s\n' % (projectpath)
@@ -225,7 +245,7 @@ def main():
     # If testing or showing information, exit.
     if args.test or args.show:
         exit(0)
-    generate_configs(args.configs)
+    generate_configs(args.configs, args.backup)
     print 'Successfully generated configs %s.' % (', '.join(args.configs))
     exit(0)
 
