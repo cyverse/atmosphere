@@ -666,13 +666,11 @@ def get_chain_from_active_with_ip(driverCls, provider, identity, instance,
             deploy_failed.s(driverCls, provider, identity, instance.id))
         deploy_ready_task.link(deploy_task)
 
-    if instance.extra.get('metadata', {}).get('tmp_status', '') == 'deploying':
-        start_chain = deploy_ready_task
-    elif redeploy:
-        start_chain = deploy_meta_task
-        start_chain.link(deploy_ready_task)
-    else:
-        start_chain = deploy_ready_task
+    deploy_ready_task.link(deploy_meta_task)
+    deploy_meta_task.link(deploy_task)
+
+    # ALWAYS start by testing that deployment is possible. then deploy.
+    start_chain = deploy_ready_task
 
     # JUST before we finish, check for boot_scripts_chain
     boot_chain_start, boot_chain_end = _get_boot_script_chain(
