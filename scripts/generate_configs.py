@@ -14,17 +14,17 @@ VARIABLES_FILENAME = 'variables.ini'
 
 config_files = {
     # semantic_name: (template_location, output_location)
-     'nginx': ('extras/nginx/Makefile.j2', 'extras/nginx/Makefile'),
+    'nginx': ('extras/nginx/Makefile.j2', 'extras/nginx/Makefile'),
     'nginx-site': ('extras/nginx/site.conf.j2',
-                    'extras/nginx/site.conf'),
-     'nginx-atmo': ('extras/nginx/locations/atmo.conf.j2',
-                    'extras/nginx/locations/atmo.conf'),
-    # 'nginx-flower': ('extras/nginx/locations/flower.conf.j2',
-    #                  'extras/nginx/locations/flower.conf'),
-    # 'nginx-jenkins': ('extras/nginx/locations/jenkins.conf.j2',
-    #                   'extras/nginx/locations/jenkins.conf'),
-    # 'nginx-lb': ('extras/nginx/locations/lb.conf.j2',
-    #              'extras/nginx/locations/lb.conf'),
+                   'extras/nginx/site.conf'),
+    'nginx-atmo': ('extras/nginx/locations/atmo.conf.j2',
+                   'extras/nginx/locations/atmo.conf'),
+    'nginx-flower': ('extras/nginx/locations/flower.conf.j2',
+                     'extras/nginx/locations/flower.conf'),
+    'nginx-jenkins': ('extras/nginx/locations/jenkins.conf.j2',
+                      'extras/nginx/locations/jenkins.conf'),
+    'nginx-lb': ('extras/nginx/locations/lb.conf.j2',
+                 'extras/nginx/locations/lb.conf'),
     'apache': ('extras/apache/atmo.conf.j2', 'extras/apache/atmo.conf'),
     'local.py': ('atmosphere/settings/local.py.j2',
                  'atmosphere/settings/local.py')}
@@ -50,7 +50,9 @@ def _get_variables():
         parser.readfp(open(variables_path))
         variables = {}
         for section in parser.sections():
-            variables.update(parser.items(section))
+            # Ensure the variable names are upper case
+            for option, value in parser.items(section):
+                variables[option.upper()] = value
         return (variables, [])
     except Exception as e:
         return (False,
@@ -83,13 +85,20 @@ def _handle_preconditions(configs):
     c_files, messages = _get_filtered_config_files(configs)
     if not c_files:
         return (False, messages)
+    variables, messages = _get_variables()
+    if not variables:
+        return (False, messages)
     for file_location, _ in c_files:
         try:
             file_path = os.path.join(projectpath,
                                      file_location)
             source = loader.get_source(env, file_location)
             ast = env.parse(loader.get_source(env, file_location))
-            ud_vars = meta.find_undeclared_variables(ast)
+            used_vars = meta.find_undeclared_variables(ast)
+            ud_vars = set()
+            for v in used_vars:
+                if not v in variables:
+                    ud_vars.add(v)
             if ud_vars:
                 messages.append('Undeclared variables '
                                 'found in %s: %s' % (file_path,
