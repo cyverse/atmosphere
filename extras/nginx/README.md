@@ -4,7 +4,8 @@ Configure atmosphere to use nginx. The Makefile uses defaults for a common confi
 
 # Instructions
 
-1. Configure KEY_SIZE, CERT_FILE, CERT_DIR, KEY_FILE variables in the Makefile.
+1. Configure KEY_SIZE, CERT_FILE, CERT_DIR, KEY_FILE variables in the project's 
+   variables.ini file.
 
 2. Verify or update the atmo.uwsgi.ini and trop.uwsgi.ini to use unix file sockets
    instead of localhost proxying.
@@ -14,6 +15,9 @@ Configure atmosphere to use nginx. The Makefile uses defaults for a common confi
 4. Run make command.
 
 ```bash
+cd /opt/dev/atmosphere
+./scripts/generate_configs.py -c nginx
+cd ./extras/nginx
 make
 ```
 
