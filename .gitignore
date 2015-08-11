@@ -34,7 +34,7 @@ extras/nginx/site.conf
 extras/nginx/locations/atmo.conf
 extras/nginx/locations/flower.conf
 extras/nginx/locations/jenkins.conf
-extras/nginx/locations/leaderboard.conf
+extras/nginx/locations/lb.conf
 tests/secrets
 n/service.log
 n/service.err
