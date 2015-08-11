@@ -7,12 +7,16 @@ from api.v2.serializers.summaries import (
     ProviderSummarySerializer
 )
 
-
 class IdentitySerializer(serializers.HyperlinkedModelSerializer):
     quota = QuotaSummarySerializer(source='get_quota')
     allocation = AllocationSummarySerializer(source='get_allocation')
+    usage = serializers.SerializerMethodField()
     user = UserSummarySerializer(source='created_by')
     provider = ProviderSummarySerializer()
+
+    def get_usage(self, identity):
+        return identity.get_allocation_usage()
+
 
     class Meta:
         model = Identity
@@ -22,5 +26,6 @@ class IdentitySerializer(serializers.HyperlinkedModelSerializer):
                   'url',
                   'quota',
                   'allocation',
+                  'usage',
                   'provider',
                   'user')

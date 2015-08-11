@@ -410,6 +410,7 @@ def check_over_allocation(username, identity_uuid,
     """
     Check if an identity is over allocation.
 
+    NOTE: Answer is ALWAYS a 2-tuple
     True,False - Over/Under Allocation
     Amount - Time (amount) Over/Under Allocation.
     """
