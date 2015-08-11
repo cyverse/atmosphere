@@ -2,6 +2,7 @@
 import argparse
 import ConfigParser
 import os
+from pprint import pprint
 import shutil
 
 from jinja2 import Environment, FileSystemLoader, meta, StrictUndefined,\
@@ -170,7 +171,7 @@ def print_configs(configs):
     if not variables:
         print_messages(messages)
     else:
-        print variables
+        pprint(variables)
     print
     print 'Config Name:\n\tTemplate => Output'
     c_files, messages = _get_filtered_config_files(configs)
