@@ -12,6 +12,7 @@ nohup.out
 *.pot
 *.json
 *.org
+*.bak
 .*
 #*#
 #*.*#
@@ -32,6 +33,7 @@ extras/nginx/Makefile
 extras/nginx/site.conf
 extras/nginx/locations/atmo.conf
 extras/nginx/locations/flower.conf
+extras/nginx/locations/jenkins.conf
 extras/nginx/locations/leaderboard.conf
 tests/secrets
 n/service.log
@@ -41,3 +43,4 @@ local_settings.py
 settings.py
 djcelery.schedulers.DatabaseScheduler
 /env
+variables.ini
