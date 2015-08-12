@@ -27,3 +27,4 @@ from .status_type import StatusTypeViewSet
 from .tag import TagViewSet
 from .user import UserViewSet
 from .volume import VolumeViewSet
+from .metric import MetricViewSet
