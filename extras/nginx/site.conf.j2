@@ -1,18 +1,18 @@
 server {
     listen 80;
-    server_name @SERVER_URL;
+    server_name {{ SERVER_URL }};
     rewrite ^ https://$server_name$request_uri? permanent;
 }
 
 server {
     listen   443;
 
-    server_name @SERVER_URL;
+    server_name {{ SERVER_URL }};
     charset utf-8;
 
     ssl    on;
-    ssl_certificate @COMBINED_CERT_PATH;
-    ssl_certificate_key @KEY_PATH;
+    ssl_certificate {{ COMBINED_CERT_PATH }};
+    ssl_certificate_key {{ KEY_PATH }}/{{ KEY_FILE }};
 
     ssl_ciphers 'AES128+EECDH:AES128+EDH';
 
@@ -26,7 +26,7 @@ server {
     resolver_timeout 10s;
 
     ssl_prefer_server_ciphers on;
-    ssl_dhparam @DHPARAM;
+    ssl_dhparam {{ DHPARAM }};
 
     add_header Strict-Transport-Security max-age=63072000;
     add_header X-Frame-Options DENY;

@@ -1,28 +1,18 @@
-SERVER_URL=$(shell hostname -f)
-LEADERBOARD_URL=wesley.iplantcollaborative.org
+ATMOSPHERE_PATH={{ ATMOSPHERE_PATH }}
+BUNDLE_PATH={{ CERT_DIR }}/{{ BUNDLE_FILE }}
+CERT_PATH={{ CERT_DIR }}/{{ CERT_FILE }}
+COMBINED_CERT_PATH={{ CERT_DIR }}/{{ COMBINED_CERT_FILE }}
+DHPARAM={{ DHPARAM }}
+LEADERBOARD_URL={{ LEADERBOARD_URL }}
+LOCATIONS_DIR={{ LOCATIONS_DIR }}
+KEY_PATH={{ KEY_PATH }}/{{ KEY_FILE }}
+KEY_SIZE={{ KEY_SIZE }}
+SERVER_URL={{ SERVER_URL }}
+SITES_AVAILABLE_DIR={{ SITES_AVAILABLE_DIR }}
+SITES_ENABLED_DIR= {{ SITES_ENABLED_DIR }}
+VIRTUALENV_PATH={{ VIRTUALENV_PATH }}
 
-CERT_DIR=/etc/ssl/certs
-CERT_FILE=iplantc.org.crt
-CERT_PATH=$(CERT_DIR)/$(CERT_FILE)
-
-COMBINED_CERT_FILE=iplantc_combined.crt
-COMBINED_CERT_PATH=$(CERT_DIR)/$(COMBINED_CERT_FILE)
-
-BUNDLE_FILE=gd_bundle.crt
-BUNDLE_PATH=$(CERT_DIR)/$(BUNDLE_FILE)
-
-KEY_FILE=iplantc.key
-KEY_PATH=/etc/ssl/private/$(KEY_FILE)
-
-ATMOSPHERE_PATH=/opt/dev/atmosphere
-
-SITES_AVAILABLE_DIR=/etc/nginx/sites-available
-SITES_ENABLED_DIR=/etc/nginx/sites-enabled
-LOCATIONS_DIR=/etc/nginx/locations
-
-DHPARAM=/etc/ssl/certs/dhparam.pem
-KEY_SIZE=2048
-
+# site and location variables.
 SITE_CONF_FILE=site.conf
 SITE_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/$(SITE_CONF_FILE)
 ATMO_CONF_FILE=atmo.conf
@@ -31,47 +21,38 @@ FLOWER_CONF_FILE=flower.conf
 FLOWER_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/locations/$(FLOWER_CONF_FILE)
 JENKINS_CONF_FILE=jenkins.conf
 JENKINS_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/locations/$(JENKINS_CONF_FILE)
-LB_CONF_FILE=leaderboard.conf
+LB_CONF_FILE=lb.conf
 LB_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/locations/$(LB_CONF_FILE)
-# ... more configs.
 
-.PHONY: all clean
+
+.PHONY: all clean restart test setup setup-site setup-atmo setup-flower setup-jenkins setup-lb deploy deploy-atmo deploy-flower deploy-jenkins deploy-lb unlink unlink-site unlink-atmo unlink-flower unlink-jenkins unlink-lb $(DHPARAM) $(COMBINED_CERT_PATH)
 
 all: deploy
-
-copy:
-	cp $(SITE_CONF_PATH).dist $(SITE_CONF_PATH)
-	cp $(ATMO_CONF_PATH).dist $(ATMO_CONF_PATH)
-	cp $(FLOWER_CONF_PATH).dist $(FLOWER_CONF_PATH)
-	cp $(JENKINS_CONF_PATH).dist $(JENKINS_CONF_PATH)
-	cp $(LB_CONF_PATH).dist $(LB_CONF_PATH)
 
 $(DHPARAM):
 	openssl dhparam -out $(DHPARAM) $(KEY_SIZE)
 
-setup: copy setup-atmo setup-flower setup-jenkins setup-lb
-	sed -i "s#@SERVER_URL#$(SERVER_URL)#g" $(SITE_CONF_PATH)
-	sed -i "s#@COMBINED_CERT_PATH#$(COMBINED_CERT_PATH)#g" $(SITE_CONF_PATH)
-	sed -i "s#@KEY_PATH#$(KEY_PATH)#g" $(SITE_CONF_PATH)
-	sed -i "s#@DHPARAM#$(DHPARAM)#g" $(SITE_CONF_PATH)
+setup: setup-site setup-atmo setup-flower setup-jenkins setup-lb
+
+setup-site:
+	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/scripts/generate_configs.py -c nginx-site
 
 setup-atmo:
-	sed -i "s#@SERVER_URL#$(SERVER_URL)#g" $(ATMO_CONF_PATH)
-	sed -i "s#@ATMOSPHERE_PATH#$(ATMOSPHERE_PATH)#g" $(ATMO_CONF_PATH)
+	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/scripts/generate_configs.py -c nginx-atmo
 
 setup-flower:
-	sed -i "s#@SERVER_URL#$(SERVER_URL)#g" $(FLOWER_CONF_PATH)
+	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/scripts/generate_configs.py -c nginx-flower
 
 setup-jenkins:
-	sed -i "s#@SERVER_URL#$(SERVER_URL)#g" $(JENKINS_CONF_PATH)
+	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/scripts/generate_configs.py -c nginx-flower
 
 setup-lb:
-	sed -i "s#@LEADERBOARD_URL#$(LEADERBOARD_URL)#g" $(LB_CONF_PATH)
+	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/scripts/generate_configs.py -c nginx-flower
 
 $(COMBINED_CERT_PATH):
 	cat $(CERT_PATH) $(BUNDLE_PATH) > $(COMBINED_CERT_PATH)
 
-deploy: $(COMBINED_CERT_PATH) setup $(DHPARAM) unlink deploy-atmo deploy-flower deploy-jenkins deploy-lb
+deploy: $(COMBINED_CERT_PATH) $(DHPARAM) setup unlink deploy-atmo deploy-flower deploy-jenkins deploy-lb
 	mkdir -p $(SITES_AVAILABLE_DIR)
 	mkdir -p $(SITES_ENABLED_DIR)
 	ln -fs $(ATMOSPHERE_PATH)/extras/nginx/site.conf $(SITES_AVAILABLE_DIR)/$(SITE_CONF_FILE)
@@ -94,7 +75,9 @@ deploy-lb:
 	mkdir -p $(LOCATIONS_DIR)
 	ln -fs $(LB_CONF_PATH) $(LOCATIONS_DIR)/$(LB_CONF_FILE)
 
-unlink: unlink-atmo unlink-flower unlink-jenkins unlink-lb
+unlink: unlink-site unlink-atmo unlink-flower unlink-jenkins unlink-lb
+
+unlink-site:
 	-rm $(SITES_ENABLED_DIR)/$(SITE_CONF_FILE)
 	-rm $(SITES_AVAILABLE_DIR)/$(SITE_CONF_FILE)
 
