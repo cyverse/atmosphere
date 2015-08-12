@@ -116,11 +116,16 @@ def get_default_identity(username, provider=None):
             else:
                 logger.error("Provider provided for "
                              "get_default_identity is inactive.")
-                raise "Provider provided for get_default_identity "
+                raise "Inactive Provider provided for get_default_identity "
         else:
             default_provider = get_default_provider(username)
             default_identity = group.identities.filter(
-                provider=default_provider)[0]
+                provider=default_provider)
+            if not default_identity:
+                logger.error("User %s has no identities on Provider %s" % (username, default_provider))
+                raise "No Identities on Provider %s for %s" % (default_provider,username)
+            #Passing
+            default_identity = default_identity[0]
             logger.debug(
                 "default_identity set to %s " %
                 default_identity)
