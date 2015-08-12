@@ -31,15 +31,14 @@ def only_current_machines(now_time=None):
     """
     def _active_provider():
         return (
-            Q(
-                providermachine__instance_source__provider__end_date__isnull=True) | Q(
-                providermachine__instance_source__provider__end_date__gt=now_time)) & Q(
-            providermachine__instance_source__provider__active=True)
+                Q(providermachine__instance_source__provider__end_date__isnull=True) | \
+                Q(providermachine__instance_source__provider__end_date__gt=now_time)) & \
+            Q(providermachine__instance_source__provider__active=True)
 
     def _in_range():
-        return (Q(providermachine__instance_source__end_date__isnull=True) |
-                Q(providermachine__instance_source__end_date__gt=now_time))\
-            & Q(providermachine__instance_source__start_date__lt=now_time)
+        return (Q(providermachine__instance_source__end_date__isnull=True) | \
+                Q(providermachine__instance_source__end_date__gt=now_time)) &\
+            Q(providermachine__instance_source__start_date__lt=now_time)
 
     if not now_time:
         now_time = timezone.now()
@@ -48,26 +47,31 @@ def only_current_machines(now_time=None):
 
 def only_current_apps(now_time=None):
     def _active_provider():
-        return (
-            Q(
-                versions__machines__instance_source__provider__end_date__isnull=True) | Q(
-                versions__machines__instance_source__provider__end_date__gt=now_time)) & Q(
-            versions__machines__instance_source__provider__active=True)
+        return (Q(versions__machines__instance_source__provider__end_date__isnull=True) | \
+                Q(versions__machines__instance_source__provider__end_date__gt=now_time)) & \
+            Q(versions__machines__instance_source__provider__active=True)
 
     def _in_range():
-        return (Q(versions__machines__instance_source__end_date__isnull=True) |
-                Q(versions__machines__instance_source__end_date__gt=now_time))\
-            & Q(versions__machines__instance_source__start_date__lt=now_time)
+        return (Q(versions__machines__instance_source__end_date__isnull=True) | \
+                Q(versions__machines__instance_source__end_date__gt=now_time)) & \
+            Q(versions__machines__instance_source__start_date__lt=now_time)
     if not now_time:
         now_time = timezone.now()
     return _in_range() & _active_provider()
 
 
 def only_current_machines_in_version(now_time=None):
+    def _active_provider():
+        return (Q(machines__instance_source__provider__end_date__isnull=True) | \
+                Q(machines__instance_source__provider__end_date__gt=now_time)) &\
+                    Q(machines__instance_source__provider__active=True)
+    def _in_range():
+        return (Q(machines__instance_source__end_date__isnull=True) | \
+         Q(machines__instance_source__end_date__gt=now_time)) & \
+            Q(machines__instance_source__start_date__lt=now_time)
     if not now_time:
         now_time = timezone.now()
-    return (Q(machines__instance_source__end_date__isnull=True) |
-            Q(machines__instance_source__end_date__gt=now_time))
+    return _in_range() & _active_provider()
 
 
 def only_current_source(now_time=None):
