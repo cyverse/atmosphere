@@ -12,7 +12,7 @@ server {
 
     ssl    on;
     ssl_certificate {{ COMBINED_CERT_PATH }};
-    ssl_certificate_key {{ KEY_PATH }};
+    ssl_certificate_key {{ KEY_PATH }}/{{ KEY_FILE }};
 
     ssl_ciphers 'AES128+EECDH:AES128+EDH';
 
