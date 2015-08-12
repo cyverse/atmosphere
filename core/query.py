@@ -52,12 +52,54 @@ def only_current_apps(now_time=None):
             Q(versions__machines__instance_source__provider__active=True)
 
     def _in_range():
+        """
+        Return all applications that:
+        * have NO end date OR
+        * whose end date has not yet occurred
+        AND
+        * whose start date is in the past.
+        """
+        return (Q(end_date__isnull=True) | \
+                Q(end_date__gt=now_time)) & \
+            Q(start_date__lt=now_time)
+    def _versions_in_range():
+        """
+        Return all applications that:
+        * have versions with NO end date OR
+        * have versions whose end date has not yet occurred
+        AND
+        * have versions whose start date is in the past.
+        """
+        return (Q(versions__end_date__isnull=True) | \
+                Q(versions__end_date__gt=now_time)) & \
+            Q(versions__start_date__lt=now_time)
+    def _machines_in_range():
+        """
+        Return all applications that:
+        * have machines with NO end date OR
+        * have machines whose end date has not yet occurred
+        AND
+        * have machines whose start date is in the past.
+        """
         return (Q(versions__machines__instance_source__end_date__isnull=True) | \
                 Q(versions__machines__instance_source__end_date__gt=now_time)) & \
             Q(versions__machines__instance_source__start_date__lt=now_time)
+    def _active_machines():
+        """
+        This method should eliminate any application such-that:
+        * ALL machines (in all versions) of the app are end dated OR
+        * ALL machines (in all versions) of the app have an inactive provider
+        """
+        pass
+    def _active_versions():
+        """
+        This method should eliminate any application such-that:
+        * ALL versions of this application have been end dated.
+        """
+        pass
     if not now_time:
         now_time = timezone.now()
-    return _in_range() & _active_provider()
+    return _in_range() & _versions_in_range() & _machines_in_range() & _active_provider()
 
 
 def only_current_machines_in_version(now_time=None):

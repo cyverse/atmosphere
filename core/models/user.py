@@ -11,6 +11,12 @@ from threepio import logger
 class AtmosphereUser(AbstractUser):
     selected_identity = models.ForeignKey('Identity', blank=True, null=True)
 
+    def group_ids(self):
+        return self.group_set.values_list('id', flat=True)
+
+    def provider_ids(self):
+        return self.identity_set.values_list('provider', flat=True)
+
     def user_quota(self):
         identity = self.select_identity()
         identity_member = identity.identitymembership_set.all()[0]

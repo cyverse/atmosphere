@@ -10,7 +10,7 @@ from threepio import logger
 
 from atmosphere import settings
 
-from core.query import only_current, only_current_source
+from core.query import only_current, only_current_apps, only_current_source
 from core.models.provider import Provider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
@@ -83,6 +83,54 @@ class Application(models.Model):
 
     def is_owner(self, atmo_user):
         return self.created_by == atmo_user
+
+    @classmethod
+    def public_apps(cls):
+        public_images = Application.objects.filter(
+            only_current_apps(), private=False)
+        return public_images
+
+    @classmethod
+    def shared_with(cls, user):
+        group_ids = user.group_ids()
+        shared_images = Application.objects.filter(
+            only_current_apps(),
+            (Q(versions__machines__members__id__in=group_ids) |
+             Q(versions__membership__id__in=group_ids))
+        )
+        return shared_images
+
+    @classmethod
+    def admin_apps(cls, user):
+        from core.models import AccountProvider
+        provider_ids = user.provider_ids()
+        admins = AccountProvider.objects.filter(provider__id__in=provider_ids)
+        image_ids = []
+        for admin in admins:
+            user = admin.identity.created_by
+            image_ids.extend(
+                user.application_set.values_list('id', flat=True))
+        admin_images = Application.objects.filter(
+            only_current_apps(), id__in=image_ids)
+        return admin_images
+
+    @classmethod
+    def current_apps(cls, atmo_user=None):
+        from core.models.user import AtmosphereUser
+        public_images = Application.public_apps()
+        if not atmo_user or isinstance(atmo_user, AnonymousUser):
+            return public_images
+        if not isinstance(atmo_user, AtmosphereUser):
+            raise Exception("Expected atmo_user to be of type AtmosphereUser - Received %s" % type(atmo_user))
+        user_images = atmo_user.application_set.all()
+        shared_images = Application.shared_with(atmo_user)
+        if atmo_user.is_staff:
+            admin_images = Application.admin_apps(atmo_user)
+        else:
+            admin_images = Application.objects.none()
+        return (public_images | user_images |
+                shared_images | admin_images).distinct()
+
 
     def _current_machines(self, request_user=None):
         """
@@ -264,7 +312,7 @@ def _has_active_provider(app):
     providers = (pm.instance_source.provider for pm in machines)
     return any(p.is_active() for p in providers)
 
-
+#TODO: Validate that these are used, and that the queries are accurate.
 def public_applications():
     public_apps = []
     applications = Application.objects.filter(
@@ -299,7 +347,7 @@ def visible_applications(user):
                 _add_app(apps, app)
                 break
     return apps
-
+#END-TODO
 
 def _add_app(app_list, app):
     if app not in app_list:
