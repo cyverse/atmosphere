@@ -4,6 +4,7 @@ from api.v2.serializers.summaries import (
     LicenseSummarySerializer,
     UserSummarySerializer,
     IdentitySummarySerializer,
+    ImageSummarySerializer,
     ImageVersionSummarySerializer)
 from api.v2.serializers.fields import ProviderMachineRelatedField
 
@@ -25,6 +26,7 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
     user = UserSummarySerializer(source='created_by')
     identity = IdentitySummarySerializer(source='created_by_identity')
     machines = ProviderMachineRelatedField(many=True)
+    image = ImageSummarySerializer(source='application')
     start_date = serializers.DateTimeField()
     end_date = serializers.DateTimeField(allow_null=True)
 
@@ -32,7 +34,7 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         model = ImageVersion
         view_name = 'api:v2:providermachine-detail'
         fields = ('id', 'parent', 'name', 'change_log',
-                  'machines', 'allow_imaging',
+                  'image', 'machines', 'allow_imaging',
                   'licenses', 'membership',
                   'user', 'identity',
                   'start_date', 'end_date')
