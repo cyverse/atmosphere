@@ -800,7 +800,7 @@ def _generate_stats(current_request, task_class):
         % (num_retries, delta_time, remaining_retries, failure_eta)
 
 
-def _deploy_ready_failed_email_test(driver, instance_id, current_request, task_class):
+def _deploy_ready_failed_email_test(driver, instance_id, exc_message, current_request, task_class):
     """
     Additional Acitons Include:
     * 50% - Send an Email to atmosphere alerts to notify that there *may* be a problem
@@ -812,7 +812,10 @@ def _deploy_ready_failed_email_test(driver, instance_id, current_request, task_c
     core_instance = Instance.objects.get(provider_alias=instance_id)
     num_retries = current_request.retries
     message = _generate_stats(current_request, task_class)
-    if num_retries == int(task_class.max_retries/2):
+    if 'terminated' in exc_message:
+        # Do NOTHING!
+        pass
+    elif num_retries == int(task_class.max_retries/2):
         # Halfway point. Send preemptive failure
         send_preemptive_deploy_failed_email(core_instance, message)
     elif num_retries == task_class.max_retries-1:
@@ -844,7 +847,7 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
         instance = driver.get_instance(instance_id)
         if not instance:
             logger.debug("Instance has been teminated: %s." % instance_id)
-            return False
+            raise Exception("Instance maybe terminated? -- Going to keep trying anyway")
         echo_test = echo_test_script()
         kwargs = _generate_ssh_kwargs()
         kwargs.update({'deploy': echo_test})
@@ -854,7 +857,7 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
     except (BaseException, Exception) as exc:
         logger.exception(exc)
         _deploy_ready_failed_email_test(
-            driver, instance_id, current.request, deploy_ready_test)
+            driver, instance_id, exc.message, current.request, deploy_ready_test)
         deploy_ready_test.retry(exc=exc)
 
 
