@@ -554,12 +554,12 @@ def vnc(user, distro, license=None):
             run_command(['/usr/bin/yum', '-qy', 'remove', 'vnc-E',
                          'realvnc-vnc-server'])
             download_file(
-                '%s/%s/VNC-Server-5.2.0-Linux-x64.rpm'
+                '%s/%s/VNC-Server-5.2.3-Linux-x64.rpm'
                 % (ATMO_INIT_FILES, SCRIPT_VERSION),
-                "/opt/VNC-Server-5.2.0-Linux-x64.rpm",
-                match_hash='b314a2aeb3e0b5fe44f8abadea282ef597498548')
+                "/opt/VNC-Server-5.2.3-Linux-x64.rpm",
+                match_hash='3cbae24319b3cfb63065e94756a7caf0a5d33a7f')
             run_command(['/bin/rpm', '-Uvh',
-                         '/opt/VNC-Server-5.2.0-Linux-x64.rpm'])
+                         '/opt/VNC-Server-5.2.3-Linux-x64.rpm'])
             run_command(['/bin/sed', '-i',
                          "'$a account    include      system-auth'",
                          '/etc/pam.d/vncserver.custom'], bash_wrap=True)
@@ -568,12 +568,12 @@ def vnc(user, distro, license=None):
                          '/etc/pam.d/vncserver.custom'], bash_wrap=True)
         else:
             download_file(
-                '%s/%s/VNC-Server-5.2.0-Linux-x64.deb'
+                '%s/%s/VNC-Server-5.2.3-Linux-x64.deb'
                 % (ATMO_INIT_FILES, SCRIPT_VERSION),
-                "/opt/VNC-Server-5.2.0-Linux-x64.deb",
-                match_hash='da3e390d3ae42771e39022d8c09cee047193e3bd')
+                "/opt/VNC-Server-5.2.3-Linux-x64.deb",
+                match_hash='4d29304e6178064a636414a64fdb938079431422')
             run_command(['/usr/bin/dpkg', '-i',
-                         '/opt/VNC-Server-5.2.0-Linux-x64.deb'])
+                         '/opt/VNC-Server-5.2.3-Linux-x64.deb'])
             new_file = open('/etc/pam.d/vncserver.custom', 'w')
             new_file.write("auth include  common-auth")
             new_file.close()
@@ -678,16 +678,6 @@ def iplant_files(distro):
         match_hash="ab37a256e15ef5f529b4f4811f78174265eb7aa0")
     run_command(["/bin/chmod", "a+x", "/usr/local/bin/atmo_check_idle.py"])
 
-    run_command(["/bin/mkdir", "-p", "/opt/irodsidrop"])
-    download_file("http://www.iplantc.org/sites/default/files/irods/idrop.jar",
-                  "/opt/irodsidrop/idrop-latest.jar",
-                  match_hash="275cc7fb744b0f29caa7b276f689651a2159c23e")
-    download_file(
-        "http://www.iplantcollaborative.org/sites/default/files/"
-        + "idroprun.sh.txt", "/opt/irodsidrop/idroprun.sh",
-        match_hash="0e9cec8ce1d38476dda1646631a54f6b2ddceff5")
-    run_command(['/bin/chmod', 'a+x', '/opt/irodsidrop/idroprun.sh'])
-
     download_file('%s/%s/iplant_backup.sh'
                   % (ATMO_INIT_FILES, SCRIPT_VERSION),
                   "/usr/local/bin/iplant_backup",
@@ -696,14 +686,14 @@ def iplant_files(distro):
 
 
 def idrop(username, distro):
-    download_file("%s/%s/idrop.tgz" % (ATMO_INIT_FILES, SCRIPT_VERSION),
-                  "/opt/idrop.tgz",
-                  match_hash="a85e56ea83ae65c03e1052d8d841ae63e8c13c98")
+    download_file("%s/%s/iDrop201RC1-008.tgz" % (ATMO_INIT_FILES, SCRIPT_VERSION),
+                  "/opt/iDrop201RC1-008.tgz",
+                  match_hash="79abcaebd00a3090d926a6a8599305506616a00f")
     download_file(
         "%s/%s/idrop.desktop" % (ATMO_INIT_FILES, SCRIPT_VERSION),
         "/opt/idrop.desktop",
         match_hash="c0dbe48b733478549d3d1eb4ad4468861bcbd3bd")
-    run_command(["/bin/tar", "-xvjf", "/opt/idrop.tgz", "-C", "/opt/"])
+    run_command(["/bin/tar", "-xvzf", "/opt/iDrop201RC1-008.tgz", "-C", "/opt/"])
     new_idropdesktop = "/opt/idrop.desktop"
     if not os.path.isdir("/etc/skel/Desktop"):
         os.makedirs("/etc/skel/Desktop")
@@ -722,7 +712,7 @@ def idrop(username, distro):
                 if os.path.exists(idrop_file):
                     os.remove(idrop_file)
             shutil.copy2(new_idropdesktop, idrop_path)
-    os.remove("/opt/idrop.tgz")
+    os.remove("/opt/iDrop201RC1-008.tgz")
     os.remove("/opt/idrop.desktop")
     shutil.rmtree("/opt/irodsidrop", ignore_errors=True)
 
