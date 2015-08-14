@@ -102,16 +102,13 @@ class Application(models.Model):
 
     @classmethod
     def admin_apps(cls, user):
-        from core.models import AccountProvider
+        """
+        Just give staff the ability to launch everything that isn't end-dated.
+        """
         provider_ids = user.provider_ids()
-        admins = AccountProvider.objects.filter(provider__id__in=provider_ids)
-        image_ids = []
-        for admin in admins:
-            user = admin.identity.created_by
-            image_ids.extend(
-                user.application_set.values_list('id', flat=True))
         admin_images = Application.objects.filter(
-            only_current_apps(), id__in=image_ids)
+            only_current(),
+            versions__machines__instance_source__provider__id__in=provider_ids)
         return admin_images
 
     @classmethod
