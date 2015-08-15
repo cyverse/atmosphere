@@ -993,6 +993,8 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
     if esh_instance.extra['status'] == 'build':
         raise Exception("Metadata cannot be applied while EshInstance %s is in"
                         " the build state." % (esh_instance,))
+    #if data.get('tmp_status') == '':
+    #    raise Exception("There is a problem, houston")
     # ASSERT: We are ready to update the metadata
     if data.get('name'):
         esh_driver._connection.ex_set_server_name(esh_instance, data['name'])

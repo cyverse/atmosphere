@@ -494,13 +494,14 @@ def get_chain_from_build(driverCls, provider, identity, instance,
     return start_chain
 
 def print_chain(start_task, idx=0):
-    print "%s%s -->" % (idx+1, start_task.task,),
+    mystr = "%s%s -->" % (idx+1, start_task.task,),
     if not start_task.options.get('link'):
-        print 'FINAL TASK'
+        mystr = 'FINAL TASK'
         return
     next_tasks = start_task.options['link']
     for task in next_tasks:
-        print_chain(task, idx+1)
+        mystr += print_chain(task, idx+1)
+    return mystr
 
 def get_chain_from_active_no_ip(driverCls, provider, identity, instance,
                                 username=None, password=None, redeploy=False):
