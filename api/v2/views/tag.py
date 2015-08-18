@@ -1,7 +1,5 @@
 from rest_framework.serializers import ValidationError
 
-from threepio import logger
-
 from core.models import Tag
 
 from api.permissions import ApiAuthRequired, CloudAdminRequired,\
@@ -32,7 +30,7 @@ class TagViewSet(AuthOptionalViewSet):
         if self.request.method is "":
             self.permission_classes = (ApiAuthRequired,
                                        InMaintenance,)
-        if self.request.method in ["PUT", "DELETE"]:
+        if self.request.method in ["PUT", "PATCH", "DELETE"]:
             self.permission_classes = (CloudAdminRequired,
                                        InMaintenance,)
         return super(TagViewSet, self).get_permissions()
