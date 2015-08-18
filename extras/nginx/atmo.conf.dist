@@ -97,7 +97,7 @@ server {
 	proxy_set_header Connection "upgrade";
     }
 
-    location ~^/(application|maintenance|login|logout|forbidden|version|cf2) {
+    location ~^/(application|maintenance|tropo-admin|tropo-api|login|logout|forbidden|version|cf2) {
 	proxy_set_header Host $host;
 	proxy_set_header X-Real-IP $remote_addr;
 	uwsgi_pass troposphere;
