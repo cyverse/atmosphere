@@ -27,7 +27,8 @@ class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
                 "Cannot delete a project when it contains instances."
                 " To delete a project, all instances must be moved "
                 "to another project or deleted")
-        elif project.volumes.filter(end_date__isnull=True).count() > 0:
+        elif project.volumes.filter(
+                instance_source__end_date__isnull=True).count() > 0:
             raise ValidationError(
                 "Cannot delete a project when it contains volumes."
                 " To delete a project, all volumes must be moved "
