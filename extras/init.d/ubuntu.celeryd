@@ -268,7 +268,6 @@ _get_pids() {
 
 
 _chuid () {
-    #su "$CELERYD_USER" -c "LIBCLOUD_DEBUG=$LIBCLOUD_DEBUG $CELERYD_MULTI $*"
     su "$CELERYD_USER" -c "$CELERYD_MULTI $*"
 }
 
