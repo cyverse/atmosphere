@@ -325,7 +325,6 @@ def start_instance(esh_driver, esh_instance,
 
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
-    from service.tasks.driver import update_metadata
     #Don't check capacity because.. I think.. its already being counted.
     #admin_capacity_check(provider_uuid, esh_instance.id)
     _permission_to_act(identity_uuid, "Start")
@@ -427,7 +426,7 @@ def resume_instance(esh_driver, esh_instance,
     """
     raise OverQuotaError, OverAllocationError, InvalidCredsError
     """
-    from service.tasks.driver import update_metadata, _update_status_log
+    from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Resume")
     _update_status_log(esh_instance, "Resuming Instance")
     size = _get_size(esh_driver, esh_instance)

@@ -494,10 +494,14 @@ def get_chain_from_build(driverCls, provider, identity, instance,
     return start_chain
 
 def print_chain(start_task, idx=0):
-    mystr = "%s%s -->" % (idx+1, start_task.task,),
+    #FINAL case
+    count = idx + 1
+    signature = "\n%s Task %s: %s(args=%s) " % ("  "*(idx), count, start_task.task, start_task.args)
     if not start_task.options.get('link'):
-        mystr = 'FINAL TASK'
-        return
+        mystr = '%s\n%s(FINAL TASK)' % (signature, "  "*(idx+1))
+        return mystr
+    #Recursive Case
+    mystr = "%s" % signature
     next_tasks = start_task.options['link']
     for task in next_tasks:
         mystr += print_chain(task, idx+1)
