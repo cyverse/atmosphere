@@ -1,14 +1,25 @@
 # Note: for apache2 and celery, use the packaged version of logrotate
-/opt/dev/atmosphere/logs/atmosphere.log {
+/var/log/celery/celery_periodic.log {
     daily
-    rotate 10
+    size 200M
+    rotate 20
     missingok
     compress
     delaycompress
     notifempty
     copytruncate
 }
-/opt/dev/atmosphere/logs/libcloud.log {
+/var/log/celery/atmosphere-*.log {
+    daily
+    size 100M
+    rotate 20
+    missingok
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+}
+/var/log/celery/celery/imaging.log {
     daily
     size 100M
     rotate 10
@@ -18,36 +29,20 @@
     notifempty
     copytruncate
 }
-/opt/dev/atmosphere/logs/atmosphere_api.log {
+/var/log/celery/celery/email.log {
     daily
-    rotate 4
+    size 100M
+    rotate 10
     missingok
     compress
     delaycompress
     notifempty
     copytruncate
 }
-/opt/dev/atmosphere/logs/atmosphere_auth.log {
+/var/log/celery/celery/flower.log {
     daily
-    rotate 4
-    missingok
-    compress
-    delaycompress
-    notifempty
-    copytruncate
-}
-/opt/dev/atmosphere/logs/atmosphere_email.log {
-    daily
-    rotate 2
-    missingok
-    compress
-    delaycompress
-    notifempty
-    copytruncate
-}
-/opt/dev/atmosphere/logs/atmosphere_status.log {
-    daily
-    rotate 4
+    size 100M
+    rotate 10
     missingok
     compress
     delaycompress

@@ -705,7 +705,7 @@ def convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
         esh_instance.extra['status'],
         core_size,
         esh_instance.extra.get('task'),
-        esh_instance.extra.get('metadata',{}).get('tmp_status'))
+        esh_instance.extra.get('metadata',{}).get('tmp_status',"MISSING"))
     #Update values in core with those found in metadata.
     #core_instance = set_instance_from_metadata(esh_driver, core_instance)
     return core_instance
