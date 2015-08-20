@@ -728,7 +728,9 @@ class Instance(AuthAPIView):
                                         context={"request": request})
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
-            update_instance_metadata(esh_driver, esh_instance, data)
+            #NOTE: We shouldn't allow 'full replacement' of metadata..
+            # We should also validate against potentional updating of 'atmo-used metadata'
+            update_instance_metadata(esh_driver, esh_instance, data, replace=False)
             new_instance = serializer.save()
             boot_scripts = data.pop('boot_scripts', [])
             if boot_scripts:

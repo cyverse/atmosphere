@@ -241,7 +241,6 @@ def _extract_tenant_name(identity):
 def update_application_owner(application, identity):
     from service.openstack import glance_update_machine_metadata
     from service.driver import get_account_driver
-
     old_identity = application.created_by_identity
     tenant_name = _extract_tenant_name(identity)
     old_tenant_name = _extract_tenant_name(old_identity)

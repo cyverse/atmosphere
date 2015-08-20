@@ -299,7 +299,7 @@ def update_instances(driver, identity, esh_list, core_list):
             core_size,
             esh_instance.extra.get('task'),
             esh_instance.extra.get(
-                'metadata', {}).get('tmp_status'))
+                'metadata', {}).get('tmp_status','MISSING'))
 
 # Used in monitoring.py
 

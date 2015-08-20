@@ -591,14 +591,18 @@ def get_chain_from_build(driverCls, provider, identity, instance,
 
 
 def print_chain(start_task, idx=0):
-    print "%s%s -->" % (idx + 1, start_task.task,),
+    #FINAL case
+    count = idx + 1
+    signature = "\n%s Task %s: %s(args=%s) " % ("  "*(idx), count, start_task.task, start_task.args)
     if not start_task.options.get('link'):
-        print 'FINAL TASK'
-        return
+        mystr = '%s\n%s(FINAL TASK)' % (signature, "  "*(idx+1))
+        return mystr
+    #Recursive Case
+    mystr = "%s" % signature
     next_tasks = start_task.options['link']
     for task in next_tasks:
-        print_chain(task, idx + 1)
-
+        mystr += print_chain(task, idx+1)
+    return mystr
 
 def get_chain_from_active_no_ip(driverCls, provider, identity, instance,
                                 username=None, password=None, redeploy=False,
@@ -664,8 +668,6 @@ def get_chain_from_active_with_ip(driverCls, provider, identity, instance,
         # (SUCCESS_)LINKS and ERROR_LINKS
         deploy_task.link_error(
             deploy_failed.s(driverCls, provider, identity, instance.id))
-        deploy_ready_task.link(deploy_task)
-
     deploy_ready_task.link(deploy_meta_task)
     deploy_meta_task.link(deploy_task)
 
@@ -946,7 +948,10 @@ def _deploy_ready_failed_email_test(
     core_instance = Instance.objects.get(provider_alias=instance_id)
     num_retries = current_request.retries
     message = _generate_stats(current_request, task_class)
-    if num_retries == int(task_class.max_retries / 2):
+    if 'terminated' in exc_message:
+        # Do NOTHING!
+        pass
+    elif num_retries == int(task_class.max_retries/2):
         # Halfway point. Send preemptive failure
         send_preemptive_deploy_failed_email(core_instance, message)
     elif num_retries == task_class.max_retries - 1:
@@ -988,7 +993,7 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
         instance = driver.get_instance(instance_id)
         if not instance:
             logger.debug("Instance has been teminated: %s." % instance_id)
-            return False
+            raise Exception("Instance maybe terminated? -- Going to keep trying anyway")
         echo_test = echo_test_script()
         kwargs = _generate_ssh_kwargs()
         kwargs.update({'deploy': echo_test})
@@ -1000,7 +1005,7 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
     except (BaseException, Exception) as exc:
         logger.exception(exc)
         _deploy_ready_failed_email_test(
-            driver, instance_id, current.request, deploy_ready_test)
+            driver, instance_id, exc.message, current.request, deploy_ready_test)
         deploy_ready_test.retry(exc=exc)
 
 
