@@ -1,0 +1,51 @@
+# Note: for apache2 and celery, use the packaged version of logrotate
+/var/log/celery/celery_periodic.log {
+    daily
+    size 200M
+    rotate 20
+    missingok
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+}
+/var/log/celery/atmosphere-*.log {
+    daily
+    size 100M
+    rotate 20
+    missingok
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+}
+/var/log/celery/celery/imaging.log {
+    daily
+    size 100M
+    rotate 10
+    missingok
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+}
+/var/log/celery/celery/email.log {
+    daily
+    size 100M
+    rotate 10
+    missingok
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+}
+/var/log/celery/celery/flower.log {
+    daily
+    size 100M
+    rotate 10
+    missingok
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+}
