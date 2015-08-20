@@ -176,6 +176,7 @@ def monthly_allocation_reset():
 def reset_provider_allocation(provider_id, default_allocation_id):
     provider = Provider.objects.get(id=provider_id)
     default_allocation = Allocation.objects.get(id=default_allocation_id)
+    exempt_allocation_list = Allocation.objects.filter(threshold=-1)
     users_reset = 0
     memberships_reset = []
     for ident in provider.identity_set.all():
@@ -183,6 +184,8 @@ def reset_provider_allocation(provider_id, default_allocation_id):
             continue
         for membership in ident.identitymembership_set.all():
             if membership.allocation_id == default_allocation.id:
+                continue
+            if membership.allocation_id in exempt_allocation_list:
                 continue
             print "Resetting Allocation for %s \t\tOld Allocation:%s" % (membership.member.name, membership.allocation)
             membership.allocation = default_allocation
