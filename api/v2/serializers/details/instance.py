@@ -1,12 +1,14 @@
-from core.models import Instance, Application as Image
+from core.models import BootScript, Instance, Application as Image
 from rest_framework import serializers
+from api.v2.serializers.fields import ModelRelatedField
 from api.v2.serializers.summaries import (
     IdentitySummarySerializer,
     UserSummarySerializer,
     ProviderSummarySerializer,
     SizeSummarySerializer,
     ImageSummarySerializer,
-    ImageVersionSummarySerializer
+    ImageVersionSummarySerializer,
+    BootScriptSummarySerializer
 )
 
 
@@ -16,6 +18,11 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
     provider = ProviderSummarySerializer(source='created_by_identity.provider')
     status = serializers.CharField(source='esh_status', read_only=True)
     projects = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    scripts = ModelRelatedField(
+        many=True, required=False,
+        queryset=BootScript.objects.all(),
+        serializer_class=BootScriptSummarySerializer,
+        style={'base_template': 'input.html'})
     size = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
     version = serializers.SerializerMethodField()
@@ -57,6 +64,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
             'provider',
             'image',
             'version',  # NOTE:Should replace image?
+            'scripts',
             'projects',
             'start_date',
             'end_date',

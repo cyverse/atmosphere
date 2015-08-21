@@ -201,15 +201,6 @@ def add_fixed_ip(
         add_fixed_ip.retry(exc=exc)
 
 
-@task(name="clear_empty_ips")
-def clear_empty_ips():
-    logger.debug("clear_empty_ips task started at %s." % datetime.now())
-    from service import instance as instance_service
-    from rtwo.driver import OSDriver
-    from service.accounts.openstack import AccountDriver as\
-        OSAccountDriver
-
-
 def current_openstack_identities():
     identities = Identity.objects.filter(
         provider__type__name__iexact='openstack',
@@ -316,6 +307,9 @@ def clear_empty_ips_for(core_identity_uuid, username=None):
 @task(name="clear_empty_ips")
 def clear_empty_ips():
     logger.debug("clear_empty_ips task started at %s." % datetime.now())
+    if settings.DEBUG:
+        logger.debug("clear_empty_ips task SKIPPED at %s." % datetime.now())
+        return
     identities = current_openstack_identities()
     for core_identity in identities:
         try:
@@ -643,60 +637,67 @@ def get_chain_from_active_with_ip(driverCls, provider, identity, instance,
                                   username=None, password=None,
                                   redeploy=False, deploy=True):
     """
-    Deploy to the box (instance),
-    but change what atmo-init does based on redeploy
+    Use Case: Instance has (or will be at start of this chain) an IP && is active.
+    Goal: if 'Deploy' - Update metadata to inform you will be deploying
+          else        - Remove metadata and end.
     """
+    if redeploy:
+        logger.warn("WARNING: 'Redeploy' as an individual option is DEPRECATED, as 'ansible' is idempotent")
     start_chain = None
+    end_chain = None
     # Guarantee 'networking' passes deploy_ready_test first!
     deploy_ready_task = deploy_ready_test.si(
         driverCls, provider, identity, instance.id)
-    # IMPORTANT NOTE: we are NOT updating to 'deploying' until actual
-    # deployment takes place (SSH established. Time spent from
-    # 'add_floating_ip' to SSH established is considered 'networking' time)
-    if deploy:
-        deploy_meta_task = update_metadata.si(
-            driverCls, provider, identity, instance.id,
-            {'tmp_status': 'deploying'})
-        deploy_task = _deploy_init_to.si(
-            driverCls, provider, identity, instance.id,
-            username, password, redeploy)
-        # Call additional Deployments
-        logger.debug("redeploy = %s" % redeploy)
-        if not redeploy:
-            check_vnc_task = check_process_task.si(
-                driverCls, provider, identity, instance.id, "vnc")
-        # (SUCCESS_)LINKS and ERROR_LINKS
-        deploy_task.link_error(
-            deploy_failed.s(driverCls, provider, identity, instance.id))
-    deploy_ready_task.link(deploy_meta_task)
-    deploy_meta_task.link(deploy_task)
-
     # ALWAYS start by testing that deployment is possible. then deploy.
     start_chain = deploy_ready_task
 
-    # JUST before we finish, check for boot_scripts_chain
-    boot_chain_start, boot_chain_end = _get_boot_script_chain(
-        driverCls, provider, identity, instance.id)
-    if boot_chain_start and boot_chain_end:
-        end_chain = boot_chain_end
-    else:
-        if redeploy and deploy:
-            end_chain = deploy_task
-        elif deploy:
-            deploy_task.link(check_vnc_task)
-            end_chain = check_vnc_task
-        else:
-            end_chain = start_chain  # Nothing else to run in-between.
+    # IMPORTANT NOTE: we are NOT updating to 'deploying' until actual
+    # deployment takes place (SSH established. Time spent from
+    # 'add_floating_ip' to SSH established is considered 'networking' time)
+    if not deploy:
+        remove_status_chain = get_remove_status_chain(
+            driverCls,
+            provider,
+            identity,
+            instance)
+        deploy_ready_task.link(remove_status_chain)
+        # Active and deployable. Ready for use!
+        return start_chain
+    # Start building a deploy chain
+    deploy_meta_task = update_metadata.si(
+        driverCls, provider, identity, instance.id,
+        {'tmp_status': 'deploying'})
+    deploy_task = _deploy_init_to.si(
+        driverCls, provider, identity, instance.id,
+        username, password, redeploy)
+    check_vnc_task = check_process_task.si(
+        driverCls, provider, identity, instance.id, "vnc")
     remove_status_chain = get_remove_status_chain(
         driverCls,
         provider,
         identity,
         instance)
-    end_chain.link(remove_status_chain)
-    if not redeploy:
-        logger.warn("Adding email_task")
-        email_task = _send_instance_email.si(
-            driverCls, provider, identity, instance.id)
+    email_task = _send_instance_email.si(
+        driverCls, provider, identity, instance.id)
+    # JUST before we finish, check for boot_scripts_chain
+    boot_chain_start, boot_chain_end = _get_boot_script_chain(
+        driverCls, provider, identity, instance.id)
+    # (SUCCESS_)LINKS and ERROR_LINKS
+    deploy_task.link_error(
+        deploy_failed.s(driverCls, provider, identity, instance.id))
+    deploy_ready_task.link(deploy_meta_task)
+    deploy_meta_task.link(deploy_task)
+    # ready -> metadata -> deployment..
+
+    if boot_chain_start and boot_chain_end:
+        # ..deployment -> scripts -> ..
+        deploy_task.link(boot_chain_start)
+        boot_chain_end.link(check_vnc_task)
+    else:
+        deploy_task.link(check_vnc_task)
+
+    check_vnc_task.link(remove_status_chain)
+    if redeploy:
         remove_status_chain.link(email_task)
     return start_chain
 
@@ -781,7 +782,7 @@ def boot_script_failed(task_uuid, driverCls, provider, identity, instance_id,
         boot_script_failed.retry(exc=exc)
 
 
-def _get_boot_script_chain(driverCls, provider, identity, instance_id):
+def _get_boot_script_chain(driverCls, provider, identity, instance_id, remove_status=False):
     core_instance = Instance.objects.get(provider_alias=instance_id)
     scripts = get_scripts_for_instance(core_instance)
     first_task = end_task = None
@@ -812,7 +813,7 @@ def _get_boot_script_chain(driverCls, provider, identity, instance_id):
             boot_script_failed.s(driverCls, provider, identity, instance_id))
         deploy_script_task.link_error(
             boot_script_failed.s(driverCls, provider, identity, instance_id))
-        if idx + 1 == total:
+        if idx + 1 == total and remove_status:
             clear_script_status_task = update_metadata.si(
                 driverCls, provider, identity, instance_id,
                 {'tmp_status': ''})
@@ -935,6 +936,7 @@ def _generate_stats(current_request, task_class):
 def _deploy_ready_failed_email_test(
         driver,
         instance_id,
+        exc_message,
         current_request,
         task_class):
     """

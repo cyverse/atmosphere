@@ -504,7 +504,7 @@ class InstanceAction(AuthAPIView):
             elif 'revert_resize' == action:
                 esh_driver.revert_resize_instance(esh_instance)
             elif 'redeploy' == action:
-                redeploy_init(esh_driver, esh_instance, countdown=None)
+                redeploy_init(esh_driver, esh_instance)
             elif 'resume' == action:
                 result_obj = resume_instance(esh_driver, esh_instance,
                                              provider_uuid, identity_uuid,
@@ -586,7 +586,7 @@ class InstanceAction(AuthAPIView):
                     status.HTTP_409_CONFLICT,
                     message)
             return failure_response(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
+                status.HTTP_404_FORBIDDEN,
                 "The requested action %s encountered "
                 "an irrecoverable exception: %s"
                 % (action_params['action'], message))
