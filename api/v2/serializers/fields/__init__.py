@@ -20,7 +20,7 @@ class ModelRelatedField(serializers.RelatedField):
 
     def __init__(self, *args, **kwargs):
         self.serializer_class = kwargs.pop("serializer_class")
-        self.lookup_fields = kwargs.pop("lookup_field", self.lookup_field)
+        self.lookup_field = kwargs.pop("lookup_field", self.lookup_field)
         super(ModelRelatedField, self).__init__(*args, **kwargs)
 
     def get_queryset(self):
@@ -42,6 +42,7 @@ class ModelRelatedField(serializers.RelatedField):
 
     def to_internal_value(self, data):
         queryset = self.get_queryset()
+        import ipdb;ipdb.set_trace()
         if isinstance(data, dict):
             identifier = data.get(self.lookup_field, None)
         else:
@@ -50,6 +51,6 @@ class ModelRelatedField(serializers.RelatedField):
             return queryset.get(**{self.lookup_field: identifier})
         except (TypeError, ValueError, ObjectDoesNotExist):
             raise exceptions.ValidationError(
-                "%s with id '%s' does not exist."
-                % (self.queryset.model.__name__, identifier)
+                "%s with Field: %s '%s' does not exist."
+                % (self.queryset.model.__name__, self.lookup_field, identifier)
             )
