@@ -152,7 +152,7 @@ class InstanceList(AuthAPIView):
             deploy = False
         elif not isinstance(deploy, bool):
             deploy = True
-        boot_scripts = data.pop("boot_scripts", [])
+        boot_scripts = data.pop("scripts", [])
         try:
             logger.debug(data)
             core_instance = launch_instance(
