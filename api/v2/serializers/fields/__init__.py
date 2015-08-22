@@ -42,7 +42,6 @@ class ModelRelatedField(serializers.RelatedField):
 
     def to_internal_value(self, data):
         queryset = self.get_queryset()
-        import ipdb;ipdb.set_trace()
         if isinstance(data, dict):
             identifier = data.get(self.lookup_field, None)
         else:

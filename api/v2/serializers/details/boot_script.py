@@ -1,6 +1,10 @@
+import django_filters
+
+from rest_framework import serializers
+
 from core.models.boot_script import BootScript, ScriptType
 from core.models.user import AtmosphereUser
-from rest_framework import serializers
+
 
 
 class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
