@@ -116,9 +116,10 @@ class Application(models.Model):
         from core.models.user import AtmosphereUser
         public_images = Application.public_apps()
         if not atmo_user or isinstance(atmo_user, AnonymousUser):
-            return public_images
+            return public_images.distinct()
         if not isinstance(atmo_user, AtmosphereUser):
-            raise Exception("Expected atmo_user to be of type AtmosphereUser - Received %s" % type(atmo_user))
+            raise Exception("Expected atmo_user to be of type AtmosphereUser"
+                            " - Received %s" % type(atmo_user))
         user_images = atmo_user.application_set.all()
         shared_images = Application.shared_with(atmo_user)
         if atmo_user.is_staff:
@@ -127,7 +128,6 @@ class Application(models.Model):
             admin_images = Application.objects.none()
         return (public_images | user_images |
                 shared_images | admin_images).distinct()
-
 
     def _current_machines(self, request_user=None):
         """
@@ -309,7 +309,8 @@ def _has_active_provider(app):
     providers = (pm.instance_source.provider for pm in machines)
     return any(p.is_active() for p in providers)
 
-#TODO: Validate that these are used, and that the queries are accurate.
+
+# TODO: Validate that these are used, and that the queries are accurate.
 def public_applications():
     public_apps = []
     applications = Application.objects.filter(
@@ -344,7 +345,8 @@ def visible_applications(user):
                 _add_app(apps, app)
                 break
     return apps
-#END-TODO
+# END-TODO
+
 
 def _add_app(app_list, app):
     if app not in app_list:
