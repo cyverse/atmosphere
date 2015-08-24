@@ -37,4 +37,4 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        exclude = ('uuid', )
+        exclude = ('uuid', 'applications')
