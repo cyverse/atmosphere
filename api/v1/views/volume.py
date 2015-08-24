@@ -316,7 +316,7 @@ class Volume(AuthAPIView):
                     provider__uuid=provider_uuid)
                 source.end_date = datetime.now()
                 source.save()
-            except CoreVolume.DoesNotExist:
+            except (InstanceSource.DoesNotExist, CoreVolume.DoesNotExist):
                 pass
             return volume_not_found(volume_id)
         core_volume = convert_esh_volume(esh_volume, provider_uuid,

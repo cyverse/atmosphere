@@ -10,7 +10,9 @@ class MultipleFieldLookup(object):
     lookup_fields = None
 
     def get_object(self):
-        queryset = self.filter_queryset(self.get_queryset())
+        # NOTE: 'distinct()' required to avoid failing on AnonymousUser access
+        # specifically, in the 'v2/images/##' URL endpoint
+        queryset = self.filter_queryset(self.get_queryset()).distinct()
         #: field to perform lookup with
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
 

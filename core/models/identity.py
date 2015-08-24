@@ -272,6 +272,28 @@ class Identity(models.Model):
         id_member = self.identitymembership_set.all()[0]
         return id_member.quota
 
+    def get_allocation_usage(self):
+        # Undoubtedly will cause circular dependencies
+        from service.monitoring import _get_allocation_result
+        allocation_result = _get_allocation_result(self)
+        over_allocation, diff_amount = allocation_result.total_difference()
+        burn_time = allocation_result.get_burn_rate()
+        # Moving from seconds to hours
+        hourly_credit = int(allocation_result
+                            .total_credit().total_seconds() / 3600.0)
+        hourly_runtime = int(allocation_result
+                             .total_runtime().total_seconds() / 3600.0)
+        hourly_difference = int(diff_amount.total_seconds() / 3600.0)
+        zero_time = allocation_result.time_to_zero()
+        return {
+            "threshold": hourly_credit,  # Total amount
+            "current": hourly_runtime,  # Total used
+            "remaining": hourly_difference,
+            "ttz": zero_time,  # Time Til Zero
+        }
+
+
+
     def get_allocation_dict(self):
         id_member = self.identitymembership_set.all()[0]
         allocation_dict = id_member.get_allocation_dict()

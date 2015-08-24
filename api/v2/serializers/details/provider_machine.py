@@ -1,8 +1,9 @@
 from core.models import ProviderMachine
 from rest_framework import serializers
 from api.v2.serializers.summaries import (
-        ImageVersionSummarySerializer, ProviderSummarySerializer,
-        UserSummarySerializer, LicenseSummarySerializer)
+        ImageSummarySerializer, ImageVersionSummarySerializer,
+        ProviderSummarySerializer, UserSummarySerializer,
+        LicenseSummarySerializer)
 
 
 class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
@@ -10,6 +11,7 @@ class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.ReadOnlyField(source='instance_source.identifier')
     provider = ProviderSummarySerializer(source='instance_source.provider')
     version = ImageVersionSummarySerializer(source='application_version')
+    image = ImageSummarySerializer(source='application')
     created_by = UserSummarySerializer(source='instance_source.created_by')
     start_date = serializers.DateTimeField(source='instance_source.start_date')
     end_date = serializers.DateTimeField(source='instance_source.end_date',
@@ -23,7 +25,7 @@ class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = ProviderMachine
         view_name = 'api:v2:providermachine-detail'
-        fields = ('id', 'uuid', 'url', 'provider',
+        fields = ('id', 'uuid', 'url', 'provider', 'image',
                   'licenses', 'members', 'version',
                   'created_by', 'start_date', 'end_date')
 

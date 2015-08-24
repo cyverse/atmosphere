@@ -11,6 +11,12 @@ from threepio import logger
 class AtmosphereUser(AbstractUser):
     selected_identity = models.ForeignKey('Identity', blank=True, null=True)
 
+    def group_ids(self):
+        return self.group_set.values_list('id', flat=True)
+
+    def provider_ids(self):
+        return self.identity_set.values_list('provider', flat=True)
+
     def user_quota(self):
         identity = self.select_identity()
         identity_member = identity.identitymembership_set.all()[0]
@@ -116,11 +122,16 @@ def get_default_identity(username, provider=None):
             else:
                 logger.error("Provider provided for "
                              "get_default_identity is inactive.")
-                raise "Provider provided for get_default_identity "
+                raise "Inactive Provider provided for get_default_identity "
         else:
             default_provider = get_default_provider(username)
             default_identity = group.identities.filter(
-                provider=default_provider)[0]
+                provider=default_provider)
+            if not default_identity:
+                logger.error("User %s has no identities on Provider %s" % (username, default_provider))
+                raise "No Identities on Provider %s for %s" % (default_provider,username)
+            #Passing
+            default_identity = default_identity[0]
             logger.debug(
                 "default_identity set to %s " %
                 default_identity)

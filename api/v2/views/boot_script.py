@@ -1,6 +1,18 @@
+import django_filters
+
 from core.models import BootScript
 from api.v2.serializers.details import BootScriptSerializer
 from api.v2.views.base import AuthViewSet
+
+
+class ImageVersionFilter(django_filters.FilterSet):
+    version_id = django_filters.CharFilter(
+        'application_versions__id')
+
+    class Meta:
+        model = BootScript
+        fields = ['version_id', 'title']
+
 
 class BootScriptViewSet(AuthViewSet):
 
@@ -10,7 +22,7 @@ class BootScriptViewSet(AuthViewSet):
 
     queryset = BootScript.objects.none()
     serializer_class = BootScriptSerializer
-    filter_fields = ('title',)
+    filter_class = ImageVersionFilter
     search_fields = ('^title',)
 
     def get_queryset(self):

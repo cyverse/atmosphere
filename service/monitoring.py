@@ -299,7 +299,7 @@ def update_instances(driver, identity, esh_list, core_list):
             core_size,
             esh_instance.extra.get('task'),
             esh_instance.extra.get(
-                'metadata', {}).get('tmp_status'))
+                'metadata', {}).get('tmp_status','MISSING'))
 
 # Used in monitoring.py
 
@@ -410,6 +410,7 @@ def check_over_allocation(username, identity_uuid,
     """
     Check if an identity is over allocation.
 
+    NOTE: Answer is ALWAYS a 2-tuple
     True,False - Over/Under Allocation
     Amount - Time (amount) Over/Under Allocation.
     """

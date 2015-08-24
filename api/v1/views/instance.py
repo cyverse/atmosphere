@@ -152,7 +152,7 @@ class InstanceList(AuthAPIView):
             deploy = False
         elif not isinstance(deploy, bool):
             deploy = True
-        boot_scripts = data.pop("boot_scripts", [])
+        boot_scripts = data.pop("scripts", [])
         try:
             logger.debug(data)
             core_instance = launch_instance(
@@ -504,7 +504,7 @@ class InstanceAction(AuthAPIView):
             elif 'revert_resize' == action:
                 esh_driver.revert_resize_instance(esh_instance)
             elif 'redeploy' == action:
-                redeploy_init(esh_driver, esh_instance, countdown=None)
+                redeploy_init(esh_driver, esh_instance)
             elif 'resume' == action:
                 result_obj = resume_instance(esh_driver, esh_instance,
                                              provider_uuid, identity_uuid,
@@ -586,7 +586,7 @@ class InstanceAction(AuthAPIView):
                     status.HTTP_409_CONFLICT,
                     message)
             return failure_response(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
+                status.HTTP_404_FORBIDDEN,
                 "The requested action %s encountered "
                 "an irrecoverable exception: %s"
                 % (action_params['action'], message))
@@ -728,7 +728,9 @@ class Instance(AuthAPIView):
                                         context={"request": request})
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
-            update_instance_metadata(esh_driver, esh_instance, data)
+            #NOTE: We shouldn't allow 'full replacement' of metadata..
+            # We should also validate against potentional updating of 'atmo-used metadata'
+            update_instance_metadata(esh_driver, esh_instance, data, replace=False)
             new_instance = serializer.save()
             boot_scripts = data.pop('boot_scripts', [])
             if boot_scripts:

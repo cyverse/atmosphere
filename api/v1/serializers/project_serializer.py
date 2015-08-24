@@ -28,7 +28,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         return [VolumeSerializer(
             item,
             context={'request': self.context.get('request')}).data for item in
-            project.volumes.filter(*only_current_source(),
+            project.volumes.filter(only_current_source(),
                                    instance_source__provider__active=True)]
 
     def __init__(self, *args, **kwargs):
@@ -37,4 +37,4 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        exclude = ('uuid', )
+        exclude = ('uuid', 'applications')

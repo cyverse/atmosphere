@@ -30,7 +30,7 @@ class ApplicationVersion(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     application = models.ForeignKey("Application", related_name="versions")
     # NOTE: Parent is 'null' when this version was created by a STAFF user
-    # (import, etc.)
+    # (For Ex: imported an image, etc.)
     parent = models.ForeignKey("ApplicationVersion", blank=True, null=True)
     name = models.CharField(max_length=256)  # Potentially goes unused..
     # Optional/default available

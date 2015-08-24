@@ -54,8 +54,7 @@ class ProviderMachine(BaseSource):
             instance_source__provider=provider).count()
 
     def is_owner(self, atmo_user):
-        return (self.created_by == atmo_user |
-                self.application_version.created_by == atmo_user |
+        return (self.application_version.created_by == atmo_user or
                 self.application_version.application.created_by == atmo_user)
 
     def to_dict(self):
@@ -242,7 +241,6 @@ def _extract_tenant_name(identity):
 def update_application_owner(application, identity):
     from service.openstack import glance_update_machine_metadata
     from service.driver import get_account_driver
-
     old_identity = application.created_by_identity
     tenant_name = _extract_tenant_name(identity)
     old_tenant_name = _extract_tenant_name(old_identity)

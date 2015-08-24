@@ -7,7 +7,7 @@ from core.models.cloud_admin import CloudAdministrator
 from core.models.credential import Credential, ProviderCredential
 from core.models.export_request import ExportRequest
 from core.models.group import Group, IdentityMembership,\
-    InstanceMembership
+    InstanceMembership, Leadership
 from core.models.identity import Identity
 from core.models.instance_tag import InstanceTag
 from core.models.profile import UserProfile

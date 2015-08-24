@@ -12,8 +12,7 @@ from api.v2.views.mixins import MultipleFieldLookup
 
 def get_admin_images(request_user):
     # Final query for admins/staff images
-    provider_id_list = request_user.identity_set.values_list('provider',
-                                                             flat=True)
+    provider_id_list = request_user.provider_ids()
     # TODO: This 'just works' and is probably very slow... Better way?
     account_providers_list = AccountProvider.objects.filter(
         provider__id__in=provider_id_list)
@@ -51,29 +50,4 @@ class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
-        public_image_set = Image.objects.filter(
-            only_current(), private=False).order_by('-start_date')
-        if isinstance(request_user, AnonymousUser):
-            # Anonymous users can only see PUBLIC applications
-            # (& their respective images on PUBLIC providers)
-            # that have not been end dated by Owner/Admin.
-            return public_image_set
-        elif isinstance(request_user, AtmosphereUser):
-            # All my images (Regardless of 'end dates' or public/private
-            my_images = request_user.application_set.all()
-
-            # Non-end dated machines that have
-            # been EXPLICITLY shared with me
-            member_ids = request_user.group_set.values_list('id', flat=True)
-            privately_shared = Image.objects.filter(
-                only_current_apps(),
-                versions__machines__members__id__in=member_ids)
-            if not request_user.is_staff:
-                admin_list = Image.objects.none()
-            else:
-                admin_list = get_admin_images(request_user)
-
-            return (public_image_set | my_images |
-                    privately_shared | admin_list).distinct()
-        else:
-            return Image.objects.none()
+        return Image.current_apps(request_user)

@@ -1,5 +1,5 @@
 from rest_framework.decorators import detail_route
-
+from rest_framework.exceptions import ValidationError
 from core.models import Project, Group
 from core.query import only_current
 
@@ -18,6 +18,22 @@ class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
     lookup_fields = ("id", "uuid")
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
+
+    def perform_destroy(self, serializer):
+        project = self.get_object()
+        # Active instances, volumes should prohibit deletion of a project
+        if project.instances.filter(end_date__isnull=True).count() > 0:
+            raise ValidationError(
+                "Cannot delete a project when it contains instances."
+                " To delete a project, all instances must be moved "
+                "to another project or deleted")
+        elif project.volumes.filter(
+                instance_source__end_date__isnull=True).count() > 0:
+            raise ValidationError(
+                "Cannot delete a project when it contains volumes."
+                " To delete a project, all volumes must be moved "
+                "to another project or deleted")
+        project.delete()
 
     def perform_create(self, serializer):
         user = self.request.user

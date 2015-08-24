@@ -64,7 +64,7 @@ class Volume(BaseSource):
         return "%s" % (self.instance_source.identifier)
 
     def get_status(self):
-        if self.esh and self.esh.extra:
+        if hasattr(self,'esh') and self.esh.extra:
             status = self.esh.extra["status"]
             tmp_status = self.esh.extra.get('tmp_status', '')
             if tmp_status:
@@ -87,7 +87,7 @@ class Volume(BaseSource):
             return attach_data["instance_alias"]
 
     def get_attach_data(self):
-        if self.esh and self.esh.extra:
+        if hasattr(self,'esh') and self.esh.extra:
             attach_data = self.esh.extra.get('attachments', {})
         else:
             attach_data = {}
@@ -110,7 +110,7 @@ class Volume(BaseSource):
         TODO: Refactor and use get_metadata.
         """
         metadata = {}
-        if self.esh and self.esh.extra:
+        if hasattr(self,'esh') and self.esh.extra:
             metadata = self.esh.extra.get('metadata', {})
         return metadata.get('mount_location', None)
 

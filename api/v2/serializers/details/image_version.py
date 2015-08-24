@@ -1,11 +1,16 @@
 from core.models import ApplicationVersion as ImageVersion
+from core.models import Application as Image
+from core.models import License, BootScript
 from rest_framework import serializers
 from api.v2.serializers.summaries import (
+    BootScriptSummarySerializer,
     LicenseSummarySerializer,
     UserSummarySerializer,
+    ImageSummarySerializer,
     IdentitySummarySerializer,
     ImageVersionSummarySerializer)
-from api.v2.serializers.fields import ProviderMachineRelatedField
+from api.v2.serializers.fields import (
+    ProviderMachineRelatedField, ModelRelatedField)
 
 
 class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
@@ -17,7 +22,15 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
     # id, application
     parent = ImageVersionSummarySerializer()
     # name, change_log, allow_imaging
-    licenses = LicenseSummarySerializer(many=True, read_only=True)  # NEW
+    licenses = ModelRelatedField(
+        many=True, queryset=License.objects.all(),
+        serializer_class=LicenseSummarySerializer,
+        style={'base_template': 'input.html'})
+    scripts = ModelRelatedField(
+        source='boot_scripts', many=True,
+        queryset=BootScript.objects.all(),
+        serializer_class=BootScriptSummarySerializer,
+        style={'base_template': 'input.html'})
     membership = serializers.SlugRelatedField(
         slug_field='name',
         read_only=True,
@@ -25,6 +38,11 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
     user = UserSummarySerializer(source='created_by')
     identity = IdentitySummarySerializer(source='created_by_identity')
     machines = ProviderMachineRelatedField(many=True)
+    image = ModelRelatedField(
+        source='application',
+        queryset=Image.objects.all(),
+        serializer_class=ImageSummarySerializer,
+        style={'base_template': 'input.html'})
     start_date = serializers.DateTimeField()
     end_date = serializers.DateTimeField(allow_null=True)
 
@@ -32,7 +50,7 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         model = ImageVersion
         view_name = 'api:v2:providermachine-detail'
         fields = ('id', 'parent', 'name', 'change_log',
-                  'machines', 'allow_imaging',
-                  'licenses', 'membership',
+                  'image', 'machines', 'allow_imaging',
+                  'licenses', 'membership', 'scripts',
                   'user', 'identity',
                   'start_date', 'end_date')

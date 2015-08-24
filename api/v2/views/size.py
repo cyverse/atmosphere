@@ -1,4 +1,6 @@
-from core.models import Group, Size
+from django.contrib.auth.models import AnonymousUser
+
+from core.models import Group, Size, Provider
 from core.query import only_current, only_current_provider
 
 from api.v2.serializers.details import SizeSerializer
@@ -19,10 +21,20 @@ class SizeViewSet(AuthReadOnlyViewSet):
         """
         Filter projects by current user
         """
-        user = self.request.user
-        group = Group.objects.get(name=user.username)
-        provider_ids = group.identities.filter(
-            only_current_provider(),
-            provider__active=True).values_list('provider', flat=True)
-        return Size.objects.filter(
-            only_current(), provider__id__in=provider_ids)
+        request_user = self.request.user
+        # Switch based on user's ClassType
+        if isinstance(request_user, AnonymousUser):
+            provider_ids = Provider.objects.filter(only_current(), active=True).values_list('id',flat=True)
+        else:
+            group = Group.objects.get(name=request_user.username)
+            provider_ids = group.identities.filter(
+                only_current_provider(),
+                provider__active=True).values_list('provider', flat=True)
+
+        # Switch based on query
+        if 'archived' in self.request.QUERY_PARAMS:
+            return Size.objects.filter(
+                provider__id__in=provider_ids)
+        else:
+            return Size.objects.filter(
+                only_current(), provider__id__in=provider_ids)

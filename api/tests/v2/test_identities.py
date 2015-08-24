@@ -2,7 +2,8 @@ from rest_framework.test import APITestCase, APIRequestFactory, force_authentica
 from api.v2.views import IdentityViewSet as ViewSet
 from api.tests.factories import UserFactory, AnonymousUserFactory,\
     IdentityFactory, ProviderFactory, GroupFactory,\
-    IdentityMembershipFactory, QuotaFactory, AllocationFactory
+    IdentityMembershipFactory, QuotaFactory, AllocationFactory,\
+    LeadershipFactory
 from django.core.urlresolvers import reverse
 from core.models import Identity
 
@@ -14,6 +15,10 @@ class GetListTests(APITestCase):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
         self.group = GroupFactory.create(name=self.user.username)
+        self.leadership = LeadershipFactory.create(
+            user=self.user,
+            group=self.group
+            )
         self.staff_user = UserFactory.create(is_staff=True)
 
         self.provider = ProviderFactory.create()
@@ -54,7 +59,7 @@ class GetListTests(APITestCase):
         response = self.view(self.request)
         data = response.data.get('results')[0]
 
-        self.assertEquals(len(data), 7)
+        self.assertEquals(len(data), 8, "The number of arguments has changed for GET /identity")
         self.assertIn('id', data)
         self.assertIn('uuid', data)
         self.assertIn('url', data)
@@ -71,6 +76,10 @@ class GetDetailTests(APITestCase):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
         self.group = GroupFactory.create(name=self.user.username)
+        self.leadership = LeadershipFactory.create(
+            user=self.user,
+            group=self.group
+            )
         self.staff_user = UserFactory.create(is_staff=True)
 
         self.provider = ProviderFactory.create()
@@ -106,7 +115,7 @@ class GetDetailTests(APITestCase):
         response = self.view(self.request, pk=self.identity.id)
         data = response.data
 
-        self.assertEquals(len(data), 7)
+        self.assertEquals(len(data), 8, "The number of arguments has changed for GET /identity/:identityID")
         self.assertIn('id', data)
         self.assertIn('uuid', data)
         self.assertIn('url', data)

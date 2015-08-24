@@ -1,13 +1,17 @@
 from core.models import License, LicenseType
+from api.v2.serializers.fields import ModelRelatedField
+from api.v2.serializers.summaries import LicenseTypeSummarySerializer
 from rest_framework import serializers
 
 
 class LicenseSerializer(serializers.HyperlinkedModelSerializer):
     text = serializers.CharField(source='license_text')
-    type = serializers.SlugRelatedField(
+    type = ModelRelatedField(
+        lookup_field='name',
         source='license_type',
-        slug_field='name',
-        queryset=LicenseType.objects.all())
+        queryset=LicenseType.objects.all(),
+        serializer_class=LicenseTypeSummarySerializer,
+        style={'base_template': 'input.html'})
 
     def create(self, validated_data):
 

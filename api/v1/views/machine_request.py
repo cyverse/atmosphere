@@ -88,7 +88,9 @@ class MachineRequestList(AuthAPIView):
         data = copy.deepcopy(request.DATA)
         data.update({'owner': data.get('created_for', request.user.username)})
         if data.get('vis', 'public') != 'public':
-            user_list = re.split(', | |\n', data.get('shared_with', ""))
+            user_list = data.get('shared_with', '')
+            if type(user_list) == str:
+                user_list = re.split(', | |\n', user_list)
             share_with_admins(user_list, data.get('provider'))
             share_with_self(user_list, request.user.username)
             user_list = [user for user in user_list if user]  # Skips blanks
