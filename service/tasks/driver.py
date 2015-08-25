@@ -1116,6 +1116,9 @@ def check_process_task(driverCls, provider, identity,
         if "vnc" in process_name:
             core_instance.vnc = result
             core_instance.save()
+        elif "shell" in process_name:
+            core_instance.shell = result
+            core_instance.save()
         else:
             return result, script_out
         logger.debug("check_process_task finished at %s." % datetime.now())
