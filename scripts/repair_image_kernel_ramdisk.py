@@ -26,7 +26,7 @@ def main():
 
     accounts = OSAccountDriver(provider)
     for image_id in images:
-        mr = MachineRequest.objects.get(new_machine__identifier=image_id)
+        mr = MachineRequest.objects.get(new_machine__instance_source__identifier=image_id)
         glance_image = accounts.get_image(image_id)
         if 'kernel_id' not in glance_image.properties\
                 or 'ramdisk_id' not in glance_image.properties:

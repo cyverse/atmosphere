@@ -70,8 +70,12 @@ def _select_identities(provider, users=None):
 def _convert_tenant_id_to_names(instances, tenants):
     for i in instances:
         for tenant in tenants:
-            if tenant['id'] == i.owner:
-                i.owner = tenant['name']
+            if type(tenant) == dict:
+                if tenant['id'] == i.owner:
+                    i.owner = tenant['name']
+            else:
+                if tenant.id == i.owner:
+                    i.owner = tenant.name
     return instances
 
 
@@ -170,7 +174,10 @@ def user_over_allocation_enforcement(
                allocation_result.total_credit(),
                allocation_result.total_runtime(),
                diff_amount))
-        enforce_allocation_policy(identity, user)
+        try:
+            enforce_allocation_policy(identity, user)
+        except:
+            logger.info("Unable to enforce allocation for user: %s" % user)
     return allocation_result
 
 
@@ -390,10 +397,14 @@ def _get_instance_owner_map(provider, users=None):
     NOTE: This is KEYSTONE && NOVA specific. the 'instance owner' here is the
           username // ex_tenant_name
     """
+    from service.driver import get_account_driver
+
     admin_driver = get_cached_driver(provider=provider)
+    accounts = get_account_driver(provider=provider)
     all_identities = _select_identities(provider, users)
     all_instances = get_cached_instances(provider=provider)
-    all_tenants = admin_driver._connection._keystone_list_tenants()
+    #all_tenants = admin_driver._connection._keystone_list_tenants()
+    all_tenants = accounts.list_projects()
     # Convert instance.owner from tenant-id to tenant-name all at once
     all_instances = _convert_tenant_id_to_names(all_instances, all_tenants)
     # Make a mapping of owner-to-instance
