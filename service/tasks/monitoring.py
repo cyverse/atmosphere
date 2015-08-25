@@ -1,17 +1,12 @@
-import time
 from datetime import timedelta
 
-from django.db.models import Q
 from django.utils import timezone
-from django.conf import settings
 
 from celery.decorators import task
 
 from core.query import only_current
-from core.models.group import Group, IdentityMembership
 from core.models.size import Size, convert_esh_size
-from core.models.instance import convert_esh_instance, Instance
-from core.models.user import AtmosphereUser
+from core.models.instance import convert_esh_instance
 from core.models.provider import Provider
 from core.models import Allocation
 
@@ -20,7 +15,8 @@ from service.monitoring import\
     _get_instance_owner_map, \
     _get_identity_from_tenant_name
 from service.monitoring import user_over_allocation_enforcement
-from service.cache import get_cached_driver, get_cached_instances
+from service.cache import get_cached_driver
+from glanceclient.exc import HTTPNotFound
 
 from threepio import logger
 
@@ -54,6 +50,88 @@ def strfdate(datetime_o, fmt=None):
 
     return datetime_o.strftime(fmt)
 
+
+@task(name="monitor_machines")
+def monitor_machines():
+    """
+    Update machines by querying the Cloud
+    """
+    for p in Provider.get_active():
+        monitor_machines_for.apply_async(args=[p.id])
+
+@task(name="monitor_machines_for")
+def monitor_machines_for(provider_id, print_logs=False):
+    """
+    Run the set of tasks related to monitoring machines for a provider.
+    Optionally, provide a list of usernames to monitor
+    While debugging, print_logs=True can be very helpful.
+    start_date and end_date allow you to search a 'non-standard' window of time.
+    """
+    from core.models import Application, ProviderMachine, Provider
+    provider = Provider.objects.get(id=provider_id)
+
+    # For now, lets just ignore everything that isn't Tucson.
+    if 'iplant cloud - tucson' not in provider.location.lower():
+        return
+    if print_logs:
+        import logging
+        import sys
+        consolehandler = logging.StreamHandler(sys.stdout)
+        consolehandler.setLevel(logging.DEBUG)
+        logger.addHandler(consolehandler)
+
+    testable_apps = ProviderMachine.objects.filter(instance_source__provider__id=4).values_list('application_version__application', flat=True).distinct()
+    apps = Application.objects.filter(id__in=testable_apps)
+
+    for application in apps:
+        if not application.private:
+            validate_public_app(application, provider)
+        # TODO: Add more logic later.
+
+    if print_logs:
+        logger.removeHandler(consolehandler)
+
+
+def validate_public_app(application, test_provider):
+    from service.driver import get_account_driver
+    from core.models import ProviderMachine
+    accounts = get_account_driver(test_provider)
+    matching_machines = ProviderMachine.objects.filter(
+        instance_source__provider=test_provider,
+        application_version__application=application).distinct()
+    for machine in matching_machines:
+        try:
+            cloud_machine = accounts.get_image(machine.identifier)
+            if not cloud_machine:
+                logger.warn("WARN: Machine %s is MISSING. Recommend End-Date of the PM (And possibly cascading to version and application!" % machine.identifier)
+                continue
+        except HTTPNotFound:
+            logger.warn("WARN: Machine %s NOT FOUND!" % machine.identifier)
+            continue
+        if not cloud_machine.is_public:
+            try:
+                cloud_membership = accounts.image_manager.shared_images_for(
+                    image_id=machine.identifier)
+            except HTTPNotFound:
+                logger.warn("WARN: Machine %s is MISSING MEMBERS!" % machine.identifier)
+                cloud_membership = []
+            _make_app_private(test_provider.id, accounts, application, cloud_membership)
+
+def _make_app_private(provider_id, accounts, application, cloud_membership):
+    from core.models import Identity, ApplicationMembership
+    for image_membership in cloud_membership:
+        tenant = accounts.get_project_by_id(image_membership.member_id)
+        if not tenant:
+            continue
+        for identity in Identity.objects.filter(provider__id=provider_id, credential__value=tenant.name):
+            identity_members = identity.identitymembership_set.all().distinct()
+            for membership in identity_members:
+                ApplicationMembership.objects.get_or_create(
+                    application=application, group=membership.member)
+                logger.info("ADD: %s to %s" % (membership.member.name, application.name))
+    application.private = True
+    application.save()
+    logger.info("PRIVATE: %s" % application.name)
 
 @task(name="monitor_instances")
 def monitor_instances():
