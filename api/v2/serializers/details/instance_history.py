@@ -1,9 +1,11 @@
 from rest_framework import serializers
 
-from core.models import Instance, InstanceStatusHistory, Size
+from core.models import Instance, InstanceStatusHistory, Size, Provider, Application as Image
 
-from api.v2.serializers.summaries import InstanceSuperSummarySerializer
+from api.v2.serializers.summaries import (
+    InstanceSuperSummarySerializer, ProviderSummarySerializer, ImageSummarySerializer)
 from api.v2.serializers.summaries.size import SizeRelatedField
+from api.v2.serializers.fields import ModelRelatedField
 
 class InstanceRelatedField(serializers.PrimaryKeyRelatedField):
 
@@ -19,6 +21,16 @@ class InstanceRelatedField(serializers.PrimaryKeyRelatedField):
 class InstanceStatusHistorySerializer(serializers.HyperlinkedModelSerializer):
     instance = InstanceRelatedField(queryset=Instance.objects.none())
     size = SizeRelatedField(queryset=Size.objects.none())
+    provider = ModelRelatedField(
+        source='instance.provider_machine.provider',
+        queryset=Provider.objects.all(),
+        serializer_class=ProviderSummarySerializer,
+        style={'base_template': 'input.html'})
+    image = ModelRelatedField(
+        source='instance.provider_machine.application_version.application',
+        queryset=Image.objects.all(),
+        serializer_class=ImageSummarySerializer,
+        style={'base_template': 'input.html'})
     status = serializers.SlugRelatedField(slug_field='name', read_only=True)
 
     class Meta:
@@ -30,6 +42,8 @@ class InstanceStatusHistorySerializer(serializers.HyperlinkedModelSerializer):
             'instance',
             'status',
             'size',
+            'provider',
+            'image',
             'start_date',
             'end_date',
         )
