@@ -246,7 +246,10 @@ class Instance(models.Model):
         else: end date previous history object, start new history object.
               return (True, new_history)
         """
+        import traceback
         # 1. Get status name
+        logger.debug("STATUSUPDATE - Instance:%s Old Status: %s New Status: %s Tmp Status: %s" % (self.provider_alias, self.esh_status(), status_name, tmp_status))
+        logger.debug("STATUSUPDATE - Traceback: %s" % traceback.format_stack())
         status_name = _get_status_name_for_provider(
             self.provider_machine.provider,
             status_name,

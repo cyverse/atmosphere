@@ -672,6 +672,8 @@ def get_chain_from_active_with_ip(driverCls, provider, identity, instance,
         username, password, redeploy)
     check_vnc_task = check_process_task.si(
         driverCls, provider, identity, instance.id, "vnc")
+    check_shell_task = check_process_task.si(
+        driverCls, provider, identity, instance.id, "shellinaboxd")
     remove_status_chain = get_remove_status_chain(
         driverCls,
         provider,
@@ -696,7 +698,8 @@ def get_chain_from_active_with_ip(driverCls, provider, identity, instance,
     else:
         deploy_task.link(check_vnc_task)
 
-    check_vnc_task.link(remove_status_chain)
+    check_vnc_task.link(check_shell_task)
+    check_shell_task.link(remove_status_chain)
     if redeploy:
         remove_status_chain.link(email_task)
     return start_chain
@@ -1112,6 +1115,9 @@ def check_process_task(driverCls, provider, identity,
         core_instance = Instance.objects.get(provider_alias=instance_alias)
         if "vnc" in process_name:
             core_instance.vnc = result
+            core_instance.save()
+        elif "shell" in process_name:
+            core_instance.shell = result
             core_instance.save()
         else:
             return result, script_out

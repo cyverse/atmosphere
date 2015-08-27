@@ -451,6 +451,12 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=60),
         "options": {"expires": 10 * 60, "time_limit": 2 * 60}
     },
+    "monitor_machines": {
+        "task": "monitor_machines",
+        # Every day of the week @ 1am
+        "schedule": crontab(hour="1", minute="0", day_of_week="*"),
+        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
+    },
     "monitor_sizes": {
         "task": "monitor_sizes",
         "schedule": timedelta(minutes=30),
