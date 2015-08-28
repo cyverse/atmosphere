@@ -43,7 +43,7 @@ OPENSTACK_TASK_STATUS_MAP = {
     'deploy_error': 'deploy_error',
 }
 OPENSTACK_ACTIVE_STATES = ['active']
-OPENSTACK_INACTIVE_STATES = ['build', 'suspended', 'shutoff']
+OPENSTACK_INACTIVE_STATES = ['build', 'suspended', 'shutoff', 'Unknown']
 
 
 def _get_status_name_for_provider(
@@ -225,6 +225,7 @@ class Instance(models.Model):
                 'build',
                 'pending',
                 'running']:
+            logger.info("First Update Unknown - Status name on instance %s: %s" % (self.provider_alias, status_name))
             # Instance state is 'unknown' from start of instance until now
             # NOTE: This is needed to prevent over-charging accounts
             status_name = 'unknown'
@@ -261,7 +262,7 @@ class Instance(models.Model):
             last_history = InstanceStatusHistory.create_history(
                 status_name, self, size, self.start_date)
             last_history.save()
-            logger.debug("First history: %s" % last_history)
+            logger.debug("First Status history: %s" % last_history)
         # 2. Size and name must match to continue using last history
         if last_history.status.name == status_name \
                 and last_history.size.id == size.id:
@@ -698,6 +699,10 @@ def _update_core_instance(core_instance, ip_address, password):
     core_instance.ip_address = ip_address
     if password:
         core_instance.password = password
+    if core_instance.end_date:
+        logger.warn("ERROR - Instance %s prematurley 'end-dated'."
+                    % core_instance.provider_alias)
+        core_instance.end_date = None
     core_instance.save()
 
 

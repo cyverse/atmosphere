@@ -336,10 +336,12 @@ def update_provider_machine(
     *
     TODO: Find a way to bring this IN to ProviderMachine.save?
     """
+    base_source = provider_machine.instance_source
     if new_created_by:
-        provider_machine.created_by = new_created_by
+        base_source.created_by = new_created_by
     if new_created_by_identity:
-        provider_machine.created_by_identity = new_created_by_identity
+        base_source.created_by_identity = new_created_by_identity
+    base_source.save()
     if new_application_version:
         provider_machine.application_version = new_application_version
     provider_machine.save()

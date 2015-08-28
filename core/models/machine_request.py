@@ -444,8 +444,8 @@ def _create_new_application(machine_request, new_image_id, tags=[]):
     owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
     # This is a brand new app and a brand new providermachine
     new_app = create_application(
-        new_image_id,
         new_provider.id,
+        new_image_id,
         machine_request.new_application_name,
         owner_ident,
         # new_app.Private = False when machine_request.is_public = True
@@ -490,6 +490,7 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     NOTE: Current process accepts instance with source of 'Image' ONLY!
           VOLUMES CANNOT BE IMAGED until this function is updated!
     """
+    import ipdb;ipdb.set_trace()
     # Based on original instance -- You'll need this:
     parent_mach = machine_request.instance.provider_machine
     parent_version = parent_mach.application_version
@@ -504,8 +505,8 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     #     machine_request.new_version_membership)
     if machine_request.new_version_forked:
         application = create_application(
-            new_image_id,
             new_provider.uuid,
+            new_image_id,
             machine_request.new_application_name,
             created_by_identity=owner_identity,
             description=machine_request.new_application_description,
@@ -520,7 +521,7 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     app_version = create_app_version(
         application, machine_request.new_version_name,
         new_owner, owner_identity, machine_request.new_version_change_log,
-        machine_request.new_version_allow_imaging)
+        machine_request.new_version_allow_imaging, provider_machine_id=new_image_id)
 
     # 2. Create the new InstanceSource and appropriate Object, relations,
     # Memberships..

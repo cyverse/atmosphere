@@ -953,6 +953,23 @@ def _deploy_ready_failed_email_test(
     core_instance = Instance.objects.get(provider_alias=instance_id)
     num_retries = current_request.retries
     message = _generate_stats(current_request, task_class)
+
+    # HOTFIX: Remove these lines when 'active-bug' is fixed.
+    # NOTE: This will slow down performance of the celery tasks, due to a double-lookup of instance.
+    instance = driver.get_instance(instance_id)
+    if instance:
+        metadata = instance.extra.get('metadata', {})
+        tmp_status = metadata.get('tmp_status', None)
+        instance_status = instance.extra.get('status', '').lower()
+        if instance_status == 'active' \
+                and tmp_status != 'networking':
+            update_instance_metadata(driver, instance,
+                                     data={'tmp_status': 'networking'},
+                                     replace=False)
+            logger.warn("Instance %s found to have status of %s-%s but "
+                        "is NOT SSH-able. tmp_status updated to 'networking'"
+                        % (instance_id, instance_status, tmp_status))
+    # HOTFIX: END
     if 'terminated' in exc_message:
         # Do NOTHING!
         pass
@@ -998,7 +1015,9 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
         instance = driver.get_instance(instance_id)
         if not instance:
             logger.debug("Instance has been teminated: %s." % instance_id)
-            raise Exception("Instance maybe terminated? -- Going to keep trying anyway")
+            raise Exception("Instance maybe terminated? "
+                            "-- Going to keep trying anyway")
+
         echo_test = echo_test_script()
         kwargs = _generate_ssh_kwargs()
         kwargs.update({'deploy': echo_test})
