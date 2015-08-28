@@ -13,12 +13,17 @@ Username : {{user.username}}
 Full Name: {{user.get_full_name}}
 Instance ID: {{request.instance.provider_alias}}
 ---
-Installed software: {{request.installed_software}}
-System Files changed: {{request.iplant_sys_files}}
-Image visiblity: {{request.new_machine_visibility}}
+New Application: {{request.new_version_fork}}
+Application Name: {{request.new_application_name}}
+Application Description: {{request.new_application_description}}
+Application Tags: {{request.new_version_tags}}
+Application Visibility: {{request.new_application_visibility}}
 Shared with (Private only): {{request.access_list}}
 ---
-New Image name: {{request.new_application_name}}
-New Image description: {{request.new_machine_description}}
-New Image tags: {{request.new_machine_tags}}
+Version Name: {{request.new_version_name}}
+Version Change Log: {{request.new_version_change_log}}
+Version Scripts: {{request.new_version_scripts.count}}
+Version Licenses: {{request.new_version_scripts.count}}
+---
+Excluded Files: {{request.exclude_files}}
 
