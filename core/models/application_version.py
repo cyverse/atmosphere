@@ -139,9 +139,10 @@ def test_machine_in_version(app, version, new_machine_id):
     try:
         app_version = ApplicationVersion.objects.get(
             application=app,
-            name=version,
-            machines__instance_source__identifier=new_machine_id)
-        return app_version
+            name=version)
+        if app_version.machines.count() == 0 or app_version.machines.get(
+                instance_source__identifier=new_machine_id):
+            return app_version
     except ApplicationVersion.DoesNotExist:
         return None
 

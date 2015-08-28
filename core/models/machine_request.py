@@ -490,7 +490,6 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     NOTE: Current process accepts instance with source of 'Image' ONLY!
           VOLUMES CANNOT BE IMAGED until this function is updated!
     """
-    import ipdb;ipdb.set_trace()
     # Based on original instance -- You'll need this:
     parent_mach = machine_request.instance.provider_machine
     parent_version = parent_mach.application_version

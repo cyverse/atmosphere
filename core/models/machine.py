@@ -294,18 +294,25 @@ def create_provider_machine(identifier, provider_uuid, app,
     if not created_by_identity:
         created_by_identity = provider.admin
 
-    # TODO: Reminder to re-evaluate these lines when you get to Django 1.8
-    source = InstanceSource.objects.create(
-        identifier=identifier,
-        created_by=created_by_identity.created_by,
-        provider=provider,
-        created_by_identity=created_by_identity,
-    )
+    try:
+        source = InstanceSource.objects.get(
+            provider=provider,
+            identifier=identifier)
+        source.created_by_identity = created_by_identity
+        source.created_by = created_by_identity.created_by
+    except InstanceSource.DoesNotExist:
+        source = InstanceSource.objects.create(
+            provider=provider,
+            identifier=identifier,
+            created_by_identity=created_by_identity,
+            created_by=created_by_identity.created_by,
+        )
     if not version:
         version = create_app_version(app)
     logger.debug("Provider %s" % provider)
     logger.debug("App %s" % app)
     logger.debug("Version %s" % version)
+    logger.debug("Source %s" % source.identifier)
     provider_machine = ProviderMachine.objects.create(
         instance_source=source,
         application_version=version,
