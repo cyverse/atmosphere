@@ -383,7 +383,7 @@ def add_to_cache(provider_machine):
 def get_provider_machine(identifier, provider_uuid):
     try:
         source = InstanceSource.objects.get(
-            provider__uuid=provider_uuid, identifier=identifier)
+            provider__uuid=provider_uuid, identifier=identifier, providermachine__isnull=False)
         return source.providermachine
     except InstanceSource.DoesNotExist:
         return None
