@@ -8,7 +8,7 @@
 # apt-get install libapache2-mod-macro
 ##
 
-<Macro Atmosphere $MYSHORTNAME $MYHOSTNAMEHERE $PATH_TO_ATMOSPHERE $PATH_TO_TROPOSPHERE $BASECERTHERE $KEYHERE $BUNDLECERTHERE>
+<Macro Atmosphere $MYHOSTNAMEHERE $PATH_TO_ATMOSPHERE $PATH_TO_TROPOSPHERE $BASECERTHERE $KEYHERE $BUNDLECERTHERE>
     ### KEEP THIS LINE HERE!
     ### Avoids the Proxy 502 Errors
     ### REF:
@@ -66,20 +66,14 @@
         RewriteEngine On
         RewriteCond %{HTTP:Authorization} ^(.*)
         RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
-        # NOTE: The lines below are NOT suitable for sites whose hostnames end
-        # in .iplantcollaborative.org. In these cases, Comment the next two lines.
-        # -Steve
-        # Redirects .iplantcollaborative --> .iplantc
-        RewriteCond %{HTTP_HOST} ^$MYSHORTNAME.iplantcollaborative.org$
-        RewriteRule ^/(.*)$       https://$MYHOSTNAMEHERE/$1 [R,L]
 
         # SSL Settings
         SSLEngine on
         SSLProtocol all -SSLv2
         SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
-        SSLCertificateFile /etc/ssl/certs/$BASECERTHERE
-        SSLCertificateKeyFile /etc/ssl/private/$KEYHERE
-        SSLCertificateChainFile /etc/ssl/certs/$BUNDLECERTHERE
+        SSLCertificateFile $BASECERTHERE
+        SSLCertificateKeyFile $KEYHERE
+        SSLCertificateChainFile $BUNDLECERTHERE
 
         <Files ~ "\.(cgi|shtml|phtml|php3?)$">
             SSLOptions +StdEnvVars
@@ -217,3 +211,4 @@
 </Macro>
 ##Add your line below, it should look something like this:
 ##Use Atmosphere vm.iplantc[ollaborative].org /opt/dev/atmosphere /opt/dev/troposphere [name_of_ssl_cert.crt] [name_of_ssl_key.key] [name_of_ssl_bundle.crt]
+##Use Atmosphere {{ SERVER_URL }} {{ ATMOSPHERE_LOCATION }} {{ TROPOSPHERE_LOCATION }} {{ SSL_LOCATION }}/certs/{{ SSL_CERTIFICATE }} {{ SSL_LOCATION }}/private/{{ SSL_KEY }} {{ SSL_LOCATION }}/certs/{{ BUNDLE_CERT }}

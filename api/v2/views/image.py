@@ -32,18 +32,21 @@ class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
     """
     API endpoint that allows images to be viewed or edited.
     """
+    lookup_fields = ("id", "uuid")
+
+    http_method_names = ['get', 'put', 'patch', 'head', 'options', 'trace']
 
     filter_fields = ('created_by__username', 'tags__name')
-    lookup_fields = ("id", "uuid")
-    search_fields = ('id', 'name', 'versions__change_log', 'tags__name',
-                     'tags__description', 'created_by__username')
-    http_method_names = ['get', 'head', 'options', 'trace', 'patch']
+
     permission_classes = (permissions.InMaintenance,
                           permissions.ApiAuthOptional,
                           permissions.CanEditOrReadOnly,
                           permissions.ApplicationMemberOrReadOnly)
 
     serializer_class = ImageSerializer
+
+    search_fields = ('id', 'name', 'versions__change_log', 'tags__name',
+                     'tags__description', 'created_by__username')
 
     def get_queryset(self):
         request_user = self.request.user

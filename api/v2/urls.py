@@ -34,6 +34,7 @@ router.register(r'instance_histories',
 router.register(r'instance_tags', views.InstanceTagViewSet)
 router.register(r'licenses', views.LicenseViewSet)
 router.register(r'boot_scripts', views.BootScriptViewSet)
+router.register(r'metrics', views.MetricViewSet)
 router.register(r'platform_types', views.PlatformTypeViewSet)
 router.register(r'projects', views.ProjectViewSet)
 router.register(r'project_instances', views.ProjectInstanceViewSet)

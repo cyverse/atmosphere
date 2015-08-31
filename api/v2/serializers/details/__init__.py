@@ -26,22 +26,38 @@ from .size import SizeSerializer
 from .status_type import StatusTypeSerializer
 from .tag import TagSerializer
 from .user import UserSerializer
-from .volume import VolumeSerializer
+from .volume import VolumeSerializer, UpdateVolumeSerializer
+
 
 __all__ = (
-    AllocationSerializer, ImageVersionSerializer,
-    IdentitySerializer, ImageSerializer, ImageTagSerializer,
-    ImageBookmarkSerializer, InstanceTagSerializer,
-    InstanceStatusHistorySerializer, InstanceSerializer,
-    ProjectSerializer,
-    ProjectInstanceSerializer, ProjectVolumeSerializer,
-    ProviderSerializer, ProviderTypeSerializer,
-    PlatformTypeSerializer, ProviderMachineSerializer,
-    QuotaSerializer, ResourceRequestSerializer,
-    UserResourceRequestSerializer, SizeSerializer,
-    StatusTypeSerializer, TagSerializer,
-    UserSerializer, VolumeSerializer,
-    BootScriptSerializer, ImageVersionBootScriptSerializer,
-    LicenseSerializer, ImageVersionLicenseSerializer,
-    MembershipSerializer, ImageVersionMembershipSerializer
+    "AllocationSerializer",
+    "BootScriptSerializer",
+    "IdentitySerializer",
+    "ImageBookmarkSerializer",
+    "ImageSerializer",
+    "ImageTagSerializer",
+    "ImageVersionSerializer",
+    "ImageVersionBootScriptSerializer",
+    "ImageVersionLicenseSerializer",
+    "ImageVersionMembershipSerializer",
+    "InstanceSerializer",
+    "InstanceTagSerializer",
+    "LicenseSerializer",
+    "MembershipSerializer",
+    "PlatformTypeSerializer",
+    "ProjectInstanceSerializer",
+    "ProjectSerializer",
+    "ProjectVolumeSerializer",
+    "ProviderMachineSerializer",
+    "ProviderSerializer",
+    "ProviderTypeSerializer",
+    "QuotaSerializer",
+    "ResourceRequestSerializer",
+    "SizeSerializer",
+    "StatusTypeSerializer",
+    "TagSerializer",
+    "UpdateVolumeSerializer",
+    "UserResourceRequestSerializer",
+    "UserSerializer",
+    "VolumeSerializer"
 )

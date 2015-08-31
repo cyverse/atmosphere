@@ -1,0 +1,107 @@
+ATMOSPHERE_PATH={{ ATMOSPHERE_PATH }}
+BUNDLE_PATH={{ CERT_DIR }}/{{ BUNDLE_FILE }}
+CERT_PATH={{ CERT_DIR }}/{{ CERT_FILE }}
+COMBINED_CERT_PATH={{ CERT_DIR }}/{{ COMBINED_CERT_FILE }}
+DHPARAM={{ DHPARAM }}
+LEADERBOARD_URL={{ LEADERBOARD_URL }}
+LOCATIONS_DIR={{ LOCATIONS_DIR }}
+KEY_PATH={{ KEY_PATH }}/{{ KEY_FILE }}
+KEY_SIZE={{ KEY_SIZE }}
+SERVER_URL={{ SERVER_URL }}
+SITES_AVAILABLE_DIR={{ SITES_AVAILABLE_DIR }}
+SITES_ENABLED_DIR= {{ SITES_ENABLED_DIR }}
+VIRTUALENV_PATH={{ VIRTUALENV_PATH }}
+
+# site and location variables.
+SITE_CONF_FILE=site.conf
+SITE_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/$(SITE_CONF_FILE)
+ATMO_CONF_FILE=atmo.conf
+ATMO_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/locations/$(ATMO_CONF_FILE)
+FLOWER_CONF_FILE=flower.conf
+FLOWER_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/locations/$(FLOWER_CONF_FILE)
+JENKINS_CONF_FILE=jenkins.conf
+JENKINS_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/locations/$(JENKINS_CONF_FILE)
+LB_CONF_FILE=lb.conf
+LB_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/locations/$(LB_CONF_FILE)
+
+
+.PHONY: all clean restart test setup setup-site setup-atmo setup-flower setup-jenkins setup-lb deploy deploy-atmo deploy-flower deploy-jenkins deploy-lb unlink unlink-site unlink-atmo unlink-flower unlink-jenkins unlink-lb $(DHPARAM) $(COMBINED_CERT_PATH)
+
+all: deploy
+
+$(DHPARAM):
+	openssl dhparam -out $(DHPARAM) $(KEY_SIZE)
+
+setup: setup-site setup-atmo setup-flower setup-jenkins setup-lb
+
+setup-site:
+	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/scripts/generate_configs.py -c nginx-site
+
+setup-atmo:
+	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/scripts/generate_configs.py -c nginx-atmo
+
+setup-flower:
+	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/scripts/generate_configs.py -c nginx-flower
+
+setup-jenkins:
+	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/scripts/generate_configs.py -c nginx-flower
+
+setup-lb:
+	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/scripts/generate_configs.py -c nginx-flower
+
+$(COMBINED_CERT_PATH):
+	cat $(CERT_PATH) $(BUNDLE_PATH) > $(COMBINED_CERT_PATH)
+
+deploy: $(COMBINED_CERT_PATH) $(DHPARAM) setup unlink deploy-atmo deploy-flower deploy-jenkins deploy-lb
+	mkdir -p $(SITES_AVAILABLE_DIR)
+	mkdir -p $(SITES_ENABLED_DIR)
+	ln -fs $(ATMOSPHERE_PATH)/extras/nginx/site.conf $(SITES_AVAILABLE_DIR)/$(SITE_CONF_FILE)
+	ln -fs $(SITES_AVAILABLE_DIR)/site.conf $(SITES_ENABLED_DIR)/$(SITE_CONF_FILE)
+	ln -fs $(ATMOSPHERE_PATH)/extras/init.d/atmosphere.uwsgi+nginx /etc/init.d/atmosphere
+
+deploy-atmo:
+	mkdir -p $(LOCATIONS_DIR)
+	ln -fs $(ATMO_CONF_PATH) $(LOCATIONS_DIR)/$(ATMO_CONF_FILE)
+
+deploy-flower:
+	mkdir -p $(LOCATIONS_DIR)
+	ln -fs $(FLOWER_CONF_PATH) $(LOCATIONS_DIR)/$(FLOWER_CONF_FILE)
+
+deploy-jenkins:
+	mkdir -p $(LOCATIONS_DIR)
+	ln -fs $(JENKINS_CONF_PATH) $(LOCATIONS_DIR)/$(JENKINS_CONF_FILE)
+
+deploy-lb:
+	mkdir -p $(LOCATIONS_DIR)
+	ln -fs $(LB_CONF_PATH) $(LOCATIONS_DIR)/$(LB_CONF_FILE)
+
+unlink: unlink-site unlink-atmo unlink-flower unlink-jenkins unlink-lb
+
+unlink-site:
+	-rm $(SITES_ENABLED_DIR)/$(SITE_CONF_FILE)
+	-rm $(SITES_AVAILABLE_DIR)/$(SITE_CONF_FILE)
+
+unlink-atmo:
+	-rm $(LOCATIONS_DIR)/$(ATMO_CONF_FILE)
+
+unlink-flower:
+	-rm $(LOCATIONS_DIR)/$(FLOWER_CONF_FILE)
+
+unlink-jenkins:
+	-rm $(LOCATIONS_DIR)/$(JENKINS_CONF_FILE)
+
+unlink-lb:
+	-rm $(LOCATIONS_DIR)/$(LB_CONF_FILE)
+
+test:
+	service nginx configtest
+
+restart:
+	service nginx restart
+
+clean: unlink
+	-rm $(COMBINED_CERT_PATH)
+	-rm $(SITE_CONF_PATH)
+	-rm $(ATMO_CONF_PATH)
+	-rm $(DHPARAM)
+	-rm /etc/init.d/atmosphere

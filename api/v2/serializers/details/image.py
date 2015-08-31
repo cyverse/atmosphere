@@ -1,5 +1,6 @@
-from core.models import Application as Image
+from core.models import Application as Image, BootScript
 from rest_framework import serializers
+
 from api.v2.serializers.summaries import UserSummarySerializer
 from api.v2.serializers.fields import (
         ImageVersionRelatedField, TagRelatedField)

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Atmosphere service exceptions.
 """
@@ -5,7 +6,13 @@ Atmosphere service exceptions.
 from ansible.errors import AnsibleError
 
 
-class ActionNotAllowed(Exception):
+class ServiceException(Exception):
+    """
+    Base Service exception class
+    """
+
+
+class ActionNotAllowed(ServiceException):
 
     def __init__(self, message):
         self.message = message
@@ -13,7 +20,7 @@ class ActionNotAllowed(Exception):
         super(ActionNotAllowed, self).__init__()
 
 
-class UnderThresholdError(Exception):
+class UnderThresholdError(ServiceException):
 
     def __init__(self, message):
         self.message = message
@@ -21,10 +28,11 @@ class UnderThresholdError(Exception):
         super(UnderThresholdError, self).__init__()
 
 
-class SecurityGroupNotCreated(Exception):
+class SecurityGroupNotCreated(ServiceException):
 
     def __init__(self):
-        self.message = "Gateway Timeout! Security Group(s) could not be created. Please try again later"
+        self.message = ("Gateway Timeout! Security Group(s) could not be "
+                        "created. Please try again later")
         self.status_code = 504
         super(SecurityGroupNotCreated, self).__init__()
 
@@ -32,7 +40,7 @@ class SecurityGroupNotCreated(Exception):
         return "%s" % (self.message, )
 
 
-class HypervisorCapacityError(Exception):
+class HypervisorCapacityError(ServiceException):
 
     def __init__(self, hypervisor, message):
         self.hypervisor = hypervisor
@@ -40,7 +48,7 @@ class HypervisorCapacityError(Exception):
         super(HypervisorCapacityError, self).__init__(self.message)
 
 
-class OverAllocationError(Exception):
+class OverAllocationError(ServiceException):
 
     def __init__(self, amount_exceeded):
         self.overage = amount_exceeded
@@ -53,7 +61,7 @@ class OverAllocationError(Exception):
         return "%s" % (self.message, )
 
 
-class OverQuotaError(Exception):
+class OverQuotaError(ServiceException):
 
     def __init__(self, resource=None, requested=None,
                  used=None, limit=None, message=None):
@@ -69,7 +77,7 @@ class OverQuotaError(Exception):
         return "%s" % (self.message, )
 
 
-class DeviceBusyException(Exception):
+class DeviceBusyException(ServiceException):
 
     def __init__(self, mount_loc, process_list):
         proc_str = ''
@@ -86,7 +94,7 @@ class DeviceBusyException(Exception):
         return "%s:\n%s" % (self.message, repr(self.process_list))
 
 
-class SizeNotAvailable(Exception):
+class SizeNotAvailable(ServiceException):
 
     def __init__(self):
         self.message = "Size Not Available."
@@ -96,7 +104,7 @@ class SizeNotAvailable(Exception):
         return "%s" % (self.message, )
 
 
-class VolumeAttachConflict(Exception):
+class VolumeAttachConflict(ServiceException):
 
     def __init__(self, instance_id, volume_id):
         self.message = "Volume %s is still attached to instance %s"\
@@ -107,7 +115,19 @@ class VolumeAttachConflict(Exception):
         return "%s" % (self.message, )
 
 
-class VolumeMountConflict(Exception):
+class VolumeError(ServiceException):
+    """
+    Errors encountered during volume creation.
+    """
+
+
+class NotFound(ServiceException):
+    """
+    Exception raised when a resource cannot be found.
+    """
+
+
+class VolumeMountConflict(ServiceException):
 
     def __init__(self, instance_id, volume_id, extra=None):
         self.message = "Volume %s could not be auto-mounted to %s. %s"\
@@ -120,5 +140,5 @@ class VolumeMountConflict(Exception):
         return "%s" % (self.message, )
 
 
-class AnsibleDeployException(AnsibleError):
+class AnsibleDeployException(AnsibleError, ServiceException):
     pass

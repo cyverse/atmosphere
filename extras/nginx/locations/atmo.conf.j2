@@ -1,0 +1,23 @@
+location /favicon.ico {
+    alias {{ ATMOSPHERE_PATH }}/static/images/favicon.ico;
+}
+
+location /robots.txt {
+   alias {{ ATMOSPHERE_PATH }}/static/templates/robots.txt;
+}
+
+location /init_files {
+   alias {{ ATMOSPHERE_PATH }}/init_files;
+}
+
+location /resources {
+   alias {{ ATMOSPHERE_PATH }}/resources;
+}
+
+location / {
+   # Redirect to home page
+   if ($request_uri ~ "^/$") {
+      return 301 https://$host/application;
+   }
+   uwsgi_pass unix:///tmp/atmosphere.sock;
+}

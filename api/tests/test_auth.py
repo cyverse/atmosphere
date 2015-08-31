@@ -12,7 +12,6 @@ from atmosphere import settings
 from atmosphere.settings import secrets
 from api.tests import verify_expected_output
 from authentication.protocol.oauth import generate_access_token
-from core.tests import create_os_provider
 from service.accounts.openstack import AccountDriver as OSAccounts
 
 

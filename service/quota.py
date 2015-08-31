@@ -55,12 +55,14 @@ def get_current_quota(identity_uuid):
         identity=Identity.objects.get(uuid=identity_uuid))
     cpu = ram = disk = suspended = 0
     instances = driver.list_instances()
+    # prefetch sizes
+    sizes = {size.id:size for size in driver.list_sizes()}
     for instance in instances:
         if instance.extra['status'] == 'suspended'\
                 or instance.extra['status'] == 'shutoff':
             suspended += 1
             continue
-        size = driver.get_size(instance.size.id)
+        size = sizes[instance.size.id]
         cpu += size.cpu
         ram += size.ram
         disk += size.disk

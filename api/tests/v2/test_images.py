@@ -1,8 +1,8 @@
-from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
+from rest_framework.test import APITestCase, APIRequestFactory,\
+    force_authenticate
 from api.v2.views import ImageViewSet as ViewSet
 from api.tests.factories import UserFactory, AnonymousUserFactory, ImageFactory
 from django.core.urlresolvers import reverse
-from core.models import AtmosphereUser as User
 
 from unittest import skip
 
@@ -107,8 +107,8 @@ class CreateTests(APITestCase):
 
 class UpdateTests(APITestCase):
 
-    def test_endpoint_does_not_exist(self):
-        self.assertTrue('put' not in ViewSet.http_method_names)
+    def test_endpoint_does_exist(self):
+        self.assertTrue('put' in ViewSet.http_method_names)
 
 
 class DeleteTests(APITestCase):

@@ -1,0 +1,111 @@
+"""
+Settings specific to the local deploy.
+"""
+import os
+import sys
+
+
+globals().update(vars(sys.modules['atmosphere.settings']))
+
+
+# Debug Mode
+DEBUG = {{ DJANGO_DEBUG }}
+TEMPLATE_DEBUG = {{ DJANGO_TEMPLATE_DEBUG }}
+
+
+# Logging
+LOGGING_LEVEL = {{ LOGGING_LEVEL }}
+# Logging level for dependencies.
+DEP_LOGGING_LEVEL = {{ LOGGING_DEP_LEVEL }}
+
+
+PROJECT_ROOT = os.path.abspath(
+    os.path.join(
+    os.path.dirname(__file__), '../..'))
+
+
+TEST_RUNNER = '{{ TEST_RUNNER }}'
+TEST_RUNNER_USER = '{{ TEST_RUNNER_USER }}'
+TEST_RUNNER_PASS = '{{ TEST_RUNNER_PASS }}'
+
+
+SERVER_URL = '{{ DJANGO_SERVER_URL }}'
+
+
+DATABASES = {
+    'default': {
+        'NAME': '{{ DATABASE_NAME }}',
+        'ENGINE': '{{ DATABASE_ENGINE }}',
+        'USER': '{{ DATABASE_USER }}',
+        'CONN_MAX_AGE': {{ DATABASE_CONN_MAX_AGE }},
+        'PASSWORD': '{{ DATABASE_PASSWORD }}',
+        'HOST': '{{ DATABASE_HOST }}',
+        'PORT': {{ DATABASE_PORT }}
+    },
+}
+
+
+# Prevents warnings
+ALLOWED_HOSTS = [SERVER_URL.replace('https://', '')]
+
+
+# Atmosphere Keypair/Deployment Configs
+ATMOSPHERE_PRIVATE_KEYFILE = os.path.join(PROJECT_ROOT, 'extras/ssh/id_rsa')
+ATMOSPHERE_KEYPAIR_FILE = os.path.join(PROJECT_ROOT, 'extras/ssh/id_rsa.pub')
+ATMOSPHERE_KEYPAIR_NAME = 'atmosphere'
+
+
+# Atmosphere App Configs
+INSTANCE_SERVICE_URL = SERVER_URL + REDIRECT_URL + '/api/v1/notification'
+INSTANCE_SERVICE_URL.replace('https', 'http')
+API_SERVER_URL = SERVER_URL + REDIRECT_URL + '/resources/v1'
+AUTH_SERVER_URL = SERVER_URL + REDIRECT_URL + '/auth'
+DEPLOY_SERVER_URL = SERVER_URL.replace('https', 'http')
+
+
+# Django-Celery Development settings
+# CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
+
+
+# CASLIB
+OAUTH_CLIENT_KEY = '{{ OAUTH_CLIENT_KEY }}'
+OAUTH_CLIENT_SECRET = '{{ OAUTH_CLIENT_SECRET }}'
+OAUTH_CLIENT_CALLBACK = SERVER_URL + '/oauth2.0/callbackAuthorize'
+SELF_SIGNED_CERT = {{ SELF_SIGNED_CERT }}
+SERVER_URL = SERVER_URL + REDIRECT_URL
+CAS_SERVER = '{{ CAS_SERVER }}'
+CAS_AUTH_PREFIX = '{{ CAS_AUTH_PREFIX }}'
+SERVICE_URL = SERVER_URL + '/CAS_serviceValidater?sendback=' + REDIRECT_URL + '/application/'
+PROXY_URL = SERVER_URL + '/CAS_proxyUrl'
+PROXY_CALLBACK_URL = SERVER_URL + '/CAS_proxyCallback'
+
+
+# Atmosphere Ansible Deploy
+ANSIBLE_ROOT = '{{ ANSIBLE_ROOT }}'
+# The root directory for the ansible deploy project.
+# If this is emptry str then ansible deploys will not
+# run and will warn that ansible is no configured.
+ANSIBLE_CONFIG_FILE = os.path.join(ANSIBLE_ROOT, 'ansible/ansible.cfg')
+ANSIBLE_HOST_FILE = os.path.join(ANSIBLE_ROOT, 'ansible/hosts')
+ANSIBLE_PLAYBOOKS_DIR = os.path.join(ANSIBLE_ROOT, 'ansible/playbooks')
+ANSIBLE_ROLES_PATH = os.path.join(ANSIBLE_ROOT, 'ansible/roles')
+
+
+# LOGSTASH
+LOGSTASH_HOST = '{{ LOGSTASH_HOST }}'
+LOGSTASH_PORT = {{ LOGSTASH_PORT }}
+try:
+    import logstash
+    import threepio
+    has_logstash = True
+except ImportError:
+    has_logstash = False
+
+
+METRIC_SERVER = '{{ METRIC_SERVER }}'
+
+
+if has_logstash and LOGSTASH_HOST:
+    fh = logstash.TCPLogstashHandler(LOGSTASH_HOST, LOGSTASH_PORT,
+                                     message_type='atmo-deploy', version=1)
+    threepio.deploy_logger.addHandler(fh)
