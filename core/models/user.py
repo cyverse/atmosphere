@@ -83,6 +83,7 @@ def get_default_provider(username):
     """
     try:
         from core.models.group import get_user_group
+        from core.models.provider import Provider
         group = get_user_group(username)
         provider_ids = group.identities.filter(
             only_current_provider(),
