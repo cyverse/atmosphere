@@ -14,6 +14,44 @@ EucaProvider.set_meta()
 AWSProvider.set_meta()
 OSProvider.set_meta()
 
+from libcloud.compute.types import Provider
+from libcloud.compute.providers import get_driver as fetch_driver
+
+
+PROVIDER_DEFAULTS = {
+    "openstack": {
+        "secure": False,
+        "ex_force_auth_version": "2.0_password"
+    }
+}
+
+
+def create_libcloud_driver(identity, provider_type=Provider.OPENSTACK):
+    user = identity.created_by
+    provider = identity.provider
+    # Fetch classes to construct driver and default options
+    driver_class = fetch_driver(provider_type)
+    options = PROVIDER_DEFAULTS[provider_type]
+
+    # check that the provider is active
+    if not provider.is_active():
+        raise ServiceException(
+            "Provider %s is NOT active. Driver not created."
+            % (provider,))
+
+    creds = provider.get_credentials()
+    # TODO: The auth_url and region region_name key should be updated to
+    # map directly.
+    if provider_type == Provider.OPENSTACK:
+        creds['ex_force_auth_url'] = creds.get('auth_url')
+        creds['ex_force_service_region'] = creds.get('region_name')
+
+    options.update(identity.get_credentials())
+    options.update(creds)
+
+    # Build driver
+    return driver_class(**options)
+
 
 def get_hypervisor_statistics(admin_driver):
     if hasattr(admin_driver._connection, "ex_hypervisor_statistics"):
