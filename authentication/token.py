@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.utils import timezone
+from requests.exceptions import ConnectionError
 from rest_framework.authentication import BaseAuthentication
 from threepio import logger
 from authentication import get_or_create_user
@@ -82,8 +83,13 @@ def validate_oauth_token(token, request=None):
     Validates the token attached to the request (SessionStorage, GET/POST)
     On every request, ask OAuth to authorize the token
     """
-    # Authorization test
-    user_profile = cas_profile_for_token(token)
+    # Attempt to contact CAS
+    try:
+        user_profile = cas_profile_for_token(token)
+    except ConnectionError:
+        logger.exception("CAS could not be reached!")
+        user_profile = None
+
     if not user_profile:
         return False
     username = user_profile.get("id")
