@@ -4,8 +4,7 @@ import sys
 
 import git
 
-
-project_root = os.path.abspath(os.path.join(__file__, ".."))
+project_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 # This is the default change file for the project
 CHANGE_FILE = os.path.join(project_root, "CHANGES")
 

@@ -184,7 +184,7 @@ class Instance(models.Model):
     password = models.CharField(max_length=64, blank=True, null=True)
     # FIXME  Problems when setting a default.
     start_date = models.DateTimeField()
-    end_date = models.DateTimeField(null=True)
+    end_date = models.DateTimeField(null=True, blank=True)
     objects = models.Manager()  # The default manager.
     active_instances = ActiveInstancesManager()
 
