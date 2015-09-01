@@ -104,6 +104,12 @@ except ImportError:
 
 METRIC_SERVER = '{{ METRIC_SERVER }}'
 
+{% if DJANGO_JENKINS %}
+
+INSTALLED_APPS += (
+    'django_jenkins',
+)
+{% endif %}
 
 if has_logstash and LOGSTASH_HOST:
     fh = logstash.TCPLogstashHandler(LOGSTASH_HOST, LOGSTASH_PORT,
