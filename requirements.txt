@@ -42,19 +42,3 @@ chromogenic==0.1.7
 jwt.py==0.1.0
 subspace==0.1.6
 
-## dev
-#django-sslserver #NOTE: Debugs requests real-time.
-django-jenkins==0.17.0
-coverage==3.7.1
-flower==0.7.3 #TODO: Do we need a specific version here? -steve
-pip-tools==0.3.5 #TODO: Do we need a specific version here? -steve
-newrelic==2.34.0.29 # newrelic investigation.
-factory-boy==2.4.1
-GitPython==1.0.1
-ipython
-ipdb
-flake8
-pep8
-wheel
-django-nose
-mock==1.0.1
