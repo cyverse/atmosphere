@@ -51,6 +51,14 @@ env = Environment(loader=loader,
 variables_path = os.path.join(projectpath, VARIABLES_FILENAME)
 
 
+def generate_new_key():
+    import string, random
+    new_key = ''.join(random.SystemRandom().choice(
+        string.ascii_lowercase +
+        string.digits +
+        "!@#$%^&*(-_=+)") for _ in range(50))
+    return new_key
+
 def _get_variables():
     try:
         parser = ConfigParser.ConfigParser()
@@ -60,6 +68,8 @@ def _get_variables():
             # Ensure the variable names are upper case
             for option, value in parser.items(section):
                 variables[option.upper()] = value
+                if option.upper() == 'SECRET_KEY' and not value:
+                    variables['SECRET_KEY'] = generate_new_key()
         return (variables, [])
     except Exception as e:
         return (False,
