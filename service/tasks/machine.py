@@ -242,6 +242,7 @@ def machine_request_error(task_uuid, machine_request_id):
 def imaging_complete(machine_request_id):
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.status = 'completed'
+    machine_request.end_date = timezone.now()
     machine_request.save()
     send_image_request_email(machine_request.new_machine_owner,
                              machine_request.new_machine,
