@@ -6,6 +6,7 @@ import uuid
 from django.db import models, IntegrityError
 from django.utils import timezone
 from threepio import logger
+from django.core.exceptions import ObjectDoesNotExist as DoesNotExist
 
 from core.models.license import License
 from core.models.identity import Identity
@@ -143,7 +144,7 @@ def test_machine_in_version(app, version, new_machine_id):
         if app_version.machines.count() == 0 or app_version.machines.get(
                 instance_source__identifier=new_machine_id):
             return app_version
-    except ApplicationVersion.DoesNotExist:
+    except DoesNotExist:
         return None
 
 def create_unique_version(app, version, created_by, created_by_identity):
