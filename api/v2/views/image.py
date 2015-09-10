@@ -10,23 +10,6 @@ from api.v2.views.base import AuthOptionalViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 
-def get_admin_images(request_user):
-    # Final query for admins/staff images
-    provider_id_list = request_user.provider_ids()
-    # TODO: This 'just works' and is probably very slow... Better way?
-    account_providers_list = AccountProvider.objects.filter(
-        provider__id__in=provider_id_list)
-    admin_users = [ap.identity.created_by for ap in account_providers_list]
-    image_ids = []
-    for user in admin_users:
-        image_ids.extend(
-            user.application_set.values_list('id', flat=True))
-    admin_list = Image.objects.filter(
-        only_current_apps(),
-        id__in=image_ids)
-    return admin_list
-
-
 class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
 
     """

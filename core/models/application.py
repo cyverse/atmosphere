@@ -126,8 +126,9 @@ class Application(models.Model):
             admin_images = Application.admin_apps(atmo_user)
         else:
             admin_images = Application.objects.none()
-        return (public_images | user_images |
+        all_the_images = (public_images | user_images |
                 shared_images | admin_images).distinct()
+        return all_the_images
 
     def _current_machines(self, request_user=None):
         """
