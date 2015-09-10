@@ -19,7 +19,7 @@
     notifempty
     copytruncate
 }
-/var/log/celery/celery/imaging.log {
+/var/log/celery/imaging.log {
     daily
     size 100M
     rotate 10
@@ -29,7 +29,7 @@
     notifempty
     copytruncate
 }
-/var/log/celery/celery/email.log {
+/var/log/celery/email.log {
     daily
     size 100M
     rotate 10
@@ -39,7 +39,7 @@
     notifempty
     copytruncate
 }
-/var/log/celery/celery/flower.log {
+/var/log/celery/flower.log {
     daily
     size 100M
     rotate 10
