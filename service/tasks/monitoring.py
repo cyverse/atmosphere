@@ -10,7 +10,7 @@ from core.models.size import Size, convert_esh_size
 from core.models.instance import convert_esh_instance
 from core.models.provider import Provider
 from core.models.machine import get_or_create_provider_machine, ProviderMachine
-from core.models.application import Application
+from core.models.application import Application, ApplicationMembership
 from core.models import Allocation, Credential
 
 from service.monitoring import\
@@ -75,7 +75,7 @@ def monitor_machines():
 
 
 @task(name="prune_machines_for")
-def prune_machines_for(provider_id, print_logs=False, dry_run=True):
+def prune_machines_for(provider_id, print_logs=False, dry_run=False):
     """
     Look at the list of machines (as seen by the AccountProvider)
     if a machine cannot be found in the list, remove it.
@@ -83,8 +83,7 @@ def prune_machines_for(provider_id, print_logs=False, dry_run=True):
     """
     provider = Provider.objects.get(id=provider_id)
 
-    # For now, lets just ignore everything that isn't Tucson.
-    if 'iplant cloud - tucson' not in provider.location.lower():
+    if not provider.is_active():
         return
     if print_logs:
         import logging
@@ -94,8 +93,10 @@ def prune_machines_for(provider_id, print_logs=False, dry_run=True):
         logger.addHandler(consolehandler)
 
     account_driver = get_account_driver(provider)
+    db_machines = ProviderMachine.objects.filter(only_current_source(), instance_source__provider=provider)
     all_projects_map = tenant_id_to_name_map(account_driver)
     cloud_machines = account_driver.list_all_images()
+
     # Don't do anything if cloud machines == [None,[]]
     if not cloud_machines:
         return
@@ -105,13 +106,13 @@ def prune_machines_for(provider_id, print_logs=False, dry_run=True):
     for machine in db_machines:
         cloud_match = [mach for mach in cloud_machine_ids if mach == machine.identifier]
         if not cloud_match:
-            remove_machine(db_machine, dry_run=dry_run)
+            remove_machine(machine, dry_run=dry_run)
 
     if print_logs:
         logger.removeHandler(consolehandler)
 
 @task(name="monitor_machines_for")
-def monitor_machines_for(provider_id, print_logs=False, dry_run=True):
+def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
     """
     Run the set of tasks related to monitoring machines for a provider.
     Optionally, provide a list of usernames to monitor
@@ -214,9 +215,13 @@ def remove_machine(db_machine, now_time=None, dry_run=False):
         db_machine.save()
 
     db_version = db_machine.application_version
-    if db_version.filter(only_current_machines(now_time)).count() != 0:
+    if db_version.machines.filter(
+            # Look and see if all machines are end-dated.
+            Q(instance_source__end_date__isnull=True) |
+            Q(instance_source__end_date__gt=now_time)
+            ).count() != 0:
         # Other machines exist.. No cascade necessary.
-        return db_machine
+        return True
     # Version also completely end-dated. End date this version.
     db_version.end_date = now_time
     logger.info("End dating version: %s" % db_version)
@@ -224,9 +229,12 @@ def remove_machine(db_machine, now_time=None, dry_run=False):
         db_version.save()
 
     db_application = db_version.application
-    if db_application.filter(only_current_apps(now_time)).count() != 0:
+    if db_application.versions.filter(
+            # If all versions are end-dated
+            only_current(now_time)
+            ).count() != 0:
         # Other versions exist.. No cascade necessary..
-        return db_machine
+        return True
     db_application.end_date = now_time
     logger.info("End dating application: %s" % db_application)
     if not dry_run:
@@ -255,10 +263,11 @@ def make_machines_private(application, identities, account_drivers={}, provider_
                     _share_image(account_driver, cloud_machine, identity, current_tenants, dry_run=dry_run)
                     add_application_membership(application, identity, dry_run=dry_run)
     # All the cloud work has been completed, so "lock down" the application.
-    application.private = True
-    logger.info("Making Application %s private" % application.name)
-    if not dry_run:
-        application.save()
+    if application.private == False:
+        application.private = True
+        logger.info("Making Application %s private" % application.name)
+        if not dry_run:
+            application.save()
 
 def memoized_image(account_driver, db_machine, image_maps={}):
     provider = db_machine.instance_source.provider
@@ -287,11 +296,13 @@ def memoized_tenant_name_map(account_driver, tenant_list_maps={}):
     if not tenant_id_name_map:
         tenant_id_name_map = tenant_id_to_name_map(account_driver)
         tenant_list_maps[account_driver.core_provider] = tenant_id_name_map
-    return tenant_list_maps
+
+    return tenant_id_name_map
 
 def get_current_members(account_driver, machine, tenant_id_name_map):
     current_membership = account_driver.image_manager.shared_images_for(
             image_id=machine.identifier)
+
     current_tenants = []
     for membership in current_membership:
         tenant_id = membership.member_id
@@ -302,19 +313,23 @@ def get_current_members(account_driver, machine, tenant_id_name_map):
 
 def _share_image(account_driver, cloud_machine, identity, members, dry_run=False):
     """
-    INPUT: identity 
+    INPUT: use account_driver to share cloud_machine with identity (if not in 'members' list)
     """
     # Skip tenant-names who are NOT in the DB, and tenants who are already included
     missing_tenant = identity.credential_set.filter(~Q(value__in=members), key='ex_tenant_name')
     if missing_tenant.count() == 0:
-        logger.debug("SKIPPED _ Image %s already shared with %s" % (cloud_machine.id, identity))
+        #logger.debug("SKIPPED _ Image %s already shared with %s" % (cloud_machine.id, identity))
         return
     elif missing_tenant.count() > 1:
         raise Exception("Safety Check -- You should not be here")
     tenant_name = missing_tenant[0]
+    if cloud_machine.is_public == True:
+        logger.info("Making Machine %s private" % cloud_machine.id)
+        cloud_machine.update(is_public=False)
+
     logger.info("Sharing image %s : %s with %s" % (cloud_machine.id, identity.provider.location, tenant_name.value))
     if not dry_run:
-        account_driver.share_image(cloud_machine, tenant_name.value)
+        account_driver.image_manager.share_image(cloud_machine, tenant_name.value)
 
 def add_application_membership(application, identity, dry_run=False):
     for membership_obj in identity.identitymembership_set.all():
@@ -324,9 +339,9 @@ def add_application_membership(application, identity, dry_run=False):
         if application.applicationmembership_set.filter(group=group).count() == 0:
             logger.info("Added ApplicationMembership %s for %s" % (group.name, application.name))
             if not dry_run:
-                application.applicationmembership_set.add(group)
+                ApplicationMembership.objects.create(application=application, group=group)
         else:
-            logger.debug("SKIPPED _ Group %s already ApplicationMember for %s" % (group.name, application.name))
+            #logger.debug("SKIPPED _ Group %s already ApplicationMember for %s" % (group.name, application.name))
             pass
 
 def get_shared_identities(account_driver, cloud_machine, tenant_id_name_map):
