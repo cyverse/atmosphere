@@ -1267,16 +1267,22 @@ def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
     if esh_instance.extra['status'] == 'build':
         raise Exception("Metadata cannot be applied while EshInstance %s is in"
                         " the build state." % (esh_instance,))
+
     #if data.get('tmp_status') == '':
     #    raise Exception("There is a problem, houston")
     # ASSERT: We are ready to update the metadata
     if data.get('name'):
         esh_driver._connection.ex_set_server_name(esh_instance, data['name'])
     try:
-        return esh_driver._connection.ex_write_metadata(
+        previous = esh_driver._connection.ex_get_metadata(esh_instance)
+        current = esh_driver._connection.ex_write_metadata(
             esh_instance,
             data,
             replace_metadata=replace)
+        logger.info("%s update_metadata: previous %s", esh_instance.id, previous)
+        logger.info("%s update_metadata: data %s", esh_instance.id, data)
+        logger.info("%s update_metadata: current %s", esh_instance.id, current)
+        return current
     except Exception as e:
         logger.exception("Error updating the metadata")
         if 'incapable of performing the request' in e.message:
