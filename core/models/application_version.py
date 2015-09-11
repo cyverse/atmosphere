@@ -9,7 +9,7 @@ from threepio import logger
 
 from core.models.license import License
 from core.models.identity import Identity
-
+from core.query import only_current_source
 
 class ApplicationVersion(models.Model):
 
@@ -68,6 +68,42 @@ class ApplicationVersion(models.Model):
         return "%s:%s - %s" % (self.application.name,
                                self.name,
                                self.start_date)
+
+    def active_machines(self):
+        """
+        Show machines that are from an active provider and non-end-dated.
+        """
+        return self.machines.filter(only_current_source())
+
+    @classmethod
+    def current_machines(cls, request_user):
+        # Showing non-end dated, public ApplicationVersions
+        public_set = ApplicationVersion.objects.filter(
+            only_current(),
+            only_current_machines_in_version(),
+            application__private=False)
+        if not isinstance(request_user, AnonymousUser):
+            # NOTE: Showing 'my pms EVEN if they are end-dated.
+            my_set = ApplicationVersion.objects.filter(
+                Q(created_by=request_user) |
+                Q(application__created_by=request_user) |
+                Q(machines__instance_source__created_by=request_user))
+            all_group_ids = request_user.group_set.values('id')
+            # Showing non-end dated, shared ApplicationVersions
+            shared_set = ApplicationVersion.objects.filter(
+                only_current(), only_current_machines_in_version(), Q(
+                    membership=all_group_ids) | Q(
+                    machines__members__in=all_group_ids))
+            if request_user.is_staff:
+                admin_set = get_admin_image_versions(request_user)
+            else:
+                admin_set = ApplicationVersion.objects.none()
+        else:
+            admin_set = shared_set = my_set = ApplicationVersion.objects.none()
+
+        # Make sure no dupes.
+        all_versions = (public_set | shared_set | my_set | admin_set).distinct()
+        return all_versions
 
     @property
     def machine_ids(self):
@@ -135,13 +171,19 @@ def get_app_version(app, version, created_by=None, created_by_identity=None):
             created_by_identity)
         return app_version
 
-def test_machine_in_version(app, version, new_machine_id):
+def test_machine_in_version(app, version_name, new_machine_id):
+    """
+    Returns 'app_version' IF:
+    a version exists for this app with the version_name
+    and it is EMPTY OR it includes the machine
+    Otherwise, return None.
+    """
     try:
         app_version = ApplicationVersion.objects.get(
             application=app,
-            name=version)
-        if app_version.machines.count() == 0 or app_version.machines.get(
-                instance_source__identifier=new_machine_id):
+            name=version_name)
+        if app_version.machines.count() == 0 or app_version.machines.filter(
+                instance_source__identifier=new_machine_id).count() > 0:
             return app_version
     except ApplicationVersion.DoesNotExist:
         return None
@@ -175,7 +217,8 @@ def create_app_version(
     if not created_by_identity:
         created_by_identity = app.created_by_identity
 
-    app_version = test_machine_in_version(app, version_str, provider_machine_id)
+    if provider_machine_id:
+        app_version = test_machine_in_version(app, version_str, provider_machine_id)
     if app_version:
         app_version.created_by = created_by
         app_version.created_by_identity = created_by_identity

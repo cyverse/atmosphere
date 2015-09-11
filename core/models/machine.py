@@ -217,7 +217,7 @@ def get_or_create_provider_machine(image_id, machine_name,
     if not version:
         version = get_version_for_machine(provider_uuid, image_id)
     if not version:
-        version = create_app_version(app, "1.0")
+        version = create_app_version(app, "1.0", provider_machine_id=image_id)
 
     return create_provider_machine(
         image_id,

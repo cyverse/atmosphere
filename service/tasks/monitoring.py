@@ -1,20 +1,24 @@
 from datetime import timedelta
 
 from django.utils import timezone
+from django.db.models import Q
 
 from celery.decorators import task
 
-from core.query import only_current
+from core.query import only_current, only_current_machines, only_current_apps, only_current_source
 from core.models.size import Size, convert_esh_size
 from core.models.instance import convert_esh_instance
 from core.models.provider import Provider
-from core.models import Allocation
+from core.models.machine import get_or_create_provider_machine, ProviderMachine
+from core.models.application import Application
+from core.models import Allocation, Credential
 
 from service.monitoring import\
     _cleanup_missing_instances,\
     _get_instance_owner_map, \
     _get_identity_from_tenant_name
 from service.monitoring import user_over_allocation_enforcement
+from service.driver import get_account_driver
 from service.cache import get_cached_driver
 from glanceclient.exc import HTTPNotFound
 
@@ -51,23 +55,32 @@ def strfdate(datetime_o, fmt=None):
     return datetime_o.strftime(fmt)
 
 
+def tenant_id_to_name_map(account_driver):
+    """
+    INPUT: account driver
+    Get a list of projects
+    OUTPUT: A dictionary with keys of ID and values of name
+    """
+    all_projects = account_driver.list_projects()
+    return {tenant.id : tenant.name for tenant in all_projects}
+
+
 @task(name="monitor_machines")
 def monitor_machines():
     """
-    Update machines by querying the Cloud
+    Update machines by querying the Cloud for each active provider.
     """
     for p in Provider.get_active():
         monitor_machines_for.apply_async(args=[p.id])
 
-@task(name="monitor_machines_for")
-def monitor_machines_for(provider_id, print_logs=False):
+
+@task(name="prune_machines_for")
+def prune_machines_for(provider_id, print_logs=False, dry_run=True):
     """
-    Run the set of tasks related to monitoring machines for a provider.
-    Optionally, provide a list of usernames to monitor
-    While debugging, print_logs=True can be very helpful.
-    start_date and end_date allow you to search a 'non-standard' window of time.
+    Look at the list of machines (as seen by the AccountProvider)
+    if a machine cannot be found in the list, remove it.
+    NOTE: BEFORE CALLING THIS TASK you should ensure that the AccountProvider can see ALL images. Failure to do so will result in any unseen image to be prematurely end-dated and removed from the API/UI.
     """
-    from core.models import Application, ProviderMachine, Provider
     provider = Provider.objects.get(id=provider_id)
 
     # For now, lets just ignore everything that isn't Tucson.
@@ -80,58 +93,312 @@ def monitor_machines_for(provider_id, print_logs=False):
         consolehandler.setLevel(logging.DEBUG)
         logger.addHandler(consolehandler)
 
-    testable_apps = ProviderMachine.objects.filter(instance_source__provider__id=4).values_list('application_version__application', flat=True).distinct()
-    apps = Application.objects.filter(id__in=testable_apps)
+    account_driver = get_account_driver(provider)
+    all_projects_map = tenant_id_to_name_map(account_driver)
+    cloud_machines = account_driver.list_all_images()
+    # Don't do anything if cloud machines == [None,[]]
+    if not cloud_machines:
+        return
 
-    for application in apps:
-        if not application.private:
-            validate_public_app(application, provider)
-        # TODO: Add more logic later.
+    # Loop1 - End-date All machines in the DB that can NOT be found in the cloud.
+    cloud_machine_ids = [mach.id for mach in cloud_machines]
+    for machine in db_machines:
+        cloud_match = [mach for mach in cloud_machine_ids if mach == machine.identifier]
+        if not cloud_match:
+            remove_machine(db_machine, dry_run=dry_run)
 
     if print_logs:
         logger.removeHandler(consolehandler)
 
+@task(name="monitor_machines_for")
+def monitor_machines_for(provider_id, print_logs=False, dry_run=True):
+    """
+    Run the set of tasks related to monitoring machines for a provider.
+    Optionally, provide a list of usernames to monitor
+    While debugging, print_logs=True can be very helpful.
+    start_date and end_date allow you to search a 'non-standard' window of time.
 
-def validate_public_app(application, test_provider):
-    from service.driver import get_account_driver
-    from core.models import ProviderMachine
-    accounts = get_account_driver(test_provider)
-    matching_machines = ProviderMachine.objects.filter(
-        instance_source__provider=test_provider,
-        application_version__application=application).distinct()
-    for machine in matching_machines:
-        try:
-            cloud_machine = accounts.get_image(machine.identifier)
-            if not cloud_machine:
-                logger.warn("WARN: Machine %s is MISSING. Recommend End-Date of the PM (And possibly cascading to version and application!" % machine.identifier)
-                continue
-        except HTTPNotFound:
-            logger.warn("WARN: Machine %s NOT FOUND!" % machine.identifier)
-            continue
-        if not cloud_machine.is_public:
-            try:
-                cloud_membership = accounts.image_manager.shared_images_for(
-                    image_id=machine.identifier)
-            except HTTPNotFound:
-                logger.warn("WARN: Machine %s is MISSING MEMBERS!" % machine.identifier)
-                cloud_membership = []
-            _make_app_private(test_provider.id, accounts, application, cloud_membership)
+    NEW LOGIC:
+    * Membership and Privacy is dictated at the APPLICATION level.
+    * loop over all machines on the cloud
+    *   * If machine is PUBLIC, ensure the APP is public.
+    *   * If machine is PRIVATE, ensure the APP is private && sync the membership!
+    *   * Ignore the possibility of conflicts, prior schema should be sufficient for ensuring the above two usecases
+    """
+    provider = Provider.objects.get(id=provider_id)
 
-def _make_app_private(provider_id, accounts, application, cloud_membership):
-    from core.models import Identity, ApplicationMembership
-    for image_membership in cloud_membership:
-        tenant = accounts.get_project_by_id(image_membership.member_id)
-        if not tenant:
+    # For now, lets just ignore everything that isn't Tucson.
+    if 'iplant cloud - tucson' not in provider.location.lower():
+        return
+    if print_logs:
+        import logging
+        import sys
+        consolehandler = logging.StreamHandler(sys.stdout)
+        consolehandler.setLevel(logging.DEBUG)
+        logger.addHandler(consolehandler)
+
+    #STEP 1: get the apps
+    new_public_apps, private_apps = get_public_and_private_apps(provider)
+
+    #STEP 2: Find conflicts and report them.
+    intersection = set(private_apps.keys()) & set(new_public_apps)
+    if intersection:
+        raise Exception("These applications were listed as BOTH public && private apps. Manual conflict correction required: %s" % intersection)
+
+    #STEP 3: Apply the changes at app-level
+    #Memoization at this high of a level will help save time
+    account_drivers = {} # Provider -> accountDriver
+    provider_tenant_mapping = {}  # Provider -> [{TenantId : TenantName},...]
+    image_maps = {}
+    for app in new_public_apps:
+        make_machines_public(app, account_drivers, dry_run=dry_run)
+
+    for app, membership in private_apps.items():
+        make_machines_private(app, membership, account_drivers, provider_tenant_mapping, image_maps, dry_run=dry_run)
+
+    if print_logs:
+        logger.removeHandler(consolehandler)
+    return
+
+def get_public_and_private_apps(provider):
+    """
+    INPUT: Provider provider
+    OUTPUT: 2-tuple (
+            new_public_apps [],
+            private_apps(key) + super-set-membership(value) {})
+    """
+    account_driver = get_account_driver(provider)
+    all_projects_map = tenant_id_to_name_map(account_driver)
+    cloud_machines = account_driver.list_all_images()
+
+    db_machines = ProviderMachine.objects.filter(only_current_source(), instance_source__provider=provider)
+    new_public_apps = []
+    private_apps = {}
+    # ASSERT: All non-end-dated machines in the DB can be found in the cloud
+    # if you do not believe this is the case, you should call 'prune_machines_for'
+    for cloud_machine in cloud_machines:
+        #Filter out: ChromoSnapShot, eri-, eki-, ... (Or dont..)
+        if any(cloud_machine.name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
+            #logger.debug("Skipping cloud machine %s" % cloud_machine)
             continue
-        for identity in Identity.objects.filter(provider__id=provider_id, credential__value=tenant.name):
-            identity_members = identity.identitymembership_set.all().distinct()
-            for membership in identity_members:
-                ApplicationMembership.objects.get_or_create(
-                    application=application, group=membership.member)
-                logger.info("ADD: %s to %s" % (membership.member.name, application.name))
+        db_machine = get_or_create_provider_machine(cloud_machine.id, cloud_machine.name, provider.uuid)
+        db_version = db_machine.application_version
+        db_application = db_version.application
+
+        if cloud_machine.is_public:
+            if db_application.private and db_application not in new_public_apps:
+                new_public_apps.append(db_application) #Distinct list..
+            #Else the db app is public and no changes are necessary.
+        else:
+            # cloud machine is private
+            membership = get_shared_identities(account_driver, cloud_machine, all_projects_map)
+            all_members = private_apps.get(db_application, [])
+            all_members.extend(membership)
+            #Distinct list..
+            private_apps[db_application] = all_members
+    return new_public_apps, private_apps
+
+
+def remove_machine(db_machine, now_time=None, dry_run=False):
+    """
+    End date the DB ProviderMachine
+    If all PMs are end-dated, End date the ApplicationVersion
+    if all Versions are end-dated, End date the Application
+    """
+    if not now_time:
+        now_time = timezone.now()
+
+    db_machine.end_date = now_time
+    logger.info("End dating machine: %s" % db_machine)
+    if not dry_run:
+        db_machine.save()
+
+    db_version = db_machine.application_version
+    if db_version.filter(only_current_machines(now_time)).count() != 0:
+        # Other machines exist.. No cascade necessary.
+        return db_machine
+    # Version also completely end-dated. End date this version.
+    db_version.end_date = now_time
+    logger.info("End dating version: %s" % db_version)
+    if not dry_run:
+        db_version.save()
+
+    db_application = db_version.application
+    if db_application.filter(only_current_apps(now_time)).count() != 0:
+        # Other versions exist.. No cascade necessary..
+        return db_machine
+    db_application.end_date = now_time
+    logger.info("End dating application: %s" % db_application)
+    if not dry_run:
+        db_application.save()
+    return True
+
+
+def make_machines_private(application, identities, account_drivers={}, provider_tenant_mapping={}, image_maps={}, dry_run=False):
+    """
+    This method is called when the DB has marked the Machine/Application as PUBLIC
+    But the CLOUD states that the machine is really private.
+    GOAL: All versions and machines will be listed as PRIVATE on the cloud and include AS MANY identities as exist.
+    """
+    for version in application.active_versions():
+        for machine in version.active_machines():
+            # For each *active* machine in app/version..
+            # Loop over each identity and check the list of 'current tenants' as viewed by keystone.
+            account_driver = memoized_driver(machine, account_drivers)
+            tenant_name_mapping = memoized_tenant_name_map(account_driver, provider_tenant_mapping)
+            current_tenants = get_current_members(
+                    account_driver, machine, tenant_name_mapping)
+            provider = machine.instance_source.provider
+            cloud_machine = memoized_image(account_driver, machine, image_maps)
+            for identity in identities:
+                if identity.provider == provider:
+                    _share_image(account_driver, cloud_machine, identity, current_tenants, dry_run=dry_run)
+                    add_application_membership(application, identity, dry_run=dry_run)
+    # All the cloud work has been completed, so "lock down" the application.
     application.private = True
-    application.save()
-    logger.info("PRIVATE: %s" % application.name)
+    logger.info("Making Application %s private" % application.name)
+    if not dry_run:
+        application.save()
+
+def memoized_image(account_driver, db_machine, image_maps={}):
+    provider = db_machine.instance_source.provider
+    identifier = db_machine.instance_source.identifier
+    cloud_machine = image_maps.get( (provider, identifier) )
+    # Return memoized result
+    if cloud_machine:
+        return cloud_machine
+    # Retrieve and remember
+    cloud_machine = account_driver.get_image(identifier)
+    image_maps[ (provider, identifier) ] = cloud_machine
+    return cloud_machine
+
+def memoized_driver(machine, account_drivers={}):
+    provider = machine.instance_source.provider
+    account_driver = account_drivers.get(provider)
+    if not account_driver:
+        account_driver = get_account_driver(provider)
+        if not account_driver:
+            raise Exception("Cannot instantiate an account driver for %s" % provider)
+        account_drivers[provider] = account_driver
+    return account_driver
+
+def memoized_tenant_name_map(account_driver, tenant_list_maps={}):
+    tenant_id_name_map = tenant_list_maps.get(account_driver.core_provider)
+    if not tenant_id_name_map:
+        tenant_id_name_map = tenant_id_to_name_map(account_driver)
+        tenant_list_maps[account_driver.core_provider] = tenant_id_name_map
+    return tenant_list_maps
+
+def get_current_members(account_driver, machine, tenant_id_name_map):
+    current_membership = account_driver.image_manager.shared_images_for(
+            image_id=machine.identifier)
+    current_tenants = []
+    for membership in current_membership:
+        tenant_id = membership.member_id
+        tenant_name = tenant_id_name_map.get(tenant_id)
+        if tenant_name:
+            current_tenants.append(tenant_name)
+    return current_tenants
+
+def _share_image(account_driver, cloud_machine, identity, members, dry_run=False):
+    """
+    INPUT: identity 
+    """
+    # Skip tenant-names who are NOT in the DB, and tenants who are already included
+    missing_tenant = identity.credential_set.filter(~Q(value__in=members), key='ex_tenant_name')
+    if missing_tenant.count() == 0:
+        logger.debug("SKIPPED _ Image %s already shared with %s" % (cloud_machine.id, identity))
+        return
+    elif missing_tenant.count() > 1:
+        raise Exception("Safety Check -- You should not be here")
+    tenant_name = missing_tenant[0]
+    logger.info("Sharing image %s : %s with %s" % (cloud_machine.id, identity.provider.location, tenant_name.value))
+    if not dry_run:
+        account_driver.share_image(cloud_machine, tenant_name.value)
+
+def add_application_membership(application, identity, dry_run=False):
+    for membership_obj in identity.identitymembership_set.all():
+        # For every 'member' of this identity:
+        group = membership_obj.member
+        # Add an application membership if not already there
+        if application.applicationmembership_set.filter(group=group).count() == 0:
+            logger.info("Added ApplicationMembership %s for %s" % (group.name, application.name))
+            if not dry_run:
+                application.applicationmembership_set.add(group)
+        else:
+            logger.debug("SKIPPED _ Group %s already ApplicationMember for %s" % (group.name, application.name))
+            pass
+
+def get_shared_identities(account_driver, cloud_machine, tenant_id_name_map):
+    """
+    INPUT: Provider, Cloud Machine (private), mapping of tenant_id to tenant_name
+    OUTPUT: List of identities that *include* the 'tenant name' credential matched to 'a shared user' in openstack.
+    """
+    from core.models import Identity
+    cloud_membership = account_driver.image_manager.shared_images_for(
+        image_id=cloud_machine.id)
+    # NOTE: the START type of 'all_identities' is list (in case no ValueListQuerySet is ever found)
+    all_identities = []
+    for cloud_machine_membership in cloud_membership:
+        tenant_id = cloud_machine_membership.member_id
+        tenant_name = tenant_id_name_map.get(tenant_id)
+        if not tenant_name:
+            logger.warn("TENANT ID: %s NOT FOUND - %s" % (tenant_id, cloud_machine_membership))
+            continue
+        # Find matching 'tenantName' credential and add all matching identities w/ that tenantName.
+        matching_creds = Credential.objects.filter(
+                key='ex_tenant_name',  # TODO: ex_project_name on next OStack update.
+                value=tenant_name,
+                # NOTE: re-add this line when not replicating clouds!
+                #identity__provider=account_driver.core_provider)
+                )
+        identity_ids = matching_creds.values_list('identity', flat=True)
+        if not all_identities:
+            all_identities = identity_ids
+        else:
+            all_identities = all_identities | identity_ids
+    identity_list = Identity.objects.filter(id__in=all_identities)
+    return identity_list
+
+def update_membership(application, shared_identities):
+    """
+    For machine in application/version:
+        Get list of current users
+        For "super-set" list of identities:
+            if identity exists on provider && identity NOT in current user list:
+                account_driver.add_user(identity.name)
+    """
+    db_identity_membership = identity.identitymembership_set.all().distinct()
+    for db_identity_member in db_identity_membership:
+        # For each group who holds this identity:
+        #   grant them access to the now-private App, Version & Machine
+        db_group = db_identity_member.member
+        ApplicationMembership.objects.get_or_create(
+            application=application, group=db_group)
+        logger.info("Added Application, Version, and Machine Membership to Group: %s" % (db_group,))
+    return application
+
+
+def make_machines_public(application, account_drivers={}, dry_run=False):
+    """
+    This method is called when the DB has marked the Machine/Application as PRIVATE
+    But the CLOUD states that the machine is really public.
+    """
+    for version in application.active_versions():
+        for machine in version.active_machines():
+            provider = machine.instance_source.provider
+            account_driver = memoized_driver(machine, account_drivers)
+            image = account_driver.image_manager.get_image(image_id=machine.identifier)
+            if image and image.is_public == False:
+                logger.info("Making Machine %s public" % image.id)
+                if not dry_run:
+                    image.update(is_public=True)
+    # Set top-level application to public (This will make all versions and PMs public too!)
+    application.private = False
+    logger.info("Making Application %s public" % application.name)
+    if not dry_run:
+        application.save()
+
 
 @task(name="monitor_instances")
 def monitor_instances():

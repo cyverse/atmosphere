@@ -53,31 +53,4 @@ class ImageVersionViewSet(AuthOptionalViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
-
-        # Showing non-end dated, public ImageVersions
-        public_set = ImageVersion.objects.filter(
-            only_current(),
-            only_current_machines_in_version(),
-            application__private=False)
-        if not isinstance(request_user, AnonymousUser):
-            # NOTE: Showing 'my pms EVEN if they are end-dated.
-            my_set = ImageVersion.objects.filter(
-                Q(created_by=request_user) |
-                Q(application__created_by=request_user) |
-                Q(machines__instance_source__created_by=request_user))
-            all_group_ids = request_user.group_set.values('id')
-            # Showing non-end dated, shared ImageVersions
-            shared_set = ImageVersion.objects.filter(
-                only_current(), only_current_machines_in_version(), Q(
-                    membership=all_group_ids) | Q(
-                    machines__members__in=all_group_ids))
-            if request_user.is_staff:
-                admin_set = get_admin_image_versions(request_user)
-            else:
-                admin_set = ImageVersion.objects.none()
-        else:
-            admin_set = shared_set = my_set = ImageVersion.objects.none()
-
-        # Make sure no dupes.
-        all_versions = (public_set | shared_set | my_set | admin_set).distinct()
-        return all_versions
+        return ImageVersion.current_machines(request_user)
