@@ -1,15 +1,23 @@
 from rest_framework import exceptions, serializers
-from core.models import Instance, MachineRequest, Identity, AtmosphereUser as User, IdentityMembership
+from core.models import ApplicationVersion, ProviderMachine, Group, BootScript, Provider, License, Instance, MachineRequest, Identity, AtmosphereUser as User, IdentityMembership
 from core.models.status_type import StatusType
 from api.v2.serializers.summaries import (
     AllocationSummarySerializer,
+    ImageVersionSummarySerializer,
+    BootScriptSummarySerializer,
     IdentitySummarySerializer,
+    GroupSummarySerializer,
     InstanceSummarySerializer,
+    LicenseSummarySerializer,
     UserSummarySerializer,
     ProviderSummarySerializer,
+    ProviderMachineSummarySerializer,
     QuotaSummarySerializer,
+    UserSummarySerializer,
     StatusTypeSummarySerializer
 )
+from api.v2.serializers.fields import (
+    ProviderMachineRelatedField, ModelRelatedField)
 
 
 class UserRelatedField(serializers.PrimaryKeyRelatedField):
@@ -24,12 +32,24 @@ class UserRelatedField(serializers.PrimaryKeyRelatedField):
 
 
 class InstanceRelatedField(serializers.RelatedField):
+    
     def get_queryset(self):
         return Instance.objects.all()
 
     def to_representation(self, value):
         instance = Instance.objects.get(pk=value.pk)
         serializer = InstanceSummarySerializer(instance, context=self.context)
+        return serializer.data
+
+
+class ProviderRelatedField(serializers.RelatedField):
+
+    def get_queryset(self):
+        return Provider.objects.all()
+    
+    def to_representation(self, value):
+        provider = Provider.objects.get(id=value.id)
+        serializer = ProviderSummarySerializer(provider, context=self.context)
         return serializer.data
 
 
@@ -61,40 +81,53 @@ class IdentityRelatedField(serializers.RelatedField):
 class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.CharField(read_only=True)
     instance = InstanceRelatedField(read_only=True)
-    #created_by = UserRelatedField(read_only=True)
-    #user = UserSummarySerializer(
-    #    source='membership.identity.created_by',
-    #    read_only=True)
-    #identity = IdentityRelatedField(source='membership.identity',
-    #                                queryset=Identity.objects.none())
-    #provider = ProviderSummarySerializer(
-    #    source='membership.identity.provider',
-    #    read_only=True)
-    #created_by="AYY"
-    #status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
-    #                                allow_null=True,
-    #                                required=False)
-    #quota = QuotaRelatedField(queryset=Quota.objects.all(),
-    #                          allow_null=True,
-    #                          required=False)
-
-    #allocation = AllocationRelatedField(queryset=Allocation.objects.all(),
-    #                                    allow_null=True,
-    #                                    required=False)
-
-    # TODO should be refactored to not use SerializerMethodField()
-    #current_quota = serializers.SerializerMethodField()
-    #current_allocation = serializers.SerializerMethodField()
-
-    #def get_current_quota(self, request):
-    #    user_membership = IdentityMembership.objects.get(
-    #        id=request.membership_id)
-    #    return user_membership.quota.id if user_membership.quota else None
-
-    #def get_current_allocation(self, request):
-    #    user_membership = IdentityMembership.objects.get(
-    #        id=request.membership_id)
-    #    return user_membership.allocation.id if user_membership.allocation else None
+    status = serializers.CharField()
+    parent_machine = ProviderMachineRelatedField()
+    new_application_name = serializers.CharField()
+    new_application_description = serializers.CharField()
+    new_application_visibility = serializers.CharField()
+    access_list = serializers.CharField()
+    iplant_sys_files = serializers.CharField()
+    installed_software = serializers.CharField()
+    exclude_files = serializers.CharField()
+    new_version_name = serializers.CharField()
+    new_version_change_log = serializers.CharField()
+    new_version_tags = serializers.CharField()
+    new_version_memory_min = serializers.CharField()
+    new_version_storage_min = serializers.CharField()
+    new_version_allow_imaging = serializers.BooleanField()
+    new_version_forked = serializers.BooleanField()
+    new_version_licenses = ModelRelatedField(
+        many=True,
+        queryset=License.objects.all(),
+        serializer_class=LicenseSummarySerializer,
+        style={'base_template': 'input.html'})
+    new_version_scripts = ModelRelatedField(
+        many=True,
+        queryset=BootScript.objects.all(),
+        serializer_class=BootScriptSummarySerializer,
+        style={'base_template': 'input.html'})
+    new_version_membership = ModelRelatedField(
+        many=True,
+        queryset=Group.objects.all(),
+        serializer_class=GroupSummarySerializer,
+        style={'base_template':'input.html'})
+    new_machine_provider = ProviderRelatedField(
+            queryset=Provider.objects.all())
+    new_machine_owner = ModelRelatedField(
+        queryset=User.objects.all(),
+        serializer_class = UserSummarySerializer,
+        style={'base_template':'input.html'})
+    start_date = serializers.DateTimeField()
+    end_date = serializers.DateTimeField()
+    new_machine = ModelRelatedField(
+        queryset = ProviderMachine.objects.all(),
+        serializer_class = ProviderMachineSummarySerializer,
+        style = {'base_template':'input.html'})
+    new_application_version = ModelRelatedField(
+        queryset = ApplicationVersion.objects.all(),
+        serializer_class = ImageVersionSummarySerializer,
+        style = {'base_template':'input.html'})
 
     class Meta:
         model = MachineRequest
@@ -103,19 +136,32 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'id',
             'uuid',
             'url',
-            'instance'
-            #'request',
-            #'description',
-            #'status',
-            #'created_by',
-            #'user',
-            #'identity',
-            #'provider',
-            #'admin_message',
-            #'quota',
-            #'allocation',
-            #'current_quota',
-            #'current_allocation'
+            'instance',
+            'status',
+            'parent_machine',
+            'new_application_name',
+            'new_application_description',
+            'new_application_visibility',
+            'access_list',
+            'iplant_sys_files',
+            'installed_software',
+            'exclude_files',
+            'new_version_name',
+            'new_version_change_log',
+            'new_version_tags',
+            'new_version_memory_min',
+            'new_version_storage_min',
+            'new_version_allow_imaging',
+            'new_version_forked',
+            'new_version_licenses',
+            'new_version_scripts',
+            'new_version_membership',
+            'new_machine_provider',
+            'new_machine_owner',
+            'start_date',
+            'end_date',
+            'new_machine',
+            'new_application_version'
         )
 
 
