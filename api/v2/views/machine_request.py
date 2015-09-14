@@ -19,7 +19,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
         )
         if(username is not None):
             return self.model.objects.filter(new_machine_owner__username=username)
-        return self.model.objects.filter(~Q(status__contains="completed"))
+        return self.model.objects.filter(~Q(status__in=["completed", "skipped", "deny"]))
 
     queryset = MachineRequest.objects.none()
     model = MachineRequest
