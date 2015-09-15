@@ -6,30 +6,9 @@ from django.contrib.auth.models import Group as DjangoGroup
 from django.contrib.sessions.models import Session as DjangoSession
 from django.utils import timezone
 
-from core.models.application import Application
-from core.models.cloud_admin import CloudAdministrator
-from core.models.credential import Credential, ProviderCredential
-from core.models.export_request import ExportRequest
-from core.models.group import Group, IdentityMembership
-from core.models.identity import Identity
-from core.models.instance import Instance, InstanceStatusHistory
-from core.models.machine import ProviderMachine, ProviderMachineMembership
-from core.models.machine_request import MachineRequest
-from core.models.maintenance import MaintenanceRecord
-from core.models.node import NodeController
-from core.models.profile import UserProfile
-from core.models.provider import Provider, ProviderType, AccountProvider
-from core.models.quota import Quota
-from core.models.allocation_strategy import Allocation, AllocationStrategy
-from core.models.resource_request import ResourceRequest
-from core.models.size import Size
-from core.models.tag import Tag
-from core.models.user import AtmosphereUser
-from core.models.volume import Volume
-from core.models.application_version import (
-        ApplicationVersion, ApplicationVersionMembership)
-
 from threepio import logger
+
+from core import models
 
 
 def private_object(modeladmin, request, queryset):
@@ -42,7 +21,7 @@ def end_date_object(modeladmin, request, queryset):
 end_date_object.short_description = 'Add end-date to objects'
 
 
-@admin.register(NodeController)
+@admin.register(models.NodeController)
 class NodeControllerAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     list_display = ("alias", "hostname",
@@ -50,14 +29,14 @@ class NodeControllerAdmin(admin.ModelAdmin):
                     "ssh_key_added")
 
 
-@admin.register(MaintenanceRecord)
+@admin.register(models.MaintenanceRecord)
 class MaintenanceAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     list_display = ("title", "provider", "start_date",
                     "end_date", "disable_login")
 
 
-@admin.register(Quota)
+@admin.register(models.Quota)
 class QuotaAdmin(admin.ModelAdmin):
     list_display = (
         "__unicode__",
@@ -68,12 +47,12 @@ class QuotaAdmin(admin.ModelAdmin):
         "suspended_count")
 
 
-@admin.register(AllocationStrategy)
+@admin.register(models.AllocationStrategy)
 class AllocationStrategyAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(Allocation)
+@admin.register(models.Allocation)
 class AllocationAdmin(admin.ModelAdmin):
 
     list_display = ("threshold_str", "delta_str")
@@ -93,7 +72,7 @@ class AllocationAdmin(admin.ModelAdmin):
     delta_str.short_description = 'Delta'
 
 
-@admin.register(ProviderMachine)
+@admin.register(models.ProviderMachine)
 class ProviderMachineAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     search_fields = [
@@ -119,7 +98,7 @@ class ProviderMachineAdmin(admin.ModelAdmin):
             **kwargs)
 
 
-@admin.register(ApplicationVersionMembership)
+@admin.register(models.ApplicationVersionMembership)
 class ApplicationVersionMembershipAdmin(admin.ModelAdmin):
     list_display = ["id", "_app_name", "_start_date", "_app_private", "group"]
     list_filter = [
@@ -139,9 +118,9 @@ class ApplicationVersionMembershipAdmin(admin.ModelAdmin):
 
     def render_change_form(self, request, context, *args, **kwargs):
         context['adminform'].form.fields['application_version'].queryset = \
-                ApplicationVersion.objects.order_by('application__name')
+                models.ApplicationVersion.objects.order_by('application__name')
         context['adminform'].form.fields[
-            'group'].queryset = Group.objects.order_by('name')
+            'group'].queryset = models.Group.objects.order_by('name')
         return super(
             ApplicationVersionMembershipAdmin,
             self).render_change_form(
@@ -152,7 +131,7 @@ class ApplicationVersionMembershipAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(ProviderMachineMembership)
+@admin.register(models.ProviderMachineMembership)
 class ProviderMachineMembershipAdmin(admin.ModelAdmin):
     list_display = ["id", "_pm_provider", "_pm_identifier", "_pm_name",
                     "_pm_private", "group"]
@@ -178,11 +157,11 @@ class ProviderMachineMembershipAdmin(admin.ModelAdmin):
 
 
 class ProviderCredentialInline(admin.TabularInline):
-    model = ProviderCredential
+    model = models.ProviderCredential
     extra = 1
 
 
-@admin.register(Provider)
+@admin.register(models.Provider)
 class ProviderAdmin(admin.ModelAdmin):
     inlines = [ProviderCredentialInline, ]
     actions = [end_date_object, ]
@@ -205,7 +184,7 @@ class ProviderAdmin(admin.ModelAdmin):
         return None
 
 
-@admin.register(Size)
+@admin.register(models.Size)
 class SizeAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     search_fields = ["name", "alias", "provider__location"]
@@ -214,13 +193,13 @@ class SizeAdmin(admin.ModelAdmin):
     list_filter = ["provider__location"]
 
 
-@admin.register(Tag)
+@admin.register(models.Tag)
 class TagAdmin(admin.ModelAdmin):
     search_fields = ["name"]
     list_display = ["name", "description"]
 
 
-@admin.register(Volume)
+@admin.register(models.Volume)
 class VolumeAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     search_fields = ["identifier", "name", "location"]
@@ -229,7 +208,7 @@ class VolumeAdmin(admin.ModelAdmin):
     list_filter = ["instance_source__provider__location"]
 
 
-@admin.register(Application)
+@admin.register(models.Application)
 class ApplicationAdmin(admin.ModelAdmin):
     actions = [end_date_object, private_object]
     search_fields = [
@@ -262,7 +241,7 @@ class ApplicationAdmin(admin.ModelAdmin):
     def render_change_form(self, request, context, *args, **kwargs):
         application = context['original']
         context['adminform'].form.fields['created_by_identity'].queryset = \
-            Identity.objects.filter(created_by=application.created_by)
+            models.Identity.objects.filter(created_by=application.created_by)
         return super(
             ApplicationAdmin,
             self).render_change_form(
@@ -273,11 +252,11 @@ class ApplicationAdmin(admin.ModelAdmin):
 
 
 class CredentialInline(admin.TabularInline):
-    model = Credential
+    model = models.Credential
     extra = 1
 
 
-@admin.register(Identity)
+@admin.register(models.Identity)
 class IdentityAdmin(admin.ModelAdmin):
     inlines = [CredentialInline, ]
     list_display = ("created_by", "provider", "_credential_info")
@@ -295,14 +274,14 @@ class IdentityAdmin(admin.ModelAdmin):
 
 
 class UserProfileInline(admin.StackedInline):
-    model = UserProfile
+    model = models.UserProfile
     max_num = 1
     can_delete = False
     extra = 0
     verbose_name_plural = 'profile'
 
 
-@admin.register(AtmosphereUser)
+@admin.register(models.AtmosphereUser)
 class UserAdmin(AuthUserAdmin):
     inlines = [UserProfileInline]
     fieldsets = AuthUserAdmin.fieldsets + (
@@ -310,7 +289,7 @@ class UserAdmin(AuthUserAdmin):
     )
 
 
-@admin.register(IdentityMembership)
+@admin.register(models.IdentityMembership)
 class IdentityMembershipAdmin(admin.ModelAdmin):
     search_fields = ["identity__created_by__username", ]
     list_display = ["_identity_user", "_identity_provider",
@@ -343,7 +322,7 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
     _identity_user.short_description = 'Username'
 
 
-@admin.register(ExportRequest)
+@admin.register(models.ExportRequest)
 class ExportRequestAdmin(admin.ModelAdmin):
     list_display = ["export_name", "export_owner_username",
                     "source_provider", "start_date", "end_date", "status",
@@ -356,7 +335,7 @@ class ExportRequestAdmin(admin.ModelAdmin):
         return export_request.source.provider
 
 
-@admin.register(MachineRequest)
+@admin.register(models.MachineRequest)
 class MachineRequestAdmin(admin.ModelAdmin):
     search_fields = [
         "new_machine_owner__username",
@@ -384,20 +363,20 @@ class MachineRequestAdmin(admin.ModelAdmin):
         instance = machine_request.instance
         user = machine_request.new_machine_owner
         provider = machine_request.new_machine_provider
-        context['adminform'].form.fields[
-            'new_machine_owner'].queryset = provider.list_users()
-        context['adminform'].form.fields['new_machine'].queryset = ProviderMachine.objects.filter(
-            instance_source__provider=provider)
-        context['adminform'].form.fields[
-            'instance'].queryset = user.instance_set.all()
+        parent_machine = models.ProviderMachine.objects.filter(
+            instance_source__identifier=instance.source.identifier)
+        new_machine = models.ProviderMachine.objects.filter(
+                instance_source__provider=provider)
+
+        admin_fields = context['adminform'].form.fields
+        admin_fields['new_machine_owner'].queryset = provider.list_users()
+        admin_fields['new_machine'].queryset = new_machine
+        admin_fields['instance'].queryset = user.instance_set.all()
         # NOTE: Can't reliably refine 'parent_machine' -- Since the parent
         # could be from another provider.
-        context['adminform'].form.fields['parent_machine'].queryset = ProviderMachine.objects.filter(
-            instance_source__identifier=instance.source.identifier)
+        admin_fields['parent_machine'].queryset = parent_machine
 
-        return super(
-            MachineRequestAdmin,
-            self).render_change_form(
+        return super(MachineRequestAdmin, self).render_change_form(
             request,
             context,
             *args,
@@ -406,7 +385,10 @@ class MachineRequestAdmin(admin.ModelAdmin):
     def opt_machine_visibility(self, machine_request):
         if machine_request.new_application_visibility.lower() != 'public':
             return "%s\nUsers:%s" % (
-                machine_request.new_application_visibility, machine_request.access_list)
+                machine_request.new_application_visibility,
+                machine_request.access_list
+            )
+
         return machine_request.new_application_visibility
     opt_machine_visibility.allow_tags = True
 
@@ -421,7 +403,7 @@ class MachineRequestAdmin(admin.ModelAdmin):
         return None
 
 
-@admin.register(InstanceStatusHistory)
+@admin.register(models.InstanceStatusHistory)
 class InstanceStatusHistoryAdmin(admin.ModelAdmin):
     search_fields = ["instance__created_by__username",
                      "instance__provider_alias", "status__name"]
@@ -435,7 +417,7 @@ class InstanceStatusHistoryAdmin(admin.ModelAdmin):
         return model.instance.provider_alias
 
 
-@admin.register(Instance)
+@admin.register(models.Instance)
 class InstanceAdmin(admin.ModelAdmin):
     search_fields = ["created_by__username", "provider_alias", "ip_address"]
     list_display = ["provider_alias", "name", "created_by", "ip_address"]
@@ -451,19 +433,19 @@ class SessionAdmin(admin.ModelAdmin):
     search_fields = ["session_key", ]
 
 
-@admin.register(AccountProvider)
+@admin.register(models.AccountProvider)
 class AccountProviderAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(CloudAdministrator)
+@admin.register(models.CloudAdministrator)
 class CloudAdminAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid',)
     list_display = ["user", "provider", "uuid"]
-    model = CloudAdministrator
+    model = models.CloudAdministrator
 
 
-@admin.register(ResourceRequest)
+@admin.register(models.ResourceRequest)
 class ResourceRequestAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid', 'created_by', 'request', 'description',
                        'start_date', 'end_date')
@@ -488,9 +470,9 @@ class ResourceRequestAdmin(admin.ModelAdmin):
             membership.approve_quota(obj.id)
 
 # For adding 'new' registrations
-admin.site.register(Credential)
-admin.site.register(Group)
-admin.site.register(ProviderType)
+admin.site.register(models.Credential)
+admin.site.register(models.Group)
+admin.site.register(models.ProviderType)
 
 # For removing 'standard' registrations
 admin.site.unregister(DjangoGroup)
