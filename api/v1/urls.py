@@ -1,4 +1,4 @@
-from django.conf.urls import patterns, url, include
+from django.conf.urls import patterns, url
 
 from rest_framework.urlpatterns import format_suffix_patterns
 
@@ -23,11 +23,11 @@ urlpatterns = format_suffix_patterns(patterns(
 
     # TODO: Deprecate this if it isn't going to be used.
     # instance service (Calls from within the instance)
-    url(r'^instancequery/', 'web.views.ip_request'),
+    url(r'^instancequery/', 'core.views.ip_request'),
 
     # File Retrieval:
     # static files
-    url(r'^init_files/(?P<file_location>.*)$', 'web.views.get_resource'),
+    url(r'^init_files/(?P<file_location>.*)$', 'core.views.get_resource'),
     # boot_script Related APIs
     url(r'^boot_script$',
         views.BootScriptList.as_view(),
@@ -88,12 +88,12 @@ urlpatterns = format_suffix_patterns(patterns(
     url(r'^tag$', views.TagList.as_view(), name='tag-list'),
     url(r'^tag/(?P<tag_slug>.*)$', views.Tag.as_view()),
 
-    #TODO: Shouldn't these names be unique
+    # TODO: Shouldn't these names be unique
     url(r'^instance_history$', views.InstanceHistory.as_view(),
         name='instance-history'),
     url(r'^instance_history/'
-        '(?P<instance_id>%s)$' % uuid_match, views.InstanceHistoryDetail.as_view(
-        ),
+        '(?P<instance_id>%s)$' % uuid_match,
+        views.InstanceHistoryDetail.as_view(),
         name='instance-history'),
     url(r'^instance_history/(?P<instance_id>%s)/' % uuid_match +
         'status_history$', views.InstanceStatusHistoryDetail.as_view(),
@@ -175,7 +175,8 @@ urlpatterns = format_suffix_patterns(patterns(
     url(identity_specific + r'/request_image$',
         views.MachineRequestList.as_view(), name='machine-request-list'),
     url(identity_specific + r'/request_image/(?P<machine_request_id>%s)$'
-        % (uuid_match,), views.MachineRequest.as_view(), name='machine-request'),
+        % (uuid_match,), views.MachineRequest.as_view(),
+        name='machine-request'),
 
 
     url(identity_specific + r'/profile$',
@@ -266,6 +267,8 @@ urlpatterns = format_suffix_patterns(patterns(
         views.MetaAction.as_view(), name='meta-action'),
 
     url(identity_specific + r'/members$',
-        views.IdentityMembershipList.as_view(), name='identity-membership-list'),
+        views.IdentityMembershipList.as_view(),
+        name='identity-membership-list'),
     url(identity_specific + r'/members/(?P<group_name>%s)$' % user_match,
-        views.IdentityMembership.as_view(), name='identity-membership-detail')))
+        views.IdentityMembership.as_view(),
+        name='identity-membership-detail')))

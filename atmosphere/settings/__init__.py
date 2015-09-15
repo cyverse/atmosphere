@@ -89,7 +89,6 @@ INSTALLED_APPS = (
     'allocation',
     'authentication',
     'service',
-    'web',
     'core',
 )
 PROJECT_APPS = ["authentication", "service", "core", "allocation"]

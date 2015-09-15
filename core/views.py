@@ -1,6 +1,5 @@
 """
-Atmosphere web views.
-
+Core views to provide custom operations
 """
 
 import json
@@ -114,12 +113,6 @@ def s_login(request):
     """
      SAML Login: Phase 1/2 Call SAML Login
     """
-    # Form Sets 'next' when user clicks login
-    records = MaintenanceRecord.active()
-    disable_login = False
-    for record in records:
-        if record.disable_login:
-            disable_login = True
     return saml_loginRedirect(request)
 
 
@@ -265,7 +258,7 @@ def compile_templates(template_path, js_files_path):
                 if ext == '.html':
                     context_dict['templates'][name] = output
 
-    context = Context(context_dict)
+    context = RequestContext(context_dict)
     output = template.render(context)
     return output
 
@@ -356,15 +349,15 @@ def ip_request(req):
             _json = json.dumps({'result':
                                 {'code': 'success',
                                  'meta': '',
-                                 'value': 'Thank you for your feedback!'
-                                         + 'Support has been notified.'}})
+                                 'value': ('Thank you for your feedback!'
+                                           'Support has been notified.')}})
             status = 200
         else:
             _json = json.dumps({'result':
                                 {'code': 'failed',
                                  'meta': '',
-                                 'value': 'No instance found '
-                                         + 'with requested IP address'}})
+                                 'value': ('No instance found '
+                                           'with requested IP address')}})
             status = 404
     except Exception as e:
         logger.debug("IP request failed")
