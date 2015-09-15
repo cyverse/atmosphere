@@ -18,7 +18,7 @@ from service.tasks.machine import start_machine_imaging
 from service.instance import _permission_to_act
 from service.exceptions import ActionNotAllowed
 
-from web.emails import requestImaging
+from core.email import requestImaging
 
 from api import failure_response
 from api.v1.serializers import MachineRequestSerializer

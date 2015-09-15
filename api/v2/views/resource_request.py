@@ -1,7 +1,5 @@
 from core.models import ResourceRequest
-from core.email import send_denied_resource_email
-
-from web.emails import resource_request_email
+from core.email import send_denied_resource_email, resource_request_email
 
 from api.v2.serializers.details import ResourceRequestSerializer,\
     UserResourceRequestSerializer
