@@ -59,15 +59,10 @@ class JWTTokenAuthentication(TokenAuthentication):
     def authenticate(self, request):
         auth = request.META.get('HTTP_AUTHORIZATION', '').split()
         jwt_assertion = request.META.get('HTTP_ASSERTION')
-        if len(auth) == 2 and auth[0].lower() == "bearer":
-            jwt_token = auth[1]
-            if validate_jwt_token(jwt_token, jwt_assertion, request):
-                try:
-                    auth_token = self.model.objects.get(key=jwt_token)
-                except self.model.DoesNotExist:
-                    return None
-                if auth_token.user.is_active:
-                    return (auth_token.user, auth_token)
+        if jwt_assertion:
+            auth_token = create_token_from_jwt(jwt_assertion, request)
+            if auth_token.user.is_active:
+                return (auth_token.user, auth_token)
         return None
 
 
@@ -150,7 +145,7 @@ def wso2_mapping(decoded_message):
         user_profile[new_key_name] = value
     return user_profile
 
-def validate_jwt_token(jwt_token, jwt_assertion, request=None):
+def create_token_from_jwt(jwt_assertion, request=None):
     """
     Validates the token attached to the request (SessionStorage, GET/POST)
     On every request, ask JWT to authorize the token
@@ -167,33 +162,31 @@ def validate_jwt_token(jwt_token, jwt_assertion, request=None):
         decoded_message = decode_jwt(jwt_assertion, public_key)
     except Exception:
         logger.exception("Could not decode JWT Assertion. Check below for more info." % jwt_assertion)
-        return False
+        raise Unauthorized("Could not decode JWT Assertion. Check below for more info." % jwt_assertion)
 
     user_profile = wso2_mapping(decoded_message)
 
     username = user_profile.get("username")
     expire_epoch_ms = user_profile.get("expires")
     if not expire_epoch_ms:
-        logger.info("Decoded message:%s does not have 'expires' -- check your mappings"
+        raise Unauthorized("Decoded message:%s does not have 'expires' -- check your mappings"
                    % decoded_message)
         return False
     if not username:
-        logger.info("Decoded message:%s does not have 'username' -- check your mappings"
+        raise Unauthorized("Decoded message:%s does not have 'username' -- check your mappings"
                    % decoded_message)
         return False
 
     # TEST #1 - Timestamps are current
     token_expires = datetime.fromtimestamp(expire_epoch_ms/1000)
     now_time = datetime.now()
-    if token_expires <= now_time:
-        logger.error("JWT Token is EXPIRED as of %s" % token_expires)
-        return False
+    #if token_expires <= now_time:
+    #    raise Unauthorized("Token is EXPIRED as of %s" % token_expires)
 
     # TEST #2 -  Ensure user existence in the correct group
     if 'everyone' not in user_profile.get('role'):
-        logger.error("User %s does not have the correct Role. Expected '%s' "
+        raise Unauthorized("User %s does not have the correct 'role'. Expected '%s' "
                 % (username, 'everyone'))
-        return False
 
     # NOTE: REMOVE this when it is no longer true!
     # Force any username lookup to be in lowercase
@@ -203,10 +196,8 @@ def validate_jwt_token(jwt_token, jwt_assertion, request=None):
     if not AtmosphereUser.objects.filter(username=username):
         raise Unauthorized("User %s does not yet exist as an AtmosphereUser -- Please create your account FIRST."
                            % username)
-    auth_token = create_auth_token(username, jwt_token)
-    if not auth_token:
-        return False
-    return True
+    auth_token = create_auth_token(username, token_expires)
+    return auth_token
 
 def create_auth_token(username, token_key, token_expire=None):
     """
