@@ -1,7 +1,11 @@
-from django.test.runner import DiscoverRunner
-from django.conf import settings
+"""
+Use this file to change settings needed to run the test suite.
+"""
 from djcelery.app import app
+from django.test.runner import DiscoverRunner
 
+# CELERY_ALWAYS_EAGER = True
+# CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
 def _set_eager():
     settings.CELERY_ALWAYS_EAGER = True
@@ -24,7 +28,15 @@ class CeleryDiscoverTestSuiteRunner(DiscoverRunner):
 
     def setup_test_environment(self, **kwargs):
         _set_eager()
-        super(
-            CeleryDiscoverTestSuiteRunner,
-            self).setup_test_environment(
-            **kwargs)
+        super(CeleryDiscoverTestSuiteRunner,self).setup_test_environment(
+                **kwargs)
+
+TEST_RUNNER='atmosphere.settings.CeleryDiscoverTestSuiteRunner'
+TEST_RUNNER_USER = '{{ TEST_RUNNER_USER }}'
+TEST_RUNNER_PASS = '{{ TEST_RUNNER_PASS }}'
+
+{% if DJANGO_JENKINS %}
+INSTALLED_APPS += (
+    'django_jenkins',
+)
+{% endif %}

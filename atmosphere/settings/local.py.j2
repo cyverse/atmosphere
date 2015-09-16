@@ -23,12 +23,6 @@ PROJECT_ROOT = os.path.abspath(
     os.path.join(
     os.path.dirname(__file__), '../..'))
 
-
-TEST_RUNNER = '{{ TEST_RUNNER }}'
-TEST_RUNNER_USER = '{{ TEST_RUNNER_USER }}'
-TEST_RUNNER_PASS = '{{ TEST_RUNNER_PASS }}'
-
-
 SERVER_URL = '{{ DJANGO_SERVER_URL }}'
 
 
@@ -62,10 +56,8 @@ API_SERVER_URL = SERVER_URL + REDIRECT_URL + '/resources/v1'
 AUTH_SERVER_URL = SERVER_URL + REDIRECT_URL + '/auth'
 DEPLOY_SERVER_URL = SERVER_URL.replace('https', 'http')
 
-
 # Django-Celery Development settings
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
-
 
 # CASLIB
 OAUTH_CLIENT_KEY = '{{ OAUTH_CLIENT_KEY }}'
@@ -104,14 +96,11 @@ except ImportError:
 
 METRIC_SERVER = '{{ METRIC_SERVER }}'
 
-{% if DJANGO_JENKINS %}
-
-INSTALLED_APPS += (
-    'django_jenkins',
-)
-{% endif %}
-
 if has_logstash and LOGSTASH_HOST:
     fh = logstash.TCPLogstashHandler(LOGSTASH_HOST, LOGSTASH_PORT,
                                      message_type='atmo-deploy', version=1)
     threepio.deploy_logger.addHandler(fh)
+
+{% if TESTING %}
+{% include "atmosphere/settings/testing.j2" %}
+{% endif %}

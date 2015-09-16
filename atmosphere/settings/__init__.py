@@ -520,17 +520,4 @@ except ImportError:
 """
 Import local settings specific to the server, and secrets not checked into Git.
 """
-try:
-    from atmosphere.settings.local import *
-except ImportError:
-    pass
-
-"""
-Mostly good for TEST settings, especially DB conf.
-"""
-if DEBUG:
-    # Its OK if there is no testing.py on the server!
-    try:
-        from atmosphere.settings.testing import *
-    except ImportError:
-        pass
+from atmosphere.settings.local import *

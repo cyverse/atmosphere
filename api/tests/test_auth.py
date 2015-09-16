@@ -9,9 +9,10 @@ from rest_framework.test import APIClient
 from urlparse import urljoin
 
 from atmosphere import settings
-from atmosphere.settings import secrets
 from api.tests import verify_expected_output
 from service.accounts.openstack import AccountDriver as OSAccounts
+
+
 class TokenAPIClient(APIClient):
     token = None
 
