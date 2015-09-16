@@ -50,7 +50,6 @@ def no_user_redirect(request):
     output = template.render(variables)
     return HttpResponse(output)
 
-
 def redirectAdmin(request):
     """
     Redirects to /application if user is authorized, otherwise forces a login

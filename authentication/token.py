@@ -1,4 +1,10 @@
-from datetime import timedelta
+import jwt
+import re
+from urlparse import urlparse
+
+from datetime import timedelta, datetime
+from Crypto.PublicKey import RSA
+from base64 import b64decode
 
 from django.conf import settings
 from django.utils import timezone
@@ -41,6 +47,30 @@ class TokenAuthentication(BaseAuthentication):
         return None
 
 
+class JWTTokenAuthentication(TokenAuthentication):
+
+    """
+    JWTTokenAuthentication:
+    To authenticate, pass the token key in the "Authorization" HTTP header,
+    prepend with the string "Bearer ". For example:
+        Authorization: Bearer 098f6bcd4621d373cade4e832627b4f6
+    """
+
+    def authenticate(self, request):
+        auth = request.META.get('HTTP_AUTHORIZATION', '').split()
+        jwt_assertion = request.META.get('HTTP_ASSERTION')
+        if len(auth) == 2 and auth[0].lower() == "bearer":
+            jwt_token = auth[1]
+            if validate_jwt_token(jwt_token, jwt_assertion, request):
+                try:
+                    auth_token = self.model.objects.get(key=jwt_token)
+                except self.model.DoesNotExist:
+                    return None
+                if auth_token.user.is_active:
+                    return (auth_token.user, auth_token)
+        return None
+
+
 class OAuthTokenAuthentication(TokenAuthentication):
 
     """
@@ -77,6 +107,126 @@ class OAuthTokenAuthentication(TokenAuthentication):
                     return (token.user, token)
         return None
 
+def decode_jwt(jwt_token, public_key):
+    decoded_pubkey = b64decode(public_key)
+    rsa_key = RSA.importKey(decoded_pubkey)
+    pem_rsa = rsa_key.exportKey()
+    return jwt.decode(jwt_token, pem_rsa)
+
+def extract_path_from_url(url):
+    url_parts = urlparse(url)
+    # Scheme, netloc/hostname, path (What we want)
+    path_parts = url_parts[2].rpartition('/')
+    new_path = path_parts[2]  # Left, center, Right (What we want)
+    return new_path
+
+
+def strip_wso2_username(username):
+    regexp = re.search(r'agavedev\/(.*)@', username)
+    return regexp.group(1)
+
+
+def wso2_mapping(decoded_message):
+    wso2_issuer = 'wso2.org/products/am'
+    if decoded_message['iss'] != wso2_issuer:
+        return None
+    key_conversions = {
+        wso2_issuer: {
+            'exp': u'expires',
+            'lastname': u'last_name',
+            'fullname': u'full_name',
+            'enduser': u'username',
+            'emailaddress': u'email',
+            }
+        }
+
+    user_profile = {}
+    for key, value in decoded_message.items():
+        if 'http' in key:
+            key = extract_path_from_url(key)
+        new_key_name = key_conversions[wso2_issuer].get(key, key)
+        if new_key_name == 'username':
+            value = strip_wso2_username(value)
+        user_profile[new_key_name] = value
+    return user_profile
+
+def validate_jwt_token(jwt_token, jwt_assertion, request=None):
+    """
+    Validates the token attached to the request (SessionStorage, GET/POST)
+    On every request, ask JWT to authorize the token
+    """
+    # Attempt to contact WSO2
+    # Ask WSO2 who this token belongs to
+    # Map WSO2 user to --> AtmosphereUser
+    # return attributes associated with the user (If available)
+    #
+    from atmosphere.settings import JWT_SP_PUBLIC_KEY_FILE
+    with open(JWT_SP_PUBLIC_KEY_FILE,'r') as the_file:
+        public_key = the_file.read()
+    try:
+        decoded_message = decode_jwt(jwt_assertion, public_key)
+    except Exception:
+        logger.exception("Could not decode JWT Assertion. Check below for more info." % jwt_assertion)
+        return False
+
+    user_profile = wso2_mapping(decoded_message)
+
+    username = user_profile.get("username")
+    expire_epoch_ms = user_profile.get("expires")
+    if not expire_epoch_ms:
+        logger.info("Decoded message:%s does not have 'expires' -- check your mappings"
+                   % decoded_message)
+        return False
+    if not username:
+        logger.info("Decoded message:%s does not have 'username' -- check your mappings"
+                   % decoded_message)
+        return False
+
+    # TEST #1 - Timestamps are current
+    token_expires = datetime.fromtimestamp(expire_epoch_ms/1000)
+    now_time = datetime.now()
+    if token_expires <= now_time:
+        logger.error("JWT Token is EXPIRED as of %s" % token_expires)
+        return False
+
+    # TEST #2 -  Ensure user existence in the correct group
+    if 'everyone' not in user_profile.get('role'):
+        logger.error("User %s does not have the correct Role. Expected '%s' "
+                % (username, 'everyone'))
+        return False
+
+    # NOTE: REMOVE this when it is no longer true!
+    # Force any username lookup to be in lowercase
+    username = username.lower()
+
+    # TEST #3 - Ensure user has an identity
+    if not AtmosphereUser.objects.filter(username=username):
+        raise Unauthorized("User %s does not yet exist as an AtmosphereUser -- Please create your account FIRST."
+                           % username)
+    auth_token = create_auth_token(username, jwt_token)
+    if not auth_token:
+        return False
+    return True
+
+def create_auth_token(username, token_key, token_expire=None):
+    """
+    Using *whatever* representation is necessary for the Token Key
+    (Ex: CAS-...., UUID4, JWT-OAuth)
+    and the username that the token will belong to
+    Create a new AuthToken for DB lookups
+    """
+    try:
+        user = AtmosphereUser.objects.get(username=username)
+    except AtmosphereUser.DoesNotExist:
+        logger.warn("User %s doesn't exist on the DB. "
+                    "JWT Token _NOT_ created" % username)
+        return None
+    auth_user_token, _ = AuthToken.objects.get_or_create(
+        key=token_key, user=user, api_server_url=settings.API_SERVER_URL)
+    if token_expire:
+        auth_user_token.update_expiration(token_expire)
+    auth_user_token.save()
+    return auth_user_token
 
 def validate_oauth_token(token, request=None):
     """
@@ -93,8 +243,7 @@ def validate_oauth_token(token, request=None):
     if not user_profile:
         return False
     username = user_profile.get("id")
-    attrs = user_profile.get("attributes")
-    if not username or not attrs:
+    if not username:
         # logger.info("Invalid Profile:%s does not have username/attributes"
         #            % user_profile)
         return False

@@ -206,6 +206,7 @@ AUTH_USER_MODULE = 'core.AtmosphereUser'
 
 AUTHENTICATION_BACKENDS = (
     # For Token-Access
+    'authentication.authBackends.JWTTokenLoginBackend',
     'authentication.authBackends.AuthTokenLoginBackend',
     # For Web-Access
     'authentication.authBackends.CASLoginBackend',
@@ -369,6 +370,7 @@ REST_FRAMEWORK = {
         'api.renderers.JPEGRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'authentication.token.JWTTokenAuthentication',
         'authentication.token.OAuthTokenAuthentication',
         'authentication.token.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
