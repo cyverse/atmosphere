@@ -27,8 +27,6 @@ class Profile(AuthAPIView):
         profile = user.userprofile
         serialized_data = ProfileSerializer(profile).data
         identity = user.select_identity()
-        identity_uuid = identity.id
-        provider_uuid = identity.provider.id
         response = Response(serialized_data)
         return response
 

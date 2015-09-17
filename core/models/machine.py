@@ -5,6 +5,7 @@ from hashlib import md5
 
 from django.db import models
 from django.utils import timezone
+from django.core.exceptions import ObjectDoesNotExist as DoesNotExist
 from threepio import logger
 
 from core.models.abstract import BaseSource
@@ -385,7 +386,7 @@ def get_provider_machine(identifier, provider_uuid):
         source = InstanceSource.objects.get(
             provider__uuid=provider_uuid, identifier=identifier, providermachine__isnull=False)
         return source.providermachine
-    except InstanceSource.DoesNotExist:
+    except DoesNotExist:
         return None
 
 
