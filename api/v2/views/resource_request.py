@@ -4,6 +4,8 @@ from core.email import send_denied_resource_email, resource_request_email
 from api.v2.serializers.details import ResourceRequestSerializer,\
     UserResourceRequestSerializer
 from api.v2.views.base import BaseRequestViewSet
+from core import tasks
+from service.tasks.admin as admin_task
 
 
 class ResourceRequestViewSet(BaseRequestViewSet):
@@ -34,8 +36,12 @@ class ResourceRequestViewSet(BaseRequestViewSet):
         membership = instance.membership
         membership.quota = instance.quota
         membership.allocation = instance.allocation
-        membership.approve_quota(instance.id)
         membership.save()
+        identity = instance.identity
+        admin_task.set_provider_quota.apply_async(
+            args=[str(identity.uuid)],
+            link=tasks.close_resource_request.s(instance.id),
+            link_error=tasks.set_resource_request_failed.s(instance.id))
 
     def deny_action(self, instance):
         """
