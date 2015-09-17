@@ -17,7 +17,7 @@ from atmosphere import settings
 from core.models import IdentityMembership, MachineRequest
 
 from authentication.protocol.ldap import lookupEmail, lookupUser
-from service.tasks.email import send_email as send_email_task
+from core.tasks import send_email as send_email_task
 
 
 def send_email_template(subject, template, recipient, sender,

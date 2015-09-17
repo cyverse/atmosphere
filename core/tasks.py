@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+"""
+Core application tasks
+"""
+
 from celery.decorators import task
 
 from django.core.mail import EmailMessage
