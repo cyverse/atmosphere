@@ -2,16 +2,10 @@
 """
 Core views to provide custom operations
 """
-
-import json
 import uuid
-import os
 from datetime import datetime
 
-from django.http import HttpResponse, HttpResponseRedirect
-from django.contrib.auth import authenticate as django_authenticate
-from django.template import RequestContext
-from django.template.loader import get_template
+from django.http import HttpResponseRedirect
 
 from threepio import logger
 
@@ -19,8 +13,6 @@ from atmosphere import settings
 from authentication.decorators import atmo_login_required
 from authentication.models import Token as AuthToken
 from core.models import AtmosphereUser as DjangoUser
-from core.models.instance import Instance
-
 
 
 @atmo_login_required
@@ -70,83 +62,3 @@ def emulate_request(request, username=None):
         logger.warn("Emulate request failed")
         logger.exception(e)
         return HttpResponseRedirect(settings.REDIRECT_URL + "/api/v1/profile")
-
-
-def ip_request(req):
-    """
-    Used so that an instance can query information about itself
-    Valid only if REMOTE_ADDR refers to a valid instance
-    """
-    logger.debug(req)
-    status = 500
-    try:
-        instances = []
-        if 'REMOTE_ADDR' in req.META:
-            testIP = req.META['REMOTE_ADDR']
-            instances = Instance.objects.filter(ip_address=testIP)
-        if settings.DEBUG:
-            if 'instanceid' in req.GET:
-                instance_id = req.GET['instanceid']
-                instances = Instance.objects.filter(provider_alias=instance_id)
-
-        if len(instances) > 0:
-            _json = json.dumps({'result':
-                                {'code': 'success',
-                                 'meta': '',
-                                 'value': ('Thank you for your feedback!'
-                                           'Support has been notified.')}})
-            status = 200
-        else:
-            _json = json.dumps({'result':
-                                {'code': 'failed',
-                                 'meta': '',
-                                 'value': ('No instance found '
-                                           'with requested IP address')}})
-            status = 404
-    except Exception as e:
-        logger.debug("IP request failed")
-        logger.debug("%s %s %s" % (e, str(e), e.message))
-        _json = json.dumps({'result':
-                            {'code': 'failed',
-                             'meta': '',
-                             'value': 'An error occured'}})
-        status = 500
-    response = HttpResponse(_json,
-                            status=status, content_type='application/json')
-    return response
-
-
-def get_resource(request, file_location):
-    try:
-        username = request.session.get('username', None)
-        remote_ip = request.META.get('REMOTE_ADDR', None)
-        if remote_ip is not None:
-            # Authenticated if the instance requests resource.
-            instances = Instance.objects.filter(ip_address=remote_ip)
-            authenticated = len(instances) > 0
-        elif username is not None:
-            django_authenticate(username=username, password="")
-            # User Authenticated by this line
-            authenticated = True
-
-        if not authenticated:
-            raise Exception("Unauthorized access")
-        path = settings.PROJECT_ROOT + "/init_files/" + file_location
-        if os.path.exists(path):
-            file = open(path, 'r')
-            content = file.read()
-            response = HttpResponse(content)
-            # Download it, even if it looks like text
-            response['Content-Disposition'] = \
-                'attachment; filename=%s' % file_location.split("/")[-1]
-            return response
-        template = get_template('404.html')
-        variables = RequestContext(request, {
-            'message': '%s not found' % (file_location,)
-        })
-        output = template.render(variables)
-        return HttpResponse(output)
-    except Exception as e:
-        logger.debug("Resource request failed")
-        logger.exception(e)
-        return HttpResponseRedirect(settings.REDIRECT_URL + "/login")

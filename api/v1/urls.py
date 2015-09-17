@@ -27,11 +27,11 @@ urlpatterns = format_suffix_patterns(patterns(
 
     # TODO: Deprecate this if it isn't going to be used.
     # instance service (Calls from within the instance)
-    url(r'^instancequery/', 'core.views.ip_request'),
+    url(r'^instancequery/', 'api.v1.views.ip_request'),
 
     # File Retrieval:
     # static files
-    url(r'^init_files/(?P<file_location>.*)$', 'core.views.get_resource'),
+    url(r'^init_files/(?P<file_location>.*)$', 'api.v1.views.get_resource'),
     # boot_script Related APIs
     url(r'^boot_script$',
         views.BootScriptList.as_view(),
