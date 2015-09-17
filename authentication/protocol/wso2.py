@@ -13,10 +13,10 @@ from authentication.protocol.jwt_oauth import JWTServiceProvider
 from threepio import logger
 
 class WSO2_JWT(JWTServiceProvider):
+    IGNORE_EXPIRY = False
     issuer = None
     prefix = ''
 
-    IGNORE_EXPIRY = False
     def __init__(self, keyfile, issuer='wso2.org/products/am', prefix='http://wso2.org/claims'):
         self.keyfile_path = keyfile
         if issuer:
