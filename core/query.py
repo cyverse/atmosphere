@@ -134,6 +134,17 @@ def only_current_source(now_time=None):
         now_time = timezone.now()
     return _in_range() & _active_provider()
 
+def source_in_range(now_time=None):
+    """
+    Filters current instance_sources ignoring provider.
+    """
+    def _in_range():
+        return (Q(instance_source__end_date__isnull=True) |
+                Q(instance_source__end_date__gt=now_time)) &\
+            Q(instance_source__start_date__lt=now_time)
+    if not now_time:
+        now_time = timezone.now()
+    return _in_range()
 
 def only_current(now_time=None):
     """

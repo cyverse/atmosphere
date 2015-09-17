@@ -5,7 +5,7 @@ from django.db.models import Q
 
 from celery.decorators import task
 
-from core.query import only_current, only_current_machines, only_current_apps, only_current_source
+from core.query import only_current, only_current_machines, only_current_apps, only_current_source, source_in_range
 from core.models.size import Size, convert_esh_size
 from core.models.instance import convert_esh_instance
 from core.models.provider import Provider
@@ -96,9 +96,10 @@ def prune_machines_for(provider_id, print_logs=False, dry_run=False, forced_remo
         all_projects_map = tenant_id_to_name_map(account_driver)
         cloud_machines = account_driver.list_all_images()
     else:
-        db_machines = ProviderMachine.objects.filter(instance_source__provider=provider)
+        db_machines = ProviderMachine.objects.filter(
+                source_in_range(),
+                instance_source__provider=provider)
         cloud_machines = []
-
     # Don't do anything if cloud machines == [None,[]]
     if not cloud_machines and not forced_removal:
         return
