@@ -327,7 +327,7 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
         logger.info("Making Machine %s private" % cloud_machine.id)
         cloud_machine.update(is_public=False)
 
-    logger.info("Sharing image %s : %s with %s" % (cloud_machine.id, identity.provider.location, tenant_name.value))
+    logger.info("Sharing image %s<%s>: %s with %s" % (cloud_machine.id, cloud_machine.name, identity.provider.location, tenant_name.value))
     if not dry_run:
         account_driver.image_manager.share_image(cloud_machine, tenant_name.value)
 

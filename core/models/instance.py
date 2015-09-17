@@ -249,8 +249,6 @@ class Instance(models.Model):
         """
         import traceback
         # 1. Get status name
-        logger.debug("STATUSUPDATE - Instance:%s Old Status: %s New Status: %s Tmp Status: %s" % (self.provider_alias, self.esh_status(), status_name, tmp_status))
-        logger.debug("STATUSUPDATE - Traceback: %s" % traceback.format_stack())
         status_name = _get_status_name_for_provider(
             self.provider_machine.provider,
             status_name,
@@ -262,13 +260,16 @@ class Instance(models.Model):
             last_history = InstanceStatusHistory.create_history(
                 status_name, self, size, self.start_date)
             last_history.save()
-            logger.debug("First Status history: %s" % last_history)
+            logger.debug("STATUSUPDATE - FIRST - Instance:%s Old Status: %s New Status: %s Tmp Status: %s" % (self.provider_alias, self.esh_status(), status_name, tmp_status))
+            logger.debug("STATUSUPDATE - Traceback: %s" % traceback.format_stack())
         # 2. Size and name must match to continue using last history
         if last_history.status.name == status_name \
                 and last_history.size.id == size.id:
             # logger.info("status_name matches last history:%s " %
             #        last_history.status.name)
             return (False, last_history)
+        logger.debug("STATUSUPDATE - Instance:%s Old Status: %s New Status: %s Tmp Status: %s" % (self.provider_alias, self.esh_status(), status_name, tmp_status))
+        logger.debug("STATUSUPDATE - Traceback: %s" % traceback.format_stack())
         # 3. ASSERT: A new history item is required due to a State or Size
         # Change
         now_time = timezone.now()

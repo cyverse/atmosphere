@@ -136,8 +136,8 @@ class ProviderMachine(BaseSource):
     def __unicode__(self):
         identifier = self.instance_source.identifier
         provider = self.instance_source.provider
-        return "%s (Provider:%s - App:%s) " %\
-            (identifier, provider, self.application)
+        return "%s (Provider:%s - App:%s Version:%s) " %\
+            (identifier, provider, self.application, self.application_version.name)
 
     class Meta:
         db_table = "provider_machine"
