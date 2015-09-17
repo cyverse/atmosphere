@@ -206,7 +206,6 @@ AUTH_USER_MODULE = 'core.AtmosphereUser'
 
 AUTHENTICATION_BACKENDS = (
     # For Token-Access
-    'authentication.authBackends.JWTTokenLoginBackend',
     'authentication.authBackends.AuthTokenLoginBackend',
     # For Web-Access
     'authentication.authBackends.CASLoginBackend',
