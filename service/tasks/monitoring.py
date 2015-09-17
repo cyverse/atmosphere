@@ -75,7 +75,7 @@ def monitor_machines():
 
 
 @task(name="prune_machines_for")
-def prune_machines_for(provider_id, print_logs=False, dry_run=False):
+def prune_machines_for(provider_id, print_logs=False, dry_run=False, forced_removal=False):
     """
     Look at the list of machines (as seen by the AccountProvider)
     if a machine cannot be found in the list, remove it.
@@ -83,8 +83,6 @@ def prune_machines_for(provider_id, print_logs=False, dry_run=False):
     """
     provider = Provider.objects.get(id=provider_id)
 
-    if not provider.is_active():
-        return
     if print_logs:
         import logging
         import sys
@@ -92,13 +90,17 @@ def prune_machines_for(provider_id, print_logs=False, dry_run=False):
         consolehandler.setLevel(logging.DEBUG)
         logger.addHandler(consolehandler)
 
-    account_driver = get_account_driver(provider)
-    db_machines = ProviderMachine.objects.filter(only_current_source(), instance_source__provider=provider)
-    all_projects_map = tenant_id_to_name_map(account_driver)
-    cloud_machines = account_driver.list_all_images()
+    if provider.is_active():
+        account_driver = get_account_driver(provider)
+        db_machines = ProviderMachine.objects.filter(only_current_source(), instance_source__provider=provider)
+        all_projects_map = tenant_id_to_name_map(account_driver)
+        cloud_machines = account_driver.list_all_images()
+    else:
+        db_machines = ProviderMachine.objects.filter(instance_source__provider=provider)
+        cloud_machines = []
 
     # Don't do anything if cloud machines == [None,[]]
-    if not cloud_machines:
+    if not cloud_machines and not forced_removal:
         return
 
     # Loop1 - End-date All machines in the DB that can NOT be found in the cloud.
