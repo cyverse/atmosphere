@@ -23,9 +23,9 @@ from core.models.license import License
 from core.models.identity import Identity
 from core.models.machine import compare_core_machines, filter_core_machine,\
     update_application_owner, convert_esh_machine, ProviderMachine
-from core.metadata import update_machine_metadata
 
 from service.driver import prepare_driver
+from service.machine import update_machine_metadata
 from service.search import search, CoreSearchProvider
 
 from api import failure_response, invalid_creds, malformed_response, connection_failure

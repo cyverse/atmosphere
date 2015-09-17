@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Maintain objects metadata
+Service layer for managing machines
 """
 
 from threepio import logger
