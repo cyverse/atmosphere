@@ -4,12 +4,15 @@
 import uuid
 
 from django.db import models, IntegrityError
+from django.db.models import Q
 from django.utils import timezone
+from django.contrib.auth.models import AnonymousUser
 from threepio import logger
 
+from core.models.provider import AccountProvider
 from core.models.license import License
 from core.models.identity import Identity
-from core.query import only_current_source
+from core.query import only_current_source, only_current, only_current_machines_in_version
 
 class ApplicationVersion(models.Model):
 
@@ -76,6 +79,23 @@ class ApplicationVersion(models.Model):
         return self.machines.filter(only_current_source())
 
     @classmethod
+    def get_admin_image_versions(cls, user):
+        """
+        TODO: This 'just works' and is probably very slow... Look for a better way?
+        """
+        provider_id_list = user.identity_set.values_list('provider', flat=True)
+        account_providers_list = AccountProvider.objects.filter(
+            provider__id__in=provider_id_list)
+        admin_users = [ap.identity.created_by for ap in account_providers_list]
+        version_ids = []
+        for user in admin_users:
+            version_ids.extend(
+                user.applicationversion_set.values_list('id', flat=True))
+        admin_list = ApplicationVersion.objects.filter(
+            id__in=version_ids)
+        return admin_list
+
+    @classmethod
     def current_machines(cls, request_user):
         # Showing non-end dated, public ApplicationVersions
         public_set = ApplicationVersion.objects.filter(
@@ -95,7 +115,7 @@ class ApplicationVersion(models.Model):
                     membership=all_group_ids) | Q(
                     machines__members__in=all_group_ids))
             if request_user.is_staff:
-                admin_set = get_admin_image_versions(request_user)
+                admin_set = cls.get_admin_image_versions(request_user)
             else:
                 admin_set = ApplicationVersion.objects.none()
         else:
@@ -269,3 +289,6 @@ def transfer_membership(parent_version, new_version):
                 application_version=new_version,
                 group=old_membership.group,
                 can_share=old_membership.can_share)
+
+
+
