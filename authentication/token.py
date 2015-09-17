@@ -1,10 +1,4 @@
-import jwt
-import re
-from urlparse import urlparse
-
-from datetime import timedelta, datetime
-from Crypto.PublicKey import RSA
-from base64 import b64decode
+from datetime import timedelta
 
 from django.conf import settings
 from django.utils import timezone
@@ -17,6 +11,8 @@ from authentication.models import Token as AuthToken
 from authentication.protocol.cas import cas_validateUser
 from authentication.protocol.oauth import cas_profile_for_token,\
     obtainOAuthToken
+from authentication.protocol.wso2 import WSO2_JWT
+
 from core.models.user import AtmosphereUser
 
 
@@ -60,7 +56,8 @@ class JWTTokenAuthentication(TokenAuthentication):
         auth = request.META.get('HTTP_AUTHORIZATION', '').split()
         jwt_assertion = request.META.get('HTTP_ASSERTION')
         if jwt_assertion:
-            auth_token = create_token_from_jwt(jwt_assertion, request)
+            sp = WSO2_JWT(settings.JWT_SP_PUBLIC_KEY_FILE)
+            auth_token = sp.create_token_from_jwt(jwt_assertion)
             if auth_token.user.is_active:
                 return (auth_token.user, auth_token)
         return None
@@ -98,127 +95,9 @@ class OAuthTokenAuthentication(TokenAuthentication):
                     token = self.model.objects.get(key=oauth_token)
                 except self.model.DoesNotExist:
                     return None
-                if token.user.is_active:
+                if token and token.user.is_active:
                     return (token.user, token)
         return None
-
-def decode_jwt(jwt_token, public_key):
-    decoded_pubkey = b64decode(public_key)
-    rsa_key = RSA.importKey(decoded_pubkey)
-    pem_rsa = rsa_key.exportKey()
-    return jwt.decode(jwt_token, pem_rsa)
-
-def extract_path_from_url(url):
-    url_parts = urlparse(url)
-    # Scheme, netloc/hostname, path (What we want)
-    path_parts = url_parts[2].rpartition('/')
-    new_path = path_parts[2]  # Left, center, Right (What we want)
-    return new_path
-
-
-def strip_wso2_username(username):
-    regexp = re.search(r'agavedev\/(.*)@', username)
-    return regexp.group(1)
-
-
-def wso2_mapping(decoded_message):
-    wso2_issuer = 'wso2.org/products/am'
-    if decoded_message['iss'] != wso2_issuer:
-        return None
-    key_conversions = {
-        wso2_issuer: {
-            'exp': u'expires',
-            'lastname': u'last_name',
-            'fullname': u'full_name',
-            'enduser': u'username',
-            'emailaddress': u'email',
-            }
-        }
-
-    user_profile = {}
-    for key, value in decoded_message.items():
-        if 'http' in key:
-            key = extract_path_from_url(key)
-        new_key_name = key_conversions[wso2_issuer].get(key, key)
-        if new_key_name == 'username':
-            value = strip_wso2_username(value)
-        user_profile[new_key_name] = value
-    return user_profile
-
-def create_token_from_jwt(jwt_assertion, request=None):
-    """
-    Validates the token attached to the request (SessionStorage, GET/POST)
-    On every request, ask JWT to authorize the token
-    """
-    # Attempt to contact WSO2
-    # Ask WSO2 who this token belongs to
-    # Map WSO2 user to --> AtmosphereUser
-    # return attributes associated with the user (If available)
-    #
-    from atmosphere.settings import JWT_SP_PUBLIC_KEY_FILE
-    with open(JWT_SP_PUBLIC_KEY_FILE,'r') as the_file:
-        public_key = the_file.read()
-    try:
-        decoded_message = decode_jwt(jwt_assertion, public_key)
-    except Exception:
-        logger.exception("Could not decode JWT Assertion. Check below for more info." % jwt_assertion)
-        raise Unauthorized("Could not decode JWT Assertion. Check below for more info." % jwt_assertion)
-
-    user_profile = wso2_mapping(decoded_message)
-
-    username = user_profile.get("username")
-    expire_epoch_ms = user_profile.get("expires")
-    if not expire_epoch_ms:
-        raise Unauthorized("Decoded message:%s does not have 'expires' -- check your mappings"
-                   % decoded_message)
-        return False
-    if not username:
-        raise Unauthorized("Decoded message:%s does not have 'username' -- check your mappings"
-                   % decoded_message)
-        return False
-
-    # TEST #1 - Timestamps are current
-    token_expires = datetime.fromtimestamp(expire_epoch_ms/1000)
-    now_time = datetime.now()
-    #if token_expires <= now_time:
-    #    raise Unauthorized("Token is EXPIRED as of %s" % token_expires)
-
-    # TEST #2 -  Ensure user existence in the correct group
-    if 'everyone' not in user_profile.get('role'):
-        raise Unauthorized("User %s does not have the correct 'role'. Expected '%s' "
-                % (username, 'everyone'))
-
-    # NOTE: REMOVE this when it is no longer true!
-    # Force any username lookup to be in lowercase
-    username = username.lower()
-
-    # TEST #3 - Ensure user has an identity
-    if not AtmosphereUser.objects.filter(username=username):
-        raise Unauthorized("User %s does not yet exist as an AtmosphereUser -- Please create your account FIRST."
-                           % username)
-    auth_token = create_auth_token(username, token_expires)
-    return auth_token
-
-def create_auth_token(username, token_key, token_expire=None):
-    """
-    Using *whatever* representation is necessary for the Token Key
-    (Ex: CAS-...., UUID4, JWT-OAuth)
-    and the username that the token will belong to
-    Create a new AuthToken for DB lookups
-    """
-    try:
-        user = AtmosphereUser.objects.get(username=username)
-    except AtmosphereUser.DoesNotExist:
-        logger.warn("User %s doesn't exist on the DB. "
-                    "JWT Token _NOT_ created" % username)
-        return None
-    auth_user_token, _ = AuthToken.objects.get_or_create(
-        key=token_key, user=user, api_server_url=settings.API_SERVER_URL)
-    if token_expire:
-        auth_user_token.update_expiration(token_expire)
-    auth_user_token.save()
-    return auth_user_token
-
 def validate_oauth_token(token, request=None):
     """
     Validates the token attached to the request (SessionStorage, GET/POST)
