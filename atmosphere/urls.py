@@ -10,8 +10,6 @@ from django.conf.urls import patterns, url, include
 
 from api.auth import Authentication
 
-resources_path = os.path.join(os.path.dirname(__file__), 'resources')
-
 admin.autodiscover()
 
 urlpatterns = patterns(
@@ -36,12 +34,6 @@ urlpatterns = patterns(
     # DJANGORESTFRAMEWORK
     url(r'^api-token-auth/',
         'rest_framework.authtoken.views.obtain_auth_token'),
-
-    # File Retrieval:
-    # Systemwide
-    # TODO: Remove when using Troposphere
-    url(r'^resources/(?P<path>.*)$', 'django.views.static.serve',
-        {'document_root': resources_path}),
 
     # DB Admin Panel for admin users
     url(r'^admin/', include(admin.site.urls)))

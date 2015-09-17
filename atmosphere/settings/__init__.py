@@ -106,58 +106,20 @@ USE_TZ = True
 # Atmosphere Time Allocation settings
 FIXED_WINDOW = relativedelta(day=1, months=1)
 
-# Absolute path to the directory that holds media.
-# Example: '/home/media/media.lawrence.com/'
+# To load images for 404 page
 MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'resources/')
-
-# URL that handles the media served from MEDIA_ROOT. Make sure to use a
-# trailing slash if there is a path component (optional in other cases).
-# Examples: 'http://media.lawrence.com', 'http://example.com/media/'
 MEDIA_URL = '/resources/'
 
 # URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
 # trailing slash.
 # Examples: 'http://foo.com/media/', '/media/'.
 STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static/')
-
 STATIC_URL = '/static/'
-
-STATICFILES_DIRS = (
-    os.path.join(PROJECT_ROOT, "resources"),
-)
 
 # This key however should stay the same, and be shared with all Atmosphere
 ATMOSPHERE_NAMESPACE_UUID = UUID("40227dff-dedf-469c-a9f8-1953a7372ac1")
 
-# django-pipeline configuration
-PIPELINE = False
-
-PIPELINE_ENABLED = False
-
 STATICFILES_STORAGE = 'pipeline.storage.PipelineStorage'
-
-PIPELINE_CSS = {
-    'app': {
-        'source_filenames': (
-            'css/cloudfront.css',
-        ),
-        'output_filename': 'css/app.css',
-        'extra_context': {
-            'media': 'screen,projection',
-        },
-    },
-}
-
-PIPELINE_JS = {
-    'app': {
-        'source_filenames': (
-            'js/cloudfront2.js',
-            'js/base.js',
-            'partials/templates.js',
-        ),
-        'output_filename': 'js/app.js',
-    }
-}
 
 # List of callables that know how to import templates from various sources.
 STATICFILES_FINDERS = (
@@ -170,6 +132,7 @@ STATICFILES_FINDERS = (
     #'pipeline.finders.AppDirectoriesFinder',
     #'pipeline.finders.CachedFileFinder',
 )
+
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.Loader',
     'django.template.loaders.app_directories.Loader'
@@ -437,6 +400,8 @@ CELERY_ROUTES = ('atmosphere.celery_router.CloudRouter', )
 # # Django-Celery Development settings
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
+import djcelery
+djcelery.setup_loader()
 
 # Related to Celerybeat
 CELERYBEAT_CHDIR = PROJECT_ROOT
@@ -484,9 +449,6 @@ CELERYBEAT_SCHEDULE = {
 
 #     # Django-Celery Development settings
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
-
-import djcelery
-djcelery.setup_loader()
 
 """
 For generating a unique SECRET_KEY -- Used by Django in various ways.
