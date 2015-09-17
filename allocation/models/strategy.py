@@ -153,6 +153,7 @@ class IgnoreNonActiveStatus(GlobalRules):
         ignore_inactive = IgnoreStatusRule(
             "Ignore Inactive StatusHistory",
             value=["build", "pending",
+                   "networking", "deploying",
                    "hard_reboot", "reboot",
                    "migrating", "rescue",
                    "resize", "verify_resize",
