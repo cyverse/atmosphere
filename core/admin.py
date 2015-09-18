@@ -467,8 +467,8 @@ class ResourceRequestAdmin(admin.ModelAdmin):
 
         if obj.is_approved():
             membership = obj.membership
-            membership.allocation = obj.allocation
-            membership.quota = obj.quota
+            membership.allocation = obj.allocation or membership.allocation
+            membership.quota = obj.quota or membership.quota
             membership.save()
             identity = membership.identity
 

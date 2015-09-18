@@ -35,8 +35,8 @@ class ResourceRequestViewSet(BaseRequestViewSet):
         Updates the resource for the request
         """
         membership = instance.membership
-        membership.quota = instance.quota
-        membership.allocation = instance.allocation
+        membership.quota = instance.quota or membership.quota
+        membership.allocation = instance.allocation or membership.allocation
         membership.save()
         identity = membership.identity
 
