@@ -219,16 +219,20 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
     """
     Returns: (floating_removed, fixed_removed)
     """
+    from service.tasks.driver import update_metadata
     network_manager = esh_driver._connection.get_network_manager()
     # Delete the Floating IP
     result = network_manager.disassociate_floating_ip(esh_instance.id)
     logger.info("Removed Floating IP for Instance %s - Result:%s"
                 % (esh_instance.id, result))
     if update_meta:
-        update_instance_metadata(esh_driver, esh_instance,
-                                 data={'public-ip': '',
-                                       'public-hostname': ''},
-                                 replace=False)
+        driver_class = esh_driver.__class__
+        provider = esh_driver.provider
+        identity = es_driver.identity
+
+        metadata={'public-ip': '', 'public-hostname': ''}
+        update_metadata.s(driver_class, identity, esh_instance.id,
+                          metadata, replace_metadata=False).apply()
     # Fixed
     instance_ports = network_manager.list_ports(device_id=esh_instance.id)
     if instance_ports:

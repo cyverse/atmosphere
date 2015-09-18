@@ -374,7 +374,11 @@ def _resolve_history_conflict(
     if not getattr(core_running_instance, 'esh'):
         raise ValueError("Esh is missing from %s" % core_running_instance)
     esh_instance = core_running_instance.esh
-    new_status = esh_instance.extra['status']
+
+    # Check for temporary status and fetch that
+    tmp_status = esh_instance.extra.get('metadata', {}).get("tmp_status")
+    new_status = tmp_status or esh_instance.extra['status']
+
     esh_driver = get_cached_driver(identity=identity)
     new_size = _esh_instance_size_to_core(
         esh_driver, esh_instance, identity.provider.uuid)
