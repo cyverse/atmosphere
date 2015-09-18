@@ -78,21 +78,58 @@ class IdentityRelatedField(serializers.RelatedField):
             )
 
 
+class StatusTypeRelatedField(serializers.RelatedField):
+
+    def get_queryset(self):
+        return StatusType.objects.all()
+
+    def to_representation(self, value):
+        status_type = StatusType.objects.get(pk=value.pk)
+        serializer = StatusTypeSummarySerializer(
+            status_type,
+            context=self.context)
+        return serializer.data
+
+    def to_internal_value(self, data):
+        queryset = self.get_queryset()
+        if isinstance(data, dict):
+            identity = data.get("id", None)
+        else:
+            identity = data
+
+        try:
+            return queryset.get(id=identity)
+        except:
+            raise exceptions.ValidationError(
+                "StatusType with id '%s' does not exist."
+                % identity
+            )
+
+
 class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.CharField(read_only=True)
-    instance = InstanceRelatedField(read_only=True)
-    status = serializers.CharField()
-    parent_machine = ProviderMachineRelatedField()
+    instance = ModelRelatedField(
+        queryset=Instance.objects.all(),
+        serializer_class=InstanceSummarySerializer,
+        style={'base_template': 'input.html'})
+    status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
+                                    allow_null=True,
+                                    required=False)
+    parent_machine = ModelRelatedField(
+        lookup_field="id",
+        queryset=ProviderMachine.objects.all(),
+        serializer_class=ProviderMachineSummarySerializer,
+        style={'base_template': 'input.html'})
     new_application_name = serializers.CharField()
     new_application_description = serializers.CharField()
     new_application_visibility = serializers.CharField()
-    access_list = serializers.CharField()
-    iplant_sys_files = serializers.CharField()
+    access_list = serializers.CharField(allow_blank=True)
+    iplant_sys_files = serializers.CharField(allow_blank=True)
     installed_software = serializers.CharField()
-    exclude_files = serializers.CharField()
+    exclude_files = serializers.CharField(allow_blank=True)
     new_version_name = serializers.CharField()
     new_version_change_log = serializers.CharField()
-    new_version_tags = serializers.CharField()
+    new_version_tags = serializers.CharField(required=False, allow_blank=True)
     new_version_memory_min = serializers.CharField()
     new_version_storage_min = serializers.CharField()
     new_version_allow_imaging = serializers.BooleanField()
@@ -101,33 +138,35 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
         many=True,
         queryset=License.objects.all(),
         serializer_class=LicenseSummarySerializer,
-        style={'base_template': 'input.html'})
+        style={'base_template': 'input.html'},
+        required=False)
     new_version_scripts = ModelRelatedField(
         many=True,
         queryset=BootScript.objects.all(),
         serializer_class=BootScriptSummarySerializer,
-        style={'base_template': 'input.html'})
+        style={'base_template': 'input.html'},
+        required=False)
     new_version_membership = ModelRelatedField(
         many=True,
         queryset=Group.objects.all(),
         serializer_class=GroupSummarySerializer,
+        style={'base_template':'input.html'},
+        required=False)
+    new_machine_provider = ModelRelatedField(
+        queryset=Provider.objects.all(),
+        serializer_class=ProviderSummarySerializer,
         style={'base_template':'input.html'})
-    new_machine_provider = ProviderRelatedField(
-            queryset=Provider.objects.all())
     new_machine_owner = ModelRelatedField(
         queryset=User.objects.all(),
         serializer_class = UserSummarySerializer,
         style={'base_template':'input.html'})
-    start_date = serializers.DateTimeField()
-    end_date = serializers.DateTimeField()
+    start_date = serializers.DateTimeField(read_only=True)
+    end_date = serializers.DateTimeField(read_only=True)
     new_machine = ModelRelatedField(
         queryset = ProviderMachine.objects.all(),
         serializer_class = ProviderMachineSummarySerializer,
         style = {'base_template':'input.html'})
-    new_application_version = ModelRelatedField(
-        queryset = ApplicationVersion.objects.all(),
-        serializer_class = ImageVersionSummarySerializer,
-        style = {'base_template':'input.html'})
+    new_application_version = ImageVersionSummarySerializer(read_only=True)
 
     class Meta:
         model = MachineRequest
