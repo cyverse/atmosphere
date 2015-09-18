@@ -369,6 +369,7 @@ REST_FRAMEWORK = {
         'api.renderers.JPEGRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'authentication.token.JWTTokenAuthentication',
         'authentication.token.OAuthTokenAuthentication',
         'authentication.token.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
