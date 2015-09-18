@@ -96,6 +96,8 @@ stop)
         echo "You must be a root user to stop atmosphere"
         exit 1
     fi
+    printf "Stopping uwsgi..\n"
+    service uwsgi stop
     printf "Stopping $WEB_SERVICE\n"
     service $WEB_SERVICE stop
     printf "Stopping Celery..\n"
