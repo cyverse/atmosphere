@@ -1,27 +1,40 @@
-from core.models import MachineRequest
-from core.email import send_denied_resource_email
-
-from web.emails import resource_request_email
-
-from django.db.models import Q
-
 from api.v2.serializers.details import MachineRequestSerializer,\
     UserMachineRequestSerializer
 from api.v2.views.base import BaseRequestViewSet
+from core.email import send_denied_resource_email
+from core.models import MachineRequest
+from core.models.status_type import StatusType
+from service.tasks.machine import start_machine_imaging
+from web.emails import requestImaging
 
-class MachineRequestViewSet(BaseRequestViewSet):
-    
-    def get_queryset(self):
-        username = self.request.query_params.get('username')
-        assert self.model is not None, (
-            "%s should include a `model` attribute."
-            %self.__class__.__name__
-        )
-        if(username is not None):
-            return self.model.objects.filter(new_machine_owner__username=username)
-        return self.model.objects.filter(~Q(status__in=["completed", "skipped", "deny"]))
 
+class MachineRequestViewSet(BaseRequestViewSet):    
     queryset = MachineRequest.objects.none()
     model = MachineRequest
     serializer_class = UserMachineRequestSerializer
     admin_serializer_class = MachineRequestSerializer
+    filter_fields = ('status__id', 'status__name')
+
+    def submit_action(self, instance):
+        """
+        Submits a resource request email
+        """
+        provider = instance.active_provider()
+        pre_approved = provider.auto_imaging
+        requestImaging(request, instance.id, auto_approve=pre_approved)
+        
+        if pre_approved:
+	    	instance.status = StatusType.objects.get_or_create(name="approved")
+	        instance.save()
+	        start_machine_imaging(instance)
+
+    def approve_action(self, instance):
+        """
+        Updates the resource for the request
+        """
+        start_machine_imaging(instance)
+
+    def deny_action(self, instance):
+        """
+        Notify the user that the request was denied
+        """
