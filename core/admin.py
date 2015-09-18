@@ -8,9 +8,10 @@ from django.utils import timezone
 
 from threepio import logger
 
+from core import email
 from core import models
 from core import tasks
-from service.tasks.admin as admin_task
+from service.tasks import admin as admin_task
 
 
 def private_object(modeladmin, request, queryset):
@@ -469,11 +470,17 @@ class ResourceRequestAdmin(admin.ModelAdmin):
             membership.allocation = obj.allocation
             membership.quota = obj.quota
             membership.save()
-            identity = obj.identity
+            identity = membership.identity
+
+            email_task = email.send_approved_resource_email(
+                user=obj.created_by,
+                request=obj.request,
+                reason=obj.admin_message)
+
             admin_task.set_provider_quota.apply_async(
                 args=[str(identity.uuid)],
-                link=tasks.close_resource_request.s(obj.id),
-                link_error=tasks.set_resource_request_failed.s(obj.id))
+                link=[tasks.close_request.si(obj), email_task],
+                link_error=tasks.set_request_as_failed.si(obj))
 
 # For adding 'new' registrations
 admin.site.register(models.Credential)

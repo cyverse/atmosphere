@@ -20,20 +20,19 @@ from authentication.protocol.ldap import lookupEmail, lookupUser
 from core.tasks import send_email as send_email_task
 
 
-def send_email_template(subject, template, recipient, sender,
+def send_email_template(subject, template, recipients, sender,
                         context=None, cc=None, html=True, silent=False):
     """
-    Send an email using the template provided
+    Return task to send an email using the template provided
     """
     body = render_to_string(template, context=Context(context))
-    args = (subject, body, recipient, sender)
+    args = (subject, body, recipients, sender)
     kwargs = {
         "cc": cc,
         "fail_silently": silent,
         "html": html
     }
-    send_email_task.apply_async(args=args, kwargs=kwargs)
-    return True
+    return send_email_task.si(*args, **kwargs)
 
 
 def email_address_str(name, email):
@@ -127,7 +126,7 @@ def send_email(subject, body, from_email, to, cc=None,
         "fail_silently": fail_silently,
         "html": html
     }
-    send_email_task.apply_async(args=args, kwargs=kwargs)
+    send_email_task(args=args, kwargs=kwargs)
     return True
 
 
@@ -210,15 +209,20 @@ def send_approved_resource_email(user, request, reason):
     """
     Notify the user the that their request has been approved.
     """
+    template = "core/email/resource_request_approved.html"
     subject = "Your Resource Request has been approved"
     context = {
         "user": user.username,
         "request": request,
         "reason": reason
     }
-    body = render_to_string("core/email/resource_request_approved.html",
-                            context=Context(context))
-    return email_from_admin(user, subject, body)
+    from_name, from_email = admin_address()
+    user_email = lookupEmail(user.username)
+    recipients = [email_address_str(user.username, user_email)]
+    sender = email_address_str(from_name, from_email)
+
+    return send_email_template(subject, template, recipients, sender,
+                               context=context, cc=[sender])
 
 
 def send_denied_resource_email(user, request, reason):
