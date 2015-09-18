@@ -10,13 +10,13 @@ from rest_framework import status
 
 from threepio import logger
 
-from core.models.machine_request import share_with_admins, share_with_self
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 from core.models import Provider
 
-from service.tasks.machine import start_machine_imaging
 from service.instance import _permission_to_act
 from service.exceptions import ActionNotAllowed
+from service.machine import share_with_admins, share_with_self
+from service.tasks.machine import start_machine_imaging
 
 from core.email import requestImaging
 
