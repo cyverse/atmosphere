@@ -47,7 +47,6 @@ class MachineRequest(BaseRequest):
     old_status = models.CharField(max_length=256)
 
     # Machine imaging Metadata
-    #status = models.TextField(default='', blank=True, null=True)
     parent_machine = models.ForeignKey(ProviderMachine,
                                        related_name="ancestor_machine")
 
