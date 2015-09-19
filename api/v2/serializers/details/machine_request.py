@@ -31,6 +31,16 @@ class UserRelatedField(serializers.PrimaryKeyRelatedField):
         return serializer.data
 
 
+# class ProviderMachineRelatedField(serializers.RelatedField):
+#     def get_queryset(self):
+#         return ProviderMachine.objects.all()
+
+#     def to_representation(self, value):
+#         provider_machine = ProviderMachine.objects.get(pk=value.pk)
+#         serializer = ProviderMachineSummarySerializer(provider_machine, context=self.context)
+#         return serializer.data
+
+
 class InstanceRelatedField(serializers.RelatedField):
     
     def get_queryset(self):
@@ -107,7 +117,15 @@ class StatusTypeRelatedField(serializers.RelatedField):
 
 
 class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
+    
+    def validate(self, data):
+        parent_machine = ProviderMachine.objects.get(id=data['instance'].source_id)
+        data['parent_machine'] = parent_machine
+        return data
+
     uuid = serializers.CharField(read_only=True)
+    identity = IdentityRelatedField(source='membership.identity',
+                                    queryset=Identity.objects.none())
     instance = ModelRelatedField(
         queryset=Instance.objects.all(),
         serializer_class=InstanceSummarySerializer,
@@ -116,10 +134,12 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
                                     allow_null=True,
                                     required=False)
     parent_machine = ModelRelatedField(
-        lookup_field="id",
-        queryset=ProviderMachine.objects.all(),
-        serializer_class=ProviderMachineSummarySerializer,
-        style={'base_template': 'input.html'})
+       required = False, 
+       lookup_field="id",
+       queryset=ProviderMachine.objects.all(),
+       serializer_class=ProviderMachineSummarySerializer,
+       style={'base_template': 'input.html'})
+
     new_application_name = serializers.CharField()
     new_application_description = serializers.CharField()
     new_application_visibility = serializers.CharField()
@@ -163,6 +183,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     start_date = serializers.DateTimeField(read_only=True)
     end_date = serializers.DateTimeField(read_only=True)
     new_machine = ModelRelatedField(
+        required = False,
         queryset = ProviderMachine.objects.all(),
         serializer_class = ProviderMachineSummarySerializer,
         style = {'base_template':'input.html'})
@@ -176,6 +197,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'uuid',
             'url',
             'instance',
+            'identity',
             'status',
             'parent_machine',
             'new_application_name',
