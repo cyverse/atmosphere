@@ -38,12 +38,12 @@ def _get_imaging_task(orig_managerCls, orig_creds,
 
 
 def _recover_from_error(status):
-    if not status.name:
-        return False, status.name
-    if 'exception' in status.name.lower():
-        return True, status.name[
-            status.name.find("(") + 1:status.name.find(")")]
-    return False, status.name
+    if not status:
+        return False, status
+    if 'exception' in status.lower():
+        return True, status[
+            status.find("(") + 1:status.find(")")]
+    return False, status
 
 
 @task(name='export_request_task', queue="imaging", ignore_result=False)
@@ -92,8 +92,10 @@ def start_machine_imaging(machine_request, delay=False):
     Builds up a machine imaging task using core.models.machine_request
     delay - If true, wait until task is completed before returning
     """
-    original_status = machine_request.status
+
+    original_status = machine_request.old_status
     last_run_error, original_status = _recover_from_error(original_status)
+
     if last_run_error:
         machine_request.status = original_status
         machine_request.save()
@@ -117,7 +119,7 @@ def start_machine_imaging(machine_request, delay=False):
     # Task 2 = Process the machine request
     if 'processing' in original_status:
         # If processing, start here..
-        image_id = machine_request.status.replace("processing - ", "")
+        image_id = machine_request.old_status.replace("processing - ", "")
         logger.info("Start with processing:%s" % image_id)
         process_task = process_request.s(image_id, machine_request.id)
         init_task = process_task
