@@ -212,8 +212,6 @@ AUTHENTICATION_BACKENDS = (
     'authentication.authBackends.SAMLLoginBackend',
     # For Service-Access
     'authentication.authBackends.LDAPLoginBackend',
-    # For 3rd-party-web Service-Access
-    'authentication.authBackends.OAuthLoginBackend',
 )
 
 # django-cors-headers
