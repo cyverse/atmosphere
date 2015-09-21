@@ -21,12 +21,13 @@ class MachineRequestViewSet(BaseRequestViewSet):
         """
         provider = instance.active_provider()
         pre_approved = provider.auto_imaging
-        #requestImaging(request, instance.id, auto_approve=pre_approved)
+        requestImaging(self.request, instance.id, auto_approve=pre_approved)
         
-        #if pre_approved:
-	    #	instance.status = StatusType.objects.get_or_create(name="approved")
-	    #     instance.save()
-	    #    start_machine_imaging(instance)
+        if pre_approved:
+            status, _ = StatusType.objects.get_or_create(name="approved")
+            instance.status = status
+            instance.save()
+            start_machine_imaging(instance)
 
     def approve_action(self, instance):
         """
