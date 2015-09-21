@@ -142,6 +142,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
 
     new_application_name = serializers.CharField()
     new_application_description = serializers.CharField()
+    old_status = serializers.CharField(required = False)
     new_application_visibility = serializers.CharField()
     access_list = serializers.CharField(allow_blank=True)
     iplant_sys_files = serializers.CharField(allow_blank=True)
@@ -199,6 +200,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'instance',
             'identity',
             'status',
+            'old_status',
             'parent_machine',
             'new_application_name',
             'new_application_description',
