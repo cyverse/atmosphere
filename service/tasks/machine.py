@@ -37,13 +37,13 @@ def _get_imaging_task(orig_managerCls, orig_creds,
         return image_task
 
 
-def _recover_from_error(status_name):
-    if not status_name:
-        return False, status_name
-    if 'exception' in status_name.lower():
-        return True, status_name[
-            status_name.find("(") + 1:status_name.find(")")]
-    return False, status_name
+def _recover_from_error(status):
+    if not status.name:
+        return False, status.name
+    if 'exception' in status.name.lower():
+        return True, status.name[
+            status.name.find("(") + 1:status.name.find(")")]
+    return False, status.name
 
 
 @task(name='export_request_task', queue="imaging", ignore_result=False)
@@ -163,7 +163,7 @@ def start_machine_imaging(machine_request, delay=False):
     email_task.link_error(imaging_error_task)
     # Set status to imaging ONLY if our initial task is the imaging task.
     if init_task == imaging_task:
-        machine_request.status = 'imaging'
+        # machine_request.status = 'imaging'
         machine_request.save()
     # Start the task.
     async = init_task.apply_async()
