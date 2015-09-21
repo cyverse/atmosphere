@@ -4,6 +4,7 @@ Settings specific to the local deploy.
 import os
 import sys
 
+from atmosphere.settings import secrets
 
 globals().update(vars(sys.modules['atmosphere.settings']))
 
@@ -59,14 +60,24 @@ DEPLOY_SERVER_URL = SERVER_URL.replace('https', 'http')
 # Django-Celery Development settings
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
+# Configure authentication plugin
+AUTHENTICATION = {
+    "CAS_SERVER": '{{ CAS_SERVER }}',
+    "CAS_AUTH_PREFIX": '{{ CAS_AUTH_PREFIX }}',
+    "TOKEN_EXPIRY_TIME": timedelta(days={{ TOKEN_EXPIRY_TIME_DAYS }}),
+    "SELF_SIGNED_CERT": {{ SELF_SIGNED_CERT }},
+
+    "OAUTH_CLIENT_KEY": '{{ OAUTH_CLIENT_KEY }}',
+    "OAUTH_CLIENT_SECRET": '{{ OAUTH_CLIENT_SECRET }}',
+    "OAUTH_CLIENT_CALLBACK":  SERVER_URL + '/oauth2.0/callbackAuthorize',
+    "OAUTH_ISSUE_USER": '{{ OAUTH_ISSUE_USER}}',
+
+    "LDAP_SERVER": secrets.LDAP_SERVER,
+    "LDAP_SERVER_DN": secrets.LDAP_SERVER_DN
+}
+
 # CASLIB
-OAUTH_CLIENT_KEY = '{{ OAUTH_CLIENT_KEY }}'
-OAUTH_CLIENT_SECRET = '{{ OAUTH_CLIENT_SECRET }}'
-OAUTH_CLIENT_CALLBACK = SERVER_URL + '/oauth2.0/callbackAuthorize'
-SELF_SIGNED_CERT = {{ SELF_SIGNED_CERT }}
 SERVER_URL = SERVER_URL + REDIRECT_URL
-CAS_SERVER = '{{ CAS_SERVER }}'
-CAS_AUTH_PREFIX = '{{ CAS_AUTH_PREFIX }}'
 SERVICE_URL = SERVER_URL + '/CAS_serviceValidater?sendback=' + REDIRECT_URL + '/application/'
 PROXY_URL = SERVER_URL + '/CAS_proxyUrl'
 PROXY_CALLBACK_URL = SERVER_URL + '/CAS_proxyCallback'

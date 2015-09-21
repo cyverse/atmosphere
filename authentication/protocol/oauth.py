@@ -7,9 +7,9 @@ import requests
 from caslib import OAuthClient
 from threepio import auth_logger as logger
 
-from atmosphere.settings import secrets
 from authentication import get_or_create_user
 from authentication.models import Token as AuthToken
+from authentication.settings import auth_settings
 
 User = get_user_model()
 
@@ -52,10 +52,10 @@ def obtainOAuthToken(username, token_key, token_expire=None):
 # CAS-SPECIFIC OAUTH METHODS
 ###########################
 def get_cas_oauth_client():
-    o_client = OAuthClient(settings.CAS_SERVER,
-                           settings.OAUTH_CLIENT_CALLBACK,
-                           settings.OAUTH_CLIENT_KEY,
-                           settings.OAUTH_CLIENT_SECRET,
+    o_client = OAuthClient(auth_settings.CAS_SERVER,
+                           auth_settings.OAUTH_CLIENT_CALLBACK,
+                           auth_settings.OAUTH_CLIENT_KEY,
+                           auth_settings.OAUTH_CLIENT_SECRET,
                            auth_prefix=settings.CAS_AUTH_PREFIX)
     return o_client
 

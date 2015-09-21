@@ -8,11 +8,12 @@ from django.contrib.auth.signals import user_logged_in
 from django.contrib.auth import login, authenticate, get_user_model
 
 from authentication.models import Token as AuthToken
+from authentication.settings import auth_settings
 
 
 
 def cas_logoutRedirect():
-    return HttpResponseRedirect(settings.CAS_SERVER +
+    return HttpResponseRedirect(auth_settings.CAS_SERVER +
                                 "/cas/logout?service=" + settings.SERVER_URL)
 
 
@@ -43,7 +44,7 @@ def always_auth(request, redirect):
 
 def saml_loginRedirect(request, redirect=None, gateway=False):
     login_url = "%s%s/login?service=%s/s_serviceValidater%s" %\
-                (settings.CAS_SERVER, settings.CAS_AUTH_PREFIX,
+                (auth_settings.CAS_SERVER, auth_settings.CAS_AUTH_PREFIX,
                  settings.SERVER_URL,
                  "?sendback=%s" % redirect if redirect else "")
     if gateway:
@@ -57,7 +58,7 @@ def cas_loginRedirect(request, redirect=None, gateway=False):
     redirect_to = "%s/CAS_serviceValidater?sendback=%s" \
         % (settings.SERVER_URL, redirect)
     login_url = "%s%s/login?service=%s" \
-        % (settings.CAS_SERVER, settings.CAS_AUTH_PREFIX, redirect_to)
+        % (auth_settings.CAS_SERVER, auth_settings.CAS_AUTH_PREFIX, redirect_to)
     if gateway:
         login_url += '&gateway=true'
     return HttpResponseRedirect(login_url)

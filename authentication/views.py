@@ -15,8 +15,7 @@ from authentication import createAuthToken, userCanEmulate, cas_loginRedirect
 from authentication.models import Token as AuthToken
 from authentication.protocol.cas import cas_validateUser
 from authentication.protocol.ldap import ldap_validate
-
-from atmosphere.settings.secrets import TOKEN_EXPIRY_TIME
+from authentication.settings import auth_settings
 
 
 @csrf_exempt
@@ -48,7 +47,7 @@ def token_auth(request):
             logger.info("LDAP User %s validated. Creating auth token"
                         % username)
             token = createAuthToken(username)
-            expireTime = token.issuedTime + TOKEN_EXPIRY_TIME
+            expireTime = token.issuedTime + auth_settings.TOKEN_EXPIRY_TIME
             auth_json = {
                 'token': token.key,
                 'username': token.user.username,
@@ -67,7 +66,7 @@ def token_auth(request):
 
     # ASSERT: Token exists here
     if token:
-        expireTime = token.issuedTime + TOKEN_EXPIRY_TIME
+        expireTime = token.issuedTime + auth_settings.TOKEN_EXPIRY_TIME
         auth_json = {
             'token': token.key,
             'username': token.user.username,
@@ -85,7 +84,7 @@ def token_auth(request):
     if cas_validateUser(username):
         logger.info("CAS User %s validated. Creating auth token" % username)
         token = createAuthToken(username)
-        expireTime = token.issuedTime + TOKEN_EXPIRY_TIME
+        expireTime = token.issuedTime + auth_settings.TOKEN_EXPIRY_TIME
         auth_json = {
             'token': token.key,
             'username': token.user.username,
@@ -140,7 +139,7 @@ def auth_response(request):
     """
     Create a new AuthToken for the user, then return the Token & API URL
     AuthTokens will expire after a predefined time
-    (See #/auth/utils.py:settings.TOKEN_EXPIRY_TIME)
+    (See #/auth/utils.py:auth_settings.TOKEN_EXPIRY_TIME)
     AuthTokens will be re-newed if
     the user is re-authenticated by CAS at expiry-time
     """

@@ -19,6 +19,7 @@ from threepio import auth_logger as logger
 
 from authentication import create_session_token
 from authentication.models import UserProxy
+from authentication.settings import auth_settings
 
 User = get_user_model()
 
@@ -31,12 +32,12 @@ def get_cas_client():
     """
     This is how you initialize a CAS Client
     """
-    return CASClient(settings.CAS_SERVER,
+    return CASClient(auth_settings.CAS_SERVER,
                      settings.SERVICE_URL,
                      proxy_url=settings.PROXY_URL,
                      proxy_callback=settings.PROXY_CALLBACK_URL,
-                     auth_prefix=settings.CAS_AUTH_PREFIX,
-                     self_signed_cert=settings.SELF_SIGNED_CERT)
+                     auth_prefix=auth_settings.CAS_AUTH_PREFIX,
+                     self_signed_cert=auth_setting.SELF_SIGNED_CERT)
 
 
 def cas_validateUser(username):
@@ -97,9 +98,9 @@ def _set_redirect_url(sendback, request):
 
 
 def get_saml_client():
-    s_client = SAMLClient(settings.CAS_SERVER,
+    s_client = SAMLClient(auth_settings.CAS_SERVER,
                           settings.SERVER_URL,
-                          auth_prefix=settings.CAS_AUTH_PREFIX)
+                          auth_prefix=auth_settings.CAS_AUTH_PREFIX)
     return s_client
 
 

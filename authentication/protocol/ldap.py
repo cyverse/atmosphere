@@ -10,15 +10,15 @@ import ldap as ldap_driver
 
 from threepio import auth_logger as logger
 
-from atmosphere.settings import secrets
+from authentication.settings import auth_settings
 
 
 def _search_ldap(userid, conn=None):
     try:
         if not conn:
-            conn = ldap_driver.initialize(secrets.LDAP_SERVER)
+            conn = ldap_driver.initialize(auth_settings.LDAP_SERVER)
         result = conn.search_s(
-            secrets.LDAP_SERVER_DN,
+            auth_settings.LDAP_SERVER_DN,
             ldap_driver.SCOPE_SUBTREE,
             '(uid=' + userid + ')'
         )
@@ -34,7 +34,7 @@ def getAllUsers():
     Grabs all users in LDAP
     """
     try:
-        conn = ldap_driver.initialize(secrets.LDAP_SERVER)
+        conn = ldap_driver.initialize(auth_settings.LDAP_SERVER)
         user_list = []
         for letter in string.lowercase:
             attr = _search_ldap("%s*" % letter, conn)
@@ -90,8 +90,8 @@ def ldap_validate(username, password):
         return
 
     try:
-        ldap_server = secrets.LDAP_SERVER
-        ldap_server_dn = secrets.LDAP_SERVER_DN
+        ldap_server = auth_settings.LDAP_SERVER
+        ldap_server_dn = auth_settings.LDAP_SERVER_DN
         logger.warn("[LDAP] Validation Test - %s" % username)
         ldap_conn = ldap_driver.initialize(ldap_server)
         dn = "uid=" + username + "," + ldap_server_dn
@@ -122,8 +122,8 @@ def get_members(groupname):
     """
     """
     try:
-        ldap_server = secrets.LDAP_SERVER
-        ldap_group_dn = secrets.LDAP_SERVER_DN.replace(
+        ldap_server = auth_settings.LDAP_SERVER
+        ldap_group_dn = auth_settings.LDAP_SERVER_DN.replace(
             "ou=people", "ou=Groups")
         ldap_conn = ldap_driver.initialize(ldap_server)
         group_users = ldap_conn.search_s(
