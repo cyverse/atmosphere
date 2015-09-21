@@ -15,6 +15,7 @@ DEFAULTS =  {
     # General
     "TOKEN_EXPIRY_TIME": timedelta(days=1),
     "CAS_SERVER": None,
+    "API_SERVER_URL": None,
 
     # OAUTH
     "OAUTH_CLIENT_KEY": None,
@@ -43,7 +44,7 @@ def reload_settings(*args, **kwargs):
     global auth_settings
     setting_name, value = kwargs['setting'], kwargs['value']
     if setting_name == "AUTHENTICATION":
-        defaults = DEFAULT.copy()
+        defaults = DEFAULTS.copy()
         auth_setings = ReadOnlyAttrDict(defaults.update(values))
 
 

@@ -103,7 +103,7 @@ def createAuthToken(username):
     user = User.objects.get(username=username)
     auth_user_token = AuthToken(
         user=user,
-        api_server_url=settings.API_SERVER_URL
+        api_server_url=auth_settings.API_SERVER_URL
     )
     auth_user_token.update_expiration()
     auth_user_token.save()
@@ -153,7 +153,7 @@ def userCanEmulate(username):
 def create_session_token(sender, user, request, **kwargs):
     auth_token = AuthToken(
         user=user,
-        api_server_url=settings.API_SERVER_URL
+        api_server_url=auth_settings.API_SERVER_URL
     )
     auth_token.update_expiration()
     auth_token.save()

@@ -10,6 +10,8 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone
 
+from authentication.settings import auth_settings
+
 
 AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", 'auth.User')
 
@@ -92,7 +94,6 @@ def create_auth_token(username, token_key, token_expire=None):
     and the username that the token will belong to
     Create a new AuthToken for DB lookups
     """
-    from django.conf import settings
     try:
         user = User.objects.get(username=username)
     except User.DoesNotExist:
@@ -100,7 +101,7 @@ def create_auth_token(username, token_key, token_expire=None):
                     "Auth Token for %s was _NOT_ created" % username)
         return None
     auth_user_token, _ = Token.objects.get_or_create(
-        key=token_key, user=user, api_server_url=settings.API_SERVER_URL)
+        key=token_key, user=user, api_server_url=auth_settings.API_SERVER_URL)
     #TODO: Only run if token_expire is different.from current result
     if token_expire:
         auth_user_token.update_expiration(token_expire)

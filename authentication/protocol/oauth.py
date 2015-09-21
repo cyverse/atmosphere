@@ -56,7 +56,7 @@ def get_cas_oauth_client():
                            auth_settings.OAUTH_CLIENT_CALLBACK,
                            auth_settings.OAUTH_CLIENT_KEY,
                            auth_settings.OAUTH_CLIENT_SECRET,
-                           auth_prefix=settings.CAS_AUTH_PREFIX)
+                           auth_prefix=auth_settings.CAS_AUTH_PREFIX)
     return o_client
 
 
