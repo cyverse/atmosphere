@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.utils.timezone import datetime, timedelta
 
 import requests
@@ -6,10 +8,10 @@ from caslib import OAuthClient
 from threepio import auth_logger as logger
 
 from atmosphere.settings import secrets
-from atmosphere import settings
 from authentication import get_or_create_user
 from authentication.models import Token as AuthToken
-from core.models.user import AtmosphereUser
+
+User = get_user_model()
 
 
 # Requests auth class for access tokens
@@ -33,8 +35,8 @@ def obtainOAuthToken(username, token_key, token_expire=None):
     returns a new token for username
     """
     try:
-        user = AtmosphereUser.objects.get(username=username)
-    except AtmosphereUser.DoesNotExist:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
         logger.warn("User %s doesn't exist on the DB. "
                     "OAuth token _NOT_ created" % username)
         return None

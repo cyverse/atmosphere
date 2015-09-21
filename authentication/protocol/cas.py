@@ -7,6 +7,8 @@ Contact:        Steven Gregory <sgregory@iplantcollaborative.org>
 from datetime import timedelta
 import time
 
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import timezone
@@ -15,10 +17,10 @@ from caslib import CASClient, SAMLClient
 
 from threepio import auth_logger as logger
 
-from atmosphere import settings
 from authentication import create_session_token
 from authentication.models import UserProxy
-from core.models import AtmosphereUser as User
+
+User = get_user_model()
 
 # TODO: Find out the actual proxy ticket expiration time, it varies by server
 # May be as short as 5min!
@@ -83,16 +85,14 @@ def updateUserProxy(user, pgtIou, max_try=3):
             attempts += 1
     return False
 
-
 """
 CAS is an optional way to login to Atmosphere
 This code integrates caslib into the Auth system
 """
 
-
 def _set_redirect_url(sendback, request):
     absolute_url = request.build_absolute_uri(
-        reverse('cas-service-validate-link'))
+        reverse('authentication:cas-service-validate-link'))
     return "%s?sendback=%s" % (absolute_url, sendback)
 
 

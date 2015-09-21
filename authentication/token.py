@@ -5,6 +5,7 @@ Token based authentication
 from datetime import timedelta
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 from requests.exceptions import ConnectionError
 from rest_framework.authentication import BaseAuthentication
@@ -17,7 +18,7 @@ from authentication.protocol.oauth import cas_profile_for_token,\
     obtainOAuthToken
 from authentication.protocol.wso2 import WSO2_JWT
 
-from core.models.user import AtmosphereUser
+User = get_user_model()
 
 
 def getRequestParams(request):
@@ -83,6 +84,7 @@ def getRequestVars(request):
     except KeyError:
         pass
     return None
+
 
 class TokenAuthentication(BaseAuthentication):
 
@@ -198,8 +200,8 @@ def validate_oauth_token(token, request=None):
     #    raise Unauthorized("User %s is not a member of group 'atmo-user'"
     #                       % username)
     # TODO: TEST 2 : Must have an identity (?)
-    if not AtmosphereUser.objects.filter(username=username):
-        raise Unauthorized("User %s does not exist as an AtmosphereUser"
+    if not User.objects.filter(username=username):
+        raise Unauthorized("User %s does not exist as an User"
                            % username)
     auth_token = obtainOAuthToken(username, token)
     if not auth_token:

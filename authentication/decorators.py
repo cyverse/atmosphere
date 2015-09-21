@@ -1,13 +1,12 @@
-from django.http import HttpResponseRedirect, HttpResponseForbidden
-
+from django.conf import settings
 from django.contrib.auth import authenticate, login as django_login
+from django.http import HttpResponseRedirect, HttpResponseForbidden
 
 from rest_framework.response import Response
 from rest_framework import status
 
 from threepio import auth_logger as logger
 
-from atmosphere import settings
 from authentication import cas_loginRedirect
 from authentication.token import validate_token
 

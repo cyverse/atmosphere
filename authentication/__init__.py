@@ -3,11 +3,12 @@ authentication helper methods.
 """
 from django.http import HttpResponseRedirect
 
+from django.conf import settings
 from django.contrib.auth.signals import user_logged_in
-from django.contrib.auth import login, authenticate
-from atmosphere import settings
+from django.contrib.auth import login, authenticate, get_user_model
+
 from authentication.models import Token as AuthToken
-from core.models import AtmosphereUser as User
+
 
 
 def cas_logoutRedirect():
@@ -66,6 +67,7 @@ def get_or_create_user(username=None, attributes=None):
     """
     Retrieve or create a User matching the username (No password)
     """
+    User = get_user_model()
     if not username:
         return None
 
@@ -90,6 +92,7 @@ def createAuthToken(username):
     """
     returns a new token for username
     """
+    User = get_user_model()
     # NOTE: REMOVE this when it is no longer true!
     # Force any username lookup to be in lowercase
     if not username:
@@ -136,6 +139,7 @@ def userCanEmulate(username):
     Django users marked as 'staff' have emulate permission
     Additional checks can be added later..
     """
+    User = get_user_model()
     try:
         user = User.objects.get(username=username)
     except User.DoesNotExist:

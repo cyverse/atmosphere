@@ -5,10 +5,13 @@ from datetime import timedelta
 import hashlib
 import uuid
 
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone
 
-from core.models import AtmosphereUser as User
+
+AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", 'auth.User')
 
 
 class Token(models.Model):
@@ -18,7 +21,7 @@ class Token(models.Model):
     each time a user asks for a token using CloudAuth
     """
     key = models.CharField(max_length=128, primary_key=True)
-    user = models.ForeignKey(User, related_name='auth_token')
+    user = models.ForeignKey(AUTH_USER_MODEL, related_name='auth_token')
     api_server_url = models.CharField(max_length=256)
     remote_ip = models.CharField(max_length=128, null=True, blank=True)
     user_agent = models.TextField(null=True, blank=True)
