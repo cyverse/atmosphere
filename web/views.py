@@ -68,6 +68,15 @@ def redirectApp(request):
                               gateway=True)
 
 
+def globus_login_redirect(request):
+    from authentication.protocol.globus import globus_authorize
+    return globus_authorize(request)
+
+def globus_callback_authorize(request):
+    from authentication.protocol.globus import globus_validate_code
+    return globus_validate_code(request)
+
+
 def o_login_redirect(request):
     oauth_client = get_cas_oauth_client()
     url = oauth_client.authorize_url()
@@ -75,9 +84,11 @@ def o_login_redirect(request):
 
 
 def o_callback_authorize(request):
-    from authentication.views import globus_redirectSuccess
-    return globus_redirectSuccess(request)
-    #TODO: 'if' logic required here:
+    # IF globus --> globus_callback_authorize
+    referrer = request.META['HTTP_REFERER']
+    if 'globus' in referrer:
+        return globus_callback_authorize(request)
+    # ELSE: run code below
     logger.info(request.__dict__)
     if 'code' not in request.GET:
         logger.info(request.__dict__)
