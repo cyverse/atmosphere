@@ -13,6 +13,9 @@ from authentication.models import Token as AuthToken
 from core.models.user import AtmosphereUser
 
 
+
+
+
 # Requests auth class for access tokens
 class TokenAuth(requests.auth.AuthBase):
 

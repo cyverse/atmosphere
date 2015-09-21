@@ -75,6 +75,9 @@ def o_login_redirect(request):
 
 
 def o_callback_authorize(request):
+    from authentication.views import globus_redirectSuccess
+    return globus_redirectSuccess(request)
+    #TODO: 'if' logic required here:
     logger.info(request.__dict__)
     if 'code' not in request.GET:
         logger.info(request.__dict__)

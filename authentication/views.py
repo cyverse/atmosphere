@@ -6,15 +6,15 @@ from datetime import datetime
 import uuid
 
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 
 from threepio import auth_logger as logger
 
-from atmosphere.authentication import createAuthToken, userCanEmulate,\
+from authentication import createAuthToken, userCanEmulate,\
     cas_loginRedirect
-from atmosphere.authentication.models import Token as AuthToken
-from atmosphere.authentication.protocol.cas import cas_validateUser
-from atmosphere.authentication.protocol.ldap import ldap_validate
+from authentication.models import Token as AuthToken
+from authentication.protocol.cas import cas_validateUser
+from authentication.protocol.ldap import ldap_validate
 from atmosphere.settings import API_SERVER_URL
 from atmosphere.settings.secrets import TOKEN_EXPIRY_TIME
 
@@ -195,3 +195,31 @@ def auth_response(request):
 
     auth_user_token.save()
     return response
+
+
+def globus_loginRedirect(request):
+    from oauth2client.client import OAuth2WebServerFlow
+    from atmosphere.settings.secrets import GLOBUS_OAUTH_ID, GLOBUS_OAUTH_SECRET, GLOBUS_OAUTH_CREDENTIALS_SCOPE
+    flow = OAuth2WebServerFlow(
+        client_id=GLOBUS_OAUTH_ID, client_secret=GLOBUS_OAUTH_SECRET,
+        scope=GLOBUS_OAUTH_CREDENTIALS_SCOPE,
+        auth_uri='https://auth.api.beta.globus.org/authorize',
+        token_uri='https://auth.api.beta.globus.org/token',
+        redirect_uri='https://mickey.iplantc.org/oauth2.0/callbackAuthorize')
+    auth_uri = flow.step1_get_authorize_url()
+    return HttpResponseRedirect(auth_uri)
+
+def globus_redirectSuccess(request):
+    from oauth2client.client import OAuth2WebServerFlow
+    from atmosphere.settings.secrets import GLOBUS_OAUTH_ID, GLOBUS_OAUTH_SECRET, GLOBUS_OAUTH_AUTHENTICATION_SCOPE
+    flow = OAuth2WebServerFlow(
+        client_id=GLOBUS_OAUTH_ID, client_secret=GLOBUS_OAUTH_SECRET,
+        scope=GLOBUS_OAUTH_AUTHENTICATION_SCOPE,
+        auth_uri='https://auth.api.beta.globus.org/authorize',
+        token_uri='https://auth.api.beta.globus.org/token',
+        redirect_uri='https://mickey.iplantc.org/oauth2.0/callbackAuthorize')
+    code = request.GET['code']
+    if code:
+        code = code[0]
+    credentials = flow.step2_exchange(code)
+    return HttpResponse(credentials.__dict__)

@@ -50,6 +50,7 @@ urlpatterns = patterns(
         name="saml-service-validate-link"),
 
     url(r'^login$', 'web.views.login'),
+    url(r'^globus_login$', 'authentication.views.globus_loginRedirect'),
     url(r'^logout$', 'web.views.logout'),
     # CAS Authentication Section:
     #    CAS Validation:
