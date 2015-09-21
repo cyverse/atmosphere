@@ -111,7 +111,7 @@ class BaseRequestViewSet(AuthViewSet):
             instance = serializer.save(
                 membership=membership,
                 status=status,
-                old_status="pending",
+                old_status="processing",
                 created_by=self.request.user
             )
             self.submit_action(instance)
