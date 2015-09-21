@@ -141,10 +141,10 @@ def test_machine_in_version(app, version, new_machine_id):
         app_version = ApplicationVersion.objects.get(
             application=app,
             name=version)
-        if app_version.machines.count() == 0 or app_version.machines.get(
-                instance_source__identifier=new_machine_id):
+        if app_version.machines.count() == 0 or app_version.machines.filter(
+                instance_source__identifier=new_machine_id).count():
             return app_version
-    except ObjectDoesNotExist:
+    except ApplicationVersion.DoesNotExist:
         return None
 
 def create_unique_version(app, version, created_by, created_by_identity):
