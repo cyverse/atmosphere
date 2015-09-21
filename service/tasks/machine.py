@@ -16,6 +16,7 @@ from core.email import \
 from core.models.machine_request import MachineRequest, process_machine_request
 from core.models.export_request import ExportRequest
 from core.models.identity import Identity
+from core.models.status_type import StatusType
 
 from service.driver import get_admin_driver, get_esh_driver, get_account_driver
 from service.deploy import freeze_instance, sync_instance
@@ -93,6 +94,10 @@ def start_machine_imaging(machine_request, delay=False):
     delay - If true, wait until task is completed before returning
     """
 
+    new_status, _ = StatusType.objects.get_or_create(name="started")
+    machine_request.status = new_status
+    machine_request.save()
+    
     original_status = machine_request.old_status
     last_run_error, original_status = _recover_from_error(original_status)
 
@@ -119,6 +124,9 @@ def start_machine_imaging(machine_request, delay=False):
     # Task 2 = Process the machine request
     if 'processing' in original_status:
         # If processing, start here..
+        new_status, _ = StatusType.objects.get_or_create(name="processing")
+        machine_request.status = new_status
+        machine_request.save()
         image_id = machine_request.old_status.replace("processing - ", "")
         logger.info("Start with processing:%s" % image_id)
         process_task = process_request.s(image_id, machine_request.id)
@@ -131,6 +139,9 @@ def start_machine_imaging(machine_request, delay=False):
 
     # Task 3 = Validate the new image by launching an instance
     if 'validating' in original_status:
+        new_status, _ = StatusType.objects.get_or_create(name="validating")
+        machine_request.status = new_status
+        machine_request.save()
         image_id = machine_request.new_machine.identifier
         logger.info("Start with validating:%s" % image_id)
         # If validating, seed the image_id and start here..
@@ -243,7 +254,8 @@ def machine_request_error(task_uuid, machine_request_id):
 @task(name='imaging_complete', ignore_result=False)
 def imaging_complete(machine_request_id):
     machine_request = MachineRequest.objects.get(id=machine_request_id)
-    machine_request.status = 'completed'
+    machine_request.old_status = 'completed'
+    machine_request.status = StatusType.objects.get(name="completed")
     machine_request.end_date = timezone.now()
     machine_request.save()
     send_image_request_email(machine_request.new_machine_owner,
