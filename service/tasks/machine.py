@@ -124,9 +124,6 @@ def start_machine_imaging(machine_request, delay=False):
     # Task 2 = Process the machine request
     if 'processing' in original_status:
         # If processing, start here..
-        new_status, _ = StatusType.objects.get_or_create(name="processing")
-        machine_request.status = new_status
-        machine_request.save()
         image_id = machine_request.old_status.replace("processing - ", "")
         logger.info("Start with processing:%s" % image_id)
         process_task = process_request.s(image_id, machine_request.id)
@@ -139,9 +136,6 @@ def start_machine_imaging(machine_request, delay=False):
 
     # Task 3 = Validate the new image by launching an instance
     if 'validating' in original_status:
-        new_status, _ = StatusType.objects.get_or_create(name="validating")
-        machine_request.status = new_status
-        machine_request.save()
         image_id = machine_request.new_machine.identifier
         logger.info("Start with validating:%s" % image_id)
         # If validating, seed the image_id and start here..
@@ -275,7 +269,9 @@ def process_request(new_image_id, machine_request_id):
     Finally, update the metadata on the provider.
     """
     machine_request = MachineRequest.objects.get(id=machine_request_id)
-    machine_request.status = 'processing - %s' % new_image_id
+    new_status, _ = StatusType.objects.get_or_create(name="processing")
+    machine_request.status = new_status
+    machine_request.old_status = 'processing - %s' % new_image_id
     machine_request.save()
     # TODO: Best if we could 'broadcast' this to all running
     # Apache WSGI procs && celery 'imaging' procs
@@ -286,7 +282,9 @@ def process_request(new_image_id, machine_request_id):
 @task(name='validate_new_image', ignore_result=False)
 def validate_new_image(image_id, machine_request_id):
     machine_request = MachineRequest.objects.get(id=machine_request_id)
-    machine_request.status = 'validating'
+    new_status, _ = StatusType.objects.get_or_create(name="validating")
+    machine_request.status = new_status
+    machine_request.old_status = 'validating'
     machine_request.save()
     accounts = get_account_driver(machine_request.new_machine.provider)
     accounts.clear_cache()
