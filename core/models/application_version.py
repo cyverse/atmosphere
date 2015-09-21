@@ -227,6 +227,27 @@ def create_unique_version(app, version, created_by, created_by_identity):
             version += ".0"
 
 
+def merge_duplicated_app_versions(
+        master_version,
+        copy_versions=[],
+        delete_copies=True):
+    """
+    This function will merge together versions
+    that were created by the 'convert_esh_machine' process.
+    """
+    for version in copy_versions:
+        if master_version.name not in version.name:
+            continue
+        for machine in version.machines.all():
+            machine.application_version = master_version
+            machine.save()
+    if delete_copies:
+        for version in copy_versions:
+            if master_version.name not in version.name:
+                continue
+            version.delete()
+
+
 def create_app_version(
         app,
         version_str,
