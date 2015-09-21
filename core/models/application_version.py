@@ -4,7 +4,6 @@
 import uuid
 
 from django.db import models, IntegrityError
-from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from threepio import logger
 
@@ -141,10 +140,10 @@ def test_machine_in_version(app, version, new_machine_id):
         app_version = ApplicationVersion.objects.get(
             application=app,
             name=version)
-        if app_version.machines.count() == 0 or app_version.machines.get(
-                instance_source__identifier=new_machine_id):
+        if app_version.machines.count() == 0 or app_version.machines.filter(
+                instance_source__identifier=new_machine_id).count():
             return app_version
-    except ObjectDoesNotExist:
+    except ApplicationVersion.DoesNotExist:
         return None
 
 def create_unique_version(app, version, created_by, created_by_identity):
@@ -163,6 +162,27 @@ def create_unique_version(app, version, created_by, created_by_identity):
                 "Version %s is taken for Application %s" %
                 (version, app))
             version += ".0"
+
+
+def merge_duplicated_app_versions(
+        master_version,
+        copy_versions=[],
+        delete_copies=True):
+    """
+    This function will merge together versions
+    that were created by the 'convert_esh_machine' process.
+    """
+    for version in copy_versions:
+        if master_version.name not in version.name:
+            continue
+        for machine in version.machines.all():
+            machine.application_version = master_version
+            machine.save()
+    if delete_copies:
+        for version in copy_versions:
+            if master_version.name not in version.name:
+                continue
+            version.delete()
 
 
 def create_app_version(
