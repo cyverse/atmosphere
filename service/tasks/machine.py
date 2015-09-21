@@ -97,7 +97,7 @@ def start_machine_imaging(machine_request, delay=False):
     last_run_error, original_status = _recover_from_error(original_status)
 
     if last_run_error:
-        machine_request.status = original_status
+        machine_request.old_status = original_status
         machine_request.save()
     instance_id = machine_request.instance.provider_alias
 
