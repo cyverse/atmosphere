@@ -524,7 +524,10 @@ except ImportError:
 """
 Import local settings specific to the server, and secrets not checked into Git.
 """
-from atmosphere.settings.local import *
+try:
+    from atmosphere.settings.local import *
+except ImportError:
+    pass
 
 """
 Mostly good for TEST settings, especially DB conf.
