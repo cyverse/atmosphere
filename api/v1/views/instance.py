@@ -586,7 +586,7 @@ class InstanceAction(AuthAPIView):
                     status.HTTP_409_CONFLICT,
                     message)
             return failure_response(
-                status.HTTP_404_FORBIDDEN,
+                status.HTTP_403_FORBIDDEN,
                 "The requested action %s encountered "
                 "an irrecoverable exception: %s"
                 % (action_params['action'], message))
