@@ -80,3 +80,26 @@ class UserProxy(models.Model):
         db_table = "auth_userproxy"
         app_label = "authentication"
         verbose_name_plural = 'user proxies'
+
+
+def create_auth_token(username, token_key, token_expire=None):
+    """
+    Using *whatever* representation is necessary for the Token Key
+    (Ex: CAS-...., UUID4, JWT-OAuth)
+    and the username that the token will belong to
+    Create a new AuthToken for DB lookups
+    """
+    from django.conf import settings
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        logger.warn("User %s doesn't exist on the DB. "
+                    "Auth Token for %s was _NOT_ created" % username)
+        return None
+    auth_user_token, _ = Token.objects.get_or_create(
+        key=token_key, user=user, api_server_url=settings.API_SERVER_URL)
+    #TODO: Only run if token_expire is different.from current result
+    if token_expire:
+        auth_user_token.update_expiration(token_expire)
+        auth_user_token.save()
+    return auth_user_token

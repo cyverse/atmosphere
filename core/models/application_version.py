@@ -4,13 +4,16 @@
 import uuid
 
 from django.db import models, IntegrityError
+from django.db.models import Q
 from django.utils import timezone
+from django.contrib.auth.models import AnonymousUser
 from threepio import logger
 from django.core.exceptions import ObjectDoesNotExist as DoesNotExist
 
+from core.models.provider import AccountProvider
 from core.models.license import License
 from core.models.identity import Identity
-
+from core.query import only_current_source, only_current, only_current_machines_in_version
 
 class ApplicationVersion(models.Model):
 
@@ -69,6 +72,59 @@ class ApplicationVersion(models.Model):
         return "%s:%s - %s" % (self.application.name,
                                self.name,
                                self.start_date)
+
+    def active_machines(self):
+        """
+        Show machines that are from an active provider and non-end-dated.
+        """
+        return self.machines.filter(only_current_source())
+
+    @classmethod
+    def get_admin_image_versions(cls, user):
+        """
+        TODO: This 'just works' and is probably very slow... Look for a better way?
+        """
+        provider_id_list = user.identity_set.values_list('provider', flat=True)
+        account_providers_list = AccountProvider.objects.filter(
+            provider__id__in=provider_id_list)
+        admin_users = [ap.identity.created_by for ap in account_providers_list]
+        version_ids = []
+        for user in admin_users:
+            version_ids.extend(
+                user.applicationversion_set.values_list('id', flat=True))
+        admin_list = ApplicationVersion.objects.filter(
+            id__in=version_ids)
+        return admin_list
+
+    @classmethod
+    def current_machines(cls, request_user):
+        # Showing non-end dated, public ApplicationVersions
+        public_set = ApplicationVersion.objects.filter(
+            only_current(),
+            only_current_machines_in_version(),
+            application__private=False)
+        if not isinstance(request_user, AnonymousUser):
+            # NOTE: Showing 'my pms EVEN if they are end-dated.
+            my_set = ApplicationVersion.objects.filter(
+                Q(created_by=request_user) |
+                Q(application__created_by=request_user) |
+                Q(machines__instance_source__created_by=request_user))
+            all_group_ids = request_user.group_set.values('id')
+            # Showing non-end dated, shared ApplicationVersions
+            shared_set = ApplicationVersion.objects.filter(
+                only_current(), only_current_machines_in_version(), Q(
+                    membership=all_group_ids) | Q(
+                    machines__members__in=all_group_ids))
+            if request_user.is_staff:
+                admin_set = cls.get_admin_image_versions(request_user)
+            else:
+                admin_set = ApplicationVersion.objects.none()
+        else:
+            admin_set = shared_set = my_set = ApplicationVersion.objects.none()
+
+        # Make sure no dupes.
+        all_versions = (public_set | shared_set | my_set | admin_set).distinct()
+        return all_versions
 
     @property
     def machine_ids(self):
@@ -136,13 +192,19 @@ def get_app_version(app, version, created_by=None, created_by_identity=None):
             created_by_identity)
         return app_version
 
-def test_machine_in_version(app, version, new_machine_id):
+def test_machine_in_version(app, version_name, new_machine_id):
+    """
+    Returns 'app_version' IF:
+    a version exists for this app with the version_name
+    and it is EMPTY OR it includes the machine
+    Otherwise, return None.
+    """
     try:
         app_version = ApplicationVersion.objects.get(
             application=app,
-            name=version)
-        if app_version.machines.count() == 0 or app_version.machines.get(
-                instance_source__identifier=new_machine_id):
+            name=version_name)
+        if app_version.machines.count() == 0 or app_version.machines.filter(
+                instance_source__identifier=new_machine_id).count() > 0:
             return app_version
     except DoesNotExist:
         return None
@@ -165,6 +227,27 @@ def create_unique_version(app, version, created_by, created_by_identity):
             version += ".0"
 
 
+def merge_duplicated_app_versions(
+        master_version,
+        copy_versions=[],
+        delete_copies=True):
+    """
+    This function will merge together versions
+    that were created by the 'convert_esh_machine' process.
+    """
+    for version in copy_versions:
+        if master_version.name not in version.name:
+            continue
+        for machine in version.machines.all():
+            machine.application_version = master_version
+            machine.save()
+    if delete_copies:
+        for version in copy_versions:
+            if master_version.name not in version.name:
+                continue
+            version.delete()
+
+
 def create_app_version(
         app,
         version_str,
@@ -176,7 +259,8 @@ def create_app_version(
     if not created_by_identity:
         created_by_identity = app.created_by_identity
 
-    app_version = test_machine_in_version(app, version_str, provider_machine_id)
+    if provider_machine_id:
+        app_version = test_machine_in_version(app, version_str, provider_machine_id)
     if app_version:
         app_version.created_by = created_by
         app_version.created_by_identity = created_by_identity
@@ -227,3 +311,6 @@ def transfer_membership(parent_version, new_version):
                 application_version=new_version,
                 group=old_membership.group,
                 can_share=old_membership.can_share)
+
+
+
