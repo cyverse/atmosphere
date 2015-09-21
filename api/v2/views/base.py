@@ -129,6 +129,11 @@ class BaseRequestViewSet(AuthViewSet):
                 % identity_id
             )
             raise exceptions.ParseError(detail=message)
+        except Exception as e:
+            message = {
+                "An error was encoutered when submitting the request."
+            }
+            raise exceptions.ParseError(detail=message)
 
     @unresolved_requests_only
     def destroy(self, request, *args, **kwargs):
@@ -160,6 +165,12 @@ class BaseRequestViewSet(AuthViewSet):
                                            membership=membership)
             else:
                 instance = serializer.save(end_date=timezone.now())
+
+            if instance.is_approved():
+                self.approve_action(instance)
+
+            if instance.is_denied():
+                self.deny_action(instance)
         except core_exceptions.ProviderLimitExceeded:
             message = "Only one active request is allowed per provider."
             raise exceptions.MethodNotAllowed('create', detail=message)
@@ -175,12 +186,12 @@ class BaseRequestViewSet(AuthViewSet):
                 % identity_id
             )
             raise exceptions.ParseError(detail=message)
+        except Exception as e:
+            message = {
+                "An error was encoutered when updating the request."
+            }
+            raise exceptions.ParseError(detail=message)
 
-        if instance.is_approved():
-            self.approve_action(instance)
-
-        if instance.is_denied():
-            self.deny_action(instance)
 
     @unresolved_requests_only
     def update(self, request, *args, **kwargs):
