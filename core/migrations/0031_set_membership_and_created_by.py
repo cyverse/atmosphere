@@ -21,7 +21,7 @@ def set_membership_and_created_by(apps, schema_editor):
             print "MachineRequest %s: User does not have identity for provider" % request.id
             identity = request.created_by.identity_set.first()
         request.membership = identity.identitymembership_set.first()
-        request.status = StatusType.objects.get(name="approved")
+        request.status = StatusType.objects.get(name="closed")
         request.save()
 
 class Migration(migrations.Migration):
