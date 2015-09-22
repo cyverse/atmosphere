@@ -27,7 +27,6 @@ from service.instance import redeploy_init, reboot_instance,\
     launch_instance, resize_instance, confirm_resize,\
     start_instance, resume_instance,\
     stop_instance, suspend_instance,\
-    update_instance_metadata, \
     shelve_instance, unshelve_instance, offload_instance
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
@@ -680,16 +679,20 @@ class Instance(AuthAPIView):
         serializer = InstanceSerializer(
             core_instance, data=data,
             context={"request": request}, partial=True)
+        identity=Identity.objects.get(uuid=identity_uuid)
+        provider = identity.provider
+
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
-            update_instance_metadata(esh_driver, esh_instance,
-                                     data, replace=False)
+
+            driver_class = esh_driver.__class__
+            update_metadata.s(driver_class, provider, identity, esh_instance.id,
+                              data, replace_metadata=False).apply()
             instance = serializer.save()
             boot_scripts = data.pop('boot_scripts', [])
             if boot_scripts:
                 _save_scripts_to_instance(instance, boot_scripts)
-            invalidate_cached_instances(identity=Identity.objects.get(
-                uuid=identity_uuid))
+            invalidate_cached_instances(identity=identity)
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
             response['Cache-Control'] = 'no-cache'
@@ -726,11 +729,14 @@ class Instance(AuthAPIView):
                                              user)
         serializer = InstanceSerializer(core_instance, data=data,
                                         context={"request": request})
+        identity = Identity.objects.get(uuid=identity_uuid)
+        provider = identity.provider
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
             #NOTE: We shouldn't allow 'full replacement' of metadata..
             # We should also validate against potentional updating of 'atmo-used metadata'
-            update_instance_metadata(esh_driver, esh_instance, data, replace=False)
+            update_metadata.s(driver_class, provider, identity, esh_instance.id,
+                              data, replace_metadata=False).apply()
             new_instance = serializer.save()
             boot_scripts = data.pop('boot_scripts', [])
             if boot_scripts:
@@ -739,9 +745,7 @@ class Instance(AuthAPIView):
                 serializer = InstanceSerializer(
                     new_instance,
                     context={"request": request})
-            invalidate_cached_instances(
-                identity=Identity.objects.get(
-                    uuid=identity_uuid))
+            invalidate_cached_instances(identity=identitty)
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
             response['Cache-Control'] = 'no-cache'

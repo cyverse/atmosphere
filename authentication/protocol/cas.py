@@ -7,6 +7,8 @@ Contact:        Steven Gregory <sgregory@iplantcollaborative.org>
 from datetime import timedelta
 import time
 
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import timezone
@@ -15,10 +17,11 @@ from caslib import CASClient, SAMLClient
 
 from threepio import auth_logger as logger
 
-from atmosphere import settings
 from authentication import create_session_token
 from authentication.models import UserProxy
-from core.models import AtmosphereUser as User
+from authentication.settings import auth_settings
+
+User = get_user_model()
 
 # TODO: Find out the actual proxy ticket expiration time, it varies by server
 # May be as short as 5min!
@@ -29,12 +32,31 @@ def get_cas_client():
     """
     This is how you initialize a CAS Client
     """
-    return CASClient(settings.CAS_SERVER,
+    return CASClient(auth_settings.CAS_SERVER,
                      settings.SERVICE_URL,
                      proxy_url=settings.PROXY_URL,
                      proxy_callback=settings.PROXY_CALLBACK_URL,
-                     auth_prefix=settings.CAS_AUTH_PREFIX,
-                     self_signed_cert=settings.SELF_SIGNED_CERT)
+                     auth_prefix=auth_settings.CAS_AUTH_PREFIX,
+                     self_signed_cert=auth_setting.SELF_SIGNED_CERT)
+
+
+def cas_logoutRedirect():
+    return HttpResponseRedirect(auth_settings.CAS_SERVER +
+                                "/cas/logout?service=" + settings.SERVER_URL)
+
+
+def cas_loginRedirect(request, redirect=None, gateway=False):
+    if not redirect:
+        redirect = request.get_full_path()
+    redirect_to = "%s/CAS_serviceValidater?sendback=%s" \
+        % (settings.SERVER_URL, redirect)
+    login_url = "%s%s/login?service=%s" \
+        % (auth_settings.CAS_SERVER, auth_settings.CAS_AUTH_PREFIX, redirect_to)
+    if gateway:
+        login_url += '&gateway=true'
+    return HttpResponseRedirect(login_url)
+
+
 
 
 def cas_validateUser(username):
@@ -83,24 +105,32 @@ def updateUserProxy(user, pgtIou, max_try=3):
             attempts += 1
     return False
 
-
 """
 CAS is an optional way to login to Atmosphere
 This code integrates caslib into the Auth system
 """
 
-
 def _set_redirect_url(sendback, request):
     absolute_url = request.build_absolute_uri(
-        reverse('cas-service-validate-link'))
+        reverse('authentication:cas-service-validate-link'))
     return "%s?sendback=%s" % (absolute_url, sendback)
 
 
 def get_saml_client():
-    s_client = SAMLClient(settings.CAS_SERVER,
+    s_client = SAMLClient(auth_settings.CAS_SERVER,
                           settings.SERVER_URL,
-                          auth_prefix=settings.CAS_AUTH_PREFIX)
+                          auth_prefix=auth_settings.CAS_AUTH_PREFIX)
     return s_client
+
+
+def saml_loginRedirect(request, redirect=None, gateway=False):
+    login_url = "%s%s/login?service=%s/s_serviceValidater%s" %\
+                (auth_settings.CAS_SERVER, auth_settings.CAS_AUTH_PREFIX,
+                 settings.SERVER_URL,
+                 "?sendback=%s" % redirect if redirect else "")
+    if gateway:
+        login_url += '&gateway=true'
+    return HttpResponseRedirect(login_url)
 
 
 def saml_validateTicket(request):

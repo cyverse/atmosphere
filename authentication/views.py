@@ -5,18 +5,106 @@ import json
 from datetime import datetime
 import uuid
 
+from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, HttpResponseRedirect
 
 from threepio import auth_logger as logger
 
-from authentication import createAuthToken, userCanEmulate,\
-    cas_loginRedirect
+from authentication import createAuthToken, userCanEmulate, cas_loginRedirect
 from authentication.models import Token as AuthToken
 from authentication.protocol.cas import cas_validateUser
 from authentication.protocol.ldap import ldap_validate
-from atmosphere.settings import API_SERVER_URL
-from atmosphere.settings.secrets import TOKEN_EXPIRY_TIME
+from authentication.settings import auth_settings
+
+
+#GLOBUS Views
+
+
+def globus_login_redirect(request):
+    from authentication.protocol.globus import globus_authorize
+
+    next_url = request.GET.get('next', '/application')
+    request.session['next'] = next_url
+
+    return globus_authorize(request)
+
+def globus_callback_authorize(request):
+    from authentication.protocol.globus import globus_validate_code
+    auth_token = globus_validate_code(request)
+
+    if not auth_token:
+        # Redirect out of the OAuth loop
+        return login(request)
+    request.session['username'] = auth_token.user.username
+    request.session['token'] = auth_token.key
+    next_url = request.session.get('next', '/application')
+    return HttpResponseRedirect(next_url)
+
+
+#CAS+OAuth Views
+
+
+
+def o_callback_authorize(request):
+    """
+    Authorize a callback from an OAuth IdP
+    ( Uses request.META to route which IdP is in use )
+    """
+    # IF globus --> globus_callback_authorize
+    referrer = request.META['HTTP_REFERER']
+    if 'globus' in referrer:
+        return globus_callback_authorize(request)
+    return cas_callback_authorize(request)
+
+
+def o_login_redirect(request):
+    oauth_client = get_cas_oauth_client()
+    url = oauth_client.authorize_url()
+    return HttpResponseRedirect(url)
+
+
+def cas_callback_authorize(request):
+    """
+    Authorize a callback (From CAS IdP)
+    """
+    logger.info(request.__dict__)
+    if 'code' not in request.GET:
+        logger.info(request.__dict__)
+        # TODO - Maybe: Redirect into a login
+        return HttpResponse("")
+    oauth_client = get_cas_oauth_client()
+    oauth_code = request.GET['code']
+    # Exchange code for ticket
+    access_token, expiry_date = oauth_client.get_access_token(oauth_code)
+    if not access_token:
+        logger.info("The Code %s is invalid/expired. Attempting another login."
+                    % oauth_code)
+        return o_login_redirect(request)
+    # Exchange token for profile
+    user_profile = oauth_client.get_profile(access_token)
+    if not user_profile or "id" not in user_profile:
+        logger.error("AccessToken is producing an INVALID profile!"
+                     " Check the CAS server and caslib.py for more"
+                     " information.")
+        # NOTE: Make sure this redirects the user OUT of the loop!
+        return login(request)
+    # ASSERT: A valid OAuth token gave us the Users Profile.
+    # Now create an AuthToken and return it
+    username = user_profile["id"]
+    auth_token = create_token(username, access_token, expiry_date)
+    # Set the username to the user to be emulated
+    # to whom the token also belongs
+    request.session['username'] = username
+    request.session['token'] = auth_token.key
+    logger.info("Returning user - %s - to application "
+                % username)
+    logger.info(request.session.__dict__)
+    logger.info(request.user)
+    return HttpResponseRedirect(settings.REDIRECT_URL + "/application/")
+
+
+#Token Authentication Views
 
 
 @csrf_exempt
@@ -48,7 +136,7 @@ def token_auth(request):
             logger.info("LDAP User %s validated. Creating auth token"
                         % username)
             token = createAuthToken(username)
-            expireTime = token.issuedTime + TOKEN_EXPIRY_TIME
+            expireTime = token.issuedTime + auth_settings.TOKEN_EXPIRY_TIME
             auth_json = {
                 'token': token.key,
                 'username': token.user.username,
@@ -67,7 +155,7 @@ def token_auth(request):
 
     # ASSERT: Token exists here
     if token:
-        expireTime = token.issuedTime + TOKEN_EXPIRY_TIME
+        expireTime = token.issuedTime + auth_settings.TOKEN_EXPIRY_TIME
         auth_json = {
             'token': token.key,
             'username': token.user.username,
@@ -85,7 +173,7 @@ def token_auth(request):
     if cas_validateUser(username):
         logger.info("CAS User %s validated. Creating auth token" % username)
         token = createAuthToken(username)
-        expireTime = token.issuedTime + TOKEN_EXPIRY_TIME
+        expireTime = token.issuedTime + auth_settings.TOKEN_EXPIRY_TIME
         auth_json = {
             'token': token.key,
             'username': token.user.username,
@@ -140,12 +228,12 @@ def auth_response(request):
     """
     Create a new AuthToken for the user, then return the Token & API URL
     AuthTokens will expire after a predefined time
-    (See #/auth/utils.py:settings.TOKEN_EXPIRY_TIME)
+    (See #/auth/utils.py:auth_settings.TOKEN_EXPIRY_TIME)
     AuthTokens will be re-newed if
     the user is re-authenticated by CAS at expiry-time
     """
     logger.debug("Creating Auth Response")
-    api_server_url = API_SERVER_URL
+    api_server_url = settings.API_SERVER_URL
     # login validation
     response = HttpResponse()
 
