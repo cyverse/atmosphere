@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 from django.utils.timezone import datetime
 import pytz
 from core.tests.helpers import CoreProviderMachineHelper, CoreMachineRequestHelper, CoreInstanceHelper
-from core.models.machine_request import process_machine_request
+from service.machine import process_machine_request
 
 
 class CoreMachineRequestTestCase(unittest.TestCase):
