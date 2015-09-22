@@ -24,7 +24,7 @@ DEPLOY_TASKS = [
     "_deploy_init_to", "service.tasks.driver._deploy_init_to"
 ]
 EMAIL_TASKS = [
-    "send_email", "service.tasks.email.send_email",
+    "send_email", "core.tasks.email.send_email",
 ]
 IMAGING_TASKS = [
     # Atmosphere specific

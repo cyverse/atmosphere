@@ -384,9 +384,10 @@ def deploy_failed(
         logger.error(err_str)
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
-        update_instance_metadata(driver, instance,
-                                 data={'tmp_status': 'deploy_error'},
-                                 replace=False)
+
+        metadata={'tmp_status': 'deploy_error'}
+        update_metadata.s(driverCls, provider, identity, instance.id,
+                          metadata, replace_metadata=False).apply_async()
         # Send deploy email
         core_instance = Instance.objects.get(provider_alias=instance_id)
         logger.debug("deploy_failed task finished at %s." % datetime.now())
@@ -557,7 +558,7 @@ def get_remove_status_chain(driverCls, provider, identity, instance):
         final_update.pop('tmp_status')
         final_update.pop('iplant_suspend_fix')
     else:
-        final_update = {'tmp_status': ''}
+        final_update = {'tmp_status': 'finished'}
         replace = False
     remove_status_task = update_metadata.si(
         driverCls, provider, identity, instance.id,
@@ -615,11 +616,7 @@ def get_chain_from_active_no_ip(driverCls, provider, identity, instance,
     floating_task = add_floating_ip.si(
         driverCls, provider, identity, instance.id, delete_status=False)
 
-    if instance.extra.get(
-            'metadata',
-            {}).get(
-            'tmp_status',
-            '') == 'networking':
+    if instance.extra.get('metadata', {}).get('tmp_status', '') == 'networking':
         start_chain = floating_task
     else:
         start_chain = network_meta_task
@@ -663,10 +660,12 @@ def get_chain_from_active_with_ip(driverCls, provider, identity, instance,
         deploy_ready_task.link(remove_status_chain)
         # Active and deployable. Ready for use!
         return start_chain
+
     # Start building a deploy chain
     deploy_meta_task = update_metadata.si(
         driverCls, provider, identity, instance.id,
         {'tmp_status': 'deploying'})
+
     deploy_task = _deploy_init_to.si(
         driverCls, provider, identity, instance.id,
         username, password, redeploy)
@@ -772,9 +771,10 @@ def boot_script_failed(task_uuid, driverCls, provider, identity, instance_id,
         logger.error(err_str)
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
-        update_instance_metadata(driver, instance,
-                                 data={'tmp_status': 'boot_script_error'},
-                                 replace=False)
+
+        metadata={'tmp_status': 'boot_script_error'}
+        update_metadata.s(driverCls, provider, identity, instance.id,
+                          metadata, replace_metadata=False).apply_async()
         # Send deploy email
         core_instance = Instance.objects.get(provider_alias=instance_id)
         logger.debug(
@@ -961,16 +961,16 @@ def _deploy_ready_failed_email_test(
         metadata = instance.extra.get('metadata', {})
         tmp_status = metadata.get('tmp_status', None)
         instance_status = instance.extra.get('status', '').lower()
-        if instance_status == 'active' \
-                and tmp_status != 'networking':
-            update_instance_metadata(driver, instance,
-                                     data={'tmp_status': 'networking'},
-                                     replace=False)
+        if instance_status == 'active' and tmp_status != 'networking':
+            metadata={'tmp_status': 'networking'}
+            driver_class = driver.__class__
+            update_metadata.s(driverCls, provider, identity, instance_id,
+                              metadata, replace_metadata=False).apply_async()
             logger.warn("Instance %s found to have status of %s-%s but "
                         "is NOT SSH-able. tmp_status updated to 'networking'"
                         % (instance_id, instance_status, tmp_status))
     # HOTFIX: END
-    if 'terminated' in exc_message:
+    if 'terminated' in str(exc_message):
         # Do NOTHING!
         pass
     elif num_retries == int(task_class.max_retries/2):
@@ -1237,8 +1237,8 @@ def add_floating_ip(driverCls, provider, identity,
                 metadata_update['network-id%s' % idx] = network['id']
         # EndNOTE:
 
-        update_instance_metadata(
-            driver, instance, data=metadata_update, replace=False)
+        update_metadata.s(driverCls, provider, identity, instance.id,
+                          metadata_update, replace_metadata=False).apply_async()
 
         logger.info("Assigned IP:%s - Hostname:%s" % (floating_ip, hostname))
         # End

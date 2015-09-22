@@ -1,11 +1,11 @@
 from core.models import ResourceRequest
-from core.email import send_denied_resource_email
-
-from web.emails import resource_request_email
+from core import email
 
 from api.v2.serializers.details import ResourceRequestSerializer,\
     UserResourceRequestSerializer
 from api.v2.views.base import BaseRequestViewSet
+from core import tasks
+from service.tasks import admin as admin_task
 
 
 class ResourceRequestViewSet(BaseRequestViewSet):
@@ -26,23 +26,35 @@ class ResourceRequestViewSet(BaseRequestViewSet):
         requested_resource = instance.request
         reason_for_request = instance.description
         username = self.request.user.username
-        resource_request_email(self.request, username, requested_resource,
-                               reason_for_request)
+        email.resource_request_email(self.request, username,
+                                     requested_resource,
+                                     reason_for_request)
 
     def approve_action(self, instance):
         """
         Updates the resource for the request
         """
         membership = instance.membership
-        membership.quota = instance.quota
-        membership.allocation = instance.allocation
-        membership.approve_quota(instance.id)
+        membership.quota = instance.quota or membership.quota
+        membership.allocation = instance.allocation or membership.allocation
         membership.save()
+        identity = membership.identity
+
+        email_task = email.send_approved_resource_email(
+            user=instance.created_by,
+            request=instance.request,
+            reason=instance.admin_message)
+
+        admin_task.set_provider_quota.apply_async(
+            args=[str(identity.uuid)],
+            link=[tasks.close_request.si(instance), email_task],
+            link_error=tasks.set_request_as_failed.si(instance))
 
     def deny_action(self, instance):
         """
         Notify the user that the request was denied
         """
-        send_denied_resource_email(user=instance.created_by,
-                                   request=instance.request,
-                                   reason=instance.admin_message)
+        email.send_denied_resource_email(
+            user=instance.created_by,
+            request=instance.request,
+            reason=instance.admin_message)

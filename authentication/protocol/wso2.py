@@ -6,11 +6,15 @@ from Crypto.PublicKey import RSA
 from datetime import datetime
 from urlparse import urlparse
 
+from django.contrib.auth import get_user_model
 from django.conf import settings
-from core.models.user import AtmosphereUser
 from authentication.exceptions import Unauthorized
 from authentication.protocol.jwt_oauth import JWTServiceProvider
 from threepio import logger
+
+
+User = get_user_model()
+
 
 class WSO2_JWT(JWTServiceProvider):
     IGNORE_EXPIRY = False

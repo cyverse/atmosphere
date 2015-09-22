@@ -28,6 +28,7 @@ os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
 # Failure to do so will result in 500 error, exception output in the
 # apache logs.
 from django.conf import settings
+from threepio import logger
 
 if hasattr(settings, "NEW_RELIC_ENVIRONMENT"):
     try:
@@ -35,15 +36,15 @@ if hasattr(settings, "NEW_RELIC_ENVIRONMENT"):
         newrelic.agent.initialize(
             os.path.join(root_dir, "extras/newrelic/atmosphere_newrelic.ini"),
             settings.NEW_RELIC_ENVIRONMENT)
-        print "[A]Plugin: New Relic initialized!"
+        logger.info("[A]Plugin: New Relic initialized!")
     except ImportError as bad_import:
-        print "[A]Warning: newrelic not installed.."
-        print bad_import
+        logger.warn("[A]Warning: newrelic not installed..")
+        logger.warn(bad_import)
     except Exception as bad_config:
-        print "[A]Warning: newrelic not initialized.."
-        print bad_config
+        logger.warn("[A]Warning: newrelic not initialized..")
+        logger.warn(bad_config)
 else:
-    print "[A]Plugin: Skipping New Relic setup. NEW_RELIC_ENVIRONMENT not defined in local.py"
+    logger.info("[A]Plugin: Skipping New Relic setup. NEW_RELIC_ENVIRONMENT not defined in local.py")
 
 #    root_dir,
 #    'logs/libcloud.log'))

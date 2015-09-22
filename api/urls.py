@@ -1,4 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+Top level routes for the api endpoints
+"""
 from django.conf.urls import patterns, url, include
+
 
 urlpatterns = patterns(
     '',

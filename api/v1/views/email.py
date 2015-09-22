@@ -1,8 +1,6 @@
 """
 Atmosphere api email
 """
-from django.core import urlresolvers
-
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -10,10 +8,7 @@ from threepio import logger
 
 from authentication.protocol.ldap import lookupEmail
 
-from core.email import email_admin
-from web.emails import feedback_email, resource_request_email
-from core.models.group import IdentityMembership
-from core.models.user import AtmosphereUser as User
+from core.email import email_admin, feedback_email, resource_request_email
 
 from api import failure_response
 from api.v1.views.base import AuthAPIView
