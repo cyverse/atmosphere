@@ -41,9 +41,9 @@ urlpatterns = patterns(
 
     # GLOBAL Authentication Section:
     #   Login/Logout
-    url(r'^globus_login$', 'web.views.globus_login_redirect'),
-    url(r'^oauth2.0/callbackAuthorize$', 'web.views.globus_callback_authorize'),
+    url(r'^oauth2.0/callbackAuthorize$', 'web.views.o_callback_authorize'),
     url(r'^o_login$', 'web.views.o_login_redirect'),
+    url(r'^globus_login$', 'web.views.globus_login_redirect'),
 
     url(r'^s_login$', 'web.views.s_login'),
     url(r'^s_serviceValidater$',
