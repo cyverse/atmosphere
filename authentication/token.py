@@ -11,6 +11,8 @@ from authentication.models import Token as AuthToken,\
      create_token
 from authentication.protocol.cas import cas_validateUser
 from authentication.protocol.oauth import cas_profile_for_token
+from authentication.protocol.wso2 import WSO2_JWT
+
 from core.models.user import AtmosphereUser
 
 
@@ -34,10 +36,28 @@ class TokenAuthentication(BaseAuthentication):
             token_key = request.session['token']
         if validate_token(token_key):
             token = self.model.objects.get(key=token_key)
-            # logger.info("AuthToken Obtained for %s:%s" %
-            #            (token.user.username, token_key))
             if token.user.is_active:
                 return (token.user, token)
+        return None
+
+
+class JWTTokenAuthentication(TokenAuthentication):
+
+    """
+    JWTTokenAuthentication:
+    To authenticate, pass the token key in the "Authorization" HTTP header,
+    prepend with the string "Bearer ". For example:
+        Authorization: Bearer 098f6bcd4621d373cade4e832627b4f6
+    """
+
+    def authenticate(self, request):
+        auth = request.META.get('HTTP_AUTHORIZATION', '').split()
+        jwt_assertion = request.META.get('HTTP_ASSERTION')
+        if jwt_assertion:
+            sp = WSO2_JWT(settings.JWT_SP_PUBLIC_KEY_FILE)
+            auth_token = sp.create_token_from_jwt(jwt_assertion)
+            if auth_token.user.is_active:
+                return (auth_token.user, auth_token)
         return None
 
 
@@ -73,11 +93,9 @@ class OAuthTokenAuthentication(TokenAuthentication):
                     token = self.model.objects.get(key=oauth_token)
                 except self.model.DoesNotExist:
                     return None
-                if token.user.is_active:
+                if token and token.user.is_active:
                     return (token.user, token)
         return None
-
-
 def validate_oauth_token(token, request=None):
     """
     Validates the token attached to the request (SessionStorage, GET/POST)
@@ -93,8 +111,7 @@ def validate_oauth_token(token, request=None):
     if not user_profile:
         return False
     username = user_profile.get("id")
-    attrs = user_profile.get("attributes")
-    if not username or not attrs:
+    if not username:
         # logger.info("Invalid Profile:%s does not have username/attributes"
         #            % user_profile)
         return False

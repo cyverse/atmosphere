@@ -50,7 +50,6 @@ def no_user_redirect(request):
     output = template.render(variables)
     return HttpResponse(output)
 
-
 def redirectAdmin(request):
     """
     Redirects to /application if user is authorized, otherwise forces a login
@@ -70,11 +69,24 @@ def redirectApp(request):
 
 def globus_login_redirect(request):
     from authentication.protocol.globus import globus_authorize
+
+    next_url = request.GET.get('next', '/application')
+    request.session['next'] = next_url
+
     return globus_authorize(request)
 
 def globus_callback_authorize(request):
     from authentication.protocol.globus import globus_validate_code
-    return globus_validate_code(request)
+    auth_token = globus_validate_code(request)
+
+    if not auth_token:
+        # Redirect out of the OAuth loop
+        return login(request)
+    request.session['username'] = auth_token.user.username
+    request.session['token'] = auth_token.key
+    next_url = request.session.get('next', '/application')
+    return HttpResponseRedirect(next_url)
+
 
 
 def o_login_redirect(request):
@@ -84,11 +96,20 @@ def o_login_redirect(request):
 
 
 def o_callback_authorize(request):
+    """
+    Authorize a callback from an OAuth IdP
+    ( Uses request.META to route which IdP is in use )
+    """
     # IF globus --> globus_callback_authorize
     referrer = request.META['HTTP_REFERER']
     if 'globus' in referrer:
         return globus_callback_authorize(request)
-    # ELSE: run code below
+    return cas_callback_authorize(request)
+
+def cas_callback_authorize(request):
+    """
+    Authorize a callback (From CAS IdP)
+    """
     logger.info(request.__dict__)
     if 'code' not in request.GET:
         logger.info(request.__dict__)

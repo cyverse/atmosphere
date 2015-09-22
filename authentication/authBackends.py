@@ -11,8 +11,6 @@ from authentication.models import Token
 from authentication.protocol.ldap import ldap_validate, ldap_formatAttrs
 from authentication.protocol.ldap import lookupUser as ldap_lookupUser
 from authentication.protocol.cas import cas_validateUser
-from authentication.protocol.oauth import get_user_for_token,\
-    lookupUser as oauth_lookupUser, oauth_formatAttrs
 
 
 class MockLoginBackend(ModelBackend):
@@ -105,49 +103,6 @@ class LDAPLoginBackend(ModelBackend):
         attributes = ldap_formatAttrs(ldap_attrs)
         logger.debug("[LDAP] Authentication Success - " + username)
         return get_or_create_user(username, attributes)
-
-
-class OAuthLoginBackend(ModelBackend):
-
-    """
-    AuthenticationBackend for OAuth authorizations
-    (Authorize user from Third party (web) clients via OAuth)
-    """
-
-    def authenticate(self, username=None, password=None, request=None):
-        """
-        Return user if validated by OAuth.
-        Return None otherwise.
-        """
-        # logger.debug("OAUTHBackend- U:%s P:%s R:%s"
-        #              % (username, password, request))
-        # First argument, username, should hold the OAuth Token, no password.
-        # if 'username' in username, the authentication is meant for CAS
-        # if username and password, the authentication is meant for LDAP
-        logger.debug("[OAUTH] Authentication Test")
-        if not request:
-            logger.debug("[OAUTH] Authentication skipped - No Request.")
-            return None
-        auth = request.META.get('HTTP_AUTHORIZATION', '').split()
-        if len(auth) == 2 and auth[0].lower() == "Token":
-            oauth_token = auth[1]
-        else:
-            oauth_token = None
-        if not oauth_token:
-            logger.debug("[OAUTH] Authentication skipped - No Token.")
-            return None
-        logger.debug("[OAUTH] OAuth Token - %s " % oauth_token)
-
-        valid_username, _ = get_user_for_token(oauth_token)
-        if not valid_username:
-            logger.debug("[OAUTH] Token %s invalid, no user found."
-                         % oauth_token)
-            return None
-        logger.debug("[OAUTH] Authorized user %s" % valid_username)
-        oauth_attrs = oauth_lookupUser(valid_username)
-        attributes = oauth_formatAttrs(oauth_attrs)
-        logger.debug("[OAUTH] Authentication Success - " + valid_username)
-        return get_or_create_user(valid_username, attributes)
 
 
 class AuthTokenLoginBackend(ModelBackend):

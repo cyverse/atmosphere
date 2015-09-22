@@ -20,6 +20,7 @@ requests==2.7
 python-dateutil==1.4.1
 pytz==2015.4
 Pillow==2.5.3
+PyJWT==1.4.0
 
 python-logstash==0.4.5
 
@@ -39,6 +40,5 @@ threepio==0.2.0
 rtwo==0.2.14
 caslib.py==2.2.2
 chromogenic==0.1.7
-jwt.py==0.1.0
 subspace==0.1.6
 

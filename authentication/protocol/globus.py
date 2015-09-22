@@ -3,6 +3,7 @@ import requests
 from base64 import b64encode
 from django.http import HttpResponse, HttpResponseRedirect
 from oauth2client.client import OAuth2WebServerFlow
+from oauth2client.client import Error as OAuthError
 
 from authentication.models import create_token
 
@@ -48,8 +49,6 @@ def globus_authorize(request):
     Redirect to the IdP based on 'flow'
     """
     flow = globus_initFlow()
-    redirect_to = request.GET.get('redirect_url', '/application')
-    request.session['redirect_to'] = redirect_to
     auth_uri = flow.step1_get_authorize_url()
     return HttpResponseRedirect(auth_uri)
 
@@ -63,7 +62,9 @@ def _extract_username_from_email(user_email):
 
 def globus_validate_code(request):
     """
-    Redirect from the Idp to the intended area
+    Validate 'code' returned from the IdP
+    If valid: Return new AuthToken
+        else: Return None
     """
     code = request.GET['code']
     if not code:
@@ -71,7 +72,10 @@ def globus_validate_code(request):
     if type(code) == list:
         code = code[0]
     flow = globus_initFlow()
-    credentials = flow.step2_exchange(code)
+    try:
+        credentials = flow.step2_exchange(code)
+    except OAuthError as err:
+        return None
     token_profile = credentials.id_token
     username = token_profile['username']
     username = _extract_username_from_email(username)
@@ -81,7 +85,4 @@ def globus_validate_code(request):
     access_token = credentials.access_token
     expiry_date = credentials.token_expiry
     auth_token = create_token(username, access_token, expiry_date, issuer)
-    request.session['username'] = username
-    request.session['token'] = auth_token.key
-    redirect_to = request.session.get('redirect_to', '/application')
-    return HttpResponseRedirect(redirect_to)
+    return auth_token

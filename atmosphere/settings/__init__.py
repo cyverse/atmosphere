@@ -212,8 +212,6 @@ AUTHENTICATION_BACKENDS = (
     'authentication.authBackends.SAMLLoginBackend',
     # For Service-Access
     'authentication.authBackends.LDAPLoginBackend',
-    # For 3rd-party-web Service-Access
-    'authentication.authBackends.OAuthLoginBackend',
 )
 
 # django-cors-headers
@@ -369,6 +367,7 @@ REST_FRAMEWORK = {
         'api.renderers.JPEGRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'authentication.token.JWTTokenAuthentication',
         'authentication.token.OAuthTokenAuthentication',
         'authentication.token.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
@@ -523,7 +522,10 @@ except ImportError:
 """
 Import local settings specific to the server, and secrets not checked into Git.
 """
-from atmosphere.settings.local import *
+try:
+    from atmosphere.settings.local import *
+except ImportError:
+    pass
 
 """
 Mostly good for TEST settings, especially DB conf.

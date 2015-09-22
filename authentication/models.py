@@ -85,19 +85,22 @@ class UserProxy(models.Model):
 
 def create_token(username, token_key, token_expire=None, issuer=None):
     """
-    returns a new token for username
+    Using *whatever* representation is necessary for the Token Key
+    (Ex: CAS-...., UUID4, JWT-OAuth)
+    and the username that the token will belong to
+    Create a new AuthToken for DB lookups
     """
+    #1. Username lookup
     try:
         user = User.objects.get(username=username)
     except User.DoesNotExist:
         logger.warn("User %s doesn't exist on the DB. "
-                    "OAuth token _NOT_ created" % username)
+                    "Auth Token _NOT_ created" % username)
         return None
+    #2. Token creation
     auth_user_token, _ = Token.objects.get_or_create(
         key=token_key, user=user, issuer=issuer, api_server_url=settings.API_SERVER_URL)
     if token_expire:
         auth_user_token.update_expiration(token_expire)
     auth_user_token.save()
     return auth_user_token
-
-
