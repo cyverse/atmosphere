@@ -5,6 +5,7 @@ from datetime import timedelta
 import hashlib
 import uuid
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -17,11 +18,11 @@ class Token(models.Model):
     AuthTokens are issued (or reused if existing)
     each time a user asks for a token using CloudAuth
     """
-    key = models.CharField(max_length=128, primary_key=True)
+    key = models.CharField(max_length=1024, primary_key=True)
     user = models.ForeignKey(User, related_name='auth_token')
     api_server_url = models.CharField(max_length=256)
     remote_ip = models.CharField(max_length=128, null=True, blank=True)
-    user_agent = models.TextField(null=True, blank=True)
+    issuer = models.TextField(null=True, blank=True)
     issuedTime = models.DateTimeField(auto_now_add=True)
     expireTime = models.DateTimeField(null=True, blank=True)
 
@@ -80,3 +81,23 @@ class UserProxy(models.Model):
         db_table = "auth_userproxy"
         app_label = "authentication"
         verbose_name_plural = 'user proxies'
+
+
+def create_token(username, token_key, token_expire=None, issuer=None):
+    """
+    returns a new token for username
+    """
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        logger.warn("User %s doesn't exist on the DB. "
+                    "OAuth token _NOT_ created" % username)
+        return None
+    auth_user_token, _ = Token.objects.get_or_create(
+        key=token_key, user=user, issuer=issuer, api_server_url=settings.API_SERVER_URL)
+    if token_expire:
+        auth_user_token.update_expiration(token_expire)
+    auth_user_token.save()
+    return auth_user_token
+
+

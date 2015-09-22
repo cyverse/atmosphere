@@ -7,10 +7,10 @@ from rest_framework.authentication import BaseAuthentication
 from threepio import logger
 from authentication import get_or_create_user
 from authentication.exceptions import Unauthorized
-from authentication.models import Token as AuthToken
+from authentication.models import Token as AuthToken,\
+     create_token
 from authentication.protocol.cas import cas_validateUser
-from authentication.protocol.oauth import cas_profile_for_token,\
-    obtainOAuthToken
+from authentication.protocol.oauth import cas_profile_for_token
 from core.models.user import AtmosphereUser
 
 
@@ -114,7 +114,7 @@ def validate_oauth_token(token, request=None):
     if not AtmosphereUser.objects.filter(username=username):
         raise Unauthorized("User %s does not exist as an AtmosphereUser"
                            % username)
-    auth_token = obtainOAuthToken(username, token)
+    auth_token = create_token(username, token)
     if not auth_token:
         return False
     return True

@@ -32,24 +32,6 @@ class TokenAuth(requests.auth.AuthBase):
         return r
 
 
-def obtainOAuthToken(username, token_key, token_expire=None):
-    """
-    returns a new token for username
-    """
-    try:
-        user = AtmosphereUser.objects.get(username=username)
-    except AtmosphereUser.DoesNotExist:
-        logger.warn("User %s doesn't exist on the DB. "
-                    "OAuth token _NOT_ created" % username)
-        return None
-    auth_user_token, _ = AuthToken.objects.get_or_create(
-        key=token_key, user=user, api_server_url=settings.API_SERVER_URL)
-    if token_expire:
-        auth_user_token.update_expiration(token_expire)
-    auth_user_token.save()
-    return auth_user_token
-
-
 ############################
 # METHODS SPECIFIC TO GROUPY!
 ############################

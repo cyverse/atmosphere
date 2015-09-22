@@ -27,9 +27,9 @@ from core.models import AtmosphereUser as DjangoUser
 # atmosphere libraries
 from atmosphere import settings
 
+from authentication.models import create_token
 from authentication.protocol.oauth import \
     get_cas_oauth_client
-from authentication.protocol.oauth import obtainOAuthToken
 from authentication import cas_logoutRedirect,\
     saml_loginRedirect, auth_loginRedirect
 from authentication.models import Token as AuthToken
@@ -113,7 +113,7 @@ def o_callback_authorize(request):
     # ASSERT: A valid OAuth token gave us the Users Profile.
     # Now create an AuthToken and return it
     username = user_profile["id"]
-    auth_token = obtainOAuthToken(username, access_token, expiry_date)
+    auth_token = create_token(username, access_token, expiry_date)
     # Set the username to the user to be emulated
     # to whom the token also belongs
     request.session['username'] = username
