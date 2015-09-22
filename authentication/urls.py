@@ -7,11 +7,11 @@ from django.conf.urls import patterns, url
 
 urlpatterns = patterns(
     '',
-    url(r'^o_login$', 'web.views.o_login_redirect'),
+    url(r'^o_login$', 'authentication.views.o_login_redirect'),
     # OAuth Authentication Section:
-    url(r'^oauth2.0/callbackAuthorize$', 'web.views.o_callback_authorize'),
+    url(r'^oauth2.0/callbackAuthorize$', 'authentication.views.o_callback_authorize'),
     # GLOBUS Authentication Section:
-    url(r'^globus_login$', 'web.views.globus_login_redirect'),
+    url(r'^globus_login$', 'authentication.views.globus_login_redirect'),
 
     # CAS Authentication Section:
     #   CAS +OAuth: see 'OAuth Authentication Section'
