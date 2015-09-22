@@ -39,7 +39,7 @@ def get_cas_client():
                      proxy_url=settings.PROXY_URL,
                      proxy_callback=settings.PROXY_CALLBACK_URL,
                      auth_prefix=auth_settings.CAS_AUTH_PREFIX,
-                     self_signed_cert=auth_setting.SELF_SIGNED_CERT)
+                     self_signed_cert=auth_settings.SELF_SIGNED_CERT)
 
 
 def cas_logoutRedirect():
