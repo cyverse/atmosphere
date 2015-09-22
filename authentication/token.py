@@ -13,11 +13,12 @@ from threepio import logger
 from authentication.exceptions import Unauthorized
 from authentication.models import Token as AuthToken,\
      create_token
-from authentication.models import User, get_or_create_user
+from authentication.models import get_or_create_user
 from authentication.protocol.cas import cas_validateUser
-from authentication.protocol.oauth import cas_profile_for_token
+from authentication.protocol.cas import cas_profile_for_token
 from authentication.protocol.wso2 import WSO2_JWT
 
+User = get_user_model()
 
 def getRequestParams(request):
     """

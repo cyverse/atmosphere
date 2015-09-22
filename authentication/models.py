@@ -14,7 +14,6 @@ from authentication.settings import auth_settings
 
 
 AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", 'auth.User')
-User = get_user_model()
 
 
 class Token(models.Model):
@@ -96,6 +95,7 @@ def create_token(username, token_key=None, token_expire=None, issuer=None):
     Generate a Token based on current username
     (And token_key, expiration, issuer.. If available)
     """
+    User = get_user_model()
     try:
         user = User.objects.get(username=username)
     except User.DoesNotExist:
@@ -168,6 +168,7 @@ def userCanEmulate(username):
     Django users marked as 'staff' have emulate permission
     Additional checks can be added later..
     """
+    User = get_user_model()
     try:
         user = User.objects.get(username=username)
         return user.is_staff
