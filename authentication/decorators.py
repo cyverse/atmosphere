@@ -7,7 +7,7 @@ from rest_framework import status
 
 from threepio import auth_logger as logger
 
-from authentication import cas_loginRedirect
+from authentication.protocol.cas import cas_loginRedirect
 from authentication.token import validate_token
 
 

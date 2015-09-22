@@ -14,6 +14,7 @@ from authentication.settings import auth_settings
 
 
 AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", 'auth.User')
+User = get_user_model()
 
 
 class Token(models.Model):
@@ -33,12 +34,14 @@ class Token(models.Model):
     def get_expired_time(self):
         return self.expireTime.strftime("%b %d, %Y %H:%M:%S")
 
-    def is_expired(self):
+    def is_expired(self, now_time=None):
         """
         Returns True if token has expired, False if token is valid
         """
+        if not now_time:
+            now_time = timezone.now()
         return self.expireTime is not None\
-            and self.expireTime <= timezone.now()
+            and self.expireTime <= now_time
 
     def update_expiration(self, token_expiration=None):
         """
@@ -56,7 +59,8 @@ class Token(models.Model):
 
     def generate_key(self):
         unique = str(uuid.uuid4())
-        return hashlib.md5(unique).hexdigest()
+        hashed_val = hashlib.md5(unique).hexdigest()
+        return hashed_val
 
     def __unicode__(self):
         return "%s" % (self.key)
@@ -87,24 +91,85 @@ class UserProxy(models.Model):
         verbose_name_plural = 'user proxies'
 
 
-def create_token(username, token_key, token_expire=None, issuer=None):
+def create_token(username, token_key=None, token_expire=None, issuer=None):
     """
-    Using *whatever* representation is necessary for the Token Key
-    (Ex: CAS-...., UUID4, JWT-OAuth)
-    and the username that the token will belong to
-    Create a new AuthToken for DB lookups
+    Generate a Token based on current username
+    (And token_key, expiration, issuer.. If available)
     """
-    #1. Username lookup
     try:
         user = User.objects.get(username=username)
     except User.DoesNotExist:
         logger.warn("User %s doesn't exist on the DB. "
                     "Auth Token _NOT_ created" % username)
         return None
-    #2. Token creation
     auth_user_token, _ = Token.objects.get_or_create(
         key=token_key, user=user, issuer=issuer, api_server_url=settings.API_SERVER_URL)
     if token_expire:
         auth_user_token.update_expiration(token_expire)
         auth_user_token.save()
     return auth_user_token
+
+
+def get_or_create_user(username=None, attributes=None):
+    """
+    Retrieve or create a User matching the username (No password)
+    """
+    User = get_user_model()
+    if not username:
+        return None
+
+    # NOTE: REMOVE this when it is no longer true!
+    # Force any username lookup to be in lowercase
+    username = username.lower()
+
+    try:
+        # Look for the username "EXACT MATCH"
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        user = User.objects.create_user(username, "")
+    if attributes:
+        user.first_name = attributes['firstName']
+        user.last_name = attributes['lastName']
+        user.email = attributes['email']
+    user.save()
+    return user
+
+
+def lookupSessionToken(request):
+    """
+    Retrieve an existing token from the request session.
+    """
+    token_key = request.session['token']
+    try:
+        token = AuthToken.objects.get(user=request.user, key=token_key)
+        if token.is_expired():
+            return None
+        return token
+    except:
+        return None
+
+
+def validateToken(username, token_key):
+    """
+    Verify the token belongs to username, and renew it
+    """
+    auth_user_token = AuthToken.objects.filter(
+        user__username=username, key=token_key)
+    if not auth_user_token:
+        return None
+    auth_user_token = auth_user_token[0]
+    auth_user_token.update_expiration()
+    auth_user_token.save()
+    return auth_user_token
+
+
+def userCanEmulate(username):
+    """
+    Django users marked as 'staff' have emulate permission
+    Additional checks can be added later..
+    """
+    try:
+        user = User.objects.get(username=username)
+        return user.is_staff
+    except User.DoesNotExist:
+        return False

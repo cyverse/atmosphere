@@ -11,9 +11,10 @@ from django.http import HttpResponse, HttpResponseRedirect
 
 from threepio import auth_logger as logger
 
-from authentication import createAuthToken, userCanEmulate, cas_loginRedirect
+from authentication.models import create_token, userCanEmulate
 from authentication.models import Token as AuthToken
-from authentication.protocol.cas import cas_validateUser
+from authentication.protocol.cas import cas_validateUser, cas_loginRedirect, get_cas_oauth_client
+from authentication.protocol.globus import globus_authorize, globus_validate_code
 from authentication.protocol.ldap import ldap_validate
 from authentication.settings import auth_settings
 
@@ -22,7 +23,6 @@ from authentication.settings import auth_settings
 
 
 def globus_login_redirect(request):
-    from authentication.protocol.globus import globus_authorize
 
     next_url = request.GET.get('next', '/application')
     request.session['next'] = next_url
@@ -68,9 +68,7 @@ def cas_callback_authorize(request):
     """
     Authorize a callback (From CAS IdP)
     """
-    logger.info(request.__dict__)
     if 'code' not in request.GET:
-        logger.info(request.__dict__)
         # TODO - Maybe: Redirect into a login
         return HttpResponse("")
     oauth_client = get_cas_oauth_client()
@@ -78,7 +76,7 @@ def cas_callback_authorize(request):
     # Exchange code for ticket
     access_token, expiry_date = oauth_client.get_access_token(oauth_code)
     if not access_token:
-        logger.info("The Code %s is invalid/expired. Attempting another login."
+        logger.warn("The Code %s is invalid/expired. Attempting another login."
                     % oauth_code)
         return o_login_redirect(request)
     # Exchange token for profile
@@ -92,15 +90,11 @@ def cas_callback_authorize(request):
     # ASSERT: A valid OAuth token gave us the Users Profile.
     # Now create an AuthToken and return it
     username = user_profile["id"]
-    auth_token = create_token(username, access_token, expiry_date)
+    auth_token = create_token(username, access_token, expiry_date, issuer="CAS+OAuth")
     # Set the username to the user to be emulated
     # to whom the token also belongs
     request.session['username'] = username
     request.session['token'] = auth_token.key
-    logger.info("Returning user - %s - to application "
-                % username)
-    logger.info(request.session.__dict__)
-    logger.info(request.user)
     return HttpResponseRedirect(settings.REDIRECT_URL + "/application/")
 
 
@@ -119,8 +113,6 @@ def token_auth(request):
     django model authentication
     Use this to give out tokens to access the API
     """
-    logger.info('Request to auth')
-
     token = request.POST.get('token', None)
 
     username = request.POST.get('username', None)
@@ -133,9 +125,7 @@ def token_auth(request):
     # LDAP Authenticate if password provided.
     if username and password:
         if ldap_validate(username, password):
-            logger.info("LDAP User %s validated. Creating auth token"
-                        % username)
-            token = createAuthToken(username)
+            token = create_token(username, issuer='API')
             expireTime = token.issuedTime + auth_settings.TOKEN_EXPIRY_TIME
             auth_json = {
                 'token': token.key,
