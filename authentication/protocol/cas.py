@@ -13,7 +13,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import timezone
 
-from caslib import CASClient, SAMLClient
+from caslib import CASClient, SAMLClient, OAuthClient
 
 from threepio import auth_logger as logger
 

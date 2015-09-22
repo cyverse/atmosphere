@@ -6,10 +6,7 @@ from oauth2client.client import OAuth2WebServerFlow
 from oauth2client.client import Error as OAuthError
 
 from authentication.models import create_token
-
-from atmosphere.settings import OAUTH_CLIENT_CALLBACK
-from atmosphere.settings.secrets import GLOBUS_OAUTH_ID, GLOBUS_OAUTH_SECRET, GLOBUS_OAUTH_AUTHENTICATION_SCOPE, GLOBUS_OAUTH_CREDENTIALS_SCOPE, GLOBUS_TOKEN_URL, GLOBUS_AUTH_URL
-
+from authentication.settings import auth_settings
 
 def globus_bootstrap():
     """
@@ -18,12 +15,12 @@ def globus_bootstrap():
     """
     data = {
         'grant_type': 'client_credentials',
-        'scope': GLOBUS_OAUTH_CREDENTIALS_SCOPE
+        'scope': auth_settings.GLOBUS_OAUTH_CREDENTIALS_SCOPE
     }
-    userAndPass = "%s:%s" % (GLOBUS_OAUTH_ID, GLOBUS_OAUTH_SECRET)
+    userAndPass = "%s:%s" % (auth_settings.GLOBUS_OAUTH_ID, auth_settings.GLOBUS_OAUTH_SECRET)
     b64enc_creds = b64encode(userAndPass)
     response = requests.post(
-            GLOBUS_TOKEN_URL,
+            auth_settings.GLOBUS_TOKEN_URL,
             data=data,
             headers={
                 'Authorization': 'Basic %s' % b64enc_creds,
@@ -35,12 +32,12 @@ def globus_bootstrap():
 def globus_initFlow():
     oauth_token = globus_bootstrap()
     flow = OAuth2WebServerFlow(
-        client_id=GLOBUS_OAUTH_ID,
-        scope=GLOBUS_OAUTH_AUTHENTICATION_SCOPE,
+        client_id=auth_settings.GLOBUS_OAUTH_ID,
+        scope=auth_settings.GLOBUS_OAUTH_AUTHENTICATION_SCOPE,
         authorization_header="Bearer %s" % oauth_token,
-        redirect_uri=OAUTH_CLIENT_CALLBACK,
-        auth_uri=GLOBUS_AUTH_URL,
-        token_uri=GLOBUS_TOKEN_URL)
+        redirect_uri=auth_settings.OAUTH_CLIENT_CALLBACK,
+        auth_uri=auth_settings.GLOBUS_AUTH_URL,
+        token_uri=auth_settings.GLOBUS_TOKEN_URL)
     return flow
 
 
