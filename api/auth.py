@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from atmosphere.settings import secrets
-from authentication import createAuthToken, lookupSessionToken
+from authentication.models import create_token, lookupSessionToken
 
 from api.permissions import ApiAuthIgnore
 from api.v1.serializers import TokenSerializer
@@ -21,12 +21,9 @@ class Authentication(APIView):
             return Response("Logged-in User or POST required "
                             "to retrieve AuthToken",
                             status=status.HTTP_403_FORBIDDEN)
-        # Authenticated users have tokens
         token = lookupSessionToken(request)
-        if token.is_expired():
-            # Sanity Check: New tokens should be created
-            # when auth token is expired.
-            token = createAuthToken(user.username)
+        if not token:
+            token = create_token(user.username)
         serialized_data = TokenSerializer(token).data
         return Response(serialized_data, status=status.HTTP_200_OK)
 
@@ -42,7 +39,7 @@ class Authentication(APIView):
         return self._token_for_username(user.username)
 
     def _token_for_username(self, username):
-        token = createAuthToken(username)
+        token = create_token(username, issuer="DRF")
         expireTime = token.issuedTime + secrets.TOKEN_EXPIRY_TIME
         auth_json = {
             'token': token.key,

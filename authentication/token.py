@@ -10,16 +10,15 @@ from django.utils import timezone
 from requests.exceptions import ConnectionError
 from rest_framework.authentication import BaseAuthentication
 from threepio import logger
-from authentication import get_or_create_user
 from authentication.exceptions import Unauthorized
-from authentication.models import Token as AuthToken
+from authentication.models import Token as AuthToken,\
+     create_token
+from authentication.models import get_or_create_user
 from authentication.protocol.cas import cas_validateUser
-from authentication.protocol.oauth import cas_profile_for_token,\
-    obtainOAuthToken
+from authentication.protocol.cas import cas_profile_for_token
 from authentication.protocol.wso2 import WSO2_JWT
 
 User = get_user_model()
-
 
 def getRequestParams(request):
     """
@@ -106,8 +105,6 @@ class TokenAuthentication(BaseAuthentication):
             token_key = request.session['token']
         if validate_token(token_key):
             token = self.model.objects.get(key=token_key)
-            # logger.info("AuthToken Obtained for %s:%s" %
-            #            (token.user.username, token_key))
             if token.user.is_active:
                 return (token.user, token)
         return None
@@ -203,7 +200,7 @@ def validate_oauth_token(token, request=None):
     if not User.objects.filter(username=username):
         raise Unauthorized("User %s does not exist as an User"
                            % username)
-    auth_token = obtainOAuthToken(username, token)
+    auth_token = create_token(username, token)
     if not auth_token:
         return False
     return True

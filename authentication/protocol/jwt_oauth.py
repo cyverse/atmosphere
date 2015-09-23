@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from authentication.models import create_auth_token
+from authentication.models import create_token
 
 
 class JWTServiceProvider():
@@ -23,7 +23,7 @@ class JWTServiceProvider():
         """
         decoded_assertion = self.decode_assertion(jwt_assertion)
         user, expiration = self.validate_assertion(decoded_assertion)
-        auth_token = create_auth_token(user.username, expiration)
+        auth_token = create_token(user.username, expiration)
         return auth_token
 
     @abstractmethod

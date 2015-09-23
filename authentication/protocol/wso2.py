@@ -84,9 +84,9 @@ class WSO2_JWT(JWTServiceProvider):
 
         # TEST #3 - Strip the name and ensure that the user exists
         username = self._strip_wso2_username(username)
-        user = AtmosphereUser.objects.filter(username=username)
+        user = User.objects.filter(username=username)
         if not user:
-            raise Unauthorized("User %s does not yet exist as an AtmosphereUser -- Please create your account FIRST."
+            raise Unauthorized("Username %s does not yet exist as a User object -- Please create your account FIRST."
                                % username)
         user = user.get()
         #TODO: Update the users attributes using the decoded_assertion!

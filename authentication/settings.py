@@ -16,19 +16,22 @@ DEFAULTS =  {
     "TOKEN_EXPIRY_TIME": timedelta(days=1),
     "CAS_SERVER": None,
     "API_SERVER_URL": None,
-
+    "LOGOUT_REDIRECT_URL": None,
     # OAUTH
     "OAUTH_CLIENT_KEY": None,
     "OAUTH_CLIENT_SECRET": None,
     "OAUTH_CLIENT_CALLBACK": None,
-    "OAUTH_PRIVATE_KEY": None,
-    "OAUTH_ISSUER_USER": None,
-    "OAUTH_SCOPE": None,
-    "OAUTH_GROUPY_SERVER": None,
 
     # LDAP
     "LDAP_SERVER": None,
-    "LDAP_SERVER_DN": None
+    "LDAP_SERVER_DN": None,
+    #GLOBUS
+    "GLOBUS_OAUTH_ID": None,
+    "GLOBUS_OAUTH_SECRET": None,
+    "GLOBUS_OAUTH_CREDENTIALS_SCOPE": None,
+    "GLOBUS_OAUTH_AUTHENTICATION_SCOPE": None,
+    "GLOBUS_TOKEN_URL": None,
+    "GLOBUS_AUTH_URL": None,
 }
 
 

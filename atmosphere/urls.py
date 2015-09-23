@@ -18,20 +18,20 @@ urlpatterns = patterns(
     # Core endpoints
     url(r'', include("core.urls", namespace="core")),
 
-    # Authentication
+    # Authentication endpoints
     url(r'', include("authentication.urls", namespace="authentication")),
 
-    # API Layer
+    # API Layer endpoints
     url(r'^api/', include("api.urls", namespace="api")),
 
-    # v2 api auth by token
+    # v2 API auth by token
     url(r'^auth$', Authentication.as_view(), name='token-auth'),
 
-    # API Documentation
+    # DRF API Login/Logout
     url(r'^api-auth/',
         include('rest_framework.urls', namespace='rest_framework')),
 
-    # DJANGORESTFRAMEWORK
+    # Token login (Used internally by DRF?)
     url(r'^api-token-auth/',
         'rest_framework.authtoken.views.obtain_auth_token'),
 
