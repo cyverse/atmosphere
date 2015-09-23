@@ -21,4 +21,15 @@ class Migration(migrations.Migration):
             name='key',
             field=models.CharField(max_length=1024, serialize=False, primary_key=True),
         ),
+        migrations.CreateModel(
+            name='AccessToken',
+            fields=[
+                ('key', models.CharField(max_length=1024, serialize=False, primary_key=True)),
+                ('issuer', models.TextField(null=True, blank=True)),
+                ('expireTime', models.DateTimeField(null=True, blank=True)),
+            ],
+            options={
+                'db_table': 'access_token',
+            },
+        ),
     ]
