@@ -6,7 +6,7 @@ import re
 import os
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Model
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from core.models.user import AtmosphereUser as User
@@ -99,6 +99,20 @@ class MachineRequest(BaseRequest):
                                     null=True, blank=True)
     new_application_version = models.ForeignKey(ApplicationVersion,
                                                 null=True, blank=True)
+    def save(self, *args, **kwargs):
+        if not self.pk and self.is_active(self.instance):
+            raise RequestLimitExceeded(
+                    "The number of open requests for "
+                    "instance %s has been exceeded."
+                    % self.instance.provider_alias)
+        Model.save(self, *args, **kwargs)
+
+    @classmethod
+    def is_active(cls, instance):
+        """
+        """
+        return cls.objects.filter(instance=instance,
+                status__name__in=UNRESOLVED_STATES).count() > 0
 
     def clean(self):
         """
