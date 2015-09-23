@@ -12,6 +12,7 @@ from threepio import logger
 
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 from core.models import Provider
+from core.models import IdentityMembership
 
 from service.instance import _permission_to_act
 from service.exceptions import ActionNotAllowed
@@ -103,7 +104,14 @@ class MachineRequestList(AuthAPIView):
             instance = serializer.validated_data['instance']
             parent_machine = instance.source.providermachine
             serializer.validated_data['parent_machine'] = parent_machine
+            user = serializer.validated_data['new_machine_owner']
+            identity_member = IdentityMembership.objects.get(
+                    identity__provider=serializer.validated_data['new_machine_provider'],
+                    identity__created_by=user)
+            serializer.validated_data['membership'] = identity_member
+            serializer.validated_data['created_by'] = user
             self._permission_to_image(identity_uuid, instance)
+            import ipdb;ipdb.set_trace()
             machine_request = serializer.save()
             instance = machine_request.instance
             # NOTE: THIS IS A HACK -- While we enforce all images

@@ -80,7 +80,7 @@ class MachineRequest(BaseRequest):
     new_version_forked = models.BooleanField(default=True)
     new_version_licenses = models.ManyToManyField(License, blank=True)
     new_version_scripts = models.ManyToManyField(BootScript, blank=True)
-    new_version_membership = models.ManyToManyField("Group", blank=True)
+    new_version_membership = models.ManyToManyField("Group", blank=True, null=True)
 
     new_machine_provider = models.ForeignKey(Provider)
     new_machine_owner = models.ForeignKey(User, related_name="new_image_owner")
@@ -117,6 +117,10 @@ class MachineRequest(BaseRequest):
                     "-OR- fork the existing application")
 
         # General Validation && AutoCompletion
+        if self.access_list:
+            self.new_version_membership = _match_membership_to_access(
+                self.access_list,
+                self.new_version_membership)
 
         # Automatically set 'end date' when completed
         if self.status == 'completed' and not self.end_date:

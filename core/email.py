@@ -126,7 +126,7 @@ def send_email(subject, body, from_email, to, cc=None,
         "fail_silently": fail_silently,
         "html": html
     }
-    send_email_task(args=args, kwargs=kwargs)
+    send_email_task(*args, **kwargs)
     return True
 
 
