@@ -19,7 +19,7 @@ urlpatterns = patterns(
     url(r'', include("core.urls", namespace="core")),
 
     # Authentication endpoints
-    url(r'', include("authentication.urls", namespace="authentication")),
+    url(r'', include("iplantauth.urls", namespace="iplantauth")),
 
     # API Layer endpoints
     url(r'^api/', include("api.urls", namespace="api")),

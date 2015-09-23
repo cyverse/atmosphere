@@ -8,7 +8,7 @@ import libcloud.security
 from threepio import logger
 from django.db.models import Q
 
-from authentication.protocol.ldap import is_atmo_user, get_members
+from iplantauth.protocol.ldap import is_atmo_user, get_members
 
 from core.models import AtmosphereUser as User
 from core.models import Provider, Allocation, IdentityMembership

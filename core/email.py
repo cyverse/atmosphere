@@ -16,7 +16,7 @@ from threepio import logger
 from atmosphere import settings
 from core.models import IdentityMembership, MachineRequest
 
-from authentication.protocol.ldap import lookupEmail, lookupUser
+from iplantauth.protocol.ldap import lookupEmail, lookupUser
 from core.tasks import send_email as send_email_task
 
 

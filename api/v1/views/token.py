@@ -8,7 +8,7 @@ from rest_framework import status
 from threepio import logger
 
 from atmosphere.settings import secrets
-from authentication.models import create_token
+from iplantauth.models import create_token
 
 from core.models import AtmosphereUser
 

@@ -82,16 +82,16 @@ INSTALLED_APPS = (
     #'sslserver',
 
     # iPlant apps
+    'iplantauth',
     'rtwo',
 
     # atmosphere apps
     'api',
     'allocation',
-    'authentication',
     'service',
     'core',
 )
-PROJECT_APPS = ["authentication", "service", "core", "allocation"]
+PROJECT_APPS = ["service", "core", "allocation"]# "iplantauth", 
 
 TIME_ZONE = 'America/Phoenix'
 
@@ -167,12 +167,12 @@ AUTH_USER_MODULE = 'core.AtmosphereUser'
 
 AUTHENTICATION_BACKENDS = (
     # For Token-Access
-    'authentication.authBackends.AuthTokenLoginBackend',
+    'iplantauth.authBackends.AuthTokenLoginBackend',
     # For Web-Access
-    'authentication.authBackends.CASLoginBackend',
-    'authentication.authBackends.SAMLLoginBackend',
+    'iplantauth.authBackends.CASLoginBackend',
+    'iplantauth.authBackends.SAMLLoginBackend',
     # For Service-Access
-    'authentication.authBackends.LDAPLoginBackend',
+    'iplantauth.authBackends.LDAPLoginBackend',
 )
 
 # django-cors-headers
@@ -328,9 +328,9 @@ REST_FRAMEWORK = {
         'api.renderers.JPEGRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'authentication.token.JWTTokenAuthentication',
-        'authentication.token.OAuthTokenAuthentication',
-        'authentication.token.TokenAuthentication',
+        'iplantauth.token.JWTTokenAuthentication',
+        'iplantauth.token.OAuthTokenAuthentication',
+        'iplantauth.token.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',

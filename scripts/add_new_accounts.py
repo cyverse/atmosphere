@@ -14,7 +14,7 @@ from service.accounts.openstack import AccountDriver as OSAccountDriver
 
 
 libcloud.security.VERIFY_SSL_CERT = False
-# TODO: Remove this and use 'get_members' in authentication/protocols/ldap.py
+# TODO: Remove this and use 'get_members' in iplantauth/protocols/ldap.py
 #      when it exists (A-N)
 
 

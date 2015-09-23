@@ -6,7 +6,7 @@ from rest_framework import status
 
 from threepio import logger
 
-from authentication.protocol.ldap import lookupEmail
+from iplantauth.protocol.ldap import lookupEmail
 
 from core.email import email_admin, feedback_email, resource_request_email
 

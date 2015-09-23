@@ -4,7 +4,7 @@ import argparse
 from keystoneclient.exceptions import NotFound
 
 # except ImportError:
-from authentication.protocol.ldap import is_atmo_user
+from iplantauth.protocol.ldap import is_atmo_user
 
 from core.email import send_new_provider_email
 from core.models import Provider
