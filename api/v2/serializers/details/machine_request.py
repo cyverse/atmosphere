@@ -30,17 +30,6 @@ class UserRelatedField(serializers.PrimaryKeyRelatedField):
         serializer = UserSummarySerializer(user, context=self.context)
         return serializer.data
 
-
-# class ProviderMachineRelatedField(serializers.RelatedField):
-#     def get_queryset(self):
-#         return ProviderMachine.objects.all()
-
-#     def to_representation(self, value):
-#         provider_machine = ProviderMachine.objects.get(pk=value.pk)
-#         serializer = ProviderMachineSummarySerializer(provider_machine, context=self.context)
-#         return serializer.data
-
-
 class InstanceRelatedField(serializers.RelatedField):
     
     def get_queryset(self):
@@ -119,8 +108,30 @@ class StatusTypeRelatedField(serializers.RelatedField):
 class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     
     def validate(self, data):
+
+        # set the parent machine
         parent_machine = ProviderMachine.objects.get(id=data['instance'].source_id)
         data['parent_machine'] = parent_machine
+        
+        # make sure user has access to the new provider
+        user = data['new_machine_owner']
+        provider = data['new_machine_provider']
+        queryset = user.identity_set.filter(provider = provider)
+        if not queryset.exists():
+            raise exceptions.ValidationError(
+                "User %s does not have access to provider %s."
+                % (user.username, provider)
+            )
+
+        # make sure provider has imaging enabled
+        if not provider.public:
+            raise exceptions.ValidationError(
+                "Provider %s does not allow imaging."
+                % (provider)
+            )
+
+        # TODO: make sure user has access to parent machine
+
         return data
 
     uuid = serializers.CharField(read_only=True)
@@ -229,22 +240,20 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
-    #quota = QuotaRelatedField(read_only=True)
-    #allocation = AllocationRelatedField(read_only=True)
-    #status = StatusTypeRelatedField(read_only=True)
-    #print "USER"
-    #admin_message = serializers.CharField(read_only=True)
-    uuid = serializers.CharField(read_only=True)
-    #created_by = UserRelatedField(read_only=True)
-    #user = UserSummarySerializer(
-    #    source='membership.identity.created_by',
-    #    read_only=True)
-    #identity = IdentityRelatedField(source='membership.identity',
-    #                                queryset=Identity.objects.none())
-    #provider = ProviderSummarySerializer(
-    #    source='membership.identity.provider',
-    #    read_only=True)
 
+    uuid = serializers.CharField(read_only=True)
+    instance = ModelRelatedField(
+        queryset=Instance.objects.all(),
+        serializer_class=InstanceSummarySerializer,
+        style={'base_template': 'input.html'})
+    status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
+                                    allow_null=True,
+                                    required=False)
+    new_version_memory_min = serializers.CharField()
+    new_version_storage_min = serializers.CharField()
+    new_application_version = ImageVersionSummarySerializer(read_only=True)
+    access_list = serializers.CharField(allow_blank=True)
+    
     class Meta:
         model = MachineRequest
         view_name = 'api:v2:machinerequest-detail'
@@ -252,14 +261,11 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'id',
             'uuid',
             'url',
-            #'request',
-            #'description',
-            #'status',
-            #'created_by',
-            #'user',
-            #'identity',
-            #'provider',
-            #'admin_message',
-            #'quota',
-            #'allocation'
+            'instance',
+            'status',
+            'new_application_version',
+            'new_version_memory_min',
+            'new_version_storage_min',
+            'access_list',
+
         )
