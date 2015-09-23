@@ -3,7 +3,7 @@
 # production environments
 import os
 from atmosphere import settings
-from web.views import compile_js
+from core.views import compile_js
 
 import django
 django.setup()

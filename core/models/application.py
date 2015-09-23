@@ -11,10 +11,9 @@ from threepio import logger
 from atmosphere import settings
 
 from core.query import only_current, only_current_apps, only_current_source
-from core.models.provider import Provider
+from core.models.provider import Provider, AccountProvider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
-from core.metadata import _get_admin_owner
 from core.models.application_version import ApplicationVersion
 
 
@@ -610,3 +609,17 @@ class ApplicationThreshold(models.Model):
     class Meta:
         db_table = 'application_threshold'
         app_label = 'core'
+
+
+# NOTE: Should it always take the first admin?
+def _get_admin_owner(provider_uuid):
+    admins = AccountProvider.objects.get(provider__uuid=provider_uuid)
+
+    # If an admin exists return its identity
+    if admins.exist():
+        return admins.first().identity
+
+    logger.warn("AccountProvider could not be found for provider %s."
+                " AccountProviders are necessary to claim ownership "
+                " for identities that do not yet exist in the DB."
+                % Provider.objects.get(uuid=provider_uuid))

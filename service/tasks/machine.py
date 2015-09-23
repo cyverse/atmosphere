@@ -13,13 +13,14 @@ from atmosphere.celery_init import app
 
 from core.email import \
     send_image_request_email, send_image_request_failed_email
-from core.models.machine_request import MachineRequest, process_machine_request
+from core.models.machine_request import MachineRequest
 from core.models.export_request import ExportRequest
 from core.models.identity import Identity
 from core.models.status_type import StatusType
 
 from service.driver import get_admin_driver, get_esh_driver, get_account_driver
 from service.deploy import freeze_instance, sync_instance
+from service.machine import process_machine_request
 from service.tasks.driver import wait_for_instance, destroy_instance
 
 
@@ -109,7 +110,8 @@ def start_machine_imaging(machine_request, delay=False):
     (orig_managerCls, orig_creds,
      dest_managerCls, dest_creds) = machine_request.prepare_manager()
     imaging_args = machine_request.get_imaging_args()
-    admin_driver = machine_request.new_admin_driver()
+
+    admin_driver = get_admin_driver(machine_request.new_machine_provider)
     admin_ident = machine_request.new_admin_identity()
 
     imaging_error_task = machine_request_error.s(machine_request.id)
@@ -180,7 +182,7 @@ def start_machine_imaging(machine_request, delay=False):
 
 
 def set_machine_request_metadata(machine_request, image_id):
-    admin_driver = machine_request.new_admin_driver()
+    admin_driver = get_admin_driver(machine_request.new_machine_provider)
     machine = admin_driver.get_machine(image_id)
     lc_driver = admin_driver._connection
     if not machine:
