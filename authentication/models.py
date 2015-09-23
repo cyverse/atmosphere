@@ -12,9 +12,56 @@ from django.utils import timezone
 
 from authentication.settings import auth_settings
 
+import logging
+logger = logging.getLogger(__name__)
 
 AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", 'auth.User')
 
+def only_current(now_time=None):
+    """
+    Filter in range using expireTime
+    """
+    if not now_time:
+        now_time = timezone.now()
+    return models.Q(expireTime=None) | models.Q(expireTime__gt=now_time)
+
+class AccessToken(models.Model):
+    """
+    AccessTokens are long running tokens
+    at most ONE access token should be active per issuer
+    """
+    key = models.CharField(max_length=1024, primary_key=True)
+    issuer = models.TextField(null=True, blank=True)
+    expireTime = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = self.generate_key()
+        return super(AccessToken, self).save(*args, **kwargs)
+
+    def generate_key(self):
+        unique = str(uuid.uuid4())
+        hashed_val = hashlib.md5(unique).hexdigest()
+        return hashed_val
+
+    def get_expired_time(self):
+        return self.expireTime.strftime("%b %d, %Y %H:%M:%S")
+
+    def is_expired(self, now_time=None):
+        """
+        Returns True if token has expired, False if token is valid
+        """
+        if not now_time:
+            now_time = timezone.now()
+        return self.expireTime is not None\
+            and self.expireTime <= now_time
+
+    def __unicode__(self):
+        return "%s" % (self.key)
+
+    class Meta:
+        db_table = "access_token"
+        app_label = "authentication"
 
 class Token(models.Model):
 
@@ -22,23 +69,25 @@ class Token(models.Model):
     AuthTokens are issued (or reused if existing)
     each time a user asks for a token using CloudAuth
     """
-    key = models.CharField(max_length=128, primary_key=True)
+    key = models.CharField(max_length=1024, primary_key=True)
     user = models.ForeignKey(AUTH_USER_MODEL, related_name='auth_token')
     api_server_url = models.CharField(max_length=256)
     remote_ip = models.CharField(max_length=128, null=True, blank=True)
-    user_agent = models.TextField(null=True, blank=True)
+    issuer = models.TextField(null=True, blank=True)
     issuedTime = models.DateTimeField(auto_now_add=True)
     expireTime = models.DateTimeField(null=True, blank=True)
 
     def get_expired_time(self):
         return self.expireTime.strftime("%b %d, %Y %H:%M:%S")
 
-    def is_expired(self):
+    def is_expired(self, now_time=None):
         """
         Returns True if token has expired, False if token is valid
         """
+        if not now_time:
+            now_time = timezone.now()
         return self.expireTime is not None\
-            and self.expireTime <= timezone.now()
+            and self.expireTime <= now_time
 
     def update_expiration(self, token_expiration=None):
         """
@@ -56,7 +105,8 @@ class Token(models.Model):
 
     def generate_key(self):
         unique = str(uuid.uuid4())
-        return hashlib.md5(unique).hexdigest()
+        hashed_val = hashlib.md5(unique).hexdigest()
+        return hashed_val
 
     def __unicode__(self):
         return "%s" % (self.key)
@@ -87,23 +137,105 @@ class UserProxy(models.Model):
         verbose_name_plural = 'user proxies'
 
 
-def create_auth_token(username, token_key, token_expire=None):
+def get_access_token(issuer):
+    try:
+        token = AccessToken.objects.get(only_current(), issuer=issuer)
+        return token
+    except AccessToken.DoesNotExist:
+        return None
+
+
+def create_access_token(token_key, token_expire, issuer):
     """
-    Using *whatever* representation is necessary for the Token Key
-    (Ex: CAS-...., UUID4, JWT-OAuth)
-    and the username that the token will belong to
-    Create a new AuthToken for DB lookups
+    Generate a Token based on current username
+    (And token_key, expiration, issuer.. If available)
     """
+    access_token, _ = AccessToken.objects.get_or_create(
+        key=token_key, issuer=issuer, expireTime=token_expire)
+    return access_token
+
+
+def create_token(username, token_key=None, token_expire=None, issuer=None):
+    """
+    Generate a Token based on current username
+    (And token_key, expiration, issuer.. If available)
+    """
+    User = get_user_model()
     try:
         user = User.objects.get(username=username)
     except User.DoesNotExist:
         logger.warn("User %s doesn't exist on the DB. "
-                    "Auth Token for %s was _NOT_ created" % username)
+                    "Auth Token _NOT_ created" % username)
         return None
     auth_user_token, _ = Token.objects.get_or_create(
-        key=token_key, user=user, api_server_url=auth_settings.API_SERVER_URL)
-    #TODO: Only run if token_expire is different.from current result
+        key=token_key, user=user, issuer=issuer, api_server_url=settings.API_SERVER_URL)
     if token_expire:
         auth_user_token.update_expiration(token_expire)
         auth_user_token.save()
     return auth_user_token
+
+
+def get_or_create_user(username=None, attributes=None):
+    """
+    Retrieve or create a User matching the username (No password)
+    """
+    User = get_user_model()
+    if not username:
+        return None
+
+    # NOTE: REMOVE this when it is no longer true!
+    # Force any username lookup to be in lowercase
+    username = username.lower()
+
+    try:
+        # Look for the username "EXACT MATCH"
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        user = User.objects.create_user(username, "")
+    if attributes:
+        user.first_name = attributes['firstName']
+        user.last_name = attributes['lastName']
+        user.email = attributes['email']
+    user.save()
+    return user
+
+
+def lookupSessionToken(request):
+    """
+    Retrieve an existing token from the request session.
+    """
+    token_key = request.session['token']
+    try:
+        token = AuthToken.objects.get(user=request.user, key=token_key)
+        if token.is_expired():
+            return None
+        return token
+    except:
+        return None
+
+
+def validateToken(username, token_key):
+    """
+    Verify the token belongs to username, and renew it
+    """
+    auth_user_token = AuthToken.objects.filter(
+        user__username=username, key=token_key)
+    if not auth_user_token:
+        return None
+    auth_user_token = auth_user_token[0]
+    auth_user_token.update_expiration()
+    auth_user_token.save()
+    return auth_user_token
+
+
+def userCanEmulate(username):
+    """
+    Django users marked as 'staff' have emulate permission
+    Additional checks can be added later..
+    """
+    User = get_user_model()
+    try:
+        user = User.objects.get(username=username)
+        return user.is_staff
+    except User.DoesNotExist:
+        return False

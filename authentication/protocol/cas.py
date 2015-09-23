@@ -13,7 +13,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import timezone
 
-from caslib import CASClient, SAMLClient
+from caslib import CASClient, SAMLClient, OAuthClient
 
 from threepio import auth_logger as logger
 
@@ -21,11 +21,13 @@ from authentication import create_session_token
 from authentication.models import UserProxy
 from authentication.settings import auth_settings
 
-User = get_user_model()
+###########################
+# CAS-SPECIFIC SSO METHODS
+###########################
 
-# TODO: Find out the actual proxy ticket expiration time, it varies by server
-# May be as short as 5min!
+
 PROXY_TICKET_EXPIRY = timedelta(days=1)
+User = get_user_model()
 
 
 def get_cas_client():
@@ -37,7 +39,26 @@ def get_cas_client():
                      proxy_url=settings.PROXY_URL,
                      proxy_callback=settings.PROXY_CALLBACK_URL,
                      auth_prefix=auth_settings.CAS_AUTH_PREFIX,
-                     self_signed_cert=auth_setting.SELF_SIGNED_CERT)
+                     self_signed_cert=auth_settings.SELF_SIGNED_CERT)
+
+
+def cas_logoutRedirect():
+    return HttpResponseRedirect(auth_settings.CAS_SERVER +
+                                "/cas/logout?service=" + settings.SERVER_URL)
+
+
+def cas_loginRedirect(request, redirect=None, gateway=False):
+    if not redirect:
+        redirect = request.get_full_path()
+    redirect_to = "%s/CAS_serviceValidater?sendback=%s" \
+        % (settings.SERVER_URL, redirect)
+    login_url = "%s%s/login?service=%s" \
+        % (auth_settings.CAS_SERVER, auth_settings.CAS_AUTH_PREFIX, redirect_to)
+    if gateway:
+        login_url += '&gateway=true'
+    return HttpResponseRedirect(login_url)
+
+
 
 
 def cas_validateUser(username):
@@ -65,7 +86,7 @@ def cas_validateUser(username):
         return (False, None)
 
 
-def updateUserProxy(user, pgtIou, max_try=3):
+def cas_updateUserProxy(user, pgtIou, max_try=3):
     attempts = 0
     while attempts < max_try:
         try:
@@ -86,71 +107,10 @@ def updateUserProxy(user, pgtIou, max_try=3):
             attempts += 1
     return False
 
-"""
-CAS is an optional way to login to Atmosphere
-This code integrates caslib into the Auth system
-"""
-
-def _set_redirect_url(sendback, request):
+def cas_set_redirect_url(sendback, request):
     absolute_url = request.build_absolute_uri(
         reverse('authentication:cas-service-validate-link'))
     return "%s?sendback=%s" % (absolute_url, sendback)
-
-
-def get_saml_client():
-    s_client = SAMLClient(auth_settings.CAS_SERVER,
-                          settings.SERVER_URL,
-                          auth_prefix=auth_settings.CAS_AUTH_PREFIX)
-    return s_client
-
-
-def saml_validateTicket(request):
-    """
-    Method expects 2 GET parameters: 'ticket' & 'sendback'
-    After a CAS Login:
-    Redirects the request based on the GET param 'ticket'
-    Unauthorized Users are redirected to '/' In the event of failure.
-    Authorized Users are redirected to the GET param 'sendback'
-    """
-
-    redirect_logout_url = settings.REDIRECT_URL + "/login/"
-    no_user_url = settings.REDIRECT_URL + "/no_user/"
-    logger.debug('GET Variables:%s' % request.GET)
-    ticket = request.GET.get('ticket', None)
-
-    if not ticket:
-        logger.info("No Ticket received in GET string "
-                    "-- Logout user: %s" % redirect_logout_url)
-        return HttpResponseRedirect(redirect_logout_url)
-
-    logger.debug("ServiceValidate endpoint includes a ticket."
-                 " Ticket must now be validated with SAML")
-
-    # ReturnLocation set, apply on successful authentication
-
-    saml_client = get_saml_client()
-    saml_response = saml_client.saml_serviceValidate(ticket)
-    if not saml_response.success:
-        logger.debug("CAS Server did NOT validate ticket:%s"
-                     " and included this response:%s"
-                     % (ticket, saml_response.xml))
-        return HttpResponseRedirect(redirect_logout_url)
-
-    try:
-        user = User.objects.get(username=saml_response.user)
-    except User.DoesNotExist:
-        return HttpResponseRedirect(no_user_url)
-    auth_token = create_session_token(None, user, request)
-    if auth_token is None:
-        logger.info("Failed to create AuthToken")
-        HttpResponseRedirect(redirect_logout_url)
-    return_to = request.GET.get('sendback')
-    if not return_to:
-        return HttpResponse(saml_response.response,
-                            content_type="text/xml; charset=utf-8")
-    return_to += "?token=%s" % auth_token
-    logger.info("Session token created, return to: %s" % return_to)
-    return HttpResponseRedirect(return_to)
 
 
 def cas_validateTicket(request):
@@ -179,7 +139,7 @@ def cas_validateTicket(request):
     # ReturnLocation set, apply on successful authentication
 
     caslib = get_cas_client()
-    caslib.service_url = _set_redirect_url(sendback, request)
+    caslib.service_url = cas_set_redirect_url(sendback, request)
 
     cas_response = caslib.cas_serviceValidate(ticket)
     if not cas_response.success:
@@ -201,7 +161,7 @@ def cas_validateTicket(request):
               * /etc/host and hostname do not match machine.""")
         return HttpResponseRedirect(redirect_logout_url)
 
-    updated = updateUserProxy(
+    updated = cas_updateUserProxy(
         cas_response.user, cas_response.proxy_granting_ticket)
     if not updated:
         return HttpResponseRedirect(redirect_logout_url)
@@ -211,7 +171,7 @@ def cas_validateTicket(request):
         user = User.objects.get(username=cas_response.user)
     except User.DoesNotExist:
         return HttpResponseRedirect(no_user_url)
-    auth_token = create_session_token(None, user, request)
+    auth_token = create_session_token(None, user, request, issuer="CAS")
     if auth_token is None:
         logger.info("Failed to create AuthToken")
         HttpResponseRedirect(redirect_logout_url)
@@ -261,3 +221,105 @@ def cas_proxyCallback(request):
     """
     logger.debug("Incoming request to CASPROXY (Proxy Callback):")
     return HttpResponse("I am at a RSA-2 or VeriSigned SSL Cert. website.")
+
+
+###########################
+# CAS-SPECIFIC SAML METHODS
+###########################
+
+
+def get_saml_client():
+    s_client = SAMLClient(auth_settings.CAS_SERVER,
+                          settings.SERVER_URL,
+                          auth_prefix=auth_settings.CAS_AUTH_PREFIX)
+    return s_client
+
+
+def saml_loginRedirect(request, redirect=None, gateway=False):
+    login_url = "%s%s/login?service=%s/s_serviceValidater%s" %\
+                (auth_settings.CAS_SERVER, auth_settings.CAS_AUTH_PREFIX,
+                 settings.SERVER_URL,
+                 "?sendback=%s" % redirect if redirect else "")
+    if gateway:
+        login_url += '&gateway=true'
+    return HttpResponseRedirect(login_url)
+
+
+def saml_validateTicket(request):
+    """
+    Method expects 2 GET parameters: 'ticket' & 'sendback'
+    After a CAS Login:
+    Redirects the request based on the GET param 'ticket'
+    Unauthorized Users are redirected to '/' In the event of failure.
+    Authorized Users are redirected to the GET param 'sendback'
+    """
+
+    redirect_logout_url = settings.REDIRECT_URL + "/login/"
+    no_user_url = settings.REDIRECT_URL + "/no_user/"
+    logger.debug('GET Variables:%s' % request.GET)
+    ticket = request.GET.get('ticket', None)
+
+    if not ticket:
+        logger.info("No Ticket received in GET string "
+                    "-- Logout user: %s" % redirect_logout_url)
+        return HttpResponseRedirect(redirect_logout_url)
+
+    logger.debug("ServiceValidate endpoint includes a ticket."
+                 " Ticket must now be validated with SAML")
+
+    # ReturnLocation set, apply on successful authentication
+
+    saml_client = get_saml_client()
+    saml_response = saml_client.saml_serviceValidate(ticket)
+    if not saml_response.success:
+        logger.debug("CAS Server did NOT validate ticket:%s"
+                     " and included this response:%s"
+                     % (ticket, saml_response.xml))
+        return HttpResponseRedirect(redirect_logout_url)
+
+    try:
+        user = User.objects.get(username=saml_response.user)
+    except User.DoesNotExist:
+        return HttpResponseRedirect(no_user_url)
+    auth_token = create_session_token(None, user, request, issuer="CAS+SAML")
+    if auth_token is None:
+        logger.info("Failed to create AuthToken")
+        HttpResponseRedirect(redirect_logout_url)
+    return_to = request.GET.get('sendback')
+    if not return_to:
+        return HttpResponse(saml_response.response,
+                            content_type="text/xml; charset=utf-8")
+    return_to += "?token=%s" % auth_token
+    logger.info("Session token created, return to: %s" % return_to)
+    return HttpResponseRedirect(return_to)
+
+
+###########################
+# CAS-SPECIFIC OAUTH METHODS
+###########################
+def get_cas_oauth_client():
+    o_client = OAuthClient(auth_settings.CAS_SERVER,
+                           auth_settings.OAUTH_CLIENT_CALLBACK,
+                           auth_settings.OAUTH_CLIENT_KEY,
+                           auth_settings.OAUTH_CLIENT_SECRET,
+                           auth_prefix=auth_settings.CAS_AUTH_PREFIX)
+    return o_client
+
+
+def cas_profile_contains(attrs, test_value):
+    # Two basic types of 'values'
+    # Lists: e.g. attrs['entitlement'] = ['group1','group2','group3']
+    # Objects: e.g. attrs['email'] = 'test@email.com'
+    for attr in attrs:
+        for (key, value) in attr.items():
+            if isinstance(value, list) and test_value in value:
+                return True
+            elif value == test_value:
+                return True
+    return False
+
+
+def cas_profile_for_token(access_token):
+    oauth_client = get_cas_oauth_client()
+    profile_map = oauth_client.get_profile(access_token)
+    return profile_map

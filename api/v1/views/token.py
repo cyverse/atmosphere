@@ -8,7 +8,7 @@ from rest_framework import status
 from threepio import logger
 
 from atmosphere.settings import secrets
-from authentication import createAuthToken
+from authentication.models import create_token
 
 from core.models import AtmosphereUser
 
@@ -48,7 +48,7 @@ class TokenEmulate(AuthAPIView):
                             % username, status=status.HTTP_404_NOT_FOUND)
 
         # User is authenticated, username exists. Make a token for them.
-        token = createAuthToken(username)
+        token = create_token(username, issuer="DRF-EmulatedUser")
         expireTime = token.issuedTime + secrets.TOKEN_EXPIRY_TIME
         auth_json = {
             # Extra data passed only on emulation..

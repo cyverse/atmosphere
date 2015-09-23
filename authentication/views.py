@@ -7,15 +7,98 @@ import uuid
 
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 
 from threepio import auth_logger as logger
 
-from authentication import createAuthToken, userCanEmulate, cas_loginRedirect
+from authentication.models import create_token, userCanEmulate
 from authentication.models import Token as AuthToken
-from authentication.protocol.cas import cas_validateUser
+from authentication.protocol.cas import cas_validateUser, cas_loginRedirect, get_cas_oauth_client
+from authentication.protocol.globus import globus_authorize, globus_validate_code
 from authentication.protocol.ldap import ldap_validate
 from authentication.settings import auth_settings
+
+
+#GLOBUS Views
+
+
+def globus_login_redirect(request):
+
+    next_url = request.GET.get('next', '/application')
+    request.session['next'] = next_url
+
+    return globus_authorize(request)
+
+def globus_callback_authorize(request):
+    from authentication.protocol.globus import globus_validate_code
+    auth_token = globus_validate_code(request)
+
+    if not auth_token:
+        # Redirect out of the OAuth loop
+        return HttpResponseRedirect(auth_settings.LOGOUT_REDIRECT_URL)
+    request.session['username'] = auth_token.user.username
+    request.session['token'] = auth_token.key
+    next_url = request.session.get('next', '/application')
+    return HttpResponseRedirect(next_url)
+
+
+#CAS+OAuth Views
+
+
+
+def o_callback_authorize(request):
+    """
+    Authorize a callback from an OAuth IdP
+    ( Uses request.META to route which IdP is in use )
+    """
+    # IF globus --> globus_callback_authorize
+    referrer = request.META['HTTP_REFERER']
+    if 'globus' in referrer:
+        return globus_callback_authorize(request)
+    return cas_callback_authorize(request)
+
+
+def o_login_redirect(request):
+    oauth_client = get_cas_oauth_client()
+    url = oauth_client.authorize_url()
+    return HttpResponseRedirect(url)
+
+
+def cas_callback_authorize(request):
+    """
+    Authorize a callback (From CAS IdP)
+    """
+    if 'code' not in request.GET:
+        # TODO - Maybe: Redirect into a login
+        return HttpResponse("")
+    oauth_client = get_cas_oauth_client()
+    oauth_code = request.GET['code']
+    # Exchange code for ticket
+    access_token, expiry_date = oauth_client.get_access_token(oauth_code)
+    if not access_token:
+        logger.warn("The Code %s is invalid/expired. Attempting another login."
+                    % oauth_code)
+        return o_login_redirect(request)
+    # Exchange token for profile
+    user_profile = oauth_client.get_profile(access_token)
+    if not user_profile or "id" not in user_profile:
+        logger.error("AccessToken is producing an INVALID profile!"
+                     " Check the CAS server and caslib.py for more"
+                     " information.")
+        # NOTE: Make sure this redirects the user OUT of the loop!
+        return login(request)
+    # ASSERT: A valid OAuth token gave us the Users Profile.
+    # Now create an AuthToken and return it
+    username = user_profile["id"]
+    auth_token = create_token(username, access_token, expiry_date, issuer="CAS+OAuth")
+    # Set the username to the user to be emulated
+    # to whom the token also belongs
+    request.session['username'] = username
+    request.session['token'] = auth_token.key
+    return HttpResponseRedirect(settings.REDIRECT_URL + "/application/")
+
+
+#Token Authentication Views
 
 
 @csrf_exempt
@@ -30,8 +113,6 @@ def token_auth(request):
     django model authentication
     Use this to give out tokens to access the API
     """
-    logger.info('Request to auth')
-
     token = request.POST.get('token', None)
 
     username = request.POST.get('username', None)
@@ -44,9 +125,7 @@ def token_auth(request):
     # LDAP Authenticate if password provided.
     if username and password:
         if ldap_validate(username, password):
-            logger.info("LDAP User %s validated. Creating auth token"
-                        % username)
-            token = createAuthToken(username)
+            token = create_token(username, issuer='API')
             expireTime = token.issuedTime + auth_settings.TOKEN_EXPIRY_TIME
             auth_json = {
                 'token': token.key,
