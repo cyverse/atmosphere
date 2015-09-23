@@ -5,7 +5,7 @@ from core.email import send_denied_resource_email
 from core.models import MachineRequest
 from core.models.status_type import StatusType
 from service.tasks.machine import start_machine_imaging
-from web.emails import requestImaging
+from core.email import requestImaging
 
 
 class MachineRequestViewSet(BaseRequestViewSet):    
