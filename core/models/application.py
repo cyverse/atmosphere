@@ -616,7 +616,7 @@ def _get_admin_owner(provider_uuid):
     admins = AccountProvider.objects.get(provider__uuid=provider_uuid)
 
     # If an admin exists return its identity
-    if admins.exist():
+    if admins.count() > 0:
         return admins.first().identity
 
     logger.warn("AccountProvider could not be found for provider %s."
