@@ -23,8 +23,10 @@ from core.models.application_version import ApplicationVersion
 from atmosphere.settings import secrets
 from threepio import logger
 from core.models.abstract import BaseRequest
+from core.exceptions import RequestLimitExceeded
 from functools import reduce
 
+UNRESOLVED_STATES = ["pending", "processing", "validated", "failed"]
 
 class MachineRequest(BaseRequest):
 
@@ -143,6 +145,9 @@ class MachineRequest(BaseRequest):
     def new_version_threshold(self):
         return {'memory': self.new_version_memory_min,
                 'disk': self.new_version_storage_min}
+
+    def get_request_status(self):
+        return self.status.name
 
     def get_app(self):
         if self.new_machine:
@@ -403,9 +408,9 @@ class MachineRequest(BaseRequest):
         return node_dict
 
     def __unicode__(self):
-        return '%s Instance: %s Name: %s Status: %s'\
+        return '%s Instance: %s Name: %s Status: %s (%s)'\
             % (self.new_machine_owner, self.instance.provider_alias,
-               self.new_application_name, self.status)
+               self.new_application_name, self.old_status, self.status)
 
     class Meta:
         db_table = "machine_request"

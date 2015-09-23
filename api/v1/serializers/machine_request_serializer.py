@@ -19,7 +19,7 @@ class MachineRequestSerializer(serializers.ModelSerializer):
         slug_field='provider_alias',
         queryset=Instance.objects.all())
     status = serializers.CharField(default="pending", source='old_status')
-    request_status = serializers.ReadOnlyField(source='status')
+    request_status = serializers.ReadOnlyField(source='get_request_status')
     parent_machine = serializers.ReadOnlyField(
         source="instance_source.identifier")
 
