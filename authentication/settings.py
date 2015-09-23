@@ -16,7 +16,7 @@ DEFAULTS =  {
     "TOKEN_EXPIRY_TIME": timedelta(days=1),
     "CAS_SERVER": None,
     "API_SERVER_URL": None,
-
+    "LOGOUT_REDIRECT_URL": None,
     # OAUTH
     "OAUTH_CLIENT_KEY": None,
     "OAUTH_CLIENT_SECRET": None,

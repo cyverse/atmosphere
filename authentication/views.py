@@ -35,7 +35,7 @@ def globus_callback_authorize(request):
 
     if not auth_token:
         # Redirect out of the OAuth loop
-        return login(request)
+        return HttpResponseRedirect(auth_settings.LOGOUT_REDIRECT_URL)
     request.session['username'] = auth_token.user.username
     request.session['token'] = auth_token.key
     next_url = request.session.get('next', '/application')

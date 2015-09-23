@@ -12,9 +12,56 @@ from django.utils import timezone
 
 from authentication.settings import auth_settings
 
+import logging
+logger = logging.getLogger(__name__)
 
 AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", 'auth.User')
 
+def only_current(now_time=None):
+    """
+    Filter in range using expireTime
+    """
+    if not now_time:
+        now_time = timezone.now()
+    return models.Q(expireTime=None) | models.Q(expireTime__gt=now_time)
+
+class AccessToken(models.Model):
+    """
+    AccessTokens are long running tokens
+    at most ONE access token should be active per issuer
+    """
+    key = models.CharField(max_length=1024, primary_key=True)
+    issuer = models.TextField(null=True, blank=True)
+    expireTime = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = self.generate_key()
+        return super(AccessToken, self).save(*args, **kwargs)
+
+    def generate_key(self):
+        unique = str(uuid.uuid4())
+        hashed_val = hashlib.md5(unique).hexdigest()
+        return hashed_val
+
+    def get_expired_time(self):
+        return self.expireTime.strftime("%b %d, %Y %H:%M:%S")
+
+    def is_expired(self, now_time=None):
+        """
+        Returns True if token has expired, False if token is valid
+        """
+        if not now_time:
+            now_time = timezone.now()
+        return self.expireTime is not None\
+            and self.expireTime <= now_time
+
+    def __unicode__(self):
+        return "%s" % (self.key)
+
+    class Meta:
+        db_table = "access_token"
+        app_label = "authentication"
 
 class Token(models.Model):
 
@@ -88,6 +135,24 @@ class UserProxy(models.Model):
         db_table = "auth_userproxy"
         app_label = "authentication"
         verbose_name_plural = 'user proxies'
+
+
+def get_access_token(issuer):
+    try:
+        token = AccessToken.objects.get(only_current(), issuer=issuer)
+        return token
+    except AccessToken.DoesNotExist:
+        return None
+
+
+def create_access_token(token_key, token_expire, issuer):
+    """
+    Generate a Token based on current username
+    (And token_key, expiration, issuer.. If available)
+    """
+    access_token, _ = AccessToken.objects.get_or_create(
+        key=token_key, issuer=issuer, expireTime=token_expire)
+    return access_token
 
 
 def create_token(username, token_key=None, token_expire=None, issuer=None):
