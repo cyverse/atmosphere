@@ -236,14 +236,14 @@ def machine_request_error(task_uuid, machine_request_id):
     result = app.AsyncResult(task_uuid)
     with allow_join_result():
         exc = result.get(propagate=False)
-    err_str = "(%s) ERROR - %r Exception:%r" % (machine_request.status,
+    err_str = "(%s) ERROR - %r Exception:%r" % (machine_request.old_status,
                                                 result.result,
                                                 result.traceback,
                                                 )
     logger.error(err_str)
     send_image_request_failed_email(machine_request, err_str)
     machine_request = MachineRequest.objects.get(id=machine_request_id)
-    machine_request.status = err_str
+    machine_request.old_status = err_str
     machine_request.save()
 
 

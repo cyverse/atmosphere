@@ -189,7 +189,7 @@ class MachineRequest(AuthAPIView):
                                               data=data, partial=True)
         if serializer.is_valid():
             machine_request = serializer.save()
-            if machine_request.status == 'approve':
+            if machine_request.old_status == 'approve':
                 start_machine_imaging(machine_request)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -214,7 +214,7 @@ class MachineRequest(AuthAPIView):
         if serializer.is_valid():
             # Only run task if status is 'approve'
             machine_request = serializer.save()
-            if machine_request.status == 'approve':
+            if machine_request.old_status == 'approve':
                 start_machine_imaging(machine_request)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

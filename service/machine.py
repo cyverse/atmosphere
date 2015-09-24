@@ -114,11 +114,6 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     if machine_request.new_version_licenses.count():
         for license in machine_request.new_version_licenses.all():
             app_version.licenses.add(license)
-
-    # 5. Advance the state of machine request
-    # After processing, validate the image.
-    machine_request.status = 'validating'
-    machine_request.save()
     return machine_request
 
 
