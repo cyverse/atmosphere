@@ -111,7 +111,6 @@ class MachineRequestList(AuthAPIView):
             serializer.validated_data['membership'] = identity_member
             serializer.validated_data['created_by'] = user
             self._permission_to_image(identity_uuid, instance)
-            import ipdb;ipdb.set_trace()
             machine_request = serializer.save()
             instance = machine_request.instance
             # NOTE: THIS IS A HACK -- While we enforce all images

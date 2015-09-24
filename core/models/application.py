@@ -613,7 +613,7 @@ class ApplicationThreshold(models.Model):
 
 # NOTE: Should it always take the first admin?
 def _get_admin_owner(provider_uuid):
-    admins = AccountProvider.objects.get(provider__uuid=provider_uuid)
+    admins = AccountProvider.objects.filter(provider__uuid=provider_uuid)
 
     # If an admin exists return its identity
     if admins.count() > 0:
@@ -623,3 +623,4 @@ def _get_admin_owner(provider_uuid):
                 " AccountProviders are necessary to claim ownership "
                 " for identities that do not yet exist in the DB."
                 % Provider.objects.get(uuid=provider_uuid))
+    return None
