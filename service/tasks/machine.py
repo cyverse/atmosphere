@@ -172,7 +172,7 @@ def start_machine_imaging(machine_request, delay=False):
     email_task.link_error(imaging_error_task)
     # Set status to imaging ONLY if our initial task is the imaging task.
     if init_task == imaging_task:
-        machine_request.status = 'imaging'
+        machine_request.old_status = 'imaging'
         machine_request.save()
     # Start the task.
     async = init_task.apply_async()
