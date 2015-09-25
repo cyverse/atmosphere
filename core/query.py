@@ -157,14 +157,13 @@ def only_current(now_time=None):
 
 
 def _active_identity_membership(user, now_time=None):
-    from core.models import IdentityMembership
     if not now_time:
         now_time = timezone.now()
-    return IdentityMembership.objects.filter(
+    return (
         Q(identity__provider__end_date__isnull=True) |
-        Q(identity__provider__end_date__gt=now_time),
-        identity__provider__active=True,
-        member__user__username=user.username)
+        Q(identity__provider__end_date__gt=now_time)
+        ) & Q(identity__provider__active=True) &\
+            Q(member__user__username=user.username)
 
 
 def _query_membership_for_user(user):

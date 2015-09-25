@@ -24,12 +24,21 @@ class ProviderSerializer(serializers.HyperlinkedModelSerializer):
     type = ProviderTypeSerializer()
     virtualization = PlatformTypeSerializer()
     sizes = SizeSummarySerializer(source='size_set', many=True)
+    is_admin = serializers.SerializerMethodField()
+
+    def get_is_admin(self, provider):
+        user = self.context['request'].user
+        if user.is_staff or user.is_superuser:
+            return True
+        return False
+
 
     class Meta:
         model = Provider
         view_name = 'api:v2:provider-detail'
         fields = (
             'id',
+            'is_admin',
             'url',
             'uuid',
             'name',

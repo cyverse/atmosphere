@@ -2,6 +2,7 @@ from .allocation import AllocationViewSet
 from .boot_script import BootScriptViewSet
 from .group import MembershipViewSet
 from .identity import IdentityViewSet
+from .identity_membership import IdentityMembershipViewSet
 from .image import ImageViewSet
 from .image_bookmark import ImageBookmarkViewSet
 from .image_tag import ImageTagViewSet

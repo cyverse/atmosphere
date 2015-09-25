@@ -12,6 +12,7 @@ router.register(
     views.AllocationViewSet,
     base_name='allocation')
 router.register(r'identities', views.IdentityViewSet)
+router.register(r'identity_memberships', views.IdentityMembershipViewSet)
 router.register(r'images', views.ImageViewSet, base_name='application')
 router.register(
     r'image_versions',
