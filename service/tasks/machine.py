@@ -172,7 +172,7 @@ def start_machine_imaging(machine_request, delay=False):
     email_task.link_error(imaging_error_task)
     # Set status to imaging ONLY if our initial task is the imaging task.
     if init_task == imaging_task:
-        # machine_request.status = 'imaging'
+        machine_request.old_status = 'imaging'
         machine_request.save()
     # Start the task.
     async = init_task.apply_async()
@@ -236,14 +236,14 @@ def machine_request_error(task_uuid, machine_request_id):
     result = app.AsyncResult(task_uuid)
     with allow_join_result():
         exc = result.get(propagate=False)
-    err_str = "(%s) ERROR - %r Exception:%r" % (machine_request.status,
+    err_str = "(%s) ERROR - %r Exception:%r" % (machine_request.old_status,
                                                 result.result,
                                                 result.traceback,
                                                 )
     logger.error(err_str)
     send_image_request_failed_email(machine_request, err_str)
     machine_request = MachineRequest.objects.get(id=machine_request_id)
-    machine_request.status = err_str
+    machine_request.old_status = err_str
     machine_request.save()
 
 
@@ -251,7 +251,8 @@ def machine_request_error(task_uuid, machine_request_id):
 def imaging_complete(machine_request_id):
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.old_status = 'completed'
-    machine_request.status = StatusType.objects.get(name="completed")
+    new_status, _ = StatusType.objects.get_or_create(name="completed")
+    machine_request.status = new_status
     machine_request.end_date = timezone.now()
     machine_request.save()
     send_image_request_email(machine_request.new_machine_owner,

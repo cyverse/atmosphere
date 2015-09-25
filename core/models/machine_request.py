@@ -82,7 +82,7 @@ class MachineRequest(BaseRequest):
     new_version_forked = models.BooleanField(default=True)
     new_version_licenses = models.ManyToManyField(License, blank=True)
     new_version_scripts = models.ManyToManyField(BootScript, blank=True)
-    new_version_membership = models.ManyToManyField("Group", blank=True, null=True)
+    new_version_membership = models.ManyToManyField("Group")
 
     new_machine_provider = models.ForeignKey(Provider)
     new_machine_owner = models.ForeignKey(User, related_name="new_image_owner")
@@ -139,7 +139,8 @@ class MachineRequest(BaseRequest):
                 self.new_version_membership)
 
         # Automatically set 'end date' when completed
-        if self.status == 'completed' and not self.end_date:
+        #TODO: verify this should be 'old_status' or change it to a StatusType
+        if self.old_status == 'completed' and not self.end_date:
             self.end_date = timezone.now()
 
     def new_version_threshold(self):

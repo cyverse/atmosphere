@@ -18,7 +18,7 @@ def set_membership_and_created_by(apps, schema_editor):
         try:
             identity = request.created_by.identity_set.get(provider_id=provider.id)
         except:
-            print "MachineRequest %s: User does not have identity for provider" % request.id
+            print "MachineRequest %s: User %s does not have identity for provider" % (request.id, request.created_by)
             identity = request.created_by.identity_set.first()
         request.membership = identity.identitymembership_set.first()
         request.status = StatusType.objects.get(name="closed")
