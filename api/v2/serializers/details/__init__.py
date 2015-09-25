@@ -5,6 +5,7 @@ from .image_version_boot_script import ImageVersionBootScriptSerializer
 from .image_version_membership import ImageVersionMembershipSerializer
 from .image_version_license import ImageVersionLicenseSerializer
 from .identity import IdentitySerializer
+from .identity_membership import IdentityMembershipSerializer
 from .image import ImageSerializer
 from .image_tag import ImageTagSerializer
 from .image_bookmark import ImageBookmarkSerializer
@@ -33,6 +34,7 @@ __all__ = (
     "AllocationSerializer",
     "BootScriptSerializer",
     "IdentitySerializer",
+    "IdentityMembershipSerializer",
     "ImageBookmarkSerializer",
     "ImageSerializer",
     "ImageTagSerializer",

@@ -2,11 +2,11 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.decorators import detail_route
 from rest_framework import viewsets
 
-from core.models import Provider, Group
+from core.models import Provider, Group, IdentityMembership
 from core.query import only_current_provider, only_current
 
 from api.permissions import CloudAdminRequired
-from api.v2.serializers.details import ProviderSerializer
+from api.v2.serializers.details import ProviderSerializer, IdentityMembershipSerializer
 from api.v2.serializers.summaries import SizeSummarySerializer
 from api.v2.views.base import AuthReadOnlyViewSet
 
@@ -20,6 +20,7 @@ class ProviderViewSet(AuthReadOnlyViewSet):
     queryset = Provider.objects.all()
     serializer_class = ProviderSerializer
     http_method_names = ['get', 'head', 'options', 'trace']
+
 
     def get_permissions(self):
         method = self.request.method
@@ -47,7 +48,21 @@ class ProviderViewSet(AuthReadOnlyViewSet):
     @detail_route()
     def sizes(self, *args, **kwargs):
         provider = self.get_object()
-        self.get_queryset = super(viewsets.ModelViewSet, self).get_queryset
+        self.get_queryset = super(viewsets.ReadOnlyModelViewSet, self).get_queryset
         self.queryset = provider.size_set.get_queryset()
         self.serializer_class = SizeSummarySerializer
+        return self.list(self, *args, **kwargs)
+
+    @detail_route()
+    def identities(self, *args, **kwargs):
+        provider = self.get_object()
+        self.get_queryset = super(viewsets.ReadOnlyModelViewSet, self).get_queryset
+        self.serializer_class = IdentityMembershipSerializer
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            self.queryset = IdentityMembership.objects.filter(identity__provider=provider)
+        elif type(user) != AnonymousUser:
+            self.queryset = IdentityMembership.objects.filter(identity__provider=provider, identity__created_by=user)
+        else:
+            self.queryset = IdentityMembership.objects.none()
         return self.list(self, *args, **kwargs)
