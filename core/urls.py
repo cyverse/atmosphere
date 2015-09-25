@@ -12,8 +12,6 @@ user_match = "[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*"
 
 urlpatterns = patterns(
     '',
-    # "The Front Door"
-    url(r'^$', 'core.views.redirectApp'),
 
     # Emulation controls for admin users
     url(r'^api/emulate$', 'core.views.emulate_request'),
