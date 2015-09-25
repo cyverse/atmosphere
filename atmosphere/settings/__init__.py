@@ -75,7 +75,6 @@ INSTALLED_APPS = (
     'django_filters',
 
     'djcelery',
-    'pipeline',
     'corsheaders',
     # 3rd party apps (Development Only)
     #'django_jenkins',
@@ -91,7 +90,6 @@ INSTALLED_APPS = (
     'service',
     'core',
 )
-PROJECT_APPS = ["authentication", "service", "core", "allocation"]
 
 TIME_ZONE = 'America/Phoenix'
 
@@ -119,25 +117,6 @@ STATIC_URL = '/static/'
 # This key however should stay the same, and be shared with all Atmosphere
 ATMOSPHERE_NAMESPACE_UUID = UUID("40227dff-dedf-469c-a9f8-1953a7372ac1")
 
-STATICFILES_STORAGE = 'pipeline.storage.PipelineStorage'
-
-# List of callables that know how to import templates from various sources.
-STATICFILES_FINDERS = (
-    'pipeline.finders.FileSystemFinder',
-    'pipeline.finders.AppDirectoriesFinder',
-    'pipeline.finders.PipelineFinder',
-    'pipeline.finders.CachedFileFinder',
-    'django.contrib.staticfiles.finders.FileSystemFinder',
-    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    #'pipeline.finders.AppDirectoriesFinder',
-    #'pipeline.finders.CachedFileFinder',
-)
-
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader'
-)
-
 MIDDLEWARE_CLASSES = (
     'corsheaders.middleware.CorsMiddleware',
     # corsheaders.middleware.CorsMiddleware Must be ahead of
@@ -146,7 +125,6 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.gzip.GZipMiddleware',
-    'pipeline.middleware.MinifyHTMLMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -163,7 +141,6 @@ TEMPLATE_DIRS = (
 )
 
 AUTH_USER_MODEL = 'core.AtmosphereUser'
-AUTH_USER_MODULE = 'core.AtmosphereUser'
 
 AUTHENTICATION_BACKENDS = (
     # For Token-Access
