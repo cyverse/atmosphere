@@ -115,6 +115,7 @@ class IdentityMembership(models.Model):
     member = models.ForeignKey(Group)
     quota = models.ForeignKey(Quota)
     allocation = models.ForeignKey(Allocation, null=True, blank=True)
+    end_date = models.DateTimeField(null=True, blank=True)
 
     @classmethod
     def get_membership_for(cls, groupname):
@@ -126,6 +127,14 @@ class IdentityMembership(models.Model):
             return group.identitymembership_set.first()
         except IdentityMembershipDoesNotExist:
             logger.warn("%s is not a member of any identities" % groupname)
+
+    def is_active(self):
+        if not self.active:
+            return False
+        if self.end_date:
+            now = timezone.now()
+            return not(self.end_date < now)
+        return True
 
     def get_allocation_dict(self):
         if not self.allocation:
