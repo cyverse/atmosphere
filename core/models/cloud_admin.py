@@ -35,3 +35,12 @@ class CloudAdministrator(models.Model):
     class Meta:
         db_table = 'cloud_administrator'
         app_label = 'core'
+
+
+def cloud_admin_list(user):
+    return CloudAdministrator.objects.filter(user=user)
+
+def admin_provider_list(user):
+    cloud_admins = cloud_admin_list(user)
+    provider_ids = cloud_admins.values_list('provider', flat=True)
+    return Provider.objects.filter(id__in=provider_ids)

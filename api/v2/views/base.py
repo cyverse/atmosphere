@@ -10,7 +10,7 @@ from core import exceptions as core_exceptions
 from core.models import IdentityMembership
 from core.models.status_type import StatusType
 
-from api.permissions import ApiAuthOptional, ApiAuthRequired, InMaintenance
+from api.permissions import ApiAuthOptional, ApiAuthRequired, InMaintenance, CloudAdminRequired
 
 
 def unresolved_requests_only(fn):
@@ -37,6 +37,10 @@ class AuthViewSet(ModelViewSet):
     http_method_names = ['get', 'put', 'patch', 'post',
                          'delete', 'head', 'options', 'trace']
     permission_classes = (InMaintenance,
+                          ApiAuthRequired,)
+class AdminAuthViewSet(AuthViewSet):
+    permission_classes = (InMaintenance,
+                          CloudAdminRequired,
                           ApiAuthRequired,)
 
 
