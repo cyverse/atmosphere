@@ -6,7 +6,7 @@ from rest_framework import permissions
 
 from threepio import logger
 
-from core.models.cloud_admin import CloudAdministrator, cloud_admin_list
+from core.models.cloud_admin import CloudAdministrator, cloud_admin_list, get_cloud_admin_for_provider
 from core.models import Group, MaintenanceRecord
 
 from api import ServiceUnavailable
@@ -49,14 +49,6 @@ class ApiAuthRequired(permissions.BasePermission):
         return request.user.is_authenticated()
 
 
-def _get_administrator_account_for(user, provider_uuid):
-    try:
-        return cloud_admin_list(user)\
-            .get(provider__uuid=provider_uuid)
-    except CloudAdministrator.DoesNotExist:
-        return None
-
-
 def _get_administrator_account(user, admin_uuid):
     try:
         return cloud_admin_list(user).get(uuid=admin_uuid)
@@ -72,11 +64,13 @@ class CloudAdminRequired(permissions.BasePermission):
 
         kwargs = request.parser_context.get('kwargs', {})
         admin_uuid = kwargs.get('cloud_admin_uuid')
+        # Generally you would use this keyword to look at a
+        # SPECIFIC cloud_admin
         if admin_uuid:
             admin = _get_administrator_account(
                 request.user, admin_uuid)
         else:
-            admin = _get_administrator_accounts(request.user).exists()
+            admin = cloud_admin_list(request.user).exists()
         return admin or request.user.is_staff
 
 
@@ -90,14 +84,23 @@ class CloudAdminUpdatingRequired(permissions.BasePermission):
         kwargs = request.parser_context.get('kwargs', {})
         admin_uuid = kwargs.get('cloud_admin_uuid')
         provider_uuid = kwargs.get('provider_uuid')
+        # You would use this keyword to update a
+        # SPECIFIC cloud_admin
         if admin_uuid:
             admin = _get_administrator_account(
                 request.user, admin_uuid)
+        # When a 'specific Provider' is involved,
+        # Ensure that the request.user has admin permission
+        # before updating on that provider.
         elif provider_uuid:
-            admin = _get_administrator_account_for(
+            admin = get_cloud_admin_for_provider(
                 request.user, provider_uuid)
+        # In the event 'cloud_admin' or 'provider' is not specified
+        # This decorator will ensure that the request user
+        # holds 'CloudAdmin' privileges on at least one provider
+        # in order to make the action.
         else:
-            admin = _get_administrator_accounts(request.user).exists()
+            admin = cloud_admin_list(request.user).exists()
 
         return True if admin else False
 
