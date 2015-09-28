@@ -156,7 +156,7 @@ def only_current(now_time=None):
         Q(start_date__lt=now_time)
 
 
-def _active_identity_membership(user, now_time=None):
+def only_active_members(user, now_time=None):
     if not now_time:
         now_time = timezone.now()
     return (

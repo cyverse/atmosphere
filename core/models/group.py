@@ -112,7 +112,7 @@ class IdentityMembership(models.Model):
     The identity is given a quota on how many resources can be allocated
     """
     identity = models.ForeignKey(Identity)
-    member = models.ForeignKey(Group)
+    member = models.ForeignKey(Group, related_name='identity_memberships')
     quota = models.ForeignKey(Quota)
     allocation = models.ForeignKey(Allocation, null=True, blank=True)
     end_date = models.DateTimeField(null=True, blank=True)
@@ -124,7 +124,7 @@ class IdentityMembership(models.Model):
         except Group.DoesNotExist:
             logger.warn("Group %s does not exist" % groupname)
         try:
-            return group.identitymembership_set.first()
+            return group.identity_memberships.first()
         except IdentityMembershipDoesNotExist:
             logger.warn("%s is not a member of any identities" % groupname)
 

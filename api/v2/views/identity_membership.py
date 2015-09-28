@@ -3,7 +3,7 @@ import django_filters
 
 from core.models.cloud_admin import admin_provider_list
 from core.models import IdentityMembership, Group
-from core.query import _active_identity_membership
+from core.query import only_active_members
 
 from api.v2.serializers.details import IdentityMembershipSerializer
 from api.v2.views.base import AdminAuthViewSet

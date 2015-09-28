@@ -36,7 +36,7 @@ class Identity(models.Model):
         my_ids = Identity.objects.filter(
             created_by=user, provider=provider)
         for ident in my_ids:
-            membership_set = ident.identitymembership_set.all()
+            membership_set = ident.identity_memberships.all()
             membership_set.delete()
             ident.delete()
         group.delete()
@@ -62,7 +62,7 @@ class Identity(models.Model):
         shared = False
         leader_groups = django_user.group_set.get(leaders__in=[django_user])
         for group in leader_groups:
-            id_member = g.identitymembership_set.get(identity=self)
+            id_member = g.identity_memberships.get(identity=self)
             if not id_member:
                 continue
             # ASSERT: You have SHARED access to the identity
@@ -118,7 +118,7 @@ class Identity(models.Model):
         return existing_membership[0].delete()
 
     def get_membership(self):
-        identity_members = self.identitymembership_set.all()
+        identity_members = self.identity_memberships.all()
         group_names = [id_member.member for id_member in identity_members]
         # TODO: Add 'rules' if we want to hide specific users (staff, etc.)
         return group_names
@@ -265,11 +265,11 @@ class Identity(models.Model):
         return []
 
     def get_allocation(self):
-        id_member = self.identitymembership_set.all()[0]
+        id_member = self.identity_memberships.all()[0]
         return id_member.allocation
 
     def get_quota(self):
-        id_member = self.identitymembership_set.all()[0]
+        id_member = self.identity_memberships.all()[0]
         return id_member.quota
 
     def get_allocation_usage(self):
@@ -295,12 +295,12 @@ class Identity(models.Model):
 
 
     def get_allocation_dict(self):
-        id_member = self.identitymembership_set.all()[0]
+        id_member = self.identity_memberships.all()[0]
         allocation_dict = id_member.get_allocation_dict()
         return allocation_dict
 
     def get_quota_dict(self):
-        id_member = self.identitymembership_set.all()[0]
+        id_member = self.identity_memberships.all()[0]
         # See core/models/membership.py#IdentityMembership
         quota_dict = id_member.get_quota_dict()
         allocation_dict = self.get_allocation_dict()
