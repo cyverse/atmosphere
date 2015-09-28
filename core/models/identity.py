@@ -10,7 +10,7 @@ from django.db import models
 
 from threepio import logger
 from uuid import uuid5, uuid4
-
+from core.query import only_active_memberships
 
 class Identity(models.Model):
 
@@ -236,7 +236,11 @@ class Identity(models.Model):
     def provider_uuid(self):
         return self.provider.uuid
 
-    def is_active(self):
+    def is_active(self, user=None):
+        if user:
+            return self.identity_memberships.filter(
+                only_active_memberships(),
+                member__user=user).count() > 0
         return self.provider.is_active()
 
     def creator_name(self):

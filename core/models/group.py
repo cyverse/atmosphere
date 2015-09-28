@@ -46,6 +46,10 @@ class Group(DjangoGroup):
         return any(user for user in self.leaders.all() if user == test_user)
 
     @property
+    def current_identity_memberships(self):
+        return self.identity_memberships.filter(only_active_memberships())
+
+    @property
     def current_identities(self):
         identity_ids = self.identity_memberships.filter(
                 only_active_memberships()).values_list('identity',flat=True)
@@ -124,7 +128,7 @@ class IdentityMembership(models.Model):
     IdentityMembership allows group 'API access' to use a specific provider
     The identity is given a quota on how many resources can be allocated
     """
-    identity = models.ForeignKey(Identity)
+    identity = models.ForeignKey(Identity, related_name='identity_memberships')
     member = models.ForeignKey(Group, related_name='identity_memberships')
     quota = models.ForeignKey(Quota)
     allocation = models.ForeignKey(Allocation, null=True, blank=True)
@@ -137,7 +141,7 @@ class IdentityMembership(models.Model):
         except Group.DoesNotExist:
             logger.warn("Group %s does not exist" % groupname)
         try:
-            return group.identity_memberships.first()
+            return group.current_identity_memberships.first()
         except IdentityMembershipDoesNotExist:
             logger.warn("%s is not a member of any identities" % groupname)
 
