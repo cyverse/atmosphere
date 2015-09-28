@@ -24,9 +24,10 @@ class InstanceViewSet(AuthViewSet):
         Filter projects by current user.
         """
         user = self.request.user
+        identity_ids = user.current_identities.values_list('id',flat=True)
         if 'archived' in self.request.QUERY_PARAMS:
-            return Instance.objects.filter(created_by=user)
-        return Instance.objects.filter(only_current(), created_by=user)
+            return Instance.objects.filter(created_by_identity__in=identity_ids)
+        return Instance.objects.filter(only_current(), created_by_identity__in=identity_ids)
 
     def perform_destroy(self, instance):
         return V1Instance().delete(self.request,

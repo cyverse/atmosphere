@@ -22,6 +22,14 @@ class AtmosphereUser(AbstractUser):
         identity_member = identity.identity_memberships.all()[0]
         return identity_member.quota
 
+    @property
+    def current_identities(self):
+        from core.models import Identity
+        all_identities = Identity.objects.none()
+        for group in self.group_set.all():
+            all_identities |= group.current_identities.all()
+        return all_identities
+
     def select_identity(self):
         """
         Set, save and return an active selected_identity for the user.
