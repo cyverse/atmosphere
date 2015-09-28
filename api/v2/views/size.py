@@ -27,14 +27,12 @@ class SizeViewSet(AuthReadOnlyViewSet):
             provider_ids = Provider.objects.filter(only_current(), active=True).values_list('id',flat=True)
         else:
             group = Group.objects.get(name=request_user.username)
-            provider_ids = group.identities.filter(
-                only_current_provider(),
-                provider__active=True).values_list('provider', flat=True)
+            providers = group.current_providers.all()
 
         # Switch based on query
         if 'archived' in self.request.QUERY_PARAMS:
             return Size.objects.filter(
-                provider__id__in=provider_ids)
+                provider__in=providers)
         else:
             return Size.objects.filter(
-                only_current(), provider__id__in=provider_ids)
+                only_current(), provider__in=providers)

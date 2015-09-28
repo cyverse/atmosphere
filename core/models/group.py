@@ -19,6 +19,7 @@ from core.models.provider import Provider
 from core.models.quota import Quota
 from core.models.user import AtmosphereUser
 
+from core.query import only_active_memberships
 
 class Group(DjangoGroup):
 
@@ -43,6 +44,18 @@ class Group(DjangoGroup):
 
     def is_leader(self, test_user):
         return any(user for user in self.leaders.all() if user == test_user)
+
+    @property
+    def current_identities(self):
+        identity_ids = self.identity_memberships.filter(
+                only_active_memberships()).values_list('identity',flat=True)
+        return Identity.objects.filter(id__in=identity_ids)
+
+    @property
+    def current_providers(self):
+        provider_ids = self.identity_memberships.filter(
+                only_active_memberships()).values_list('identity__provider',flat=True)
+        return Provider.objects.filter(id__in=provider_ids)
 
     @classmethod
     def check_membership(cls, test_user, membership_groups):

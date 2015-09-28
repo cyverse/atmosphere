@@ -156,14 +156,19 @@ def only_current(now_time=None):
         Q(start_date__lt=now_time)
 
 
-def only_active_members(user, now_time=None):
+def only_active_memberships(user=None, now_time=None):
     if not now_time:
         now_time = timezone.now()
-    return (
+    query = (
         Q(identity__provider__end_date__isnull=True) |
         Q(identity__provider__end_date__gt=now_time)
-        ) & Q(identity__provider__active=True) &\
-            Q(member__user__username=user.username)
+        ) & (
+        Q(end_date__isnull=True) |
+        Q(end_date__gt=now_time)
+        ) & Q(identity__provider__active=True)
+    if user:
+        query = query & Q(member__user__username=user.username)
+    return query
 
 
 def _query_membership_for_user(user):

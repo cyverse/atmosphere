@@ -32,11 +32,7 @@ class ProviderList(AuthAPIView):
         username = request.user.username
         group = Group.objects.get(name=username)
         try:
-            provider_ids = group.identities.filter(
-                only_current_provider(),
-                provider__active=True).values_list('provider', flat=True)
-            providers = CoreProvider.objects.filter(
-                id__in=provider_ids).order_by('id')
+            providers = group.current_providers.order_by('id')
         except CoreProvider.DoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
@@ -61,12 +57,8 @@ class Provider(APIView):
         username = request.user.username
         group = Group.objects.get(name=username)
         try:
-            provider_ids = group.identities.filter(
-                only_current_provider(),
-                provider__active=True).values_list('provider', flat=True)
-            provider = CoreProvider.objects.get(
-                uuid=provider_uuid,
-                id__in=provider_ids)
+            provider = group.current_providers.get(
+                uuid=provider_uuid)
         except CoreProvider.DoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,

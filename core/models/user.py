@@ -85,9 +85,7 @@ def get_default_provider(username):
         from core.models.group import get_user_group
         from core.models.provider import Provider
         group = get_user_group(username)
-        provider_ids = group.identities.filter(
-            only_current_provider(),
-            provider__active=True).values_list(
+        provider_ids = group.current_identities.values_list(
             'provider',
             flat=True)
         provider = Provider.objects.filter(
@@ -115,7 +113,7 @@ def get_default_identity(username, provider=None):
     try:
         from core.models.group import get_user_group
         group = get_user_group(username)
-        identities = group.identities.all()
+        identities = group.current_identities.all()
         if provider:
             if provider.is_active():
                 identities = identities.filter(provider=provider)
@@ -126,7 +124,7 @@ def get_default_identity(username, provider=None):
                 raise "Inactive Provider provided for get_default_identity "
         else:
             default_provider = get_default_provider(username)
-            default_identity = group.identities.filter(
+            default_identity = group.current_identities.filter(
                 provider=default_provider)
             if not default_identity:
                 logger.error("User %s has no identities on Provider %s" % (username, default_provider))

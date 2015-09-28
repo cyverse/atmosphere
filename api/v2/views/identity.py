@@ -20,6 +20,5 @@ class IdentityViewSet(AuthViewSet):
         """
         user = self.request.user
         group = Group.objects.get(name=user.username)
-        identities = group.identities.filter(
-            only_current_provider(), provider__active=True)
+        identities = group.current_identities.all()
         return identities
