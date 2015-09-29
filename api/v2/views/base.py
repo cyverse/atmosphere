@@ -111,6 +111,7 @@ class BaseRequestViewSet(AuthViewSet):
         identity_id = serializer.initial_data.get("identity")
         status, _ = StatusType.objects.get_or_create(name="pending")
         try:
+            # NOTE: This is *NOT* going to be a sufficient query when sharing..
             membership = IdentityMembership.objects.get(identity=identity_id)
             instance = serializer.save(
                 membership=membership,

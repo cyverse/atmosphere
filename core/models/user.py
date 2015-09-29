@@ -30,6 +30,9 @@ class AtmosphereUser(AbstractUser):
             all_identities |= group.current_identities.all()
         return all_identities
 
+    def can_use_identity(self, identity_id):
+        return self.current_identities.filter(id=identity_id).count() > 0
+
     def select_identity(self):
         """
         Set, save and return an active selected_identity for the user.

@@ -102,6 +102,9 @@ class InstanceList(AuthAPIView):
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         identity = Identity.objects.get(uuid=identity_uuid)
+        # Probably redundant
+        if not user.can_use_identity(identity.id):
+            return invalid_creds(provider_uuid, identity_uuid)
         try:
             esh_instance_list = get_cached_instances(identity=identity)
         except MalformedResponseError:
