@@ -39,7 +39,7 @@ class MachineRequest(BaseRequest):
     # The instance to image.
     instance = models.ForeignKey("Instance")
 
-    old_status = models.CharField(max_length=256)
+    old_status = models.TextField(default="", null=True, blank=True)
 
     # Machine imaging Metadata
     parent_machine = models.ForeignKey(ProviderMachine,
@@ -77,7 +77,7 @@ class MachineRequest(BaseRequest):
     new_version_tags = models.TextField(
         default='', blank=True, null=True)  # Re-rename to new_application_tags
     new_version_memory_min = models.IntegerField(default=0)
-    new_version_storage_min = models.IntegerField(default=0)
+    new_version_cpu_min = models.IntegerField(default=0)
     new_version_allow_imaging = models.BooleanField(default=True)
     new_version_forked = models.BooleanField(default=True)
     new_version_licenses = models.ManyToManyField(License, blank=True)
