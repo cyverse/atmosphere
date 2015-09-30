@@ -329,6 +329,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'iplantauth.token.JWTTokenAuthentication',
+        'iplantauth.token.GlobusOAuthTokenAuthentication',
         'iplantauth.token.OAuthTokenAuthentication',
         'iplantauth.token.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
