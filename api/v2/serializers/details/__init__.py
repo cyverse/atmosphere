@@ -13,6 +13,7 @@ from .instance_tag import InstanceTagSerializer
 from .instance_history import InstanceStatusHistorySerializer
 from .instance import InstanceSerializer
 from .license import LicenseSerializer
+from .machine_request import (MachineRequestSerializer, UserMachineRequestSerializer)
 from .membership import MembershipSerializer
 from .project import ProjectSerializer
 from .project_instance import ProjectInstanceSerializer
@@ -45,6 +46,7 @@ __all__ = (
     "InstanceSerializer",
     "InstanceTagSerializer",
     "LicenseSerializer",
+    "MachineRequestSerializer",
     "MembershipSerializer",
     "PlatformTypeSerializer",
     "ProjectInstanceSerializer",

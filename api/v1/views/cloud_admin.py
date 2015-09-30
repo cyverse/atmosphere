@@ -88,12 +88,12 @@ class CloudAdminImagingRequest(APIView):
 
         # Don't update the request unless its pending or error
         # Otherwise use the existing status to 'start machine imaging'
-        if machine_request.status in ['error', 'pending']:
-            machine_request.status = action
+        if machine_request.old_status in ['error', 'pending']:
+            machine_request.old_status = action
             machine_request.save()
 
         # Only run task if status is 'approve'
-        if machine_request.status == 'approve':
+        if machine_request.old_status == 'approve':
             start_machine_imaging(machine_request)
 
         serializer = MachineRequestSerializer(machine_request)
@@ -125,7 +125,7 @@ class CloudAdminImagingRequest(APIView):
         start_request = False
         if 'status' in data:
             _status = data['status'].lower()
-            if machine_request.status == 'completed':
+            if machine_request.old_status == 'completed':
                 return Response(
                     "Cannot update status of 'completed' request",
                     status=status.HTTP_409_conflict)

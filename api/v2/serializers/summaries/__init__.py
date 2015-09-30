@@ -1,4 +1,5 @@
 from .allocation import AllocationSummarySerializer
+from .group import GroupSummarySerializer
 from .membership import MembershipSummarySerializer
 from .identity import IdentitySummarySerializer
 from .image import ImageSummarySerializer
@@ -23,6 +24,7 @@ __all__ = (
     ImageVersionSummarySerializer, InstanceSummarySerializer,
     InstanceSuperSummarySerializer, LicenseSummarySerializer, MembershipSummarySerializer,
     BootScriptSummarySerializer, ProjectSummarySerializer,
+    GroupSummarySerializer,
     ProviderSummarySerializer, ProviderMachineSummarySerializer,
     QuotaSummarySerializer, SizeSummarySerializer,
     StatusTypeSummarySerializer, TagSummarySerializer,
