@@ -85,8 +85,8 @@ class BaseRequestViewSet(AuthViewSet):
             % self.__class__.__name__
         )
         if self.request.user.is_staff:
-            return self.model.objects.all()
-        return self.model.objects.filter(created_by=self.request.user)
+            return self.model.objects.all().order_by('-start_date')
+        return self.model.objects.filter(created_by=self.request.user).order_by('-start_date')
 
     def get_serializer_class(self):
         """
