@@ -13,7 +13,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
     model = MachineRequest
     serializer_class = UserMachineRequestSerializer
     admin_serializer_class = MachineRequestSerializer
-    filter_fields = ('status__id', 'status__name')
+    filter_fields = ('status__id', 'status__name', 'new_machine_owner__username')
 
     def submit_action(self, instance):
         """
