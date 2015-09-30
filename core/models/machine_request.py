@@ -6,7 +6,7 @@ import re
 import os
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Model
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from core.models.user import AtmosphereUser as User
@@ -22,20 +22,26 @@ from core.models.application_version import ApplicationVersion
 
 from atmosphere.settings import secrets
 from threepio import logger
+from core.models.abstract import BaseRequest
+from core.exceptions import RequestLimitExceeded
 from functools import reduce
 
+UNRESOLVED_STATES = ["pending", "processing", "validated", "failed"]
 
-class MachineRequest(models.Model):
+class MachineRequest(BaseRequest):
 
     """
     Storage container for the MachineRequestThread to start/restart the Queue
     Provides a Parent-Child relationship between the new image and ancestor(s)
     """
+
+
     # The instance to image.
     instance = models.ForeignKey("Instance")
 
+    old_status = models.TextField(default="", null=True, blank=True)
+
     # Machine imaging Metadata
-    status = models.TextField(default='', blank=True, null=True)
     parent_machine = models.ForeignKey(ProviderMachine,
                                        related_name="ancestor_machine")
 
@@ -71,18 +77,19 @@ class MachineRequest(models.Model):
     new_version_tags = models.TextField(
         default='', blank=True, null=True)  # Re-rename to new_application_tags
     new_version_memory_min = models.IntegerField(default=0)
-    new_version_storage_min = models.IntegerField(default=0)
+    new_version_cpu_min = models.IntegerField(default=0)
     new_version_allow_imaging = models.BooleanField(default=True)
     new_version_forked = models.BooleanField(default=True)
     new_version_licenses = models.ManyToManyField(License, blank=True)
     new_version_scripts = models.ManyToManyField(BootScript, blank=True)
-    new_version_membership = models.ManyToManyField("Group", blank=True)
+    new_version_membership = models.ManyToManyField("Group")
 
     new_machine_provider = models.ForeignKey(Provider)
-    new_machine_owner = models.ForeignKey(User)
+    new_machine_owner = models.ForeignKey(User, related_name="new_image_owner")
+    
     # Date time stamps
-    start_date = models.DateTimeField(default=timezone.now)
-    end_date = models.DateTimeField(null=True, blank=True)
+    #start_date = models.DateTimeField(default=timezone.now)
+    #end_date = models.DateTimeField(null=True, blank=True)
 
     # Filled in when completed.
     # NOTE: ProviderMachine and 'new_machine' might be phased out
@@ -94,6 +101,20 @@ class MachineRequest(models.Model):
                                     null=True, blank=True)
     new_application_version = models.ForeignKey(ApplicationVersion,
                                                 null=True, blank=True)
+    def save(self, *args, **kwargs):
+        if not self.pk and self.is_active(self.instance):
+            raise RequestLimitExceeded(
+                    "The number of open requests for "
+                    "instance %s has been exceeded."
+                    % self.instance.provider_alias)
+        Model.save(self, *args, **kwargs)
+
+    @classmethod
+    def is_active(cls, instance):
+        """
+        """
+        return cls.objects.filter(instance=instance,
+                status__name__in=UNRESOLVED_STATES).count() > 0
 
     def clean(self):
         """
@@ -112,14 +133,22 @@ class MachineRequest(models.Model):
                     "-OR- fork the existing application")
 
         # General Validation && AutoCompletion
+        if self.access_list:
+            self.new_version_membership = _match_membership_to_access(
+                self.access_list,
+                self.new_version_membership)
 
         # Automatically set 'end date' when completed
-        if self.status == 'completed' and not self.end_date:
+        #TODO: verify this should be 'old_status' or change it to a StatusType
+        if self.old_status == 'completed' and not self.end_date:
             self.end_date = timezone.now()
 
     def new_version_threshold(self):
         return {'memory': self.new_version_memory_min,
                 'disk': self.new_version_storage_min}
+
+    def get_request_status(self):
+        return self.status.name
 
     def get_app(self):
         if self.new_machine:
@@ -380,9 +409,9 @@ class MachineRequest(models.Model):
         return node_dict
 
     def __unicode__(self):
-        return '%s Instance: %s Name: %s Status: %s'\
+        return '%s Instance: %s Name: %s Status: %s (%s)'\
             % (self.new_machine_owner, self.instance.provider_alias,
-               self.new_application_name, self.status)
+               self.new_application_name, self.old_status, self.status)
 
     class Meta:
         db_table = "machine_request"

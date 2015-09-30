@@ -12,6 +12,7 @@ from threepio import logger
 
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 from core.models import Provider
+from core.models import IdentityMembership
 
 from service.instance import _permission_to_act
 from service.exceptions import ActionNotAllowed
@@ -103,6 +104,12 @@ class MachineRequestList(AuthAPIView):
             instance = serializer.validated_data['instance']
             parent_machine = instance.source.providermachine
             serializer.validated_data['parent_machine'] = parent_machine
+            user = serializer.validated_data['new_machine_owner']
+            identity_member = IdentityMembership.objects.get(
+                    identity__provider=serializer.validated_data['new_machine_provider'],
+                    identity__created_by=user)
+            serializer.validated_data['membership'] = identity_member
+            serializer.validated_data['created_by'] = user
             self._permission_to_image(identity_uuid, instance)
             machine_request = serializer.save()
             instance = machine_request.instance
@@ -181,7 +188,7 @@ class MachineRequest(AuthAPIView):
                                               data=data, partial=True)
         if serializer.is_valid():
             machine_request = serializer.save()
-            if machine_request.status == 'approve':
+            if machine_request.old_status == 'approve':
                 start_machine_imaging(machine_request)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -206,7 +213,7 @@ class MachineRequest(AuthAPIView):
         if serializer.is_valid():
             # Only run task if status is 'approve'
             machine_request = serializer.save()
-            if machine_request.status == 'approve':
+            if machine_request.old_status == 'approve':
                 start_machine_imaging(machine_request)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

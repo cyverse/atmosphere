@@ -13,6 +13,7 @@ from .instance import InstanceViewSet
 from .instance_tag import InstanceTagViewSet
 from .instance_history import InstanceStatusHistoryViewSet
 from .license import LicenseViewSet
+from .machine_request import MachineRequestViewSet
 from .platform_type import PlatformTypeViewSet
 from .project import ProjectViewSet
 from .project_instance import ProjectInstanceViewSet

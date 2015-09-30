@@ -211,8 +211,9 @@ class Instance(models.Model):
         if last_history:
             return last_history[0]
         else:
-            unknown_size = Size.objects.get(
-                alias='N/A', provider=self.provider)
+            unknown_size, _ = Size.objects.get_or_create(
+                name='Unknown Size', alias='N/A', provider=self.provider,
+                cpu=-1, mem=-1, root=-1, disk=-1)
             last_history = self._build_first_history(
                 'Unknown', unknown_size, self.start_date, self.end_date, True)
             logger.warn("No history existed for %s until now. "
