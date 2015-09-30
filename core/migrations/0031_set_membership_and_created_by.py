@@ -27,7 +27,7 @@ def set_membership_and_created_by(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0030_auto_20150916_1354'),
+        ('core', '0030_machine_request_inherits_base_request_attrs'),
     ]
 
     operations = [
