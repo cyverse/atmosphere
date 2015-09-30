@@ -144,6 +144,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
                                     allow_null=True,
                                     required=False)
+    admin_message = serializers.CharField(read_only=True)
     parent_machine = ModelRelatedField(
        required = False, 
        lookup_field="id",
@@ -163,7 +164,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     new_version_change_log = serializers.CharField()
     new_version_tags = serializers.CharField(required=False, allow_blank=True)
     new_version_memory_min = serializers.CharField()
-    new_version_storage_min = serializers.CharField()
+    new_version_cpu_min = serializers.CharField()
     new_version_allow_imaging = serializers.BooleanField()
     new_version_forked = serializers.BooleanField()
     new_version_licenses = ModelRelatedField(
@@ -213,6 +214,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'status',
             'old_status',
             'parent_machine',
+            'admin_message',
             'new_application_name',
             'new_application_description',
             'new_application_visibility',
@@ -224,7 +226,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'new_version_change_log',
             'new_version_tags',
             'new_version_memory_min',
-            'new_version_storage_min',
+            'new_version_cpu_min',
             'new_version_allow_imaging',
             'new_version_forked',
             'new_version_licenses',
@@ -249,9 +251,13 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
                                     allow_null=True,
                                     required=False)
+    old_status = serializers.CharField(required = False)
     new_version_memory_min = serializers.CharField()
-    new_version_storage_min = serializers.CharField()
+    new_version_cpu_min = serializers.CharField()
+    new_application_name = serializers.CharField()
     new_application_version = ImageVersionSummarySerializer(read_only=True)
+    new_application_visibility = serializers.CharField()
+    admin_message = serializers.CharField(read_only=True)
     access_list = serializers.CharField(allow_blank=True)
     
     class Meta:
@@ -263,9 +269,13 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'url',
             'instance',
             'status',
+            'old_status',
+            'admin_message',
+            'new_application_name',
             'new_application_version',
+            'new_application_visibility',
             'new_version_memory_min',
-            'new_version_storage_min',
+            'new_version_cpu_min',
             'access_list',
 
         )
