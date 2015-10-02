@@ -700,7 +700,8 @@ def get_chain_from_active_with_ip(driverCls, provider, identity, instance,
 
     check_vnc_task.link(check_shell_task)
     check_shell_task.link(remove_status_chain)
-    if redeploy:
+    # Only send emails when 'redeploy=False'
+    if not redeploy:
         remove_status_chain.link(email_task)
     return start_chain
 
