@@ -2,7 +2,7 @@
 import argparse
 import json
 import sys
-
+from uuid import uuid4
 import requests
 import gevent
 
@@ -49,6 +49,8 @@ def main(args):
 
         user_tokens = Token.objects.filter(user=user).order_by('-issuedTime')
         if user_tokens.count() == 0:
+            user_tokens = Token.objects.get_or_create(
+                    key=uuid4(), user=user, api_server_url=settings.API_SERVER_URL)
             print(
                 "No tokens for user: " +
                 user.username +
