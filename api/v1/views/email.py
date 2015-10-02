@@ -1,8 +1,6 @@
 """
 Atmosphere api email
 """
-from django.core import urlresolvers
-
 from rest_framework.response import Response
 from rest_framework import status
 from django.conf import settings
@@ -11,10 +9,7 @@ from threepio import logger
 
 from authentication.protocol.ldap import lookupEmail
 
-from core.email import email_admin
-from web.emails import feedback_email, resource_request_email
-from core.models.group import IdentityMembership
-from core.models.user import AtmosphereUser as User
+from core.email import email_admin, feedback_email, resource_request_email
 
 from api import failure_response
 from api.v1.views.base import AuthAPIView
@@ -30,23 +25,25 @@ class Feedback(AuthAPIView):
         """
         Creates a new feedback email and sends it to admins.
         """
-        required = ["message"]
+        required = ["message","user-interface"]
         missing_keys = check_missing_keys(request.DATA, required)
         if missing_keys:
             return keys_not_found(missing_keys)
         result = self._email(request,
                              request.user.username,
                              lookupEmail(request.user.username),
-                             request.DATA["message"])
+                             request.DATA["message"],
+                             request.DATA)
         return Response(result, status=status.HTTP_201_CREATED)
 
-    def _email(self, request, username, user_email, message):
+    def _email(self, request, username, user_email, message, data):
         """
         Sends an email Bto support based on feedback from a client machine
 
         Returns a response.
         """
-        return feedback_email(request, username, user_email, message)
+        data['server'] = settings.SERVER_URL
+        return feedback_email(request, username, user_email, message, data)
 
 
 class QuotaEmail(AuthAPIView):
@@ -87,16 +84,17 @@ class SupportEmail(AuthAPIView):
 
         Post Support Email via RESTful API
         """
-        required = ["message", "subject"]
+        required = ["message", "subject","user-interface"]
         missing_keys = check_missing_keys(request.DATA, required)
         if missing_keys:
             return keys_not_found(missing_keys)
         result = self._email(request,
                              request.DATA["subject"],
-                             request.DATA["message"])
+                             request.DATA["message"],
+                             request.DATA)
         return Response(result, status=status.HTTP_201_CREATED)
 
-    def _email(self, request, subject, message):
+    def _email(self, request, subject, message, data):
         """
         Sends an email to support.
 
@@ -107,7 +105,8 @@ class SupportEmail(AuthAPIView):
 
         Returns a response.
         """
-        email_success = email_admin(request, subject, message)
+        data['server'] = settings.SERVER_URL
+        email_success = email_admin(request, subject, message, data=data)
         return {"email_sent": email_success}
 
 
