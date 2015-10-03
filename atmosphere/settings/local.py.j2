@@ -120,13 +120,6 @@ except ImportError:
 
 METRIC_SERVER = '{{ METRIC_SERVER }}'
 
-{% if DJANGO_JENKINS %}
-
-INSTALLED_APPS += (
-    'django_jenkins',
-)
-{% endif %}
-
 {% if LOG_LIBCLOUD %}
 os.environ["LIBCLOUD_DEBUG"] = os.path.join(PROJECT_ROOT, "logs/libcloud.log")
 os.environ["LIBCLOUD_DEBUG_PRETTY_PRINT_RESPONSE"] = "True"
