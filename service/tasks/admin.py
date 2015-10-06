@@ -5,7 +5,7 @@ from core.models import ResourceRequest
 from core.models.status_type import get_status_type
 
 from service.quota import set_provider_quota as spq
-from threepio import logger
+from threepio import celery_logger
 
 
 @task(name="set_provider_quota",
@@ -16,7 +16,7 @@ def set_provider_quota(identity_uuid):
     try:
         spq(identity_uuid)
     except Exception as exc:
-        logger.exception(
+        celery_logger.exception(
             "Encountered an exception trying to "
             "'set_provider_quota' for Identity UUID:%s"
             % identity_uuid)
