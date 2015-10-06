@@ -1,3 +1,4 @@
+-r requirements.txt
 django-sslserver #NOTE: Debugs requests real-time.
 django-jenkins==0.17.0
 coverage==3.7.1
