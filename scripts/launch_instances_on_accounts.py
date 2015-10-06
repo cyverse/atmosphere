@@ -24,7 +24,7 @@ if django.VERSION >= (1, 7):
 
 def launch_instance(launch_url, headers, data, provider, user):
     print "Sending request"
-    r = requests.post(launch_url, headers=headers, data=data)
+    r = requests.post(launch_url, headers=headers, data=data, verify=False)
     if r.status_code == 201:
         print "Instance launched successfully: %s, %s" % (provider.location, user.username)
     else:
@@ -47,6 +47,7 @@ def main(args):
         launch_url = ("%s/api/v1/provider/%s/identity/%s/instance"
                       % (settings.SERVER_URL, provider.uuid, identity.uuid))
 
+	print launch_url
         user_tokens = Token.objects.filter(user=user).order_by('-issuedTime')
         if user_tokens.count() == 0:
             print(
