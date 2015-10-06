@@ -1,7 +1,7 @@
 import time
 
 from django.utils import timezone
-from threepio import logger
+from threepio import celery_logger
 
 from celery.decorators import task
 from celery.result import allow_join_result
@@ -50,7 +50,7 @@ def _recover_from_error(status):
 
 @task(name='export_request_task', queue="imaging", ignore_result=False)
 def export_request_task(export_request_id):
-    logger.info("export_request_task task started at %s." % timezone.now())
+    celery_logger.info("export_request_task task started at %s." % timezone.now())
     export_request = ExportRequest.objects.get(id=export_request_id)
     export_request.status = 'processing'
     export_request.save()
@@ -59,7 +59,7 @@ def export_request_task(export_request_id):
     default_kwargs = export_request.get_export_args()
     file_loc = export_source(orig_managerCls, orig_creds, default_kwargs)
 
-    logger.info("export_request_task task finished at %s." % timezone.now())
+    celery_logger.info("export_request_task task finished at %s." % timezone.now())
     return file_loc
 
 
@@ -139,7 +139,7 @@ def start_machine_imaging(machine_request, delay=False):
     # Task 3 = Validate the new image by launching an instance
     if 'validating' in original_status:
         image_id = machine_request.new_machine.identifier
-        logger.info("Start with validating:%s" % image_id)
+        celery_logger.info("Start with validating:%s" % image_id)
         # If validating, seed the image_id and start here..
         validate_task = validate_new_image.s(image_id, machine_request.id)
         init_task = validate_task
@@ -186,7 +186,7 @@ def set_machine_request_metadata(machine_request, image_id):
     machine = admin_driver.get_machine(image_id)
     lc_driver = admin_driver._connection
     if not machine:
-        logger.warn("Could not find machine with ID=%s" % image_id)
+        celery_logger.warn("Could not find machine with ID=%s" % image_id)
         return
     if not hasattr(lc_driver, 'ex_set_image_metadata'):
         return
@@ -196,7 +196,7 @@ def set_machine_request_metadata(machine_request, image_id):
         metadata['description'] = machine_request.new_application_description
     if machine_request.new_version_tags:
         metadata['tags'] = machine_request.new_version_tags
-    logger.info("LC Driver:%s - Machine:%s - Metadata:%s"
+    celery_logger.info("LC Driver:%s - Machine:%s - Metadata:%s"
                 % (lc_driver, machine.id, metadata))
     lc_driver.ex_set_image_metadata(machine, metadata)
     return machine
@@ -214,14 +214,14 @@ def process_export(export_file_path, export_request_id):
 
 @task(name='export_request_error')
 def export_request_error(task_uuid, export_request_id):
-    logger.info("export_request_id=%s" % export_request_id)
-    logger.info("task_uuid=%s" % task_uuid)
+    celery_logger.info("export_request_id=%s" % export_request_id)
+    celery_logger.info("task_uuid=%s" % task_uuid)
 
     result = app.AsyncResult(task_uuid)
     with allow_join_result():
         exc = result.get(propagate=False)
     err_str = "ERROR - %r Exception:%r" % (result.result, result.traceback,)
-    logger.error(err_str)
+    celery_logger.error(err_str)
     export_request = ExportRequest.objects.get(id=export_request_id)
     export_request.status = err_str
     export_request.save()
@@ -229,8 +229,8 @@ def export_request_error(task_uuid, export_request_id):
 
 @task(name='machine_request_error')
 def machine_request_error(task_uuid, machine_request_id):
-    logger.info("machine_request_id=%s" % machine_request_id)
-    logger.info("task_uuid=%s" % task_uuid)
+    celery_logger.info("machine_request_id=%s" % machine_request_id)
+    celery_logger.info("task_uuid=%s" % task_uuid)
     machine_request = MachineRequest.objects.get(id=machine_request_id)
 
     result = app.AsyncResult(task_uuid)
@@ -240,7 +240,7 @@ def machine_request_error(task_uuid, machine_request_id):
                                                 result.result,
                                                 result.traceback,
                                                 )
-    logger.error(err_str)
+    celery_logger.error(err_str)
     send_image_request_failed_email(machine_request, err_str)
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.old_status = err_str
@@ -295,11 +295,11 @@ def validate_new_image(image_id, machine_request_id):
     admin_driver = accounts.admin_driver
     admin_ident = machine_request.new_admin_identity()
     if not admin_driver:
-        logger.warn(
+        celery_logger.warn(
             "Need admin_driver functionality to auto-validate instance")
         return False
     if not admin_ident:
-        logger.warn(
+        celery_logger.warn(
             "Need to know the AccountProvider to auto-validate instance")
         return False
     # Attempt to launch using the admin_driver

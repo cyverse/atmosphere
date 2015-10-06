@@ -277,6 +277,12 @@ threepio.deploy_logger = threepio\
                     app_logging_level=LOGGING_LEVEL,
                     dep_logging_level=DEP_LOGGING_LEVEL,
                     global_logger=False)
+threepio.celery_logger = threepio\
+        .initialize("atmosphere_celery",
+                    log_filename=LOG_FILENAME,
+                    app_logging_level=LOGGING_LEVEL,
+                    dep_logging_level=DEP_LOGGING_LEVEL,
+                    global_logger=False)
 
 
 # Directory that the app (One level above this file) exists

@@ -22,7 +22,7 @@ from service.driver import get_account_driver
 from service.cache import get_cached_driver
 from glanceclient.exc import HTTPNotFound
 
-from threepio import logger
+from threepio import celery_logger
 
 
 def strfdelta(tdelta, fmt=None):
@@ -88,7 +88,7 @@ def prune_machines_for(provider_id, print_logs=False, dry_run=False, forced_remo
         import sys
         consolehandler = logging.StreamHandler(sys.stdout)
         consolehandler.setLevel(logging.DEBUG)
-        logger.addHandler(consolehandler)
+        celery_logger.addHandler(consolehandler)
 
     if provider.is_active():
         account_driver = get_account_driver(provider)
@@ -112,7 +112,7 @@ def prune_machines_for(provider_id, print_logs=False, dry_run=False, forced_remo
             remove_machine(machine, dry_run=dry_run)
 
     if print_logs:
-        logger.removeHandler(consolehandler)
+        celery_logger.removeHandler(consolehandler)
 
 @task(name="monitor_machines_for")
 def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
@@ -139,7 +139,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
         import sys
         consolehandler = logging.StreamHandler(sys.stdout)
         consolehandler.setLevel(logging.DEBUG)
-        logger.addHandler(consolehandler)
+        celery_logger.addHandler(consolehandler)
 
     #STEP 1: get the apps
     new_public_apps, private_apps = get_public_and_private_apps(provider)
@@ -161,7 +161,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
         make_machines_private(app, membership, account_drivers, provider_tenant_mapping, image_maps, dry_run=dry_run)
 
     if print_logs:
-        logger.removeHandler(consolehandler)
+        celery_logger.removeHandler(consolehandler)
     return
 
 def get_public_and_private_apps(provider):
@@ -183,7 +183,7 @@ def get_public_and_private_apps(provider):
     for cloud_machine in cloud_machines:
         #Filter out: ChromoSnapShot, eri-, eki-, ... (Or dont..)
         if any(cloud_machine.name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
-            #logger.debug("Skipping cloud machine %s" % cloud_machine)
+            #celery_logger.debug("Skipping cloud machine %s" % cloud_machine)
             continue
         db_machine = get_or_create_provider_machine(cloud_machine.id, cloud_machine.name, provider.uuid)
         db_version = db_machine.application_version
@@ -213,7 +213,7 @@ def remove_machine(db_machine, now_time=None, dry_run=False):
         now_time = timezone.now()
 
     db_machine.end_date = now_time
-    logger.info("End dating machine: %s" % db_machine)
+    celery_logger.info("End dating machine: %s" % db_machine)
     if not dry_run:
         db_machine.save()
 
@@ -227,7 +227,7 @@ def remove_machine(db_machine, now_time=None, dry_run=False):
         return True
     # Version also completely end-dated. End date this version.
     db_version.end_date = now_time
-    logger.info("End dating version: %s" % db_version)
+    celery_logger.info("End dating version: %s" % db_version)
     if not dry_run:
         db_version.save()
 
@@ -239,7 +239,7 @@ def remove_machine(db_machine, now_time=None, dry_run=False):
         # Other versions exist.. No cascade necessary..
         return True
     db_application.end_date = now_time
-    logger.info("End dating application: %s" % db_application)
+    celery_logger.info("End dating application: %s" % db_application)
     if not dry_run:
         db_application.save()
     return True
@@ -268,7 +268,7 @@ def make_machines_private(application, identities, account_drivers={}, provider_
     # All the cloud work has been completed, so "lock down" the application.
     if application.private == False:
         application.private = True
-        logger.info("Making Application %s private" % application.name)
+        celery_logger.info("Making Application %s private" % application.name)
         if not dry_run:
             application.save()
 
@@ -321,16 +321,16 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
     # Skip tenant-names who are NOT in the DB, and tenants who are already included
     missing_tenant = identity.credential_set.filter(~Q(value__in=members), key='ex_tenant_name')
     if missing_tenant.count() == 0:
-        #logger.debug("SKIPPED _ Image %s already shared with %s" % (cloud_machine.id, identity))
+        #celery_logger.debug("SKIPPED _ Image %s already shared with %s" % (cloud_machine.id, identity))
         return
     elif missing_tenant.count() > 1:
         raise Exception("Safety Check -- You should not be here")
     tenant_name = missing_tenant[0]
     if cloud_machine.is_public == True:
-        logger.info("Making Machine %s private" % cloud_machine.id)
+        celery_logger.info("Making Machine %s private" % cloud_machine.id)
         cloud_machine.update(is_public=False)
 
-    logger.info("Sharing image %s<%s>: %s with %s" % (cloud_machine.id, cloud_machine.name, identity.provider.location, tenant_name.value))
+    celery_logger.info("Sharing image %s<%s>: %s with %s" % (cloud_machine.id, cloud_machine.name, identity.provider.location, tenant_name.value))
     if not dry_run:
         account_driver.image_manager.share_image(cloud_machine, tenant_name.value)
 
@@ -340,11 +340,11 @@ def add_application_membership(application, identity, dry_run=False):
         group = membership_obj.member
         # Add an application membership if not already there
         if application.applicationmembership_set.filter(group=group).count() == 0:
-            logger.info("Added ApplicationMembership %s for %s" % (group.name, application.name))
+            celery_logger.info("Added ApplicationMembership %s for %s" % (group.name, application.name))
             if not dry_run:
                 ApplicationMembership.objects.create(application=application, group=group)
         else:
-            #logger.debug("SKIPPED _ Group %s already ApplicationMember for %s" % (group.name, application.name))
+            #celery_logger.debug("SKIPPED _ Group %s already ApplicationMember for %s" % (group.name, application.name))
             pass
 
 def get_shared_identities(account_driver, cloud_machine, tenant_id_name_map):
@@ -361,7 +361,7 @@ def get_shared_identities(account_driver, cloud_machine, tenant_id_name_map):
         tenant_id = cloud_machine_membership.member_id
         tenant_name = tenant_id_name_map.get(tenant_id)
         if not tenant_name:
-            logger.warn("TENANT ID: %s NOT FOUND - %s" % (tenant_id, cloud_machine_membership))
+            celery_logger.warn("TENANT ID: %s NOT FOUND - %s" % (tenant_id, cloud_machine_membership))
             continue
         # Find matching 'tenantName' credential and add all matching identities w/ that tenantName.
         matching_creds = Credential.objects.filter(
@@ -393,7 +393,7 @@ def update_membership(application, shared_identities):
         db_group = db_identity_member.member
         ApplicationMembership.objects.get_or_create(
             application=application, group=db_group)
-        logger.info("Added Application, Version, and Machine Membership to Group: %s" % (db_group,))
+        celery_logger.info("Added Application, Version, and Machine Membership to Group: %s" % (db_group,))
     return application
 
 
@@ -408,12 +408,12 @@ def make_machines_public(application, account_drivers={}, dry_run=False):
             account_driver = memoized_driver(machine, account_drivers)
             image = account_driver.image_manager.get_image(image_id=machine.identifier)
             if image and image.is_public == False:
-                logger.info("Making Machine %s public" % image.id)
+                celery_logger.info("Making Machine %s public" % image.id)
                 if not dry_run:
                     image.update(is_public=True)
     # Set top-level application to public (This will make all versions and PMs public too!)
     application.private = False
-    logger.info("Making Application %s public" % application.name)
+    celery_logger.info("Making Application %s public" % application.name)
     if not dry_run:
         application.save()
 
@@ -449,7 +449,7 @@ def monitor_instances_for(provider_id, users=None,
         import sys
         consolehandler = logging.StreamHandler(sys.stdout)
         consolehandler.setLevel(logging.DEBUG)
-        logger.addHandler(consolehandler)
+        celery_logger.addHandler(consolehandler)
 
     # DEVNOTE: Potential slowdown running multiple functions
     # Break this out when instance-caching is enabled
@@ -467,7 +467,7 @@ def monitor_instances_for(provider_id, users=None,
                         identity.uuid,
                         identity.created_by) for inst in running_instances]
             except Exception as exc:
-                logger.exception(
+                celery_logger.exception(
                     "Could not convert running instances for %s" %
                     username)
                 continue
@@ -482,7 +482,7 @@ def monitor_instances_for(provider_id, users=None,
             provider, username,
             print_logs, start_date, end_date)
     if print_logs:
-        logger.removeHandler(consolehandler)
+        celery_logger.removeHandler(consolehandler)
 
 
 @task(name="monitor_sizes")
@@ -509,7 +509,7 @@ def monitor_sizes_for(provider_id, print_logs=False):
         import sys
         consolehandler = logging.StreamHandler(sys.stdout)
         consolehandler.setLevel(logging.DEBUG)
-        logger.addHandler(consolehandler)
+        celery_logger.addHandler(consolehandler)
 
     provider = Provider.objects.get(id=provider_id)
     admin_driver = get_admin_driver(provider)
@@ -524,12 +524,12 @@ def monitor_sizes_for(provider_id, print_logs=False):
     now_time = timezone.now()
     needs_end_date = [size for size in db_sizes if size not in seen_sizes]
     for size in needs_end_date:
-        logger.debug("End dating inactive size: %s" % size)
+        celery_logger.debug("End dating inactive size: %s" % size)
         size.end_date = now_time
         size.save()
 
     if print_logs:
-        logger.removeHandler(consolehandler)
+        celery_logger.removeHandler(consolehandler)
 
 
 @task(name="monthly_allocation_reset")

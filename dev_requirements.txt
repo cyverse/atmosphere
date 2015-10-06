@@ -1,8 +1,8 @@
 -r requirements.txt
 coverage==3.7.1
+django-sslserver #NOTE: Debugs requests real-time.
 django-jenkins==0.17.0
 django-nose
-django-sslserver #NOTE: Debugs requests real-time.
 factory-boy==2.4.1
 flake8
 flower==0.7.3 #TODO: Do we need a specific version here? -steve
