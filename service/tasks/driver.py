@@ -558,7 +558,7 @@ def get_remove_status_chain(driverCls, provider, identity, instance):
         final_update.pop('tmp_status')
         final_update.pop('iplant_suspend_fix')
     else:
-        final_update = {'tmp_status': 'finished'}
+        final_update = {'tmp_status': ''}
         replace = False
     remove_status_task = update_metadata.si(
         driverCls, provider, identity, instance.id,
