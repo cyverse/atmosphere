@@ -35,7 +35,7 @@ python-ldap==2.4.19
 uWSGI==2.0.9
 
 ## ours
-#django-iplant-auth==0.0.1
+django-iplant-auth==0.0.3
 threepio==0.2.0
 rtwo==0.2.14
 caslib.py==2.2.2
