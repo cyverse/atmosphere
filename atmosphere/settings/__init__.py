@@ -144,12 +144,12 @@ AUTH_USER_MODEL = 'core.AtmosphereUser'
 
 AUTHENTICATION_BACKENDS = (
     # For Token-Access
-    'iplantauth.authBackends.AuthTokenLoginBackend',
+    'iplantauth.authBackends.GlobusOAuthLoginBackend',
     # For Web-Access
-    'iplantauth.authBackends.CASLoginBackend',
-    'iplantauth.authBackends.SAMLLoginBackend',
-    # For Service-Access
-    'iplantauth.authBackends.LDAPLoginBackend',
+    #'iplantauth.authBackends.CASLoginBackend',
+    #'iplantauth.authBackends.SAMLLoginBackend',
+    ## For Service-Access
+    #'iplantauth.authBackends.LDAPLoginBackend',
 )
 
 # django-cors-headers
@@ -311,10 +311,10 @@ REST_FRAMEWORK = {
         'api.renderers.JPEGRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'iplantauth.token.JWTTokenAuthentication',
+        #'iplantauth.token.JWTTokenAuthentication',
         'iplantauth.token.GlobusOAuthTokenAuthentication',
-        'iplantauth.token.OAuthTokenAuthentication',
-        'iplantauth.token.TokenAuthentication',
+        #'iplantauth.token.OAuthTokenAuthentication',
+        #'iplantauth.token.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
