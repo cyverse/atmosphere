@@ -14,7 +14,9 @@ VARIABLES_FILENAME = 'variables.ini'
 
 
 # Backup file extension.
-BACKUP_EXT = '.bak'
+from datetime import datetime
+now_time = datetime.now()
+BACKUP_EXT = '.bak.%s' % now_time.strftime("%Y%m%d_%H%M%S")
 
 
 config_files = {
@@ -173,7 +175,7 @@ def _generate_configs(configs, backup):
     return (success, messages)
 
 
-def generate_configs(configs, backup):
+def generate_configs(configs, backup=True):
     print 'Testing for preconditions...\n'
     success, messages = _handle_preconditions(configs)
     print_messages(messages)
@@ -239,9 +241,6 @@ def main():
                         help='Show a list of availabe configs')
     parser.add_argument('-c', '--configs', nargs='*',
                         help='A list of configs to generate.')
-    parser.add_argument('-b', '--backup', action='store_true',
-                        help='Backup config output files before '
-                        'generating new files.')
     parser.add_argument('-t', '--test', action='store_true',
                         help='Test configs for preconditions.')
     print 'Project Path => %s\n' % (projectpath)
@@ -257,7 +256,7 @@ def main():
     # If testing or showing information, exit.
     if args.test or args.show:
         exit(0)
-    generate_configs(args.configs, args.backup)
+    generate_configs(args.configs)
     print 'Successfully generated configs %s.' % (', '.join(args.configs))
     exit(0)
 

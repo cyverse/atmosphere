@@ -456,6 +456,13 @@ class InstanceAction(AuthAPIView):
                         mount_location = None
                     if device == 'null' or device == 'None':
                         device = None
+                    if esh_instance.extra['status'] != 'active':
+                        return failure_response(
+                            status.HTTP_400_BAD_REQUEST,
+                            'Instance %s must be active before attaching '
+                            'a volume. '
+                            'Retry request when volume is active.'
+                            % (instance_id,))
                     task.attach_volume_task(esh_driver,
                                             esh_instance.alias,
                                             volume_id,
@@ -473,6 +480,13 @@ class InstanceAction(AuthAPIView):
                                                  volume_id, device,
                                                  mount_location)
                 elif 'detach_volume' == action:
+                    if esh_instance.extra['status'] != 'active':
+                        return failure_response(
+                            status.HTTP_400_BAD_REQUEST,
+                            'Instance %s must be active before detaching '
+                            'a volume. '
+                            'Retry request when volume is active.'
+                            % (instance_id,))
                     (result, error_msg) =\
                         task.detach_volume_task(esh_driver,
                                                 esh_instance.alias,

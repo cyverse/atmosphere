@@ -16,7 +16,7 @@ from core.models.machine import (
     provider_machine_write_hook,
     update_provider_machine
 )
-
+from django.db.models import Q
 
 def _get_owner(new_provider, user):
     try:
@@ -32,8 +32,8 @@ def _match_tags_to_names(tag_names):
     OUTPUT: <Tag: tag1>, ..., <Tag: tag3>
     NOTE: Tags NOT created BEFORE being added to new_machine_tags are ignored.
     """
-    matches = [models.Q(name__iexact=name) for name in tag_names.split(',')]
-    filters = reduce(operator.or_, matches, models.Q())
+    matches = [Q(name__iexact=name) for name in tag_names.split(',')]
+    filters = reduce(operator.or_, matches, Q())
     return models.Tag.objects.filter(filters)
 
 
@@ -114,11 +114,6 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     if machine_request.new_version_licenses.count():
         for license in machine_request.new_version_licenses.all():
             app_version.licenses.add(license)
-
-    # 5. Advance the state of machine request
-    # After processing, validate the image.
-    machine_request.status = 'validating'
-    machine_request.save()
     return machine_request
 
 

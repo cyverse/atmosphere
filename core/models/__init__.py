@@ -33,6 +33,7 @@ from core.models.boot_script import ScriptType, BootScript, ApplicationVersionBo
 from core.models.quota import Quota
 from core.models.resource_request import ResourceRequest
 from core.models.size import Size
+from core.models.status_type import StatusType
 from core.models.t import T
 from core.models.tag import Tag
 from core.models.user import AtmosphereUser

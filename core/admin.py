@@ -353,6 +353,7 @@ class MachineRequestAdmin(admin.ModelAdmin):
         "start_date",
         "end_date",
         "status",
+        "old_status",
         "opt_new_machine",
         "opt_parent_machine",
         "opt_machine_visibility"]

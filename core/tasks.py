@@ -7,7 +7,7 @@ from celery.decorators import task
 
 from django.core.mail import EmailMessage
 
-from threepio import logger, email_logger
+from threepio import celery_logger, email_logger
 
 from core.models import ResourceRequest
 from core.models.status_type import get_status_type
@@ -35,7 +35,7 @@ def send_email(subject, body, from_email, to, cc=None,
         email_logger.info(log_message.format(*args))
         return True
     except Exception as e:
-        logger.error(e)
+        celery_logger.error(e)
         return False
 
 

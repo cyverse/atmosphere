@@ -1,7 +1,7 @@
 import time
 
 from django.utils import timezone
-from threepio import logger
+from threepio import celery_logger
 
 from celery.decorators import task
 from celery.result import allow_join_result
@@ -16,6 +16,8 @@ from core.email import \
 from core.models.machine_request import MachineRequest
 from core.models.export_request import ExportRequest
 from core.models.identity import Identity
+from core.models.status_type import StatusType
+
 from service.driver import get_admin_driver, get_esh_driver, get_account_driver
 from service.deploy import freeze_instance, sync_instance
 from service.machine import process_machine_request
@@ -37,18 +39,18 @@ def _get_imaging_task(orig_managerCls, orig_creds,
         return image_task
 
 
-def _recover_from_error(status_name):
-    if not status_name:
-        return False, status_name
-    if 'exception' in status_name.lower():
-        return True, status_name[
-            status_name.find("(") + 1:status_name.find(")")]
-    return False, status_name
+def _recover_from_error(status):
+    if not status:
+        return False, status
+    if 'exception' in status.lower():
+        return True, status[
+            status.find("(") + 1:status.find(")")]
+    return False, status
 
 
 @task(name='export_request_task', queue="imaging", ignore_result=False)
 def export_request_task(export_request_id):
-    logger.info("export_request_task task started at %s." % timezone.now())
+    celery_logger.info("export_request_task task started at %s." % timezone.now())
     export_request = ExportRequest.objects.get(id=export_request_id)
     export_request.status = 'processing'
     export_request.save()
@@ -57,7 +59,7 @@ def export_request_task(export_request_id):
     default_kwargs = export_request.get_export_args()
     file_loc = export_source(orig_managerCls, orig_creds, default_kwargs)
 
-    logger.info("export_request_task task finished at %s." % timezone.now())
+    celery_logger.info("export_request_task task finished at %s." % timezone.now())
     return file_loc
 
 
@@ -92,10 +94,16 @@ def start_machine_imaging(machine_request, delay=False):
     Builds up a machine imaging task using core.models.machine_request
     delay - If true, wait until task is completed before returning
     """
-    original_status = machine_request.status
+
+    new_status, _ = StatusType.objects.get_or_create(name="started")
+    machine_request.status = new_status
+    machine_request.save()
+    
+    original_status = machine_request.old_status
     last_run_error, original_status = _recover_from_error(original_status)
+
     if last_run_error:
-        machine_request.status = original_status
+        machine_request.old_status = original_status
         machine_request.save()
     instance_id = machine_request.instance.provider_alias
 
@@ -118,7 +126,7 @@ def start_machine_imaging(machine_request, delay=False):
     # Task 2 = Process the machine request
     if 'processing' in original_status:
         # If processing, start here..
-        image_id = machine_request.status.replace("processing - ", "")
+        image_id = original_status.replace("processing - ", "")
         logger.info("Start with processing:%s" % image_id)
         process_task = process_request.s(image_id, machine_request.id)
         init_task = process_task
@@ -131,7 +139,7 @@ def start_machine_imaging(machine_request, delay=False):
     # Task 3 = Validate the new image by launching an instance
     if 'validating' in original_status:
         image_id = machine_request.new_machine.identifier
-        logger.info("Start with validating:%s" % image_id)
+        celery_logger.info("Start with validating:%s" % image_id)
         # If validating, seed the image_id and start here..
         validate_task = validate_new_image.s(image_id, machine_request.id)
         init_task = validate_task
@@ -164,7 +172,7 @@ def start_machine_imaging(machine_request, delay=False):
     email_task.link_error(imaging_error_task)
     # Set status to imaging ONLY if our initial task is the imaging task.
     if init_task == imaging_task:
-        machine_request.status = 'imaging'
+        machine_request.old_status = 'imaging'
         machine_request.save()
     # Start the task.
     async = init_task.apply_async()
@@ -178,7 +186,7 @@ def set_machine_request_metadata(machine_request, image_id):
     machine = admin_driver.get_machine(image_id)
     lc_driver = admin_driver._connection
     if not machine:
-        logger.warn("Could not find machine with ID=%s" % image_id)
+        celery_logger.warn("Could not find machine with ID=%s" % image_id)
         return
     if not hasattr(lc_driver, 'ex_set_image_metadata'):
         return
@@ -188,7 +196,7 @@ def set_machine_request_metadata(machine_request, image_id):
         metadata['description'] = machine_request.new_application_description
     if machine_request.new_version_tags:
         metadata['tags'] = machine_request.new_version_tags
-    logger.info("LC Driver:%s - Machine:%s - Metadata:%s"
+    celery_logger.info("LC Driver:%s - Machine:%s - Metadata:%s"
                 % (lc_driver, machine.id, metadata))
     lc_driver.ex_set_image_metadata(machine, metadata)
     return machine
@@ -206,14 +214,14 @@ def process_export(export_file_path, export_request_id):
 
 @task(name='export_request_error')
 def export_request_error(task_uuid, export_request_id):
-    logger.info("export_request_id=%s" % export_request_id)
-    logger.info("task_uuid=%s" % task_uuid)
+    celery_logger.info("export_request_id=%s" % export_request_id)
+    celery_logger.info("task_uuid=%s" % task_uuid)
 
     result = app.AsyncResult(task_uuid)
     with allow_join_result():
         exc = result.get(propagate=False)
     err_str = "ERROR - %r Exception:%r" % (result.result, result.traceback,)
-    logger.error(err_str)
+    celery_logger.error(err_str)
     export_request = ExportRequest.objects.get(id=export_request_id)
     export_request.status = err_str
     export_request.save()
@@ -221,28 +229,30 @@ def export_request_error(task_uuid, export_request_id):
 
 @task(name='machine_request_error')
 def machine_request_error(task_uuid, machine_request_id):
-    logger.info("machine_request_id=%s" % machine_request_id)
-    logger.info("task_uuid=%s" % task_uuid)
+    celery_logger.info("machine_request_id=%s" % machine_request_id)
+    celery_logger.info("task_uuid=%s" % task_uuid)
     machine_request = MachineRequest.objects.get(id=machine_request_id)
 
     result = app.AsyncResult(task_uuid)
     with allow_join_result():
         exc = result.get(propagate=False)
-    err_str = "(%s) ERROR - %r Exception:%r" % (machine_request.status,
+    err_str = "(%s) ERROR - %r Exception:%r" % (machine_request.old_status,
                                                 result.result,
                                                 result.traceback,
                                                 )
-    logger.error(err_str)
+    celery_logger.error(err_str)
     send_image_request_failed_email(machine_request, err_str)
     machine_request = MachineRequest.objects.get(id=machine_request_id)
-    machine_request.status = err_str
+    machine_request.old_status = err_str
     machine_request.save()
 
 
 @task(name='imaging_complete', ignore_result=False)
 def imaging_complete(machine_request_id):
     machine_request = MachineRequest.objects.get(id=machine_request_id)
-    machine_request.status = 'completed'
+    machine_request.old_status = 'completed'
+    new_status, _ = StatusType.objects.get_or_create(name="completed")
+    machine_request.status = new_status
     machine_request.end_date = timezone.now()
     machine_request.save()
     send_image_request_email(machine_request.new_machine_owner,
@@ -262,7 +272,9 @@ def process_request(new_image_id, machine_request_id):
     Finally, update the metadata on the provider.
     """
     machine_request = MachineRequest.objects.get(id=machine_request_id)
-    machine_request.status = 'processing - %s' % new_image_id
+    new_status, _ = StatusType.objects.get_or_create(name="processing")
+    machine_request.status = new_status
+    machine_request.old_status = 'processing - %s' % new_image_id
     machine_request.save()
     # TODO: Best if we could 'broadcast' this to all running
     # Apache WSGI procs && celery 'imaging' procs
@@ -273,7 +285,9 @@ def process_request(new_image_id, machine_request_id):
 @task(name='validate_new_image', ignore_result=False)
 def validate_new_image(image_id, machine_request_id):
     machine_request = MachineRequest.objects.get(id=machine_request_id)
-    machine_request.status = 'validating'
+    new_status, _ = StatusType.objects.get_or_create(name="validating")
+    machine_request.status = new_status
+    machine_request.old_status = 'validating'
     machine_request.save()
     accounts = get_account_driver(machine_request.new_machine.provider)
     accounts.clear_cache()
@@ -281,11 +295,11 @@ def validate_new_image(image_id, machine_request_id):
     admin_driver = accounts.admin_driver
     admin_ident = machine_request.new_admin_identity()
     if not admin_driver:
-        logger.warn(
+        celery_logger.warn(
             "Need admin_driver functionality to auto-validate instance")
         return False
     if not admin_ident:
-        logger.warn(
+        celery_logger.warn(
             "Need to know the AccountProvider to auto-validate instance")
         return False
     # Attempt to launch using the admin_driver

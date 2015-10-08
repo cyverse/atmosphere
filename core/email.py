@@ -126,12 +126,12 @@ def send_email(subject, body, from_email, to, cc=None,
         "fail_silently": fail_silently,
         "html": html
     }
-    send_email_task(args=args, kwargs=kwargs)
+    send_email_task(*args, **kwargs)
     return True
 
 
 def email_admin(request, subject, message,
-                cc_user=True, request_tracker=False):
+                cc_user=True, request_tracker=False, data={}):
     """ Use request, subject and message to build and send a standard
         Atmosphere user request email. From an atmosphere user to admins.
         Returns True on success and False on failure.
@@ -144,6 +144,8 @@ def email_admin(request, subject, message,
              location,
              user, remote_ip,
              user_agent, resolution)
+    if data:
+        body += "\nUser Interface:%s\nServer:%s" % (data.get('user-interface'), data.get('server'))
     return email_to_admin(subject, body, user, user_email, cc_user=cc_user,
                           request_tracker=request_tracker)
 
@@ -434,7 +436,7 @@ def resource_request_email(request, username, new_resource, reason):
     return {"email_sent": email_success}
 
 
-def feedback_email(request, username, user_email, message):
+def feedback_email(request, username, user_email, message, data):
     """
     Sends an email Bto support based on feedback from a client machine
 
@@ -444,11 +446,11 @@ def feedback_email(request, username, user_email, message):
     subject = 'Subject: Atmosphere Client Feedback from %s' % username
     context = {
         "user": user,
-        "feedback": message
+        "feedback": message,
     }
     body = render_to_string("core/email/feedback.html",
                             context=Context(context))
-    email_success = email_admin(request, subject, body, request_tracker=True)
+    email_success = email_admin(request, subject, body, request_tracker=True, data=data)
     if email_success:
         resp = {'result':
                 {'code': 'success',

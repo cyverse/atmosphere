@@ -36,6 +36,9 @@ TEST_RUNNER_USER = '{{ TEST_RUNNER_USER }}'
 TEST_RUNNER_PASS = '{{ TEST_RUNNER_PASS }}'
 
 {% if DJANGO_JENKINS %}
+# apps jenkins will run
+PROJECT_APPS = ("service", "core", "allocation")
+
 INSTALLED_APPS += (
     'django_jenkins',
 )
