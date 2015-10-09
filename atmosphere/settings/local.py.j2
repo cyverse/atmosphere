@@ -11,6 +11,11 @@ globals().update(vars(sys.modules['atmosphere.settings']))
 # Debug Mode
 DEBUG = {{ DJANGO_DEBUG }}
 TEMPLATE_DEBUG = {{ DJANGO_TEMPLATE_DEBUG }}
+{% if ENFORCING %}
+ENFORCING = True
+{% else %}
+ENFORCING = False
+{% endif %}
 
 
 # Logging
