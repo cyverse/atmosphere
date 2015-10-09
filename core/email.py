@@ -5,6 +5,7 @@ Atmosphere core email.
 
 from core.models import AtmosphereUser as User
 
+from django.core.urlresolvers import reverse
 from django.template import Context
 from django.template.loader import render_to_string
 from django.utils import timezone as django_timezone
