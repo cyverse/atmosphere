@@ -159,7 +159,7 @@ class IgnoreNonActiveStatus(GlobalRules):
                    "resize", "verify_resize",
                    "shutoff", "shutting-down",
                    "suspended", "terminated",
-                   "deleted", "error", "unknown", "N/A",
+                   "deleted", "deploy_error", "error", "unknown", "N/A",
                    ])
         super(IgnoreNonActiveStatus, self).__init__([ignore_inactive])
 
