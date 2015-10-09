@@ -10,7 +10,6 @@ from urlparse import urljoin
 
 from atmosphere import settings
 from api.tests import verify_expected_output
-from iplantauth.protocol.oauth import generate_access_token
 from service.accounts.openstack import AccountDriver as OSAccounts
 
 
