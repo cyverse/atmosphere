@@ -311,7 +311,7 @@ REST_FRAMEWORK = {
         'api.renderers.JPEGRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        #'iplantauth.token.JWTTokenAuthentication',
+        'iplantauth.token.JWTTokenAuthentication',
         'iplantauth.token.GlobusOAuthTokenAuthentication',
         #'iplantauth.token.OAuthTokenAuthentication',
         #'iplantauth.token.TokenAuthentication',
