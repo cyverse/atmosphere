@@ -12,6 +12,11 @@ globals().update(vars(sys.modules['atmosphere.settings']))
 # Debug Mode
 DEBUG = {{ DJANGO_DEBUG }}
 TEMPLATE_DEBUG = {{ DJANGO_TEMPLATE_DEBUG }}
+{% if ENFORCING %}
+ENFORCING = True
+{% else %}
+ENFORCING = False
+{% endif %}
 
 
 # Logging
@@ -119,6 +124,12 @@ except ImportError:
 
 
 METRIC_SERVER = '{{ METRIC_SERVER }}'
+
+{% if LOG_LIBCLOUD %}
+os.environ["LIBCLOUD_DEBUG"] = os.path.join(PROJECT_ROOT, "logs/libcloud.log")
+os.environ["LIBCLOUD_DEBUG_PRETTY_PRINT_RESPONSE"] = "True"
+{% endif %}
+
 
 if has_logstash and LOGSTASH_HOST:
     fh = logstash.TCPLogstashHandler(LOGSTASH_HOST, LOGSTASH_PORT,
