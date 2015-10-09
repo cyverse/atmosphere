@@ -14,6 +14,7 @@ from pytz import timezone as pytz_timezone
 from threepio import logger
 
 from atmosphere import settings
+from core.models import IdentityMembership, MachineRequest
 
 from authentication.protocol.ldap import lookupEmail, lookupUser
 from service.tasks.email import send_email as send_email_task
