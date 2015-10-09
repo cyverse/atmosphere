@@ -149,7 +149,7 @@ AUTHENTICATION_BACKENDS = (
     #'iplantauth.authBackends.CASLoginBackend',
     #'iplantauth.authBackends.SAMLLoginBackend',
     ## For Service-Access
-    #'iplantauth.authBackends.LDAPLoginBackend',
+    'iplantauth.authBackends.LDAPLoginBackend',
 )
 
 # django-cors-headers
