@@ -313,9 +313,9 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'iplantauth.token.JWTTokenAuthentication',
+        'iplantauth.token.OAuthTokenAuthentication',
         'iplantauth.token.GlobusOAuthTokenAuthentication',
-        #'iplantauth.token.OAuthTokenAuthentication',
-        #'iplantauth.token.TokenAuthentication',
+        'iplantauth.token.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
