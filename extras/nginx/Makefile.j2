@@ -13,6 +13,8 @@ SITES_ENABLED_DIR= {{ SITES_ENABLED_DIR }}
 VIRTUALENV_PATH={{ VIRTUALENV_PATH }}
 
 # site and location variables.
+DEFAULT_SITE_CONF_FILE=default
+DEFAULT_SITE_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/$(DEFAULT_SITE_CONF_FILE)
 SITE_CONF_FILE=site.conf
 SITE_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/$(SITE_CONF_FILE)
 ATMO_CONF_FILE=atmo.conf
@@ -79,6 +81,7 @@ unlink: unlink-site unlink-atmo unlink-flower unlink-jenkins unlink-lb
 
 unlink-site:
 	-rm $(SITES_ENABLED_DIR)/$(SITE_CONF_FILE)
+	-rm $(SITES_ENABLED_DIR)/$(DEFAULT_SITE_CONF_FILE)
 	-rm $(SITES_AVAILABLE_DIR)/$(SITE_CONF_FILE)
 
 unlink-atmo:
@@ -101,6 +104,7 @@ restart:
 
 clean: unlink
 	-rm $(COMBINED_CERT_PATH)
+	-rm $(DEFAULT_SITE_CONF_PATH)
 	-rm $(SITE_CONF_PATH)
 	-rm $(ATMO_CONF_PATH)
 	-rm $(DHPARAM)
