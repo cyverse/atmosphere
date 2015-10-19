@@ -144,10 +144,11 @@ AUTH_USER_MODEL = 'core.AtmosphereUser'
 
 AUTHENTICATION_BACKENDS = (
     # For Token-Access
-    'iplantauth.authBackends.GlobusOAuthLoginBackend',
+    #'iplantauth.authBackends.GlobusOAuthLoginBackend',
+    'iplantauth.authBackends.AuthTokenLoginBackend',
     # For Web-Access
-    #'iplantauth.authBackends.CASLoginBackend',
-    #'iplantauth.authBackends.SAMLLoginBackend',
+    'iplantauth.authBackends.CASLoginBackend',
+    'iplantauth.authBackends.SAMLLoginBackend',
     ## For Service-Access
     'iplantauth.authBackends.LDAPLoginBackend',
 )
