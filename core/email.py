@@ -433,37 +433,6 @@ def resource_request_email(request, username, new_resource, reason):
     email_success = email_admin(request, subject, body, cc_user=False)
     return {"email_sent": email_success}
 
-
-def feedback_email(request, username, user_email, message):
-    """
-    Sends an email Bto support based on feedback from a client machine
-
-    Returns a response.
-    """
-    user = User.objects.get(username=username)
-    subject = 'Subject: Atmosphere Client Feedback from %s' % username
-    context = {
-        "user": user,
-        "feedback": message
-    }
-    body = render_to_string("core/email/feedback.html",
-                            context=Context(context))
-    email_success = email_admin(request, subject, body, request_tracker=True)
-    if email_success:
-        resp = {'result':
-                {'code': 'success',
-                    'meta': '',
-                    'value': (
-                        'Thank you for your feedback! '
-                        'Support has been notified.')}}
-    else:
-        resp = {'result':
-                {'code': 'failed',
-                 'meta': '',
-                 'value': 'Failed to send feedback!'}}
-    return resp
-
-
 def support_email(request, subject, message):
     """
     Sends an email to support.
