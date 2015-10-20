@@ -95,6 +95,12 @@ AUTHENTICATION = {
     "GLOBUS_AUTH_URL": '{{ GLOBUS_AUTH_URL}}',
 }
 
+# MOCK - Uncomment these lines to allow one-user-only access. Useful for debug/development
+# ALWAYS_AUTH_USER = "test_user"
+# # Use MockLoginBackend first!
+# AUTHENTICATION_BACKENDS = (
+#     'iplantauth.authBackends.MockLoginBackend',
+# ) + AUTHENTICATION_BACKENDS
 # CASLIB
 SERVER_URL = SERVER_URL + REDIRECT_URL
 SERVICE_URL = SERVER_URL + '/CAS_serviceValidater?sendback=' + REDIRECT_URL + '/application/'
