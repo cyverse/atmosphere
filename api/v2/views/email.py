@@ -14,6 +14,7 @@ from authentication.protocol.ldap import lookupEmail
 
 from core.email import email_admin, resource_request_email
 from core.models import AtmosphereUser as User
+from core.models import Instance, Volume
 
 from api import failure_response
 from api.permissions import ApiAuthRequired, InMaintenance
@@ -47,7 +48,7 @@ class FeedbackView(APIView):
 
     def _email(self, request, username, user_email, message, data):
         """
-        Sends an email Bto support based on feedback from a client machine
+        Sends an email to support based on feedback from a client machine
 
         Returns a response.
         """
@@ -62,9 +63,21 @@ def feedback_email(request, username, user_email, message):
     """
     user = User.objects.get(username=username)
     subject = 'Subject: Atmosphere Client Feedback from %s' % username
+
+    instances = Instance.objects \
+            .filter(created_by=user.id) \
+            .filter(end_date__exact=None)
+
+    volumes = Volume.objects \
+            .filter(instance_source__created_by__username=username) \
+            .filter(instance_source__end_date__isnull=True)
+
     context = {
         "user": user,
-        "feedback": message
+        "feedback": message,
+        "provider": user.selected_identity.provider_uuid(),
+        "instances": instances,
+        "volumes": volumes,
     }
     body = render_to_string("core/email/feedback.html",
                             context=Context(context))
