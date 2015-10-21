@@ -27,7 +27,7 @@ class Feedback(AuthAPIView):
         """
         Creates a new feedback email and sends it to admins.
         """
-        required = ["message"]
+        required = ["message", "user-interface"]
         missing_keys = check_missing_keys(request.DATA, required)
         if missing_keys:
             return keys_not_found(missing_keys)
@@ -39,41 +39,32 @@ class Feedback(AuthAPIView):
 
     def _email(self, request, username, user_email, message):
         """
-        Sends an email Bto support based on feedback from a client machine
+        Sends an email to support based on feedback from a client machine
 
         Returns a response.
         """
-        return feedback_email(request, username, user_email, message)
-
-
-def feedback_email(request, username, user_email, message):
-    """
-    Sends an email to support based on feedback from a client machine
-
-    Returns a response.
-    """
-    user = User.objects.get(username=username)
-    subject = 'Subject: Atmosphere Client Feedback from %s' % username
-    context = {
-        "user": user,
-        "feedback": message
-    }
-    body = render_to_string("core/email/feedback.html",
-                            context=Context(context))
-    email_success = email_admin(request, subject, body, request_tracker=True)
-    if email_success:
-        resp = {'result':
-                {'code': 'success',
-                    'meta': '',
-                    'value': (
-                        'Thank you for your feedback! '
-                        'Support has been notified.')}}
-    else:
-        resp = {'result':
-                {'code': 'failed',
-                 'meta': '',
-                 'value': 'Failed to send feedback!'}}
-    return resp
+        user = User.objects.get(username=username)
+        subject = 'Subject: Atmosphere Client Feedback from %s' % username
+        context = {
+            "user": user,
+            "feedback": message
+        }
+        body = render_to_string("core/email/feedback.html",
+                                context=Context(context))
+        email_success = email_admin(request, subject, body, request_tracker=True)
+        if email_success:
+            resp = {'result':
+                    {'code': 'success',
+                        'meta': '',
+                        'value': (
+                            'Thank you for your feedback! '
+                            'Support has been notified.')}}
+        else:
+            resp = {'result':
+                    {'code': 'failed',
+                     'meta': '',
+                     'value': 'Failed to send feedback!'}}
+        return resp
 
 
 class QuotaEmail(AuthAPIView):
