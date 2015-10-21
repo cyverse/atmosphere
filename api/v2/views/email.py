@@ -18,8 +18,6 @@ from core.models import Instance, Volume
 
 from api import failure_response
 from api.permissions import ApiAuthRequired, InMaintenance
-# from api.v1.views.base import AuthAPIView
-
 
 class FeedbackView(APIView):
 
@@ -34,67 +32,58 @@ class FeedbackView(APIView):
         """
         Creates a new feedback email and sends it to admins.
         """
-        logger.debug("request.DATA = %s" % (str(request.DATA)))
-        required = ["message","user-interface"]
+        required = ["message", "user-interface"]
         missing_keys = check_missing_keys(request.DATA, required)
         if missing_keys:
             return keys_not_found(missing_keys)
         result = self._email(request,
                              request.user.username,
                              lookupEmail(request.user.username),
-                             request.DATA["message"],
                              request.DATA)
         return Response(result, status=status.HTTP_201_CREATED)
 
-    def _email(self, request, username, user_email, message, data):
+    def _email(self, request, username, user_email, data):
         """
         Sends an email to support based on feedback from a client machine
 
         Returns a response.
         """
-        data['server'] = settings.SERVER_URL
-        return feedback_email(request, username, user_email, message)
+        user = User.objects.get(username=username)
+        subject = 'Subject: Atmosphere Client Feedback from %s' % username
 
-def feedback_email(request, username, user_email, message):
-    """
-    Sends an email to support based on feedback from a client machine
+        instances = Instance.objects \
+                .filter(created_by=user.id) \
+                .filter(end_date__exact=None)
 
-    Returns a response.
-    """
-    user = User.objects.get(username=username)
-    subject = 'Subject: Atmosphere Client Feedback from %s' % username
+        volumes = Volume.objects \
+                .filter(instance_source__created_by__username=username) \
+                .filter(instance_source__end_date__isnull=True)
 
-    instances = Instance.objects \
-            .filter(created_by=user.id) \
-            .filter(end_date__exact=None)
-
-    volumes = Volume.objects \
-            .filter(instance_source__created_by__username=username) \
-            .filter(instance_source__end_date__isnull=True)
-
-    context = {
-        "user": user,
-        "feedback": message,
-        "provider": user.selected_identity.provider_uuid(),
-        "instances": instances,
-        "volumes": volumes,
-    }
-    body = render_to_string("core/email/feedback.html",
-                            context=Context(context))
-    email_success = email_admin(request, subject, body, request_tracker=True)
-    if email_success:
-        resp = {'result':
-                {'code': 'success',
-                    'meta': '',
-                    'value': (
-                        'Thank you for your feedback! '
-                        'Support has been notified.')}}
-    else:
-        resp = {'result':
-                {'code': 'failed',
-                 'meta': '',
-                 'value': 'Failed to send feedback!'}}
-    return resp
+        context = {
+            "user": user,
+            "ui": data["user-interface"],
+            "server": settings.SERVER_URL,
+            "feedback": data["message"],
+            "provider": user.selected_identity.provider_uuid(),
+            "instances": instances,
+            "volumes": volumes,
+        }
+        body = render_to_string("core/email/feedback.html",
+                                context=Context(context))
+        email_success = email_admin(request, subject, body, request_tracker=True)
+        if email_success:
+            resp = {'result':
+                    {'code': 'success',
+                        'meta': '',
+                        'value': (
+                            'Thank you for your feedback! '
+                            'Support has been notified.')}}
+        else:
+            resp = {'result':
+                    {'code': 'failed',
+                     'meta': '',
+                     'value': 'Failed to send feedback!'}}
+        return resp
 
 # class QuotaEmail(AuthAPIView):
 # 
