@@ -312,7 +312,8 @@ REST_FRAMEWORK = {
         'api.renderers.JPEGRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'iplantauth.token.JWTTokenAuthentication',  # WSO2+JWT
+        'iplantauth.token.TokenAuthentication', # Generic Tokens
+        # 'iplantauth.token.JWTTokenAuthentication',  # WSO2+JWT
         # 'iplantauth.token.OAuthTokenAuthentication',  # CAS
         'iplantauth.token.GlobusOAuthTokenAuthentication',  # Globus
         # 'iplantauth.token.TokenAuthentication',  # Generic Tokens
