@@ -312,11 +312,11 @@ REST_FRAMEWORK = {
         'api.renderers.JPEGRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'iplantauth.token.JWTTokenAuthentication',
-        'iplantauth.token.OAuthTokenAuthentication',
-        'iplantauth.token.GlobusOAuthTokenAuthentication',
-        'iplantauth.token.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        'iplantauth.token.TokenAuthentication', # Generic Tokens
+        'iplantauth.token.JWTTokenAuthentication', # WSO2 + JWT
+        'iplantauth.token.OAuthTokenAuthentication', # CAS
+        'iplantauth.token.GlobusOAuthTokenAuthentication',   # Globus
+        'rest_framework.authentication.SessionAuthentication',  # Session
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,                 # Default to 20

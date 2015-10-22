@@ -38,7 +38,10 @@ class ProviderViewSet(AuthReadOnlyViewSet):
             return Provider.objects.filter(
                 only_current(), active=True, public=True)
 
-        group = Group.objects.get(name=user.username)
+        try:
+            group = Group.objects.get(name=user.username)
+        except Group.DoesNotExist:
+            return Provider.objects.none()
         provider_ids = group.identities.filter(
             only_current_provider(),
             provider__active=True).values_list('provider', flat=True)

@@ -26,7 +26,10 @@ class SizeViewSet(AuthReadOnlyViewSet):
         if isinstance(request_user, AnonymousUser):
             provider_ids = Provider.objects.filter(only_current(), active=True).values_list('id',flat=True)
         else:
-            group = Group.objects.get(name=request_user.username)
+            try:
+                group = Group.objects.get(name=request_user.username)
+            except Group.DoesNotExist:
+                return Size.objects.none()
             provider_ids = group.identities.filter(
                 only_current_provider(),
                 provider__active=True).values_list('provider', flat=True)

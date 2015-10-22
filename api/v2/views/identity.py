@@ -19,7 +19,10 @@ class IdentityViewSet(AuthViewSet):
         Filter identities by current user
         """
         user = self.request.user
-        group = Group.objects.get(name=user.username)
+        try:
+            group = Group.objects.get(name=user.username)
+        except Group.DoesNotExist:
+            return Identity.objects.none()
         identities = group.identities.filter(
             only_current_provider(), provider__active=True)
         return identities
