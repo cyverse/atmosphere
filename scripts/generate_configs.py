@@ -22,6 +22,8 @@ BACKUP_EXT = '.bak.%s' % now_time.strftime("%Y%m%d_%H%M%S")
 config_files = {
     # semantic_name: (template_location, output_location)
     'apache': ('extras/apache/atmo.conf.j2', 'extras/apache/atmo.conf'),
+    'celeryd.default': ('extras/init.d/celeryd.default.dist.j2',
+                        'extras/init.d/celeryd.default'),
     'local.py': ('atmosphere/settings/local.py.j2',
                  'atmosphere/settings/local.py'),
     'nginx': ('extras/nginx/Makefile.j2', 'extras/nginx/Makefile'),
