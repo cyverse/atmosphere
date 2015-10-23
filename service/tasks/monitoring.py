@@ -131,9 +131,6 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
     """
     provider = Provider.objects.get(id=provider_id)
 
-    # For now, lets just ignore everything that isn't Tucson.
-    if 'iplant cloud - tucson' not in provider.location.lower():
-        return
     if print_logs:
         import logging
         import sys

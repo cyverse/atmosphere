@@ -114,17 +114,17 @@ class MachineRequestList(AuthAPIView):
             machine_request = serializer.save()
             instance = machine_request.instance
             # NOTE: THIS IS A HACK -- While we enforce all images
-            #       to go to iPlant Cloud - Tucson.
+            #       to go to Jetstream - Indiana.
             # THIS CODE SHOULD BE REMOVED
             try:
                 tucson_provider = Provider.objects.get(
-                    location='iPlant Cloud - Tucson')
+                    location='Jetstream - Indiana')
                 if machine_request.new_machine_provider.location\
                    != tucson_provider.location:
                     machine_request.new_machine_provider = tucson_provider
             except:
                 # Will skip this step if no provider is named
-                # iPlant Cloud - Tucson.
+                # Jetstream - Indiana.
                 pass
             serializer.save()
             # Object now has an ID for links..

@@ -401,17 +401,18 @@ CELERYBEAT_SCHEDULE = {
     "monitor_machines": {
         "task": "monitor_machines",
         # Every day of the week @ 1am
-        "schedule": crontab(hour="1", minute="0", day_of_week="*"),
+        #"schedule": crontab(hour="1", minute="0", day_of_week="*"),
+        "schedule": timedelta(minutes=10),
         "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
     "monitor_sizes": {
         "task": "monitor_sizes",
-        "schedule": timedelta(minutes=30),
+        "schedule": timedelta(minutes=10),
         "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
     "monitor_instances": {
         "task": "monitor_instances",
-        "schedule": timedelta(minutes=15),
+        "schedule": timedelta(minutes=3),
         "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
     "clear_empty_ips": {
