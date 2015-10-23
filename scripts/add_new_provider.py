@@ -252,6 +252,7 @@ def main():
     new_provider = create_provider(provider_info)
     create_provider_credentials(new_provider, provider_credentials)
     create_admin(new_provider, admin_info)
+    print "You still need to create an AllocationStrategy. Go into the admin panel and select a Strategy *BEFORE* you use Atmosphere"
 
 if __name__ == "__main__":
     main()
