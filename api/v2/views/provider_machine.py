@@ -8,6 +8,7 @@ from core.query import only_current_source
 
 from api.v2.serializers.details import ProviderMachineSerializer
 from api.v2.views.base import OwnerUpdateViewSet
+from api.v2.views.mixins import MultipleFieldLookup
 
 
 def get_admin_machines(user):
@@ -44,12 +45,12 @@ class ImageVersionFilter(django_filters.FilterSet):
         fields = ['image_id', 'version_id', 'created_by']
 
 
-class ProviderMachineViewSet(OwnerUpdateViewSet):
+class ProviderMachineViewSet(MultipleFieldLookup, OwnerUpdateViewSet):
 
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
-
+    lookup_fields = ("id", "uuid")
     queryset = ProviderMachine.objects.none()
     serializer_class = ProviderMachineSerializer
     search_fields = (

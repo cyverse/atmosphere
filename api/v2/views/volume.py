@@ -6,6 +6,8 @@ from rest_framework import exceptions
 
 from api.v2.serializers.details import VolumeSerializer, UpdateVolumeSerializer
 from api.v2.views.base import AuthViewSet
+from api.v2.views.mixins import MultipleFieldLookup
+
 from core.models import Volume
 from core.query import only_current_source
 from service.volume import create_volume_or_fail, destroy_volume_or_fail
@@ -26,11 +28,12 @@ class VolumeFilter(django_filters.FilterSet):
         fields = ['min_size', 'max_size', 'projects']
 
 
-class VolumeViewSet(AuthViewSet):
+class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
 
     """
     API endpoint that allows providers to be viewed or edited.
     """
+    lookup_fields = ("id", "uuid")
     serializer_class = VolumeSerializer
     filter_class = VolumeFilter
     http_method_names = ('get', 'post', 'put', 'patch', 'delete',

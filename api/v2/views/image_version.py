@@ -5,7 +5,6 @@ from core.models import ApplicationVersion as ImageVersion
 from api.v2.views.base import AuthOptionalViewSet
 from api.v2.serializers.details import ImageVersionSerializer
 
-
 class ImageFilter(django_filters.FilterSet):
     image_id = django_filters.CharFilter('application__id')
     created_by = django_filters.CharFilter('application__created_by__username')
