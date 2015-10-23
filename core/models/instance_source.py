@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -18,6 +20,7 @@ class InstanceSource(models.Model):
     * A snapshot of a previous/existing Instance
     * A ProviderMachine/Application
     """
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     provider = models.ForeignKey(Provider)
     identifier = models.CharField(max_length=256)
     created_by = models.ForeignKey(User, blank=True, null=True,

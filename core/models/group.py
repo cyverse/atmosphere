@@ -1,7 +1,9 @@
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 """
 Atmosphere utilizes the DjangoGroup model
 to manage users via the membership relationship
 """
+import uuid
 from math import floor, ceil
 
 from django.db import models
@@ -25,6 +27,7 @@ class Group(DjangoGroup):
     """
     Extend the Django Group model to support 'membership'
     """
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     leaders = models.ManyToManyField('AtmosphereUser', through='Leadership')
     identities = models.ManyToManyField(Identity, through='IdentityMembership',
                                         blank=True)
@@ -90,6 +93,7 @@ class Group(DjangoGroup):
 
 
 class Leadership(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     user = models.ForeignKey('AtmosphereUser')
     group = models.ForeignKey(Group)
 
@@ -111,6 +115,7 @@ class IdentityMembership(models.Model):
     IdentityMembership allows group 'API access' to use a specific provider
     The identity is given a quota on how many resources can be allocated
     """
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     identity = models.ForeignKey(Identity)
     member = models.ForeignKey(Group)
     quota = models.ForeignKey(Quota)
@@ -124,7 +129,7 @@ class IdentityMembership(models.Model):
             logger.warn("Group %s does not exist" % groupname)
         try:
             return group.identitymembership_set.first()
-        except IdentityMembershipDoesNotExist:
+        except IdentityMembership.DoesNotExist:
             logger.warn("%s is not a member of any identities" % groupname)
 
     def get_allocation_dict(self):
@@ -203,6 +208,7 @@ class InstanceMembership(models.Model):
     calls to terminate/request imaging/attach/detach *should* fail.
     (This can also be dictated by permission)
     """
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     instance = models.ForeignKey('Instance')
     owner = models.ForeignKey(Group)
 
@@ -215,4 +221,3 @@ class InstanceMembership(models.Model):
         unique_together = ('instance', 'owner')
 
 
-# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4

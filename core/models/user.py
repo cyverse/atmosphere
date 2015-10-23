@@ -1,3 +1,5 @@
+import uuid
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import Q
@@ -9,6 +11,7 @@ from threepio import logger
 
 
 class AtmosphereUser(AbstractUser):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     selected_identity = models.ForeignKey('Identity', blank=True, null=True)
 
     def group_ids(self):
