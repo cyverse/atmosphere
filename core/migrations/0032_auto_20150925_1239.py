@@ -9,7 +9,7 @@ import core.models.status_type
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0031_set_membership_and_created_by'),
+        ('core', '0036_complete_the_uuid_merge'),
     ]
 
     operations = [
