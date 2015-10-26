@@ -13,4 +13,4 @@ class BootScriptSummarySerializer(serializers.HyperlinkedModelSerializer):
     )
     class Meta:
         model = BootScript
-        fields = ('id', 'uuid', 'title', 'type')
+        fields = ('id', 'url', 'uuid', 'title', 'type')

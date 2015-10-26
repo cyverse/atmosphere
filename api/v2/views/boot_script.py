@@ -21,11 +21,11 @@ class BootScriptViewSet(MultipleFieldLookup, AuthViewSet):
     API endpoint that allows scripts to be viewed or edited.
     """
 
-    lookup_field = ('id', 'uuid')
     queryset = BootScript.objects.none()
     serializer_class = BootScriptSerializer
     filter_class = ImageVersionFilter
     search_fields = ('^title',)
+    lookup_fields = ('id', 'uuid')
 
     def get_queryset(self):
         """

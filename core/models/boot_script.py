@@ -61,7 +61,7 @@ class BootScript(models.Model):
         return slugify(self.title).replace('-', '_')
 
     def get_text(self):
-        if self.script_type.name == 'Raw Text':
+        if self.script_type.name == 'Full Text':
             return self.script_text
         elif self.script_type.name == 'URL':
             return self._text_from_url()
