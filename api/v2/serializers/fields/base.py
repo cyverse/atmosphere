@@ -1,5 +1,17 @@
 from rest_framework import serializers
 
+class ReprSlugRelatedField(serializers.SlugRelatedField):
+    def __init__(self, slug_field=None, repr_slug_field=None, **kwargs):
+        assert slug_field is not None, 'The `slug_field` argument is required.'
+        assert repr_slug_field is not None, 'The `repr_slug_field` argument is required.'
+        self.slug_field = slug_field
+        self.repr_slug_field = repr_slug_field
+        super(ReprSlugRelatedField, self).__init__(slug_field=slug_field, **kwargs)
+
+
+    def to_representation(self, obj):
+        return getattr(obj, self.repr_slug_field)
+
 class DebugHyperlinkedIdentityField(serializers.HyperlinkedIdentityField):
     def __init__(self, view_name=None, **kwargs):
         return super(DebugHyperlinkedIdentityField, self).__init__(view_name=view_name, **kwargs)
