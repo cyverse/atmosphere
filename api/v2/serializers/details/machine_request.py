@@ -18,6 +18,7 @@ from api.v2.serializers.summaries import (
 )
 from api.v2.serializers.fields import (
     ProviderMachineRelatedField, ModelRelatedField)
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class UserRelatedField(serializers.PrimaryKeyRelatedField):
@@ -147,7 +148,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     admin_message = serializers.CharField(read_only=True)
     parent_machine = ModelRelatedField(
        required = False, 
-       lookup_field="id",
+       lookup_field="uuid",
        queryset=ProviderMachine.objects.all(),
        serializer_class=ProviderMachineSummarySerializer,
        style={'base_template': 'input.html'})
@@ -201,10 +202,12 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
         serializer_class = ProviderMachineSummarySerializer,
         style = {'base_template':'input.html'})
     new_application_version = ImageVersionSummarySerializer(read_only=True)
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:machinerequest-detail',
+    )
 
     class Meta:
         model = MachineRequest
-        view_name = 'api:v2:machinerequest-detail'
         fields = (
             'id',
             'uuid',
@@ -259,10 +262,12 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     new_application_visibility = serializers.CharField()
     admin_message = serializers.CharField(read_only=True)
     access_list = serializers.CharField(allow_blank=True)
-    
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:machinerequest-detail',
+    )
+
     class Meta:
         model = MachineRequest
-        view_name = 'api:v2:machinerequest-detail'
         fields = (
             'id',
             'uuid',

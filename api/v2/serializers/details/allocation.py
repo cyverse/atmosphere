@@ -1,10 +1,13 @@
 from core.models import Allocation
 from rest_framework import serializers
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class AllocationSerializer(serializers.HyperlinkedModelSerializer):
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:allocation-detail',
+    )
 
     class Meta:
         model = Allocation
-        view_name = 'api:v2:allocation-detail'
-        fields = ('id', 'url', 'threshold', 'delta')
+        fields = ('id', 'uuid', 'url', 'threshold', 'delta')

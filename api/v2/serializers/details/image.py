@@ -4,6 +4,7 @@ from rest_framework import serializers
 from api.v2.serializers.summaries import UserSummarySerializer
 from api.v2.serializers.fields import (
         ImageVersionRelatedField, TagRelatedField)
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class SwapBooleanField(serializers.BooleanField):
@@ -24,10 +25,11 @@ class ImageSerializer(serializers.HyperlinkedModelSerializer):
     versions = ImageVersionRelatedField(many=True)
     icon = serializers.CharField(source="get_icon_url", read_only=True)
     is_public = SwapBooleanField(source='private')
-
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:application-detail',
+    )
     class Meta:
         model = Image
-        view_name = 'api:v2:application-detail'
         fields = (
             'id',
             'url',

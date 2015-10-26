@@ -10,6 +10,7 @@ from api.v2.serializers.summaries import (
     ImageVersionSummarySerializer,
     BootScriptSummarySerializer
 )
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class InstanceSerializer(serializers.HyperlinkedModelSerializer):
@@ -27,6 +28,11 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
     image = serializers.SerializerMethodField()
     version = serializers.SerializerMethodField()
     uuid = serializers.CharField(source='provider_alias')
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:instance-detail',
+        uuid_field='provider_alias'
+    )
+
 
     def get_size(self, obj):
         size = obj.get_size()
@@ -48,7 +54,6 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Instance
-        view_name = 'api:v2:instance-detail'
         fields = (
             'id',
             'uuid',

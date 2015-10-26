@@ -37,10 +37,11 @@ class ImageVersionMembershipSerializer(serializers.HyperlinkedModelSerializer):
         queryset=ImageVersion.objects.none(), source='application_version')
     group = MembershipRelatedField(
         queryset=Membership.objects.none())
-
+    url = serializers.HyperlinkedIdentityField(
+        view_name='api:v2:imageversion_membership-detail',
+    )
     class Meta:
         model = ImageVersionMembership
-        view_name = 'api:v2:imageversion_membership-detail'
         fields = (
             'id',
             'url',

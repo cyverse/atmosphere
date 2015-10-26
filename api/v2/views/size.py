@@ -32,7 +32,7 @@ class SizeViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
                 provider__active=True).values_list('provider', flat=True)
 
         # Switch based on query
-        if 'archived' in self.request.QUERY_PARAMS:
+        if 'archived' in self.request.query_params:
             return Size.objects.filter(
                 provider__id__in=provider_ids)
         else:

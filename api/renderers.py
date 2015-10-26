@@ -19,3 +19,12 @@ class JPEGRenderer(renderers.BaseRenderer):
 
     def render(self, data, media_type=None, renderer_context=None):
         return data
+
+
+class BrowsableAPIRenderer(renderers.BrowsableAPIRenderer):
+    """Render Browsable API without fomrs."""
+
+    def get_context(self, *args, **kwargs):
+        ctx = super(BrowsableAPIRenderer,self).get_context(*args, **kwargs)
+        ctx['display_edit_forms'] = False
+        return ctx

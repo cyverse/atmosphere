@@ -3,6 +3,7 @@ import django_filters
 from core.models import BootScript
 from api.v2.serializers.details import BootScriptSerializer
 from api.v2.views.base import AuthViewSet
+from api.v2.views.mixins import MultipleFieldLookup
 
 
 class ImageVersionFilter(django_filters.FilterSet):
@@ -14,12 +15,13 @@ class ImageVersionFilter(django_filters.FilterSet):
         fields = ['version_id', 'title']
 
 
-class BootScriptViewSet(AuthViewSet):
+class BootScriptViewSet(MultipleFieldLookup, AuthViewSet):
 
     """
     API endpoint that allows scripts to be viewed or edited.
     """
 
+    lookup_field = ('id', 'uuid')
     queryset = BootScript.objects.none()
     serializer_class = BootScriptSerializer
     filter_class = ImageVersionFilter

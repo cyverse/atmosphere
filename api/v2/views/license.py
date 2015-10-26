@@ -1,8 +1,9 @@
 from core.models import License
 from api.v2.serializers.details import LicenseSerializer
 from api.v2.views.base import AuthViewSet
+from api.v2.views.mixins import MultipleFieldLookup
 
-class LicenseViewSet(AuthViewSet):
+class LicenseViewSet(MultipleFieldLookup, AuthViewSet):
 
     """
     API endpoint that allows licenses to be viewed or edited.
@@ -12,6 +13,7 @@ class LicenseViewSet(AuthViewSet):
     serializer_class = LicenseSerializer
     filter_fields = ('title',)
     search_fields = ('^title',)
+    lookup_fields = ("id", "uuid")
 
     def get_queryset(self):
         """

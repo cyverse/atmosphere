@@ -1,21 +1,25 @@
 from core.models import Provider, ProviderType, PlatformType
 from rest_framework import serializers
 from api.v2.serializers.summaries import SizeSummarySerializer
-
+from api.v2.serializers.fields.base import DebugHyperlinkedIdentityField, UUIDHyperlinkedIdentityField 
 
 class ProviderTypeSerializer(serializers.HyperlinkedModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='api:v2:providertype-detail',
+    )
 
     class Meta:
         model = ProviderType
-        view_name = 'api:v2:providertype-detail'
         fields = ('id', 'url', 'name', 'start_date', 'end_date')
 
 
 class PlatformTypeSerializer(serializers.HyperlinkedModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='api:v2:platformtype-detail',
+    )
 
     class Meta:
         model = PlatformType
-        view_name = 'api:v2:platformtype-detail'
         fields = ('id', 'url', 'name', 'start_date', 'end_date')
 
 
@@ -24,10 +28,12 @@ class ProviderSerializer(serializers.HyperlinkedModelSerializer):
     type = ProviderTypeSerializer()
     virtualization = PlatformTypeSerializer()
     sizes = SizeSummarySerializer(source='size_set', many=True)
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:provider-detail',
+    )
 
     class Meta:
         model = Provider
-        view_name = 'api:v2:provider-detail'
         fields = (
             'id',
             'url',

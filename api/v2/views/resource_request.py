@@ -6,15 +6,13 @@ from api.v2.serializers.details import ResourceRequestSerializer,\
 from api.v2.views.base import BaseRequestViewSet
 from core import tasks
 from service.tasks import admin as admin_task
-from api.v2.views.mixins import MultipleFieldLookup
 
 
-class ResourceRequestViewSet(MultipleFieldLookup, BaseRequestViewSet):
+class ResourceRequestViewSet(BaseRequestViewSet):
 
     """
     API endpoint that allows resource request to be viewed or edited.
     """
-    lookup_fields = ("id", "uuid")
     queryset = ResourceRequest.objects.none()
     model = ResourceRequest
     serializer_class = UserResourceRequestSerializer

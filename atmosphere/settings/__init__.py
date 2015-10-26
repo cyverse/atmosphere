@@ -301,13 +301,12 @@ sys.stdout = sys.stderr
 # REST FRAMEWORK
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (
-        # Included Renderers
+        # Included Renderers (In order of preference)
+        'api.renderers.BrowsableAPIRenderer',
         'rest_framework.renderers.JSONRenderer',
         'rest_framework_jsonp.renderers.JSONPRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework_yaml.renderers.YAMLRenderer',
         'rest_framework_xml.renderers.XMLRenderer',
-        # Our Renderers
         'api.renderers.PNGRenderer',
         'api.renderers.JPEGRenderer',
     ),

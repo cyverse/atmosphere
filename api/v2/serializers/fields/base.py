@@ -1,5 +1,22 @@
 from rest_framework import serializers
 
+class DebugHyperlinkedIdentityField(serializers.HyperlinkedIdentityField):
+    def __init__(self, view_name=None, **kwargs):
+        return super(DebugHyperlinkedIdentityField, self).__init__(view_name=view_name, **kwargs)
+
+
+    def get_url(self, obj, view_name, request, format):
+        """
+        """
+        import ipdb;ipdb.set_trace()
+        # Unsaved objects will not yet have a valid URL.
+        if hasattr(obj, 'pk') and obj.pk is None:
+            return None
+
+        lookup_value = getattr(obj, self.lookup_field)
+        kwargs = {self.lookup_url_kwarg: lookup_value}
+        return self.reverse(view_name, kwargs=kwargs, request=request, format=format)
+
 class UUIDHyperlinkedIdentityField(serializers.HyperlinkedIdentityField):
     lookup_field ='uuid'
     lookup_url_kwarg = 'uuid'

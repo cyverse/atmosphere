@@ -5,6 +5,7 @@ from core.models import ApplicationVersionMembership as ImageVersionMembership
 
 from api.v2.serializers.details import ImageVersionMembershipSerializer
 from api.v2.views.base import AuthViewSet
+from api.v2.views.mixins import MultipleFieldLookup
 
 class VersionFilter(django_filters.FilterSet):
     version_id = django_filters.MethodFilter(action='filter_by_uuid')
@@ -24,11 +25,12 @@ class VersionFilter(django_filters.FilterSet):
         fields = ['version_id', 'created_by']
 
 
-class ImageVersionMembershipViewSet(AuthViewSet):
+class ImageVersionMembershipViewSet(MultipleFieldLookup, AuthViewSet):
 
     """
     API endpoint that allows version tags to be viewed
     """
+    lookup_fields = ("id", "uuid")
     queryset = ImageVersionMembership.objects.none()
     serializer_class = ImageVersionMembershipSerializer
     filter_class = VersionFilter

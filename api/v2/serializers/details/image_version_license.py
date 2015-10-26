@@ -37,10 +37,11 @@ class ImageVersionLicenseSerializer(serializers.HyperlinkedModelSerializer):
         queryset=ImageVersion.objects.none(), source='applicationversion')
     license = LicenseRelatedField(
         queryset=License.objects.none())
-
+    url = serializers.HyperlinkedIdentityField(
+        view_name='api:v2:imageversion_license-detail',
+    )
     class Meta:
         model = ImageVersionLicense
-        view_name = 'api:v2:imageversion_license-detail'
         fields = (
             'id',
             'url',

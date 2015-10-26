@@ -1,5 +1,6 @@
 from core.models import License, LicenseType
 from rest_framework import serializers
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class LicenseSummarySerializer(serializers.HyperlinkedModelSerializer):
@@ -8,8 +9,9 @@ class LicenseSummarySerializer(serializers.HyperlinkedModelSerializer):
         slug_field='name',
         queryset=LicenseType.objects.all())
     text = serializers.CharField(source='license_text', read_only=True)
-
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:license-detail',
+    )
     class Meta:
         model = License
-        view_name = 'api:v2:license-detail'
-        fields = ('id', 'title', 'type', 'text')
+        fields = ('id', 'uuid', 'title', 'type', 'text')

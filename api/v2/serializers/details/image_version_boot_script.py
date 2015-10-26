@@ -37,10 +37,12 @@ class ImageVersionBootScriptSerializer(serializers.HyperlinkedModelSerializer):
         queryset=ImageVersion.objects.none(), source='applicationversion')
     boot_script = BootScriptRelatedField(
         queryset=BootScript.objects.none(), source='bootscript')
+    url = serializers.HyperlinkedIdentityField(
+        view_name='api:v2:imageversion_bootscript-detail',
+    )
 
     class Meta:
         model = ImageVersionBootScript
-        view_name = 'api:v2:imageversion_bootscript-detail'
         fields = (
             'id',
             'url',

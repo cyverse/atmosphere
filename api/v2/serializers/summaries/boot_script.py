@@ -1,5 +1,6 @@
 from core.models import BootScript, ScriptType
 from rest_framework import serializers
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class BootScriptSummarySerializer(serializers.HyperlinkedModelSerializer):
@@ -7,8 +8,9 @@ class BootScriptSummarySerializer(serializers.HyperlinkedModelSerializer):
         source='script_type',
         slug_field='name',
         queryset=ScriptType.objects.all())
-
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:bootscript-detail',
+    )
     class Meta:
         model = BootScript
-        view_name = 'api:v2:license-detail'
-        fields = ('id', 'title', 'type')
+        fields = ('id', 'uuid', 'title', 'type')

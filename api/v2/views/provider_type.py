@@ -5,12 +5,11 @@ from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 
-class ProviderTypeViewSet(MultipleFieldLookup, AuthViewSet):
+class ProviderTypeViewSet(AuthViewSet):
 
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
-    lookup_fields = ("id", "uuid")
     queryset = ProviderType.objects.all()
     serializer_class = ProviderTypeSerializer
     http_method_names = ['get', 'head', 'options', 'trace']

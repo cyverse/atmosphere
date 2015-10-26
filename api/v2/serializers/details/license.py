@@ -2,6 +2,7 @@ from core.models import License, LicenseType
 from api.v2.serializers.fields import ModelRelatedField
 from api.v2.serializers.summaries import LicenseTypeSummarySerializer
 from rest_framework import serializers
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class LicenseSerializer(serializers.HyperlinkedModelSerializer):
@@ -12,6 +13,9 @@ class LicenseSerializer(serializers.HyperlinkedModelSerializer):
         queryset=LicenseType.objects.all(),
         serializer_class=LicenseTypeSummarySerializer,
         style={'base_template': 'input.html'})
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:license-detail',
+    )
 
     def create(self, validated_data):
 
@@ -23,5 +27,4 @@ class LicenseSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = License
-        view_name = 'api:v2:license-detail'
-        fields = ('id', 'title', 'text', 'type')
+        fields = ('id', 'url', 'uuid', 'title', 'text', 'type')
