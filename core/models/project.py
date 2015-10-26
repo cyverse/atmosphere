@@ -18,7 +18,7 @@ class Project(models.Model):
       * Instance
       * Volume
     """
-    uuid = models.CharField(max_length=36, unique=True, default=uuid4)
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True)
     start_date = models.DateTimeField(default=timezone.now)

@@ -19,7 +19,7 @@ class Identity(models.Model):
     to authenticate against a single provider
     """
 
-    uuid = models.CharField(max_length=36, unique=True, default=uuid4)
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     created_by = models.ForeignKey("AtmosphereUser")
     provider = models.ForeignKey("Provider")
 

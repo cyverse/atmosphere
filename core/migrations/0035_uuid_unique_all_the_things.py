@@ -17,7 +17,22 @@ class Migration(migrations.Migration):
             field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
         ),
         migrations.AlterField(
+            model_name='cloudadministrator',
+            name='uuid2',
+            field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
+        ),
+        migrations.AlterField(
+            model_name='identity',
+            name='uuid2',
+            field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
+        ),
+        migrations.AlterField(
             model_name='machinerequest',
+            name='uuid2',
+            field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
+        ),
+        migrations.AlterField(
+            model_name='project',
             name='uuid2',
             field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
         ),
@@ -27,7 +42,22 @@ class Migration(migrations.Migration):
             field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
         ),
         migrations.AlterField(
+            model_name='allocation',
+            name='uuid',
+            field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
+        ),
+        migrations.AlterField(
+            model_name='applicationbookmark',
+            name='uuid',
+            field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
+        ),
+        migrations.AlterField(
             model_name='atmosphereuser',
+            name='uuid',
+            field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
+        ),
+        migrations.AlterField(
+            model_name='bootscript',
             name='uuid',
             field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
         ),
@@ -48,6 +78,16 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterField(
             model_name='instancesource',
+            name='uuid',
+            field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
+        ),
+        migrations.AlterField(
+            model_name='instancestatushistory',
+            name='uuid',
+            field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
+        ),
+        migrations.AlterField(
+            model_name='license',
             name='uuid',
             field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
         ),

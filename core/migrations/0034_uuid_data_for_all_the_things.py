@@ -27,10 +27,15 @@ def uuid_for_all(apps, schema_editor):
     model_key_map = {
             # UUID
             'atmosphereuser' : 'uuid',
+            'allocation' : 'uuid',
+            'applicationbookmark' : 'uuid',
+            'bootscript' : 'uuid',
             'group' : 'uuid',
             'identitymembership' : 'uuid',
             'instancemembership' : 'uuid',
             'instancesource' : 'uuid',
+            'instancestatushistory' : 'uuid',
+            'license' : 'uuid',
             'leadership' : 'uuid',
             'machinerequest' : 'uuid',
             'resourcerequest' : 'uuid',
@@ -40,8 +45,11 @@ def uuid_for_all(apps, schema_editor):
             'tag' : 'uuid',
             # UUID2
             'application' : 'uuid2',
+            'cloudadministrator' : 'uuid2',
+            'identity' : 'uuid2',
             'machinerequest' : 'uuid2',
             'provider' : 'uuid2',
+            'project' : 'uuid2',
             'resourcerequest' : 'uuid2',
     }
     for core_model, uuid_key in model_key_map.items():

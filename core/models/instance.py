@@ -1,6 +1,7 @@
 """
   Instance model for atmosphere.
 """
+from uuid import uuid4
 from hashlib import md5
 from datetime import datetime, timedelta
 
@@ -531,6 +532,7 @@ class InstanceStatusHistory(models.Model):
     Used to keep track of each change in instance status
     (Useful for time management)
     """
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     instance = models.ForeignKey(Instance)
     size = models.ForeignKey("Size", null=True, blank=True)
     status = models.ForeignKey(InstanceStatus)

@@ -581,6 +581,7 @@ class ApplicationScore(models.Model):
 
 
 class ApplicationBookmark(models.Model):
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     user = models.ForeignKey('AtmosphereUser', related_name="bookmarks")
     application = models.ForeignKey(Application, related_name="bookmarks")
 

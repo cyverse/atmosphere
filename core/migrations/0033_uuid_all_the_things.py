@@ -18,7 +18,22 @@ class Migration(migrations.Migration):
             field=models.UUIDField(null=True),
         ),
         migrations.AddField(
+            model_name='cloudadministrator',
+            name='uuid2',
+            field=models.UUIDField(null=True),
+        ),
+        migrations.AddField(
+            model_name='identity',
+            name='uuid2',
+            field=models.UUIDField(null=True),
+        ),
+        migrations.AddField(
             model_name='machinerequest',
+            name='uuid2',
+            field=models.UUIDField(null=True),
+        ),
+        migrations.AddField(
+            model_name='project',
             name='uuid2',
             field=models.UUIDField(null=True),
         ),
@@ -27,8 +42,24 @@ class Migration(migrations.Migration):
             name='uuid2',
             field=models.UUIDField(null=True),
         ),
+        ######################################
+        migrations.AddField(
+            model_name='allocation',
+            name='uuid',
+            field=models.UUIDField(null=True),
+        ),
         migrations.AddField(
             model_name='atmosphereuser',
+            name='uuid',
+            field=models.UUIDField(null=True),
+        ),
+        migrations.AddField(
+            model_name='applicationbookmark',
+            name='uuid',
+            field=models.UUIDField(null=True),
+        ),
+        migrations.AddField(
+            model_name='bootscript',
             name='uuid',
             field=models.UUIDField(null=True),
         ),
@@ -54,6 +85,16 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='leadership',
+            name='uuid',
+            field=models.UUIDField(null=True),
+        ),
+        migrations.AddField(
+            model_name='instancestatushistory',
+            name='uuid',
+            field=models.UUIDField(null=True),
+        ),
+        migrations.AddField(
+            model_name='license',
             name='uuid',
             field=models.UUIDField(null=True),
         ),

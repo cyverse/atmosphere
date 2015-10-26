@@ -17,7 +17,19 @@ class Migration(migrations.Migration):
             name='uuid',
         ),
         migrations.RemoveField(
+            model_name='cloudadministrator',
+            name='uuid',
+        ),
+        migrations.RemoveField(
             model_name='machinerequest',
+            name='uuid',
+        ),
+        migrations.RemoveField(
+            model_name='project',
+            name='uuid',
+        ),
+        migrations.RemoveField(
+            model_name='identity',
             name='uuid',
         ),
         migrations.RemoveField(
@@ -31,6 +43,12 @@ class Migration(migrations.Migration):
         migrations.RenameField(
            'application', 'uuid2', 'uuid'
         ),
+        migrations.RenameField(
+            'cloudadministrator', 'uuid2', 'uuid'
+        ),
+        migrations.RenameField(
+            'identity', 'uuid2', 'uuid'
+        ),
         migrations.AlterField(
             model_name='applicationversion',
             name='id',
@@ -38,6 +56,9 @@ class Migration(migrations.Migration):
         ),
         migrations.RenameField(
             'machinerequest', 'uuid2', 'uuid'
+        ),
+        migrations.RenameField(
+            'project', 'uuid2', 'uuid'
         ),
         migrations.RenameField(
             'provider', 'uuid2', 'uuid'

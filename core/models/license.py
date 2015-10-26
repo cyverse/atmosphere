@@ -1,4 +1,5 @@
 from django.db import models
+from uuid import uuid4
 
 from core.models.user import AtmosphereUser
 from core.models.match import PatternMatch
@@ -26,6 +27,7 @@ class License(models.Model):
 
     """
     """
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     title = models.CharField(max_length=256)
     license_type = models.ForeignKey(LicenseType)
     license_text = models.TextField()

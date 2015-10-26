@@ -41,6 +41,7 @@ class BootScript(models.Model):
     BootScripts can be created as an isolated unit, before they are associated
     with a specific application or instance.
     """
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     title = models.CharField(max_length=128)
     created_by = models.ForeignKey("AtmosphereUser")
     script_type = models.ForeignKey(ScriptType)
