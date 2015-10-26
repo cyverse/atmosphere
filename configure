@@ -202,8 +202,7 @@ def _compare_variables_distribution():
     variables_ini = _get_variables()[0]
     variables_dist = _get_variables(VARIABLES_PATH+'.dist')[0]
     unused_dist_ns = _populate_variable_namespace(variables_dist, SECTION_MAPPING.keys())
-    pprint(variables_ini)
-    pprint(variables_dist)
+
     for section in variables_ini.keys():
         d = Set(variables_dist[section])
         i = Set(variables_ini[section])
