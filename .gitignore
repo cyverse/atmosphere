@@ -10,7 +10,7 @@ nohup.out
 *.log
 *.out
 *.pot
-*.json
+*/*.json
 *.org
 *.bak
 .*
