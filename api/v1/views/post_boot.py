@@ -36,7 +36,7 @@ class BootScriptList(AuthAPIView):
         Authentication Required, list of BootScripts on your account.
         """
         username = request.user.username
-        data = request.DATA
+        data = request.data
         serializer = BootScriptSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
@@ -77,7 +77,7 @@ class BootScript(AuthAPIView):
 
     def _update_script(self, request, script_id):
         user = request.user
-        data = request.DATA
+        data = request.data
         partial = True if request.method == 'PATCH' else False
         # Step 1: Retrieve or 'Forbidden' on updating script
         scripts = get_scripts_for_user(user.username)

@@ -28,7 +28,7 @@ class GroupList(AuthAPIView):
         Params:name -- The name of the group
                user -- One or more users belonging to the group
         """
-        params = request.DATA
+        params = request.data
         groupname = params['name']
         # STEP1 Create the account on the provider
         group = CoreGroup.objects.create(name=groupname)
