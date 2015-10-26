@@ -136,7 +136,7 @@ class InstanceList(AuthAPIView):
         the URL for the newly created instance
         I.e: url = "/provider/1/instance/1/i-12345678"
         """
-        data = request.DATA
+        data = request.data
         user = request.user
         # Check the data is valid
         missing_keys = valid_post_data(data)
@@ -419,7 +419,7 @@ class InstanceAction(AuthAPIView):
         including necessary parameters.
         """
         # Service-specific call to action
-        action_params = request.DATA
+        action_params = request.data
         if not action_params.get('action', None):
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
@@ -669,7 +669,7 @@ class Instance(AuthAPIView):
     def patch(self, request, provider_uuid, identity_uuid, instance_id):
         """Authentication Required, update metadata about the instance"""
         user = request.user
-        data = request.DATA
+        data = request.data
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -719,7 +719,7 @@ class Instance(AuthAPIView):
     def put(self, request, provider_uuid, identity_uuid, instance_id):
         """Authentication Required, update metadata about the instance"""
         user = request.user
-        data = request.DATA
+        data = request.data
         # Ensure item exists on the server first
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
@@ -868,7 +868,7 @@ class InstanceTagList(AuthAPIView):
         Status Code: 400 Body: Errors (Duplicate/Invalid Name)
         """
         user = request.user
-        data = request.DATA.copy()
+        data = request.data.copy()
         if 'name' not in data:
             return Response("Missing 'name' in POST data",
                             status=status.HTTP_400_BAD_REQUEST)

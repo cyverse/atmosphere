@@ -214,7 +214,7 @@ class ProjectList(AuthAPIView):
 
     def post(self, request):
         user = request.user
-        data = request.DATA
+        data = request.data
         # Default to creating for the 'user-group'
         if not data.get('owner'):
             data['owner'] = user.username
@@ -257,7 +257,7 @@ class ProjectDetail(AuthAPIView):
             return Response("Project with UUID=%s does not "
                             "exist" % project_uuid,
                             status=status.HTTP_400_BAD_REQUEST)
-        data = request.DATA
+        data = request.data
         serializer = ProjectSerializer(project, data=data, partial=True,
                                        context={"request": request})
         if serializer.is_valid():
@@ -278,7 +278,7 @@ class ProjectDetail(AuthAPIView):
             return Response("Project with UUID=%s does not "
                             "exist" % project_uuid,
                             status=status.HTTP_400_BAD_REQUEST)
-        data = request.DATA
+        data = request.data
         serializer = ProjectSerializer(project, data=data,
                                        context={"request": request})
         if serializer.is_valid():
