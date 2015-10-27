@@ -6,6 +6,7 @@ import os
 
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.conf import settings
 from django.conf.urls import patterns, url, include
 
 from api.auth import Authentication
@@ -37,12 +38,11 @@ urlpatterns = patterns(
     # DB Admin Panel for admin users
     url(r'^admin/', include(admin.site.urls)))
 
-from django.conf import settings
 
 if settings.DEBUG:
     try:
         import debug_toolbar
-        urlpatterns += patterns(
+        urlpatterns += (
             url(r'^__debug__/', include(debug_toolbar.urls)),
             )
     except ImportError:
