@@ -209,10 +209,10 @@ class Instance(models.Model):
         # TODO: Profile Option
         # except InstanceStatusHistory.DoesNotExist:
         # TODO: Profile current choice
-        last_history = self.instancestatushistory_set.all().order_by(
-            '-start_date')
+        last_history = self.instancestatushistory_set.order_by(
+            '-start_date').first()
         if last_history:
-            return last_history[0]
+            return last_history
         else:
             unknown_size, _ = Size.objects.get_or_create(
                 name='Unknown Size', alias='N/A', provider=self.provider,
@@ -511,7 +511,7 @@ class Instance(models.Model):
     def __unicode__(self):
         return "%s (Name:%s, Creator:%s, IP:%s)" %\
             (self.provider_alias, self.name,
-             self.created_by, self.ip_address)
+             self.created_by_id, self.ip_address)
 
     class Meta:
         db_table = "instance"

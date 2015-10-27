@@ -40,10 +40,8 @@ class Project(models.Model):
             pk__in=self.instances.values_list("id"))
 
     def __unicode__(self):
-        return "%s Owner:%s: Apps:%s Instances:%s Volumes:%s"\
-            % (self.name, self.owner,
-               self.applications.all(), self.instances.all(),
-               self.volumes.all())
+        return "%s Owner ID:%s" \
+            % (self.name, self.owner_id)
 
     def has_running_resources(self):
         now_date = timezone.now()

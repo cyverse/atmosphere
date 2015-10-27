@@ -62,7 +62,7 @@ class Size(models.Model):
             self.alias,
             self.id,
             self.name,
-            self.provider,
+            self.provider_id,
             self.cpu,
             self.mem,
             self.disk,
