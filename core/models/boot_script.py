@@ -144,5 +144,13 @@ def _save_scripts_to_instance(instance, boot_script_list):
             instance.scripts.remove(old_script)
     # Add all new scripts
     for script_id in boot_script_list:
-        script = BootScript.objects.get(id=script_id)
+        try:
+            script = BootScript.objects.get(uuid=script_id)
+        except BootScript.DoesNotExist:
+            # This 2nd-attempt can be removed when API v1 is removed
+            try:
+                script = BootScript.objects.get(id=script_id)
+            except BootScript.DoesNotExist:
+                continue
+
         script.instances.add(instance)

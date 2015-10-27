@@ -1,13 +1,26 @@
-from core.models import Instance
-from api.v2.serializers.details import InstanceSerializer
-from core.query import only_current
-
-from api.v1.views.instance import Instance as V1Instance
-
 from api.v2.serializers.details import InstanceSerializer
 from api.v2.serializers.post import InstanceSerializer as POST_InstanceSerializer
 from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
+from core.models import Instance
+from core.models.boot_script import _save_scripts_to_instance
+from core.query import only_current
+from rest_framework import status
+from rest_framework.response import Response
+from service.instance import launch_instance
+from threepio import logger
+
+#Things that go bump
+from api.exceptions import failure_response, invalid_creds, connection_failure, over_quota, under_threshold, size_not_available, over_capacity
+from libcloud.common.types import InvalidCredsError, MalformedResponseError
+from service.exceptions import OverAllocationError, OverQuotaError,\
+    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
+    UnderThresholdError
+from socket import error as socket_error
+from rtwo.exceptions import ConnectionFailure
+
+#Deprecation warning
+from api.v1.views.instance import Instance as V1Instance
 
 
 class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
@@ -43,6 +56,47 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
                                    instance.id)
 
     def perform_create(self, serializer):
-        import ipdb;ipdb.set_trace()
         data = serializer.data
-        raise Exception("Not implemented yet")
+        user = self.request.user
+
+        name = data.get('name')
+        boot_scripts = data.pop("scripts", [])
+        identity_uuid = data.get('identity')
+        source_alias = data.get('source_alias')
+        size_alias = data.get('size_alias')
+        deploy = data.get('deploy')
+        extra = data.get('extra')
+        try:
+            core_instance = launch_instance(
+                user, identity_uuid, size_alias, source_alias, name, deploy,
+                **extra)
+            # Faking a 'partial update of nothing' to allow call to 'is_valid'
+            serialized_instance = InstanceSerializer(core_instance, context={'request':self.request}, data={}, partial=True)
+            if not serialized_instance.is_valid():
+                return Response(serializer.errors,
+                                status=status.HTTP_400_BAD_REQUEST)
+            instance = serialized_instance.save()
+            if boot_scripts:
+                _save_scripts_to_instance(instance, boot_scripts)
+        except UnderThresholdError as ute:
+            return under_threshold(ute)
+        except OverQuotaError as oqe:
+            return over_quota(oqe)
+        except OverAllocationError as oae:
+            return over_quota(oae)
+        except SizeNotAvailable as snae:
+            return size_not_available(snae)
+        except HypervisorCapacityError as hce:
+            return over_capacity(hce)
+        except SecurityGroupNotCreated:
+            return connection_failure(provider_uuid, identity_uuid)
+        except (socket_error, ConnectionFailure):
+            return connection_failure(provider_uuid, identity_uuid)
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
+        except Exception as exc:
+            logger.exception("Encountered a generic exception. "
+                             "Returning 409-CONFLICT")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    str(exc.message))
+

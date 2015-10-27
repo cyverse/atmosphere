@@ -467,6 +467,12 @@ class Instance(models.Model):
             return None
 
     @property
+    def volume(self):
+        if self.source.is_volume():
+            return self.source.volume
+        return None
+
+    @property
     def provider_machine(self):
         if self.source.is_machine():
             return self.source.providermachine

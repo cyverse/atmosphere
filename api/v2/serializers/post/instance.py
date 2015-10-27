@@ -6,16 +6,25 @@ from rest_framework import serializers
 from api.v2.serializers.fields.base import ReprSlugRelatedField
 
 class InstanceSerializer(serializers.ModelSerializer):
+    """
+    This is a 'utility serializer' it should be used for preparing a v2 POST *ONLY*
+
+    This serializer should *never* be returned to the user.
+    instead, the core instance should be re-serialized into a 'details serializer'
+    """
     identity = serializers.SlugRelatedField(source='created_by_identity', slug_field='uuid', queryset=Identity.objects.all())
-    provider = serializers.SlugRelatedField(source='created_by_identity__provider', slug_field='uuid', queryset=Provider.objects.all())
+    provider_uuid = serializers.SlugRelatedField(source='created_by_identity.provider', slug_field='uuid', read_only=True)
     name = serializers.CharField()
     project = serializers.SlugRelatedField(source="projects", slug_field="uuid", queryset=Project.objects.all())
     scripts = serializers.SlugRelatedField(slug_field="uuid", many=True, required=False, queryset=BootScript.objects.all())
-    #NOTE: These 'alias' point to the 'native IDs' NOT the db-UUID!
-    #NOTE: either 'volume_alias' or 'machine_alias' is REQUIRED for a CREATE
-    machine_alias = ReprSlugRelatedField(source="source", repr_slug_field="identifier", slug_field="instance_source__identifier", required=False, queryset=ProviderMachine.objects.all())
-    volume_alias = ReprSlugRelatedField(source="source", repr_slug_field="identifier", slug_field="instance_source__identifier", required=False, queryset=Volume.objects.all())
+    #NOTE: These 'alias' point to the 'cloud/native IDs' NOT the db-UUID!
+    #NOTE: source_alias should belong to volume.identifier or providermachine.identifier
+    source_alias = serializers.CharField(source="source__identifier")
     size_alias = serializers.SlugRelatedField(source="instancestatushistory_set.size", slug_field="alias", queryset=Size.objects.all())
+    # Optional kwargs to be inluded
+    deploy = serializers.BooleanField(default=True)
+    extra = serializers.DictField(required=False)
+
 
     def __init__(self, *args, **kwargs):
         """
@@ -27,37 +36,36 @@ class InstanceSerializer(serializers.ModelSerializer):
         """
         # This is required to be passed in
         identity_uuid = kwargs['data'].get('identity')
+        #request_user = self.context['request'].user
         # These fields have querysets that are *dynamic* based on provider (uuid)
-        provider_f = self.fields['provider']
-        machine_f = self.fields['machine_alias']
-        volume_f = self.fields['volume_alias']
+        project_f = self.fields['project']
+        provider_f = self.fields['provider_uuid']
         size_f = self.fields['size_alias']
 
-        provider_f.queryset = provider_f.queryset.filter(identity__uuid=identity_uuid)
-        if not provider_f.queryset:
-            machine_f.queryset = machine_f.queryset.none()
-            volume_f.queryset = volume_f.queryset.none()
+        provider_queryset = Provider.objects.filter(identity__uuid=identity_uuid)
+        if not provider_queryset:
+            project_f.queryset = project_f.queryset.none()
             size_f.queryset = size_f.queryset.none()
-        elif len(provider_f.queryset) > 1:
+        elif len(provider_queryset) > 1:
             raise Exception("Implementation Error -- Only ever expected one value here! Fix this line!")
         else:
             #ASSERT: Queryset is EXACTLY ONE value.
-            provider_uuid = provider_f.queryset.first().uuid
-            machine_f.queryset = machine_f.queryset.filter(instance_source__provider__uuid=provider_uuid)
-            volume_f.queryset = volume_f.queryset.filter(instance_source__provider__uuid=provider_uuid)
+            provider_uuid = provider_queryset.first().uuid
+            #project_f.queryset = project_f.queryset.filter(owner__user=request_user)
             size_f.queryset = size_f.queryset.filter(provider__uuid=provider_uuid)
         super (InstanceSerializer, self).__init__(*args, **kwargs)
 
     class Meta:
         model = Instance
         fields = (
-            'provider',
+            'provider_uuid',
             'identity',
             'name',
             'project',
-            'machine_alias',
-            'volume_alias',
             'size_alias',
+            'source_alias',
             'scripts',
+            'deploy',
+            'extra',
         )
 

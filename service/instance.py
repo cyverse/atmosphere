@@ -713,8 +713,8 @@ def _pre_launch_validation(
         _test_for_licensing(machine, identity)
 
 
-def launch_instance(user, provider_uuid, identity_uuid,
-                    size_alias, source_alias, deploy=True,
+def launch_instance(user, identity_uuid,
+                    size_alias, source_alias, name, deploy=True,
                     **launch_kwargs):
     """
     USE THIS TO LAUNCH YOUR INSTANCE FROM THE REPL!
@@ -738,6 +738,8 @@ def launch_instance(user, provider_uuid, identity_uuid,
          size_alias,
          "Request Received"))
     identity = CoreIdentity.objects.get(uuid=identity_uuid)
+    provider_uuid = identity.provider.uuid
+
     esh_driver = get_cached_driver(identity=identity)
 
     # May raise Exception("Size not available")
@@ -760,6 +762,7 @@ def launch_instance(user, provider_uuid, identity_uuid,
         esh_driver,
         boot_source,
         size,
+        name=name,
         deploy=deploy,
         **launch_kwargs)
     return core_instance
@@ -779,6 +782,7 @@ def _select_and_launch_source(
         esh_driver,
         boot_source,
         size,
+        name,
         deploy=True,
         **launch_kwargs):
     """
@@ -791,7 +795,7 @@ def _select_and_launch_source(
         #      use service/volume.py 'boot_volume'
         volume = _retrieve_source(esh_driver, boot_source.identifier, "volume")
         core_instance = launch_volume_instance(
-            esh_driver, identity, volume, size,
+            esh_driver, identity, volume, size, name,
             deploy=deploy, **launch_kwargs)
     elif boot_source.is_machine():
         machine = _retrieve_source(
@@ -799,7 +803,7 @@ def _select_and_launch_source(
             boot_source.identifier,
             "machine")
         core_instance = launch_machine_instance(
-            esh_driver, identity, machine, size,
+            esh_driver, identity, machine, size, name,
             deploy=deploy, **launch_kwargs)
     else:
         raise Exception("Boot source is of an unknown type")

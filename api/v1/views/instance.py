@@ -155,7 +155,7 @@ class InstanceList(AuthAPIView):
         try:
             logger.debug(data)
             core_instance = launch_instance(
-                user, provider_uuid, identity_uuid,
+                user, identity_uuid,
                 size_alias, machine_alias,
                 ex_availability_zone=hypervisor_name,
                 deploy=deploy, **data)
@@ -574,7 +574,7 @@ class InstanceAction(AuthAPIView):
         except OverAllocationError as oae:
             return over_quota(oae)
         except SizeNotAvailable as snae:
-            return size_not_availabe(snae)
+            return size_not_available(snae)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
@@ -962,7 +962,7 @@ def instance_not_found(instance_id):
         'Instance %s does not exist' % instance_id)
 
 
-def size_not_availabe(sna_exception):
+def size_not_available(sna_exception):
     return failure_response(
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
         sna_exception.message)
