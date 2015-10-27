@@ -21,7 +21,7 @@ from core.query import only_current
 from core.models.instance_source import InstanceSource
 from core.models.application import Application
 from core.models.identity import Identity as CoreIdentity
-from core.models.instance import convert_esh_instance, InstanceAction
+from core.models.instance import convert_esh_instance, find_instance, InstanceAction
 from core.models.size import convert_esh_size
 from core.models.machine import ProviderMachine
 from core.models.provider import AccountProvider, Provider, ProviderInstanceAction
@@ -32,9 +32,12 @@ from atmosphere.settings import secrets
 from service.cache import get_cached_driver, invalidate_cached_instances
 from service.driver import _retrieve_source
 from service.licensing import _test_license
-from service.exceptions import OverAllocationError, OverQuotaError,\
-    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
-    VolumeAttachConflict, UnderThresholdError, ActionNotAllowed
+from service.exceptions import (
+    OverAllocationError, OverQuotaError, SizeNotAvailable,
+    HypervisorCapacityError, SecurityGroupNotCreated,
+    VolumeAttachConflict, UnderThresholdError, ActionNotAllowed,
+    socket_error, ConnectionFailure, InvalidCredsError)
+
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 
 
@@ -617,16 +620,106 @@ def offload_instance(esh_driver, esh_instance,
     return offloaded
 
 
-def destroy_instance(identity_uuid, instance_alias):
+def destroy_instance(user, core_identity_uuid, instance_alias):
+    """
+    Use this function to destroy an instance (From the API, or the REPL)
+    """
+    # TODO: Test how this f(n) works when called multiple times
+    success, esh_instance = _destroy_instance(
+        core_identity_uuid, instance_alias)
+    if not success and esh_instance:
+        raise Exception("Instance could not be destroyed")
+    elif esh_instance:
+        os_cleanup_networking(core_identity_uuid)
+        core_instance = end_date_instance(
+            user, esh_instance, core_identity_uuid)
+        return core_instance
+    else:
+        # Edge case - If you attempt to delete more than once...
+        core_instance = find_instance(instance_alias)
+        return core_instance
+
+
+def end_date_instance(user, esh_instance, core_identity_uuid):
+    # Retrieve the 'hopefully now deleted' instance and end date it.
+    identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
+    esh_driver = get_cached_driver(identity=identity)
+    try:
+        core_instance = convert_esh_instance(esh_driver, esh_instance,
+                                             identity.provider.uuid,
+                                             identity.id,
+                                             user)
+        #NOTE: We may want to ensure instances are *actually* terminated prior to end dating them.
+        if core_instance:
+            core_instance.end_date_all()
+        return core_instance
+    except (socket_error, ConnectionFailure):
+        logger.exception("connection failure during destroy instance")
+        return None
+    except InvalidCredsError:
+        logger.exception("InvalidCredsError during destroy instance")
+        return None
+
+
+def os_cleanup_networking(core_identity_uuid):
+    """
+    NOTE: this relies on celery to 'kick these tasks off' as we return the destroyed instance back to the user.
+    """
+    from service.tasks.driver import clean_empty_ips, remove_empty_network
+    core_identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
+    driver = get_cached_driver(identity=core_identity)
+    if not isinstance(driver, OSDriver):
+        return
+    # Spawn off the last two tasks
+    logger.debug("OSDriver Logic -- Remove floating ips and check"
+                 " for empty project")
+    driverCls = driver.__class__
+    provider = driver.provider
+    identity = driver.identity
+    instances = driver.list_instances()
+    active_instances = [driver._is_active_instance(inst) for inst in instances]
+    if not active_instances:
+        logger.debug("Driver shows 0 of %s instances are active"
+                     % (len(instances),))
+        # For testing ONLY.. Test cases ignore countdown..
+        if app.conf.CELERY_ALWAYS_EAGER:
+            logger.debug("Eager task waiting 1 minute")
+            time.sleep(60)
+        clean_task = clean_empty_ips.si(driverCls, provider, identity,
+                                        immutable=True, countdown=5)
+        remove_task = remove_empty_network.si(
+            driverCls, provider, identity, core_identity_uuid,
+            immutable=True, countdown=60)
+        clean_task.link(remove_task)
+        clean_task.apply_async()
+    else:
+        logger.debug("Driver shows %s of %s instances are active"
+                     % (len(active_instances), len(instances)))
+        # For testing ONLY.. Test cases ignore countdown..
+        if app.conf.CELERY_ALWAYS_EAGER:
+            logger.debug("Eager task waiting 15 seconds")
+            time.sleep(15)
+        destroy_chain = clean_empty_ips.si(
+            driverCls, provider, identity,
+            immutable=True, countdown=5)
+        destroy_chain.apply_async()
+    return
+
+def _destroy_instance(identity_uuid, instance_alias):
+    """
+    Responsible for actually destroying the instance
+    Return:
+    Deleted, Instance
+    """
     identity = CoreIdentity.objects.get(uuid=identity_uuid)
     esh_driver = get_cached_driver(identity=identity)
     # Bail if driver cant be created
-    if not driver:
-        return None
+    if not esh_driver:
+        return (False, None)
     instance = esh_driver.get_instance(instance_alias)
     # Bail if instance doesnt exist
     if not instance:
-        return None
+        return (True, None)
     if isinstance(esh_driver, OSDriver):
         try:
             # Openstack: Remove floating IP first
@@ -640,7 +733,7 @@ def destroy_instance(identity_uuid, instance_alias):
                     or "500 Internal Server Error" in exc.message):
                 raise
     node_destroyed = esh_driver._connection.destroy_node(instance)
-    return node_destroyed
+    return (node_destroyed, instance)
 
 
 # Private methods and helpers

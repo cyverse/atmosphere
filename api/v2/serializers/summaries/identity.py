@@ -7,7 +7,7 @@ class IdentitySummarySerializer(serializers.HyperlinkedModelSerializer):
     id = serializers.CharField(read_only=True)
     provider = serializers.PrimaryKeyRelatedField(read_only=True)
     url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:atmosphereuser-detail',
+        view_name='api:v2:identity-detail',
     )
     class Meta:
         model = Identity

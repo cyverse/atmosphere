@@ -1,12 +1,8 @@
-from socket import error as socket_error
 from django.utils import timezone
 from django.db.models import Q
 
 from rest_framework import status
 from rest_framework.response import Response
-
-from rtwo.exceptions import ConnectionFailure
-from libcloud.common.types import InvalidCredsError, MalformedResponseError
 
 from threepio import logger
 
@@ -28,10 +24,14 @@ from service.instance import redeploy_init, reboot_instance,\
     start_instance, resume_instance,\
     stop_instance, suspend_instance,\
     shelve_instance, unshelve_instance, offload_instance
-from service.exceptions import OverAllocationError, OverQuotaError,\
-    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
-    VolumeAttachConflict, VolumeMountConflict,\
-    UnderThresholdError, ActionNotAllowed
+from service.exceptions import (
+    OverAllocationError, OverQuotaError,
+    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,
+    VolumeAttachConflict, VolumeMountConflict,
+    UnderThresholdError, ActionNotAllowed,
+    # Technically owned by another
+    socket_error, ConnectionFailure, InvalidCredsError, MalformedResponseError
+    )
 
 from api import failure_response, invalid_creds,\
     connection_failure, malformed_response,\

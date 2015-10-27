@@ -7,7 +7,7 @@ from core.models.boot_script import _save_scripts_to_instance
 from core.query import only_current
 from rest_framework import status
 from rest_framework.response import Response
-from service.instance import launch_instance
+from service.instance import launch_instance, destroy_instance
 from service.task import destroy_instance_task
 from threepio import logger
 
@@ -16,7 +16,7 @@ from api.exceptions import failure_response, invalid_creds, connection_failure, 
 from libcloud.common.types import InvalidCredsError, MalformedResponseError
 from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
-    UnderThresholdError
+    UnderThresholdError, VolumeAttachConflict
 from socket import error as socket_error
 from rtwo.exceptions import ConnectionFailure
 
@@ -31,7 +31,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
     serializer_class = InstanceSerializer
     filter_fields = ('created_by__id', 'projects')
     lookup_fields = ("id", "provider_alias")
-    http_method_names = ['get', 'put', 'patch', 'post', 'head', 'options', 'trace']
+    http_method_names = ['get', 'put', 'patch', 'post', 'delete', 'head', 'options', 'trace']
 
     def get_serializer_class(self):
         if self.action != 'create':
@@ -53,10 +53,19 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         return qs.filter(only_current())
 
     def perform_destroy(self, instance):
+        user = self.request.user
         try:
             # Test that there is not an attached volume BEFORE we destroy
             #NOTE: Although this is a task we are calling and waiting for response..
-            destroy_instance_task(esh_instance, identity_uuid).get()
+            core_instance = destroy_instance(
+                user,
+                instance.created_by_identity.uuid,
+                instance.provider_alias)
+            serialized_instance = InstanceSerializer(core_instance, context={'request':self.request}, data={}, partial=True)
+            if not serialized_instance.is_valid():
+                return Response(serialized_instance.data,
+                                status=status.HTTP_400_BAD_REQUEST)
+            return Response(status=status.HTTP_204_NO_CONTENT)
         except VolumeAttachConflict as exc:
             message = exc.message
             return failure_response(status.HTTP_409_CONFLICT, message)
@@ -69,7 +78,6 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
                              "Returning 409-CONFLICT")
             return failure_response(status.HTTP_409_CONFLICT,
                                     str(exc.message))
-        return super(InstanceViewSet, self).perform_destroy(instance)
 
     def perform_create(self, serializer):
         data = serializer.data
@@ -89,7 +97,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             # Faking a 'partial update of nothing' to allow call to 'is_valid'
             serialized_instance = InstanceSerializer(core_instance, context={'request':self.request}, data={}, partial=True)
             if not serialized_instance.is_valid():
-                return Response(serializer.errors,
+                return Response(serialized_instance.errors,
                                 status=status.HTTP_400_BAD_REQUEST)
             instance = serialized_instance.save()
             if boot_scripts:

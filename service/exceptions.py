@@ -4,6 +4,9 @@ Atmosphere service exceptions.
 """
 
 from ansible.errors import AnsibleError
+from socket import error as socket_error
+from rtwo.exceptions import ConnectionFailure
+from libcloud.common.types import InvalidCredsError, MalformedResponseError
 
 
 class ServiceException(Exception):
