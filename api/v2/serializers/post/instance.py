@@ -35,7 +35,10 @@ class InstanceSerializer(serializers.ModelSerializer):
         For a 'Future-Proof' solution.
         """
         # This is required to be passed in
-        identity_uuid = kwargs['data'].get('identity')
+        identity_uuid = kwargs.get('data',{}).get('identity')
+        if not identity_uuid:
+            super (InstanceSerializer, self).__init__(*args, **kwargs)
+            return
         #request_user = self.context['request'].user
         # These fields have querysets that are *dynamic* based on provider (uuid)
         project_f = self.fields['project']
