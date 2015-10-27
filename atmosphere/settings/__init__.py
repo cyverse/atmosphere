@@ -370,13 +370,13 @@ CELERYD_TASK_LOG_FORMAT = "[%(asctime)s: %(name)s-%(levelname)s"\
 # - 2. Create a Queue,
 # - 3. Bind Queue to Exchange
 CELERY_QUEUES = (
-    Queue(
-        'default', Exchange('default'), routing_key='default'), Queue(
-            'email', Exchange('default'), routing_key='email.sending'), Queue(
-                'ssh_deploy', Exchange('deployment'), routing_key='long.deployment'), Queue(
-                    'fast_deploy', Exchange('deployment'), routing_key='short.deployment'), Queue(
-                        'imaging', Exchange('imaging'), routing_key='imaging'), Queue(
-                            'periodic', Exchange('periodic'), routing_key='periodic'), )
+    Queue('default', Exchange('default'), routing_key='default'),
+    Queue('email', Exchange('default'), routing_key='email.sending'),
+    Queue('ssh_deploy', Exchange('deployment'), routing_key='long.deployment'),
+    Queue('fast_deploy', Exchange('deployment'), routing_key='short.deployment'),
+    Queue('imaging', Exchange('imaging'), routing_key='imaging'),
+    Queue('periodic', Exchange('periodic'), routing_key='periodic'),
+)
 CELERY_DEFAULT_QUEUE = 'default'
 CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_DEFAULT_EXCHANGE = 'default'
