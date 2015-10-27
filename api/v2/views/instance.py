@@ -38,14 +38,19 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             return InstanceSerializer
         return POST_InstanceSerializer
 
+    def list(self, request, *args, **kwargs):
+        return super(InstanceViewSet, self).list(request, *args, **kwargs)
+
     def get_queryset(self):
         """
         Filter projects by current user.
         """
         user = self.request.user
+        qs = Instance.objects.filter(created_by=user)
         if 'archived' in self.request.query_params:
-            return Instance.objects.filter(created_by=user)
-        return Instance.objects.filter(only_current(), created_by=user)
+            return qs
+        # Return current results
+        return qs.filter(only_current())
 
     def perform_destroy(self, instance):
         try:
