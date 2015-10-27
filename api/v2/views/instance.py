@@ -20,7 +20,6 @@ class InstanceViewSet(AuthViewSet):
     http_method_names = ['get', 'put', 'patch', 'head', 'options', 'trace']
 
     def list(self, request, *args, **kwargs):
-        import ipdb;ipdb.set_trace()
         return super(InstanceViewSet, self).list(request, *args, **kwargs)
 
     def get_queryset(self):
