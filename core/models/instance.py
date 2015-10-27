@@ -186,6 +186,8 @@ class Instance(models.Model):
     # FIXME  Problems when setting a default.
     start_date = models.DateTimeField()
     end_date = models.DateTimeField(null=True, blank=True)
+
+    # Model Managers
     objects = models.Manager()  # The default manager.
     active_instances = ActiveInstancesManager()
 

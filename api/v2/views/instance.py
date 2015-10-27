@@ -8,6 +8,7 @@ from core.query import only_current
 from rest_framework import status
 from rest_framework.response import Response
 from service.instance import launch_instance
+from service.task import destroy_instance_task
 from threepio import logger
 
 #Things that go bump
@@ -18,9 +19,6 @@ from service.exceptions import OverAllocationError, OverQuotaError,\
     UnderThresholdError
 from socket import error as socket_error
 from rtwo.exceptions import ConnectionFailure
-
-#Deprecation warning
-from api.v1.views.instance import Instance as V1Instance
 
 
 class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
@@ -50,10 +48,23 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         return Instance.objects.filter(only_current(), created_by=user)
 
     def perform_destroy(self, instance):
-        return V1Instance().delete(self.request,
-                                   instance.provider_alias,
-                                   instance.created_by_identity.uuid,
-                                   instance.id)
+        try:
+            # Test that there is not an attached volume BEFORE we destroy
+            #NOTE: Although this is a task we are calling and waiting for response..
+            destroy_instance_task(esh_instance, identity_uuid).get()
+        except VolumeAttachConflict as exc:
+            message = exc.message
+            return failure_response(status.HTTP_409_CONFLICT, message)
+        except (socket_error, ConnectionFailure):
+            return connection_failure(provider_uuid, identity_uuid)
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
+        except Exception as exc:
+            logger.exception("Encountered a generic exception. "
+                             "Returning 409-CONFLICT")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    str(exc.message))
+        return super(InstanceViewSet, self).perform_destroy(instance)
 
     def perform_create(self, serializer):
         data = serializer.data

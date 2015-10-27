@@ -620,6 +620,9 @@ def offload_instance(esh_driver, esh_instance,
 def destroy_instance(identity_uuid, instance_alias):
     identity = CoreIdentity.objects.get(uuid=identity_uuid)
     esh_driver = get_cached_driver(identity=identity)
+    # Bail if driver cant be created
+    if not driver:
+        return None
     instance = esh_driver.get_instance(instance_alias)
     # Bail if instance doesnt exist
     if not instance:
