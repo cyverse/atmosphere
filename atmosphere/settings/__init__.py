@@ -125,12 +125,12 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.gzip.GZipMiddleware',
-    # #For profile/debugging
-    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'atmosphere.slash_middleware.RemoveSlashMiddleware',
+    #For profile/debugging
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 )
 
 ROOT_URLCONF = 'atmosphere.urls'
@@ -190,7 +190,7 @@ def check_and_touch(file_path):
 
 # logging
 LOGGING_LEVEL = logging.DEBUG
-DEP_LOGGING_LEVEL = logging.INFO  # Logging level for dependencies.
+DEP_LOGGING_LEVEL = logging.DEBUG  # Logging level for dependencies.
 
 # Filenames
 
