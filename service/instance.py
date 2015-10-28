@@ -228,7 +228,7 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
     if update_meta:
         driver_class = esh_driver.__class__
         provider = esh_driver.provider
-        identity = es_driver.identity
+        identity = esh_driver.identity
 
         metadata={'public-ip': '', 'public-hostname': ''}
         update_metadata.s(driver_class, identity, esh_instance.id,
