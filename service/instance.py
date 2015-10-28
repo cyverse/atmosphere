@@ -24,6 +24,7 @@ from core.models.identity import Identity as CoreIdentity
 from core.models.instance import convert_esh_instance, find_instance, InstanceAction
 from core.models.size import convert_esh_size
 from core.models.machine import ProviderMachine
+from core.models.volume import convert_esh_volume
 from core.models.provider import AccountProvider, Provider, ProviderInstanceAction
 
 from atmosphere import settings
@@ -35,8 +36,8 @@ from service.licensing import _test_license
 from service.exceptions import (
     OverAllocationError, OverQuotaError, SizeNotAvailable,
     HypervisorCapacityError, SecurityGroupNotCreated,
-    VolumeAttachConflict, UnderThresholdError, ActionNotAllowed,
-    socket_error, ConnectionFailure, InvalidCredsError)
+    VolumeAttachConflict, VolumeDetachConflict, UnderThresholdError, ActionNotAllowed,
+    socket_error, ConnectionFailure, InstanceDoesNotExist, InvalidCredsError)
 
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 
@@ -51,7 +52,7 @@ def _get_size(esh_driver, esh_instance):
 
 def _permission_to_act(identity_uuid, action_name, raise_exception=True):
     try:
-        core_identity = CoreIdentity.objects.get(uuid=identity_uuid)
+        core_identity = CoreIdentity.objects.get(id=identity_uuid)
     except CoreIdentity.DoesNotExist:
         if raise_exception:
             raise
@@ -230,8 +231,7 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
                 % (esh_instance.id, result))
     if update_meta:
         driver_class = esh_driver.__class__
-        provider = esh_driver.provider
-        identity = es_driver.identity
+        identity = esh_driver.identity
 
         metadata={'public-ip': '', 'public-hostname': ''}
         update_metadata.s(driver_class, identity, esh_instance.id,
@@ -1509,3 +1509,140 @@ def _check_volume_attachment(driver, instance):
             if instance.alias == attachment['serverId']:
                 raise VolumeAttachConflict(instance.alias, vol.alias)
     return False
+
+
+def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_type, action_params):
+    from service import task
+    provider_uuid = identity.provider.uuid
+    identity_uuid = identity.id
+    instance_id = esh_instance.alias
+    volume_id = action_params.get('volume_id')
+    mount_location = action_params.get('mount_location')
+    device = action_params.get('device')
+    if mount_location == 'null' or mount_location == 'None':
+        mount_location = None
+    if device == 'null' or device == 'None':
+        device = None
+    if 'attach_volume' == action_type:
+        if esh_instance.extra['status'] != 'active':
+            raise VolumeAttachConflict(
+                message='Instance %s must be active before attaching '
+                'a volume. '
+                'Retry request when volume is active.'
+                % (instance_id,))
+        result = task.attach_volume_task(
+                esh_driver, esh_instance.alias,
+                volume_id, device, mount_location)
+    elif 'mount_volume' == action_type:
+        result = task.mount_volume_task(
+                esh_driver, esh_instance.alias,
+                volume_id, device, mount_location)
+    elif 'unmount_volume' == action_type:
+        (result, error_msg) =\
+            task.unmount_volume_task(esh_driver,
+                                     esh_instance.alias,
+                                     volume_id, device,
+                                     mount_location)
+    elif 'detach_volume' == action_type:
+        if esh_instance.extra['status'] != 'active':
+            raise VolumeDetachConflict(
+                'Instance %s must be active before detaching '
+                'a volume. '
+                'Retry request when instance is active.'
+                % (instance_id,))
+        (result, error_msg) =\
+            task.detach_volume_task(esh_driver,
+                                    esh_instance.alias,
+                                    volume_id)
+        if not result and error_msg:
+            # Return reason for failed detachment
+            raise VolumeDetachConflict(error_msg)
+    # Task complete, convert the volume and return the object
+    esh_volume = esh_driver.get_volume(volume_id)
+    core_volume = convert_esh_volume(esh_volume,
+                                     provider_uuid,
+                                     identity_uuid,
+                                     user)
+    return core_volume
+
+def run_instance_action(user, identity, instance_id, action_type, action_params):
+    """
+    Dev Notes:
+    Being used as the current 'interface' for running any InstanceAction
+    for both API v1 and V2. We will look at how to 'generalize' this pattern later.
+    """
+    esh_driver = get_cached_driver(identity=identity)
+    if not esh_driver:
+        raise InvalidCredsError("Driver could not be created")
+
+    esh_instance = esh_driver.get_instance(instance_id)
+    if not esh_instance:
+        raise InstanceDoesNotExist(instance_id)
+
+    if 'volume' in action_type:
+        # Take care of volume actions separately
+        result_obj = run_instance_volume_action(
+            user, identity, esh_driver, esh_instance,
+            action_type, action_params)
+        return result_obj
+    # Gather instance related parameters
+    provider_uuid = identity.provider.uuid
+    identity_uuid = identity.id
+    if 'resize' == action_type:
+        size_alias = action_params.get('size', '')
+        if isinstance(size_alias, int):
+            size_alias = str(size_alias)
+        result_obj = resize_instance(
+            esh_driver, esh_instance, size_alias,
+            provider_uuid, identity_uuid, user)
+    elif 'confirm_resize' == action_type:
+        result_obj = confirm_resize(
+            esh_driver, esh_instance,
+            provider_uuid, identity_uuid, user)
+    elif 'revert_resize' == action_type:
+        result_obj = esh_driver.revert_resize_instance(esh_instance)
+    elif 'redeploy' == action_type:
+        result_obj = redeploy_init(esh_driver, esh_instance)
+    elif 'resume' == action_type:
+        result_obj = resume_instance(esh_driver, esh_instance,
+                                     provider_uuid, identity_uuid,
+                                     user)
+    elif 'suspend' == action_type:
+        result_obj = suspend_instance(esh_driver, esh_instance,
+                                      provider_uuid, identity_uuid,
+                                      user)
+    elif 'shelve' == action_type:
+        result_obj = shelve_instance(esh_driver, esh_instance,
+                                     provider_uuid, identity_uuid,
+                                     user)
+    elif 'unshelve' == action_type:
+        result_obj = unshelve_instance(esh_driver, esh_instance,
+                                       provider_uuid, identity_uuid,
+                                       user)
+    elif 'shelve_offload' == action_type:
+        result_obj = offload_instance(esh_driver, esh_instance)
+    elif 'start' == action_type:
+        result_obj = start_instance(
+            esh_driver, esh_instance,
+            provider_uuid, identity_uuid, user)
+    elif 'stop' == action_type:
+        result_obj = stop_instance(
+            esh_driver, esh_instance,
+            provider_uuid, identity_uuid, user)
+    elif 'reset_network' == action_type:
+        esh_driver.reset_network(esh_instance)
+    elif 'console' == action_type:
+        result_obj = esh_driver._connection\
+                               .ex_vnc_console(esh_instance)
+    elif 'reboot' == action_type:
+        reboot_type = action_params.get('reboot_type', 'SOFT')
+        result_obj = reboot_instance(esh_driver, esh_instance,
+                                     identity_uuid, user, reboot_type)
+    elif 'rebuild' == action_type:
+        machine_alias = action_params.get('machine_alias', '')
+        machine = esh_driver.get_machine(machine_alias)
+        result_obj = esh_driver.rebuild_instance(esh_instance, machine)
+    else:
+        raise ActionNotAllowed(
+            'Unable to to perform action %s.' % (action_type))
+    return result_obj

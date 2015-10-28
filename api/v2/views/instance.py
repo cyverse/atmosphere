@@ -2,21 +2,23 @@ from api.v2.serializers.details import InstanceSerializer
 from api.v2.serializers.post import InstanceSerializer as POST_InstanceSerializer
 from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
-from core.models import Instance
+from core.models import Instance, Identity
 from core.models.boot_script import _save_scripts_to_instance
+from core.models.instance import find_instance
 from core.query import only_current
 from rest_framework import status
+from rest_framework.decorators import detail_route
 from rest_framework.response import Response
-from service.instance import launch_instance, destroy_instance
-from service.task import destroy_instance_task
+from service.instance import launch_instance, destroy_instance, run_instance_action
 from threepio import logger
 
 #Things that go bump
-from api.exceptions import failure_response, invalid_creds, connection_failure, over_quota, under_threshold, size_not_available, over_capacity
-from libcloud.common.types import InvalidCredsError, MalformedResponseError
-from service.exceptions import OverAllocationError, OverQuotaError,\
+from api.v2.exceptions import failure_response, invalid_creds, connection_failure
+from api.exceptions import over_quota, under_threshold, size_not_available, over_capacity, mount_failed
+from libcloud.common.types import InvalidCredsError
+from service.exceptions import ActionNotAllowed, OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
-    UnderThresholdError, VolumeAttachConflict
+    UnderThresholdError, VolumeAttachConflict, VolumeMountConflict, InstanceDoesNotExist
 from socket import error as socket_error
 from rtwo.exceptions import ConnectionFailure
 
@@ -38,9 +40,6 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             return InstanceSerializer
         return POST_InstanceSerializer
 
-    def list(self, request, *args, **kwargs):
-        return super(InstanceViewSet, self).list(request, *args, **kwargs)
-
     def get_queryset(self):
         """
         Filter projects by current user.
@@ -52,14 +51,82 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         # Return current results
         return qs.filter(only_current())
 
+    @detail_route(methods=['post'])
+    def action(self, request, pk=None):
+        """
+        Until a better method comes about, we will handle InstanceActions here.
+        """
+        import ipdb;ipdb.set_trace()
+        user = request.user
+        instance_id = pk
+        instance = find_instance(instance_id)
+        identity = instance.created_by_identity
+        action_params = request.data
+        action = action_params.pop('action')
+        try:
+            result_obj = run_instance_action(user, identity, instance_id, action, action_params)
+            api_response = {
+                'result': 'success',
+                'message': 'The requested action <%s> was run successfully' % (action_params['action'],),
+                'object': result_obj,
+            }
+            response = Response(api_response, status=status.HTTP_200_OK)
+            return response
+        except (socket_error, ConnectionFailure):
+            return connection_failure(identity)
+        except InstanceDoesNotExist as dne:
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                'Instance %s no longer exists' % (dne.message,))
+        except InvalidCredsError:
+            return invalid_creds(identity)
+        except HypervisorCapacityError as hce:
+            return over_capacity(hce)
+        except OverQuotaError as oqe:
+            return over_quota(oqe)
+        except OverAllocationError as oae:
+            return over_quota(oae)
+        except SizeNotAvailable as snae:
+            return size_not_available(snae)
+        except (socket_error, ConnectionFailure):
+            return connection_failure(identity)
+        except InvalidCredsError:
+            return invalid_creds(identity)
+        except VolumeMountConflict as vmc:
+            return mount_failed(vmc)
+        except NotImplemented:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                "The requested action %s is not available on this provider."
+                % action_params['action'])
+        except ActionNotAllowed:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                "The requested action %s has been explicitly "
+                "disabled on this provider." % action_params['action'])
+        except Exception as exc:
+            logger.exception("Exception occurred processing InstanceAction")
+            message = exc.message
+            if message.startswith('409 Conflict'):
+                return failure_response(
+                    status.HTTP_409_CONFLICT,
+                    message)
+            return failure_response(
+                status.HTTP_403_FORBIDDEN,
+                "The requested action %s encountered "
+                "an irrecoverable exception: %s"
+                % (action_params['action'], message))
+
     def perform_destroy(self, instance):
         user = self.request.user
+        identity_uuid = instance.created_by_identity.uuid
+        identity = Identity.objects.get(id=identity_uuid)
         try:
             # Test that there is not an attached volume BEFORE we destroy
             #NOTE: Although this is a task we are calling and waiting for response..
             core_instance = destroy_instance(
                 user,
-                instance.created_by_identity.uuid,
+                identity_uuid,
                 instance.provider_alias)
             serialized_instance = InstanceSerializer(core_instance, context={'request':self.request}, data={}, partial=True)
             if not serialized_instance.is_valid():
@@ -70,9 +137,9 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             message = exc.message
             return failure_response(status.HTTP_409_CONFLICT, message)
         except (socket_error, ConnectionFailure):
-            return connection_failure(provider_uuid, identity_uuid)
+            return connection_failure(identity)
         except InvalidCredsError:
-            return invalid_creds(provider_uuid, identity_uuid)
+            return invalid_creds(identity)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
                              "Returning 409-CONFLICT")
@@ -86,6 +153,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         name = data.get('name')
         boot_scripts = data.pop("scripts", [])
         identity_uuid = data.get('identity')
+        identity = Identity.objects.get(id=identity_uuid)
         source_alias = data.get('source_alias')
         size_alias = data.get('size_alias')
         deploy = data.get('deploy')
@@ -113,11 +181,11 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         except HypervisorCapacityError as hce:
             return over_capacity(hce)
         except SecurityGroupNotCreated:
-            return connection_failure(provider_uuid, identity_uuid)
+            return connection_failure(identity)
         except (socket_error, ConnectionFailure):
-            return connection_failure(provider_uuid, identity_uuid)
+            return connection_failure(identity)
         except InvalidCredsError:
-            return invalid_creds(provider_uuid, identity_uuid)
+            return invalid_creds(identity)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
                              "Returning 409-CONFLICT")
