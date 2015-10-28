@@ -56,7 +56,6 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         """
         Until a better method comes about, we will handle InstanceActions here.
         """
-        import ipdb;ipdb.set_trace()
         user = request.user
         instance_id = pk
         instance = find_instance(instance_id)
@@ -67,7 +66,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             result_obj = run_instance_action(user, identity, instance_id, action, action_params)
             api_response = {
                 'result': 'success',
-                'message': 'The requested action <%s> was run successfully' % (action_params['action'],),
+                'message': 'The requested action <%s> was run successfully' % (action,),
                 'object': result_obj,
             }
             response = Response(api_response, status=status.HTTP_200_OK)

@@ -52,7 +52,7 @@ def _get_size(esh_driver, esh_instance):
 
 def _permission_to_act(identity_uuid, action_name, raise_exception=True):
     try:
-        core_identity = CoreIdentity.objects.get(id=identity_uuid)
+        core_identity = CoreIdentity.objects.get(uuid=identity_uuid)
     except CoreIdentity.DoesNotExist:
         if raise_exception:
             raise
@@ -647,7 +647,7 @@ def end_date_instance(user, esh_instance, core_identity_uuid):
     try:
         core_instance = convert_esh_instance(esh_driver, esh_instance,
                                              identity.provider.uuid,
-                                             identity.id,
+                                             identity.uuid,
                                              user)
         #NOTE: We may want to ensure instances are *actually* terminated prior to end dating them.
         if core_instance:
@@ -1514,7 +1514,7 @@ def _check_volume_attachment(driver, instance):
 def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_type, action_params):
     from service import task
     provider_uuid = identity.provider.uuid
-    identity_uuid = identity.id
+    identity_uuid = identity.uuid
     instance_id = esh_instance.alias
     volume_id = action_params.get('volume_id')
     mount_location = action_params.get('mount_location')
@@ -1587,7 +1587,7 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
         return result_obj
     # Gather instance related parameters
     provider_uuid = identity.provider.uuid
-    identity_uuid = identity.id
+    identity_uuid = identity.uuid
     if 'resize' == action_type:
         size_alias = action_params.get('size', '')
         if isinstance(size_alias, int):
