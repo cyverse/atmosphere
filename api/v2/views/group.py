@@ -1,12 +1,15 @@
-from core.models import Group
-from api.v2.serializers.details import MembershipSerializer
-from api.v2.views.base import AuthViewSet
-
-from rest_framework.filters import SearchFilter
-from django.utils import six
-from django.db.models import Q
 import operator
 from functools import reduce
+
+from django.utils import six
+from django.db.models import Q
+
+from rest_framework.filters import SearchFilter
+from rest_framework.decorators import detail_route
+
+from api.v2.serializers.details import MembershipSerializer
+from api.v2.views.base import AuthViewSet
+from core.models import Group
 
 
 class MinLengthRequiredSearchFilter(SearchFilter):
@@ -45,5 +48,10 @@ class MembershipViewSet(AuthViewSet):
     queryset = Group.objects.all()
     serializer_class = MembershipSerializer
     filter_backends = (MinLengthRequiredSearchFilter,)
-    http_method_names = ['get', 'head', 'options', 'trace']
+    http_method_names = ['get', 'post', 'head', 'options', 'trace']
     search_fields = ('^groupname',)  # NOTE: ^ == Startswith searching
+
+    @detail_route(methods=['get'])
+    def users(self, request, pk=None):
+        group = Group.objects.get(pk=pk)
+
