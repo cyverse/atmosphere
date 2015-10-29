@@ -4,17 +4,17 @@ from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 from api.v2.serializers.summaries import UserSummarySerializer
 
 
-class MembershipSerializer(serializers.HyperlinkedModelSerializer):
+class GroupSerializer(serializers.HyperlinkedModelSerializer):
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:group-detail',
     )
-    users = UserSummarySerializer(many=True, source='user_set')
+    users = UserSummarySerializer(source='user_set', many=True)
+
     class Meta:
         model = Group
         fields = (
             'id',
-            'uuid',
             'url',
             'name',
-            'users'
+            'users',
         )

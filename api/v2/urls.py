@@ -57,7 +57,7 @@ router.register(r'sizes', views.SizeViewSet)
 router.register(r'status_types', views.StatusTypeViewSet)
 router.register(r'tags', views.TagViewSet)
 router.register(r'users', views.UserViewSet)
-router.register(r'groups', views.MembershipViewSet, base_name='group')
+router.register(r'groups', views.GroupViewSet, base_name='group')
 router.register(r'volumes', views.VolumeViewSet, base_name='volume')
 
 api_v2_urls = router.urls

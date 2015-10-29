@@ -1,5 +1,6 @@
 from .allocation import AllocationSerializer
 from .boot_script import BootScriptSerializer
+from .group import GroupSerializer
 from .image_version import ImageVersionSerializer
 from .image_version_boot_script import ImageVersionBootScriptSerializer
 from .image_version_membership import ImageVersionMembershipSerializer
@@ -14,7 +15,6 @@ from .instance import InstanceSerializer
 from .license import LicenseSerializer
 from .maintenance_record import MaintenanceRecordSerializer
 from .machine_request import (MachineRequestSerializer, UserMachineRequestSerializer)
-from .membership import MembershipSerializer
 from .project import ProjectSerializer
 from .project_instance import ProjectInstanceSerializer
 from .project_volume import ProjectVolumeSerializer
@@ -34,6 +34,7 @@ from .volume import VolumeSerializer, UpdateVolumeSerializer
 __all__ = (
     "AllocationSerializer",
     "BootScriptSerializer",
+    "GroupSerializer",
     "IdentitySerializer",
     "ImageBookmarkSerializer",
     "ImageSerializer",
