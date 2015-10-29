@@ -29,6 +29,7 @@ from .resource_request import ResourceRequestViewSet
 from .size import SizeViewSet
 from .status_type import StatusTypeViewSet
 from .email import FeedbackEmailViewSet, SupportEmailViewSet, ResourceEmailViewSet
+from .emulate import TokenEmulateViewSet, SessionEmulateViewSet
 from .tag import TagViewSet
 from .user import UserViewSet
 from .volume import VolumeViewSet
