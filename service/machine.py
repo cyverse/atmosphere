@@ -8,6 +8,7 @@ import operator
 from threepio import logger
 
 from core import models
+from service.cache import get_cached_driver
 from service.driver import get_account_driver
 from core.models.application import create_application, update_application
 from core.models.application_version import create_app_version
@@ -117,7 +118,15 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     return machine_request
 
 
-def update_machine_metadata(esh_driver, esh_machine, data={}):
+def update_machine_metadata(core_machine, data={}):
+    identity = core_machine.created_by_identity
+    machine_id = core_machine.provider_alias
+    esh_driver = get_cached_driver(identity=identity)
+    esh_machine = esh_driver.get_machine(machine_id)
+    return _update_machine_metadata(esh_driver, esh_machine, data)
+
+
+def _update_machine_metadata(esh_driver, esh_machine, data={}):
     """
     NOTE: This will NOT WORK for TAGS until openstack
     allows JSONArrays as values for metadata!

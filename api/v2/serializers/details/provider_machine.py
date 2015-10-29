@@ -4,7 +4,7 @@ from api.v2.serializers.summaries import (
         ImageSummarySerializer, ImageVersionSummarySerializer,
         ProviderSummarySerializer, UserSummarySerializer,
         LicenseSummarySerializer)
-from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
+#from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
@@ -22,9 +22,8 @@ class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
         slug_field='name',
         read_only=True,
         many=True)  # NEW
-    url = UUIDHyperlinkedIdentityField(
+    url = serializers.HyperlinkedIdentityField(
         view_name='api:v2:providermachine-detail',
-        uuid_field='identifier',
     )
 
     class Meta:

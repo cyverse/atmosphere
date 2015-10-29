@@ -37,7 +37,7 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
     """
     API endpoint that allows providers to be viewed or edited.
     """
-    lookup_fields = ("id", "uuid")
+    lookup_fields = ("id", "instance_source.identifier")
     serializer_class = VolumeSerializer
     filter_class = VolumeFilter
     http_method_names = ('get', 'post', 'put', 'patch', 'delete',

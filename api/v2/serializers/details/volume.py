@@ -8,7 +8,6 @@ from api.v2.serializers.summaries import (
 )
 from core.models import Identity, Provider
 from core.models.instance_source import InstanceSource
-from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class VolumeSerializer(serializers.HyperlinkedModelSerializer):
@@ -34,10 +33,10 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
                                      required=False)
     uuid = serializers.CharField(source='instance_source.identifier',
                                  read_only=True)
-    url = UUIDHyperlinkedIdentityField(
+    url = serializers.HyperlinkedIdentityField(
         view_name='api:v2:volume-detail',
-        uuid_field='identifier',
     )
+
     class Meta:
         model = Volume
 
