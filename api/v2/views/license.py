@@ -1,3 +1,4 @@
+from api import permissions
 from api.v2.serializers.details import LicenseSerializer
 from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
@@ -11,6 +12,7 @@ class LicenseViewSet(MultipleFieldLookup, AuthViewSet):
     """
 
     queryset = License.objects.none()
+    permission_classes = (permissions.CanEditOrReadOnly,)
     serializer_class = LicenseSerializer
     filter_fields = ('title',)
     search_fields = ('^title',)
