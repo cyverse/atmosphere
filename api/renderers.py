@@ -26,5 +26,5 @@ class BrowsableAPIRenderer(renderers.BrowsableAPIRenderer):
 
     def get_context(self, *args, **kwargs):
         ctx = super(BrowsableAPIRenderer,self).get_context(*args, **kwargs)
-        ctx['display_edit_forms'] = False
+        #ctx['display_edit_forms'] = False
         return ctx

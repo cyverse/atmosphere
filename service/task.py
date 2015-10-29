@@ -15,7 +15,7 @@ from service.tasks.driver import destroy_instance
 from service.tasks.volume import attach_task, mount_task, check_volume_task
 from service.tasks.volume import detach_task, umount_task,\
     mount_failed
-from service.tasks.volume import _update_volume_metadata, update_mount_location
+from service.tasks.volume import update_volume_metadata, update_mount_location
 
 
 def print_task_chain(start_link):
@@ -180,13 +180,13 @@ def _get_umount_chain(driver, instance_id, volume_id, detach_task=None):
     driverCls = driver.__class__
     provider = driver.provider
     identity = driver.identity
-    pre_umount_status = _update_volume_metadata.si(
+    pre_umount_status = update_volume_metadata.si(
         driverCls, provider, identity,
         volume_id, {'tmp_status': 'unmounting'})
     umount = umount_task.si(
         driver.__class__, driver.provider, driver.identity,
         instance_id, volume_id)
-    post_umount_status = _update_volume_metadata.si(
+    post_umount_status = update_volume_metadata.si(
         driverCls, provider, identity,
         volume_id, {'tmp_status': '',
                     'mount_location': ''})
@@ -212,7 +212,7 @@ def _get_mount_chain(driver, instance_id, volume_id, device, mount_location):
     provider = driver.provider
     identity = driver.identity
 
-    pre_mount_status = _update_volume_metadata.si(
+    pre_mount_status = update_volume_metadata.si(
         driverCls, provider, identity,
         volume_id, {'tmp_status': 'mounting'})
     pre_mount = check_volume_task.si(
@@ -223,7 +223,7 @@ def _get_mount_chain(driver, instance_id, volume_id, device, mount_location):
         instance_id, volume_id, device, mount_location)
     post_mount = update_mount_location.s(
         driverCls, provider, identity, volume_id)
-    post_mount_status = _update_volume_metadata.si(
+    post_mount_status = update_volume_metadata.si(
         driverCls, provider, identity,
         volume_id, {'tmp_status': ''})
     # Error Links
