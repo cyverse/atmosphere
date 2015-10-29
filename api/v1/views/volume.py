@@ -24,7 +24,7 @@ from service.cache import get_cached_volumes
 from service.driver import prepare_driver
 from service.volume import create_volume,\
     create_bootable_volume,\
-    update_volume_metadata
+    _update_volume_metadata
 from service.exceptions import OverQuotaError
 from service.volume import create_volume
 
@@ -356,7 +356,7 @@ class Volume(AuthAPIView):
                                       partial=True)
         if serializer.is_valid():
             serializer.save()
-            update_volume_metadata(
+            _update_volume_metadata(
                 esh_driver, esh_volume, data)
             response = Response(serializer.data)
             return response
@@ -395,7 +395,7 @@ class Volume(AuthAPIView):
                                       context={'request': request})
         if serializer.is_valid():
             serializer.save()
-            update_volume_metadata(
+            _update_volume_metadata(
                 esh_driver, esh_volume, data)
             response = Response(serializer.data)
             return response

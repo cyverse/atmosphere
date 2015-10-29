@@ -276,3 +276,17 @@ class VolumeStatusHistory(models.Model):
     class Meta:
         db_table = "volume_status_history"
         app_label = "core"
+
+
+def find_volume(volume_id):
+    if type(volume_id) == int:
+        core_volume = Volume.objects.filter(id=volume_id)
+    else:
+        core_volume = Volume.objects.filter(source__identifier=volume_id)
+    if len(core_volume) > 1:
+        logger.warn(
+            "Multiple volumes returned for volume_id - %s" %
+            volume_id)
+    if core_volume:
+        return core_volume[0]
+    return None

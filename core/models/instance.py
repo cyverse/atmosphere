@@ -678,7 +678,10 @@ Useful utility methods for the Core Model..
 
 
 def find_instance(instance_id):
-    core_instance = Instance.objects.filter(provider_alias=instance_id)
+    if type(instance_id) == int:
+        core_instance = Instance.objects.filter(id=instance_id)
+    else:
+        core_instance = Instance.objects.filter(provider_alias=instance_id)
     if len(core_instance) > 1:
         logger.warn(
             "Multiple instances returned for instance_id - %s" %

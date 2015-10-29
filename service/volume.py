@@ -15,8 +15,16 @@ from service.instance import boot_volume_instance
 Request = namedtuple("request", ["user"])
 
 
-def update_volume_metadata(esh_driver, esh_volume,
-                           metadata={}):
+def update_volume_metadata(core_volume, metadata={}):
+    identity = core_volume.source.created_by_identity
+    volume_id = core_volume.provider_alias
+    esh_driver = get_cached_driver(identity=identity)
+    esh_volume = esh_driver.get_volume(volume_id)
+    return _update_volume_metadata(esh_driver, esh_volume, metadata)
+
+
+def _update_volume_metadata(esh_driver, esh_volume,
+                            metadata={}):
     """
     NOTE: This will NOT WORK for TAGS until openstack
     allows JSONArrays as values for metadata!
