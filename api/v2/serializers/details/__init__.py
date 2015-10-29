@@ -1,3 +1,4 @@
+# flake8: noqa
 from .allocation import AllocationSerializer
 from .boot_script import BootScriptSerializer
 from .credential import CredentialSerializer
@@ -30,41 +31,3 @@ from .status_type import StatusTypeSerializer
 from .tag import TagSerializer
 from .user import UserSerializer
 from .volume import VolumeSerializer, UpdateVolumeSerializer
-
-
-__all__ = (
-    "AllocationSerializer",
-    "BootScriptSerializer",
-    "CredentialSerializer",
-    "GroupSerializer",
-    "IdentitySerializer",
-    "ImageBookmarkSerializer",
-    "ImageSerializer",
-    "ImageTagSerializer",
-    "ImageVersionSerializer",
-    "ImageVersionBootScriptSerializer",
-    "ImageVersionLicenseSerializer",
-    "ImageVersionMembershipSerializer",
-    "InstanceSerializer",
-    "InstanceTagSerializer",
-    "LicenseSerializer",
-    "MaintenanceRecordSerializer",
-    "MachineRequestSerializer",
-    "MembershipSerializer",
-    "PlatformTypeSerializer",
-    "ProjectInstanceSerializer",
-    "ProjectSerializer",
-    "ProjectVolumeSerializer",
-    "ProviderMachineSerializer",
-    "ProviderSerializer",
-    "ProviderTypeSerializer",
-    "QuotaSerializer",
-    "ResourceRequestSerializer",
-    "SizeSerializer",
-    "StatusTypeSerializer",
-    "TagSerializer",
-    "UpdateVolumeSerializer",
-    "UserResourceRequestSerializer",
-    "UserSerializer",
-    "VolumeSerializer"
-)

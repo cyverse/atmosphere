@@ -1,3 +1,4 @@
+# flake8: noqa
 from .allocation import AllocationViewSet
 from .boot_script import BootScriptViewSet
 from .credential import CredentialViewSet
@@ -27,6 +28,7 @@ from .quota import QuotaViewSet
 from .resource_request import ResourceRequestViewSet
 from .size import SizeViewSet
 from .status_type import StatusTypeViewSet
+from .email import FeedbackEmailViewSet, SupportEmailViewSet, ResourceEmailViewSet
 from .tag import TagViewSet
 from .user import UserViewSet
 from .volume import VolumeViewSet
