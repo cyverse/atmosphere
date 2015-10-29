@@ -30,6 +30,7 @@ def uuid_for_all(apps, schema_editor):
             'allocation' : 'uuid',
             'applicationbookmark' : 'uuid',
             'bootscript' : 'uuid',
+            'credential' : 'uuid',
             'group' : 'uuid',
             'identitymembership' : 'uuid',
             'instancemembership' : 'uuid',
@@ -38,6 +39,7 @@ def uuid_for_all(apps, schema_editor):
             'license' : 'uuid',
             'leadership' : 'uuid',
             'machinerequest' : 'uuid',
+            'providercredential' : 'uuid',
             'resourcerequest' : 'uuid',
             'quota' : 'uuid',
             'size' : 'uuid',
@@ -54,9 +56,6 @@ def uuid_for_all(apps, schema_editor):
     }
     for core_model, uuid_key in model_key_map.items():
         gen_uuid(apps, schema_editor, core_model, uuid_key)
-    CoreModel = apps.get_model('core', 'machinerequest')
-    all_objs = CoreModel.objects.all()
-    
 
 class Migration(migrations.Migration):
 

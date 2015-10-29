@@ -1,9 +1,10 @@
-from core.models import Quota
+from django.contrib.auth.models import AnonymousUser
 
 from api.v2.serializers.details import QuotaSerializer
 from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 from api.permissions import CanEditOrReadOnly
+from core.models import Quota
 
 
 class QuotaViewSet(MultipleFieldLookup, AuthViewSet):
@@ -20,3 +21,11 @@ class QuotaViewSet(MultipleFieldLookup, AuthViewSet):
         CanEditOrReadOnly,
     )
     http_method_names = ['get', 'post', 'head', 'options', 'trace']
+
+    def get_queryset(self):
+        """
+        Filter allocations current user.
+        """
+        user = self.request.user
+        if type(user) == AnonymousUser or not user.is_staff:
+            return Quota.objects.none()

@@ -64,6 +64,11 @@ class Migration(migrations.Migration):
             field=models.UUIDField(null=True),
         ),
         migrations.AddField(
+            model_name='credential',
+            name='uuid',
+            field=models.UUIDField(null=True),
+        ),
+        migrations.AddField(
             model_name='group',
             name='uuid',
             field=models.UUIDField(null=True),
@@ -95,6 +100,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='license',
+            name='uuid',
+            field=models.UUIDField(null=True),
+        ),
+        migrations.AddField(
+            model_name='providercredential',
             name='uuid',
             field=models.UUIDField(null=True),
         ),

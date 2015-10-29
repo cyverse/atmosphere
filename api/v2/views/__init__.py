@@ -1,5 +1,6 @@
 from .allocation import AllocationViewSet
 from .boot_script import BootScriptViewSet
+from .credential import CredentialViewSet
 from .group import GroupViewSet
 from .identity import IdentityViewSet
 from .image import ImageViewSet

@@ -62,6 +62,11 @@ class Migration(migrations.Migration):
             field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
         ),
         migrations.AlterField(
+            model_name='credential',
+            name='uuid',
+            field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
+        ),
+        migrations.AlterField(
             model_name='group',
             name='uuid',
             field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
@@ -93,6 +98,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterField(
             model_name='leadership',
+            name='uuid',
+            field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
+        ),
+        migrations.AlterField(
+            model_name='providercredential',
             name='uuid',
             field=models.UUIDField(default=uuid.uuid4, unique=True, editable=False),
         ),

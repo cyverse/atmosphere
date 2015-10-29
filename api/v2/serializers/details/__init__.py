@@ -1,5 +1,6 @@
 from .allocation import AllocationSerializer
 from .boot_script import BootScriptSerializer
+from .credential import CredentialSerializer
 from .group import GroupSerializer
 from .image_version import ImageVersionSerializer
 from .image_version_boot_script import ImageVersionBootScriptSerializer
@@ -34,6 +35,7 @@ from .volume import VolumeSerializer, UpdateVolumeSerializer
 __all__ = (
     "AllocationSerializer",
     "BootScriptSerializer",
+    "CredentialSerializer",
     "GroupSerializer",
     "IdentitySerializer",
     "ImageBookmarkSerializer",
